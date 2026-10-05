@@ -516,9 +516,9 @@ describe('ResearchResultsTool', () => {
     await flushPromises()
 
     expect(wrapper.find('.breadth-history-chart').exists()).toBe(true)
-    expect(wrapper.text()).toContain('2 shown')
+    expect(wrapper.text()).toContain('Showing 2 of 2 occurrences')
     await wrapper.get('[aria-label="Occurrence symbol filter"]').setValue('spy')
-    expect(wrapper.text()).toContain('1 shown')
+    expect(wrapper.text()).toContain('Showing 1 of 1 occurrences')
     expect(wrapper.text()).not.toContain('AAPL')
     const list = wrapper.get('[role="list"][aria-label="Historical breadth occurrences"]')
     const item = list.get('[role="listitem"]')
@@ -533,6 +533,30 @@ describe('ResearchResultsTool', () => {
       instrument_id: 7,
       kind: 'member_entered',
     })
+  })
+
+  it('makes the complete breadth occurrence list available without overstating the visible count', async () => {
+    const occurrences = Array.from({ length: 101 }, (_, index) => ({
+      occurrence_id: `${index + 1}:2026-01-01T00:00:00Z:member_entered`,
+      timestamp: new Date(Date.UTC(2026, 0, 1) + index * 60_000).toISOString(),
+      kind: 'member_entered',
+      instrument_id: index + 1,
+      symbol: `SYM${index}`,
+      value: true,
+    }))
+    apiGet.mockResolvedValue([{ id: 20, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
+      { id: 11, name: 'breadth_history', artifact_type: 'breadth_history', payload: { value: { points: [{ timestamp: '2026-01-01T00:00:00Z', percentage: 1, requested_count: 1, eligible_count: 1, pass_count: 1, excluded_count: 0, coverage: 1 }], occurrences } } },
+    ] }])
+    const wrapper = mountTool()
+    await flushPromises()
+
+    const list = wrapper.get('[role="list"][aria-label="Historical breadth occurrences"]')
+    expect(list.findAll('[role="listitem"]')).toHaveLength(100)
+    expect(wrapper.text()).toContain('Showing 100 of 101 occurrences')
+    await wrapper.findAll('button').find(button => button.text() === 'Load more occurrences (1 remaining)')!.trigger('click')
+    expect(list.findAll('[role="listitem"]')).toHaveLength(101)
+    expect(wrapper.text()).toContain('Showing 101 of 101 occurrences')
+    expect(wrapper.findAll('button').some(button => button.text().startsWith('Load more occurrences'))).toBe(false)
   })
 
   it('filters generic event artifacts and publishes the selected event identity', async () => {
@@ -552,9 +576,9 @@ describe('ResearchResultsTool', () => {
     const wrapper = mountTool()
     await flushPromises()
 
-    expect(wrapper.text()).toContain('2 shown')
+    expect(wrapper.text()).toContain('Showing 2 of 2 occurrences')
     await wrapper.get('[aria-label="signal_events symbol filter"]').setValue('spy')
-    expect(wrapper.text()).toContain('1 shown')
+    expect(wrapper.text()).toContain('Showing 1 of 1 occurrences')
     expect(wrapper.text()).not.toContain('AAPL')
     await wrapper.get('[aria-label="signal_events event type filter"]').setValue('member_entered')
     const list = wrapper.get('[role="list"][aria-label="signal_events filtered occurrences"]')
@@ -570,6 +594,31 @@ describe('ResearchResultsTool', () => {
       instrument_id: 7,
       kind: 'member_entered',
     })
+  })
+
+  it('pages large event artifacts and reports visible versus matching occurrences', async () => {
+    const occurrences = Array.from({ length: 205 }, (_, index) => ({
+      symbol: `SYM${index}`,
+      timestamp: new Date(Date.UTC(2026, 0, 1) + index * 60_000).toISOString(),
+      kind: index % 2 ? 'member_exited' : 'member_entered',
+      instrument_id: index + 1,
+    }))
+    apiGet.mockResolvedValue([{ id: 29, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
+      { id: 18, name: 'large_events', artifact_type: 'events', payload: { value: occurrences } },
+    ] }])
+    const wrapper = mountTool()
+    await flushPromises()
+
+    const list = wrapper.get('[role="list"][aria-label="large_events filtered occurrences"]')
+    expect(list.findAll('[role="listitem"]')).toHaveLength(100)
+    expect(wrapper.text()).toContain('Showing 100 of 205 occurrences')
+    await wrapper.findAll('button').find(button => button.text() === 'Load more occurrences (105 remaining)')!.trigger('click')
+    expect(list.findAll('[role="listitem"]')).toHaveLength(200)
+    expect(wrapper.text()).toContain('Showing 200 of 205 occurrences')
+    await wrapper.get('[aria-label="large_events symbol filter"]').setValue('SYM204')
+    expect(wrapper.text()).toContain('Showing 1 of 1 occurrences')
+    expect(list.findAll('[role="listitem"]')).toHaveLength(1)
+    expect(wrapper.findAll('button').some(button => button.text().startsWith('Load more occurrences'))).toBe(false)
   })
 
   it('promotes a completed event artifact to a Strategy signal with an explicit lineage message', async () => {

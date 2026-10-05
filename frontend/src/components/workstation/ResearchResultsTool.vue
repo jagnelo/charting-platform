@@ -145,23 +145,24 @@
             <div class="research-results-tool__occurrence-filters" role="group" aria-label="Historical breadth occurrence filters">
               <label>Symbol <input v-model="occurrenceSymbolFilter" type="search" aria-label="Occurrence symbol filter" placeholder="All symbols" /></label>
               <label>Transition <select v-model="occurrenceKindFilter" aria-label="Occurrence transition filter"><option value="all">All</option><option value="member_entered">Entered</option><option value="member_exited">Exited</option></select></label>
-              <span role="status" aria-live="polite">{{ filteredBreadthHistoryOccurrences(artifact).length }} shown</span>
+              <span role="status" aria-live="polite">{{ occurrenceListStatus(artifact, filteredBreadthHistoryOccurrences(artifact).length) }}</span>
             </div>
             <div class="research-results-tool__events" role="list" aria-label="Historical breadth occurrences">
-              <div v-for="(event, index) in filteredBreadthHistoryOccurrences(artifact).slice().reverse().slice(0, 100)" :key="event.occurrence_id + '-' + index" role="listitem">
+              <div v-for="(event, index) in visibleBreadthHistoryOccurrences(artifact)" :key="event.occurrence_id + '-' + index" role="listitem">
                 <button type="button" :aria-label="event.symbol + ' ' + (event.kind === 'member_entered' ? 'entered' : 'exited') + ' ' + event.timestamp" @keydown.stop @click="emit('occurrence', event)">
                   <strong>{{ event.symbol }}</strong><span>{{ event.kind === 'member_entered' ? 'Entered condition' : 'Exited condition' }} · {{ event.timestamp }}</span>
                   <small v-if="event.percentage != null">{{ (event.percentage * 100).toFixed(1) }}%</small>
                 </button>
               </div>
             </div>
+            <button v-if="hasMoreOccurrences(artifact, filteredBreadthHistoryOccurrences(artifact).length)" type="button" @click="loadMoreOccurrences(artifact)">Load more occurrences ({{ remainingOccurrences(artifact, filteredBreadthHistoryOccurrences(artifact).length) }} remaining)</button>
             <small v-if="!filteredBreadthHistoryOccurrences(artifact).length">No member state changes match the current filters.</small>
           </section>
           <section v-else-if="artifact.artifact_type === 'events'" class="research-results-tool__event-artifact" :aria-label="`${artifact.name} occurrences`">
             <div class="research-results-tool__occurrence-filters" role="group" :aria-label="`${artifact.name} occurrence filters`">
               <label>Symbol <input v-model="occurrenceSymbolFilter" type="search" :aria-label="`${artifact.name} symbol filter`" placeholder="All symbols" /></label>
               <label>Type <select v-model="occurrenceKindFilter" :aria-label="`${artifact.name} event type filter`"><option value="all">All</option><option v-for="kind in eventKinds(artifact)" :key="kind" :value="kind">{{ kind.replace(/_/g, ' ') }}</option></select></label>
-              <span role="status" aria-live="polite">{{ filteredEventRows(artifact).length }} shown</span>
+              <span role="status" aria-live="polite">{{ occurrenceListStatus(artifact, filteredEventRows(artifact).length) }}</span>
             </div>
             <div v-if="canPromoteStructuredEventArtifact(selectedRun, artifact)" class="research-results-tool__event-promotions" role="group" :aria-label="`${artifact.name} promotions`">
               <button type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save filter: ${artifact.name}`" @click="promoteEventArtifact(selectedRun, artifact.name, 'filter')">{{ promoting ? 'Promoting…' : `Save filter: ${artifact.name}` }}</button>
@@ -169,10 +170,11 @@
               <button type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save Strategy signal: ${artifact.name}`" @click="promoteEventArtifact(selectedRun, artifact.name, 'signal')">{{ promoting ? 'Promoting…' : `Save Strategy signal: ${artifact.name}` }}</button>
             </div>
             <div class="research-results-tool__events" role="list" :aria-label="`${artifact.name} filtered occurrences`">
-              <div v-for="(event, index) in filteredEventRows(artifact)" :key="`${event.symbol}-${event.timestamp}-${index}`" role="listitem">
+              <div v-for="(event, index) in visibleEventRows(artifact)" :key="`${event.symbol}-${event.timestamp}-${index}`" role="listitem">
                 <button type="button" :aria-label="`${event.symbol} ${event.timestamp} occurrence`" @keydown.stop @click="emit('occurrence', event)"><strong>{{ event.symbol }}</strong><span>{{ event.kind ? `${event.kind.replace(/_/g, ' ')} · ` : '' }}{{ event.timestamp }}</span></button>
               </div>
             </div>
+            <button v-if="hasMoreOccurrences(artifact, filteredEventRows(artifact).length)" type="button" @click="loadMoreOccurrences(artifact)">Load more occurrences ({{ remainingOccurrences(artifact, filteredEventRows(artifact).length) }} remaining)</button>
             <small v-if="!filteredEventRows(artifact).length">No events match the current filters.</small>
           </section>
           <pre v-else>{{ artifactText(artifact.payload) }}</pre>
@@ -265,6 +267,8 @@ const promotedStructuredScalarScans = ref<Record<string, { id: number; name: str
 const promotedEventFilters = ref<Record<number, { id: number; name: string }>>({})
 const occurrenceSymbolFilter = ref('')
 const occurrenceKindFilter = ref<'all' | 'member_entered' | 'member_exited'>('all')
+const occurrencePageSizes = ref<Record<string, number>>({})
+const OCCURRENCE_PAGE_SIZE = 100
 type ConditionOperator = 'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'ne'
 type ConditionDraft = { operator: ConditionOperator; threshold: number }
 const conditionDrafts = ref<Record<string, ConditionDraft>>({})
@@ -370,6 +374,9 @@ watch(() => runsQuery.error.value, cause => {
 })
 watch(() => selectedRunDetailQuery.data.value, detail => {
   if (detail && detail.id === selectedRun.value?.id) selectedRun.value = detail
+})
+watch([occurrenceSymbolFilter, occurrenceKindFilter, () => selectedRun.value?.id], () => {
+  occurrencePageSizes.value = {}
 })
 watch(comparisonLoadKey, key => { void loadComparisonDetails(key) }, { immediate: true })
 
@@ -636,6 +643,28 @@ function filteredBreadthHistoryOccurrences(artifact: ResearchRunSummary['artifac
     && (occurrenceKindFilter.value === 'all' || event.kind === occurrenceKindFilter.value)
   ))
 }
+function occurrencePageKey(artifact: ResearchRunSummary['artifacts'][number]): string {
+  return `${selectedRun.value?.id ?? 'none'}:${artifact.id}`
+}
+function occurrencePageSize(artifact: ResearchRunSummary['artifacts'][number]): number {
+  return occurrencePageSizes.value[occurrencePageKey(artifact)] ?? OCCURRENCE_PAGE_SIZE
+}
+function occurrenceListStatus(artifact: ResearchRunSummary['artifacts'][number], total: number): string {
+  return `Showing ${Math.min(occurrencePageSize(artifact), total)} of ${total} occurrences`
+}
+function hasMoreOccurrences(artifact: ResearchRunSummary['artifacts'][number], total: number): boolean {
+  return occurrencePageSize(artifact) < total
+}
+function remainingOccurrences(artifact: ResearchRunSummary['artifacts'][number], total: number): number {
+  return Math.max(0, total - occurrencePageSize(artifact))
+}
+function loadMoreOccurrences(artifact: ResearchRunSummary['artifacts'][number]) {
+  const key = occurrencePageKey(artifact)
+  occurrencePageSizes.value[key] = occurrencePageSize(artifact) + OCCURRENCE_PAGE_SIZE
+}
+function visibleBreadthHistoryOccurrences(artifact: ResearchRunSummary['artifacts'][number]): BreadthHistoryOccurrence[] {
+  return filteredBreadthHistoryOccurrences(artifact).slice().reverse().slice(0, occurrencePageSize(artifact))
+}
 type EventRow = { symbol: string; timestamp: string; kind?: string; instrument_id?: number }
 function eventRows(artifact: ResearchRunSummary['artifacts'][number]): EventRow[] {
   const value = artifact.payload.value
@@ -659,6 +688,9 @@ function filteredEventRows(artifact: ResearchRunSummary['artifacts'][number]): E
     (!symbol || event.symbol.toUpperCase().includes(symbol))
     && (kind === 'all' || event.kind === kind)
   ))
+}
+function visibleEventRows(artifact: ResearchRunSummary['artifacts'][number]): EventRow[] {
+  return filteredEventRows(artifact).slice(0, occurrencePageSize(artifact))
 }
 function exportArtifact(run: ResearchRunSummary, artifact: ResearchRunSummary['artifacts'][number]) {
   const payload = JSON.stringify({ run_id: run.id, reproducibility_hash: run.reproducibility_hash ?? null, artifact }, null, 2)
