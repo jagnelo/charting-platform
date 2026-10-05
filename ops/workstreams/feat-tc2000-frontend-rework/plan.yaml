@@ -277,30 +277,36 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R1_CURRENT_TIP_BROWSER_REPLAY
+  current_phase: R1_R6_KEYBOARD_ACCESSIBILITY_AND_EXACT_TIP_REPLAY
   next_action: >-
     Continue the next bounded TC-owned workstation UI, Study, or Strategy gap
     after checking the candidate against the frontend-led ownership boundary.
-    The exact-tip full browser and four-viewport results are now recorded; the
-    focused retries diagnose isolated startup/network failures but do not erase
-    the full-run failures or the ten protected screenshot differences. Run the
-    relevant regression tests and refresh complete exact-tip evidence at the
-    next product checkpoint. Defer provider/ETF consumption and shared-path
-    reconciliation until both dependency tips reach staging; do not mutate
-    another worktree.
+    The keyboard-open Boolean pin menu is pushed and its focused, full frontend,
+    build, and authenticated checks passed. Preserve the exact-tip functional
+    transport failure and the four current shell screenshot mismatches; neither
+    focused replay nor the four-case visual smoke replaces full acceptance.
+    Defer provider/ETF consumption and shared-path reconciliation until both
+    dependency tips reach staging; do not mutate another worktree.
   current_blocker: >-
-    The full run at branch tip 9b04cee36d32d5064fc4edb3c512d98b88c38040
-    (product source 3958886632af62e0207fb02ed6961b16fd1a600c) had five
-    functional failures; all five passed a six-case focused replay. The 104-case
-    visual run had ten known screenshot diffs and one blank-page setup failure;
-    the unchanged setup case passed 1/1 in isolation. The new authenticated
-    Add Tool capability guard passed 1/1 after the full run. Preserve the ten
-    screenshot oracles and track the transient full-run failures honestly. The
-    exact integration helper still stops at Docker Buildx `--name`, though the
-    assigned Compose stack and pinned browser are operational. Upstream provider
-    and ETF branches remain outside staging, so R2/R3 and semantic reconciliation
-    are externally sequenced; no human permission gate blocks independent TC work.
+    At pushed product tip be55d1af2de8037671d65e33d5b1d5120e11f38c, the
+    174-case authenticated functional run had 171 passes, 2 documented skips,
+    and one F8s-family-matrix diagnostic failure: unrelated local API requests
+    reported ERR_NETWORK_CHANGED after its application assertions completed.
+    The unchanged focused replay passed 1/1 but does not replace the full result.
+    The post-change four-project full visual attempt was stopped after broad
+    baseline deltas; a fresh seeded-database shell smoke still differed at all
+    four viewports (42,759; 44,586; 50,854; and 53,003 pixels, each above the
+    unchanged 0.5% threshold). The prior completed 104-case visual matrix was
+    93/104 with ten protected screenshot differences and one startup failure
+    that passed focused replay. No visual oracle, mask, threshold, skip, or
+    acceptance rule changed. `make validate-integration` still stops at the
+    Docker Buildx `--name` helper mismatch. Provider tip 88132e9145a08d1c935a0111b3dba0fbd88bdff1
+    and ETF tip 08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5 remain outside staging
+    8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, so R2/R3 and shared-path
+    reconciliation remain deferred. No human permission gate blocks independent
+    TC work.
 historical_implementation_records:
+  - "Product commit be55d1af2de8037671d65e33d5b1d5120e11f38c adds keyboard invocation for the TC-owned Virtual Watchlist Boolean header pin menu using Shift+F10 and the Context Menu key, while preserving right-click and Ctrl/Meta-click behavior and anchoring the menu at the header for keyboard use. Focused VirtualWatchlistTool coverage passed 80/80; full serial frontend Vitest passed 129 files / 1,202 tests; the Docker production build (including vue-tsc and Vite build) passed; and authenticated F8u-boolean passed 1/1. The exact-tip 174-case functional run passed 171, skipped 2 documented cases, and failed one F8s-family-matrix diagnostic because unrelated local API requests reported ERR_NETWORK_CHANGED after assertions; unchanged focused replay passed 1/1. The completed prior-tip 104-case visual matrix was 93/104 with ten protected screenshot differences; a post-change full visual attempt was stopped after broad deltas, and a fresh seeded-database shell smoke differed at all four viewports by 42,759 / 44,586 / 50,854 / 53,003 pixels. No screenshot oracle, mask, threshold, skip, or acceptance policy changed. The exact branch commit is pushed and direct GitHub refs verified; staging remains 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider is 88132e9145a08d1c935a0111b3dba0fbd88bdff1, and ETF is 08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5. Both dependencies remain outside staging."
   - "Test commit 435c5b9ad58a1889b040febcadab9a202cfbfc48 adds F9e-plot-library-search against unchanged product source 05aac7f816aab492c7b2aadb1adb9ffc6e76f02a. Authenticated Chromium confirmed full-name filtering, visible RSI selection, and live no-match status; the browser case passed 1/1. The focused component suite passed 45/45, full frontend coverage passed 129 files / 1,200 tests, and type-check/build passed. A current-app screenshot was inspected at /tmp/tc2000-chart-open-rsi-dropdown.png, but the branch reference pack has no authoritative V25 capture of this state; keep the screenshot parity gap open and do not add or change a visual oracle. The only assigned TC Compose project and its fixture resources/images were removed after use. No provider/ETF behavior changed."
   - "Product commit c038aafc6fe8378cdf11d4b76006100488c75556 adds compact requested/eligible/excluded/coverage counts and a collapsible generic-breadth evidence view for universe identity/role, membership version, member observation dates, sampling semantics, source provenance, freshness and details, calculation version, definition hash, and grouped exclusion reasons. Python-backed breadth now preserves reported calculation/provenance and no longer invents a freshness state. Full frontend Vitest passed 128 files / 1,197 tests; vue-tsc/type-check and Vite production build passed; the rebuilt authenticated Chromium F8s-breadth-family-ratio flow passed 1/1 with evidence assertions. The assigned Compose stack was removed and resource audit reported zero containers, volumes, test sessions, unknown components, or known bytes. The full branch-wide browser/visual gate was not rerun at this product tip; preserve every oracle and the ten screenshot-only differences last recorded at a78812d. No provider/ETF ownership or data acquisition changed."
   - "At exact pushed product tip a78812d33f6402b329c947b70765f2a84e5be9ac, the pinned serial functional browser suite passed 171 with 110 documented skips and zero failures. The unchanged pinned Playwright 1.62.1 104-case visual matrix passed 94/104; ten screenshot-only differences remain in workspace-floating (8,995/9,825/8,995/9,825 pixels), Study structured-result (109,320/105,698/22,099/21,352), and Study sandbox-error at 1080p (13,360/11,188). All interaction/state checks passed before comparison. No oracle or policy changed; scoped Docker cleanup and resource audit left zero assigned resources. Current remote dependency tips 88132e9145a08d1c935a0111b3dba0fbd88bdff1 and 48512cd934759c8a52e9b4071c281ef763a08699 are not ancestors of staging 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35."

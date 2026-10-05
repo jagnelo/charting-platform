@@ -1,5 +1,44 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Keyboard-accessible Boolean pin menu and current-tip evidence
+
+Product commit `be55d1af2de8037671d65e33d5b1d5120e11f38c`
+(`feat(tc2000): keyboard-open Boolean pin menu`) adds keyboard invocation of
+the Virtual Watchlist Boolean-header pin menu with `Shift+F10` and the Context
+Menu key. Keyboard use anchors the menu at the header; existing right-click and
+Ctrl/Meta-click behavior is retained. Focused VirtualWatchlistTool coverage
+passed `80/80`, full serial frontend Vitest passed `129` files / `1,202` tests,
+the Docker production build passed (including `vue-tsc` and Vite), and the
+authenticated F8u-boolean browser flow passed `1/1`.
+
+At that exact pushed tip, the serial authenticated functional suite ran 174
+cases: 171 passed, 2 documented skips, and one F8s-family-matrix diagnostic
+failed because unrelated local API requests reported `ERR_NETWORK_CHANGED`
+after application assertions completed. The unchanged focused replay passed
+`1/1`; it does not replace the full-suite result. The previously completed
+104-case visual matrix remains `93/104` with ten protected screenshot
+differences and one transient startup failure. A post-change full visual attempt
+was stopped after broad screenshot deltas; after an exact-worktree cleanup and a
+fresh seeded database, a four-viewport shell smoke still differed by
+42,759/44,586/50,854/53,003 pixels. No screenshot oracle, mask, threshold,
+skip, or acceptance rule changed. Preserve both the full functional failure
+and the visual gap; the four-case smoke is not a substitute for the full visual
+matrix.
+
+The authorized branch push and direct GitHub check confirmed local, tracking,
+and remote TC refs at `be55d1af2de8037671d65e33d5b1d5120e11f38c`. Staging is
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`; provider is
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`; ETF is
+`08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5`. Neither dependency is in staging.
+The assigned six-service stack cleanup removed six containers and four
+generated images, retained no volumes or test sessions, and the follow-up
+resource audit reported zero TC-attributable containers, volumes, images,
+known bytes, or unknown components. No other branch or worktree was changed.
+R2/R3 integration remains deferred; `make validate-integration` still has the
+recorded Docker Buildx `--name` helper mismatch. Continue independent TC-owned
+work only, and do not mark the goal ready for review while its remaining scope
+and validation gates are open.
+
 ## 2026-10-05 — Exact TC browser stack cleanup
 
 After the current-tip functional and visual runs, the repository resource

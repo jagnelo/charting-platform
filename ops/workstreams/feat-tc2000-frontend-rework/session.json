@@ -48,26 +48,18 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "dirty_paths": [
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
-    "build_cache_bytes": null,
     "container_count": 0,
     "containers": [],
     "known_bytes": 0,
-    "over_budget": false,
     "projects": [
       "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae"
     ],
     "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
     "volume_bytes": 0,
@@ -78,22 +70,29 @@
     "accounting_complete": true,
     "available": true,
     "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
+    "container_count": 6,
+    "containers": [
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-worker-1",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-frontend-1",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-backend-1",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-postgres-1",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
+    ],
+    "known_bytes": 83931679,
     "over_budget": false,
     "projects": [
-      "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
-      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4"
+      "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae"
     ],
     "testcontainer_sessions": [],
     "threshold_bytes": 5000000000,
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
+    "volume_bytes": 81400351,
+    "volume_count": 4,
+    "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "docker_ready": {
     "ready": true,
@@ -111,14 +110,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "55c029ca9eb2568c85cf9ad18c6e11684452cea1",
-  "implementation_sha": "3958886632af62e0207fb02ed6961b16fd1a600c",
+  "head": "be55d1af2de8037671d65e33d5b1d5120e11f38c",
+  "implementation_sha": "be55d1af2de8037671d65e33d5b1d5120e11f38c",
   "interrupted": false,
-  "last_checkpoint": "2026-10-05T01:54:02.000000+00:00",
+  "last_checkpoint": "2026-10-05T02:41:03+00:00",
   "last_human_progress_update": "2026-10-05T01:43:16.000000+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue the next bounded TC-owned workstation UI, Study, or Strategy gap after checking the candidate against the frontend-led ownership boundary. The exact-tip browser and four-viewport results are recorded; preserve the ten visual differences and do not treat focused retries as replacements for the full result. Defer provider/ETF integration until both branches reach staging.",
-  "plan_hash": "c0ee77d4227c1f3859bb7f3d87c6af9005933746d3e28c72e15448588a02bf0b",
+  "next_action": "Continue the next bounded TC-owned workstation UI, Study, or Strategy gap after checking the candidate against the frontend-led ownership boundary. Preserve the exact-tip functional transport failure and current four-viewport shell mismatch; focused replay and smoke results do not replace full acceptance. Defer provider/ETF integration until both branches reach staging.",
+  "plan_hash": "34ae80b96dec288fb0088d47d8f212c3a275726b574e6c00e210219b033f9548",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -131,28 +130,28 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "At pushed branch tip 9b04cee36d32d5064fc4edb3c512d98b88c38040 (product source 3958886632af62e0207fb02ed6961b16fd1a600c), the 178-case functional project had 167 passed, 6 documented skips, and 5 failures. A six-case replay passed all five failed flows; the assigned Compose stack was healthy with zero restarts. The 104-case visual matrix had 93 passes, ten protected screenshot differences, and one startup failure that passed its focused replay. The new authenticated Add Tool capability guard passed 1/1 after those runs. The full integration helper still has a Docker Buildx --name mismatch, while ordinary Compose/browser execution works. Provider and ETF dependency branches remain outside staging, so R2/R3 remain deferred.",
-    "current_phase": "R1_R6_BROWSER_REPLAY_AND_CAPABILITY_BOUNDARY",
-    "next_action": "Continue the next bounded TC-owned workstation UI, Study, or Strategy gap after checking the candidate against the frontend-led ownership boundary. The exact-tip browser and four-viewport results are recorded; preserve the ten visual differences and do not treat focused retries as replacements for the full result. Defer provider/ETF integration until both branches reach staging.",
+    "current_blocker": "At pushed product tip be55d1af2de8037671d65e33d5b1d5120e11f38c, the 174-case authenticated functional run had 171 passes, 2 documented skips, and one F8s-family-matrix diagnostic failure: unrelated local API requests reported ERR_NETWORK_CHANGED after application assertions completed. The unchanged focused replay passed 1/1 but does not replace the full result. The post-change four-project full visual attempt was stopped after broad baseline deltas; a fresh seeded-database shell smoke still differed at all four viewports (42,759; 44,586; 50,854; and 53,003 pixels, each above the unchanged 0.5% threshold). The prior completed 104-case visual matrix was 93/104 with ten protected screenshot differences and one startup failure that passed focused replay. No visual oracle, mask, threshold, skip, or acceptance rule changed. make validate-integration still stops at the Docker Buildx --name helper mismatch. Provider tip 88132e9145a08d1c935a0111b3dba0fbd88bdff1 and ETF tip 08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5 remain outside staging 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, so R2/R3 and shared-path reconciliation remain deferred. No human permission gate blocks independent TC work.",
+    "current_phase": "R1_R6_KEYBOARD_ACCESSIBILITY_AND_EXACT_TIP_REPLAY",
+    "next_action": "Continue the next bounded TC-owned workstation UI, Study, or Strategy gap after checking the candidate against the frontend-led ownership boundary. The keyboard-open Boolean pin menu is pushed and its focused, full frontend, build, and authenticated checks passed. Preserve the exact-tip functional transport failure and four current shell screenshot mismatches; neither focused replay nor the four-case visual smoke replaces full acceptance. Defer provider/ETF consumption and shared-path reconciliation until both dependency tips reach staging; do not mutate another worktree.",
     "total": 9,
-    "updated_at": "2026-10-05T01:54:02.000000+00:00"
+    "updated_at": "2026-10-05T02:41:03+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin feat/tc2000-frontend-rework",
-    "current_local_head": "55c029ca9eb2568c85cf9ad18c6e11684452cea1",
+    "current_local_head": "be55d1af2de8037671d65e33d5b1d5120e11f38c",
     "current_pending_range": "",
     "failure_category": "",
-    "head_at_product_checkpoint": "3958886632af62e0207fb02ed6961b16fd1a600c",
-    "last_attempted_local_head": "55c029ca9eb2568c85cf9ad18c6e11684452cea1",
-    "last_attempted_range": "cd988ec1019998723b3174d87084168fbdee0bad..55c029ca9eb2568c85cf9ad18c6e11684452cea1",
-    "range_at_product_checkpoint": "4fc2de3513002f4383bebf1503932308e44d4b55..3958886632af62e0207fb02ed6961b16fd1a600c",
+    "head_at_product_checkpoint": "be55d1af2de8037671d65e33d5b1d5120e11f38c",
+    "last_attempted_local_head": "be55d1af2de8037671d65e33d5b1d5120e11f38c",
+    "last_attempted_range": "3a7efc62f83697a8fe59b1e55b0fc82e14d6611d..be55d1af2de8037671d65e33d5b1d5120e11f38c",
+    "range_at_product_checkpoint": "3a7efc62f83697a8fe59b1e55b0fc82e14d6611d..be55d1af2de8037671d65e33d5b1d5120e11f38c",
     "remote": "origin",
-    "remote_tracking_sha": "55c029ca9eb2568c85cf9ad18c6e11684452cea1",
+    "remote_tracking_sha": "be55d1af2de8037671d65e33d5b1d5120e11f38c",
     "status": "synchronized"
   },
-  "remote": "55c029ca9eb2568c85cf9ad18c6e11684452cea1",
-  "remote_sha": "55c029ca9eb2568c85cf9ad18c6e11684452cea1",
+  "remote": "be55d1af2de8037671d65e33d5b1d5120e11f38c",
+  "remote_sha": "be55d1af2de8037671d65e33d5b1d5120e11f38c",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
