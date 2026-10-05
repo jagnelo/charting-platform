@@ -112,6 +112,35 @@ test.describe('Chart', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8b — linked timeframe choice survives delayed workspace hydration', async ({ page, browserDiagnostics }) => {
+    let markWorkspaceRequestObserved!: () => void
+    let releaseWorkspaceRequest!: () => void
+    const workspaceRequestObserved = new Promise<void>(resolve => { markWorkspaceRequestObserved = resolve })
+    const workspaceRequestRelease = new Promise<void>(resolve => { releaseWorkspaceRequest = resolve })
+    await page.route('**/api/v1/workspaces/default', async route => {
+      markWorkspaceRequestObserved()
+      await workspaceRequestRelease
+      await route.continue()
+    })
+
+    try {
+      await page.goto('/chart/SPY')
+      await workspaceRequestObserved
+      const timeframe = page.getByRole('combobox', { name: 'Linked timeframe' })
+      await expect(timeframe).toBeVisible()
+      await expect(timeframe).toHaveValue('D1')
+      await timeframe.selectOption('H1')
+      await expect(timeframe).toHaveValue('H1')
+    } finally {
+      releaseWorkspaceRequest()
+    }
+
+    const timeframe = page.getByRole('combobox', { name: 'Linked timeframe' })
+    await expect(timeframe).toHaveValue('H1')
+    await expect(page.locator('.workstation__footer')).toContainText('H1')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F9 — drawing toolbar is visible and tools are clickable', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     const toolbar = page.locator('.drawing-toolbar')
@@ -1375,6 +1404,36 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8b-hydration — Add tool remains actionable while the saved workspace is loading', async ({ page, browserDiagnostics }) => {
+    let markWorkspaceRequestObserved!: () => void
+    let releaseWorkspaceRequest!: () => void
+    const workspaceRequestObserved = new Promise<void>(resolve => { markWorkspaceRequestObserved = resolve })
+    const workspaceRequestRelease = new Promise<void>(resolve => { releaseWorkspaceRequest = resolve })
+    await page.route('**/api/v1/workspaces/default', async route => {
+      markWorkspaceRequestObserved()
+      await workspaceRequestRelease
+      await route.continue()
+    })
+
+    try {
+      await page.goto('/chart/SPY')
+      await workspaceRequestObserved
+      await page.getByRole('button', { name: 'Add tool' }).click()
+      await page.getByRole('menuitem', { name: 'Relative Rotation', exact: true }).click()
+    } finally {
+      releaseWorkspaceRequest()
+    }
+
+    const rotation = page.locator('.tool-window:visible').filter({ has: page.locator('.rotation-tool') }).last()
+    await expect(rotation).toBeVisible({ timeout: 15_000 })
+    // This test mutates the shared authenticated workspace; restore its known
+    // factory layout so later serial flows do not inherit the added tool.
+    page.once('dialog', dialog => dialog.accept())
+    await page.getByTitle('Reset factory workspace').first().click()
+    await expect(rotation).toHaveCount(0)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8b-a — a benchmark pop-out hydrates shared market analysis when opened late', async ({ page, context, browserDiagnostics }) => {
     await page.goto('/chart')
     const sourceTool = page.locator('.tool-window').filter({ has: page.getByRole('region', { name: 'Major US benchmarks' }) }).first()
@@ -2267,9 +2326,7 @@ test.describe('TC2000 workstation', () => {
     await page.getByRole('combobox', { name: 'Linked timeframe' }).selectOption('W1')
     await expect(popupTool.locator('.tool-window__timeframe')).toHaveValue('W1', { timeout: 15_000 })
 
-    const closed = popup.waitForEvent('close')
-    await popup.locator('button[title="Close"]').click()
-    await closed
+    await closePopupWhenOpen(popup)
     await expect.poll(() => context.pages().length).toBe(1)
     await browserDiagnostics.expectNoCriticalIssues()
   })
@@ -4142,6 +4199,16 @@ test.describe('TC2000 workstation', () => {
   test('F8r-rotation-narrow — Relative Rotation controls and plot remain usable in a narrow desktop dock', async ({ page, browserDiagnostics }) => {
     await page.setViewportSize({ width: 390, height: 800 })
     await page.goto('/chart/SPY')
+    // This serial suite shares a persisted workspace. Start from the canonical
+    // factory layout so previous flows cannot leave a saturated stack that
+    // changes where a newly opened tool is mounted.
+    await expect(page.locator('.tool-window').first()).toBeVisible({ timeout: 15_000 })
+    const reset = page.getByTitle('Reset factory workspace').first()
+    if (await reset.count()) {
+      page.once('dialog', dialog => dialog.accept())
+      await reset.click()
+      await expect(page.locator('.tool-window').first()).toBeVisible({ timeout: 15_000 })
+    }
     await page.getByRole('button', { name: 'Add tool' }).click()
     await page.getByRole('menuitem', { name: 'Relative Rotation', exact: true }).click()
     const rotation = page.locator('.tool-window:visible').filter({ has: page.locator('.rotation-tool') }).last()

@@ -296,6 +296,7 @@ const workspaceDockPending = computed(() => workspaceReplacementPending.value ||
 // of allowing an early click to mutate a stale/null tab and then be overwritten
 // by the snapshot response.
 const workspaceReady = ref(false)
+const pendingTimeframeSelections = new Map<LinkGroup, string>()
 let workspaceLoadPromise: Promise<void> | null = null
 let resolveWorkspaceReady: (() => void) | null = null
 const workspaceReadyPromise = new Promise<void>(resolve => {
@@ -1114,6 +1115,10 @@ function selectIndustryForContext(industry: string, etf?: string) {
 }
 
 function setLinkedTimeframe(timeframe: string, group: LinkGroup = 'blue') {
+  // As with shell symbol selection, preserve an explicit choice made while
+  // the first saved snapshot is in flight. The snapshot can replace the
+  // linked timeframe before the initial workspace load settles.
+  if (!workspaceReady.value) pendingTimeframeSelections.set(group, timeframe)
   workspaceStore.publishTimeframe(timeframe, group, 'workstation')
 }
 
@@ -2105,6 +2110,13 @@ onMounted(async () => {
     }
   }
   if (!componentMounted) return
+  // The initial snapshot restores persisted linked timeframes. Replay any
+  // newer shell choices made while it loaded so hydration cannot discard
+  // what the user just selected.
+  for (const [group, timeframe] of pendingTimeframeSelections) {
+    workspaceStore.publishTimeframe(timeframe, group, 'workstation')
+  }
+  pendingTimeframeSelections.clear()
   // A user can interact with the shell while the first snapshot is loading.
   // loadDefault hydrates the persisted blue link, so replay the newer explicit
   // shell selection once hydration completes instead of silently reverting it.

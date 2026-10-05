@@ -163,6 +163,8 @@ describe('WorkstationView pop-out bindings', () => {
     routeState.query = {}
     apiGet.mockReset()
     apiGet.mockResolvedValue([])
+    harness.workspace.linkedTimeframe = 'D1'
+    harness.workspace.publishTimeframe = vi.fn()
     harness.workspace.loadDefault = vi.fn().mockResolvedValue(undefined)
     harness.workspace.marketGroups = { 'us-benchmarks': { members: [] }, 'sp500-sectors': { members: [] } }
     harness.workspace.groupSnapshots = {}
@@ -402,6 +404,38 @@ describe('WorkstationView pop-out bindings', () => {
 
     releaseHydration()
     await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenLastCalledWith(expect.objectContaining({ symbol: 'IWM', group: 'blue' })))
+    wrapper.unmount()
+  })
+
+  it('replays a linked timeframe selected before initial workspace hydration', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    let releaseHydration!: () => void
+    harness.workspace.loadDefault = vi.fn(() => new Promise<void>(resolve => {
+      releaseHydration = () => {
+        // Simulate the persisted snapshot replacing a choice made from the
+        // shell while its request was still in flight.
+        harness.workspace.linkedTimeframe = 'D1'
+        resolve()
+      }
+    }))
+    harness.workspace.publishTimeframe = vi.fn((timeframe: string) => {
+      harness.workspace.linkedTimeframe = timeframe
+    })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    await wrapper.get('select[aria-label="Linked timeframe"]').setValue('H1')
+    expect(harness.workspace.linkedTimeframe).toBe('H1')
+    expect(harness.workspace.publishTimeframe).toHaveBeenCalledTimes(1)
+
+    releaseHydration()
+    await vi.waitFor(() => {
+      expect(harness.workspace.publishTimeframe).toHaveBeenLastCalledWith('H1', 'blue', 'workstation')
+      expect(harness.workspace.linkedTimeframe).toBe('H1')
+    })
+    expect(harness.workspace.publishTimeframe).toHaveBeenCalledTimes(2)
     wrapper.unmount()
   })
 
