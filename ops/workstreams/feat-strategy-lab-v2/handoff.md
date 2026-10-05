@@ -11623,3 +11623,33 @@ receipt, and exact source-verified processed prefix. Make the fixed
 unverified event order. Then persist native outputs and exact replay checkpoints
 before Redis ACK and prove process-loss recovery. Stable release labeling is not
 a prerequisite; keep RC5 pinned to its already-qualified image and checks.
+
+The first bootstrap artifact boundary is now implemented in
+`backend/app/strategy_lab_v2/nautilus_forward_bootstrap.py`. The immutable
+contract binds the owner-scoped plan, frozen snapshot, warm-up receipt/tape,
+exact processed prefix, component source/package/parameter/seed identities,
+engine input, runtime bundle digest, and native event-stream digest. Its strict
+canonical JSON decoder enforces a 16 MiB bound, rejects duplicate fields and
+noncanonical encodings, and can require the expected bootstrap fingerprint.
+Construction also checks that strategy bindings cover the resolved plan and
+that processed events follow the frozen warm-up cursor.
+
+Implementation commit `8a1c7ccc3` is pushed to
+`origin/feat/strategy-lab-v2`. Validation at that source: all 1,484 Strategy
+Lab package tests passed, including local subprocess and AF_UNIX cases under
+the narrowly broadened test execution; focused bootstrap tests passed `6`,
+Ruff and formatter checks passed, focused MyPy passed, and `git diff --check`
+passed. Under the default restricted test execution, the subprocess case
+stalled and one AF_UNIX bind was denied; the exact full-suite retry passed.
+
+This bootstrap contract is not yet mounted or read by the isolated CLI. The
+fixed `--serve-forward` mode, concrete persistent shared-account
+`BacktestEngine`/strategy session, durable native output/checkpoint-before-ACK,
+and deterministic process-loss replay remain open. No RC5 image/runtime session
+has yet been exercised by this bootstrap test; exact RC5 remains the qualified
+pin and stable release labeling is not a prerequisite.
+
+Next: bind the bootstrap artifact path and fingerprint into the fixed CLI
+command, verify the mounted bootstrap plus referenced runtime input/event
+artifacts, and use it to construct one persistent shared-account session.
+Then complete durable output/checkpoint-before-ACK and restart replay.

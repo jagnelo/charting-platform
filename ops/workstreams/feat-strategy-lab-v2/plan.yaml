@@ -863,8 +863,11 @@ progress:
     for RC5; changing the pin requires independently rerunning the applicable
     checks and is not needed to continue. Immutable per-component forward plans
     pin strategy/package fingerprints, parameters, and seeds, and activation
-    requires a valid owner-scoped plan. The typed bounded host/runtime DTO codec
-    isolated-process supervisor, and strict operation handler now exist. The
+    requires a valid owner-scoped plan. The typed bounded host/runtime DTO
+    codec, isolated-process supervisor, strict operation handler, and immutable
+    authenticated bootstrap contract now exist. Bootstrap JSON parsing is
+    canonical, size-bounded, rejects duplicate fields, and binds the decoded
+    fingerprint to its artifact. The
     fixed CLI `--serve-forward` mode and concrete persistent shared-account
     BacktestEngine session are still unimplemented. Native output/checkpoint
     persistence before ACK and deterministic process-loss replay remain
@@ -876,10 +879,10 @@ progress:
     admission remains fail-closed pending canonical Greeks/delta and settlement
     evidence.
   next_action: >-
-    Define and validate the immutable forward runtime bootstrap bundle from the
-    owner-scoped execution plan, warm-up receipt, frozen snapshot, and exact
-    source-verified processed prefix. Wire that bundle into the fixed RC5 CLI
-    --serve-forward mode and construct one persistent shared-account
+    Wire the immutable authenticated bootstrap into the fixed RC5 CLI
+    --serve-forward mode, verifying its mounted bytes and the referenced
+    runtime-input/native-event artifacts before opening the session. Construct
+    one persistent shared-account
     BacktestEngine/strategy bridge. Then process only source-verified canonical
     deliveries and persist native output plus an exact replay checkpoint before
     Redis acknowledgement. Recover deterministically after process loss without
