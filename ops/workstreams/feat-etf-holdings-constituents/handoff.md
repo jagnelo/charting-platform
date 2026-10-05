@@ -8054,3 +8054,81 @@ stack to avoid competing for memory. No other worktree or its containers were
 modified. Resume the gate only when the concurrent stack exits and the host has
 safe headroom. This exact-SHA result does not satisfy the local visual or
 hosted E2E portions of AC7.
+
+## Exact-SHA run 37262933509 and current blockers — 2026-10-05
+
+GitHub Actions completed run `37262933509` on the exact pushed branch SHA
+`48b13a589c12a25b6393b6d17f2dfc5507dd1bfe`. Its branch-declared job passed the
+complete deterministic ETF adapter suite (596), default live contracts (3
+passed; 535 opt-in skips), opt-in live provider matrix (518 passed; 20
+classified skips), Ruff, workstream validation, frontend type-check, all 17
+ETF panel/view tests, and the production build. Backend unit/integration suites
+passed 1,501/379; frontend Vitest passed 945. The hosted CI is still red solely
+because backend and frontend Codecov uploads each failed with TLS `EPROTO`
+handshake errors even though `fail_ci_if_error` is false. Hosted Playwright
+E2E was skipped because its prerequisite jobs failed. The protected exhaustive
+integration job is skipped on this feature branch as designed.
+
+I attempted the normal GitHub failed-job retry, but the connected integration
+returned HTTP 403 (`Resource not accessible by integration`); `gh` is not
+installed in this environment, so there is no authorized retry route through
+the available tools. The branch CI itself passed, and the latest exact-SHA
+failure is the external coverage upload, not an application test failure.
+
+A new focused QVAL live replay completed with one skip due to local temporary
+DNS resolution failure. This does not show that QVAL holdings are available;
+the adapter's issuer-challenge classification remains an evidence-based
+unverified disposition.
+
+The required local `make validate-integration` full-stack/browser gate remains
+deferred. The read-only Docker inventory still shows the other worktree's six
+Compose services and Playwright browser running; available host memory is about
+3.1 GiB. The prior ETF attempt fell to about 2.3 GiB once competing test
+containers were active, so I will not start another heavy gate or stop/modify
+the other worktree's containers. When that stack exits and memory headroom is
+safe, rerun the official gate and inspect its actual/diff screenshots. The
+three previously noted Study Lab mismatches are generic workstation parity
+issues outside ETF `owned_paths`; no screenshot baseline or unrelated UI was
+changed. AC7/AC8 remain open for local full/browser evidence and hosted E2E.
+AC10 still awaits the separately developed provider-platform branch reaching
+staging, and AC14 is the post-integration/deployment 30-day shadow gate. The
+saved goal remains active; it is not marked blocked or complete.
+
+## Exact-SHA run 37262933509 and current blockers — 2026-10-05
+
+GitHub Actions completed run `37262933509` on the exact pushed branch SHA
+`48b13a589c12a25b6393b6d17f2dfc5507dd1bfe`. Its branch-declared job passed the
+complete deterministic ETF adapter suite (596), default live contracts (3
+passed; 535 opt-in skips), opt-in live provider matrix (518 passed; 20
+classified skips), Ruff, workstream validation, frontend type-check, all 17
+ETF panel/view tests, and the production build. Backend unit/integration suites
+passed 1,501/379; frontend Vitest passed 945. The hosted CI is still red solely
+because backend and frontend Codecov uploads each failed with TLS `EPROTO`
+handshake errors even though `fail_ci_if_error` is false. Hosted Playwright
+E2E was skipped because its prerequisite jobs failed. The protected exhaustive
+integration job is skipped on this feature branch as designed.
+
+I attempted the normal GitHub failed-job retry, but the connected integration
+returned HTTP 403 (`Resource not accessible by integration`); `gh` is not
+installed in this environment, so there is no authorized retry route through
+the available tools. The branch CI itself passed, and the latest exact-SHA
+failure is the external coverage upload, not an application test failure.
+
+A new focused QVAL live replay completed with one skip due to local temporary
+DNS resolution failure. This does not show that QVAL holdings are available;
+the adapter's issuer-challenge classification remains an evidence-based
+unverified disposition.
+
+The required local `make validate-integration` full-stack/browser gate remains
+deferred. The read-only Docker inventory still shows the other worktree's six
+Compose services and Playwright browser running; available host memory is about
+3.1 GiB. The prior ETF attempt fell to about 2.3 GiB once competing test
+containers were active, so I will not start another heavy gate or stop/modify
+the other worktree's containers. When that stack exits and memory headroom is
+safe, rerun the official gate and inspect its actual/diff screenshots. The
+three previously noted Study Lab mismatches are generic workstation parity
+issues outside ETF `owned_paths`; no screenshot baseline or unrelated UI was
+changed. AC7/AC8 remain open for local full/browser evidence and hosted E2E.
+AC10 still awaits the separately developed provider-platform branch reaching
+staging, and AC14 is the post-integration/deployment 30-day shadow gate. The
+saved goal remains active; it is not marked blocked or complete.

@@ -430,9 +430,10 @@ progress:
     - AC13
     - AC12
   total: 14
-current_phase: qval_fix_branch_ci_pass_local_integration_paused_for_shared_resources
+current_phase: exact_sha_branch_tests_green_codecov_failure_local_full_gate_waiting_shared_docker
 current_blocker: >-
-  CURRENT CHECKPOINT 2026-10-05: 15 Tier-0 and 156 Tier-1 symbol outcomes
+  QVAL implementation checkpoint (2026-10-05; superseded by the updates below):
+  15 Tier-0 and 156 Tier-1 symbol outcomes
   remain accounted for. Exact-SHA CI run 37259854302 on
   8ab95904fbcf565901067e9af229f7b2b6f331b7 failed the opt-in live QVAL probe:
   httpx received a Cloudflare 403 and requests returned an empty HTTP 200 body.
@@ -683,11 +684,34 @@ current_blocker: >-
   passes 595/595, workstream validation passes, and diff-check passes. No
   product code changed; exact-SHA retest after the correction is pending.
 
+  UPDATE 2026-10-05T04:32Z: Exact-SHA CI run 37262933509 completed on
+  48b13a589c12a25b6393b6d17f2dfc5507dd1bfe. The branch-declared job passed:
+  596 deterministic adapter tests, 3 default live contracts, 518 opt-in live
+  cases passed with 20 classified skips, all 17 ETF UI tests, Ruff,
+  workstream validation, type-check, and production build passed. Backend unit
+  and integration suites passed 1,501/379, and frontend Vitest passed 945.
+  Both Codecov upload steps then failed with TLS EPROTO; hosted Playwright E2E
+  was skipped, so the overall workflow is red. GitHub's failed-job retry API
+  returned 403 for this integration, and no GitHub CLI is installed for a
+  second retry route. A focused local QVAL replay was skipped with temporary
+  DNS resolution failure, not a provider pass. The required local full browser
+  gate is still deferred: the separate feat-tc2000-frontend-rework Compose
+  stack and browser remain active, with about 3.1 GiB host memory available.
+  Do not stop or alter that stack; resume the ETF gate when it exits and safe
+  memory headroom returns. Three generic Study Lab visual mismatches remain
+  outside ETF owned paths and require evidence-based disposition; no baselines
+  or unrelated UI were changed. AC7/AC8 remain open. AC10 awaits the shared
+  provider-platform branch reaching staging; AC14 is the later 30-day
+  post-integration/deployment shadow observation. The saved goal remains
+  active, not blocked.
+
 next_action: >-
-  Wait for the competing worktree Docker stack to end, then resume the required
-  local full integration/browser gate through the approved Docker boundary.
-  Inspect actual/diff screenshots before changing any visual baseline or UI
-  behavior. Do not change generic CI workflow files from this ETF-only scope.
-  AC10 awaits provider-platform staging; AC14 remains the later
-  post-integration/deployment shadow gate. Do not integrate, promote, deploy,
-  or modify another worktree.
+  Watch the competing worktree Docker stack and resume
+  `make validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents`
+  through the approved Docker boundary only after it exits and host memory is
+  safe. Inspect the local visual actual/diff artifacts before changing any
+  baseline or UI. Push a branch-owned evidence checkpoint after the current
+  exact-SHA run has finished, then verify the new exact-SHA workflow. Do not
+  change generic CI workflow files, stop or modify another worktree's
+  containers, integrate, promote, or deploy. AC10 awaits provider-platform
+  staging; AC14 remains the post-integration/deployment shadow gate.
