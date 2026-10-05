@@ -17520,6 +17520,12 @@ deterministic product defect; otherwise preserve the open full-suite gate and
 continue a separately justified TC-owned UI slice. Provider/ETF integration
 remains deferred until both dependencies reach staging.
 
+Diagnostic checkpoint commit `7f2d5b89bb9a0b5ef85fa3b68e49f1cf6783457b`
+was pushed to `origin/feat/tc2000-frontend-rework`; direct remote lookup
+matched that exact SHA and the assigned worktree was clean. This commit records
+the diagnostic and is not a product fix or gate pass. Product source remains
+`721b0efbea486361fa0632b2f874353ca7802127`.
+
 ## 2026-10-05 — Detached-tool accessibility relationships and ID uniqueness
 
 Product commit `721b0efbea486361fa0632b2f874353ca7802127` is pushed to
