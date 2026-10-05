@@ -10231,3 +10231,53 @@ Next action: trace the durable worker lease-expiry/recovery path and extend its
 production-adapter tests for process restart, expired-lease reclamation, and
 idempotent cancellation/terminal replay. Then continue domain-backed mutations,
 remaining metrics, and forward event-tape parity.
+
+## 2026-10-05 - Durable worker recovery receipts and restart replay
+
+Added `PostgresWorkerRecoveryAdapter` and an additive Alembic migration
+(`ff3a4b5c6d7e`) for owner-scoped recovery receipts. Receipts retain the
+recovery reason, plan identity, retry-attempt identity, and exact lease-release
+observation fingerprint/sequence. The pure recovery resolution now returns that
+deterministic observation and can resume when a receipt committed but worker
+capacity release did not; it also replays a completed lease-expiry recovery
+when a later callback arrives after the lease was already released. The adapter
+stores the receipt first, then uses the existing atomic PostgreSQL
+lease-plus-capacity release. The recovery adapter is available through the
+normal `PostgresStrategyLabV2Persistence` bundle.
+
+Validation passed: focused recovery/persistence/migration tests `20/20`; full
+Strategy Lab package and schema-migration suite `1,362/1,362` with exact RC5
+evidence/image pins; a real-PostgreSQL integration test `1/1` covering receipt
+commit, simulated process interruption, reconstructed adapters, expiry
+recovery, and later-time duplicate replay; Alembic reports
+`ff3a4b5c6d7e` as the single head; Ruff check/format, focused MyPy, and
+`git diff --check`. Docker-backed runs were followed by worktree-scoped cleanup;
+no containers, images, volumes, or Testcontainers sessions remained.
+
+The nine reviewed implementation paths were the recovery resolver/adapter,
+persistence bundle, Alembic migration, unit/integration coverage, and migration
+contract test. They were the only staged paths, passed staged whitespace checks,
+and were committed as `78623a7124fdef1db0721fabd06326f4b0941f8c`; push to
+`origin/feat/strategy-lab-v2` succeeded. Code-context closure: focused and full
+validation passed; integration against PostgreSQL passed; HEAD and origin both
+equal `78623a7124fdef1db0721fabd06326f4b0941f8c`; product-code worktree was clean
+at closure. This change makes recovery durable, but `resolution.next_attempt`
+is still returned to the application layer and is not yet persisted/enqueued by
+the worker lifecycle; automatic expired-lease scanning, Redis/outbox recovery
+scheduling, and Compose scaling remain unfinished.
+
+There is still no Nautilus stable-release blocker: exact-pinned RC5 is permitted
+for local backtests after the four conformance checks. Forward-shadow authority
+separately needs event-tape parity. The full Compose/browser acceptance profile
+remains host-limited by missing Docker Buildx and default-sandbox socket access;
+that does not prevent the next package-owned integration step. Shared
+provider/ETF/TC2000 reconciliation is conditional on overlapping their paths,
+and options stay fail-closed pending canonical event-time Greeks/delta and
+settlement evidence.
+
+Next action: connect the production recovery adapter to the worker lifecycle and
+expired-lease reclamation path; durably create the returned same-trial retry
+attempt and schedule dispatch/outbox work idempotently. Test restart boundaries
+between retry-attempt persistence, dispatch, and acknowledgement before moving
+to broader worker scaling, domain-backed mutations, remaining metrics, and
+forward event-tape parity.
