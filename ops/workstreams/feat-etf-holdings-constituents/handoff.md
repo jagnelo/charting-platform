@@ -7870,5 +7870,24 @@ scope expansion, the connected GitHub integration needs Actions write access
 for a failed-job retry; alternatively, a separately authorized workflow change
 could make coverage-upload transport failures non-blocking. AC10 still awaits
 provider-platform staging, and AC14 remains post-integration/deployment.
+
+## Receipt-only exact-SHA follow-up — 2026-10-05
+
+The receipt-only checkpoint `a1f348f99da352a78abb1823334d098c168364d4` also
+completed its branch-declared suite successfully: 595 deterministic adapter
+tests; default live 3 passed/534 skipped; full live matrix 510 passed/27
+classified skips; Ruff; workstream validation; frontend type-check; 17 ETF UI
+tests; and production build. The exact matrix changed only its external/access
+skip count; no case failed.
+
+This third exact-SHA workflow again passed backend unit (1,500), backend
+integration (379), and frontend unit (945) tests, then failed only on both
+Codecov TLS `EPROTO` uploads. The dependent hosted E2E job was skipped again.
+The GitHub Actions rerun permission remains unavailable (the prior retry
+request returned 403); no retry or repository-wide workflow change was made.
+The current branch's product code is unchanged from code SHA
+`08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5`, whose live matrix passed 520 with
+17 classified skips. AC7/AC8 remain open for the repeated coverage service
+failure, skipped hosted E2E, and the local generic Study Lab visual mismatch.
 *** End of File
 *** End of File

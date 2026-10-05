@@ -591,6 +591,18 @@ current_blocker: >-
   outcomes remain accounted for. AC7/AC8 stay open; AC10 still waits for
   provider-platform staging and AC14 remains post-integration/deployment.
 
+  Receipt-only exact-SHA run 37257098476 on a1f348f99da352a78abb1823334d098c168364d4
+  passed the full branch-declared suite again: 595 deterministic adapters,
+  default live 3/534 opt-in skips, opt-in live matrix 510 passed/27 classified
+  skips, Ruff, workstream validation, frontend type-check, 17 ETF UI tests, and
+  build. Backend unit/integration (1,500/379) and frontend unit (945) also
+  passed, while both Codecov uploads again failed TLS EPROTO and hosted E2E was
+  skipped. This is the third exact-SHA run with the same upload-only failure.
+  The product code remains at 08fad92, whose opt-in matrix passed 520/17.
+  The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for. AC7/AC8 remain
+  open; the connected GitHub integration lacks Actions-write permission for a
+  retry, and the generic visual mismatch remains outside this workstream.
+
 next_action: >-
   To complete hosted exact-SHA CI, obtain Actions-write capability on the
   connected GitHub integration so the two upload-failed jobs can be retried, or
