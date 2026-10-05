@@ -11407,3 +11407,11 @@ package-owned work.
 Next: implement the isolated shared-account persistent Nautilus session and
 durable checkpoint/output protocol, using the now-composed component contexts
 and the exact canonical event prefix without acknowledgement-before-persist.
+
+The active saved goal was verified and remains active. Required session
+checkpoint passed at synchronized implementation/workstream tip
+`204efd3451463b09df6fee280e190149197f6acc`; the scoped Docker probe was
+available and found no worktree-owned containers or volumes. The checkpoint
+helper dropped the first character of its own dirty session path in its summary;
+`session.json` was corrected to the exact `ops/workstreams/feat-strategy-lab-v2/session.json`
+path before this operational record was committed.
