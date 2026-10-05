@@ -1,5 +1,36 @@
 # TC2000 Version 25 Visual-Parity Specification
 
+## 2026-10-05 — Pinned exact-tip matrix and renderer diagnostic
+
+At product source `be55d1af2de8037671d65e33d5b1d5120e11f38c`, pinned Playwright
+1.62.1 completed the authenticated functional run with 172 passed, 2
+documented skips, and zero failures. The complete visual matrix ran all 104
+cases: 93 passed and 11 failed. Ten failed only at screenshot comparison in the
+same protected states; one watchlist-column-editor diagnostic failed after a
+local `ERR_NETWORK_CHANGED` burst and its unchanged focused replay passed 4/4.
+The replay is diagnostic and does not replace the full result.
+
+| Pinned project | Workspace floating | Study structured result | Study sandbox error |
+| --- | ---: | ---: | ---: |
+| `visual-1080p-100` | 8,995 | 109,585 | 13,360 |
+| `visual-1080p-125` | 9,825 | 105,698 | 11,120 |
+| `visual-1440p-100` | 8,995 | 22,035 | Passed |
+| `visual-1440p-125` | 9,825 | 21,352 | Passed |
+
+The shell smoke passed 4/4 in the pinned Noble image. Host Ubuntu 26.04.1
+produced 42,759 / 44,586 / 50,854 / 53,003 differing pixels across the same
+viewports. Inspection showed aligned panel geometry and text-stroke diffs; host
+Arial resolved to Nimbus Sans while the pinned image resolved Arial to
+Liberation Sans. This makes a font/rasterization environment difference the
+best-supported explanation for the host-only smoke, not a new product
+regression or acceptance result. The full pinned matrix still has the ten
+listed differences. No reference capture, mask, threshold, skip, fallback, or
+acceptance policy changed. Artifacts are retained at
+`/tmp/tc2000-pinned-visual-full-3t8qbk`,
+`/tmp/tc2000-pinned-functional-full-9Iq2rG`,
+`/tmp/tc2000-pinned-visual-render-XN4RoA`, and
+`/tmp/tc2000-current-tip-boolean-pin-visual-smoke-20261005`.
+
 ## 2026-10-05 — Boolean pin-menu keyboard access and current-tip diagnostics
 
 At product commit `be55d1af2de8037671d65e33d5b1d5120e11f38c`, the Virtual

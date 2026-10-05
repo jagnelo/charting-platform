@@ -281,31 +281,34 @@ progress:
   next_action: >-
     Continue the next bounded TC-owned workstation UI, Study, or Strategy gap
     after checking the candidate against the frontend-led ownership boundary.
-    The keyboard-open Boolean pin menu is pushed and its focused, full frontend,
-    build, and authenticated checks passed. Preserve the exact-tip functional
-    transport failure and the four current shell screenshot mismatches; neither
-    focused replay nor the four-case visual smoke replaces full acceptance.
-    Defer provider/ETF consumption and shared-path reconciliation until both
-    dependency tips reach staging; do not mutate another worktree.
+    At product tip be55d1af, the complete pinned functional suite passed 172,
+    skipped 2 documented cases, and had zero failures. The full visual matrix
+    completed 93/104: ten protected screenshot differences remain and one
+    network-diagnostic failure passed unchanged focused replay. The shell-only
+    host mismatch is font-rendering diagnostic evidence, not pinned acceptance.
+    Preserve the full-matrix result and ten visual gaps; continue independent
+    TC work. Defer provider/ETF consumption until both dependency tips reach
+    staging; do not mutate another worktree.
   current_blocker: >-
-    At pushed product tip be55d1af2de8037671d65e33d5b1d5120e11f38c, the
-    174-case authenticated functional run had 171 passes, 2 documented skips,
-    and one F8s-family-matrix diagnostic failure: unrelated local API requests
-    reported ERR_NETWORK_CHANGED after its application assertions completed.
-    The unchanged focused replay passed 1/1 but does not replace the full result.
-    The post-change four-project full visual attempt was stopped after broad
-    baseline deltas; a fresh seeded-database shell smoke still differed at all
-    four viewports (42,759; 44,586; 50,854; and 53,003 pixels, each above the
-    unchanged 0.5% threshold). The prior completed 104-case visual matrix was
-    93/104 with ten protected screenshot differences and one startup failure
-    that passed focused replay. No visual oracle, mask, threshold, skip, or
-    acceptance rule changed. `make validate-integration` still stops at the
-    Docker Buildx `--name` helper mismatch. Provider tip 88132e9145a08d1c935a0111b3dba0fbd88bdff1
-    and ETF tip 08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5 remain outside staging
+    At product tip be55d1af, the pinned authenticated functional suite passed
+    172/174 with two documented skips and zero failures. The full pinned visual
+    matrix completed 93/104: ten known screenshot-only differences remain
+    (workspace-floating in all four viewports, Study structured-result in all
+    four, and Study sandbox-error at both 1080p scales); its eleventh failure
+    was a local ERR_NETWORK_CHANGED diagnostic and the unchanged focused replay
+    passed 4/4. A pinned four-project shell smoke passed 4/4. The separate host
+    shell smoke differed on glyph pixels; host Arial resolves to Nimbus Sans
+    while the pinned Noble container resolves to Liberation Sans, consistent
+    with an environment/font-rendering diagnostic rather than product geometry.
+    No screenshot oracle, mask, threshold, skip, or acceptance rule changed.
+    `make validate-integration` still stops at the host's missing Docker Buildx
+    helper. Provider tip 88132e9145a08d1c935a0111b3dba0fbd88bdff1 and ETF tip
+    08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5 remain outside staging
     8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, so R2/R3 and shared-path
-    reconciliation remain deferred. No human permission gate blocks independent
-    TC work.
+    reconciliation remain deferred. No human permission gate blocks
+    independent TC work.
 historical_implementation_records:
+  - "Exact product-tip pinned validation at be55d1af completed the 174-case functional suite with 172 passed, 2 documented skips, and zero failures. The four-project visual matrix completed all 104 cases: 93 passed, ten protected screenshot differences remain (workspace-floating all four viewports; Study structured-result all four; Study sandbox-error at the two 1080p scales), and one column-editor diagnostic failure from ERR_NETWORK_CHANGED passed unchanged replay 4/4. A separate four-project pinned shell smoke passed 4/4; host-only shell rendering failed glyph pixels with host Arial resolving to Nimbus Sans versus pinned Noble resolving Liberation Sans, consistent with environment/font rendering rather than geometry. Full matrix artifacts: /tmp/tc2000-pinned-visual-full-3t8qbk; functional artifacts: /tmp/tc2000-pinned-functional-full-9Iq2rG. Scoped Docker cleanup left zero resources. No visual acceptance policy changed."
   - "Product commit be55d1af2de8037671d65e33d5b1d5120e11f38c adds keyboard invocation for the TC-owned Virtual Watchlist Boolean header pin menu using Shift+F10 and the Context Menu key, while preserving right-click and Ctrl/Meta-click behavior and anchoring the menu at the header for keyboard use. Focused VirtualWatchlistTool coverage passed 80/80; full serial frontend Vitest passed 129 files / 1,202 tests; the Docker production build (including vue-tsc and Vite build) passed; and authenticated F8u-boolean passed 1/1. The exact-tip 174-case functional run passed 171, skipped 2 documented cases, and failed one F8s-family-matrix diagnostic because unrelated local API requests reported ERR_NETWORK_CHANGED after assertions; unchanged focused replay passed 1/1. The completed prior-tip 104-case visual matrix was 93/104 with ten protected screenshot differences; a post-change full visual attempt was stopped after broad deltas, and a fresh seeded-database shell smoke differed at all four viewports by 42,759 / 44,586 / 50,854 / 53,003 pixels. No screenshot oracle, mask, threshold, skip, or acceptance policy changed. The exact branch commit is pushed and direct GitHub refs verified; staging remains 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider is 88132e9145a08d1c935a0111b3dba0fbd88bdff1, and ETF is 08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5. Both dependencies remain outside staging."
   - "Test commit 435c5b9ad58a1889b040febcadab9a202cfbfc48 adds F9e-plot-library-search against unchanged product source 05aac7f816aab492c7b2aadb1adb9ffc6e76f02a. Authenticated Chromium confirmed full-name filtering, visible RSI selection, and live no-match status; the browser case passed 1/1. The focused component suite passed 45/45, full frontend coverage passed 129 files / 1,200 tests, and type-check/build passed. A current-app screenshot was inspected at /tmp/tc2000-chart-open-rsi-dropdown.png, but the branch reference pack has no authoritative V25 capture of this state; keep the screenshot parity gap open and do not add or change a visual oracle. The only assigned TC Compose project and its fixture resources/images were removed after use. No provider/ETF behavior changed."
   - "Product commit c038aafc6fe8378cdf11d4b76006100488c75556 adds compact requested/eligible/excluded/coverage counts and a collapsible generic-breadth evidence view for universe identity/role, membership version, member observation dates, sampling semantics, source provenance, freshness and details, calculation version, definition hash, and grouped exclusion reasons. Python-backed breadth now preserves reported calculation/provenance and no longer invents a freshness state. Full frontend Vitest passed 128 files / 1,197 tests; vue-tsc/type-check and Vite production build passed; the rebuilt authenticated Chromium F8s-breadth-family-ratio flow passed 1/1 with evidence assertions. The assigned Compose stack was removed and resource audit reported zero containers, volumes, test sessions, unknown components, or known bytes. The full branch-wide browser/visual gate was not rerun at this product tip; preserve every oracle and the ten screenshot-only differences last recorded at a78812d. No provider/ETF ownership or data acquisition changed."

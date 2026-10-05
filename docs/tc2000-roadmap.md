@@ -5,6 +5,33 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-05
 
+## 2026-10-05 — Pinned exact-tip validation reconciliation
+
+At product source `be55d1af2de8037671d65e33d5b1d5120e11f38c`, the complete
+authenticated Playwright 1.62.1 functional run in the pinned Noble image passed
+172/174 with two documented skips and zero failures. The complete four-project
+visual matrix ran all 104 cases: 93 passed, ten known screenshot differences
+remain, and one watchlist-column-editor diagnostic failed during a local
+`ERR_NETWORK_CHANGED` burst. The unchanged focused replay passed 4/4 across
+viewport projects, but the full visual result remains 93/104.
+
+The ten visual differences remain confined to workspace-floating in all four
+viewports, Study structured-result in all four, and Study sandbox-error at both
+1080p scales. The separate pinned shell smoke passed 4/4. Host-only rendering
+differs on glyph pixels while geometry aligns; host Arial resolves to Nimbus
+Sans while the pinned Noble image resolves to Liberation Sans. Treat that as an
+environment/font diagnostic, not product-visual acceptance. No screenshot
+reference, mask, threshold, skip, fallback, or acceptance rule changed. Exact
+artifacts are recorded in the workstream handoff and under
+`/tmp/tc2000-pinned-functional-full-9Iq2rG`,
+`/tmp/tc2000-pinned-visual-full-3t8qbk`, and the two shell-smoke directories.
+
+The exact assigned Docker stack and generated images were removed; scoped
+resource accounting returned zero TC resources. Continue independent
+TC-owned UI/Study/Strategy work. Consumer integration and shared-path
+reconciliation stay deferred until both provider-platform and ETF tips reach
+staging; the ten visual differences remain open.
+
 ## 2026-10-05 — Keyboard invocation for Boolean pin menu and exact-tip results
 
 Product commit `be55d1af2de8037671d65e33d5b1d5120e11f38c` extends the V25

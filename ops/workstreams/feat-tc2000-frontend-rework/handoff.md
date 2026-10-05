@@ -1,5 +1,40 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Pinned exact-tip functional and visual reconciliation
+
+At exact product source `be55d1af2de8037671d65e33d5b1d5120e11f38c`, the full
+authenticated functional run in the pinned Playwright 1.62.1 Noble image
+completed all 174 cases: 172 passed, 2 documented cases were skipped, and zero
+failed. The full four-project visual matrix completed all 104 cases: 93 passed
+and 11 failed. Ten are the established protected screenshot differences:
+workspace-floating at all four viewports (8,995 / 9,825 / 8,995 / 9,825 pixels),
+Study structured-result at all four (109,585 / 105,698 / 22,035 / 21,352), and
+Study sandbox-error at 1080p/100 and 1080p/125 (13,360 / 11,120); both 1440p
+sandbox-error cases passed. The eleventh result was the watchlist-column-editor
+open diagnostic at 1080p/125 during a local `ERR_NETWORK_CHANGED` burst; the
+unchanged focused case then passed 4/4 across viewport projects. This retry
+does not replace the full-matrix result. No reference, mask, threshold, skip,
+fallback, or acceptance rule changed.
+
+To separate browser-environment drift from product behavior, the shell smoke
+was repeated in the pinned image and passed 4/4. The same smoke on host Ubuntu
+26.04.1 differed at all viewports (42,759 / 44,586 / 50,854 / 53,003 pixels),
+with aligned panel geometry and differences on text glyph strokes. Host Arial
+resolved to Nimbus Sans; the pinned Ubuntu Noble image resolved Arial to
+Liberation Sans. This is consistent with a host font-rendering diagnostic, not
+a new product screenshot-acceptance result. Full functional artifacts are at
+`/tmp/tc2000-pinned-functional-full-9Iq2rG`, full visual artifacts at
+`/tmp/tc2000-pinned-visual-full-3t8qbk`, the pinned shell replay at
+`/tmp/tc2000-pinned-visual-render-XN4RoA`, and the host diagnostic at
+`/tmp/tc2000-current-tip-boolean-pin-visual-smoke-20261005`.
+
+The exact assigned Compose project was cleaned after the runs; the resource
+audit reported zero TC-owned containers, volumes, images, sessions, known bytes,
+or unknown resources. Continue bounded TC-owned UI/Study/Strategy work. The ten
+visual differences remain an open acceptance gap. Provider-platform and ETF
+consumer integration/shared-path reconciliation remain deferred until both
+upstream tips reach staging. No other branch or worktree was changed.
+
 ## 2026-10-05 — Keyboard-accessible Boolean pin menu and current-tip evidence
 
 Product commit `be55d1af2de8037671d65e33d5b1d5120e11f38c`
