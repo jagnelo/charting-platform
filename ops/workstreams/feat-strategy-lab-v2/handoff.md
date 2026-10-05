@@ -10349,3 +10349,38 @@ Next action: reconcile post-terminal released-lease redelivery through the
 production recovery composition without rerunning completed simulation or
 scheduling a duplicate retry, then continue the remaining worker scaling,
 domain mutation, metrics, forward-parity, and full Compose/browser criteria.
+
+## 2026-10-05 - Successful terminal redelivery reconciliation
+
+Completed the production-composition case where terminal result, settlement,
+capacity release, and lease release were durable but the Redis acknowledgement
+was lost. The ordinary terminal callback now marks the search candidate
+succeeded before acknowledging; a released-lease redelivery verifies the
+durable completion/settlement/release chain, records or replays the same
+successful search receipt, and ACKs without rerunning Nautilus or creating a
+retry. A partial terminal commit without durable capacity/lease release remains
+pending and does not schedule a new attempt. The end-to-end worker test covers
+the lost-response, reclaim, and subsequent duplicate-delivery sequence.
+
+The focused recovery/callback/terminal tests pass `14/14`; the Strategy Lab
+package plus schema-migration suite passes `1,373/1,373` using the exact local
+Nautilus `2.0.0rc5` image. Ruff check/format, focused MyPy, and `git diff --check`
+pass. The first integrated test run exposed an incoherent fixture clock: its
+worker clock preceded the simulated process terminal timestamp. Aligning those
+timestamps made the released lease observable at redelivery; no production
+lease-policy change was needed.
+
+Nautilus stable 2.x is not a blocker: AC-NAUTILUS permits an exact-pinned stable
+or release-candidate v2 build after the four local backtest checks and explicitly
+does not require stable labeling. The pre-release channel remains disallowed
+from broker connectivity or real-capital control. The remaining material work is
+broader recovery/scaling and live PostgreSQL/Redis/Compose validation,
+domain-backed mutations, remaining metrics, forward-shadow event-tape parity,
+and the required full Compose/browser profile. That profile is presently
+environment-limited by missing Docker Buildx and default-sandbox Docker socket
+access; these do not block package-owned implementation. Provider/ETF/TC2000
+staging gates apply only if this branch changes overlapping contracts or paths.
+
+Next action: expand worker recovery/scaling coverage, then continue
+domain-backed mutations, remaining metrics, and forward event-tape parity; keep
+options fail-closed pending canonical Greeks/delta and settlement evidence.

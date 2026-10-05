@@ -834,42 +834,31 @@ progress:
   total: 18
   current_phase: strategy-lab-v2-durable-worker-recovery-receipts-v1
   current_blocker: >-
-    No external release or upstream event blocks package-owned implementation.
-    Exact-pinned Nautilus RC5 has the four backtest checks and passes persisted
-    request/retry, OOS result materialization, local artifact publication, and
-    production terminal-adapter replay across injected failures before public
-    result persistence and before capacity release. Recovery reconstructs the
-    production adapters over deterministic SQL-session doubles. Worker recovery
-    now has an owner-scoped PostgreSQL receipt adapter, records the retry reason
-    and exact release-observation sequence, resumes receipt-before-capacity
-    interruption, and is included in the production persistence bundle. Its
-    real-PostgreSQL integration test verifies restart and later-time duplicate
-    replay; it does not yet verify worker lifecycle scheduling or durable retry
-    attempt/outbox creation. The full Strategy Lab package suite passes 1,362
-    tests with the exact local RC5 image and scoped host access. Broker-free
-    forward shadow still requires event-tape parity; prereleases cannot connect
-    to a broker or control real capital. Live PostgreSQL/Redis/Compose scaling
-    and cross-service acceptance remain unproven. The
-    environment-limited completion gate is the required full Compose/browser
-    profile: Docker Buildx is absent and the default sandbox cannot access the
-    Docker socket. Provider, ETF, and TC2000 contracts are staging-gated only
-    when an owned change overlaps their shared paths. Remaining product work
-    includes wiring recovery into worker lifecycle and durable retry scheduling,
-    broader worker recovery/scaling, domain-backed mutations, forward-shadow
-    correctness, and remaining metrics.
-    Stable-only wording retained in the accumulated remaining_gaps ledger is
-    historical and superseded by this explicit scope-specific release policy.
-    Options order admission remains fail-closed pending canonical event-time
-    Greeks/delta and settlement evidence.
+    No external Nautilus release or upstream event blocks package-owned
+    implementation. Exact-pinned Nautilus 2.0.0rc5 has the four backtest checks;
+    stable release labeling is explicitly not a gate. The production worker
+    composition now reconciles a committed successful terminal result after a
+    lost Redis acknowledgement: it verifies completion, settlement, capacity
+    and lease release, closes the search candidate as succeeded, and replays an
+    idempotent ACK without rerunning simulation or scheduling a retry. Partial
+    terminal commits remain pending and fail closed. The Strategy Lab package
+    plus schema-migration suite passes 1,373 tests with the exact RC5 image and
+    scoped local access; Ruff, formatting, focused MyPy, and diff checks pass.
+    Remaining completion work is substantial: broader worker scaling and live
+    PostgreSQL/Redis/Compose acceptance, domain-backed mutations, remaining
+    metrics, and forward-shadow event-tape parity. The required full
+    Compose/browser profile remains environment-limited because Docker Buildx
+    is absent and the default sandbox cannot access the Docker socket. Provider,
+    ETF, and TC2000 contracts are staging-gated only if an owned change overlaps
+    their paths. Options order admission remains fail-closed pending canonical
+    event-time Greeks/delta and settlement evidence.
   next_action: >-
-    Durable worker recovery receipts now replay after process reconstruction,
-    including interruption after receipt commit but before lease/capacity release
-    and duplicate callbacks with later observation times. Next wire the
-    production recovery adapter into worker lifecycle/reclamation, persist the
-    returned same-trial retry attempt, and connect it idempotently to dispatch or
-    outbox scheduling. Cover restart between attempt persistence and scheduling
-    before moving to broader worker scaling, domain-backed mutations, remaining
-    metrics, and broker-free forward event-tape parity.
+    Expand worker crash/lease recovery and Compose replica scaling coverage,
+    then continue domain-backed mutations, remaining metrics, and broker-free
+    forward event-tape parity. Validate live PostgreSQL/Redis and the required
+    full Compose/browser profile. The post-terminal released-lease redelivery
+    case now closes search state and ACKs idempotently without a retry or
+    simulation rerun.
     Exact-pinned RC5 remains eligible for authoritative local backtests after
     four checks; stable labeling is not a gate. Forward shadow needs all five
     checks; prereleases cannot connect to brokers or control real capital. Keep
