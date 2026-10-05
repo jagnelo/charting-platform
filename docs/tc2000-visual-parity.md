@@ -2,14 +2,15 @@
 
 ## 2026-10-05 — Exact current branch-tip functional and visual matrix
 
-At pushed branch checkpoint `9cb2278ceed3d01f5abdf5580a6cc283a64dfdb8`
-(product source `d413d845939e68e9738b621329fa8d63a419ddf8`), the seeded
-Playwright 1.62.1 `flows.spec.ts` run completed 177 cases: 174 passed, 2
-documented skips, and one 60-second F8m chart-panel link-menu timeout. The
-unchanged F8m flow passed a focused replay (`1/1` in 16.5 seconds), so no
-product or test assertion was changed; retain the full result as non-green
-until a clean full functional run clears it. The separate performance suite
-passed 3/4, with the 10,000-row watchlist case skipped because its opt-in
+At pushed branch checkpoint `c84ed3c7077c09085e1df740b75e7760b7545d37`
+(product source `d413d845939e68e9738b621329fa8d63a419ddf8`), the unchanged
+seeded Playwright 1.62.1 `flows.spec.ts` rerun completed 177 cases: 175 passed,
+2 documented skips, and zero failures. The first full run at the same product
+source had one 60-second F8m chart-panel link-menu timeout after 174 passes and
+2 skips; both its focused replay and the unchanged full rerun passed, with no
+product or test assertion changes. Keep the first outcome as raw history; the
+functional flow gate is currently green. The separate performance suite passed
+3/4, with the 10,000-row watchlist case skipped because its opt-in
 `E2E_SEED_LARGE_UNIVERSE` fixture was not enabled.
 
 The four-project board-guided visual matrix completed all 104 cases: 94 passed

@@ -2,7 +2,7 @@
 
 ## 2026-10-05 — Exact-tip frontend and browser evidence refresh
 
-The test source was branch checkpoint `9cb2278ceed3d01f5abdf5580a6cc283a64dfdb8`
+The test source was branch checkpoint `c84ed3c7077c09085e1df740b75e7760b7545d37`
 (product source `d413d845939e68e9738b621329fa8d63a419ddf8`). At that checkpoint,
 direct `git ls-remote` verified TC at the same SHA; staging remains
 `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider-platform is
@@ -22,11 +22,13 @@ push. No product code, other branch, or other worktree changes in this
 checkpoint.
 
 At the exact product source, full frontend Vitest passed 129 files / 1,208
-tests with file parallelism disabled. The seeded authenticated `flows.spec.ts`
-run completed 177 cases: 174 passed, 2 documented skips, and one F8m
-chart-panel link-menu timeout after 60 seconds. The unchanged F8m focused replay
-passed 1/1 in 16.5 seconds; preserve the full result as non-green until an
-unchanged clean full functional run clears it. Workstation performance checks
+tests with file parallelism disabled. The first seeded authenticated
+`flows.spec.ts` run completed 177 cases with 174 passes, 2 documented skips,
+and one F8m chart-panel link-menu timeout after 60 seconds. The unchanged
+focused replay passed 1/1 in 16.5 seconds, and a second unchanged full run
+passed 175/177 with two documented skips and zero failures. No source or test
+assertion changed between runs; retain the timeout as a non-reproducible raw
+outcome, not a current functional blocker. Workstation performance checks
 passed 3/4; the 10,000-row watchlist case was skipped because its explicit
 `E2E_SEED_LARGE_UNIVERSE=true` fixture was not enabled.
 

@@ -20,12 +20,13 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  At pushed checkpoint 9cb2278ceed3d01f5abdf5580a6cc283a64dfdb8 (product
-  source d413d845939e68e9738b621329fa8d63a419ddf8), the seeded 177-case
-  flows.spec.ts run passed 174, skipped 2 documented cases, and had one
-  60-second F8m chart-panel link-menu timeout. Its unchanged focused replay
-  passed 1/1, but the full result remains non-green pending an unchanged clean
-  full rerun. The separate workstation-performance suite passed 3/4; the
+  At pushed checkpoint c84ed3c7077c09085e1df740b75e7760b7545d37 (product
+  source d413d845939e68e9738b621329fa8d63a419ddf8), the latest seeded
+  177-case flows.spec.ts run passed 175, skipped 2 documented cases, and had
+  zero failures. The preceding full run had one 60-second F8m menu timeout;
+  both its focused replay and the unchanged full rerun passed. Keep that
+  first-run outcome in the raw record, but do not treat it as a current product
+  blocker. The separate workstation-performance suite passed 3/4; the
   10,000-row network test is explicitly opt-in and was skipped because
   E2E_SEED_LARGE_UNIVERSE was not enabled. The exact-tip four-project visual
   matrix completed 94/104 with the same ten protected screenshot-only
@@ -51,11 +52,11 @@ active_changeset_context:
     - frontend/tests/unit/components/test_research_results_tool.test.ts
     - frontend/tests/e2e/flows.spec.ts
   next_action: >-
-    Treat the latest F8m full-run timeout as a test/browser flake unless it
-    reproduces; retain its raw result and focused replay. Then continue a
-    distinct TC-owned R1/R5/R6 behavior slice without changing protected visual
-    oracles. Keep the generic integration helper, complete authenticated and
-    performance matrices, ten visual differences, and upstream staging
+    Continue a distinct TC-owned R1/R5/R6 behavior slice without changing
+    protected visual oracles. The F8m full-run timeout did not reproduce in
+    either focused or unchanged full replay; retain its raw result but do not
+    treat it as an active defect. Keep the generic integration helper, opt-in
+    10k-row performance case, ten visual differences, and upstream staging
     acceptance gates open.
 planning_state: ready
 local_validation_profile: full_stack_browser
@@ -307,13 +308,13 @@ progress:
     consumption and shared-path reconciliation until both upstream branches
     reach staging. Stop only at ready_for_human_review.
   current_blocker: >-
-    The current seeded flows.spec.ts result is 174/177 with two documented
-    skips and one non-reproduced F8m menu timeout; unchanged focused replay is
-    1/1. The current visual matrix is 94/104 with the same ten protected
-    screenshot diffs. The generic integration helper remains open because host
-    Docker Buildx is unavailable and its failure trap would remove assigned
-    volumes. Provider and ETF branches remain outside staging, so R2/R3
-    consumption and shared-path reconciliation are deferred.
+    The latest seeded flows.spec.ts run passed 175/177 with two documented
+    skips and zero failures; the prior F8m timeout passed both focused and
+    unchanged full replay. The current visual matrix is 94/104 with the same
+    ten protected screenshot diffs. The generic integration helper remains
+    open because host Docker Buildx is unavailable and its failure trap would
+    remove assigned volumes. Provider and ETF branches remain outside staging,
+    so R2/R3 consumption and shared-path reconciliation are deferred.
 historical_implementation_records:
   - "Product commit 8d1d63b7945ad94226ac02e338aac8f4ef447f2a fixes data loss in the advanced Market Map breadth editor: switching a multi-child all/any group to not now wraps the complete prior group as the sole NOT child. The regression failed against the prior editor; BreadthConditionTreeEditor and MarketMapTool suites passed 10/10 and 56/56, backend breadth service tests passed 30/30, frontend type-check/build and Ruff format check passed. No provider/ETF behavior, visual styling, or acceptance policy changed."
   - "Exact product-tip pinned validation at be55d1af completed the 174-case functional suite with 172 passed, 2 documented skips, and zero failures. The four-project visual matrix completed all 104 cases: 93 passed, ten protected screenshot differences remain (workspace-floating all four viewports; Study structured-result all four; Study sandbox-error at the two 1080p scales), and one column-editor diagnostic failure from ERR_NETWORK_CHANGED passed unchanged replay 4/4. A separate four-project pinned shell smoke passed 4/4; host-only shell rendering failed glyph pixels with host Arial resolving to Nimbus Sans versus pinned Noble resolving Liberation Sans, consistent with environment/font rendering rather than geometry. Full matrix artifacts: /tmp/tc2000-pinned-visual-full-3t8qbk; functional artifacts: /tmp/tc2000-pinned-functional-full-9Iq2rG. Scoped Docker cleanup left zero resources. No visual acceptance policy changed."
@@ -619,7 +620,7 @@ historical_implementation_records_continued:
   - "Product commit 721b0efbea486361fa0632b2f874353ca7802127 connects the Boolean watchlist header's `aria-controls` to its conditional pin menu, with regression coverage for regular and stacked headers and detached watchlist roots. It also replaces Code Library `useId()` form IDs with a component-instance UID after a two-root test exposed duplicate `code-library-create-v-0` IDs. Focused watchlist tests passed 81/81; Code Library tests passed 12/12; full serial frontend Vitest passed 129 files / 1,206 tests; production type-check/build passed; authenticated F8u-boolean passed 1/1 (the browser flow predates the separate Code Library ID correction). The 10 protected visual diffs were reviewed without finding a justified source or oracle change: workspace-floating references predate the current five-row fixture assertion; Study structured-result references predate current promotion controls; two 1080p sandbox-error comparisons remain pixel-only with state assertions passing. No reference, mask, threshold, skip, or policy changed. Exact stack cleanup and resource audit left zero attributable Docker resources. Current direct refs: TC `721b0efbea486361fa0632b2f874353ca7802127`, staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, ETF `26d9f84b5ac35ed0fe0b31b196caae1a6ee05139`; neither dependency is in staging. The current full authenticated and visual matrices are not yet rerun at 721b0ef."
   - "At product source 721b0efbea486361fa0632b2f874353ca7802127, three complete pinned serial authenticated Chromium runs executed 182 cases each. Results were 177 passed / 3 documented skipped / 2 failed; then 176 passed / 3 skipped / 3 failed on fresh volumes; then 178 passed / 3 skipped / 1 failed on fresh volumes. Six distinct failures were F8r-breadth-narrow, F8s-market-map-python-output, the two all-family readiness presentation cases, F8x-library, and F8r-python-library-narrow. Every unchanged focused replay passed 1/1 (readiness pair 2/2); no test or acceptance rule was changed. The latest full result remains 178/182 with one intermittent narrow Python Library window-mount failure and is not a green full gate. Exact-tip four-project visual Playwright 1.62.1 matrix: 94/104; 10 screenshot differences after interaction/state checks: workspace-floating at all four viewports (8,995 / 9,825 / 8,995 / 9,825 pixels), Study structured-result at all four (109,320 / 105,698 / 22,035 / 21,352), and Study sandbox-error at 1080p/100 and 1080p/125 (13,360 / 11,188). These exactly match the protected prior categories/counts. No reference, mask, threshold, skip, fallback, or acceptance policy changed. Full serial frontend Vitest passed 129 files / 1,206 tests; production type-check/build passed. Visual manifest validated. Assigned test stack cleanup removed its containers, volumes, network, and four generated image tags; final resource audit reported zero containers, volumes, unique image bytes, test sessions, or unknown resources. Current direct refs remain staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, ETF `26d9f84b5ac35ed0fe0b31b196caae1a6ee05139`; neither dependency is in staging."
 remaining_gaps:
-  - "At pushed TC checkpoint 9cb2278ceed3d01f5abdf5580a6cc283a64dfdb8 (product d413d845939e68e9738b621329fa8d63a419ddf8), the seeded 177-case flows.spec.ts run passed 174, skipped 2, and had one F8m link-menu timeout; its unchanged focused replay passed 1/1 but does not replace the red full result. The exact-tip visual run remains 94/104 with the same ten protected screenshot diffs. Workstation performance passed 3/4 with the opt-in 10k-row fixture skipped; full frontend Vitest passed 1,208 tests / 129 files. Preserve this current receipt alongside the older raw gate history."
+  - "At product source d413d845939e68e9738b621329fa8d63a419ddf8, the first seeded 177-case flows.spec.ts run passed 174, skipped 2, and had one F8m link-menu timeout; its unchanged focused replay and second unchanged full run passed (175/177, 2 skips, zero failures). The exact-tip visual run remains 94/104 with the same ten protected screenshot diffs. Workstation performance passed 3/4 with the opt-in 10k-row fixture skipped; full frontend Vitest passed 1,208 tests / 129 files. Preserve both full-run outcomes alongside the older raw gate history."
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
   - "ETF dependency: its branch is waiting for provider-platform staging integration; TC holdings consumer integration and final owner reconciliation remain pending."
   - "Path intersections are not proof of duplicate behavior; line-level semantics remain pending after staging. The 93-commit TC etf_holdings_adapters.py history is explicitly flagged for ETF-owner reconciliation/transfer."

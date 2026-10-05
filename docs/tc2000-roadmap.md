@@ -7,21 +7,23 @@ Last reconciled: 2026-10-05
 
 ## 2026-10-05 — Exact-tip validation refresh after Study threshold isolation
 
-At branch checkpoint `9cb2278ceed3d01f5abdf5580a6cc283a64dfdb8` (product
-source `d413d845939e68e9738b621329fa8d63a419ddf8`), full frontend Vitest
-passed 129 files / 1,208 tests with file parallelism disabled. The seeded
-functional flow file ran 177 cases: 174 passed, 2 documented skips, and one
-F8m chart-panel link-menu timeout; its unchanged focused replay passed 1/1,
-but the full run remains recorded as non-green. The workstation performance
-suite passed 3/4; its 10,000-row test was skipped because the opt-in large
-universe fixture was not enabled.
+At product source `d413d845939e68e9738b621329fa8d63a419ddf8` (branch
+checkpoint `c84ed3c7077c09085e1df740b75e7760b7545d37`), full frontend Vitest
+passed 129 files / 1,208 tests with file parallelism disabled. The first
+seeded `flows.spec.ts` run passed 174/177 with two documented skips and one
+F8m chart-panel menu timeout. The unchanged focused F8m replay passed 1/1, and
+a second unchanged full run passed 175/177 with two documented skips and zero
+failures. Preserve the first timeout as raw history; it is not a current
+functional blocker. The workstation performance suite passed 3/4; its
+10,000-row test was skipped because the opt-in large-universe fixture was not
+enabled.
 
 The pinned four-project visual matrix completed 94/104. Its ten screenshot-only
 differences are unchanged: workspace-floating across all four viewports, Study
 structured-result across all four, and Study sandbox-error at the two 1080p
 scales. Every corresponding state assertion passed. No visual reference, mask,
-threshold, skip, fallback, or acceptance rule changed. Current remote refs are
-TC `9cb2278ceed3d01f5abdf5580a6cc283a64dfdb8`, staging
+threshold, skip, fallback, or acceptance rule changed. At the last direct ref
+refresh, TC was `c84ed3c7077c09085e1df740b75e7760b7545d37`, staging
 `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider
 `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF
 `d2e163c46bad2a9e58affe5b32461c8b783fbaa8`. The upstream dependencies remain
