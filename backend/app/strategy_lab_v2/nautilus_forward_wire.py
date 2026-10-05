@@ -85,6 +85,28 @@ class NautilusForwardJsonWireCodec:
         _check_schema(value)
         return _nonempty(value["instance_id"], "instance_id")
 
+    def open_result_payload(
+        self, *, instance_id: str, runtime_session_fingerprint: str
+    ) -> Mapping[str, object]:
+        _nonempty(instance_id, "instance_id")
+        require_sha256_digest(runtime_session_fingerprint, field_name="runtime_session_fingerprint")
+        return {
+            "schema": NAUTILUS_FORWARD_WIRE_SCHEMA,
+            "instance_id": instance_id,
+            "runtime_session_fingerprint": runtime_session_fingerprint,
+        }
+
+    def validate_open_result(self, payload: Mapping[str, object], *, instance_id: str) -> str:
+        value = _strict_fields(
+            payload,
+            {"schema", "instance_id", "runtime_session_fingerprint"},
+            "open response",
+        )
+        _check_schema(value)
+        if value["instance_id"] != instance_id:
+            raise ValueError("forward runtime opened a different instance")
+        return _digest(value["runtime_session_fingerprint"], "runtime_session_fingerprint")
+
     def execute_payload(
         self,
         delivery: NautilusForwardDeliveryInput,
@@ -179,6 +201,58 @@ class NautilusForwardJsonWireCodec:
         checkpoint = _nonempty(value["checkpoint_fingerprint"], "checkpoint_fingerprint")
         require_sha256_digest(checkpoint, field_name="checkpoint_fingerprint")
         return instance_id, checkpoint
+
+    def restore_result_payload(
+        self, *, instance_id: str, checkpoint_fingerprint: str
+    ) -> Mapping[str, object]:
+        _nonempty(instance_id, "instance_id")
+        require_sha256_digest(checkpoint_fingerprint, field_name="checkpoint_fingerprint")
+        return {
+            "schema": NAUTILUS_FORWARD_WIRE_SCHEMA,
+            "instance_id": instance_id,
+            "checkpoint_fingerprint": checkpoint_fingerprint,
+        }
+
+    def validate_restore_result(
+        self,
+        payload: Mapping[str, object],
+        *,
+        instance_id: str,
+        checkpoint_fingerprint: str,
+    ) -> None:
+        value = _strict_fields(
+            payload,
+            {"schema", "instance_id", "checkpoint_fingerprint"},
+            "restore response",
+        )
+        _check_schema(value)
+        if value["instance_id"] != instance_id:
+            raise ValueError("forward runtime restored a different instance")
+        if value["checkpoint_fingerprint"] != checkpoint_fingerprint:
+            raise ValueError("forward runtime did not restore the exact checkpoint")
+
+    def close_payload(self, *, instance_id: str) -> Mapping[str, object]:
+        _nonempty(instance_id, "instance_id")
+        return {"schema": NAUTILUS_FORWARD_WIRE_SCHEMA, "instance_id": instance_id}
+
+    def decode_close_payload(self, payload: Mapping[str, object]) -> str:
+        value = _strict_fields(payload, {"schema", "instance_id"}, "close payload")
+        _check_schema(value)
+        return _nonempty(value["instance_id"], "instance_id")
+
+    def close_result_payload(self, *, instance_id: str) -> Mapping[str, object]:
+        _nonempty(instance_id, "instance_id")
+        return {
+            "schema": NAUTILUS_FORWARD_WIRE_SCHEMA,
+            "instance_id": instance_id,
+            "closed": True,
+        }
+
+    def validate_close_result(self, payload: Mapping[str, object], *, instance_id: str) -> None:
+        value = _strict_fields(payload, {"schema", "instance_id", "closed"}, "close response")
+        _check_schema(value)
+        if value["instance_id"] != instance_id or value["closed"] is not True:
+            raise ValueError("forward runtime did not close the requested instance")
 
 
 def _validate_pair(
@@ -378,6 +452,13 @@ def _nonempty(value: object, name: str) -> str:
 def _integer(value: object, name: str) -> int:
     if not isinstance(value, int) or isinstance(value, bool):
         raise ValueError(f"forward wire {name} must be an integer")
+    return value
+
+
+def _digest(value: object, name: str) -> str:
+    if not isinstance(value, str):
+        raise ValueError(f"forward wire {name} must be a SHA-256 digest")
+    require_sha256_digest(value, field_name=name)
     return value
 
 

@@ -48,6 +48,12 @@ class NautilusForwardRuntimeWireCodec(Protocol):
 
     def decode_open_payload(self, payload: Mapping[str, object]) -> str: ...
 
+    def open_result_payload(
+        self, *, instance_id: str, runtime_session_fingerprint: str
+    ) -> Mapping[str, object]: ...
+
+    def validate_open_result(self, payload: Mapping[str, object], *, instance_id: str) -> str: ...
+
     def execute_payload(
         self,
         delivery: NautilusForwardDeliveryInput,
@@ -72,6 +78,26 @@ class NautilusForwardRuntimeWireCodec(Protocol):
     ) -> Mapping[str, object]: ...
 
     def decode_restore_payload(self, payload: Mapping[str, object]) -> tuple[str, str]: ...
+
+    def restore_result_payload(
+        self, *, instance_id: str, checkpoint_fingerprint: str
+    ) -> Mapping[str, object]: ...
+
+    def validate_restore_result(
+        self,
+        payload: Mapping[str, object],
+        *,
+        instance_id: str,
+        checkpoint_fingerprint: str,
+    ) -> None: ...
+
+    def close_payload(self, *, instance_id: str) -> Mapping[str, object]: ...
+
+    def decode_close_payload(self, payload: Mapping[str, object]) -> str: ...
+
+    def close_result_payload(self, *, instance_id: str) -> Mapping[str, object]: ...
+
+    def validate_close_result(self, payload: Mapping[str, object], *, instance_id: str) -> None: ...
 
 
 class _TimedPipeLineReader:
@@ -144,6 +170,7 @@ class NautilusRuntimeIpcSubprocess:
         self._stderr_count = 0
         self._stderr_overflow = threading.Event()
         self._closed = False
+        self._close_response: Mapping[str, object] | None = None
         self._lock = threading.Lock()
         self._stderr_thread = threading.Thread(
             target=self._drain_stderr,
@@ -176,15 +203,21 @@ class NautilusRuntimeIpcSubprocess:
                 self._terminate()
                 raise
 
-    def close(self, *, timeout_seconds: float = 5.0) -> None:
+    def close(
+        self,
+        *,
+        payload: Mapping[str, object],
+        timeout_seconds: float = 5.0,
+    ) -> Mapping[str, object] | None:
         with self._lock:
             if self._closed:
-                return
+                return self._close_response
+            response: Mapping[str, object] | None = None
             try:
                 if self._process.poll() is None:
-                    self._client.request(
+                    response = self._client.request(
                         NautilusRuntimeIpcOperation.CLOSE,
-                        {"instance_id": self.instance_id},
+                        payload,
                         request_id=content_digest(
                             {"operation": "close", "instance_id": self.instance_id}
                         ),
@@ -195,9 +228,11 @@ class NautilusRuntimeIpcSubprocess:
                 raise
             finally:
                 self._closed = True
+                self._close_response = response
                 if self._process.poll() is None:
                     self._terminate()
                 self._close_pipes()
+            return response
 
     def _drain_stderr(self, stream: BinaryIO) -> None:
         while chunk := stream.read(65_536):
@@ -285,15 +320,25 @@ class NautilusForwardSessionProcess:
                 "checkpoint": checkpoint_fingerprint,
             }
         )
-        await asyncio.to_thread(
+        response = await asyncio.to_thread(
             self._transport.request,
             NautilusRuntimeIpcOperation.RESTORE,
             payload,
             request_id=request_id,
         )
+        self._codec.validate_restore_result(
+            response,
+            instance_id=instance_id,
+            checkpoint_fingerprint=checkpoint_fingerprint,
+        )
 
     async def close(self) -> None:
-        await asyncio.to_thread(self._transport.close)
+        response = await asyncio.to_thread(
+            self._transport.close,
+            payload=self._codec.close_payload(instance_id=self.instance_id),
+        )
+        if response is not None:
+            self._codec.validate_close_result(response, instance_id=self.instance_id)
 
 
 class HardenedNautilusForwardSessionProcessFactory:
@@ -360,11 +405,12 @@ class HardenedNautilusForwardSessionProcessFactory:
         )
         try:
             open_payload = self._codec.open_payload(instance_id=instance_id)
-            transport.request(
+            open_response = transport.request(
                 NautilusRuntimeIpcOperation.OPEN,
                 open_payload,
                 request_id=content_digest({"operation": "open", "instance_id": instance_id}),
             )
+            self._codec.validate_open_result(open_response, instance_id=instance_id)
         except Exception:
             try:
                 transport._terminate()

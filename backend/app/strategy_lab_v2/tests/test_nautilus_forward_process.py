@@ -73,10 +73,10 @@ def _fake_runtime_binary(tmp_path: Path) -> Path:
         f"sys.path.insert(0, {str(backend_path)!r})\n"
         "from app.strategy_lab_v2.nautilus_runtime_ipc import serve_nautilus_runtime_ipc\n"
         "class Handler:\n"
-        "    def open(self, payload): return {'opened': payload['instance_id']}\n"
+        "    def open(self, payload): return {'schema': 'strategy-lab.nautilus-forward-dto.v1', 'instance_id': payload['instance_id'], 'runtime_session_fingerprint': 'sha256:' + '0' * 64}\n"
         "    def execute(self, payload): return {'executed': True}\n"
-        "    def restore(self, payload): return {'restored': payload['checkpoint_fingerprint']}\n"
-        "    def close(self, payload): return {'closed': True}\n"
+        "    def restore(self, payload): return {'schema': 'strategy-lab.nautilus-forward-dto.v1', 'instance_id': payload['instance_id'], 'checkpoint_fingerprint': payload['checkpoint_fingerprint']}\n"
+        "    def close(self, payload): return {'schema': 'strategy-lab.nautilus-forward-dto.v1', 'instance_id': payload['instance_id'], 'closed': True}\n"
         "raise SystemExit(serve_nautilus_runtime_ipc(sys.stdin.buffer, sys.stdout.buffer, Handler()))\n",
         encoding="utf-8",
     )
@@ -99,6 +99,7 @@ def test_forward_process_factory_launches_persistent_hardened_ipc(tmp_path: Path
             instance_id="forward-1",
             checkpoint_fingerprint=content_digest("checkpoint"),
         )
+        await process.close()
         await process.close()
 
     asyncio.run(exercise())
