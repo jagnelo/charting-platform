@@ -832,37 +832,42 @@ progress:
     - nautilus-oos-session-close-intervals-v1
     - strategy-lab-v2-owner-scoped-domain-identity-reservation-v1
   total: 18
-  current_phase: strategy-lab-v2-persisted-worker-request-binding-v1
+  current_phase: strategy-lab-v2-rc5-terminal-persistence-idempotency-v1
   current_blocker: >-
-    No external release or upstream event blocks the next local implementation
-    context. An exact-pinned stable or release-candidate build may qualify for
-    authoritative backtests after four backtest checks; broker-free full/forward
-    shadow separately requires all five checks including event-tape parity.
-    Current RC5 evidence covers backtests but not forward parity, and no
-    prerelease may connect to a broker or control real capital. The only
+    No external release or upstream event blocks package-owned implementation.
+    Exact-pinned Nautilus RC5 has the four backtest checks and passes the
+    persisted-request process/retry, OOS result-materialization, local artifact
+    publication, and production PostgreSQL-adapter terminal-composition replay
+    paths. The terminal-adapter composition uses deterministic SQL-session
+    doubles, so live PostgreSQL/Compose acceptance remains unproven. The full
+    Strategy Lab package suite passes 1,355 tests with the exact local RC5 image
+    and scoped host access. Broker-free forward shadow still requires event-tape
+    parity; prereleases cannot connect to a broker or control real capital. The
     environment-limited completion gate is full Compose/browser validation:
-    this host lacks Docker Buildx and the default sandbox cannot access the
-    Docker socket. Provider/ETF/TC2000
-    contracts are staging-gated only when an owned change overlaps their shared
-    paths. Remaining product work is domain-backed mutations, worker
-    recovery/scaling, forward-shadow correctness, and remaining metrics.
+    Docker Buildx is absent and the default sandbox cannot access the Docker
+    socket. Provider, ETF, and TC2000 contracts are staging-gated only when an
+    owned change overlaps their shared paths. Remaining product work includes
+    worker recovery/scaling, domain-backed mutations, forward-shadow correctness,
+    and remaining metrics.
     Stable-only wording retained in the accumulated remaining_gaps ledger is
     historical and superseded by this explicit scope-specific release policy.
     Options order admission remains fail-closed pending canonical event-time
     Greeks/delta and settlement evidence.
   next_action: >-
-    The durable owner-scoped domain graph now flows through attempt hydration,
-    verified frozen-artifact materialization, and exact RC5 authoritative worker
-    request construction; trial, experiment, portfolio, snapshot, package-set,
-    attempt, owner, and plan bindings are asserted. Next exercise this persisted
-    request through the isolated process and terminal result-publication path
-    where the local runtime permits, then continue worker recovery/scaling,
-    remaining metrics, and broker-free forward event-tape parity. RC5 may
-    publish local backtests after its exact-pin and four-check conformance;
-    stable labeling is not a gate. Either exact-pinned channel may qualify for
-    broker-free forward shadow after all five checks. Prereleases cannot connect
-    to brokers or control real capital. Keep options fail-closed pending
-    canonical event-time Greeks/delta and settlement evidence. Consume shared
-    provider/ETF/TC2000 contracts only after approved branches reach staging.
-    Missing Docker Buildx and default-sandbox Docker-socket access limit final
-    Compose/browser validation, not package-owned implementation.
+    RC5 completion now traverses the production PostgresWorkerTerminalAdapter
+    and its runtime, public-state, result, metric, summary, worker-state, and
+    settlement adapters; exact duplicate delivery returns a stable receipt and
+    leaves one completion, settlement, and artifact-commit set with worker
+    capacity released. This uses deterministic adapter SQL-session doubles.
+    Next inject retry/crash points between terminal persistence boundaries and
+    prove restart recovery, especially after settlement receipt but before
+    capacity release. Then continue worker scaling/recovery, domain-backed
+    mutations, remaining metrics, and broker-free forward event-tape parity.
+    Exact-pinned RC5 remains eligible for authoritative local backtests after
+    four checks; stable labeling is not a gate. Forward shadow needs all five
+    checks; prereleases cannot connect to brokers or control real capital. Keep
+    options fail-closed pending canonical event-time Greeks/delta and settlement
+    evidence. Consume shared provider/ETF/TC2000 contracts only after their
+    approved work reaches staging. Missing Docker Buildx and default-sandbox
+    socket access limit final Compose/browser acceptance, not package-owned
+    implementation.

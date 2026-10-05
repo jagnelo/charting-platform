@@ -10087,3 +10087,102 @@ The current human/agent handoff is `ops/workstreams/feat-strategy-lab-v2/handoff
 the session plan hash, active goal state, and exact next action are recorded in
 `ops/workstreams/feat-strategy-lab-v2/session.json`; validation evidence remains
 append-only in `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
+## 2026-10-05 - Persisted RC5 execution, result publication, and safe redelivery
+
+The persisted owner-scoped strategy/package/portfolio/snapshot/experiment/trial/
+attempt graph now reaches an exact-pinned Nautilus 2.0.0rc5 worker request,
+executes in the isolated container, and passes its successful native result
+through the authoritative OOS terminal evidence resolver. The fixture carries
+an explicit immutable OOS interval; both native equity and execution-report
+artifacts retain that exact evaluation-window fingerprint. The resolver derives
+the result manifest and versioned metrics, publishes every output into the
+content-addressed local artifact store, and returns an accepted publication
+plan. The same immutable worker request executes twice before publication,
+covering output-path reuse on queue redelivery.
+
+That retry path exposed a runtime defect: Docker bind mounts require output host
+files to exist before the container starts, while a redelivery must safely
+replace artifacts from a prior incomplete execution. The sandbox now stages
+mode-0666 output sources inside owner-only directories, rejects public parents,
+symlinks, non-regular or multiply linked sources, and for Docker retries only
+unlinks an existing regular output owned by the host user after verifying its
+inode. Deterministic fake executables retain fixture compatibility. Nautilus
+assembly fixtures now use a consistent native `AAPL.SIM` instrument/bar
+identity, and worker-oriented tests use hermetic output paths rather than a
+shared `/tmp` file.
+
+The persisted graph uses the deterministic PostgreSQL-session double; artifact
+commit records in this end-to-end proof are also in-memory. This is stronger
+than process-exit evidence but is not live PostgreSQL, Compose scaling, or
+production-store acceptance. Exact local RC5 image/evidence fingerprints were
+verified by the test's environment-bound evidence source. The full Strategy Lab
+suite passed `1,354/1,354` with that source enabled, including the isolated RC5
+process, retry/redelivery, local result publication, and Unix-socket RPC tests.
+Ruff check/format, focused MyPy for sandbox execution and the dispatch
+integration, and `git diff --check` passed. The implementation is in commit
+`1e699155e93e2767e7f0d5f0d2d2c9e738279cf7`, pushed to
+`origin/feat/strategy-lab-v2`.
+
+There is still no stable-release blocker: exact-pinned RC5 remains permitted
+for authoritative local backtests after its four scope checks; event-tape parity
+is a separate forward-shadow gate. No prerelease may connect to a broker or
+control real capital. The saved goal's stable-only sentence remains stale
+against the branch-owned scope. The host still lacks Docker Buildx for the full
+Compose/browser profile; scoped Docker execution reaches the daemon and the
+already-built exact RC5 image, so that limitation does not block package work.
+
+Next: run the actual RC5 completion evidence through the shared
+`PostgresWorkerTerminalAdapter`/persistence composition and verify authoritative
+result completion, compact metric persistence, capacity settlement, and
+idempotent terminal redelivery together. Then continue the remaining
+domain-backed resource mutations, worker recovery/scaling, metrics, and
+broker-free forward event-tape parity. Keep live PostgreSQL/Compose acceptance
+separate from deterministic adapter doubles, and preserve the staging gates on
+shared provider/ETF/TC2000 contracts.
+
+## 2026-10-05 - Durable RC5 terminal persistence and replay identity
+
+Added a composition regression that wires the production
+`PostgresWorkerTerminalAdapter` to the PostgreSQL runtime-state, execution
+state, summary, publication, manifest, result-completion/artifact-commit,
+metrics, worker-state, and settlement adapters. Starting from the same
+owner-scoped RC5 completion fixture, it persists the runtime result, terminal
+outcome/progress, accepted result and metrics, completion, all artifact commits,
+worker settlement, and capacity/lease release. Replaying the exact terminal
+context returns the same receipt digest and preserves single durable records.
+The adapters use their deterministic SQL-session doubles; this is not live
+PostgreSQL, a shared cross-table transaction claim, or Compose acceptance.
+
+The composition test exposed a real acknowledgement-idempotency defect:
+`PostgresExecutionSummaryAdapter.ensure` returns a `REGISTERED` or
+`REPLAY_EXISTING` resolution, and the wrapper had been included in the terminal
+receipt digest. The adapter now hashes the immutable `ExecutionSummary` record,
+so operational registration state cannot change a redelivery receipt.
+
+Validation: the terminal test module passed `7/7`; the complete Strategy Lab v2
+package suite passed `1,355/1,355` in 35.38 seconds with exact RC5 evidence/image
+pins and scoped local access for the isolated container and temporary Unix
+socket. The suite also includes the actual RC5 process/retry/result-publication
+coverage from the preceding checkpoint. Ruff check/format, focused MyPy for the
+changed production adapter and integration test, and `git diff --check` passed.
+Implementation commit `6cac49899123c44ac887635bf9c261819670c441` is pushed to
+`origin/feat/strategy-lab-v2`.
+
+There is no stable-2.x release blocker: branch policy permits exact-pinned RC5
+for authoritative local backtests after its four conformance checks. The saved
+goal tool's old stable-only sentence is stale; the branch plan is authoritative
+and explicitly accepts release candidates. The fifth event-tape-parity check
+blocks only broker-free forward shadow. No prerelease can connect to a broker
+or control real capital. Full Compose/browser acceptance remains environment-
+limited because Docker Buildx is absent and the default sandbox cannot access
+the Docker socket; scoped local access is sufficient for the package suite but
+does not replace the required Compose/browser profile. Provider/ETF/TC2000
+staging reconciliation and canonical options Greeks/settlement remain scoped
+future gates, not blockers to this branch's package-owned development.
+
+Next: inject retry/crash points between terminal persistence steps, especially
+after the durable settlement receipt but before capacity release, and verify
+restart/replay recovery using the production adapters. Continue the outstanding
+worker recovery/scaling, domain-backed mutations, remaining metrics, and
+forward-shadow parity work without waiting for a stable Nautilus label.
