@@ -911,10 +911,52 @@ async def test_lifecycle_route_executes_compare_and_set_boundary() -> None:
         response = await client.post(
             "/api/v1/strategy-lab/v2/forward-instances/forward-1/lifecycle",
             json={"target": "active", "now": NOW.isoformat()},
+            headers={"Idempotency-Key": "lifecycle-key"},
         )
     assert response.status_code == 202
     assert response.json()["data"]["type"] == "forward-lifecycle-transitions"
     assert response.json()["data"]["attributes"]["decision"] == "applied"
+
+
+@pytest.mark.asyncio
+async def test_lifecycle_route_requires_idempotency_key() -> None:
+    app = _asgi_app(ForwardRouteAdapter())
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://strategy-lab.test"
+    ) as client:
+        response = await client.post(
+            "/api/v1/strategy-lab/v2/forward-instances/forward-1/lifecycle",
+            json={"target": "active", "now": NOW.isoformat()},
+        )
+    assert response.status_code == 400
+    assert response.json()["errors"][0]["message"] == "Idempotency-Key header is required"
+
+
+@pytest.mark.asyncio
+async def test_lifecycle_route_returns_conflicts_as_http_409() -> None:
+    class ConflictAdapter(ForwardRouteAdapter):
+        async def transition_forward_instance(
+            self, **_kwargs: Any
+        ) -> ForwardStateMutationResolution:
+            return ForwardStateMutationResolution(
+                ForwardStateMutationDecision.CONFLICT,
+                forward_state().checkpoint.instance,
+                "illegal forward transition",
+            )
+
+    app = _asgi_app(ConflictAdapter())
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://strategy-lab.test"
+    ) as client:
+        response = await client.post(
+            "/api/v1/strategy-lab/v2/forward-instances/forward-1/lifecycle",
+            json={"target": "active", "now": NOW.isoformat()},
+            headers={"Idempotency-Key": "lifecycle-key"},
+        )
+    assert response.status_code == 409
+    assert response.json()["errors"][0]["message"] == "illegal forward transition"
 
 
 def test_forward_replay_serializer_preserves_deterministic_plan_identity() -> None:

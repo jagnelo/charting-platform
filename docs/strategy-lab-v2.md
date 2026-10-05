@@ -125,6 +125,13 @@ counterfactual replay-plan timestamps apply the same UTC normalization before
 identity checks, so restart, warm-up, and correction records cannot diverge on
 offset formatting alone.
 
+The forward lifecycle REST mutation requires an `Idempotency-Key` and stores an
+owner/instance/key-bound receipt atomically with its PostgreSQL state transition.
+Exact retries return the original typed instance snapshot even if the instance
+has since advanced; reuse of the key with a different target or request time is
+a typed HTTP 409. Failed state transitions also return 409 rather than an
+accepted response.
+
 The asynchronous execution lifecycle applies this invariant to submission,
 worker admission, runtime request/update/state, outcome, progress, command,
 authorization, and execution-summary timestamps. Retries and persisted

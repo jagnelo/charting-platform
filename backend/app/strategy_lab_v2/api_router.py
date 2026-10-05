@@ -69,7 +69,10 @@ from app.strategy_lab_v2.lifecycle import (
     ForwardEventDisposition,
     ForwardEventObservation,
 )
-from app.strategy_lab_v2.postgres_forward_state import ForwardStateMutationResolution
+from app.strategy_lab_v2.postgres_forward_state import (
+    ForwardStateMutationDecision,
+    ForwardStateMutationResolution,
+)
 from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationDecision,
     ResourceMutationReceipt,
@@ -289,7 +292,13 @@ class ForwardLifecycleApiAdapter(Protocol):
     """Application-owned forward-instance lifecycle transition boundary."""
 
     def transition_forward_instance(
-        self, *, principal: Any, instance_id: str, target: ForwardState, now: datetime
+        self,
+        *,
+        principal: Any,
+        instance_id: str,
+        target: ForwardState,
+        now: datetime,
+        idempotency_key: str,
     ) -> Awaitable[ForwardStateMutationResolution] | ForwardStateMutationResolution: ...
 
 
@@ -2643,6 +2652,7 @@ def create_strategy_lab_router(
         instance_id: str,
         request: Request,
         body: Any = Body(...),
+        idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
         adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
         principal: Any = Depends(principal_dependency),
     ) -> JSONResponse:
@@ -2652,6 +2662,26 @@ def create_strategy_lab_router(
             request_id = _request_id(request, request_id_factory)
             if not instance_id.strip():
                 raise ValueError("instance_id must not be empty")
+            if idempotency_key is None or not idempotency_key.strip():
+                raise ApiAdapterError(
+                    _api_error(
+                        ApiErrorCode.VALIDATION_ERROR,
+                        "Idempotency-Key header is required",
+                        request_id,
+                        status.HTTP_400_BAD_REQUEST,
+                    )
+                )
+            try:
+                key = _safe_header_value(idempotency_key, "Idempotency-Key", 256)
+            except (TypeError, ValueError) as error:
+                raise ApiAdapterError(
+                    _api_error(
+                        ApiErrorCode.VALIDATION_ERROR,
+                        "Idempotency-Key must be non-empty, at most 256 characters, and control-free",
+                        request_id,
+                        status.HTTP_400_BAD_REQUEST,
+                    )
+                ) from error
             target, now = _parse_forward_lifecycle(await _strict_json_body(request, request_id))
             transition = getattr(adapter, "transition_forward_instance", None)
             if not callable(transition):
@@ -2670,23 +2700,31 @@ def create_strategy_lab_router(
                     instance_id=instance_id,
                     target=target,
                     now=now,
+                    idempotency_key=key,
                 )
             )
             if not isinstance(resolution, ForwardStateMutationResolution):
                 raise TypeError("adapter returned an invalid forward lifecycle resolution")
-            if resolution.instance is None:
+            if resolution.decision is ForwardStateMutationDecision.NOT_FOUND:
                 return _error_response(
                     _api_error(
-                        ApiErrorCode.NOT_FOUND
-                        if resolution.decision.value == "not_found"
-                        else ApiErrorCode.CONFLICT,
+                        ApiErrorCode.NOT_FOUND,
                         resolution.rejection_reason or "forward lifecycle transition was rejected",
                         request_id,
-                        status.HTTP_404_NOT_FOUND
-                        if resolution.decision.value == "not_found"
-                        else status.HTTP_409_CONFLICT,
+                        status.HTTP_404_NOT_FOUND,
                     )
                 )
+            if resolution.decision is ForwardStateMutationDecision.CONFLICT:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.CONFLICT,
+                        resolution.rejection_reason or "forward lifecycle transition conflicted",
+                        request_id,
+                        status.HTTP_409_CONFLICT,
+                    )
+                )
+            if resolution.instance is None:
+                raise TypeError("successful forward lifecycle resolution omitted its instance")
             response = JSONResponse(
                 status_code=status.HTTP_202_ACCEPTED,
                 content=serialize_forward_lifecycle(resolution, request_id=request_id),

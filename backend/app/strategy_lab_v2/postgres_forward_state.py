@@ -18,7 +18,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, Protocol
 
-from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.contracts import ForwardInstance, ForwardState
 from app.strategy_lab_v2.forward_admission import (
     ForwardAdmissionResolution,
@@ -81,15 +81,23 @@ class ForwardInstanceResolution:
             raise TypeError("decision must be a ForwardInstanceDecision")
         if self.instance is not None and not isinstance(self.instance, ForwardInstance):
             raise TypeError("instance must be a ForwardInstance")
-        if self.decision in {
-            ForwardInstanceDecision.CONFLICT,
-            ForwardInstanceDecision.NOT_FOUND,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                ForwardInstanceDecision.CONFLICT,
+                ForwardInstanceDecision.NOT_FOUND,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("failed instance resolutions require a reason")
-        if self.decision in {
-            ForwardInstanceDecision.REGISTERED,
-            ForwardInstanceDecision.REPLAY_EXISTING,
-        } and self.rejection_reason:
+        if (
+            self.decision
+            in {
+                ForwardInstanceDecision.REGISTERED,
+                ForwardInstanceDecision.REPLAY_EXISTING,
+            }
+            and self.rejection_reason
+        ):
             raise ValueError("successful instance resolutions cannot contain a reason")
 
 
@@ -111,26 +119,35 @@ class ForwardStateMutationResolution:
             raise TypeError("decision must be a ForwardStateMutationDecision")
         if self.instance is not None and not isinstance(self.instance, ForwardInstance):
             raise TypeError("instance must be a ForwardInstance")
-        if self.decision in {
-            ForwardStateMutationDecision.CONFLICT,
-            ForwardStateMutationDecision.NOT_FOUND,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                ForwardStateMutationDecision.CONFLICT,
+                ForwardStateMutationDecision.NOT_FOUND,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("failed forward mutations require a reason")
-        if self.decision in {
-            ForwardStateMutationDecision.APPLIED,
-            ForwardStateMutationDecision.REPLAY_EXISTING,
-        } and self.rejection_reason:
+        if (
+            self.decision
+            in {
+                ForwardStateMutationDecision.APPLIED,
+                ForwardStateMutationDecision.REPLAY_EXISTING,
+            }
+            and self.rejection_reason
+        ):
             raise ValueError("successful forward mutations cannot contain a reason")
 
 
 @dataclass(frozen=True, slots=True)
 class PostgresForwardStateSchema:
-    """Explicit additive DDL for forward instances, warm-ups, and seen events."""
+    """Explicit additive DDL for forward instances and their durable receipts."""
 
     instance_table: str = "strategy_lab_v2_forward_instances"
     warmup_table: str = "strategy_lab_v2_forward_warmups"
     event_table: str = "strategy_lab_v2_forward_seen_events"
     replay_table: str = "strategy_lab_v2_forward_replays"
+    lifecycle_table: str = "strategy_lab_v2_forward_lifecycle_requests"
 
     def __post_init__(self) -> None:
         for name, value in (
@@ -138,6 +155,7 @@ class PostgresForwardStateSchema:
             ("warmup_table", self.warmup_table),
             ("event_table", self.event_table),
             ("replay_table", self.replay_table),
+            ("lifecycle_table", self.lifecycle_table),
         ):
             if not isinstance(value, str) or not re.fullmatch(r"[a-z_][a-z0-9_]*", value):
                 raise ValueError(f"{name} must be a safe SQL identifier")
@@ -208,6 +226,20 @@ class PostgresForwardStateSchema:
                 PRIMARY KEY (owner_id, instance_id, replay_id)
             )
             """,
+            f"""
+            CREATE TABLE {self.lifecycle_table} (
+                owner_id TEXT NOT NULL,
+                instance_id TEXT NOT NULL,
+                idempotency_key_digest TEXT NOT NULL,
+                request_fingerprint TEXT NOT NULL,
+                resolution_decision TEXT NOT NULL,
+                result_instance_json TEXT NOT NULL,
+                result_instance_fingerprint TEXT NOT NULL,
+                accepted_at TEXT NOT NULL,
+                receipt_fingerprint TEXT NOT NULL,
+                PRIMARY KEY (owner_id, instance_id, idempotency_key_digest)
+            )
+            """,
         )
 
 
@@ -256,9 +288,7 @@ class PostgresForwardStateAdapter:
                 await self._insert_instance(session, owner_id, checkpoint)
                 return ForwardInstanceResolution(ForwardInstanceDecision.REGISTERED, instance)
 
-    async def load_instance(
-        self, *, principal: Any, instance_id: str
-    ) -> ForwardInstance | None:
+    async def load_instance(self, *, principal: Any, instance_id: str) -> ForwardInstance | None:
         """Read and authenticate one instance without requiring warm-up completion."""
 
         _validate_instance_id(instance_id)
@@ -297,16 +327,25 @@ class PostgresForwardStateAdapter:
                 instances: list[ForwardInstance] = []
                 for row in result.mappings():
                     instance, checkpoint = _decode_checkpoint(row)
-                    if row.get("owner_id") != owner_id or row.get("instance_id") != instance.instance_id:
+                    if (
+                        row.get("owner_id") != owner_id
+                        or row.get("instance_id") != instance.instance_id
+                    ):
                         raise ValueError("PostgreSQL forward instance owner/identity drifted")
                     if row.get("instance_fingerprint") != content_digest(instance):
-                        raise ValueError("PostgreSQL forward instance fingerprint does not match bytes")
+                        raise ValueError(
+                            "PostgreSQL forward instance fingerprint does not match bytes"
+                        )
                     if row.get("checkpoint_fingerprint") != checkpoint.fingerprint:
-                        raise ValueError("PostgreSQL forward checkpoint fingerprint does not match bytes")
+                        raise ValueError(
+                            "PostgreSQL forward checkpoint fingerprint does not match bytes"
+                        )
                     instances.append(instance)
                 ordered = tuple(sorted(instances, key=lambda item: item.instance_id))
                 if tuple(instances) != ordered:
-                    raise ValueError("PostgreSQL forward instances are not deterministically ordered")
+                    raise ValueError(
+                        "PostgreSQL forward instances are not deterministically ordered"
+                    )
                 return ordered
 
     async def transition(
@@ -316,13 +355,27 @@ class PostgresForwardStateAdapter:
         instance_id: str,
         target: ForwardState,
         now: datetime,
+        idempotency_key: str,
     ) -> ForwardStateMutationResolution:
-        """Apply one lifecycle transition with an instance compare-and-set."""
+        """Apply and durably replay one owner-scoped lifecycle request."""
 
         _validate_instance_id(instance_id)
         if not isinstance(target, ForwardState):
             raise TypeError("target must be a ForwardState")
+        if not isinstance(now, datetime) or now.tzinfo is None or now.utcoffset() is None:
+            raise ValueError("now must be a timezone-aware datetime")
+        key = _validate_lifecycle_idempotency_key(idempotency_key)
         owner_id = _principal_id(principal)
+        normalized_now = now.astimezone(UTC)
+        idempotency_key_digest = content_digest({"idempotency_key": key})
+        request_fingerprint = content_digest(
+            {
+                "owner_id": owner_id,
+                "instance_id": instance_id,
+                "target": target,
+                "now": _encode_datetime(normalized_now),
+            }
+        )
         session: AsyncSessionLike = self._session_factory()
         async with session:
             async with session.begin():
@@ -334,20 +387,52 @@ class PostgresForwardStateAdapter:
                         "forward instance was not found",
                     )
                 instance, checkpoint = current
-                if instance.state is target:
-                    return ForwardStateMutationResolution(
-                        ForwardStateMutationDecision.REPLAY_EXISTING, instance
-                    )
-                try:
-                    next_instance = transition_forward_instance(instance, target, now=now)
-                except (TypeError, ValueError) as error:
-                    return ForwardStateMutationResolution(
-                        ForwardStateMutationDecision.CONFLICT, instance, str(error)
-                    )
-                await self._update_instance(session, owner_id, checkpoint, next_instance)
-                return ForwardStateMutationResolution(
-                    ForwardStateMutationDecision.APPLIED, next_instance
+                existing = await self._load_lifecycle_request(
+                    session,
+                    owner_id,
+                    instance_id,
+                    idempotency_key_digest,
                 )
+                if existing is not None:
+                    existing_fingerprint, existing_instance = existing
+                    if existing_fingerprint != request_fingerprint:
+                        return ForwardStateMutationResolution(
+                            ForwardStateMutationDecision.CONFLICT,
+                            existing_instance,
+                            "Idempotency-Key is already bound to different lifecycle content",
+                        )
+                    return ForwardStateMutationResolution(
+                        ForwardStateMutationDecision.REPLAY_EXISTING,
+                        existing_instance,
+                    )
+                if instance.state is target:
+                    decision = ForwardStateMutationDecision.REPLAY_EXISTING
+                    next_instance = instance
+                else:
+                    try:
+                        next_instance = transition_forward_instance(
+                            instance,
+                            target,
+                            now=normalized_now,
+                        )
+                    except (TypeError, ValueError) as error:
+                        return ForwardStateMutationResolution(
+                            ForwardStateMutationDecision.CONFLICT, instance, str(error)
+                        )
+                    await self._update_instance(session, owner_id, checkpoint, next_instance)
+                    decision = ForwardStateMutationDecision.APPLIED
+
+                await self._insert_lifecycle_request(
+                    session,
+                    owner_id=owner_id,
+                    instance_id=instance_id,
+                    idempotency_key_digest=idempotency_key_digest,
+                    request_fingerprint=request_fingerprint,
+                    decision=decision,
+                    instance=next_instance,
+                    accepted_at=normalized_now,
+                )
+                return ForwardStateMutationResolution(decision, next_instance)
 
     async def complete_warmup(
         self, *, principal: Any, receipt: ForwardWarmupReceipt
@@ -365,9 +450,7 @@ class PostgresForwardStateAdapter:
                     raise ValueError("forward instance was not found")
                 instance, checkpoint = current
                 existing = await self._load_warmup(session, owner_id, receipt.instance_id)
-                resolution = resolve_forward_warmup(
-                    instance, receipt, existing_receipt=existing
-                )
+                resolution = resolve_forward_warmup(instance, receipt, existing_receipt=existing)
                 if resolution.decision is ForwardWarmupDecision.COMPLETE:
                     if resolution.receipt is None:  # pragma: no cover - pure guard
                         raise ValueError("warm-up resolution omitted its receipt")
@@ -375,7 +458,10 @@ class PostgresForwardStateAdapter:
                         resolution.instance, resolution.receipt
                     ).checkpoint
                     await self._update_instance(
-                        session, owner_id, checkpoint, next_checkpoint.instance,
+                        session,
+                        owner_id,
+                        checkpoint,
+                        next_checkpoint.instance,
                         checkpoint_override=next_checkpoint,
                     )
                     await self._insert_warmup(session, owner_id, resolution.receipt)
@@ -553,6 +639,112 @@ class PostgresForwardStateAdapter:
             raise ValueError("PostgreSQL forward checkpoint fingerprint does not match bytes")
         return instance, checkpoint
 
+    async def _load_lifecycle_request(
+        self,
+        session: AsyncSessionLike,
+        owner_id: str,
+        instance_id: str,
+        idempotency_key_digest: str,
+    ) -> tuple[str, ForwardInstance] | None:
+        result = await session.execute(
+            _statement(
+                f"""
+                SELECT owner_id, instance_id, idempotency_key_digest,
+                       request_fingerprint, resolution_decision,
+                       result_instance_json, result_instance_fingerprint,
+                       accepted_at, receipt_fingerprint
+                FROM {self._schema.lifecycle_table}
+                WHERE owner_id = :owner_id AND instance_id = :instance_id
+                  AND idempotency_key_digest = :idempotency_key_digest
+                FOR UPDATE
+                """
+            ),
+            {
+                "owner_id": owner_id,
+                "instance_id": instance_id,
+                "idempotency_key_digest": idempotency_key_digest,
+            },
+        )
+        rows = list(result.mappings())
+        if not rows:
+            return None
+        if len(rows) != 1:
+            raise ValueError("PostgreSQL lifecycle request query returned duplicate keys")
+        row = rows[0]
+        try:
+            request_fingerprint = row["request_fingerprint"]
+            if not isinstance(request_fingerprint, str):
+                raise ValueError("request fingerprint is malformed")
+            require_sha256_digest(request_fingerprint, field_name="request_fingerprint")
+            instance = _decode_lifecycle_instance(row["result_instance_json"])
+            decision = ForwardStateMutationDecision(row["resolution_decision"])
+            accepted_at = _decode_datetime(row["accepted_at"], "accepted_at")
+            if decision not in {
+                ForwardStateMutationDecision.APPLIED,
+                ForwardStateMutationDecision.REPLAY_EXISTING,
+            }:
+                raise ValueError("persisted lifecycle request has a failed decision")
+            if (
+                row.get("owner_id") != owner_id
+                or row.get("instance_id") != instance_id
+                or row.get("idempotency_key_digest") != idempotency_key_digest
+                or instance.instance_id != instance_id
+                or row.get("result_instance_fingerprint") != content_digest(instance)
+            ):
+                raise ValueError("persisted lifecycle request owner or identity differs")
+            expected_receipt_fingerprint = _lifecycle_receipt_fingerprint(
+                owner_id=owner_id,
+                instance_id=instance_id,
+                idempotency_key_digest=idempotency_key_digest,
+                request_fingerprint=request_fingerprint,
+                decision=decision,
+                instance=instance,
+                accepted_at=accepted_at,
+            )
+            if row.get("receipt_fingerprint") != expected_receipt_fingerprint:
+                raise ValueError("persisted lifecycle request fingerprint does not match bytes")
+            return request_fingerprint, instance
+        except (KeyError, TypeError, ValueError) as error:
+            raise ValueError("PostgreSQL forward lifecycle request row is malformed") from error
+
+    async def _insert_lifecycle_request(
+        self,
+        session: AsyncSessionLike,
+        *,
+        owner_id: str,
+        instance_id: str,
+        idempotency_key_digest: str,
+        request_fingerprint: str,
+        decision: ForwardStateMutationDecision,
+        instance: ForwardInstance,
+        accepted_at: datetime,
+    ) -> None:
+        result = await session.execute(
+            _statement(
+                f"""
+                INSERT INTO {self._schema.lifecycle_table}
+                    (owner_id, instance_id, idempotency_key_digest,
+                     request_fingerprint, resolution_decision, result_instance_json,
+                     result_instance_fingerprint, accepted_at, receipt_fingerprint)
+                VALUES (:owner_id, :instance_id, :idempotency_key_digest,
+                        :request_fingerprint, :resolution_decision, :result_instance_json,
+                        :result_instance_fingerprint, :accepted_at, :receipt_fingerprint)
+                ON CONFLICT (owner_id, instance_id, idempotency_key_digest) DO NOTHING
+                """
+            ),
+            _lifecycle_request_values(
+                owner_id=owner_id,
+                instance_id=instance_id,
+                idempotency_key_digest=idempotency_key_digest,
+                request_fingerprint=request_fingerprint,
+                decision=decision,
+                instance=instance,
+                accepted_at=accepted_at,
+            ),
+        )
+        if getattr(result, "rowcount", 0) != 1:
+            raise ValueError("PostgreSQL lifecycle request insert lost a uniqueness race")
+
     async def _load_warmup(
         self, session: AsyncSessionLike, owner_id: str, instance_id: str
     ) -> ForwardWarmupReceipt | None:
@@ -629,11 +821,17 @@ class PostgresForwardStateAdapter:
             raise ValueError("PostgreSQL checkpoint references missing seen events")
         if checkpoint.instance.last_event_id is not None:
             cursor_event = seen_by_id.get(checkpoint.instance.last_event_id)
-            if cursor_event is None or cursor_event.sequence != checkpoint.instance.last_event_sequence:
+            if (
+                cursor_event is None
+                or cursor_event.sequence != checkpoint.instance.last_event_sequence
+            ):
                 raise ValueError("PostgreSQL forward cursor does not match seen event")
         if receipt.final_event_id is not None:
             warmup_event = seen_by_id.get(receipt.final_event_id)
-            if warmup_event is None or warmup_event.event_fingerprint != receipt.final_event_fingerprint:
+            if (
+                warmup_event is None
+                or warmup_event.event_fingerprint != receipt.final_event_fingerprint
+            ):
                 raise ValueError("PostgreSQL warm-up cursor does not match seen event")
         return ForwardLiveAdmissionState(
             checkpoint=checkpoint,
@@ -869,6 +1067,126 @@ def _checkpoint_values(owner_id: str, checkpoint: ForwardStateCheckpoint) -> dic
     }
 
 
+def _validate_lifecycle_idempotency_key(value: str) -> str:
+    if not isinstance(value, str):
+        raise TypeError("idempotency_key must be a string")
+    normalized = value.strip()
+    if not normalized or len(normalized) > 256:
+        raise ValueError("idempotency_key must be non-empty and at most 256 characters")
+    if any(ord(character) < 32 or ord(character) == 127 for character in normalized):
+        raise ValueError("idempotency_key must not contain control characters")
+    return normalized
+
+
+def _encode_lifecycle_instance(instance: ForwardInstance) -> str:
+    return json.dumps(
+        {
+            "instance_id": instance.instance_id,
+            "portfolio_fingerprint": instance.portfolio_fingerprint,
+            "warmup_snapshot_fingerprint": instance.warmup_snapshot_fingerprint,
+            "carry_in_mode": instance.carry_in_mode.value,
+            "state": instance.state.value,
+            "last_event_id": instance.last_event_id,
+            "last_event_sequence": instance.last_event_sequence,
+            "correction_count": instance.correction_count,
+            "created_at": _encode_datetime(instance.created_at),
+            "updated_at": _encode_datetime(instance.updated_at),
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+
+
+def _decode_lifecycle_instance(value: Any) -> ForwardInstance:
+    if not isinstance(value, str):
+        raise ValueError("result_instance_json must be a string")
+    try:
+        payload = json.loads(value)
+        if not isinstance(payload, Mapping) or set(payload) != {
+            "instance_id",
+            "portfolio_fingerprint",
+            "warmup_snapshot_fingerprint",
+            "carry_in_mode",
+            "state",
+            "last_event_id",
+            "last_event_sequence",
+            "correction_count",
+            "created_at",
+            "updated_at",
+        }:
+            raise ValueError("result instance fields are invalid")
+        return ForwardInstance(
+            payload["instance_id"],
+            payload["portfolio_fingerprint"],
+            payload["warmup_snapshot_fingerprint"],
+            _carry_in_mode(payload["carry_in_mode"]),
+            ForwardState(payload["state"]),
+            payload["last_event_id"],
+            int(payload["last_event_sequence"]),
+            int(payload["correction_count"]),
+            _decode_datetime(payload["created_at"], "created_at"),
+            _decode_datetime(payload["updated_at"], "updated_at"),
+        )
+    except (TypeError, ValueError, json.JSONDecodeError) as error:
+        raise ValueError("persisted lifecycle result instance is malformed") from error
+
+
+def _lifecycle_receipt_fingerprint(
+    *,
+    owner_id: str,
+    instance_id: str,
+    idempotency_key_digest: str,
+    request_fingerprint: str,
+    decision: ForwardStateMutationDecision,
+    instance: ForwardInstance,
+    accepted_at: datetime,
+) -> str:
+    return content_digest(
+        {
+            "schema": "strategy-lab.forward-lifecycle-receipt.v1",
+            "owner_id": owner_id,
+            "instance_id": instance_id,
+            "idempotency_key_digest": idempotency_key_digest,
+            "request_fingerprint": request_fingerprint,
+            "decision": decision,
+            "result_instance_fingerprint": content_digest(instance),
+            "accepted_at": _encode_datetime(accepted_at),
+        }
+    )
+
+
+def _lifecycle_request_values(
+    *,
+    owner_id: str,
+    instance_id: str,
+    idempotency_key_digest: str,
+    request_fingerprint: str,
+    decision: ForwardStateMutationDecision,
+    instance: ForwardInstance,
+    accepted_at: datetime,
+) -> dict[str, Any]:
+    return {
+        "owner_id": owner_id,
+        "instance_id": instance_id,
+        "idempotency_key_digest": idempotency_key_digest,
+        "request_fingerprint": request_fingerprint,
+        "resolution_decision": decision.value,
+        "result_instance_json": _encode_lifecycle_instance(instance),
+        "result_instance_fingerprint": content_digest(instance),
+        "accepted_at": _encode_datetime(accepted_at),
+        "receipt_fingerprint": _lifecycle_receipt_fingerprint(
+            owner_id=owner_id,
+            instance_id=instance_id,
+            idempotency_key_digest=idempotency_key_digest,
+            request_fingerprint=request_fingerprint,
+            decision=decision,
+            instance=instance,
+            accepted_at=accepted_at,
+        ),
+    }
+
+
 def _receipt_values(owner_id: str, receipt: ForwardWarmupReceipt) -> dict[str, Any]:
     return {
         "owner_id": owner_id,
@@ -956,9 +1274,7 @@ def _decode_receipt(row: Mapping[str, Any]) -> ForwardWarmupReceipt:
 
 def _decode_seen_event(row: Mapping[str, Any]) -> ForwardSeenEvent:
     try:
-        return ForwardSeenEvent(
-            row["event_id"], row["event_fingerprint"], int(row["sequence"])
-        )
+        return ForwardSeenEvent(row["event_id"], row["event_fingerprint"], int(row["sequence"]))
     except (KeyError, TypeError, ValueError) as error:
         raise ValueError("PostgreSQL seen event row is malformed") from error
 
@@ -991,7 +1307,9 @@ def _encode_ids(values: frozenset[str]) -> str:
 def _decode_ids(value: Any, field_name: str) -> frozenset[str]:
     if isinstance(value, str):
         value = json.loads(value)
-    if not isinstance(value, list) or any(not isinstance(item, str) or not item.strip() for item in value):
+    if not isinstance(value, list) or any(
+        not isinstance(item, str) or not item.strip() for item in value
+    ):
         raise ValueError(f"{field_name} must contain a JSON string list")
     if len(value) != len(set(value)):
         raise ValueError(f"{field_name} must not contain duplicates")

@@ -50,6 +50,7 @@ class FakeSession:
         self.warmups: dict[tuple[str, str], dict[str, Any]] = {}
         self.events: dict[tuple[str, str, str], dict[str, Any]] = {}
         self.replays: dict[tuple[str, str, str], dict[str, Any]] = {}
+        self.lifecycle_requests: dict[tuple[str, str, str], dict[str, Any]] = {}
 
     async def __aenter__(self):
         return self
@@ -68,9 +69,7 @@ class FakeSession:
                 row = self.instances.get((values["owner_id"], values["instance_id"]))
                 return FakeResult([] if row is None else [row])
             rows = [
-                row
-                for (owner, _), row in self.instances.items()
-                if owner == values["owner_id"]
+                row for (owner, _), row in self.instances.items() if owner == values["owner_id"]
             ]
             return FakeResult(sorted(rows, key=lambda row: row["instance_id"]))
         if "FROM strategy_lab_v2_forward_warmups" in sql:
@@ -90,7 +89,18 @@ class FakeSession:
                 if owner == values["owner_id"] and instance_id == values["instance_id"]
             ]
             return FakeResult(sorted(rows, key=lambda row: row["replay_id"]))
-        if sql.lstrip().startswith("INSERT INTO") and "instance_fingerprint" in sql:
+        if "FROM strategy_lab_v2_forward_lifecycle_requests" in sql:
+            row = self.lifecycle_requests.get(
+                (values["owner_id"], values["instance_id"], values["idempotency_key_digest"])
+            )
+            return FakeResult([] if row is None else [row])
+        if sql.lstrip().startswith("INSERT INTO strategy_lab_v2_forward_lifecycle_requests"):
+            key = (values["owner_id"], values["instance_id"], values["idempotency_key_digest"])
+            if key in self.lifecycle_requests:
+                return FakeResult(rowcount=0)
+            self.lifecycle_requests[key] = values
+            return FakeResult(rowcount=1)
+        if sql.lstrip().startswith("INSERT INTO strategy_lab_v2_forward_instances"):
             key = (values["owner_id"], values["instance_id"])
             if key in self.instances:
                 return FakeResult(rowcount=0)
@@ -165,6 +175,7 @@ async def test_forward_adapter_transitions_completes_warmup_and_replays() -> Non
         instance_id=instance.instance_id,
         target=ForwardState.WARMING_UP,
         now=NOW + timedelta(seconds=1),
+        idempotency_key="lifecycle-transition-1",
     )
     assert transitioned.decision is ForwardStateMutationDecision.APPLIED
     warming = transitioned.instance
@@ -177,6 +188,64 @@ async def test_forward_adapter_transitions_completes_warmup_and_replays() -> Non
     loaded = await adapter.load_instance(principal="owner-1", instance_id="instance-1")
     assert loaded is not None
     assert loaded.state is ForwardState.ACTIVE
+
+
+@pytest.mark.asyncio
+async def test_forward_lifecycle_idempotency_replays_original_snapshot_and_conflicts_on_reuse() -> (
+    None
+):
+    session = FakeSession()
+    adapter = PostgresForwardStateAdapter(lambda: session)
+    instance = _instance()
+    await adapter.ensure_instance(principal="owner-1", instance=instance)
+
+    first = await adapter.transition(
+        principal="owner-1",
+        instance_id=instance.instance_id,
+        target=ForwardState.WARMING_UP,
+        now=NOW + timedelta(seconds=1),
+        idempotency_key="lifecycle-key",
+    )
+    assert first.decision is ForwardStateMutationDecision.APPLIED
+    assert first.instance is not None and first.instance.state is ForwardState.WARMING_UP
+
+    assert first.instance is not None
+    await adapter.complete_warmup(principal="owner-1", receipt=_receipt(first.instance))
+    assert (
+        await adapter.load_instance(principal="owner-1", instance_id=instance.instance_id)
+    ).state is ForwardState.ACTIVE  # type: ignore[union-attr]
+
+    replay = await adapter.transition(
+        principal="owner-1",
+        instance_id=instance.instance_id,
+        target=ForwardState.WARMING_UP,
+        now=NOW + timedelta(seconds=1),
+        idempotency_key="lifecycle-key",
+    )
+    assert replay.decision is ForwardStateMutationDecision.REPLAY_EXISTING
+    assert replay.instance == first.instance
+    assert replay.instance is not None and replay.instance.state is ForwardState.WARMING_UP
+
+    conflict = await adapter.transition(
+        principal="owner-1",
+        instance_id=instance.instance_id,
+        target=ForwardState.PAUSED,
+        now=NOW + timedelta(minutes=2),
+        idempotency_key="lifecycle-key",
+    )
+    assert conflict.decision is ForwardStateMutationDecision.CONFLICT
+    assert conflict.instance == first.instance
+    assert "Idempotency-Key" in (conflict.rejection_reason or "")
+
+    hidden = await adapter.transition(
+        principal="owner-2",
+        instance_id=instance.instance_id,
+        target=ForwardState.WARMING_UP,
+        now=NOW + timedelta(seconds=1),
+        idempotency_key="lifecycle-key",
+    )
+    assert hidden.decision is ForwardStateMutationDecision.NOT_FOUND
+    assert hidden.instance is None
 
 
 @pytest.mark.asyncio
@@ -250,7 +319,9 @@ async def test_forward_adapter_rejects_tampered_checkpoint_and_owner_conflicts()
         ),
     )
     assert conflict.decision is ForwardInstanceDecision.CONFLICT
-    session.instances[("owner-1", instance.instance_id)]["checkpoint_fingerprint"] = content_digest("tampered")
+    session.instances[("owner-1", instance.instance_id)]["checkpoint_fingerprint"] = content_digest(
+        "tampered"
+    )
     with pytest.raises(ValueError, match="checkpoint fingerprint"):
         await adapter.load_instance(principal="owner-1", instance_id=instance.instance_id)
 
@@ -322,8 +393,9 @@ async def test_forward_adapter_stages_correction_replay_atomically() -> None:
 
 def test_forward_state_schema_is_explicit_and_safe() -> None:
     schema = PostgresForwardStateSchema()
-    assert len(schema.statements) == 4
+    assert len(schema.statements) == 5
     assert all("CREATE TABLE" in statement for statement in schema.statements)
     assert "PRIMARY KEY (owner_id, instance_id, event_id)" in schema.statements[2]
+    assert "PRIMARY KEY (owner_id, instance_id, idempotency_key_digest)" in schema.statements[4]
     with pytest.raises(ValueError, match="safe SQL identifier"):
         PostgresForwardStateSchema(event_table="unsafe;drop")

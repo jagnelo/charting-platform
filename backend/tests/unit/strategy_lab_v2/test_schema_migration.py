@@ -19,6 +19,9 @@ _RECOVERY_MIGRATION_PATH = _MIGRATION_PATH.with_name(
 _SEARCH_RETRY_MIGRATION_PATH = _MIGRATION_PATH.with_name(
     "ff4a5b6c7d8e_allow_search_candidate_attempt_retries.py"
 )
+_FORWARD_LIFECYCLE_MIGRATION_PATH = _MIGRATION_PATH.with_name(
+    "ff5a6b7c8d9e_strategy_lab_forward_lifecycle_idempotency.py"
+)
 
 
 def _migration() -> ModuleType:
@@ -58,6 +61,18 @@ def _search_retry_migration() -> ModuleType:
     )
     if spec is None or spec.loader is None:
         raise AssertionError("could not load the Strategy Lab search-retry migration")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _forward_lifecycle_migration() -> ModuleType:
+    spec = importlib.util.spec_from_file_location(
+        "strategy_lab_v2_forward_lifecycle_migration",
+        _FORWARD_LIFECYCLE_MIGRATION_PATH,
+    )
+    if spec is None or spec.loader is None:
+        raise AssertionError("could not load the forward lifecycle migration")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -127,5 +142,23 @@ def test_search_retry_migration_allows_attempt_lineage_per_candidate() -> None:
     downgrade_constants = tuple(str(value) for value in migration.downgrade.__code__.co_consts)
     assert any(
         "DROP CONSTRAINT strategy_lab_v2_search_dispatch_candidate_attempt_key" in value
+        for value in downgrade_constants
+    )
+
+
+def test_forward_lifecycle_idempotency_migration_is_additive_and_receipt_scoped() -> None:
+    migration = _forward_lifecycle_migration()
+
+    assert migration.revision == "ff5a6b7c8d9e"
+    assert migration.down_revision == "ff4a5b6c7d8e"
+    upgrade_constants = tuple(str(value) for value in migration.upgrade.__code__.co_consts)
+    assert any(
+        "CREATE TABLE strategy_lab_v2_forward_lifecycle_requests" in value
+        and "PRIMARY KEY (owner_id, instance_id, idempotency_key_digest)" in value
+        for value in upgrade_constants
+    )
+    downgrade_constants = tuple(str(value) for value in migration.downgrade.__code__.co_consts)
+    assert any(
+        "DROP TABLE strategy_lab_v2_forward_lifecycle_requests" in value
         for value in downgrade_constants
     )

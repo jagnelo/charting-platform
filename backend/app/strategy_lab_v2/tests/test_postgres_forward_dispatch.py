@@ -51,8 +51,7 @@ class DispatchSession(FakeSession):
                 rows = [
                     row
                     for (owner, _), row in self.dispatches.items()
-                    if owner == values["owner_id"]
-                    and row["instance_id"] == values["instance_id"]
+                    if owner == values["owner_id"] and row["instance_id"] == values["instance_id"]
                 ]
             return FakeResult(sorted(rows, key=lambda row: row["request_fingerprint"]))
         if "FROM strategy_lab_v2_dispatch_payloads" in sql:
@@ -88,6 +87,7 @@ async def _active_state(session: DispatchSession) -> None:
         instance_id=instance.instance_id,
         target=ForwardState.WARMING_UP,
         now=NOW + timedelta(seconds=1),
+        idempotency_key="forward-dispatch-active-setup",
     )
     assert warming.instance is not None
     await state.complete_warmup(principal="owner-1", receipt=_receipt(warming.instance))

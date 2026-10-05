@@ -1161,6 +1161,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         instance_id: str,
         target: ForwardState,
         now: datetime,
+        idempotency_key: str,
     ) -> ForwardStateMutationResolution:
         """Apply one owner-scoped forward lifecycle transition."""
 
@@ -1175,6 +1176,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             instance_id=instance_id,
             target=target,
             now=now.astimezone(UTC),
+            idempotency_key=idempotency_key,
         )
 
     async def complete_forward_warmup(

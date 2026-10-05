@@ -199,12 +199,14 @@ async def test_application_forward_lifecycle_is_owner_scoped_and_utc_normalized(
         instance_id=instance.instance_id,
         target=ForwardState.WARMING_UP,
         now=datetime(2024, 1, 2, 13, 0, tzinfo=UTC),
+        idempotency_key="application-forward-lifecycle-key",
     )
     await adapter.complete_forward_warmup(principal=_User(42), receipt=receipt)
 
     assert observed["ensure_principal"].id == "42"
     assert observed["transition"]["principal"].id == "42"
     assert observed["transition"]["now"].tzinfo is UTC
+    assert observed["transition"]["idempotency_key"] == "application-forward-lifecycle-key"
     assert observed["warmup"]["principal"].id == "42"
 
 
