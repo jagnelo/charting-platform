@@ -295,9 +295,10 @@ def test_oos_equity_metrics_use_only_complete_explicit_session_intervals() -> No
     assert metrics["annualized_volatility"].annualization_basis == (
         "252 actual session-close intervals per year; calendar=XNYS"
     )
+    sharpe_definition = metrics["sharpe_ratio"].calculation_definition
+    assert sharpe_definition is not None
     assert (
-        metrics["sharpe_ratio"].calculation_definition.parameters["sampling_basis"]
-        == "complete_actual_session_close_intervals"
+        sharpe_definition.parameters["sampling_basis"] == "complete_actual_session_close_intervals"
     )
     assert metrics["session_return_quantile:p=0.5"].value == Decimal("0.02")
     without_session_inputs = build_nautilus_oos_equity_metric_set(

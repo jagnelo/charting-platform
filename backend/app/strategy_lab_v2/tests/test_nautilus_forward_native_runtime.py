@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import pytest
 
+from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.nautilus_forward_native_runtime import (
     NautilusBacktestForwardSession,
     _NativeEngineState,
 )
+from app.strategy_lab_v2.nautilus_strategy_bridge import NativeStrategyBridge
 
 
 class _FakeEngine:
@@ -20,7 +22,17 @@ class _FakeEngine:
 def _state(order: list[str], name: str) -> _NativeEngineState:
     return _NativeEngineState(
         engine=_FakeEngine(order, name),
-        bridge=None,
+        bridge=NativeStrategyBridge(
+            strategy=object(),
+            result_output=object(),
+            account_equity_trace_output=object(),
+            session_close_equity_output=object(),
+            rebalance_schedule_output=object(),
+            stage_forward_event=object(),
+            take_forward_account_event=object(),
+            input_fingerprint=content_digest("native-forward-test-bridge"),
+            input_protocol="test",
+        ),
         windows={},
         native_init_time_ns=0,
         instrument_definitions={},

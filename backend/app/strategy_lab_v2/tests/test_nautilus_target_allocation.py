@@ -4,6 +4,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from decimal import Decimal
 from types import SimpleNamespace
+from typing import Protocol
 
 import pytest
 
@@ -123,6 +124,10 @@ def _future_instruments() -> dict[str, dict[str, object]]:
     }
 
 
+class _SupportsNativeDecimal(Protocol):
+    def as_decimal(self) -> Decimal: ...
+
+
 class _NativeMoney:
     def __init__(self, amount: Decimal) -> None:
         self.currency = SimpleNamespace(code="USD")
@@ -154,14 +159,20 @@ class _NativeFutureMarginAccount:
         return _NativeMoney(Decimal(0))
 
     def calculate_initial_margin(
-        self, _instrument: object, quantity: object, price: object
+        self,
+        _instrument: object,
+        quantity: _SupportsNativeDecimal,
+        price: _SupportsNativeDecimal,
     ) -> _NativeMoney:
         return _NativeMoney(
             quantity.as_decimal() * price.as_decimal() * Decimal("1000") * Decimal("0.12")
         )
 
     def calculate_maintenance_margin(
-        self, _instrument: object, quantity: object, price: object
+        self,
+        _instrument: object,
+        quantity: _SupportsNativeDecimal,
+        price: _SupportsNativeDecimal,
     ) -> _NativeMoney:
         return _NativeMoney(
             quantity.as_decimal() * price.as_decimal() * Decimal("1000") * Decimal("0.11")

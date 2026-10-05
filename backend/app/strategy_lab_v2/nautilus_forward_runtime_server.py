@@ -23,7 +23,9 @@ class NautilusNativeForwardSession(Protocol):
 
     instance_id: str
     runtime_session_fingerprint: str
-    base_checkpoint_fingerprint: str
+
+    @property
+    def base_checkpoint_fingerprint(self) -> str: ...
 
     def execute(
         self,

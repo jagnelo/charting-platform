@@ -387,11 +387,10 @@ async def test_retry_attempt_resource_is_owner_scoped_and_replays_after_restart(
                 self.receipts[request.request_id] = resolution.receipt
             return resolution
 
-    from types import SimpleNamespace
-
     store = MemoryAggregateStore()
     resources = PostgresResourceReader(store)
-    persistence = SimpleNamespace(aggregate_store=store)
+    persistence = object.__new__(PostgresStrategyLabV2Persistence)
+    object.__setattr__(persistence, "aggregate_store", store)
     attempt = RunAttempt(
         "retry-attempt-2",
         "scientific-trial-1",

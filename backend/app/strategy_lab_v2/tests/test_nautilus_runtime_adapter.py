@@ -140,7 +140,9 @@ def test_runtime_adapter_requires_v7_instrument_fields_to_match_version() -> Non
     with pytest.raises(NautilusRuntimeDataError, match="do not match the declared input version"):
         _validate_engine_input(payload)
 
-    instrument = payload["instruments"][0]
+    instruments = payload["instruments"]
+    assert isinstance(instruments, list)
+    instrument = instruments[0]
     assert isinstance(instrument, dict)
     instrument.update(
         {

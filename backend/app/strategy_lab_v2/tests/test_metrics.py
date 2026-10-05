@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import UTC, datetime
 from decimal import ROUND_DOWN, Decimal, localcontext
 
@@ -28,8 +29,8 @@ from app.strategy_lab_v2.observations import (
 )
 
 
-def _by_name(values: tuple[object, ...]) -> dict[str, object]:
-    return {item.name: item for item in values}  # type: ignore[attr-defined]
+def _by_name(values: Iterable[MetricValue]) -> dict[str, MetricValue]:
+    return {item.name: item for item in values}
 
 
 def _metric_dividend(numerator: int, denominator: int) -> Decimal:
@@ -96,12 +97,9 @@ def test_account_cash_balance_metrics_are_equal_event_sampled_and_provenance_bou
     assert metrics["average_account_cash_to_equity"].evidence_references[
         0
     ].digest == content_digest(marks)  # type: ignore[attr-defined]
-    assert (
-        metrics["average_account_cash_to_equity"].calculation_definition.parameters[
-            "sample_weighting"
-        ]
-        == "equal_verified_oos_event_marks"
-    )  # type: ignore[attr-defined]
+    cash_definition = metrics["average_account_cash_to_equity"].calculation_definition
+    assert cash_definition is not None
+    assert cash_definition.parameters["sample_weighting"] == "equal_verified_oos_event_marks"
     assert all(item.definition_version == METRIC_DEFINITION_VERSION for item in metrics.values())  # type: ignore[attr-defined]
 
 
@@ -208,7 +206,9 @@ def test_performance_metrics_report_currency_drawdown_recovery_and_empirical_tai
         expected_loss = -(Decimal(100) / Decimal(110) - Decimal(1))
     assert metrics["historical_value_at_risk"].value == expected_loss  # type: ignore[attr-defined]
     assert metrics["historical_expected_shortfall"].value == expected_loss  # type: ignore[attr-defined]
-    assert metrics["historical_expected_shortfall"].calculation_basis.startswith(  # type: ignore[attr-defined]
+    expected_shortfall_basis = metrics["historical_expected_shortfall"].calculation_basis
+    assert expected_shortfall_basis is not None
+    assert expected_shortfall_basis.startswith(
         "non-negative empirical mean loss of 1 worst observations at 0.95 confidence"
     )
     assert all(
@@ -279,19 +279,13 @@ def test_event_aligned_equity_metrics_annualize_over_exact_elapsed_calendar_time
     assert annualized_return.annualization_basis == (  # type: ignore[attr-defined]
         "elapsed UTC duration; 365.2425 days per year"
     )
-    assert (
-        annualized_return.calculation_definition.parameters[  # type: ignore[attr-defined]
-            "annualization_method"
-        ]
-        == "elapsed_utc_duration"
-    )
-    assert (
-        annualized_return.calculation_definition.parameters[  # type: ignore[attr-defined]
-            "elapsed_duration_nanoseconds"
-        ]
-        == year_ns
-    )
-    assert abs(metrics["calmar_ratio"].value - Decimal("1.2")) < Decimal("1e-32")  # type: ignore[attr-defined]
+    annualized_definition = annualized_return.calculation_definition
+    assert annualized_definition is not None
+    assert annualized_definition.parameters["annualization_method"] == "elapsed_utc_duration"
+    assert annualized_definition.parameters["elapsed_duration_nanoseconds"] == year_ns
+    calmar_value = metrics["calmar_ratio"].value
+    assert calmar_value is not None
+    assert abs(calmar_value - Decimal("1.2")) < Decimal("1e-32")
 
 
 def test_event_aligned_equity_metrics_withhold_annualization_for_zero_elapsed_time() -> None:
@@ -344,7 +338,9 @@ def test_event_aligned_equity_metrics_measure_drawdown_duration_in_elapsed_utc_t
     assert duration.value == Decimal("180")  # type: ignore[attr-defined]
     assert duration.unit == "seconds"  # type: ignore[attr-defined]
     assert duration.sample_size == 4  # type: ignore[attr-defined]
-    assert "elapsed UTC" in duration.calculation_basis  # type: ignore[attr-defined]
+    duration_basis = duration.calculation_basis
+    assert duration_basis is not None
+    assert "elapsed UTC" in duration_basis
     assert metrics["maximum_drawdown_duration"].value == Decimal(2)  # type: ignore[attr-defined]
 
 
@@ -479,15 +475,11 @@ def test_structured_calculation_identity_excludes_values_and_run_evidence() -> N
 
     first_sharpe = first["sharpe_ratio"]
     second_sharpe = second["sharpe_ratio"]
-    assert first_sharpe.calculation_definition.contract_version == (  # type: ignore[attr-defined]
-        METRIC_CALCULATION_CONTRACT_VERSION
-    )
-    assert first_sharpe.calculation_definition.formula_id == (  # type: ignore[attr-defined]
-        "strategy-lab.metrics/sharpe_ratio"
-    )
-    assert first_sharpe.calculation_definition.parameters[  # type: ignore[attr-defined]
-        "risk_free_return_per_period"
-    ] == Decimal("0.001")
+    sharpe_definition = first_sharpe.calculation_definition
+    assert sharpe_definition is not None
+    assert sharpe_definition.contract_version == METRIC_CALCULATION_CONTRACT_VERSION
+    assert sharpe_definition.formula_id == "strategy-lab.metrics/sharpe_ratio"
+    assert sharpe_definition.parameters["risk_free_return_per_period"] == Decimal("0.001")
     assert first_sharpe.calculation_fingerprint == second_sharpe.calculation_fingerprint  # type: ignore[attr-defined]
     assert first_sharpe.value != second_sharpe.value  # type: ignore[attr-defined]
     assert first_sharpe.sample_size != second_sharpe.sample_size  # type: ignore[attr-defined]
@@ -650,8 +642,12 @@ def test_metric_methods_record_parameters_and_ignore_ambient_decimal_context() -
     assert constrained == baseline
 
     by_name = _by_name(baseline)
-    assert "risk-free target=0.001" in by_name["sharpe_ratio"].calculation_basis  # type: ignore[attr-defined]
-    assert "downside target=0.001" in by_name["sortino_ratio"].calculation_basis  # type: ignore[attr-defined]
+    sharpe_basis = by_name["sharpe_ratio"].calculation_basis
+    sortino_basis = by_name["sortino_ratio"].calculation_basis
+    assert sharpe_basis is not None
+    assert sortino_basis is not None
+    assert "risk-free target=0.001" in sharpe_basis
+    assert "downside target=0.001" in sortino_basis
     assert all(item.calculation_basis for item in baseline)  # type: ignore[attr-defined]
 
 

@@ -317,7 +317,7 @@ async def test_application_authenticates_forward_plan_component_references() -> 
 
         async def get_domain_contracts_by_fingerprint(self, **kwargs: Any) -> Any:
             assert kwargs["principal"].id == "42"
-            available = {
+            available: dict[ApiResourceType, dict[str, object]] = {
                 ApiResourceType.PORTFOLIO: {portfolio.fingerprint: portfolio},
                 ApiResourceType.STRATEGY: {strategy.fingerprint: strategy},
                 ApiResourceType.PACKAGE: {package.fingerprint: package},

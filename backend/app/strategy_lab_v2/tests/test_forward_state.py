@@ -117,11 +117,11 @@ def test_checkpoint_transition_chain_reconstructs_buffer_reconciliation() -> Non
 
 
 def test_checkpoint_transitions_and_event_sets_are_immutable_and_non_noop() -> None:
-    source_ids = {"e1"}
+    source_ids = frozenset({"e1"})
     checkpoint = ForwardStateCheckpoint(_instance(), processed_event_ids=source_ids)
-    source_ids.add("e2")
 
     assert checkpoint.processed_event_ids == frozenset({"e1"})
+    assert isinstance(checkpoint.processed_event_ids, frozenset)
     try:
         ForwardCheckpointTransition.between(checkpoint, checkpoint)
     except ValueError as error:

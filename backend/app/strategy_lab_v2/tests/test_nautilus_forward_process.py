@@ -180,8 +180,13 @@ def test_forward_process_factory_rejects_stale_durable_checkpoint_before_launch(
     requested_checkpoint = content_digest("new durable checkpoint")
     stale_plan = _plan(tmp_path, checkpoint_fingerprint=content_digest("old checkpoint"))
     requested: list[tuple[str, str]] = []
+
+    def build_plan(instance_id: str, checkpoint: str):
+        requested.append((instance_id, checkpoint))
+        return stale_plan
+
     factory = HardenedNautilusForwardSessionProcessFactory(
-        lambda instance_id, checkpoint: requested.append((instance_id, checkpoint)) or stale_plan,
+        build_plan,
         docker_binary=str(tmp_path / "must-not-launch"),
     )
 

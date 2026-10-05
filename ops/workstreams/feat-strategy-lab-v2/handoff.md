@@ -12387,3 +12387,43 @@ from persisted immutable execution plans through checkpoint resolution, the
 hardened RC5 process factory, and receipt-first event settlement. Continue the
 other open backtest/search/API/security/Compose criteria and full exact-tip
 integration gate; no stable Nautilus release wait is needed.
+
+## 2026-10-06 - Package-wide MyPy gate restored
+
+The declared MyPy command now passes across all 405 files in
+`backend/app/strategy_lab_v2` and `backend/strategy_runtime`, with no
+suppression or test exclusions. Strict typing exposed one production contract
+mismatch: the runtime-server protocol described
+`base_checkpoint_fingerprint` as writable while the concrete native session
+intentionally exposes it as a read-only property. The protocol now models that
+read-only property and `NautilusBacktestForwardSession` explicitly implements
+the protocol; the builder's concrete type now conforms without a cast.
+Remaining failures were corrected at their source: metrics test helpers now
+return `MetricValue` rather than `object`, optional metric evidence is narrowed
+before use, JSON fixture references are typed, native margin fakes describe
+their decimal protocol, and callback/resource test doubles satisfy their
+actual contracts.
+
+Validation: full Strategy Lab tests passed 1,508 with one unrelated opt-in
+image test skipped (`--no-cov`); package Ruff passed; focused formatting check
+passed for all changed Python files; package-wide MyPy passed; and the rebuilt
+exact-source Nautilus 2.0.0rc5 qualification passed. Current evidence is source
+digest
+`sha256:b0c411db9d6cf61ab10535f8da6badd7eb11a7be61764aeac8a0e920d2d2cd37`,
+image digest
+`sha256:9a43fef85e6ff688fe8d42697ed87b9e85ebbfeecd634b90880138bc3b26627b`,
+artifact digest
+`sha256:5ed875d94c2242fcc302dec2f70df67832249c8f1aabbf3a112f671a969f4132`,
+and conformance fingerprint
+`sha256:0f3c976fc0d11d4fe65a0bd2a2db0e338a975ba4abecf3f77ec7f97505eca51f`.
+The exact-source forward-process integration and both PostgreSQL/Redis
+recovery integrations passed 3/3 against that digest. Scoped Docker cleanup
+found no temporary containers, images, volumes, or Testcontainers sessions.
+
+An exploratory format check across the entire package reported 151 pre-existing
+files would be reformatted; no broad formatting churn was applied. All 15
+changed Python files pass the focused format check. The full Strategy Lab goal
+remains in progress. Next is production composition of the dedicated forward
+worker from owner-scoped immutable execution plans through authenticated
+checkpoint resolution, the RC5 process runtime, receipt-first settlement, and
+Redis ACK; shared-provider, ETF, and TC2000 ownership boundaries remain intact.

@@ -52,6 +52,9 @@ from app.strategy_lab_v2.sdk import (
     StrategyDataDependency,
     StrategySdkManifest,
 )
+from app.strategy_lab_v2.tests.test_nautilus_forward_bootstrap import (
+    _bootstrap as _forward_bootstrap,
+)
 
 NOW = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
 INSTANCE_ID = "forward-1"
@@ -263,10 +266,11 @@ def test_native_forward_session_retries_failed_execution_and_replays_checkpoint(
     session = NautilusBacktestForwardSession(
         instance_id=INSTANCE_ID,
         runtime_session_fingerprint=runtime_fingerprint,
-        bootstrap=SimpleNamespace(
+        bootstrap=replace(
+            _forward_bootstrap(),
             processed_checkpoint_fingerprint=(
                 delivery.delivery_binding.pre_event_checkpoint_fingerprint
-            )
+            ),
         ),
         rebuild_state=new_state,
         initial_state=new_state(),
@@ -432,10 +436,14 @@ def test_forward_runtime_handler_binds_open_execute_restore_and_close() -> None:
 def test_forward_runtime_handler_rejects_wrong_instance_before_starting_engine() -> None:
     codec = NautilusForwardJsonWireCodec()
     factory_calls: list[str] = []
+
+    def build_session(instance_id: str) -> _FakeNativeForwardSession:
+        factory_calls.append(instance_id)
+        return _FakeNativeForwardSession(instance_id)
+
     handler = NautilusForwardRuntimeOperationHandler(
         instance_id=INSTANCE_ID,
-        session_factory=lambda instance_id: factory_calls.append(instance_id)
-        or _FakeNativeForwardSession(instance_id),
+        session_factory=build_session,
         codec=codec,
     )
 

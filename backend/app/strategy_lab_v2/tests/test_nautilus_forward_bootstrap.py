@@ -5,6 +5,7 @@ import json
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from typing import TypedDict
 
 import pytest
 
@@ -61,6 +62,20 @@ from app.strategy_lab_v2.strategy_validation import validate_strategy_source
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs as _engine_inputs
 
 NOW = datetime(2026, 10, 5, 14, 30, tzinfo=UTC)
+
+
+class _ContextArtifactReference(TypedDict):
+    content_digest: str
+    byte_length: int
+    media_type: str
+    schema_version: str
+    storage_key: str
+    retention_class: str
+
+
+class _ContextStreamReference(TypedDict):
+    artifact: _ContextArtifactReference
+    context_count: int
 
 
 def _digest(value: str) -> str:
@@ -129,7 +144,7 @@ def _bootstrap() -> NautilusForwardRuntimeBootstrap:
     )
 
 
-def _context_stream_reference(encoded: bytes) -> dict[str, object]:
+def _context_stream_reference(encoded: bytes) -> _ContextStreamReference:
     digest = artifact_content_digest(encoded)
     return {
         "artifact": {

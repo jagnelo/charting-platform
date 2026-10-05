@@ -6,7 +6,7 @@ from collections.abc import Callable, Mapping
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any, BinaryIO, cast
+from typing import TYPE_CHECKING, Any, BinaryIO, cast
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.forward_account import ForwardAccountEventBinding
@@ -25,6 +25,7 @@ from app.strategy_lab_v2.nautilus_forward_input import (
     VerifiedForwardMarketPayload,
 )
 from app.strategy_lab_v2.nautilus_forward_result import NautilusForwardExecutionResult
+from app.strategy_lab_v2.nautilus_forward_runtime_server import NautilusNativeForwardSession
 from app.strategy_lab_v2.nautilus_runtime_data import (
     NautilusRuntimeDataError,
     materialize_native_event,
@@ -37,6 +38,9 @@ from app.strategy_lab_v2.nautilus_strategy_bridge import (
     build_native_strategy_bridge,
 )
 from strategy_runtime import deserialize_component_invocation_context_stream
+
+if TYPE_CHECKING:
+    from app.strategy_lab_v2.nautilus_runtime_cli import ForwardSessionFactoryBuilder
 
 StreamOpener = Callable[[], AbstractContextManager[BinaryIO]]
 ForwardPreparation = ForwardStrategyContextPreparation | ForwardPortfolioContextPreparation
@@ -148,7 +152,7 @@ def _native_event_datetime_ns(event: CanonicalForwardEvent) -> int:
     return (delta.days * 86_400 + delta.seconds) * 1_000_000_000 + delta.microseconds * 1_000
 
 
-class NautilusBacktestForwardSession:
+class NautilusBacktestForwardSession(NautilusNativeForwardSession):
     """One process-local BacktestEngine shared by every portfolio component.
 
     A restore rebuilds from the immutable warm-up/bootstrap and deterministically
@@ -730,9 +734,7 @@ def _create_backtest_engine(
     return engine
 
 
-def create_native_forward_session_factory_builder() -> (
-    Callable[..., Callable[[str], NautilusBacktestForwardSession]]
-):
+def create_native_forward_session_factory_builder() -> ForwardSessionFactoryBuilder:
     """Adapt the verified CLI stream-openers to the concrete native session."""
 
     def build(

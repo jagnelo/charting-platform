@@ -368,7 +368,7 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(
             self.cash = Decimal("10000")
             self.positions: dict[str, Decimal] = {}
 
-        def net_position(self, _instrument_id: str) -> None:
+        def net_position(self, _instrument_id: str) -> Decimal | None:
             return self.positions.get(_instrument_id)
 
         def account(self, *, venue: str) -> Any:
