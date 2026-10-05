@@ -832,7 +832,7 @@ progress:
     - nautilus-oos-session-close-intervals-v1
     - strategy-lab-v2-owner-scoped-domain-identity-reservation-v1
   total: 18
-  current_phase: strategy-lab-v2-authoritative-backtest-activation-v1
+  current_phase: strategy-lab-v2-persisted-worker-request-binding-v1
   current_blocker: >-
     No external release or upstream event blocks the next local implementation
     context. An exact-pinned stable or release-candidate build may qualify for
@@ -851,20 +851,18 @@ progress:
     Options order admission remains fail-closed pending canonical event-time
     Greeks/delta and settlement evidence.
   next_action: >-
-    The joined worker test now models a lost response after terminal state was
-    committed: the first delivery remains pending, Redis XAUTOCLAIM reclaims it,
-    the exact attempt is re-executed, terminal persistence replays the stable
-    result/artifact/settlement identities, and Redis ACK follows that receipt.
-    Next exercise this same callback/service path through the dedicated worker
-    entrypoint lifecycle (migration gate, runtime open/close, and bounded
-    restart), then continue domain-backed mutations, missing metrics, and
-    forward-shadow event-tape parity. RC5 may publish local backtests after
-    matching exact-pin and four-check conformance; do not wait for stable
-    labeling. Forward shadow requires the fifth parity check; prereleases
-    cannot connect to a broker or control real capital. Keep immutable resources
-    create-only; version changes create new identities and mutable lifecycle
-    changes use dedicated owner-scoped commands. Options remain fail-closed
-    pending canonical event-time Greeks/delta and settlement evidence. Consume
-    provider/ETF/TC2000 shared contracts only after their approved branches reach
-    staging. Docker Buildx is absent and the session cannot access the Docker
-    socket, limiting only the final Compose/browser validation gate.
+    The durable owner-scoped domain graph now flows through attempt hydration,
+    verified frozen-artifact materialization, and exact RC5 authoritative worker
+    request construction; trial, experiment, portfolio, snapshot, package-set,
+    attempt, owner, and plan bindings are asserted. Next exercise this persisted
+    request through the isolated process and terminal result-publication path
+    where the local runtime permits, then continue worker recovery/scaling,
+    remaining metrics, and broker-free forward event-tape parity. RC5 may
+    publish local backtests after its exact-pin and four-check conformance;
+    stable labeling is not a gate. Either exact-pinned channel may qualify for
+    broker-free forward shadow after all five checks. Prereleases cannot connect
+    to brokers or control real capital. Keep options fail-closed pending
+    canonical event-time Greeks/delta and settlement evidence. Consume shared
+    provider/ETF/TC2000 contracts only after approved branches reach staging.
+    Missing Docker Buildx and default-sandbox Docker-socket access limit final
+    Compose/browser validation, not package-owned implementation.

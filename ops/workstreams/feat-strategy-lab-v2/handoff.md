@@ -8,8 +8,10 @@ Exact-pinned stable or release-candidate Nautilus v2 builds may publish local
 backtests after the four backtest conformance checks pass and the result binds
 the exact release channel, source/wheel/image digests, conformance evidence,
 execution scope, and plan fingerprint. RC authority is restricted to local
-backtests; stable v2 plus event-tape parity remains required for forward-shadow
-authority. No prerelease may connect to a broker or control real capital.
+backtests unless the full five-check gate is met; either an exact-pinned stable
+or release-candidate v2 build can qualify for broker-free full/forward shadow
+after event-tape parity passes. Stable release labeling is not a gate. No
+prerelease may connect to a broker or control real capital.
 
 This removes an upstream stable-release date from backtest completion. Docker
 Buildx still gates only final Compose/browser validation; provider, ETF, and
@@ -10047,3 +10049,35 @@ existing search-preparation/runtime materializer into the exact immutable RC5
 worker request. Prove the owner, trial, snapshot, package, and execution-plan
 bindings survive that boundary, then continue native-process/Compose acceptance
 and forward parity.
+
+## 2026-10-05 - Persisted graph to authoritative RC5 worker request
+
+The search-dispatch regression now persists the complete owner-scoped strategy,
+package, portfolio, snapshot, experiment, trial, and running-attempt graph,
+rehydrates it from the PostgreSQL resource adapter, and passes it through frozen
+artifact verification and runtime materialization into an authoritative RC5
+worker request. Assertions bind owner isolation and the exact attempt, trial,
+experiment, portfolio, snapshot, package-set, and execution-plan identities.
+The foreign-owner hydration attempt fails closed. This uses the deterministic
+SQL-session fake and local artifact fixture; it is not live PostgreSQL,
+Compose, or Nautilus-process evidence.
+
+Implementation commit `53954cdf4795224c020ccd974881b74879fef928` is pushed to
+`origin/feat/strategy-lab-v2`. All 1,352 Strategy Lab package tests passed in
+33.89 seconds with scoped access for the ephemeral Unix-socket RPC test. The
+focused dispatch-preparation module passed all eight tests; Ruff check/format,
+focused MyPy, and `git diff --check` passed for the changed test.
+
+There is no release blocker: current branch policy permits exact-pinned RC5 for
+authoritative local backtests after its four recorded checks. The fifth
+event-tape-parity check remains a distinct gate for broker-free forward shadow.
+Full Compose/browser acceptance remains limited by missing Docker Buildx and
+default-sandbox Docker-socket access. Provider/ETF/TC2000 shared-contract work
+remains staging-gated only when that integration is reached; options admission
+still fails closed pending canonical event-time Greeks/delta and settlement
+evidence.
+
+Next: exercise the persisted authoritative request through the isolated
+RC5 process/result-publication path where the local runtime permits; continue
+worker recovery/scaling and broker-free event-tape parity, preserving the
+Compose/browser host gate separately.
