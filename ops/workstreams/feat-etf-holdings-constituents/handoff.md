@@ -7889,5 +7889,41 @@ The current branch's product code is unchanged from code SHA
 `08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5`, whose live matrix passed 520 with
 17 classified skips. AC7/AC8 remain open for the repeated coverage service
 failure, skipped hosted E2E, and the local generic Study Lab visual mismatch.
-*** End of File
-*** End of File
+
+## Exact-SHA CI and local visual-gate follow-up — 2026-10-05
+
+GitHub Actions run 37257921525 completed on exact SHA
+2de54be77d2e592d65250e25237d2e8c68fb5a45. The complete branch-declared suite
+passed: 595 deterministic adapter tests; default live 3 passed/534 skipped;
+the 537-case opt-in matrix 515 passed/22 skipped; Ruff; workstream validation;
+frontend type-check; 17 ETF UI tests; and production build. Backend unit and
+integration suites passed 1,500 and 379 tests, and frontend Vitest passed 945.
+The overall workflow failed only because both Codecov upload steps again
+returned TLS EPROTO handshake failures despite fail_ci_if_error: false.
+Hosted E2E was skipped by its dependency on those jobs. This is the fourth
+consecutive exact-SHA run with this same upload failure. The previously tried
+Actions retry endpoint returned HTTP 403; no alternate credential or generic
+workflow change was used.
+
+The local visual discrepancy is not yet safely attributed. The Study Lab
+screenshots capture the adjacent chart pane, and the ETF branch changed chart
+toolbar positioning in WorkstationToolContent.vue; therefore that intended
+change could affect the full-page screenshots even though StudyLabTool.vue
+and WorkstationView.vue have no changes since the Linux baseline commit. The
+actual/diff artifacts from the earlier local run are not present in this
+worktree. Do not dismiss the mismatch as unrelated or change snapshots,
+tolerances, or masks until the relevant current screenshots are reproduced and
+inspected.
+
+The Docker daemon responds as version 29.1.3 through the approved elevated
+diagnostic path, but ordinary sandbox access to its socket is denied. The
+shared daemon currently has non-ETF worktree services active and host memory
+reported 2.6 GiB available; no new stack was started and no resources were
+changed. Defer the ETF full-stack visual replay until there is sufficient safe
+headroom. Keep all container cleanup limited to this worktree's labels.
+
+AC7/AC8 remain open pending a safe visual replay and exact hosted workflow
+acceptance. AC10 still waits for the user-reported provider-platform staging
+milestone; do not inspect or mutate that worktree. AC14 remains open until its
+documented post-integration/deployment 30-day production gate is observed and
+human-reviewed.
