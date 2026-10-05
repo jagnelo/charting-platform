@@ -11545,3 +11545,33 @@ needed.
 Next: implement the matching RC5 `--serve-forward` handler and typed codec over
 one persistent Nautilus engine session; then connect durable receipts and
 process-loss replay.
+
+## 2026-10-05 - Typed forward runtime DTO codec
+
+Changeset context: `nautilus-forward-runtime-dto-codec-v1`. Owned source paths:
+`backend/app/strategy_lab_v2/nautilus_forward_wire.py`,
+`backend/app/strategy_lab_v2/nautilus_forward_process.py`, and their two focused
+test modules. The new versioned JSON codec uses a closed allowlist of strategy,
+event, account, and preparation DTOs; it rejects unknown fields/types, validates
+typed constructors and content fingerprints on both encode/decode paths, and
+caps request/result payloads below the IPC frame ceiling. The host process
+factory now defaults to this codec rather than requiring a test-only injected
+implementation.
+
+Implementation commit `c41ab1b273ae0d3eeccfb5a965eae4272e8845b0` is pushed to
+`origin/feat/strategy-lab-v2`; the local and remote refs matched at verification.
+
+Validation: full Strategy Lab package `1,473 passed`; 11 migration/startup
+tests passed; package Ruff, changed-file formatter, focused MyPy for the wire
+codec and process adapter, focused forward IPC/process/wire suite `14 passed`,
+and `git diff --check` passed. The runtime process test still uses an IPC
+stand-in, not the RC5 image. This change does not make the CLI runnable: the
+fixed `--serve-forward` mode and its persistent shared-account Nautilus handler
+remain the next code-owned context, followed by durable native output/checkpoint
+receipts before Redis ACK and deterministic process-loss replay. Exact-pinned
+RC5 remains qualified; stable 2.x labeling is not a gate.
+
+Next: implement the RC5 CLI `--serve-forward` handler over this concrete codec,
+bootstrapping one persistent Nautilus engine from authenticated frozen warm-up
+and the exact processed prefix. Keep portfolio components on one shared
+account, and persist native outputs/checkpoints before acknowledgement.

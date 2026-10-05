@@ -124,14 +124,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "180eab86c6763785941fa5bf2ecbd05eb55146d8",
-  "implementation_sha": "204efd3451463b09df6fee280e190149197f6acc",
-  "last_checkpoint": "2026-10-05T15:07:02.350526+00:00",
+  "head": "c41ab1b273ae0d3eeccfb5a965eae4272e8845b0",
+  "implementation_sha": "c41ab1b273ae0d3eeccfb5a965eae4272e8845b0",
+  "last_checkpoint": "2026-10-05T15:27:01+00:00",
   "last_human_progress_update": "2026-10-05T15:05:21.645871+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "continue implementation from the branch workstream",
+  "next_action": "Implement the fixed RC5 CLI --serve-forward handler over the typed codec, replay frozen warm-up plus the authenticated processed prefix into one persistent shared-account BacktestEngine, then persist native output/checkpoint receipts before Redis ACK and test process-loss replay.",
   "parent_branch": "staging",
-  "plan_hash": "c7befc808f5d0dc7b176769cffb3e45cfb4718d400b371970c854bcb5a36210b",
+  "plan_hash": "7f562d6581c6a11eeef82762d98a6ac445bd566d6f53e143c8f37497cad7d7bc",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -145,15 +145,17 @@
     "937bd5be-5a11-4429-b7d3-82e732844278"
   ],
   "progress": {
-    "completed": [],
+    "completed": [
+      "nautilus-forward-runtime-dto-codec-v1"
+    ],
     "current_blocker": "none",
-    "current_phase": "forward-process-launcher",
-    "next_action": "Implement the matching RC5 CLI serve-forward mode, concrete warmup/live-event handler and typed delivery/result codec; then persist native output/checkpoint receipts before ACK and test process-loss replay.",
+    "current_phase": "forward-runtime-serve-cli",
+    "next_action": "Implement the fixed RC5 CLI --serve-forward handler over the typed codec, replay frozen warm-up plus the authenticated processed prefix into one persistent shared-account BacktestEngine, then persist native output/checkpoint receipts before Redis ACK and test process-loss replay.",
     "total": 18,
-    "updated_at": "2026-10-05T15:05:21.645851+00:00"
+    "updated_at": "2026-10-05T15:27:01+00:00"
   },
-  "remote": "180eab86c6763785941fa5bf2ecbd05eb55146d8",
-  "remote_sha": "204efd3451463b09df6fee280e190149197f6acc",
+  "remote": "c41ab1b273ae0d3eeccfb5a965eae4272e8845b0",
+  "remote_sha": "c41ab1b273ae0d3eeccfb5a965eae4272e8845b0",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

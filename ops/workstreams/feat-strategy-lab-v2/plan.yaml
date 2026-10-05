@@ -851,8 +851,9 @@ progress:
     - nautilus-oos-session-close-intervals-v1
     - strategy-lab-v2-owner-scoped-domain-identity-reservation-v1
     - strategy-lab-v2-forward-lifecycle-idempotency-v1
+    - strategy-lab-v2-nautilus-forward-runtime-dto-codec-v1
   total: 18
-  current_phase: forward-execution-plan-and-persistent-runtime
+  current_phase: forward-runtime-serve-cli
   current_blocker: >-
     No external dependency blocks package-owned implementation. The exact RC5
     source/image built from this worktree passed all five scope checks, including
@@ -860,28 +861,25 @@ progress:
     published RC6 on 2026-10-04, but this branch's exact conformance evidence is
     for RC5; changing the pin requires independently rerunning the applicable
     checks and is not needed to continue. Immutable per-component forward plans
-    now pin strategy/package fingerprints, parameters, and seeds, and activation
-    requires a valid owner-scoped plan. Snapshot resolution now exposes a
-    bounded per-dependency SDK lookback window from the fully verified frozen
-    tape, optionally cut at the exact warm-up event ID. The canonical processed
-    live-prefix reader, portfolio-wide shared-account context composition,
-    persistent isolated Nautilus session, durable output/checkpoint restore, and
-    deterministic crash replay remain code-owned work. Do not infer canonical
-    arrival/global sequence identity from per-dependency frozen series rows.
-    Full Compose/browser acceptance remains environment-limited by unavailable
+    pin strategy/package fingerprints, parameters, and seeds, and activation
+    requires a valid owner-scoped plan. The typed bounded host/runtime DTO codec
+    and isolated-process supervisor now exist. The production source-verified
+    processed-prefix adapter, CLI `--serve-forward` engine handler, native
+    output/checkpoint persistence before ACK, and deterministic process-loss
+    replay remain code-owned. Preserve canonical platform event identity and
+    ordering; never derive them from dependency-local frozen series rows. Full
+    Compose/browser acceptance remains environment-limited by unavailable
     Docker Buildx and default Docker API socket access. Shared provider, ETF, and
     TC2000 contracts gate only their eventual shared-path integration; options
     admission remains fail-closed pending canonical Greeks/delta and settlement
     evidence.
   next_action: >-
-    Implement an owner-authenticated canonical processed-prefix reader against
-    the exact pre-event checkpoint and source-verified event payload port, then
-    compose it with bounded frozen warm-up windows for each resolved component.
-    Preserve provider-owned canonical event identity and ordering; do not
-    synthesize them from snapshot row sequences. Compose all component contexts
-    into one persistent shared-account Nautilus runtime. Retain native
-    invocation/account outputs and runtime checkpoints before Redis
-    acknowledgement; restore the BacktestEngine/trader deterministically after
-    process loss, preserving correction events on the counterfactual path.
-    Consume provider-owned source contracts only after staging; stable release
-    labeling is not a gate.
+    Implement the RC5 CLI --serve-forward mode and its concrete runtime handler
+    over the typed bounded DTO codec. Bootstrap one persistent shared-account
+    BacktestEngine from immutable warm-up and exact checkpoint-bound processed
+    history; accept only source-verified canonical deliveries, run all portfolio
+    components together, and persist native output plus an exact replay
+    checkpoint before Redis acknowledgement. Recover deterministically after
+    process loss without rewriting prior decisions; corrections remain on the
+    counterfactual path. Preserve provider-owned event identity and consume its
+    source contracts only after staging. Stable release labeling is not a gate.
