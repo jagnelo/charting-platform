@@ -86,7 +86,12 @@ from app.strategy_lab_v2.worker_evidence import (
 )
 from app.strategy_lab_v2.worker_process import SerialWorkerProcessExecutor, WorkerProcessDecision
 from app.strategy_lab_v2.worker_service import WorkerCompletionContext
-from app.strategy_lab_v2.workers import WorkerKind, WorkerPoolState, WorkerProfile
+from app.strategy_lab_v2.workers import (
+    WorkerKind,
+    WorkerPoolState,
+    WorkerProfile,
+    reserve_worker_slot,
+)
 
 PREPARED_AT = BASE + timedelta(seconds=4)
 
@@ -125,13 +130,11 @@ def test_host_preparation_context_loads_operator_pinned_local_rc_as_compatibilit
         account_models=frozenset({"cash-equity-v1"}),
         market_context=existing.market_context,
         runtime_profile=existing.runtime_profile,
-        worker_profile=existing.worker_profile,
         admission_ledger=existing.admission_ledger,
-        reservation_id=existing.reservation_id,
-        lease_id=existing.lease_id,
         image_name=existing.image_name,
         output_path=existing.output_path,
         now=existing.now,
+        lease_duration=existing.lease_duration,
     )
 
     assert configured.conformance_evidence == published.resolution.evidence
@@ -159,25 +162,60 @@ class _Hydrator:
 class _WorkerStateReader:
     def __init__(
         self,
-        pool: WorkerPoolState,
-        lease_state: LeaseObservationState | None,
+        pools: WorkerPoolState | tuple[WorkerPoolState, ...],
+        lease_states: LeaseObservationState | tuple[LeaseObservationState, ...] | None = None,
     ) -> None:
-        self.pool = pool
-        self.lease_state = lease_state
+        pools = (pools,) if isinstance(pools, WorkerPoolState) else tuple(pools)
+        self.pools = {pool.profile.worker_id: pool for pool in pools}
+        lease_states = (
+            ()
+            if lease_states is None
+            else (lease_states,)
+            if isinstance(lease_states, LeaseObservationState)
+            else tuple(lease_states)
+        )
+        self.leases = {state.lease.lease_id: state for state in lease_states}
         self.loaded_profiles: list[WorkerProfile] = []
         self.loaded_lease_ids: list[str] = []
+        self.persisted_lease_ids: list[str] = []
+
+    async def list_profiles(
+        self,
+        *,
+        kind: WorkerKind,
+        runtime_profile_fingerprint: str,
+    ) -> tuple[WorkerProfile, ...]:
+        return tuple(
+            sorted(
+                (
+                    pool.profile
+                    for pool in self.pools.values()
+                    if pool.profile.kind is kind
+                    and pool.profile.runtime_profile_fingerprint == runtime_profile_fingerprint
+                ),
+                key=lambda profile: profile.worker_id,
+            )
+        )
 
     async def load_pool(self, profile: WorkerProfile) -> WorkerPoolState:
         self.loaded_profiles.append(profile)
-        if profile != self.pool.profile:
+        pool = self.pools.get(profile.worker_id)
+        if pool is None or profile != pool.profile:
             raise ValueError("unexpected worker profile")
-        return self.pool
+        return pool
 
     async def load_lease(self, lease_id: str) -> LeaseObservationState | None:
         self.loaded_lease_ids.append(lease_id)
-        if self.lease_state is None or lease_id != self.lease_state.lease.lease_id:
-            return None
-        return self.lease_state
+        return self.leases.get(lease_id)
+
+    async def persist_lease(self, lease: ExecutionAttemptLease) -> LeaseObservationState:
+        existing = self.leases.get(lease.lease_id)
+        if existing is not None and existing.lease != lease:
+            raise ValueError("worker lease identity is already bound")
+        state = existing or LeaseObservationState(lease)
+        self.leases[lease.lease_id] = state
+        self.persisted_lease_ids.append(lease.lease_id)
+        return state
 
 
 def _setup(tmp_path: Path, *, runtime_image_digest: str | None = None):
@@ -215,14 +253,6 @@ def _setup(tmp_path: Path, *, runtime_image_digest: str | None = None):
             runtime_profile.fingerprint,
         )
     )
-    lease = ExecutionAttemptLease(
-        graph.attempt.attempt_id,
-        pool.profile.worker_id,
-        "dispatch-preparation-lease",
-        BASE + timedelta(seconds=2),
-        BASE + timedelta(seconds=2),
-        BASE + timedelta(hours=1),
-    )
     conformance_resolution = resolve_nautilus_rc_conformance(
         runtime,
         _rc_probe(runtime),
@@ -230,8 +260,7 @@ def _setup(tmp_path: Path, *, runtime_image_digest: str | None = None):
         build_digest=content_digest("nautilus-v2-rc5-build"),
         tested_at=BASE,
     )
-    lease_state = LeaseObservationState(lease)
-    worker_state_reader = _WorkerStateReader(pool, lease_state)
+    worker_state_reader = _WorkerStateReader(pool)
     context = NautilusTrialPreparationContext.from_compatibility_backtest_conformance(
         conformance_resolution=conformance_resolution,
         product_classes=frozenset({ProductClass.EQUITY}),
@@ -239,13 +268,11 @@ def _setup(tmp_path: Path, *, runtime_image_digest: str | None = None):
         account_models=frozenset({"cash-equity-v1"}),
         market_context=NautilusTrialMarketContext(values["instruments"], values["venue"]),
         runtime_profile=runtime_profile,
-        worker_profile=pool.profile,
         admission_ledger=ExecutionAdmissionLedger(),
-        reservation_id=content_digest("dispatch-preparation-reservation"),
-        lease_id=lease.lease_id,
         image_name="nautilus-runtime",
         output_path=tmp_path / "dispatch-result.json",
         now=PREPARED_AT,
+        lease_duration=timedelta(minutes=15),
     )
     return graph, artifact_store, package_resolver, materializer, context, worker_state_reader
 
@@ -311,8 +338,15 @@ async def test_resolver_hydrates_materializes_authorizes_and_composes_search_evi
     )
 
     assert hydrator.calls == [("owner-1", graph.attempt.attempt_id)]
-    assert worker_state_reader.loaded_profiles == [context.worker_profile]
-    assert worker_state_reader.loaded_lease_ids == [context.lease_id]
+    assert worker_state_reader.loaded_profiles == [
+        worker_state_reader.pools["dispatch-preparation-worker"].profile
+    ]
+    assert worker_state_reader.loaded_lease_ids == [
+        evidence.worker_request.lease_state.lease.lease_id
+    ]
+    assert worker_state_reader.persisted_lease_ids == [
+        evidence.worker_request.lease_state.lease.lease_id
+    ]
     assert observed["graph"] == graph
     assert observed["request"].candidate_index == 3
     assert evidence.authorization.attempt_id == graph.attempt.attempt_id
@@ -326,6 +360,115 @@ async def test_resolver_hydrates_materializes_authorizes_and_composes_search_evi
     assert evidence.trial_runtime_evidence.runtime_request.request_id == (
         observed["request"].runtime_request_id
     )
+
+
+@pytest.mark.asyncio
+async def test_resolver_selects_an_idle_fleet_profile_and_persists_its_lease(
+    tmp_path: Path,
+) -> None:
+    graph, store, package_resolver, materializer, context, worker_state_reader = _setup(tmp_path)
+    busy_pool = next(iter(worker_state_reader.pools.values()))
+    busy_pool = reserve_worker_slot(
+        busy_pool,
+        attempt_id="other-attempt",
+        reservation_id=content_digest("other-worker-reservation"),
+        acquired_at=BASE,
+    ).pool
+    selected_profile = WorkerProfile(
+        "dispatch-preparation-worker-2",
+        WorkerKind.BACKTEST,
+        context.runtime_profile.fingerprint,
+    )
+    worker_state_reader.pools = {
+        busy_pool.profile.worker_id: busy_pool,
+        selected_profile.worker_id: WorkerPoolState(selected_profile),
+    }
+    intent = SearchDispatchIntent(
+        "fleet-selection-key",
+        graph.attempt.attempt_id,
+        "strategy-backtest",
+        PREPARED_AT,
+    )
+    resolver = NautilusTrialSearchDispatchEvidenceResolver(
+        domain_hydrator=_Hydrator(graph),
+        runtime_materializer=materializer,
+        strategy_package_resolver=package_resolver,
+        artifact_store=store,
+        worker_state_reader=worker_state_reader,
+        context_resolver=lambda _request, _graph: context,
+    )
+
+    evidence = await resolver(
+        principal="owner-1",
+        request_id="fleet-selection-request",
+        experiment_fingerprint=graph.experiment.fingerprint,
+        candidate_index=1,
+        attempt_id=graph.attempt.attempt_id,
+        dispatch_intent=intent,
+    )
+
+    expected_lease_id = content_digest(
+        {
+            "attempt_id": graph.attempt.attempt_id,
+            "idempotency_key": intent.idempotency_key,
+            "purpose": "strategy-lab-v2-search-worker-lease-v1",
+            "worker_id": selected_profile.worker_id,
+        }
+    )
+    expected_reservation_id = content_digest(
+        {
+            "attempt_id": graph.attempt.attempt_id,
+            "idempotency_key": intent.idempotency_key,
+            "purpose": "strategy-lab-v2-search-worker-reservation-v1",
+            "worker_id": selected_profile.worker_id,
+        }
+    )
+    assert evidence.worker_request.worker_pool.profile == selected_profile
+    assert evidence.worker_request.lease_state.lease.worker_id == selected_profile.worker_id
+    assert evidence.worker_request.lease_state.lease.lease_id == expected_lease_id
+    assert evidence.reservation_id == expected_reservation_id
+    assert (
+        worker_state_reader.leases[expected_lease_id].lease
+        == evidence.worker_request.lease_state.lease
+    )
+
+
+@pytest.mark.asyncio
+async def test_resolver_fails_closed_when_every_fleet_profile_is_busy(tmp_path: Path) -> None:
+    graph, store, package_resolver, materializer, context, worker_state_reader = _setup(tmp_path)
+    worker_state_reader.pools = {
+        worker_id: reserve_worker_slot(
+            pool,
+            attempt_id=f"other-{worker_id}",
+            reservation_id=content_digest({"busy": worker_id}),
+            acquired_at=BASE,
+        ).pool
+        for worker_id, pool in worker_state_reader.pools.items()
+    }
+    resolver = NautilusTrialSearchDispatchEvidenceResolver(
+        domain_hydrator=_Hydrator(graph),
+        runtime_materializer=materializer,
+        strategy_package_resolver=package_resolver,
+        artifact_store=store,
+        worker_state_reader=worker_state_reader,
+        context_resolver=lambda _request, _graph: context,
+    )
+    intent = SearchDispatchIntent(
+        "fleet-saturated-key",
+        graph.attempt.attempt_id,
+        "strategy-backtest",
+        PREPARED_AT,
+    )
+
+    with pytest.raises(RuntimeError, match="no available serial backtest worker profile"):
+        await resolver(
+            principal="owner-1",
+            request_id="fleet-saturated-request",
+            experiment_fingerprint=graph.experiment.fingerprint,
+            candidate_index=1,
+            attempt_id=graph.attempt.attempt_id,
+            dispatch_intent=intent,
+        )
 
 
 @pytest.mark.asyncio
@@ -400,15 +543,7 @@ async def test_persisted_owner_graph_composes_exact_authoritative_rc5_worker_req
             runtime_profile.fingerprint,
         )
     )
-    lease = ExecutionAttemptLease(
-        graph.attempt.attempt_id,
-        worker_pool.profile.worker_id,
-        "dispatch-preparation-lease",
-        BASE + timedelta(seconds=2),
-        BASE + timedelta(seconds=2),
-        BASE + timedelta(hours=1),
-    )
-    worker_state_reader = _WorkerStateReader(worker_pool, LeaseObservationState(lease))
+    worker_state_reader = _WorkerStateReader(worker_pool)
     output_path = tmp_path / "persisted-dispatch-result.json"
     context = NautilusTrialPreparationContext.from_authoritative_backtest_conformance(
         conformance_resolution=conformance_resolution,
@@ -417,13 +552,11 @@ async def test_persisted_owner_graph_composes_exact_authoritative_rc5_worker_req
         account_models=frozenset({"cash-equity-v1"}),
         market_context=NautilusTrialMarketContext(values["instruments"], values["venue"]),
         runtime_profile=runtime_profile,
-        worker_profile=worker_pool.profile,
         admission_ledger=ExecutionAdmissionLedger(),
-        reservation_id=content_digest("persisted-dispatch-reservation"),
-        lease_id=lease.lease_id,
         image_name=image_name or "nautilus-runtime",
         output_path=output_path,
         now=PREPARED_AT,
+        lease_duration=timedelta(minutes=15),
     )
 
     owner = SimpleNamespace(id="persisted-owner")
@@ -723,7 +856,9 @@ async def test_resolver_fails_before_context_lookup_when_experiment_does_not_mat
 
 
 @pytest.mark.asyncio
-async def test_resolver_rejects_missing_or_expired_persisted_lease(tmp_path: Path) -> None:
+async def test_resolver_persists_a_missing_lease_and_rejects_an_expired_replay(
+    tmp_path: Path,
+) -> None:
     graph, store, package_resolver, materializer, context, worker_state_reader = _setup(tmp_path)
     intent = SearchDispatchIntent(
         "dispatch-preparation-key",
@@ -748,20 +883,19 @@ async def test_resolver_rejects_missing_or_expired_persisted_lease(tmp_path: Pat
         "dispatch_intent": intent,
     }
 
-    if worker_state_reader.lease_state is None:  # pragma: no cover - fixture invariant
-        raise AssertionError("test setup omitted its persisted lease")
-    active_lease = worker_state_reader.lease_state.lease
-    worker_state_reader.lease_state = None
-    with pytest.raises(ValueError, match="execution lease is missing"):
-        await resolver(**arguments)
+    prepared = await resolver(**arguments)
+    active_lease = prepared.worker_request.lease_state.lease
+    assert worker_state_reader.leases[active_lease.lease_id].lease == active_lease
 
-    worker_state_reader.lease_state = LeaseObservationState(
+    worker_state_reader.leases[active_lease.lease_id] = LeaseObservationState(
         replace(
             active_lease,
-            expires_at=PREPARED_AT - timedelta(seconds=1),
+            expires_at=PREPARED_AT + timedelta(seconds=1),
         )
     )
-    with pytest.raises(ValueError, match="not active at preparation time"):
+    later_context = replace(context, now=PREPARED_AT + timedelta(seconds=2))
+    resolver._context_resolver = lambda _request, _graph: later_context
+    with pytest.raises(RuntimeError, match="no available serial backtest worker profile"):
         await resolver(**arguments)
 
 

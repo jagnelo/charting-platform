@@ -129,13 +129,11 @@ async def test_context_binding_rejects_another_valid_rc_report(tmp_path: Path) -
         account_models=frozenset({"cash-equity-v1"}),
         market_context=context.market_context,
         runtime_profile=context.runtime_profile,
-        worker_profile=context.worker_profile,
         admission_ledger=context.admission_ledger,
-        reservation_id=context.reservation_id,
-        lease_id=context.lease_id,
         image_name=context.image_name,
         output_path=context.output_path,
         now=context.now,
+        lease_duration=context.lease_duration,
     )
     bound = bind_context_to_rc_evidence(
         lambda _request, _graph: mismatched_context,
@@ -181,13 +179,11 @@ async def test_context_binding_accepts_exact_rc_authoritative_backtest_context(
         account_models=frozenset({"cash-equity-v1"}),
         market_context=compatibility_context.market_context,
         runtime_profile=compatibility_context.runtime_profile,
-        worker_profile=compatibility_context.worker_profile,
         admission_ledger=compatibility_context.admission_ledger,
-        reservation_id=compatibility_context.reservation_id,
-        lease_id=compatibility_context.lease_id,
         image_name=compatibility_context.image_name,
         output_path=compatibility_context.output_path,
         now=compatibility_context.now,
+        lease_duration=compatibility_context.lease_duration,
     )
     bound = bind_context_to_rc_evidence(
         lambda _request, _graph: authoritative_context,

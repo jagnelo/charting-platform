@@ -52,6 +52,7 @@ class FakeSession:
         self.leases: dict[str, dict[str, Any]] = {}
         self.observations: dict[str, dict[str, Any]] = {}
         self.calls: list[str] = []
+        self.race_lease_insert = False
 
     async def __aenter__(self):
         return self
@@ -67,14 +68,20 @@ class FakeSession:
         values = dict(params or {})
         normalized = sql.lstrip()
         self.calls.append(sql)
-        if normalized.startswith("SELECT worker_id"):
+        if normalized.startswith("SELECT worker_id") and "worker_id" in values:
             row = self.profiles.get(values["worker_id"])
             return FakeResult([] if row is None else [row])
-        if normalized.startswith("SELECT reservation_id"):
+        if normalized.startswith("SELECT worker_id"):
             rows = [
                 row
-                for row in self.reservations.values()
-                if row["worker_id"] == values["worker_id"]
+                for row in self.profiles.values()
+                if row["kind"] == values["kind"]
+                and row["runtime_profile_fingerprint"] == values["runtime_profile_fingerprint"]
+            ]
+            return FakeResult(sorted(rows, key=lambda row: row["worker_id"]))
+        if normalized.startswith("SELECT reservation_id"):
+            rows = [
+                row for row in self.reservations.values() if row["worker_id"] == values["worker_id"]
             ]
             return FakeResult(sorted(rows, key=lambda row: row["reservation_id"]))
         if normalized.startswith("SELECT lease_id"):
@@ -82,9 +89,7 @@ class FakeSession:
             return FakeResult([] if row is None else [row])
         if normalized.startswith("SELECT observation_id"):
             rows = [
-                row
-                for row in self.observations.values()
-                if row["lease_id"] == values["lease_id"]
+                row for row in self.observations.values() if row["lease_id"] == values["lease_id"]
             ]
             return FakeResult(sorted(rows, key=lambda row: row["sequence"]))
         if normalized.startswith("INSERT INTO") and "profile_fingerprint" in sql:
@@ -102,6 +107,10 @@ class FakeSession:
         if normalized.startswith("INSERT INTO") and "lease_fingerprint" in sql:
             key = values["lease_id"]
             if key in self.leases:
+                return FakeResult(rowcount=0)
+            if self.race_lease_insert:
+                self.race_lease_insert = False
+                self.leases[key] = values
                 return FakeResult(rowcount=0)
             self.leases[key] = values
             return FakeResult(rowcount=1)
@@ -204,11 +213,14 @@ async def test_worker_state_adapter_registers_reserves_releases_and_replays() ->
         released_at=NOW + timedelta(seconds=3),
     )
     assert not released.active_reservations
-    assert await adapter.release(
-        profile=profile,
-        reservation_id=first_id,
-        released_at=NOW + timedelta(seconds=4),
-    ) == released
+    assert (
+        await adapter.release(
+            profile=profile,
+            reservation_id=first_id,
+            released_at=NOW + timedelta(seconds=4),
+        )
+        == released
+    )
     reopened = await adapter.reserve(
         profile=profile,
         attempt_id="attempt-2",
@@ -217,6 +229,36 @@ async def test_worker_state_adapter_registers_reserves_releases_and_replays() ->
     )
     assert reopened.decision is WorkerReservationDecision.ACCEPT
     assert len(session.reservations) == 2
+
+
+@pytest.mark.asyncio
+async def test_worker_state_adapter_lists_only_authenticated_exact_runtime_profiles() -> None:
+    session = FakeSession()
+    adapter = PostgresWorkerStateAdapter(lambda: session)
+    profiles = (
+        _profile(),
+        WorkerProfile("worker-2", WorkerKind.BACKTEST, RUNTIME),
+        WorkerProfile("worker-3", WorkerKind.BACKTEST, content_digest("other-runtime")),
+        WorkerProfile("worker-4", WorkerKind.FORWARD, RUNTIME),
+    )
+    for profile in profiles:
+        await adapter.ensure_profile(profile)
+
+    assert await adapter.list_profiles(
+        kind=WorkerKind.BACKTEST, runtime_profile_fingerprint=RUNTIME
+    ) == (
+        profiles[0],
+        profiles[1],
+    )
+    assert await adapter.list_profiles(
+        kind=WorkerKind.FORWARD,
+        runtime_profile_fingerprint=RUNTIME,
+    ) == (profiles[3],)
+    assert len([call for call in session.calls if "ORDER BY worker_id ASC" in call]) == 2
+
+    session.profiles["worker-1"]["profile_fingerprint"] = content_digest("tampered")
+    with pytest.raises(ValueError, match="profile fingerprint"):
+        await adapter.list_profiles(kind=WorkerKind.BACKTEST, runtime_profile_fingerprint=RUNTIME)
 
 
 @pytest.mark.asyncio
@@ -250,6 +292,27 @@ async def test_worker_state_adapter_persists_ordered_lease_observations() -> Non
     assert released.state.last_sequence == 2
     assert released.state.lease.released_at == release.observed_at
     assert len(session.observations) == 2
+
+
+@pytest.mark.asyncio
+async def test_worker_state_adapter_replays_an_exact_concurrent_lease_insert() -> None:
+    session = FakeSession()
+    session.race_lease_insert = True
+    adapter = PostgresWorkerStateAdapter(lambda: session)
+    attempt = RunAttempt("attempt-1", "trial-1", 1, AttemptState.RUNNING, NOW)
+    lease = acquire_attempt_lease(
+        attempt,
+        worker_id="worker-1",
+        lease_id="lease-1",
+        now=NOW,
+        lease_duration=timedelta(minutes=5),
+    )
+
+    persisted = await adapter.persist_lease(lease)
+
+    assert persisted.lease == lease
+    assert any("ON CONFLICT (lease_id) DO NOTHING" in call for call in session.calls)
+    assert sum(call.lstrip().startswith("SELECT lease_id") for call in session.calls) == 2
 
 
 @pytest.mark.asyncio
@@ -346,9 +409,7 @@ async def test_worker_state_adapter_rejects_tampered_rows_and_foreign_profiles()
     profile = _profile()
     await adapter.ensure_profile(profile)
     with pytest.raises(ValueError, match="profile identity"):
-        await adapter.ensure_profile(
-            WorkerProfile("worker-1", WorkerKind.FORWARD, RUNTIME)
-        )
+        await adapter.ensure_profile(WorkerProfile("worker-1", WorkerKind.FORWARD, RUNTIME))
     session.profiles[profile.worker_id]["profile_fingerprint"] = content_digest("tampered")
     with pytest.raises(ValueError, match="profile fingerprint"):
         await adapter.load_pool(profile)

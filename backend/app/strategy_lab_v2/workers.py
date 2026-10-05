@@ -149,10 +149,14 @@ class WorkerReservationResolution:
             raise TypeError("pool must be a WorkerPoolState")
         if self.reservation is not None and not isinstance(self.reservation, WorkerReservation):
             raise TypeError("reservation must be a WorkerReservation")
-        if self.decision in {
-            WorkerReservationDecision.ACCEPT,
-            WorkerReservationDecision.REPLAY_EXISTING,
-        } and self.reservation is None:
+        if (
+            self.decision
+            in {
+                WorkerReservationDecision.ACCEPT,
+                WorkerReservationDecision.REPLAY_EXISTING,
+            }
+            and self.reservation is None
+        ):
             raise ValueError("accepted and replay resolutions require a reservation")
         if self.decision is WorkerReservationDecision.REJECT and not self.rejection_reason:
             raise ValueError("rejected reservations require a reason")
@@ -201,7 +205,9 @@ def reserve_worker_slot(
         (item for item in pool.active_reservations if item.attempt_id == attempt_id), None
     )
     if existing is not None:
-        return WorkerReservationResolution(WorkerReservationDecision.REPLAY_EXISTING, pool, existing)
+        return WorkerReservationResolution(
+            WorkerReservationDecision.REPLAY_EXISTING, pool, existing
+        )
     if len(pool.active_reservations) >= pool.profile.max_concurrent_nodes:
         return WorkerReservationResolution(WorkerReservationDecision.SATURATED, pool)
     reservation = WorkerReservation(
@@ -216,6 +222,70 @@ def reserve_worker_slot(
         replace(pool, reservations=pool.reservations + (reservation,)),
         reservation,
     )
+
+
+def rank_available_backtest_worker_pools(
+    pools: tuple[WorkerPoolState, ...] | list[WorkerPoolState],
+    *,
+    attempt_id: str,
+) -> tuple[WorkerPoolState, ...]:
+    """Rank free serial backtest slots deterministically, least-recently-used first.
+
+    An already-reserved attempt is returned only on its existing pool so an
+    idempotent replay cannot silently migrate between workers. The database
+    still owns the final reservation transaction; this ranking is a dispatch
+    preparation hint, not a capacity claim.
+    """
+
+    _nonempty(attempt_id, "attempt_id")
+    pools = tuple(pools)
+    if any(not isinstance(pool, WorkerPoolState) for pool in pools):
+        raise TypeError("pools must contain WorkerPoolState values")
+    worker_ids = [pool.profile.worker_id for pool in pools]
+    if len(worker_ids) != len(set(worker_ids)):
+        raise ValueError("worker pools must have unique profile identities")
+
+    already_reserved = tuple(
+        pool
+        for pool in pools
+        if any(item.active and item.attempt_id == attempt_id for item in pool.reservations)
+    )
+    if len(already_reserved) > 1:
+        raise ValueError("an attempt cannot be reserved on multiple worker profiles")
+    if already_reserved:
+        pool = already_reserved[0]
+        if (
+            pool.profile.kind is not WorkerKind.BACKTEST
+            or not pool.profile.isolation_required
+            or not pool.profile.engine_disposal_required
+        ):
+            raise ValueError("existing attempt reservation is not on a safe backtest worker")
+        return already_reserved
+
+    available = tuple(
+        pool
+        for pool in pools
+        if pool.profile.kind is WorkerKind.BACKTEST
+        and pool.profile.isolation_required
+        and pool.profile.engine_disposal_required
+        and not pool.active_reservations
+    )
+
+    def rank(pool: WorkerPoolState) -> tuple[datetime, str]:
+        last_used = max(
+            (item.acquired_at for item in pool.reservations),
+            default=datetime.min.replace(tzinfo=UTC),
+        )
+        stable_tie_break = content_digest(
+            {
+                "attempt_id": attempt_id,
+                "purpose": "strategy-lab-v2-worker-profile-selection-v1",
+                "worker_id": pool.profile.worker_id,
+            }
+        )
+        return last_used, stable_tie_break
+
+    return tuple(sorted(available, key=rank))
 
 
 def release_worker_slot(

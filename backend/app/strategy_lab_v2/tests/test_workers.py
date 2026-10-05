@@ -11,6 +11,7 @@ from app.strategy_lab_v2.workers import (
     WorkerPoolState,
     WorkerProfile,
     WorkerReservationDecision,
+    rank_available_backtest_worker_pools,
     release_worker_slot,
     reserve_worker_slot,
 )
@@ -88,11 +89,59 @@ def test_worker_pool_reports_saturation_and_reopens_after_release() -> None:
         acquired_at=NOW + timedelta(seconds=3),
     )
     assert reopened.decision is WorkerReservationDecision.ACCEPT
-    assert release_worker_slot(
-        released,
-        reservation_id=_reservation_id("one"),
-        released_at=NOW + timedelta(seconds=4),
-    ) == released
+    assert (
+        release_worker_slot(
+            released,
+            reservation_id=_reservation_id("one"),
+            released_at=NOW + timedelta(seconds=4),
+        )
+        == released
+    )
+
+
+def test_backtest_pool_ranking_is_deterministic_and_spreads_unused_slots() -> None:
+    pools = tuple(
+        WorkerPoolState(WorkerProfile(f"worker-{index}", WorkerKind.BACKTEST, RUNTIME))
+        for index in range(4)
+    )
+    first = rank_available_backtest_worker_pools(pools, attempt_id="attempt-1")
+    replay = rank_available_backtest_worker_pools(pools, attempt_id="attempt-1")
+    assert first == replay
+    assert {first[0].profile.worker_id for _ in range(1)} == {replay[0].profile.worker_id}
+
+    assignments = {
+        rank_available_backtest_worker_pools(pools, attempt_id=f"attempt-{index}")[
+            0
+        ].profile.worker_id
+        for index in range(32)
+    }
+    assert assignments == {f"worker-{index}" for index in range(4)}
+
+
+def test_backtest_pool_ranking_skips_busy_slots_and_preserves_attempt_assignment() -> None:
+    pools = tuple(
+        WorkerPoolState(WorkerProfile(f"worker-{index}", WorkerKind.BACKTEST, RUNTIME))
+        for index in range(3)
+    )
+    busy = reserve_worker_slot(
+        pools[0],
+        attempt_id="other-attempt",
+        reservation_id=_reservation_id("other"),
+        acquired_at=NOW,
+    ).pool
+    available = rank_available_backtest_worker_pools((busy, *pools[1:]), attempt_id="attempt-1")
+    assert busy not in available
+    assert {pool.profile.worker_id for pool in available} == {"worker-1", "worker-2"}
+
+    reserved = reserve_worker_slot(
+        pools[1],
+        attempt_id="attempt-1",
+        reservation_id=_reservation_id("attempt"),
+        acquired_at=NOW,
+    ).pool
+    assert rank_available_backtest_worker_pools(
+        (busy, reserved, pools[2]), attempt_id="attempt-1"
+    ) == (reserved,)
 
 
 def test_worker_pool_rejects_unsafe_profile_and_reused_reservation_id() -> None:
@@ -126,9 +175,7 @@ def test_worker_contract_rejects_non_serial_or_invalid_time_and_ids() -> None:
     with pytest.raises(ValueError, match="exactly one"):
         WorkerProfile("worker-1", WorkerKind.FORWARD, RUNTIME, max_concurrent_nodes=2)
     with pytest.raises(ValueError, match="reservation_id"):
-        reserve_worker_slot(
-            _pool(), attempt_id="attempt-1", reservation_id="bad", acquired_at=NOW
-        )
+        reserve_worker_slot(_pool(), attempt_id="attempt-1", reservation_id="bad", acquired_at=NOW)
     accepted = reserve_worker_slot(
         _pool(),
         attempt_id="attempt-1",

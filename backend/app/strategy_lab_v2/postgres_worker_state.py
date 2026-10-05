@@ -97,9 +97,7 @@ class WorkerCapacityResolution:
             raise TypeError("decision must be a WorkerCapacityDecision")
         if not isinstance(self.pool, WorkerPoolState):
             raise TypeError("pool must be a WorkerPoolState")
-        if self.lease_state is not None and not isinstance(
-            self.lease_state, LeaseObservationState
-        ):
+        if self.lease_state is not None and not isinstance(self.lease_state, LeaseObservationState):
             raise TypeError("lease_state must be a LeaseObservationState or None")
         if not isinstance(self.observation, LeaseObservation):
             raise TypeError("observation must be a LeaseObservation")
@@ -228,6 +226,51 @@ class PostgresWorkerStateAdapter:
                     raise ValueError("PostgreSQL worker profile identity is already bound")
                 pool = await self._load_pool(session, persisted)
                 return WorkerProfileResolution(WorkerProfileDecision.REPLAY_EXISTING, pool)
+
+    async def list_profiles(
+        self,
+        *,
+        kind: WorkerKind,
+        runtime_profile_fingerprint: str,
+    ) -> tuple[WorkerProfile, ...]:
+        """Discover registered profiles for one exact execution runtime."""
+
+        if not isinstance(kind, WorkerKind):
+            raise TypeError("kind must be a WorkerKind")
+        require_sha256_digest(
+            runtime_profile_fingerprint,
+            field_name="runtime_profile_fingerprint",
+        )
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                result = await session.execute(
+                    _statement(
+                        f"""
+                        SELECT worker_id, kind, runtime_profile_fingerprint,
+                               isolation_required, engine_disposal_required,
+                               max_concurrent_nodes, profile_fingerprint
+                        FROM {self._schema.profile_table}
+                        WHERE kind = :kind
+                          AND runtime_profile_fingerprint = :runtime_profile_fingerprint
+                        ORDER BY worker_id ASC
+                        """
+                    ),
+                    {
+                        "kind": kind.value,
+                        "runtime_profile_fingerprint": runtime_profile_fingerprint,
+                    },
+                )
+                profiles = tuple(_decode_profile(row) for row in result.mappings())
+                if tuple(sorted(profiles, key=lambda item: item.worker_id)) != profiles:
+                    raise ValueError("PostgreSQL worker profiles are not deterministically ordered")
+                if any(
+                    profile.kind is not kind
+                    or profile.runtime_profile_fingerprint != runtime_profile_fingerprint
+                    for profile in profiles
+                ):
+                    raise ValueError("PostgreSQL worker profile query returned an inexact match")
+                return profiles
 
     async def reserve(
         self,
@@ -380,8 +423,13 @@ class PostgresWorkerStateAdapter:
                     if current.lease != lease:
                         raise ValueError("PostgreSQL lease identity is already bound")
                     return current
-                await self._insert_lease(session, lease)
-                return LeaseObservationState(lease)
+                inserted = await self._insert_lease(session, lease)
+                if inserted:
+                    return LeaseObservationState(lease)
+                raced = await self._load_lease(session, lease.lease_id)
+                if raced is None or raced.lease != lease:
+                    raise ValueError("PostgreSQL lease identity is already bound")
+                return raced
 
     async def load_lease(self, lease_id: str) -> LeaseObservationState | None:
         """Read one lease and its authenticated observation history."""
@@ -512,7 +560,10 @@ class PostgresWorkerStateAdapter:
                         observation,
                         "lease is not persisted",
                     )
-                if current.lease.worker_id != profile.worker_id or current.lease.attempt_id != reservation.attempt_id:
+                if (
+                    current.lease.worker_id != profile.worker_id
+                    or current.lease.attempt_id != reservation.attempt_id
+                ):
                     return WorkerCapacityResolution(
                         WorkerCapacityDecision.REJECT,
                         pool,
@@ -609,7 +660,9 @@ class PostgresWorkerStateAdapter:
                         },
                     )
                     if getattr(result, "rowcount", 0) != 1:
-                        raise ValueError("PostgreSQL worker reservation compare-and-set lost a race")
+                        raise ValueError(
+                            "PostgreSQL worker reservation compare-and-set lost a race"
+                        )
                 return WorkerCapacityResolution(
                     WorkerCapacityDecision.RELEASED,
                     next_pool,
@@ -639,21 +692,9 @@ class PostgresWorkerStateAdapter:
         if len(rows) != 1:
             raise ValueError("PostgreSQL worker profile query returned duplicate keys")
         row = rows[0]
-        try:
-            profile = WorkerProfile(
-                row["worker_id"],
-                WorkerKind(row["kind"]),
-                row["runtime_profile_fingerprint"],
-                row["isolation_required"],
-                row["engine_disposal_required"],
-                int(row["max_concurrent_nodes"]),
-            )
-        except (KeyError, TypeError, ValueError) as error:
-            raise ValueError("PostgreSQL worker profile row is malformed") from error
+        profile = _decode_profile(row)
         if row.get("worker_id") != worker_id:
             raise ValueError("PostgreSQL worker profile identity drifted")
-        if row.get("profile_fingerprint") != profile.fingerprint:
-            raise ValueError("PostgreSQL worker profile fingerprint does not match bytes")
         return profile
 
     async def _load_pool(
@@ -785,9 +826,7 @@ class PostgresWorkerStateAdapter:
         if getattr(result, "rowcount", 0) != 1:
             raise ValueError("PostgreSQL worker reservation insert lost a uniqueness race")
 
-    async def _insert_lease(
-        self, session: AsyncSessionLike, lease: ExecutionAttemptLease
-    ) -> None:
+    async def _insert_lease(self, session: AsyncSessionLike, lease: ExecutionAttemptLease) -> bool:
         result = await session.execute(
             _statement(
                 f"""
@@ -810,8 +849,7 @@ class PostgresWorkerStateAdapter:
                 "lease_fingerprint": _lease_fingerprint(lease),
             },
         )
-        if getattr(result, "rowcount", 0) != 1:
-            raise ValueError("PostgreSQL lease insert lost a uniqueness race")
+        return getattr(result, "rowcount", 0) == 1
 
     async def _insert_observation(
         self, session: AsyncSessionLike, observation: LeaseObservation
@@ -866,6 +904,23 @@ def _lease_fingerprint(lease: ExecutionAttemptLease) -> str:
     """Return the canonical identity for a lease value (leases lack a property)."""
 
     return content_digest(lease)
+
+
+def _decode_profile(row: Mapping[str, Any]) -> WorkerProfile:
+    try:
+        profile = WorkerProfile(
+            row["worker_id"],
+            WorkerKind(row["kind"]),
+            row["runtime_profile_fingerprint"],
+            row["isolation_required"],
+            row["engine_disposal_required"],
+            int(row["max_concurrent_nodes"]),
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("PostgreSQL worker profile row is malformed") from error
+    if row.get("profile_fingerprint") != profile.fingerprint:
+        raise ValueError("PostgreSQL worker profile fingerprint does not match bytes")
+    return profile
 
 
 def _decode_reservation(row: Mapping[str, Any]) -> WorkerReservation:

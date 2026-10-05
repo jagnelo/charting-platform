@@ -47,7 +47,12 @@ from app.strategy_lab_v2.tests.test_worker_process import _request as _worker_re
 from app.strategy_lab_v2.trial_hydration import NautilusTrialDomainHydrator
 from app.strategy_lab_v2.worker_handoff import decode_worker_handoff, encode_worker_handoff
 from app.strategy_lab_v2.worker_process import WorkerExecutionRequest
-from app.strategy_lab_v2.workers import WorkerPoolState
+from app.strategy_lab_v2.workers import (
+    WorkerKind,
+    WorkerPoolState,
+    WorkerProfile,
+    reserve_worker_slot,
+)
 
 NOW = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
 EXPERIMENT = content_digest("experiment")
@@ -694,6 +699,22 @@ async def test_owner_hydrated_multi_strategy_trial_reaches_persisted_dispatch_an
     graph, store, package_resolver, materializer, context, worker_state_reader = _preparation_setup(
         tmp_path
     )
+    original_pool = next(iter(worker_state_reader.pools.values()))
+    busy_pool = reserve_worker_slot(
+        original_pool,
+        attempt_id="other-attempt",
+        reservation_id=content_digest("postgres-search-dispatch-busy-slot"),
+        acquired_at=context.now,
+    ).pool
+    selected_profile = WorkerProfile(
+        "dispatch-preparation-worker-2",
+        WorkerKind.BACKTEST,
+        original_pool.profile.runtime_profile_fingerprint,
+    )
+    worker_state_reader.pools = {
+        busy_pool.profile.worker_id: busy_pool,
+        selected_profile.worker_id: WorkerPoolState(selected_profile),
+    }
     graph = _add_second_strategy(_inputs(), graph, store)
     reader = MemoryDomainReader(
         {
@@ -731,7 +752,7 @@ async def test_owner_hydrated_multi_strategy_trial_reaches_persisted_dispatch_an
             now=context.now,
         ),
     )
-    await worker_state.ensure_profile(context.worker_profile)
+    await worker_state.ensure_profile(selected_profile)
     intent = SearchDispatchIntent(
         "owner-hydrated-multi-strategy-dispatch",
         graph.attempt.attempt_id,
@@ -766,6 +787,7 @@ async def test_owner_hydrated_multi_strategy_trial_reaches_persisted_dispatch_an
     )
 
     assert len(graph.strategies) == 2
+    assert evidence.worker_request.worker_pool.profile == selected_profile
     assert reader.calls[0] == ("id", ApiResourceType.ATTEMPT, (graph.attempt.attempt_id,))
     assert evidence.authorization.source_digest != graph.strategies[0].source_digest
     assert resolution.decision is SearchDispatchDecision.ENQUEUE

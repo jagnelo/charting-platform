@@ -12,7 +12,7 @@ from __future__ import annotations
 import inspect
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -36,7 +36,11 @@ from app.strategy_lab_v2.execution_capabilities import (
     preflight_execution_capability,
 )
 from app.strategy_lab_v2.lease_observations import LeaseObservationState
-from app.strategy_lab_v2.lifecycle import AttemptLeaseStatus
+from app.strategy_lab_v2.lifecycle import (
+    AttemptLeaseStatus,
+    ExecutionAttemptLease,
+    acquire_attempt_lease,
+)
 from app.strategy_lab_v2.local_conformance_source import (
     LocalNautilusRcConformanceEvidenceSource,
 )
@@ -52,7 +56,12 @@ from app.strategy_lab_v2.nautilus_trial_worker_request import (
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
 from app.strategy_lab_v2.trial_hydration import HydratedNautilusTrial
-from app.strategy_lab_v2.workers import WorkerKind, WorkerPoolState, WorkerProfile
+from app.strategy_lab_v2.workers import (
+    WorkerKind,
+    WorkerPoolState,
+    WorkerProfile,
+    rank_available_backtest_worker_pools,
+)
 
 
 class NautilusTrialHydrator(Protocol):
@@ -65,9 +74,18 @@ class NautilusTrialHydrator(Protocol):
 
 
 class NautilusWorkerStateReader(Protocol):
+    async def list_profiles(
+        self,
+        *,
+        kind: WorkerKind,
+        runtime_profile_fingerprint: str,
+    ) -> tuple[WorkerProfile, ...]: ...
+
     async def load_pool(self, profile: WorkerProfile) -> WorkerPoolState: ...
 
     async def load_lease(self, lease_id: str) -> LeaseObservationState | None: ...
+
+    async def persist_lease(self, lease: ExecutionAttemptLease) -> LeaseObservationState: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -125,23 +143,22 @@ class SearchDispatchPreparationRequest:
 class NautilusTrialPreparationContext:
     """Trusted host/runtime evidence needed to prepare one backtest handoff.
 
-    The context resolver is responsible for reading current worker, lease,
-    conformance, and runtime configuration from the host's authoritative local
-    sources. This value itself is never accepted from an HTTP client.
+    The context resolver supplies canonical market metadata, conformance, and
+    runtime configuration from authoritative local sources. Worker profiles,
+    leases, and serial-slot selection are discovered and owned by the platform
+    preparation package. This value itself is never accepted from an HTTP client.
     """
 
     market_context: NautilusTrialMarketContext
     runtime_profile: RuntimeIsolationProfile
-    worker_profile: WorkerProfile
     admission_ledger: ExecutionAdmissionLedger
-    reservation_id: str
-    lease_id: str
     capability_binding: ExecutionCapabilityBinding
     conformance_evidence: EngineConformanceEvidence
     conformance_report: EngineConformanceReport
     image_name: str
     output_path: str | Path
     now: datetime
+    lease_duration: timedelta
     execution_scope: NautilusExecutionScope = NautilusExecutionScope.BACKTEST_AUTHORITATIVE
     requested_authoritative: bool = True
     docker_binary: str = "docker"
@@ -156,13 +173,11 @@ class NautilusTrialPreparationContext:
         account_models: frozenset[str],
         market_context: NautilusTrialMarketContext,
         runtime_profile: RuntimeIsolationProfile,
-        worker_profile: WorkerProfile,
         admission_ledger: ExecutionAdmissionLedger,
-        reservation_id: str,
-        lease_id: str,
         image_name: str,
         output_path: str | Path,
         now: datetime,
+        lease_duration: timedelta,
         docker_binary: str = "docker",
     ) -> NautilusTrialPreparationContext:
         """Construct a backtest-only host context from one exact conformance result.
@@ -195,16 +210,14 @@ class NautilusTrialPreparationContext:
         return cls(
             market_context=market_context,
             runtime_profile=runtime_profile,
-            worker_profile=worker_profile,
             admission_ledger=admission_ledger,
-            reservation_id=reservation_id,
-            lease_id=lease_id,
             capability_binding=capability_binding,
             conformance_evidence=conformance_resolution.evidence,
             conformance_report=conformance_resolution.report,
             image_name=image_name,
             output_path=output_path,
             now=now,
+            lease_duration=lease_duration,
             execution_scope=NautilusExecutionScope.BACKTEST_AUTHORITATIVE,
             requested_authoritative=True,
             docker_binary=docker_binary,
@@ -220,13 +233,11 @@ class NautilusTrialPreparationContext:
         account_models: frozenset[str],
         market_context: NautilusTrialMarketContext,
         runtime_profile: RuntimeIsolationProfile,
-        worker_profile: WorkerProfile,
         admission_ledger: ExecutionAdmissionLedger,
-        reservation_id: str,
-        lease_id: str,
         image_name: str,
         output_path: str | Path,
         now: datetime,
+        lease_duration: timedelta,
         docker_binary: str = "docker",
     ) -> NautilusTrialPreparationContext:
         """Construct a non-authoritative search context for an exact pinned build."""
@@ -253,16 +264,14 @@ class NautilusTrialPreparationContext:
         return cls(
             market_context=market_context,
             runtime_profile=runtime_profile,
-            worker_profile=worker_profile,
             admission_ledger=admission_ledger,
-            reservation_id=reservation_id,
-            lease_id=lease_id,
             capability_binding=capability_binding,
             conformance_evidence=conformance_resolution.evidence,
             conformance_report=conformance_resolution.report,
             image_name=image_name,
             output_path=output_path,
             now=now,
+            lease_duration=lease_duration,
             execution_scope=NautilusExecutionScope.BACKTEST_COMPATIBILITY,
             requested_authoritative=False,
             docker_binary=docker_binary,
@@ -278,13 +287,11 @@ class NautilusTrialPreparationContext:
         account_models: frozenset[str],
         market_context: NautilusTrialMarketContext,
         runtime_profile: RuntimeIsolationProfile,
-        worker_profile: WorkerProfile,
         admission_ledger: ExecutionAdmissionLedger,
-        reservation_id: str,
-        lease_id: str,
         image_name: str,
         output_path: str | Path,
         now: datetime,
+        lease_duration: timedelta,
         docker_binary: str = "docker",
     ) -> NautilusTrialPreparationContext:
         """Bind search preparation to content-addressed RC evidence as non-authoritative."""
@@ -298,13 +305,11 @@ class NautilusTrialPreparationContext:
             account_models=account_models,
             market_context=market_context,
             runtime_profile=runtime_profile,
-            worker_profile=worker_profile,
             admission_ledger=admission_ledger,
-            reservation_id=reservation_id,
-            lease_id=lease_id,
             image_name=image_name,
             output_path=output_path,
             now=now,
+            lease_duration=lease_duration,
             docker_binary=docker_binary,
         )
 
@@ -312,7 +317,6 @@ class NautilusTrialPreparationContext:
         expected = {
             "market_context": NautilusTrialMarketContext,
             "runtime_profile": RuntimeIsolationProfile,
-            "worker_profile": WorkerProfile,
             "admission_ledger": ExecutionAdmissionLedger,
             "capability_binding": ExecutionCapabilityBinding,
             "conformance_evidence": EngineConformanceEvidence,
@@ -322,9 +326,8 @@ class NautilusTrialPreparationContext:
         for name, value_type in expected.items():
             if not isinstance(getattr(self, name), value_type):
                 raise TypeError(f"{name} must be a {value_type.__name__}")
-        require_sha256_digest(self.reservation_id, field_name="reservation_id")
-        if not isinstance(self.lease_id, str) or not self.lease_id.strip():
-            raise ValueError("lease_id must not be empty")
+        if not isinstance(self.lease_duration, timedelta) or self.lease_duration <= timedelta(0):
+            raise ValueError("lease_duration must be positive")
         if not isinstance(self.image_name, str) or not self.image_name.strip():
             raise ValueError("image_name must not be empty")
         if not isinstance(self.output_path, str | Path) or not str(self.output_path).strip():
@@ -382,10 +385,14 @@ class NautilusTrialSearchDispatchEvidenceResolver:
             raise TypeError("strategy_package_resolver must be a StrategyPackageArtifactResolver")
         if not isinstance(artifact_store, LocalArtifactStore):
             raise TypeError("artifact_store must be a LocalArtifactStore")
-        if not callable(getattr(worker_state_reader, "load_pool", None)) or not callable(
-            getattr(worker_state_reader, "load_lease", None)
+        if any(
+            not callable(getattr(worker_state_reader, method, None))
+            for method in ("list_profiles", "load_pool", "load_lease", "persist_lease")
         ):
-            raise TypeError("worker_state_reader must provide load_pool() and load_lease()")
+            raise TypeError(
+                "worker_state_reader must provide list_profiles(), load_pool(), "
+                "load_lease(), and persist_lease()"
+            )
         if not callable(context_resolver):
             raise TypeError("context_resolver must be callable")
         if runtime_materializer.artifact_store is not artifact_store:
@@ -441,32 +448,6 @@ class NautilusTrialSearchDispatchEvidenceResolver:
         context = await context_result if inspect.isawaitable(context_result) else context_result
         if not isinstance(context, NautilusTrialPreparationContext):
             raise TypeError("context_resolver must return NautilusTrialPreparationContext")
-        worker_pool = await self._worker_state_reader.load_pool(context.worker_profile)
-        lease_state = await self._worker_state_reader.load_lease(context.lease_id)
-        if not isinstance(worker_pool, WorkerPoolState):
-            raise TypeError("worker state reader must return WorkerPoolState")
-        if not isinstance(lease_state, LeaseObservationState):
-            raise ValueError("execution lease is missing from persisted worker state")
-        lease = lease_state.lease
-        if (
-            lease.attempt_id != request.attempt_id
-            or lease.worker_id != context.worker_profile.worker_id
-            or lease.lease_id != context.lease_id
-        ):
-            raise ValueError("persisted worker lease differs from the preparation context")
-        if worker_pool.profile != context.worker_profile:
-            raise ValueError("persisted worker pool differs from the preparation context")
-        if worker_pool.profile.kind is not WorkerKind.BACKTEST:
-            raise ValueError("search trial preparation requires a backtest worker")
-        if worker_pool.profile.runtime_profile_fingerprint != context.runtime_profile.fingerprint:
-            raise ValueError("persisted worker runtime differs from the preparation profile")
-        if (
-            not worker_pool.profile.isolation_required
-            or not worker_pool.profile.engine_disposal_required
-        ):
-            raise ValueError("search trial workers require isolation and engine disposal")
-        if lease.status_at(context.now) is not AttemptLeaseStatus.ACTIVE:
-            raise ValueError("persisted execution lease is not active at preparation time")
         materialized = self._runtime_materializer.materialize(
             graph=graph,
             market_context=context.market_context,
@@ -475,6 +456,11 @@ class NautilusTrialSearchDispatchEvidenceResolver:
         capability_preflight = preflight_execution_capability(
             graph.trial.preflight_report,
             context.capability_binding,
+        )
+        worker_pool, lease_state, reservation_id = await self._select_worker_assignment(
+            request=request,
+            graph=graph,
+            context=context,
         )
         authorization = authorize_execution(
             graph.trial,
@@ -497,7 +483,7 @@ class NautilusTrialSearchDispatchEvidenceResolver:
             runtime_profile=context.runtime_profile,
             worker_pool=worker_pool,
             admission_ledger=context.admission_ledger,
-            reservation_id=context.reservation_id,
+            reservation_id=reservation_id,
             lease_state=lease_state,
             conformance_evidence=context.conformance_evidence,
             conformance_report=context.conformance_report,
@@ -512,9 +498,144 @@ class NautilusTrialSearchDispatchEvidenceResolver:
             authorization=authorization,
             trial_runtime_evidence=runtime_evidence,
             worker_request=worker_request,
-            reservation_id=context.reservation_id,
+            reservation_id=reservation_id,
             now=context.now,
         )
+
+    async def _select_worker_assignment(
+        self,
+        *,
+        request: SearchDispatchPreparationRequest,
+        graph: HydratedNautilusTrial,
+        context: NautilusTrialPreparationContext,
+    ) -> tuple[WorkerPoolState, LeaseObservationState, str]:
+        profiles = tuple(
+            await self._worker_state_reader.list_profiles(
+                kind=WorkerKind.BACKTEST,
+                runtime_profile_fingerprint=context.runtime_profile.fingerprint,
+            )
+        )
+        if any(not isinstance(profile, WorkerProfile) for profile in profiles):
+            raise TypeError("worker profile discovery must return WorkerProfile values")
+        if len({profile.worker_id for profile in profiles}) != len(profiles):
+            raise ValueError("worker profile discovery returned duplicate worker identities")
+        if tuple(sorted(profiles, key=lambda profile: profile.worker_id)) != profiles:
+            raise ValueError("worker profile discovery must be deterministically ordered")
+        if any(
+            profile.kind is not WorkerKind.BACKTEST
+            or profile.runtime_profile_fingerprint != context.runtime_profile.fingerprint
+            for profile in profiles
+        ):
+            raise ValueError("worker profile discovery returned an inexact runtime match")
+
+        pools: list[WorkerPoolState] = []
+        for profile in profiles:
+            pool = await self._worker_state_reader.load_pool(profile)
+            if not isinstance(pool, WorkerPoolState):
+                raise TypeError("worker state reader must return WorkerPoolState")
+            if pool.profile != profile:
+                raise ValueError("persisted worker pool differs from its discovered profile")
+            pools.append(pool)
+
+        existing_admission = next(
+            (
+                item
+                for item in context.admission_ledger.admissions
+                if item.attempt_id == request.attempt_id
+            ),
+            None,
+        )
+        ranked_pools: tuple[WorkerPoolState, ...]
+        if existing_admission is not None:
+            assigned_profile: WorkerProfile | None = next(
+                (
+                    item
+                    for item in profiles
+                    if item.worker_id == existing_admission.worker_id
+                    and item.fingerprint == existing_admission.worker_profile_fingerprint
+                ),
+                None,
+            )
+            if assigned_profile is None:
+                raise ValueError("existing attempt admission references an unavailable worker")
+            pool = next(item for item in pools if item.profile == assigned_profile)
+            if not any(
+                reservation.active
+                and reservation.attempt_id == request.attempt_id
+                and reservation.reservation_id == existing_admission.reservation_id
+                for reservation in pool.reservations
+            ):
+                raise ValueError("existing attempt admission has no matching active reservation")
+            ranked_pools = (pool,)
+        else:
+            if any(
+                reservation.active and reservation.attempt_id == request.attempt_id
+                for pool in pools
+                for reservation in pool.reservations
+            ):
+                raise ValueError("active worker reservation is missing its admission receipt")
+            ranked_pools = rank_available_backtest_worker_pools(
+                pools,
+                attempt_id=request.attempt_id,
+            )
+
+        lease_started_at = max(
+            request.dispatch_intent.created_at,
+            graph.attempt.updated_at or graph.attempt.created_at,
+        )
+        if lease_started_at > context.now:
+            raise ValueError("worker lease start cannot follow preparation time")
+        for pool in ranked_pools:
+            profile = pool.profile
+            lease_id = content_digest(
+                {
+                    "attempt_id": request.attempt_id,
+                    "idempotency_key": request.dispatch_intent.idempotency_key,
+                    "purpose": "strategy-lab-v2-search-worker-lease-v1",
+                    "worker_id": profile.worker_id,
+                }
+            )
+            reservation_id = content_digest(
+                {
+                    "attempt_id": request.attempt_id,
+                    "idempotency_key": request.dispatch_intent.idempotency_key,
+                    "purpose": "strategy-lab-v2-search-worker-reservation-v1",
+                    "worker_id": profile.worker_id,
+                }
+            )
+            if existing_admission is not None and (
+                existing_admission.reservation_id != reservation_id
+            ):
+                raise ValueError("existing admission differs from deterministic worker assignment")
+
+            lease_state = await self._worker_state_reader.load_lease(lease_id)
+            if lease_state is None:
+                lease = acquire_attempt_lease(
+                    graph.attempt,
+                    worker_id=profile.worker_id,
+                    lease_id=lease_id,
+                    now=lease_started_at,
+                    lease_duration=context.lease_duration,
+                )
+                if lease.status_at(context.now) is not AttemptLeaseStatus.ACTIVE:
+                    continue
+                lease_state = await self._worker_state_reader.persist_lease(lease)
+            if not isinstance(lease_state, LeaseObservationState):
+                raise TypeError("worker state reader must return LeaseObservationState")
+            lease = lease_state.lease
+            if (
+                lease.attempt_id != request.attempt_id
+                or lease.worker_id != profile.worker_id
+                or lease.lease_id != lease_id
+            ):
+                raise ValueError("persisted worker lease differs from its deterministic identity")
+            if lease.status_at(context.now) is not AttemptLeaseStatus.ACTIVE:
+                if existing_admission is not None:
+                    raise ValueError("persisted execution lease is not active at preparation time")
+                continue
+            return pool, lease_state, reservation_id
+
+        raise RuntimeError("no available serial backtest worker profile matches this runtime")
 
 
 __all__ = [
