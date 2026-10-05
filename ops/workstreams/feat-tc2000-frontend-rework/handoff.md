@@ -17495,6 +17495,43 @@ Changed ops files in this checkpoint:
 - ops/workstreams/feat-tc2000-frontend-rework/session.json
 - ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl
 
+## 2026-10-05 — Detached-tool accessibility relationships and ID uniqueness
+
+Product commit `721b0efbea486361fa0632b2f874353ca7802127` is pushed to
+`origin/feat/tc2000-frontend-rework`. In the Boolean watchlist pin menu, the
+invoking regular or stacked header now exposes `aria-controls` while the menu is
+open, and the conditional menu has the matching unique ID. Regression tests
+cover open/closed relationships and unrelated stacked headers. A two-root Code
+Library regression also caught `useId()` restarting at `v-0`; the create-form
+ID now uses the component instance UID so detached instances do not collide.
+
+Focused VirtualWatchlistTool tests passed `81/81`; CodeLibraryTool tests passed
+`12/12`; the full serial frontend suite passed `129` files / `1,206` tests; and
+the production type-check/build passed. The authenticated F8u-boolean flow
+passed `1/1` with the new watchlist relationship assertion (that browser run
+preceded the separate Code Library ID correction). The TC scope guard accepted
+129 changed paths and all six self-tests passed. Exact assigned-stack cleanup
+and the resource audit found zero retained TC Docker resources.
+
+The protected screenshot-diff review found no safe source change or valid oracle
+change: workspace-floating references expect an empty table even though the
+current fixture assertion requires five seeded rows; the Study structured
+result reference predates current result/promotion controls; the two 1080p
+sandbox-error mismatches are pixel-only after their state assertions pass. No
+baseline, mask, threshold, skip, fallback, or acceptance policy changed. The
+last complete functional and visual matrices remain at product tip `1d52ab`
+(functional 172 passed, five documented skips, zero failures; visual 94/104).
+Both full matrices must be rerun at clean product tip `721b0ef` before exact-tip
+acceptance. The generic `make validate-integration` helper still encounters
+the host's missing Docker Buildx plugin; ordinary scoped Compose builds and
+browser checks work. Direct remote refs at this checkpoint are TC
+`721b0efbea486361fa0632b2f874353ca7802127`, staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF
+`26d9f84b5ac35ed0fe0b31b196caae1a6ee05139`; neither dependency tip is in
+staging. Keep R2/R3 and shared-path reconciliation deferred. Continue bounded
+TC-owned UI/Study/Strategy work and keep the goal active.
+
 ## 2026-10-04 — Clean pinned full browser rerun
 
 The complete seeded Playwright 1.62.1 run executed all `282` cases in `17.5m`:

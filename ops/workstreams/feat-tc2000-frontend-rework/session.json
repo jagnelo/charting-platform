@@ -53,8 +53,8 @@
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "available": true,
+    "reason": null
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -100,14 +100,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "1d52ab41372b6cbf12efdf8d533e00e858b4966f",
-  "implementation_sha": "1d52ab41372b6cbf12efdf8d533e00e858b4966f",
+  "head": "721b0efbea486361fa0632b2f874353ca7802127",
+  "implementation_sha": "721b0efbea486361fa0632b2f874353ca7802127",
   "interrupted": false,
-  "last_checkpoint": "2026-10-05T10:05:53+00:00",
-  "last_human_progress_update": "2026-10-05T10:05:53+00:00",
+  "last_checkpoint": "2026-10-05T10:40:27+00:00",
+  "last_human_progress_update": "2026-10-05T10:35:19+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue TC-owned frontend delivery and inspect the ten protected visual differences for actionable product defects without changing the oracle or its policy. Refresh upstream refs periodically; defer R2/R3 consumer and shared-path semantic reconciliation until provider-platform and ETF changes are promoted to staging. Re-run the exact full integration gate when the host Buildx dependency is available, then checkpoint exact-tip evidence and stop at ready_for_human_review.",
-  "plan_hash": "ff8be5b97363738cfab8d74e76b2176e9d7c625c8ab71c3b6d96f15e03902a9f",
+  "next_action": "Continue bounded TC-owned workstation and Study/Strategy UI behavior while preserving the branch boundary and visual acceptance policy. Rerun the full authenticated browser and four-project visual matrices at a clean current product tip; retain the ten reviewed differences unless a source defect is proven. Refresh upstream refs periodically; defer R2/R3 consumer and shared-path reconciliation until provider-platform and ETF changes reach staging. Rerun the exact full integration gate when host Docker Buildx is available, then checkpoint exact-tip evidence and stop at ready_for_human_review.",
+  "plan_hash": "23f465619e23bcde143fb1b8e2429c340e0182d85e18684b9278ec2b238922d1",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -121,28 +121,28 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "No functional failures remain in the latest exact-tip authenticated Chromium run (172 passed, five documented skips, zero failures). Remaining gates are ten protected visual screenshot differences, the host Docker Buildx prerequisite for the generic full integration helper, and provider-platform/ETF promotion into staging before consumer reconciliation. Preserve visual acceptance policy and branch ownership boundaries.",
+    "current_blocker": "The latest complete authenticated Chromium and visual matrices predate product commit 721b0ef and must be rerun at a clean exact product tip. Ten protected screenshot differences remain open without baseline or policy changes. The host's missing Docker Buildx blocks the generic full integration helper; ordinary scoped Compose validation is available. Provider-platform and ETF promotion into staging is required before consumer integration and shared-path reconciliation. Preserve visual acceptance policy and branch ownership boundaries.",
     "current_phase": "R1_R6_KEYBOARD_ACCESSIBILITY_AND_EXACT_TIP_REPLAY",
-    "next_action": "Continue TC-owned frontend delivery and inspect the ten protected visual differences for actionable product defects without changing the oracle or its policy. Refresh upstream refs periodically; defer R2/R3 consumer and shared-path semantic reconciliation until provider-platform and ETF changes are promoted to staging. Re-run the exact full integration gate when the host Buildx dependency is available, then checkpoint exact-tip evidence and stop at ready_for_human_review.",
+    "next_action": "Continue bounded TC-owned workstation and Study/Strategy UI behavior while preserving the branch boundary and visual acceptance policy. Rerun the full authenticated browser and four-project visual matrices at a clean current product tip; retain the ten reviewed differences unless a source defect is proven. Refresh upstream refs periodically; defer R2/R3 consumer and shared-path reconciliation until provider-platform and ETF changes reach staging. Rerun the exact full integration gate when host Docker Buildx is available, then checkpoint exact-tip evidence and stop at ready_for_human_review.",
     "total": 9,
-    "updated_at": "2026-10-05T10:05:53+00:00"
+    "updated_at": "2026-10-05T10:40:27+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin feat/tc2000-frontend-rework",
-    "current_local_head": "1d52ab41372b6cbf12efdf8d533e00e858b4966f",
+    "current_local_head": "721b0efbea486361fa0632b2f874353ca7802127",
     "current_pending_range": "",
     "failure_category": "",
-    "head_at_product_checkpoint": "1d52ab41372b6cbf12efdf8d533e00e858b4966f",
-    "last_attempted_local_head": "1d52ab41372b6cbf12efdf8d533e00e858b4966f",
-    "last_attempted_range": "47d664492121de19e86756f2295b1318ec87b24f..1d52ab41372b6cbf12efdf8d533e00e858b4966f",
-    "range_at_product_checkpoint": "47d664492121de19e86756f2295b1318ec87b24f..1d52ab41372b6cbf12efdf8d533e00e858b4966f",
+    "head_at_product_checkpoint": "721b0efbea486361fa0632b2f874353ca7802127",
+    "last_attempted_local_head": "721b0efbea486361fa0632b2f874353ca7802127",
+    "last_attempted_range": "961d73a99cbe113045eb0aa1f2c869b9ab54d78b..721b0efbea486361fa0632b2f874353ca7802127",
+    "range_at_product_checkpoint": "961d73a99cbe113045eb0aa1f2c869b9ab54d78b..721b0efbea486361fa0632b2f874353ca7802127",
     "remote": "origin",
-    "remote_tracking_sha": "1d52ab41372b6cbf12efdf8d533e00e858b4966f",
+    "remote_tracking_sha": "721b0efbea486361fa0632b2f874353ca7802127",
     "status": "synchronized"
   },
-  "remote": "1d52ab41372b6cbf12efdf8d533e00e858b4966f",
-  "remote_sha": "1d52ab41372b6cbf12efdf8d533e00e858b4966f",
+  "remote": "721b0efbea486361fa0632b2f874353ca7802127",
+  "remote_sha": "721b0efbea486361fa0632b2f874353ca7802127",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

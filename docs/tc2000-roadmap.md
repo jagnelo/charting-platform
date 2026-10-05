@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-05
 
+## 2026-10-05 — Detached tool accessibility and ID collision correction
+
+At pushed product commit `721b0efbea486361fa0632b2f874353ca7802127`, Boolean
+watchlist pin-menu triggers now identify the open menu through `aria-controls`
+for regular and stacked headers. A two-root Code Library test exposed duplicate
+`useId()` form IDs across detached Vue roots; the create-form relationship now
+uses the component instance UID. Focused suites passed 81/81 and 12/12, the full
+serial frontend suite passed 129 files / 1,206 tests, production type-check and
+build passed, and authenticated F8u-boolean passed 1/1 (before the independent
+Code Library correction). Scoped Docker teardown/resource audit found zero
+retained TC resources.
+
+For the existing ten protected screenshot differences, review found no
+justified product or acceptance-oracle change: the workspace-floating capture
+expects an empty table despite the current five-row seeded fixture assertion;
+the Study structured-result capture predates result/promotion controls; and the
+two 1080p sandbox-error diffs remain pixel-only after state assertions. Keep the
+visual baselines and policy intact. The last complete functional and visual
+matrices remain at `1d52ab` (172 passed / five documented skips / zero failures;
+94/104 visual); rerun both at current clean product tip before exact-tip
+acceptance. The generic integration helper remains blocked by host Docker
+Buildx, and provider-platform/ETF consumer integration remains deferred until
+both branches reach staging. Continue distinct TC-owned workstation and
+Study/Strategy work meanwhile.
+
 ## 2026-10-05 — Exact-tip functional and visual rerun
 
 At pushed workstream tip `4b88a90600420a37a3e62cc01d0c065e389affcd`, with

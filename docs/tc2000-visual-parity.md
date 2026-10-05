@@ -1,5 +1,27 @@
 # TC2000 Version 25 Visual-Parity Specification
 
+## 2026-10-05 — Protected screenshot-diff review disposition
+
+The ten known screenshot differences were reviewed alongside their state
+assertions. The workspace-floating local captures show an empty table although
+the current test requires five seeded rows; the stored images predate that
+fixture expectation. The Study structured-result captures predate the current
+result and promotion controls. The two 1080p Study sandbox-error comparisons
+remain pixel-only after state assertions pass. This review found no source
+change justified by the stored references and no valid basis to change any
+reference, mask, threshold, skip, or acceptance rule.
+
+Product commit `721b0efbea486361fa0632b2f874353ca7802127` adds the Boolean
+watchlist pin menu's `aria-controls` relationship and fixes duplicate Code
+Library form IDs across detached roots. It passes full frontend Vitest
+(`129` files / `1,206` tests), production type-check/build, and focused
+watchlist / Code Library suites (`81/81` and `12/12`). The authenticated
+F8u-boolean flow passed `1/1` before the separate Code Library ID correction.
+The last full four-project visual result remains `94/104` at product tip
+`1d52ab`; it is not a current-tip visual result. Rerun the complete visual board
+at a clean exact product tip and preserve the existing ten differences unless
+new visual authority or a confirmed source defect changes their disposition.
+
 ## 2026-10-05 — Exact-tip clean functional and visual results
 
 At pushed TC workstream tip `4b88a90600420a37a3e62cc01d0c065e389affcd`
