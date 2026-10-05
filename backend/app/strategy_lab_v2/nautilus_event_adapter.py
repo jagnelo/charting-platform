@@ -11,18 +11,17 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
-from app.strategy_lab_v2.contracts import DataSnapshot
-from app.strategy_lab_v2.event_tape import FrozenEventTape, bind_event_tape, select_snapshot_series
-from app.strategy_lab_v2.event_tape_artifacts import (
-    FrozenEventTapeStreamResolution,
-    iter_verified_event_tape_stream,
-)
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.sdk import MarketEvent, StrategySdkManifest
+
+if TYPE_CHECKING:
+    from app.strategy_lab_v2.artifact_store import LocalArtifactStore
+    from app.strategy_lab_v2.contracts import DataSnapshot
+    from app.strategy_lab_v2.event_tape import FrozenEventTape
+    from app.strategy_lab_v2.event_tape_artifacts import FrozenEventTapeStreamResolution
 
 NAUTILUS_EVENT_ADAPTER_VERSION = "strategy-lab.nautilus-event-adapter.v1"
 NAUTILUS_EVENT_PARITY_VERSION = "strategy-lab.nautilus-event-parity.v1"
@@ -508,6 +507,9 @@ def materialize_nautilus_event_tape(
 ) -> NautilusEventTape:
     """Bind and materialize one frozen tape for a future Nautilus adapter."""
 
+    from app.strategy_lab_v2.contracts import DataSnapshot
+    from app.strategy_lab_v2.event_tape import FrozenEventTape, bind_event_tape
+
     if not isinstance(tape, FrozenEventTape):
         raise TypeError("tape must be a FrozenEventTape")
     if not isinstance(snapshot, DataSnapshot):
@@ -537,6 +539,14 @@ def iter_materialized_nautilus_event_records(
     ``NautilusEventTape`` tuple. Consumers should write these records to a
     bounded staging artifact/catalog and verify it completely before execution.
     """
+
+    from app.strategy_lab_v2.artifact_store import LocalArtifactStore
+    from app.strategy_lab_v2.contracts import DataSnapshot
+    from app.strategy_lab_v2.event_tape import select_snapshot_series
+    from app.strategy_lab_v2.event_tape_artifacts import (
+        FrozenEventTapeStreamResolution,
+        iter_verified_event_tape_stream,
+    )
 
     if not isinstance(resolution, FrozenEventTapeStreamResolution):
         raise TypeError("resolution must be a FrozenEventTapeStreamResolution")

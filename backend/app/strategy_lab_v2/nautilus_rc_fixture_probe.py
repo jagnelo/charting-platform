@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -26,11 +27,15 @@ from nautilus_trader.execution import (  # type: ignore[attr-defined]
 )
 from nautilus_trader.model import (
     AccountType,
+    BarAggregation,
+    BarSpecification,
+    BarType,
     Currency,
     Money,
     OmsType,
     OrderSide,
     Price,
+    PriceType,
     Quantity,
     QuoteTick,
     StrategyId,
@@ -44,6 +49,13 @@ from nautilus_trader.testkit.providers import (
 )
 from nautilus_trader.trading import Strategy, StrategyConfig  # type: ignore[attr-defined]
 
+from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
+from app.strategy_lab_v2.nautilus_event_adapter import (
+    NautilusForwardDeliveryBinding,
+    materialize_nautilus_forward_tape,
+    verify_nautilus_forward_event_tape_parity,
+)
 from app.strategy_lab_v2.nautilus_runtime_adapter_probe import (
     run_native_component_cycle_pnl_probe,
     run_native_signed_fee_reconciliation_probe,
@@ -51,6 +63,8 @@ from app.strategy_lab_v2.nautilus_runtime_adapter_probe import (
     run_rebalance_schedule_probe,
     run_target_allocation_probe,
 )
+from app.strategy_lab_v2.nautilus_runtime_data import materialize_native_event
+from app.strategy_lab_v2.sdk import MarketEvent
 
 
 class _FixtureConfig(StrategyConfig):
@@ -222,6 +236,226 @@ def run_forward_streaming_fixture() -> dict[str, Any]:
     return {"first": first, "second": second, "equal": first == second}
 
 
+class _ForwardTapeParityConfig(StrategyConfig):
+    def __new__(cls, instrument_id, bar_type, expected_by_key):
+        config = StrategyConfig.__new__(cls, StrategyId("S-FORWARD-PARITY"))
+        config.instrument_id = instrument_id
+        config.bar_type = bar_type
+        config.expected_by_key = expected_by_key
+        return config
+
+
+class _ForwardTapeParityStrategy(Strategy):
+    def on_start(self) -> None:
+        self._observed = []
+        self._unexpected = 0
+        instrument_id = self.config.instrument_id
+        self.subscribe_quotes(instrument_id)
+        self.subscribe_trades(instrument_id)
+        self.subscribe_bars(self.config.bar_type)
+
+    def on_quote(self, event) -> None:
+        self._observe(
+            "quote",
+            event.instrument_id,
+            event.ts_event,
+            {
+                "bid": str(event.bid_price),
+                "ask": str(event.ask_price),
+                "bid_size": str(event.bid_size),
+                "ask_size": str(event.ask_size),
+            },
+        )
+
+    def on_trade(self, event) -> None:
+        aggressor = getattr(event.aggressor_side, "name", str(event.aggressor_side)).upper()
+        self._observe(
+            "trade",
+            event.instrument_id,
+            event.ts_event,
+            {
+                "price": str(event.price),
+                "size": str(event.size),
+                "aggressor_side": aggressor,
+            },
+        )
+
+    def on_bar(self, event) -> None:
+        self._observe(
+            "ohlcv",
+            event.bar_type.instrument_id,
+            event.ts_event,
+            {
+                "open": str(event.open),
+                "high": str(event.high),
+                "low": str(event.low),
+                "close": str(event.close),
+                "volume": str(event.volume),
+            },
+        )
+
+    def _observe(self, event_type, instrument_id, event_time_ns, values) -> None:
+        instrument_text = str(instrument_id)
+        event_key = (event_type, instrument_text, int(event_time_ns))
+        expected = self.config.expected_by_key.get(event_key)
+        if expected is None:
+            self._unexpected += 1
+            return
+        self._observed.append(
+            {
+                "dependency_id": expected.dependency_id,
+                "event_id": expected.event_id,
+                "instrument_id": instrument_text,
+                "event_type": event_type,
+                "event_time_ns": int(event_time_ns),
+                "sequence": expected.sequence,
+                "values": values,
+            }
+        )
+
+
+def _forward_tape_event_wire(record) -> dict[str, Any]:
+    return {
+        "dependency_id": record.dependency_id,
+        "event_id": record.event_id,
+        "instrument_id": record.instrument_id,
+        "event_type": record.event_type,
+        "event_time_ns": record.event_time_ns,
+        "sequence": record.sequence,
+        "values": dict(record.values),
+    }
+
+
+def _run_forward_event_tape_parity(instrument: Any) -> dict[str, Any]:
+    """Send backend-materialized quote, trade, and bar events through Nautilus."""
+
+    instance_id = "rc5-forward-parity-instance"
+    instrument_id = str(instrument.id)
+    bar_type = BarType(
+        instrument.id,
+        BarSpecification(1, BarAggregation.MINUTE, PriceType.LAST),
+    )
+    start = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
+    market_inputs = (
+        (
+            "quote-feed",
+            "quote",
+            {"bid": "1.10000", "ask": "1.10020", "bid_size": "100000", "ask_size": "100000"},
+        ),
+        ("trade-feed", "trade", {"price": "1.10010", "size": "1000", "aggressor_side": "BUY"}),
+        (
+            "minute-bars",
+            "ohlcv",
+            {
+                "open": "1.10000",
+                "high": "1.10100",
+                "low": "1.09900",
+                "close": "1.10050",
+                "volume": "2500",
+            },
+        ),
+    )
+    canonical_events = []
+    market_events = []
+    bindings = []
+    event_types: dict[str, str] = {}
+    for sequence, (dependency_id, event_type, values) in enumerate(market_inputs):
+        event_id = f"forward-event-{sequence}"
+        event_time = start + timedelta(seconds=sequence + 1)
+        canonical = CanonicalForwardEvent(
+            event_id,
+            sequence,
+            event_time,
+            event_time + timedelta(seconds=1),
+            content_digest({"source": event_id}),
+        )
+        market = MarketEvent(
+            dependency_id,
+            event_id,
+            instrument_id,
+            event_time,
+            sequence,
+            values,
+        )
+        canonical_events.append(canonical)
+        market_events.append(market)
+        event_types[dependency_id] = event_type
+        bindings.append(
+            NautilusForwardDeliveryBinding(
+                instance_id,
+                content_digest(canonical),
+                f"{1_704_221_400_000 + sequence}-0",
+                content_digest({"redis-entry": sequence}),
+                content_digest({"dispatch": sequence}),
+                content_digest({"request": sequence}),
+                content_digest({"checkpoint": sequence}),
+                content_digest("forward-warmup-receipt"),
+                "enqueue",
+            )
+        )
+    tape = materialize_nautilus_forward_tape(
+        instance_id,
+        tuple(canonical_events),
+        tuple(market_events),
+        event_type_by_dependency=event_types,
+        delivery_bindings=tuple(bindings),
+    )
+    expected_by_key = {
+        (record.event_type, record.instrument_id, record.event_time_ns): record
+        for record in (envelope.record for envelope in tape.envelopes)
+    }
+    instrument_definition = {
+        "instrument_id": instrument_id,
+        "price_precision": instrument.price_precision,
+        "size_precision": instrument.size_precision,
+        "bar_type": str(bar_type),
+    }
+    native_events = [
+        materialize_native_event(
+            _forward_tape_event_wire(envelope.record),
+            instrument_definition,
+        )
+        for envelope in tape.envelopes
+    ]
+    engine = BacktestEngine(
+        BacktestEngineConfig(logging=LoggerConfig(bypass_logging=True), bypass_logging=True)
+    )
+    try:
+        usd = Currency.from_str("USD")
+        engine.add_venue(
+            Venue("SIM"),
+            OmsType.NETTING,
+            AccountType.CASH,
+            [Money(100000, usd)],
+            fill_model=OneTickSlippageFillModel(),
+            fee_model=FixedFeeModel(Money(2, usd)),
+        )
+        engine.add_instrument(instrument)
+        strategy = _ForwardTapeParityStrategy(
+            _ForwardTapeParityConfig(instrument.id, bar_type, expected_by_key)
+        )
+        engine.add_strategy(strategy)
+        engine.add_data(native_events, sort=True)
+        engine.run()
+        receipt = verify_nautilus_forward_event_tape_parity(tape, tuple(strategy._observed))
+        return {
+            "authoritative": False,
+            "event_count": len(tape.envelopes),
+            "event_types": sorted(event_types.values()),
+            "expected_wire_digest": receipt.expected_wire_digest,
+            "forward_tape_fingerprint": tape.fingerprint,
+            "instance_id": instance_id,
+            "mismatches": list(receipt.mismatches),
+            "observed_event_count": receipt.observed_event_count,
+            "observed_wire_digest": receipt.observed_wire_digest,
+            "passed": receipt.passed and strategy._unexpected == 0,
+            "receipt_fingerprint": receipt.fingerprint,
+            "unexpected_callback_count": strategy._unexpected,
+        }
+    finally:
+        engine.dispose()
+
+
 def run_fixture_suite() -> dict[str, Any]:
     """Run real deterministic engine paths and return JSON-safe evidence."""
 
@@ -236,6 +470,7 @@ def run_fixture_suite() -> dict[str, Any]:
     signed_fee_result = run_native_signed_fee_reconciliation_probe()
     rebalance_schedule_result = run_rebalance_schedule_probe()
     forward_streaming_result = run_forward_streaming_fixture()
+    forward_event_tape_parity = _run_forward_event_tape_parity(single[0])
     native_order_fill_cost = {
         **first,
         "raw_order_risk_probe": raw_order_result,
@@ -253,7 +488,7 @@ def run_fixture_suite() -> dict[str, Any]:
             "second": second,
             "equal": first == second,
         },
-        "forward_event_tape_parity": "deferred_authoritative_fixture",
+        "forward_event_tape_parity": forward_event_tape_parity,
         "forward_streaming_session": forward_streaming_result,
         "authoritative": False,
     }

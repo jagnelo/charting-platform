@@ -137,12 +137,12 @@ class ConformanceExecutionResolution:
 
 @dataclass(frozen=True, slots=True)
 class NautilusRcConformanceResolution:
-    """Typed partial conformance evidence emitted by the exact RC image.
+    """Typed conformance evidence emitted by the exact release-candidate image.
 
-    A release-candidate fixture deliberately omits forward event-tape parity.
-    This resolution keeps that omission explicit while producing the ordinary
-    engine evidence/report pair consumed by the non-authoritative backtest
-    execution gate.  It can never represent authoritative conformance.
+    The receipt may represent either the four-check local-backtest scope or a
+    complete five-check scope after native forward event-tape parity passes.
+    The raw image receipt itself remains non-authoritative; its bound report
+    can qualify the execution scopes allowed for the exact release channel.
     """
 
     runtime: NautilusRcCompatibilityRuntime
@@ -179,8 +179,8 @@ class NautilusRcConformanceResolution:
             raise ValueError("RC conformance report must reference the evidence")
         if self.report.missing_checks != self.receipt.deferred_checks:
             raise ValueError("RC conformance report checks do not match the fixture receipt")
-        if self.report.authoritative or self.receipt.authoritative:
-            raise ValueError("RC conformance resolution cannot be authoritative")
+        if self.receipt.authoritative:
+            raise ValueError("raw RC fixture receipts cannot carry execution authority")
 
     @property
     def fingerprint(self) -> str:
@@ -241,10 +241,10 @@ def resolve_nautilus_rc_conformance(
 ) -> NautilusRcConformanceResolution:
     """Bind a parsed RC image receipt to the engine execution gate.
 
-    The returned report intentionally fails the complete conformance decision
-    because forward parity is deferred. Its four passed simulator checks can
-    authorize exact-pinned local backtests, but a prerelease cannot authorize
-    forward-shadow execution or connect to a broker/control real capital.
+    Four passed simulator checks can qualify exact-pinned local backtests. A
+    complete five-check receipt additionally passes conformance for
+    broker-free forward shadow. Release-candidate qualification never
+    authorizes broker connectivity or control of real capital.
     """
 
     if not isinstance(runtime, NautilusRcCompatibilityRuntime):

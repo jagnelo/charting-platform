@@ -16,6 +16,7 @@ from app.strategy_lab_v2.conformance import (
     EngineReleaseChannel,
     evaluate_engine_conformance,
 )
+from app.strategy_lab_v2.nautilus_event_adapter import NautilusForwardEventParityReceipt
 from app.strategy_lab_v2.nautilus_runtime import (
     NautilusRcCompatibilityRuntime,
     NautilusRcFixtureReceipt,
@@ -76,6 +77,32 @@ def _forward_streaming_session() -> dict[str, Any]:
         "strategy_submitted_instrument_count": 1,
     }
     return {"equal": True, "first": run, "second": dict(run)}
+
+
+def _forward_event_tape_parity() -> dict[str, Any]:
+    receipt = NautilusForwardEventParityReceipt(
+        instance_id="fixture-forward-instance",
+        forward_tape_fingerprint=content_digest("fixture-forward-tape"),
+        expected_event_count=3,
+        observed_event_count=3,
+        expected_wire_digest=content_digest("fixture-forward-wire"),
+        observed_wire_digest=content_digest("fixture-forward-wire"),
+        passed=True,
+    )
+    return {
+        "authoritative": False,
+        "event_count": 3,
+        "event_types": ["ohlcv", "quote", "trade"],
+        "expected_wire_digest": receipt.expected_wire_digest,
+        "forward_tape_fingerprint": receipt.forward_tape_fingerprint,
+        "instance_id": receipt.instance_id,
+        "mismatches": [],
+        "observed_event_count": 3,
+        "observed_wire_digest": receipt.observed_wire_digest,
+        "passed": True,
+        "receipt_fingerprint": receipt.fingerprint,
+        "unexpected_callback_count": 0,
+    }
 
 
 def _fixture_payload() -> dict[str, Any]:
@@ -146,7 +173,7 @@ def _fixture_payload() -> dict[str, Any]:
         },
         "deterministic_replay": {"equal": True},
         "engine_lifecycle": "passed",
-        "forward_event_tape_parity": "deferred_authoritative_fixture",
+        "forward_event_tape_parity": _forward_event_tape_parity(),
         "forward_streaming_session": _forward_streaming_session(),
         "multi_instrument_accounting": _native_fill_report(2),
         "native_order_fill_cost": native_order_run,
@@ -313,7 +340,7 @@ def test_probe_evidence_rejects_schema_version_and_runtime_mismatches() -> None:
         )
 
 
-def test_real_rc_fixture_receipt_preserves_deferred_forward_parity() -> None:
+def test_real_rc_fixture_receipt_accepts_exact_native_forward_parity() -> None:
     runtime = _runtime()
     payload = _fixture_payload()
 
@@ -324,6 +351,18 @@ def test_real_rc_fixture_receipt_preserves_deferred_forward_parity() -> None:
     assert receipt.fixture_digest == content_digest(payload)
     assert receipt.compatible
     assert receipt.authoritative is False
+    assert receipt.passed_checks == frozenset(ConformanceCheck)
+    assert not receipt.deferred_checks
+
+
+def test_legacy_rc_fixture_receipt_keeps_forward_parity_explicitly_deferred() -> None:
+    runtime = _runtime()
+    payload = _fixture_payload()
+    payload["forward_event_tape_parity"] = "deferred_authoritative_fixture"
+
+    receipt = NautilusRcFixtureReceipt.from_mapping(payload, runtime)
+
+    assert ConformanceCheck.FORWARD_EVENT_TAPE_PARITY not in receipt.passed_checks
     assert receipt.deferred_checks == frozenset({ConformanceCheck.FORWARD_EVENT_TAPE_PARITY})
 
 
@@ -455,4 +494,11 @@ def test_real_rc_fixture_receipt_rejects_false_authority_or_parity_claim() -> No
     payload["forward_event_tape_parity"] = "passed"
 
     with pytest.raises(ValueError, match="cannot be authoritative"):
+        NautilusRcFixtureReceipt.from_mapping(payload, runtime)
+
+    payload = _fixture_payload()
+    parity = payload["forward_event_tape_parity"]
+    assert isinstance(parity, dict)
+    parity["observed_wire_digest"] = content_digest("different-native-wire")
+    with pytest.raises(ValueError, match="did not exactly match"):
         NautilusRcFixtureReceipt.from_mapping(payload, runtime)

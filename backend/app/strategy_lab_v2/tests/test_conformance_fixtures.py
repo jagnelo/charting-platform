@@ -41,6 +41,7 @@ from app.strategy_lab_v2.local_conformance_source import (
 from app.strategy_lab_v2.nautilus_event_adapter import (
     NautilusEventTape,
     NautilusForwardDeliveryBinding,
+    NautilusForwardEventParityReceipt,
     materialize_nautilus_event,
     materialize_nautilus_forward_tape,
     verify_nautilus_event_tape_parity,
@@ -640,6 +641,34 @@ def _rc_receipt(runtime: NautilusRcCompatibilityRuntime) -> NautilusRcFixtureRec
     return NautilusRcFixtureReceipt.from_mapping(_rc_receipt_payload(), runtime)
 
 
+def _rc_complete_receipt(runtime: NautilusRcCompatibilityRuntime) -> NautilusRcFixtureReceipt:
+    payload = _rc_receipt_payload()
+    parity = NautilusForwardEventParityReceipt(
+        instance_id="fixture-forward-instance",
+        forward_tape_fingerprint=content_digest("fixture-forward-tape"),
+        expected_event_count=3,
+        observed_event_count=3,
+        expected_wire_digest=content_digest("fixture-forward-wire"),
+        observed_wire_digest=content_digest("fixture-forward-wire"),
+        passed=True,
+    )
+    payload["forward_event_tape_parity"] = {
+        "authoritative": False,
+        "event_count": 3,
+        "event_types": ["ohlcv", "quote", "trade"],
+        "expected_wire_digest": parity.expected_wire_digest,
+        "forward_tape_fingerprint": parity.forward_tape_fingerprint,
+        "instance_id": parity.instance_id,
+        "mismatches": [],
+        "observed_event_count": 3,
+        "observed_wire_digest": parity.observed_wire_digest,
+        "passed": True,
+        "receipt_fingerprint": parity.fingerprint,
+        "unexpected_callback_count": 0,
+    }
+    return NautilusRcFixtureReceipt.from_mapping(payload, runtime)
+
+
 def _rc_evidence_artifact(runtime: NautilusRcCompatibilityRuntime) -> dict[str, Any]:
     return {
         "artifact_schema": LOCAL_NAUTILUS_RC_EVIDENCE_SCHEMA,
@@ -872,6 +901,26 @@ def test_rc_conformance_resolver_emits_non_authoritative_partial_evidence() -> N
     assert not result.report.compatible
     assert not result.report.authoritative
     assert result.fingerprint.startswith("sha256:")
+
+
+def test_rc_conformance_resolver_accepts_complete_native_forward_parity() -> None:
+    runtime = _rc_runtime()
+    receipt = _rc_complete_receipt(runtime)
+
+    result = resolve_nautilus_rc_conformance(
+        runtime,
+        _rc_probe(runtime),
+        receipt,
+        build_digest=content_digest("nautilus-v2-rc5-build"),
+        tested_at=NOW,
+    )
+
+    assert isinstance(result, NautilusRcConformanceResolution)
+    assert result.report.compatible
+    assert result.report.authoritative
+    assert not result.report.missing_checks
+    assert not receipt.deferred_checks
+    assert not receipt.authoritative
 
 
 def test_rc_conformance_can_bind_authoritative_local_backtests() -> None:

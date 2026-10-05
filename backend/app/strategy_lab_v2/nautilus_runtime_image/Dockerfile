@@ -39,6 +39,8 @@ COPY app/strategy_lab_v2/rebalance.py app/strategy_lab_v2/rebalance.py
 COPY app/strategy_lab_v2/sdk.py app/strategy_lab_v2/sdk.py
 COPY app/strategy_lab_v2/strategy_validation.py app/strategy_lab_v2/strategy_validation.py
 COPY app/strategy_lab_v2/conformance.py app/strategy_lab_v2/conformance.py
+COPY app/strategy_lab_v2/lifecycle.py app/strategy_lab_v2/lifecycle.py
+COPY app/strategy_lab_v2/nautilus_event_adapter.py app/strategy_lab_v2/nautilus_event_adapter.py
 COPY app/strategy_lab_v2/nautilus_runtime_data.py app/strategy_lab_v2/nautilus_runtime_data.py
 COPY app/strategy_lab_v2/nautilus_equity_trace.py app/strategy_lab_v2/nautilus_equity_trace.py
 COPY app/strategy_lab_v2/nautilus_session_equity.py app/strategy_lab_v2/nautilus_session_equity.py

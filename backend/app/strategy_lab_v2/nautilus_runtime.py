@@ -25,6 +25,7 @@ from app.strategy_lab_v2.conformance import (
     EngineReleaseChannel,
     NautilusReleasePin,
 )
+from app.strategy_lab_v2.nautilus_event_adapter import NautilusForwardEventParityReceipt
 
 
 def _nonempty(value: str, field_name: str) -> None:
@@ -624,6 +625,64 @@ class NautilusRuntimeProbeEvidence:
         return content_digest(self)
 
 
+def _require_forward_event_tape_parity(value: Any) -> bool:
+    """Validate exact-image callback parity, retaining legacy partial receipts."""
+
+    if value == "deferred_authoritative_fixture":
+        return False
+    fields = {
+        "authoritative",
+        "event_count",
+        "event_types",
+        "expected_wire_digest",
+        "forward_tape_fingerprint",
+        "instance_id",
+        "mismatches",
+        "observed_event_count",
+        "observed_wire_digest",
+        "passed",
+        "receipt_fingerprint",
+        "unexpected_callback_count",
+    }
+    if not isinstance(value, Mapping) or set(value) != fields:
+        raise ValueError("forward event-tape parity fields are invalid")
+    for name in (
+        "expected_wire_digest",
+        "forward_tape_fingerprint",
+        "observed_wire_digest",
+        "receipt_fingerprint",
+    ):
+        require_sha256_digest(value[name], field_name=f"forward parity {name}")
+    if value["event_types"] != ["ohlcv", "quote", "trade"]:
+        raise ValueError("forward event-tape parity must exercise every native event type")
+    if (
+        value["authoritative"] is not False
+        or value["passed"] is not True
+        or value["event_count"] != 3
+        or value["observed_event_count"] != 3
+        or value["unexpected_callback_count"] != 0
+        or value["expected_wire_digest"] != value["observed_wire_digest"]
+        or value["mismatches"] != []
+    ):
+        raise ValueError("forward event-tape parity did not exactly match Nautilus callbacks")
+    try:
+        receipt = NautilusForwardEventParityReceipt(
+            instance_id=value["instance_id"],
+            forward_tape_fingerprint=value["forward_tape_fingerprint"],
+            expected_event_count=value["event_count"],
+            observed_event_count=value["observed_event_count"],
+            expected_wire_digest=value["expected_wire_digest"],
+            observed_wire_digest=value["observed_wire_digest"],
+            mismatches=tuple(value["mismatches"]),
+            passed=value["passed"],
+        )
+    except (TypeError, ValueError) as error:
+        raise ValueError("forward event-tape parity receipt is invalid") from error
+    if receipt.fingerprint != value["receipt_fingerprint"]:
+        raise ValueError("forward event-tape parity receipt fingerprint is invalid")
+    return True
+
+
 @dataclass(frozen=True, slots=True)
 class NautilusRcFixtureReceipt:
     """Partial real-engine fixture receipt for the non-authoritative RC track."""
@@ -693,23 +752,29 @@ class NautilusRcFixtureReceipt:
         _require_native_signed_fee_reconciliation(payload["native_signed_fee_reconciliation"])
         _require_forward_streaming_session(payload["forward_streaming_session"])
         _require_rebalance_schedule_probe(payload["portfolio_rebalance_schedule"])
+        forward_parity_passed = _require_forward_event_tape_parity(
+            payload["forward_event_tape_parity"]
+        )
         if multi["instrument_count"] < 2 or native["instrument_count"] != 1:
             raise ValueError("single- and multi-instrument fixtures must be distinct")
-        if payload["forward_event_tape_parity"] != "deferred_authoritative_fixture":
-            raise ValueError("forward event-tape parity must remain explicitly deferred")
+        passed_checks = {
+            ConformanceCheck.MULTI_INSTRUMENT_ACCOUNTING,
+            ConformanceCheck.NATIVE_ORDER_FILL_COST,
+            ConformanceCheck.DETERMINISTIC_REPLAY,
+            ConformanceCheck.ENGINE_LIFECYCLE,
+        }
+        if forward_parity_passed:
+            passed_checks.add(ConformanceCheck.FORWARD_EVENT_TAPE_PARITY)
         return cls(
             runtime_fingerprint=runtime.fingerprint,
             runtime_image_digest=runtime.runtime_image_digest,
             fixture_digest=content_digest(payload),
-            passed_checks=frozenset(
-                {
-                    ConformanceCheck.MULTI_INSTRUMENT_ACCOUNTING,
-                    ConformanceCheck.NATIVE_ORDER_FILL_COST,
-                    ConformanceCheck.DETERMINISTIC_REPLAY,
-                    ConformanceCheck.ENGINE_LIFECYCLE,
-                }
+            passed_checks=frozenset(passed_checks),
+            deferred_checks=(
+                frozenset()
+                if forward_parity_passed
+                else frozenset({ConformanceCheck.FORWARD_EVENT_TAPE_PARITY})
             ),
-            deferred_checks=frozenset({ConformanceCheck.FORWARD_EVENT_TAPE_PARITY}),
         )
 
     @property
