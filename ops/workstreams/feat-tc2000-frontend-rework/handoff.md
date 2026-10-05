@@ -1,5 +1,19 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Evidence checkpoint pushed
+
+The exact-tip browser-results workstream checkpoint was committed as
+`5fc2aa149d82bc673ade5f7869ce6ba516f6281e`
+(`docs(tc2000): record exact-tip browser results`) and pushed successfully to
+`origin/feat/tc2000-frontend-rework`. After push, local `HEAD` and
+`origin/feat/tc2000-frontend-rework` both resolved to that SHA; the worktree was
+clean. A separate read-only `git ls-remote` immediately afterward failed with
+temporary GitHub DNS resolution, so dependency refs remain those last refreshed
+in the preceding browser-results checkpoint. No other branch or worktree was
+changed. Continue bounded TC-owned frontend/Study/Strategy work; preserve the
+ten visual gaps and defer provider/ETF consumption until both upstream tips
+reach staging.
+
 ## 2026-10-05 — Exact-tip full browser reconciliation
 
 At pushed workstream tip `4b88a90600420a37a3e62cc01d0c065e389affcd`
