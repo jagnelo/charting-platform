@@ -236,8 +236,16 @@ class NautilusBacktestForwardSession:
         return checkpoint_fingerprint
 
     def _replace_state_with_replay(self, offset: int) -> None:
-        """Build a fresh engine and replay only the already-settled prefix."""
+        """Replace the disposed engine and replay only the settled prefix.
 
+        Keep only one Nautilus BacktestEngine alive while restoring: the RC5
+        runtime fixture showed that a replacement engine can miss its staged
+        callback while the previous engine is still active.
+        """
+
+        previous = self._state
+        self._dispose_state(previous)
+        self._closed = True
         state = self._rebuild_state()
         try:
             for settled in self._history[:offset]:
@@ -249,8 +257,8 @@ class NautilusBacktestForwardSession:
         except BaseException:
             self._dispose_state(state)
             raise
-        previous, self._state = self._state, state
-        self._dispose_state(previous)
+        self._state = state
+        self._closed = False
 
     def close(self) -> None:
         if self._closed:
@@ -267,7 +275,7 @@ class NautilusBacktestForwardSession:
         expected_contexts = self._prepare_live_contexts(state, delivery, preparation)
         envelope = delivery.tape.envelopes[0]
         event_time_ns = envelope.record.event_time_ns
-        native_init_time_ns = max(event_time_ns, state.native_init_time_ns + 1)
+        native_init_time_ns = max(event_time_ns + 1, state.native_init_time_ns + 1)
         state.bridge.stage_forward_event(
             _event_record(envelope.record),
             {component_id: item.context for component_id, item in expected_contexts.items()},
@@ -527,7 +535,7 @@ def build_native_forward_session_factory(
                         "values": dict(prefix_event.market_event.values),
                     }
                     prior_native_init_time_ns = max(
-                        event_time_ns,
+                        event_time_ns + 1,
                         prior_native_init_time_ns + 1,
                     )
                     bridge.stage_forward_event(

@@ -11,9 +11,12 @@ forward-event parity.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+from contextlib import nullcontext
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from io import BytesIO
 from typing import Any
 
 from nautilus_trader.backtest import (  # type: ignore[attr-defined]
@@ -50,11 +53,30 @@ from nautilus_trader.testkit.providers import (
 from nautilus_trader.trading import Strategy, StrategyConfig  # type: ignore[attr-defined]
 
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.forward_context import ForwardStrategyContextWindow
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.nautilus_event_adapter import (
+    NautilusEventRecord,
     NautilusForwardDeliveryBinding,
     materialize_nautilus_forward_tape,
     verify_nautilus_forward_event_tape_parity,
+)
+from app.strategy_lab_v2.nautilus_forward_bootstrap import (
+    NautilusForwardBootstrapComponent,
+    NautilusForwardRuntimeBootstrap,
+)
+from app.strategy_lab_v2.nautilus_forward_input import NautilusForwardDeliveryInput
+from app.strategy_lab_v2.nautilus_forward_native_runtime import (
+    build_native_forward_session_factory,
+)
+from app.strategy_lab_v2.nautilus_native_event_stream import (
+    serialize_nautilus_native_event_stream,
+)
+from app.strategy_lab_v2.nautilus_runtime_adapter_probe import (
+    _invocation_batch as _forward_invocation_batch,
+)
+from app.strategy_lab_v2.nautilus_runtime_adapter_probe import (
+    _payload as _forward_payload,
 )
 from app.strategy_lab_v2.nautilus_runtime_adapter_probe import (
     run_native_component_cycle_pnl_probe,
@@ -64,7 +86,20 @@ from app.strategy_lab_v2.nautilus_runtime_adapter_probe import (
     run_target_allocation_probe,
 )
 from app.strategy_lab_v2.nautilus_runtime_data import materialize_native_event
+from app.strategy_lab_v2.nautilus_runtime_protocol import (
+    NAUTILUS_COMPONENT_CONTEXT_STREAM_MEDIA_TYPE,
+    NAUTILUS_COMPONENT_CONTEXT_STREAM_SCHEMA,
+    NAUTILUS_NATIVE_EVENT_STREAM_MEDIA_TYPE,
+    NAUTILUS_NATIVE_EVENT_STREAM_SCHEMA,
+)
 from app.strategy_lab_v2.sdk import MarketEvent
+from strategy_runtime import (
+    InvocationContextStreamSource,
+    deserialize_invocation_batch,
+    serialize_component_invocation_context_stream,
+)
+
+_FORWARD_EVENT_TIME = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
 
 
 class _FixtureConfig(StrategyConfig):
@@ -234,6 +269,225 @@ def run_forward_streaming_fixture() -> dict[str, Any]:
     first = _run_forward_streaming(instrument)
     second = _run_forward_streaming(instrument)
     return {"first": first, "second": second, "equal": first == second}
+
+
+def run_native_forward_session_fixture() -> dict[str, Any]:
+    """Exercise the concrete session against RC5 with warm-up and live input."""
+
+    instance_id = "forward-native-session-fixture"
+    checkpoint = content_digest("forward-native-session-checkpoint")
+    engine_input = _forward_payload()
+    event_tape = engine_input["event_tape"]
+    if not isinstance(event_tape, dict):
+        raise RuntimeError("forward session fixture event tape is invalid")
+    warmup_events = event_tape.get("events")
+    if not isinstance(warmup_events, list) or len(warmup_events) != 2:
+        raise RuntimeError("forward session fixture requires two warm-up events")
+    tape_fingerprint = event_tape["source_tape_fingerprint"]
+    adapter_version = event_tape["adapter_version"]
+    event_records = tuple(
+        NautilusEventRecord(
+            dependency_id=event["dependency_id"],
+            event_id=event["event_id"],
+            instrument_id=event["instrument_id"],
+            event_type=event["event_type"],
+            event_time_ns=event["event_time_ns"],
+            sequence=event["sequence"],
+            values=event["values"],
+        )
+        for event in warmup_events
+    )
+
+    serialized_batch = _forward_invocation_batch()
+    source, manifest, contexts, entrypoint, max_intents = deserialize_invocation_batch(
+        serialized_batch
+    )
+    context_stream = BytesIO()
+    component_counts = serialize_component_invocation_context_stream(
+        context_stream,
+        components=(
+            InvocationContextStreamSource(
+                "component-1",
+                source,
+                manifest,
+                contexts,
+                entrypoint,
+                max_intents,
+            ),
+        ),
+    )
+    context_bytes = context_stream.getvalue()
+    context_digest = f"sha256:{hashlib.sha256(context_bytes).hexdigest()}"
+    context_reference = {
+        "artifact": {
+            "content_digest": context_digest,
+            "byte_length": len(context_bytes),
+            "media_type": NAUTILUS_COMPONENT_CONTEXT_STREAM_MEDIA_TYPE,
+            "schema_version": NAUTILUS_COMPONENT_CONTEXT_STREAM_SCHEMA,
+            "storage_key": context_digest,
+            "retention_class": "pinned_input",
+        },
+        "context_count": sum(component_counts.values()),
+        "component_counts": [
+            {"component_id": component_id, "context_count": count}
+            for component_id, count in sorted(component_counts.items())
+        ],
+    }
+    native_stream = BytesIO()
+    native_summary = serialize_nautilus_native_event_stream(
+        native_stream,
+        event_records,
+        source_tape_fingerprint=tape_fingerprint,
+        adapter_version=adapter_version,
+        expected_event_count=len(event_records),
+    )
+    native_bytes = native_stream.getvalue()
+    native_reference = {
+        "artifact": {
+            "content_digest": native_summary.content_digest,
+            "byte_length": native_summary.byte_length,
+            "media_type": NAUTILUS_NATIVE_EVENT_STREAM_MEDIA_TYPE,
+            "schema_version": NAUTILUS_NATIVE_EVENT_STREAM_SCHEMA,
+            "storage_key": native_summary.content_digest,
+            "retention_class": "pinned_input",
+        },
+        "source_tape_fingerprint": tape_fingerprint,
+        "adapter_version": adapter_version,
+        "event_count": native_summary.event_count,
+    }
+    engine_input["event_tape"] = {
+        "source_tape_fingerprint": tape_fingerprint,
+        "adapter_version": adapter_version,
+        "event_count": native_summary.event_count,
+    }
+    engine_fingerprint = content_digest(engine_input)
+    bundle = {
+        "engine_input": engine_input,
+        "strategy_context_stream": context_reference,
+        "native_event_stream": native_reference,
+    }
+    parameters = engine_input["parameters"]
+    component = NautilusForwardBootstrapComponent(
+        component_id="component-1",
+        execution_binding_fingerprint=content_digest("execution-binding"),
+        resolved_component_fingerprint=content_digest("resolved-component"),
+        strategy_fingerprint=manifest.strategy.fingerprint,
+        package_fingerprint=content_digest("package"),
+        package_archive_digest=content_digest("package-archive"),
+        dependency_lock_digest=content_digest("dependency-lock"),
+        manifest_fingerprint=manifest.fingerprint,
+        source_digest=content_digest(source),
+        parameters_digest=content_digest(parameters),
+        random_seed=engine_input["random_seed"],
+    )
+    bootstrap = NautilusForwardRuntimeBootstrap(
+        instance_id=instance_id,
+        execution_plan_fingerprint=content_digest("execution-plan"),
+        portfolio_fingerprint=engine_input["portfolio"]["fingerprint"],
+        snapshot_fingerprint=engine_input["data_snapshot_fingerprint"],
+        warmup_receipt_fingerprint=content_digest("warmup-receipt"),
+        warmup_result_fingerprint=content_digest("warmup-result"),
+        warmup_tape_fingerprint=tape_fingerprint,
+        warmup_event_count=native_summary.event_count,
+        warmup_source_artifact_digests=(),
+        warmup_cursor_event_id=event_records[-1].event_id,
+        warmup_cursor_sequence=event_records[-1].sequence,
+        warmup_cursor_event_fingerprint=content_digest("warmup-cursor-event"),
+        processed_checkpoint_fingerprint=checkpoint,
+        processed_prefix_fingerprint=content_digest("empty-processed-prefix"),
+        before_event_fingerprint=content_digest("before-live-event"),
+        engine_input_fingerprint=engine_fingerprint,
+        runtime_input_bundle_digest=content_digest(
+            {
+                "engine": engine_fingerprint,
+                "context": context_digest,
+                "native": native_summary.content_digest,
+            }
+        ),
+        native_event_stream_digest=native_summary.content_digest,
+        native_event_stream_adapter_version=adapter_version,
+        components=(component,),
+        processed_events=(),
+    )
+    session_factory = build_native_forward_session_factory(
+        bootstrap,
+        bundle,
+        open_context_stream=lambda: nullcontext(BytesIO(context_bytes)),
+        open_native_event_stream=lambda: nullcontext(BytesIO(native_bytes)),
+    )
+
+    event_time = _FORWARD_EVENT_TIME + timedelta(seconds=1)
+    source_digest = content_digest("live-source-event")
+    canonical = CanonicalForwardEvent(
+        "adapter-event-3",
+        3,
+        event_time,
+        event_time + timedelta(seconds=1),
+        source_digest,
+    )
+    market_event = MarketEvent(
+        "prices",
+        canonical.event_id,
+        "EURUSD.SIM",
+        canonical.event_time,
+        canonical.sequence,
+        {
+            "bid": Decimal("1.1002"),
+            "ask": Decimal("1.1004"),
+            "bid_size": Decimal("100000"),
+            "ask_size": Decimal("100000"),
+        },
+    )
+    binding = NautilusForwardDeliveryBinding(
+        instance_id=instance_id,
+        event_fingerprint=content_digest(canonical),
+        redis_stream_id="1704205801000-0",
+        redis_entry_fingerprint=content_digest("live-redis-entry"),
+        dispatch_record_fingerprint=content_digest("live-dispatch"),
+        request_fingerprint=content_digest("live-request"),
+        pre_event_checkpoint_fingerprint=checkpoint,
+        warmup_receipt_fingerprint=bootstrap.warmup_receipt_fingerprint,
+        admission_decision="enqueue",
+    )
+    delivery_tape = materialize_nautilus_forward_tape(
+        instance_id,
+        (canonical,),
+        (market_event,),
+        event_type_by_dependency={"prices": "quote"},
+        delivery_bindings=(binding,),
+    )
+    delivery = NautilusForwardDeliveryInput(binding, delivery_tape, market_event, source_digest)
+    host_window = ForwardStrategyContextWindow(
+        instance_id,
+        manifest,
+        parameters=parameters,
+        random_seed=component.random_seed,
+    )
+    _, _, host_contexts, _, _ = deserialize_invocation_batch(serialized_batch)
+    host_window.seed_from_authenticated_contexts(
+        host_contexts,
+        context_stream_fingerprint=context_digest,
+    )
+    preparation = host_window.prepare_delivery(delivery)
+    session = session_factory(instance_id)
+    try:
+        first = session.execute(delivery, preparation)
+        duplicate = session.execute(delivery, preparation)
+        if first != duplicate or first.account_event_binding.canonical_event != canonical:
+            raise RuntimeError("forward session did not preserve native event idempotency")
+        session.restore(checkpoint_fingerprint=checkpoint)
+        replayed = session.execute(delivery, preparation)
+        if replayed.fingerprint != first.fingerprint:
+            raise RuntimeError("forward session restore changed native account effects")
+        return {
+            "passed": True,
+            "authoritative": False,
+            "account_event_fingerprint": first.account_event_binding.fingerprint,
+            "runtime_session_fingerprint": first.runtime_session_fingerprint,
+            "result_fingerprint": first.fingerprint,
+        }
+    finally:
+        session.close()
 
 
 class _ForwardTapeParityConfig(StrategyConfig):
@@ -470,6 +724,7 @@ def run_fixture_suite() -> dict[str, Any]:
     signed_fee_result = run_native_signed_fee_reconciliation_probe()
     rebalance_schedule_result = run_rebalance_schedule_probe()
     forward_streaming_result = run_forward_streaming_fixture()
+    forward_native_session_result = run_native_forward_session_fixture()
     forward_event_tape_parity = _run_forward_event_tape_parity(single[0])
     native_order_fill_cost = {
         **first,
@@ -490,6 +745,7 @@ def run_fixture_suite() -> dict[str, Any]:
         },
         "forward_event_tape_parity": forward_event_tape_parity,
         "forward_streaming_session": forward_streaming_result,
+        "forward_native_session": forward_native_session_result,
         "authoritative": False,
     }
 
@@ -505,4 +761,9 @@ if __name__ == "__main__":  # pragma: no cover - image entrypoint
     raise SystemExit(main())
 
 
-__all__ = ["main", "run_fixture_suite", "run_forward_streaming_fixture"]
+__all__ = [
+    "main",
+    "run_fixture_suite",
+    "run_forward_streaming_fixture",
+    "run_native_forward_session_fixture",
+]

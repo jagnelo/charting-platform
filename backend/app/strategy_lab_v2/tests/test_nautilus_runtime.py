@@ -79,6 +79,16 @@ def _forward_streaming_session() -> dict[str, Any]:
     return {"equal": True, "first": run, "second": dict(run)}
 
 
+def _forward_native_session() -> dict[str, Any]:
+    return {
+        "account_event_fingerprint": content_digest("forward-account-event"),
+        "authoritative": False,
+        "passed": True,
+        "result_fingerprint": content_digest("forward-native-result"),
+        "runtime_session_fingerprint": content_digest("forward-native-session"),
+    }
+
+
 def _forward_event_tape_parity() -> dict[str, Any]:
     receipt = NautilusForwardEventParityReceipt(
         instance_id="fixture-forward-instance",
@@ -174,6 +184,7 @@ def _fixture_payload() -> dict[str, Any]:
         "deterministic_replay": {"equal": True},
         "engine_lifecycle": "passed",
         "forward_event_tape_parity": _forward_event_tape_parity(),
+        "forward_native_session": _forward_native_session(),
         "forward_streaming_session": _forward_streaming_session(),
         "multi_instrument_accounting": _native_fill_report(2),
         "native_order_fill_cost": native_order_run,
@@ -501,4 +512,17 @@ def test_real_rc_fixture_receipt_rejects_false_authority_or_parity_claim() -> No
     assert isinstance(parity, dict)
     parity["observed_wire_digest"] = content_digest("different-native-wire")
     with pytest.raises(ValueError, match="did not exactly match"):
+        NautilusRcFixtureReceipt.from_mapping(payload, runtime)
+
+
+def test_real_rc_fixture_receipt_requires_forward_session_replay_evidence() -> None:
+    runtime = _runtime()
+    payload = _fixture_payload()
+    del payload["forward_native_session"]
+    with pytest.raises(ValueError, match="exact receipt schema"):
+        NautilusRcFixtureReceipt.from_mapping(payload, runtime)
+
+    payload = _fixture_payload()
+    payload["forward_native_session"]["passed"] = False
+    with pytest.raises(ValueError, match="native forward session fixture did not pass"):
         NautilusRcFixtureReceipt.from_mapping(payload, runtime)

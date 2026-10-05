@@ -528,6 +528,13 @@ def _rc_receipt_payload() -> dict[str, Any]:
         "deterministic_replay": {"equal": True},
         "engine_lifecycle": "passed",
         "forward_event_tape_parity": "deferred_authoritative_fixture",
+        "forward_native_session": {
+            "account_event_fingerprint": content_digest("forward-account-event"),
+            "authoritative": False,
+            "passed": True,
+            "result_fingerprint": content_digest("forward-native-result"),
+            "runtime_session_fingerprint": content_digest("forward-native-session"),
+        },
         "forward_streaming_session": {
             "equal": True,
             "first": {

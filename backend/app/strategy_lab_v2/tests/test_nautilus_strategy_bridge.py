@@ -570,13 +570,23 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(
             contexts[0],
             event_time=live_event_time,
             event_sequence=live_sequence,
-            market_events={live_market_event.dependency_id: (live_market_event,)},
+            market_events={
+                live_market_event.dependency_id: (
+                    *contexts[0].market_events[live_market_event.dependency_id],
+                    live_market_event,
+                )
+            },
         ),
         "beta": replace(
             contexts[0],
             event_time=live_event_time,
             event_sequence=live_sequence,
-            market_events={live_market_event.dependency_id: (live_market_event,)},
+            market_events={
+                live_market_event.dependency_id: (
+                    *contexts[0].market_events[live_market_event.dependency_id],
+                    live_market_event,
+                )
+            },
         ),
     }
     bridge = build_native_strategy_bridge(
@@ -625,6 +635,41 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(
             instance_id="forward-bridge-test",
             canonical_event=canonical_live_event,
             native_init_time_ns=live_native_init_time_ns,
+        )
+    alpha_context = live_contexts["alpha"]
+    prior_events = alpha_context.market_events[live_market_event.dependency_id]
+    corrupted_prior = replace(
+        prior_events[0],
+        values={**prior_events[0].values, "bid": "9.9999"},
+    )
+    corrupted_contexts = {
+        **live_contexts,
+        "alpha": replace(
+            alpha_context,
+            market_events={live_market_event.dependency_id: (corrupted_prior, *prior_events[1:])},
+        ),
+    }
+    with pytest.raises(
+        NautilusRuntimeDataError,
+        match="differs from the authenticated event tape",
+    ):
+        bridge.stage_forward_event(
+            live_record,
+            corrupted_contexts,
+            instance_id="forward-bridge-test",
+            canonical_event=canonical_live_event,
+            native_init_time_ns=live_native_init_time_ns,
+        )
+    with pytest.raises(
+        NautilusRuntimeDataError,
+        match="initialization time must follow the event timestamp",
+    ):
+        bridge.stage_forward_event(
+            live_record,
+            live_contexts,
+            instance_id="forward-bridge-test",
+            canonical_event=canonical_live_event,
+            native_init_time_ns=live_event_time_ns,
         )
     bridge.stage_forward_event(
         live_record,

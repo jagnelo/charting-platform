@@ -683,6 +683,28 @@ def _require_forward_event_tape_parity(value: Any) -> bool:
     return True
 
 
+def _require_native_forward_session(value: Any) -> None:
+    """Require exact-image warm-up, staged-delivery, idempotency, and replay proof."""
+
+    fields = {
+        "account_event_fingerprint",
+        "authoritative",
+        "passed",
+        "result_fingerprint",
+        "runtime_session_fingerprint",
+    }
+    if not isinstance(value, Mapping) or set(value) != fields:
+        raise ValueError("native forward session fixture fields are invalid")
+    for name in (
+        "account_event_fingerprint",
+        "result_fingerprint",
+        "runtime_session_fingerprint",
+    ):
+        require_sha256_digest(value[name], field_name=f"native forward session {name}")
+    if value["authoritative"] is not False or value["passed"] is not True:
+        raise ValueError("native forward session fixture did not pass as a non-authoritative probe")
+
+
 @dataclass(frozen=True, slots=True)
 class NautilusRcFixtureReceipt:
     """Partial real-engine fixture receipt for the non-authoritative RC track."""
@@ -724,6 +746,7 @@ class NautilusRcFixtureReceipt:
             "deterministic_replay",
             "engine_lifecycle",
             "forward_event_tape_parity",
+            "forward_native_session",
             "forward_streaming_session",
             "multi_instrument_accounting",
             "native_component_pnl_attribution",
@@ -750,6 +773,7 @@ class NautilusRcFixtureReceipt:
         _require_raw_order_risk_probe(native.get("raw_order_risk_probe"))
         _require_native_component_pnl_probe(payload["native_component_pnl_attribution"])
         _require_native_signed_fee_reconciliation(payload["native_signed_fee_reconciliation"])
+        _require_native_forward_session(payload["forward_native_session"])
         _require_forward_streaming_session(payload["forward_streaming_session"])
         _require_rebalance_schedule_probe(payload["portfolio_rebalance_schedule"])
         forward_parity_passed = _require_forward_event_tape_parity(

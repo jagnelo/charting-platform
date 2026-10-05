@@ -572,6 +572,9 @@ def _iter_stream_component_context_trigger_groups(
     native_event_records: Iterable[Mapping[str, Any]],
     bindings: Mapping[str, Any],
     priorities: Mapping[str, int],
+    *,
+    prior_histories: Mapping[str, Mapping[str, Sequence[MarketEvent]]] | None = None,
+    history_observer: dict[str, dict[str, tuple[MarketEvent, ...]]] | None = None,
 ) -> Iterator[ComponentContextTriggerGroup]:
     """Validate per-component histories and merge them on one native event tape."""
 
@@ -597,12 +600,36 @@ def _iter_stream_component_context_trigger_groups(
         if len(dependencies) != len(raw_dependencies):
             raise NautilusRuntimeDataError("component strategy dependency ids are not unique")
         dependencies_by_component[component_id] = dependencies
-        histories[component_id] = {
-            dependency_id: deque(maxlen=dependency.lookback_periods + 1)
-            for dependency_id, dependency in dependencies.items()
-        }
+        component_prior = {} if prior_histories is None else prior_histories.get(component_id, {})
+        if prior_histories is not None and set(component_prior) != set(dependencies):
+            raise NautilusRuntimeDataError(
+                "component prior histories differ from authenticated dependencies"
+            )
+        histories[component_id] = {}
         observed_dependencies[component_id] = set()
         for dependency_id, dependency in dependencies.items():
+            prior = component_prior.get(dependency_id, ())
+            if len(prior) > dependency.lookback_periods + 1:
+                raise NautilusRuntimeDataError(
+                    "component prior history exceeds its authenticated lookback"
+                )
+            previous: tuple[int, int] | None = None
+            for event in prior:
+                if not isinstance(event, MarketEvent) or event.dependency_id != dependency_id:
+                    raise NautilusRuntimeDataError(
+                        "component prior history differs from authenticated dependencies"
+                    )
+                prior_event_time_ns = _datetime_microsecond_ns(event.event_time)
+                event_key = (prior_event_time_ns, event.sequence)
+                if previous is not None and event_key <= previous:
+                    raise NautilusRuntimeDataError(
+                        "component prior history is not strictly chronological"
+                    )
+                previous = event_key
+            histories[component_id][dependency_id] = deque(
+                prior,
+                maxlen=dependency.lookback_periods + 1,
+            )
             shape = (dependency.requirement, dependency.fields)
             previous_shape = shared_dependency_shapes.get(dependency_id)
             if previous_shape is not None and previous_shape != shape:
@@ -611,7 +638,9 @@ def _iter_stream_component_context_trigger_groups(
                 )
             shared_dependency_shapes[dependency_id] = shape
             components_by_dependency[dependency_id].append(component_id)
-            prior_by_dependency[(component_id, dependency_id)] = (-1, -1)
+            prior_by_dependency[(component_id, dependency_id)] = (
+                (-1, -1) if previous is None else previous
+            )
         priority = priorities[component_id]
         if not isinstance(priority, int) or isinstance(priority, bool) or priority < 0:
             raise NautilusRuntimeDataError("component context priority is invalid")
@@ -787,6 +816,17 @@ def _iter_stream_component_context_trigger_groups(
         if not group:
             raise NautilusRuntimeDataError("native event group has no component invocation")
         group.sort(key=lambda item: (item.priority, item.component_id))
+        if history_observer is not None:
+            history_observer.clear()
+            history_observer.update(
+                {
+                    component_id: {
+                        dependency_id: tuple(history)
+                        for dependency_id, history in component_histories.items()
+                    }
+                    for component_id, component_histories in histories.items()
+                }
+            )
         yield ComponentContextTriggerGroup(event_offset + len(records) - 1, tuple(group))
         event_offset += len(records)
 
@@ -1508,6 +1548,8 @@ def build_native_strategy_bridge(
                     manifest,
                 )
 
+        forward_context_history: dict[str, dict[str, tuple[MarketEvent, ...]]] = {}
+
         def iter_component_context_groups(
             contexts: Iterable[Any],
         ) -> Iterator[ComponentContextTriggerGroup]:
@@ -1517,6 +1559,7 @@ def build_native_strategy_bridge(
                     iter_native_event_records(),
                     component_context_bindings,
                     component_priorities,
+                    history_observer=forward_context_history,
                 )
                 return
             component_id = min(strategy_bindings)
@@ -1798,6 +1841,10 @@ def build_native_strategy_bridge(
         event_time_ns = event.get("event_time_ns")
         if not isinstance(event_time_ns, int) or isinstance(event_time_ns, bool):
             raise NautilusRuntimeDataError("forward event time is invalid")
+        if native_init_time_ns <= event_time_ns:
+            raise NautilusRuntimeDataError(
+                "forward native initialization time must follow the event timestamp"
+            )
         event_sequence = event.get("sequence")
         if not isinstance(event_sequence, int) or isinstance(event_sequence, bool):
             raise NautilusRuntimeDataError("forward event sequence is invalid")
@@ -1816,12 +1863,15 @@ def build_native_strategy_bridge(
                 key=lambda item: (component_priorities.get(item[0], 0), item[0]),
             )
         )
+        candidate_context_history: dict[str, dict[str, tuple[MarketEvent, ...]]] = {}
         groups = tuple(
             _iter_stream_component_context_trigger_groups(
                 ordered_contexts,
                 (event,),
                 component_context_bindings,
                 component_priorities,
+                prior_histories=forward_context_history,
+                history_observer=candidate_context_history,
             )
         )
         if len(groups) > 1:
@@ -1844,6 +1894,8 @@ def build_native_strategy_bridge(
         forward_context_groups[callback_index] = contexts
         expected_event_count += 1
         expected_contexts += len(contexts)
+        forward_context_history.clear()
+        forward_context_history.update(candidate_context_history)
 
     invocation_sessions = {
         component_id: StrategyInvocationSession(
@@ -2736,8 +2788,13 @@ def build_native_strategy_bridge(
             raise NautilusRuntimeDataError(f"native strategy callback failed with {failure_types}")
         fill_ledger.reconcile(native_account_quantities(strategy.portfolio))
         if callback_index != expected_event_count:
+            staged_event = forward_event_records[0] if forward_event_records else None
             raise NautilusRuntimeDataError(
-                "Nautilus did not invoke every event in the authenticated event tape"
+                "Nautilus did not invoke every event in the authenticated event tape "
+                f"(callbacks={callback_index}, expected={expected_event_count}, "
+                f"buffered_forward_events={len(forward_event_records)}, "
+                f"staged_context_groups={len(forward_context_groups)}, "
+                f"next_staged_event={None if staged_event is None else (staged_event.get('event_id'), staged_event.get('event_time_ns'), staged_event.get('native_init_time_ns'))})"
             )
         if next_native_event_record is not None:
             raise NautilusRuntimeDataError(
