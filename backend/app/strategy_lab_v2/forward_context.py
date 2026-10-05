@@ -327,6 +327,10 @@ class ForwardStrategyContextWindow:
 
         if not isinstance(preparation, ForwardStrategyContextPreparation):
             raise TypeError("preparation must use ForwardStrategyContextPreparation")
+        if self._last_committed is not None and preparation == self._last_committed:
+            if self.window_fingerprint != preparation.next_window_fingerprint:
+                raise ValueError("committed preparation is no longer the latest history window")
+            return
         if self._pending is None or preparation != self._pending[0]:
             raise ValueError("forward context preparation is not the pending event")
         self._pending = None
