@@ -11834,3 +11834,34 @@ Next: extract the minimal forward IPC DTO contracts from host orchestration
 modules, close and explicitly allowlist their pure runtime dependencies, then
 build/import the exact RC5 image before implementing the concrete persistent
 Nautilus session and activating `main --serve-forward`.
+
+## 2026-10-05 - Forward wire DTOs and exact image source closure
+
+Commit `488293d2b116fddb925d88f2c6c7c907b1335adb` extracts the event-bound
+delivery input and verified payload into `nautilus_forward_input.py`, moves
+`ForwardAccountEventBinding` to the engine-neutral account contract, and moves
+`NautilusForwardExecutionResult` to a small host/runtime-shared contract module.
+The host modules continue re-exporting the same public types. The forward
+handler no longer imports the host process or broad host session module for
+these DTOs; the bootstrap reader also defers plan/artifact construction imports
+until its host-side `build` path is called.
+
+The exact RC5 image COPY allowlist now includes the pure forward input,
+bootstrap, account/result, context, handler, IPC, and codec modules. A regression
+proves every Dockerfile COPY source is explicitly admitted by
+`Dockerfile.dockerignore` (and caught three previously omitted source paths).
+The reconstructed COPY-only staging directory successfully imported the CLI
+server helper, bootstrap parser, isolated operation handler, and JSON codec.
+This is an exact-source import smoke, not a built RC5 image or native execution.
+
+Validation: full Strategy Lab package `1,489/1,489`; focused DTO/context/
+bootstrap/session/wire/image tests `69/69`; Ruff and focused MyPy for all ten
+changed production modules; `git diff --check`; and the staged-source import
+smoke all passed. The source checkpoint is pushed.
+
+Next: implement the concrete RC5 persistent shared-account session and factory
+from these verified inputs, including warm-up and processed-prefix replay,
+dynamic accepted-event/context staging, real native account-effect capture,
+checkpoint-before-ACK settlement and deterministic restore. Then make `main`
+consume the fixed sandbox `--serve-forward` command through
+`serve_forward_runtime`; exercise it inside the built exact-pinned image.
