@@ -1,5 +1,33 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Bounded Research Results occurrence lists
+
+The Research Results UI now exposes every persisted breadth-history and generic
+event occurrence without allowing arbitrarily large DOM lists. It starts with
+100 rows, offers incremental loading, accurately announces “Showing N of M
+occurrences,” and resets pagination when filters or the selected run change.
+The earlier breadth-only 100-row truncation is no longer silent; generic event
+artifacts are bounded too. Payloads, row identity/order, selection events, and
+promotion contracts are unchanged.
+
+Verification: ResearchResultsTool unit suite passed 57/57; full serial frontend
+Vitest passed 129 files / 1,209 tests; Vue type-check and Vite production build
+passed; TC scope guard passed for all 130 paths since its recorded baseline and
+all six scope self-tests passed; 30 workstream records validated. The branch
+wrapper emitted a worktree-runtime allocation-lock error because the runtime
+registry is outside the writable sandbox, so validation was run directly via
+the UV-managed backend interpreter using `/tmp` for its cache. Docker access is
+denied at `/var/run/docker.sock`; an authenticated browser replay and the
+generic integration gate remain open. The previous exact-tip functional and
+visual/performance results remain historical, not proof for this new UI code.
+No reference images, masks, thresholds, skips, acceptance rules, provider or
+ETF behavior, other branch, or worktree were changed.
+
+Product code and regression tests are committed locally at
+`f0e946000e15336d972f33f24520d72b06e5cf7e`. The remote push and exact-tip
+push are verified at the same SHA. Exact-tip browser/integration checks remain
+open because Docker access is denied in the current sandbox.
+
 ## 2026-10-05 — Complete isolated workstation performance matrix
 
 At pushed branch checkpoint `0811a098d5c75839a071c6d6d54d0ce5463b034f`

@@ -5,6 +5,29 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-05
 
+## 2026-10-05 — Honest, bounded Research Results occurrence lists
+
+TC-owned Research Results previously limited historical breadth occurrences to
+the newest 100 rows without telling the user, while its live count described
+all filtered matches. Generic Python event artifacts had the inverse problem:
+they rendered every matching row at once. Both occurrence views now render in
+100-row increments, announce the visible/matching counts, and reset to the
+first increment when the symbol/type filter or selected run changes. This keeps
+large persisted Study results navigable without dropping artifact data or
+changing event identity, chronology, promotion behavior, upstream ownership, or
+visual references.
+
+The Research Results component suite passed 57/57, the complete frontend suite
+passed 129 files / 1,209 tests, and the production type-check/build passed. TC
+scope validation and all six ownership self-tests passed. The assigned Docker
+socket is unavailable in this session, so no browser replay was possible after
+this UI change; exact-tip functional/visual validation remains open. No
+provider/ETF behavior or visual acceptance policy changed.
+
+Implementation is committed at `f0e946000e15336d972f33f24520d72b06e5cf7e`.
+The exact implementation tip is pushed and verified at origin; browser and
+integration checks remain open.
+
 ## 2026-10-05 — Isolated dense-data and resilience evidence
 
 At pushed branch checkpoint `0811a098d5c75839a071c6d6d54d0ce5463b034f`

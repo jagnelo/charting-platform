@@ -20,48 +20,38 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  At pushed checkpoint c84ed3c7077c09085e1df740b75e7760b7545d37 (product
-  source d413d845939e68e9738b621329fa8d63a419ddf8), the latest seeded
-  177-case flows.spec.ts run passed 175, skipped 2 documented cases, and had
-  zero failures. The preceding full run had one 60-second F8m menu timeout;
-  both its focused replay and the unchanged full rerun passed. Keep that
-  first-run outcome in the raw record, but do not treat it as a current product
-  blocker. The initial default workstation-performance suite passed 3/4; a
-  later complete pinned performance-file run at branch checkpoint
-  0811a098d5c75839a071c6d6d54d0ce5463b034f passed 4/4 in an isolated seeded
-  Compose project with the 10,000-row fixture enabled. Preserve the initial
-  skip and focused replay as raw history; the current performance-file gate is
-  green. The exact-tip four-project visual
-  matrix completed 94/104 with the same ten protected screenshot-only
-  differences after all state assertions passed. Preserve every reference,
-  mask, threshold, skip, and acceptance rule. Full frontend Vitest passed 129
-  files / 1,208 tests with file parallelism disabled. The generic exhaustive
-  helper remains open because host Docker Buildx is unavailable and its
-  stack-up failure trap would tear down the active assigned volumes. Provider
-  and ETF branches remain outside staging, so R2/R3 consumption and shared-path
+  Product commit f0e946000e15336d972f33f24520d72b06e5cf7e adds bounded,
+  truthful occurrence lists to TC Research Results. Focused component tests
+  passed 57/57; full frontend Vitest passed 129 files / 1,209 tests; frontend
+  type-check/build and direct scope/workstream validators passed. Browser and
+  generic integration reruns are still required for the new product tip, but
+  this sandbox denies Docker access at /var/run/docker.sock and its worktree
+  runtime allocation registry is read-only. The last full seeded functional
+  run passed 175/177 with two documented skips; the last visual matrix passed
+  94/104 with the same ten protected screenshot-only differences; the complete
+  workstation performance file passed 4/4 with the 10k fixture enabled. Treat
+  these as prior-source evidence, not exact-tip validation. Preserve every
+  visual reference, mask, threshold, skip, and acceptance rule. Provider and
+  ETF branches remain outside staging, so R2/R3 consumption and shared-path
   reconciliation are deferred.
 active_changeset_context:
-  name: Independent structured Study threshold drafts
-  status: implementation_committed_pushed_and_full_frontend_unit_verified
-  commit_sha: d413d845939e68e9738b621329fa8d63a419ddf8
-  remote_sha: d413d845939e68e9738b621329fa8d63a419ddf8
+  name: Bounded Research Results occurrence lists
+  status: implementation_and_full_frontend_unit_build_verified_browser_replay_pending
+  commit_sha: f0e946000e15336d972f33f24520d72b06e5cf7e
+  remote_sha: f0e946000e15336d972f33f24520d72b06e5cf7e
   intent: >-
-    Keep operator/value edits and promotion lineage isolated per run artifact in
-    Study Lab and Research Results; preserve each artifact's own scan/cache key.
+    Expose all persisted breadth-history and generic event occurrences through
+    bounded incremental lists with truthful visible/matching counts and filter
+    resets; preserve event identity, artifact payloads, and promotion semantics.
   owned_paths:
-    - frontend/src/components/workstation/StudyLabTool.vue
     - frontend/src/components/workstation/ResearchResultsTool.vue
-    - frontend/tests/unit/components/test_study_lab_tool.test.ts
     - frontend/tests/unit/components/test_research_results_tool.test.ts
-    - frontend/tests/e2e/flows.spec.ts
   next_action: >-
-    Continue a distinct TC-owned R1/R5/R6 behavior slice without changing
-    protected visual oracles. The F8m full-run timeout did not reproduce in
-    either focused or unchanged full replay; retain its raw result but do not
-    treat it as an active defect. Keep the generic integration helper, ten
-    visual differences, and upstream staging acceptance gates open. The full
-    performance file later passed 4/4 in an isolated project; preserve the
-    earlier default-profile 3/4 and focused fourth-case receipts as history.
+    Run the focused authenticated Study Results browser replay and schedule a
+    clean exact-tip full-stack/browser validation profile when Docker access is
+    available. Then continue another distinct TC-owned R1/R5/R6 behavior slice.
+    Keep the generic integration helper, ten protected visual differences,
+    and upstream staging acceptance gates open.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -322,6 +312,7 @@ progress:
     assigned volumes. Provider and ETF branches remain outside staging, so
     R2/R3 consumption and shared-path reconciliation are deferred.
 historical_implementation_records:
+  - "Product commit f0e946000e15336d972f33f24520d72b06e5cf7e bounds historical breadth and generic event occurrence lists to 100 visible rows per increment, with truthful visible/matching counts and filter/selection resets. Focused ResearchResultsTool tests passed 57/57; full serial frontend Vitest passed 129 files / 1,209 tests; Vue type-check/build, direct TC ownership guard (130 touched paths, all six self-tests), and direct workstream validation (30 records) passed. The assigned Docker socket is denied, so browser replay and the generic full integration gate remain open. This slice changes neither provider/ETF behavior nor visual reference or acceptance policy."
   - "Product commit 8d1d63b7945ad94226ac02e338aac8f4ef447f2a fixes data loss in the advanced Market Map breadth editor: switching a multi-child all/any group to not now wraps the complete prior group as the sole NOT child. The regression failed against the prior editor; BreadthConditionTreeEditor and MarketMapTool suites passed 10/10 and 56/56, backend breadth service tests passed 30/30, frontend type-check/build and Ruff format check passed. No provider/ETF behavior, visual styling, or acceptance policy changed."
   - "Exact product-tip pinned validation at be55d1af completed the 174-case functional suite with 172 passed, 2 documented skips, and zero failures. The four-project visual matrix completed all 104 cases: 93 passed, ten protected screenshot differences remain (workspace-floating all four viewports; Study structured-result all four; Study sandbox-error at the two 1080p scales), and one column-editor diagnostic failure from ERR_NETWORK_CHANGED passed unchanged replay 4/4. A separate four-project pinned shell smoke passed 4/4; host-only shell rendering failed glyph pixels with host Arial resolving to Nimbus Sans versus pinned Noble resolving Liberation Sans, consistent with environment/font rendering rather than geometry. Full matrix artifacts: /tmp/tc2000-pinned-visual-full-3t8qbk; functional artifacts: /tmp/tc2000-pinned-functional-full-9Iq2rG. Scoped Docker cleanup left zero resources. No visual acceptance policy changed."
   - "Product commit be55d1af2de8037671d65e33d5b1d5120e11f38c adds keyboard invocation for the TC-owned Virtual Watchlist Boolean header pin menu using Shift+F10 and the Context Menu key, while preserving right-click and Ctrl/Meta-click behavior and anchoring the menu at the header for keyboard use. Focused VirtualWatchlistTool coverage passed 80/80; full serial frontend Vitest passed 129 files / 1,202 tests; the Docker production build (including vue-tsc and Vite build) passed; and authenticated F8u-boolean passed 1/1. The exact-tip 174-case functional run passed 171, skipped 2 documented cases, and failed one F8s-family-matrix diagnostic because unrelated local API requests reported ERR_NETWORK_CHANGED after assertions; unchanged focused replay passed 1/1. The completed prior-tip 104-case visual matrix was 93/104 with ten protected screenshot differences; a post-change full visual attempt was stopped after broad deltas, and a fresh seeded-database shell smoke differed at all four viewports by 42,759 / 44,586 / 50,854 / 53,003 pixels. No screenshot oracle, mask, threshold, skip, or acceptance policy changed. The exact branch commit is pushed and direct GitHub refs verified; staging remains 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider is 88132e9145a08d1c935a0111b3dba0fbd88bdff1, and ETF is 08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5. Both dependencies remain outside staging."
