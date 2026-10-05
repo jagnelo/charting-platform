@@ -314,7 +314,11 @@ def test_stream_component_context_groups_reject_manifest_history_mismatch() -> N
         )
 
 
-def test_native_bridge_invokes_component_contexts_by_portfolio_priority(monkeypatch) -> None:
+@pytest.mark.parametrize("retain_invocation_results", (True, False))
+def test_native_bridge_invokes_component_contexts_by_portfolio_priority(
+    monkeypatch,
+    retain_invocation_results: bool,
+) -> None:
     import sys
     from dataclasses import replace
     from io import BytesIO
@@ -540,6 +544,7 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(monkeypa
         expected_context_count=sum(context_counts.values()),
         expected_component_context_counts=context_counts,
         allow_forward_event_staging=True,
+        retain_invocation_results=retain_invocation_results,
     )
     bridge.strategy.on_start()
     prior_native_init_time_ns = -1
@@ -574,13 +579,17 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(monkeypa
         )
     )
 
-    results = deserialize_invocation_batch_result(bridge.result_output())
-    assert [result.status.value for result in results] == [
-        "failed",
-        "succeeded",
-        "failed",
-        "succeeded",
-    ]
+    output = bridge.result_output()
+    if retain_invocation_results:
+        results = deserialize_invocation_batch_result(output)
+        assert [result.status.value for result in results] == [
+            "failed",
+            "succeeded",
+            "failed",
+            "succeeded",
+        ]
+    else:
+        assert output is None
 
 
 @pytest.mark.parametrize(

@@ -176,8 +176,9 @@ def test_verified_history_replay_rebuilds_the_same_bounded_context_window() -> N
         parameters={"threshold": Decimal("1.5")},
         random_seed=17,
     )
+    context_records = []
     for payload in payloads:
-        original.append(payload, instance_id="forward-1")
+        context_records.append(original.append(payload, instance_id="forward-1"))
     history = ForwardStrategyContextHistory(
         "forward-1",
         manifest.fingerprint,
@@ -197,6 +198,17 @@ def test_verified_history_replay_rebuilds_the_same_bounded_context_window() -> N
 
     assert restored.window_fingerprint == original.window_fingerprint
     assert restored.last_event_key == original.last_event_key
+    restored_from_contexts = ForwardStrategyContextWindow(
+        "forward-1",
+        manifest,
+        parameters={"threshold": Decimal("1.5")},
+        random_seed=17,
+    )
+    restored_from_contexts.seed_from_authenticated_contexts(
+        context_records,
+        context_stream_fingerprint=content_digest("verified-context-stream"),
+    )
+    assert restored_from_contexts.window_fingerprint == original.window_fingerprint
     next_event = _payload(
         event_id="aapl-4",
         sequence=4,
@@ -208,6 +220,70 @@ def test_verified_history_replay_rebuilds_the_same_bounded_context_window() -> N
         "aapl-4",
     )
     assert preparation.context.market_events["benchmark-bars"] == (payloads[1].market_event,)
+
+
+def test_authenticated_context_stream_seed_rebuilds_bounded_window_without_fabricating_events() -> (
+    None
+):
+    manifest = _manifest()
+    bounded_events = (
+        _payload(
+            event_id="spy-2",
+            sequence=2,
+            event_time=NOW + timedelta(minutes=1),
+            dependency_id="benchmark-bars",
+            instrument_id="US.SPY",
+        ).market_event,
+        _payload(
+            event_id="aapl-3",
+            sequence=3,
+            event_time=NOW + timedelta(minutes=2),
+        ).market_event,
+    )
+    expected = ForwardStrategyContextWindow(
+        "forward-1",
+        manifest,
+        parameters={"threshold": Decimal("1.5")},
+        random_seed=17,
+    )
+    for market_event in bounded_events:
+        expected.append(
+            _payload(
+                event_id=market_event.event_id,
+                sequence=market_event.sequence,
+                event_time=market_event.event_time,
+                dependency_id=market_event.dependency_id,
+                instrument_id=market_event.instrument_id,
+                values=dict(market_event.values),
+            ),
+            instance_id="forward-1",
+        )
+
+    restored = ForwardStrategyContextWindow(
+        "forward-1",
+        manifest,
+        parameters={"threshold": Decimal("1.5")},
+        random_seed=17,
+    )
+    restored.seed_from_authenticated_context_stream(
+        bounded_events,
+        context_stream_fingerprint=content_digest("verified-context-stream"),
+    )
+
+    assert restored.window_fingerprint == expected.window_fingerprint
+    assert restored.last_event_key == expected.last_event_key
+    next_payload = _payload(
+        event_id="aapl-4",
+        sequence=4,
+        event_time=NOW + timedelta(minutes=3),
+    )
+    assert (
+        restored.prepare(next_payload, instance_id="forward-1").context
+        == expected.prepare(
+            next_payload,
+            instance_id="forward-1",
+        ).context
+    )
 
 
 def test_verified_forward_history_round_trips_through_canonical_persistence_wire() -> None:

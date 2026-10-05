@@ -1223,8 +1223,15 @@ def build_native_strategy_bridge(
     account_equity_trace_writer: NautilusAccountEquityTraceWriter | None = None,
     session_calendar: SessionCalendarSnapshot | None = None,
     allow_forward_event_staging: bool = False,
+    retain_invocation_results: bool = True,
 ) -> NativeStrategyBridge:
-    """Bind invocation inputs to callbacks and optionally stream callback results."""
+    """Bind invocation inputs to callbacks and optionally retain callback results.
+
+    Persistent forward sessions disable retention because native strategy
+    results have already been consumed for routing and must not accumulate for
+    the lifetime of the session. ``result_output`` still validates callback
+    parity in that mode, but returns ``None`` instead of a serialized batch.
+    """
 
     from app.strategy_lab_v2.nautilus_portfolio_wire import portfolio_composition_from_wire
     from app.strategy_lab_v2.nautilus_rebalance_wire import rebalance_execution_plan_from_wire
@@ -1250,6 +1257,12 @@ def build_native_strategy_bridge(
     component_context_stream = expected_component_context_counts is not None
     if not isinstance(allow_forward_event_staging, bool):
         raise TypeError("allow_forward_event_staging must be a boolean")
+    if not isinstance(retain_invocation_results, bool):
+        raise TypeError("retain_invocation_results must be a boolean")
+    if not retain_invocation_results and not allow_forward_event_staging:
+        raise NautilusRuntimeDataError(
+            "invocation result retention can only be disabled for staged forward sessions"
+        )
     if allow_forward_event_staging and not component_context_stream:
         raise NautilusRuntimeDataError(
             "forward event staging requires authenticated component context bindings"
@@ -1787,7 +1800,9 @@ def build_native_strategy_bridge(
             entrypoint=entrypoint,
             max_intents_per_event=max_intents,
         )
-    invocation_results: list[Any] | None = [] if result_stream_writer is None else None
+    invocation_results: list[Any] | None = (
+        [] if result_stream_writer is None and retain_invocation_results else None
+    )
     invocation_result_count = 0
     callback_failure_types: list[str] = []
     rebalance_run_failed = False
@@ -2503,8 +2518,8 @@ def build_native_strategy_bridge(
                         rebalance_targets_by_component[component_id][intent.instrument_id] = intent
                 callback_results.append((component_id, result))
                 if result_stream_writer is None:
-                    assert invocation_results is not None
-                    invocation_results.append(result)
+                    if invocation_results is not None:
+                        invocation_results.append(result)
                 else:
                     result_stream_writer.write(result)
                 invocation_result_count += 1
@@ -2605,6 +2620,8 @@ def build_native_strategy_bridge(
             )
         if result_stream_writer is not None:
             return result_stream_writer.finish()
+        if invocation_results is None:
+            return None
         assert invocation_results is not None
         return serialize_invocation_batch_result(invocation_results)
 

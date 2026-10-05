@@ -9,7 +9,7 @@ component by the isolated forward runtime.
 from __future__ import annotations
 
 from collections import deque
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from types import MappingProxyType
@@ -337,7 +337,7 @@ class ForwardStrategyContextWindow:
         if self._last_event_key is not None and event_key <= self._last_event_key:
             raise ValueError("forward context events must advance strictly by time and sequence")
 
-        candidate_events = {
+        candidate_events: dict[str, deque[MarketEvent]] = {
             dependency_id: deque(
                 events,
                 maxlen=self._dependencies[dependency_id].lookback_periods + 1,
@@ -399,6 +399,112 @@ class ForwardStrategyContextWindow:
         )
         self._pending = preparation, candidate_events, event_key
         return preparation
+
+    def seed_from_authenticated_context_stream(
+        self,
+        events: Iterable[MarketEvent],
+        *,
+        context_stream_fingerprint: str,
+    ) -> str:
+        """Restore only bounded SDK history from a verified immutable context artifact.
+
+        The runtime CLI verifies the complete context-stream bytes before this
+        method is called. Market events in those typed contexts are sufficient
+        to rebuild the rolling window; no synthetic CanonicalForwardEvent or
+        invented source provenance is introduced for the historical seed.
+        """
+
+        require_sha256_digest(
+            context_stream_fingerprint,
+            field_name="context_stream_fingerprint",
+        )
+        if self._pending is not None or self._last_committed is not None or self._last_event_key:
+            raise ValueError("forward context seed can only initialize an empty window")
+        candidate_events: dict[str, deque[MarketEvent]] = {
+            dependency_id: deque(maxlen=dependency.lookback_periods + 1)
+            for dependency_id, dependency in self._dependencies.items()
+        }
+        counts: dict[str, int] = {}
+        event_ids: set[str] = set()
+        previous_key: tuple[datetime, int] | None = None
+        last_event_key: tuple[datetime, int] | None = None
+        for event in events:
+            if not isinstance(event, MarketEvent):
+                raise TypeError("authenticated context seed must contain MarketEvent values")
+            event_key = (event.event_time, event.sequence)
+            if previous_key is not None and event_key <= previous_key:
+                raise ValueError("authenticated context seed must be strictly chronological")
+            if event.event_id in event_ids:
+                raise ValueError("authenticated context seed event ids must be unique")
+            event_ids.add(event.event_id)
+            dependency = self._dependencies.get(event.dependency_id)
+            if dependency is None:
+                raise ValueError("authenticated context seed contains an undeclared dependency")
+            requirement = dependency.requirement
+            if event.instrument_id != requirement.instrument_id:
+                raise ValueError("authenticated context seed instrument differs from dependency")
+            if not requirement.start <= event.event_time < requirement.end:
+                raise ValueError("authenticated context seed falls outside dependency interval")
+            if set(event.values) != set(dependency.fields):
+                raise ValueError("authenticated context seed fields differ from dependency")
+            counts[event.dependency_id] = counts.get(event.dependency_id, 0) + 1
+            if counts[event.dependency_id] > dependency.lookback_periods + 1:
+                raise ValueError("authenticated context seed exceeds a dependency lookback")
+            candidate_events[event.dependency_id].append(event)
+            previous_key = event_key
+            last_event_key = event_key
+
+        self._events = candidate_events
+        self._last_event_key = last_event_key
+        return self.window_fingerprint
+
+    def seed_from_authenticated_contexts(
+        self,
+        contexts: Iterable[StrategyContext],
+        *,
+        context_stream_fingerprint: str,
+    ) -> str:
+        """Extract a bounded deduplicated seed from authenticated SDK contexts."""
+
+        queues: dict[str, deque[MarketEvent]] = {
+            dependency_id: deque() for dependency_id in self._dependencies
+        }
+        recent_events: dict[str, dict[str, MarketEvent]] = {
+            dependency_id: {} for dependency_id in self._dependencies
+        }
+        for context in contexts:
+            if not isinstance(context, StrategyContext):
+                raise TypeError("authenticated context seed must contain StrategyContext values")
+            if content_digest(context.parameters) != self._parameters_digest:
+                raise ValueError("authenticated context seed parameters differ from the recipe")
+            if context.random_seed != self._random_seed:
+                raise ValueError("authenticated context seed random seed differs from the recipe")
+            if set(context.market_events) - set(self._dependencies):
+                raise ValueError("authenticated context seed contains an undeclared dependency")
+            for dependency_id, dependency_events in context.market_events.items():
+                queue = queues[dependency_id]
+                retained_events = recent_events[dependency_id]
+                maximum_events = self._dependencies[dependency_id].lookback_periods + 1
+                for event in dependency_events:
+                    prior_event = retained_events.get(event.event_id)
+                    if prior_event is not None:
+                        if prior_event != event:
+                            raise ValueError(
+                                "authenticated context seed changes a retained event identity"
+                            )
+                        continue
+                    if len(queue) == maximum_events:
+                        retained_events.pop(queue.popleft().event_id)
+                    queue.append(event)
+                    retained_events[event.event_id] = event
+        ordered_events = sorted(
+            (event for queue in queues.values() for event in queue),
+            key=lambda event: (event.event_time, event.sequence),
+        )
+        return self.seed_from_authenticated_context_stream(
+            ordered_events,
+            context_stream_fingerprint=context_stream_fingerprint,
+        )
 
     def prepare_delivery(
         self,
