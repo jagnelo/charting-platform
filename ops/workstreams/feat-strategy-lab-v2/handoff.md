@@ -12340,3 +12340,50 @@ PostgreSQL checkpoint, then exercise process loss before settlement and
 commit-before-ACK redelivery without a second native execution.
 
 Implementation commit: `4c4fc2fcf3d6c24c42696d909f5cbbef0d9e332f`.
+
+## 2026-10-06 - Exact RC5 plus PostgreSQL/Redis forward recovery
+
+The exact-source RC5 process-loss fixture is now composed with the production
+PostgreSQL forward admission/account adapters and Redis Streams worker. The
+new opt-in integration binds the fixture bootstrap to the authenticated
+PostgreSQL checkpoints and derives actual delivery bindings from Redis entries.
+It exercises three connected windows: native execution followed by process
+death before account settlement and deterministic replay from the same
+checkpoint; process death after PostgreSQL has committed the native receipt but
+before Redis XACK, with receipt-first redelivery ACK and no third Nautilus
+process; and a subsequent canonical event resumed by a fresh RC5 process from
+the acknowledged PostgreSQL checkpoint, then settled and ACKed.
+
+Evidence used exact image digest
+`sha256:bd729a50db5f72e3c401db7b03edd6eeca36879bb0fab81ef7c1f59b945ec97b`,
+source digest
+`sha256:7ecfee1da2adb41ebd7ffbf35ad997a37744b731f12fef99fdf198e4518dede3`,
+and conformance fingerprint
+`sha256:aa63890429558763f0ae1fa118e34f0173726945f3fb0998dae4e2108f24af66`.
+The image is Nautilus 2.0.0rc5; stable release labeling is not a gate, and no
+broker or real-capital path is exercised.
+
+Validation: the full Strategy Lab package passed 1,508 tests with one
+opt-in image test skipped (`--no-cov`); the existing PostgreSQL/Redis recovery
+integration plus the new exact-RC5/PostgreSQL/Redis integration passed 2/2 with
+the exact digest; Ruff and MyPy passed for the new integration harness. The
+first composed run exposed an asyncpg connection bound to the worker thread's
+temporary event loop; the synchronous plan factory now schedules authenticated
+checkpoint resolution onto the owning pytest event loop. The follow-up exact
+image run passed. After each Docker-backed run, scoped cleanup reported no
+temporary containers, images, volumes, or Testcontainers sessions.
+
+This closes the exact-native/production-persistence recovery composition gap.
+The overall Strategy Lab goal remains in progress. The declared package-wide
+MyPy command
+`uv run --project backend mypy backend/app/strategy_lab_v2 backend/strategy_runtime`
+currently reports 22 errors in 14 unmodified Strategy Lab package files,
+including one forward runtime CLI callback-builder type mismatch. Ruff, focused
+MyPy for the new harness, and the Strategy Lab test and migration suites pass.
+This broader typing gate is explicitly still red; the next action is to fix the
+reported contracts and test annotations without exclusions or weaker typing,
+then trace and implement the production dedicated-forward-worker composition
+from persisted immutable execution plans through checkpoint resolution, the
+hardened RC5 process factory, and receipt-first event settlement. Continue the
+other open backtest/search/API/security/Compose criteria and full exact-tip
+integration gate; no stable Nautilus release wait is needed.

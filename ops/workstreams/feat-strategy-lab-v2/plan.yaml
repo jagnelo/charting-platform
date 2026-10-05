@@ -855,76 +855,61 @@ progress:
     - strategy-lab-v2-nautilus-forward-runtime-dto-codec-v1
     - strategy-lab-v2-nautilus-forward-runtime-operation-handler-v1
   total: 18
-  current_phase: forward-runtime-durable-settlement
+  current_phase: package-wide-mypy-remediation
   active_changeset:
-    id: strategy-lab-v2-nautilus-forward-process-loss-recovery-v1
+    id: strategy-lab-v2-package-wide-mypy-remediation-v1
     scope: >-
-      Resolve the exact RC5 process bootstrap and inputs from host-owned durable
-      admission/account state, then qualify the persistent session across real
-      isolated-process termination and each account/Redis-ACK crash window.
+      Restore the declared package-wide Strategy Lab MyPy gate by correcting
+      production callback contracts and test fixture annotations without
+      suppressions, excluded tests, or weaker typing; retain behavior and rerun
+      the exact branch type-check command.
     owned_paths:
-      - backend/app/strategy_lab_v2/nautilus_forward_recovery.py
-      - backend/app/strategy_lab_v2/nautilus_rc_fixture_probe.py
-      - backend/app/strategy_lab_v2/nautilus_runtime_image/evidence_build.py
-      - backend/app/strategy_lab_v2/nautilus_forward_process.py
-      - backend/app/strategy_lab_v2/postgres_forward_account.py
-      - backend/app/strategy_lab_v2/tests/test_nautilus_forward_recovery.py
+      - backend/app/strategy_lab_v2/nautilus_runtime_cli.py
+      - backend/app/strategy_lab_v2/tests/test_application.py
+      - backend/app/strategy_lab_v2/tests/test_metrics.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_forward_bootstrap.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_forward_native_runtime.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_forward_process.py
-      - backend/app/strategy_lab_v2/tests/test_nautilus_forward_process_integration.py
-      - backend/app/strategy_lab_v2/tests/test_nautilus_forward_session.py
-      - backend/app/strategy_lab_v2/tests/test_nautilus_runtime_image.py
-      - backend/tests/integration/strategy_lab_v2/test_forward_recovery_postgres_redis.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_forward_wire.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_order_routing.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_result_metrics.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_runtime_adapter.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_strategy_bridge.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_target_allocation.py
+      - backend/app/strategy_lab_v2/tests/test_persistence.py
+      - backend/app/strategy_lab_v2/tests/test_forward_state.py
     status: in_progress
   current_blocker: >-
-    No external dependency blocks package-owned implementation. Exact-pinned
-    Nautilus RC5 remains acceptable for locally controlled testing; stable
-    release labeling is not a gate and RC6 requalification is optional. The
-    exact-source RC5 image now proves an independently constructed runtime can
-    rebuild a non-empty authenticated processed prefix and deterministically
-    execute/replay the next event. The opt-in exact-image integration now also
-    proves isolated-process kill/relaunch with deterministic native account
-    effects across pre-settlement replay, durable settlement before ACK, and
-    restart from the acknowledged next checkpoint. This test currently uses a
-    SQLite checkpoint/settlement harness. A production PostgreSQL/Redis
-    integration now exercises the authenticated recovery resolver, persisted
-    account history/native receipt, Redis consumer reclaim, and replay-before-ACK
-    across settlement crash windows. It exposed and fixed an asyncpg ambiguity
-    in the account compare-and-set parameter; the update now requires the exact
-    prior fingerprint. The integration still uses a synthetic execution
-    binding: composing the exact-image RC5 native process result and its real
-    bootstrap with the production PostgreSQL/Redis path remains open. The host
-    runtime starts each isolated process from
-    one exact requested admission checkpoint, verifies it in the open request
-    and response, and replaces the process on checkpoint advance or recovery.
-    The native session rejects later checkpoints instead of retaining an
-    unbounded local suffix. Full Strategy Lab package validation passes 1,505
-    tests with the Docker integration skipped by default; the exact-image test
-    passes separately. The forward account handler verifies durable cursor,
-    append-only event content, and exact runtime receipt before COMPLETE; the
-    PostgreSQL adapter applies account state and receipt transactionally, and
-    Redis ACK follows only COMPLETE. Focused account/session/PostgreSQL tests
-    also exposed that the forward session handler tried Nautilus before checking
-    for a PostgreSQL settlement left by a commit-before-ACK crash. The account
-    adapter now loads an owner-scoped event settlement only after validating its
-    history chain; the session handler verifies canonical, delivery, and
-    pre-event checkpoint identities and idempotently confirms that receipt
-    before resolving context or starting Nautilus. Receipt-less or mismatched
-    journal rows fail closed. The handler/account regression set passes 29/29,
-    the production PostgreSQL/Redis replay integration passes 1/1, and focused
-    MyPy and Ruff checks pass. This closes the unnecessary re-execution gap but
-    does not yet join the exact RC5 process output/bootstrap to real PostgreSQL
-    and Redis. Preserve canonical platform event identity and ordering; never derive
-    it from dependency-local frozen series rows.
-    Full Compose/browser acceptance
-    remains a final environment gate; provider, ETF, and TC2000 shared-path
-    consumption waits only for those branches to reach staging. Options
-    admission remains fail-closed pending canonical Greeks/delta and settlement
-    evidence.
+    No external dependency blocks implementation. The exact-source Nautilus
+    2.0.0rc5 image (sha256:bd729a50db5f72e3c401db7b03edd6eeca36879bb0fab81ef7c1f59b945ec97b)
+    is composed with the production PostgreSQL forward-state/account adapters
+    and Redis Streams worker in an opt-in integration. It proves deterministic
+    native replay after process death before settlement; durable native receipt
+    recovery and Redis ACK after process death between PostgreSQL commit and
+    XACK without a third Nautilus launch; and a later canonical event resumed
+    from the acknowledged PostgreSQL checkpoint through a fresh exact-RC5
+    process. The Strategy Lab package passes 1,508 tests with one unrelated
+    opt-in image case skipped; both PostgreSQL/Redis recovery integrations pass
+    2/2 with the exact image, and Ruff/MyPy pass for the new harness. Stable
+    release labeling is explicitly not a gate. The overall acceptance criteria
+    remain incomplete: production forward-worker callback/runtime assembly,
+    remaining backtest/search/API/security/Compose integration, and full
+    exact-tip validation still require implementation. The declared
+    package-wide MyPy gate currently reports 22 errors in 14 unmodified package
+    files (including the forward runtime CLI builder); focused MyPy for the new
+    integration harness passes. Provider-platform,
+    ETF, and TC2000 contracts remain staged behind their owning branches;
+    options stay fail-closed until canonical Greeks/delta/settlement evidence
+    exists. Preserve canonical platform event identity and ordering; never
+    derive it from dependency-local frozen series rows.
   next_action: >-
-    Compose the exact-source RC5 subprocess recovery with real PostgreSQL
-    admission/account checkpoint resolution and the Redis worker ACK/replay
-    contract. Bind the RC5 native output and receipt to durable domain event
-    identities, then prove that a process killed before settlement re-executes
-    deterministically and a process killed after PostgreSQL commit but before
-    Redis ACK replays the stored receipt without executing Nautilus twice.
-    Stable release labeling remains unnecessary.
+    Restore the declared package-wide MyPy gate by fixing the 22 errors in the
+    14 unmodified Strategy Lab package files, without weakening typing or
+    excluding package tests. Then trace production composition across
+    forward_worker_entrypoint.py, forward_worker_service.py, forward_session.py,
+    and application assembly. Implement owner-scoped construction of the
+    runtime checkpoint resolver, hardened Nautilus process factory, persisted
+    immutable execution plan/context, and receipt-first event handler in the
+    dedicated forward worker. Keep missing upstream/provider evidence
+    fail-closed; do not connect to a broker or real capital. Continue through
+    the still-open ACs and full exact-tip integration gate.
