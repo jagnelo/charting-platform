@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-05
 
+## 2026-10-05 — Isolated dense-data and resilience evidence
+
+At pushed branch checkpoint `48a9323d4bbc2dd10ac42764e34ed3415ab4a106`
+(product source `d413d845939e68e9738b621329fa8d63a419ddf8`), the pinned
+Playwright workstation window-churn test passed `1/1` with
+`TC2000_POP_OUT_CHURN_ROUNDS=50` in 2 minutes. Each round returned to the
+original page/tool/canvas counts; the memory ceilings and browser-diagnostic
+checks passed. The assigned research-runner sandbox and resource probes also
+passed: privilege escalation, network access, root writes, unbounded process
+creation, and over-capacity writes were denied, memory pressure was contained,
+and the container restart count stayed at zero.
+
+These are additional R6 receipts, not closure of all resilience/security
+criteria. The exact-tip visual differences, complete integration helper, and
+staging-dependent R2/R3 work remain open.
+
 ## 2026-10-05 — Exact-tip validation refresh after Study threshold isolation
 
 At product source `d413d845939e68e9738b621329fa8d63a419ddf8` (branch

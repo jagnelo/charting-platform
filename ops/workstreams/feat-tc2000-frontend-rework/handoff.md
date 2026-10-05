@@ -1,5 +1,27 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Sandboxing and 50-round pop-out endurance
+
+At pushed branch checkpoint `48a9323d4bbc2dd10ac42764e34ed3415ab4a106`
+(product source `d413d845939e68e9738b621329fa8d63a419ddf8`), the assigned
+research-runner passed `ops/probe-research-runner-sandbox.sh` and
+`ops/probe-research-runner-resources.sh`. The configured `768 MiB`, one-CPU,
+128-PID, network-none, read-only-root container denied namespace changes,
+mount, ptrace, fork, subprocess, outbound network, and root writes; single and
+concurrent memory pressure were contained; the 64 MiB tmpfs limit held; restart
+count remained zero. The bounded temporary file was removed and no probe logs
+remained on the host.
+
+The pinned Playwright 1.62.1
+`workstation_performance.spec.ts` repeated multi-window churn case passed
+`1/1` with `TC2000_POP_OUT_CHURN_ROUNDS=50` in 2 minutes. Across all rounds,
+pop-outs returned to one page, tool/chart/canvas counts returned to baseline,
+memory stayed within the test ceilings, and browser diagnostics remained clean.
+The test used only the assigned frontend container network namespace; the
+assigned six-service stack and four volumes were not recreated or removed.
+Artifacts: `/tmp/tc2000-window-endurance.GIdxms`. These focused R6 checks add
+evidence but do not close the complete resilience/security criteria.
+
 ## 2026-10-05 — Exact-tip frontend and browser evidence refresh
 
 The test source was branch checkpoint `c84ed3c7077c09085e1df740b75e7760b7545d37`

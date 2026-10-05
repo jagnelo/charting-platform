@@ -16,6 +16,12 @@ passed unchanged 1/1 in an isolated seeded Compose project with
 4/4 suite run. The temporary project and its volumes/images were removed; the
 assigned stack remained healthy and intact.
 
+At later branch checkpoint `48a9323d4bbc2dd10ac42764e34ed3415ab4a106`, the
+pinned `workstation_performance.spec.ts` 50-round pop-out/restore churn test
+passed `1/1` in 2 minutes against the assigned stack. The bounded research-runner
+sandbox/resource probes passed on the same stack, with restart count `0`. These
+R6 results do not alter screenshot baselines or close the ten pixel differences.
+
 The four-project board-guided visual matrix completed all 104 cases: 94 passed
 and 10 screenshot comparisons remained above the unchanged `0.005` threshold
 after their state assertions passed. They are the same protected identities:
