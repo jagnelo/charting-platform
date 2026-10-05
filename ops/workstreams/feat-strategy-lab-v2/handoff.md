@@ -9908,3 +9908,37 @@ Then continue remaining domain/API lifecycle gaps. Shared router registration
 and schema integration stay behind the existing staging reconciliation gates;
 RC5 remains eligible for qualified local backtests, while forward shadow still
 requires event-tape parity.
+
+## 2026-10-05 - Durable resource mutation through reconstructed persistence
+
+The resource-mutation regression now composes
+`PostgresStrategyLabV2Persistence.build`, `PostgresAggregateStore`,
+`PostgresResourceReader`, and `PostgresStrategyLabV2Adapter`. It creates a
+domain-backed strategy resource, reads it through the owner-scoped reader,
+reconstructs the adapter over the same durable SQL-session state, and verifies
+that exact idempotent replay preserves the original receipt and acceptance
+time without another write. Reusing the idempotency key with changed content
+returns a typed conflict without exposing a receipt; a different owner cannot
+read the resource. The SQL session is a deterministic test double, not a live
+PostgreSQL service.
+
+Commit `9b677ba55de8ed0cd21a5963ad9e54e858e58f04` contains this regression.
+The focused test passed, Ruff check and format check passed, MyPy reported no
+issues in the new test, and `git diff --check` passed. The full Strategy Lab
+package run executed all `1,349` tests with no test failures; the command's
+only nonzero result was the repository-wide 55% coverage floor applied to
+this package-only selection (`47.20%` overall `app` coverage), not a failing
+test. The implementation commit was pushed to `origin/feat/strategy-lab-v2`.
+
+No blocker prevents continued package-owned development. Shared router/schema,
+provider, ETF, and TC2000 integrations remain gated on their owner branches
+reaching staging and exact shared-path reconciliation. Full Compose/browser
+acceptance remains host-limited by the missing Docker Buildx plugin and denied
+Docker socket access. RC5 remains eligible for four-check local backtests;
+forward shadow separately requires event-tape parity, and prereleases remain
+barred from broker/real-capital use.
+
+Next: continue the remaining domain/API lifecycle audit and add the next
+owner-scoped persistence composition regression, prioritizing mutation/read
+behavior across other normalized domain resource types before advancing the
+remaining metrics and forward-correctness gaps.

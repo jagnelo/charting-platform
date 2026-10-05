@@ -88,8 +88,8 @@
   },
   "dirty_paths": [
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl",
-    "ops/workstreams/feat-strategy-lab-v2/session.json"
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -126,12 +126,12 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "c13d51a4c0ca933fe390738244a9c6075eb5e962",
-  "implementation_sha": "c13d51a4c0ca933fe390738244a9c6075eb5e962",
-  "last_checkpoint": "2026-10-05T00:14:10.248768+00:00",
-  "last_human_progress_update": "2026-10-05T00:13:33.992902+00:00",
+  "head": "9b677ba55de8ed0cd21a5963ad9e54e858e58f04",
+  "implementation_sha": "9b677ba55de8ed0cd21a5963ad9e54e858e58f04",
+  "last_checkpoint": "2026-10-05T00:31:47.778412+00:00",
+  "last_human_progress_update": "2026-10-05T00:31:25.671973+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "continue implementation from the branch workstream",
+  "next_action": "Audit remaining normalized domain/API mutation lifecycles and compose the next owner-scoped persistence regression across other domain resource types; then continue metrics and forward-correctness gaps while preserving shared-path gates.",
   "parent_branch": "staging",
   "plan_hash": "9f1a5c833b17321272a81701559c5cec5d790bf0dfce0aa4e3db210d01dc3f87",
   "planning_required": false,
@@ -148,14 +148,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "No blocker to local implementation. Docker Buildx/socket access limit only final Compose/browser and live database validation; provider-owned shared contracts remain staging-gated.",
-    "current_phase": "strategy-lab-v2-pg-resource-mutation-composition-v1",
-    "next_action": "Compose PostgresStrategyLabV2Adapter.create_resource with PostgresAggregateStore and PostgresResourceReader in one deterministic durable-store regression; reconstruct the adapter between calls and prove accepted reads, exact replay, owner isolation, and typed idempotency conflict before continuing remaining domain/API lifecycles.",
+    "current_blocker": "No blocker to package-owned implementation. Provider, ETF, and TC2000 shared paths await their owner branches reaching staging and exact reconciliation; final Compose/browser acceptance is host-limited by missing Docker Buildx and denied Docker socket access. Forward shadow still requires event-tape parity. Stable Nautilus labeling is not a gate.",
+    "current_phase": "strategy-lab-v2-domain-resource-mutation-surface-v1",
+    "next_action": "Audit remaining normalized domain/API mutation lifecycles and compose the next owner-scoped persistence regression across other domain resource types; then continue metrics and forward-correctness gaps while preserving shared-path gates.",
     "total": 18,
-    "updated_at": "2026-10-05T00:13:33.992876+00:00"
+    "updated_at": "2026-10-05T00:31:25.671928+00:00"
   },
-  "remote": "c13d51a4c0ca933fe390738244a9c6075eb5e962",
-  "remote_sha": "c13d51a4c0ca933fe390738244a9c6075eb5e962",
+  "remote": "9b677ba55de8ed0cd21a5963ad9e54e858e58f04",
+  "remote_sha": "9b677ba55de8ed0cd21a5963ad9e54e858e58f04",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
