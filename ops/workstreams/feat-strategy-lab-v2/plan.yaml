@@ -883,13 +883,17 @@ progress:
     proves isolated-process kill/relaunch with deterministic native account
     effects across pre-settlement replay, durable settlement before ACK, and
     restart from the acknowledged next checkpoint. This test currently uses a
-    SQLite checkpoint/settlement harness; wiring its checkpoint resolver and
-    ACK windows through production PostgreSQL/account-history and Redis worker
-    adapters remains open. The host runtime starts each isolated process from
+    SQLite checkpoint/settlement harness. A new authenticated recovery
+    resolver now composes the existing exact-checkpoint PostgreSQL admission
+    and account-history adapter contracts, verifies processed event identity,
+    durable cursor, and native execution receipts, and rejects unsettled state.
+    The resolver and application exact-checkpoint route pass focused tests, but
+    wiring recovery plus ACK windows through production PostgreSQL and Redis
+    remains open. The host runtime starts each isolated process from
     one exact requested admission checkpoint, verifies it in the open request
     and response, and replaces the process on checkpoint advance or recovery.
     The native session rejects later checkpoints instead of retaining an
-    unbounded local suffix. Full Strategy Lab package validation passes 1,501
+    unbounded local suffix. Full Strategy Lab package validation passes 1,505
     tests with the Docker integration skipped by default; the exact-image test
     passes separately. The forward account handler verifies durable cursor,
     append-only event content, and exact runtime receipt before COMPLETE; the
@@ -903,9 +907,9 @@ progress:
     admission remains fail-closed pending canonical Greeks/delta and settlement
     evidence.
   next_action: >-
-    Replace the test-only SQLite checkpoint/settlement path with production
-    checkpoint resolution from the persisted forward admission/account history
-    and its actual worker ACK contract. Keep the exact-source RC5 subprocess
-    integration as the native execution boundary, persist image/receipt
-    provenance, and prove the combined PostgreSQL settlement plus Redis replay
-    path. Stable release labeling remains unnecessary.
+    Replace the test-only SQLite checkpoint/settlement path with a production
+    integration using persisted forward admission/account history and the
+    actual Redis worker ACK/replay contract. Inject the authenticated recovery
+    resolver into the RC5 subprocess bootstrap, persist image/receipt
+    provenance, and prove PostgreSQL settlement plus Redis replay across the
+    process-loss windows. Stable release labeling remains unnecessary.

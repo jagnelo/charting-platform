@@ -18,6 +18,34 @@ Buildx still gates only final Compose/browser validation; provider, ETF, and
 TC2000 shared paths remain gated only until their approved work reaches
 staging.
 
+## 2026-10-05 - Exact durable forward checkpoint resolver
+
+Commit `870c17268f89403b7faf18b64fada5c897934cc1` adds an authenticated
+recovery resolver for one exact Nautilus forward admission checkpoint. It
+loads the admission state, warm-up receipt, and replayed account state through
+store contracts implemented by the existing PostgreSQL adapters, then verifies
+the instance and warm-up bindings, exact processed-event coverage, event
+fingerprints/sequences, account cursor, and native execution receipts before
+allowing runtime reconstruction. Missing, stale, cross-instance, unsettled,
+or receipt-less recovery state fails closed. The API application adapter now
+also exposes an owner-normalized exact-checkpoint admission read.
+
+Validation: the complete Strategy Lab package passed 1,505 tests with one
+opt-in exact-image Docker test skipped; that exact-image process-kill test has
+already passed separately in the preceding checkpoint. The four focused
+recovery/application tests passed, Ruff and focused MyPy for the production
+resolver, application adapter, and recovery tests passed, and `git diff
+--check` passed. A broader MyPy invocation including the pre-existing
+`test_application.py` reported its unrelated error at line 326; the newly
+changed tests are covered by pytest and Ruff.
+
+This slice establishes the production adapter contract but does not yet wire
+it into the exact-image crash-window harness. That harness still uses SQLite
+for settlement/ACK simulation. Next, compose the resolver with actual
+PostgreSQL account/admission persistence and Redis worker ACK/replay, retaining
+RC5 as the exact native-process boundary. Stable Nautilus 2.x remains
+unnecessary.
+
 ## 2026-10-05 - Require durable native account evidence before completion
 
 `ForwardAccountWorkerHandler` no longer trusts an `APPLIED`/`REPLAY_EXISTING`
