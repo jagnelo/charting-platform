@@ -5,7 +5,15 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.capabilities import CapabilityRequirement
+from app.strategy_lab_v2.contracts import (
+    AdjustmentMode,
+    EventGranularity,
+    ProductClass,
+    StrategyVersion,
+)
 from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.forward_context import ForwardStrategyContextWindow
 from app.strategy_lab_v2.forward_worker_handoff import (
     ForwardEventDispatchPayload,
     ForwardEventWorkItem,
@@ -18,9 +26,10 @@ from app.strategy_lab_v2.nautilus_forward_delivery import (
 )
 from app.strategy_lab_v2.postgres_forward_dispatch import ForwardEventDispatchRecord
 from app.strategy_lab_v2.redis_transport import RedisStreamEntry
-from app.strategy_lab_v2.sdk import MarketEvent
+from app.strategy_lab_v2.sdk import MarketEvent, StrategyDataDependency, StrategySdkManifest
 
 EVENT_TIME = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
+STRATEGY_SOURCE = "class Strategy:\n    def on_event(self, context):\n        return []\n"
 
 
 def _canonical_event(*, source_digest: str | None = None) -> CanonicalForwardEvent:
@@ -117,6 +126,7 @@ async def test_callback_factory_authenticates_dispatch_and_builds_one_event_tape
     result = await factory(entry, work_item)
 
     assert isinstance(result, NautilusForwardDeliveryInput)
+    assert result.verified_market_payload == payload
     assert resolver.calls == [("forward-instance-1", content_digest(canonical))]
     assert result.delivery_binding.event_fingerprint == content_digest(canonical)
     assert result.delivery_binding.redis_entry_fingerprint == entry.fingerprint
@@ -128,6 +138,68 @@ async def test_callback_factory_authenticates_dispatch_and_builds_one_event_tape
     assert result.market_event == payload.market_event
     assert result.verified_source_digest == canonical.source_digest
     assert result.fingerprint == content_digest(result)
+
+
+@pytest.mark.asyncio
+async def test_context_preparation_preserves_the_authenticated_checkpoint_binding() -> None:
+    canonical = _canonical_event()
+    payload = VerifiedForwardMarketPayload(
+        canonical,
+        _market_event(canonical),
+        canonical.source_digest,
+    )
+    factory = create_nautilus_forward_delivery_callback_factory(
+        _StaticPayloadResolver(payload),
+        event_type_by_dependency={"daily-bars": "ohlcv"},
+    )
+    entry, work_item = _redis_work_item(canonical)
+    delivery = await factory(entry, work_item)
+    requirement = CapabilityRequirement(
+        instrument_id="US.AAPL",
+        product_class=ProductClass.EQUITY,
+        event_granularity=EventGranularity.BAR,
+        event_type="ohlcv",
+        timeframe="1d",
+        start=EVENT_TIME - timedelta(days=1),
+        end=EVENT_TIME + timedelta(days=1),
+        adjustment=AdjustmentMode.SPLIT_ADJUSTED,
+        session="XNYS.regular",
+        feed="consolidated",
+        execution_model="bar-close",
+        account_model="cash",
+        corporate_action_semantics="split-adjusted-v1",
+    )
+    manifest = StrategySdkManifest(
+        StrategyVersion("strategy-1", "version-1", "2.0", content_digest(STRATEGY_SOURCE)),
+        (
+            StrategyDataDependency(
+                "daily-bars",
+                requirement,
+                ("open", "high", "low", "close", "volume"),
+                lookback_periods=2,
+            ),
+        ),
+    )
+    window = ForwardStrategyContextWindow(
+        "forward-instance-1", manifest, parameters={}, random_seed=19
+    )
+    initial_fingerprint = window.window_fingerprint
+
+    preparation = window.prepare_delivery(delivery)
+
+    assert preparation.payload_fingerprint == payload.fingerprint
+    assert preparation.delivery_binding_fingerprint == delivery.delivery_binding.fingerprint
+    assert preparation.dispatch_fingerprint == delivery.delivery_binding.dispatch_record_fingerprint
+    assert (
+        preparation.pre_event_checkpoint_fingerprint
+        == delivery.delivery_binding.pre_event_checkpoint_fingerprint
+    )
+    assert (
+        preparation.warmup_receipt_fingerprint
+        == delivery.delivery_binding.warmup_receipt_fingerprint
+    )
+    assert preparation.context.market_events["daily-bars"] == (payload.market_event,)
+    assert window.window_fingerprint == initial_fingerprint
 
 
 @pytest.mark.asyncio

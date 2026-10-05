@@ -101,6 +101,16 @@ class NautilusForwardDeliveryInput:
     def fingerprint(self) -> str:
         return content_digest(self)
 
+    @property
+    def verified_market_payload(self) -> VerifiedForwardMarketPayload:
+        """Return the source-bound SDK event carried by this native input."""
+
+        return VerifiedForwardMarketPayload(
+            self.tape.envelopes[0].canonical_event,
+            self.market_event,
+            self.verified_source_digest,
+        )
+
 
 class NautilusForwardDeliveryCallbackFactory:
     """Authenticate one Redis delivery and build its exact one-event native input."""
