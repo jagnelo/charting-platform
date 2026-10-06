@@ -615,6 +615,75 @@ def test_walk_forward_gaps_embargo_and_oos_aggregation_are_explicit() -> None:
         build_walk_forward_folds(6, spec)
 
 
+def test_walk_forward_string_mode_is_normalized_not_silently_treated_as_rolling() -> None:
+    spec = WalkForwardSpec(
+        train_periods=5,
+        test_periods=2,
+        step_periods=2,
+        gap_periods=1,
+        embargo_periods=1,
+        mode="anchored",  # type: ignore[arg-type]
+    )
+
+    folds = build_walk_forward_folds(12, spec)
+
+    assert spec.mode is WalkForwardMode.ANCHORED
+    assert folds[1].train_indices == (0, 1, 2, 3, 4, 5)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("train_periods", True),
+        ("test_periods", 2.5),
+        ("step_periods", False),
+        ("gap_periods", -1),
+        ("embargo_periods", 1.5),
+    ),
+)
+def test_walk_forward_spec_rejects_non_integer_or_invalid_window_sizes(
+    field: str, value: object
+) -> None:
+    values: dict[str, object] = {
+        "train_periods": 5,
+        "test_periods": 2,
+        "step_periods": 2,
+        "gap_periods": 0,
+        "embargo_periods": 0,
+        "mode": WalkForwardMode.ROLLING,
+    }
+    values[field] = value
+
+    with pytest.raises(ValueError):
+        WalkForwardSpec(**values)  # type: ignore[arg-type]
+
+
+def test_walk_forward_fold_rejects_leakage_between_training_test_and_excluded_rows() -> None:
+    from app.strategy_lab_v2.experiments import WalkForwardFold
+
+    with pytest.raises(ValueError, match="disjoint"):
+        WalkForwardFold(
+            fold_index=0,
+            train_indices=(0, 1, 2),
+            test_indices=(3, 4),
+            excluded_indices=(2,),
+        )
+    with pytest.raises(ValueError, match="must precede"):
+        WalkForwardFold(
+            fold_index=0,
+            train_indices=(0, 1, 3),
+            test_indices=(3, 4),
+            excluded_indices=(),
+        )
+    with pytest.raises(ValueError, match="trained or excluded"):
+        WalkForwardFold(
+            fold_index=0,
+            train_indices=(0, 2, 4),
+            test_indices=(6,),
+            excluded_indices=(3,),
+        )
+
+
 def test_sdk_intents_are_typed_scoped_and_context_is_read_only() -> None:
     requirement = replace(_requirement(), end=END + timedelta(days=1))
     strategy = StrategyVersion("s-1", "v-1", "2.0", SOURCE_DIGEST)

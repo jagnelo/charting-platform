@@ -297,11 +297,7 @@ def build_trial_designs(
         or replicate_count < 1
     ):
         raise ValueError("replicate_count must be a positive integer")
-    if (
-        not isinstance(max_trials, int)
-        or isinstance(max_trials, bool)
-        or max_trials < 1
-    ):
+    if not isinstance(max_trials, int) or isinstance(max_trials, bool) or max_trials < 1:
         raise ValueError("max_trials must be positive")
     if scope_fingerprint is not None and (
         not isinstance(scope_fingerprint, str) or not scope_fingerprint
@@ -352,15 +348,14 @@ def build_trial_designs(
                         "derivation_version": derivation_version,
                     }
                 seed_group_fingerprint = content_digest(identity)
-                derived_seed = (
-                    int(seed_group_fingerprint.split(":", 1)[1][:16], 16)
-                    & ((1 << 63) - 1)
+                derived_seed = int(seed_group_fingerprint.split(":", 1)[1][:16], 16) & (
+                    (1 << 63) - 1
                 )
-                prior_group = seed_groups_by_value.setdefault(
-                    derived_seed, seed_group_fingerprint
-                )
+                prior_group = seed_groups_by_value.setdefault(derived_seed, seed_group_fingerprint)
                 if prior_group != seed_group_fingerprint:
-                    raise ValueError("derived trial seed collision across distinct randomization groups")
+                    raise ValueError(
+                        "derived trial seed collision across distinct randomization groups"
+                    )
                 randomization = TrialRandomization(
                     master_seed=seed,
                     seed=derived_seed,
@@ -392,10 +387,15 @@ class WalkForwardSpec:
     embargo_periods: int = 0
 
     def __post_init__(self) -> None:
-        if min(self.train_periods, self.test_periods, self.step_periods) < 1:
-            raise ValueError("train, test, and step periods must be positive")
-        if self.gap_periods < 0 or self.embargo_periods < 0:
-            raise ValueError("gap and embargo periods must be non-negative")
+        for name in ("train_periods", "test_periods", "step_periods"):
+            _require_integer(getattr(self, name), name, minimum=1)
+        for name in ("gap_periods", "embargo_periods"):
+            _require_integer(getattr(self, name), name, minimum=0)
+        try:
+            mode = WalkForwardMode(self.mode)
+        except (TypeError, ValueError) as error:
+            raise ValueError("mode must be anchored or rolling") from error
+        object.__setattr__(self, "mode", mode)
         if self.step_periods < self.test_periods:
             raise ValueError("step_periods must not overlap out-of-sample test windows")
 
@@ -406,6 +406,30 @@ class WalkForwardFold:
     train_indices: tuple[int, ...]
     test_indices: tuple[int, ...]
     excluded_indices: tuple[int, ...]
+
+    def __post_init__(self) -> None:
+        _require_integer(self.fold_index, "fold_index", minimum=0)
+        for name in ("train_indices", "test_indices", "excluded_indices"):
+            values = tuple(getattr(self, name))
+            if name != "excluded_indices" and not values:
+                raise ValueError(f"{name} must not be empty")
+            for index in values:
+                _require_integer(index, name, minimum=0)
+            if any(left >= right for left, right in zip(values, values[1:])):
+                raise ValueError(f"{name} must be strictly increasing")
+            object.__setattr__(self, name, values)
+        train = set(self.train_indices)
+        test = set(self.test_indices)
+        excluded = set(self.excluded_indices)
+        if self.train_indices[-1] >= self.test_indices[0]:
+            raise ValueError("training observations must precede the OOS test window")
+        if train & test or train & excluded or test & excluded:
+            raise ValueError("train, test, and excluded indices must be disjoint")
+        fold_span = set(range(self.train_indices[0], self.test_indices[0]))
+        if fold_span != (train | excluded) & fold_span:
+            raise ValueError(
+                "every pre-test observation in the fold span must be trained or excluded"
+            )
 
     @property
     def train_start(self) -> int:
@@ -429,8 +453,9 @@ def build_walk_forward_folds(
 ) -> tuple[WalkForwardFold, ...]:
     """Create chronological train/test folds with purge gaps and prior-test embargo."""
 
-    if observation_count < 1:
-        raise ValueError("observation_count must be positive")
+    _require_integer(observation_count, "observation_count", minimum=1)
+    if not isinstance(spec, WalkForwardSpec):
+        raise TypeError("spec must be a WalkForwardSpec")
     first_test_start = spec.train_periods + spec.gap_periods
     test_starts = range(
         first_test_start,
@@ -475,9 +500,25 @@ def aggregate_out_of_sample(
 ) -> tuple[Any, ...]:
     """Return observations from test indices only, once each, in chronological order."""
 
+    if not folds:
+        raise ValueError("at least one walk-forward fold is required")
+    if any(not isinstance(fold, WalkForwardFold) for fold in folds):
+        raise TypeError("folds must contain WalkForwardFold values")
     test_indices = sorted(index for fold in folds for index in fold.test_indices)
     if len(set(test_indices)) != len(test_indices):
         raise ValueError("walk-forward test windows overlap; OOS aggregation would double count")
-    if test_indices and test_indices[-1] >= len(observations):
+    referenced_indices = {
+        index
+        for fold in folds
+        for index in (*fold.train_indices, *fold.test_indices, *fold.excluded_indices)
+    }
+    if referenced_indices and max(referenced_indices) >= len(observations):
         raise ValueError("walk-forward fold references observations outside the input series")
     return tuple(observations[index] for index in test_indices)
+
+
+def _require_integer(value: object, name: str, *, minimum: int) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value < minimum:
+        qualifier = "positive" if minimum == 1 else "non-negative"
+        raise ValueError(f"{name} must be a {qualifier} integer")
+    return value

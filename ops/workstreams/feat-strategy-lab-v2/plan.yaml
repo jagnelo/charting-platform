@@ -910,6 +910,7 @@ progress:
     Consume the approved platform canonical payload contract by wiring its
     resolver into the explicit forward-worker callback factory and Compose
     profile. Then verify event admission, long-idle heartbeat, pause/stop engine
-    disposal and restart recovery against real PostgreSQL/Redis. Continue broader forward-shadow and
-    remaining backtest, search, API, security, and Compose acceptance. Keep
-    unsupported products fail-closed; stable Nautilus labeling is not a gate.
+    disposal and restart recovery against real PostgreSQL/Redis. In parallel,
+    continue backtest/search acceptance by wiring training-only walk-forward
+    selection and frozen OOS evaluation into resumable candidate execution.
+    Keep unsupported products fail-closed; stable Nautilus labeling is not a gate.

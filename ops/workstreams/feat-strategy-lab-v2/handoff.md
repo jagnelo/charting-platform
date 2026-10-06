@@ -13189,3 +13189,23 @@ not present on this branch and remains owned by the provider-platform topic;
 do not duplicate or reach into that worktree. Next: consume its approved
 contract when available, while proceeding with branch-owned backtest/search,
 API, security, and Compose acceptance.
+
+## 2026-10-06 - Validate walk-forward mode and fold boundaries strictly
+
+`WalkForwardSpec` now normalizes its mode through `WalkForwardMode`; a wire
+value of `"anchored"` can no longer silently fall through the enum-identity
+check and execute a rolling plan. Train/test/step/gap/embargo sizes and history
+counts now require actual integers (booleans and floats are rejected). Fold
+records freeze their index sequences, require chronological training before
+OOS, reject overlap among training/test/purged observations, and require every
+observation between the training start and test start to be either trained or
+explicitly excluded. OOS aggregation rejects empty/ill-typed folds and checks
+all referenced indices against the frozen observation series.
+
+Validation: the complete engine-neutral core test module passed 23/23,
+including eight walk-forward-specific cases; focused MyPy, Ruff, formatting,
+and `git diff --check` passed. This closes a real correctness hole in the
+deterministic planning layer, not the larger walk-forward orchestration gate.
+Next: connect per-fold training-only candidate selection to immutable
+resumable candidate/trial state and freeze the selected candidate's OOS
+execution/aggregation so no test observations influence selection.
