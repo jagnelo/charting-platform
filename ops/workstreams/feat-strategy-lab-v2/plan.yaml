@@ -892,24 +892,29 @@ progress:
     evidence sha256:5ed875d94c2242fcc302dec2f70df67832249c8f1aabbf3a112f671a969f4132,
     conformance sha256:0f3c976fc0d11d4fe65a0bd2a2db0e338a975ba4abecf3f77ec7f97505eca51f).
     Exact-image process-loss, production PostgreSQL/Redis settlement/ACK, and
-    post-ACK checkpoint continuation passed 3/3; the prior complete package
-    suite passed 1,508 tests with one unrelated opt-in test skipped. The new
-    forward-worker slice passes 41 adjacent tests, and package Ruff plus MyPy
-    pass across 407 files. Overall ACs remain incomplete: the dedicated
-    forward worker still lacks full warm-up/context/bootstrap and RC5 process
-    composition, and backtest/search/API/security/Compose integration plus full
-    exact-tip validation remain. Provider-platform, ETF,
+    post-ACK checkpoint continuation passed 3/3. This context adds owner-bound
+    exact-checkpoint portfolio context/history and handler composition; 46
+    adjacent tests passed, the final focused composition suite passed 10/10,
+    package Ruff passed, and MyPy passed across 407 files. The full package
+    suite was attempted but interrupted in the pre-existing
+    test_forward_process_factory_launches_persistent_hardened_ipc test; it is
+    not counted as passing. Docker server 29.1.3 is reachable, and the earlier
+    unprivileged status error was superseded by the elevated check. Overall ACs
+    remain incomplete: the dedicated forward worker still lacks full
+    warm-up/bootstrap artifact and hardened RC5 process-plan composition, and
+    backtest/search/API/security/Compose integration plus full exact-tip
+    validation remain. Provider-platform, ETF,
     and TC2000 contracts stay within their owning branches; options remain
     fail-closed pending canonical Greeks/delta/settlement evidence. Preserve
     canonical platform event identity and ordering; never derive it from
     dependency-local frozen series rows.
   next_action: >-
-    Owner-scoped dispatch routing, callback lifecycle, and a persistence-backed
-    resolver for immutable plans and exact admission/account checkpoints are
-    now composed. The owner-handler builder still must bind warm-up/context
-    artifacts to the hardened RC5 process factory and receipt-first session.
-    Keep canonical live/frozen payload readers as explicit platform-owned
-    adapters; do not synthesize event identity or ordering. Add
-    application/entrypoint integration proving missing or cross-owner bindings
-    fail closed. Then continue the open ACs and full
-    exact-tip integration gate.
+    Implement the per-owner forward runtime bootstrap-plan builder: resolve
+    the frozen warm-up tape and canonical processed prefix through explicit
+    platform readers, prepare the immutable Nautilus engine/runtime inputs,
+    stage and fingerprint the bootstrap/context/native-stream artifacts, and
+    construct the hardened RC5 sandbox command for the exact instance and
+    checkpoint. Then prove missing/cross-owner bindings fail closed through
+    application/entrypoint integration, continue open ACs, and run full exact-
+    tip integration. Never derive canonical identity or ordering from frozen
+    dependency-local rows.

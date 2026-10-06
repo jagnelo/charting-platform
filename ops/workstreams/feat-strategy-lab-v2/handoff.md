@@ -12470,3 +12470,40 @@ persistent session. Then add application/entrypoint evidence for missing and
 cross-owner bindings before proceeding to the broader
 backtest/search/API/security/Compose criteria. Stable Nautilus 2.x is not a
 gate; retain exact RC5 unless a deliberate pin change triggers requalification.
+
+## 2026-10-06 - Exact-checkpoint context composition
+
+Active changeset: `strategy-lab-v2-production-forward-worker-runtime-composition-v1`.
+This implementation increment owns only
+`backend/app/strategy_lab_v2/forward_worker_composition.py` and its focused test.
+It adds an owner-bound delivery context resolver that re-resolves the immutable
+execution plan and exact durable checkpoint named by each authenticated
+delivery, rejects instance/checkpoint/warm-up receipt drift, and constructs the
+portfolio context resolver over PostgreSQL forward-state/account adapters.
+Frozen-snapshot window, source-verified payload, and canonical processed-prefix
+readers remain required explicit platform adapters; no event identity or order
+is inferred from dependency-local rows. A handler composer now connects that
+context resolver and durable account store to the persistent hardened-process
+runtime.
+
+Implementation commit `f78a8745d5d59f9e0748aa8774bb0c6b2429c9f0` was pushed to
+`origin/feat/strategy-lab-v2`; local and remote hashes match. Validation: the
+six adjacent execution-plan, checkpoint recovery, history, session, composition,
+and entrypoint suites passed 46/46; after the final test-only typing cleanup,
+the composition suite passed 10/10. Package Ruff passed, MyPy passed across
+407 files, focused format and `git diff --check` passed. A full 1,518-test
+package run was attempted but stopped making progress in the existing
+`test_forward_process_factory_launches_persistent_hardened_ipc` test; a
+faulthandler trace showed the asyncio runner waiting while the subprocess
+stderr-drain thread remained blocked, so the run was interrupted and is not
+counted as passing. Host Docker is available (server 29.1.3); an unprivileged
+status probe's Docker permission error is superseded by the elevated host check.
+
+This closes the exact-checkpoint context-composition increment. The active
+runtime-assembly changeset remains in progress. Next implement the per-owner
+forward runtime bootstrap-plan builder: resolve frozen warm-up and canonical
+processed history through explicit platform adapters, prepare immutable engine
+inputs, stage and fingerprint bootstrap/context/native-stream artifacts, and
+build the hardened RC5 sandbox plan bound to the exact instance/checkpoint.
+Then add application/entrypoint fail-closed tests and continue the other open
+acceptance criteria. Do not start a different feature context.
