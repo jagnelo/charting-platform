@@ -18926,3 +18926,13 @@ four-profile pinned replay still reproduces 55,085/56,441/64,009/65,669 pixel
 deltas with clean browser transport; resetting dialog scroll to zero did not
 change them. Generic cleanup-safe exact integration and staging-gated provider/
 ETF consumption remain open.
+
+## 2026-10-07 — Upstream dependency audit refresh
+
+GitHub access is available again. Read-only refs were refreshed into the
+TC-only dependency-audit namespace: staging `8b885a2f`, provider-platform
+`88132e91`, ETF holdings `d0004a6b`, and TC `52a963da`. Provider divergence is
+`0/1856` and ETF divergence is `0/1049` relative to staging; neither upstream
+tip is an ancestor of staging. Consumer integration and shared-path
+reconciliation remain correctly deferred. No sibling worktree or staging ref
+was checked out or mutated.
