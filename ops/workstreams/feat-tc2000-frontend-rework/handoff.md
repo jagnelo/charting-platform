@@ -1,5 +1,25 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — TC2000 V25 symbol traversal shortcut parity
+
+Pushed product commit `0984717a9514d745908899e25ea9a7212638be09` aligns shell
+and focused watchlist traversal with the current official TC2000 V25 reference:
+Space advances and Ctrl+Space reverses. Shift+Space no longer traverses;
+focused Ctrl+Space selects the prior watchlist row without toggling
+multi-selection. Help, browser/unit regressions, and parity documentation were
+updated. Editor-owned literal spaces remain intact.
+
+Verification: VirtualWatchlistTool and WorkstationView focused suites passed
+117/117; authenticated F8k-ctrl-space passed 1/1 against the loopback worktree
+frontend and assigned backend; Vue type-check/production build passed; the
+pinned Playwright 1.62.1 Noble Help screenshot test passed 1/1. A host-browser
+visual attempt showed text/layout drift and is not canonical; the pinned run
+passed without baseline changes. A full Vitest run stalled without a test
+summary and was stopped after host memory pressure; the full suite is not
+claimed at this tip. The assigned six-service stack was preserved. The generic
+full integration gate, exact V25 review, broader acceptance criteria, and
+provider/ETF staging dependencies remain open.
+
 ## 2026-10-06 — Study Lab saved-universe source suggestions
 
 Pushed product commit `c0a2100cd0741e933382a6f72a0237ba8f495bda` enriches

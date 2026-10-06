@@ -124,19 +124,33 @@ current_blocker: >-
   repository's pinned Playwright runner then supplied the browser evidence.
   The generic exact integration gate and all other full-profile coverage remain
   open.
+  At pushed product commit 0984717a9514d745908899e25ea9a7212638be09, global
+  workstation and focused watchlist symbol traversal match the current TC2000 V25
+  shortcut reference: Space advances and Ctrl+Space reverses; Shift+Space is not
+  a traversal command. Focused watchlist Ctrl+Space does not toggle multi-select.
+  Focused UI tests passed 117/117, the authenticated F8k-ctrl-space browser flow
+  passed 1/1, type-check/production build passed, and the pinned single-profile
+  keyboard-help visual test passed 1/1. A full Vitest run produced no test summary
+  and was stopped after the constrained host became unresponsive; do not claim a
+  full-suite pass at this tip. The generic integration gate, exact V25 visual
+  review, broader criteria, and staging-dependent upstream consumption remain open.
 active_changeset_context:
-  name: Market Map Python area output compatibility
-  status: pushed_focused_full_frontend_and_authenticated_browser_verified_generic_gate_and_upstream_dependencies_open
-  commit_sha: 326a96bf0c7531356fae0db441405c1a951da8ac
-  remote_sha: 326a96bf0c7531356fae0db441405c1a951da8ac
+  name: TC2000 V25 symbol traversal shortcut parity
+  status: pushed_focused_unit_browser_build_and_visual_verified_full_suite_and_generic_gate_open
+  commit_sha: 0984717a9514d745908899e25ea9a7212638be09
+  remote_sha: 0984717a9514d745908899e25ea9a7212638be09
   intent: >-
-    Keep the Market Map Python selector and persisted execution state aligned
-    when switching to numeric tile area, which accepts only numeric-series
-    outputs; clear incompatible Boolean output/run IDs and guide the user.
+    Match current TC2000 V25 symbol traversal shortcuts across the workstation
+    shell, focused watchlists, Help, tests, and parity documentation while
+    preserving editor ownership of literal spaces and watchlist selection state.
   owned_paths:
-    - frontend/src/components/workstation/MarketMapTool.vue
-    - frontend/tests/unit/components/test_market_map_tool.test.ts
+    - frontend/src/views/WorkstationView.vue
+    - frontend/src/components/workstation/VirtualWatchlistTool.vue
     - frontend/tests/e2e/flows.spec.ts
+    - frontend/tests/e2e/tc2000_visual.spec.ts
+    - frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts
+    - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
+    - docs/tc2000-parity.md
   next_action: >-
     Continue the complete TC-owned R1/R5/R6 roadmap. Preserve the V25 visual
     references and acceptance policy. Resolve the generic integration gate only
@@ -218,6 +232,7 @@ owned_paths:
   - backend/tests/unit/services/test_strategy_lab_nautilus.py
   - backend/tests/integration/api/test_strategy_lab.py
   - docs/tc2000-acceptance-governance.md
+  - docs/tc2000-parity.md
   - docs/tc2000-reference-board.md
   - docs/tc2000-roadmap.md
   - docs/tc2000-visual-parity.md
