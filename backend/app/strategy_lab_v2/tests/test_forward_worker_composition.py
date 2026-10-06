@@ -553,6 +553,8 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
             assert kwargs["tape"] is complete_stream
             return iter(full_payloads)
 
+    processed_payloads: list[VerifiedForwardMarketPayload] = []
+
     class PrefixResolver:
         async def __call__(self, **kwargs: Any) -> ForwardProcessedEventPrefix:
             return ForwardProcessedEventPrefix(
@@ -562,7 +564,7 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
                 manifest.fingerprint,
                 content_digest(before_event),
                 (("daily-bars", manifest.data_dependencies[0].lookback_periods + 1),),
-                (),
+                tuple(processed_payloads),
             )
 
     class MarketContextResolver:
@@ -731,6 +733,77 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
                 replay_result.fingerprint,
                 True,
             )
+            context_window.commit(preparation)
+            processed_payloads.append(delivery.verified_market_payload)
+
+            # Advance the durable owner cursor and build the next process from
+            # authenticated replay of the prior event, not from the dead
+            # process's in-memory Nautilus state.
+            checkpoint_fingerprint = content_digest("authenticated-next-checkpoint")
+            admission.checkpoint.fingerprint = checkpoint_fingerprint
+            before_event = CanonicalForwardEvent(
+                "live-next",
+                250,
+                delivery.verified_market_payload.canonical_event.event_time + timedelta(seconds=2),
+                delivery.verified_market_payload.canonical_event.event_time + timedelta(seconds=3),
+                content_digest("live-next-source"),
+            )
+            next_market = replace(
+                current_market,
+                event_id=before_event.event_id,
+                event_time=before_event.event_time,
+                sequence=before_event.sequence,
+            )
+            next_binding = NautilusForwardDeliveryBinding(
+                "forward-1",
+                content_digest(before_event),
+                "2-0",
+                content_digest("forward-next-redis-entry"),
+                content_digest("forward-next-dispatch"),
+                content_digest("forward-next-request"),
+                checkpoint_fingerprint,
+                receipt.fingerprint,
+                "enqueue",
+            )
+            next_delivery = NautilusForwardDeliveryInput(
+                next_binding,
+                materialize_nautilus_forward_tape(
+                    "forward-1",
+                    (before_event,),
+                    (next_market,),
+                    event_type_by_dependency={"daily-bars": "ohlcv"},
+                    delivery_bindings=(next_binding,),
+                ),
+                next_market,
+                before_event.source_digest,
+            )
+            next_preparation = context_window.prepare_delivery(next_delivery)
+            continuation = await process_factory.start(
+                instance_id="forward-1",
+                checkpoint_fingerprint=checkpoint_fingerprint,
+                delivery=next_delivery,
+                preparation=next_preparation,
+            )
+            try:
+                next_result = await continuation.execute(next_delivery, next_preparation)
+                assert next_result.account_event_binding.canonical_event == before_event
+                assert next_result.fingerprint != replay_result.fingerprint
+                assert (
+                    ledger.settle_once(
+                        instance_id="forward-1",
+                        event_id=before_event.event_id,
+                        event_fingerprint=content_digest(before_event),
+                        result_fingerprint=next_result.fingerprint,
+                        next_checkpoint=content_digest("authenticated-final-checkpoint"),
+                    )
+                    == next_result.fingerprint
+                )
+                context_window.commit(next_preparation)
+                assert ledger.acknowledge_once(
+                    instance_id="forward-1", event_id=before_event.event_id
+                )
+            finally:
+                await continuation.close()
         except Exception as exc:
             stderr_text = stderr_capture.decode("utf-8", errors="replace")[-4000:]
             raise AssertionError(

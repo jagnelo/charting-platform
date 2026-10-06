@@ -13048,3 +13048,21 @@ reported passing cases but did not return a clean process exit; it is not
 counted as validation. Remaining forward recovery work is to drive
 post-checkpoint continuation from the authenticated plan factory rather than
 standalone fixture artifacts. Stable Nautilus 2.x remains unnecessary.
+
+## 2026-10-06 - Authenticated RC5 checkpoint continuation
+
+The exact-image authenticated-plan test now settles and ACKs the first native
+event, commits the matching SDK context window, advances to a new checkpoint,
+and starts a fresh RC5 process for the next event. That second process rebuilds
+from the authenticated warm-up artifacts plus the prior processed-event prefix,
+then executes and settles the next event. This verifies continuation from
+source-bound artifacts rather than reuse of the dead process's in-memory state.
+
+Validation: explicit exact-image recovery node IDs passed 4/4 (authenticated
+plan replay/settlement/ACK/continuation, the two durable-ledger unit cases, and
+the separate process-loss/ACK/continuation probe) against the qualified RC5
+image. Ruff, formatting, whitespace, and workstream validation passed. The
+full composition module is not claimed green; its broad invocation previously
+stalled before clean completion. Next: continue forward-shadow acceptance
+beyond this exact process probe and address the remaining backtest, search, API,
+security, and Compose criteria. No stable Nautilus release is required.
