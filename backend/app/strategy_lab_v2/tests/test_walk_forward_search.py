@@ -6,6 +6,7 @@ from decimal import Decimal
 
 import pytest
 
+from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capabilities import (
     CapabilityCell,
@@ -43,11 +44,16 @@ from app.strategy_lab_v2.experiments import (
     WalkForwardSpec,
     build_walk_forward_folds,
 )
+from app.strategy_lab_v2.nautilus_equity_trace import NautilusAccountEquityTraceWriter
+from app.strategy_lab_v2.nautilus_equity_trace_receipt import build_nautilus_equity_trace_receipt
 from app.strategy_lab_v2.search_state import (
     SearchCandidatePhase,
     SearchStateDecision,
     record_search_candidate_terminal,
     start_search_candidate,
+)
+from app.strategy_lab_v2.walk_forward_native_metrics import (
+    calculate_walk_forward_native_oos_metrics,
 )
 from app.strategy_lab_v2.walk_forward_queue import (
     WalkForwardQueueResultEvidence,
@@ -87,7 +93,9 @@ _NAUTILUS_PIN = NautilusReleasePin(
 )
 
 
-def _candidate(experiment: str, index: int) -> ScientificTrial:
+def _candidate(
+    experiment: str, index: int, evaluation_window: EvaluationWindow | None = None
+) -> ScientificTrial:
     requirement = CapabilityRequirement(
         instrument_id="US.AAPL",
         product_class=ProductClass.EQUITY,
@@ -149,6 +157,7 @@ def _candidate(experiment: str, index: int) -> ScientificTrial:
         preflight_report=report,
         parameter_set={"candidate": index},
         seed=index + 11,
+        evaluation_window=evaluation_window,
     )
 
 
@@ -266,6 +275,74 @@ def _authoritative_result(
             "backtest_authoritative",
         ),
     )
+
+
+def _native_oos_result(tmp_path, index: int, window: EvaluationWindow, marks: tuple[str, ...]):
+    trial = _candidate(content_digest("native-oos-experiment"), index, window)
+    manifest = _authoritative_result(trial, "return", Decimal("0"))
+    portfolio = manifest.portfolio
+    epoch = datetime(1970, 1, 1, tzinfo=UTC)
+    start_delta = window.start - epoch
+    end_delta = window.end - epoch
+    start_ns = (start_delta.days * 86_400 + start_delta.seconds) * 1_000_000_000
+    end_ns = (end_delta.days * 86_400 + end_delta.seconds) * 1_000_000_000
+    path = tmp_path / f"equity-{index}.parquet"
+    writer = NautilusAccountEquityTraceWriter(
+        path,
+        engine_input={
+            "trial_id": trial.trial_id,
+            "attempt_id": manifest.attempt.attempt_id,
+            "data_snapshot_fingerprint": manifest.snapshot.fingerprint,
+            "event_tape": {"source_tape_fingerprint": content_digest(("tape", index))},
+            "evaluation_window": {
+                "fingerprint": window.fingerprint,
+                "start_ns": start_ns,
+                "end_ns": end_ns,
+            },
+        },
+        portfolio={
+            "fingerprint": portfolio.fingerprint,
+            "base_currency": portfolio.base_currency,
+            "initial_capital": format(portfolio.initial_capital, "f"),
+        },
+    )
+    for offset, mark in enumerate(marks):
+        writer.write(
+            event_id=f"event-{index}-{offset}",
+            event_time_ns=start_ns + offset * 1_000_000_000,
+            event_index=offset,
+            source_sequence=offset,
+            account_equity=Decimal(mark),
+            account_cash_balance=Decimal(mark),
+        )
+    reference = writer.finish()
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    assert store.publish_file(reference.artifact, path).integrity is not None
+    receipt = build_nautilus_equity_trace_receipt(reference)
+    assert store.publish(receipt.manifest, receipt.payload).integrity is not None
+    return replace(
+        manifest,
+        output_artifacts=(*manifest.output_artifacts, reference.artifact, receipt.manifest),
+    ), store
+
+
+def test_native_walk_forward_metrics_compound_selected_oos_equity(tmp_path) -> None:
+    first_window = EvaluationWindow(_START, _START + timedelta(days=1), "out_of_sample")
+    second_window = EvaluationWindow(
+        _START + timedelta(days=2), _START + timedelta(days=3), "out_of_sample"
+    )
+    first, store = _native_oos_result(tmp_path, 0, first_window, ("100000", "110000"))
+    second, _ = _native_oos_result(tmp_path, 1, second_window, ("100000", "90000"))
+
+    metrics = calculate_walk_forward_native_oos_metrics(
+        (first, second),
+        artifact_store=store,
+        selection_fingerprint=content_digest("selected-oos-folds"),
+    )
+    values = {metric.name: metric.value for metric in metrics}
+    assert values["total_return"] == Decimal("-0.01")
+    assert values["total_pnl"] == Decimal("-1000.00")
+    assert values["maximum_drawdown"] == Decimal("-0.1")
 
 
 def _complete_training_queue(plan, training_trials, queue_bindings, state):

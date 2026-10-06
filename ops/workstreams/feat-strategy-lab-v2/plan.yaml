@@ -907,15 +907,15 @@ progress:
     branches; unsupported options remain fail-closed pending canonical
     Greeks/delta/settlement evidence.
   next_action: >-
-    Expose the owner-authenticated walk-forward definition application method
-    through the package REST boundary with strict plan parsing and idempotent
-    response semantics; initialize training queue state only after the
-    experiment, frozen snapshot, and every immutable base trial are verified.
-    Then implement restart coordination: derive folds/windows from the persisted
-    definition, resolve owner result manifests, CAS-append selected OOS tasks,
-    and dispatch stable candidate indices through the existing durable outbox.
-    Prove cancellation/retry, restart between phase boundaries, and OOS-only
-    aggregation without creating a second experiment identity. Shared router
-    registration, migrations, and overlapping upstream paths remain gated on
-    line-level staging reconciliation.
-    Keep unsupported products fail-closed; stable Nautilus labeling is not a gate.
+    Compose the verified native OOS trace calculator into owner-scoped
+    walk-forward finalization. Resolve each selected attempt manifest through
+    the authenticated PostgreSQL reader, use the shared artifact root to verify
+    receipt and Parquet bytes, persist an immutable native portfolio metric/curve
+    artifact with selection and source-manifest lineage, and expose that result
+    alongside (not as a replacement for) fold-distribution statistics. Preserve
+    pre-receipt summary compatibility. Then prove cancellation/retry and process
+    restart between walk-forward phase boundaries, and continue the remaining
+    forward, security, Compose, exact-native, and full-branch gates. Shared
+    router registration, migrations, and overlapping upstream paths remain
+    gated on line-level staging reconciliation. Keep unsupported products
+    fail-closed; stable Nautilus labeling is not a gate.

@@ -13704,3 +13704,29 @@ materialization suites passed 23/23; tests verify receipt rehydration, tamper
 rejection, publication, and legacy immutable replay. Ruff, focused MyPy, format,
 and `git diff --check` passed. Walk-forward aggregate metrics and their
 artifact-root/host read composition remain open, as do the broader branch gates.
+
+## 2026-10-06 - Implement streaming walk-forward native OOS compounding
+
+Added `walk_forward_native_metrics.py` to turn ordered, already owner-resolved
+OOS `RunResultManifest` values into native portfolio-level equity metrics. It
+verifies the pinned receipt and referenced trace artifact against each
+manifest's Nautilus authority, trial/attempt, portfolio, snapshot, currency,
+initial capital, and exact OOS window. It then streams digest-checked Parquet
+marks, carries each fold's terminal equity into the next isolated fold by
+rebasing against that fold's opening mark, drops subsequent fold openings from
+the aggregate return series, and derives event-time metrics with evidence bound
+to the selection, result manifests, receipts, and trace digests. Non-overlapping
+gaps are explicitly treated as inactive/no-P&L. This is a pure calculation
+primitive at this checkpoint: API-host artifact-store binding, owner-scoped
+finalization wiring, and durable aggregate curve/metric persistence remain the
+next work, so the public OOS summary still exposes fold-distribution statistics
+only.
+
+Validation: a two-fold fixture proves 10% then -10% compounds to -1% total
+return, -1,000 USD P&L, and -10% maximum drawdown from the selected native
+equity paths. Walk-forward search/summary/application/PostgreSQL-summary suites
+passed 24/24; walk-forward/equity-trace/worker-terminal focused tests passed
+21/21. Focused MyPy, Ruff, format, and diff checks passed. Full branch and local
+Compose/database/Redis restart validation remain open. Stable Nautilus release
+labeling remains unnecessary; traces continue to require exact qualified
+authoritative result provenance.
