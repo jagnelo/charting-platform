@@ -242,6 +242,7 @@ owned_paths:
   - frontend/tests/unit/
   - frontend/tests/e2e/flows.spec.ts
   - frontend/tests/e2e/tc2000_date_pointer.spec.ts
+  - frontend/tests/e2e/tc2000_chart_template_hotkeys.spec.ts
   - frontend/tests/e2e/tc2000_visual.spec.ts
   - frontend/tests/e2e/tc2000_visual.spec.ts-snapshots/
   - frontend/tests/e2e/workstation_performance.spec.ts

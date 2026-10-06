@@ -23,6 +23,10 @@
             <button type="button" aria-label="Cancel template rename" :disabled="busy" @click="cancelRename"><WorkstationGlyph kind="close" /></button>
           </template>
           <template v-else>
+            <select class="chart-template__function-key" :value="item.payload.function_key ?? ''" :aria-label="`Function key for ${item.name}`" :disabled="busy" @change="assignFunctionKey(item, $event as Event)">
+              <option value="">No key</option>
+              <option v-for="key in functionKeys" :key="key" :value="key">{{ key }}</option>
+            </select>
             <button type="button" class="chart-template__apply" @click="apply(item)">{{ item.name }} <small>v{{ item.version }}</small></button>
             <button type="button" :aria-label="`Rename ${item.name}`" :disabled="busy" @click="beginRename(item)"><WorkstationGlyph kind="edit" /></button>
           </template>
@@ -47,8 +51,8 @@ import { api } from '@/lib/api'
 import { CHART_BAR_TYPES, type ChartBarType, type IndicatorConfig } from '@/types'
 import WorkstationGlyph from './WorkstationGlyph.vue'
 
-type TemplateItem = { stable_key: string; name: string; version: number; payload: { configuration?: Record<string, unknown> } }
-const props = defineProps<{ configuration: Record<string, unknown>; indicatorConfigs?: IndicatorConfig[] }>()
+type TemplateItem = { stable_key: string; name: string; version: number; payload: { configuration?: Record<string, unknown>; function_key?: string } }
+const props = defineProps<{ configuration: Record<string, unknown>; indicatorConfigs?: IndicatorConfig[]; sourceWindowKey?: string }>()
 const emit = defineEmits<{ apply: [configuration: Record<string, unknown>] }>()
 const queryClient = useQueryClient()
 const templateToken = globalThis.crypto?.randomUUID?.().replace(/-/g, '').slice(0, 12) ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
@@ -71,6 +75,7 @@ const identityKeys = new Set(['symbol', 'instrument_id', 'expression'])
 let mounted = false
 let loadGeneration = 0
 const barTypes = CHART_BAR_TYPES
+const functionKeys = Array.from({ length: 12 }, (_, index) => `F${index + 1}`)
 function validatedBarType(value: unknown): ChartBarType {
   return typeof value === 'string' && barTypes.some(type => type.value === value)
     ? value as ChartBarType
@@ -127,7 +132,7 @@ function focusLastMenuControl() {
 function toggleOpen(focusLast = false) {
   open.value = !open.value
   if (open.value) void nextTick(() => {
-    void load()
+    void requestLoad()
     positionMenu()
     window.addEventListener('resize', positionMenu)
     window.addEventListener('scroll', positionMenu, true)
@@ -186,6 +191,22 @@ function apply(item: TemplateItem) {
   error.value = ''
 }
 
+function handleFunctionKey(event: Event) {
+  const detail = (event as CustomEvent<{ windowKey?: string; functionKey?: string }>).detail
+  const functionKey = detail?.functionKey
+  if (!functionKey || !props.sourceWindowKey || detail?.windowKey !== props.sourceWindowKey || !functionKeys.includes(functionKey)) return
+  if (loading.value) {
+    void requestLoad().then(() => applyFunctionKey(functionKey))
+    return
+  }
+  applyFunctionKey(functionKey)
+}
+
+function applyFunctionKey(functionKey: string) {
+  const item = items.value.find(candidate => candidate.payload.function_key === functionKey)
+  if (item) apply(item)
+}
+
 function setBarType(value: string) {
   if (!barTypes.some(type => type.value === value)) return
   currentBarType.value = value as ChartBarType
@@ -212,25 +233,45 @@ async function load() {
   }
 }
 
-async function persist(templateName: string, configuration: Record<string, unknown>, key = stableKey(templateName)) {
+let templateLoadPromise: Promise<void> | null = null
+function requestLoad() {
+  if (!templateLoadPromise) templateLoadPromise = load().finally(() => { templateLoadPromise = null })
+  return templateLoadPromise
+}
+
+async function persist(templateName: string, configuration: Record<string, unknown>, key = stableKey(templateName), functionKey?: string) {
   busy.value = true
   error.value = ''
   try {
     await api.put(`/workspaces/library/items/chart_template/${encodeURIComponent(key)}`, {
       kind: 'chart_template', stable_key: key, name: templateName,
-      payload: { configuration: templateConfiguration(configuration), schema_version: 1 },
+      payload: { configuration: templateConfiguration(configuration), schema_version: 1, ...(functionKey ? { function_key: functionKey } : {}) },
       dependency_metadata: { contract: 'workstation_chart_template_v1' },
     })
     await queryClient.invalidateQueries({ queryKey: ['workstation', 'library-items', 'chart_template'] })
-    await load()
+    await requestLoad()
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to save chart template' }
   finally { busy.value = false }
+}
+
+async function assignFunctionKey(item: TemplateItem, event: Event) {
+  const select = event.target as HTMLSelectElement
+  const requestedKey = select.value
+  const functionKey = functionKeys.includes(requestedKey) ? requestedKey : undefined
+  const conflict = functionKey && items.value.find(candidate => candidate.stable_key !== item.stable_key
+    && candidate.payload.function_key === functionKey)
+  if (conflict) {
+    error.value = `${functionKey} is already assigned to ${conflict.name}. Clear that assignment first.`
+    select.value = item.payload.function_key ?? ''
+    return
+  }
+  await persist(item.name, item.payload.configuration ?? {}, item.stable_key, functionKey)
 }
 
 async function rename(item: TemplateItem) {
   const nextName = renameDraft.value.trim()
   if (!nextName || !renamingKey.value) return
-  await persist(nextName, item.payload.configuration ?? {}, item.stable_key)
+  await persist(nextName, item.payload.configuration ?? {}, item.stable_key, item.payload.function_key)
   cancelRename()
 }
 
@@ -241,7 +282,7 @@ async function remove(item: TemplateItem) {
   try {
     await api.delete(`/workspaces/library/items/chart_template/${encodeURIComponent(item.stable_key)}`)
     await queryClient.invalidateQueries({ queryKey: ['workstation', 'library-items', 'chart_template'] })
-    await load()
+    await requestLoad()
   }
   catch (cause: any) { error.value = cause?.message ?? 'Unable to delete chart template' }
   finally { busy.value = false }
@@ -270,7 +311,10 @@ async function importItem(event: Event) {
   try {
     const parsed = JSON.parse(await file.text())
     if (parsed?.kind !== 'chart_template' || typeof parsed?.name !== 'string' || !parsed?.payload?.configuration || typeof parsed.payload.configuration !== 'object') throw new Error('Not a chart-template export')
-    await persist(parsed.name, parsed.payload.configuration)
+    const functionKey = functionKeys.includes(parsed.payload.function_key) ? parsed.payload.function_key as string : undefined
+    const conflict = functionKey && items.value.find(item => item.payload.function_key === functionKey)
+    if (conflict) throw new Error(`${functionKey} is already assigned to ${conflict.name}. Clear that assignment first.`)
+    await persist(parsed.name, parsed.payload.configuration, stableKey(parsed.name), functionKey)
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to import chart template' }
   finally { if (importInput.value) importInput.value.value = '' }
 }
@@ -279,17 +323,19 @@ function openImportPicker() {
 }
 onMounted(() => {
   mounted = true
-  void load()
+  window.addEventListener('tc2000:chart-template-key', handleFunctionKey)
+  void requestLoad()
 })
 onBeforeUnmount(() => {
   mounted = false
   loadGeneration += 1
+  window.removeEventListener('tc2000:chart-template-key', handleFunctionKey)
   window.removeEventListener('resize', positionMenu)
   window.removeEventListener('scroll', positionMenu, true)
 })
 </script>
 
 <style scoped>
-.chart-template{position:relative}.chart-template>button,.chart-template button,.chart-template input,.chart-template label{border:1px solid #3a4954;background:#172027;color:#dce6ed;font:10px "Segoe UI",Arial,sans-serif}.chart-template>button{height:18px;padding:0 5px;cursor:pointer}.chart-template__menu{z-index:120;display:grid;gap:4px;max-height:300px;padding:6px;border:1px solid #4a5b67;background:#131a20;box-shadow:0 6px 16px #000b}.chart-template__menu header,.chart-template__save,.chart-template__menu footer,.chart-template__menu li{display:flex;align-items:center;gap:4px}.chart-template__menu header button{margin-left:auto}.chart-template__save input{min-width:0;flex:1;padding:2px 4px}.chart-template__menu ul{display:grid;gap:2px;max-height:154px;margin:0;padding:0;overflow:auto;list-style:none}.chart-template__menu li{min-width:0}.chart-template__apply{min-width:0;flex:1;padding:2px 4px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chart-template__apply small{color:#8296a4}.chart-template__menu footer{justify-content:space-between;padding-top:3px;border-top:1px solid #2f3c45}.chart-template__menu footer .chart-template__import{padding:2px 4px;cursor:pointer}.chart-template__menu footer .chart-template__file-input{display:none}.chart-template__state,.chart-template__error{margin:2px 0;color:#8da0ab}.chart-template__error{color:#ef9b9b}
+.chart-template{position:relative}.chart-template>button,.chart-template button,.chart-template input,.chart-template label,.chart-template select{border:1px solid #3a4954;background:#172027;color:#dce6ed;font:10px "Segoe UI",Arial,sans-serif}.chart-template>button{height:18px;padding:0 5px;cursor:pointer}.chart-template__menu{z-index:120;display:grid;gap:4px;max-height:300px;padding:6px;border:1px solid #4a5b67;background:#131a20;box-shadow:0 6px 16px #000b}.chart-template__menu header,.chart-template__save,.chart-template__menu footer,.chart-template__menu li{display:flex;align-items:center;gap:4px}.chart-template__menu header button{margin-left:auto}.chart-template__save input{min-width:0;flex:1;padding:2px 4px}.chart-template__menu ul{display:grid;gap:2px;max-height:154px;margin:0;padding:0;overflow:auto;list-style:none}.chart-template__menu li{min-width:0}.chart-template__function-key{flex:0 0 43px;min-width:0;padding:2px 1px}.chart-template__apply{min-width:0;flex:1;padding:2px 4px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chart-template__apply small{color:#8296a4}.chart-template__menu footer{justify-content:space-between;padding-top:3px;border-top:1px solid #2f3c45}.chart-template__menu footer .chart-template__import{padding:2px 4px;cursor:pointer}.chart-template__menu footer .chart-template__file-input{display:none}.chart-template__state,.chart-template__error{margin:2px 0;color:#8da0ab}.chart-template__error{color:#ef9b9b}
 .chart-template__bar-type{display:grid;grid-template-columns:54px minmax(0,1fr);align-items:center;gap:4px;color:#94a5b0}.chart-template__bar-type select{min-width:0;padding:1px 3px}
 </style>

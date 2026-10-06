@@ -59,7 +59,8 @@
               <div><dt>[ / ]</dt><dd>Move the active chart backward or forward one bar; Shift moves five bars</dd></div>
               <div><dt>Ctrl+wheel</dt><dd>Over a chart: change timeframe; over a WatchList: move through symbols</dd></div>
               <div><dt>= / -</dt><dd>Over the active chart: change timeframe</dd></div>
-              <div><dt>F1 or ?</dt><dd>Show this help</dd></div>
+              <div><dt>F1–F12</dt><dd>Load the chart template assigned to that key</dd></div>
+              <div><dt>?</dt><dd>Show this help</dd></div>
               <div><dt>Escape</dt><dd>Close search and menus</dd></div>
             </dl>
             <small>Shortcuts are inactive while a text, numeric, code, or search editor owns focus.</small>
@@ -2036,6 +2037,20 @@ function handleKeydown(event: KeyboardEvent) {
     const direction = event.key === '=' ? 1 : -1
     if (activeWindow?.tool_type === 'chart' && activeWindowKey && cycleChartTimeframe(activeWindowKey, direction)) {
       event.preventDefault()
+      return
+    }
+  }
+  if (/^F(?:[1-9]|1[0-2])$/.test(event.key) && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+    const activeTab = workspaceStore.activeTab
+    const activeWindowKey = isPopout.value
+      ? String(route.params.windowKey ?? '')
+      : activeTab?.active_window_key
+    const activeWindow = activeTab?.windows.find(window => window.instance_key === activeWindowKey)
+    if (activeWindow?.tool_type === 'chart' && activeWindowKey) {
+      event.preventDefault()
+      window.dispatchEvent(new CustomEvent('tc2000:chart-template-key', {
+        detail: { windowKey: activeWindowKey, functionKey: event.key },
+      }))
       return
     }
   }

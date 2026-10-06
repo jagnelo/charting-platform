@@ -262,7 +262,7 @@
     <div v-else-if="tool.tool_type === 'chart' && tool.instance_key !== 'ratio-chart'" class="chart-tool">
       <DrawingToolbar class="chart-tool__drawing-toolbar" />
         <div class="chart-tool__surface">
-        <ChartTemplateControl class="chart-tool__templates" :configuration="chartTemplateConfiguration" :indicator-configs="chartStore.indicators" @apply="applyChartTemplate" />
+        <ChartTemplateControl class="chart-tool__templates" :source-window-key="tool.instance_key" :configuration="chartTemplateConfiguration" :indicator-configs="chartStore.indicators" @apply="applyChartTemplate" />
         <!-- Use the literal kebab-case event contract so the virtual component
              listener and typed emitter remain identical after template
              compilation. -->

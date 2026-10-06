@@ -70,6 +70,83 @@ describe('ChartTemplateControl', () => {
     }])
   })
 
+  it('persists a unique TC2000 function key on its chart template', async () => {
+    apiGet.mockResolvedValueOnce([{
+      stable_key: 'trend-20', name: 'Trend 20', version: 3,
+      payload: { configuration: { bar_type: 'line', indicators: [] } },
+    }])
+    const wrapper = mount(ChartTemplateControl, { props: { configuration: { symbol: 'SPY' } } })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalled())
+    await wrapper.get('button[aria-label="Chart templates"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Trend 20'))
+
+    await wrapper.get('select[aria-label="Function key for Trend 20"]').setValue('F3')
+
+    expect(apiPut).toHaveBeenCalledWith('/workspaces/library/items/chart_template/trend-20', expect.objectContaining({
+      payload: expect.objectContaining({
+        function_key: 'F3',
+        configuration: { bar_type: 'line', indicators: [] },
+      }),
+    }))
+  })
+
+  it('prevents two templates from claiming the same function key', async () => {
+    apiGet.mockResolvedValueOnce([
+      { stable_key: 'one', name: 'One', version: 1, payload: { function_key: 'F1', configuration: {} } },
+      { stable_key: 'two', name: 'Two', version: 1, payload: { configuration: {} } },
+    ])
+    const wrapper = mount(ChartTemplateControl, { props: { configuration: {} } })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalled())
+    await wrapper.get('button[aria-label="Chart templates"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Two'))
+
+    await wrapper.get('select[aria-label="Function key for Two"]').setValue('F1')
+
+    expect(apiPut).not.toHaveBeenCalled()
+    expect(wrapper.get('[role="alert"]').text()).toContain('F1 is already assigned to One')
+  })
+
+  it('applies a function-key template only for its owning chart window', async () => {
+    apiGet.mockResolvedValueOnce([{
+      stable_key: 'weekly', name: 'Weekly', version: 1,
+      payload: { function_key: 'F5', configuration: { timeframe: 'W1', bar_type: 'line' } },
+    }])
+    const wrapper = mount(ChartTemplateControl, {
+      props: { sourceWindowKey: 'chart-a', configuration: { symbol: 'SPY' } },
+    })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalled())
+    await flushPromises()
+
+    window.dispatchEvent(new CustomEvent('tc2000:chart-template-key', {
+      detail: { windowKey: 'chart-b', functionKey: 'F5' },
+    }))
+    expect(wrapper.emitted('apply')).toBeUndefined()
+    window.dispatchEvent(new CustomEvent('tc2000:chart-template-key', {
+      detail: { windowKey: 'chart-a', functionKey: 'F5' },
+    }))
+
+    expect(wrapper.emitted('apply')?.[0]).toEqual([{ timeframe: 'W1', bar_type: 'line' }])
+    wrapper.unmount()
+  })
+
+  it('waits for initial template hydration before resolving a function key', async () => {
+    let resolveTemplates!: (value: unknown[]) => void
+    apiGet.mockImplementation(() => new Promise(resolve => { resolveTemplates = resolve }))
+    const wrapper = mount(ChartTemplateControl, {
+      props: { sourceWindowKey: 'chart-a', configuration: { symbol: 'SPY' } },
+    })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalled())
+
+    window.dispatchEvent(new CustomEvent('tc2000:chart-template-key', {
+      detail: { windowKey: 'chart-a', functionKey: 'F2' },
+    }))
+    expect(wrapper.emitted('apply')).toBeUndefined()
+    resolveTemplates([{ stable_key: 'daily', name: 'Daily', version: 1, payload: { function_key: 'F2', configuration: { timeframe: 'D1' } } }])
+
+    await vi.waitFor(() => expect(wrapper.emitted('apply')?.[0]).toEqual([{ timeframe: 'D1' }]))
+    wrapper.unmount()
+  })
+
   it('persists alternative-bar parameters and clears them when chart defaults are reset', async () => {
     const wrapper = mount(ChartTemplateControl, {
       props: { configuration: {

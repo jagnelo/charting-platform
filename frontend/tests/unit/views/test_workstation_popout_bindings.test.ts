@@ -564,6 +564,37 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('routes unmodified F1-F12 shortcuts to the active chart template control only', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    harness.workspace.activeTab.active_window_key = 'chart-main'
+    const received: CustomEvent[] = []
+    const listener = (event: Event) => received.push(event as CustomEvent)
+    window.addEventListener('tc2000:chart-template-key', listener)
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const workstation = wrapper.find('.workstation').element
+
+    const chartEvent = new KeyboardEvent('keydown', { key: 'F5', bubbles: true, cancelable: true })
+    workstation.dispatchEvent(chartEvent)
+    expect(chartEvent.defaultPrevented).toBe(true)
+    expect(received).toHaveLength(1)
+    expect(received[0].detail).toEqual({ windowKey: 'chart-main', functionKey: 'F5' })
+
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+    const nonChartEvent = new KeyboardEvent('keydown', { key: 'F5', bubbles: true, cancelable: true })
+    workstation.dispatchEvent(nonChartEvent)
+    expect(nonChartEvent.defaultPrevented).toBe(false)
+    expect(received).toHaveLength(1)
+
+    const modifiedEvent = new KeyboardEvent('keydown', { key: 'F5', ctrlKey: true, bubbles: true, cancelable: true })
+    workstation.dispatchEvent(modifiedEvent)
+    expect(received).toHaveLength(1)
+    window.removeEventListener('tc2000:chart-template-key', listener)
+    wrapper.unmount()
+  })
+
   it('cycles supported Ctrl+B chart styles only on the active chart', async () => {
     routeState.path = '/'
     routeState.params = {}
