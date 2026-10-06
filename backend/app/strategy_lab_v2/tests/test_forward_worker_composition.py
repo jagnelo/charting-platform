@@ -49,6 +49,9 @@ from app.strategy_lab_v2.nautilus_forward_delivery import (
     create_nautilus_forward_delivery_callback_factory,
 )
 from app.strategy_lab_v2.nautilus_forward_input import NautilusForwardDeliveryInput
+from app.strategy_lab_v2.nautilus_forward_process import (
+    HardenedNautilusForwardSessionProcessFactory,
+)
 from app.strategy_lab_v2.nautilus_forward_recovery import ResolvedNautilusForwardCheckpoint
 from app.strategy_lab_v2.nautilus_forward_session import (
     NautilusForwardSessionEventHandler,
@@ -56,6 +59,15 @@ from app.strategy_lab_v2.nautilus_forward_session import (
 )
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile
+from app.strategy_lab_v2.sandbox import (
+    sandbox_context_stream_digest,
+    sandbox_context_stream_path,
+    sandbox_forward_bootstrap_digest,
+    sandbox_forward_bootstrap_path,
+    sandbox_native_event_stream_digest,
+    sandbox_native_event_stream_path,
+    validate_sandbox_command_plan,
+)
 from app.strategy_lab_v2.sdk import MarketEvent, StrategyContext
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs as _trial_inputs
@@ -352,7 +364,10 @@ def test_forward_sandbox_input_resolver_requires_one_authenticated_owner() -> No
 
 
 @pytest.mark.asyncio
-async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape() -> None:
+async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape(
+    tmp_path: Any,
+    monkeypatch: Any,
+) -> None:
     values = _trial_inputs()
     snapshot = values["snapshot"]
     manifest = values["strategy_manifest"]
@@ -379,10 +394,14 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
         13,
     )
     resolved_component = SimpleNamespace(
+        fingerprint=content_digest("resolved-forward-component"),
         binding=component_binding,
         strategy=strategy,
         package=package,
         resolved_package=SimpleNamespace(
+            fingerprint=content_digest("resolved-package"),
+            archive_manifest=SimpleNamespace(content_digest=content_digest("package-archive")),
+            dependency_lock=b"{}",
             manifest=manifest,
             source=values["strategy_source"],
         ),
@@ -575,6 +594,50 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
         result.engine_input.event_tape.source_tape_fingerprint
         == result.warmup_tape.tape.fingerprint
     )
+
+    output_directory = tmp_path / "forward-output"
+    output_directory.mkdir()
+    artifact_store = LocalArtifactStore(tmp_path / "forward-artifacts")
+    plan_factory = AuthenticatedForwardSandboxPlanFactory(
+        artifact_store,
+        resolver,
+        principal="owner-a",
+        image_name="nautilus-forward:rc5",
+        output_path_resolver=lambda _instance_id, _checkpoint: output_directory / "output.json",
+    )
+    sandbox_plan = await plan_factory(
+        instance_id="forward-1",
+        checkpoint_fingerprint=checkpoint_fingerprint,
+        delivery=delivery,
+        preparation=preparation,
+    )
+
+    assert sandbox_forward_bootstrap_digest(sandbox_plan)
+    bootstrap_path = sandbox_forward_bootstrap_path(sandbox_plan)
+    assert bootstrap_path is not None and bootstrap_path.is_file()
+    assert sandbox_native_event_stream_digest(sandbox_plan)
+    native_stream_path = sandbox_native_event_stream_path(sandbox_plan)
+    assert native_stream_path is not None and native_stream_path.is_file()
+    assert sandbox_context_stream_digest(sandbox_plan)
+    context_stream_path = sandbox_context_stream_path(sandbox_plan)
+    assert context_stream_path is not None and context_stream_path.is_file()
+    assert sandbox_plan.request_fingerprint
+    validate_sandbox_command_plan(sandbox_plan)
+
+    process_factory = HardenedNautilusForwardSessionProcessFactory(plan_factory)
+    monkeypatch.setattr(
+        process_factory,
+        "_start_plan_sync",
+        lambda plan, *_args: plan,
+    )
+    started = await process_factory.start(
+        instance_id="forward-1",
+        checkpoint_fingerprint=checkpoint_fingerprint,
+        delivery=delivery,
+        preparation=preparation,
+    )
+
+    assert started == sandbox_plan
 
 
 def test_forward_warmup_composition_cuts_by_global_canonical_cursor() -> None:
