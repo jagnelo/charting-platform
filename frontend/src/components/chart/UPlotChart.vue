@@ -114,6 +114,7 @@
           <div :id="`${chartControlId}-shortcuts-title`" class="sc-title">Keyboard Shortcuts</div>
           <div class="sc-row"><kbd>+</kbd><kbd>-</kbd> Zoom in / out</div>
           <div class="sc-row"><kbd>←</kbd><kbd>→</kbd> Pan 5 bars</div>
+          <div class="sc-row"><kbd>[</kbd><kbd>]</kbd> Pan 1 bar; Shift for 5 bars</div>
           <div class="sc-row"><kbd>Alt</kbd><kbd>R</kbd> Go to latest</div>
           <div class="sc-row"><kbd>L</kbd> Toggle log scale</div>
           <div class="sc-row"><kbd>?</kbd> This help</div>
@@ -328,6 +329,13 @@ function setChartTransformNumber(key: ChartTransformParamKey, raw: string) {
 const overlaysEnabled    = computed(() => props.showOverlays)
 const overlayInteractionsEnabled = computed(() => overlaysEnabled.value && props.enableOverlayInteractions)
 const keyboardEnabled    = computed(() => props.enableKeyboard)
+let activeKeyboardListener: ((event: KeyboardEvent) => void) | null = null
+watch(keyboardEnabled, enabled => {
+  const listener = activeKeyboardListener
+  if (!listener) return
+  if (enabled) window.addEventListener('keydown', listener)
+  else window.removeEventListener('keydown', listener)
+})
 const controlsEnabled    = computed(() => props.showControls)
 const baseVisibleIndicators = computed(() =>
   props.showIndicators ? chartStore.activeIndicators : []
@@ -2175,7 +2183,7 @@ function setupInteraction(u: uPlot) {
   }
 
   const onKeyDown = (e: KeyboardEvent) => {
-    if (isEditorTarget(e.target)) return
+    if (!keyboardEnabled.value || isEditorTarget(e.target)) return
     const [ts] = u.data as number[][]
     if (!ts?.length) return
     const xMin   = u.scales.x.min!
@@ -2183,6 +2191,13 @@ function setupInteraction(u: uPlot) {
     const span   = xMax - xMin
     const mid    = (xMin + xMax) / 2
     const barDur = ts.length > 1 ? ts[1] - ts[0] : 86400
+    if (e.code === 'BracketLeft' || e.code === 'BracketRight') {
+      const bars = e.shiftKey ? 5 : 1
+      const direction = e.code === 'BracketLeft' ? -1 : 1
+      e.preventDefault()
+      setXRange(xMin + barDur * bars * direction, xMax + barDur * bars * direction)
+      return
+    }
     switch (e.key) {
       case '=': case '+': e.preventDefault(); setXRange(mid - span/2/ZOOM_FACTOR, mid + span/2/ZOOM_FACTOR); break
       case '-':           e.preventDefault(); setXRange(mid - span/2*ZOOM_FACTOR, mid + span/2*ZOOM_FACTOR); break
@@ -2220,6 +2235,7 @@ function setupInteraction(u: uPlot) {
   wrapper.addEventListener('contextmenu', onContextMenu)
   window.addEventListener('mousemove',    onMouseMove)
   window.addEventListener('mouseup',      onMouseUp)
+  activeKeyboardListener = onKeyDown
   if (keyboardEnabled.value) window.addEventListener('keydown', onKeyDown)
 
   interactionCleanup = () => {
@@ -2231,7 +2247,8 @@ function setupInteraction(u: uPlot) {
     wrapper.removeEventListener('contextmenu', onContextMenu)
     window.removeEventListener('mousemove',    onMouseMove)
     window.removeEventListener('mouseup',      onMouseUp)
-    if (keyboardEnabled.value) window.removeEventListener('keydown', onKeyDown)
+    window.removeEventListener('keydown', onKeyDown)
+    if (activeKeyboardListener === onKeyDown) activeKeyboardListener = null
     _overDblClickCleanup()
     wrapper.style.cursor = ''
   }

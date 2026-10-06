@@ -2663,6 +2663,7 @@ test.describe('TC2000 workstation', () => {
     await expect(helpMenu).toContainText('Shift+F')
     await expect(helpMenu).toContainText('Shift+N')
     await expect(helpMenu).toContainText('Shift+D')
+    await expect(helpMenu).toContainText('[ / ]')
     await expect(helpMenu).toContainText('Previous symbol in viewed history')
     await expect(helpMenu).toContainText('Over a chart: change timeframe')
     await expect(helpMenu).toContainText('over a WatchList: move through symbols')
@@ -2733,6 +2734,40 @@ test.describe('TC2000 workstation', () => {
     await activeSymbol.press('Shift+d')
     await expect(linesButton).not.toHaveClass(/\bactive\b/)
     await expect(activeSymbol).toHaveValue('d')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8k-chart-brackets — bracket keys pan the active chart by one or five bars', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    const chart = page.locator('.tool-window:visible').filter({ has: page.locator('.chart-tool') }).last()
+    await expect(chart).toBeVisible({ timeout: 10_000 })
+    const plot = chart.locator('.uplot').first()
+    await expect(plot).toBeVisible()
+    await plot.click({ position: { x: 12, y: 12 } })
+    await chart.locator('.tool-window__header').click({ position: { x: 20, y: 20 } })
+    await expect(chart).toHaveClass(/tool-window--active/)
+    await chart.locator('.drawing-toolbar button[aria-label="Lines"]').focus()
+    const plotBox = await plot.boundingBox()
+    expect(plotBox).not.toBeNull()
+    await page.mouse.move(plotBox!.x + plotBox!.width * 0.9, plotBox!.y + plotBox!.height * 0.5)
+    for (let index = 0; index < 3; index += 1) await page.mouse.wheel(0, -180)
+    const goToLatest = chart.getByRole('button', { name: 'Go to latest bar' })
+    if (await goToLatest.isVisible()) await goToLatest.click()
+
+    for (let index = 0; index < 3; index += 1) await page.keyboard.press('BracketLeft')
+    await expect(chart.getByRole('button', { name: 'Go to latest bar' })).toBeHidden()
+    // The latest-bar recovery affordance uses an 8% viewport tolerance and
+    // bar durations can include weekends; use enough steps to cross it robustly.
+    for (let index = 0; index < 10; index += 1) await page.keyboard.press('Shift+BracketLeft')
+    await expect(chart.getByRole('button', { name: 'Go to latest bar' })).toBeVisible()
+    for (let index = 0; index < 10; index += 1) await page.keyboard.press('Shift+BracketRight')
+    await expect(chart.getByRole('button', { name: 'Go to latest bar' })).toBeHidden()
+
+    const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
+    await activeSymbol.fill('')
+    await activeSymbol.press('BracketLeft')
+    await expect(activeSymbol).toHaveValue('[')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

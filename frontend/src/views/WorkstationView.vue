@@ -46,6 +46,7 @@
               <div><dt>Shift+F</dt><dd>Flag or unflag selected WatchList symbols</dd></div>
               <div><dt>Shift+N</dt><dd>Write a note for the active WatchList symbol</dd></div>
               <div><dt>Shift+D</dt><dd>Toggle Trend Line drawing on the active chart</dd></div>
+              <div><dt>[ / ]</dt><dd>Move the active chart backward or forward one bar; Shift moves five bars</dd></div>
               <div><dt>Ctrl+wheel</dt><dd>Over a chart: change timeframe; over a WatchList: move through symbols</dd></div>
               <div><dt>= / -</dt><dd>Over the active chart: change timeframe</dd></div>
               <div><dt>F1 or ?</dt><dd>Show this help</dd></div>
@@ -1833,6 +1834,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     tool,
     activeWindowKey: workspaceStore.activeTab?.active_window_key,
     factoryLayout: workspaceStore.activeTabKey,
+    onActivate: () => workspaceStore.setActiveWindow(dockTool.instance_key),
     onSelect: (symbol: string, instrumentId?: number | null) => void selectSymbol(symbol, undefined, false, instrumentId),
     onCompare: (symbols: string[]) => compareSymbols(symbols),
     onRatio: (symbols: string[]) => void openMarketMapRatio(symbols),

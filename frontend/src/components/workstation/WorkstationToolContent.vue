@@ -1,5 +1,5 @@
 <template>
-  <ToolWindow :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="activeSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="tool.instance_key === activeWindowKey" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
+  <ToolWindow :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="activeSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="isActiveToolWindow" @pointerdown.capture="emit('activate')" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
     <div v-if="tool.instance_key === 'benchmark-list'" class="benchmark-surface">
       <div class="benchmark-surface__family-controls" aria-label="Benchmark family selector">
         <label>Family
@@ -278,6 +278,7 @@
           v-if="chartStore.symbol && !chartStore.error"
           :chart-type="chartBarType"
           :chart-settings="liveChartConfiguration"
+          :enable-keyboard="isActiveToolWindow"
           :workspace-link-group="localLinkGroup"
           :linked-timestamp="workspaceStore.timestampForLinkGroup(localLinkGroup)"
           :comparison-series="comparisonSeries"
@@ -1028,7 +1029,7 @@ let personalMutationSequence = 0
 let benchmarkFamilyReadinessSequence = 0
 let familyAnalyticsSequence = 0
 let familyOverviewSequence = 0
-const emit = defineEmits<{ select: [symbol: string, instrumentId?: number | null]; compare: [symbols: string[]]; ratio: [symbols: string[]]; marketMap: [sourceId: string]; reorder: [watchlistId: number, itemIds: number[]]; rowAction: [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string, instrumentId?: number | null]; selectIndustry: [industry: string, etf: string]; selectProxy: [symbol: string, instrumentId?: number | null]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[]; scope: 'full' | 'selection' }]; openStudy: [payload: { name: string; versionId: number; source: string; outputContract: string; parameterSchema: Record<string, unknown>; defaultParameters: Record<string, unknown> }]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup, displayedSymbol?: string] }>()
+const emit = defineEmits<{ activate: []; select: [symbol: string, instrumentId?: number | null]; compare: [symbols: string[]]; ratio: [symbols: string[]]; marketMap: [sourceId: string]; reorder: [watchlistId: number, itemIds: number[]]; rowAction: [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string, instrumentId?: number | null]; selectIndustry: [industry: string, etf: string]; selectProxy: [symbol: string, instrumentId?: number | null]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[]; scope: 'full' | 'selection' }]; openStudy: [payload: { name: string; versionId: number; source: string; outputContract: string; parameterSchema: Record<string, unknown>; defaultParameters: Record<string, unknown> }]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup, displayedSymbol?: string] }>()
 // Inputs in dense breadth authoring can emit several configuration updates before
 // Golden Layout delivers the parent prop patch. Keep a local draft so a rapid
 // select/edit/evaluate sequence cannot serialize a stale sibling value.
@@ -1072,6 +1073,13 @@ const chartStore = usePanelStore(chartPanelId)
 const drawingsStore = useDrawingsStore()
 const alertsStore = useAlertsStore()
 const workspaceStore = useWorkspaceStore()
+const isActiveToolWindow = computed(() => {
+  const activeTab = workspaceStore.activeTab
+  if (activeTab && (!props.factoryLayout || activeTab.stable_key === props.factoryLayout)) {
+    return activeTab.active_window_key === props.tool.instance_key
+  }
+  return props.activeWindowKey == null || props.tool.instance_key === props.activeWindowKey
+})
 const watchlistStore = useWatchlistStore()
 const queryClient = useQueryClient()
 const configuredWatchlistId = props.tool.configuration.watchlist_id
