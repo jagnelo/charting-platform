@@ -26,6 +26,25 @@ reported `16,753` differing pixels (about `1.0%` vs the unchanged `0.5%`
 limit). No baseline, mask, threshold, or skip changed; visual review remains
 open.
 
+## Earlier session-state synchronization — F-key checkpoint
+
+The product checkpoint `b6f24fa44` and roadmap/parity checkpoint
+`0bd643a1b57f65a4ce11234254bf86990ae3f718` are pushed to the assigned branch.
+The workstream plan hash was refreshed after the roadmap commit, and the
+existing goal remains active at AC1/9. The saved session records the docs
+checkpoint as its last verified HEAD; this final operational checkpoint
+updates the handoff, validation journal, and session metadata. Its enclosing
+commit will be verified against the remote ref after push. Continue with the
+next bounded TC-owned frontend/Study/Strategy slice; provider/ETF consumption
+remains gated on both upstream branches reaching staging.
+
+The latest read-only ref check (2026-10-06 17:38 UTC) found TC at
+`0bd643a1b57f65a4ce11234254bf86990ae3f718`, staging at
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform at
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings at
+`7d387f65722c3ff89894df1e62e223863dbd92b3`. Both upstream branches remain
+outside staging; the ref check did not fetch or modify sibling worktrees.
+
 ## Post-push session-state synchronization
 
 The roadmap/parity/workstream checkpoint was committed as
