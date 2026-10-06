@@ -306,6 +306,7 @@ def append_selected_oos_queue(
 def oos_results_from_search_queue(
     plan: WalkForwardTrainingPlan,
     selection: WalkForwardSelection,
+    training_queue_bindings: tuple[WalkForwardQueueTaskBinding, ...],
     oos_trials: MaterializedWalkForwardTrials,
     oos_queue_bindings: tuple[WalkForwardQueueTaskBinding, ...],
     state: SearchExecutionState,
@@ -325,6 +326,15 @@ def oos_results_from_search_queue(
         raise TypeError("selection must be a WalkForwardSelection")
     if selection.training_plan_fingerprint != plan.fingerprint:
         raise ValueError("selection differs from the immutable training plan")
+    if not isinstance(training_queue_bindings, tuple) or tuple(
+        binding.purpose for binding in training_queue_bindings
+    ) != ("training",) * len(training_queue_bindings):
+        raise ValueError("training queue bindings must contain only training tasks")
+    expected_training_tasks = tuple(task.fingerprint for task in plan.tasks)
+    if tuple(binding.task_fingerprint for binding in training_queue_bindings) != (
+        expected_training_tasks
+    ):
+        raise ValueError("training queue bindings differ from the exact immutable task order")
     if not isinstance(oos_trials, MaterializedWalkForwardTrials):
         raise TypeError("oos_trials must be MaterializedWalkForwardTrials")
     _validate_oos_materialization(selection, oos_trials)
@@ -346,7 +356,12 @@ def oos_results_from_search_queue(
 
     if not oos_queue_bindings:
         raise ValueError("OOS queue bindings must not be empty")
-    training_count = oos_queue_bindings[0].candidate_index
+    unique_training_trials = tuple(
+        dict.fromkeys(binding.trial_fingerprint for binding in training_queue_bindings)
+    )
+    training_count = len(unique_training_trials)
+    if oos_queue_bindings[0].candidate_index != training_count:
+        raise ValueError("OOS queue does not begin directly after the immutable training prefix")
     if tuple(binding.candidate_index for binding in oos_queue_bindings) != tuple(
         range(training_count, training_count + len(oos_queue_bindings))
     ):
@@ -354,6 +369,16 @@ def oos_results_from_search_queue(
     expected_count = training_count + len(selection.oos_tasks)
     if len(state.candidates) != expected_count:
         raise ValueError("durable search queue does not contain the exact training and OOS phases")
+    training_candidates = state.candidates[:training_count]
+    if (
+        tuple(candidate.trial_fingerprint for candidate in training_candidates)
+        != unique_training_trials
+    ):
+        raise ValueError("durable training queue prefix differs from the immutable task bindings")
+    if any(
+        candidate.phase is not SearchCandidatePhase.SUCCEEDED for candidate in training_candidates
+    ):
+        raise ValueError("every training candidate must remain durably successful during OOS")
 
     expected_attempts: set[str] = set()
     receipts: list[WalkForwardOosResult] = []

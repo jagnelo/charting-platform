@@ -13293,9 +13293,10 @@ crash/replay/cancel coverage, without creating a second experiment identity.
 ## 2026-10-06 - Rehydrate walk-forward OOS results from durable queue evidence
 
 Added `oos_results_from_search_queue` as the OOS counterpart to training-score
-rehydration. It accepts only a contiguous appended queue suffix corresponding
-to the frozen selected fold tasks, requires every selected candidate to have a
-successful durable attempt, and requires exact owner-resolved result coverage.
+rehydration. It verifies the exact immutable training task bindings and queue
+prefix, then accepts only a contiguous appended suffix corresponding to the
+frozen selected fold tasks. Every selected candidate must have a successful
+durable attempt, and result evidence must exactly cover the OOS attempt set.
 Each manifest must match the persisted completion digest, attempt, experiment,
 trial, evaluation window, and authoritative Nautilus provenance. The returned
 receipts are in immutable fold order; training attempts and unrelated OOS

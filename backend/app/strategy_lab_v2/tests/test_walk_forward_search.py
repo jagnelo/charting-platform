@@ -738,6 +738,7 @@ def test_oos_results_rehydrate_only_selected_suffix_attempts_and_exact_manifests
     receipts = oos_results_from_search_queue(
         plan,
         selection,
+        training_bindings,
         oos,
         transition.oos_task_bindings,
         state,
@@ -752,6 +753,7 @@ def test_oos_results_rehydrate_only_selected_suffix_attempts_and_exact_manifests
         oos_results_from_search_queue(
             plan,
             selection,
+            training_bindings,
             oos,
             transition.oos_task_bindings,
             state,
@@ -768,6 +770,7 @@ def test_oos_results_rehydrate_only_selected_suffix_attempts_and_exact_manifests
         oos_results_from_search_queue(
             plan,
             selection,
+            training_bindings,
             oos,
             transition.oos_task_bindings,
             state,
