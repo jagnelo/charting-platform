@@ -13479,3 +13479,30 @@ Ruff and formatting passed. This is per-slot training dispatch, not automatic
 bulk scheduling. Training completion/result-manifest hydration, selected OOS
 trial publication and queue append/replay, host artifact/decoder composition,
 and final branch validation remain open.
+
+## 2026-10-06 - Hydrate training manifests and append selected OOS trials
+
+Commit `23137cc42` connects the deterministic walk-forward phase helpers to
+owner-scoped PostgreSQL-backed application flows. The new `POST
+/api/v1/strategy-lab/v2/experiments/{experiment_id}/walk-forward/advance` route
+loads every successful training result manifest by its durable attempt ID,
+checks its binding against the queue receipt, recomputes selection using
+training metrics only, materializes and idempotently publishes immutable OOS
+trials, then appends their IDs to the same search queue using state-fingerprint
+CAS. Repeated calls and plan initialization after append validate and replay the
+exact OOS suffix; arbitrary suffixes fail closed. The OOS slots are then
+available to the existing deterministic slot-dispatch path.
+
+Validation: focused walk-forward application/search, PostgreSQL search-state,
+and API router suites passed 74/74. Tests cover owner-scoped manifest lookup,
+training-only deterministic selection, OOS trial identity, queue append/replay,
+plan replay after append, and the advance route. Focused MyPy for application
+and router, Ruff, formatting, `git diff --check`, and workstream validation
+(30 records) passed.
+
+Still open: automatic/bulk queue scheduling, completion-driven phase advance,
+OOS result hydration and aggregate metric persistence, production host artifact
+root/frozen decoder composition, and full integration/security/Compose/native
+acceptance. Docker remains unavailable in this session due denied socket access;
+this defers the exact-image/native validation but does not require waiting for a
+stable Nautilus 2.x label.
