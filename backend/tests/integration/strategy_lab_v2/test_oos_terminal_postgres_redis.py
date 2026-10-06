@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import replace
+from datetime import timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
@@ -48,6 +50,7 @@ from app.strategy_lab_v2.postgres_runtime_execution import (
     PostgresRuntimeExecutionAdapter,
     PostgresRuntimeExecutionSchema,
 )
+from app.strategy_lab_v2.postgres_search_dispatch import SearchDispatchRecord
 from app.strategy_lab_v2.postgres_worker_settlement import (
     PostgresWorkerSettlementAdapter,
     PostgresWorkerSettlementSchema,
@@ -58,6 +61,14 @@ from app.strategy_lab_v2.postgres_worker_state import (
 )
 from app.strategy_lab_v2.progress import ExecutionProgressUpdate, ProgressPhase
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
+from app.strategy_lab_v2.search_dispatch import SearchDispatchResolution
+from app.strategy_lab_v2.search_state import (
+    SearchCandidatePhase,
+    SearchCandidateState,
+    SearchExecutionState,
+    SearchStateDecision,
+    record_search_candidate_terminal,
+)
 from app.strategy_lab_v2.tests.test_nautilus_worker_terminal import (
     NOW,
     _successful_context_and_lookup,
@@ -66,9 +77,13 @@ from app.strategy_lab_v2.tests.test_trial_hydration import MemoryDomainReader
 from app.strategy_lab_v2.trial_hydration import NautilusTrialDomainHydrator
 from app.strategy_lab_v2.worker_consumer import (
     RedisDispatchWorker,
+    RedisDispatchWorkerScheduler,
     WorkerEntryDecision,
 )
 from app.strategy_lab_v2.worker_evidence import WorkerTerminalEvidenceLookup
+from app.strategy_lab_v2.worker_process import SerialWorkerProcessExecutor
+from app.strategy_lab_v2.worker_recovery_application import WorkerRecoveryApplication
+from app.strategy_lab_v2.worker_service import DedicatedStrategyWorkerService
 from app.strategy_lab_v2.worker_terminal_adapter import PostgresWorkerTerminalAdapter
 
 
@@ -89,8 +104,9 @@ async def test_oos_terminal_commit_survives_worker_loss_before_real_redis_ack(
     test_database_url: str | None,
     redis_url: str,
     tmp_path: Path,
+    monkeypatch,
 ) -> None:
-    """Real PostgreSQL terminal adapters and Redis reclaim are idempotent."""
+    """Production receipt-first worker reclaims a settled OOS Redis delivery."""
 
     context, lookup, _resolver, _publisher, graph = _successful_context_and_lookup(
         tmp_path / "oos-terminal", stable=False, with_graph=True
@@ -151,6 +167,65 @@ async def test_oos_terminal_commit_survives_worker_loss_before_real_redis_ack(
         queue_name,
         NOW,
     )
+    dispatch_record = SearchDispatchRecord(
+        owner_id,
+        graph.experiment.fingerprint,
+        0,
+        dispatch,
+    )
+
+    class SearchDispatchReader:
+        async def load_by_payload_digest(self, digest: str):
+            return dispatch_record if digest == dispatch.payload_digest else None
+
+    class SearchStateStore:
+        def __init__(self) -> None:
+            self.state = SearchExecutionState(
+                graph.experiment.fingerprint,
+                (
+                    SearchCandidateState(
+                        0,
+                        graph.trial.trial_id,
+                        SearchCandidatePhase.RUNNING,
+                        attempt_id,
+                        1,
+                        updated_at=NOW,
+                    ),
+                ),
+                updated_at=NOW,
+            )
+
+        async def load(self, *, principal: str, experiment_fingerprint: str):
+            assert principal == owner_id
+            assert experiment_fingerprint == graph.experiment.fingerprint
+            return self.state
+
+        async def record_terminal(
+            self,
+            *,
+            principal: str,
+            experiment_fingerprint: str,
+            candidate_index: int,
+            attempt_id: str,
+            phase: SearchCandidatePhase,
+            result_fingerprint: str | None,
+            now,
+        ):
+            assert principal == owner_id
+            assert experiment_fingerprint == graph.experiment.fingerprint
+            resolution = record_search_candidate_terminal(
+                self.state,
+                candidate_index,
+                attempt_id=attempt_id,
+                phase=phase,
+                result_fingerprint=result_fingerprint,
+                now=now,
+            )
+            if resolution.decision is SearchStateDecision.APPLY:
+                self.state = resolution.state
+            return resolution
+
+    search_state = SearchStateStore()
 
     def terminal_stack():
         artifacts = PostgresArtifactCommitAdapter(session_factory, schema=schemas[0])
@@ -292,6 +367,28 @@ async def test_oos_terminal_commit_survives_worker_loss_before_real_redis_ack(
         first_context = replace(context, entry=first_entry)
         first_terminal = await stack.terminal.write(first_context)
         assert first_terminal.decision.value == "complete", first_terminal.rejection_reason
+
+        async def unused_dispatch(**_kwargs: Any) -> SearchDispatchResolution:
+            raise AssertionError("successful terminal replay must not dispatch a retry")
+
+        recovery_application = WorkerRecoveryApplication(
+            SimpleNamespace(
+                search_dispatch=SearchDispatchReader(),
+                search_state=search_state,
+                result_completion=stack.completions,
+                worker_settlements=stack.settlements,
+                worker_state=stack.workers,
+            ),
+            queue_name=queue_name,
+            dispatch_client=unused_dispatch,
+        )
+        search_completion = await recovery_application.complete_terminal_if_persisted(
+            entry=first_entry,
+            request=context.request,
+            observed_at=NOW + timedelta(days=1),
+        )
+        assert search_completion is not None
+        assert search_completion.decision.value == "complete"
         assert await redis.xpending(stream_key, group_name) == {
             "pending": 1,
             "min": first_entry.stream_id,
@@ -310,13 +407,49 @@ async def test_oos_terminal_commit_survives_worker_loss_before_real_redis_ack(
             reclaim_idle_ms=0,
         )
 
-        async def replay(entry):
-            return await restarted.terminal.write(replace(context, entry=entry))
+        class PayloadLoader:
+            async def load_payload(self, digest: str):
+                return payload if digest == payload.payload_digest else None
 
-        cycle = await restarted_worker.handle_once(replay)
-        assert len(cycle.entries) == 1
-        assert cycle.entries[0].decision is WorkerEntryDecision.ACKNOWLEDGED
-        assert cycle.entries[0].handler.receipt_digest == first_terminal.receipt_digest
+        async def materialize(_entry, received_payload):
+            assert received_payload.payload_digest == payload.payload_digest
+            return context.request
+
+        async def forbidden_completion(*_args, **_kwargs):
+            raise AssertionError("receipt-first replay must bypass terminal process completion")
+
+        async def replay_terminal(entry, request, observed_at):
+            return await recovery_application.complete_terminal_if_persisted(
+                entry=entry,
+                request=request,
+                observed_at=observed_at,
+            )
+
+        executor = SerialWorkerProcessExecutor()
+        process_launches = 0
+
+        async def forbidden_launch(_request):
+            nonlocal process_launches
+            process_launches += 1
+            raise AssertionError("receipt-first replay must not launch Nautilus")
+
+        monkeypatch.setattr(executor, "run_async", forbidden_launch)
+        scheduler = RedisDispatchWorkerScheduler(restarted_worker, sleep=asyncio.sleep)
+        service = DedicatedStrategyWorkerService(
+            scheduler,
+            PayloadLoader(),
+            materialize,
+            forbidden_completion,
+            process_executor=executor,
+            clock=lambda: NOW + timedelta(days=1),
+            terminal_replay_reader=replay_terminal,
+        )
+        cycles = await service.run(asyncio.Event(), max_cycles=1)
+        assert len(cycles) == 1
+        assert len(cycles[0].entries) == 1
+        assert cycles[0].entries[0].decision is WorkerEntryDecision.ACKNOWLEDGED
+        assert cycles[0].entries[0].handler.decision.value == "complete"
+        assert process_launches == 0
         assert await redis.xpending(stream_key, group_name) == {
             "pending": 0,
             "min": None,
