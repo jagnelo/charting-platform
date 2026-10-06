@@ -70,11 +70,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "dirty_paths": [
-    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -110,9 +106,9 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "37d53987fec9b6b635284a9a9d1412b8067b8b86",
-  "implementation_sha": "37d53987fec9b6b635284a9a9d1412b8067b8b86",
-  "last_checkpoint": "2026-10-06T00:40:09.184625+00:00",
+  "head": "82dcf8db453f0a3b96193e7c11eef647efc3ac43",
+  "implementation_sha": "82dcf8db453f0a3b96193e7c11eef647efc3ac43",
+  "last_checkpoint": "2026-10-06T00:41:56.761147+00:00",
   "last_human_progress_update": "2026-10-05T20:29:50.045088+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "The local full_stack_browser gate is agent-owned, not a human task. Recheck Docker inventory and host headroom, and run only after unrelated and unlabeled workloads exit and resource preflight is safe. Do not change those resources or another worktree. AC10 awaits provider-platform staging; AC14 remains post-integration/deployment.",
@@ -146,8 +142,8 @@
     "total": 14,
     "updated_at": "2026-10-06T00:38:33.000000+00:00"
   },
-  "remote": "37d53987fec9b6b635284a9a9d1412b8067b8b86",
-  "remote_sha": "37d53987fec9b6b635284a9a9d1412b8067b8b86",
+  "remote": "82dcf8db453f0a3b96193e7c11eef647efc3ac43",
+  "remote_sha": "82dcf8db453f0a3b96193e7c11eef647efc3ac43",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "0bd23cfe-9271-4e5e-8621-db8985e62c75",
