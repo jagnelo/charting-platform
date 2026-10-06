@@ -77,38 +77,38 @@ current_blocker: >-
   rows because the startup-only fixture flag was set only in the browser
   process; this setup diagnostic is superseded by the correctly seeded 4/4
   run and is not a product failure.
+  A separate authenticated Chromium test now supplies 10,000 deterministic
+  cells through the existing Market Map consumer contract and passes pointer
+  hit-testing, keyboard search/selection, 125% zoom, and drag-pan; its painted
+  canvas satisfies an explicit 5-second budget (focused test 1/1, total 8.9s).
+  This proves frontend scale/interaction only, not canonical data readiness or
+  native windows. Direct remote refs refreshed 2026-10-06: staging remains
+  8b885a2f, provider remains 88132e91, and ETF remains 2bd22166; neither
+  upstream dependency is in staging.
   Provider and ETF branches remain outside staging, so R2/R3 consumption and
   shared-path reconciliation are deferred.
 active_changeset_context:
-  name: Bounded Research Results occurrence lists
-  status: implementation_full_frontend_functional_visual_matrix_passed_generic_gate_open
+  name: 10,000-cell Market Map frontend performance guard
+  status: r6_dense_market_map_browser_guard_passed_generic_gate_and_upstream_dependencies_open
   commit_sha: f0e946000e15336d972f33f24520d72b06e5cf7e
   remote_sha: f0e946000e15336d972f33f24520d72b06e5cf7e
   intent: >-
-    Expose all persisted breadth-history and generic event occurrences through
-    bounded incremental lists with truthful visible/matching counts and filter
-    resets; preserve event identity, artifact payloads, and promotion semantics.
+    Guard the TC-owned large-universe Market Map canvas at 10,000 deterministic
+    cells, including render budget, pointer hit-testing, keyboard search and
+    selection, zoom, and pan; do not fabricate upstream market-data evidence.
   owned_paths:
-    - frontend/src/components/workstation/ResearchResultsTool.vue
-    - frontend/tests/unit/components/test_research_results_tool.test.ts
+    - frontend/tests/e2e/workstation_performance.spec.ts
   next_action: >-
-    Continue a distinct TC-owned R1/R5/R6 behavior slice while keeping the V25
-    reference gaps explicitly open. The exact backend combined-coverage gate passes
-    at 82.26%; the current seeded functional suite passes 175/177 with two
-    documented skips and no failures, and the four-profile local visual matrix
-    passes 104/104 at product source f0e946. The exact-source workstation
-    performance file passes 4/4 with 50-round window churn and a backend-seeded
-    10,000-row fixture. Exact V25 screenshot gaps remain explicitly open.
-    Research-runner sandbox/resource
-    probes passed at checkpoint 8e6a818; refresh only if runner configuration
-    or source changes. Migration, lint, Compose contract, and provider-change
-    probe checks have been reconciled. The remaining branch-local gate is the
-    repository generic integration target: Buildx is unavailable and its
-    cleanup trap targets the assigned stack, so use only a safe isolated
-    equivalent or establish an exact-target-safe workaround. Preserve the
-    assigned stack and all diagnostics.
-    Keep provider/ETF work out of this branch and defer R2/R3 until both
-    dependencies reach staging.
+    Continue the full TC-owned R1/R5/R6 roadmap. The seeded functional suite
+    passes 175/177 with two documented skips and no failures; the four-profile
+    local visual matrix passes 104/104 but exact V25 references remain open;
+    existing workstation performance passes 4/4 with 50-round window churn
+    and a backend-seeded 10,000-row watchlist; the new focused 10,000-cell map
+    browser guard passes within its 5-second canvas budget. The generic
+    integration target remains unsafe on the assigned stack because Buildx is
+    missing and cleanup targets assigned volumes. Preserve that stack and use
+    only a verified isolated equivalent. Keep provider/ETF implementation out
+    of TC and defer R2/R3/shared-path reconciliation until both reach staging.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -349,28 +349,23 @@ progress:
   total: 9
   current_phase: R1_R5_R6_EXACT_TIP_VALIDATION_REFRESH
   next_action: >-
-    Continue a distinct TC-owned workstation, Study, Strategy, or visual-parity
-    defect slice while preserving every screenshot oracle. Run the remaining
-    exact-tip Compose and browser validation in an isolated project; the
-    backend combined-coverage stage now passes at 82.26% using sys.monitoring.
-    Do not duplicate provider/ETF ownership or the implemented recursive
-    Python breadth-series contracts. Keep all ten protected screenshot
-    differences and acceptance rules unchanged absent authoritative V25
-    evidence or a confirmed source defect. Refresh dependency refs
-    periodically; defer R2/R3 consumption and shared-path reconciliation until
-    both upstream branches reach staging. Stop only at ready_for_human_review.
+    Continue the full TC-owned R1/R5/R6 roadmap; the synthetic 10,000-cell
+    Market Map guard advances R6 but does not satisfy canonical data, exact V25,
+    full endurance/accessibility/security, or generic integration criteria.
+    Do not duplicate provider/ETF ownership or the implemented Python breadth
+    contracts. Preserve all visual acceptance policy and reference gaps.
+    Refresh dependency refs; defer R2/R3 and semantic shared-path reconciliation
+    until both upstream branches reach staging. Stop only at ready_for_human_review.
   current_blocker: >-
-    Current backend unit and integration suites pass 1622/1622 and 409/409
-    under coverage at 82.26%, using sys.monitoring. Isolated research-runner
-    sandbox/resource probes pass with zero restarts. The latest full pinned
-    functional run passed 171, skipped 2 documented cases, and failed 4; all
-    four failures passed isolated replay, but a clean full rerun remains open.
-    An earlier seeded full run passed 175/177 with 2 documented skips;
-    the visual matrix is 94/104 with ten protected diffs; dense performance is
-    4/4 including 10k rows. The generic helper's Buildx/cleanup path is unsafe
-    for assigned volumes; remaining browser/Compose stages need exact-project
-    execution in the approved host context. Provider and ETF remain outside
-    staging, deferring R2/R3 and shared-path reconciliation.
+    Backend units/integration and coverage pass 1622/1622 and 409/409 at 82.26%.
+    Latest pinned functional run passes 175/177 with two documented skips and
+    zero failures; local visual matrix passes 104/104 but exact V25 gaps remain.
+    Existing workstation performance is 4/4 with 10k watchlist/50-round churn;
+    focused synthetic 10k-cell Market Map browser guard passes pointer, keyboard,
+    zoom and pan within its explicit canvas budget. The generic helper's Buildx/
+    cleanup path is unsafe for assigned volumes; exact generic gate remains open.
+    Provider/ETF branches remain outside staging, deferring R2/R3 and all shared-
+    path reconciliation.
 historical_implementation_records:
   - "At documentation checkpoint df4c8d6f (product source f0e946000e15336d972f33f24520d72b06e5cf7e), the pinned Playwright 1.62.1 full seeded functional suite ran 177 cases against the assigned six-service stack: 171 passed, 2 documented skips, and 4 failed. F8m-chart-panels timed out waiting for Yellow, F8g could not find Study Lab, and F14-instance-scope plus F8z recorded ERR_NETWORK_CHANGED. All four cases passed isolated replay; the nearest F8m wildcard -> chart-panels -> F8g sequence passed 3/3. This is not recorded as a clean full-gate pass. The test source was mounted read-only, outputs were under /tmp/tc2000-functional-df4c8d6f-elevated-results, and the assigned stack stayed healthy. A separate internal-bridge attempt was stopped after proving its non-localhost URL is not a secure browser context; no product or acceptance changes were made."
   - "Product commit f0e946000e15336d972f33f24520d72b06e5cf7e bounds historical breadth and generic event occurrence lists to 100 visible rows per increment, with truthful visible/matching counts and filter/selection resets. Focused ResearchResultsTool tests passed 57/57; full serial frontend Vitest passed 129 files / 1,209 tests; Vue type-check/build, direct TC ownership guard (130 touched paths, all six self-tests), and direct workstream validation (30 records) passed. The assigned Docker socket is denied, so browser replay and the generic full integration gate remain open. This slice changes neither provider/ETF behavior nor visual reference or acceptance policy."

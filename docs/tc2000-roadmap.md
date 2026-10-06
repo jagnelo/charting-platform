@@ -12780,6 +12780,14 @@ Tasks:
 - close accessibility, authentication, authorization, sandbox, persistence, export, migration,
   logging, and critical console/network diagnostics.
 
+Current bounded R6 browser receipt (2026-10-06): a new authenticated Chromium guard supplied
+10,000 deterministic cells through the existing Market Map consumer response, then verified the
+canvas renderer, pointer hit-testing, keyboard search/selection, 125% zoom, and drag-pan. The
+painted canvas reached its ready state within the test's explicit 5-second budget; the complete
+focused test passed `1/1` in 8.9 seconds with no critical browser diagnostics. This is frontend
+scale/interaction evidence only: the mocked response does not claim canonical-data readiness or
+native-window behavior. Existing provider/ETF and exact V25 visual gaps remain open.
+
 Exit evidence: repeatable endurance and performance receipts meet declared budgets on supported
 display scales; native/browser limitations remain explicit; no critical diagnostics or leaked
 windows/listeners remain.

@@ -17777,6 +17777,24 @@ Changed ops files in this checkpoint:
 - ops/workstreams/feat-tc2000-frontend-rework/session.json
 - ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl
 
+## 2026-10-06 — 10,000-cell Market Map browser performance guard
+
+Added a TC-owned authenticated Chromium regression for the existing large-map
+canvas path. A deterministic mocked consumer response supplies 10,000 cells;
+the browser asserts the rendered canvas is ready within a 5-second budget,
+pointer hit-testing resolves a cell, keyboard search selects SPY, and zoom to
+125% plus drag-pan update the viewport. Focused test passed `1/1`; the complete
+test took 8.9 seconds and browser diagnostics reported no critical issues.
+The mock explicitly does not claim canonical market-data/history readiness or
+native multi-monitor behavior. The assigned six-service stack was reused but
+not recreated or torn down; test output/report data is isolated under `/tmp`.
+
+This is one R6 evidence slice, not goal completion. The generic integration
+gate, exact V25 reference gaps, remaining resilience/accessibility/security
+and broad performance criteria remain open. Current remote refs show both
+provider and ETF branches still outside staging, so R2/R3 integration and
+shared-path reconciliation remain deferred.
+
 ## 2026-10-05 — Exact-product-tip browser and visual refresh
 
 At product source `f0e946000e15336d972f33f24520d72b06e5cf7e`, the corrected

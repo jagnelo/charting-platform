@@ -299,4 +299,148 @@ test.describe('TC2000 workstation performance guards', () => {
       expect([200, 204, 404]).toContain(deleted.status())
     }
   })
+
+  test('renders and interacts with a 10,000-cell Market Map within the canvas budget', async ({ page, loggedIn, browserDiagnostics }, testInfo) => {
+    test.setTimeout(90_000)
+
+    // This is a consumer-side stress fixture: the map is supplied by the
+    // existing Market Map read contract, so the test exercises TC geometry,
+    // canvas painting, hit testing, keyboard search, zoom and pan without
+    // manufacturing provider or canonical-history evidence.
+    const source = {
+      source_id: 'watchlist:tc2000-10k-map',
+      source_kind: 'personal',
+      name: 'TC2000 10k canvas fixture',
+      locked: false,
+      can_follow: true,
+      can_clone: true,
+      can_edit_membership: true,
+      member_count: 10_000,
+      membership_version: 'watchlist:tc2000-10k-map:v1',
+      provenance: { availability: 'available' },
+    }
+    const cells = Array.from({ length: 10_000 }, (_, index) => ({
+      instrument_id: index + 1,
+      symbol: index === 9_999 ? 'SPY' : `E2E_MAP_${String(index).padStart(5, '0')}`,
+      name: `Synthetic Market Map member ${index}`,
+      sector: null,
+      industry: null,
+      group_path: [],
+      area_value: 1,
+      color_value: (index % 21 - 10) / 100,
+      return_value: (index % 21 - 10) / 100,
+      coverage: 1,
+      color_coverage: 1,
+      area_coverage: 1,
+      warnings: [],
+    }))
+    await page.route('**/api/v1/watchlists/sources**', async route => {
+      const pathname = new URL(route.request().url()).pathname
+      if (pathname.includes('/history-status/')) {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+          source_id: source.source_id,
+          source_kind: source.source_kind,
+          name: source.name,
+          locked: false,
+          membership_version: source.membership_version,
+          max_instruments: 10_000,
+          available_instrument_count: 10_000,
+          selected_instrument_count: 10_000,
+          limited: false,
+          excluded_count: 0,
+          overall_status: 'ready',
+          timeframes: [],
+        }) })
+        return
+      }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([source]) })
+    })
+    await page.route('**/api/v1/watchlists', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+    })
+    await page.route('**/api/v1/analysis/market-map/snapshots**', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+    })
+    await page.route('**/api/v1/analysis/market-map', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        source,
+        group_by: 'sector_industry',
+        period: '1D',
+        period_start: '2026-10-05T00:00:00Z',
+        period_end: '2026-10-06T00:00:00Z',
+        timeframe: 'D1',
+        adjustment: 'split_adjusted',
+        area_metric: 'equal',
+        color_metric: 'return',
+        membership_version: source.membership_version,
+        calculation_version: 'market-map-performance-fixture-v1',
+        cache_key: 'tc2000-10k-map-performance-fixture',
+        cache_hit: false,
+        freshness: 'current',
+        freshness_detail: { requested: 10_000, current: 10_000, stale: 0, other: 0 },
+        requested_count: 10_000,
+        evaluated_count: 10_000,
+        coverage: 1,
+        color_coverage: 1,
+        area_coverage: 1,
+        warnings: [],
+        exclusions: [],
+        nodes: [{ node_id: 'root', level: 'root', label: 'All members', group_path: [], member_count: 10_000, covered_count: 10_000, area_total: 10_000, color_value: 0, coverage: 1, color_coverage: 1, area_coverage: 1, aggregation_method: 'equal_member_mean', warnings: [] }],
+        cells,
+      }) })
+    })
+
+    await page.goto('/chart/SPY')
+    await page.getByRole('button', { name: 'Add tool', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Market Map', exact: true }).click()
+    const mapWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.market-map-tool') }).last()
+    await expect(mapWindow).toBeVisible({ timeout: 15_000 })
+    const sourcePicker = mapWindow.getByRole('combobox', { name: 'Market Map universe' })
+    await expect(sourcePicker).toContainText(source.name, { timeout: 15_000 })
+    await sourcePicker.selectOption(source.source_id)
+
+    await page.evaluate(() => { (window as Window & { __tc2000MapStart?: number }).__tc2000MapStart = performance.now() })
+    await mapWindow.getByRole('button', { name: 'Refresh Market Map', exact: true }).click()
+    const canvas = mapWindow.locator('canvas.market-map-tool__canvas-map')
+    await expect(canvas).toBeVisible({ timeout: 15_000 })
+    await expect(canvas).toHaveAttribute('aria-label', '10000 Market Map members')
+    await expect.poll(() => canvas.evaluate(element => (element as HTMLCanvasElement).width)).toBeGreaterThan(0)
+    expect(await mapWindow.locator('.market-map-tool__tile').count()).toBe(0)
+    const renderMilliseconds = await page.evaluate(() => performance.now() - ((window as Window & { __tc2000MapStart?: number }).__tc2000MapStart ?? performance.now()))
+    expect(renderMilliseconds, '10,000 cells must reach a painted canvas within the declared 5-second local budget').toBeLessThan(5_000)
+    await testInfo.attach('market-map-10k-render-budget.json', {
+      body: JSON.stringify({ cells: 10_000, render_milliseconds: Math.round(renderMilliseconds * 100) / 100, budget_milliseconds: 5_000 }),
+      contentType: 'application/json',
+    })
+
+    // Canvas pointer hit-testing selects a real cell; the search affordance
+    // then provides deterministic keyboard selection for the dense mode.
+    await canvas.scrollIntoViewIfNeeded()
+    const canvasBounds = await canvas.boundingBox()
+    expect(canvasBounds).not.toBeNull()
+    await page.mouse.move(canvasBounds!.x + canvasBounds!.width * 0.5, canvasBounds!.y + canvasBounds!.height * 0.5)
+    await expect(mapWindow.locator('.market-map-tool__hover')).toBeVisible()
+    await expect(mapWindow.locator('.market-map-tool__hover')).toContainText('Synthetic Market Map member')
+
+    const memberSearch = mapWindow.getByRole('textbox', { name: 'Find Large Market Map member' })
+    await memberSearch.fill('SPY')
+    await memberSearch.press('Enter')
+    await expect(mapWindow.locator('.market-map-tool__source-analysis-actions')).toContainText('1 selected members')
+
+    const mapCanvas = mapWindow.locator('.market-map-tool__canvas')
+    await mapWindow.getByRole('button', { name: 'Zoom in Market Map' }).click()
+    await expect(mapCanvas).toHaveAttribute('style', /scale\(1\.25\)/)
+    const viewport = mapWindow.locator('.market-map-tool__tiles')
+    await viewport.scrollIntoViewIfNeeded()
+    const viewportBounds = await viewport.boundingBox()
+    expect(viewportBounds).not.toBeNull()
+    const panStartX = viewportBounds!.x + viewportBounds!.width / 2
+    const panStartY = viewportBounds!.y + viewportBounds!.height / 2
+    await page.mouse.move(panStartX, panStartY)
+    await page.mouse.down()
+    await page.mouse.move(panStartX - 60, panStartY - 30, { steps: 4 })
+    await page.mouse.up()
+    await expect(mapCanvas).toHaveAttribute('style', /translate\((?!0%, 0%)[^)]+\) scale\(1\.25\)/)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
 })
