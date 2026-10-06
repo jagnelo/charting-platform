@@ -14125,3 +14125,29 @@ publication and Redis consumer ACK/reclaim. Exact pinned Nautilus RC6 remains
 qualified; stable release labeling is not a gate. Next, execute this recovered
 OOS attempt through the production worker/terminal composition and prove
 PostgreSQL settlement before ACK plus receipt-first reclaim after restart.
+
+## 2026-10-06 - Resolve terminal identity for internal search dispatches
+
+The production terminal callback looked up every search attempt in the API
+submissions table. Walk-forward/search dispatches are created internally and
+do not necessarily have such a row, so this path would retry indefinitely
+before it could publish the native result. Search dispatch now derives the
+terminal submission receipt from its immutable owner-scoped PostgreSQL dispatch
+identity when no API receipt exists. If an API receipt does exist, it remains
+authoritative for its original request and is accepted only when it binds the
+same attempt; API request digest/operation are not incorrectly conflated with
+the later worker payload/queue. An attempt mismatch fails closed.
+
+The fully PostgreSQL-composed walk-forward recovery test now creates an empty
+submission schema and exercises the production resolver against the persisted
+OOS dispatch, confirming that owner, key, operation, attempt, payload digest,
+and timestamp are recovered from that durable record. Focused callback plus
+walk-forward recovery validation passed 16 tests, including all three
+Docker-backed PostgreSQL cases; Ruff, formatting, MyPy, and `git diff --check`
+passed. Commit `16615eff12f9f7fd5f6ef1cb848019df53ff0f42` is pushed and exact
+origin synchronization was verified. This closes the terminal identity lookup
+prerequisite only; actual Nautilus execution, authoritative result publication,
+worker settlement, Redis ACK, and restart reclaim remain. Next, run the exact
+RC6 OOS process through the production worker and PostgreSQL terminal writer,
+then inject loss after durable terminal commit and prove receipt-first ACK on
+reclaim without a second engine invocation.
