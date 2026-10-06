@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 vi.mock('@/lib/api', () => ({
@@ -26,6 +26,11 @@ function makeWatchlist() {
 }
 
 describe('useWatchlistStore', () => {
+  afterEach(() => {
+    vi.clearAllTimers()
+    vi.useRealTimers()
+  })
+
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.resetAllMocks()

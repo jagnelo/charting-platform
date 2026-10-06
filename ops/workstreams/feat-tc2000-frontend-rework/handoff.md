@@ -1,5 +1,24 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — Frontend serial-suite isolation and Help visual delta
+
+The full frontend Vitest suite now passes serially: `130/130` files and
+`1,223/1,223` tests. Four test files were hardened against cross-file state
+leakage: the watchlist and search suites restore real timers, attached search
+components are unmounted after each test, and the bar-metrics test sets an
+explicit device-pixel-ratio baseline. This addresses the broad-run
+WorkspaceLayoutHost timeouts and intermittent search/DPR failures without
+changing product behavior. Workstream validation, all six TC ownership-guard
+self-tests, and `git diff --check` passed.
+
+The protected application-shell Help screenshot test did run against the
+current source and reported a 3% pixel difference from the checked-in baseline,
+attributed to the newly visible timeframe and Ctrl+B shortcut rows. No
+baseline, mask, threshold, or skip was changed. Per `docs/tc2000-visual-parity.md`,
+baseline replacement awaits human visual review. HLC Bars remain outside the
+chart renderer; generic integration, broader criteria, exact V25 review, and
+provider/ETF staging dependencies remain open.
+
 ## 2026-10-06 — TC2000 V25 Ctrl+B standard chart-style shortcut
 
 The active chart now cycles through this app's supported OHLC bars, Candles,

@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 
 import DashboardInstrumentSearch from '@/components/dashboard/DashboardInstrumentSearch.vue'
@@ -18,10 +18,24 @@ async function flushPromises() {
   await Promise.resolve()
 }
 
+const mountedDashboardSearches: Array<{ unmount: () => void }> = []
+
+function mountDashboardSearch(options: any = {}) {
+  const wrapper = mount(DashboardInstrumentSearch, options)
+  mountedDashboardSearches.push(wrapper)
+  return wrapper
+}
+
 describe('DashboardInstrumentSearch', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    for (const wrapper of mountedDashboardSearches.splice(0)) wrapper.unmount()
+    vi.clearAllTimers()
+    vi.useRealTimers()
   })
 
   it('searches instruments after debounce and emits selected result', async () => {
@@ -31,7 +45,7 @@ describe('DashboardInstrumentSearch', () => {
       ])
       .mockResolvedValueOnce({ symbol: 'NVDA' })
 
-    const wrapper = mount(DashboardInstrumentSearch, {
+    const wrapper = mountDashboardSearch({
       props: { modelValue: '' },
       attachTo: document.body,
     })
@@ -55,7 +69,7 @@ describe('DashboardInstrumentSearch', () => {
   it('does not emit a symbol when provider search returns no results', async () => {
     ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([])
 
-    const wrapper = mount(DashboardInstrumentSearch, {
+    const wrapper = mountDashboardSearch({
       props: { modelValue: '' },
       attachTo: document.body,
     })
@@ -77,7 +91,7 @@ describe('DashboardInstrumentSearch', () => {
     let resolveResults!: (results: any[]) => void
     const resultsLoaded = new Promise<any[]>(resolve => { resolveResults = resolve })
     ;(api.get as ReturnType<typeof vi.fn>).mockReturnValueOnce(resultsLoaded)
-    const wrapper = mount(DashboardInstrumentSearch, {
+    const wrapper = mountDashboardSearch({
       props: { modelValue: '' },
       attachTo: document.body,
     })
@@ -87,6 +101,7 @@ describe('DashboardInstrumentSearch', () => {
     await Promise.resolve()
     const vm = wrapper.vm as unknown as { results: any[]; loading: boolean }
     wrapper.unmount()
+    mountedDashboardSearches.splice(mountedDashboardSearches.indexOf(wrapper), 1)
     resolveResults([{ symbol: 'NVDA', name: 'NVIDIA Corp', exchange: 'NASDAQ', type: 'Equity' }])
     await flushPromises()
 
@@ -95,7 +110,7 @@ describe('DashboardInstrumentSearch', () => {
   })
 
   it('does not resolve incomplete expressions or emit draft updates while typing', async () => {
-    const wrapper = mount(DashboardInstrumentSearch, {
+    const wrapper = mountDashboardSearch({
       props: { modelValue: '' },
       attachTo: document.body,
     })
@@ -119,7 +134,7 @@ describe('DashboardInstrumentSearch', () => {
       new Error('API POST /instruments/resolve-expression → 404: {"detail":"Constituent instrument \'QQQX\' not found"}')
     )
 
-    const wrapper = mount(DashboardInstrumentSearch, {
+    const wrapper = mountDashboardSearch({
       props: { modelValue: '' },
       attachTo: document.body,
     })
