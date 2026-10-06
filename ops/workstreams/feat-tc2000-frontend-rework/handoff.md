@@ -1,5 +1,34 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — Exact-tip frontend validation refresh
+
+At product/source tip `25f32efec...`, the full serial frontend Vitest suite
+passed all `1,227/1,227` tests across `292/292` test suites; `npm run build`
+passed Vue type-check and Vite production bundling; authenticated Chromium
+passed the date-pointer cycle, focus-retention, persisted snapshot, and reload
+flow `1/1`. No source files changed during this validation context. The
+existing protected Help screenshot remains a separate visual-review gap; the
+generic full integration gate and broader AC4-AC7/R1/R5/R6 work remain open.
+
+The current official shortcut reference also confirms plain `2–4` and `6–8`
+multi-day intervals, but the application's supported timeframe contract does
+not represent those periods; do not fake these mappings in the frontend. It
+lists F1-F12 chart-template assignment, while this app's F1 currently opens
+Help and saved chart templates have no function-key assignment model. Treat
+template assignment as a distinct parity slice requiring a persisted assignment
+and active-chart routing design, rather than binding F1 opportunistically.
+Provider and ETF consumption remains deferred until both branches reach
+staging.
+
+Validation context closure: scope was exact-tip frontend regression refresh;
+owned paths were none (validation only); serial Vitest, production build, and
+authenticated Chromium passed; workstream validation and clean-tree checks are
+recorded in `validation.jsonl`. No product commit was created for this evidence;
+this operational receipt is committed separately. HEAD and `origin` were
+`25f32efeccee8c832b1504f55fd29e47af11c475d` with a clean tree before this
+receipt. Next action: continue one bounded TC-owned R1/R5/R6 frontend slice,
+keeping provider/ETF ownership and the protected visual oracle unchanged.
+
 ## In progress — next bounded frontend parity slice
 
 The official `.` date-pointer mode cycle is implemented in the active chart:
