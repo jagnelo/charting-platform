@@ -91,7 +91,9 @@ def _message(label: str, *, available_at: datetime = NOW) -> OutboxMessage:
 async def test_relay_pending_publishes_available_messages_and_persists_acknowledgement() -> None:
     available = _message("available")
     future = _message("future", available_at=NOW + timedelta(minutes=5))
-    persistence = MemoryOutbox(OutboxState(tuple(sorted((available, future), key=lambda item: item.message_id))))
+    persistence = MemoryOutbox(
+        OutboxState(tuple(sorted((available, future), key=lambda item: item.message_id)))
+    )
     service = OutboxRelayService(
         persistence,
         RedisDispatchTransport(cast(Any, FakeRedis())),
@@ -103,7 +105,12 @@ async def test_relay_pending_publishes_available_messages_and_persists_acknowled
     assert results[0].decision.value == "published"
     assert persistence.state.published_message_ids == frozenset({available.message_id})
     assert persistence.acknowledgement_calls == [
-        (available.message_id, OutboxState(tuple(sorted((available, future), key=lambda item: item.message_id))).fingerprint)
+        (
+            available.message_id,
+            OutboxState(
+                tuple(sorted((available, future), key=lambda item: item.message_id))
+            ).fingerprint,
+        )
     ]
     assert await service.relay_pending(now=NOW) == ()
 
@@ -242,6 +249,10 @@ async def test_redis_runtime_composes_transport_relay_and_closes_once() -> None:
 
     class ReleaseStore:
         async def release_capacity(self, **_kwargs: Any) -> Any:
+            return None
+
+        async def observe(self, *, lease_id: str, observation: Any) -> Any:
+            del lease_id, observation
             return None
 
     settling_forward_service = runtime.settling_forward_worker_service(

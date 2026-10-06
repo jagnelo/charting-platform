@@ -272,7 +272,7 @@ async def test_terminal_search_success_notifies_walk_forward_coordinator_after_d
     )
     events: list[str] = []
 
-    class Store:
+    class Store(_SearchDispatchPersistence._Store):
         async def load_by_request_fingerprint(self, fingerprint: str):
             events.append("load_dispatch")
             assert fingerprint == request_fingerprint

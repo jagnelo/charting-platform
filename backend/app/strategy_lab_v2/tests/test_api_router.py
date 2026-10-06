@@ -11,6 +11,7 @@ import anyio
 import httpx
 import pytest
 from fastapi import FastAPI
+from fastapi.routing import APIRoute
 from starlette.requests import Request
 
 from app.strategy_lab_v2.admission import ExecutionAdmissionLedger
@@ -921,7 +922,7 @@ async def _invoke_curve_download_endpoint(adapter: Any, experiment: str):
     route = next(
         route
         for route in router.routes
-        if getattr(route, "path", "").endswith("/walk-forward/curve")
+        if isinstance(route, APIRoute) and route.path.endswith("/walk-forward/curve")
     )
     path = f"/api/v1/strategy-lab/v2/experiments/{experiment}/walk-forward/curve"
     request = Request(
@@ -981,7 +982,7 @@ def test_walk_forward_wire_contract_accepts_policy_but_no_observation_calendar()
         request_id="walk-forward-request",
     )
 
-    assert request.candidate_fingerprints == tuple(body["candidate_fingerprints"])
+    assert request.candidate_fingerprints == tuple(cast(list[str], body["candidate_fingerprints"]))
     assert request.spec.gap_periods == 2
     assert request.spec.embargo_periods == 1
     assert request.max_tasks == 1000

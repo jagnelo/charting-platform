@@ -49,6 +49,10 @@ class ReleaseStore:
         self.calls.append(kwargs)
         return self.resolution
 
+    async def observe(self, *, lease_id: str, observation: LeaseObservation) -> Any:
+        del lease_id, observation
+        raise AssertionError("unexpected heartbeat observation")
+
 
 def _resolution(
     authorization: ForwardWorkerAuthorization,
