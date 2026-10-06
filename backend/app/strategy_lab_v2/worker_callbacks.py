@@ -31,6 +31,7 @@ from app.strategy_lab_v2.trial_hydration import (
 from app.strategy_lab_v2.worker_consumer import WorkerHandleDecision, WorkerHandleResult
 from app.strategy_lab_v2.worker_evidence import WorkerSubmissionBinding
 from app.strategy_lab_v2.worker_handoff import materialize_worker_handoff
+from app.strategy_lab_v2.worker_initial_state import ensure_worker_initial_state
 from app.strategy_lab_v2.worker_process import WorkerExecutionRequest
 from app.strategy_lab_v2.worker_recovery_application import (
     create_worker_recovery_application,
@@ -149,6 +150,15 @@ async def create_search_dispatch(
         queue_name=queue_name,
         domain_hydrator=NautilusTrialDomainHydrator(cast(OwnerScopedDomainReader, resources)),
     )
+
+    initialized_materializer = _SearchDispatchWorkerHandoffMaterializer(
+        materializer,
+        dispatch_store=dispatch_store,
+        queue_name=queue_name,
+        persistence=persistence,
+        binding_resolver=binding_resolver,
+    )
+
     worker_state = getattr(persistence, "worker_state", None)
     if worker_state is None or not callable(getattr(worker_state, "load_lease", None)):
         raise TypeError("persistence.worker_state must expose load_lease()")
@@ -224,7 +234,7 @@ async def create_search_dispatch(
         return search_state.cancellation_requested
 
     return WorkerServiceCallbacks(
-        materializer,
+        initialized_materializer,
         callbacks.completion_writer,
         heartbeat_writer=callbacks.heartbeat_writer,
         terminal_writer=terminal_dispatch_writer,
@@ -232,6 +242,57 @@ async def create_search_dispatch(
         lease_state_reader=lease_state_reader,
         cancellation_reader=cast(WorkerCancellationReader, cancellation_reader),
     )
+
+
+class _SearchDispatchWorkerHandoffMaterializer:
+    """Authenticate a search handoff, then repair its durable initial state."""
+
+    def __init__(
+        self,
+        authenticated_materializer: Any,
+        *,
+        dispatch_store: Any,
+        queue_name: str,
+        persistence: Any,
+        binding_resolver: SearchDispatchBindingResolver,
+    ) -> None:
+        if not callable(authenticated_materializer):
+            raise TypeError("authenticated_materializer must be callable")
+        self.authenticated_materializer = authenticated_materializer
+        self._dispatch_store = dispatch_store
+        self._queue_name = queue_name
+        self._persistence = persistence
+        self._binding_resolver = binding_resolver
+
+    async def __call__(self, entry: Any, payload: Any) -> WorkerExecutionRequest:
+        request = await self.authenticated_materializer(entry, payload)
+        dispatch = await _dispatch_for_stream_entry(
+            self._dispatch_store,
+            entry,
+            request.runtime_request.attempt_id,
+        )
+        if not isinstance(dispatch, SearchDispatchRecord) or (
+            dispatch.request.queue_name != self._queue_name
+        ):
+            raise ValueError("worker initial state has no exact owner-scoped search dispatch")
+        resolved_binding = self._binding_resolver(dispatch)
+        binding = (
+            await resolved_binding if inspect.isawaitable(resolved_binding) else resolved_binding
+        )
+        if binding is None:
+            raise ValueError("worker initial state has no authenticated submission binding")
+        execution_state = getattr(self._persistence, "execution_state", None)
+        runtime_execution = getattr(self._persistence, "runtime_execution", None)
+        if execution_state is None or runtime_execution is None:
+            raise TypeError("persistence must expose execution_state and runtime_execution")
+        await ensure_worker_initial_state(
+            execution_state=execution_state,
+            runtime_execution=runtime_execution,
+            principal=binding.owner_id,
+            request=request,
+            submission=binding.receipt,
+        )
+        return request
 
 
 def default_evidence_resolver_factory(

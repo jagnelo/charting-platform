@@ -232,9 +232,11 @@ async def test_search_callback_factory_binds_authenticated_dispatch_materializer
     monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", "x" * 48)
     callbacks = await create_search_dispatch(_SearchDispatchPersistence(), Path("/tmp/artifacts"))
 
-    assert isinstance(callbacks.materializer, AuthenticatedSearchDispatchMaterializer)
-    assert callbacks.materializer.queue_name == "strategy-backtest"
-    assert callbacks.materializer.domain_hydrator is not None
+    assert callable(callbacks.materializer)
+    authenticated_materializer = getattr(callbacks.materializer, "authenticated_materializer")
+    assert isinstance(authenticated_materializer, AuthenticatedSearchDispatchMaterializer)
+    assert authenticated_materializer.queue_name == "strategy-backtest"
+    assert authenticated_materializer.domain_hydrator is not None
     assert callbacks.recovery_writer is not None
     assert callbacks.lease_state_reader is not None
     assert callbacks.cancellation_reader is not None

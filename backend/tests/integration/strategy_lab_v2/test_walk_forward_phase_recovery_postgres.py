@@ -26,10 +26,18 @@ from app.strategy_lab_v2.postgres_event_transaction import (
     PostgresExecutionEventSchema,
     PostgresExecutionEventTransactionAdapter,
 )
+from app.strategy_lab_v2.postgres_execution_state import (
+    PostgresExecutionStateAdapter,
+    PostgresExecutionStateSchema,
+)
 from app.strategy_lab_v2.postgres_resources import PostgresResourceReader
 from app.strategy_lab_v2.postgres_result_materialization import (
     PostgresResultMaterializationAdapter,
     PostgresResultMaterializationSchema,
+)
+from app.strategy_lab_v2.postgres_runtime_execution import (
+    PostgresRuntimeExecutionAdapter,
+    PostgresRuntimeExecutionSchema,
 )
 from app.strategy_lab_v2.postgres_search_dispatch import (
     PostgresSearchDispatchAdapter,
@@ -73,6 +81,8 @@ from app.strategy_lab_v2.walk_forward_trials import (
     training_score_from_result_manifest,
 )
 from app.strategy_lab_v2.worker_callbacks import create_default_search_dispatch_binding_resolver
+from app.strategy_lab_v2.worker_handoff import decode_worker_handoff
+from app.strategy_lab_v2.worker_initial_state import ensure_worker_initial_state
 from app.strategy_lab_v2.workers import WorkerKind, WorkerProfile
 
 NOW = datetime(2026, 10, 6, 18, 0, tzinfo=UTC)
@@ -406,8 +416,19 @@ async def test_postgres_composed_walk_forward_recovery_dispatch_and_outbox_resta
     submission_schema = PostgresSubmissionSchema(
         submission_table=f"slv2_wf_full_submissions_{suffix}",
         dispatch_table=f"slv2_wf_full_submission_dispatches_{suffix}",
-        payload_table=f"slv2_wf_full_submission_payloads_{suffix}",
+        # Production submission and search dispatch adapters share this
+        # content-addressed payload table; the worker entrypoint reads through
+        # the submission adapter regardless of dispatch origin.
+        payload_table=dispatch_schema.payload_table,
         outbox_table=f"slv2_wf_full_submission_outbox_{suffix}",
+    )
+    execution_state_schema = PostgresExecutionStateSchema(
+        outcome_table=f"slv2_wf_full_outcomes_{suffix}",
+        progress_table=f"slv2_wf_full_progress_{suffix}",
+    )
+    runtime_execution_schema = PostgresRuntimeExecutionSchema(
+        state_table=f"slv2_wf_full_runtime_{suffix}",
+        update_table=f"slv2_wf_full_runtime_updates_{suffix}",
     )
     statements = (
         *search_schema.statements,
@@ -416,7 +437,10 @@ async def test_postgres_composed_walk_forward_recovery_dispatch_and_outbox_resta
         *worker_schema.statements,
         *event_schema.statements,
         *dispatch_schema.statements,
-        *submission_schema.statements,
+        submission_schema.statements[0],
+        submission_schema.statements[1],
+        *execution_state_schema.statements,
+        *runtime_execution_schema.statements,
     )
     tables = (
         search_schema.search_table,
@@ -437,8 +461,11 @@ async def test_postgres_composed_walk_forward_recovery_dispatch_and_outbox_resta
         dispatch_schema.payload_table,
         submission_schema.submission_table,
         submission_schema.dispatch_table,
-        submission_schema.payload_table,
         submission_schema.outbox_table,
+        execution_state_schema.outcome_table,
+        execution_state_schema.progress_table,
+        runtime_execution_schema.state_table,
+        runtime_execution_schema.update_table,
     )
     redis_client: Redis | None = None
     try:
@@ -477,6 +504,14 @@ async def test_postgres_composed_walk_forward_recovery_dispatch_and_outbox_resta
                 submissions=PostgresSubmissionDispatchAdapter(
                     session_factory,
                     schema=submission_schema,
+                ),
+                execution_state=PostgresExecutionStateAdapter(
+                    session_factory,
+                    schema=execution_state_schema,
+                ),
+                runtime_execution=PostgresRuntimeExecutionAdapter(
+                    session_factory,
+                    schema=runtime_execution_schema,
                 ),
             )
 
@@ -779,6 +814,12 @@ async def test_postgres_composed_walk_forward_recovery_dispatch_and_outbox_resta
         )
         assert dispatch_record is not None
         assert dispatch_record.request == dispatched.envelope.request
+        shared_worker_payload = await restarted._persistence.submissions.load_payload(
+            dispatch_record.request.payload_digest
+        )
+        assert shared_worker_payload is not None
+        assert shared_worker_payload.payload_digest == dispatch_record.request.payload_digest
+        worker_request = decode_worker_handoff(shared_worker_payload)
         binding_resolver = create_default_search_dispatch_binding_resolver(restarted._persistence)
         submission_binding = await cast(Any, binding_resolver)(dispatch_record)
         # Internal walk-forward submissions have no API submissions row; the
@@ -793,6 +834,42 @@ async def test_postgres_composed_walk_forward_recovery_dispatch_and_outbox_resta
         assert submission_binding.receipt.request.attempt_id == dispatch_record.request.attempt_id
         assert submission_binding.receipt.request.payload_digest == (
             dispatch_record.request.payload_digest
+        )
+        await ensure_worker_initial_state(
+            execution_state=restarted._persistence.execution_state,
+            runtime_execution=restarted._persistence.runtime_execution,
+            principal=owner,
+            request=worker_request,
+            submission=submission_binding.receipt,
+        )
+        restarted_execution = await restarted._persistence.execution_state.read_context(
+            principal=owner,
+            attempt_id=worker_request.runtime_request.attempt_id,
+        )
+        assert restarted_execution is not None
+        assert restarted_execution.outcome.submission_id == submission_binding.receipt.submission_id
+        assert restarted_execution.outcome.status.value == "accepted"
+        assert restarted_execution.progress.phase.value == "queued"
+        assert (
+            await restarted._persistence.runtime_execution.load(
+                principal=owner,
+                attempt_id=worker_request.runtime_request.attempt_id,
+            )
+            == worker_request.runtime_state
+        )
+        # Reconstruct persistence once more to prove process-restart idempotency.
+        post_bootstrap_restart = PostgresStrategyLabV2Adapter(
+            session_factory,
+            persistence=build_persistence(),
+            clock=lambda: phase_time + timedelta(minutes=1),
+            search_dispatch_evidence=evidence_resolver,
+        )
+        await ensure_worker_initial_state(
+            execution_state=post_bootstrap_restart._persistence.execution_state,
+            runtime_execution=post_bootstrap_restart._persistence.runtime_execution,
+            principal=owner,
+            request=worker_request,
+            submission=submission_binding.receipt,
         )
 
         persisted_attempt = await restarted._resources.get_domain_contract(
