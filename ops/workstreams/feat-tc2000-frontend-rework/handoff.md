@@ -1,5 +1,30 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — Continuation preflight and exact-gate safety check
+
+The active TC worktree is clean at `85c2f0dcd` on
+`feat/tc2000-frontend-rework`. Current GitHub DNS resolution failed during
+`git ls-remote`, so remote branch tips and whether the provider/ETF dependencies
+have reached staging could not be refreshed; do not consume either dependency
+until that state is verified.
+
+Read-only Docker accounting shows the assigned TC Compose project healthy with
+six services and four data volumes. It also shows three live Testcontainers
+containers labeled to `feat/etf-holdings-constituents`; these were preserved.
+The earlier TC pytest PID 950317 is no longer present. The generic
+`validate-integration` target remains unsafe against the current assigned stack:
+its recipe calls `test-stack-up` (force-recreate) and its exit path calls
+`test-stack-down` (`docker compose down -v`) plus worktree resource cleanup.
+Do not run that target until a genuinely isolated exact gate is available.
+
+The current official V25 keyboard reference confirms modifier-based splitter
+resizing (Shift-drag above the divider; Ctrl-drag below it). Golden Layout owns
+the existing splitter drag event path, so this remains a TC-owned R1/R6
+implementation task rather than a completed parity item. Non-destructive
+validation passed: TC scope self-tests 6/6, 159 changed paths accepted by the
+scope guard, workstream validation, and `git diff --check`. No product code,
+visual oracle, Docker resource, or other worktree was changed in this check.
+
 ## 2026-10-06 — Ctrl+M explicit WatchList membership
 
 Implemented Ctrl+M in the focused WatchList: it opens the existing personal-list
