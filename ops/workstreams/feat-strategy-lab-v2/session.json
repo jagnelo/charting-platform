@@ -86,11 +86,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [
-    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl",
-    "ops/workstreams/feat-strategy-lab-v2/session.json"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -126,9 +122,9 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "5fe6adeffb0fb52668f67dfb34fee05560a78378",
-  "implementation_sha": "5fe6adeffb0fb52668f67dfb34fee05560a78378",
-  "last_checkpoint": "2026-10-06T01:57:36+00:00",
+  "head": "a49e58de246afa24e178a386f852d39c873e65ba",
+  "implementation_sha": "a49e58de246afa24e178a386f852d39c873e65ba",
+  "last_checkpoint": "2026-10-06T02:02:14+00:00",
   "last_human_progress_update": "2026-10-06T01:31:23.827018+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Make forward warm-up tape/canonical join, SDK-context generation, and native-event materialization disk-backed, then run the plan through exact pinned RC5 process integration.",
@@ -158,10 +154,10 @@
     "current_phase": "forward-warmup-streaming-and-process-validation",
     "next_action": "Make forward warm-up tape/canonical join, SDK-context generation, and native-event materialization disk-backed, then run the plan through exact pinned RC5 process integration; keep canonical reads behind platform-owned adapters.",
     "total": 18,
-    "updated_at": "2026-10-06T01:57:36+00:00"
+    "updated_at": "2026-10-06T02:02:14+00:00"
   },
-  "remote": "5fe6adeffb0fb52668f67dfb34fee05560a78378",
-  "remote_sha": "5fe6adeffb0fb52668f67dfb34fee05560a78378",
+  "remote": "a49e58de246afa24e178a386f852d39c873e65ba",
+  "remote_sha": "a49e58de246afa24e178a386f852d39c873e65ba",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
