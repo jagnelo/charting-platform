@@ -84,6 +84,15 @@ class FakeSession:
                 row for row in self.reservations.values() if row["worker_id"] == values["worker_id"]
             ]
             return FakeResult(sorted(rows, key=lambda row: row["reservation_id"]))
+        if normalized.startswith("SELECT lease_id") and "attempt_id" in values:
+            rows = [
+                {"lease_id": row["lease_id"]}
+                for row in self.leases.values()
+                if row["worker_id"] == values["worker_id"]
+                and row["attempt_id"] == values["attempt_id"]
+                and row["released_at"] is None
+            ]
+            return FakeResult(sorted(rows, key=lambda row: row["lease_id"]))
         if normalized.startswith("SELECT lease_id"):
             row = self.leases.get(values["lease_id"])
             return FakeResult([] if row is None else [row])
@@ -449,6 +458,43 @@ async def test_worker_state_adapter_loads_forward_authorization_atomically() -> 
     assert authorization.lease.lease_id == lease.lease_id
     assert any("FOR UPDATE" in call for call in session.calls)
 
+    resolved_by_attempt = await adapter.load_forward_authorization_for_attempt(
+        profile=profile,
+        attempt_id="attempt-1",
+    )
+    assert resolved_by_attempt == authorization
+
+
+@pytest.mark.asyncio
+async def test_worker_state_adapter_fails_closed_on_ambiguous_active_forward_leases() -> None:
+    session = FakeSession()
+    adapter = PostgresWorkerStateAdapter(lambda: session)
+    profile = WorkerProfile("worker-1", WorkerKind.FORWARD, RUNTIME)
+    await adapter.ensure_profile(profile)
+    await adapter.reserve(
+        profile=profile,
+        attempt_id="attempt-1",
+        reservation_id=_reservation_id("forward"),
+        acquired_at=NOW,
+    )
+    attempt = RunAttempt("attempt-1", "trial-1", 1, AttemptState.RUNNING, NOW)
+    for lease_id in ("lease-one", "lease-two"):
+        await adapter.persist_lease(
+            acquire_attempt_lease(
+                attempt,
+                worker_id=profile.worker_id,
+                lease_id=lease_id,
+                now=NOW,
+                lease_duration=timedelta(minutes=5),
+            )
+        )
+
+    with pytest.raises(ValueError, match="ambiguous active execution leases"):
+        await adapter.load_forward_authorization_for_attempt(
+            profile=profile,
+            attempt_id="attempt-1",
+        )
+
 
 @pytest.mark.asyncio
 async def test_worker_state_adapter_rejects_tampered_reservation_and_lease_rows() -> None:
@@ -484,9 +530,10 @@ async def test_worker_state_adapter_rejects_tampered_reservation_and_lease_rows(
 
 def test_worker_state_schema_is_explicit_but_not_applied() -> None:
     schema = PostgresWorkerStateSchema()
-    assert len(schema.statements) == 5
+    assert len(schema.statements) == 6
     assert all("CREATE TABLE" in statement for statement in schema.statements[:4])
     assert "UNIQUE (lease_id, sequence)" in schema.statements[3]
     assert "WHERE released_at IS NULL" in schema.statements[4]
+    assert "execution_leases_active_attempt_key" in schema.statements[5]
     with pytest.raises(ValueError, match="safe SQL identifier"):
         PostgresWorkerStateSchema(lease_table="unsafe;drop")

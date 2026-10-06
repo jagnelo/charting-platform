@@ -7,6 +7,7 @@ import pytest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.forward_worker_authorization import (
     AuthorizedForwardEventHandler,
+    DurableForwardWorkerAuthorizationResolver,
     ForwardWorkerAuthorization,
     ForwardWorkerAuthorizationDecision,
     resolve_forward_worker_authorization,
@@ -14,7 +15,7 @@ from app.strategy_lab_v2.forward_worker_authorization import (
 from app.strategy_lab_v2.lifecycle import ExecutionAttemptLease
 from app.strategy_lab_v2.tests.test_forward_worker_service import _work
 from app.strategy_lab_v2.worker_consumer import WorkerHandleDecision, WorkerHandleResult
-from app.strategy_lab_v2.workers import WorkerKind, WorkerReservation
+from app.strategy_lab_v2.workers import WorkerKind, WorkerProfile, WorkerReservation
 
 NOW = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
 
@@ -65,6 +66,28 @@ def test_forward_worker_authorization_rejects_released_reservation() -> None:
 
 
 @pytest.mark.asyncio
+async def test_durable_forward_authorization_resolver_binds_instance_to_persisted_profile() -> None:
+    entry, _, work_item = _work()
+    profile = WorkerProfile(
+        "worker-1", WorkerKind.FORWARD, content_digest("forward-runtime-profile")
+    )
+    calls: list[tuple[WorkerProfile, str]] = []
+
+    class Store:
+        async def load_forward_authorization_for_attempt(
+            self, *, profile: WorkerProfile, attempt_id: str
+        ) -> ForwardWorkerAuthorization:
+            calls.append((profile, attempt_id))
+            return _authorization()
+
+    resolver = DurableForwardWorkerAuthorizationResolver(Store(), profile=profile)
+    authorization = await resolver(entry, work_item)
+
+    assert authorization == _authorization()
+    assert calls == [(profile, work_item.dispatch.instance_id)]
+
+
+@pytest.mark.asyncio
 async def test_authorized_handler_gates_delegate_and_preserves_receipt() -> None:
     entry, _, work_item = _work()
     calls: list[str] = []
@@ -105,4 +128,26 @@ async def test_authorized_handler_does_not_delegate_expired_work() -> None:
     )
     result = await wrapped(entry, work_item)
     assert result.decision is WorkerHandleDecision.RETRY
+    assert called is False
+
+
+@pytest.mark.asyncio
+async def test_authorized_handler_retries_until_durable_reservation_and_lease_exist() -> None:
+    entry, _, work_item = _work()
+    called = False
+
+    async def handler(_entry, _item):
+        nonlocal called
+        called = True
+        raise AssertionError("unauthorized work must not reach the handler")
+
+    wrapped = AuthorizedForwardEventHandler(
+        lambda _entry, _item: None,
+        handler,
+        clock=lambda: NOW,
+    )
+    result = await wrapped(entry, work_item)
+
+    assert result.decision is WorkerHandleDecision.RETRY
+    assert result.rejection_reason == "forward worker reservation/lease is not yet persisted"
     assert called is False

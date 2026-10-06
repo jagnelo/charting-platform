@@ -187,6 +187,11 @@ class PostgresWorkerStateSchema:
             ON {self.reservation_table} (worker_id, attempt_id)
             WHERE released_at IS NULL
             """,
+            f"""
+            CREATE UNIQUE INDEX {self.lease_table}_active_attempt_key
+            ON {self.lease_table} (worker_id, attempt_id)
+            WHERE released_at IS NULL
+            """,
         )
 
 
@@ -409,6 +414,69 @@ class PostgresWorkerStateAdapter:
                 if reservation is None or lease_state is None:
                     return None
                 return ForwardWorkerAuthorization(reservation, lease_state.lease)
+
+    async def load_forward_authorization_for_attempt(
+        self,
+        *,
+        profile: WorkerProfile,
+        attempt_id: str,
+    ) -> ForwardWorkerAuthorization | None:
+        """Resolve the unique active FORWARD reservation/lease for one instance."""
+
+        _validate_profile(profile)
+        if profile.kind is not WorkerKind.FORWARD:
+            raise ValueError("forward authorization requires a FORWARD worker profile")
+        if not isinstance(attempt_id, str) or not attempt_id.strip():
+            raise ValueError("attempt_id must not be empty")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                persisted = await self._load_profile(session, profile.worker_id)
+                if persisted is None:
+                    return None
+                if persisted != profile:
+                    raise ValueError("PostgreSQL worker profile identity is already bound")
+                pool = await self._load_pool(session, persisted)
+                reservations = tuple(
+                    item for item in pool.active_reservations if item.attempt_id == attempt_id
+                )
+                if not reservations:
+                    return None
+                if len(reservations) != 1:
+                    raise ValueError("forward attempt has ambiguous active worker reservations")
+                reservation = reservations[0]
+                result = await session.execute(
+                    _statement(
+                        f"""
+                        SELECT lease_id
+                        FROM {self._schema.lease_table}
+                        WHERE worker_id = :worker_id AND attempt_id = :attempt_id
+                          AND released_at IS NULL
+                        ORDER BY lease_id ASC
+                        FOR UPDATE
+                        """
+                    ),
+                    {"worker_id": profile.worker_id, "attempt_id": attempt_id},
+                )
+                lease_rows = list(result.mappings())
+                if not lease_rows:
+                    return None
+                if len(lease_rows) != 1:
+                    raise ValueError("forward attempt has ambiguous active execution leases")
+                lease_id = lease_rows[0].get("lease_id")
+                if not isinstance(lease_id, str) or not lease_id.strip():
+                    raise ValueError("PostgreSQL forward lease identity is malformed")
+                lease_state = await self._load_lease(session, lease_id)
+                if lease_state is None:
+                    return None
+                lease = lease_state.lease
+                if (
+                    lease.worker_id != profile.worker_id
+                    or lease.attempt_id != attempt_id
+                    or lease.released_at is not None
+                ):
+                    raise ValueError("PostgreSQL forward lease differs from its active query")
+                return ForwardWorkerAuthorization(reservation, lease)
 
     async def persist_lease(self, lease: ExecutionAttemptLease) -> LeaseObservationState:
         """Persist one newly acquired lease or replay the exact lease."""

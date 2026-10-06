@@ -863,13 +863,15 @@ progress:
       hardened RC5 sandbox plan using the accepted delivery, exact durable
       checkpoint, complete frozen snapshot tape, processed prefix, and explicit
       canonical platform readers. Preserve immutable identity/order provenance,
-      fail closed on missing or mismatched evidence, require persisted forward
-      worker reservation/lease authorization before dispatch handling, and
-      introduce no broker or real-capital path.
+      fail closed on missing or mismatched evidence, bind dispatch to the
+      persisted forward worker reservation/lease, and introduce no broker or
+      real-capital path.
     owned_paths:
+      - backend/alembic/versions/ff7a8b9c0d1e_enforce_one_active_forward_worker_lease.py
       - backend/app/strategy_lab_v2/forward_worker_composition.py
       - backend/app/strategy_lab_v2/forward_worker_entrypoint.py
       - backend/app/strategy_lab_v2/forward_worker_authorization.py
+      - backend/app/strategy_lab_v2/postgres_worker_state.py
       - backend/app/strategy_lab_v2/forward_history_resolution.py
       - backend/app/strategy_lab_v2/nautilus_forward_bootstrap.py
       - backend/app/strategy_lab_v2/nautilus_runtime_bundle.py
@@ -878,6 +880,7 @@ progress:
       - backend/app/strategy_lab_v2/tests/test_forward_worker_composition.py
       - backend/app/strategy_lab_v2/tests/test_forward_worker_entrypoint.py
       - backend/app/strategy_lab_v2/tests/test_forward_worker_authorization.py
+      - backend/app/strategy_lab_v2/tests/test_postgres_worker_state.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_forward_bootstrap.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_forward_process.py
     status: in_progress
@@ -894,9 +897,8 @@ progress:
     their branches; unsupported options remain fail-closed pending canonical
     Greeks/delta/settlement evidence.
   next_action: >-
-    Bind the required forward-worker authorization resolver to durable
-    reservation/lease lookup and capacity lifecycle, then continue event-stream
-    activation and broader forward-shadow acceptance. Next implement and
-    validate remaining backtest, search, API, security, and Compose criteria.
-    Keep unsupported products fail-closed; stable Nautilus labeling is not a
-    gate.
+    Bind instance activation and termination to durable worker reservation,
+    lease acquisition/heartbeat, and capacity release, then activate the
+    canonical event-stream callback path. Continue broader forward-shadow and
+    remaining backtest, search, API, security, and Compose acceptance. Keep
+    unsupported products fail-closed; stable Nautilus labeling is not a gate.

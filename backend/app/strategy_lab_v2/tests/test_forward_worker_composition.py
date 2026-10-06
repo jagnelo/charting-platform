@@ -29,6 +29,9 @@ from app.strategy_lab_v2.forward_execution_plan_resolution import ResolvedForwar
 from app.strategy_lab_v2.forward_processed_prefix import ForwardProcessedEventPrefix
 from app.strategy_lab_v2.forward_warmup import CarryInMode, ForwardWarmupReceipt
 from app.strategy_lab_v2.forward_warmup_stream import iter_verified_forward_warmup_payloads
+from app.strategy_lab_v2.forward_worker_authorization import (
+    DurableForwardWorkerAuthorizationResolver,
+)
 from app.strategy_lab_v2.forward_worker_composition import (
     AuthenticatedForwardDeliveryContextResolver,
     AuthenticatedForwardSandboxPlanFactory,
@@ -79,6 +82,7 @@ from app.strategy_lab_v2.sdk import MarketEvent
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
 from app.strategy_lab_v2.tests.forward_replay_ledger import DurableReplayLedger
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs as _trial_inputs
+from app.strategy_lab_v2.workers import WorkerKind, WorkerProfile
 
 
 class _Runtime:
@@ -200,12 +204,20 @@ async def test_production_callback_assembly_uses_durable_dispatch_and_shutdown_h
         event_type_by_dependency={"dependency": "ohlcv"},
         package_resolver=package_resolver,
         owner_handler_factory=lambda owner_id, _delivery, _inputs: _handler(owner_id, runtime),
-        authorization_resolver=lambda _entry, _work_item: None,
+        worker_profile=WorkerProfile(
+            "forward-worker",
+            WorkerKind.FORWARD,
+            content_digest("forward-worker-runtime-profile"),
+        ),
     )
 
     assert callable(callbacks.materializer)
     assert callable(callbacks.handler)
-    assert callable(callbacks.authorization_resolver)
+    assert isinstance(
+        callbacks.authorization_resolver,
+        DurableForwardWorkerAuthorizationResolver,
+    )
+    assert callbacks.authorization_resolver._store is persistence.worker_state
     assert callbacks.close is not None
     close_result = callbacks.close()
     if close_result is not None:

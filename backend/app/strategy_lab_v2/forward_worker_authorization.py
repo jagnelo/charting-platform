@@ -14,13 +14,14 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
+from typing import Protocol
 
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.forward_worker_handoff import ForwardEventWorkItem
 from app.strategy_lab_v2.lifecycle import AttemptLeaseStatus, ExecutionAttemptLease
 from app.strategy_lab_v2.redis_transport import RedisStreamEntry
 from app.strategy_lab_v2.worker_consumer import WorkerHandleDecision, WorkerHandleResult
-from app.strategy_lab_v2.workers import WorkerKind, WorkerReservation
+from app.strategy_lab_v2.workers import WorkerKind, WorkerProfile, WorkerReservation
 
 
 @dataclass(frozen=True, slots=True)
@@ -113,8 +114,45 @@ def resolve_forward_worker_authorization(
 
 ForwardWorkerAuthorizationResolver = Callable[
     [RedisStreamEntry, ForwardEventWorkItem],
-    Awaitable[ForwardWorkerAuthorization] | ForwardWorkerAuthorization,
+    Awaitable[ForwardWorkerAuthorization | None] | ForwardWorkerAuthorization | None,
 ]
+
+
+class ForwardWorkerAuthorizationStore(Protocol):
+    """Durable lookup for the unique active worker lease on one instance."""
+
+    async def load_forward_authorization_for_attempt(
+        self, *, profile: WorkerProfile, attempt_id: str
+    ) -> ForwardWorkerAuthorization | None: ...
+
+
+class DurableForwardWorkerAuthorizationResolver:
+    """Resolve a dispatched instance against its persisted worker rows."""
+
+    def __init__(self, store: ForwardWorkerAuthorizationStore, *, profile: WorkerProfile) -> None:
+        if not callable(getattr(store, "load_forward_authorization_for_attempt", None)):
+            raise TypeError("store must load forward authorization by attempt")
+        if not isinstance(profile, WorkerProfile) or profile.kind is not WorkerKind.FORWARD:
+            raise TypeError("profile must be a FORWARD WorkerProfile")
+        self._store = store
+        self._profile = profile
+
+    async def __call__(
+        self, entry: RedisStreamEntry, work_item: ForwardEventWorkItem
+    ) -> ForwardWorkerAuthorization | None:
+        if not isinstance(entry, RedisStreamEntry):
+            raise TypeError("entry must be a RedisStreamEntry")
+        if not isinstance(work_item, ForwardEventWorkItem):
+            raise TypeError("work_item must be a ForwardEventWorkItem")
+        instance_id = work_item.dispatch.instance_id
+        if entry.attempt_id != instance_id:
+            return None
+        return await self._store.load_forward_authorization_for_attempt(
+            profile=self._profile,
+            attempt_id=instance_id,
+        )
+
+
 ForwardEventHandler = Callable[
     [RedisStreamEntry, ForwardEventWorkItem],
     Awaitable[WorkerHandleResult] | WorkerHandleResult,
@@ -146,6 +184,8 @@ class AuthorizedForwardEventHandler:
     ) -> WorkerHandleResult:
         resolved = self._authorization_resolver(entry, work_item)
         authorization = await resolved if inspect.isawaitable(resolved) else resolved
+        if authorization is None:
+            return _retry(entry, "forward worker reservation/lease is not yet persisted")
         if not isinstance(authorization, ForwardWorkerAuthorization):
             return _reject(entry, "worker authorization resolver returned an invalid record")
         resolution = resolve_forward_worker_authorization(
@@ -194,9 +234,11 @@ def _reject(entry: RedisStreamEntry, reason: str) -> WorkerHandleResult:
 
 __all__ = [
     "AuthorizedForwardEventHandler",
+    "DurableForwardWorkerAuthorizationResolver",
     "ForwardWorkerAuthorization",
     "ForwardWorkerAuthorizationDecision",
     "ForwardWorkerAuthorizationResolution",
     "ForwardWorkerAuthorizationResolver",
+    "ForwardWorkerAuthorizationStore",
     "resolve_forward_worker_authorization",
 ]

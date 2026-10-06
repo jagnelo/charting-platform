@@ -13084,3 +13084,39 @@ tests passed 11/11; focused MyPy passed on the entrypoint and composition
 modules; Ruff and formatting passed. Next: wire the required resolver to the
 owner's persisted worker authorization records, then continue forward event
 activation and the larger Strategy Lab acceptance scope.
+
+## 2026-10-06 - Resolve forward authorization from durable worker state
+
+`PostgresWorkerStateAdapter.load_forward_authorization_for_attempt` now resolves
+the unique active FORWARD reservation and unreleased lease for one dispatched
+instance under row locks. It verifies the configured worker profile, authentic
+reservation and lease rows, and exact worker/attempt identity; ambiguous leases
+fail closed. `DurableForwardWorkerAuthorizationResolver` binds Redis entry and
+authenticated dispatch instance identity to that lookup, and production
+callback composition now builds it from the persisted worker-state adapter and
+an explicit FORWARD `WorkerProfile`. Missing reservation/lease state retries
+the Redis event instead of acknowledging and losing work during activation.
+
+Validation: PostgreSQL worker state, authorization, entrypoint, and callback
+composition tests passed 24/24; focused MyPy passed on four changed source
+modules; Ruff and formatting passed. Remaining activation lifecycle work is to
+create/heartbeat/release each instance's reservation and lease, and to provide
+the canonical platform payload resolver to the opt-in Compose worker.
+
+## 2026-10-06 - Persist one active worker lease per attempt
+
+Authorization lookup is now race-safe at the database boundary: a partial
+unique index allows at most one unreleased execution lease for a worker/attempt
+pair, complementing the existing active reservation index. The additive
+Alembic head `ff7a8b9c0d1e` enforces this for deployed databases, and the
+registration-neutral worker-state schema declares the same index. Production
+callback composition constructs `DurableForwardWorkerAuthorizationResolver`
+from `persistence.worker_state` and the explicit FORWARD profile. Missing
+authorization evidence is retried; ambiguous evidence is rejected.
+
+Validation: PostgreSQL worker-state, authorization, forward entrypoint, and
+callback-composition tests passed 24/24; focused MyPy passed on four source
+modules; Ruff, formatting, workstream validation, and Alembic single-head
+resolution passed. Next: bind instance start/stop to reservation and lease
+acquire/heartbeat/release and activate canonical platform event payload
+resolution in the opt-in Compose worker.
