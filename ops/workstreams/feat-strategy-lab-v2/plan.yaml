@@ -882,6 +882,7 @@ progress:
       - backend/app/strategy_lab_v2/tests/test_worker_entrypoint.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_worker_terminal.py
       - backend/app/strategy_lab_v2/tests/test_search_dispatch_preparation.py
+      - backend/tests/integration/strategy_lab_v2/test_oos_terminal_postgres_redis.py
       - backend/tests/integration/strategy_lab_v2/test_worker_recovery_postgres.py
       - backend/tests/integration/strategy_lab_v2/test_walk_forward_phase_recovery_postgres.py
     status: in_progress
@@ -930,11 +931,18 @@ progress:
     application. A crash-window worker test proves a settled Redis redelivery
     ACKs with one process invocation; exact RC6 OOS execution/result
     materialization and PostgreSQL worker recovery integrations also pass.
+    A new integration proves PostgreSQL OOS terminal adapters persist and
+    replay result publication/completion/manifest/metrics/artifact commits/
+    worker settlement before a real Redis consumer ACKs a reclaimed delivery.
+    It uses a deterministic OOS worker-result fixture and directly calls the
+    terminal writer on reclaim; exact RC6 process execution and production
+    pre-execution terminal-replay composition remain unproven together.
     This session reran the exact RC6 authoritative OOS worker request and the
     separate exact-RC6 + PostgreSQL + real-Redis forward crash/reclaim
     integration successfully. These remain adjacent proofs, not yet one
     actual-RC6 walk-forward OOS test crossing PostgreSQL terminal result
-    settlement with real Redis consumer restart/reclaim. Broader worker/Compose restart
+    settlement through the production receipt-first worker path with real Redis
+    consumer restart/reclaim. Broader worker/Compose restart
     evidence and full backtest/search/API/security/Compose criteria remain,
     along with exact-tip branch gates.
     The earlier forward-bootstrap artifact/plan composition slice remains
@@ -945,11 +953,12 @@ progress:
     Greeks/delta/settlement evidence.
   next_action: >-
     Compose an actual RC6 OOS native execution with production PostgreSQL
-    terminal adapters and a real Redis consumer; inject a crash after terminal
-    settlement but before ACK, then prove the restarted consumer ACKs from the
-    matching durable completion/settlement without running Nautilus again.
-    Preserve training-only selection, stable attempt identity, and owner
-    isolation. Then continue backtest/search, security,
+    terminal adapters and the production pre-execution terminal-replay reader
+    in a real Redis worker. Inject a crash after terminal settlement but before
+    ACK, then prove the restarted consumer ACKs from the matching durable
+    completion/settlement without running Nautilus again. Preserve
+    training-only selection, stable attempt identity, and owner isolation.
+    Then continue backtest/search, security,
     Compose and exact-tip criteria. Reconcile the 13 browser failures only after the
     frontend owner has completed its work and shared-path semantics can be
     reviewed together. Finish security, Compose scaling, and exact-tip gates.

@@ -14250,3 +14250,23 @@ prerequisite. The first unprivileged container launch failed because the
 restricted shell could not access `/var/run/docker.sock`; the repository's
 documented Docker-capable path reran the exact same RC6 test successfully, so
 this was execution-context restriction rather than engine failure.
+
+## 2026-10-06 - PostgreSQL OOS terminal replay with real Redis reclaim
+
+Commit `4236c4ede46028071fd4672f13e2b05b8781d691` adds a scoped integration
+test over PostgreSQL terminal adapters and a real Redis stream. It settles an
+OOS-shaped result through result publication, completion, manifest, metric,
+artifact commit, worker settlement, and capacity/lease release; simulates loss
+before Redis ACK; reconstructs fresh adapters; reclaims the delivery under a
+new consumer; then replays the stable receipt and ACKs with one row per durable
+projection. Cleanup removes only UUID-named PostgreSQL tables and a unique
+Redis namespace. The new test plus three related regressions passed (4 total);
+Ruff, formatting, MyPy, and `git diff --check` passed.
+
+This is explicitly not the final combined acceptance proof: the worker result
+comes from a deterministic OOS fixture, not an actual RC6 process, and the
+reclaim callback invokes the terminal writer directly instead of composing the
+worker service's production pre-execution `terminal_replay_reader` with
+PostgreSQL recovery/search state. Next, combine exact RC6 execution, that
+receipt-first production worker path, PostgreSQL terminal settlement, and real
+Redis post-commit reclaim; prove the engine is not run twice.
