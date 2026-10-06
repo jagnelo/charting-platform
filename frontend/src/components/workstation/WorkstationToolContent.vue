@@ -1449,9 +1449,15 @@ async function handleMembershipAction(action: 'copy-to-watchlist' | 'move-to-wat
 
 function handlePersonalRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: { symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number; flagged?: boolean }, targetWatchlistId?: number, selectedRows?: Array<{ symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number; flagged?: boolean }>) {
   if (action === 'flag' && row.itemId != null) {
-    const sourceWatchlistId = row.sourceWatchlistId ?? selectedPersonalWatchlist.value?.id
-    if (sourceWatchlistId == null) return
-    void watchlistStore.setItemFlag(sourceWatchlistId, row.itemId, !row.flagged)
+    const targets = selectedRows?.length ? selectedRows : [row]
+    if (targets.some(item => item.itemId == null || (item.sourceWatchlistId ?? selectedPersonalWatchlist.value?.id) == null)) return
+    const flagged = targets.some(item => item.flagged !== true)
+    for (const item of targets) {
+      const sourceWatchlistId = item.sourceWatchlistId ?? selectedPersonalWatchlist.value?.id
+      if (sourceWatchlistId != null && item.itemId != null) {
+        void watchlistStore.setItemFlag(sourceWatchlistId, item.itemId, flagged)
+      }
+    }
     return
   }
   if (action === 'copy-to-watchlist' || action === 'move-to-watchlist') {

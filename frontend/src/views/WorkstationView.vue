@@ -43,6 +43,7 @@
               <div><dt>Ctrl+Space</dt><dd>Previous symbol in the focused list</dd></div>
               <div><dt>Backspace</dt><dd>Previous symbol in viewed history</dd></div>
               <div><dt>Shift+L</dt><dd>Toggle maximize for the selected window</dd></div>
+              <div><dt>Shift+F</dt><dd>Flag or unflag selected WatchList symbols</dd></div>
               <div><dt>Ctrl+wheel</dt><dd>Over a chart: change timeframe; over a WatchList: move through symbols</dd></div>
               <div><dt>= / -</dt><dd>Over the active chart: change timeframe</dd></div>
               <div><dt>F1 or ?</dt><dd>Show this help</dd></div>

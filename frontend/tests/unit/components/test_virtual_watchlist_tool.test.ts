@@ -1368,6 +1368,36 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.findAll('button[role="menuitem"]').some(button => button.text() === 'Unflag')).toBe(true)
   })
 
+  it('uses Shift+F to flag all selected source rows without changing the selection', async () => {
+    const sourceRows = [
+      { ...rows[0], itemId: 41, sourceWatchlistId: 12, flagged: false },
+      { ...rows[1], itemId: 42, sourceWatchlistId: 12, flagged: false },
+    ]
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: { label: 'Momentum', rows: sourceRows, sourceWatchlistId: 12 },
+    })
+    const selectRow = (wrapper.vm as unknown as { selectRow: (row: typeof sourceRows[number], event: MouseEvent) => void }).selectRow
+    selectRow(sourceRows[0], new MouseEvent('click'))
+    selectRow(sourceRows[1], new MouseEvent('click', { ctrlKey: true }))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.get('.watchlist__compare-button').attributes('aria-label')).toBe('Compare 2 selected symbols')
+
+    const event = new KeyboardEvent('keydown', { key: 'f', shiftKey: true, bubbles: true, cancelable: true })
+    wrapper.find('[role="listbox"]').element.dispatchEvent(event)
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(wrapper.emitted('row-action')?.at(-1)).toEqual([
+      'flag',
+      expect.objectContaining({ symbol: sourceRows[1].symbol, itemId: 42 }),
+      undefined,
+      expect.arrayContaining([
+        expect.objectContaining({ itemId: 41, flagged: false }),
+        expect.objectContaining({ itemId: 42, flagged: false }),
+      ]),
+    ])
+    expect(wrapper.get('.watchlist__compare-button').attributes('aria-label')).toBe('Compare 2 selected symbols')
+  })
+
   it('supports keyboard navigation and focus recovery for row context actions', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       attachTo: document.body,

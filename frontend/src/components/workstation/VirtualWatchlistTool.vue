@@ -1644,6 +1644,20 @@ function toggleStackedColumn(key: string) {
 }
 
 function onKeydown(event: KeyboardEvent) {
+  const isFlagShortcut = event.key.toLowerCase() === 'f' && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey
+  if (isFlagShortcut) {
+    event.preventDefault()
+    const activeSymbol = keyboardActiveSymbol.value || props.selected
+    const activeRow = filteredRows.value.find(row => row.symbol === activeSymbol)
+    if (!activeRow) return
+    const targets = selectedSymbols.value.includes(activeRow.symbol)
+      ? filteredRows.value.filter(row => selectedSymbols.value.includes(row.symbol))
+      : [activeRow]
+    if (!targets.length || targets.some(row => row.itemId == null || (row.sourceWatchlistId ?? props.sourceWatchlistId) == null)) return
+    if (targets.length > 1) emit('row-action', 'flag', activeRow, undefined, targets)
+    else emit('row-action', 'flag', activeRow)
+    return
+  }
   const isSpaceTraversal = event.key === ' ' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey
   const isReverseSpaceTraversal = event.key === ' ' && event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey
   if (!['ArrowDown', 'ArrowUp', 'Home', 'End', 'Enter'].includes(event.key) && !isSpaceTraversal && !isReverseSpaceTraversal) return
