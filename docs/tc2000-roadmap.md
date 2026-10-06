@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-06
 
+## 2026-10-06 — Market Map Python area selection stays contract-valid
+
+Product commit `326a96bf0c7531356fae0db441405c1a951da8ac` keeps the Python
+output picker aligned with Market Map's numeric tile-area contract. If the user
+switches tile area to Python while a Boolean output is selected for colour, the
+incompatible output and its old run ID are cleared and a polite status message
+explains that a numeric-series output is required. This is a frontend state
+transition only; it changes no Python execution, data, provider, or ETF
+semantics.
+
+MarketMapTool coverage passed `58/58`; the full serial-fork frontend suite
+passed `129/129` files and `1,213/1,213` tests; type-check and production build
+passed. The Playwright CLI wrapper did not open a browser and was stopped
+without a UI result. This focused regression does not close the full-stack
+integration gate, exact V25 review, or upstream staging dependencies.
+
 ## 2026-10-06 — Study Lab saved-universe source suggestions
 
 Product commit `c0a2100cd0741e933382a6f72a0237ba8f495bda` adds source-kind-

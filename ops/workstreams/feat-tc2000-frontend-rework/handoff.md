@@ -18237,3 +18237,20 @@ Changed ops files in this checkpoint:
 - ops/workstreams/feat-tc2000-frontend-rework/handoff.md
 - ops/workstreams/feat-tc2000-frontend-rework/session.json
 - ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl
+
+## 2026-10-06 — Market Map Python area compatibility
+
+Product commit `326a96bf0c7531356fae0db441405c1a951da8ac` fixes a stale
+selection transition: when Python is selected as Market Map tile area, any
+currently selected Boolean output and prior Python run ID are cleared, and a
+polite status explains that tile area needs a numeric-series output. Existing
+initial invalid-config validation remains fail-closed. No backend, provider,
+ETF, execution-contract, or visual-oracle behavior changed.
+
+Focused MarketMapTool tests passed `58/58`; the serial-fork frontend suite
+passed `129/129` files and `1,213/1,213` tests; type-check and production build
+passed. The Playwright CLI wrapper stalled before browser startup and was
+stopped without a browser result; no browser acceptance is claimed for this
+slice. The feature commit is pushed to the assigned TC branch. Exact generic
+integration, exact V25 review, and provider/ETF staging dependencies remain
+open; the goal remains active.

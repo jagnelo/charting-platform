@@ -71,7 +71,7 @@
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
     ],
-    "known_bytes": 632323416,
+    "known_bytes": 632523567,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
@@ -82,7 +82,7 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 629255512,
+    "volume_bytes": 629455663,
     "volume_count": 4,
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
@@ -130,14 +130,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "c0a2100cd0741e933382a6f72a0237ba8f495bda",
+  "head": "326a96bf0c7531356fae0db441405c1a951da8ac",
   "implementation_sha": "ec0ad6c5e72edeb2023784e16b88828c89c6fd13",
   "interrupted": false,
-  "last_checkpoint": "2026-10-06T02:49:38.021594+00:00",
-  "last_human_progress_update": "2026-10-06T02:47:16.913682+00:00",
+  "last_checkpoint": "2026-10-06T03:22:31.873568+00:00",
+  "last_human_progress_update": "2026-10-06T03:21:47.414607+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "80ab8cddbc892292efe589e2c197e3050a8f57163e1a0e3d2c2dc30f4763844f",
+  "plan_hash": "f54661a3310f275de802650d9b74eaafdad6acd359d22ad016cee178d152389a",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -151,11 +151,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "The Market Map screen-reader selection gap is implemented and passed focused/full frontend tests, type-check/build, and pinned 10,000-cell browser verification. AC2-AC9 remain incomplete: exact V25 authority, broader accessibility/security/endurance, generic integration, remaining R1/R5/R6 work, and both upstream contracts pending staging.",
-    "current_phase": "R1_MARKET_MAP_SELECTION_ACCESSIBILITY",
-    "next_action": "Continue the full TC-owned R1/R5/R6 roadmap with the next bounded workstation, Study, or Strategy implementation slice. Preserve V25 references and acceptance policy; find a safe exact-project route for generic integration. Refresh dependency refs and defer R2/R3 and semantic shared-path reconciliation until both upstream branches reach staging. Keep the full goal active until all acceptance criteria are genuinely met.",
+    "current_blocker": "none",
+    "current_phase": "R1_R5_market_map_python_area_contract",
+    "next_action": "Continue the bounded TC-owned R1/R5/R6 roadmap; preserve V25 acceptance; refresh staging/provider/ETF refs; defer R2/R3 and semantic shared-path reconciliation until upstream branches reach staging; solve the generic full integration gate only with an exact isolated project; keep the goal active until all acceptance criteria are genuinely met.",
     "total": 9,
-    "updated_at": "2026-10-06T02:47:16.913664+00:00"
+    "updated_at": "2026-10-06T03:21:47.414588+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
@@ -171,7 +171,7 @@
     "remote_tracking_sha": "d413d845939e68e9738b621329fa8d63a419ddf8",
     "status": "synchronized"
   },
-  "remote": "c0a2100cd0741e933382a6f72a0237ba8f495bda",
+  "remote": "326a96bf0c7531356fae0db441405c1a951da8ac",
   "remote_sha": "ec0ad6c5e72edeb2023784e16b88828c89c6fd13",
   "remote_synchronized": true,
   "retained_docker_resources": [],

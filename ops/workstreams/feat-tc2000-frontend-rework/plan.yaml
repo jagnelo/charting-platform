@@ -113,20 +113,26 @@ current_blocker: >-
   upstream dependency is in staging.
   Provider and ETF branches remain outside staging, so R2/R3 consumption and
   shared-path reconciliation are deferred.
+  At pushed product commit 326a96bf0c7531356fae0db441405c1a951da8ac, Market
+  Map clears a selected Boolean Python output and its stale run when Python is
+  selected as the numeric tile-area metric; the user receives a polite prompt
+  to select a series output. Focused MarketMapTool tests passed 58/58, the
+  full frontend suite passed 129 files / 1,213 tests, type-check/build passed.
+  The browser CLI wrapper stalled before opening a browser and was stopped with
+  no UI result; unit/browser/integration coverage outside this state transition
+  remains governed by the full validation profile.
 active_changeset_context:
-  name: Study Lab saved-universe source suggestions
-  status: r1_r5_source_discovery_tested_generic_gate_and_upstream_dependencies_open
-  commit_sha: c0a2100cd0741e933382a6f72a0237ba8f495bda
-  remote_sha: c0a2100cd0741e933382a6f72a0237ba8f495bda
+  name: Market Map Python area output compatibility
+  status: pushed_focused_and_full_frontend_verified_generic_gate_and_upstream_dependencies_open
+  commit_sha: 326a96bf0c7531356fae0db441405c1a951da8ac
+  remote_sha: 326a96bf0c7531356fae0db441405c1a951da8ac
   intent: >-
-    Let Study authors discover persisted canonical watchlist sources by kind
-    from the existing universe-source input without restricting custom IDs,
-    changing dataset semantics, or taking ownership of source/data creation.
+    Keep the Market Map Python selector and persisted execution state aligned
+    when switching to numeric tile area, which accepts only numeric-series
+    outputs; clear incompatible Boolean output/run IDs and guide the user.
   owned_paths:
-    - frontend/src/components/workstation/StudyLabTool.vue
-    - frontend/src/components/workstation/WorkstationToolContent.vue
-    - frontend/tests/unit/components/test_study_lab_tool.test.ts
-    - frontend/tests/e2e/flows.spec.ts
+    - frontend/src/components/workstation/MarketMapTool.vue
+    - frontend/tests/unit/components/test_market_map_tool.test.ts
   next_action: >-
     Continue the complete TC-owned R1/R5/R6 roadmap. Preserve the V25 visual
     references and acceptance policy. Resolve the generic integration gate only
