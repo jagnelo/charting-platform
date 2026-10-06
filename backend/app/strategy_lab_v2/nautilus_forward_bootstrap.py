@@ -14,9 +14,16 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from app.strategy_lab_v2.artifact_store import (
+    ArtifactStoreDecision,
+    LocalArtifactStore,
+)
+from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
+from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.sdk import MarketEvent
 
@@ -32,6 +39,7 @@ if TYPE_CHECKING:
     )
 
 NAUTILUS_FORWARD_BOOTSTRAP_SCHEMA = "strategy-lab.nautilus-forward-bootstrap.v1"
+NAUTILUS_FORWARD_BOOTSTRAP_MEDIA_TYPE = "application/vnd.strategy-lab.nautilus-forward-bootstrap+json"
 MAX_NAUTILUS_FORWARD_BOOTSTRAP_BYTES = 16 * 1024 * 1024
 
 
@@ -536,6 +544,7 @@ class NautilusForwardRuntimeBootstrap:
                 raise ValueError("forward bootstrap fingerprint differs from its artifact binding")
         return bootstrap
 
+
     @classmethod
     def from_wire(cls, value: Mapping[str, Any]) -> NautilusForwardRuntimeBootstrap:
         fields = {
@@ -777,10 +786,68 @@ class NautilusForwardRuntimeBootstrap:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class NautilusForwardBootstrapArtifactReference:
+    """Content-addressed immutable bytes for one exact forward bootstrap."""
+
+    artifact: ArtifactManifest
+    bootstrap_fingerprint: str
+    path: Path
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.artifact, ArtifactManifest):
+            raise TypeError("artifact must use ArtifactManifest")
+        require_sha256_digest(self.bootstrap_fingerprint, field_name="bootstrap_fingerprint")
+        if not isinstance(self.path, Path) or not self.path.is_absolute():
+            raise ValueError("bootstrap artifact path must be absolute")
+        if self.artifact.media_type != NAUTILUS_FORWARD_BOOTSTRAP_MEDIA_TYPE:
+            raise ValueError("bootstrap artifact media type is invalid")
+        if self.artifact.schema_version != NAUTILUS_FORWARD_BOOTSTRAP_SCHEMA:
+            raise ValueError("bootstrap artifact schema is invalid")
+
+
+def materialize_nautilus_forward_bootstrap_artifact(
+    store: LocalArtifactStore,
+    bootstrap: NautilusForwardRuntimeBootstrap,
+) -> NautilusForwardBootstrapArtifactReference:
+    """Publish exact bootstrap bytes under an immutable verified content address."""
+
+    if not isinstance(store, LocalArtifactStore):
+        raise TypeError("store must be a LocalArtifactStore")
+    if not isinstance(bootstrap, NautilusForwardRuntimeBootstrap):
+        raise TypeError("bootstrap must use NautilusForwardRuntimeBootstrap")
+    encoded = bootstrap.to_json_bytes()
+    digest = artifact_content_digest(encoded)
+    artifact = ArtifactManifest(
+        content_digest=digest,
+        byte_length=len(encoded),
+        media_type=NAUTILUS_FORWARD_BOOTSTRAP_MEDIA_TYPE,
+        schema_version=NAUTILUS_FORWARD_BOOTSTRAP_SCHEMA,
+        storage_key=digest,
+        retention_class=ArtifactRetention.PINNED_INPUT,
+    )
+    publication = store.publish(artifact, encoded)
+    if publication.decision not in {ArtifactStoreDecision.WRITTEN, ArtifactStoreDecision.REUSED}:
+        raise ValueError("forward bootstrap artifact publication failed")
+    path = store.path_for(artifact.storage_key)
+    # Verify published bytes through the store boundary before handing a host
+    # path to the sandbox planner.
+    if store.read(artifact.storage_key) != encoded:
+        raise ValueError("published forward bootstrap artifact differs from its source")
+    return NautilusForwardBootstrapArtifactReference(
+        artifact=artifact,
+        bootstrap_fingerprint=bootstrap.fingerprint,
+        path=path,
+    )
+
+
 __all__ = [
     "NAUTILUS_FORWARD_BOOTSTRAP_SCHEMA",
+    "NAUTILUS_FORWARD_BOOTSTRAP_MEDIA_TYPE",
     "MAX_NAUTILUS_FORWARD_BOOTSTRAP_BYTES",
     "NautilusForwardBootstrapComponent",
     "NautilusForwardBootstrapEvent",
+    "NautilusForwardBootstrapArtifactReference",
     "NautilusForwardRuntimeBootstrap",
+    "materialize_nautilus_forward_bootstrap_artifact",
 ]

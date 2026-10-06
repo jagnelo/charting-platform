@@ -10,7 +10,11 @@ from typing import TypedDict
 import pytest
 
 from app.strategy_lab_v2 import nautilus_runtime_cli
-from app.strategy_lab_v2.artifact_store import LocalArtifactStore
+from app.strategy_lab_v2.artifact_store import (
+    ArtifactStoreDecision,
+    ArtifactStoreResolution,
+    LocalArtifactStore,
+)
 from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import (
@@ -39,10 +43,13 @@ from app.strategy_lab_v2.nautilus_engine_input import (
 )
 from app.strategy_lab_v2.nautilus_event_adapter import materialize_nautilus_event_tape
 from app.strategy_lab_v2.nautilus_forward_bootstrap import (
+    NAUTILUS_FORWARD_BOOTSTRAP_MEDIA_TYPE,
     NAUTILUS_FORWARD_BOOTSTRAP_SCHEMA,
+    NautilusForwardBootstrapArtifactReference,
     NautilusForwardBootstrapComponent,
     NautilusForwardBootstrapEvent,
     NautilusForwardRuntimeBootstrap,
+    materialize_nautilus_forward_bootstrap_artifact,
 )
 from app.strategy_lab_v2.nautilus_forward_delivery import VerifiedForwardMarketPayload
 from app.strategy_lab_v2.nautilus_runtime_bundle import (
@@ -172,6 +179,44 @@ def test_forward_bootstrap_roundtrips_immutable_replay_bindings() -> None:
         "verified",
         "processed",
     )
+
+
+def test_forward_bootstrap_artifact_is_content_addressed_and_idempotent(tmp_path) -> None:
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    bootstrap = _bootstrap()
+
+    first = materialize_nautilus_forward_bootstrap_artifact(store, bootstrap)
+    second = materialize_nautilus_forward_bootstrap_artifact(store, bootstrap)
+
+    assert isinstance(first, NautilusForwardBootstrapArtifactReference)
+    assert first == second
+    assert first.bootstrap_fingerprint == bootstrap.fingerprint
+    assert first.artifact.content_digest == artifact_content_digest(bootstrap.to_json_bytes())
+    assert first.artifact.media_type == NAUTILUS_FORWARD_BOOTSTRAP_MEDIA_TYPE
+    assert first.artifact.schema_version == NAUTILUS_FORWARD_BOOTSTRAP_SCHEMA
+    assert first.artifact.retention_class is ArtifactRetention.PINNED_INPUT
+    assert first.path == store.path_for(first.artifact.storage_key)
+    assert NautilusForwardRuntimeBootstrap.from_json_bytes(
+        store.read(first.artifact.storage_key), expected_fingerprint=bootstrap.fingerprint
+    ) == bootstrap
+
+
+def test_forward_bootstrap_artifact_fails_closed_on_rejected_publication(
+    tmp_path, monkeypatch
+) -> None:
+    store = LocalArtifactStore(tmp_path / "artifacts")
+
+    def reject(_manifest, payload):
+        return ArtifactStoreResolution(
+            ArtifactStoreDecision.REJECT,
+            artifact_content_digest(payload),
+            len(payload),
+            rejection_reason="injected rejection",
+        )
+
+    monkeypatch.setattr(store, "publish", reject)
+    with pytest.raises(ValueError, match="publication failed"):
+        materialize_nautilus_forward_bootstrap_artifact(store, _bootstrap())
 
 
 def test_forward_bootstrap_json_is_bounded_canonical_and_fingerprint_bound() -> None:
