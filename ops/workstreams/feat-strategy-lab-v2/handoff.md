@@ -98,6 +98,17 @@ asserts ordering: authenticated handoff, owner-scoped dispatch reload, accepted
 outcome initialization, runtime initialization, then return to the worker
 service. The two callback/bootstrap test modules pass 16 tests.
 
+The exact-source RC6 OOS preparation test was then run with the pinned local
+evidence artifact and image digest (`sha256:b730d698...d771e926`). It executed
+the authoritative worker request twice through the isolated Nautilus worker
+process, verified successful deterministic native execution, and materialized
+the result through the payload-bound native terminal evidence resolver (1
+passed). That run exposed a stale test double which omitted the resolver's
+`payload_digest` argument; the double now checks that exact stream payload
+binding. This remains native execution/result-evidence proof only: the OOS path
+still needs production PostgreSQL terminal settlement and Redis ACK/reclaim
+across worker restart.
+
 ## 2026-10-05 - PostgreSQL plus Redis forward recovery integration
 
 The new integration test under `backend/tests/integration/strategy_lab_v2/`
