@@ -9531,4 +9531,55 @@ post-integration/deployment observation. The human does not need to run the app
 or tests. Next, passively wait for the host's Docker network activity to settle,
 then retry the required full local gate in this worktree; do not change generic
 tests, another worktree, or staging/deployment state.
+
+## Full-gate retry — 2026-10-06 19:53 UTC
+
+With 4.2 GiB available memory, 25 GiB free swap, and 120 GiB available disk,
+the required host-context `make validate-integration` was retried. Workstream,
+backend dependency/migration checks, lint/type-check, backend coverage, frontend
+unit tests, frontend production build, Compose/provider checks, stack startup,
+and research-runner containment/resource probes passed. Backend coverage ran
+1,900 tests at 81.18%; frontend coverage ran 947 tests at 82.09%.
+
+The functional/visual Playwright invocation ran all 260 cases: 146 passed, 106
+were skipped, and 8 failed. Every reported failure was in generic chart,
+workstation, alert, study-lab, or dashboard flows; browser diagnostics again
+captured repeated `net::ERR_NETWORK_CHANGED` failures to the local API at
+`127.0.0.1:28089`. One factory-layout login timed out and dependent UI assertions
+also failed while network diagnostics were present. The previously recurring
+`F8s-market-map-watchlist` case passed on this attempt. The 104 visual cases
+completed without reported failures. No generic tests were changed or relaxed.
+This therefore still does not satisfy AC7's required green full local gate;
+AC8 remains open pending the final clean, synchronized review checkpoint.
+
+`make validate-integration` stopped the ETF-only stack and removed its four
+newly built images, named volumes, and network. It did not perform a host-wide
+prune. Post-run `docker ps` confirmed the ETF stack was absent and the separately
+running TC2000 stack plus unrelated containers were still present. A final
+read-only 60-second Docker event sample showed the expected ETF network teardown
+and some bridge connect/disconnect activity; it cannot establish the cause of
+the browser errors. The checkpointed exact-SHA hosted run
+[`37514934796`](https://github.com/jagnelo/charting-platform/actions/runs/37514934796)
+was reported green, but could not be refreshed live in this shell because the
+GitHub CLI is unavailable and the web fetch was a cache miss.
+
+Follow-up read-only `systemd-networkd`/Docker journal inspection for the local
+20:25–20:52 interval found repeated `testcontainers-ryuk-*` and randomized
+container endpoint joins/leaves on Docker's shared default `bridge`. Early
+churn overlaps this gate's own backend integration tests; additional joins at
+20:43 and 20:49 occurred during the Playwright phase, when the ETF backend test
+stage had already completed. No non-veth physical interface transition or
+Docker daemon restart was logged in that interval. This makes concurrent
+Testcontainers bridge churn during browser testing the leading environmental
+explanation for Chromium's network changes, but it does not prove causation or
+identify the process that started those containers. No attempt was made to
+stop or modify that activity.
+
+The human does not need to run the app or tests. Continue by preserving this
+attempt's exact evidence, then investigate the source of the browser-to-local-API
+network changes using read-only host/container diagnostics before deciding
+whether another full browser retry has a stable window. Do not alter generic
+assertions, touch another worktree or staging, or promote/deploy. AC10 still
+awaits provider-platform staging; AC14 remains the post-integration 30-day
+observation.
 *** End of File
