@@ -6896,16 +6896,26 @@ test.describe('Dashboard', () => {
     await rowListbox.press('Shift+F')
     await expect(personal.locator('.watchlist__flag[aria-label="Flagged"]')).toHaveCount(0)
     await expect(personal.locator('.watchlist__row--selected')).toHaveCount(2)
-    await sourceRow.click({ button: 'right' })
-    // The menu is positioned outside the watchlist bounds, so scope it to the
-    // visible global menu rather than the last DOM watchlist instance.
+    let membershipMutationRequests = 0
+    page.on('request', request => {
+      if (request.url().includes('/items/transfer-batch')) membershipMutationRequests += 1
+    })
+    await rowListbox.press('Control+m')
     const sourceMenu = page.locator('.watchlist__context-menu:visible').last()
     await expect(sourceMenu).toBeVisible()
-    await sourceMenu.getByLabel('Target watchlist').selectOption(copyTargetId)
+    const targetWatchlist = sourceMenu.getByLabel('Target watchlist')
+    await expect(targetWatchlist).toBeFocused()
+    await expect(sourceMenu.getByRole('menuitem', { name: 'Copy 2 selected to list' })).toBeDisabled()
+    expect(membershipMutationRequests).toBe(0)
+    await targetWatchlist.selectOption(copyTargetId)
+    await targetWatchlist.press('Tab')
+    const copyAction = sourceMenu.getByRole('menuitem', { name: 'Copy 2 selected to list' })
+    await expect(copyAction).toBeFocused()
     await Promise.all([
       page.waitForResponse(response => response.url().includes(`/watchlists/${copyTargetId}/items/transfer-batch`) && response.request().method() === 'POST' && response.ok()),
-      sourceMenu.getByRole('menuitem', { name: 'Copy 2 selected to list' }).click(),
+      copyAction.press('Enter'),
     ])
+    expect(membershipMutationRequests).toBe(1)
     await expect(sourceMenu).toHaveCount(0)
 
     await watchlistSelect.selectOption(copyTargetId)

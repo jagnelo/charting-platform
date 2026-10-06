@@ -866,6 +866,47 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('row-action')?.at(-1)).toEqual(['move-to-watchlist', expect.objectContaining({ itemId: 22 }), 7])
   })
 
+  it('uses Ctrl+M to open explicit list membership for the active selection without mutating it', async () => {
+    const selectedRows = rows.map((row, index) => ({ ...row, itemId: index + 10, sourceWatchlistId: 3 }))
+    const wrapper = mount(VirtualWatchlistTool, {
+      attachTo: document.body,
+      props: {
+        label: 'Personal', rows: selectedRows, selected: 'XLE', sourceWatchlistId: 3,
+        membershipTargets: [{ id: 7, name: 'Morning review' }],
+        allowRemove: true,
+      },
+    })
+    const selectRow = (wrapper.vm as unknown as { selectRow: (row: typeof selectedRows[number], event: MouseEvent) => void }).selectRow
+    selectRow(selectedRows[0], new MouseEvent('click'))
+    selectRow(selectedRows[1], new MouseEvent('click', { ctrlKey: true }))
+
+    const listbox = wrapper.get('[role="listbox"]')
+    const shortcut = new KeyboardEvent('keydown', { key: 'm', ctrlKey: true, bubbles: true, cancelable: true })
+    listbox.element.dispatchEvent(shortcut)
+    await wrapper.vm.$nextTick()
+
+    const destination = wrapper.get('select[aria-label="Target watchlist"]')
+    expect(shortcut.defaultPrevented).toBe(true)
+    expect(document.activeElement).toBe(destination.element)
+    expect(wrapper.emitted('row-action')).toBeUndefined()
+
+    await destination.trigger('keydown', { key: 'Tab' })
+    expect(document.activeElement).toBe(destination.element)
+    expect(wrapper.emitted('row-action')).toBeUndefined()
+
+    await destination.setValue('7')
+    await destination.trigger('keydown', { key: 'Tab' })
+    const copy = wrapper.findAll('button[role="menuitem"]').find(button => button.text() === 'Copy 2 selected to list')
+    expect(copy?.exists()).toBe(true)
+    expect(document.activeElement).toBe(copy?.element)
+    await copy?.trigger('keydown', { key: 'Enter' })
+    expect(wrapper.emitted('row-action')?.at(-1)).toEqual([
+      'copy-to-watchlist', expect.objectContaining({ symbol: 'XLE' }), 7,
+      expect.arrayContaining([expect.objectContaining({ symbol: 'XLK' }), expect.objectContaining({ symbol: 'XLE' })]),
+    ])
+    wrapper.unmount()
+  })
+
   it('enables move from the row source identity when the current tool source is unavailable', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: {

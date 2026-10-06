@@ -1,5 +1,21 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-10-06 — Ctrl+M explicit personal-list membership flow
+
+Ctrl+M on a focused WatchList opens the existing explicit membership actions
+for the active symbol and current multi-selection, focusing the target-list
+selector without changing membership. The user must choose a personal list and
+activate Copy or Move. The selector keeps native keyboard behavior; Tab from it
+reaches an enabled membership action and stays on the selector before a
+destination is chosen, even if Remove is available. This does not infer a destination, create a list,
+or conflate list membership with the separate Shift+F Flagged Items aggregate.
+Focused component tests passed 85/85; type-check/build passed; authenticated
+pinned Chromium passed the real two-row copy flow 1/1, including no transfer
+before confirmation. The Help content documents Ctrl+M. Existing visual
+baselines and acceptance policy were not changed; the four Help screenshot
+profiles remain unresolved. Shift+V Favorites, Shift+T custom date sorting,
+Alt+click Tag Column, and modifier divider resizing remain open.
+
 ## 2026-10-06 — Official V25 shortcut gap audit
 
 The current [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)

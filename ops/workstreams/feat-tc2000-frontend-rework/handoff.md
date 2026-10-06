@@ -1,5 +1,23 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — Ctrl+M explicit WatchList membership
+
+Implemented Ctrl+M in the focused WatchList: it opens the existing personal-list
+membership actions for the active symbol and current selection, focuses the
+explicit target selector, and makes no membership change until a destination and
+Copy/Move action are chosen. Native select keys are preserved; Tab moves to the
+enabled action, and stays on the selector when no destination is selected (even
+if Remove is available). The Help reference documents the shortcut. VirtualWatchlistTool
+tests passed 85/85, `npm run type-check` and `npm run build` passed, and the
+authenticated pinned Chromium two-row copy flow passed 1/1, including a check
+that no transfer request occurs before confirmation. Scope guard, six guard
+self-tests, workstream validator, and diff check pass. No visual baseline,
+threshold, mask, or skip changed; the existing Help screenshot mismatch remains
+open. Browser acceptance used a localhost-only Vite proxy and pinned Playwright
+1.62.1 container with frontend source mounted read-only; the assigned six-service
+stack and four volumes were retained.
+Updated documentation: `docs/tc2000-roadmap.md` and `docs/tc2000-parity.md`.
+
 ## 2026-10-06 — Focused pinned Help screenshot replay
 
 Replayed the four Help screenshot cases in the pinned Playwright 1.62.1 Noble

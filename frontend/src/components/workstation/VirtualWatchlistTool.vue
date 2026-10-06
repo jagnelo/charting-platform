@@ -123,8 +123,8 @@
           <option value="">List actions…</option>
           <option v-for="target in membershipTargets" :key="target.id" :value="String(target.id)" :disabled="target.locked || target.id === contextSourceWatchlistId">{{ target.name }}{{ target.locked ? ' · Locked' : '' }}</option>
         </select>
-        <button type="button" role="menuitem" tabindex="-1" :disabled="!canCopyToTarget" @click="runContextAction('copy-to-watchlist')">{{ contextSelectionRows.length > 1 ? `Copy ${contextSelectionRows.length} selected to list` : 'Copy to list' }}</button>
-        <button type="button" role="menuitem" tabindex="-1" :disabled="!canMoveToTarget" @click="runContextAction('move-to-watchlist')">{{ contextSelectionRows.length > 1 ? `Move ${contextSelectionRows.length} selected to list` : 'Move to list' }}</button>
+        <button type="button" role="menuitem" tabindex="-1" data-membership-action="copy" :disabled="!canCopyToTarget" @click="runContextAction('copy-to-watchlist')">{{ contextSelectionRows.length > 1 ? `Copy ${contextSelectionRows.length} selected to list` : 'Copy to list' }}</button>
+        <button type="button" role="menuitem" tabindex="-1" data-membership-action="move" :disabled="!canMoveToTarget" @click="runContextAction('move-to-watchlist')">{{ contextSelectionRows.length > 1 ? `Move ${contextSelectionRows.length} selected to list` : 'Move to list' }}</button>
       </template>
       <button v-if="allowRemove" type="button" role="menuitem" tabindex="-1" @click="runContextAction('remove')">Remove from list</button>
     </div>
@@ -298,7 +298,7 @@ const columnSetMenuRoot = ref<HTMLElement | null>(null)
 const columnSetNameInput = ref<HTMLInputElement | null>(null)
 
 function contextMenuItems() {
-  return Array.from(contextMenuRoot.value?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ?? [])
+  return Array.from(contextMenuRoot.value?.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled), select:not(:disabled)') ?? [])
 }
 
 function focusContextMenuItem(index: number) {
@@ -317,10 +317,25 @@ function handleContextMenuKeydown(event: KeyboardEvent) {
   const items = contextMenuItems()
   if (!items.length) return
   const target = event.target instanceof HTMLElement ? event.target : null
-  const currentIndex = target ? items.indexOf(target as HTMLButtonElement) : -1
+  const currentIndex = target ? items.indexOf(target) : -1
   if (event.key === 'Escape') {
     event.preventDefault()
     closeContextMenuToRow()
+  } else if (target instanceof HTMLSelectElement) {
+    // The explicit watchlist destination is a native select inside the row
+    // action menu. Keep its arrow/Enter behavior native; Tab proceeds to the
+    // selected membership action, which is enabled after choosing a target.
+    if (event.key === 'Tab') {
+      event.preventDefault()
+      if (event.shiftKey) {
+        items[Math.max(0, currentIndex - 1)]?.focus()
+      } else {
+        const action = contextMenuRoot.value?.querySelector<HTMLButtonElement>(
+          'button[data-membership-action="copy"]:not(:disabled), button[data-membership-action="move"]:not(:disabled)',
+        )
+        action?.focus()
+      }
+    }
   } else if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
     event.preventDefault()
     focusContextMenuItem((currentIndex + 1 + items.length) % items.length)
@@ -1429,8 +1444,11 @@ function handleRowKeydown(event: KeyboardEvent, row: WatchlistRow) {
   openContextMenu(event, row)
 }
 
-function openContextMenu(event: MouseEvent | KeyboardEvent, row: WatchlistRow) {
-  const rowElement = event.currentTarget as HTMLElement
+function openContextMenu(event: MouseEvent | KeyboardEvent, row: WatchlistRow, focusMembership = false) {
+  const currentTarget = event.currentTarget as HTMLElement
+  const rowElement = event.type === 'keydown' && !currentTarget.matches('.watchlist__row')
+    ? document.getElementById(rowDomId(row)) ?? currentTarget
+    : currentTarget
   const bounds = rowElement.closest('.watchlist')?.getBoundingClientRect()
   const rowBounds = rowElement.getBoundingClientRect()
   const clientX = event.type === 'keydown' ? rowBounds.left : (event as MouseEvent).clientX
@@ -1440,7 +1458,20 @@ function openContextMenu(event: MouseEvent | KeyboardEvent, row: WatchlistRow) {
   membershipTargetId.value = ''
   membershipInspectionOpen.value = false
   contextMenu.value = { row, left: Math.max(2, clientX - (bounds?.left ?? 0)), top: Math.max(2, clientY - (bounds?.top ?? 0)) }
-  void nextTick(() => focusContextMenuItem(0))
+  void nextTick(() => {
+    if (!focusMembership) {
+      focusContextMenuItem(0)
+      return
+    }
+    const targetSelect = contextMenuRoot.value?.querySelector<HTMLSelectElement>('select[aria-label="Target watchlist"]')
+    if (targetSelect) {
+      targetSelect.focus()
+      return
+    }
+    const inspection = contextMenuRoot.value?.querySelector<HTMLButtonElement>('button[aria-controls$="-membership-inspection"]')
+    if (inspection) inspection.focus()
+    else focusContextMenuItem(0)
+  })
 }
 
 function handleColumnPinMenuKeydown(event: KeyboardEvent, column: WatchlistColumn) {
@@ -1644,6 +1675,14 @@ function toggleStackedColumn(key: string) {
 }
 
 function onKeydown(event: KeyboardEvent) {
+  const isMembershipShortcut = event.key.toLowerCase() === 'm' && event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey
+  if (isMembershipShortcut) {
+    event.preventDefault()
+    const activeSymbol = keyboardActiveSymbol.value || props.selected
+    const activeRow = filteredRows.value.find(row => row.symbol === activeSymbol)
+    if (activeRow) openContextMenu(event, activeRow, true)
+    return
+  }
   const isNoteShortcut = event.key.toLowerCase() === 'n' && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey
   if (isNoteShortcut) {
     event.preventDefault()

@@ -44,6 +44,7 @@
               <div><dt>Backspace</dt><dd>Previous symbol in viewed history</dd></div>
               <div><dt>Shift+L</dt><dd>Toggle maximize for the selected window</dd></div>
               <div><dt>Shift+F</dt><dd>Flag or unflag selected WatchList symbols</dd></div>
+              <div><dt>Ctrl+M</dt><dd>Choose an explicit personal WatchList membership action for the selected symbols</dd></div>
               <div><dt>Shift+N</dt><dd>Write a note for the active WatchList symbol</dd></div>
               <div><dt>Shift+D</dt><dd>Toggle Trend Line drawing on the active chart</dd></div>
               <div><dt>Ctrl+B</dt><dd>Cycle HLC and OHLC bars, candles, and line style on the active chart</dd></div>

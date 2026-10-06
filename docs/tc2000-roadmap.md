@@ -5,6 +5,25 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-06
 
+## 2026-10-06 — Ctrl+M opens explicit WatchList membership actions
+
+Ctrl+M now opens the existing row-action membership picker for the active
+WatchList symbol and its selected rows. Focus moves directly to the personal
+WatchList destination; the shortcut does not choose a list or mutate data.
+After choosing a destination, Tab reaches the enabled Copy action and Enter
+performs it. If no destination is selected, Tab stays on the selector, even
+when the row also exposes Remove. The native destination selector retains its
+arrow-key behavior.
+This reuses explicit personal-list membership rather than equating membership
+with Shift+F's separate Flagged Items action. Focused VirtualWatchlistTool tests
+passed 85/85, Vue type-check and production build passed, and the authenticated
+pinned Chromium membership flow passed 1/1, including no transfer before
+destination/action confirmation. The Help text now documents Ctrl+M. No visual
+baseline, threshold, mask, skip, or acceptance rule changed; the four Help-state
+captures and full visual matrix remain open because their existing mismatch is
+unresolved. Favorites, custom-date sorting, Tag Column, and divider modifier
+semantics remain open design gaps.
+
 ## 2026-10-06 — Official V25 shortcut gap audit
 
 The current [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
