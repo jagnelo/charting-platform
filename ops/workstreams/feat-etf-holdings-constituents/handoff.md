@@ -9646,4 +9646,33 @@ The required tier count has now been restored in the session summary. The
 complete ETF adapter test file was rerun locally and passed, 610/610 in 14.50
 seconds. No adapter or test code changed. This correction still needs its
 workstream-only commit/push and a fresh exact-SHA hosted CI result.
+
+## 2026-10-06 — Pathfinder PFDE route drift repaired
+
+The hosted provider matrix on SHA `8ce5e17611e7b6a6472b49870ffabd3d20d54aff`
+failed only the `graff/PFDE` and `pathfinder/PFDE` live aliases because the
+adapter still required Pathfinder's `app.js?version=4`. Read-only inspection of
+the first-party [PFDE product page](https://pathfinderetfs.com/pfde) found its
+current HTML declares `assets/js/app.js?version=5`. The version-5 bundle still
+declares the same FilePoint holdings CSV, and that issuer CSV currently returns
+PFDE rows dated 2026-10-06. The route remains executable; this was a stale
+bundle-version guard, not evidence to demote PFDE or use SEC data.
+
+The native adapter's page marker and script URL, its deterministic fixture, the
+two provider-specific config records, and the audit ledger's current route and
+dated source evidence now use bundle v5. The implementation commit is
+`1f0e49a58519b99803fcb6dd7234ba49d7b3d86f`. Both live aliases pass (2/2) against
+the real issuer page/bundle/CSV; the full deterministic adapter file passes
+610/610, Ruff passes, and workstream validation passes. No generic tests were
+relaxed, and no provider was added to native coverage beyond the already
+promoted PFDE route.
+
+The corrected source and audit update are committed locally; the durable
+handoff/session/validation receipt still needs to be committed and pushed with
+it. Fresh exact-SHA hosted branch tests must complete before AC7 can advance.
+The last local full browser gate remains at 145 passed, 106 skipped, 9 failed;
+its four explicit network-change errors and the correlated host Docker bridge
+churn remain separately unresolved. AC7/AC8 are still open. AC10 still awaits
+provider-platform staging, and AC14 remains the post-integration 30-day
+production observation.
 *** End of File
