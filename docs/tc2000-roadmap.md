@@ -15,12 +15,12 @@ controls retain their native keyboard input. The Help menu lists the shortcut.
 
 Focused WorkstationView tests passed `37/37`; type-check and production build
 passed. Pinned authenticated Chromium passed `F8k-shift-l` and the adjacent
-`F8k-help` flow (`2/2`). The pinned four-profile Help screenshot check passed
-`3/4`; `visual-1080p-100` differs from its protected local snapshot by 16,676
-pixels (`1.0%`, above its existing `0.5%` tolerance). The other three profiles
-passed. No baseline, threshold, mask, or acceptance policy changed. The
-workstream retains this visual delta for review; this bounded receipt is not
-whole-roadmap completion.
+`F8k-help` flow (`2/2`). An initial four-profile visual attempt omitted the
+browser-side seeded-fixture flag and captured unavailable/loading data; that
+`3/4` result is diagnostic only. The correctly seeded pinned rerun passed `4/4`
+Help screenshot profiles with the existing baselines and `0.5%` tolerance. No
+baseline, threshold, mask, or acceptance policy changed. This bounded receipt
+is not whole-roadmap completion.
 
 ## 2026-10-06 — Backspace navigates viewed-symbol history
 

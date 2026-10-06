@@ -13,20 +13,22 @@ https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts.
 Evidence: WorkstationView unit file `37/37`; `npm run build` (Vue type-check
 and production build) passed; pinned authenticated `F8k-shift-l` and adjacent
 `F8k-help` passed `2/2`; `git diff --check` and TC scope guard passed. The
-four-profile pinned Help screenshot check was `3/4`: `visual-1080p-100` differed
-from the protected baseline by 16,676 pixels (`1.0%` versus the unchanged
-`0.5%` limit), while the other three profiles passed. No visual baseline or
-acceptance setting changed. The workstream/runtime wrapper reported its known
-read-only allocation-registry warning; direct UV-managed validation succeeded
-for all 30 workstream records and scope checks. Browser source was mounted
-read-only; the temporary loopback Vite server was stopped; assigned Docker
-services were left intact.
+initial four-profile screenshot attempt was diagnostic only: the browser-side
+seeded-fixture flag was omitted, so 1080p/100 captured unavailable/loading data
+and differed from the protected baseline. The correctly seeded pinned rerun
+passed `4/4` Help screenshot profiles using the existing baselines and
+thresholds. No visual baseline or acceptance setting changed. The
+workstream/runtime wrapper reported its known read-only allocation-registry
+warning; direct UV-managed validation succeeded for all 30 workstream records
+and scope checks. Browser source was mounted read-only; the temporary
+loopback Vite server was stopped; assigned Docker services were left intact.
 
 Product commit is pushed and direct local/remote refs matched at
 `effcca4e25f65a205a93da7a4ee1b4a817a80bcd`. Documentation/workstream updates
-are pending as a separate checkpoint commit. Preserve the Help screenshot
-delta and all visual oracles; next continue the TC-owned R1/R5/R6 roadmap, with
-the generic integration gate and upstream staging dependencies still open.
+were committed separately as `5e4cb8f5e16b8e9f6de0adb3c9f82ac22712a375` and
+pushed. Continue the TC-owned R1/R5/R6 roadmap with the browser fixture flag
+matching backend seed mode; the generic integration gate and upstream staging
+dependencies remain open.
 
 ## 2026-10-06 — V25 Backspace viewed-symbol history
 
