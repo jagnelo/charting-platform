@@ -87,10 +87,7 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
-    "ops/workstreams/feat-strategy-lab-v2/session.json",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
+    "ops/workstreams/feat-strategy-lab-v2/session.json"
   ],
   "docker": {
     "accounting_complete": true,
@@ -127,10 +124,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "63d586007df123c691fa3c064c3e8535154b2fcf",
+  "head": "867a2a255c304a1ae82d270991e6947e1bef7899",
   "implementation_sha": "02ea2bfc3cf9234d9cddcdd08f58cefce75930fa",
   "last_checkpoint": "2026-10-06T20:30:28.978470+00:00",
-  "last_human_progress_update": "2026-10-06T20:29:34.014434+00:00",
+  "last_human_progress_update": "2026-10-06T20:39:10.093700+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Build one integrated test: exact RC6 OOS native output, production PostgreSQL terminal adapters, real Redis consumer crash after settlement before ACK, and restarted receipt-first ACK with no engine rerun.",
   "parent_branch": "staging",
@@ -156,15 +153,15 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "No external dependency; only the integrated backtest/OOS runtime proof remains.",
+    "current_blocker": "No external dependency; remaining work is an uncomposed integration across existing RC6, terminal persistence, and receipt-first worker paths.",
     "current_phase": "oos-native-terminal-receipt-first-recovery-v1",
-    "next_action": "Implement one exact RC6 walk-forward OOS integration through production PostgreSQL terminal settlement and real Redis consumer post-commit reclaim, asserting no second engine run.",
+    "next_action": "Compose exact-pinned RC6 OOS execution with production PostgreSQL terminal settlement, the worker service terminal_replay_reader, and real Redis restart/reclaim; assert one engine invocation and durable ACK.",
     "total": 18,
-    "updated_at": "2026-10-06T20:29:34.014412+00:00"
+    "updated_at": "2026-10-06T20:39:10.093674+00:00"
   },
-  "remote": "63d586007df123c691fa3c064c3e8535154b2fcf",
-  "remote_sha": "63d586007df123c691fa3c064c3e8535154b2fcf",
-  "remote_synchronized": true,
+  "remote": "4236c4ede46028071fd4672f13e2b05b8781d691",
+  "remote_sha": "4236c4ede46028071fd4672f13e2b05b8781d691",
+  "remote_synchronized": false,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "35f63909-6dea-4459-9682-dc8eecc9c720",
