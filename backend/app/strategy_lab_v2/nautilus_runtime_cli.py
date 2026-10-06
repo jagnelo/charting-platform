@@ -30,6 +30,7 @@ from app.strategy_lab_v2.nautilus_runtime_protocol import (
     NAUTILUS_CONTEXT_STREAM_SCHEMA,
     NAUTILUS_NATIVE_EVENT_STREAM_MEDIA_TYPE,
     NAUTILUS_NATIVE_EVENT_STREAM_SCHEMA,
+    NAUTILUS_NATIVE_EVENT_STREAM_SCHEMA_V1,
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA,
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V1,
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3,
@@ -367,7 +368,10 @@ def _native_event_stream_reference(
         raise ValueError("runtime bundle native event stream artifact is invalid")
     if artifact["media_type"] != NAUTILUS_NATIVE_EVENT_STREAM_MEDIA_TYPE:
         raise ValueError("runtime bundle native event stream media type is unsupported")
-    if artifact["schema_version"] != NAUTILUS_NATIVE_EVENT_STREAM_SCHEMA:
+    if artifact["schema_version"] not in {
+        NAUTILUS_NATIVE_EVENT_STREAM_SCHEMA,
+        NAUTILUS_NATIVE_EVENT_STREAM_SCHEMA_V1,
+    }:
         raise ValueError("runtime bundle native event stream schema is unsupported")
     if artifact["retention_class"] != "pinned_input":
         raise ValueError("runtime bundle native event stream retention is unsupported")

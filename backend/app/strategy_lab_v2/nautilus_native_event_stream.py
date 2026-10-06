@@ -12,7 +12,8 @@ from typing import Any, BinaryIO, Protocol
 
 from app.strategy_lab_v2.canonical import require_sha256_digest
 
-NAUTILUS_NATIVE_EVENT_STREAM_PROTOCOL = "strategy-lab.nautilus.native-event-stream.v1"
+NAUTILUS_NATIVE_EVENT_STREAM_PROTOCOL_V1 = "strategy-lab.nautilus.native-event-stream.v1"
+NAUTILUS_NATIVE_EVENT_STREAM_PROTOCOL = "strategy-lab.nautilus.native-event-stream.v2"
 MAX_NAUTILUS_NATIVE_EVENT_STREAM_BYTES = 1_099_511_627_776  # 1 TiB hard ceiling
 MAX_NAUTILUS_NATIVE_EVENT_ROW_BYTES = 1_048_576
 _EVENT_FIELDS = frozenset(
@@ -195,7 +196,70 @@ def _event_wire(event: Any) -> Mapping[str, Any]:
         if not isinstance(event, Mapping):
             raise TypeError("native event stream items must be event records or mappings") from None
         value = event
-    return _validate_event(_wire_value(value))
+    encoded = dict(_wire_value(value))
+    encoded["values"] = {key: _typed_value(item) for key, item in value["values"].items()}
+    return _validate_event(encoded)
+
+
+def _typed_value(value: Any) -> Any:
+    """Encode market values without erasing Decimal, tuple, or map identity."""
+
+    if isinstance(value, Decimal):
+        if not value.is_finite():
+            raise ValueError("native event decimals must be finite")
+        return {"$sl_type": "decimal", "value": str(value)}
+    if isinstance(value, Enum):
+        return _typed_value(value.value)
+    if isinstance(value, Mapping):
+        if any(not isinstance(key, str) for key in value):
+            raise ValueError("native event mapping keys must be strings")
+        return {
+            "$sl_type": "mapping",
+            "items": [[key, _typed_value(item)] for key, item in sorted(value.items())],
+        }
+    if isinstance(value, tuple):
+        return {"$sl_type": "tuple", "items": [_typed_value(item) for item in value]}
+    if isinstance(value, list):
+        return [_typed_value(item) for item in value]
+    if isinstance(value, float) and (value != value or value in (float("inf"), float("-inf"))):
+        raise ValueError("native event numbers must be finite")
+    if value is None or isinstance(value, str | bool | int | float):
+        return value
+    raise TypeError(f"unsupported native event value {type(value).__name__}")
+
+
+def _typed_value_from_wire(value: Any) -> Any:
+    if isinstance(value, list):
+        return [_typed_value_from_wire(item) for item in value]
+    if isinstance(value, Mapping):
+        kind = value.get("$sl_type")
+        if kind == "decimal" and set(value) == {"$sl_type", "value"}:
+            text = value["value"]
+            if not isinstance(text, str):
+                raise ValueError("native event decimal encoding is invalid")
+            number = Decimal(text)
+            if not number.is_finite():
+                raise ValueError("native event decimal encoding is non-finite")
+            return number
+        if kind in ("mapping", "tuple") and set(value) == {"$sl_type", "items"}:
+            items = value["items"]
+            if not isinstance(items, list):
+                raise ValueError("native event typed container encoding is invalid")
+            if kind == "tuple":
+                return tuple(_typed_value_from_wire(item) for item in items)
+            result: dict[str, Any] = {}
+            for pair in items:
+                if (
+                    not isinstance(pair, list)
+                    or len(pair) != 2
+                    or not isinstance(pair[0], str)
+                    or pair[0] in result
+                ):
+                    raise ValueError("native event typed mapping encoding is invalid")
+                result[pair[0]] = _typed_value_from_wire(pair[1])
+            return result
+        return {key: _typed_value_from_wire(item) for key, item in value.items()}
+    return value
 
 
 def serialize_nautilus_native_event_stream(
@@ -337,7 +401,11 @@ def deserialize_nautilus_native_event_stream(
     }:
         raise ValueError("native event stream header fields are invalid")
     if (
-        header["protocol_version"] != NAUTILUS_NATIVE_EVENT_STREAM_PROTOCOL
+        header["protocol_version"]
+        not in {
+            NAUTILUS_NATIVE_EVENT_STREAM_PROTOCOL,
+            NAUTILUS_NATIVE_EVENT_STREAM_PROTOCOL_V1,
+        }
         or header["record_type"] != "header"
         or header["source_tape_fingerprint"] != expected_source_tape_fingerprint
         or header["adapter_version"] != expected_adapter_version
@@ -405,7 +473,12 @@ def deserialize_nautilus_native_event_stream(
             prior_native_init_time = init_time
             records_digest.update(wire)
             index += 1
-            yield {**event, "native_init_time_ns": init_time}
+            decoded_event = dict(event)
+            if header["protocol_version"] == NAUTILUS_NATIVE_EVENT_STREAM_PROTOCOL:
+                decoded_event["values"] = {
+                    key: _typed_value_from_wire(value) for key, value in event["values"].items()
+                }
+            yield {**decoded_event, "native_init_time_ns": init_time}
         raise ValueError("native event stream trailer is missing")
 
     return decoded()
@@ -415,6 +488,7 @@ __all__ = [
     "MAX_NAUTILUS_NATIVE_EVENT_ROW_BYTES",
     "MAX_NAUTILUS_NATIVE_EVENT_STREAM_BYTES",
     "NAUTILUS_NATIVE_EVENT_STREAM_PROTOCOL",
+    "NAUTILUS_NATIVE_EVENT_STREAM_PROTOCOL_V1",
     "NautilusNativeEventStreamCursor",
     "NautilusNativeEventStreamSummary",
     "deserialize_nautilus_native_event_stream",

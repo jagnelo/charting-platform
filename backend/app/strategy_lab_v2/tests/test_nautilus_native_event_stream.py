@@ -68,6 +68,8 @@ def test_native_event_stream_is_reproducible_and_preserves_same_time_order() -> 
     assert [event["event_id"] for event in observed] == ["event-1", "event-2"]
     assert [event["native_init_time_ns"] for event in observed] == [101, 102]
     assert [event["event_time_ns"] for event in observed] == [100, 100]
+    assert observed[0]["values"]["bid"] == Decimal("100.00")
+    assert observed[0]["values"]["ask_size"] == Decimal("12")
 
 
 def test_native_event_stream_cursors_keep_independent_positions() -> None:

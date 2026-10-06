@@ -9,7 +9,9 @@ from __future__ import annotations
 import json
 import math
 import re
+import sys
 import threading
+import traceback
 import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -386,7 +388,20 @@ def serve_nautilus_runtime_ipc(
                         needs_restore = False
                     elif request.operation is NautilusRuntimeIpcOperation.CLOSE:
                         opened = False
-                except Exception:
+                except Exception as error:
+                    # Keep the IPC response generic, but expose the exception
+                    # class and source location to bounded stderr diagnostics
+                    # without leaking user-controlled exception text.
+                    frames = traceback.extract_tb(error.__traceback__)
+                    location = "unknown"
+                    if frames:
+                        frame = frames[-1]
+                        location = f"{frame.filename.rsplit('/', maxsplit=1)[-1]}:{frame.lineno}"
+                    sys.stderr.write(
+                        f"nautilus runtime {request.operation.value} failed: "
+                        f"{type(error).__name__} at {location}\n"
+                    )
+                    sys.stderr.flush()
                     response = _response(
                         request, NautilusRuntimeIpcStatus.ERROR, "operation_failed"
                     )

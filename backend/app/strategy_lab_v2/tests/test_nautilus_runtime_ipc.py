@@ -149,7 +149,7 @@ def test_runtime_ipc_server_persists_handler_and_caches_latest_request() -> None
     assert responses[1] == responses[2]
 
 
-def test_runtime_ipc_server_requires_restore_after_uncertain_execution() -> None:
+def test_runtime_ipc_server_requires_restore_after_uncertain_execution(capsys) -> None:
     requests = [
         _request("open", NautilusRuntimeIpcOperation.OPEN),
         _request("execute-fails", NautilusRuntimeIpcOperation.EXECUTE, {"event_id": "e-1"}),
@@ -185,6 +185,11 @@ def test_runtime_ipc_server_requires_restore_after_uncertain_execution() -> None
     assert responses[1].payload == {"error_code": "operation_failed"}
     assert responses[2].payload == {"error_code": "restore_required"}
     assert [call[0] for call in handler.calls] == ["open", "execute", "restore", "execute", "close"]
+    diagnostics = capsys.readouterr().err
+    assert "nautilus runtime execute failed: RuntimeError at test_nautilus_runtime_ipc.py:" in (
+        diagnostics
+    )
+    assert "private details" not in diagnostics
 
 
 def test_runtime_ipc_client_correlates_request_and_returns_response_payload() -> None:

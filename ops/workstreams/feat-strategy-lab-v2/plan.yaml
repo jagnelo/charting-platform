@@ -877,33 +877,29 @@ progress:
       - backend/app/strategy_lab_v2/tests/test_nautilus_forward_process.py
     status: in_progress
   current_blocker: >-
-    No external dependency blocks implementation. Exact-pinned Nautilus
-    2.0.0rc5 remains qualified; stable release labeling is not a gate. The RC5
-    runtime has been rebuilt and requalified against current sources (source
-    sha256:b0c411db9d6cf61ab10535f8da6badd7eb11a7be61764aeac8a0e920d2d2cd37,
-    image sha256:9a43fef85e6ff688fe8d42697ed87b9e85ebbfeecd634b90880138bc3b26627b,
-    evidence sha256:5ed875d94c2242fcc302dec2f70df67832249c8f1aabbf3a112f671a969f4132,
-    conformance sha256:0f3c976fc0d11d4fe65a0bd2a2db0e338a975ba4abecf3f77ec7f97505eca51f).
-    Exact-image process-loss, production PostgreSQL/Redis settlement/ACK, and
-    post-ACK checkpoint continuation passed 3/3. Forward bootstrap-context
-    propagation passed the session suite 19/19, process unit module 7/7, and
-    exact RC5 process-loss integration 1/1 against the qualified image above.
-    The full Strategy Lab package passed 1,520 tests with one opt-in image test
-    skipped; package Ruff and MyPy across 407 files also passed. A sandbox-only
-    executor-shutdown delay was bypassed using the approved local host
-    execution path; it is not a product or interpreter blocker. Scoped Docker
-    cleanup found no remaining resources. Overall ACs remain incomplete: the dedicated
-    forward worker still lacks full
-    warm-up/bootstrap artifact and hardened RC5 process-plan composition, and
-    backtest/search/API/security/Compose integration plus full exact-tip
-    validation remain. Provider-platform, ETF,
-    and TC2000 contracts stay within their owning branches; options remain
-    fail-closed pending canonical Greeks/delta/settlement evidence. Preserve
-    canonical platform event identity and ordering; never derive it from
-    dependency-local frozen series rows.
+    No upstream Nautilus dependency blocks implementation: stable release
+    labeling is not a gate and exact-pinned 2.0.0rc5 remains the qualified
+    backtest runtime. The new artifact-backed production plan exposed a real
+    RC5 process boundary defect: native event NDJSON had converted Decimal
+    market values to strings, so authenticated component history differed at
+    session construction. The stream is now versioned as v2 with typed Decimal,
+    mapping, and tuple values while retaining a v1 reader; bootstrap binds the
+    exact serialized engine-input digest. Focused tests passed 37/37, the full
+    package passed 1,539 with one opt-in test skipped, package Ruff passed,
+    package MyPy passed across 408 files, and changed-file formatting passed.
+    A fresh exact-source RC5 image build was attempted but did not publish a
+    new artifact while host swap was exhausted; do not treat the prior image as
+    evidence for these latest stream changes. This is a local validation
+    constraint, not a product or upstream blocker. Remaining code-owned work
+    includes rerunning the composed plan against a fresh exact-source RC5 image,
+    finishing forward-shadow acceptance, and implementing remaining backtest,
+    search, API, security, and Compose acceptance. Provider-platform, ETF, and
+    TC2000 contracts stay within their owning branches; options remain
+    fail-closed pending canonical Greeks/delta/settlement evidence.
   next_action: >-
-    Inspect existing artifact, engine-input, and sandbox contracts, then add
-    production composition that accepts explicit full-tape/canonical readers
-    and binds their verified outputs to the owner plan, exact checkpoint, and
-    process replacement lifecycle. Do not synthesize canonical identity or
-    ordering from frozen dependency-local rows.
+    After shared-host memory/swap pressure permits safe image construction,
+    rebuild and qualify the exact-source RC5 runtime and run the authenticated
+    artifact-backed plan through process startup, then complete the exact-image
+    checkpoint replacement/replay test. Continue with the remaining forward
+    and backtest acceptance criteria without waiting for a stable Nautilus
+    label.

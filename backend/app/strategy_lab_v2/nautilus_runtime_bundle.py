@@ -53,6 +53,7 @@ from app.strategy_lab_v2.nautilus_runtime_protocol import (
     NAUTILUS_INVOCATION_RESULT_STREAM_SCHEMA,
     NAUTILUS_NATIVE_EVENT_STREAM_MEDIA_TYPE,
     NAUTILUS_NATIVE_EVENT_STREAM_SCHEMA,
+    NAUTILUS_NATIVE_EVENT_STREAM_SCHEMA_V1,
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA,
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V1,
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3,
@@ -179,7 +180,10 @@ class NautilusNativeEventStreamArtifactReference:
             raise TypeError("artifact must be an ArtifactManifest")
         if self.artifact.media_type != NAUTILUS_NATIVE_EVENT_STREAM_MEDIA_TYPE:
             raise ValueError("Nautilus native event stream media type is unsupported")
-        if self.artifact.schema_version != NAUTILUS_NATIVE_EVENT_STREAM_SCHEMA:
+        if self.artifact.schema_version not in {
+            NAUTILUS_NATIVE_EVENT_STREAM_SCHEMA,
+            NAUTILUS_NATIVE_EVENT_STREAM_SCHEMA_V1,
+        }:
             raise ValueError("Nautilus native event stream schema is unsupported")
         if self.artifact.retention_class is not ArtifactRetention.PINNED_INPUT:
             raise ValueError("Nautilus native event streams must use pinned-input retention")
@@ -806,6 +810,32 @@ def materialize_nautilus_runtime_bundle(
         session_calendar=bundle.session_calendar,
         session_periods_per_year=bundle.session_periods_per_year,
     )
+
+
+def runtime_input_engine_wire_fingerprint(
+    store: LocalArtifactStore,
+    reference: NautilusRuntimeInputArtifactReference,
+) -> str:
+    """Return the fingerprint the isolated CLI computes for serialized engine input."""
+
+    if not isinstance(store, LocalArtifactStore):
+        raise TypeError("store must be a LocalArtifactStore")
+    if not isinstance(reference, NautilusRuntimeInputArtifactReference):
+        raise TypeError("reference must be a NautilusRuntimeInputArtifactReference")
+    try:
+        payload = json.loads(
+            store.read(reference.artifact.storage_key),
+            object_pairs_hook=_unique_object,
+            parse_constant=_reject_constant,
+        )
+    except (TypeError, ValueError, json.JSONDecodeError) as error:
+        raise ValueError("runtime input artifact is malformed") from error
+    if not isinstance(payload, Mapping) or content_digest(payload) != reference.input_bundle_digest:
+        raise ValueError("runtime input artifact differs from its semantic digest")
+    engine_input = payload.get("engine_input")
+    if not isinstance(engine_input, Mapping):
+        raise ValueError("runtime input artifact has no engine input object")
+    return content_digest(engine_input)
 
 
 def load_materialized_nautilus_runtime_bundle(
@@ -1491,6 +1521,7 @@ __all__ = [
     "materialize_nautilus_verified_forward_warmup_stream",
     "materialize_nautilus_forward_warmup_artifact_stream",
     "materialize_nautilus_runtime_bundle",
+    "runtime_input_engine_wire_fingerprint",
     "verify_nautilus_context_stream_artifact_file",
     "verify_nautilus_invocation_result_stream_file",
     "verify_nautilus_native_event_stream_artifact_file",

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -55,6 +56,7 @@ from app.strategy_lab_v2.nautilus_forward_delivery import (
 from app.strategy_lab_v2.nautilus_forward_input import NautilusForwardDeliveryInput
 from app.strategy_lab_v2.nautilus_forward_process import (
     HardenedNautilusForwardSessionProcessFactory,
+    NautilusRuntimeIpcSubprocess,
 )
 from app.strategy_lab_v2.nautilus_forward_recovery import ResolvedNautilusForwardCheckpoint
 from app.strategy_lab_v2.nautilus_forward_session import (
@@ -534,7 +536,9 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
         events=iter(source_tape.events),
         source_artifact_digests=source_resolution.source_artifact_digests,
     )
-    snapshot_resolver._artifact_resolver = SimpleNamespace(artifact_store=warmup_artifacts)
+    cast(Any, snapshot_resolver)._artifact_resolver = SimpleNamespace(
+        artifact_store=warmup_artifacts
+    )
 
     async def resolve_with_snapshot(
         snapshot_fingerprint: str, requested_manifest: Any
@@ -574,6 +578,10 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
                 values["venue"],
             )
 
+    image_digest = os.environ.get("STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_DIGEST")
+    runtime_profile = RuntimeIsolationProfile(
+        image_digest or content_digest("forward-runtime-image"), package.runtime_abi
+    )
     resolver = AuthenticatedForwardSandboxPlanInputResolver(
         RuntimeResolver(),
         snapshot_resolver,
@@ -581,9 +589,7 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
         PrefixResolver(),
         MarketContextResolver(),
         principal="owner-a",
-        runtime_profile=RuntimeIsolationProfile(
-            content_digest("forward-runtime-image"), package.runtime_abi
-        ),
+        runtime_profile=runtime_profile,
         expected_version="2.0.0rc5",
     )
 
@@ -613,13 +619,13 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
     assert result.engine_input.event_tape.events == ()
 
     output_directory = tmp_path / "forward-output"
-    output_directory.mkdir()
+    output_directory.mkdir(mode=0o700)
     artifact_store = warmup_artifacts
     plan_factory = AuthenticatedForwardSandboxPlanFactory(
         artifact_store,
         resolver,
         principal="owner-a",
-        image_name="nautilus-forward:rc5",
+        image_name="strategy-lab-v2/nautilus-rc5" if image_digest else "nautilus-forward:rc5",
         output_path_resolver=lambda _instance_id, _checkpoint: output_directory / "output.json",
     )
     sandbox_plan = await plan_factory(
@@ -641,20 +647,56 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
     assert sandbox_plan.request_fingerprint
     validate_sandbox_command_plan(sandbox_plan)
 
-    process_factory = HardenedNautilusForwardSessionProcessFactory(plan_factory)
-    monkeypatch.setattr(
-        process_factory,
-        "_start_plan_sync",
-        lambda plan, *_args: plan,
+    process_factory = HardenedNautilusForwardSessionProcessFactory(
+        plan_factory, response_timeout_seconds=90
     )
-    started = await process_factory.start(
-        instance_id="forward-1",
-        checkpoint_fingerprint=checkpoint_fingerprint,
-        delivery=delivery,
-        preparation=preparation,
-    )
+    if image_digest:
+        # This opt-in branch takes the actual authenticated, artifact-backed
+        # plan through the pinned RC process rather than only inspecting its
+        # command. It complements the process-loss fixture, which separately
+        # exercises durable checkpoint replacement.
+        stderr_capture = bytearray()
 
-    assert started == sandbox_plan
+        def capture_runtime_stderr(runtime: Any, stream: Any) -> None:
+            while chunk := stream.read(65_536):
+                runtime._stderr_count += len(chunk)
+                if runtime._stderr_count > runtime._stderr_limit_bytes:
+                    runtime._stderr_overflow.set()
+                    runtime._terminate()
+                    return
+                stderr_capture.extend(chunk)
+
+        monkeypatch.setattr(NautilusRuntimeIpcSubprocess, "_drain_stderr", capture_runtime_stderr)
+        try:
+            started = await process_factory.start(
+                instance_id="forward-1",
+                checkpoint_fingerprint=checkpoint_fingerprint,
+                delivery=delivery,
+                preparation=preparation,
+            )
+            execution_result = await started.execute(delivery, preparation)
+            assert execution_result.account_event_binding.canonical_event == before_event
+        except Exception as exc:
+            stderr_text = stderr_capture.decode("utf-8", errors="replace")[-4000:]
+            raise AssertionError(
+                f"exact RC process failed ({type(exc).__name__}: {exc}): {stderr_text}"
+            ) from exc
+        finally:
+            if "started" in locals() and hasattr(started, "close"):
+                await started.close()
+    else:
+        monkeypatch.setattr(
+            process_factory,
+            "_start_plan_sync",
+            lambda plan, *_args: plan,
+        )
+        started = await process_factory.start(
+            instance_id="forward-1",
+            checkpoint_fingerprint=checkpoint_fingerprint,
+            delivery=delivery,
+            preparation=preparation,
+        )
+        assert started == sandbox_plan
 
 
 def test_forward_warmup_composition_cuts_by_global_canonical_cursor() -> None:

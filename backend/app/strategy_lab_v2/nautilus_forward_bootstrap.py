@@ -17,18 +17,13 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from app.strategy_lab_v2.artifact_store import (
-    ArtifactStoreDecision,
-    LocalArtifactStore,
-)
-from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
-from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.sdk import MarketEvent
 
 if TYPE_CHECKING:
-    from app.strategy_lab_v2.contracts import DataSnapshot
+    from app.strategy_lab_v2.artifact_store import LocalArtifactStore
+    from app.strategy_lab_v2.contracts import ArtifactManifest, DataSnapshot
     from app.strategy_lab_v2.event_tape_artifacts import FrozenEventTapeArtifactResolution
     from app.strategy_lab_v2.forward_execution_plan_resolution import ResolvedForwardExecutionPlan
     from app.strategy_lab_v2.forward_processed_prefix import ForwardProcessedEventPrefix
@@ -626,6 +621,7 @@ class NautilusForwardRuntimeBootstrap:
         warmup_stream: ForwardWarmupStreamResolution | None = None,
         processed_prefix: ForwardProcessedEventPrefix,
         engine_input: NautilusEngineInput,
+        runtime_engine_input_fingerprint: str | None = None,
         runtime_input_bundle_digest: str,
         native_event_stream: NautilusNativeEventStreamArtifactReference,
     ) -> NautilusForwardRuntimeBootstrap:
@@ -710,6 +706,16 @@ class NautilusForwardRuntimeBootstrap:
             raise TypeError("processed_prefix must use ForwardProcessedEventPrefix")
         if not isinstance(engine_input, NautilusEngineInput):
             raise TypeError("engine_input must use NautilusEngineInput")
+        if runtime_engine_input_fingerprint is None:
+            if warmup_stream is not None:
+                raise ValueError(
+                    "streaming bootstrap requires the exact runtime engine-input fingerprint"
+                )
+            runtime_engine_input_fingerprint = engine_input.fingerprint
+        require_sha256_digest(
+            runtime_engine_input_fingerprint,
+            field_name="runtime_engine_input_fingerprint",
+        )
         if not isinstance(native_event_stream, NautilusNativeEventStreamArtifactReference):
             raise TypeError(
                 "native_event_stream must use NautilusNativeEventStreamArtifactReference"
@@ -838,7 +844,7 @@ class NautilusForwardRuntimeBootstrap:
             processed_checkpoint_fingerprint=processed_prefix.pre_event_checkpoint_fingerprint,
             processed_prefix_fingerprint=processed_prefix.fingerprint,
             before_event_fingerprint=processed_prefix.before_event_fingerprint,
-            engine_input_fingerprint=engine_input.fingerprint,
+            engine_input_fingerprint=runtime_engine_input_fingerprint,
             runtime_input_bundle_digest=runtime_input_bundle_digest,
             native_event_stream_digest=native_event_stream.artifact.content_digest,
             native_event_stream_adapter_version=native_event_stream.adapter_version,
@@ -863,6 +869,8 @@ class NautilusForwardBootstrapArtifactReference:
     path: Path
 
     def __post_init__(self) -> None:
+        from app.strategy_lab_v2.contracts import ArtifactManifest
+
         if not isinstance(self.artifact, ArtifactManifest):
             raise TypeError("artifact must use ArtifactManifest")
         require_sha256_digest(self.bootstrap_fingerprint, field_name="bootstrap_fingerprint")
@@ -879,6 +887,10 @@ def materialize_nautilus_forward_bootstrap_artifact(
     bootstrap: NautilusForwardRuntimeBootstrap,
 ) -> NautilusForwardBootstrapArtifactReference:
     """Publish exact bootstrap bytes under an immutable verified content address."""
+
+    from app.strategy_lab_v2.artifact_store import ArtifactStoreDecision, LocalArtifactStore
+    from app.strategy_lab_v2.artifacts import artifact_content_digest
+    from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention
 
     if not isinstance(store, LocalArtifactStore):
         raise TypeError("store must be a LocalArtifactStore")

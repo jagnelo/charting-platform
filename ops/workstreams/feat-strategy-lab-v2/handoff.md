@@ -12929,3 +12929,26 @@ it does not yet construct those artifacts through the authenticated production
 plan factory. Next, adapt that fixture (or add a composed exact-image harness)
 to feed this artifact-backed plan through process startup and checkpoint
 replacement, then continue remaining forward and backtest acceptance criteria.
+
+## 2026-10-06 - Preserve market-value types across native event streaming
+
+The authenticated artifact-backed plan reached the exact RC5 process and
+exposed a type-fidelity defect: SDK context history retained `Decimal` values,
+while native event-stream decoding had converted them to strings, causing the
+engine's component-history integrity comparison to reject startup. The native
+event stream is now schema/protocol v2 and uses explicit typed encodings for
+Decimal, mapping, and tuple market values; its reader still accepts v1 streams
+for already-published artifacts. Runtime artifact validation accepts both
+schemas, and the production bootstrap now pins the digest calculated from the
+serialized engine-input object actually consumed by the isolated CLI.
+
+Validation: focused stream/runtime-bundle/bootstrap/worker-composition tests
+passed 37/37; the complete Strategy Lab package passed 1,539 with one opt-in
+image test skipped; package Ruff and MyPy across 408 files passed; changed-file
+formatting and `git diff --check` passed. A fresh exact-source RC5 image build
+was attempted but did not publish an artifact while shared-host swap was
+exhausted. The prior RC5 image predates this stream change and is not evidence
+for the new path. Next: once local memory pressure allows safe image building,
+rebuild/requalify RC5 and run the production artifact-backed plan through the
+actual process, then test checkpoint replacement/replay before continuing the
+remaining forward and backtest acceptance work.

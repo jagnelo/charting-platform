@@ -96,6 +96,7 @@ from app.strategy_lab_v2.nautilus_runtime_bundle import (
     materialize_nautilus_forward_warmup_artifact_stream,
     materialize_nautilus_runtime_bundle,
     materialize_nautilus_verified_forward_warmup_stream,
+    runtime_input_engine_wire_fingerprint,
 )
 from app.strategy_lab_v2.nautilus_trial_assembly import strategy_runtime_identity
 from app.strategy_lab_v2.nautilus_trial_materializer import build_frozen_tape_manifest
@@ -727,6 +728,9 @@ def materialize_authenticated_forward_sandbox_plan(
             warmup_stream=warmup_stream,
             processed_prefix=processed_prefix,
             engine_input=engine_input,
+            runtime_engine_input_fingerprint=runtime_input_engine_wire_fingerprint(
+                store, runtime_artifacts.runtime_input
+            ),
             runtime_input_bundle_digest=runtime_artifacts.runtime_input.input_bundle_digest,
             native_event_stream=runtime_artifacts.native_event_stream,
         )
@@ -750,6 +754,9 @@ def materialize_authenticated_forward_sandbox_plan(
             warmup_payloads=warmup_payloads,
             processed_prefix=processed_prefix,
             engine_input=engine_input,
+            runtime_engine_input_fingerprint=runtime_input_engine_wire_fingerprint(
+                store, runtime_artifacts.runtime_input
+            ),
             runtime_input_bundle_digest=runtime_artifacts.runtime_input.input_bundle_digest,
             native_event_stream=runtime_artifacts.native_event_stream,
         )
