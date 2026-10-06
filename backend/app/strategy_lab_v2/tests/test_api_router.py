@@ -20,12 +20,14 @@ from app.strategy_lab_v2.api_resources import (
     ResourceIdentifier,
 )
 from app.strategy_lab_v2.api_router import (
+    ApiAdapterError,
     ResourceMutationServiceResult,
     SubmissionServiceResult,
     _json_value,
     _parse_forward_dispatch,
     _parse_forward_lifecycle,
     _parse_forward_transaction,
+    _parse_walk_forward_definition_request,
     _request_id,
     _safe_header_value,
     create_strategy_lab_router,
@@ -53,6 +55,7 @@ from app.strategy_lab_v2.commands import (
 )
 from app.strategy_lab_v2.contracts import CarryInMode, ForwardInstance, ForwardState
 from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.experiments import WalkForwardMode, WalkForwardSpec
 from app.strategy_lab_v2.forward_account import initial_forward_account_state
 from app.strategy_lab_v2.forward_corrections import CounterfactualReplayPlan
 from app.strategy_lab_v2.forward_event_dispatch import (
@@ -85,6 +88,10 @@ from app.strategy_lab_v2.postgres_forward_state import (
     ForwardStateMutationDecision,
     ForwardStateMutationResolution,
 )
+from app.strategy_lab_v2.postgres_walk_forward_plan import (
+    WalkForwardDefinitionDecision,
+    WalkForwardDefinitionResolution,
+)
 from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationDecision,
     ResourceMutationResolution,
@@ -106,6 +113,10 @@ from app.strategy_lab_v2.submissions import (
 from app.strategy_lab_v2.tests.test_admission import _fixture, _reservation
 from app.strategy_lab_v2.tests.test_forward_corrections import _event as correction_event
 from app.strategy_lab_v2.tests.test_forward_corrections import _state as forward_state
+from app.strategy_lab_v2.walk_forward_search import (
+    SelectionDirection,
+    WalkForwardExecutionDefinition,
+)
 
 NOW = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
 SNAPSHOT = content_digest({"snapshot": "one"})
@@ -803,6 +814,85 @@ def _asgi_app(adapter: Any) -> FastAPI:
         prefix="/api/v1",
     )
     return app
+
+
+def test_walk_forward_wire_contract_accepts_policy_but_no_observation_calendar() -> None:
+    experiment_fingerprint = content_digest("walk-forward-experiment")
+    body = {
+        "candidate_fingerprints": [content_digest("candidate-a")],
+        "spec": {
+            "train_periods": 30,
+            "test_periods": 10,
+            "step_periods": 10,
+            "mode": "rolling",
+            "gap_periods": 2,
+            "embargo_periods": 1,
+        },
+        "metric_id": "net_return",
+        "direction": "maximize",
+        "max_tasks": 1000,
+    }
+
+    request = _parse_walk_forward_definition_request(
+        body,
+        experiment_fingerprint=experiment_fingerprint,
+        request_id="walk-forward-request",
+    )
+
+    assert request.candidate_fingerprints == tuple(body["candidate_fingerprints"])
+    assert request.spec.gap_periods == 2
+    assert request.spec.embargo_periods == 1
+    assert request.max_tasks == 1000
+
+    with pytest.raises(ApiAdapterError, match="walk-forward body fields are invalid"):
+        _parse_walk_forward_definition_request(
+            {**body, "observation_boundaries": ["2024-01-01T00:00:00Z"]},
+            experiment_fingerprint=experiment_fingerprint,
+            request_id="walk-forward-request",
+        )
+
+
+def test_walk_forward_route_persists_and_returns_resolved_calendar_metadata() -> None:
+    experiment_fingerprint = content_digest("walk-forward-route-experiment")
+    candidate_fingerprint = content_digest("walk-forward-route-candidate")
+    definition = WalkForwardExecutionDefinition(
+        experiment_fingerprint=experiment_fingerprint,
+        candidate_fingerprints=(candidate_fingerprint,),
+        observation_boundaries=(NOW, NOW.replace(day=3), NOW.replace(day=3, microsecond=1)),
+        spec=WalkForwardSpec(1, 1, 1, WalkForwardMode.ROLLING),
+        metric_id="net_return",
+        direction=SelectionDirection.MAXIMIZE,
+    )
+
+    class Adapter:
+        async def create_walk_forward_definition(self, **kwargs: Any):
+            assert kwargs["experiment_fingerprint"] == experiment_fingerprint
+            assert kwargs["request"].candidate_fingerprints == (candidate_fingerprint,)
+            return WalkForwardDefinitionResolution(
+                WalkForwardDefinitionDecision.APPLY,
+                definition,
+                aggregate_version=1,
+            )
+
+    response = _client(Adapter()).post(
+        f"/api/v1/strategy-lab/v2/experiments/{experiment_fingerprint}/walk-forward",
+        headers={"Idempotency-Key": "walk-forward-route-1"},
+        json={
+            "candidate_fingerprints": [candidate_fingerprint],
+            "spec": {
+                "train_periods": 1,
+                "test_periods": 1,
+                "step_periods": 1,
+                "mode": "rolling",
+            },
+            "metric_id": "net_return",
+            "direction": "maximize",
+        },
+    )
+
+    assert response.status_code == 202, response.text
+    assert response.json()["data"]["id"] == definition.fingerprint
+    assert response.json()["data"]["attributes"]["observation_count"] == 2
 
 
 @pytest.mark.asyncio

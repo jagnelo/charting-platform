@@ -47,6 +47,7 @@ from app.strategy_lab_v2.commands import (
 )
 from app.strategy_lab_v2.contracts import CarryInMode, ForwardState
 from app.strategy_lab_v2.dispatch import DispatchRequest, SearchDispatchIntent
+from app.strategy_lab_v2.experiments import WalkForwardMode, WalkForwardSpec
 from app.strategy_lab_v2.forward_account import ForwardAccountState
 from app.strategy_lab_v2.forward_admission import ForwardLiveAdmissionState
 from app.strategy_lab_v2.forward_corrections import (
@@ -73,6 +74,10 @@ from app.strategy_lab_v2.postgres_forward_state import (
     ForwardStateMutationDecision,
     ForwardStateMutationResolution,
 )
+from app.strategy_lab_v2.postgres_walk_forward_plan import (
+    WalkForwardDefinitionDecision,
+    WalkForwardDefinitionResolution,
+)
 from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationDecision,
     ResourceMutationReceipt,
@@ -95,6 +100,10 @@ from app.strategy_lab_v2.submissions import (
     SubmissionReceipt,
     SubmissionRequest,
     SubmissionResolution,
+)
+from app.strategy_lab_v2.walk_forward_search import (
+    SelectionDirection,
+    WalkForwardDefinitionRequest,
 )
 
 logger = logging.getLogger(__name__)
@@ -182,6 +191,16 @@ class StrategyLabApiAdapter(Protocol):
         request: LegacyImportRequest,
         assessment: LegacyCompatibilityAssessment,
     ) -> Awaitable[LegacyImportResolution] | LegacyImportResolution: ...
+
+    def create_walk_forward_definition(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        idempotency_key: str,
+        experiment_fingerprint: str,
+        request: WalkForwardDefinitionRequest,
+    ) -> Awaitable[WalkForwardDefinitionResolution] | WalkForwardDefinitionResolution: ...
 
 
 class CapabilityPreflightAdapter(Protocol):
@@ -1832,6 +1851,101 @@ def _parse_search_initialization(
         ) from error
 
 
+def _parse_walk_forward_definition_request(
+    body: Any,
+    *,
+    experiment_fingerprint: str,
+    request_id: str,
+) -> WalkForwardDefinitionRequest:
+    """Parse strict fold policy without accepting caller-authored timestamps."""
+
+    try:
+        require_sha256_digest(experiment_fingerprint, field_name="experiment_fingerprint")
+    except (TypeError, ValueError) as error:
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "experiment_id must be a SHA-256 content fingerprint",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                details={"reason": str(error)},
+            )
+        ) from error
+    required = {"candidate_fingerprints", "spec", "metric_id", "direction"}
+    allowed = required | {"max_tasks"}
+    if not isinstance(body, Mapping) or set(body) - allowed or not required <= set(body):
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "walk-forward body fields are invalid",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        )
+    candidates = body["candidate_fingerprints"]
+    if not isinstance(candidates, Sequence) or isinstance(candidates, str | bytes):
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "candidate_fingerprints must be an array",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        )
+    spec_payload = body["spec"]
+    spec_required = {"train_periods", "test_periods", "step_periods", "mode"}
+    spec_allowed = spec_required | {"gap_periods", "embargo_periods"}
+    if (
+        not isinstance(spec_payload, Mapping)
+        or set(spec_payload) - spec_allowed
+        or not spec_required <= set(spec_payload)
+    ):
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "walk-forward spec fields are invalid",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        )
+    metric_id = body["metric_id"]
+    if not isinstance(metric_id, str):
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "metric_id must be a string",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        )
+    try:
+        spec = WalkForwardSpec(
+            train_periods=spec_payload["train_periods"],
+            test_periods=spec_payload["test_periods"],
+            step_periods=spec_payload["step_periods"],
+            mode=WalkForwardMode(spec_payload["mode"]),
+            gap_periods=spec_payload.get("gap_periods", 0),
+            embargo_periods=spec_payload.get("embargo_periods", 0),
+        )
+        return WalkForwardDefinitionRequest(
+            candidate_fingerprints=tuple(candidates),
+            spec=spec,
+            metric_id=metric_id,
+            direction=SelectionDirection(body["direction"]),
+            max_tasks=body.get("max_tasks", 100_000),
+        )
+    except (TypeError, ValueError) as error:
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "walk-forward definition is invalid",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                details={"reason": str(error)},
+            )
+        ) from error
+
+
 def _parse_search_dispatch(
     body: Mapping[str, Any],
     *,
@@ -2750,6 +2864,128 @@ def create_strategy_lab_router(
                 _api_error(
                     ApiErrorCode.INTERNAL_ERROR,
                     "Strategy Lab v2 forward lifecycle transition failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
+    @router.post(
+        "/experiments/{experiment_id}/walk-forward",
+        status_code=status.HTTP_202_ACCEPTED,
+    )
+    async def create_walk_forward_definition(
+        experiment_id: str,
+        request: Request,
+        body: Any = Body(...),
+        idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> JSONResponse:
+        """Persist a walk-forward plan whose calendar comes from frozen data."""
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            body = await _strict_json_body(request, request_id)
+            try:
+                key = _safe_header_value(idempotency_key, "Idempotency-Key", 256)
+            except (TypeError, ValueError) as error:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.VALIDATION_ERROR,
+                        "Idempotency-Key must be non-empty, at most 256 characters, and control-free",
+                        request_id,
+                        status.HTTP_400_BAD_REQUEST,
+                        details={"reason": str(error)},
+                    )
+                )
+            definition_request = _parse_walk_forward_definition_request(
+                body,
+                experiment_fingerprint=experiment_id,
+                request_id=request_id,
+            )
+            create = getattr(adapter, "create_walk_forward_definition", None)
+            if not callable(create):
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        "walk-forward plan adapter is not configured",
+                        request_id,
+                        status.HTTP_501_NOT_IMPLEMENTED,
+                        details={"reason": "the host has not supplied walk-forward persistence"},
+                    )
+                )
+            resolution = await _resolve(
+                create(
+                    principal=principal,
+                    request_id=request_id,
+                    idempotency_key=key,
+                    experiment_fingerprint=experiment_id,
+                    request=definition_request,
+                )
+            )
+            if not isinstance(resolution, WalkForwardDefinitionResolution):
+                raise TypeError("adapter returned an invalid walk-forward definition resolution")
+            if resolution.decision is WalkForwardDefinitionDecision.REJECT:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.CONFLICT,
+                        resolution.rejection_reason
+                        or "experiment is already bound to different walk-forward content",
+                        request_id,
+                        status.HTTP_409_CONFLICT,
+                    )
+                )
+            definition = resolution.definition
+            response = JSONResponse(
+                status_code=status.HTTP_202_ACCEPTED,
+                content=_json_value(
+                    {
+                        "data": {
+                            "type": "walk-forward-plans",
+                            "id": definition.fingerprint,
+                            "attributes": {
+                                "experiment_fingerprint": definition.experiment_fingerprint,
+                                "candidate_fingerprints": definition.candidate_fingerprints,
+                                "observation_count": len(definition.observation_boundaries) - 1,
+                                "start": definition.observation_boundaries[0],
+                                "end": definition.observation_boundaries[-1],
+                                "spec": asdict(definition.spec),
+                                "metric_id": definition.metric_id,
+                                "direction": definition.direction.value,
+                                "fold_count": len(definition.folds),
+                                "training_task_count": len(definition.training_plan.tasks),
+                            },
+                            "meta": {
+                                "request_id": request_id,
+                                "decision": resolution.decision.value,
+                                "aggregate_version": resolution.aggregate_version,
+                                "definition_fingerprint": definition.fingerprint,
+                            },
+                        }
+                    }
+                ),
+            )
+            response.headers["X-Request-ID"] = request_id
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "walk-forward plan request is invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 walk-forward plan creation failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Strategy Lab v2 walk-forward plan creation failed",
                     locals().get("request_id", "unknown"),
                     status.HTTP_500_INTERNAL_SERVER_ERROR,
                     retryable=True,

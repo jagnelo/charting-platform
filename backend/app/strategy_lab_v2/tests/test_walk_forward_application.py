@@ -7,6 +7,7 @@ from typing import Any, cast
 import pytest
 
 from app.strategy_lab_v2.api_resources import ApiResourceType
+from app.strategy_lab_v2.api_router import ApiAdapterError
 from app.strategy_lab_v2.application import PostgresStrategyLabV2Adapter
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import ScientificTrial
@@ -18,6 +19,7 @@ from app.strategy_lab_v2.postgres_walk_forward_plan import (
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs
 from app.strategy_lab_v2.walk_forward_search import (
     SelectionDirection,
+    WalkForwardDefinitionRequest,
     WalkForwardExecutionDefinition,
 )
 
@@ -125,4 +127,60 @@ async def test_application_rejects_missing_or_rebound_base_trials_before_persist
     )
     with pytest.raises(ValueError, match="differs from its experiment snapshot"):
         await adapter.persist_walk_forward_definition(principal=User(), definition=definition)
+    assert plan_store.received is None
+
+
+@pytest.mark.asyncio
+async def test_application_builds_definition_only_from_host_verified_calendar() -> None:
+    adapter, _reader, plan_store, definition, first, second = _setup()
+    observed: dict[str, Any] = {}
+    boundaries = definition.observation_boundaries
+
+    async def resolve_calendar(**kwargs: Any):
+        observed.update(kwargs)
+        return boundaries
+
+    adapter._walk_forward_observation_calendar = resolve_calendar
+    request = WalkForwardDefinitionRequest(
+        candidate_fingerprints=(first.trial_id, second.trial_id),
+        spec=definition.spec,
+        metric_id=definition.metric_id,
+        direction=definition.direction,
+        max_tasks=definition.max_tasks,
+    )
+
+    result = await adapter.create_walk_forward_definition(
+        principal=User(),
+        request_id="request-1",
+        idempotency_key="walk-forward-create-1",
+        experiment_fingerprint=definition.experiment_fingerprint,
+        request=request,
+    )
+
+    assert result.decision is WalkForwardDefinitionDecision.APPLY
+    assert plan_store.received == ("42", result.definition)
+    assert result.definition.fingerprint == definition.fingerprint
+    assert observed["principal"].id == "42"
+    assert observed["snapshot"].fingerprint == first.snapshot_fingerprint
+    assert tuple(item.trial_id for item in observed["candidates"]) == request.candidate_fingerprints
+
+
+@pytest.mark.asyncio
+async def test_application_fails_closed_without_verified_calendar_binding() -> None:
+    adapter, _reader, plan_store, definition, first, second = _setup()
+    request = WalkForwardDefinitionRequest(
+        candidate_fingerprints=(first.trial_id, second.trial_id),
+        spec=definition.spec,
+        metric_id=definition.metric_id,
+        direction=definition.direction,
+    )
+
+    with pytest.raises(ApiAdapterError, match="calendar resolution is not configured"):
+        await adapter.create_walk_forward_definition(
+            principal=User(),
+            request_id="request-1",
+            idempotency_key="walk-forward-create-1",
+            experiment_fingerprint=definition.experiment_fingerprint,
+            request=request,
+        )
     assert plan_store.received is None

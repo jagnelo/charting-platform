@@ -13368,3 +13368,24 @@ Validation: the event-tape artifact suite passed 26/26; Ruff, formatting, and
 bind the trusted snapshot/event decoder and SDK manifest resolver into the
 owner-scoped application adapter, then add strict REST parsing for the fold
 parameters and candidate identities without accepting observation dates.
+
+## 2026-10-06 - Expose owner-scoped walk-forward plan creation
+
+Added `POST /api/v1/strategy-lab/v2/experiments/{experiment_id}/walk-forward`.
+Its strict body accepts ordered candidate trial fingerprints, anchored/rolling
+fold dimensions, gap/embargo, selection metric/direction, and a task cap; it
+rejects caller-supplied observation calendars and unknown fields. The app
+adapter authenticates the experiment, snapshot, and every unwindowed base
+trial, then obtains boundaries only from an asynchronous host calendar
+resolver before persisting the immutable owner-scoped definition. The aggregate
+allows exact content replay and rejects any conflicting definition for that
+owner/experiment. Until the host binds package-manifest resolution to verified
+local snapshot decoding, creation returns a typed 501 precondition error.
+
+Validation: API/router, application, and walk-forward application tests passed
+81/81; focused MyPy across the three changed implementation modules, Ruff, and
+formatting passed. This establishes the strict API seam and fail-closed host
+contract, not a production host resolver or automatic queue/outbox dispatch.
+Next: implement and bind that authenticated package/snapshot resolver, then
+initialize training search state and coordinate restart-safe results through
+OOS queue append and the existing transactional outbox.

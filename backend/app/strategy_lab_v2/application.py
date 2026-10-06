@@ -127,7 +127,10 @@ from app.strategy_lab_v2.storage import (
     StorageTransactionRequest,
 )
 from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
-from app.strategy_lab_v2.walk_forward_search import WalkForwardExecutionDefinition
+from app.strategy_lab_v2.walk_forward_search import (
+    WalkForwardDefinitionRequest,
+    WalkForwardExecutionDefinition,
+)
 from app.strategy_lab_v2.worker_handoff import encode_worker_handoff
 from app.strategy_lab_v2.worker_process import WorkerExecutionRequest
 from app.strategy_lab_v2.workers import WorkerProfile
@@ -233,6 +236,7 @@ class SearchDispatchEvidence:
 SearchDispatchEvidenceResolver = Callable[
     ..., Awaitable[SearchDispatchEvidence] | SearchDispatchEvidence
 ]
+WalkForwardObservationCalendarResolver = Callable[..., Awaitable[Sequence[datetime]]]
 
 
 @dataclass(frozen=True, slots=True)
@@ -246,6 +250,7 @@ class StrategyLabV2ApiBindings:
 
     capability_preflight: CapabilityPreflightResolver | None = None
     search_dispatch: SearchDispatchResolver | None = None
+    walk_forward_observation_calendar: WalkForwardObservationCalendarResolver | None = None
     forward_worker_runtime_profile_fingerprint: str | None = None
 
     def __post_init__(self) -> None:
@@ -259,12 +264,24 @@ class StrategyLabV2ApiBindings:
             raise TypeError("search_dispatch must be callable")
         if self.search_dispatch is not None and not _is_async_callable(self.search_dispatch):
             raise TypeError("search_dispatch host binding must be asynchronous")
+        if self.walk_forward_observation_calendar is not None and not callable(
+            self.walk_forward_observation_calendar
+        ):
+            raise TypeError("walk_forward_observation_calendar must be callable")
+        if self.walk_forward_observation_calendar is not None and not _is_async_callable(
+            self.walk_forward_observation_calendar
+        ):
+            raise TypeError("walk-forward observation calendar binding must be asynchronous")
         if self.forward_worker_runtime_profile_fingerprint is not None:
             require_sha256_digest(
                 self.forward_worker_runtime_profile_fingerprint,
                 field_name="forward_worker_runtime_profile_fingerprint",
             )
-        if self.capability_preflight is None and self.search_dispatch is None:
+        if (
+            self.capability_preflight is None
+            and self.search_dispatch is None
+            and self.walk_forward_observation_calendar is None
+        ):
             raise ValueError("at least one Strategy Lab v2 API host binding is required")
 
 
@@ -324,6 +341,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         capability_preflight: CapabilityPreflightResolver | None = None,
         search_dispatch: SearchDispatchResolver | None = None,
         search_dispatch_evidence: SearchDispatchEvidenceResolver | None = None,
+        walk_forward_observation_calendar: WalkForwardObservationCalendarResolver | None = None,
         host_bindings_factory: StrategyLabV2ApiBindingsFactory | None = None,
         persistence: PostgresStrategyLabV2Persistence | None = None,
         forward_worker_runtime_profile_fingerprint: str | None = None,
@@ -339,6 +357,14 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise TypeError("search_dispatch must be callable")
         if search_dispatch_evidence is not None and not callable(search_dispatch_evidence):
             raise TypeError("search_dispatch_evidence must be callable")
+        if walk_forward_observation_calendar is not None and not callable(
+            walk_forward_observation_calendar
+        ):
+            raise TypeError("walk_forward_observation_calendar must be callable")
+        if walk_forward_observation_calendar is not None and not _is_async_callable(
+            walk_forward_observation_calendar
+        ):
+            raise TypeError("walk-forward observation calendar binding must be asynchronous")
         if search_dispatch is not None and search_dispatch_evidence is not None:
             raise ValueError("search_dispatch and search_dispatch_evidence are mutually exclusive")
         if forward_worker_runtime_profile_fingerprint is not None:
@@ -359,6 +385,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                     capability_preflight,
                     search_dispatch,
                     search_dispatch_evidence,
+                    walk_forward_observation_calendar,
                     forward_worker_runtime_profile_fingerprint,
                 )
             ):
@@ -384,12 +411,14 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                 raise TypeError("host_bindings_factory must return StrategyLabV2ApiBindings")
             capability_preflight = bindings.capability_preflight
             search_dispatch = bindings.search_dispatch
+            walk_forward_observation_calendar = bindings.walk_forward_observation_calendar
             forward_worker_runtime_profile_fingerprint = (
                 bindings.forward_worker_runtime_profile_fingerprint
             )
         self._capability_preflight = capability_preflight
         self._search_dispatch = search_dispatch
         self._search_dispatch_evidence = search_dispatch_evidence
+        self._walk_forward_observation_calendar = walk_forward_observation_calendar
         self._forward_worker_lifecycle = (
             ForwardWorkerFleetLifecycleCoordinator(
                 self._persistence.worker_state,
@@ -962,6 +991,126 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                 raise ValueError("walk-forward base candidates must not have a pre-bound window")
 
         return await self._persistence.walk_forward_plans.persist(
+            principal=owner,
+            definition=definition,
+        )
+
+    async def create_walk_forward_definition(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        idempotency_key: str,
+        experiment_fingerprint: str,
+        request: WalkForwardDefinitionRequest,
+    ) -> WalkForwardDefinitionResolution:
+        """Resolve the frozen calendar internally, then persist an owner-bound plan.
+
+        The HTTP caller supplies fold policy and immutable candidate identities,
+        never timestamps. The configured asynchronous host resolver must load
+        the exact SDK manifests pinned by the experiment and use the canonical
+        local frozen-series decoder; its observation calendar is therefore
+        derived from verified snapshot bytes rather than caller assertions.
+        """
+
+        if not isinstance(request_id, str) or not request_id.strip():
+            raise ValueError("request_id must not be empty")
+        if not isinstance(idempotency_key, str) or not idempotency_key.strip():
+            raise ValueError("idempotency_key must not be empty")
+        if not isinstance(request, WalkForwardDefinitionRequest):
+            raise TypeError("request must be a WalkForwardDefinitionRequest")
+        require_sha256_digest(experiment_fingerprint, field_name="experiment_fingerprint")
+        resolver = getattr(self, "_walk_forward_observation_calendar", None)
+        if resolver is None:
+            raise ApiAdapterError(
+                ApiError(
+                    ApiErrorCode.PRECONDITION_FAILED,
+                    "walk-forward calendar resolution is not configured",
+                    request_id,
+                    501,
+                    False,
+                    {
+                        "reason": (
+                            "the host must bind exact strategy packages to the verified "
+                            "frozen snapshot event tape"
+                        )
+                    },
+                )
+            )
+
+        owner = _principal_identity(principal)
+        experiment = await self._resources.get_domain_contract_by_fingerprint(
+            principal=owner,
+            resource_type=ApiResourceType.EXPERIMENT,
+            fingerprint=experiment_fingerprint,
+        )
+        if not isinstance(experiment, ExperimentDefinition):
+            raise ValueError("walk-forward experiment is unavailable to this owner")
+        snapshot = await self._resources.get_domain_contract_by_fingerprint(
+            principal=owner,
+            resource_type=ApiResourceType.SNAPSHOT,
+            fingerprint=experiment.snapshot_fingerprint,
+        )
+        if not isinstance(snapshot, DataSnapshot):
+            raise ValueError("walk-forward experiment snapshot is unavailable to this owner")
+        if (
+            snapshot.fingerprint != experiment.snapshot_fingerprint
+            or snapshot.capability_contract_digest != experiment.capability_contract_digest
+        ):
+            raise ValueError("walk-forward experiment snapshot binding is inconsistent")
+        candidates = await self._resources.get_domain_contracts_by_fingerprint(
+            principal=owner,
+            resource_type=ApiResourceType.TRIAL,
+            fingerprints=request.candidate_fingerprints,
+        )
+        if set(candidates) != set(request.candidate_fingerprints):
+            raise ValueError("one or more walk-forward base trials are unavailable to this owner")
+        typed_candidates: list[ScientificTrial] = []
+        for fingerprint in request.candidate_fingerprints:
+            trial = candidates[fingerprint]
+            if not isinstance(trial, ScientificTrial) or trial.trial_id != fingerprint:
+                raise ValueError("walk-forward base trial identity does not match its resource key")
+            if (
+                trial.experiment_fingerprint != experiment_fingerprint
+                or trial.snapshot_fingerprint != snapshot.fingerprint
+                or trial.preflight_fingerprint != snapshot.preflight_report.fingerprint
+                or trial.evaluation_window is not None
+            ):
+                raise ValueError(
+                    "walk-forward base trial is not an unwindowed experiment candidate"
+                )
+            typed_candidates.append(trial)
+
+        resolved = resolver(
+            principal=owner,
+            experiment=experiment,
+            snapshot=snapshot,
+            candidates=tuple(typed_candidates),
+        )
+        observation_boundaries = await resolved
+        if not isinstance(observation_boundaries, Sequence) or isinstance(
+            observation_boundaries, str | bytes
+        ):
+            raise TypeError("verified observation calendar must be a datetime sequence")
+        boundaries = tuple(observation_boundaries)
+        if len(boundaries) < 2 or any(
+            not isinstance(boundary, datetime)
+            or boundary.tzinfo is None
+            or boundary.utcoffset() is None
+            for boundary in boundaries
+        ):
+            raise ValueError("verified observation calendar must contain aware boundaries")
+
+        definition = WalkForwardExecutionDefinition(
+            experiment_fingerprint=experiment_fingerprint,
+            candidate_fingerprints=request.candidate_fingerprints,
+            observation_boundaries=boundaries,
+            spec=request.spec,
+            metric_id=request.metric_id,
+            direction=request.direction,
+            max_tasks=request.max_tasks,
+        )
+        return await self.persist_walk_forward_definition(
             principal=owner,
             definition=definition,
         )

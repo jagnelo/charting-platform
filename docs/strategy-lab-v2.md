@@ -51,7 +51,13 @@ factory receives the shared async session factory and persistence bundle, and re
 `StrategyLabV2ApiBindings`; configured request resolvers must be async. Search
 dispatch bindings should proxy to the isolated local preparation service and
 return its durable dispatch resolution rather than materializing a trial in
-the API process. An absent setting preserves the current typed 501 response.
+the API process. The `walk_forward_observation_calendar` binding must resolve
+the experiment's exact pinned strategy packages, build their union SDK data
+manifest, and derive unique event-time batches through the verified
+content-addressed snapshot decoder. The walk-forward endpoint accepts fold
+policy and candidate identities only; it never accepts observation dates. An
+absent binding preserves the typed 501 precondition response. An absent overall
+setting preserves the current typed 501 response.
 
 The local transport is versioned JSON over a shared Unix-domain socket, not a
 network listener. The API sends only its authenticated owner identity and

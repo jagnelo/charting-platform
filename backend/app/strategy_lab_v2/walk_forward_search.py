@@ -21,6 +21,38 @@ class SelectionDirection(StrEnum):
     MINIMIZE = "minimize"
 
 
+@dataclass(frozen=True, slots=True)
+class WalkForwardDefinitionRequest:
+    """Caller-selected fold policy; observation timestamps are resolved by the host."""
+
+    candidate_fingerprints: tuple[str, ...]
+    spec: WalkForwardSpec
+    metric_id: str
+    direction: SelectionDirection
+    max_tasks: int = 100_000
+
+    def __post_init__(self) -> None:
+        candidates = tuple(self.candidate_fingerprints)
+        if not candidates:
+            raise ValueError("walk-forward execution requires base candidate trials")
+        for fingerprint in candidates:
+            require_sha256_digest(fingerprint, field_name="candidate_fingerprint")
+        if len(candidates) != len(set(candidates)):
+            raise ValueError("walk-forward base candidate fingerprints must be unique")
+        if not isinstance(self.spec, WalkForwardSpec):
+            raise TypeError("spec must be a WalkForwardSpec")
+        if not isinstance(self.direction, SelectionDirection):
+            raise TypeError("direction must be a SelectionDirection")
+        _nonempty(self.metric_id, "metric_id")
+        if (
+            not isinstance(self.max_tasks, int)
+            or isinstance(self.max_tasks, bool)
+            or self.max_tasks < 1
+        ):
+            raise ValueError("max_tasks must be a positive integer")
+        object.__setattr__(self, "candidate_fingerprints", candidates)
+
+
 def _nonempty(value: str, name: str) -> None:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{name} must not be empty")
