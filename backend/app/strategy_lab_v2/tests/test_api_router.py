@@ -1679,6 +1679,47 @@ async def test_walk_forward_curve_api_streams_digest_bound_artifact(
     assert adapter.walk_forward_result_requests[0]["principal"] == "user-1"
 
 
+def test_walk_forward_curve_api_streams_persisted_artifact_through_authenticated_asgi(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def inline_run_sync(function: Any, *args: Any, **kwargs: Any) -> Any:
+        del kwargs
+        return function(*args)
+
+    monkeypatch.setattr(anyio.to_thread, "run_sync", inline_run_sync)
+    payload = b"persisted curve bytes over authenticated ASGI"
+    digest = artifact_content_digest(payload)
+    manifest = ArtifactManifest(
+        digest,
+        len(payload),
+        WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE,
+        WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA,
+        digest,
+        ArtifactRetention.PINNED_RESULT,
+    )
+    store = LocalArtifactStore(tmp_path / "asgi-artifacts")
+    store.publish(manifest, payload)
+    experiment = content_digest("authenticated-asgi-curve-download")
+
+    class CurveAdapter(FakeAdapter):
+        async def open_walk_forward_curve_artifact(self, **kwargs: Any):
+            self.walk_forward_result_requests.append(kwargs)
+            return WalkForwardCurveArtifactDownload(manifest, store)
+
+    adapter = CurveAdapter()
+    path = f"/api/v1/strategy-lab/v2/experiments/{experiment}/walk-forward/curve"
+    with _SyncASGIClient(_asgi_app(adapter)) as client:
+        response = client.get(path)
+
+    assert response.status_code == 200, response.text
+    assert response.content == payload
+    assert response.headers["content-length"] == str(len(payload))
+    assert response.headers["x-content-digest"] == digest
+    assert response.headers["cache-control"] == "private, no-store"
+    assert adapter.walk_forward_result_requests[0]["experiment_fingerprint"] == experiment
+    assert adapter.walk_forward_result_requests[0]["principal"] == "user-1"
+
+
 @pytest.mark.asyncio
 async def test_walk_forward_curve_api_hides_missing_and_rejects_corrupt_or_oversized_artifacts(
     tmp_path, monkeypatch: pytest.MonkeyPatch
