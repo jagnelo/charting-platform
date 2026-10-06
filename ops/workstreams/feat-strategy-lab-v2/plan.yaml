@@ -905,21 +905,25 @@ progress:
     retries reconcile an interrupted activation; broader crash/recovery
     evidence remains open. Worker heartbeats now also dispose cached Nautilus
     sessions whose durable reservation ended, with targeted lifecycle tests;
-    real PostgreSQL/Redis shutdown/restart evidence remains open. The next
-    product seam is secure owner-scoped retrieval of published walk-forward
-    curve artifact bytes, followed by the remaining
+    real PostgreSQL/Redis shutdown/restart evidence remains open. Secure
+    owner-scoped retrieval of published walk-forward curve bytes is implemented
+    and pushed at 9a7ba28f921affc1a114025bf80e8c9fe1afa698, with authorization
+    bound to the persisted metric sidecar and active retention pin, pre-stream
+    digest and length verification, a 1 GiB bound, and post-stream mutation
+    verification. Focused assertions pass; the direct-route test harness has an
+    environment-specific event-loop shutdown stall and needs live-ASGI
+    validation in the full-stack profile. Remaining work includes the
     backtest/search/API/security/Compose criteria and exact-tip branch gates.
     Provider-platform, ETF, and TC2000 contracts remain owned by their
     branches; unsupported options remain fail-closed pending canonical
     Greeks/delta/settlement evidence.
   next_action: >-
-    Finish and push the operational checkpoint for commit
-    8a59aedc67a960f32f7a1d1c83ceb188e2e0b8c4, including exact validation and
-    synchronized branch state. Then implement owner-scoped artifact-byte
-    retrieval for the walk-forward curve manifest, with digest verification,
-    authorization, and bounded streaming. Continue cancellation/retry and phase-boundary restart
-    evidence plus remaining forward, security, Compose, and exact-tip branch
-    gates. Shared router registration, migrations, and overlapping upstream
-    paths remain gated on line-level staging reconciliation. Provider-owned
-    frozen-series decoder composition remains upstream-dependent; unsupported
-    products stay fail-closed.
+    Complete the operational checkpoint for 9a7ba28f921affc1a114025bf80e8c9fe1afa698
+    and verify exact remote synchronization. Then exercise the streaming route
+    through the local ASGI/Compose path (the isolated route harness stalls
+    during loop shutdown) and continue the remaining backtest/search, durable
+    cancellation/retry, phase-boundary recovery, security, Compose, and exact-tip
+    branch gates. Shared router registration, migrations, and overlapping
+    upstream paths remain gated on line-level staging reconciliation.
+    Provider-owned frozen-series decoder composition remains upstream-dependent;
+    unsupported products stay fail-closed.
