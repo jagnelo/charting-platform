@@ -9631,4 +9631,19 @@ investigation or a controlled retry only after a stable browser/network window
 is established; do not relax tests to hide host instability. AC10 still needs
 the provider-platform work to reach staging before this branch can consume its
 contracts. AC14 is a 30-day production observation after integration/deployment.
+
+Follow-up CI run [`37530701830`](https://github.com/jagnelo/charting-platform/actions/runs/37530701830)
+on checkpoint SHA `d0004a6b4b3f74f753dc0b54a7d4f9cd7234b037` failed one
+branch-declared invariant: the adapter suite requires the exact phrase
+`15 Tier-0 and 156 Tier-1` in `session.json`'s current blocker. My checkpoint
+wording had dropped that required count; this is a workstream-text regression,
+not a provider/runtime failure. The other 609 tests in that file passed. The
+same omission caused the backend CI job to report 1,520 passed and one failed;
+frontend units passed. Restore the required count and rerun that deterministic
+suite before republishing.
+
+The required tier count has now been restored in the session summary. The
+complete ETF adapter test file was rerun locally and passed, 610/610 in 14.50
+seconds. No adapter or test code changed. This correction still needs its
+workstream-only commit/push and a fresh exact-SHA hosted CI result.
 *** End of File
