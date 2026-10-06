@@ -45,6 +45,7 @@
               <div><dt>Shift+L</dt><dd>Toggle maximize for the selected window</dd></div>
               <div><dt>Shift+F</dt><dd>Flag or unflag selected WatchList symbols</dd></div>
               <div><dt>Shift+N</dt><dd>Write a note for the active WatchList symbol</dd></div>
+              <div><dt>Shift+D</dt><dd>Toggle Trend Line drawing on the active chart</dd></div>
               <div><dt>Ctrl+wheel</dt><dd>Over a chart: change timeframe; over a WatchList: move through symbols</dd></div>
               <div><dt>= / -</dt><dd>Over the active chart: change timeframe</dd></div>
               <div><dt>F1 or ?</dt><dd>Show this help</dd></div>
@@ -234,6 +235,7 @@ import { api } from '@/lib/api'
 import { useQueryClient } from '@tanstack/vue-query'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { useRecentInstrumentsStore } from '@/stores/recentInstruments'
+import { useDrawingsStore } from '@/stores/drawings'
 import { workstationFreshness } from '@/lib/workstation/freshness'
 import { isInteractiveTarget } from '@/lib/workstation/keyboard'
 import { capturePopoutGeometry, popoutWindowFeatures, readPopoutGeometry, recoverPopoutGeometry, type PopoutScreen } from '@/lib/workstation/popoutGeometry'
@@ -249,6 +251,7 @@ const authStore = useAuthStore()
 const workspaceStore = useWorkspaceStore()
 const watchlistStore = useWatchlistStore()
 const recentStore = useRecentInstrumentsStore()
+const drawingsStore = useDrawingsStore()
 const queryClient = useQueryClient()
 const workstationInstanceId = useId()
 const symbolResultsId = `${workstationInstanceId}-symbol-results`
@@ -1937,6 +1940,17 @@ function handleKeydown(event: KeyboardEvent) {
     if (!maximizeButton) return
     event.preventDefault()
     maximizeButton.click()
+    return
+  }
+  if (event.key.toLowerCase() === 'd' && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    const activeTab = workspaceStore.activeTab
+    const activeWindowKey = isPopout.value
+      ? String(route.params.windowKey ?? '')
+      : activeTab?.active_window_key
+    const activeWindow = activeTab?.windows.find(window => window.instance_key === activeWindowKey)
+    if (activeWindow?.tool_type !== 'chart') return
+    event.preventDefault()
+    drawingsStore.setActiveTool(drawingsStore.activeToolType === 'trendline' ? null : 'trendline')
     return
   }
   if (!event.ctrlKey && !event.metaKey && !event.altKey && (event.key === '=' || event.key === '-')) {
