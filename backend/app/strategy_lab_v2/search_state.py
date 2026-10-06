@@ -45,27 +45,47 @@ class SearchCandidateState:
     updated_at: datetime | None = None
 
     def __post_init__(self) -> None:
-        if not isinstance(self.candidate_index, int) or isinstance(self.candidate_index, bool) or self.candidate_index < 0:
+        if (
+            not isinstance(self.candidate_index, int)
+            or isinstance(self.candidate_index, bool)
+            or self.candidate_index < 0
+        ):
             raise ValueError("candidate_index must be a non-negative integer")
         require_sha256_digest(self.trial_fingerprint, field_name="trial_fingerprint")
         if not isinstance(self.phase, SearchCandidatePhase):
             raise TypeError("phase must be a SearchCandidatePhase")
         if self.attempt_id is not None:
             _nonempty(self.attempt_id, "attempt_id")
-        if not isinstance(self.attempt_count, int) or isinstance(self.attempt_count, bool) or self.attempt_count < 0:
+        if (
+            not isinstance(self.attempt_count, int)
+            or isinstance(self.attempt_count, bool)
+            or self.attempt_count < 0
+        ):
             raise ValueError("attempt_count must be a non-negative integer")
         if self.phase is SearchCandidatePhase.PENDING:
-            if self.attempt_id is not None or self.attempt_count != 0 or self.result_fingerprint is not None:
+            if (
+                self.attempt_id is not None
+                or self.attempt_count != 0
+                or self.result_fingerprint is not None
+            ):
                 raise ValueError("pending candidates cannot contain attempts or results")
         elif self.phase is SearchCandidatePhase.RUNNING:
-            if self.attempt_id is None or self.attempt_count < 1 or self.result_fingerprint is not None:
+            if (
+                self.attempt_id is None
+                or self.attempt_count < 1
+                or self.result_fingerprint is not None
+            ):
                 raise ValueError("running candidates require one active attempt and no result")
         elif self.phase is SearchCandidatePhase.SUCCEEDED:
             if self.attempt_id is None or self.attempt_count < 1 or self.result_fingerprint is None:
                 raise ValueError("successful candidates require an attempt and result")
             require_sha256_digest(self.result_fingerprint, field_name="result_fingerprint")
         else:
-            if self.attempt_id is None or self.attempt_count < 1 or self.result_fingerprint is not None:
+            if (
+                self.attempt_id is None
+                or self.attempt_count < 1
+                or self.result_fingerprint is not None
+            ):
                 raise ValueError("failed or cancelled candidates require an attempt and no result")
         if self.updated_at is not None:
             _aware(self.updated_at, "updated_at")
@@ -101,7 +121,9 @@ class SearchExecutionState:
         if not isinstance(self.cancellation_requested, bool):
             raise TypeError("cancellation_requested must be a bool")
         if self.cancellation_request_id is not None:
-            require_sha256_digest(self.cancellation_request_id, field_name="cancellation_request_id")
+            require_sha256_digest(
+                self.cancellation_request_id, field_name="cancellation_request_id"
+            )
         if self.cancellation_requested and self.cancellation_request_id is None:
             raise ValueError("cancelled searches require a cancellation request identity")
         if not self.cancellation_requested and self.cancellation_request_id is not None:
@@ -146,7 +168,10 @@ def new_search_execution_state(
         _aware(now, "now")
     return SearchExecutionState(
         experiment_fingerprint,
-        tuple(SearchCandidateState(index, fingerprint, updated_at=now) for index, fingerprint in enumerate(trial_fingerprints)),
+        tuple(
+            SearchCandidateState(index, fingerprint, updated_at=now)
+            for index, fingerprint in enumerate(trial_fingerprints)
+        ),
         updated_at=now,
     )
 
@@ -217,24 +242,34 @@ def start_search_candidate(
     candidate = _candidate(state, candidate_index)
     if state.cancellation_requested:
         return SearchStateResolution(
-            SearchStateDecision.REJECT, state, candidate_index,
+            SearchStateDecision.REJECT,
+            state,
+            candidate_index,
             "search cancellation has been requested",
         )
     if candidate.phase is SearchCandidatePhase.RUNNING:
         if candidate.attempt_id == attempt_id:
-            return SearchStateResolution(SearchStateDecision.REPLAY_EXISTING, state, candidate_index)
+            return SearchStateResolution(
+                SearchStateDecision.REPLAY_EXISTING, state, candidate_index
+            )
         return SearchStateResolution(
-            SearchStateDecision.REJECT, state, candidate_index,
+            SearchStateDecision.REJECT,
+            state,
+            candidate_index,
             "candidate already has a different active attempt",
         )
     if candidate.phase in {SearchCandidatePhase.SUCCEEDED, SearchCandidatePhase.CANCELLED}:
         return SearchStateResolution(
-            SearchStateDecision.REJECT, state, candidate_index,
+            SearchStateDecision.REJECT,
+            state,
+            candidate_index,
             "terminal candidate cannot be started",
         )
     if state.updated_at is not None and now < state.updated_at:
         return SearchStateResolution(
-            SearchStateDecision.REJECT, state, candidate_index,
+            SearchStateDecision.REJECT,
+            state,
+            candidate_index,
             "candidate start time cannot move backwards",
         )
     running = replace(
@@ -280,19 +315,27 @@ def record_search_candidate_terminal(
             and candidate.result_fingerprint == result_fingerprint
         )
         if same:
-            return SearchStateResolution(SearchStateDecision.REPLAY_EXISTING, state, candidate_index)
+            return SearchStateResolution(
+                SearchStateDecision.REPLAY_EXISTING, state, candidate_index
+            )
         return SearchStateResolution(
-            SearchStateDecision.REJECT, state, candidate_index,
+            SearchStateDecision.REJECT,
+            state,
+            candidate_index,
             "terminal candidate content conflicts with the existing receipt",
         )
     if candidate.phase is not SearchCandidatePhase.RUNNING or candidate.attempt_id != attempt_id:
         return SearchStateResolution(
-            SearchStateDecision.REJECT, state, candidate_index,
+            SearchStateDecision.REJECT,
+            state,
+            candidate_index,
             "terminal receipt must match the active candidate attempt",
         )
     if state.cancellation_requested and phase is not SearchCandidatePhase.CANCELLED:
         return SearchStateResolution(
-            SearchStateDecision.REJECT, state, candidate_index,
+            SearchStateDecision.REJECT,
+            state,
+            candidate_index,
             "cancelled searches require cancelled candidate receipts",
         )
     terminal = replace(candidate, phase=phase, result_fingerprint=result_fingerprint)
@@ -319,20 +362,95 @@ def request_search_cancellation(
         if state.cancellation_request_id == request_id:
             return SearchStateResolution(SearchStateDecision.REPLAY_EXISTING, state)
         return SearchStateResolution(
-            SearchStateDecision.REJECT, state,
+            SearchStateDecision.REJECT,
+            state,
             rejection_reason="search cancellation is already bound to another request",
         )
     if state.complete:
         return SearchStateResolution(
-            SearchStateDecision.REJECT, state,
+            SearchStateDecision.REJECT,
+            state,
             rejection_reason="completed searches cannot be cancelled",
         )
     if state.updated_at is not None and now < state.updated_at:
         return SearchStateResolution(
-            SearchStateDecision.REJECT, state,
+            SearchStateDecision.REJECT,
+            state,
             rejection_reason="cancellation time cannot move backwards",
         )
     return SearchStateResolution(
         SearchStateDecision.APPLY,
-        replace(state, cancellation_requested=True, cancellation_request_id=request_id, updated_at=now),
+        replace(
+            state, cancellation_requested=True, cancellation_request_id=request_id, updated_at=now
+        ),
+    )
+
+
+def append_search_candidates(
+    state: SearchExecutionState,
+    trial_fingerprints: tuple[str, ...],
+    *,
+    now: datetime,
+) -> SearchStateResolution:
+    """Append a new immutable phase after every candidate in the prior phase succeeds.
+
+    Walk-forward search uses this to add selected OOS trials only after the
+    training phase has terminal successful results. The experiment identity and
+    all existing candidate indices stay stable for dispatch idempotency.
+    """
+
+    if not isinstance(state, SearchExecutionState):
+        raise TypeError("state must be a SearchExecutionState")
+    if not isinstance(trial_fingerprints, tuple) or not trial_fingerprints:
+        raise ValueError("trial_fingerprints must be a non-empty tuple")
+    for fingerprint in trial_fingerprints:
+        require_sha256_digest(fingerprint, field_name="trial_fingerprint")
+    if len(set(trial_fingerprints)) != len(trial_fingerprints):
+        raise ValueError("appended trial fingerprints must be unique")
+    _aware(now, "now")
+    existing = tuple(candidate.trial_fingerprint for candidate in state.candidates)
+    if (
+        len(trial_fingerprints) <= len(existing)
+        and existing[-len(trial_fingerprints) :] == trial_fingerprints
+    ):
+        return SearchStateResolution(SearchStateDecision.REPLAY_EXISTING, state)
+    if state.cancellation_requested:
+        return SearchStateResolution(
+            SearchStateDecision.REJECT,
+            state,
+            rejection_reason="cancelled searches cannot append candidate phases",
+        )
+    if not state.complete or any(
+        candidate.phase is not SearchCandidatePhase.SUCCEEDED for candidate in state.candidates
+    ):
+        return SearchStateResolution(
+            SearchStateDecision.REJECT,
+            state,
+            rejection_reason="candidate phases can append only after every prior candidate succeeds",
+        )
+    if set(existing) & set(trial_fingerprints):
+        return SearchStateResolution(
+            SearchStateDecision.REJECT,
+            state,
+            rejection_reason="appended trials must not reuse an existing trial identity",
+        )
+    if state.updated_at is not None and now < state.updated_at:
+        return SearchStateResolution(
+            SearchStateDecision.REJECT,
+            state,
+            rejection_reason="candidate phase append time cannot move backwards",
+        )
+    appended = tuple(
+        SearchCandidateState(index, fingerprint, updated_at=now)
+        for index, fingerprint in enumerate(trial_fingerprints, start=len(state.candidates))
+    )
+    next_state = replace(
+        state,
+        candidates=(*state.candidates, *appended),
+        updated_at=now,
+    )
+    return SearchStateResolution(
+        SearchStateDecision.APPLY,
+        next_state,
+        candidate_index=len(state.candidates),
     )

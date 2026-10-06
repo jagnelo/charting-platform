@@ -94,8 +94,8 @@ class FakeSession:
         raise AssertionError(f"unexpected SQL: {sql}")
 
 
-def _state():
-    return new_search_execution_state(EXPERIMENT, TRIALS, now=NOW)
+def _state(count: int = len(TRIALS)):
+    return new_search_execution_state(EXPERIMENT, TRIALS[:count], now=NOW)
 
 
 @pytest.mark.asyncio
@@ -171,6 +171,93 @@ async def test_search_state_adapter_rejects_tampered_candidate_and_conflicting_d
     session.candidates[("owner-1", EXPERIMENT, 0)]["state_fingerprint"] = content_digest("tampered")
     with pytest.raises(ValueError, match="candidate fingerprint"):
         await adapter.load(principal="owner-1", experiment_fingerprint=EXPERIMENT)
+
+
+@pytest.mark.asyncio
+async def test_search_state_adapter_atomically_appends_and_replays_oos_phase() -> None:
+    session = FakeSession()
+    adapter = PostgresSearchStateAdapter(lambda: session)
+    state = _state()
+    await adapter.initialize(principal="owner-1", state=state)
+    for index in range(len(state.candidates)):
+        attempt_id = f"training-{index}"
+        await adapter.start_candidate(
+            principal="owner-1",
+            experiment_fingerprint=EXPERIMENT,
+            candidate_index=index,
+            attempt_id=attempt_id,
+            now=NOW + timedelta(seconds=index + 1),
+        )
+        await adapter.record_terminal(
+            principal="owner-1",
+            experiment_fingerprint=EXPERIMENT,
+            candidate_index=index,
+            attempt_id=attempt_id,
+            phase=SearchCandidatePhase.SUCCEEDED,
+            now=NOW + timedelta(seconds=index + 2),
+            result_fingerprint=content_digest({"training-result": index}),
+        )
+    trained = await adapter.load(principal="owner-1", experiment_fingerprint=EXPERIMENT)
+    assert trained is not None and trained.complete
+    oos_trials = (content_digest("oos-trial-1"), content_digest("oos-trial-2"))
+
+    appended = await adapter.append_candidates(
+        principal="owner-1",
+        experiment_fingerprint=EXPERIMENT,
+        expected_state_fingerprint=trained.fingerprint,
+        trial_fingerprints=oos_trials,
+        now=NOW + timedelta(seconds=5),
+    )
+    replay = await adapter.append_candidates(
+        principal="owner-1",
+        experiment_fingerprint=EXPERIMENT,
+        expected_state_fingerprint=trained.fingerprint,
+        trial_fingerprints=oos_trials,
+        now=NOW + timedelta(seconds=6),
+    )
+
+    assert appended.decision is SearchStateDecision.APPLY
+    assert appended.candidate_index == 2
+    assert replay.decision is SearchStateDecision.REPLAY_EXISTING
+    assert replay.state == appended.state
+    loaded = await adapter.load(principal="owner-1", experiment_fingerprint=EXPERIMENT)
+    assert loaded == appended.state
+    assert tuple(row[2] for row in sorted(session.candidates)) == (0, 1, 2, 3)
+
+
+@pytest.mark.asyncio
+async def test_search_state_adapter_rejects_stale_phase_append_fingerprint() -> None:
+    session = FakeSession()
+    adapter = PostgresSearchStateAdapter(lambda: session)
+    await adapter.initialize(principal="owner-1", state=_state(1))
+    started = await adapter.start_candidate(
+        principal="owner-1",
+        experiment_fingerprint=EXPERIMENT,
+        candidate_index=0,
+        attempt_id="training",
+        now=NOW + timedelta(seconds=1),
+    )
+    trained = await adapter.record_terminal(
+        principal="owner-1",
+        experiment_fingerprint=EXPERIMENT,
+        candidate_index=0,
+        attempt_id="training",
+        phase=SearchCandidatePhase.SUCCEEDED,
+        now=NOW + timedelta(seconds=2),
+        result_fingerprint=content_digest("training-result"),
+    )
+    assert started.decision is SearchStateDecision.APPLY
+
+    rejected = await adapter.append_candidates(
+        principal="owner-1",
+        experiment_fingerprint=EXPERIMENT,
+        expected_state_fingerprint=content_digest("stale-state"),
+        trial_fingerprints=(content_digest("oos-trial"),),
+        now=NOW + timedelta(seconds=3),
+    )
+
+    assert rejected.decision is SearchStateDecision.REJECT
+    assert rejected.state == trained.state
 
 
 def test_search_state_schema_is_explicit_and_safe() -> None:

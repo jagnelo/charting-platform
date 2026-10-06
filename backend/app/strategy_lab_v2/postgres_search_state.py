@@ -14,6 +14,7 @@ from app.strategy_lab_v2.search_state import (
     SearchExecutionState,
     SearchStateDecision,
     SearchStateResolution,
+    append_search_candidates,
     record_search_candidate_terminal,
     request_search_cancellation,
     start_search_candidate,
@@ -110,9 +111,7 @@ class PostgresSearchStateAdapter:
         session: AsyncSessionLike = self._session_factory()
         async with session:
             async with session.begin():
-                current = await self._load_state(
-                    session, owner_id, state.experiment_fingerprint
-                )
+                current = await self._load_state(session, owner_id, state.experiment_fingerprint)
                 if current is not None:
                     if current == state:
                         return SearchStateResolution(SearchStateDecision.REPLAY_EXISTING, current)
@@ -123,7 +122,9 @@ class PostgresSearchStateAdapter:
                     )
                 await self._insert_search(session, owner_id, state)
                 for candidate in state.candidates:
-                    await self._insert_candidate(session, owner_id, state.experiment_fingerprint, candidate)
+                    await self._insert_candidate(
+                        session, owner_id, state.experiment_fingerprint, candidate
+                    )
                 return SearchStateResolution(SearchStateDecision.APPLY, state)
 
     async def load(
@@ -204,6 +205,39 @@ class PostgresSearchStateAdapter:
                     await self._update_state(session, owner_id, current, resolution.state)
                 return resolution
 
+    async def append_candidates(
+        self,
+        *,
+        principal: Any,
+        experiment_fingerprint: str,
+        expected_state_fingerprint: str,
+        trial_fingerprints: tuple[str, ...],
+        now: datetime,
+    ) -> SearchStateResolution:
+        """Atomically append a completed search phase without changing the experiment key."""
+
+        _validate_digest(experiment_fingerprint, "experiment_fingerprint")
+        _validate_digest(expected_state_fingerprint, "expected_state_fingerprint")
+        owner_id = _principal_id(principal)
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                current = await self._load_state(session, owner_id, experiment_fingerprint)
+                if current is None:
+                    raise ValueError("search experiment was not found")
+                replay = append_search_candidates(current, trial_fingerprints, now=now)
+                if current.fingerprint != expected_state_fingerprint:
+                    if replay.decision is SearchStateDecision.REPLAY_EXISTING:
+                        return replay
+                    return SearchStateResolution(
+                        SearchStateDecision.REJECT,
+                        current,
+                        rejection_reason="search state changed before phase append",
+                    )
+                if replay.decision is SearchStateDecision.APPLY:
+                    await self._update_state(session, owner_id, current, replay.state)
+                return replay
+
     async def _mutate_candidate(
         self,
         *,
@@ -249,7 +283,10 @@ class PostgresSearchStateAdapter:
         if len(search_rows) != 1:
             raise ValueError("PostgreSQL search query returned duplicate keys")
         search = search_rows[0]
-        if search.get("owner_id") != owner_id or search.get("experiment_fingerprint") != experiment_fingerprint:
+        if (
+            search.get("owner_id") != owner_id
+            or search.get("experiment_fingerprint") != experiment_fingerprint
+        ):
             raise ValueError("PostgreSQL search owner/identity drifted")
         result = await session.execute(
             _statement(
@@ -269,7 +306,10 @@ class PostgresSearchStateAdapter:
         candidate_rows: list[Mapping[str, Any]] = []
         for row in result.mappings():
             candidate = _decode_candidate(row)
-            if row.get("owner_id") != owner_id or row.get("experiment_fingerprint") != experiment_fingerprint:
+            if (
+                row.get("owner_id") != owner_id
+                or row.get("experiment_fingerprint") != experiment_fingerprint
+            ):
                 raise ValueError("PostgreSQL candidate owner/identity drifted")
             if row.get("state_fingerprint") != candidate.fingerprint:
                 raise ValueError("PostgreSQL candidate fingerprint does not match bytes")
@@ -344,7 +384,16 @@ class PostgresSearchStateAdapter:
     ) -> None:
         if current.experiment_fingerprint != next_state.experiment_fingerprint:
             raise ValueError("search experiment identity cannot change")
-        for before, after in zip(current.candidates, next_state.candidates, strict=True):
+        if len(next_state.candidates) < len(current.candidates):
+            raise ValueError("search candidate history cannot shrink")
+        if tuple(
+            candidate.trial_fingerprint
+            for candidate in next_state.candidates[: len(current.candidates)]
+        ) != tuple(candidate.trial_fingerprint for candidate in current.candidates):
+            raise ValueError("search candidate identities can only be extended by append")
+        for before, after in zip(
+            current.candidates, next_state.candidates[: len(current.candidates)], strict=True
+        ):
             if before != after:
                 values = _candidate_values(owner_id, current.experiment_fingerprint, after)
                 values["expected_state_fingerprint"] = before.fingerprint
@@ -366,6 +415,10 @@ class PostgresSearchStateAdapter:
                 )
                 if getattr(result, "rowcount", 0) != 1:
                     raise ValueError("PostgreSQL candidate compare-and-set lost a race")
+        for candidate in next_state.candidates[len(current.candidates) :]:
+            await self._insert_candidate(
+                session, owner_id, current.experiment_fingerprint, candidate
+            )
         values = _search_values(owner_id, next_state)
         values["expected_state_fingerprint"] = current.fingerprint
         result = await session.execute(

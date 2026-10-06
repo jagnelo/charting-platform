@@ -77,22 +77,16 @@
   "branch": "feat/strategy-lab-v2",
   "claim": {
     "branch": "feat/strategy-lab-v2",
-    "displaced_session_id": "dfc74daa-cb29-4cd2-a09d-c3e792dd87c9",
+    "displaced_session_id": "30f90c6b-6811-445f-803f-c3cf92312244",
     "host": "m920q",
-    "session_id": "30f90c6b-6811-445f-803f-c3cf92312244",
+    "session_id": "37c1903b-49d2-4458-be7c-2dd5fa1b1f3f",
     "started_at": "2026-10-02T10:58:52.537175+00:00",
-    "taken_over_at": "2026-10-06T01:26:33.226133+00:00",
-    "takeover_request": "Resume the existing saved goal now and continue autonomously in its assigned worktree.",
+    "taken_over_at": "2026-10-06T10:16:14.817142+00:00",
+    "takeover_request": "Human instructed: Resume the existing saved goal now. Continue independently in its assigned worktree.",
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [
-    "ps/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl",
-    "backend/app/strategy_lab_v2/tests/test_walk_forward_search.py",
-    "backend/app/strategy_lab_v2/walk_forward_search.py"
-  ],
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -111,14 +105,14 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "569c471553181fb202fc8e134d0af9bd9d1cc436",
+  "head": "497b277f546a5170acfe237f1afe3d7080204749",
   "implementation_sha": "1722b67102de4b297d1eb2a064b6a21800c2205e",
   "last_checkpoint": "2026-10-06T10:02:00.638478+00:00",
-  "last_human_progress_update": "2026-10-06T10:23:22.552362+00:00",
+  "last_human_progress_update": "2026-10-06T14:09:23.844203+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "resume from the durable handoff and inspect displaced session state",
   "parent_branch": "staging",
-  "plan_hash": "fc0e80ee74f9efc6a2605c849ee3a5952b7cb7345afb64c01f759a62047f1819",
+  "plan_hash": "68253696d5fadd00ef27df7f031b802ae69edd7f9c660aa9c3d279d2bfe5aff1",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -139,17 +133,17 @@
   "progress": {
     "completed": [],
     "current_blocker": "none",
-    "current_phase": "Walk-forward trial materialization and execution binding",
-    "next_action": "Bind native result evidence to exact training/OOS trials, then persist phase lineage through resumable owner-scoped search state and dispatch.",
+    "current_phase": "Walk-forward OOS receipt rehydration",
+    "next_action": "Build owner-scoped resume coordinator to recover persisted plan/trials, CAS-append selected OOS queue entries, dispatch through the transactional outbox, and verify replay/cancel/aggregation.",
     "total": 18,
-    "updated_at": "2026-10-06T10:23:22.552343+00:00"
+    "updated_at": "2026-10-06T14:09:23.844181+00:00"
   },
-  "remote": "569c471553181fb202fc8e134d0af9bd9d1cc436",
+  "remote": "497b277f546a5170acfe237f1afe3d7080204749",
   "remote_sha": "1722b67102de4b297d1eb2a064b6a21800c2205e",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
-  "session_id": "30f90c6b-6811-445f-803f-c3cf92312244",
+  "session_id": "37c1903b-49d2-4458-be7c-2dd5fa1b1f3f",
   "state": "checkpointed",
   "takeover_history": [
     {

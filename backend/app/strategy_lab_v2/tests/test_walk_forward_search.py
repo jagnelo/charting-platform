@@ -43,6 +43,19 @@ from app.strategy_lab_v2.experiments import (
     WalkForwardSpec,
     build_walk_forward_folds,
 )
+from app.strategy_lab_v2.search_state import (
+    SearchCandidatePhase,
+    SearchStateDecision,
+    record_search_candidate_terminal,
+    start_search_candidate,
+)
+from app.strategy_lab_v2.walk_forward_queue import (
+    WalkForwardQueueResultEvidence,
+    append_selected_oos_queue,
+    initialize_walk_forward_training_queue,
+    oos_results_from_search_queue,
+    training_scores_from_search_queue,
+)
 from app.strategy_lab_v2.walk_forward_search import (
     SelectionDirection,
     WalkForwardOosResult,
@@ -139,13 +152,20 @@ def _candidate(experiment: str, index: int) -> ScientificTrial:
     )
 
 
-def _authoritative_result(trial: ScientificTrial, metric_id: str, value: Decimal):
+def _authoritative_result(
+    trial: ScientificTrial,
+    metric_id: str,
+    value: Decimal,
+    *,
+    attempt_id: str | None = None,
+):
     strategy = StrategyVersion(
         "walk-forward-strategy",
         "v1",
         "2.0",
         content_digest("walk-forward-strategy-source"),
     )
+
     package = StrategyPackage(
         "walk-forward-package",
         strategy.fingerprint,
@@ -188,7 +208,13 @@ def _authoritative_result(trial: ScientificTrial, metric_id: str, value: Decimal
         ),
         created_at=_START,
     )
-    attempt = RunAttempt("walk-forward-attempt", trial.trial_id, 1, AttemptState.SUCCEEDED, _START)
+    attempt = RunAttempt(
+        attempt_id or f"walk-forward-{trial.trial_id}",
+        trial.trial_id,
+        1,
+        AttemptState.SUCCEEDED,
+        _START,
+    )
     metric = MetricValue(
         metric_id,
         value,
@@ -239,6 +265,48 @@ def _authoritative_result(trial: ScientificTrial, metric_id: str, value: Decimal
             "backtest_authoritative",
         ),
     )
+
+
+def _complete_training_queue(plan, training_trials, queue_bindings, state):
+    trial_by_id = {trial.trial_id: trial for trial in training_trials.trials}
+    results_by_attempt = {}
+    for index, candidate in enumerate(state.candidates):
+        attempt_id = f"walk-forward-queue-attempt-{index}"
+        result_fingerprint = content_digest({"queue-result": index})
+        trial = trial_by_id[candidate.trial_fingerprint]
+        result = _authoritative_result(
+            trial,
+            plan.metric_id,
+            Decimal(int(trial.parameter_set["candidate"]) + 1),
+            attempt_id=attempt_id,
+        )
+        results_by_attempt[attempt_id] = WalkForwardQueueResultEvidence(
+            result_fingerprint,
+            result,
+        )
+        started = start_search_candidate(
+            state,
+            index,
+            attempt_id=attempt_id,
+            now=_START + timedelta(seconds=index * 2 + 1),
+        )
+        completed = record_search_candidate_terminal(
+            started.state,
+            index,
+            attempt_id=attempt_id,
+            phase=SearchCandidatePhase.SUCCEEDED,
+            now=_START + timedelta(seconds=index * 2 + 2),
+            result_fingerprint=result_fingerprint,
+        )
+        state = completed.state
+    scores = training_scores_from_search_queue(
+        plan,
+        training_trials,
+        queue_bindings,
+        state,
+        results_by_attempt,
+    )
+    return state, results_by_attempt, scores
 
 
 def _fixtures():
@@ -449,6 +517,262 @@ def test_walk_forward_trial_materialization_rejects_rebound_candidates_and_bad_b
         )
     with pytest.raises(ValueError, match="cover all planned observations"):
         materialize_walk_forward_training_trials(plan, candidates, folds, boundaries[:11])
+
+
+def test_walk_forward_phases_flatten_into_one_resumable_search_queue() -> None:
+    folds, _candidate_fingerprints, initial_plan = _fixtures()
+    candidates = tuple(_candidate(initial_plan.experiment_fingerprint, index) for index in range(3))
+    plan = build_walk_forward_training_plan(
+        initial_plan.experiment_fingerprint,
+        tuple(candidate.trial_id for candidate in candidates),
+        folds,
+        metric_id="net_return",
+        direction=SelectionDirection.MAXIMIZE,
+    )
+    boundaries = tuple(_START + timedelta(days=index) for index in range(13))
+    training = materialize_walk_forward_training_trials(plan, candidates, folds, boundaries)
+    state, training_bindings = initialize_walk_forward_training_queue(plan, training, now=_START)
+    state, training_results, scores = _complete_training_queue(
+        plan, training, training_bindings, state
+    )
+    selection = select_walk_forward_oos_tasks(plan, folds, scores)
+    oos = materialize_walk_forward_oos_trials(selection, candidates, folds, boundaries)
+
+    waiting = append_selected_oos_queue(
+        initialize_walk_forward_training_queue(plan, training, now=_START)[0],
+        plan,
+        folds,
+        training,
+        training_bindings,
+        training_results,
+        selection,
+        oos,
+        now=_START + timedelta(days=1),
+    )
+    assert waiting.resolution.decision is SearchStateDecision.REJECT
+    assert "must succeed" in (waiting.resolution.rejection_reason or "")
+
+    appended = append_selected_oos_queue(
+        state,
+        plan,
+        folds,
+        training,
+        training_bindings,
+        training_results,
+        selection,
+        oos,
+        now=_START + timedelta(days=3),
+    )
+
+    assert appended.resolution.decision is SearchStateDecision.APPLY
+    assert appended.resolution.state.experiment_fingerprint == plan.experiment_fingerprint
+    training_trial_count = len({binding.trial_fingerprint for binding in training_bindings})
+    assert len(appended.resolution.state.candidates) == training_trial_count + len(folds)
+    assert tuple(binding.candidate_index for binding in appended.oos_task_bindings) == tuple(
+        range(training_trial_count, training_trial_count + len(folds))
+    )
+    assert tuple(
+        candidate.trial_fingerprint for candidate in appended.resolution.state.candidates
+    ) == (
+        *dict.fromkeys(trial.trial_id for trial in training.trials),
+        *(trial.trial_id for trial in oos.trials),
+    )
+
+    replay = append_selected_oos_queue(
+        appended.resolution.state,
+        plan,
+        folds,
+        training,
+        training_bindings,
+        training_results,
+        selection,
+        oos,
+        now=_START + timedelta(days=4),
+    )
+    assert replay.resolution.decision is SearchStateDecision.REPLAY_EXISTING
+    assert replay.resolution.state == appended.resolution.state
+
+
+def test_training_scores_rehydrate_from_search_attempts_and_exact_result_manifests() -> None:
+    folds, _candidate_fingerprints, initial_plan = _fixtures()
+    candidates = tuple(_candidate(initial_plan.experiment_fingerprint, index) for index in range(3))
+    plan = build_walk_forward_training_plan(
+        initial_plan.experiment_fingerprint,
+        tuple(candidate.trial_id for candidate in candidates),
+        folds,
+        metric_id="net_return",
+        direction=SelectionDirection.MAXIMIZE,
+    )
+    boundaries = tuple(_START + timedelta(days=index) for index in range(13))
+    training = materialize_walk_forward_training_trials(plan, candidates, folds, boundaries)
+    state, queue_bindings = initialize_walk_forward_training_queue(plan, training, now=_START)
+    trial_by_id = {trial.trial_id: trial for trial in training.trials}
+    results_by_attempt: dict[str, WalkForwardQueueResultEvidence] = {}
+    search_result_fingerprints: dict[str, str] = {}
+
+    for candidate_index, candidate_state in enumerate(state.candidates):
+        attempt_id = f"walk-forward-attempt-{candidate_index}"
+        search_result_fingerprint = content_digest({"search-result": candidate_index})
+        search_result_fingerprints[attempt_id] = search_result_fingerprint
+        result = _authoritative_result(
+            trial_by_id[candidate_state.trial_fingerprint],
+            "net_return",
+            Decimal(candidate_index + 1),
+            attempt_id=attempt_id,
+        )
+        results_by_attempt[attempt_id] = WalkForwardQueueResultEvidence(
+            search_result_fingerprint,
+            result,
+        )
+        started = start_search_candidate(
+            state,
+            candidate_index,
+            attempt_id=attempt_id,
+            now=_START + timedelta(seconds=candidate_index + 1),
+        )
+        terminal = record_search_candidate_terminal(
+            started.state,
+            candidate_index,
+            attempt_id=attempt_id,
+            phase=SearchCandidatePhase.SUCCEEDED,
+            result_fingerprint=search_result_fingerprint,
+            now=_START + timedelta(seconds=candidate_index + 2),
+        )
+        state = terminal.state
+
+    scores = training_scores_from_search_queue(
+        plan,
+        training,
+        queue_bindings,
+        state,
+        results_by_attempt,
+    )
+
+    assert tuple(score.training_task_fingerprint for score in scores) == tuple(
+        task.fingerprint for task in plan.tasks
+    )
+    assert tuple(score.value for score in scores) == tuple(
+        Decimal(
+            int(
+                results_by_attempt[
+                    state.candidates[binding.candidate_index].attempt_id  # type: ignore[index]
+                ].manifest.trial.parameter_set["candidate"]
+            )
+            + 1
+        )
+        for binding in queue_bindings
+    )
+
+    first_attempt = state.candidates[0].attempt_id
+    assert first_attempt is not None
+    rebound = dict(results_by_attempt)
+    rebound[first_attempt] = WalkForwardQueueResultEvidence(
+        search_result_fingerprints[first_attempt],
+        results_by_attempt[state.candidates[1].attempt_id].manifest,  # type: ignore[index]
+    )
+    with pytest.raises(ValueError, match="persisted search receipt"):
+        training_scores_from_search_queue(plan, training, queue_bindings, state, rebound)
+
+
+def test_oos_results_rehydrate_only_selected_suffix_attempts_and_exact_manifests() -> None:
+    folds, _candidate_fingerprints, initial_plan = _fixtures()
+    candidates = tuple(_candidate(initial_plan.experiment_fingerprint, index) for index in range(3))
+    plan = build_walk_forward_training_plan(
+        initial_plan.experiment_fingerprint,
+        tuple(candidate.trial_id for candidate in candidates),
+        folds,
+        metric_id="net_return",
+        direction=SelectionDirection.MAXIMIZE,
+    )
+    boundaries = tuple(_START + timedelta(days=index) for index in range(13))
+    training = materialize_walk_forward_training_trials(plan, candidates, folds, boundaries)
+    state, training_bindings = initialize_walk_forward_training_queue(plan, training, now=_START)
+    state, training_results, scores = _complete_training_queue(
+        plan, training, training_bindings, state
+    )
+    selection = select_walk_forward_oos_tasks(plan, folds, scores)
+    oos = materialize_walk_forward_oos_trials(selection, candidates, folds, boundaries)
+    transition = append_selected_oos_queue(
+        state,
+        plan,
+        folds,
+        training,
+        training_bindings,
+        training_results,
+        selection,
+        oos,
+        now=_START + timedelta(days=3),
+    )
+    state = transition.resolution.state
+    results_by_attempt: dict[str, WalkForwardQueueResultEvidence] = {}
+    trial_by_id = {trial.trial_id: trial for trial in oos.trials}
+    expected_values: list[Decimal] = []
+    for offset, binding in enumerate(transition.oos_task_bindings):
+        attempt_id = f"walk-forward-oos-attempt-{offset}"
+        result_fingerprint = content_digest({"oos-search-result": offset})
+        value = Decimal(offset + 10)
+        result = _authoritative_result(
+            trial_by_id[binding.trial_fingerprint],
+            "net_return",
+            value,
+            attempt_id=attempt_id,
+        )
+        results_by_attempt[attempt_id] = WalkForwardQueueResultEvidence(result_fingerprint, result)
+        started = start_search_candidate(
+            state,
+            binding.candidate_index,
+            attempt_id=attempt_id,
+            now=_START + timedelta(days=4, seconds=offset),
+        )
+        terminal = record_search_candidate_terminal(
+            started.state,
+            binding.candidate_index,
+            attempt_id=attempt_id,
+            phase=SearchCandidatePhase.SUCCEEDED,
+            result_fingerprint=result_fingerprint,
+            now=_START + timedelta(days=4, seconds=offset + 1),
+        )
+        state = terminal.state
+        expected_values.append(value)
+
+    receipts = oos_results_from_search_queue(
+        plan,
+        selection,
+        oos,
+        transition.oos_task_bindings,
+        state,
+        results_by_attempt,
+    )
+
+    assert tuple(receipt.value for receipt in receipts) == tuple(expected_values)
+    assert tuple(receipt.oos_task_fingerprint for receipt in receipts) == tuple(
+        task.fingerprint for task in selection.oos_tasks
+    )
+    with pytest.raises(ValueError, match="exactly cover selected successful attempts"):
+        oos_results_from_search_queue(
+            plan,
+            selection,
+            oos,
+            transition.oos_task_bindings,
+            state,
+            {**results_by_attempt, **training_results},
+        )
+    first_attempt = state.candidates[transition.oos_task_bindings[0].candidate_index].attempt_id
+    assert first_attempt is not None
+    rebound = dict(results_by_attempt)
+    rebound[first_attempt] = WalkForwardQueueResultEvidence(
+        results_by_attempt[first_attempt].search_result_fingerprint,
+        next(iter(training_results.values())).manifest,
+    )
+    with pytest.raises(ValueError, match="persisted search receipt"):
+        oos_results_from_search_queue(
+            plan,
+            selection,
+            oos,
+            transition.oos_task_bindings,
+            state,
+            rebound,
+        )
 
 
 def test_training_selection_is_deterministic_and_ties_choose_lowest_candidate_index() -> None:

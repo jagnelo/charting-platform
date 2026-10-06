@@ -13259,3 +13259,53 @@ authoritative Nautilus. This closes the seam where a caller could attach an
 arbitrary metric value/result digest to an otherwise valid task. Training and
 OOS run manifests remain connected to persisted task lineage only after the
 next durable-state composition step.
+
+## 2026-10-06 - Append walk-forward OOS work to durable search state
+
+Search execution state can now append a new phase only after every existing
+candidate has succeeded. The PostgreSQL adapter inserts the new candidate rows
+and compare-and-sets the search fingerprint in the same transaction. Exact
+suffix replay is idempotent; stale fingerprints, failed/incomplete training,
+cancellation, duplicate identities, and candidate-history reordering are
+rejected. This reuses the existing migrated search tables without editing a
+shared migration.
+
+`walk_forward_queue.py` maps fold/candidate task identities to stable legacy
+queue indices. Training trials with identical immutable candidate/window
+identities share one simulator run and one queue slot; task-to-slot mappings
+remain deterministic when reconstructed. Before selection, the resolver
+requires the exact plan/task sequence, successful durable attempt receipts,
+matching worker completion digests, and owner-resolved authoritative Nautilus
+result manifests for those attempts. It derives metric scores from each exact
+trial/window, recomputes the deterministic selection, and appends only the
+selected per-fold OOS trials under the same experiment identity. OOS result
+receipts remain bound to the exact selected manifest/window.
+
+Validation: walk-forward queue/search, PostgreSQL search state, and ordinary
+search dispatch tests passed 30/30. Focused MyPy, Ruff, formatting, whitespace,
+and workstream validation passed. This establishes the durable state and
+evidence composition primitives, not yet the application-level resume worker
+that reloads owner results, performs this transition automatically, dispatches
+the appended indices through the outbox, and aggregates only OOS results.
+Next: wire that coordinator into existing search dispatch/recovery, including
+crash/replay/cancel coverage, without creating a second experiment identity.
+
+## 2026-10-06 - Rehydrate walk-forward OOS results from durable queue evidence
+
+Added `oos_results_from_search_queue` as the OOS counterpart to training-score
+rehydration. It accepts only a contiguous appended queue suffix corresponding
+to the frozen selected fold tasks, requires every selected candidate to have a
+successful durable attempt, and requires exact owner-resolved result coverage.
+Each manifest must match the persisted completion digest, attempt, experiment,
+trial, evaluation window, and authoritative Nautilus provenance. The returned
+receipts are in immutable fold order; training attempts and unrelated OOS
+attempts are rejected rather than included in the aggregate input.
+
+Validation: walk-forward, search-state, PostgreSQL search-state, and search
+dispatch tests passed 31/31. Focused MyPy, Ruff, formatting, whitespace, and
+workstream validation passed. This closes the pure evidence-resolution seam,
+but does not yet make the application resume and dispatch this phase
+automatically or persist the final OOS metric-set summary. Next: build an owner-
+scoped coordinator from persisted experiment/trial resources, persist the
+selected OOS suffix with compare-and-set, and dispatch pending indices through
+the existing transactional outbox with restart/cancel/replay coverage.

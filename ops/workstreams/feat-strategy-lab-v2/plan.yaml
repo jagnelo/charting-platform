@@ -911,10 +911,11 @@ progress:
     resolver into the explicit forward-worker callback factory and Compose
     profile. Then verify event admission, long-idle heartbeat, pause/stop engine
     disposal and restart recovery against real PostgreSQL/Redis. For backtests,
-    bind each per-fold training and selected OOS task to its fold-specific
-    immutable ScientificTrial and EvaluationWindow, require native result
-    evidence to identify that exact trial/window, then persist the execution
-    lineage in resumable search state with restart/cancel coverage. Preserve the
-    original experiment/candidate index contract when flattening fold tasks
-    into the existing owner-scoped dispatch queue.
+    bind the appendable walk-forward queue transition into the owner-scoped
+    application/worker orchestration: resolve exact training manifests after
+    restart, persist the selected OOS phase, and dispatch its stable appended
+    candidate indices through the durable outbox. Prove cancellation/retry and
+    OOS-only result aggregation. Preserve the original experiment identity and
+    candidate-index contract; shared migration and API changes remain gated on
+    exact upstream staging reconciliation.
     Keep unsupported products fail-closed; stable Nautilus labeling is not a gate.
