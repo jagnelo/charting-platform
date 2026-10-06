@@ -13500,6 +13500,39 @@ plan replay after append, and the advance route. Focused MyPy for application
 and router, Ruff, formatting, `git diff --check`, and workstream validation
 (30 records) passed.
 
+## 2026-10-06 - Persist versioned OOS fold-distribution metrics
+
+Commit `db842f756` adds a typed immutable `WalkForwardOosSummary` and an
+owner-scoped PostgreSQL aggregate adapter using the existing aggregate store.
+`POST /api/v1/strategy-lab/v2/experiments/{experiment_id}/walk-forward/finalize`
+re-derives and authenticates the complete OOS result set, then persists/replays
+five versioned descriptive statistics across comparable selected folds: mean,
+median, population standard deviation, minimum, and maximum. Each metric records
+its unit, basis, fold sample size, formula/version, source calculation identity,
+selection fingerprint, and exact OOS manifest evidence digests. Source fold
+metrics and selected task receipts remain in the immutable summary. Conflicting
+re-finalization and incomplete OOS queues fail closed.
+
+These are fold-distribution statistics, not a compounded portfolio return or
+portfolio risk series. Those require the native per-observation equity/fill
+artifacts. Summary identity is owner/experiment scoped and uses the existing
+PostgreSQL generic aggregate transaction store, so this does not add a table or
+migration.
+
+Validation: focused walk-forward application/search/summary, summary
+persistence, plan persistence, PostgreSQL search-state, persistence bundle,
+API router, and canonical result decoder suites passed 97/97. Tests cover
+round-trip persistence, owner isolation, exact replay, conflicting rebind,
+premature-finalization rejection, metric compatibility, and API serialization.
+Focused MyPy, Ruff, formatting, `git diff --check`, and workstream validation
+(30 records) passed.
+
+Still open: completion-driven/bulk search scheduling and auto-finalization,
+native artifact-backed portfolio-level metrics, production host artifact-root
+and frozen decoder composition, exact container/native and broader integration,
+security, Compose, and full-branch gates. Docker socket denial remains a
+verification limitation, not an upstream stable-release dependency.
+
 Still open: automatic/bulk queue scheduling, completion-driven phase advance,
 OOS result hydration and aggregate metric persistence, production host artifact
 root/frozen decoder composition, and full integration/security/Compose/native
