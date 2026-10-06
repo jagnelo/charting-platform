@@ -404,7 +404,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R1_STUDY_LAB_SOURCE_DISCOVERY
+  current_phase: R1_V25_KEYBOARD_PARITY
   next_action: >-
     Continue the complete TC-owned R1/R5/R6 roadmap with the next bounded
     workstation, Study, or Strategy implementation slice. Preserve V25 visual
@@ -412,7 +412,8 @@ progress:
     through a verified isolated project. Do not duplicate provider/ETF ownership
     or the implemented Python breadth contracts. Refresh dependency refs and
     defer R2/R3 and semantic shared-path reconciliation until both upstream
-    branches reach staging. Stop only at ready_for_human_review.
+    branches reach staging. Retry exact-tip full frontend coverage only when
+    host memory pressure permits. Stop only at ready_for_human_review.
   current_blocker: >-
     Study Lab's saved-universe source suggestions and authenticated consumer
     flow now pass at product commit c0a2100cd0741e933382a6f72a0237ba8f495bda.
@@ -450,6 +451,12 @@ progress:
     1/1, and the unchanged Help visual matrix passed 4/4 with both shortcuts
     listed. Scope validation passed 144 paths and six self-tests. This does not
     close exact V25 review or the full frontend/integration gates.
+    At synchronized branch tip 90872e8e4a800f07b1f9853383e069b04fcaf1d5,
+    the exact-tip frontend coverage command was attempted serially with one
+    worker. It remained silent without a test summary while host memory fell to
+    870 MiB available and swap was exhausted, so it was stopped to avoid OOM.
+    Treat as inconclusive resource-limited validation, not a test failure/pass;
+    the full suite remains open for a safe-memory retry.
     At backend checkpoint d6bd60d, unit/integration suites passed 1622/1622 and
     409/409 at 82.26%. At branch checkpoint 22becb68272854b6ceae6a263d8694090495e009,
     frontend Vitest passed 129 files/1210 tests, focused VirtualWatchlistTool
