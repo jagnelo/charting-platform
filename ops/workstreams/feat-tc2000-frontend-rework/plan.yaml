@@ -20,16 +20,16 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  Current local slice adds official V25 Shift+=/Shift+- vertical projection
-  space. The persisted active-chart setting expands/contracts linear or
-  logarithmic Y ranges; focused scale-math tests pass 3/3, full frontend Vitest
-  passes 294 suites/1,235 tests, and type-check/production build pass. The
-  authenticated browser interaction/persistence could not be verified in this
-  sandbox (Docker socket denied; Playwright CLI startup stalled), and the
-  protected visual oracle has not been run at this tip. Keep both browser and
-  visual evidence open; generic integration and broader AC4-AC7/R1/R5/R6 plus
-  staging-gated provider/ETF consumption remain open. No visual oracle was
-  changed. Earlier checkpoint detail follows.
+  The projection-space slice is browser-verified in authenticated Chromium
+  against the assigned stack: Shift+=/- changes active-chart linear/logarithmic
+  range, setting survives snapshot/reload, focused editor suppresses the chart
+  action, and timeframe remains D1. Browser discovery found the workstation
+  shell intercepted the shifted keys; a shell guard and regression are now
+  included in pending source changes. Focused workstation tests passed 44/44;
+  exact-tip full frontend suite and build are being refreshed. The protected
+  visual oracle remains unverified at this tip, with no baseline/policy changes.
+  Generic integration, broader AC4-AC7/R1/R5/R6, and staging-gated provider/ETF
+  consumption remain open. Earlier checkpoint detail follows.
   Product commit b6f24fa44 adds V25 Shift+wheel chart-history panning via the
   existing uPlot viewport. Focused WorkstationView bindings passed 44/44, full
   serial frontend Vitest passed 130 files/1,232 tests, type-check/production
@@ -201,10 +201,9 @@ current_blocker: >-
   and ETF consumption is deferred until both branches reach staging.
 active_changeset_context:
   name: TC2000 V25 vertical projection-space keyboard shortcuts
-  status: product_and_workstream_pushed_browser_and_visual_review_open
-  commit_sha: 280a79e7f
-  remote_sha: 280a79e7f
-  remote_sha: pending
+  status: shell_guard_pushed_browser_verified_visual_review_open
+  commit_sha: b24cc4267067d1e81a7219551cbf61f038cfb32d
+  remote_sha: b24cc4267067d1e81a7219551cbf61f038cfb32d
   intent: >-
     Implement Shift+= and Shift+- as per-chart vertical projection-space
     changes in linear and logarithmic scales, preserving chart identity,
@@ -212,15 +211,16 @@ active_changeset_context:
   owned_paths:
     - frontend/src/components/chart/UPlotChart.vue
     - frontend/src/lib/workstation/chart-projection.ts
+    - frontend/src/views/WorkstationView.vue
     - frontend/tests/unit/lib/test_chart_projection.test.ts
+    - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
     - docs/tc2000-roadmap.md
     - docs/tc2000-parity.md
   next_action: >-
-    Run the authenticated chart shortcut and persisted-configuration browser
-    check plus the unchanged protected visual oracle when the assigned browser
-    runtime is available. Continue bounded TC-owned parity work; defer R2/R3
-    and shared-path reconciliation until both upstream branches reach staging.
-    Stop only at ready_for_human_review.
+    Refresh exact-tip full frontend suite and build evidence; keep the protected
+    visual review and generic integration gates explicit. Continue bounded
+    TC-owned parity work; defer R2/R3 and shared-path reconciliation until both
+    upstream branches reach staging. Stop only at ready_for_human_review.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
