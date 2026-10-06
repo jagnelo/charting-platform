@@ -854,27 +854,27 @@ progress:
     - strategy-lab-v2-forward-lifecycle-idempotency-v1
     - strategy-lab-v2-nautilus-forward-runtime-dto-codec-v1
     - strategy-lab-v2-nautilus-forward-runtime-operation-handler-v1
+    - strategy-lab-v2-durable-search-cancellation-v1
   total: 18
-  current_phase: durable-search-cancellation-v1
+  current_phase: postgres-backed-authenticated-curve-download-v1
   active_changeset:
-    id: strategy-lab-v2-durable-search-cancellation-v1
+    id: strategy-lab-v2-postgres-backed-curve-download-v1
     scope: >-
-      Connect persisted owner-scoped search cancellation to active isolated
-      worker processes. Poll the authenticated dispatch's durable search state,
-      stop the child process on cancellation or fail closed on cancellation
-      state read failure, and settle the same attempt as terminally cancelled
-      without retry or result publication. Preserve normal lease heartbeats,
-      cancellation races, crash recovery, and Redis ACK-after-durable-receipt
-      semantics. No broker or real-capital path.
+      Prove an authenticated walk-forward curve download through production-
+      composed PostgreSQL records and the local content-addressed artifact
+      store. Seed owner-scoped experiment, OOS metric sidecar, and active
+      retention pin using PostgreSQL; invoke the FastAPI route with the
+      authenticated principal; verify exact streamed bytes and manifest
+      digest/length, and reject foreign-owner, released-pin, and corrupt
+      artifact cases. Do not loosen owner or retention authorization and do not
+      use provider or frontend paths.
     owned_paths:
-      - backend/app/strategy_lab_v2/worker_service.py
-      - backend/app/strategy_lab_v2/worker_callbacks.py
-      - backend/app/strategy_lab_v2/redis_application.py
-      - backend/app/strategy_lab_v2/worker_entrypoint.py
-      - backend/app/strategy_lab_v2/tests/test_worker_service.py
-      - backend/app/strategy_lab_v2/tests/test_worker_callbacks.py
-      - backend/app/strategy_lab_v2/tests/test_worker_entrypoint.py
-      - backend/tests/integration/strategy_lab_v2/test_search_dispatch_rpc_postgres.py
+      - backend/app/strategy_lab_v2/api_router.py
+      - backend/app/strategy_lab_v2/application.py
+      - backend/app/strategy_lab_v2/postgres_walk_forward_summary.py
+      - backend/app/strategy_lab_v2/postgres_artifact_retention.py
+      - backend/app/strategy_lab_v2/tests/test_api_router.py
+      - backend/tests/integration/strategy_lab_v2/test_curve_download_postgres.py
     status: in_progress
   current_blocker: >-
     No external or upstream Nautilus dependency blocks implementation. Stable
@@ -922,10 +922,10 @@ progress:
     branches; unsupported options remain fail-closed pending canonical
     Greeks/delta/settlement evidence.
   next_action: >-
-    Implement active-process search cancellation and durable terminal settle;
-    then continue backtest/search and phase-boundary recovery criteria. Extend
-    curve download validation through the production PostgreSQL-backed
-    application composition. Reconcile the 13 browser failures only after the
+    Validate authenticated curve download against production-composed
+    PostgreSQL owner/metric/pin state and local artifact bytes. Then continue
+    backtest/search and phase-boundary recovery criteria. Reconcile the 13
+    browser failures only after the
     frontend owner has completed its work and shared-path semantics can be
     reviewed together. Finish security, Compose scaling, and exact-tip gates.
     Shared router registration, migrations, and overlapping upstream paths

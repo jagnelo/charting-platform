@@ -13912,3 +13912,30 @@ is recorded in the operational checkpoint.
 Next: continue backend-owned backtest/search, cancellation/retry, and
 phase-boundary recovery acceptance work; full-stack browser failures remain a
 cross-workstream gate for the TC2000 frontend owner.
+
+## 2026-10-06 - Durable search cancellation proof and next backend slice
+
+Commit `9700a6acb5b1de379400cf9376055ecff0b67c71` adds the final focused
+acceptance coverage for the active durable search-cancellation slice. The
+worker-service regression proves lease heartbeats continue while cancellation
+is polled; the PostgreSQL/Redis integration test persists cancellation state
+and confirms the production search-dispatch callback observes it using the
+owner and experiment recovered from the durable dispatch. The existing worker
+tests cover child termination, terminal cancellation recovery, no result
+publication, and fail-closed cancellation-state read errors.
+
+Validation passed: 41 focused worker/recovery unit tests, three Docker-backed
+PostgreSQL/Redis integration tests, Ruff on the two changed test files, and
+`git diff --check`. The unprivileged integration attempt could not access the
+Docker socket; the same exact tests passed under the repository's authorized
+elevated test path. Commit `9700a6acb5b1de379400cf9376055ecff0b67c71` is pushed
+and matched `origin/feat/strategy-lab-v2`.
+
+The cancellation changeset is complete. Next, validate authenticated curve
+artifact download end-to-end through PostgreSQL-backed owner/metric/active-pin
+records and the local artifact store. The in-process authenticated ASGI proof
+and unauthenticated Compose route-registration probe already pass, but they do
+not prove that complete persisted production composition. Exact-pinned Nautilus
+2.0.0rc6 remains the qualified local simulator; no stable 2.x release is
+required. The full-stack browser failures remain owned by the parallel TC2000
+frontend workstream and do not block this independent backend work.
