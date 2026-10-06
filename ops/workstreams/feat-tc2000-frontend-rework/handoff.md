@@ -1,5 +1,17 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — Authenticated slash-shortcut browser replay
+
+The initial Playwright CLI navigation correctly redirected to login because
+its isolated browser had no auth state. Follow-up verification registered a
+uniquely named test account in the assigned TC stack, opened the factory
+workstation, activated the chart plot library to establish chart ownership,
+closed it, focused the chart surface, then pressed `/`. The library reopened
+and the active element was its `Filter indicators` input. This confirms the
+shortcut's browser-visible behavior; the test account remains only in the
+assigned branch stack. No other worktree or service was touched, and the Help
+screenshot baseline remains unchanged.
+
 ## 2026-10-06 — TC2000 V25 slash-to-add-plot shortcut
 
 The workstation now supports TC2000's `/` shortcut when a chart is the active
