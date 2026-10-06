@@ -150,9 +150,9 @@
     "completed": [
       "AC-NAUTILUS"
     ],
-    "current_blocker": "No upstream or human dependency. Rebuilding immediately would exhaust near-full shared-host swap; the exact RC5 process currently fails context-preparation fingerprint parity, with new field-only diagnostics awaiting exact-image validation.",
-    "current_phase": "forward-context-preparation-replay-parity",
-    "next_action": "When shared-host memory/swap headroom permits, rebuild the exact-source RC5 image with safe field-only diagnostics, run the authenticated production-plan process test, inspect differing preparation fields, and fix process context replay/window parity; then verify startup and checkpoint replacement/replay.",
+    "current_blocker": "No upstream or human dependency. The exact-source RC5 authenticated production-plan process passes; remaining process replacement/replay coverage still uses standalone fixture artifacts.",
+    "current_phase": "authenticated-plan-process-loss-and-replay",
+    "next_action": "Adapt the exact-image process-loss/replay harness to use artifacts composed by the authenticated plan factory, then verify pre-settlement death, durable settlement/ACK replay, post-ACK continuation, and continue the remaining forward and backtest acceptance criteria.",
     "total": 18,
     "updated_at": "2026-10-06T03:25:38.764859+00:00"
   },

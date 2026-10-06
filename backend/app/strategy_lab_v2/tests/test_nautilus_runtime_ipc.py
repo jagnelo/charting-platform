@@ -96,11 +96,7 @@ class _Handler:
         self.calls.append(("execute", dict(payload)))
         if self.fail_first_execute:
             self.fail_first_execute = False
-
-            class DiagnosticFailure(RuntimeError):
-                diagnostic_fields = ("base_window_fingerprint", "context")
-
-            raise DiagnosticFailure("private details are not sent over IPC")
+            raise RuntimeError("private details are not sent over IPC")
         return {"accepted": payload.get("event_id")}
 
     def restore(self, payload):
@@ -190,11 +186,9 @@ def test_runtime_ipc_server_requires_restore_after_uncertain_execution(capsys) -
     assert responses[2].payload == {"error_code": "restore_required"}
     assert [call[0] for call in handler.calls] == ["open", "execute", "restore", "execute", "close"]
     diagnostics = capsys.readouterr().err
-    assert (
-        "nautilus runtime execute failed: DiagnosticFailure at test_nautilus_runtime_ipc.py:"
-        in diagnostics
+    assert "nautilus runtime execute failed: RuntimeError at test_nautilus_runtime_ipc.py:" in (
+        diagnostics
     )
-    assert "fields=base_window_fingerprint,context" in diagnostics
     assert "private details" not in diagnostics
 
 

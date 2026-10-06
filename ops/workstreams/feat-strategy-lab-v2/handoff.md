@@ -12980,3 +12980,29 @@ deferred until shared-host memory/swap headroom recovers; no stable Nautilus
 release or human decision blocks implementation. Next: rebuild with the safe
 diagnostics, inspect the exact mismatched fields, correct context replay/window
 parity, and finish authenticated process startup and checkpoint replacement.
+
+## 2026-10-06 - Authenticated RC5 process path passes with faithful fixture state
+
+The previous failure was fixture-induced, not a runtime defect. The opt-in
+production-plan test had constructed its `ForwardStrategyContextPreparation`
+with empty `market_events` and arbitrary window fingerprints, while the RC5
+process correctly rebuilt context from the authenticated warm-up stream and
+rejected the mismatch. The fixture now seeds a `ForwardStrategyContextWindow`
+from the exact warm-up payload prefix through the receipt cursor, then creates
+the live preparation with `prepare_delivery`. With this owner-side state
+matching the runtime's authenticated replay, the real artifact-backed plan
+passes through the exact qualified RC5 process and executes successfully.
+Temporary field-diagnostic instrumentation was removed; no runtime behavior
+change was needed for this second failure.
+
+Validation: the exact production-plan process test passed 1/1 against image
+`sha256:4a0144ce12a0dce29bdc8772186a98d30acdacc2c16b6fbea574ffbda1d236c3`,
+whose exact source digest is
+`sha256:1605d5757b8e5e43e57dd7e7ec2fa1229a83b7d598094432672effbc23abe1f4` and
+which passed the four backtest conformance checks. The complete Strategy Lab
+package passed 1,540 with one opt-in test skipped; package Ruff, MyPy across
+408 files, formatting, and whitespace checks passed. Next: adapt the exact
+process-loss/replay harness to create its warm-up/native/bootstrap artifacts
+through this same authenticated plan factory, then verify pre-settlement death,
+durable settlement/ACK replay, post-ACK continuation, and the remaining forward
+and backtest acceptance criteria.

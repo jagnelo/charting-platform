@@ -19,7 +19,7 @@ from app.strategy_lab_v2.event_tape_artifacts import (
     FrozenEventTapeArtifactResolution,
     materialize_frozen_event_tape_stream,
 )
-from app.strategy_lab_v2.forward_context import ForwardStrategyContextPreparation
+from app.strategy_lab_v2.forward_context import ForwardStrategyContextWindow
 from app.strategy_lab_v2.forward_execution_plan import (
     ForwardComponentExecutionPlan,
     ForwardExecutionPlan,
@@ -74,7 +74,7 @@ from app.strategy_lab_v2.sandbox import (
     sandbox_native_event_stream_path,
     validate_sandbox_command_plan,
 )
-from app.strategy_lab_v2.sdk import MarketEvent, StrategyContext
+from app.strategy_lab_v2.sdk import MarketEvent
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs as _trial_inputs
 
@@ -488,23 +488,18 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
         current_market,
         before_event.source_digest,
     )
-    preparation = ForwardStrategyContextPreparation(
+    context_window = ForwardStrategyContextWindow(
         "forward-1",
-        delivery.verified_market_payload.fingerprint,
-        content_digest("base-context-window"),
-        content_digest("next-context-window"),
-        StrategyContext(
-            before_event.event_time,
-            before_event.sequence,
-            13,
-            component_binding.parameters,
-            {},
-        ),
-        delivery_binding_fingerprint=content_digest(delivery_binding),
-        dispatch_fingerprint=delivery_binding.dispatch_record_fingerprint,
-        pre_event_checkpoint_fingerprint=checkpoint_fingerprint,
-        warmup_receipt_fingerprint=receipt.fingerprint,
+        manifest,
+        parameters=component_binding.parameters,
+        random_seed=component_binding.random_seed,
     )
+    for payload in full_payloads:
+        if payload.canonical_event.sequence > cursor.sequence:
+            break
+        warmup_preparation = context_window.prepare(payload, instance_id="forward-1")
+        context_window.commit(warmup_preparation)
+    preparation = context_window.prepare_delivery(delivery)
 
     admission = SimpleNamespace(
         checkpoint=SimpleNamespace(instance=instance, fingerprint=checkpoint_fingerprint)

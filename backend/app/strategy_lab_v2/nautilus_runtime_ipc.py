@@ -24,18 +24,6 @@ from app.strategy_lab_v2.nautilus_runtime_protocol import NAUTILUS_FORWARD_RUNTI
 
 MAX_NAUTILUS_RUNTIME_IPC_FRAME_BYTES = 1_048_576
 _FRAME_FIELDS = frozenset({"schema", "request_id", "operation", "status", "payload", "fingerprint"})
-_SAFE_DIAGNOSTIC_FIELDS = frozenset(
-    {
-        "payload_fingerprint",
-        "base_window_fingerprint",
-        "next_window_fingerprint",
-        "context",
-        "delivery_binding_fingerprint",
-        "dispatch_fingerprint",
-        "pre_event_checkpoint_fingerprint",
-        "warmup_receipt_fingerprint",
-    }
-)
 
 
 class NautilusRuntimeIpcOperation(StrEnum):
@@ -409,20 +397,9 @@ def serve_nautilus_runtime_ipc(
                     if frames:
                         frame = frames[-1]
                         location = f"{frame.filename.rsplit('/', maxsplit=1)[-1]}:{frame.lineno}"
-                    diagnostic_fields = getattr(error, "diagnostic_fields", ())
-                    diagnostic = ""
-                    if (
-                        isinstance(diagnostic_fields, tuple)
-                        and diagnostic_fields
-                        and all(
-                            isinstance(field, str) and field in _SAFE_DIAGNOSTIC_FIELDS
-                            for field in diagnostic_fields
-                        )
-                    ):
-                        diagnostic = f" fields={','.join(diagnostic_fields)}"
                     sys.stderr.write(
                         f"nautilus runtime {request.operation.value} failed: "
-                        f"{type(error).__name__} at {location}{diagnostic}\n"
+                        f"{type(error).__name__} at {location}\n"
                     )
                     sys.stderr.flush()
                     response = _response(
