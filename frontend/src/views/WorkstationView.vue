@@ -42,6 +42,7 @@
               <div><dt>Space</dt><dd>Next symbol in the focused list</dd></div>
               <div><dt>Ctrl+Space</dt><dd>Previous symbol in the focused list</dd></div>
               <div><dt>Backspace</dt><dd>Previous symbol in viewed history</dd></div>
+              <div><dt>Shift+L</dt><dd>Toggle maximize for the selected window</dd></div>
               <div><dt>Ctrl+wheel</dt><dd>Over a chart: change timeframe; over a WatchList: move through symbols</dd></div>
               <div><dt>= / -</dt><dd>Over the active chart: change timeframe</dd></div>
               <div><dt>F1 or ?</dt><dd>Show this help</dd></div>
@@ -1922,6 +1923,20 @@ function handleKeydown(event: KeyboardEvent) {
     return
   }
   if (workspaceStore.isEditorTarget(event.target) || isInteractiveTarget(event.target)) return
+  if (event.key.toLowerCase() === 'l' && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    const activeTab = workspaceStore.activeTab
+    const activeWindowKey = isPopout.value
+      ? String(route.params.windowKey ?? '')
+      : activeTab?.active_window_key
+    if (!activeWindowKey) return
+    const activeTool = Array.from(document.querySelectorAll<HTMLElement>('.tool-window[data-window-key]'))
+      .find(tool => tool.dataset.windowKey === activeWindowKey)
+    const maximizeButton = activeTool?.querySelector<HTMLButtonElement>('[aria-label="Maximize tool"]')
+    if (!maximizeButton) return
+    event.preventDefault()
+    maximizeButton.click()
+    return
+  }
   if (!event.ctrlKey && !event.metaKey && !event.altKey && (event.key === '=' || event.key === '-')) {
     const activeTab = workspaceStore.activeTab
     const activeWindowKey = isPopout.value

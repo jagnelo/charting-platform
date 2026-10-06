@@ -2570,6 +2570,17 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8k-shift-l — Shift+L maximizes the selected window and restores the layout', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    await expect(page.locator('.tool-window:visible').first()).toBeVisible({ timeout: 15_000 })
+    const workstation = page.locator('.workstation:visible').last()
+    await workstation.press('Shift+L')
+    await expect(page.locator('.lm_maximised')).toHaveCount(1)
+    await workstation.press('Shift+L')
+    await expect(page.locator('.lm_maximised')).toHaveCount(0)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8k-listbox — virtualized watchlists expose an isolated active descendant and Home/End traversal', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     const watchlist = page.getByRole('region', { name: 'Relative to SPY' }).filter({ has: page.locator('.watchlist__row') }).first()
@@ -2648,6 +2659,7 @@ test.describe('TC2000 workstation', () => {
     await expect(helpMenu).toBeVisible()
     await expect(helpMenu).toContainText('Ctrl+Space')
     await expect(helpMenu).toContainText('Backspace')
+    await expect(helpMenu).toContainText('Shift+L')
     await expect(helpMenu).toContainText('Previous symbol in viewed history')
     await expect(helpMenu).toContainText('Over a chart: change timeframe')
     await expect(helpMenu).toContainText('over a WatchList: move through symbols')

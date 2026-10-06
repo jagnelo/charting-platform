@@ -219,7 +219,6 @@ describe('WorkstationView pop-out bindings', () => {
 
   it('names and focuses the pop-out landmark for keyboard users', async () => {
     const wrapper = mount(WorkstationView, {
-      attachTo: document.body,
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
     })
 
@@ -239,6 +238,7 @@ describe('WorkstationView pop-out bindings', () => {
     routeState.path = '/'
     routeState.params = {}
     const wrapper = mount(WorkstationView, {
+      attachTo: document.body,
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
     })
 
@@ -400,6 +400,42 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.find('.workstation').element.dispatchEvent(oldestEntryEvent)
     expect(oldestEntryEvent.defaultPrevented).toBe(true)
     expect(harness.recent.previous).toHaveBeenCalledTimes(2)
+    wrapper.unmount()
+  })
+
+  it('uses Shift+L to maximize only the selected tool and leaves editor shortcuts alone', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    const wrapper = mount(WorkstationView, {
+      attachTo: document.body,
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const workstation = wrapper.find('.workstation').element
+    const selectedTool = document.createElement('section')
+    selectedTool.className = 'tool-window'
+    selectedTool.dataset.windowKey = 'benchmark-list'
+    const maximize = document.createElement('button')
+    maximize.setAttribute('aria-label', 'Maximize tool')
+    const maximizeClick = vi.fn()
+    maximize.addEventListener('click', maximizeClick)
+    selectedTool.append(maximize)
+    workstation.appendChild(selectedTool)
+    expect(workstation.isConnected).toBe(true)
+    expect(document.querySelector('.tool-window[data-window-key="benchmark-list"]')).not.toBeNull()
+
+    const event = new KeyboardEvent('keydown', { key: 'L', shiftKey: true, bubbles: true, cancelable: true })
+    workstation.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(true)
+    expect(maximizeClick).toHaveBeenCalledOnce()
+
+    const editor = document.createElement('input')
+    workstation.appendChild(editor)
+    harness.workspace.isEditorTarget.mockImplementation(target => target === editor)
+    const editorEvent = new KeyboardEvent('keydown', { key: 'L', shiftKey: true, bubbles: true, cancelable: true })
+    editor.dispatchEvent(editorEvent)
+    expect(editorEvent.defaultPrevented).toBe(false)
+    expect(maximizeClick).toHaveBeenCalledOnce()
+    harness.workspace.isEditorTarget.mockImplementation(() => false)
     wrapper.unmount()
   })
 
