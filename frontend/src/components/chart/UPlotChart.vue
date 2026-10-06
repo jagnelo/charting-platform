@@ -1,5 +1,5 @@
 <template>
-  <div class="chart-root" ref="rootRef" tabindex="0" role="region" aria-label="Chart workspace" :aria-describedby="`${chartControlId}-provenance`" :aria-busy="chartStore.isLoading || (chartStore.bars.length > 0 && !chartReady) ? 'true' : 'false'" :data-linked-timestamp="props.linkedTimestamp || undefined" @keydown.esc="handleChartEscape">
+  <div class="chart-root" ref="rootRef" tabindex="0" role="region" aria-label="Chart workspace" :aria-describedby="`${chartControlId}-provenance`" :aria-busy="chartStore.isLoading || (chartStore.bars.length > 0 && !chartReady) ? 'true' : 'false'" :data-linked-timestamp="props.linkedTimestamp || undefined" :data-date-pointer-mode="datePointerMode" @keydown="handleDatePointerKeydown" @keydown.esc="handleChartEscape">
     <span :id="`${chartControlId}-provenance`" class="sr-only">{{ chartAriaLabel }}</span>
 
     <!-- Main price chart -->
@@ -11,7 +11,7 @@
       <div ref="chartRef" />
 
       <!-- TradingView-style OHLCV info — fixed top-left, not cursor-following -->
-      <div class="ohlcv-info" v-if="tooltip.hasData" :aria-label="tooltip.ariaLabel">
+      <div class="ohlcv-info" v-if="tooltip.hasData && datePointerMode === 'on_with_values'" :aria-label="tooltip.ariaLabel">
         <span class="tt-date">{{ tooltip.date }}</span>
         <span class="tt-item">O <b>{{ fmt(tooltip.o) }}</b></span>
         <span class="tt-item">H <b>{{ fmt(tooltip.h) }}</b></span>
@@ -298,6 +298,28 @@ const userSettingsStore  = useUserSettingsStore()
 const optionsExposureStore = useOptionsExposureStore()
 const workspaceStore = useWorkspaceStore()
 const effectiveChartType = computed(() => props.chartType ?? userSettingsStore.chartType)
+type DatePointerMode = 'off' | 'on' | 'on_with_values'
+const DATE_POINTER_MODE_ORDER: readonly DatePointerMode[] = ['off', 'on', 'on_with_values']
+const localDatePointerMode = ref<DatePointerMode>('on_with_values')
+const datePointerMode = computed<DatePointerMode>(() => {
+  const configured = props.chartSettings?.date_pointer_mode
+  return configured === 'off' || configured === 'on' || configured === 'on_with_values'
+    ? configured
+    : localDatePointerMode.value
+})
+function cycleDatePointerMode() {
+  const current = DATE_POINTER_MODE_ORDER.indexOf(datePointerMode.value)
+  const next = DATE_POINTER_MODE_ORDER[(current + 1) % DATE_POINTER_MODE_ORDER.length]
+  if (props.chartSettings) emit('configuration', { date_pointer_mode: next })
+  else localDatePointerMode.value = next
+}
+function handleDatePointerKeydown(event: KeyboardEvent) {
+  if (event.key !== '.' || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || isEditorTarget(event.target)) return
+  const chartPanel = rootRef.value?.closest('.chart-panel')
+  if (chartPanel && !chartPanel.classList.contains('is-active')) return
+  event.preventDefault()
+  cycleDatePointerMode()
+}
 function configuredBoolean(key: string, fallback: boolean) {
   const value = props.chartSettings?.[key]
   return typeof value === 'boolean' ? value : fallback
@@ -3439,6 +3461,9 @@ defineExpose({ jumpToTs })
 .drawing-canvas.cursor-crosshair { pointer-events: none; cursor: crosshair; }
 
 .cursor-crosshair-wrapper { cursor: crosshair; }
+
+.chart-root[data-date-pointer-mode="off"] :deep(.u-cursor-x),
+.chart-root[data-date-pointer-mode="off"] :deep(.u-cursor-y) { display: none; }
 
 /* TradingView-style OHLCV overlay — top-left, small, semi-transparent */
 .ohlcv-info {

@@ -1904,6 +1904,25 @@ function templateIndicators(value: unknown): IndicatorConfig[] | null {
 }
 
 function applyChartConfiguration(changes: Record<string, unknown>) {
+  if (Object.keys(changes).length === 1 && Object.prototype.hasOwnProperty.call(changes, 'date_pointer_mode')) {
+    const activeChartRoot = document.activeElement instanceof HTMLElement
+      ? document.activeElement.closest<HTMLElement>('.chart-root')
+      : null
+    const activeWindowKey = activeChartRoot?.closest<HTMLElement>('.tool-window[data-window-key]')?.dataset.windowKey
+    const configuration = { ...liveChartConfiguration.value, ...changes }
+    liveChartConfiguration.value = configuration
+    emit('configuration', props.tool.instance_key, configuration)
+    if (activeChartRoot) {
+      void nextTick(() => requestAnimationFrame(() => {
+        const replacementRoot = activeWindowKey
+          ? Array.from(document.querySelectorAll<HTMLElement>('.tool-window[data-window-key]'))
+            .find(window => window.dataset.windowKey === activeWindowKey)?.querySelector<HTMLElement>('.chart-root')
+          : document.querySelector<HTMLElement>('.workstation__popout .chart-root')
+        ;(replacementRoot ?? activeChartRoot).focus()
+      }))
+    }
+    return
+  }
   applyChartTemplate({ ...liveChartConfiguration.value, ...changes })
 }
 

@@ -54,6 +54,7 @@
               <div><dt>Ctrl+6</dt><dd>Set the active chart to hourly bars</dd></div>
               <div><dt>1</dt><dd>Set the active chart to daily bars</dd></div>
               <div><dt>5</dt><dd>Set the active chart to weekly bars</dd></div>
+              <div><dt>.</dt><dd>Cycle the active chart date pointer off, on, and on with data values</dd></div>
               <div><dt>/</dt><dd>Open the active chart's plot library and search indicators</dd></div>
               <div><dt>[ / ]</dt><dd>Move the active chart backward or forward one bar; Shift moves five bars</dd></div>
               <div><dt>Ctrl+wheel</dt><dd>Over a chart: change timeframe; over a WatchList: move through symbols</dd></div>
@@ -2071,6 +2072,13 @@ function handleKeydown(event: KeyboardEvent) {
         return
       }
     }
+  }
+  if (event.key === '.' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+    const activeTab = workspaceStore.activeTab
+    const activeWindowKey = isPopout.value
+      ? String(route.params.windowKey ?? '')
+      : activeTab?.active_window_key
+    if (activeTab?.windows.some(window => window.instance_key === activeWindowKey && window.tool_type === 'chart')) return
   }
   if (/^[a-z0-9.=]$/i.test(event.key) && !event.ctrlKey && !event.metaKey && !event.altKey) {
     event.preventDefault()

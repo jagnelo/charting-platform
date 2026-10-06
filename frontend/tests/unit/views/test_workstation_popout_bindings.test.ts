@@ -544,6 +544,26 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('leaves the period key to the active chart date pointer and keeps symbol search elsewhere', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    harness.workspace.activeTab.active_window_key = 'chart-main'
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const workstation = wrapper.find('.workstation').element
+
+    const chartEvent = new KeyboardEvent('keydown', { key: '.', bubbles: true, cancelable: true })
+    workstation.dispatchEvent(chartEvent)
+    expect(chartEvent.defaultPrevented).toBe(false)
+
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+    const nonChartEvent = new KeyboardEvent('keydown', { key: '.', bubbles: true, cancelable: true })
+    workstation.dispatchEvent(nonChartEvent)
+    expect(nonChartEvent.defaultPrevented).toBe(true)
+    wrapper.unmount()
+  })
+
   it('cycles supported Ctrl+B chart styles only on the active chart', async () => {
     routeState.path = '/'
     routeState.params = {}
