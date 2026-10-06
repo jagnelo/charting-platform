@@ -20,9 +20,13 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
-from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.authenticated_event_tape import AuthenticatedFrozenEventTapeResolver
+from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.contracts import DataSnapshot, ForwardInstance
-from app.strategy_lab_v2.event_tape_artifacts import FrozenEventTapeArtifactResolution
+from app.strategy_lab_v2.event_tape import FrozenEventTape, bind_event_tape
+from app.strategy_lab_v2.event_tape_artifacts import (
+    FrozenEventTapeArtifactResolution,
+)
 from app.strategy_lab_v2.forward_execution_plan_resolution import (
     AuthenticatedForwardExecutionPlanResolver,
     ForwardExecutionPlanReader,
@@ -40,7 +44,14 @@ from app.strategy_lab_v2.forward_worker_handoff import (
     ForwardEventWorkItem,
     create_authenticated_forward_event_materializer,
 )
-from app.strategy_lab_v2.nautilus_engine_input import NautilusEngineInput
+from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
+from app.strategy_lab_v2.nautilus_engine_input import (
+    NautilusComponentStrategyBinding,
+    NautilusEngineInput,
+    NautilusInstrumentDefinition,
+    NautilusVenueDefinition,
+)
+from app.strategy_lab_v2.nautilus_event_adapter import materialize_nautilus_event_tape
 from app.strategy_lab_v2.nautilus_forward_bootstrap import (
     NautilusForwardBootstrapArtifactReference,
     NautilusForwardRuntimeBootstrap,
@@ -79,6 +90,7 @@ from app.strategy_lab_v2.nautilus_runtime_bundle import (
 from app.strategy_lab_v2.nautilus_trial_assembly import strategy_runtime_identity
 from app.strategy_lab_v2.nautilus_trial_materializer import build_frozen_tape_manifest
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
+from app.strategy_lab_v2.rebalance import RebalanceExecutionPlan
 from app.strategy_lab_v2.redis_transport import RedisStreamEntry
 from app.strategy_lab_v2.replay import iter_event_tape_contexts
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile, RuntimeIsolationRequest
@@ -195,6 +207,33 @@ class ForwardSandboxPlanInputs:
         payloads = tuple(self.warmup_payloads)
         if any(not isinstance(item, VerifiedForwardMarketPayload) for item in payloads):
             raise TypeError("warmup_payloads must contain verified canonical payloads")
+        tape_by_id = {item.event_id: item for item in self.warmup_tape.tape.events}
+        payload_by_id = {item.canonical_event.event_id: item for item in payloads}
+        if len(payload_by_id) != len(payloads) or set(payload_by_id) != set(tape_by_id):
+            raise ValueError("warm-up payloads must exactly cover the pinned warm-up tape")
+        if any(
+            (
+                payload_by_id[event_id].market_event.dependency_id,
+                payload_by_id[event_id].market_event.instrument_id,
+                payload_by_id[event_id].market_event.event_time,
+                payload_by_id[event_id].market_event.values,
+            )
+            != (
+                event.dependency_id,
+                event.instrument_id,
+                event.event_time,
+                event.values,
+            )
+            for event_id, event in tape_by_id.items()
+        ):
+            raise ValueError("warm-up canonical payload differs from its frozen tape row")
+        if payloads != tuple(
+            sorted(
+                payloads,
+                key=lambda item: (item.canonical_event.event_time, item.canonical_event.sequence),
+            )
+        ):
+            raise ValueError("warm-up canonical payloads must preserve global event ordering")
         object.__setattr__(self, "warmup_payloads", payloads)
         if not isinstance(self.processed_prefix, ForwardProcessedEventPrefix):
             raise TypeError("processed_prefix must use ForwardProcessedEventPrefix")
@@ -208,12 +247,17 @@ class ForwardSandboxPlanInputs:
         if (
             self.snapshot.fingerprint != instance.warmup_snapshot_fingerprint
             or self.warmup_tape.snapshot_fingerprint != self.snapshot.fingerprint
+            or self.warmup_tape.manifest_fingerprint != self.tape_manifest.fingerprint
             or self.warmup_receipt.instance_id != instance.instance_id
             or self.warmup_receipt.warmup_snapshot_fingerprint != self.snapshot.fingerprint
             or self.processed_prefix.instance_id != instance.instance_id
             or self.processed_prefix.warmup_receipt_fingerprint != self.warmup_receipt.fingerprint
+            or self.processed_prefix.manifest_fingerprint != self.tape_manifest.fingerprint
             or self.engine_input.data_snapshot_fingerprint != self.snapshot.fingerprint
             or self.engine_input.portfolio.fingerprint != self.execution_plan.portfolio.fingerprint
+            or self.engine_input.event_tape.source_tape_fingerprint
+            != self.warmup_tape.tape.fingerprint
+            or len(self.engine_input.event_tape.events) != self.warmup_tape.tape.event_count
         ):
             raise ValueError("forward sandbox inputs do not share the exact owner snapshot")
 
@@ -247,6 +291,281 @@ def build_forward_tape_manifest(
         primary.strategy,
         tuple(component.resolved_package.manifest for component in components),
     )
+
+
+class ForwardWarmupPayloadReader(Protocol):
+    """Resolve every frozen tape row to source-verified canonical identity."""
+
+    def read_warmup_payloads(
+        self,
+        *,
+        principal: Any,
+        instance_id: str,
+        warmup_receipt: ForwardWarmupReceipt,
+        manifest: StrategySdkManifest,
+        tape: FrozenEventTapeArtifactResolution,
+    ) -> (
+        Sequence[VerifiedForwardMarketPayload] | Awaitable[Sequence[VerifiedForwardMarketPayload]]
+    ): ...
+
+
+@dataclass(frozen=True, slots=True)
+class ForwardNautilusMarketContext:
+    """Trusted engine metadata resolved for the exact forward portfolio."""
+
+    snapshot_fingerprint: str
+    portfolio_fingerprint: str
+    instruments: tuple[NautilusInstrumentDefinition, ...]
+    venue: NautilusVenueDefinition
+    rebalance_plan: RebalanceExecutionPlan | None = None
+
+    def __post_init__(self) -> None:
+        require_sha256_digest(self.snapshot_fingerprint, field_name="snapshot_fingerprint")
+        require_sha256_digest(self.portfolio_fingerprint, field_name="portfolio_fingerprint")
+        instruments = tuple(self.instruments)
+        if not instruments or any(
+            not isinstance(item, NautilusInstrumentDefinition) for item in instruments
+        ):
+            raise TypeError("instruments must contain NautilusInstrumentDefinition values")
+        if not isinstance(self.venue, NautilusVenueDefinition):
+            raise TypeError("venue must use NautilusVenueDefinition")
+        if self.rebalance_plan is not None and not isinstance(
+            self.rebalance_plan, RebalanceExecutionPlan
+        ):
+            raise TypeError("rebalance_plan must use RebalanceExecutionPlan")
+        instrument_ids = tuple(item.instrument_id for item in instruments)
+        if len(set(instrument_ids)) != len(instrument_ids):
+            raise ValueError("market context instrument ids must be unique")
+        if any(item.venue_id != self.venue.venue_id for item in instruments):
+            raise ValueError("market context instruments must use the resolved venue")
+        object.__setattr__(self, "instruments", instruments)
+
+
+class ForwardNautilusMarketContextResolver(Protocol):
+    """Resolve venue, instruments, and optional frozen rebalance schedule."""
+
+    def resolve(
+        self,
+        *,
+        principal: Any,
+        snapshot: DataSnapshot,
+        execution_plan: ResolvedForwardExecutionPlan,
+        tape_manifest: StrategySdkManifest,
+    ) -> ForwardNautilusMarketContext | Awaitable[ForwardNautilusMarketContext]: ...
+
+
+class AuthenticatedForwardSandboxPlanInputResolver:
+    """Join owner plan/checkpoint, frozen source data, and canonical platform adapters.
+
+    This resolver owns deterministic portfolio composition. The snapshot/tape,
+    global canonical identity, processed-prefix, and instrument/catalog reads
+    remain explicit injected adapters owned by their respective platform layer.
+    """
+
+    def __init__(
+        self,
+        runtime_input_resolver: ForwardRuntimeInputResolver,
+        snapshot_tape_resolver: AuthenticatedFrozenEventTapeResolver,
+        warmup_payload_reader: ForwardWarmupPayloadReader,
+        processed_prefix_resolver: ForwardProcessedPrefixResolver,
+        market_context_resolver: ForwardNautilusMarketContextResolver,
+        *,
+        principal: Any,
+        runtime_profile: RuntimeIsolationProfile,
+        expected_version: str,
+        max_intents_per_event: int = 100,
+    ) -> None:
+        if not callable(getattr(runtime_input_resolver, "resolve", None)):
+            raise TypeError("runtime_input_resolver must resolve owner plan and checkpoint")
+        if not isinstance(snapshot_tape_resolver, AuthenticatedFrozenEventTapeResolver):
+            raise TypeError("snapshot_tape_resolver must authenticate frozen snapshots")
+        if not callable(getattr(warmup_payload_reader, "read_warmup_payloads", None)):
+            raise TypeError("warmup_payload_reader must resolve canonical frozen payloads")
+        if not callable(processed_prefix_resolver):
+            raise TypeError("processed_prefix_resolver must resolve the exact processed prefix")
+        if not callable(getattr(market_context_resolver, "resolve", None)):
+            raise TypeError("market_context_resolver must resolve canonical engine metadata")
+        if principal is None or snapshot_tape_resolver.principal != principal:
+            raise ValueError("forward sandbox adapters must share the authenticated principal")
+        if getattr(runtime_input_resolver, "principal", None) != principal:
+            raise ValueError("runtime plan resolver belongs to another principal")
+        if not isinstance(runtime_profile, RuntimeIsolationProfile):
+            raise TypeError("runtime_profile must use RuntimeIsolationProfile")
+        if not isinstance(expected_version, str) or not expected_version.strip():
+            raise ValueError("expected_version must not be empty")
+        if (
+            not isinstance(max_intents_per_event, int)
+            or isinstance(max_intents_per_event, bool)
+            or max_intents_per_event < 1
+        ):
+            raise ValueError("max_intents_per_event must be a positive integer")
+        self._runtime_input_resolver = runtime_input_resolver
+        self._snapshot_tape_resolver = snapshot_tape_resolver
+        self._warmup_payload_reader = warmup_payload_reader
+        self._processed_prefix_resolver = processed_prefix_resolver
+        self._market_context_resolver = market_context_resolver
+        self._principal = principal
+        self._runtime_profile = runtime_profile
+        self._expected_version = expected_version
+        self._max_intents_per_event = max_intents_per_event
+
+    async def resolve(
+        self,
+        *,
+        instance_id: str,
+        checkpoint_fingerprint: str,
+        principal: Any,
+        delivery: NautilusForwardDeliveryInput,
+        preparation: ForwardPreparation,
+    ) -> ForwardSandboxPlanInputs:
+        if principal != self._principal:
+            raise ValueError("forward sandbox plan belongs to another principal")
+        if not isinstance(delivery, NautilusForwardDeliveryInput):
+            raise TypeError("delivery must use NautilusForwardDeliveryInput")
+        binding = delivery.delivery_binding
+        if (
+            binding.instance_id != instance_id
+            or binding.pre_event_checkpoint_fingerprint != checkpoint_fingerprint
+            or binding.warmup_receipt_fingerprint != preparation.warmup_receipt_fingerprint
+            or preparation.instance_id != instance_id
+            or preparation.payload_fingerprint != delivery.verified_market_payload.fingerprint
+            or preparation.pre_event_checkpoint_fingerprint != checkpoint_fingerprint
+        ):
+            raise ValueError("forward preparation differs from its authenticated delivery cursor")
+
+        runtime_inputs = self._runtime_input_resolver.resolve(
+            instance_id=instance_id,
+            checkpoint_fingerprint=checkpoint_fingerprint,
+        )
+        runtime_inputs = (
+            await runtime_inputs if inspect.isawaitable(runtime_inputs) else runtime_inputs
+        )
+        if not isinstance(runtime_inputs, ResolvedForwardWorkerRuntimeInputs):
+            raise TypeError("runtime input resolver returned invalid authenticated inputs")
+        plan = runtime_inputs.execution_plan
+        checkpoint = runtime_inputs.checkpoint
+        if (
+            plan.instance.instance_id != instance_id
+            or checkpoint.checkpoint_fingerprint != checkpoint_fingerprint
+            or checkpoint.warmup_receipt.fingerprint != binding.warmup_receipt_fingerprint
+        ):
+            raise ValueError("resolved owner plan or checkpoint differs from the delivery")
+
+        tape_manifest = build_forward_tape_manifest(plan)
+        _validate_forward_dependency_payload(
+            delivery.verified_market_payload,
+            tape_manifest,
+        )
+        snapshot, complete_tape = await self._snapshot_tape_resolver.resolve_materialized(
+            plan.instance.warmup_snapshot_fingerprint,
+            tape_manifest,
+        )
+        payload_resolution = self._warmup_payload_reader.read_warmup_payloads(
+            principal=self._principal,
+            instance_id=instance_id,
+            warmup_receipt=checkpoint.warmup_receipt,
+            manifest=tape_manifest,
+            tape=complete_tape,
+        )
+        complete_payloads = (
+            await payload_resolution
+            if inspect.isawaitable(payload_resolution)
+            else payload_resolution
+        )
+        canonical_by_id = _verify_complete_forward_warmup_payloads(
+            complete_tape,
+            complete_payloads,
+            manifest=tape_manifest,
+            warmup_receipt=checkpoint.warmup_receipt,
+            before_event=delivery.verified_market_payload.canonical_event,
+        )
+        warmup_tape, warmup_payloads = _cut_forward_warmup_at_receipt(
+            snapshot,
+            complete_tape,
+            canonical_by_id,
+            manifest=tape_manifest,
+            warmup_receipt=checkpoint.warmup_receipt,
+        )
+
+        prefix_resolution = self._processed_prefix_resolver(
+            principal=self._principal,
+            admission_state=checkpoint.admission_state,
+            warmup_receipt=checkpoint.warmup_receipt,
+            manifest=tape_manifest,
+            before_event=delivery.verified_market_payload.canonical_event,
+        )
+        processed_prefix = (
+            await prefix_resolution if inspect.isawaitable(prefix_resolution) else prefix_resolution
+        )
+        if not isinstance(processed_prefix, ForwardProcessedEventPrefix):
+            raise TypeError("processed-prefix resolver returned an invalid prefix")
+        expected_limits = tuple(
+            sorted(
+                (
+                    dependency.dependency_id,
+                    dependency.lookback_periods + 1,
+                )
+                for dependency in tape_manifest.data_dependencies
+            )
+        )
+        if (
+            processed_prefix.instance_id != instance_id
+            or processed_prefix.pre_event_checkpoint_fingerprint != checkpoint_fingerprint
+            or processed_prefix.warmup_receipt_fingerprint != checkpoint.warmup_receipt.fingerprint
+            or processed_prefix.manifest_fingerprint != tape_manifest.fingerprint
+            or processed_prefix.before_event_fingerprint
+            != content_digest(delivery.verified_market_payload.canonical_event)
+            or processed_prefix.dependency_event_limits != expected_limits
+        ):
+            raise ValueError("processed prefix differs from the exact forward delivery cursor")
+
+        context_resolution = self._market_context_resolver.resolve(
+            principal=self._principal,
+            snapshot=snapshot,
+            execution_plan=plan,
+            tape_manifest=tape_manifest,
+        )
+        market_context = (
+            await context_resolution
+            if inspect.isawaitable(context_resolution)
+            else context_resolution
+        )
+        if not isinstance(market_context, ForwardNautilusMarketContext):
+            raise TypeError("market-context resolver returned invalid engine metadata")
+        if (
+            market_context.snapshot_fingerprint != snapshot.fingerprint
+            or market_context.portfolio_fingerprint != plan.portfolio.fingerprint
+        ):
+            raise ValueError("market context differs from the exact frozen owner portfolio")
+        strategies = tuple(component.strategy for component in plan.components.values())
+        packages = {
+            component.strategy.fingerprint: component.package
+            for component in plan.components.values()
+        }
+        identity = strategy_runtime_identity(strategies, packages)
+        if self._runtime_profile.runtime_abi != identity.runtime_abi:
+            raise ValueError("forward runtime profile differs from the exact owner package ABI")
+        engine_input = _build_forward_nautilus_engine_input(
+            execution_plan=plan,
+            snapshot=snapshot,
+            tape_manifest=tape_manifest,
+            warmup_tape=warmup_tape,
+            market_context=market_context,
+            checkpoint_fingerprint=checkpoint_fingerprint,
+            max_intents_per_event=self._max_intents_per_event,
+        )
+        return ForwardSandboxPlanInputs(
+            execution_plan=plan,
+            snapshot=snapshot,
+            tape_manifest=tape_manifest,
+            warmup_tape=warmup_tape,
+            warmup_receipt=checkpoint.warmup_receipt,
+            warmup_payloads=warmup_payloads,
+            processed_prefix=processed_prefix,
+            engine_input=engine_input,
+            runtime_profile=self._runtime_profile,
+            expected_version=self._expected_version,
+        )
 
 
 class AuthenticatedForwardSandboxPlanFactory:
@@ -631,6 +950,12 @@ class AuthenticatedForwardWorkerRuntimeInputResolver:
         self._checkpoint_resolver = checkpoint_resolver
         self._principal = principal
 
+    @property
+    def principal(self) -> Any:
+        """Authenticated owner principal used for all runtime-input reads."""
+
+        return self._principal
+
     async def resolve(
         self,
         *,
@@ -664,6 +989,211 @@ class AuthenticatedForwardWorkerRuntimeInputResolver:
         if checkpoint.checkpoint_fingerprint != checkpoint_fingerprint:
             raise ValueError("resolved checkpoint differs from the requested durable cursor")
         return ResolvedForwardWorkerRuntimeInputs(plan, checkpoint)
+
+
+def _verify_complete_forward_warmup_payloads(
+    tape: FrozenEventTapeArtifactResolution,
+    payloads: Sequence[VerifiedForwardMarketPayload],
+    *,
+    manifest: StrategySdkManifest,
+    warmup_receipt: ForwardWarmupReceipt,
+    before_event: CanonicalForwardEvent,
+) -> dict[str, VerifiedForwardMarketPayload]:
+    if not isinstance(tape, FrozenEventTapeArtifactResolution):
+        raise TypeError("tape must use FrozenEventTapeArtifactResolution")
+    if not isinstance(before_event, CanonicalForwardEvent):
+        raise TypeError("before_event must use CanonicalForwardEvent")
+    if not isinstance(payloads, Sequence) or isinstance(payloads, str | bytes):
+        raise TypeError("warmup payload reader must return a sequence")
+    resolved = tuple(payloads)
+    if any(not isinstance(item, VerifiedForwardMarketPayload) for item in resolved):
+        raise TypeError("warmup payload reader returned an invalid canonical payload")
+    by_id = {item.canonical_event.event_id: item for item in resolved}
+    tape_by_id = {item.event_id: item for item in tape.tape.events}
+    if len(by_id) != len(resolved) or set(by_id) != set(tape_by_id):
+        raise ValueError("canonical payloads do not exactly cover the frozen snapshot tape")
+    sequence_values = [item.canonical_event.sequence for item in resolved]
+    if len(sequence_values) != len(set(sequence_values)):
+        raise ValueError("canonical frozen event sequences must be unique")
+    ordered = sorted(
+        resolved,
+        key=lambda item: (item.canonical_event.event_time, item.canonical_event.sequence),
+    )
+    if any(item.canonical_event.correction_of is not None for item in ordered):
+        raise ValueError("correction events cannot enter immutable forward warm-up")
+    for item in ordered:
+        tape_event = tape_by_id[item.canonical_event.event_id]
+        market = item.market_event
+        if (
+            market.dependency_id != tape_event.dependency_id
+            or market.event_id != tape_event.event_id
+            or market.instrument_id != tape_event.instrument_id
+            or market.event_time != tape_event.event_time
+            or market.values != tape_event.values
+        ):
+            raise ValueError("canonical warm-up payload differs from its frozen source row")
+        dependency = next(
+            (
+                candidate
+                for candidate in manifest.data_dependencies
+                if candidate.dependency_id == market.dependency_id
+            ),
+            None,
+        )
+        if (
+            dependency is None
+            or dependency.requirement.instrument_id != market.instrument_id
+            or set(market.values) != set(dependency.fields)
+            or not dependency.requirement.start <= market.event_time < dependency.requirement.end
+        ):
+            raise ValueError("canonical warm-up payload is outside its declared dependency")
+
+    receipt_event = by_id.get(warmup_receipt.final_event_id or "")
+    if (
+        receipt_event is None
+        or content_digest(receipt_event.canonical_event) != warmup_receipt.final_event_fingerprint
+        or receipt_event.canonical_event.sequence != warmup_receipt.final_event_sequence
+    ):
+        raise ValueError("canonical warm-up payloads do not contain the exact durable cursor")
+    if (
+        receipt_event.canonical_event.event_time,
+        receipt_event.canonical_event.sequence,
+    ) >= (before_event.event_time, before_event.sequence):
+        raise ValueError("current event does not follow the frozen warm-up cursor")
+    return by_id
+
+
+def _validate_forward_dependency_payload(
+    payload: VerifiedForwardMarketPayload,
+    manifest: StrategySdkManifest,
+) -> None:
+    if not isinstance(payload, VerifiedForwardMarketPayload):
+        raise TypeError("payload must use VerifiedForwardMarketPayload")
+    dependency = next(
+        (
+            item
+            for item in manifest.data_dependencies
+            if item.dependency_id == payload.market_event.dependency_id
+        ),
+        None,
+    )
+    if (
+        dependency is None
+        or payload.canonical_event.correction_of is not None
+        or dependency.requirement.instrument_id != payload.market_event.instrument_id
+        or set(payload.market_event.values) != set(dependency.fields)
+        or not dependency.requirement.start
+        <= payload.market_event.event_time
+        < dependency.requirement.end
+    ):
+        raise ValueError("forward delivery payload is outside its declared strategy inputs")
+
+
+def _cut_forward_warmup_at_receipt(
+    snapshot: DataSnapshot,
+    complete_tape: FrozenEventTapeArtifactResolution,
+    payloads_by_id: Mapping[str, VerifiedForwardMarketPayload],
+    *,
+    manifest: StrategySdkManifest,
+    warmup_receipt: ForwardWarmupReceipt,
+) -> tuple[FrozenEventTapeArtifactResolution, tuple[VerifiedForwardMarketPayload, ...]]:
+    cursor = payloads_by_id.get(warmup_receipt.final_event_id or "")
+    if cursor is None:
+        raise ValueError("forward warm-up receipt has no frozen cursor event")
+    cursor_key = (cursor.canonical_event.event_time, cursor.canonical_event.sequence)
+    selected_payloads = tuple(
+        sorted(
+            (
+                item
+                for item in payloads_by_id.values()
+                if (item.canonical_event.event_time, item.canonical_event.sequence) <= cursor_key
+            ),
+            key=lambda item: (item.canonical_event.event_time, item.canonical_event.sequence),
+        )
+    )
+    selected_ids = {item.canonical_event.event_id for item in selected_payloads}
+    if cursor.canonical_event.event_id not in selected_ids:
+        raise ValueError("frozen warm-up prefix omitted its exact durable cursor")
+    frozen_events_by_id = {item.event_id: item for item in complete_tape.tape.events}
+    tape = FrozenEventTape(
+        snapshot.fingerprint,
+        tuple(frozen_events_by_id[item.canonical_event.event_id] for item in selected_payloads),
+    )
+    binding = bind_event_tape(tape, snapshot, manifest)
+    return (
+        FrozenEventTapeArtifactResolution(
+            snapshot.fingerprint,
+            manifest.fingerprint,
+            tape,
+            binding,
+            complete_tape.source_artifact_digests,
+        ),
+        selected_payloads,
+    )
+
+
+def _build_forward_nautilus_engine_input(
+    *,
+    execution_plan: ResolvedForwardExecutionPlan,
+    snapshot: DataSnapshot,
+    tape_manifest: StrategySdkManifest,
+    warmup_tape: FrozenEventTapeArtifactResolution,
+    market_context: ForwardNautilusMarketContext,
+    checkpoint_fingerprint: str,
+    max_intents_per_event: int,
+) -> NautilusEngineInput:
+    portfolio = execution_plan.portfolio
+    venue = market_context.venue
+    if venue.base_currency != portfolio.base_currency:
+        raise ValueError("native account base currency differs from the forward portfolio")
+    if (
+        len(venue.cash) != 1
+        or venue.cash[0].currency != portfolio.base_currency
+        or venue.cash[0].amount != portfolio.initial_capital
+    ):
+        raise ValueError("native account cash differs from the forward portfolio capital")
+    if (portfolio.rebalance_policy is None) != (market_context.rebalance_plan is None):
+        raise ValueError("forward market context must bind exactly the portfolio rebalance policy")
+    required_instruments = {
+        instrument_id
+        for component in portfolio.components
+        for instrument_id in component.instrument_ids
+    }
+    if not required_instruments.issubset(
+        {item.instrument_id for item in market_context.instruments}
+    ):
+        raise ValueError("forward market context is missing a portfolio instrument")
+
+    ordered_components = tuple(sorted(execution_plan.components.items()))
+    primary_component_id, primary = ordered_components[0]
+    bindings = tuple(
+        NautilusComponentStrategyBinding(
+            component_id=component_id,
+            strategy_fingerprint=component.strategy.fingerprint,
+            strategy_source_digest=component.resolved_package.manifest.strategy.source_digest,
+            strategy_manifest_fingerprint=component.resolved_package.manifest.fingerprint,
+            entrypoint=component.package.entrypoint,
+            parameters_digest=content_digest(component.binding.parameters),
+            max_intents_per_event=max_intents_per_event,
+        )
+        for component_id, component in ordered_components
+    )
+    return NautilusEngineInput(
+        trial_id=execution_plan.instance.instance_id,
+        attempt_id=checkpoint_fingerprint,
+        data_snapshot_fingerprint=snapshot.fingerprint,
+        event_tape=materialize_nautilus_event_tape(warmup_tape.tape, snapshot, tape_manifest),
+        instruments=market_context.instruments,
+        venue=venue,
+        portfolio=portfolio,
+        strategy_source_digest=primary.resolved_package.manifest.strategy.source_digest,
+        strategy_manifest_fingerprint=primary.resolved_package.manifest.fingerprint,
+        entrypoint=primary.package.entrypoint,
+        parameters=primary.binding.parameters,
+        random_seed=primary.binding.random_seed,
+        strategy_bindings=bindings,
+        rebalance_plan=market_context.rebalance_plan,
+    )
 
 
 def create_authenticated_forward_worker_runtime_input_resolver(
@@ -985,11 +1515,15 @@ def create_forward_worker_callbacks(
 
 __all__ = [
     "AuthenticatedForwardDeliveryContextResolver",
+    "AuthenticatedForwardSandboxPlanInputResolver",
     "AuthenticatedForwardWorkerRuntimeInputResolver",
     "AuthenticatedForwardSandboxPlanFactory",
+    "ForwardNautilusMarketContext",
+    "ForwardNautilusMarketContextResolver",
     "ForwardRuntimeInputResolver",
     "ForwardSandboxPlanInputResolver",
     "ForwardSandboxPlanInputs",
+    "ForwardWarmupPayloadReader",
     "build_forward_tape_manifest",
     "MaterializedForwardRuntimeInputArtifacts",
     "MaterializedForwardSandboxPlan",

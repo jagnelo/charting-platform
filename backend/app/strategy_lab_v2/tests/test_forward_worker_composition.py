@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any
 
@@ -9,13 +11,27 @@ import pytest
 
 from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
+from app.strategy_lab_v2.authenticated_event_tape import AuthenticatedFrozenEventTapeResolver
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.event_tape import bind_event_tape
+from app.strategy_lab_v2.event_tape_artifacts import FrozenEventTapeArtifactResolution
+from app.strategy_lab_v2.forward_context import ForwardStrategyContextPreparation
+from app.strategy_lab_v2.forward_execution_plan import (
+    ForwardComponentExecutionPlan,
+    ForwardExecutionPlan,
+)
 from app.strategy_lab_v2.forward_execution_plan_resolution import ResolvedForwardExecutionPlan
+from app.strategy_lab_v2.forward_processed_prefix import ForwardProcessedEventPrefix
+from app.strategy_lab_v2.forward_warmup import CarryInMode, ForwardWarmupReceipt
 from app.strategy_lab_v2.forward_worker_composition import (
     AuthenticatedForwardDeliveryContextResolver,
+    AuthenticatedForwardSandboxPlanInputResolver,
     AuthenticatedForwardWorkerRuntimeInputResolver,
+    ForwardNautilusMarketContext,
     OwnerScopedForwardEventHandler,
     ResolvedForwardWorkerRuntimeInputs,
+    _cut_forward_warmup_at_receipt,
+    _verify_complete_forward_warmup_payloads,
     build_forward_tape_manifest,
     create_authenticated_forward_delivery_context_resolver,
     create_authenticated_forward_session_event_handler,
@@ -27,6 +43,7 @@ from app.strategy_lab_v2.nautilus_event_adapter import (
     materialize_nautilus_forward_tape,
 )
 from app.strategy_lab_v2.nautilus_forward_delivery import (
+    VerifiedForwardMarketPayload,
     create_nautilus_forward_delivery_callback_factory,
 )
 from app.strategy_lab_v2.nautilus_forward_input import NautilusForwardDeliveryInput
@@ -36,7 +53,8 @@ from app.strategy_lab_v2.nautilus_forward_session import (
     PersistentNautilusForwardSessionRuntime,
 )
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
-from app.strategy_lab_v2.sdk import MarketEvent
+from app.strategy_lab_v2.runtime import RuntimeIsolationProfile
+from app.strategy_lab_v2.sdk import MarketEvent, StrategyContext
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs as _trial_inputs
 
@@ -280,6 +298,412 @@ def _runtime_inputs(
 
 def _unreachable_history(**_kwargs: Any) -> Any:
     raise AssertionError("verified history is resolved only after context binding")
+
+
+def test_forward_sandbox_input_resolver_requires_one_authenticated_owner() -> None:
+    snapshot_tape_resolver = object.__new__(AuthenticatedFrozenEventTapeResolver)
+    snapshot_tape_resolver._principal = "owner-a"
+
+    class RuntimeInputs:
+        principal = "owner-a"
+
+        async def resolve(self, **_kwargs: Any) -> Any:
+            return None
+
+    class WarmupReader:
+        def read_warmup_payloads(self, **_kwargs: Any) -> Any:
+            return ()
+
+    class MarketContext:
+        def resolve(self, **_kwargs: Any) -> Any:
+            return None
+
+    runtime_inputs = RuntimeInputs()
+    warmup_reader = WarmupReader()
+    market_context = MarketContext()
+    profile = RuntimeIsolationProfile(
+        content_digest("forward-runtime-image"), "strategy-runtime.test.v1"
+    )
+    resolver = AuthenticatedForwardSandboxPlanInputResolver(
+        runtime_inputs,
+        snapshot_tape_resolver,
+        warmup_reader,
+        _unreachable_history,
+        market_context,
+        principal="owner-a",
+        runtime_profile=profile,
+        expected_version="2.0.0rc5",
+    )
+
+    assert resolver is not None
+    with pytest.raises(ValueError, match="share the authenticated principal"):
+        AuthenticatedForwardSandboxPlanInputResolver(
+            runtime_inputs,
+            snapshot_tape_resolver,
+            warmup_reader,
+            _unreachable_history,
+            market_context,
+            principal="owner-b",
+            runtime_profile=profile,
+            expected_version="2.0.0rc5",
+        )
+
+
+@pytest.mark.asyncio
+async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape() -> None:
+    values = _trial_inputs()
+    snapshot = values["snapshot"]
+    manifest = values["strategy_manifest"]
+    source_tape = values["event_tape"]
+    source_resolution = FrozenEventTapeArtifactResolution(
+        snapshot.fingerprint,
+        manifest.fingerprint,
+        source_tape,
+        bind_event_tape(source_tape, snapshot, manifest),
+        tuple(sorted(item.content_digest for item in snapshot.series)),
+    )
+    strategy = values["strategy_manifest"].strategy
+    package = values["strategy_package"]
+    instance = SimpleNamespace(
+        instance_id="forward-1",
+        warmup_snapshot_fingerprint=snapshot.fingerprint,
+    )
+    portfolio = values["portfolio"]
+    component_binding = ForwardComponentExecutionPlan(
+        "component-1",
+        strategy.fingerprint,
+        package.fingerprint,
+        {"window": 20},
+        13,
+    )
+    resolved_component = SimpleNamespace(
+        binding=component_binding,
+        strategy=strategy,
+        package=package,
+        resolved_package=SimpleNamespace(
+            manifest=manifest,
+            source=values["strategy_source"],
+        ),
+    )
+    plan = object.__new__(ResolvedForwardExecutionPlan)
+    object.__setattr__(plan, "instance", instance)
+    object.__setattr__(plan, "portfolio", portfolio)
+    object.__setattr__(
+        plan,
+        "plan",
+        ForwardExecutionPlan("forward-1", portfolio.fingerprint, (component_binding,)),
+    )
+    object.__setattr__(plan, "components", {"component-1": resolved_component})
+
+    full_payloads = tuple(
+        VerifiedForwardMarketPayload(
+            CanonicalForwardEvent(
+                event.event_id,
+                100 + index * 100,
+                event.event_time,
+                event.event_time,
+                content_digest(event.values),
+            ),
+            replace(event, sequence=100 + index * 100),
+            content_digest(event.values),
+        )
+        for index, event in enumerate(source_tape.events)
+    )
+    cursor = full_payloads[0].canonical_event
+    receipt = ForwardWarmupReceipt(
+        "forward-1",
+        snapshot.fingerprint,
+        CarryInMode.FLAT,
+        content_digest("forward-warmup-result"),
+        cursor.event_time,
+        cursor.event_id,
+        cursor.sequence,
+        content_digest(cursor),
+    )
+    checkpoint_fingerprint = content_digest("forward-checkpoint")
+    before_time = cursor.event_time + timedelta(
+        seconds=(full_payloads[1].canonical_event.event_time - cursor.event_time).total_seconds()
+        / 2
+    )
+    before_event = CanonicalForwardEvent(
+        "live-current",
+        150,
+        before_time,
+        before_time + timedelta(seconds=1),
+        content_digest("live-source"),
+    )
+    current_market = replace(
+        source_tape.events[0],
+        event_id=before_event.event_id,
+        event_time=before_event.event_time,
+        sequence=before_event.sequence,
+    )
+    delivery_binding = NautilusForwardDeliveryBinding(
+        "forward-1",
+        content_digest(before_event),
+        "1-0",
+        content_digest("forward-redis-entry"),
+        content_digest("forward-dispatch"),
+        content_digest("forward-request"),
+        checkpoint_fingerprint,
+        receipt.fingerprint,
+        "enqueue",
+    )
+    delivery = NautilusForwardDeliveryInput(
+        delivery_binding,
+        materialize_nautilus_forward_tape(
+            "forward-1",
+            (before_event,),
+            (current_market,),
+            event_type_by_dependency={"daily-bars": "ohlcv"},
+            delivery_bindings=(delivery_binding,),
+        ),
+        current_market,
+        before_event.source_digest,
+    )
+    preparation = ForwardStrategyContextPreparation(
+        "forward-1",
+        delivery.verified_market_payload.fingerprint,
+        content_digest("base-context-window"),
+        content_digest("next-context-window"),
+        StrategyContext(
+            before_event.event_time,
+            before_event.sequence,
+            13,
+            component_binding.parameters,
+            {},
+        ),
+        delivery_binding_fingerprint=content_digest(delivery_binding),
+        dispatch_fingerprint=delivery_binding.dispatch_record_fingerprint,
+        pre_event_checkpoint_fingerprint=checkpoint_fingerprint,
+        warmup_receipt_fingerprint=receipt.fingerprint,
+    )
+
+    admission = SimpleNamespace(
+        checkpoint=SimpleNamespace(instance=instance, fingerprint=checkpoint_fingerprint)
+    )
+    checkpoint = object.__new__(ResolvedNautilusForwardCheckpoint)
+    object.__setattr__(checkpoint, "admission_state", admission)
+    object.__setattr__(checkpoint, "warmup_receipt", receipt)
+    object.__setattr__(checkpoint, "account_state", object())
+    runtime_inputs = ResolvedForwardWorkerRuntimeInputs(plan, checkpoint)
+
+    class RuntimeResolver:
+        principal = "owner-a"
+
+        async def resolve(self, **kwargs: Any) -> ResolvedForwardWorkerRuntimeInputs:
+            assert kwargs == {
+                "instance_id": "forward-1",
+                "checkpoint_fingerprint": checkpoint_fingerprint,
+            }
+            return runtime_inputs
+
+    snapshot_resolver = object.__new__(AuthenticatedFrozenEventTapeResolver)
+    snapshot_resolver._principal = "owner-a"
+
+    async def resolve_materialized(
+        snapshot_fingerprint: str, requested_manifest: Any
+    ) -> tuple[Any, FrozenEventTapeArtifactResolution]:
+        assert snapshot_fingerprint == snapshot.fingerprint
+        assert requested_manifest.fingerprint == manifest.fingerprint
+        return snapshot, source_resolution
+
+    setattr(snapshot_resolver, "resolve_materialized", resolve_materialized)
+
+    class WarmupReader:
+        def read_warmup_payloads(self, **kwargs: Any) -> Any:
+            assert kwargs["principal"] == "owner-a"
+            assert kwargs["instance_id"] == "forward-1"
+            return full_payloads
+
+    class PrefixResolver:
+        async def __call__(self, **kwargs: Any) -> ForwardProcessedEventPrefix:
+            return ForwardProcessedEventPrefix(
+                "forward-1",
+                checkpoint_fingerprint,
+                receipt.fingerprint,
+                manifest.fingerprint,
+                content_digest(before_event),
+                (("daily-bars", manifest.data_dependencies[0].lookback_periods + 1),),
+                (),
+            )
+
+    class MarketContextResolver:
+        def resolve(self, **kwargs: Any) -> ForwardNautilusMarketContext:
+            assert kwargs["principal"] == "owner-a"
+            return ForwardNautilusMarketContext(
+                snapshot.fingerprint,
+                portfolio.fingerprint,
+                values["instruments"],
+                values["venue"],
+            )
+
+    resolver = AuthenticatedForwardSandboxPlanInputResolver(
+        RuntimeResolver(),
+        snapshot_resolver,
+        WarmupReader(),
+        PrefixResolver(),
+        MarketContextResolver(),
+        principal="owner-a",
+        runtime_profile=RuntimeIsolationProfile(
+            content_digest("forward-runtime-image"), package.runtime_abi
+        ),
+        expected_version="2.0.0rc5",
+    )
+
+    result = await resolver.resolve(
+        instance_id="forward-1",
+        checkpoint_fingerprint=checkpoint_fingerprint,
+        principal="owner-a",
+        delivery=delivery,
+        preparation=preparation,
+    )
+
+    assert result.execution_plan is plan
+    assert result.snapshot is snapshot
+    assert result.tape_manifest == manifest
+    assert result.warmup_receipt == receipt
+    assert tuple(item.canonical_event.event_id for item in result.warmup_payloads) == (
+        cursor.event_id,
+    )
+    assert result.processed_prefix.pre_event_checkpoint_fingerprint == checkpoint_fingerprint
+    assert result.engine_input.data_snapshot_fingerprint == snapshot.fingerprint
+    assert result.engine_input.portfolio == portfolio
+    assert (
+        result.engine_input.event_tape.source_tape_fingerprint
+        == result.warmup_tape.tape.fingerprint
+    )
+
+
+def test_forward_warmup_composition_cuts_by_global_canonical_cursor() -> None:
+    values = _trial_inputs()
+    snapshot = values["snapshot"]
+    manifest = values["strategy_manifest"]
+    tape = values["event_tape"]
+    resolution = FrozenEventTapeArtifactResolution(
+        snapshot.fingerprint,
+        manifest.fingerprint,
+        tape,
+        bind_event_tape(tape, snapshot, manifest),
+        tuple(sorted(item.content_digest for item in snapshot.series)),
+    )
+    canonical_payloads = tuple(
+        VerifiedForwardMarketPayload(
+            CanonicalForwardEvent(
+                event.event_id,
+                100 + index,
+                event.event_time,
+                event.event_time,
+                content_digest(event.values),
+            ),
+            replace(event, sequence=100 + index),
+            content_digest(event.values),
+        )
+        for index, event in enumerate(tape.events)
+    )
+    cursor = canonical_payloads[0].canonical_event
+    receipt = ForwardWarmupReceipt(
+        "forward-1",
+        snapshot.fingerprint,
+        CarryInMode.FLAT,
+        content_digest("warmup-result"),
+        cursor.event_time,
+        cursor.event_id,
+        cursor.sequence,
+        content_digest(cursor),
+    )
+    before_event = CanonicalForwardEvent(
+        "live-current",
+        101,
+        cursor.event_time
+        + (canonical_payloads[1].canonical_event.event_time - cursor.event_time) / 2,
+        canonical_payloads[1].canonical_event.event_time,
+        content_digest("live-source"),
+    )
+
+    by_id = _verify_complete_forward_warmup_payloads(
+        resolution,
+        canonical_payloads,
+        manifest=manifest,
+        warmup_receipt=receipt,
+        before_event=before_event,
+    )
+    warmup_tape, warmup_payloads = _cut_forward_warmup_at_receipt(
+        snapshot,
+        resolution,
+        by_id,
+        manifest=manifest,
+        warmup_receipt=receipt,
+    )
+
+    assert tuple(item.canonical_event.event_id for item in warmup_payloads) == (cursor.event_id,)
+    assert warmup_tape.tape.event_count == 1
+    assert warmup_tape.tape.events[0].sequence == tape.events[0].sequence
+    assert warmup_payloads[0].market_event.sequence == cursor.sequence
+
+
+def test_forward_warmup_composition_rejects_unverified_snapshot_row() -> None:
+    values = _trial_inputs()
+    snapshot = values["snapshot"]
+    manifest = values["strategy_manifest"]
+    tape = values["event_tape"]
+    resolution = FrozenEventTapeArtifactResolution(
+        snapshot.fingerprint,
+        manifest.fingerprint,
+        tape,
+        bind_event_tape(tape, snapshot, manifest),
+        tuple(sorted(item.content_digest for item in snapshot.series)),
+    )
+    event = tape.events[0]
+    payload = VerifiedForwardMarketPayload(
+        CanonicalForwardEvent(
+            event.event_id,
+            100,
+            event.event_time,
+            event.event_time,
+            content_digest(event.values),
+        ),
+        replace(event, sequence=100, values={"close": Decimal("999")}),
+        content_digest(event.values),
+    )
+    following = tape.events[1]
+    following_payload = VerifiedForwardMarketPayload(
+        CanonicalForwardEvent(
+            following.event_id,
+            101,
+            following.event_time,
+            following.event_time,
+            content_digest(following.values),
+        ),
+        replace(following, sequence=101),
+        content_digest(following.values),
+    )
+    receipt = ForwardWarmupReceipt(
+        "forward-1",
+        snapshot.fingerprint,
+        CarryInMode.FLAT,
+        content_digest("warmup-result"),
+        event.event_time,
+        event.event_id,
+        100,
+        content_digest(payload.canonical_event),
+    )
+
+    with pytest.raises(ValueError, match="differs from its frozen source row"):
+        _verify_complete_forward_warmup_payloads(
+            resolution,
+            (payload, following_payload),
+            manifest=manifest,
+            warmup_receipt=receipt,
+            before_event=CanonicalForwardEvent(
+                "live-current",
+                101,
+                event.event_time
+                + (values["event_tape"].events[1].event_time - event.event_time) / 2,
+                values["event_tape"].events[1].event_time,
+                content_digest("live-source"),
+            ),
+        )
 
 
 def test_forward_tape_manifest_uses_all_owner_plan_component_requirements() -> None:

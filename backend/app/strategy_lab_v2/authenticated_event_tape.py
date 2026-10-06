@@ -11,6 +11,7 @@ from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.canonical import require_sha256_digest
 from app.strategy_lab_v2.contracts import DataSnapshot
 from app.strategy_lab_v2.event_tape_artifacts import (
+    FrozenEventTapeArtifactResolution,
     FrozenEventTapeArtifactResolver,
     FrozenEventTapeStreamResolution,
     FrozenEventTapeWindowResolution,
@@ -64,6 +65,12 @@ class AuthenticatedFrozenEventTapeResolver:
             _default_offloader if offloader is None else offloader,
         )
 
+    @property
+    def principal(self) -> Any:
+        """Owner principal bound to all snapshot and source-artifact reads."""
+
+        return self._principal
+
     async def resolve(
         self,
         snapshot_fingerprint: str,
@@ -87,6 +94,35 @@ class AuthenticatedFrozenEventTapeResolver:
         ):
             raise ValueError("verified frozen event tape differs from its requested inputs")
         return resolution
+
+    async def resolve_materialized(
+        self,
+        snapshot_fingerprint: str,
+        manifest: StrategySdkManifest,
+    ) -> tuple[DataSnapshot, FrozenEventTapeArtifactResolution]:
+        """Resolve a complete in-memory tape for bounded forward bootstrap use.
+
+        Backtests should prefer :meth:`resolve`, which remains disk-backed.
+        Persistent forward bootstrap currently needs the exact source rows and
+        canonical identity mapping together, so callers must explicitly opt in
+        to this materialized path and apply the durable warm-up cursor.
+        """
+
+        snapshot = await self._load_snapshot(snapshot_fingerprint, manifest)
+        offloaded = self._offloader(
+            self._artifact_resolver.resolve_materialized,
+            snapshot,
+            manifest,
+        )
+        resolution = await offloaded if inspect.isawaitable(offloaded) else offloaded
+        if not isinstance(resolution, FrozenEventTapeArtifactResolution):
+            raise TypeError("frozen tape resolver returned an invalid materialized resolution")
+        if (
+            resolution.snapshot_fingerprint != snapshot_fingerprint
+            or resolution.manifest_fingerprint != manifest.fingerprint
+        ):
+            raise ValueError("materialized frozen tape differs from its requested inputs")
+        return snapshot, resolution
 
     async def resolve_bounded_window(
         self,

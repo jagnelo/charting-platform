@@ -453,6 +453,10 @@ async def test_authenticated_tape_resolver_loads_owner_snapshot_and_verifies_art
             {"dependency_id": "daily-bars", "source_event_id": "bar-0"}
         ),
     )
+    materialized_snapshot, materialized = await resolver.resolve_materialized(
+        snapshot.fingerprint,
+        manifest,
+    )
 
     assert result.snapshot_fingerprint == snapshot.fingerprint
     assert result.manifest_fingerprint == manifest.fingerprint
@@ -461,7 +465,11 @@ async def test_authenticated_tape_resolver_loads_owner_snapshot_and_verifies_art
     assert bounded.snapshot_fingerprint == snapshot.fingerprint
     assert len(bounded.events) == 1
     assert bounded.events[0].sequence == 0
-    assert len(offload_calls) == 2
+    assert materialized_snapshot == snapshot
+    assert materialized.tape.event_count == 2
+    assert materialized.manifest_fingerprint == manifest.fingerprint
+    assert resolver.principal == "owner-1"
+    assert len(offload_calls) == 3
 
 
 @pytest.mark.anyio
