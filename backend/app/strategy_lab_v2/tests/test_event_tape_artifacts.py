@@ -30,6 +30,7 @@ from app.strategy_lab_v2.event_tape_artifacts import (
     FrozenEventTapeArtifactResolver,
     FrozenEventTapeStreamResolution,
     FrozenSeriesRow,
+    iter_verified_event_tape_prefix,
     iter_verified_event_tape_stream,
     materialize_frozen_event_tape_stream,
 )
@@ -180,6 +181,32 @@ def test_streaming_resolution_preserves_tape_identity_without_retaining_events(t
     assert store.path_for(streamed.artifact.storage_key).read_bytes().count(b"\n") == 2
 
 
+def test_resolve_prefix_publishes_only_disk_backed_rows_through_cursor(tmp_path) -> None:
+    snapshot, manifest, series, payload = _inputs(row_count=4, fields=("close",))
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    _publish(store, series, payload)
+
+    class GeneratedHistoryDecoder:
+        def iter_rows(self, series: DataSeriesManifest, source: BinaryIO):
+            del source
+            for sequence in range(series.row_count):
+                yield FrozenSeriesRow(
+                    f"bar-{sequence}",
+                    BASE + timedelta(days=sequence),
+                    sequence,
+                    {"close": Decimal(100 + sequence)},
+                )
+
+    resolver = FrozenEventTapeArtifactResolver(store, GeneratedHistoryDecoder())
+    cursor = content_digest({"dependency_id": "daily-bars", "source_event_id": "bar-2"})
+
+    prefix = resolver.resolve_prefix(snapshot, manifest, through_event_id=cursor)
+
+    assert not hasattr(prefix, "tape")
+    assert prefix.event_count == 3
+    assert [event.sequence for event in iter_verified_event_tape_stream(prefix, store)] == [0, 1, 2]
+
+
 def test_stream_materializer_preserves_identity_from_one_pass_event_iterator(tmp_path) -> None:
     snapshot, manifest, series, payload = _inputs(fields=("close",))
     store = LocalArtifactStore(tmp_path / "artifacts")
@@ -215,6 +242,45 @@ def test_stream_materializer_rejects_empty_dependency_stream(tmp_path) -> None:
             manifest=manifest,
             events=iter(()),
             source_artifact_digests=(),
+        )
+
+
+def test_verified_tape_prefix_includes_exact_durable_cursor_without_materializing_tail(
+    tmp_path,
+) -> None:
+    snapshot, manifest, series, payload = _inputs(fields=("close",))
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    _publish(store, series, payload)
+    streamed = FrozenEventTapeArtifactResolver(store, JsonSeriesDecoder()).resolve(
+        snapshot,
+        manifest,
+    )
+    all_events = iter_verified_event_tape_stream(streamed, store)
+    first, cursor = tuple(all_events)
+
+    prefix = iter_verified_event_tape_prefix(
+        streamed,
+        store,
+        through_event_id=cursor.event_id,
+    )
+
+    assert tuple(prefix) == (first, cursor)
+
+
+def test_verified_tape_prefix_rejects_absent_cursor_before_yielding(tmp_path) -> None:
+    snapshot, manifest, series, payload = _inputs(fields=("close",))
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    _publish(store, series, payload)
+    streamed = FrozenEventTapeArtifactResolver(store, JsonSeriesDecoder()).resolve(
+        snapshot,
+        manifest,
+    )
+
+    with pytest.raises(ValueError, match="cursor event is absent"):
+        iter_verified_event_tape_prefix(
+            streamed,
+            store,
+            through_event_id="sha256:" + "0" * 64,
         )
 
 
@@ -492,6 +558,13 @@ async def test_authenticated_tape_resolver_loads_owner_snapshot_and_verifies_art
             {"dependency_id": "daily-bars", "source_event_id": "bar-0"}
         ),
     )
+    disk_prefix = await resolver.resolve_prefix(
+        snapshot.fingerprint,
+        manifest,
+        through_event_id=content_digest(
+            {"dependency_id": "daily-bars", "source_event_id": "bar-0"}
+        ),
+    )
     materialized_snapshot, materialized = await resolver.resolve_materialized(
         snapshot.fingerprint,
         manifest,
@@ -504,11 +577,13 @@ async def test_authenticated_tape_resolver_loads_owner_snapshot_and_verifies_art
     assert bounded.snapshot_fingerprint == snapshot.fingerprint
     assert len(bounded.events) == 1
     assert bounded.events[0].sequence == 0
+    assert disk_prefix.event_count == 1
+    assert [event.sequence for event in iter_verified_event_tape_stream(disk_prefix, store)] == [0]
     assert materialized_snapshot == snapshot
     assert materialized.tape.event_count == 2
     assert materialized.manifest_fingerprint == manifest.fingerprint
     assert resolver.principal == "owner-1"
-    assert len(offload_calls) == 3
+    assert len(offload_calls) == 4
 
 
 @pytest.mark.anyio

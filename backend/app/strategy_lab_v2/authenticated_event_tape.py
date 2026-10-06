@@ -95,6 +95,33 @@ class AuthenticatedFrozenEventTapeResolver:
             raise ValueError("verified frozen event tape differs from its requested inputs")
         return resolution
 
+    async def resolve_prefix(
+        self,
+        snapshot_fingerprint: str,
+        manifest: StrategySdkManifest,
+        *,
+        through_event_id: str,
+    ) -> FrozenEventTapeStreamResolution:
+        """Resolve an owner snapshot to the verified prefix through its durable cursor."""
+
+        snapshot = await self._load_snapshot(snapshot_fingerprint, manifest)
+        offloaded = self._offloader(
+            lambda: self._artifact_resolver.resolve_prefix(
+                snapshot,
+                manifest,
+                through_event_id=through_event_id,
+            )
+        )
+        resolution = await offloaded if inspect.isawaitable(offloaded) else offloaded
+        if not isinstance(resolution, FrozenEventTapeStreamResolution):
+            raise TypeError("frozen tape resolver returned an invalid prefix resolution")
+        if (
+            resolution.snapshot_fingerprint != snapshot_fingerprint
+            or resolution.manifest_fingerprint != manifest.fingerprint
+        ):
+            raise ValueError("verified frozen prefix differs from its requested inputs")
+        return resolution
+
     async def resolve_materialized(
         self,
         snapshot_fingerprint: str,

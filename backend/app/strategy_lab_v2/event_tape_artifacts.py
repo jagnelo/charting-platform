@@ -454,6 +454,44 @@ def iter_verified_event_tape_stream(
     return _iter_artifact_events(resolution, store, max_event_bytes=max_event_bytes)
 
 
+def iter_verified_event_tape_prefix(
+    resolution: FrozenEventTapeStreamResolution,
+    store: LocalArtifactStore,
+    *,
+    through_event_id: str,
+    max_event_bytes: int = _DEFAULT_STREAM_EVENT_BYTES,
+) -> Iterable[MarketEvent]:
+    """Iterate a fully verified source-ordered prefix through one exact cursor.
+
+    Cursor existence is established before the returned prefix can be consumed,
+    so downstream artifact writers cannot publish a partial warm-up when a
+    durable cursor is absent. The tape remains disk-backed throughout.
+    """
+
+    if not isinstance(through_event_id, str) or not through_event_id.strip():
+        raise ValueError("through_event_id must be non-empty")
+    verified = iter_verified_event_tape_stream(
+        resolution,
+        store,
+        max_event_bytes=max_event_bytes,
+    )
+    if not any(event.event_id == through_event_id for event in verified):
+        raise ValueError("warm-up cursor event is absent from the verified frozen tape")
+
+    def prefix() -> Iterable[MarketEvent]:
+        for event in iter_verified_event_tape_stream(
+            resolution,
+            store,
+            max_event_bytes=max_event_bytes,
+        ):
+            yield event
+            if event.event_id == through_event_id:
+                return
+        raise ValueError("warm-up cursor event disappeared from the verified frozen tape")
+
+    return prefix()
+
+
 def materialize_frozen_event_tape_stream(
     store: LocalArtifactStore,
     *,
@@ -728,6 +766,29 @@ class FrozenEventTapeArtifactResolver:
         """
 
         return self.resolve_streaming(snapshot, manifest)
+
+    def resolve_prefix(
+        self,
+        snapshot: DataSnapshot,
+        manifest: StrategySdkManifest,
+        *,
+        through_event_id: str,
+    ) -> FrozenEventTapeStreamResolution:
+        """Publish a verified disk-backed tape prefix ending at one exact cursor."""
+
+        complete = self.resolve_streaming(snapshot, manifest)
+        prefix = iter_verified_event_tape_prefix(
+            complete,
+            self._artifact_store,
+            through_event_id=through_event_id,
+        )
+        return materialize_frozen_event_tape_stream(
+            self._artifact_store,
+            snapshot=snapshot,
+            manifest=manifest,
+            events=prefix,
+            source_artifact_digests=complete.source_artifact_digests,
+        )
 
     def resolve_materialized(
         self,
@@ -1090,6 +1151,7 @@ __all__ = [
     "FrozenEventTapeWindowResolution",
     "FrozenSeriesDecoder",
     "FrozenSeriesRow",
+    "iter_verified_event_tape_prefix",
     "iter_verified_event_tape_stream",
     "materialize_frozen_event_tape_stream",
     "select_bounded_verified_event_tape_window",

@@ -12861,3 +12861,20 @@ warm-up join and downstream context/native-event materialization remain open.
 Next, introduce an artifact-backed forward warm-up resolution and consume it
 through the owner-scoped plan factory, then execute that exact plan through RC5
 startup and checkpoint replacement.
+
+## 2026-10-06 - Authenticated disk-backed tape prefix resolution
+
+`FrozenEventTapeArtifactResolver.resolve_prefix` and its owner-scoped async
+counterpart now resolve a complete frozen source tape, verify an exact cursor,
+and publish only its source-ordered prefix as a content-addressed stream. The
+prefix iterator establishes cursor existence before yielding and never retains
+the prefix rows. Tests cover exact cursor inclusion, absent-cursor rejection,
+owner snapshot binding, and artifact-backed publication.
+
+The prefix is intentionally in source-tape order. It is not yet a forward
+warm-up cut: that requires joining each tape event to platform canonical global
+sequence identity before the prefix can be selected. Forward composition still
+calls `resolve_materialized`, and its canonical payload list, context assembly,
+and engine-input tape remain in memory. Next, replace those together with an
+artifact-backed canonical join; do not use this source-order helper as a
+substitute for global canonical ordering.
