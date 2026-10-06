@@ -29,16 +29,18 @@ current_blocker: >-
   that exited 152 without a summary. The split diagnostic's isolated
   ETF-owned test-order failure remains documented, but the full ordered suite
   passes and TC must not alter ETF-owned behavior.
-  At product source f0e946000e15336d972f33f24520d72b06e5cf7e, an earlier
-  corrected seeded functional run passed 175/177 with two documented skips
-  and zero failures. The latest pinned Playwright 1.62.1 exact-source replay
-  against the assigned stack completed 171 passed, 2 documented skips, and
-  4 failures: F8m-chart-panels timed out on the Yellow menu item, F8g did not
-  find Study Lab, and F14-instance-scope/F8z recorded ERR_NETWORK_CHANGED.
-  Each of the four cases passed isolated replay; the adjacent F8m wildcard ->
-  F8m chart-panels -> F8g Study sequence passed 3/3. This is not a clean full
-  matrix receipt: retain the four failures and rerun the full suite in a stable
-  secure browser context. The four-profile visual matrix in the pinned
+  At product source f0e946000e15336d972f33f24520d72b06e5cf7e, the latest
+  unchanged pinned Playwright 1.62.1 seeded functional run against the assigned
+  stack passed 175/177 with two documented skips and zero failures (18.1
+  minutes). This supersedes the earlier 171/177 run with four intermittent
+  failures, all of which passed isolated replay. Two subsequent full retries
+  each had one different transient failure: F8s timed out in its login hook in
+  one run and passed 1/1 isolated and in the later clean full run; F8k briefly
+  had a null plot bounding box in another run and passed 3/3 with its adjacent
+  Ctrl+wheel cases and in the later clean full run. No source, test, assertion,
+  or browser configuration changed. The final full seeded run is the current
+  functional receipt; keep the transient diagnostics as history and do not
+  weaken acceptance. The four-profile visual matrix in the pinned
   Playwright 1.62.1 Noble image now passes 104/104 after ten deterministic
   local screenshots were refreshed to match the current product state asserted
   before capture: workspace-floating across four profiles, Study
@@ -70,7 +72,7 @@ current_blocker: >-
   shared-path reconciliation are deferred.
 active_changeset_context:
   name: Bounded Research Results occurrence lists
-  status: implementation_full_frontend_visual_matrix_passed_functional_rerun_and_generic_gate_open
+  status: implementation_full_frontend_functional_visual_matrix_passed_generic_gate_open
   commit_sha: f0e946000e15336d972f33f24520d72b06e5cf7e
   remote_sha: f0e946000e15336d972f33f24520d72b06e5cf7e
   intent: >-
@@ -83,18 +85,17 @@ active_changeset_context:
   next_action: >-
     Continue a distinct TC-owned R1/R5/R6 behavior slice while keeping the V25
     reference gaps explicitly open. The exact backend combined-coverage gate passes
-    at 82.26%, and the current seeded four-profile visual matrix passes 104/104
-    at product source f0e946. The latest full functional run has four failures
-    that pass in isolated replay; retain its diagnostics and obtain a clean
-    full rerun. Research-runner sandbox/resource
+    at 82.26%; the current seeded functional suite passes 175/177 with two
+    documented skips and no failures, and the four-profile local visual matrix
+    passes 104/104 at product source f0e946. Exact V25 screenshot gaps remain
+    explicitly open. Research-runner sandbox/resource
     probes passed at checkpoint 8e6a818; refresh only if runner configuration
     or source changes. Migration, lint, Compose contract, and provider-change
-    probe checks have been reconciled. The latest full functional browser replay
-    has four failures, but all four passed isolated replay; rerun the complete
-    functional suite through the pinned secure browser context without
-    relaxing diagnostics. Use the approved host Docker context and exact
-    assigned project; never invoke the generic cleanup trap against the
-    assigned stack.
+    probe checks have been reconciled. The remaining branch-local gate is the
+    repository generic integration target: Buildx is unavailable and its
+    cleanup trap targets the assigned stack, so use only a safe isolated
+    equivalent or establish an exact-target-safe workaround. Preserve the
+    assigned stack and all diagnostics.
     Keep provider/ETF work out of this branch and defer R2/R3 until both
     dependencies reach staging.
 planning_state: ready

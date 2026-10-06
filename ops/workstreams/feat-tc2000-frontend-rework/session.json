@@ -104,13 +104,13 @@
   "goal_state": "requested",
   "goal_unavailable_reason": null,
   "head": "595606a7ed0c398e009c9531ce5fbda7ebe9d115",
-  "implementation_sha": "7bb1da11ccf086a24438084e42f7ea010f4aa7d3",
+  "implementation_sha": "804ffd2077f668d3c08498dacc2a0d604615d5a5",
   "interrupted": false,
   "last_checkpoint": "2026-10-05T18:11:59.645734+00:00",
-  "last_human_progress_update": "2026-10-05T22:00:33.011740+00:00",
+  "last_human_progress_update": "2026-10-06T00:27:22.660807+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "create the session-local Codex goal from goal_request, then record it as active",
-  "plan_hash": "3faefdfefec29952acedc0f4341959862b0d97b05fd1640797fae4da5ca86704",
+  "plan_hash": "db4adad6db93dc0eedf6fe5787f46c4b284c990bbe69e165ca3823b077385571",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -124,11 +124,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "Backend combined unit/integration coverage passes 1622/1622 and 409/409 at 82.26%; frontend seeded flows pass 175 with 2 documented skips; pinned visual suite is 94/104 with the same ten screenshot-only differences. Scoped lint, migration, Compose contracts, and provider-change checks are reconciled. Research-runner probes and the generic integration helper remain open; Buildx is unavailable and that helper would tear down the assigned stack. Provider and ETF consumer reconciliation still waits for both branches to reach staging.",
+    "current_blocker": "The current product source now has a clean full seeded functional receipt (175 passed, 2 documented skips) and a 104/104 four-profile deterministic local visual receipt; exact V25 gaps remain open. The generic integration target remains unresolved because Buildx is unavailable and its cleanup trap targets the assigned stack. Provider and ETF dependencies remain outside staging, so R2/R3 reconciliation must wait.",
     "current_phase": "R1_R5_R6_EXACT_TIP_VALIDATION_REFRESH",
-    "next_action": "Continue a distinct TC-owned R1/R5 frontend or Study/Strategy behavior slice; refresh research-runner sandbox/resource evidence only in an isolated project with exact-target cleanup. Preserve the visual oracles. Do not touch provider/ETF-owned paths or consume them before staging; keep the full goal active until all criteria are genuinely met.",
+    "next_action": "Inspect the generic integration target and its cleanup/build steps; find a safe exact-target-preserving isolated equivalent or document the precise remaining blocker. Keep provider/ETF branches untouched and the full goal active.",
     "total": 9,
-    "updated_at": "2026-10-05T22:00:33.011720+00:00"
+    "updated_at": "2026-10-06T00:27:22.660787+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
@@ -145,7 +145,7 @@
     "status": "synchronized"
   },
   "remote": "595606a7ed0c398e009c9531ce5fbda7ebe9d115",
-  "remote_sha": "7bb1da11ccf086a24438084e42f7ea010f4aa7d3",
+  "remote_sha": "804ffd2077f668d3c08498dacc2a0d604615d5a5",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
