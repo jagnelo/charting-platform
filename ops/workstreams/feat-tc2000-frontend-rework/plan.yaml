@@ -357,15 +357,19 @@ progress:
     Refresh dependency refs; defer R2/R3 and semantic shared-path reconciliation
     until both upstream branches reach staging. Stop only at ready_for_human_review.
   current_blocker: >-
-    Backend units/integration and coverage pass 1622/1622 and 409/409 at 82.26%.
-    Latest pinned functional run passes 175/177 with two documented skips and
-    zero failures; local visual matrix passes 104/104 but exact V25 gaps remain.
-    Existing workstation performance is 4/4 with 10k watchlist/50-round churn;
-    focused synthetic 10k-cell Market Map browser guard passes pointer, keyboard,
-    zoom and pan within its explicit canvas budget. The generic helper's Buildx/
-    cleanup path is unsafe for assigned volumes; exact generic gate remains open.
-    Provider/ETF branches remain outside staging, deferring R2/R3 and all shared-
-    path reconciliation.
+    At backend checkpoint d6bd60d, unit/integration suites passed 1622/1622 and
+    409/409 at 82.26%. At branch checkpoint 22becb68272854b6ceae6a263d8694090495e009,
+    frontend Vitest passed 129 files/1210 tests, focused VirtualWatchlistTool
+    passed 81/81, type-check passed, and production build passed with only the
+    existing large-chunk warning. The pinned seeded functional suite passed
+    175/177 with two documented skips and zero failures at product source
+    f0e9460; the four-profile local visual matrix passed 104/104, the isolated
+    10k-row/50-round workstation performance suite passed 4/4, and the separate
+    10k-cell Market Map browser guard passed 1/1. These do not close exact V25
+    approval or the generic full integration gate. Docker Buildx is unavailable
+    and the generic helper's cleanup targets the assigned volumes; use only a
+    verified isolated equivalent. Provider/ETF branches remain outside staging,
+    deferring R2/R3 and all shared-path reconciliation.
 historical_implementation_records:
   - "At documentation checkpoint df4c8d6f (product source f0e946000e15336d972f33f24520d72b06e5cf7e), the pinned Playwright 1.62.1 full seeded functional suite ran 177 cases against the assigned six-service stack: 171 passed, 2 documented skips, and 4 failed. F8m-chart-panels timed out waiting for Yellow, F8g could not find Study Lab, and F14-instance-scope plus F8z recorded ERR_NETWORK_CHANGED. All four cases passed isolated replay; the nearest F8m wildcard -> chart-panels -> F8g sequence passed 3/3. This is not recorded as a clean full-gate pass. The test source was mounted read-only, outputs were under /tmp/tc2000-functional-df4c8d6f-elevated-results, and the assigned stack stayed healthy. A separate internal-bridge attempt was stopped after proving its non-localhost URL is not a secure browser context; no product or acceptance changes were made."
   - "Product commit f0e946000e15336d972f33f24520d72b06e5cf7e bounds historical breadth and generic event occurrence lists to 100 visible rows per increment, with truthful visible/matching counts and filter/selection resets. Focused ResearchResultsTool tests passed 57/57; full serial frontend Vitest passed 129 files / 1,209 tests; Vue type-check/build, direct TC ownership guard (130 touched paths, all six self-tests), and direct workstream validation (30 records) passed. The assigned Docker socket is denied, so browser replay and the generic full integration gate remain open. This slice changes neither provider/ETF behavior nor visual reference or acceptance policy."

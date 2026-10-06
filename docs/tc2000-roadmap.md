@@ -5,6 +5,32 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-06
 
+## 2026-10-06 — Current branch-tip frontend suite
+
+At exact branch tip `22becb68272854b6ceae6a263d8694090495e009`, the full
+frontend Vitest suite passed using the single-worker serial-file profile:
+129 files and 1,210 tests passed. A focused `VirtualWatchlistTool` replay also
+passed 81/81. An initial run using Vitest's single-thread pool produced no
+summary and was interrupted; it is retained as a runner-profile diagnostic,
+not as a test failure. No source, assertion, or acceptance policy changed.
+
+At the same branch tip, `npm run type-check` and `npm run build` also passed;
+the Vite build emitted only its existing large-chunk warning. The pinned full
+seeded browser suite passed 175/177 with two documented skips and zero failures
+at product source `f0e946000e15336d972f33f24520d72b06e5cf7e`; the four-profile
+local visual matrix passed 104/104, and the separately added dense Market Map
+interaction guard passed 1/1. Browser and visual receipts are tied to their
+recorded source/test checkpoints, not represented as one monolithic exact-tip
+integration run. The exact generic integration gate and exact V25 approval
+remain open.
+Direct read-only remote refs at this checkpoint are TC
+`22becb68272854b6ceae6a263d8694090495e009`, staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider-platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`2bd221663956581dfb35f5b77961900674449f23`. Both provider dependencies remain
+outside staging, so R2/R3 consumption and shared-path reconciliation stay
+deferred. The full TC-owned roadmap and goal remain active.
+
 ## 2026-10-06 — Current-source functional and local visual receipts reconciled
 
 At product source `f0e946000e15336d972f33f24520d72b06e5cf7e` and pushed

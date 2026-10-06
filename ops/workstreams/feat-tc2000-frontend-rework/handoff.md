@@ -1,5 +1,34 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — Current exact branch-tip frontend suite
+
+At exact branch tip `22becb68272854b6ceae6a263d8694090495e009`, the complete
+frontend Vitest suite passed with one worker: `129/129` files and `1,210/1,210`
+tests. Focused `VirtualWatchlistTool` coverage passed `81/81`. The initial
+single-thread-pool full run was stopped after remaining silent and produced no
+test result; the supported single-worker serial-file run then completed
+successfully. Keep the former as runner diagnostic only. No source, test
+assertion, retry policy, or visual oracle changed in this validation.
+
+At the same branch tip, frontend type-check and production build passed; the
+build showed only the existing large-chunk warning. The pinned full seeded
+functional browser suite passed 175/177 with two documented skips and zero
+failures at product source `f0e946000e15336d972f33f24520d72b06e5cf7e`; the
+four-profile local visual matrix passed 104/104, and the independently added
+dense Market Map interaction guard passed 1/1. These are separately recorded
+receipts at their corresponding product/test checkpoints, not a claim that one
+single exact-tip integration command passed. Exact V25 approval and the generic
+integration gate remain open.
+
+Current branch refs were checked directly: TC
+`22becb68272854b6ceae6a263d8694090495e009`, staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF
+`2bd221663956581dfb35f5b77961900674449f23`. Both provider dependencies remain
+outside staging. Consumer integration/shared-path reconciliation remains
+deferred. Preserve all reference media and visual acceptance policy. The goal
+remains active and AC1/9 is still the only recorded completed criterion.
+
 ## 2026-10-05 — Exact branch-tip backend test refresh
 
 At branch checkpoint `d6bd60d15f22b630b9f661fb566837d0c1110674`, the exact
