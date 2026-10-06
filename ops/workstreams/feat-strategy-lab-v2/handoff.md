@@ -13858,3 +13858,33 @@ operational checkpoint.
 Next: validate the streaming endpoint in the local ASGI/Compose profile and
 continue the remaining production APIs, search/recovery, security, scaling,
 and full exact-tip gates. Do not wait for stable Nautilus labeling.
+
+## 2026-10-06 - Full-stack API and browser acceptance checkpoint
+
+The branch-scoped Compose profile built all images and started PostgreSQL,
+Redis, backend, worker, research runner, and frontend; all six services reached
+healthy status. The live backend mounted `/api/v1/strategy-lab/v2` and returned
+`401 Not Authenticated` for an unauthenticated GET to the new curve-download
+route, proving registration and the platform authentication boundary. A
+successful authenticated transfer of persisted curve bytes remains unproven
+outside the focused adapter/route tests.
+
+The complete 260-case Playwright suite finished with 138 passed, 109 skipped,
+and 13 failed. Failures clustered in pre-existing TC2000/chart rendering
+(`.uplot`/canvas surfaces), Study Lab v1 output, a watchlist drag assertion, and
+one workstation canvas-count assertion; no Strategy Lab v2 UI is in this
+backend branch. The active TC2000 frontend rework owns those paths, so they are
+retained as a cross-workstream full-stack gate rather than edited here. Compose
+cleanup then removed only this worktree's six containers, six ephemeral
+volumes, two project networks, four owned images, and its Buildx builder/cache;
+no host-wide prune was used. Post-cleanup resource accounting reports zero
+owned containers/volumes and below the 5 GB cap.
+
+Implementation/package evidence remains green at exact synchronized
+`17e2b87601bd160ce6033eb1a39d99869a8d7acf`: the declared branch suite passed
+1,621 package tests (one skipped), six migration tests, Ruff, MyPy across 429
+files, diff check, and workstream validation. Nautilus stable 2.x remains no
+dependency. Next product work is backend-owned backtest/search/recovery and
+durable cancellation/retry; also add an authenticated end-to-end curve-download
+fixture. Reconcile frontend browser failures only after the owning branch is
+ready for shared review.

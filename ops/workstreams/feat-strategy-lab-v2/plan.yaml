@@ -888,12 +888,17 @@ progress:
     No external or upstream Nautilus dependency blocks implementation. Stable
     release labeling is not a gate; exact-pinned Nautilus 2.0.0rc6 passed all
     four authoritative local-backtest conformance checks and the fifth
-    forward-event-tape parity check in its isolated image. The broad Strategy
-    Lab package suite and exact-image PostgreSQL/Redis recovery tests also pass.
-    The RC6 runtime upgrade is committed as 8a59aedc67a960f32f7a1d1c83ceb188e2e0b8c4
-    and synchronized to origin; the accompanying operational checkpoint is
-    being finalized. The
-    authenticated production plan now proves deterministic replay after
+    forward-event-tape parity check in its isolated image. The branch-declared
+    package and migration suites pass, package Ruff/MyPy are green, and the
+    owner-scoped curve-download path is committed with digest/length checks,
+    bounded streaming, active-pin authorization, and post-stream mutation
+    verification. The branch-scoped Compose stack built and all six services
+    became healthy; the registered route returned 401 to an unauthenticated
+    live request. The full 260-case browser run ended 138 passed, 109 skipped,
+    13 failed, primarily in existing chart/Study Lab v1 surfaces owned by the
+    parallel frontend workstream. Those failures keep full-stack acceptance
+    open but do not block independent backend implementation. The authenticated
+    production plan now proves deterministic replay after
     process loss, durable settlement and ACK, and fresh-process continuation
     from its authenticated prior-event prefix. Forward event handoffs now renew
     their persisted lease while processing and retry without releasing capacity
@@ -905,25 +910,24 @@ progress:
     retries reconcile an interrupted activation; broader crash/recovery
     evidence remains open. Worker heartbeats now also dispose cached Nautilus
     sessions whose durable reservation ended, with targeted lifecycle tests;
-    real PostgreSQL/Redis shutdown/restart evidence remains open. Secure
-    owner-scoped retrieval of published walk-forward curve bytes is implemented
-    and pushed at 9a7ba28f921affc1a114025bf80e8c9fe1afa698, with authorization
-    bound to the persisted metric sidecar and active retention pin, pre-stream
-    digest and length verification, a 1 GiB bound, and post-stream mutation
-    verification. Focused assertions pass; the direct-route test harness has an
-    environment-specific event-loop shutdown stall and needs live-ASGI
-    validation in the full-stack profile. Remaining work includes the
-    backtest/search/API/security/Compose criteria and exact-tip branch gates.
+    real PostgreSQL/Redis shutdown/restart evidence remains open. The curve
+    download path is owner-bound to the persisted metric sidecar and active
+    retention pin; focused success/error/integrity tests pass. Its live route
+    has so far been exercised through the real app only as an unauthenticated
+    request, so an authorized end-to-end byte transfer remains unproven.
+    Remaining work includes the backtest/search/API/security/Compose criteria,
+    authenticated curve transfer, and exact-tip branch gates.
     Provider-platform, ETF, and TC2000 contracts remain owned by their
     branches; unsupported options remain fail-closed pending canonical
     Greeks/delta/settlement evidence.
   next_action: >-
-    Complete the operational checkpoint for 9a7ba28f921affc1a114025bf80e8c9fe1afa698
-    and verify exact remote synchronization. Then exercise the streaming route
-    through the local ASGI/Compose path (the isolated route harness stalls
-    during loop shutdown) and continue the remaining backtest/search, durable
-    cancellation/retry, phase-boundary recovery, security, Compose, and exact-tip
-    branch gates. Shared router registration, migrations, and overlapping
-    upstream paths remain gated on line-level staging reconciliation.
+    Continue backend-owned backtest/search and durable cancellation/retry and
+    phase-boundary recovery criteria; build an authenticated live curve download
+    fixture so the production ASGI path proves owner authorization and streamed
+    bytes. Reconcile the 13 browser failures only after the frontend owner has
+    completed its work and shared-path semantics can be reviewed together.
+    Finish security, Compose scaling, and exact-tip gates. Shared router
+    registration, migrations, and overlapping upstream paths remain gated on
+    line-level staging reconciliation.
     Provider-owned frozen-series decoder composition remains upstream-dependent;
     unsupported products stay fail-closed.

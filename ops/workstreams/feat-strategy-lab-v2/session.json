@@ -86,17 +86,22 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [
-    "ps/workstreams/feat-strategy-lab-v2/session.json"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
+    "build_cache_bytes": 8633000000,
+    "container_count": 6,
+    "containers": [
+      "charting-stack-feat-strategy-lab-v2-7794d9e5-worker-1",
+      "charting-stack-feat-strategy-lab-v2-7794d9e5-frontend-1",
+      "charting-stack-feat-strategy-lab-v2-7794d9e5-backend-1",
+      "charting-stack-feat-strategy-lab-v2-7794d9e5-postgres-1",
+      "charting-stack-feat-strategy-lab-v2-7794d9e5-redis-1",
+      "charting-stack-feat-strategy-lab-v2-7794d9e5-research-runner-1"
+    ],
+    "known_bytes": 8754094272,
+    "over_budget": true,
     "projects": [
       "charting-dev-feat-strategy-lab-v2-7794d9e5",
       "charting-stack-feat-strategy-lab-v2-7794d9e5"
@@ -106,8 +111,8 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
+    "volume_bytes": 118521984,
+    "volume_count": 6,
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "docker_ready": {
@@ -124,10 +129,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "413553de7a716943fd407f99d8530ed794f6089f",
+  "head": "17e2b87601bd160ce6033eb1a39d99869a8d7acf",
   "implementation_sha": "ff08cacfe0c96aaf20de2403bb5405ee73caba90",
   "last_checkpoint": "2026-10-06T17:59:24.642497+00:00",
-  "last_human_progress_update": "2026-10-06T17:58:53.965215+00:00",
+  "last_human_progress_update": "2026-10-06T18:23:49.234077+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -152,13 +157,13 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "No release or upstream event blocks independent progress; local ASGI streaming proof and remaining implementation/acceptance criteria are open.",
-    "current_phase": "branch-declared-validation-passed",
-    "next_action": "Validate the owner-scoped curve stream through the actual local ASGI/Compose stack; proceed with remaining search/recovery, API, security, and exact-tip gates.",
+    "current_blocker": "No Nautilus release or external service blocks implementation; full-stack browser acceptance is red on cross-workstream chart/Study Lab v1 cases.",
+    "current_phase": "full-stack-profile-recorded",
+    "next_action": "Continue backend-owned search/backtest and cancellation/recovery gates; create an authenticated persisted-curve fixture for live ASGI byte streaming. Reconcile frontend browser failures only after its branch reaches shared review.",
     "total": 18,
-    "updated_at": "2026-10-06T17:58:53.965196+00:00"
+    "updated_at": "2026-10-06T18:23:49.234047+00:00"
   },
-  "remote": "413553de7a716943fd407f99d8530ed794f6089f",
+  "remote": "17e2b87601bd160ce6033eb1a39d99869a8d7acf",
   "remote_sha": "ff08cacfe0c96aaf20de2403bb5405ee73caba90",
   "remote_synchronized": true,
   "retained_docker_resources": [],
