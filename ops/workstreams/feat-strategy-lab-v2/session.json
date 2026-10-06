@@ -86,18 +86,27 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [
-    "ackend/app/strategy_lab_v2/authenticated_event_tape.py",
-    "backend/app/strategy_lab_v2/event_tape_artifacts.py",
-    "backend/app/strategy_lab_v2/forward_worker_composition.py",
-    "backend/app/strategy_lab_v2/nautilus_forward_bootstrap.py",
-    "backend/app/strategy_lab_v2/nautilus_runtime_bundle.py",
-    "backend/app/strategy_lab_v2/tests/test_event_tape_artifacts.py",
-    "backend/app/strategy_lab_v2/tests/test_forward_worker_composition.py"
-  ],
+  "dirty_paths": [],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-strategy-lab-v2-7794d9e5",
+      "charting-stack-feat-strategy-lab-v2-7794d9e5"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "docker_ready": {
     "ready": true,
@@ -113,12 +122,12 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "ddafa0b9e3cc63fbc6cd3ef3ed8c0a3c123051de",
-  "implementation_sha": "e2497ece6d99c5626d4112856b1efc5b2c9632bf",
-  "last_checkpoint": "2026-10-06T02:15:10+00:00",
+  "head": "1855ddf4104c0f67af8b38679a5024b4dd81943e",
+  "implementation_sha": "1855ddf4104c0f67af8b38679a5024b4dd81943e",
+  "last_checkpoint": "2026-10-06T02:34:18.403250+00:00",
   "last_human_progress_update": "2026-10-06T02:33:19.173491+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Replace forward warm-up materialization with a disk-backed canonical identity join and artifact streams, then bind the stream artifacts into the RC5 plan and process integration.",
+  "next_action": "Adapt the exact RC5 process integration fixture to build its context/native artifacts through the authenticated artifact-backed plan factory, then continue the remaining forward and backtest acceptance criteria.",
   "parent_branch": "staging",
   "plan_hash": "f1a7a445c95fbc3ba2fa8bd17d29a547f626909937c8881cb61ec4aee04a178b",
   "planning_required": false,
@@ -147,8 +156,8 @@
     "total": 18,
     "updated_at": "2026-10-06T02:33:19.173470+00:00"
   },
-  "remote": "ddafa0b9e3cc63fbc6cd3ef3ed8c0a3c123051de",
-  "remote_sha": "e2497ece6d99c5626d4112856b1efc5b2c9632bf",
+  "remote": "1855ddf4104c0f67af8b38679a5024b4dd81943e",
+  "remote_sha": "1855ddf4104c0f67af8b38679a5024b4dd81943e",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
