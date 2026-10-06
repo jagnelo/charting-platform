@@ -554,6 +554,7 @@ async def test_persisted_search_cancellation_terminates_child_and_records_termin
 
     executor = CancellationAwareExecutor()
     recoveries: list[WorkerRecoveryContext] = []
+    heartbeat_sequences: list[int] = []
 
     async def materializer(
         _entry: RedisStreamEntry, _payload: DispatchPayload
@@ -573,6 +574,15 @@ async def test_persisted_search_cancellation_terminates_child_and_records_termin
             content_digest("durable-cancelled-attempt"),
         )
 
+    async def heartbeat_writer(observation: LeaseObservation) -> LeaseObservationResolution:
+        heartbeat_sequences.append(observation.sequence)
+        state = apply_lease_observation(request.lease_state, observation).state
+        return LeaseObservationResolution(
+            LeaseObservationDecision.APPLY,
+            state,
+            state.last_sequence,
+        )
+
     async def completion(*_args: Any) -> WorkerHandleResult:
         raise AssertionError("cancelled process must not publish a result")
 
@@ -582,6 +592,7 @@ async def test_persisted_search_cancellation_terminates_child_and_records_termin
         materializer,
         completion,
         process_executor=executor,
+        heartbeat_writer=heartbeat_writer,
         recovery_writer=recovery_writer,
         cancellation_reader=cancellation_reader,
         heartbeat_interval_seconds=0.001,
@@ -593,6 +604,7 @@ async def test_persisted_search_cancellation_terminates_child_and_records_termin
     assert executor.cancelled
     assert len(recoveries) == 1
     assert recoveries[0].reason.value == "cancelled"
+    assert heartbeat_sequences
 
 
 async def test_cancellation_state_read_failure_stops_process_for_durable_recovery(

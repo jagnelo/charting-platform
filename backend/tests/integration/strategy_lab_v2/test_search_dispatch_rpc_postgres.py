@@ -6,6 +6,7 @@ from dataclasses import replace
 from datetime import timedelta
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -41,6 +42,7 @@ from app.strategy_lab_v2.postgres_worker_state import (
     PostgresWorkerStateAdapter,
     PostgresWorkerStateSchema,
 )
+from app.strategy_lab_v2.redis_transport import RedisStreamEntry
 from app.strategy_lab_v2.resource_domains import rehydrate_resource_contract
 from app.strategy_lab_v2.resource_mutations import ResourceMutationRequest
 from app.strategy_lab_v2.search_dispatch_preparation import NautilusTrialPreparationContext
@@ -63,6 +65,7 @@ from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import (
 from app.strategy_lab_v2.tests.test_nautilus_trial_materializer import RUNTIME_ABI
 from app.strategy_lab_v2.tests.test_search_dispatch_preparation import _setup
 from app.strategy_lab_v2.trial_hydration import TrialDomainHydrationError
+from app.strategy_lab_v2.worker_callbacks import create_search_dispatch
 from app.strategy_lab_v2.workers import WorkerKind, WorkerProfile
 
 
@@ -132,6 +135,7 @@ async def test_search_dispatch_rpc_persists_and_replays_against_postgres(
     tmp_path: Path,
     pg_container,
     test_database_url: str | None,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     raw_url = test_database_url or pg_container.get_connection_url()
     engine = create_async_engine(_async_postgres_url(raw_url), pool_pre_ping=True)
@@ -450,6 +454,45 @@ async def test_search_dispatch_rpc_persists_and_replays_against_postgres(
                 experiment_fingerprint=graph.experiment.fingerprint,
             )
         ).candidates[0].attempt_id == graph.attempt.attempt_id
+
+        cancellation_request_id = content_digest("postgres-search-cancellation")
+        cancellation = await search_state.cancel(
+            principal=owner,
+            experiment_fingerprint=graph.experiment.fingerprint,
+            request_id=cancellation_request_id,
+            now=BASE + timedelta(days=2),
+        )
+        assert cancellation.state.cancellation_requested is True
+        assert cancellation.state.cancellation_request_id == cancellation_request_id
+
+        monkeypatch.setenv(
+            "STRATEGY_LAB_V2_EVIDENCE_RESOLVER",
+            "app.strategy_lab_v2.worker_callbacks:default_evidence_resolver_factory",
+        )
+        monkeypatch.setenv("STRATEGY_LAB_V2_QUEUE", "strategy-backtest")
+        monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH", str(socket_path))
+        monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", AUTH_TOKEN)
+        callbacks = await create_search_dispatch(persistence, artifact_store.root)
+        assert callbacks.cancellation_reader is not None
+        dispatch_envelope = first.envelope
+        assert dispatch_envelope is not None
+        redis_entry = RedisStreamEntry(
+            "strategy-lab:v2:stream:strategy-backtest",
+            "2-0",
+            dispatch_envelope.message_id,
+            dispatch_envelope.request.attempt_id,
+            dispatch_envelope.request.payload_digest,
+            dispatch_envelope.request.fingerprint,
+        )
+        cancellation_visible = await callbacks.cancellation_reader(
+            redis_entry,
+            SimpleNamespace(
+                runtime_request=SimpleNamespace(
+                    attempt_id=dispatch_envelope.request.attempt_id,
+                )
+            ),
+        )
+        assert cancellation_visible is True
 
         async with engine.connect() as connection:
             for table in (
