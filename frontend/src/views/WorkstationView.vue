@@ -2120,6 +2120,11 @@ watch(() => workspaceStore.workspace?.id, (workspaceId, previousWorkspaceId) => 
 
 onMounted(async () => {
   componentMounted = true
+  if (isPopout.value) {
+    // Establish keyboard and assistive-technology focus before workspace
+    // hydration or market-data requests can delay the pop-out's first focus.
+    popoutRoot.value?.focus({ preventScroll: true })
+  }
   const resolveMount = resolveComponentMountSettled
   resolveComponentMountSettled = null
   resolveMount?.()
@@ -2232,14 +2237,6 @@ onMounted(async () => {
   if (!componentMounted) return
   if (!isPopout.value) await refreshMarketData()
   if (!componentMounted) return
-  if (isPopout.value) {
-    // A browser pop-out is a separate top-level document. Move initial focus
-    // into its named landmark so keyboard and assistive users do not land on
-    // an empty document body before the detached tool finishes mounting.
-    await nextTick()
-    popoutRoot.value?.focus({ preventScroll: true })
-  }
-
 })
 
 onBeforeUnmount(() => {

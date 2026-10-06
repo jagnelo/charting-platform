@@ -1,4 +1,4 @@
-import { defineComponent } from 'vue'
+import { defineComponent, nextTick } from 'vue'
 import { flushPromises, mount as rawMount, type MountingOptions } from '@vue/test-utils'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -83,7 +83,11 @@ const harness = vi.hoisted(() => {
     previous: vi.fn(),
     clear: vi.fn(),
   }
-  return { workspace, recent, popoutWindow, chartWindow, ratioWindow }
+  const drawings = {
+    activeToolType: null as string | null,
+    setActiveTool: vi.fn(),
+  }
+  return { workspace, recent, drawings, popoutWindow, chartWindow, ratioWindow }
 })
 const routeState = vi.hoisted(() => ({ path: '/popout/benchmark-list', params: { windowKey: 'benchmark-list' }, query: {} as Record<string, string> }))
 const apiGet = vi.hoisted(() => vi.fn().mockResolvedValue([]))
@@ -98,6 +102,7 @@ vi.mock('@/stores/chart', () => ({
 vi.mock('@/stores/auth', () => ({ useAuthStore: () => ({ logout: vi.fn().mockResolvedValue(undefined) }) }))
 vi.mock('@/stores/watchlist', () => ({ useWatchlistStore: () => ({ reorderItems: vi.fn().mockResolvedValue(undefined) }) }))
 vi.mock('@/stores/recentInstruments', () => ({ useRecentInstrumentsStore: () => harness.recent }))
+vi.mock('@/stores/drawings', () => ({ useDrawingsStore: () => harness.drawings }))
 vi.mock('@/lib/instruments', () => ({
   ensureKnownInstrumentSymbol: vi.fn((symbol: string) => Promise.resolve(symbol)),
   resolveKnownInstrument: vi.fn((symbol: string) => Promise.resolve({ symbol, id: 77 })),
@@ -162,6 +167,7 @@ describe('WorkstationView pop-out bindings', () => {
     routeState.path = '/popout/benchmark-list'
     routeState.params = { windowKey: 'benchmark-list' }
     routeState.query = {}
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
     apiGet.mockReset()
     apiGet.mockResolvedValue([])
     harness.workspace.linkedTimeframe = 'D1'
@@ -172,6 +178,8 @@ describe('WorkstationView pop-out bindings', () => {
     harness.workspace.breadth = {}
     harness.workspace.breadthHistory = {}
     harness.recent.recent = [{ symbol: 'XLK', name: 'Technology Select Sector SPDR Fund', viewedAt: 2 }]
+    harness.drawings.activeToolType = null
+    harness.drawings.setActiveTool.mockClear()
   })
 
   it('forwards watchlist persistence and proxy events from a floated tool to the shell', async () => {
@@ -218,7 +226,10 @@ describe('WorkstationView pop-out bindings', () => {
   })
 
   it('names and focuses the pop-out landmark for keyboard users', async () => {
+    let finishWorkspaceLoad!: () => void
+    harness.workspace.loadDefault.mockReturnValue(new Promise<void>(resolve => { finishWorkspaceLoad = resolve }))
     const wrapper = mount(WorkstationView, {
+      attachTo: document.body,
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
     })
 
@@ -230,7 +241,11 @@ describe('WorkstationView pop-out bindings', () => {
     expect(popoutContextId).not.toBe('workstation-popout-context')
     expect(popout.get(`#${popoutContextId}`).text()).toContain('browser-managed pop-out window')
     expect(popout.get(`#${popoutContextId}`).text()).toContain('controlled by the browser and operating system')
-    await vi.waitFor(() => expect(document.activeElement).toBe(popout.element))
+    await nextTick()
+    expect(harness.workspace.loadDefault).toHaveBeenCalled()
+    expect(document.activeElement).toBe(popout.element)
+    finishWorkspaceLoad()
+    await flushPromises()
     wrapper.unmount()
   })
 
@@ -436,6 +451,33 @@ describe('WorkstationView pop-out bindings', () => {
     expect(editorEvent.defaultPrevented).toBe(false)
     expect(maximizeClick).toHaveBeenCalledOnce()
     harness.workspace.isEditorTarget.mockImplementation(() => false)
+    wrapper.unmount()
+  })
+
+  it('uses Shift+D to toggle Trend Line only when a chart is active', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const workstation = wrapper.find('.workstation').element
+
+    const watchlistEvent = new KeyboardEvent('keydown', { key: 'D', shiftKey: true, bubbles: true, cancelable: true })
+    workstation.dispatchEvent(watchlistEvent)
+    expect(watchlistEvent.defaultPrevented).toBe(false)
+    expect(harness.drawings.setActiveTool).not.toHaveBeenCalled()
+
+    harness.workspace.activeTab.active_window_key = 'chart-main'
+    const chartEvent = new KeyboardEvent('keydown', { key: 'D', shiftKey: true, bubbles: true, cancelable: true })
+    workstation.dispatchEvent(chartEvent)
+    expect(chartEvent.defaultPrevented).toBe(true)
+    expect(harness.drawings.setActiveTool).toHaveBeenLastCalledWith('trendline')
+
+    harness.drawings.activeToolType = 'trendline'
+    const toggleOffEvent = new KeyboardEvent('keydown', { key: 'D', shiftKey: true, bubbles: true, cancelable: true })
+    workstation.dispatchEvent(toggleOffEvent)
+    expect(harness.drawings.setActiveTool).toHaveBeenLastCalledWith(null)
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
     wrapper.unmount()
   })
 
