@@ -143,21 +143,20 @@ current_blocker: >-
   visual coverage passed 4/4 pinned viewport profiles, and type-check/build
   passed. The complete frontend suite and generic integration gate remain open.
 active_changeset_context:
-  name: TC2000 V25 Shift+L selected-window maximize
+  name: TC2000 V25 Shift+F selected WatchList flagging
   status: committed_focused_unit_browser_build_and_seeded_four_profile_visual_verified_full_suite_and_generic_gate_open
-  commit_sha: effcca4e25f65a205a93da7a4ee1b4a817a80bcd
-  remote_sha: effcca4e25f65a205a93da7a4ee1b4a817a80bcd
+  commit_sha: 99f10230db0a577be621a8e503a4070412be831a
+  remote_sha: 99f10230db0a577be621a8e503a4070412be831a
   intent: >-
-    Implement TC2000 V25 Shift+L maximize/restore for the selected docked or
-    popped-out tool through the existing Golden Layout action while preserving
-    native editor and interactive-control keyboard ownership.
+    Implement TC2000 V25 Shift+F flag/unflag for selected persisted WatchList
+    source items through the existing item-flag mutation, preserving the row
+    selection and leaving unbacked rows non-mutable.
   owned_paths:
+    - frontend/src/components/workstation/VirtualWatchlistTool.vue
+    - frontend/src/components/workstation/WorkstationToolContent.vue
     - frontend/src/views/WorkstationView.vue
-    - frontend/src/stores/recentInstruments.ts
     - frontend/tests/e2e/flows.spec.ts
-    - frontend/tests/e2e/tc2000_visual.spec.ts
-    - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
-    - frontend/tests/unit/stores/test_recent_instruments.test.ts
+    - frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts
     - docs/tc2000-parity.md
     - docs/tc2000-roadmap.md
   next_action: >-
@@ -436,6 +435,12 @@ progress:
     type-check/build, and correctly seeded pinned Help screenshot coverage pass;
     the initial unseeded visual diagnostic is superseded and not acceptance
     evidence. Exact V25 review and remaining roadmap gates stay open.
+    Product commit 99f10230db0a577be621a8e503a4070412be831a adds the current
+    V25 Shift+F selected-row flag/unflag behavior using existing persisted item
+    mutations. Focused UI tests passed 83/83, type-check/build passed, the
+    authenticated multi-row browser flow passed 1/1, and seeded Help visual
+    coverage passed all four profiles. Exact V25 review, full frontend suite,
+    generic integration, and remaining R1/R5/R6 work remain open.
     At backend checkpoint d6bd60d, unit/integration suites passed 1622/1622 and
     409/409 at 82.26%. At branch checkpoint 22becb68272854b6ceae6a263d8694090495e009,
     frontend Vitest passed 129 files/1210 tests, focused VirtualWatchlistTool

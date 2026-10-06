@@ -22,6 +22,22 @@ Help screenshot profiles with the existing baselines and `0.5%` tolerance. No
 baseline, threshold, mask, or acceptance policy changed. This bounded receipt
 is not whole-roadmap completion.
 
+## 2026-10-06 — Shift+F flags selected WatchList symbols
+
+Product commit `99f10230db0a577be621a8e503a4070412be831a` implements the
+current V25 Shift+F flag/unflag shortcut for selected WatchList rows that have
+persisted source items. It uses the existing item-flag mutation, toggles all
+selected source items together (repeat to reverse), and preserves selection.
+Unbacked/locked rows are not made mutable. The Help menu and parity matrix now
+document the shortcut.
+
+VirtualWatchlistTool tests passed `83/83`; Vue type-check and production build
+passed; pinned authenticated Chromium's persisted multi-row flag/unflag flow
+passed `1/1`; the correctly seeded pinned Help screenshot matrix passed `4/4`
+profiles. No visual baseline, threshold, mask, or acceptance setting changed.
+The full frontend suite and generic integration gate remain open; this is a
+bounded keyboard-parity receipt, not whole-roadmap completion.
+
 ## 2026-10-06 — Backspace navigates viewed-symbol history
 
 Product commit `c61246cca261f8dc33d88690c5f411983a8440c1` adds the current

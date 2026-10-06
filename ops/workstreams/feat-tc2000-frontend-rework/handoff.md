@@ -1,5 +1,27 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — TC2000 V25 Shift+F WatchList flagging
+
+Pushed product commit `99f10230db0a577be621a8e503a4070412be831a` implements
+the official V25 Shift+F flag/unflag shortcut for selected persisted WatchList
+items. It routes through the existing row-action and `setItemFlag` mutation,
+toggles all selected source items as one intent (mixed/unflagged selections are
+set flagged; repeating when all are flagged clears them), and leaves the
+selection intact. Rows without an item/source identity remain unchanged.
+
+Evidence: VirtualWatchlistTool tests `83/83`; Vue type-check and production
+build passed; pinned authenticated Chromium passed the F8y personal-WatchList
+multi-row flag/unflag path `1/1`; seeded four-profile Help screenshot coverage
+passed `4/4` with unchanged snapshots and thresholds; workstream/scope checks
+and diff-check passed. Browser source was read-only; the loopback Vite proxy was
+stopped; the assigned six-service stack was preserved. Full frontend suite,
+generic integration, exact V25 review, and the rest of R1/R5/R6 remain open.
+
+The product commit is pushed; the roadmap/parity/workstream receipt is pending
+as a separate checkpoint. Next action: continue the next bounded TC-owned
+workstation/Study/Strategy slice while keeping provider/ETF ownership and all
+visual acceptance rules intact.
+
 ## 2026-10-06 — TC2000 V25 Shift+L selected-window maximize
 
 Pushed product commit `effcca4e25f65a205a93da7a4ee1b4a817a80bcd` adds

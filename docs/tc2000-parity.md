@@ -9,6 +9,18 @@ tool's existing maximize control; the Help menu documents it, and editor or
 interactive-control focus remains excluded from shell shortcuts. Unit, browser,
 build, and visual verification are recorded in the roadmap checkpoint.
 
+## 2026-10-06 — Shift+F flags selected WatchList symbols
+
+The current [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+defines Shift+F to flag/unflag selected symbols.
+The frontend shortcut applies to selected rows backed by persisted personal
+watchlist items; it uses the existing item-flag mutation and leaves multi-row
+selection intact. Non-source/locked rows remain non-mutable. VirtualWatchlistTool
+coverage passed 83/83; authenticated pinned multi-row flag/unflag passed 1/1;
+the seeded four-profile Help visual check passed 4/4 with existing oracles.
+Type-check and production build passed. The full frontend suite and generic
+integration remain open.
+
 ## 2026-09-05 — Generic source history analysis-readiness visibility
 
 The provider-neutral watchlist source-history contract now exposes analysis-ready member counts
