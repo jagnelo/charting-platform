@@ -5,6 +5,28 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-06
 
+## 2026-10-06 — F1–F12 chart-template assignment
+
+The [official V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+assigns F1–F12 to chart templates and describes editing those assignments on
+the templates themselves. Each saved workstation chart template now exposes a
+unique F-key assignment, persisted as template metadata; imported templates
+retain a key only when it is not already assigned. An unmodified function key
+is routed by the shell to the active chart's template control, and only that
+chart applies the matching saved configuration. Text editors, modifiers, and
+non-chart windows keep their prior behavior. `?` remains the Help shortcut;
+F1 on a non-chart window still opens Help.
+
+The focused ChartTemplateControl/WorkstationView suites passed `63/63`; full
+serial frontend Vitest passed `1,232/1,232` tests across `292/292` suites;
+`npm run build` passed Vue type-check and Vite; authenticated Chromium passed
+the create/assign/change/apply F5 flow `1/1`. The existing protected Help
+screenshot was rerun unchanged and differs by `50,941` pixels (`3.0%`) against
+the existing `0.5%` tolerance. No reference, baseline, mask, threshold, skip,
+or acceptance policy changed. Generic integration and broader AC4–AC7/R1/R5/R6
+remain open; provider/ETF consumer work remains deferred until both branches
+reach staging.
+
 ## 2026-10-06 — TC2000 date-pointer mode cycle
 
 The [official V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)

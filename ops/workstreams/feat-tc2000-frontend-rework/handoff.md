@@ -1,5 +1,40 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — F1–F12 chart-template assignment pushed
+
+Product commit `901190d51c60ed72985ade9b2a3e26b2fc57f0fe` implements TC2000
+V25 F1–F12 chart-template assignment and is pushed to the matching feature ref.
+The Chart Templates dialog stores unique function-key assignments in saved
+template metadata; import retains a key only when it is not already claimed.
+Unmodified F-keys route only to the active chart; `?` opens Help, and F1 remains
+a Help fallback outside chart context. Template configuration application
+preserves the active instrument identity. No provider, ETF, ingestion, or data
+acquisition behavior changed.
+
+Owned paths: `ChartTemplateControl.vue`, `WorkstationToolContent.vue`,
+`WorkstationView.vue`, the focused component/shell tests, the new authenticated
+browser regression, and the TC workstream allowlist entry. Focused suites passed
+`63/63`; the serial frontend suite passed `292/292` suites and `1,232/1,232`
+tests; Vue type-check and Vite production build passed; authenticated Chromium
+passed the create/assign/change/apply F5 flow `1/1`. The first browser replay
+found only a strict-mode ambiguity in the test's Apply-button locator; the
+selector was made exact and the unchanged flow passed. The protected Help visual
+oracle was rerun with its existing baseline and failed at `50,941` pixels
+(`3.0%`, tolerance `0.5%`). No reference, baseline, mask, threshold, skip, or
+acceptance rule changed. TC scope guard passed for 153 changed paths, all six
+self-tests passed, and the workstream validator passed 30 records.
+
+Staged review for product commit `901190d51c60ed72985ade9b2a3e26b2fc57f0fe`
+contained only the three frontend implementation files, two unit tests, the new
+E2E test, and `plan.yaml`; no sibling worktree was touched. Push result:
+`synchronized`. At product-context closure, local HEAD and origin both resolved
+to `901190d51c60ed72985ade9b2a3e26b2fc57f0fe`, with a clean worktree before
+this operational documentation checkpoint. Next permitted action: finish the
+separate roadmap/parity/workstream evidence checkpoint, then continue another
+bounded TC-owned R1/R5/R6 slice. Provider/ETF reconciliation stays deferred
+until both dependencies reach staging; the generic integration and broader
+visual/AC4–AC7 review remain open.
+
 ## Checkpoint publication confirmation
 
 The exact-tip validation receipt was committed as

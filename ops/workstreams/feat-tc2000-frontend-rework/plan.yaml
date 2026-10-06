@@ -183,27 +183,40 @@ current_blocker: >-
   production build passed. Scope/self-tests and final workstream validation
   passed. Full frontend coverage, generic integration, broader R1/R5/R6 and AC7,
   exact V25 review, and staging-gated provider/ETF consumer work remain open.
+  At pushed product commit 901190d51c60ed72985ade9b2a3e26b2fc57f0fe, the
+  Chart Templates dialog assigns a unique F1-F12 key to saved templates and
+  persists it in library metadata; import retains an assignment only when the
+  loaded library has no collision. The workstation routes unmodified function
+  keys to the active chart only; `?` remains Help. Focused suites passed 63/63,
+  full serial frontend passed 292 suites/1,232 tests, Vue type-check/production
+  build passed, and authenticated Chromium verified save/assign/apply 1/1. The
+  unchanged Help visual oracle remains 50,941 pixels (3.0%) above its 0.5%
+  tolerance. Full integration and broader AC4-AC7/R1/R5/R6 remain open; provider
+  and ETF consumption is deferred until both branches reach staging.
 active_changeset_context:
-  name: TC2000 V25 active-chart date-pointer mode cycle
+  name: TC2000 V25 F1-F12 chart-template assignment
   status: product_commit_pushed_validated_visual_review_open
-  commit_sha: 82cf7df90b0749751c9efd9041c575a3a250285c
-  remote_sha: 82cf7df90b0749751c9efd9041c575a3a250285c
+  commit_sha: 901190d51c60ed72985ade9b2a3e26b2fc57f0fe
+  remote_sha: 901190d51c60ed72985ade9b2a3e26b2fc57f0fe
   intent: >-
-    Implement the official period-key chart date-pointer cycle through the
-    existing crosshair/OHLCV rendering and persist its mode without acquiring
-    data or taking provider/ETF scope.
+    Implement official F1-F12 chart-template assignment through existing saved
+    chart templates; dispatch only to the active chart and preserve template,
+    window, and provider/ETF ownership boundaries.
   owned_paths:
-    - frontend/src/components/chart/UPlotChart.vue
+    - frontend/src/components/workstation/ChartTemplateControl.vue
     - frontend/src/components/workstation/WorkstationToolContent.vue
     - frontend/src/views/WorkstationView.vue
+    - frontend/tests/unit/components/test_chart_template_control.test.ts
     - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
-    - frontend/tests/e2e/tc2000_date_pointer.spec.ts
-    - frontend/tests/e2e/flows.spec.ts
+    - frontend/tests/e2e/tc2000_chart_template_hotkeys.spec.ts
+    - ops/workstreams/feat-tc2000-frontend-rework/plan.yaml
+    - docs/tc2000-roadmap.md
+    - docs/tc2000-parity.md
   next_action: >-
-    Continue remaining TC-owned R1/R5/R6 implementation and exact-tip gates.
-    Preserve protected visual oracles and defer R2/R3/shared-path reconciliation
-    until provider and ETF both reach staging. Stop only at
-    ready_for_human_review.
+    Continue one bounded TC-owned R1/R5/R6 frontend parity slice, refresh exact-
+    tip full-stack/browser evidence as feasible, preserve protected visual
+    oracles, and defer R2/R3/shared-path reconciliation until provider and ETF
+    both reach staging. Stop only at ready_for_human_review.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -460,15 +473,13 @@ progress:
     consumption/reconciliation until both dependencies reach staging. Stop at
     ready_for_human_review.
   current_blocker: >-
-    At pushed product commit 1db492d, direct plain-number chart shortcuts,
-    focused 42/42, full serial frontend 130 files/1,226 tests, and type-check/
-    production build pass. Isolated browser navigation confirms M5 -> W1 -> D1;
-    local M5/W1 test-fixture bars are unavailable. The protected Help screenshot
-    differs by 58,238 pixels (3.0%) against its unchanged 0.5% threshold. No
-    baseline, mask, or skip was changed. Generic integration, exact V25 review,
-    broader AC4-AC7 evidence, and full R1/R5/R6 work remain open. Provider and
-    ETF branches remain outside staging; defer AC2/AC3 and shared-path
-    reconciliation.
+    At pushed product commit 901190d51c60ed72985ade9b2a3e26b2fc57f0fe,
+    F1-F12 chart-template assignment passed focused 63/63, full frontend
+    1,232/1,232, type-check/build, and authenticated Chromium 1/1. The unchanged
+    Help screenshot remains 50,941 pixels (3.0%) over its 0.5% tolerance. No
+    baseline, mask, threshold, or skip changed. Generic integration, exact V25
+    visual review, broader AC4-AC7/R1/R5/R6, and provider/ETF consumption after
+    staging remain open.
 historical_implementation_records:
   - "Added TC2000's documented HLC Bars style to the frontend chart contract and settings, drawing the existing OHLCV high-low range with a close tick and omitting the open tick. Ctrl+B now cycles HLC, OHLC, Candles, Line in that order. The focused renderer/workstation tests passed 45/45; the full serial frontend suite passed 130 files / 1,225 tests; vue-tsc/Vite build passed; authenticated F8k-direct-chart-style passed 1/1 across all four styles. The protected Help screenshot test failed against its unchanged baseline with 50,941 pixels / 3.0% difference (0.5% threshold); no visual baseline/policy was changed."
   - "Authenticated follow-up browser evidence supersedes the earlier unauthenticated CLI attempt: a unique account in the assigned TC stack was used to activate the chart, press `/`, and confirm the plot library reopened with its `Filter indicators` search focused. No account was created outside the branch stack; no other worktree changed. The account remains a test artifact in the assigned stack. The Help visual oracle was not rerun after this shortcut, and its protected baseline remains unchanged."

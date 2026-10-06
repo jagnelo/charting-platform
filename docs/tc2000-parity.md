@@ -1,5 +1,29 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-10-06 — F1–F12 chart-template assignment
+
+The [current TC2000 V25 shortcut reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+assigns F1–F12 to chart templates. The workstation's Chart Templates dialog
+now lets each saved template claim one unassigned F-key and prevents duplicate
+assignments in the loaded library; exports retain the assignment, and imports
+reject a key already claimed by another saved template. Pressing an unmodified
+F-key on the active chart applies only that chart's matching template, retaining
+its active instrument identity. Unmodified function keys in text editors,
+modified F-keys, and keys while non-chart tools are active do not dispatch a
+template action. `?` opens keyboard help; F1 outside an active chart remains a
+Help fallback.
+
+Focused component/shell tests passed `63/63`, including duplicate prevention,
+initial template-load deferral, active-window routing, and modifiers. The full
+serial frontend suite passed `1,232/1,232`; Vue type-check/production build
+passed; authenticated Chromium verified save, unique F5 assignment, a changed
+chart style, and restoration by F5 (`1/1`). The protected Help screenshot
+oracle remains above tolerance at `50,941` pixels (`3.0%` vs `0.5%`); no visual
+reference, mask, threshold, skip, or acceptance rule changed. Multi-day period
+shortcuts (`2–4`, `6–8`, and `9`) remain unsupported because the existing
+timeframe contract does not represent them. Full integration and exact V25
+visual approval remain open.
+
 ## 2026-10-06 — Date-pointer display cycle
 
 The [current TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
