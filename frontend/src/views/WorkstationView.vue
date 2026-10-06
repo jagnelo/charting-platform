@@ -46,6 +46,7 @@
               <div><dt>Shift+F</dt><dd>Flag or unflag selected WatchList symbols</dd></div>
               <div><dt>Shift+N</dt><dd>Write a note for the active WatchList symbol</dd></div>
               <div><dt>Shift+D</dt><dd>Toggle Trend Line drawing on the active chart</dd></div>
+              <div><dt>Ctrl+B</dt><dd>Cycle OHLC bars, candles, and line style on the active chart</dd></div>
               <div><dt>Ctrl+1</dt><dd>Set the active chart to 1-minute bars</dd></div>
               <div><dt>Ctrl+3</dt><dd>Set the active chart to 5-minute bars</dd></div>
               <div><dt>Ctrl+4</dt><dd>Set the active chart to 15-minute bars</dd></div>
@@ -257,6 +258,7 @@ const DIRECT_CHART_TIMEFRAME_SHORTCUTS: Readonly<Record<string, Timeframe>> = {
   '5': 'M30',
   '6': 'H1',
 }
+const STANDARD_CHART_STYLES = ['ohlc', 'candles', 'line'] as const
 const route = useRoute()
 const router = useRouter()
 const chartStore = useChartStore()
@@ -1968,6 +1970,26 @@ function handleKeydown(event: KeyboardEvent) {
     return
   }
   if (event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+    if (event.key.toLowerCase() === 'b') {
+      const activeTab = workspaceStore.activeTab
+      const activeWindowKey = isPopout.value
+        ? String(route.params.windowKey ?? '')
+        : activeTab?.active_window_key
+      const activeWindow = activeTab?.windows.find(window => window.instance_key === activeWindowKey)
+      if (activeWindow?.tool_type === 'chart' && activeWindowKey) {
+        const configuredStyle = activeWindow.configuration.bar_type
+        const currentStyle = configuredStyle == null
+          ? 'candles'
+          : STANDARD_CHART_STYLES.includes(configuredStyle as typeof STANDARD_CHART_STYLES[number])
+            ? configuredStyle as typeof STANDARD_CHART_STYLES[number]
+            : undefined
+        const currentIndex = currentStyle ? STANDARD_CHART_STYLES.indexOf(currentStyle) : -1
+        const nextStyle = STANDARD_CHART_STYLES[(currentIndex + 1) % STANDARD_CHART_STYLES.length]
+        updateToolConfiguration(activeWindowKey, { ...activeWindow.configuration, bar_type: nextStyle })
+        event.preventDefault()
+        return
+      }
+    }
     const timeframe = DIRECT_CHART_TIMEFRAME_SHORTCUTS[event.key]
     if (timeframe) {
       const activeTab = workspaceStore.activeTab

@@ -513,6 +513,45 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('cycles supported Ctrl+B chart styles only on the active chart', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    harness.workspace.activeTab.active_window_key = 'chart-main'
+    harness.chartWindow.configuration = { bar_type: 'ohlc', marker: 'preserved' }
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const workstation = wrapper.find('.workstation').element
+
+    for (const expected of ['candles', 'line', 'ohlc']) {
+      const event = new KeyboardEvent('keydown', { key: 'b', ctrlKey: true, bubbles: true, cancelable: true })
+      workstation.dispatchEvent(event)
+      expect(event.defaultPrevented).toBe(true)
+      expect(harness.chartWindow.configuration.bar_type).toBe(expected)
+      expect(harness.chartWindow.configuration.marker).toBe('preserved')
+    }
+
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+    const nonChart = new KeyboardEvent('keydown', { key: 'b', ctrlKey: true, bubbles: true, cancelable: true })
+    workstation.dispatchEvent(nonChart)
+    expect(nonChart.defaultPrevented).toBe(false)
+    expect(harness.chartWindow.configuration.bar_type).toBe('ohlc')
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+    wrapper.unmount()
+
+    harness.workspace.activeTab.active_window_key = 'chart-main'
+    harness.chartWindow.configuration = {}
+    const defaultStyleWrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const defaultStyleEvent = new KeyboardEvent('keydown', { key: 'b', ctrlKey: true, bubbles: true, cancelable: true })
+    defaultStyleWrapper.find('.workstation').element.dispatchEvent(defaultStyleEvent)
+    expect(defaultStyleEvent.defaultPrevented).toBe(true)
+    expect(harness.chartWindow.configuration.bar_type).toBe('line')
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+    defaultStyleWrapper.unmount()
+  })
+
   it('replays a newer shell traversal after late workspace hydration', async () => {
     routeState.path = '/'
     routeState.params = {}

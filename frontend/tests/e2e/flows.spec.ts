@@ -2792,6 +2792,38 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8k-direct-chart-style — Ctrl+B cycles the active chart through supported standard styles', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    const workstation = page.locator('.workstation:visible').last()
+    const chart = page.locator('.tool-window:visible').filter({ has: page.locator('.chart-tool') }).first()
+    await expect(chart).toBeVisible({ timeout: 10_000 })
+    const settings = chart.getByRole('button', { name: 'Chart settings' })
+    const chartType = page.getByLabel('Primary rendering')
+    await settings.click()
+    const original = await chartType.inputValue()
+    await page.keyboard.press('Escape')
+    await chart.locator('.chart-root').click({ position: { x: 20, y: 20 } })
+    await expect(chart).toHaveClass(/tool-window--active/)
+
+    const supportedStyles = ['ohlc', 'candles', 'line']
+    let styleIndex = supportedStyles.indexOf(original)
+    for (let index = 0; index < 3; index += 1) {
+      styleIndex = (styleIndex + 1) % supportedStyles.length
+      await workstation.press('Control+b')
+      await settings.click()
+      await expect(chartType).toHaveValue(supportedStyles[styleIndex])
+      await page.keyboard.press('Escape')
+      await chart.locator('.chart-root').click({ position: { x: 20, y: 20 } })
+    }
+
+    await settings.click()
+    await chartType.selectOption(original)
+    await page.keyboard.press('Escape')
+
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8l — hidden workstation surfaces suspend market-analysis refreshes', async ({ page, browserDiagnostics }) => {
     const refreshRequests: string[] = []
     page.on('request', request => {
