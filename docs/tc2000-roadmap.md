@@ -5,6 +5,24 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-06
 
+## 2026-10-06 — Plain-number Daily/Weekly chart shortcuts
+
+Product commit `1db492d1346c47e872b717480d2e6bfa45e1949f` implements TC2000
+V25's plain `1` → Daily and `5` → Weekly direct active-chart interval
+shortcuts. The existing Ctrl+number intraday mappings are unaffected; non-chart
+digits continue to open symbol search, and unsupported multi-day/period-toggle
+intervals are not claimed. The [official shortcut reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+lists both period keys.
+
+Focused WorkstationView bindings passed `42/42`; full serial frontend Vitest
+passed `130/130` files and `1,226/1,226` tests after an unrelated timer-leak
+failure passed isolated replay; Vue type-check and production build passed.
+Isolated loopback Chromium confirmed Ctrl+3 → M5, plain 5 → W1, and plain 1 →
+D1. The assigned test fixture contains no M5/W1 OHLCV rows; no data behavior
+was changed. The protected Help screenshot differs by `58,238` pixels (`3.0%`)
+against the unchanged `0.5%` threshold. No baseline, mask, or acceptance policy
+changed. Exact V25 visual review and the generic integration gate remain open.
+
 ## 2026-10-06 — Pop-out focus survives slow workspace hydration
 
 Product commit `d9c179a951fe9efd7502701df2a42fc1a4a1d8b8` moves initial focus

@@ -20,21 +20,22 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  Current TC frontend parity covers supported Ctrl+number timeframe shortcuts,
-  Ctrl+B cycling through HLC/OHLC/Candles/Line, and `/` opening the active
-  chart's plot library. HLC uses the existing OHLCV data and draws each
-  high-low range plus the close tick; the open tick is omitted. At pushed
-  product source 30323b820a8e34cdcf43e765102a70494751746c, focused renderer and
-  workstation tests pass 45/45; the full serial frontend suite passes 130/130
-  files and 1,225/1,225 tests; vue-tsc/Vite production build passes; and
-  authenticated F8k-direct-chart-style passes 1/1 across all four styles.
-  The protected application-shell Help screenshot still differs by exactly
-  50,941 pixels (3.0%), exceeding its unchanged 0.5% threshold. This is the
-  same visible-help-state delta as before HLC was added; no baseline or visual
-  acceptance setting was changed. Generic integration, broader R1/R5/R6 and
-  AC4-AC7 evidence, exact V25 review, and staging-gated provider/ETF consumer
-  work remain open.
-  Direct remote refs refreshed 2026-10-06: TC 30323b820a8e34cdcf43e765102a70494751746c,
+  Current TC frontend parity covers supported Ctrl+number intraday shortcuts,
+  plain 1/Daily and 5/Weekly shortcuts, Ctrl+B HLC/OHLC/Candles/Line cycling,
+  and `/` opening the active chart's plot library. Plain period shortcuts are
+  chart-only; unsupported intervals and non-chart number keys retain
+  type-to-search behavior. At pushed product source
+  1db492d1346c47e872b717480d2e6bfa45e1949f, focused WorkstationView bindings
+  pass 42/42; the full serial frontend suite passes 130/130 files and 1,226/1,226
+  tests (after one unrelated timer-leak attempt; the failing store suite passed
+  38/38 isolated); vue-tsc/Vite production build passes. Isolated loopback
+  Chromium confirms Ctrl+3 selects M5, plain 5 selects W1, and plain 1 returns
+  to D1. This local fixture has no M5/W1 OHLCV rows; the shortcut causes no data
+  acquisition. The protected Help screenshot differs by 58,238 pixels (3.0%),
+  exceeding its unchanged 0.5% threshold; no baseline, mask, or skip changed.
+  Generic integration, broader R1/R5/R6 and AC4-AC7 evidence, exact V25 review,
+  and staging-gated provider/ETF consumer work remain open.
+  Direct remote refs refreshed 2026-10-06: TC 1db492d1346c47e872b717480d2e6bfa45e1949f,
   staging 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider platform
   88132e9145a08d1c935a0111b3dba0fbd88bdff1, and ETF holdings
   2bd221663956581dfb35f5b77961900674449f23. Both upstream dependencies remain
@@ -170,14 +171,14 @@ current_blocker: >-
   passed. Full frontend coverage, generic integration, broader R1/R5/R6 and AC7,
   exact V25 review, and staging-gated provider/ETF consumer work remain open.
 active_changeset_context:
-  name: TC2000 V25 chart-style and keyboard parity
+  name: TC2000 V25 direct daily and weekly period shortcuts
   status: product_commit_pushed_validated_visual_review_open
-  commit_sha: 30323b820a8e34cdcf43e765102a70494751746c
-  remote_sha: 30323b820a8e34cdcf43e765102a70494751746c
+  commit_sha: 1db492d1346c47e872b717480d2e6bfa45e1949f
+  remote_sha: 1db492d1346c47e872b717480d2e6bfa45e1949f
   intent: >-
-    Implement TC2000 V25 direct chart timeframes, plot-library activation, and
-    HLC/OHLC/Candles/Line style cycling using the existing renderer and OHLCV
-    data, without provider/ETF acquisition.
+    Implement the official plain 1/Daily and 5/Weekly active-chart shortcuts
+    using the existing timeframe contract, preserving Ctrl+number mappings and
+    non-chart symbol search. No provider/ETF acquisition.
   owned_paths:
     - frontend/src/views/WorkstationView.vue
     - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
@@ -441,15 +442,15 @@ progress:
     consumption/reconciliation until both dependencies reach staging. Stop at
     ready_for_human_review.
   current_blocker: >-
-    At pushed product commit 30323b820, the full serial
-    frontend suite passes 130/130 files and 1,225/1,225 tests; focused renderer/
-    workstation tests pass 45/45; type-check/build and authenticated chart-style
-    browser coverage pass. The protected Help screenshot differs by 50,941 pixels
-    (3.0%) against the unchanged 0.5% threshold; no baseline, mask, or skip was
-    changed. Generic integration, exact V25 review, broader AC4-AC7 evidence,
-    and full R1/R5/R6 roadmap work remain open. Provider and ETF
-    branches are still outside staging, so AC2/AC3 consumption and shared-path
-    reconciliation remain explicitly deferred.
+    At pushed product commit 1db492d, direct plain-number chart shortcuts,
+    focused 42/42, full serial frontend 130 files/1,226 tests, and type-check/
+    production build pass. Isolated browser navigation confirms M5 -> W1 -> D1;
+    local M5/W1 test-fixture bars are unavailable. The protected Help screenshot
+    differs by 58,238 pixels (3.0%) against its unchanged 0.5% threshold. No
+    baseline, mask, or skip was changed. Generic integration, exact V25 review,
+    broader AC4-AC7 evidence, and full R1/R5/R6 work remain open. Provider and
+    ETF branches remain outside staging; defer AC2/AC3 and shared-path
+    reconciliation.
 historical_implementation_records:
   - "Added TC2000's documented HLC Bars style to the frontend chart contract and settings, drawing the existing OHLCV high-low range with a close tick and omitting the open tick. Ctrl+B now cycles HLC, OHLC, Candles, Line in that order. The focused renderer/workstation tests passed 45/45; the full serial frontend suite passed 130 files / 1,225 tests; vue-tsc/Vite build passed; authenticated F8k-direct-chart-style passed 1/1 across all four styles. The protected Help screenshot test failed against its unchanged baseline with 50,941 pixels / 3.0% difference (0.5% threshold); no visual baseline/policy was changed."
   - "Authenticated follow-up browser evidence supersedes the earlier unauthenticated CLI attempt: a unique account in the assigned TC stack was used to activate the chart, press `/`, and confirm the plot library reopened with its `Filter indicators` search focused. No account was created outside the branch stack; no other worktree changed. The account remains a test artifact in the assigned stack. The Help visual oracle was not rerun after this shortcut, and its protected baseline remains unchanged."

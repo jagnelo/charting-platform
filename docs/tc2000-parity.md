@@ -1,5 +1,21 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-10-06 — Direct Daily/Weekly active-chart shortcuts
+
+The [current TC2000 V25 shortcut reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+defines `1` for Daily and `5` for Weekly bars, while Ctrl+number selects
+intraday intervals. The workstation now applies plain `1` / `5` only when a
+chart is active and its existing timeframe update succeeds. Non-chart digits
+retain symbol-search behavior; unsupported multi-day bars and the `9` monthly /
+quarterly / yearly cycle are not claimed. Focused bindings passed `42/42`; the
+authenticated loopback browser path confirmed M5 → W1 → D1. The active test
+fixture has no M5/W1 OHLCV rows, so this verifies interval state/requests, not
+market-data coverage. Full frontend Vitest passed `1,226/1,226` tests after an
+unrelated timer-leak attempt passed its isolated replay; type-check/build
+passed. The protected Help screenshot remains red at `58,238` pixels (`3.0%`)
+against the unchanged `0.5%` threshold; no visual oracle or acceptance policy
+changed.
+
 ## 2026-10-06 — Pop-out focus precedes workspace loading
 
 The named browser pop-out landmark receives initial focus immediately when the

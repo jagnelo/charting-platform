@@ -1,5 +1,25 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — Plain-number Daily/Weekly interval shortcuts pushed
+
+Product commit `1db492d1346c47e872b717480d2e6bfa45e1949f` implements the
+official plain `1` (Daily) and `5` (Weekly) direct active-chart shortcuts using
+the existing timeframe contract. Ctrl+number intraday mappings are unchanged;
+non-chart digits remain type-to-search, and unsupported multi-day intervals / 9
+period cycling are not claimed. The official reference is
+https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts.
+
+WorkstationView bindings passed `42/42`; the full serial frontend suite passed
+`130/130` files and `1,226/1,226` tests on retry after one unrelated timer-leak
+failure (the failing store suite passed `38/38` isolated); `npm run build`
+passed vue-tsc and Vite. The isolated loopback Playwright CLI confirmed
+Ctrl+3 → M5, plain 5 → W1, and plain 1 → D1. This test fixture has no M5/W1
+OHLCV rows; this frontend-only shortcut does not acquire data. The protected
+Help screenshot test failed with `58,238` different pixels (`3.0%`) against the
+unchanged `0.5%` threshold. No screenshot baseline, mask, threshold, or skip
+changed. Generic integration, exact V25 approval, broader acceptance evidence,
+and staging-dependent provider/ETF consumption remain open.
+
 ## 2026-10-06 — HLC Bars product checkpoint pushed
 
 The HLC Bars renderer and four-style Ctrl+B cycle are committed and pushed as
