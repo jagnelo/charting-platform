@@ -13120,3 +13120,20 @@ modules; Ruff, formatting, workstream validation, and Alembic single-head
 resolution passed. Next: bind instance start/stop to reservation and lease
 acquire/heartbeat/release and activate canonical platform event payload
 resolution in the opt-in Compose worker.
+
+## 2026-10-06 - Heartbeat forward event leases during long handoffs
+
+Forward worker authorization now carries the persisted lease observation
+sequence. The capacity-settling event handler renews an authorized lease while
+its downstream event/account handoff is running, cancels and retries the event
+if a heartbeat fails, and supplies the updated sequence to release observation
+resolution. This prevents long event processing from outliving its lease and
+keeps heartbeat/release observations contiguous across process retries.
+
+Validation: forward worker settlement, authorization, PostgreSQL worker state,
+and forward worker service tests passed 24/24. Focused MyPy passed for the three
+changed source modules; Ruff and formatting checks passed. This remains an
+event-handoff lease improvement, not instance activation/termination wiring.
+Next: bind instance start/stop to durable reservation and lease lifecycle, then
+activate the canonical platform event payload resolver in the opt-in Compose
+worker.

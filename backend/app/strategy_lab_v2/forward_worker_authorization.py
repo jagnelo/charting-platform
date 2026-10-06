@@ -30,12 +30,19 @@ class ForwardWorkerAuthorization:
 
     reservation: WorkerReservation
     lease: ExecutionAttemptLease
+    observation_sequence: int = 0
 
     def __post_init__(self) -> None:
         if not isinstance(self.reservation, WorkerReservation):
             raise TypeError("reservation must be a WorkerReservation")
         if not isinstance(self.lease, ExecutionAttemptLease):
             raise TypeError("lease must be an ExecutionAttemptLease")
+        if (
+            not isinstance(self.observation_sequence, int)
+            or isinstance(self.observation_sequence, bool)
+            or self.observation_sequence < 0
+        ):
+            raise ValueError("observation_sequence must be a non-negative integer")
         if self.reservation.kind is not WorkerKind.FORWARD:
             raise ValueError("forward authorization requires a FORWARD reservation")
         if self.reservation.worker_id != self.lease.worker_id:

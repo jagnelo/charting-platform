@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -11,6 +12,7 @@ from app.strategy_lab_v2.forward_worker_settlement import ForwardWorkerCapacityR
 from app.strategy_lab_v2.lease_observations import (
     LeaseObservation,
     LeaseObservationKind,
+    LeaseObservationResolution,
     LeaseObservationState,
     apply_lease_observation,
 )
@@ -95,6 +97,103 @@ async def test_forward_worker_capacity_release_follows_durable_handoff() -> None
     assert result.decision is WorkerHandleDecision.COMPLETE
     assert len(store.calls) == 1
     assert store.calls[0]["observation"] == observation
+
+
+@pytest.mark.asyncio
+async def test_forward_worker_heartbeats_during_long_handoff_and_sequences_release() -> None:
+    entry, _, work_item = _work()
+    authorization = _authorization()
+
+    class HeartbeatReleaseStore:
+        def __init__(self) -> None:
+            self.state = LeaseObservationState(authorization.lease)
+            self.heartbeats: list[LeaseObservation] = []
+            self.release: LeaseObservation | None = None
+
+        async def observe(self, *, lease_id: str, observation: LeaseObservation):
+            assert lease_id == authorization.lease.lease_id
+            self.heartbeats.append(observation)
+            resolution = apply_lease_observation(self.state, observation)
+            self.state = resolution.state
+            return LeaseObservationResolution(
+                resolution.decision,
+                self.state,
+                resolution.expected_sequence,
+                resolution.rejection_reason,
+            )
+
+        async def release_capacity(self, *, profile, reservation_id, lease_id, observation):
+            assert profile.worker_id == authorization.lease.worker_id
+            assert reservation_id == authorization.reservation.reservation_id
+            assert lease_id == authorization.lease.lease_id
+            self.release = observation
+            resolution = apply_lease_observation(self.state, observation)
+            self.state = resolution.state
+            return WorkerCapacityResolution(
+                WorkerCapacityDecision.RELEASED,
+                WorkerPoolState(profile, (authorization.reservation,)),
+                self.state,
+                observation,
+            )
+
+    store = HeartbeatReleaseStore()
+    sleep_count = 0
+    clock_count = 0
+
+    async def heartbeat_sleep(_seconds: float) -> None:
+        nonlocal sleep_count
+        sleep_count += 1
+        if sleep_count == 1:
+            await asyncio.sleep(0)
+        else:
+            await asyncio.Event().wait()
+
+    def clock() -> datetime:
+        nonlocal clock_count
+        clock_count += 1
+        return NOW + timedelta(seconds=clock_count)
+
+    async def handler(received_entry, _item):
+        await asyncio.sleep(0.01)
+        return WorkerHandleResult(
+            received_entry.fingerprint,
+            WorkerHandleDecision.COMPLETE,
+            content_digest("long-handoff"),
+        )
+
+    def release_observation(_entry, _item, updated_authorization):
+        sequence = updated_authorization.observation_sequence + 1
+        observed_at = NOW + timedelta(seconds=clock_count + 1)
+        return LeaseObservation(
+            content_digest({"release": sequence, "at": observed_at}),
+            updated_authorization.lease.lease_id,
+            updated_authorization.lease.worker_id,
+            updated_authorization.lease.attempt_id,
+            sequence,
+            LeaseObservationKind.RELEASE,
+            observed_at,
+        )
+
+    wrapper = ForwardWorkerCapacityReleaseHandler(
+        lambda _entry, _item: authorization,
+        handler,
+        store,
+        profile=WorkerProfile("worker-1", WorkerKind.FORWARD, content_digest("runtime")),
+        observation_resolver=release_observation,
+        clock=clock,
+        heartbeat_interval_seconds=0.001,
+        heartbeat_extension=timedelta(seconds=20),
+        sleep=heartbeat_sleep,
+    )
+
+    result = await wrapper(entry, work_item)
+
+    assert result.decision is WorkerHandleDecision.COMPLETE
+    assert len(store.heartbeats) == 1
+    assert store.heartbeats[0].sequence == 1
+    assert store.release is not None
+    assert store.release.sequence == 2
+    assert store.state.lease.released_at == store.release.observed_at
 
 
 @pytest.mark.asyncio

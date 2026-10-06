@@ -86,7 +86,17 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "backend/app/strategy_lab_v2/forward_worker_authorization.py",
+    "backend/app/strategy_lab_v2/forward_worker_settlement.py",
+    "backend/app/strategy_lab_v2/postgres_worker_state.py",
+    "backend/app/strategy_lab_v2/tests/test_forward_worker_settlement.py",
+    "backend/app/strategy_lab_v2/tests/test_postgres_worker_state.py",
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -122,7 +132,7 @@
   "goal_request_state": "ready",
   "goal_state": "requested",
   "goal_unavailable_reason": null,
-  "head": "70825651f2236e957047d5b33e8d644db58e75f5",
+  "head": "d88e2baec038248122ef63eafa6dde8872f3cfd1",
   "implementation_sha": "24a9256e6e3a7f5902b7dfbdc939d83167b73ffb",
   "last_checkpoint": "2026-10-06T04:08:13+00:00",
   "last_human_progress_update": "2026-10-06T04:08:20.957049+00:00",
@@ -154,7 +164,7 @@
     "total": 18,
     "updated_at": "2026-10-06T04:08:20.957028+00:00"
   },
-  "remote": "35dddeb935a7a05b85e85aec7040cd229d3e8ae0",
+  "remote": "d88e2baec038248122ef63eafa6dde8872f3cfd1",
   "remote_sha": "35dddeb935a7a05b85e85aec7040cd229d3e8ae0",
   "remote_synchronized": true,
   "retained_docker_resources": [],

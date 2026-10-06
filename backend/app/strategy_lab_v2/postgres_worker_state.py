@@ -413,7 +413,9 @@ class PostgresWorkerStateAdapter:
                 lease_state = await self._load_lease(session, lease_id)
                 if reservation is None or lease_state is None:
                     return None
-                return ForwardWorkerAuthorization(reservation, lease_state.lease)
+                return ForwardWorkerAuthorization(
+                    reservation, lease_state.lease, lease_state.last_sequence
+                )
 
     async def load_forward_authorization_for_attempt(
         self,
@@ -476,7 +478,7 @@ class PostgresWorkerStateAdapter:
                     or lease.released_at is not None
                 ):
                     raise ValueError("PostgreSQL forward lease differs from its active query")
-                return ForwardWorkerAuthorization(reservation, lease)
+                return ForwardWorkerAuthorization(reservation, lease, lease_state.last_sequence)
 
     async def persist_lease(self, lease: ExecutionAttemptLease) -> LeaseObservationState:
         """Persist one newly acquired lease or replay the exact lease."""

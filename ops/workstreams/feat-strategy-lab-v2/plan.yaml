@@ -890,15 +890,19 @@ progress:
     backtest qualification and exact-image forward recovery probes. The
     authenticated production plan now proves deterministic replay after
     process loss, durable settlement and ACK, and fresh-process continuation
-    from its authenticated prior-event prefix. Remaining work is product
-    implementation and broader validation: forward-shadow acceptance, the
-    remaining backtest/search/API/security/Compose criteria, and exact-tip
+    from its authenticated prior-event prefix. Forward event handoffs now renew
+    their persisted lease while processing and retry without releasing capacity
+    if heartbeat evidence fails. Remaining work is product implementation and
+    broader validation: bind instance activation/termination to reservation and
+    lease lifecycle, activate canonical event payload resolution, and complete
+    the remaining backtest/search/API/security/Compose criteria and exact-tip
     branch gates. Provider-platform, ETF, and TC2000 contracts remain owned by
     their branches; unsupported options remain fail-closed pending canonical
     Greeks/delta/settlement evidence.
   next_action: >-
     Bind instance activation and termination to durable worker reservation,
-    lease acquisition/heartbeat, and capacity release, then activate the
-    canonical event-stream callback path. Continue broader forward-shadow and
-    remaining backtest, search, API, security, and Compose acceptance. Keep
-    unsupported products fail-closed; stable Nautilus labeling is not a gate.
+    lease acquisition and capacity release; forward event-processing heartbeat
+    is now implemented separately. Then activate the canonical event-stream
+    callback path. Continue broader forward-shadow and remaining backtest,
+    search, API, security, and Compose acceptance. Keep unsupported products
+    fail-closed; stable Nautilus labeling is not a gate.

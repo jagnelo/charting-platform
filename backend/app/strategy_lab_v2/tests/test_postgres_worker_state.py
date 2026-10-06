@@ -446,6 +446,17 @@ async def test_worker_state_adapter_loads_forward_authorization_atomically() -> 
         lease_duration=timedelta(minutes=5),
     )
     await adapter.persist_lease(lease)
+    heartbeat = LeaseObservation(
+        content_digest("forward-heartbeat"),
+        lease.lease_id,
+        lease.worker_id,
+        lease.attempt_id,
+        1,
+        LeaseObservationKind.HEARTBEAT,
+        NOW + timedelta(minutes=1),
+        NOW + timedelta(minutes=6),
+    )
+    await adapter.observe(lease_id=lease.lease_id, observation=heartbeat)
 
     authorization = await adapter.load_forward_authorization(
         profile=profile,
@@ -456,6 +467,7 @@ async def test_worker_state_adapter_loads_forward_authorization_atomically() -> 
     assert isinstance(authorization, ForwardWorkerAuthorization)
     assert authorization.reservation.reservation_id == reservation_id
     assert authorization.lease.lease_id == lease.lease_id
+    assert authorization.observation_sequence == 1
     assert any("FOR UPDATE" in call for call in session.calls)
 
     resolved_by_attempt = await adapter.load_forward_authorization_for_attempt(
