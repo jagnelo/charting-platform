@@ -13962,3 +13962,28 @@ phase transition, then prove deterministic selection and idempotent OOS task
 append/dispatch without using OOS outcomes for selection. Nautilus stable
 release labeling remains irrelevant; RC6 is exact-pinned and qualified for the
 authorized local simulation scopes.
+
+## 2026-10-06 - Walk-forward phase recovery integration evidence
+
+Commit `bfbeac96b9549fd73341ae8c8a883862ae6a04d7` adds two PostgreSQL-backed
+recovery tests. The lower-level test persists completed training candidates,
+appends selected OOS queue identities atomically, creates a new search-state
+adapter, and verifies restart hydration, exact append replay, owner isolation,
+and no duplicate candidate slots. The application-level test exercises
+walk-forward training initialization, training-manifest-based selection, and
+OOS trial publication; it injects a failure immediately before the PostgreSQL
+queue append, creates a new coordinator and adapter, then verifies deterministic
+resume and exact OOS queue replay.
+
+Validation passed: both Docker-backed tests (`2 passed`), Ruff, Ruff formatting,
+MyPy for the integration module, and `git diff --check`. Commit
+`bfbeac96b9549fd73341ae8c8a883862ae6a04d7` is pushed and matched the remote.
+
+Scope remains in progress. In the application-level test, plan/resources and
+result-manifest repositories are the existing test fixture rather than a full
+PostgreSQL host composition, and it stops before OOS dispatch. Next, carry the
+same restart proof through PostgreSQL-backed trial/result persistence and the
+transactional dispatch/outbox boundary, including interruption after durable
+append but before dispatch acknowledgement. Keep training-only selection and
+owner isolation explicit; do not claim complete phase recovery from these
+focused cases alone.
