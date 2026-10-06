@@ -67,7 +67,7 @@
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
     ],
-    "known_bytes": 653925405,
+    "known_bytes": 654025405,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
@@ -78,7 +78,7 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 650857501,
+    "volume_bytes": 650957501,
     "volume_count": 4,
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
@@ -119,21 +119,21 @@
   "finished_at": null,
   "goal_budget_policy": "unbounded_unless_human_authorized",
   "goal_objective": "Advance feat/tc2000-frontend-rework: Deliver the frontend-led TC2000 V25-inspired workstation by consuming the market-data-provider-platform and ETF-holdings-constituents contracts, retaining TC-owned Study/Strategy capabilities, reconciling upstream overlaps after staging promotion, and stopping at ready_for_human_review.. Acceptance criteria: AC1: The TC-only ownership boundary is executable: future touched paths are in the scoped allowlist or documented shared exceptions, and provider/ETF-owned paths fail validation.; AC2: TC consumes the provider-platform preflight and coverage contract from staging without implementing generic provider selection, credentials, ingestion, refresh workers, or provider probes.; AC3: TC consumes ETF holdings capability/source lineage from staging; stale last-known holdings remain display-only and do not become current analytic input.; AC4: The TC workstation supports its benchmark-to-sector/industry/constituent flow, Market Map, breadth, ratios, and historical analytics over persisted evidence with explicit gaps and provenance.; AC5: The existing TC Python/DSL/Study/Strategy engine remains the single programming model, immutable and lineage-preserving, with compatible promotions and explicit capability errors.; AC6: Mapped V25 reference states and the workstation interaction model are implemented and validated without weakening visual or functional oracles.; AC7: Golden Layout/window resilience, accessibility, security, sandbox, endurance, dense-data performance, migration, and logging checks provide actionable evidence.; AC8: After both upstream branches reach staging, every intersecting path has a line-level semantic disposition and the TC branch passes exact-tip validation or records a precise reproducible external blocker.; AC9: The branch stops at ready_for_human_review with clean, synchronized TC-owned workstream records and no direct branch merge, deployment, or mutation of another worktree.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_recorded_at": "2026-10-06T14:55:23.541090+00:00",
+  "goal_recorded_at": "2026-10-06T15:04:53.978972+00:00",
   "goal_request": {
     "objective": "Advance feat/tc2000-frontend-rework: Deliver the frontend-led TC2000 V25-inspired workstation by consuming the market-data-provider-platform and ETF-holdings-constituents contracts, retaining TC-owned Study/Strategy capabilities, reconciling upstream overlaps after staging promotion, and stopping at ready_for_human_review.. Acceptance criteria: AC1: The TC-only ownership boundary is executable: future touched paths are in the scoped allowlist or documented shared exceptions, and provider/ETF-owned paths fail validation.; AC2: TC consumes the provider-platform preflight and coverage contract from staging without implementing generic provider selection, credentials, ingestion, refresh workers, or provider probes.; AC3: TC consumes ETF holdings capability/source lineage from staging; stale last-known holdings remain display-only and do not become current analytic input.; AC4: The TC workstation supports its benchmark-to-sector/industry/constituent flow, Market Map, breadth, ratios, and historical analytics over persisted evidence with explicit gaps and provenance.; AC5: The existing TC Python/DSL/Study/Strategy engine remains the single programming model, immutable and lineage-preserving, with compatible promotions and explicit capability errors.; AC6: Mapped V25 reference states and the workstation interaction model are implemented and validated without weakening visual or functional oracles.; AC7: Golden Layout/window resilience, accessibility, security, sandbox, endurance, dense-data performance, migration, and logging checks provide actionable evidence.; AC8: After both upstream branches reach staging, every intersecting path has a line-level semantic disposition and the TC branch passes exact-tip validation or records a precise reproducible external blocker.; AC9: The branch stops at ready_for_human_review with clean, synchronized TC-owned workstream records and no direct branch merge, deployment, or mutation of another worktree.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "0cddddab98bae9ff6bb21661ea5cbaf8c27012f0",
-  "implementation_sha": "0cddddab98bae9ff6bb21661ea5cbaf8c27012f0",
+  "head": "701b23a59d536625bbed31654a10e05071aa5604",
+  "implementation_sha": "701b23a59d536625bbed31654a10e05071aa5604",
   "interrupted": false,
-  "last_checkpoint": "2026-10-06T14:55:26.139914+00:00",
-  "last_human_progress_update": "2026-10-06T14:53:51.296299+00:00",
+  "last_checkpoint": "2026-10-06T15:04:58.571551+00:00",
+  "last_human_progress_update": "2026-10-06T15:04:53.043328+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "822e9505d19ef7e0adcb7222ec6bdde07b98ff99e72d239b55ee98c6fdbfc6fe",
+  "plan_hash": "4baecc2d4d56eb9950a939b8fbed4787d5803eb515dd17e15bf50e7f25f24aab",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -147,11 +147,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "The complete serial frontend unit suite passes, but the protected Help screenshot differs by 3% after newly added shortcut help rows and cannot be baselined without human visual review. HLC Bars remain unsupported; generic integration, broader ACs, exact V25 review, and both upstream branches reaching staging remain open.",
-    "current_phase": "TC2000 V25 workstation keyboard parity and frontend regression",
-    "next_action": "Continue a bounded frontend-owned V25 parity slice; retain the visual baseline unchanged and retry integration/browser gates when the sandbox permits them. Consume provider and ETF only after both are in staging.",
+    "current_blocker": "The full serial frontend suite, type-check/build, and focused workstation tests pass. The manual Playwright CLI session was redirected to login, so authenticated browser evidence for the latest slash shortcut is missing. The protected Help visual was not rerun after the new help row; at the prior source it differed by 3%. HLC Bars, generic integration, exact V25 review, broader AC4-AC7/R1/R5/R6 work, and provider/ETF dependencies reaching staging remain open.",
+    "current_phase": "TC2000 V25 workstation keyboard parity",
+    "next_action": "Continue a bounded TC-owned frontend parity slice; obtain authenticated browser proof through the established fixture when available, and preserve protected screenshot baselines pending human review. Consume provider and ETF only after both reach staging.",
     "total": 9,
-    "updated_at": "2026-10-06T14:53:51.296276+00:00"
+    "updated_at": "2026-10-06T15:04:53.043299+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
@@ -167,8 +167,8 @@
     "remote_tracking_sha": "d413d845939e68e9738b621329fa8d63a419ddf8",
     "status": "synchronized"
   },
-  "remote": "0cddddab98bae9ff6bb21661ea5cbaf8c27012f0",
-  "remote_sha": "0cddddab98bae9ff6bb21661ea5cbaf8c27012f0",
+  "remote": "701b23a59d536625bbed31654a10e05071aa5604",
+  "remote_sha": "701b23a59d536625bbed31654a10e05071aa5604",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
