@@ -1,5 +1,29 @@
 # feat/etf-holdings-constituents
 
+## Controlled CI-equivalent visual comparison — 2026-10-07
+
+Docker became available again with approximately 4 GiB host memory available.
+The branch-scoped application stack was rebuilt and started successfully, then
+the complete 104-case visual suite was run inside
+`mcr.microsoft.com/playwright:v1.62.1-noble` against that stack over host
+networking. The container resolves Arial to Liberation Sans, whereas this host
+resolves Arial to Nimbus Sans and Segoe UI to DejaVu Sans.
+
+The container run passed 101/104 cases. Only three Study Lab screenshots at
+1080p remained above the 0.5% threshold: structured-result at 100% scale,
+sandbox-error at 100% scale, and sandbox-error at 125% scale. All 1440p cases
+passed, and the broad shell/workspace/freshness failures seen in the host run
+disappeared. The residual diffs are limited to text and chart-label
+rasterisation in those Study Lab captures; no ETF-specific visual failure was
+observed. This controlled result confirms that the original 92/104 host
+failures were primarily environment-dependent rendering drift.
+
+The temporary feature stack, volumes, network, and images were cleaned up by
+the scoped `test-stack-down` path. No snapshots, thresholds, CSS, or unrelated
+stacks were changed. The remaining three visual deltas still need either a
+CI-reproduced run/acceptance explanation or a demonstrated product fix; they
+must not be silenced by regenerating baselines or relaxing the threshold.
+
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 ## Human authorization
