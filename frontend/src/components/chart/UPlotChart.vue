@@ -112,7 +112,7 @@
       <div v-if="showShortcuts" ref="shortcutsDialogRef" :id="`${chartControlId}-shortcuts`" class="shortcuts-overlay" role="dialog" aria-modal="true" :aria-labelledby="`${chartControlId}-shortcuts-title`" @click="closeShortcuts" @keydown.esc.prevent="closeShortcuts">
         <div class="shortcuts-box" @click.stop>
           <div :id="`${chartControlId}-shortcuts-title`" class="sc-title">Keyboard Shortcuts</div>
-          <div class="sc-row"><kbd>+</kbd><kbd>-</kbd> Zoom in / out</div>
+          <div class="sc-row"><kbd>Ctrl+=</kbd><kbd>Ctrl+-</kbd> Zoom in / out</div>
           <div class="sc-row"><kbd>←</kbd><kbd>→</kbd> Pan 5 bars</div>
           <div class="sc-row"><kbd>[</kbd><kbd>]</kbd> Pan 1 bar; Shift for 5 bars</div>
           <div class="sc-row"><kbd>Shift+=</kbd><kbd>Shift+-</kbd> Increase / decrease vertical projection space</div>

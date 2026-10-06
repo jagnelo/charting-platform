@@ -9509,3 +9509,11 @@ reverse navigation, editor literal input, and the chart's latest-history recover
 type-check and production build pass. This is a focused interaction receipt; exact V25 visual
 approval, the full frontend suite, generic integration, and broader workstation acceptance remain
 open.
+
+## 2026-10-06 — TC2000 V25 chart zoom shortcuts
+
+The current [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+specifies Ctrl+= and Ctrl+- for chart zoom. The chart's keyboard-help overlay now shows those
+modifiers rather than bare +/- (which conflicts with workstation timeframe navigation). The
+authenticated Chromium regression verifies both keys change the active chart rendering while its
+timeframe remains D1. This is focused shortcut/help parity, not exact V25 visual approval.

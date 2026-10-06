@@ -18684,3 +18684,15 @@ stalled before startup, then the pinned repository runner supplied the browser
 evidence. Product commit `326a96bf` and test commit `47565254` are pushed. Exact
 generic integration, exact V25 review, and provider/ETF staging dependencies
 remain open; the goal remains active.
+
+## 2026-10-06 — Chart zoom shortcut/help correction
+
+The chart-help overlay now documents Ctrl+= and Ctrl+- rather than bare +/-; bare
+keys conflict with workstation timeframe navigation. The authenticated local
+Chromium F8k-ctrl-chart-zoom regression passed 1/1, verifying both shortcuts
+change the active chart rendering without changing its D1 timeframe. The
+initial Vitest poll did not return its summary; collecting the session later
+confirmed the full frontend suite passed 131/131 files and 1,235/1,235 tests
+(exit 0). Exact visual approval, generic
+integration, broader workstation acceptance, and staging-gated provider/ETF
+consumption remain open. The TC scope boundary was preserved.

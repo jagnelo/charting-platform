@@ -2295,6 +2295,46 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8k-ctrl-chart-zoom — Ctrl+= and Ctrl+- zoom the active chart without changing timeframe', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    const chart = page.locator('.chart-tool:visible').first()
+    const plot = chart.locator('.uplot').first()
+    await expect(plot).toBeVisible({ timeout: 20_000 })
+    await expect(chart.locator('.chart-root')).toHaveAttribute('aria-busy', 'false', { timeout: 20_000 })
+    const chartWindow = page.locator('.tool-window').filter({ has: chart })
+    const timeframe = chartWindow.locator('select[aria-label$=" timeframe"]').first()
+    await expect(timeframe).toHaveValue('D1')
+
+    const fingerprint = () => plot.locator('canvas').first().evaluate(canvas => {
+      const ctx = canvas.getContext('2d')
+      if (!ctx || canvas.width === 0 || canvas.height === 0) return 'empty'
+      const sample = Math.max(1, Math.floor(Math.min(canvas.width, canvas.height) / 12))
+      let checksum = 0
+      for (let y = sample; y < canvas.height; y += sample) {
+        for (let x = sample; x < canvas.width; x += sample) {
+          const pixel = ctx.getImageData(x, y, 1, 1).data
+          checksum = (checksum * 33 + pixel[0] * 3 + pixel[1] * 5 + pixel[2] * 7 + pixel[3]) >>> 0
+        }
+      }
+      return `${canvas.width}x${canvas.height}:${checksum}`
+    })
+    const box = await plot.boundingBox()
+    expect(box).not.toBeNull()
+    await plot.click({ position: { x: box!.width * 0.5, y: box!.height * 0.45 } })
+    await expect(chartWindow).toHaveClass(/tool-window--active/)
+
+    const beforeZoomIn = await fingerprint()
+    await page.keyboard.press('Control+=')
+    await expect.poll(fingerprint, { timeout: 10_000 }).not.toBe(beforeZoomIn)
+    await expect(timeframe).toHaveValue('D1')
+
+    const beforeZoomOut = await fingerprint()
+    await page.keyboard.press('Control+-')
+    await expect.poll(fingerprint, { timeout: 10_000 }).not.toBe(beforeZoomOut)
+    await expect(timeframe).toHaveValue('D1')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8n-cross-window — linked crosshair timestamps propagate through a chart pop-out', async ({ page, context, browserDiagnostics }) => {
     await page.goto('/chart')
     const sourceWindow = page.locator('.tool-window').filter({ has: page.locator('.chart-tool') }).first()
