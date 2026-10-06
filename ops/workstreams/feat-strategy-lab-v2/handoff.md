@@ -13027,3 +13027,24 @@ formatting, and whitespace checks passed. Next: rework the durable settlement/
 ACK replay and post-checkpoint continuation harness to consume artifacts from
 the authenticated plan factory, then continue the broader forward and
 backtest/search/API/security/Compose scope.
+
+## 2026-10-06 - Authenticated plan settlement and ACK replay
+
+The exact RC5 authenticated-plan process test now carries native execution
+through forced process loss, deterministic replay from the same
+owner-authenticated artifacts, durable settlement, and idempotent ACK. The
+shared SQLite crash-window ledger is used by this test and the existing
+standalone-fixture recovery test, so durable receipt semantics are tested
+consistently. The authenticated-plan branch persists the replay result and
+verifies a committed-before-ACK receipt can be ACKed repeatedly without starting
+a third Nautilus process. A focused unit test covers exact retry and conflicting
+native-result rejection.
+
+Validation: exact-source RC5 authenticated-plan recovery passed 1/1; the
+standalone exact-image settlement/ACK and continuation recovery passed 1/1;
+the durable-ledger unit tests passed 2/2; Ruff, formatting, and whitespace
+checks passed. The wider composition module under the default coverage runner
+reported passing cases but did not return a clean process exit; it is not
+counted as validation. Remaining forward recovery work is to drive
+post-checkpoint continuation from the authenticated plan factory rather than
+standalone fixture artifacts. Stable Nautilus 2.x remains unnecessary.

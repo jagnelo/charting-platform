@@ -29,94 +29,13 @@ from app.strategy_lab_v2.nautilus_forward_wire import NautilusForwardJsonWireCod
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile, RuntimeIsolationRequest
 from app.strategy_lab_v2.runtime_execution import StrategyRuntimeRequest
 from app.strategy_lab_v2.sandbox import build_nautilus_forward_runtime_sandbox_command
+from app.strategy_lab_v2.tests.forward_replay_ledger import DurableReplayLedger
 
 _IMAGE_DIGEST = os.environ.get("STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_DIGEST")
 pytestmark = pytest.mark.skipif(
     not _IMAGE_DIGEST,
     reason="requires an exact-source RC5 image and explicit Docker integration opt-in",
 )
-
-
-class _DurableReplayLedger:
-    """Small SQLite crash-window ledger for the exact-process integration probe."""
-
-    def __init__(self, path: Path) -> None:
-        self._path = path
-        with sqlite3.connect(path) as connection:
-            connection.execute(
-                """CREATE TABLE IF NOT EXISTS settlements (
-                       instance_id TEXT NOT NULL,
-                       event_id TEXT NOT NULL,
-                       event_fingerprint TEXT NOT NULL,
-                       result_fingerprint TEXT NOT NULL,
-                       next_checkpoint TEXT NOT NULL,
-                       acked INTEGER NOT NULL DEFAULT 0,
-                       PRIMARY KEY (instance_id, event_id)
-                   )"""
-            )
-
-    def settle_once(
-        self,
-        *,
-        instance_id: str,
-        event_id: str,
-        event_fingerprint: str,
-        result_fingerprint: str,
-        next_checkpoint: str,
-    ) -> str:
-        with sqlite3.connect(self._path) as connection:
-            connection.execute("BEGIN IMMEDIATE")
-            existing = connection.execute(
-                """SELECT event_fingerprint, result_fingerprint
-                   FROM settlements WHERE instance_id = ? AND event_id = ?""",
-                (instance_id, event_id),
-            ).fetchone()
-            if existing is None:
-                connection.execute(
-                    """INSERT INTO settlements
-                       (instance_id, event_id, event_fingerprint, result_fingerprint,
-                        next_checkpoint, acked)
-                       VALUES (?, ?, ?, ?, ?, 0)""",
-                    (
-                        instance_id,
-                        event_id,
-                        event_fingerprint,
-                        result_fingerprint,
-                        next_checkpoint,
-                    ),
-                )
-                return result_fingerprint
-            if existing[0] != event_fingerprint:
-                raise ValueError("durable event identity conflicts with the prior settlement")
-            if existing[1] != result_fingerprint:
-                raise ValueError("durable replay produced different native account effects")
-            return str(existing[1])
-
-    def acknowledge_once(self, *, instance_id: str, event_id: str) -> bool:
-        with sqlite3.connect(self._path) as connection:
-            cursor = connection.execute(
-                """UPDATE settlements SET acked = 1
-                   WHERE instance_id = ? AND event_id = ? AND acked = 0""",
-                (instance_id, event_id),
-            )
-            if cursor.rowcount == 1:
-                return True
-            existing = connection.execute(
-                """SELECT acked FROM settlements WHERE instance_id = ? AND event_id = ?""",
-                (instance_id, event_id),
-            ).fetchone()
-            if existing is None:
-                raise ValueError("cannot acknowledge a forward event without durable settlement")
-            return False
-
-    def receipt(self, *, instance_id: str, event_id: str) -> tuple[str, bool] | None:
-        with sqlite3.connect(self._path) as connection:
-            row = connection.execute(
-                """SELECT result_fingerprint, acked FROM settlements
-                   WHERE instance_id = ? AND event_id = ?""",
-                (instance_id, event_id),
-            ).fetchone()
-        return None if row is None else (str(row[0]), bool(row[1]))
 
 
 def _load_manifest(directory: Path) -> dict[str, Any]:
@@ -274,7 +193,7 @@ def test_exact_rc5_forward_process_restarts_across_settlement_and_ack_windows(
     assert before_checkpoint != after_checkpoint
 
     ledger_path = tmp_path / "forward-recovery.sqlite3"
-    _DurableReplayLedger(ledger_path)
+    DurableReplayLedger(ledger_path)
     with sqlite3.connect(ledger_path) as connection:
         connection.execute(
             """CREATE TABLE checkpoints (
@@ -321,7 +240,7 @@ def test_exact_rc5_forward_process_restarts_across_settlement_and_ack_windows(
     _kill_process(replay)
 
     canonical_event = before_delivery.tape.envelopes[0].canonical_event
-    ledger = _DurableReplayLedger(ledger_path)
+    ledger = DurableReplayLedger(ledger_path)
     settled_receipt = ledger.settle_once(
         instance_id=instance_id,
         event_id=canonical_event.event_id,

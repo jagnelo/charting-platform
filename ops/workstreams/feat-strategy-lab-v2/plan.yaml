@@ -881,8 +881,8 @@ progress:
     labeling is not a gate and exact-pinned 2.0.0rc5 remains qualified. Exact-
     source RC5 image source sha256:1605d5757b8e5e43e57dd7e7ec2fa1229a83b7d598094432672effbc23abe1f4, image sha256:4a0144ce12a0dce29bdc8772186a98d30acdacc2c16b6fbea574ffbda1d236c3, evidence sha256:521a7c5155d24f97c989ade25d10cc7d155885eac8d6bc7b634cf1f6e56397a6, and four-check conformance sha256:600a14e22decfaf21feef10d3f61c2ea7a78f29606604a3297ccea118655554a passed. The authenticated artifact-backed production plan passes through the actual RC5 process and now also survives forced process death after native execution but before durable settlement: a fresh process rebuilt from the same owner-authenticated checkpoint replays the event and produces the identical execution-result fingerprint and account binding. The initial context mismatch was caused by an unrealistic fixture supplying empty market history and synthetic fingerprints; the fixture now seeds the owner context window from the authenticated warm-up receipt prefix and calls `prepare_delivery`. The separate exact-image integration continues to cover durable settlement/ACK replay and post-checkpoint continuation using its standalone fixture artifacts. Full package passed 1,540 with one opt-in test skipped; package Ruff passed, package MyPy passed across 408 files, changed-test formatting and whitespace checks passed. Remaining code-owned work is to compose the durable settlement/ACK and continuation harness with the same authenticated production-plan artifacts, complete forward-shadow acceptance, and implement remaining backtest, search, API, security, and Compose acceptance. Provider-platform, ETF, and TC2000 contracts stay within their owning branches; options remain fail-closed pending canonical Greeks/delta/settlement evidence.
   next_action: >-
-    Extend durable settlement/ACK replay and post-checkpoint continuation to
-    consume the warm-up, context, native-event, and bootstrap artifacts from
-    the authenticated production plan factory. Then continue the remaining
-    forward and backtest acceptance criteria without waiting for a stable
-    Nautilus label.
+    Extend post-checkpoint continuation to consume checkpoint replacement,
+    warm-up, context, native-event, and bootstrap artifacts from the
+    authenticated production plan factory, with durable receipt replay proving
+    no duplicate native execution. Then continue the remaining forward and
+    backtest acceptance criteria without waiting for a stable Nautilus label.

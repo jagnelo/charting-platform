@@ -77,6 +77,7 @@ from app.strategy_lab_v2.sandbox import (
 )
 from app.strategy_lab_v2.sdk import MarketEvent
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
+from app.strategy_lab_v2.tests.forward_replay_ledger import DurableReplayLedger
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs as _trial_inputs
 
 
@@ -700,6 +701,36 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
                 assert replay_result.account_event_binding == execution_result.account_event_binding
             finally:
                 await restarted.close()
+            # The exact production plan has now natively executed and replayed
+            # from authenticated artifacts. Persist its receipt before ACK;
+            # redelivery must ACK the stored receipt without starting a third
+            # Nautilus process.
+            canonical_event = delivery.tape.envelopes[0].canonical_event
+            ledger = DurableReplayLedger(tmp_path / "authenticated-forward-recovery.sqlite3")
+            assert (
+                ledger.settle_once(
+                    instance_id="forward-1",
+                    event_id=canonical_event.event_id,
+                    event_fingerprint=content_digest(canonical_event),
+                    result_fingerprint=replay_result.fingerprint,
+                    next_checkpoint=content_digest("authenticated-next-checkpoint"),
+                )
+                == replay_result.fingerprint
+            )
+            assert ledger.receipt(instance_id="forward-1", event_id=canonical_event.event_id) == (
+                replay_result.fingerprint,
+                False,
+            )
+            assert ledger.acknowledge_once(
+                instance_id="forward-1", event_id=canonical_event.event_id
+            )
+            assert not ledger.acknowledge_once(
+                instance_id="forward-1", event_id=canonical_event.event_id
+            )
+            assert ledger.receipt(instance_id="forward-1", event_id=canonical_event.event_id) == (
+                replay_result.fingerprint,
+                True,
+            )
         except Exception as exc:
             stderr_text = stderr_capture.decode("utf-8", errors="replace")[-4000:]
             raise AssertionError(
