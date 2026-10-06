@@ -12597,3 +12597,15 @@ Plan checkpoint `522695fe4fad4e1713bfd46d7c74467fc306f3ff` is pushed and
 verified equal to `origin/feat/strategy-lab-v2`; the worktree was clean at that
 boundary. Workstream validation passed before commit. Focused code changes and
 tests for this newly scoped changeset have not yet begun.
+
+The first implementation within that context is now pushed as
+`866d480b6ad016b7acf1865cf200c9d844dd0dd7`. It materializes canonical bounded
+bootstrap JSON into the local content-addressed artifact store with
+`PINNED_INPUT` retention, validates publication and re-read bytes, and returns
+the immutable path plus the semantic bootstrap fingerprint needed by the
+sandbox boundary. Repeat publication is idempotent; rejected publication fails
+closed. Focused bootstrap tests passed 10/10, Ruff passed on both changed files,
+MyPy passed for the bootstrap module, and `git diff --check` passed. This is
+only the artifact publication portion: owner-scoped full-tape resolution,
+runtime/context/native stream assembly, RC5 sandbox-plan construction, and
+worker/recovery wiring remain the next work.
