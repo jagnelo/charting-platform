@@ -9366,4 +9366,15 @@ preflight is safe. AC10 still depends on the separate provider-platform work
 reaching staging; AC14 remains the 30-day post-integration/deployment
 observation. The goal is incomplete; do not ask the human to run the app or
 count this resource check as the required test.
+
+### Resource-gate recheck — 2026-10-06 00:38 UTC
+
+A second read-only host check confirms the unlabeled `determined_fermi`
+container is no longer running. The six `feat-tc2000-frontend-rework` services
+and `stremio-server` remain active. Available RAM has fallen to 1.8 GiB, swap
+use remains 12 GiB, and load is 3.04/2.80/2.70. The required ETF app/browser
+gate remains agent-owned and was not started because the unrelated services
+are still active and host capacity is lower, not safer. No outside container
+or worktree was changed. Recheck only after the other-worktree services exit
+and resource headroom is safe, then run the test from this exact ETF worktree.
 *** End of File
