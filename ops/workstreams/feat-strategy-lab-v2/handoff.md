@@ -12609,3 +12609,22 @@ MyPy passed for the bootstrap module, and `git diff --check` passed. This is
 only the artifact publication portion: owner-scoped full-tape resolution,
 runtime/context/native stream assembly, RC5 sandbox-plan construction, and
 worker/recovery wiring remain the next work.
+
+## 2026-10-06 - Canonical warm-up identity boundary
+
+The bootstrap builder now requires an explicit source-verified canonical
+payload for every frozen warm-up tape event. It binds by exact event identity
+and source row values while keeping dependency-local row sequence distinct from
+the platform's canonical sequence; the warm-up receipt cursor is checked
+against the canonical event fingerprint and global sequence. The focused test
+uses deliberately different local and canonical counters. Commit
+`6d76a47e3f67a422c33e2628bd083b1b63c16762` is pushed and the session checkpoint
+confirms exact local/remote synchronization. The full package passed 1,522
+tests with one opt-in image test skipped; Ruff, MyPy, and `git diff --check`
+passed.
+
+This does not yet prove that the native warm-up stream uses the verified
+canonical ordering: the production composer must materialize that stream from
+the same payload mapping, then build the context/runtime bundle and hardened
+RC5 process plan and wire them into owner-scoped startup/replacement. Keep
+forward-shadow event-tape parity as an explicit acceptance gate.
