@@ -98,6 +98,31 @@ def test_verified_artifact_stream_is_seekable_and_rechecks_consumed_bytes(tmp_pa
         assert source.read() == payload
 
 
+def test_manifest_verified_stream_enforces_manifest_length_and_bound(tmp_path) -> None:
+    payload = b"bounded streamed artifact"
+    manifest = _manifest(payload)
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    store.publish(manifest, payload)
+
+    with store.open_manifest_verified(manifest, max_bytes=len(payload)) as source:
+        assert source.read() == payload
+
+    mismatched = ArtifactManifest(
+        manifest.content_digest,
+        manifest.byte_length - 1,
+        manifest.media_type,
+        manifest.schema_version,
+        manifest.storage_key,
+    )
+    with pytest.raises(ArtifactStoreCorruptionError, match="byte length differs"):
+        with store.open_manifest_verified(mismatched, max_bytes=len(payload)):
+            pass
+
+    with pytest.raises(ValueError, match="configured byte bound"):
+        with store.open_manifest_verified(manifest, max_bytes=len(payload) - 1):
+            pass
+
+
 def test_verified_artifact_stream_rejects_mutation_during_consumption(tmp_path) -> None:
     payload = b"verified before decode"
     manifest = _manifest(payload)

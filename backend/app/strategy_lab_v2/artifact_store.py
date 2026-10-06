@@ -519,6 +519,31 @@ class LocalArtifactStore:
             if descriptor >= 0:
                 os.close(descriptor)
 
+    @contextmanager
+    def open_manifest_verified(
+        self,
+        manifest: ArtifactManifest,
+        *,
+        max_bytes: int | None = None,
+    ) -> Iterator[BinaryIO]:
+        """Open a bounded stream and verify both manifest digest and byte length."""
+
+        if not isinstance(manifest, ArtifactManifest):
+            raise TypeError("manifest must be an ArtifactManifest")
+        if max_bytes is not None and (
+            not isinstance(max_bytes, int) or isinstance(max_bytes, bool) or max_bytes < 0
+        ):
+            raise ValueError("max_bytes must be a non-negative integer or None")
+        if max_bytes is not None and manifest.byte_length > max_bytes:
+            raise ValueError("artifact manifest exceeds its configured byte bound")
+        with self.open_verified(manifest.storage_key, max_bytes=max_bytes) as stream:
+            stream.seek(0, os.SEEK_END)
+            observed_length = stream.tell()
+            if observed_length != manifest.byte_length:
+                raise ArtifactStoreCorruptionError("artifact byte length differs from its manifest")
+            stream.seek(0)
+            yield stream
+
     @staticmethod
     def _digest_descriptor(
         descriptor: int,

@@ -7,9 +7,11 @@ from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any, cast
 
+import anyio
 import httpx
 import pytest
 from fastapi import FastAPI
+from starlette.requests import Request
 
 from app.strategy_lab_v2.admission import ExecutionAdmissionLedger
 from app.strategy_lab_v2.api_contracts import ApiCursor
@@ -23,6 +25,7 @@ from app.strategy_lab_v2.api_router import (
     ApiAdapterError,
     ResourceMutationServiceResult,
     SubmissionServiceResult,
+    WalkForwardCurveArtifactDownload,
     _json_value,
     _parse_forward_dispatch,
     _parse_forward_lifecycle,
@@ -40,6 +43,8 @@ from app.strategy_lab_v2.api_router import (
     serialize_resource,
     serialize_search_state_snapshot,
 )
+from app.strategy_lab_v2.artifact_store import LocalArtifactStore
+from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capability_summary import (
     CapabilitySummary,
@@ -900,6 +905,59 @@ def _asgi_app(adapter: Any) -> FastAPI:
     return app
 
 
+async def _invoke_curve_download_endpoint(adapter: Any, experiment: str):
+    async def get_adapter() -> Any:
+        return adapter
+
+    async def get_principal() -> str:
+        return "user-1"
+
+    router = create_strategy_lab_router(
+        adapter_dependency=get_adapter,
+        principal_dependency=get_principal,
+        request_id_factory=lambda: "request-generated",
+        clock=lambda: NOW,
+    )
+    route = next(
+        route
+        for route in router.routes
+        if getattr(route, "path", "").endswith("/walk-forward/curve")
+    )
+    path = f"/api/v1/strategy-lab/v2/experiments/{experiment}/walk-forward/curve"
+    request = Request(
+        {
+            "type": "http",
+            "asgi": {"version": "3.0", "spec_version": "2.3"},
+            "http_version": "1.1",
+            "method": "GET",
+            "scheme": "http",
+            "path": path,
+            "raw_path": path.encode(),
+            "query_string": b"",
+            "root_path": "",
+            "headers": [(b"host", b"strategy-lab.test")],
+            "client": ("test", 1),
+            "server": ("strategy-lab.test", 80),
+            "state": {},
+        }
+    )
+
+    response = await route.endpoint(
+        experiment_id=experiment,
+        request=request,
+        adapter=adapter,
+        principal="user-1",
+    )
+    if hasattr(response, "body_iterator"):
+        body_chunks = [chunk async for chunk in response.body_iterator]
+        if response.background is not None:
+            await response.background()
+        body = b"".join(body_chunks)
+    else:
+        body = response.body
+    return response, body
+
+
 def test_walk_forward_wire_contract_accepts_policy_but_no_observation_calendar() -> None:
     experiment_fingerprint = content_digest("walk-forward-experiment")
     body = {
@@ -1577,6 +1635,106 @@ def test_walk_forward_finalize_api_exposes_persisted_native_portfolio_metrics() 
         attributes["result_scope"]
         == "selected_oos_fold_distribution_and_native_portfolio_compounding"
     )
+
+
+@pytest.mark.asyncio
+async def test_walk_forward_curve_api_streams_digest_bound_artifact(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def inline_run_sync(function: Any, *args: Any, **kwargs: Any) -> Any:
+        del kwargs
+        return function(*args)
+
+    monkeypatch.setattr(anyio.to_thread, "run_sync", inline_run_sync)
+    payload = b"streamed parquet curve bytes"
+    digest = artifact_content_digest(payload)
+    manifest = ArtifactManifest(
+        digest,
+        len(payload),
+        WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE,
+        WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA,
+        digest,
+        ArtifactRetention.PINNED_RESULT,
+    )
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    store.publish(manifest, payload)
+    experiment = content_digest("walk-forward-curve-download")
+
+    class CurveAdapter(FakeAdapter):
+        async def open_walk_forward_curve_artifact(self, **kwargs: Any):
+            self.walk_forward_result_requests.append(kwargs)
+            return WalkForwardCurveArtifactDownload(manifest, store)
+
+    adapter = CurveAdapter()
+    response, response_body = await _invoke_curve_download_endpoint(adapter, experiment)
+
+    assert response.status_code == 200, response.text
+    assert response_body == payload
+    assert response.headers["content-length"] == str(len(payload))
+    assert response.headers["x-content-digest"] == digest
+    assert response.headers["x-artifact-schema-version"] == WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA
+    assert response.headers["cache-control"] == "private, no-store"
+    assert adapter.walk_forward_result_requests[0]["experiment_fingerprint"] == experiment
+    assert adapter.walk_forward_result_requests[0]["principal"] == "user-1"
+
+
+@pytest.mark.asyncio
+async def test_walk_forward_curve_api_hides_missing_and_rejects_corrupt_or_oversized_artifacts(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def inline_run_sync(function: Any, *args: Any, **kwargs: Any) -> Any:
+        del kwargs
+        return function(*args)
+
+    monkeypatch.setattr(anyio.to_thread, "run_sync", inline_run_sync)
+    experiment = content_digest("walk-forward-curve-download-errors")
+
+    class MissingCurveAdapter(FakeAdapter):
+        async def open_walk_forward_curve_artifact(self, **_kwargs: Any):
+            return None
+
+    missing, _ = await _invoke_curve_download_endpoint(MissingCurveAdapter(), experiment)
+    assert missing.status_code == 404
+
+    payload = b"expected curve artifact"
+    digest = artifact_content_digest(payload)
+    manifest = ArtifactManifest(
+        digest,
+        len(payload),
+        WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE,
+        WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA,
+        digest,
+        ArtifactRetention.PINNED_RESULT,
+    )
+    corrupt_store = LocalArtifactStore(tmp_path / "corrupt")
+    corrupt_store.publish(manifest, payload)
+    target = corrupt_store.path_for(digest)
+    target.chmod(0o644)
+    target.write_bytes(b"tampered curve artifact")
+
+    class CorruptCurveAdapter(FakeAdapter):
+        async def open_walk_forward_curve_artifact(self, **_kwargs: Any):
+            return WalkForwardCurveArtifactDownload(manifest, corrupt_store)
+
+    corrupt, corrupt_body = await _invoke_curve_download_endpoint(CorruptCurveAdapter(), experiment)
+    assert corrupt.status_code == 409
+    assert b"walk-forward curve failed" in corrupt_body
+
+    oversized = ArtifactManifest(
+        digest,
+        1_073_741_825,
+        WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE,
+        WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA,
+        digest,
+        ArtifactRetention.PINNED_RESULT,
+    )
+
+    class OversizedCurveAdapter(FakeAdapter):
+        async def open_walk_forward_curve_artifact(self, **_kwargs: Any):
+            return WalkForwardCurveArtifactDownload(oversized, corrupt_store)
+
+    too_large, _ = await _invoke_curve_download_endpoint(OversizedCurveAdapter(), experiment)
+    assert too_large.status_code == 413
 
 
 def test_router_lists_preserved_legacy_imports_without_payload_bytes() -> None:

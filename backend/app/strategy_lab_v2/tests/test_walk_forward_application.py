@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime
 from decimal import Decimal
 from types import SimpleNamespace
@@ -16,6 +17,7 @@ from app.strategy_lab_v2.artifact_retention import (
     add_retention_pin,
 )
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
+from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import (
     ArtifactManifest,
@@ -59,6 +61,7 @@ from app.strategy_lab_v2.walk_forward_search import (
 from app.strategy_lab_v2.walk_forward_summary import (
     WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE,
     WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA,
+    WalkForwardNativeOosMetricSummary,
 )
 from app.strategy_lab_v2.walk_forward_trials import (
     materialize_walk_forward_oos_trials,
@@ -821,3 +824,76 @@ async def test_oos_phase_hydrates_owner_manifests_appends_and_replays_exact_tria
     )
     assert replay_summary.decision.value == "replay_existing"
     assert replay_summary.summary == persisted_summary.summary
+
+
+@pytest.mark.asyncio
+async def test_curve_artifact_download_requires_owner_metric_and_active_pin(tmp_path) -> None:
+    adapter, _reader, _plan_store, definition, _first, _second = _setup()
+    payload = b"owner-scoped curve bytes"
+    digest = artifact_content_digest(payload)
+    manifest = ArtifactManifest(
+        digest,
+        len(payload),
+        WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE,
+        WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA,
+        digest,
+        ArtifactRetention.PINNED_RESULT,
+    )
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    store.publish(manifest, payload)
+    adapter._walk_forward_artifact_store = store
+    native_summary = WalkForwardNativeOosMetricSummary(
+        experiment_fingerprint=definition.experiment_fingerprint,
+        definition_fingerprint=content_digest("download-definition"),
+        selection_fingerprint=content_digest("download-selection"),
+        result_manifest_fingerprints=(content_digest("download-oos-result"),),
+        metrics=(
+            MetricValue(
+                "total_return",
+                Decimal("0.05"),
+                "fraction",
+                "strategy-lab.metrics.v2",
+                MetricBasis.NET,
+                5,
+            ),
+        ),
+        curve_artifact=manifest,
+    )
+    await adapter._persistence.walk_forward_native_metrics.persist(
+        principal=User(),
+        summary=native_summary,
+    )
+    await adapter._pin_walk_forward_curve(
+        principal=User(),
+        experiment_fingerprint=definition.experiment_fingerprint,
+        manifest=manifest,
+    )
+
+    download = await adapter.open_walk_forward_curve_artifact(
+        principal=User(),
+        request_id="curve-download",
+        experiment_fingerprint=definition.experiment_fingerprint,
+    )
+    assert download is not None
+    assert download.manifest == manifest
+    assert download.artifact_store is store
+
+    foreign_owner = await adapter.open_walk_forward_curve_artifact(
+        principal=SimpleNamespace(id=43),
+        request_id="foreign-curve-download",
+        experiment_fingerprint=definition.experiment_fingerprint,
+    )
+    assert foreign_owner is None
+
+    retention_key = content_digest(manifest)
+    retained = adapter._persistence.artifact_retention.states[retention_key]
+    expired_pin = replace(retained.pins[0], released_at=datetime(2026, 10, 6, tzinfo=UTC))
+    adapter._persistence.artifact_retention.states[retention_key] = replace(
+        retained, pins=(expired_pin,)
+    )
+    released = await adapter.open_walk_forward_curve_artifact(
+        principal=User(),
+        request_id="released-curve-download",
+        experiment_fingerprint=definition.experiment_fingerprint,
+    )
+    assert released is None

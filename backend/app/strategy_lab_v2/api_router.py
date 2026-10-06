@@ -16,15 +16,17 @@ import logging
 import math
 import re
 import uuid
-from collections.abc import Awaitable, Callable, Mapping, Sequence
+from collections.abc import AsyncIterator, Awaitable, Callable, Mapping, Sequence
+from contextlib import AbstractContextManager
 from dataclasses import asdict, dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Protocol, TypeVar, cast
+from typing import Any, BinaryIO, Protocol, TypeVar, cast
 
+import anyio
 from fastapi import APIRouter, Body, Depends, Header, Query, Request, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 
 from app.strategy_lab_v2.api_contracts import (
     ApiCursor,
@@ -37,6 +39,10 @@ from app.strategy_lab_v2.api_resources import (
     ResourceDocument,
     ResourceIdentifier,
 )
+from app.strategy_lab_v2.artifact_store import (
+    ArtifactStoreCorruptionError,
+    LocalArtifactStore,
+)
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.capability_summary import CapabilitySummary
 from app.strategy_lab_v2.commands import (
@@ -45,7 +51,7 @@ from app.strategy_lab_v2.commands import (
     ExecutionCommandKind,
     ExecutionCommandResolution,
 )
-from app.strategy_lab_v2.contracts import CarryInMode, ForwardState
+from app.strategy_lab_v2.contracts import ArtifactManifest, CarryInMode, ForwardState
 from app.strategy_lab_v2.dispatch import DispatchRequest, SearchDispatchIntent
 from app.strategy_lab_v2.experiments import WalkForwardMode, WalkForwardSpec
 from app.strategy_lab_v2.forward_account import ForwardAccountState
@@ -105,6 +111,10 @@ from app.strategy_lab_v2.walk_forward_search import (
     SelectionDirection,
     WalkForwardDefinitionRequest,
 )
+from app.strategy_lab_v2.walk_forward_summary import (
+    WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE,
+    WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +123,7 @@ MAX_REQUEST_ID_LENGTH = 128
 MAX_OPERATION_LENGTH = 128
 MAX_SOURCE_BYTES = 1_000_000
 MAX_RESOURCE_PAYLOAD_BYTES = 1_000_000
+MAX_WALK_FORWARD_CURVE_ARTIFACT_BYTES = 1_073_741_824
 _OPERATION_PATTERN = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
 _T = TypeVar("_T")
 _MUTABLE_RESOURCE_TYPES = frozenset(
@@ -201,6 +212,36 @@ class StrategyLabApiAdapter(Protocol):
         experiment_fingerprint: str,
         request: WalkForwardDefinitionRequest,
     ) -> Awaitable[WalkForwardDefinitionResolution] | WalkForwardDefinitionResolution: ...
+
+    def open_walk_forward_curve_artifact(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        experiment_fingerprint: str,
+    ) -> (
+        Awaitable[WalkForwardCurveArtifactDownload | None] | WalkForwardCurveArtifactDownload | None
+    ): ...
+
+
+@dataclass(frozen=True, slots=True)
+class WalkForwardCurveArtifactDownload:
+    """Owner-authorized curve manifest with bounded verified local storage access."""
+
+    manifest: ArtifactManifest
+    artifact_store: LocalArtifactStore
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.manifest, ArtifactManifest):
+            raise TypeError("manifest must be an ArtifactManifest")
+        if not isinstance(self.artifact_store, LocalArtifactStore):
+            raise TypeError("artifact_store must be a LocalArtifactStore")
+
+    def open_verified(self) -> AbstractContextManager[BinaryIO]:
+        return self.artifact_store.open_manifest_verified(
+            self.manifest,
+            max_bytes=MAX_WALK_FORWARD_CURVE_ARTIFACT_BYTES,
+        )
 
 
 class CapabilityPreflightAdapter(Protocol):
@@ -3460,6 +3501,135 @@ def create_strategy_lab_router(
                 _api_error(
                     ApiErrorCode.INTERNAL_ERROR,
                     "Strategy Lab v2 walk-forward result hydration failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
+    @router.get("/experiments/{experiment_id}/walk-forward/curve")
+    async def download_walk_forward_native_curve(
+        experiment_id: str,
+        request: Request,
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> Response:
+        """Stream the authenticated owner's finalized native OOS equity curve."""
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            read_curve = getattr(adapter, "open_walk_forward_curve_artifact", None)
+            if not callable(read_curve):
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        "walk-forward curve artifact adapter is not configured",
+                        request_id,
+                        status.HTTP_501_NOT_IMPLEMENTED,
+                    )
+                )
+            download = await _resolve(
+                read_curve(
+                    principal=principal,
+                    request_id=request_id,
+                    experiment_fingerprint=experiment_id,
+                )
+            )
+            if download is None:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.NOT_FOUND,
+                        "walk-forward curve artifact is unavailable to this owner",
+                        request_id,
+                        status.HTTP_404_NOT_FOUND,
+                    )
+                )
+            if not isinstance(download, WalkForwardCurveArtifactDownload):
+                raise TypeError("adapter returned an invalid walk-forward artifact download")
+            if (
+                download.manifest.media_type != WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE
+                or download.manifest.schema_version != WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA
+            ):
+                raise ValueError("adapter returned an unsupported walk-forward curve artifact")
+
+            stream_context = download.open_verified()
+            try:
+                stream = await anyio.to_thread.run_sync(stream_context.__enter__)
+            except FileNotFoundError:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.NOT_FOUND,
+                        "walk-forward curve bytes are unavailable",
+                        request_id,
+                        status.HTTP_404_NOT_FOUND,
+                    )
+                )
+            except ValueError as error:
+                if "configured byte bound" in str(error):
+                    return _error_response(
+                        _api_error(
+                            ApiErrorCode.VALIDATION_ERROR,
+                            "walk-forward curve exceeds the download size limit",
+                            request_id,
+                            status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                        )
+                    )
+                raise
+            except ArtifactStoreCorruptionError:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.CONFLICT,
+                        "walk-forward curve failed artifact integrity verification",
+                        request_id,
+                        status.HTTP_409_CONFLICT,
+                    )
+                )
+
+            async def chunks() -> AsyncIterator[bytes]:
+                try:
+                    while chunk := await anyio.to_thread.run_sync(stream.read, 1024 * 1024):
+                        yield chunk
+                except BaseException as error:
+                    await anyio.to_thread.run_sync(
+                        stream_context.__exit__, type(error), error, error.__traceback__
+                    )
+                    raise
+                else:
+                    await anyio.to_thread.run_sync(stream_context.__exit__, None, None, None)
+
+            digest = download.manifest.content_digest
+            response = StreamingResponse(
+                chunks(),
+                media_type=download.manifest.media_type,
+                headers={
+                    "Content-Length": str(download.manifest.byte_length),
+                    "Content-Disposition": f'attachment; filename="native-oos-equity-{digest.removeprefix("sha256:")}.parquet"',
+                    "ETag": f'"{digest}"',
+                    "X-Content-Digest": digest,
+                    "X-Artifact-Schema-Version": download.manifest.schema_version,
+                    "X-Request-ID": request_id,
+                    "Cache-Control": "private, no-store",
+                },
+            )
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "walk-forward curve download request is invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 walk-forward curve download failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Strategy Lab v2 walk-forward curve download failed",
                     locals().get("request_id", "unknown"),
                     status.HTTP_500_INTERNAL_SERVER_ERROR,
                     retryable=True,

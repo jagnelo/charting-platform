@@ -29,6 +29,7 @@ from app.strategy_lab_v2.api_router import (
     ResourceMutationServiceResult,
     StrategyLabApiAdapter,
     SubmissionServiceResult,
+    WalkForwardCurveArtifactDownload,
     create_strategy_lab_router,
 )
 from app.strategy_lab_v2.artifact_publication import ArtifactPublicationPlan
@@ -39,6 +40,7 @@ from app.strategy_lab_v2.capability_summary import CapabilitySummary
 from app.strategy_lab_v2.commands import ExecutionCommand, ExecutionCommandResolution
 from app.strategy_lab_v2.contracts import (
     ArtifactManifest,
+    ArtifactRetention,
     AttemptState,
     DataSnapshot,
     ExperimentDefinition,
@@ -156,6 +158,8 @@ from app.strategy_lab_v2.walk_forward_search import (
     select_walk_forward_oos_tasks,
 )
 from app.strategy_lab_v2.walk_forward_summary import (
+    WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE,
+    WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA,
     WalkForwardNativeOosMetricSummary,
     build_walk_forward_oos_summary,
 )
@@ -1853,6 +1857,67 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             resolution.rejection_reason,
             native_summary,
         )
+
+    async def open_walk_forward_curve_artifact(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        experiment_fingerprint: str,
+    ) -> WalkForwardCurveArtifactDownload | None:
+        """Resolve an owner-persisted curve and its active retention authorization."""
+
+        if not isinstance(request_id, str) or not request_id.strip():
+            raise ValueError("request_id must not be empty")
+        require_sha256_digest(experiment_fingerprint, field_name="experiment_fingerprint")
+        if self._walk_forward_artifact_store is None:
+            return None
+        owner = _principal_identity(principal)
+        summary = await self._persistence.walk_forward_native_metrics.load(
+            principal=owner,
+            experiment_fingerprint=experiment_fingerprint,
+        )
+        if summary is None:
+            return None
+        manifest = summary.curve_artifact
+        if (
+            manifest.media_type != WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE
+            or manifest.schema_version != WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA
+            or manifest.retention_class is not ArtifactRetention.PINNED_RESULT
+        ):
+            raise ApiAdapterError(
+                ApiError(
+                    ApiErrorCode.CONFLICT,
+                    "persisted walk-forward curve manifest is unsupported",
+                    request_id,
+                    409,
+                )
+            )
+        manifest_fingerprint = content_digest(manifest)
+        state = await self._persistence.artifact_retention.read_state(manifest_fingerprint)
+        expected_pin_id = content_digest(
+            {
+                "owner_id": owner.id,
+                "experiment_fingerprint": experiment_fingerprint,
+                "artifact_manifest_fingerprint": manifest_fingerprint,
+                "purpose": "walk-forward-native-oos-curve",
+            }
+        )
+        if (
+            state is None
+            or state.manifest_fingerprint != manifest_fingerprint
+            or state.content_digest != manifest.content_digest
+            or state.retention_class is not manifest.retention_class
+            or not any(
+                pin.pin_id == expected_pin_id
+                and pin.owner_type == "walk_forward_native_oos_metrics"
+                and pin.owner_id == owner.id
+                and pin.active_at(self._clock())
+                for pin in state.pins
+            )
+        ):
+            return None
+        return WalkForwardCurveArtifactDownload(manifest, self._walk_forward_artifact_store)
 
     async def _pin_walk_forward_curve(
         self,
