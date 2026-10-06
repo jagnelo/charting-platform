@@ -20,6 +20,20 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  At pushed product commit d9c179a951fe9efd7502701df2a42fc1a4a1d8b8, browser
+  pop-outs focus their named landmark immediately before workspace loading or
+  market-data requests can delay keyboard/assistive access. Regression keeps
+  workspace hydration unresolved while asserting focus; focused workstation
+  bindings passed 38/38, including active-chart-only Shift+D toggling. Exact-tip
+  frontend type/build and full frontend coverage were not run because the host
+  had only about 1.6 GiB available and swap was exhausted. Full frontend
+  coverage, generic integration, broader R1/R5/R6 and AC7, exact V25 review,
+  and staging-gated provider/ETF consumer work remain open.
+  Direct remote refs refreshed 2026-10-06: TC d9c179a951fe9efd7502701df2a42fc1a4a1d8b8,
+  staging 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider platform
+  88132e9145a08d1c935a0111b3dba0fbd88bdff1, and ETF holdings
+  2bd221663956581dfb35f5b77961900674449f23. Both upstream dependencies remain
+  outside staging; defer R2/R3 consumption and shared-path reconciliation.
   At pushed product commit c0a2100cd0741e933382a6f72a0237ba8f495bda, Study Lab's
   existing universe-source input now offers canonical saved-source suggestions
   labelled by source kind, while preserving arbitrary/unavailable configured
@@ -151,21 +165,17 @@ current_blocker: >-
   passed. Full frontend coverage, generic integration, broader R1/R5/R6 and AC7,
   exact V25 review, and staging-gated provider/ETF consumer work remain open.
 active_changeset_context:
-  name: TC2000 V25 active-chart bracket bar-navigation shortcuts
-  status: product_committed_focused_browser_build_and_four_profile_visual_verified_full_suite_and_generic_gate_open
-  commit_sha: a37ae3217
-  remote_sha: a37ae321795ae7e9307498e9093576db3a66f9be
+  name: Pop-out initial focus precedes workspace hydration
+  status: product_committed_focused_38_tests_passed_full_suite_and_generic_gate_open
+  commit_sha: d9c179a95
+  remote_sha: d9c179a951fe9efd7502701df2a42fc1a4a1d8b8
   intent: >-
-    Implement TC2000 V25 [ / ] one-bar and Shift+[ / Shift+] five-bar chart
-    navigation. Keep keyboard ownership on the active chart and preserve native
-    editor input.
+    Focus the browser-managed pop-out landmark immediately at mount, before
+    workspace hydration or data requests can delay access for keyboard and
+    assistive-technology users.
   owned_paths:
-    - frontend/src/components/chart/UPlotChart.vue
-    - frontend/src/components/workstation/WorkstationToolContent.vue
     - frontend/src/views/WorkstationView.vue
-    - frontend/tests/e2e/flows.spec.ts
-    - docs/tc2000-parity.md
-    - docs/tc2000-roadmap.md
+    - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
   next_action: >-
     Continue the complete TC-owned R1/R5/R6 roadmap. Preserve the V25 visual
     references and acceptance policy. Keep the browser-side seeded-fixture flag

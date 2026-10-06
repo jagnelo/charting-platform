@@ -5,6 +5,17 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-06
 
+## 2026-10-06 — Pop-out focus survives slow workspace hydration
+
+Product commit `d9c179a951fe9efd7502701df2a42fc1a4a1d8b8` moves initial focus
+to the named pop-out landmark as soon as it mounts, before workspace loading
+or market-data requests can delay keyboard and assistive-technology access.
+The regression holds workspace hydration pending while asserting focus. The
+focused workstation binding suite passed `38/38`, including active-chart-only
+Shift+D activation/cancellation. This does not close broader AC7, exact V25
+visual review, the full frontend suite, generic integration, or staging-gated
+provider/ETF consumption.
+
 ## 2026-10-06 — Shift+L toggles the selected workstation window
 
 Product commit `effcca4e25f65a205a93da7a4ee1b4a817a80bcd` implements TC2000

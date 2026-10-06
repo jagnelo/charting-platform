@@ -1,5 +1,15 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-10-06 — Pop-out focus precedes workspace loading
+
+The named browser pop-out landmark receives initial focus immediately when the
+view mounts, before canonical workspace hydration and market-data loading. This
+keeps keyboard and screen-reader users from waiting on unrelated network work
+before they can interact. The regression keeps workspace loading unresolved
+while checking focus; focused workstation bindings pass `38/38`. This is a
+bounded resilience/accessibility improvement, not full AC7 or exact V25 visual
+approval.
+
 ## 2026-10-06 — Selected-window maximize shortcut
 
 The current [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
