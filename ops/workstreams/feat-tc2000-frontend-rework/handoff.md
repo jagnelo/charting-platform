@@ -18249,8 +18249,12 @@ ETF, execution-contract, or visual-oracle behavior changed.
 
 Focused MarketMapTool tests passed `58/58`; the serial-fork frontend suite
 passed `129/129` files and `1,213/1,213` tests; type-check and production build
-passed. The Playwright CLI wrapper stalled before browser startup and was
-stopped without a browser result; no browser acceptance is claimed for this
-slice. The feature commit is pushed to the assigned TC branch. Exact generic
-integration, exact V25 review, and provider/ETF staging dependencies remain
-open; the goal remains active.
+passed. Authenticated pinned Playwright flow
+`F8s-market-map-python-output` passed `1/1`, proving the stale Boolean is
+cleared, guidance is visible, a series output can then be selected, and the
+saved-snapshot lineage still works. The browser used read-only source and a
+loopback Vite proxy; the assigned stack was preserved. The CLI wrapper first
+stalled before startup, then the pinned repository runner supplied the browser
+evidence. Product commit `326a96bf` and test commit `47565254` are pushed. Exact
+generic integration, exact V25 review, and provider/ETF staging dependencies
+remain open; the goal remains active.

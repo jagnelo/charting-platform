@@ -17,9 +17,15 @@ semantics.
 
 MarketMapTool coverage passed `58/58`; the full serial-fork frontend suite
 passed `129/129` files and `1,213/1,213` tests; type-check and production build
-passed. The Playwright CLI wrapper did not open a browser and was stopped
-without a UI result. This focused regression does not close the full-stack
-integration gate, exact V25 review, or upstream staging dependencies.
+passed. The authenticated pinned Playwright flow
+`F8s-market-map-python-output` passed `1/1`, including the Boolean-to-area
+transition, visible cleared-picker prompt, subsequent numeric-series selection,
+and saved-snapshot lineage. It used a read-only source mount and loopback Vite
+proxy against the assigned backend; the assigned stack was not rebuilt or
+stopped. The CLI wrapper initially stalled before browser startup; the pinned
+repository browser runner supplied the browser evidence. This focused
+regression does not close the full-stack integration gate, exact V25 review, or
+upstream staging dependencies.
 
 ## 2026-10-06 — Study Lab saved-universe source suggestions
 

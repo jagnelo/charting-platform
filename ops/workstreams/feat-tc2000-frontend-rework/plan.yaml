@@ -118,12 +118,15 @@ current_blocker: >-
   selected as the numeric tile-area metric; the user receives a polite prompt
   to select a series output. Focused MarketMapTool tests passed 58/58, the
   full frontend suite passed 129 files / 1,213 tests, type-check/build passed.
-  The browser CLI wrapper stalled before opening a browser and was stopped with
-  no UI result; unit/browser/integration coverage outside this state transition
-  remains governed by the full validation profile.
+  The authenticated pinned Playwright flow F8s-market-map-python-output passed
+  1/1 against a loopback Vite proxy and the assigned backend, with source
+  read-only. The CLI wrapper initially stalled before browser startup; the
+  repository's pinned Playwright runner then supplied the browser evidence.
+  The generic exact integration gate and all other full-profile coverage remain
+  open.
 active_changeset_context:
   name: Market Map Python area output compatibility
-  status: pushed_focused_and_full_frontend_verified_generic_gate_and_upstream_dependencies_open
+  status: pushed_focused_full_frontend_and_authenticated_browser_verified_generic_gate_and_upstream_dependencies_open
   commit_sha: 326a96bf0c7531356fae0db441405c1a951da8ac
   remote_sha: 326a96bf0c7531356fae0db441405c1a951da8ac
   intent: >-
@@ -133,6 +136,7 @@ active_changeset_context:
   owned_paths:
     - frontend/src/components/workstation/MarketMapTool.vue
     - frontend/tests/unit/components/test_market_map_tool.test.ts
+    - frontend/tests/e2e/flows.spec.ts
   next_action: >-
     Continue the complete TC-owned R1/R5/R6 roadmap. Preserve the V25 visual
     references and acceptance policy. Resolve the generic integration gate only
