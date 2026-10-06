@@ -94,6 +94,7 @@ from app.strategy_lab_v2.postgres_forward_state import (
     ForwardStateMutationResolution,
 )
 from app.strategy_lab_v2.postgres_result_publication import PublicationStateResolution
+from app.strategy_lab_v2.postgres_walk_forward_plan import WalkForwardDefinitionResolution
 from app.strategy_lab_v2.progress import ExecutionProgressState
 from app.strategy_lab_v2.resource_domains import normalize_resource_attributes
 from app.strategy_lab_v2.resource_mutations import (
@@ -126,6 +127,7 @@ from app.strategy_lab_v2.storage import (
     StorageTransactionRequest,
 )
 from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
+from app.strategy_lab_v2.walk_forward_search import WalkForwardExecutionDefinition
 from app.strategy_lab_v2.worker_handoff import encode_worker_handoff
 from app.strategy_lab_v2.worker_process import WorkerExecutionRequest
 from app.strategy_lab_v2.workers import WorkerProfile
@@ -897,6 +899,72 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                     raise ValueError("forward execution plan package differs from its strategy")
                 if package.sdk_version != strategy.sdk_version:
                     raise ValueError("forward execution plan package SDK differs from its strategy")
+
+    async def persist_walk_forward_definition(
+        self,
+        *,
+        principal: Any,
+        definition: WalkForwardExecutionDefinition,
+    ) -> WalkForwardDefinitionResolution:
+        """Persist a walk-forward plan only after owner-scoped graph validation.
+
+        This is a host/application boundary, not an HTTP wire endpoint. The
+        caller must first create the experiment and base trial resources; this
+        operation binds a deterministic fold schedule to those exact immutable
+        domain objects before any search queue is initialized or dispatched.
+        """
+
+        if not isinstance(definition, WalkForwardExecutionDefinition):
+            raise TypeError("definition must be a WalkForwardExecutionDefinition")
+        owner = _principal_identity(principal)
+        experiment = await self._resources.get_domain_contract_by_fingerprint(
+            principal=owner,
+            resource_type=ApiResourceType.EXPERIMENT,
+            fingerprint=definition.experiment_fingerprint,
+        )
+        if not isinstance(experiment, ExperimentDefinition):
+            raise ValueError("walk-forward experiment is unavailable to this owner")
+        if experiment.fingerprint != definition.experiment_fingerprint:
+            raise ValueError("walk-forward definition is rebound to a different experiment")
+        snapshot = await self._resources.get_domain_contract_by_fingerprint(
+            principal=owner,
+            resource_type=ApiResourceType.SNAPSHOT,
+            fingerprint=experiment.snapshot_fingerprint,
+        )
+        if not isinstance(snapshot, DataSnapshot):
+            raise ValueError("walk-forward experiment snapshot is unavailable to this owner")
+        if (
+            snapshot.fingerprint != experiment.snapshot_fingerprint
+            or snapshot.capability_contract_digest != experiment.capability_contract_digest
+        ):
+            raise ValueError("walk-forward experiment snapshot binding is inconsistent")
+
+        candidates = await self._resources.get_domain_contracts_by_fingerprint(
+            principal=owner,
+            resource_type=ApiResourceType.TRIAL,
+            fingerprints=definition.candidate_fingerprints,
+        )
+        if set(candidates) != set(definition.candidate_fingerprints):
+            raise ValueError("one or more walk-forward base trials are unavailable to this owner")
+        for fingerprint in definition.candidate_fingerprints:
+            trial = candidates[fingerprint]
+            if not isinstance(trial, ScientificTrial):
+                raise ValueError("walk-forward base trial has an invalid domain contract")
+            if trial.trial_id != fingerprint:
+                raise ValueError("walk-forward base trial identity does not match its resource key")
+            if (
+                trial.experiment_fingerprint != definition.experiment_fingerprint
+                or trial.snapshot_fingerprint != snapshot.fingerprint
+                or trial.preflight_fingerprint != snapshot.preflight_report.fingerprint
+            ):
+                raise ValueError("walk-forward base trial differs from its experiment snapshot")
+            if trial.evaluation_window is not None:
+                raise ValueError("walk-forward base candidates must not have a pre-bound window")
+
+        return await self._persistence.walk_forward_plans.persist(
+            principal=owner,
+            definition=definition,
+        )
 
     async def create_resource(
         self,

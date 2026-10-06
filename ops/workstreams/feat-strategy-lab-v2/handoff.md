@@ -13333,3 +13333,22 @@ trials exist under the owner at write time, or coordinate result hydration,
 queue CAS append, and outbox dispatch after restart. Next: add that
 owner-authenticated application coordinator using the persisted definition and
 existing resource, result, search-state, and dispatch adapters.
+
+## 2026-10-06 - Authenticate walk-forward definitions against owner resources
+
+Added `PostgresStrategyLabV2Adapter.persist_walk_forward_definition` as the
+application boundary for creating a durable walk-forward definition. Before
+persisting, it resolves the experiment and frozen snapshot inside the caller's
+owner scope, then batch-loads every declared base trial under that same owner.
+It fails closed for missing/foreign resources, trial-to-experiment or
+snapshot/preflight mismatch, trial identity mismatch, and candidates that
+already carry an evaluation window. Only after those checks does it call the
+immutable aggregate-backed definition store.
+
+Validation: the new owner-graph tests plus the full application test module
+passed 31/31. Focused MyPy, Ruff, formatting, and whitespace checks passed.
+This is an application method, not yet a public REST route; it also cannot prove
+that caller-supplied observation boundaries were decoded from the frozen
+snapshot's canonical data artifact. Next: expose strict versioned wire parsing
+for this method and bind calendar boundaries to the trusted snapshot/event
+decoder before building the restart/outbox coordinator.
