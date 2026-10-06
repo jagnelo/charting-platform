@@ -1,5 +1,33 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — Official V25 shortcut-gap audit
+
+Compared the current TC2000 V25 hot-key reference with the active workstation.
+Recorded unsupported Ctrl+M personal-WatchList membership, Shift+V Favorites,
+Shift+T custom date sort, Alt+click Tag Column membership, and modifier-based
+pane resizing as open R1/R6 tasks. Personal-list target selection and Tag
+Column ownership need explicit contracts; pane resizing must persist through
+Golden Layout. Home/End WatchList navigation and Ctrl+=/Ctrl+- chart zoom are
+already implemented. The official multi-day shortcuts remain unrepresented by
+the current timeframe contract and are not approximated. Roadmap, parity
+matrix, plan, and validation journal were updated; TC scope guard passed for
+159 paths with all six self-tests, and workstream validation passed.
+
+Docs checkpoint `dedaaff0865e78e076ad4acf74d229b24e8f1274` and active-goal
+metadata checkpoint `8003b1880c6c53792c5ec2b8c2b14c6323277235` were pushed.
+The progress/ref synchronization checkpoints are `07c4f6a5ee648e03bdf33a7c527b6d9119428b0c`
+and `256523b30` (push succeeded; verify final remote ref before handoff). No
+product behavior or acceptance oracle changed. The backend unit-only pytest
+process `950317` is still live but silent/futex-waiting after 13 minutes; its
+result is uncollected and must not be claimed as passing. Current upstream refs
+remain provider `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, ETF
+`5c1ccd81dd473282ea340d2249c4caf0e73f23f1`, and staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`; both dependencies remain outside
+staging. Current-tip 104-state visual coverage, authoritative V25 Help imagery,
+and the full cleanup-safe exact integration gate remain open. Continue
+independent TC-owned R1/R5/R6 work; preserve the six-service assigned stack and
+four volumes.
+
 ## 2026-10-06 — Workstation Help accessibility semantics
 
 Changed `WorkstationView.vue` so the long keyboard-shortcut reference is a
