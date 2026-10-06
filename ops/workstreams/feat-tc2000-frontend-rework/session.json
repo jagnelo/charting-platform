@@ -51,9 +51,7 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "dirty_paths": [
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -126,13 +124,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "dedaaff0865e78e076ad4acf74d229b24e8f1274",
-  "implementation_sha": "28f5ccdf3c6275fc21bfc080242983dc30632d68",
+  "head": "8003b1880c6c53792c5ec2b8c2b14c6323277235",
+  "implementation_sha": "fc4ad47f2b82b5b182b8fa9dabd77a55e5094902",
   "interrupted": false,
   "last_checkpoint": "2026-10-06T19:23:54.569991+00:00",
-  "last_human_progress_update": "2026-10-06T19:23:52.771506+00:00",
+  "last_human_progress_update": "2026-10-06T19:36:03.608964+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "continue implementation from the branch workstream",
+  "next_action": "Continue TC-owned V25 keyboard/workstation parity, then complete current-tip visual and cleanup-safe integration validation; keep provider/ETF consumption gated on staging.",
   "plan_hash": "a10c77bfec6844ea026c7c45c3a2993399d56b5f1db9eb3d9ece7b278ffb071f",
   "planning_required": false,
   "planning_state": "ready",
@@ -147,16 +145,16 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "The complete generic integration target includes teardown that would delete the active assigned stack and four volumes; Docker is available through host context. Need derive/run exact stages through a cleanup-safe route without stopping assigned services. The full 104-state visual matrix remains incomplete after transient ERR_NETWORK_CHANGED; authoritative V25 Help images remain required-missing. Provider/ETF refs remain outside staging.",
-    "current_phase": "R1_R6_HELP_KEYBOARD_ACCESSIBILITY",
-    "next_action": "Audit validation targets for a safe exact-source integration route that preserves the live assigned project; run backend/compose/e2e stages as possible. Continue independent TC-owned Study/Strategy/workstation roadmap; recheck upstream staging before R2/R3. Stop at ready_for_human_review",
+    "current_blocker": "Full 104-state visual matrix remains incomplete at current tip and authoritative V25 Help imagery is still required-missing. Generic validate-integration teardown would delete the assigned six-service stack and four volumes; derive a disposable-project exact gate. The backend unit pytest handle remains live but has been silent for over 11 minutes and is futex-waiting; preserve it while diagnosing. Provider-platform 88132e91 and ETF 5c1ccd81 remain outside staging 8b885a2f.",
+    "current_phase": "R1_V25_KEYBOARD_PARITY",
+    "next_action": "Continue TC-owned V25 workstation parity from the official shortcut gap audit, retaining arbitrary personal-watchlist semantics and persisted Golden Layout behavior. Collect or diagnose the existing unit-test process, complete current-tip visual and cleanup-safe integration validation, and recheck dependency refs before R2/R3. Stop at ready_for_human_review.",
     "total": 9,
-    "updated_at": "2026-10-06T19:23:52.771487+00:00"
+    "updated_at": "2026-10-06T19:36:03.608942+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin feat/tc2000-frontend-rework",
-    "current_local_head": "2a8dde2fd8f1f87bb91e7c510a31870a29b07dbe",
+    "current_local_head": "8003b1880c6c53792c5ec2b8c2b14c6323277235",
     "current_pending_range": "",
     "failure_category": "",
     "head_at_product_checkpoint": "280a79e7f0ec542fc45cc6ccd32234a81990fcd7",
@@ -164,11 +162,11 @@
     "last_attempted_range": "2c081d47465cd828b787b48b60d922262ab4955c..2a8dde2fd8f1f87bb91e7c510a31870a29b07dbe",
     "range_at_product_checkpoint": "66595716d0e4c4dc1686da607465668ac081e43b..280a79e7f0ec542fc45cc6ccd32234a81990fcd7",
     "remote": "origin",
-    "remote_tracking_sha": "2a8dde2fd8f1f87bb91e7c510a31870a29b07dbe",
+    "remote_tracking_sha": "8003b1880c6c53792c5ec2b8c2b14c6323277235",
     "status": "synchronized"
   },
-  "remote": "dedaaff0865e78e076ad4acf74d229b24e8f1274",
-  "remote_sha": "28f5ccdf3c6275fc21bfc080242983dc30632d68",
+  "remote": "8003b1880c6c53792c5ec2b8c2b14c6323277235",
+  "remote_sha": "8003b1880c6c53792c5ec2b8c2b14c6323277235",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
