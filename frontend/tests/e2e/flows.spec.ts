@@ -472,6 +472,104 @@ test.describe('Chart', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F9d-modifier-resize — Shift/Ctrl-drag evenly resizes the chosen pane side and persists after reload', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    const host = page.locator('.workspace-layout-host')
+    await expect(host).toBeVisible({ timeout: 15_000 })
+    const splitters = page.locator('.workspace-layout-host .lm_splitter.lm_vertical')
+    await expect.poll(() => splitters.count(), { timeout: 15_000 }).toBeGreaterThan(0)
+
+    const candidateIndex = await splitters.evaluateAll(elements => elements.findIndex(element => {
+      const parent = element.parentElement
+      if (!parent) return false
+      const siblings = Array.from(parent.children)
+      const splitterPosition = siblings.indexOf(element)
+      const paneCountBefore = siblings.slice(0, splitterPosition).filter(child => child.classList.contains('lm_item')).length
+      const paneCountAfter = siblings.slice(splitterPosition + 1).filter(child => child.classList.contains('lm_item')).length
+      return paneCountBefore >= 2 && paneCountAfter >= 1
+    }))
+    expect(candidateIndex, 'factory workspace should expose a stacked three-pane column').toBeGreaterThanOrEqual(0)
+    const splitter = splitters.nth(candidateIndex)
+    const measure = () => splitter.evaluate(element => {
+      const parent = element.parentElement!
+      const siblings = Array.from(parent.children)
+      const position = siblings.indexOf(element)
+      const panesBefore = siblings.slice(0, position).filter(child => child.classList.contains('lm_item')) as HTMLElement[]
+      const panesAfter = siblings.slice(position + 1).filter(child => child.classList.contains('lm_item')) as HTMLElement[]
+      const heights = (panes: HTMLElement[]) => panes.map(pane => pane.getBoundingClientRect().height)
+      return { above: heights(panesBefore), below: heights(panesAfter), y: element.getBoundingClientRect().y, x: element.getBoundingClientRect().x, width: element.getBoundingClientRect().width, height: element.getBoundingClientRect().height }
+    })
+    const before = await measure()
+    const movement = 48
+    const layoutSaved = page.waitForResponse(response =>
+      response.url().includes('/api/v1/workspaces/')
+      && response.url().includes('/snapshot')
+      && response.request().method() === 'PUT'
+      && response.status() === 200,
+    { timeout: 10_000 })
+    await page.keyboard.down('Shift')
+    await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2 + movement, { steps: 8 })
+    await page.mouse.up()
+    await page.keyboard.up('Shift')
+
+    await expect.poll(async () => {
+      const measured = await measure()
+      return measured.above.reduce((sum, size) => sum + size, 0)
+    }, { timeout: 5_000 }).toBeGreaterThan(before.above.reduce((sum, size) => sum + size, 0) + movement - 5)
+    const resized = await measure()
+    expect(Math.max(...resized.above) - Math.min(...resized.above)).toBeLessThan(3)
+    expect(resized.below[0]).toBeLessThan(before.below[0] - movement + 5)
+
+    await layoutSaved
+    await page.reload()
+    await expect(host).toBeVisible({ timeout: 15_000 })
+    await expect.poll(() => splitters.count(), { timeout: 15_000 }).toBeGreaterThan(candidateIndex)
+    const restored = await splitters.nth(candidateIndex).evaluate(element => {
+      const parent = element.parentElement!
+      const siblings = Array.from(parent.children)
+      const position = siblings.indexOf(element)
+      const panesBefore = siblings.slice(0, position).filter(child => child.classList.contains('lm_item')) as HTMLElement[]
+      return panesBefore.map(pane => pane.getBoundingClientRect().height)
+    })
+    expect(Math.max(...restored) - Math.min(...restored)).toBeLessThan(3)
+    expect(restored.reduce((sum, size) => sum + size, 0)).toBeGreaterThan(before.above.reduce((sum, size) => sum + size, 0) + movement - 5)
+
+    const beforeCtrl = await measure()
+    const ctrlLayoutSaved = page.waitForResponse(response =>
+      response.url().includes('/api/v1/workspaces/')
+      && response.url().includes('/snapshot')
+      && response.request().method() === 'PUT'
+      && response.status() === 200,
+    { timeout: 10_000 })
+    await page.keyboard.down('Control')
+    await page.mouse.move(beforeCtrl.x + beforeCtrl.width / 2, beforeCtrl.y + beforeCtrl.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(beforeCtrl.x + beforeCtrl.width / 2, beforeCtrl.y + beforeCtrl.height / 2 + movement, { steps: 8 })
+    await page.mouse.up()
+    await page.keyboard.up('Control')
+    await expect.poll(async () => {
+      const measured = await measure()
+      return measured.below.reduce((sum, size) => sum + size, 0)
+    }, { timeout: 5_000 }).toBeLessThan(beforeCtrl.below.reduce((sum, size) => sum + size, 0) - movement + 5)
+    const ctrlResized = await measure()
+    expect(Math.max(...ctrlResized.below) - Math.min(...ctrlResized.below)).toBeLessThan(3)
+    await ctrlLayoutSaved
+    await page.reload()
+    await expect(host).toBeVisible({ timeout: 15_000 })
+    const restoredBelow = await splitters.nth(candidateIndex).evaluate(element => {
+      const parent = element.parentElement!
+      const siblings = Array.from(parent.children)
+      const position = siblings.indexOf(element)
+      const panesAfter = siblings.slice(position + 1).filter(child => child.classList.contains('lm_item')) as HTMLElement[]
+      return panesAfter.map(pane => pane.getBoundingClientRect().height)
+    })
+    expect(Math.max(...restoredBelow) - Math.min(...restoredBelow)).toBeLessThan(3)
+    expect(restoredBelow.reduce((sum, size) => sum + size, 0)).toBeLessThan(beforeCtrl.below.reduce((sum, size) => sum + size, 0) - movement + 5)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F9d-workspaces — persisted workspaces can be created, cloned, renamed, switched, and deleted', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })

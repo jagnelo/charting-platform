@@ -269,4 +269,83 @@ describe('WorkspaceLayoutHost', () => {
     expect(wrapper.emitted('active-window-changed')).toEqual([['chart-2']])
     wrapper.unmount()
   })
+
+  it('evenly resizes panes above a Shift-dragged horizontal splitter and persists the layout', async () => {
+    const layout = { root: { type: 'column', content: [] } } as any
+    const wrapper = mount(WorkspaceLayoutHost, {
+      props: { layout, renderTool: () => h('div') },
+    })
+    const host = wrapper.find('.workspace-layout-host').element as HTMLElement
+    Object.defineProperty(host, 'clientWidth', { value: 800 })
+    Object.defineProperty(host, 'clientHeight', { value: 400 })
+    const panes = [100, 100, 200].map((height, index) => {
+      const element = document.createElement('section')
+      element.dataset.pane = String(index)
+      Object.defineProperty(element, 'getBoundingClientRect', { value: () => ({ height }) })
+      return { element, size: height / 4 }
+    })
+    const splitterBefore = document.createElement('div')
+    splitterBefore.className = 'lm_splitter lm_vertical'
+    const splitter = document.createElement('div')
+    splitter.className = 'lm_splitter lm_vertical'
+    const rowElement = document.createElement('div')
+    rowElement.append(panes[0].element, splitterBefore, panes[1].element, splitter, panes[2].element)
+    host.append(rowElement)
+    const row: any = {
+      element: rowElement,
+      contentItems: panes,
+      _splitter: [{ element: splitterBefore }, { element: splitter }],
+      calculateContentItemMinSize: () => 50,
+    }
+    const gl = goldenLayouts[0]
+    gl.root = { contentItems: [row] }
+    gl.saveLayout = () => ({
+      root: { type: 'column', content: panes.map((pane, index) => ({
+        type: 'component',
+        size: pane.size,
+        componentState: { instance_key: `pane-${index}` },
+      })) },
+    })
+
+    const down = new MouseEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientY: 100, shiftKey: true })
+    splitter.dispatchEvent(down)
+    expect(down.defaultPrevented).toBe(true)
+    document.dispatchEvent(new MouseEvent('pointermove', { bubbles: true, cancelable: true, clientY: 180 }))
+    document.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, clientY: 180 }))
+
+    expect(panes.map(pane => pane.size)).toEqual([35, 35, 30])
+    expect(gl.sizes.at(-1)).toEqual([800, 400])
+    expect(wrapper.emitted('changed')?.at(-1)?.[0]).toEqual({
+      root: {
+        type: 'column',
+        content: [
+          { type: 'component', size: 35, componentState: { instance_key: 'pane-0' } },
+          { type: 'component', size: 35, componentState: { instance_key: 'pane-1' } },
+          { type: 'component', size: 30, componentState: { instance_key: 'pane-2' } },
+        ],
+      },
+    })
+    wrapper.unmount()
+  })
+
+  it('leaves ordinary splitter drags and modified vertical splitters to Golden Layout', () => {
+    const wrapper = mount(WorkspaceLayoutHost, {
+      props: { layout: { root: { type: 'row', content: [] } } as any, renderTool: () => h('div') },
+    })
+    const host = wrapper.find('.workspace-layout-host').element
+    const horizontalDivider = document.createElement('div')
+    horizontalDivider.className = 'lm_splitter lm_vertical'
+    const verticalDivider = document.createElement('div')
+    verticalDivider.className = 'lm_splitter lm_horizontal'
+    host.append(horizontalDivider, verticalDivider)
+
+    const ordinary = new MouseEvent('pointerdown', { bubbles: true, cancelable: true, button: 0 })
+    horizontalDivider.dispatchEvent(ordinary)
+    const modifiedVertical = new MouseEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, shiftKey: true })
+    verticalDivider.dispatchEvent(modifiedVertical)
+
+    expect(ordinary.defaultPrevented).toBe(false)
+    expect(modifiedVertical.defaultPrevented).toBe(false)
+    wrapper.unmount()
+  })
 })

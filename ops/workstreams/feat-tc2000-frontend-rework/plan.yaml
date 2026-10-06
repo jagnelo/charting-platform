@@ -505,16 +505,16 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R1_CTRL_M_MEMBERSHIP
+  current_phase: R1_V25_REMAINING_SHORTCUTS_AND_EXACT_VISUAL_REVIEW
   next_action: >-
     Continue TC-owned R1/R5/R6 implementation and trace the Help screenshot
-    layout-state mismatch. Ctrl+M now opens explicit list membership actions
-    without selecting a destination or mutating data; its focused component and
-    pinned browser evidence is recorded in docs and validation.jsonl. Remaining
-    V25 design gaps include Favorites, custom-date sorting, Tag Column ownership,
-    and modifier-based Golden Layout resizing. Keep the full visual matrix and
-    exact integration gate open. Defer upstream consumption/reconciliation until
-    both dependencies reach staging. Stop at ready_for_human_review.
+    layout-state mismatch. Ctrl+M now opens explicit list membership actions,
+    and Shift/Ctrl divider drag now evenly resizes the selected side with
+    persisted Golden Layout proportions. Remaining V25 design gaps include
+    Favorites, custom-date sorting, and Tag Column ownership. Keep the full
+    visual matrix and cleanup-safe exact integration gate open. Defer upstream
+    consumption/reconciliation until both dependencies reach staging. Stop at
+    ready_for_human_review.
   current_blocker: >-
     The four Help screenshot profiles reproducibly exceed the unchanged 0.5%
     threshold; retained expected/actual images show Help placement and pane

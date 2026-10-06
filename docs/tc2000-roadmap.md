@@ -21,8 +21,27 @@ pinned Chromium membership flow passed 1/1, including no transfer before
 destination/action confirmation. The Help text now documents Ctrl+M. No visual
 baseline, threshold, mask, skip, or acceptance rule changed; the four Help-state
 captures and full visual matrix remain open because their existing mismatch is
-unresolved. Favorites, custom-date sorting, Tag Column, and divider modifier
-semantics remain open design gaps.
+unresolved. Favorites, custom-date sorting, and Tag Column ownership remain
+open design gaps.
+
+## 2026-10-06 — Shift/Ctrl divider resizing
+
+The official TC2000 V25 reference specifies Shift-drag to resize panes above a
+horizontal divider evenly and Ctrl-drag to resize panes below it evenly. The
+workstation now intercepts only these modified horizontal-divider drags;
+ordinary Golden Layout dragging and vertical splitters remain unchanged. The
+selected side is evenly redistributed, the adjacent pane on the opposite side
+acts as a counterweight, and configured minimum sizes bound the operation. New
+proportions are saved through Golden Layout and the existing workspace snapshot
+path. The Help dialog documents both gestures. Geometry and host integration
+tests passed 17/17, the pinned authenticated Chromium Shift/Ctrl interaction
+passed 1/1 including canonical snapshot persistence across reload, and Vue
+type-check/production build passed. The first browser replay reloaded before
+the intentional 350 ms workspace-snapshot debounce and therefore observed the
+old layout; the unchanged interaction passed after the test awaited the
+successful snapshot PUT. No screenshot baseline, threshold, mask, or skip was
+changed. Shift+V Favorites, Shift+T custom date sorting, and Alt+click Tag
+Column ownership remain open.
 
 ## 2026-10-06 — Official V25 shortcut gap audit
 
@@ -35,10 +54,11 @@ The current timeframe contract still cannot represent the official `2–4`,
 `6–8`, and `9` period shortcuts; do not route them to approximate intervals.
 
 The audit found these additional official interactions without a corresponding
-workstation command path: Ctrl+M add/remove to a personal WatchList, Shift+V
-add/remove to My Favorites, Shift+T custom date sort, Alt+click Tag Column
-membership, and Shift/Ctrl+drag to resize panes above/below a Golden Layout
-divider. These remain open R1/R6 parity tasks. Before implementing the
+workstation command path: Shift+V add/remove to My Favorites, Shift+T custom
+date sort, and Alt+click Tag Column membership. These remain open R1/R6 parity
+tasks. Ctrl+M membership is implemented with explicit target selection, and
+Shift/Ctrl divider resizing is implemented and persisted through Golden Layout.
+Before implementing the
 personal-list shortcuts, define their target-selection semantics against the
 existing arbitrary user-owned WatchLists; do not silently pick or create a
 list. Existing row context actions already inspect list membership and support

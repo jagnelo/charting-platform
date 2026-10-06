@@ -14,29 +14,41 @@ pinned Chromium passed the real two-row copy flow 1/1, including no transfer
 before confirmation. The Help content documents Ctrl+M. Existing visual
 baselines and acceptance policy were not changed; the four Help screenshot
 profiles remain unresolved. Shift+V Favorites, Shift+T custom date sorting,
-Alt+click Tag Column, and modifier divider resizing remain open.
+and Alt+click Tag Column remain open.
+
+## 2026-10-06 — Golden Layout modifier divider resizing
+
+Shift-drag on a horizontal divider evenly resizes all panes above it; Ctrl-drag
+evenly resizes panes below it, using the adjacent pane across the divider as
+the counterweight. The operation respects configured minimum pane sizes,
+persists through the existing Golden Layout snapshot contract, and leaves
+ordinary splitter gestures and vertical dividers to Golden Layout. Host and
+geometry tests passed 17/17; authenticated pinned Chromium passed 1/1 for both
+gestures and reload persistence; type-check and production build passed. The
+new Help descriptions and V25 interaction were not used to refresh any
+screenshot, threshold, mask, skip, or acceptance policy. Favorites, custom-date
+sorting, and Tag Column ownership remain open.
 
 ## 2026-10-06 — Official V25 shortcut gap audit
 
 The current [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
 also lists Ctrl+M for personal WatchList membership, Shift+V for Favorites,
-Shift+T for custom date sort, Alt+click for Tag Column membership, and
-Shift/Ctrl+drag on a divider to resize panes above/below it. These commands
-have no mapped workstation implementation in the current source audit and
-remain open. The personal-list commands need an explicit target-selection
+Shift+T for custom date sort, and Alt+click for Tag Column membership. Ctrl+M
+is implemented through an explicit destination picker; modifier divider
+resizing is implemented and persisted. Shift+V, Shift+T, and Alt+click remain
+open. The Favorites command needs a fixed or explicit target-selection
 contract because this workstation supports arbitrary personal WatchLists;
 this is not an absence of list-membership UI: WatchList row context actions
 already support explicit source/destination inspection, copy, and move, while
 `Shift+F` toggles the separate Flagged Items aggregate. The missing piece is a
-documented, keyboard-addressable TC2000 destination model for Ctrl+M and
-Favorites that does not guess among user-owned lists or conflate favorites
-with flags. Shift+T also needs a defined date-valued row field and persistence
+documented, keyboard-addressable TC2000 destination model for Shift+V that does
+not guess among user-owned lists or conflate favorites with flags. Shift+T
+also needs a defined date-valued row field and persistence
 contract; the current header sort is per mounted surface and does not expose a
 custom-date domain object. These should be implemented only after those
 contracts exist and can be tested as persisted state.
 Tag Column behavior and persistence need to be established before wiring the
-mouse modifier; pane resizing must be persisted through Golden Layout rather
-than implemented as a transient DOM resize. The official `2–4`, `6–8`, and
+mouse modifier. The official `2–4`, `6–8`, and
 `9` timeframe commands also remain unavailable because the current timeframe
 contract cannot represent those periods. Existing Home/End WatchList traversal
 and Ctrl+=/Ctrl+- chart zoom are implemented. No behavior or visual oracle

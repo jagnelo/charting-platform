@@ -1,8 +1,39 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — V25 modifier divider resizing
+
+Implemented TC2000 V25 Shift-drag resizing for panes above a horizontal divider
+and Ctrl-drag resizing for panes below it in `WorkspaceLayoutHost.vue`. The
+selected side is evenly distributed, the neighboring pane across the divider
+is the counterweight, and Golden Layout minimum sizes constrain the result.
+Ordinary divider drags and vertical splitters continue through Golden Layout's
+native handler. The updated proportions are emitted through the existing
+`saveLayout`/workspace snapshot path; the application Help dialog now documents
+both gestures.
+
+Geometry/helper and host integration tests pass `17/17`; current-source
+`vue-tsc` and production build pass (520 Vite modules). One authenticated pinned
+Chromium run passed the Shift and Ctrl interactions plus successful snapshot
+reload persistence `1/1`. The first browser attempt reloaded before the normal
+350 ms snapshot debounce; the test now waits for the successful snapshot PUT.
+On the later replay after Help copy changed, an auth-navigation timeout occurred
+before the test, and an unchanged retry reached and passed the gesture and
+reload assertions but failed the final diagnostics because multiple unrelated
+API requests returned `ERR_NETWORK_CHANGED`. Do not treat that latest full test
+as clean or weaken its diagnostics; the clean preceding replay and the current
+replay's interaction assertions remain recorded separately. No screenshot
+baseline, mask, threshold, skip, or acceptance policy changed.
+
+The assigned six-service TC stack and four volumes were preserved. Three live
+Testcontainers resources labeled to the ETF worktree were also left untouched.
+The generic integration target remains unsafe because it force-recreates and
+then tears down the assigned TC project. GitHub ref discovery remains
+intermittent; the provider/ETF staging state must be refreshed before any
+consumer work.
+
 ## 2026-10-06 — Continuation preflight and exact-gate safety check
 
-The active TC worktree is clean at `85c2f0dcd` on
+At the time of this earlier check, the TC worktree was clean at `85c2f0dcd` on
 `feat/tc2000-frontend-rework`. Current GitHub DNS resolution failed during
 `git ls-remote`, so remote branch tips and whether the provider/ETF dependencies
 have reached staging could not be refreshed; do not consume either dependency
