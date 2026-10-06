@@ -1,5 +1,23 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — TC2000 V25 active-chart bar navigation
+
+Product commit `a37ae3217` implements the current TC2000 V25 `[` / `]` one-bar
+chart navigation and Shift variants for five bars. Workstation tool activation
+now follows the reactive workspace active-window key instead of a stale
+Golden Layout render-time snapshot; only the active chart registers keyboard
+handling, and editor-owned bracket input remains native. Both the workstation
+Help menu and chart shortcut overlay document the interaction.
+
+Verification at the exact product source: frontend type-check and production
+build passed; the pinned authenticated Chromium bracket-navigation and Help
+flows passed `2/2`; the existing four-profile Help screenshot oracle passed
+`4/4` without baseline, mask, threshold, or acceptance changes. TC scope guard
+accepted all `144` paths and all six fail-closed self-tests passed. The exact-tip
+full frontend suite, generic integration gate, broader R1/R5/R6 and AC7, exact
+V25 review, and provider/ETF consumption after staging remain open. The
+assigned six-service stack was preserved; browser source was mounted read-only.
+
 ## 2026-10-06 — TC2000 V25 Shift+F WatchList flagging
 
 Pushed product commit `99f10230db0a577be621a8e503a4070412be831a` implements

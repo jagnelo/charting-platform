@@ -13203,3 +13203,12 @@ This strengthens bounded family/provider evidence but is not full R1 readiness: 
 history is intentionally capped, placeholder and rebalance disposition remain incomplete, W1/MN
 floors are unavailable, and canonical top-down/R2–R7 evidence remains open. No provider,
 fallback, credential, visual, or acceptance policy changed.
+
+## 2026-10-06 — V25 chart bar-navigation parity
+
+Current TC2000 V25 hotkey parity now includes `[` / `]` for one-bar chart history navigation and
+Shift variants for five bars. The workstation routes chart keyboard input only to its currently
+active Golden Layout tool; active-window state is derived reactively from the workspace store so
+keyboard ownership does not go stale after a dock click. Focused pinned Chromium coverage and the
+frontend build are required receipts. This is one independent R1 keyboard slice, not completion of
+the visual, functional, integration, or dependency gates.

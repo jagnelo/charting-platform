@@ -9397,3 +9397,18 @@ authenticated F8k-shift-d browser flow passed 1/1 for activation, repeat-key can
 editor-focus suppression. Vue type-check/production build passed, and the existing four-profile
 Help screenshot oracle passed 4/4 with unchanged baselines and thresholds. The shortcut is
 workstation/chart scoped; this does not claim broader exact V25 visual approval.
+
+## 2026-10-06 — TC2000 V25 chart bar navigation
+
+The current [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+specifies `[` and `]` to move the chart one bar backward/forward, with Shift variants moving five
+bars. The active workstation chart now applies those ranges through the existing chart viewport
+logic, leaves editor-owned bracket entry unchanged, and does not let inactive dock charts consume
+the shortcut. Tool activation now reads the reactive workspace active-window key instead of a
+render-time snapshot, so the chart keyboard scope follows the selected Golden Layout tool.
+
+The authenticated pinned-browser regression passes activation, one-bar and five-bar navigation,
+reverse navigation, editor literal input, and the chart's latest-history recovery state. Frontend
+type-check and production build pass. This is a focused interaction receipt; exact V25 visual
+approval, the full frontend suite, generic integration, and broader workstation acceptance remain
+open.
