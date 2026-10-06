@@ -12733,3 +12733,49 @@ advance an acceptance criterion to complete: the exact owner-bound resolver,
 full event-tape parity, remaining branch criteria, and required full-stack gate
 are still open. The accepted exact-pinned Nautilus RC5 remains usable; stable
 2.x publication is not a dependency.
+
+## 2026-10-06 - Owner-bound forward sandbox input resolver
+
+Implementation commit `345fdb8102fa9ac62fb9e294d24e44ea07b66ca8` is pushed to
+`origin/feat/strategy-lab-v2`. The new
+`AuthenticatedForwardSandboxPlanInputResolver` joins the owner-authenticated
+plan/checkpoint, frozen snapshot/tape, source-verified canonical warm-up
+payloads, exact processed prefix, and portfolio market context into the
+Nautilus engine input. It checks owner and delivery/checkpoint/receipt identity
+at each boundary, verifies complete canonical coverage of the immutable tape,
+cuts warm-up by the platform-global canonical cursor while retaining the
+frozen tape's source-local rows, and rejects market/runtime ABI or portfolio
+currency/capital/instrument mismatches. The supporting protocols and market
+context value are exported for platform-owned adapters.
+
+This resolves composition, not the still-missing production adapters or their
+worker assembly. Snapshot warm-up resolution is currently materialized in
+memory; bounded-memory long-history forward bootstrap remains an explicit
+scalability gap. The new resolver is proven with deterministic fixtures and the
+package suite, not yet through the actual persistent forward process start and
+checkpoint-replacement path. No provider-owned paths or other worktrees were
+changed. Nautilus `2.0.0rc5` remains the accepted prerelease target; stable
+release labeling is not a gate.
+
+Validation on the pushed implementation: Strategy Lab package tests passed
+1,531 with one opt-in image test skipped; the forward composition module passed
+15 focused tests; package Ruff and Ruff formatting passed; package MyPy passed
+across 407 files; workstream schema validation and `git diff --check` passed.
+The package run stalled in the restricted sandbox and was stopped, then the
+same exact command completed through the approved host path in 30 seconds.
+
+Next: build concrete owner-authenticated snapshot/canonical/prefix/market
+adapters and wire this resolver into production forward-worker process startup
+and checkpoint replacement; add an integration test proving that full path
+against the pinned RC5 process. This changeset does not close AC-FORWARD,
+AC-NAUTILUS event-tape parity, or the overall branch goal.
+
+Context closure: owned implementation paths were the two forward-composition
+modules and their two focused test modules; the implementation commit is
+`345fdb8102fa9ac62fb9e294d24e44ea07b66ca8`; all staged implementation paths
+were reviewed and package/focused validation passed as recorded above. Push
+result is synchronized (`HEAD` and `origin/feat/strategy-lab-v2` both
+`345fdb8102fa9ac62fb9e294d24e44ea07b66ca8` before this operational checkpoint).
+No Docker resources were created or retained. The worktree is now limited to
+this branch-owned operational checkpoint; next action is the adapter and
+process-wiring implementation described above.
