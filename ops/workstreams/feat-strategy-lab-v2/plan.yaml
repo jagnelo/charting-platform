@@ -855,22 +855,26 @@ progress:
     - strategy-lab-v2-nautilus-forward-runtime-dto-codec-v1
     - strategy-lab-v2-nautilus-forward-runtime-operation-handler-v1
   total: 18
-  current_phase: forward-process-bootstrap-input-propagation
+  current_phase: forward-bootstrap-artifact-and-plan-composition
   active_changeset:
-    id: strategy-lab-v2-forward-process-bootstrap-input-propagation-v1
+    id: strategy-lab-v2-forward-bootstrap-artifact-and-plan-composition-v1
     scope: >-
-      Pass each accepted delivery and its owner-authenticated pre-event context
-      into hardened native process creation so the host can build the exact
-      checkpoint-bound RC5 bootstrap without synthetic event identities.
-      Preserve those launch inputs for deterministic process replacement and
-      fail closed when recovery lacks the exact inputs; no broker or real-
-      capital path is introduced.
+      Build and wire the production owner-scoped warm-up/bootstrap artifact and
+      hardened RC5 sandbox plan using the accepted delivery, exact durable
+      checkpoint, complete frozen snapshot tape, processed prefix, and explicit
+      canonical platform readers. Preserve immutable identity/order provenance,
+      fail closed on missing or mismatched evidence, and introduce no broker or
+      real-capital path.
     owned_paths:
+      - backend/app/strategy_lab_v2/forward_worker_composition.py
+      - backend/app/strategy_lab_v2/forward_history_resolution.py
+      - backend/app/strategy_lab_v2/nautilus_forward_bootstrap.py
+      - backend/app/strategy_lab_v2/nautilus_runtime_bundle.py
+      - backend/app/strategy_lab_v2/nautilus_engine_input.py
       - backend/app/strategy_lab_v2/nautilus_forward_process.py
-      - backend/app/strategy_lab_v2/nautilus_forward_session.py
+      - backend/app/strategy_lab_v2/tests/test_forward_worker_composition.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_forward_bootstrap.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_forward_process.py
-      - backend/app/strategy_lab_v2/tests/test_nautilus_forward_session.py
-      - backend/app/strategy_lab_v2/tests/test_nautilus_forward_process_integration.py
     status: in_progress
   current_blocker: >-
     No external dependency blocks implementation. Exact-pinned Nautilus
@@ -898,8 +902,8 @@ progress:
     canonical platform event identity and ordering; never derive it from
     dependency-local frozen series rows.
   next_action: >-
-    Build the per-owner warm-up/bootstrap artifact and RC5 sandbox plan from
-    the accepted delivery, authenticated context, and explicit platform
-    readers; never derive canonical identity or ordering from frozen
-    dependency-local rows. Wire the validated bootstrap and sandbox plan into
-    the production owner-scoped forward worker composition.
+    Inspect existing artifact, engine-input, and sandbox contracts, then add
+    production composition that accepts explicit full-tape/canonical readers
+    and binds their verified outputs to the owner plan, exact checkpoint, and
+    process replacement lifecycle. Do not synthesize canonical identity or
+    ordering from frozen dependency-local rows.
