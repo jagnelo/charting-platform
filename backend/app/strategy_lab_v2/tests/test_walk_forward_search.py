@@ -158,6 +158,7 @@ def _authoritative_result(
     value: Decimal,
     *,
     attempt_id: str | None = None,
+    snapshot: DataSnapshot | None = None,
 ):
     strategy = StrategyVersion(
         "walk-forward-strategy",
@@ -185,7 +186,7 @@ def _authoritative_result(
         "USD",
         (PortfolioComponent("component-1", strategy.fingerprint, ("US.AAPL",), Decimal(1)),),
     )
-    snapshot = DataSnapshot(
+    snapshot = snapshot or DataSnapshot(
         snapshot_id="walk-forward-snapshot",
         provider_snapshot_id="provider-walk-forward-snapshot",
         preflight_report=trial.preflight_report,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -21,14 +22,23 @@ from app.strategy_lab_v2.search_state import (
     SearchCandidatePhase,
     SearchStateDecision,
     SearchStateResolution,
+    append_search_candidates,
     record_search_candidate_terminal,
     start_search_candidate,
 )
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs
+from app.strategy_lab_v2.tests.test_walk_forward_search import _authoritative_result
+from app.strategy_lab_v2.walk_forward_queue import initialize_walk_forward_training_queue
 from app.strategy_lab_v2.walk_forward_search import (
     SelectionDirection,
     WalkForwardDefinitionRequest,
     WalkForwardExecutionDefinition,
+    select_walk_forward_oos_tasks,
+)
+from app.strategy_lab_v2.walk_forward_trials import (
+    materialize_walk_forward_oos_trials,
+    materialize_walk_forward_training_trials,
+    training_score_from_result_manifest,
 )
 
 
@@ -129,14 +139,49 @@ def _setup(*, second_experiment: str | None = None):
             assert principal.id == "42"
             return self.states.get(experiment_fingerprint)
 
+        async def append_candidates(
+            self,
+            *,
+            principal: Any,
+            experiment_fingerprint: str,
+            expected_state_fingerprint: str,
+            trial_fingerprints: tuple[str, ...],
+            now: datetime,
+        ):
+            assert principal.id == "42"
+            current = self.states[experiment_fingerprint]
+            if current.fingerprint != expected_state_fingerprint:
+                replay = append_search_candidates(current, trial_fingerprints, now=now)
+                if replay.decision is SearchStateDecision.REPLAY_EXISTING:
+                    return replay
+                return SearchStateResolution(
+                    SearchStateDecision.REJECT,
+                    current,
+                    rejection_reason="search state changed before phase append",
+                )
+            resolution = append_search_candidates(current, trial_fingerprints, now=now)
+            if resolution.decision is not SearchStateDecision.REJECT:
+                self.states[experiment_fingerprint] = resolution.state
+            return resolution
+
+    class ResultMaterialization:
+        def __init__(self) -> None:
+            self.manifests: dict[str, Any] = {}
+
+        async def load_manifest(self, *, principal: Any, attempt_id: str):
+            assert principal.id == "42"
+            return self.manifests.get(attempt_id)
+
     reader = Reader()
     plan_store = PlanStore()
     search_state_store = SearchStateStore()
+    result_materialization = ResultMaterialization()
     adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
     adapter._resources = reader
     adapter._persistence = SimpleNamespace(
         walk_forward_plans=plan_store,
         search_state=search_state_store,
+        result_materialization=result_materialization,
     )
     adapter._clock = lambda: datetime(2026, 10, 6, tzinfo=UTC)
     published_trials: list[str] = []
@@ -168,6 +213,7 @@ def _setup(*, second_experiment: str | None = None):
 
     adapter.create_resource = create_resource
     adapter._published_trials = published_trials
+    adapter._result_materialization = result_materialization
     return adapter, reader, plan_store, definition, original, second
 
 
@@ -343,7 +389,6 @@ async def test_training_dispatch_persists_and_replays_attempt_before_host_dispat
     assert first_intent.attempt_id == observed[0]["attempt_id"]
     assert observed[0]["candidate_index"] == 0
     assert observed[0]["experiment_fingerprint"] == definition.experiment_fingerprint
-
     state = adapter._persistence.search_state.states[definition.experiment_fingerprint]
     started = start_search_candidate(
         state,
@@ -374,3 +419,93 @@ async def test_training_dispatch_persists_and_replays_attempt_before_host_dispat
         for (resource_type, _fingerprint), attempt in reader.contracts.items()
         if resource_type is ApiResourceType.ATTEMPT
     )
+
+
+@pytest.mark.asyncio
+async def test_oos_phase_hydrates_owner_manifests_appends_and_replays_exact_trials() -> None:
+    adapter, reader, _plan_store, definition, first, second = _setup()
+    adapter._clock = lambda: datetime(2026, 10, 6, 5, tzinfo=UTC)
+    training = materialize_walk_forward_training_trials(
+        definition.training_plan,
+        (first, second),
+        definition.folds,
+        definition.observation_boundaries,
+    )
+    state, bindings = initialize_walk_forward_training_queue(
+        definition.training_plan, training, now=None
+    )
+    trial_by_id = {trial.trial_id: trial for trial in training.trials}
+    result_store = adapter._result_materialization
+    for index, candidate in enumerate(state.candidates):
+        attempt_id = f"persisted-training-attempt-{index}"
+        result_fingerprint = content_digest({"training-result": index})
+        manifest = _authoritative_result(
+            trial_by_id[candidate.trial_fingerprint],
+            definition.metric_id,
+            Decimal(index + 1),
+            attempt_id=attempt_id,
+            snapshot=reader.contracts[(ApiResourceType.SNAPSHOT, first.snapshot_fingerprint)],
+        )
+        result_store.manifests[attempt_id] = manifest
+        state = start_search_candidate(
+            state,
+            index,
+            attempt_id=attempt_id,
+            now=datetime(2026, 10, 6, 1 + index, tzinfo=UTC),
+        ).state
+        state = record_search_candidate_terminal(
+            state,
+            index,
+            attempt_id=attempt_id,
+            phase=SearchCandidatePhase.SUCCEEDED,
+            result_fingerprint=result_fingerprint,
+            now=datetime(2026, 10, 6, 2 + index, tzinfo=UTC),
+        ).state
+    adapter._persistence.search_state.states[definition.experiment_fingerprint] = state
+
+    appended = await adapter.append_walk_forward_oos_candidates(
+        principal=User(),
+        request_id="append-oos",
+        experiment_fingerprint=definition.experiment_fingerprint,
+    )
+    assert appended.resolution.decision is SearchStateDecision.APPLY
+    assert len(appended.oos_task_bindings) == len(definition.folds)
+    assert all(binding.purpose == "out_of_sample" for binding in appended.oos_task_bindings)
+    expected_selection = select_walk_forward_oos_tasks(
+        definition.training_plan,
+        definition.folds,
+        tuple(
+            training_score_from_result_manifest(
+                task_binding,
+                result_store.manifests[
+                    f"persisted-training-attempt-{queue_binding.candidate_index}"
+                ],
+                metric_id=definition.metric_id,
+            )
+            for task_binding, queue_binding in zip(training.bindings, bindings, strict=True)
+        ),
+    )
+    expected_oos = materialize_walk_forward_oos_trials(
+        expected_selection,
+        (first, second),
+        definition.folds,
+        definition.observation_boundaries,
+    )
+    assert tuple(binding.trial_fingerprint for binding in appended.oos_task_bindings) == tuple(
+        trial.trial_id for trial in expected_oos.trials
+    )
+    replay = await adapter.append_walk_forward_oos_candidates(
+        principal=User(),
+        request_id="append-oos-replay",
+        experiment_fingerprint=definition.experiment_fingerprint,
+    )
+    assert replay.resolution.decision is SearchStateDecision.REPLAY_EXISTING
+    assert replay.resolution.state == appended.resolution.state
+    assert replay.oos_task_bindings == appended.oos_task_bindings
+    resumed = await adapter.initialize_walk_forward_training(
+        principal=User(),
+        request_id="resume-after-oos-append",
+        definition=definition,
+    )
+    assert resumed.decision is SearchStateDecision.REPLAY_EXISTING
+    assert resumed.state == appended.resolution.state

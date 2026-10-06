@@ -129,12 +129,22 @@ from app.strategy_lab_v2.storage import (
     StorageTransactionRequest,
 )
 from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
-from app.strategy_lab_v2.walk_forward_queue import initialize_walk_forward_training_queue
+from app.strategy_lab_v2.walk_forward_queue import (
+    WalkForwardQueueResultEvidence,
+    WalkForwardQueueTransition,
+    append_selected_oos_queue,
+    initialize_walk_forward_training_queue,
+    training_scores_from_search_queue,
+)
 from app.strategy_lab_v2.walk_forward_search import (
     WalkForwardDefinitionRequest,
     WalkForwardExecutionDefinition,
+    select_walk_forward_oos_tasks,
 )
-from app.strategy_lab_v2.walk_forward_trials import materialize_walk_forward_training_trials
+from app.strategy_lab_v2.walk_forward_trials import (
+    materialize_walk_forward_oos_trials,
+    materialize_walk_forward_training_trials,
+)
 from app.strategy_lab_v2.worker_handoff import encode_worker_handoff
 from app.strategy_lab_v2.worker_process import WorkerExecutionRequest
 from app.strategy_lab_v2.workers import WorkerProfile
@@ -1249,6 +1259,16 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                 == tuple(item.trial_fingerprint for item in state.candidates)
             ):
                 return SearchStateResolution(SearchStateDecision.REPLAY_EXISTING, existing)
+            if len(existing.candidates) > len(state.candidates) and tuple(
+                item.trial_fingerprint for item in existing.candidates[: len(state.candidates)]
+            ) == tuple(item.trial_fingerprint for item in state.candidates):
+                oos_replay = await self.append_walk_forward_oos_candidates(
+                    principal=owner,
+                    request_id=request_id,
+                    experiment_fingerprint=definition.experiment_fingerprint,
+                )
+                if oos_replay.resolution.decision is not SearchStateDecision.REJECT:
+                    return oos_replay.resolution
             raise ApiAdapterError(
                 ApiError(
                     ApiErrorCode.CONFLICT,
@@ -1275,6 +1295,21 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                 == tuple(item.trial_fingerprint for item in state.candidates)
             ):
                 return SearchStateResolution(SearchStateDecision.REPLAY_EXISTING, raced)
+            if (
+                raced is not None
+                and len(raced.candidates) > len(state.candidates)
+                and tuple(
+                    item.trial_fingerprint for item in raced.candidates[: len(state.candidates)]
+                )
+                == tuple(item.trial_fingerprint for item in state.candidates)
+            ):
+                oos_replay = await self.append_walk_forward_oos_candidates(
+                    principal=owner,
+                    request_id=request_id,
+                    experiment_fingerprint=definition.experiment_fingerprint,
+                )
+                if oos_replay.resolution.decision is not SearchStateDecision.REJECT:
+                    return oos_replay.resolution
             raise ApiAdapterError(
                 ApiError(
                     ApiErrorCode.CONFLICT,
@@ -1291,6 +1326,207 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                 "persisted walk-forward training queue differs from its immutable plan"
             )
         return resolution
+
+    async def append_walk_forward_oos_candidates(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        experiment_fingerprint: str,
+    ) -> WalkForwardQueueTransition:
+        """Select and append OOS trials from owner-authenticated training results.
+
+        This phase is safe to invoke after every training completion and after a
+        process restart. Training manifests are loaded by their durable attempt
+        IDs, the selection is recomputed from training-only metrics, and the
+        immutable OOS trials are published before the search-state CAS append.
+        """
+
+        if not isinstance(request_id, str) or not request_id.strip():
+            raise ValueError("request_id must not be empty")
+        require_sha256_digest(experiment_fingerprint, field_name="experiment_fingerprint")
+        owner = _principal_identity(principal)
+        definition = await self._persistence.walk_forward_plans.load(
+            principal=owner,
+            experiment_fingerprint=experiment_fingerprint,
+        )
+        if not isinstance(definition, WalkForwardExecutionDefinition):
+            raise ApiAdapterError(
+                ApiError(
+                    ApiErrorCode.NOT_FOUND,
+                    "walk-forward plan is unavailable to this owner",
+                    request_id,
+                    404,
+                )
+            )
+        experiment = await self._resources.get_domain_contract_by_fingerprint(
+            principal=owner,
+            resource_type=ApiResourceType.EXPERIMENT,
+            fingerprint=experiment_fingerprint,
+        )
+        if not isinstance(experiment, ExperimentDefinition):
+            raise ValueError("walk-forward experiment is unavailable to this owner")
+        snapshot = await self._resources.get_domain_contract_by_fingerprint(
+            principal=owner,
+            resource_type=ApiResourceType.SNAPSHOT,
+            fingerprint=experiment.snapshot_fingerprint,
+        )
+        if (
+            not isinstance(snapshot, DataSnapshot)
+            or snapshot.fingerprint != experiment.snapshot_fingerprint
+            or snapshot.capability_contract_digest != experiment.capability_contract_digest
+        ):
+            raise ValueError("walk-forward experiment snapshot binding is inconsistent")
+        loaded = await self._resources.get_domain_contracts_by_fingerprint(
+            principal=owner,
+            resource_type=ApiResourceType.TRIAL,
+            fingerprints=definition.candidate_fingerprints,
+        )
+        if set(loaded) != set(definition.candidate_fingerprints):
+            raise ValueError("one or more walk-forward base trials are unavailable to this owner")
+        candidates = tuple(loaded[fingerprint] for fingerprint in definition.candidate_fingerprints)
+        if any(not isinstance(trial, ScientificTrial) for trial in candidates):
+            raise ValueError("walk-forward base trial has an invalid domain contract")
+        typed_candidates = cast(tuple[ScientificTrial, ...], candidates)
+        if tuple(trial.trial_id for trial in typed_candidates) != definition.candidate_fingerprints:
+            raise ValueError("walk-forward candidates differ from the persisted plan")
+        if any(
+            trial.experiment_fingerprint != experiment_fingerprint
+            or trial.snapshot_fingerprint != snapshot.fingerprint
+            or trial.preflight_fingerprint != snapshot.preflight_report.fingerprint
+            or trial.evaluation_window is not None
+            for trial in typed_candidates
+        ):
+            raise ValueError("walk-forward candidates must be exact unwindowed experiment trials")
+
+        plan = definition.training_plan
+        training_trials = materialize_walk_forward_training_trials(
+            plan,
+            typed_candidates,
+            definition.folds,
+            definition.observation_boundaries,
+        )
+        training_state, training_bindings = initialize_walk_forward_training_queue(
+            plan, training_trials, now=None
+        )
+        state = await self._persistence.search_state.load(
+            principal=owner,
+            experiment_fingerprint=experiment_fingerprint,
+        )
+        if state is None:
+            raise ValueError("walk-forward training queue is not initialized")
+        training_count = len(training_state.candidates)
+        if (
+            state.experiment_fingerprint != experiment_fingerprint
+            or len(state.candidates) < training_count
+            or tuple(item.trial_fingerprint for item in state.candidates[:training_count])
+            != tuple(item.trial_fingerprint for item in training_state.candidates)
+        ):
+            raise ValueError("durable search queue does not match the walk-forward training plan")
+        if state.cancellation_requested:
+            return WalkForwardQueueTransition(
+                SearchStateResolution(
+                    SearchStateDecision.REJECT,
+                    state,
+                    rejection_reason="walk-forward training cancellation has been requested",
+                )
+            )
+        if any(
+            candidate.phase is not SearchCandidatePhase.SUCCEEDED or candidate.attempt_id is None
+            for candidate in state.candidates[:training_count]
+        ):
+            return WalkForwardQueueTransition(
+                SearchStateResolution(
+                    SearchStateDecision.REJECT,
+                    state,
+                    rejection_reason="all training candidates must succeed before OOS selection",
+                )
+            )
+
+        evidence: dict[str, WalkForwardQueueResultEvidence] = {}
+        for candidate in state.candidates[:training_count]:
+            assert candidate.attempt_id is not None
+            manifest = await self._persistence.result_materialization.load_manifest(
+                principal=owner,
+                attempt_id=candidate.attempt_id,
+            )
+            if manifest is None or candidate.result_fingerprint is None:
+                return WalkForwardQueueTransition(
+                    SearchStateResolution(
+                        SearchStateDecision.REJECT,
+                        state,
+                        rejection_reason="a successful training attempt has no durable result manifest",
+                    )
+                )
+            evidence[candidate.attempt_id] = WalkForwardQueueResultEvidence(
+                search_result_fingerprint=candidate.result_fingerprint,
+                manifest=manifest,
+            )
+
+        scores = training_scores_from_search_queue(
+            plan, training_trials, training_bindings, state, evidence
+        )
+        selection = select_walk_forward_oos_tasks(plan, definition.folds, scores)
+        oos_trials = materialize_walk_forward_oos_trials(
+            selection,
+            typed_candidates,
+            definition.folds,
+            definition.observation_boundaries,
+        )
+        transition = append_selected_oos_queue(
+            state,
+            plan,
+            definition.folds,
+            training_trials,
+            training_bindings,
+            evidence,
+            selection,
+            oos_trials,
+            now=self._clock(),
+        )
+        if transition.resolution.decision is SearchStateDecision.REJECT:
+            return transition
+
+        for trial in oos_trials.trials:
+            raw_attributes = freeze_json(trial)
+            if not isinstance(raw_attributes, Mapping):
+                raise TypeError("walk-forward OOS trial did not encode as a domain mapping")
+            attributes = dict(raw_attributes)
+            attributes["trial_id"] = trial.trial_id
+            created = await self.create_resource(
+                principal=owner,
+                request_id=content_digest(
+                    {
+                        "walk_forward_definition": definition.fingerprint,
+                        "trial_id": trial.trial_id,
+                        "operation": "publish_oos_trial",
+                    }
+                ),
+                request=ResourceMutationRequest(
+                    ApiResourceType.TRIAL,
+                    f"walk-forward-oos:{definition.fingerprint}:{trial.trial_id}",
+                    {"attributes": attributes},
+                    self._clock(),
+                ),
+            )
+            if (
+                created.receipt is None
+                or created.receipt.resource.meta.get("domain_fingerprint") != trial.trial_id
+            ):
+                raise ValueError("walk-forward OOS trial was not durably published")
+
+        persisted = await self._persistence.search_state.append_candidates(
+            principal=owner,
+            experiment_fingerprint=experiment_fingerprint,
+            expected_state_fingerprint=state.fingerprint,
+            trial_fingerprints=tuple(trial.trial_id for trial in oos_trials.trials),
+            now=self._clock(),
+        )
+        if persisted.decision is SearchStateDecision.REJECT:
+            return WalkForwardQueueTransition(persisted)
+        if persisted.state != transition.resolution.state:
+            raise ValueError("persisted walk-forward OOS queue differs from its deterministic plan")
+        return WalkForwardQueueTransition(persisted, transition.oos_task_bindings)
 
     async def dispatch_walk_forward_training_candidate(
         self,

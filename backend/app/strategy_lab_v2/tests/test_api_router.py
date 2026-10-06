@@ -468,6 +468,7 @@ class FakeAdapter:
         self.search_states: dict[str, SearchExecutionState] = {}
         self.search_dispatches: list[SearchDispatchResolution] = []
         self.walk_forward_dispatch_requests: list[dict[str, Any]] = []
+        self.walk_forward_phase_requests: list[dict[str, Any]] = []
         self.document = _document()
 
     async def list_resources(self, **kwargs: Any) -> ResourceCollection:
@@ -644,6 +645,16 @@ class FakeAdapter:
                 kwargs["queue_name"],
                 NOW,
             ),
+        )
+
+    async def append_walk_forward_oos_candidates(self, **kwargs: Any) -> Any:
+        self.walk_forward_phase_requests.append(kwargs)
+        state = new_search_execution_state(
+            kwargs["experiment_fingerprint"], (content_digest("training-trial"),), now=NOW
+        )
+        return SimpleNamespace(
+            resolution=SearchStateResolution(SearchStateDecision.REPLAY_EXISTING, state),
+            oos_task_bindings=(),
         )
 
 
@@ -1383,6 +1394,21 @@ def test_walk_forward_dispatch_api_rejects_unknown_body_fields() -> None:
         )
     assert response.status_code == 422
     assert response.json()["errors"][0]["code"] == "validation_error"
+
+
+def test_walk_forward_advance_api_hydrates_and_returns_durable_phase_transition() -> None:
+    experiment = content_digest("walk-forward-advance-experiment")
+    adapter = FakeAdapter()
+    with _client(adapter) as client:
+        response = client.post(
+            f"/api/v1/strategy-lab/v2/experiments/{experiment}/walk-forward/advance"
+        )
+
+    assert response.status_code == 202, response.text
+    assert response.json()["data"]["attributes"]["decision"] == "replay_existing"
+    assert len(adapter.walk_forward_phase_requests) == 1
+    assert adapter.walk_forward_phase_requests[0]["experiment_fingerprint"] == experiment
+    assert adapter.walk_forward_phase_requests[0]["principal"] == "user-1"
 
 
 def test_router_lists_preserved_legacy_imports_without_payload_bytes() -> None:

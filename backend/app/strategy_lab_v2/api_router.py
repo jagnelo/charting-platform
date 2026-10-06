@@ -3132,6 +3132,101 @@ def create_strategy_lab_router(
                 )
             )
 
+    @router.post(
+        "/experiments/{experiment_id}/walk-forward/advance",
+        status_code=status.HTTP_202_ACCEPTED,
+    )
+    async def advance_walk_forward_oos_phase(
+        experiment_id: str,
+        request: Request,
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> JSONResponse:
+        """Hydrate completed training evidence and append deterministic OOS trials."""
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            advance = getattr(adapter, "append_walk_forward_oos_candidates", None)
+            if not callable(advance):
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        "walk-forward phase adapter is not configured",
+                        request_id,
+                        status.HTTP_501_NOT_IMPLEMENTED,
+                    )
+                )
+            transition = await _resolve(
+                advance(
+                    principal=principal,
+                    request_id=request_id,
+                    experiment_fingerprint=experiment_id,
+                )
+            )
+            resolution = getattr(transition, "resolution", None)
+            if not isinstance(resolution, SearchStateResolution):
+                raise TypeError("adapter returned an invalid walk-forward phase transition")
+            if resolution.decision is SearchStateDecision.REJECT:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        resolution.rejection_reason or "walk-forward OOS phase was rejected",
+                        request_id,
+                        status.HTTP_409_CONFLICT,
+                        retryable=True,
+                    )
+                )
+            bindings = getattr(transition, "oos_task_bindings", ())
+            response = JSONResponse(
+                status_code=status.HTTP_202_ACCEPTED,
+                content={
+                    "data": {
+                        "type": "walk-forward-phases",
+                        "id": experiment_id,
+                        "attributes": {
+                            "decision": resolution.decision.value,
+                            "state_fingerprint": resolution.state.fingerprint,
+                            "oos_tasks": [
+                                {
+                                    "candidate_index": binding.candidate_index,
+                                    "task_fingerprint": binding.task_fingerprint,
+                                    "trial_fingerprint": binding.trial_fingerprint,
+                                    "fold_index": binding.fold_index,
+                                    "parameter_candidate_index": binding.parameter_candidate_index,
+                                }
+                                for binding in bindings
+                            ],
+                        },
+                        "meta": {"request_id": request_id},
+                    }
+                },
+            )
+            response.headers["X-Request-ID"] = request_id
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "walk-forward phase request is invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 walk-forward phase transition failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Strategy Lab v2 walk-forward phase transition failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
     @router.post("/experiments/{experiment_id}/search", status_code=status.HTTP_202_ACCEPTED)
     async def initialize_search(
         experiment_id: str,
