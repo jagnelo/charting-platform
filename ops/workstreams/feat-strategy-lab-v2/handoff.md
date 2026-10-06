@@ -93,6 +93,11 @@ result/summary/artifact/search projections, inject the pre-ACK crash, then prove
 a fresh Redis consumer replays the durable settlement and ACKs without rerunning
 Nautilus.
 
+A follow-up regression test invokes the actual search callback wrapper and
+asserts ordering: authenticated handoff, owner-scoped dispatch reload, accepted
+outcome initialization, runtime initialization, then return to the worker
+service. The two callback/bootstrap test modules pass 16 tests.
+
 ## 2026-10-05 - PostgreSQL plus Redis forward recovery integration
 
 The new integration test under `backend/tests/integration/strategy_lab_v2/`
