@@ -222,6 +222,42 @@ symbols are now native-promoted and covered by deterministic plus opt-in live te
 
 ## Current branch state
 
+## Local full-gate checkpoint — visual rendering delta unresolved — 2026-10-06
+
+The full local `make validate-integration` run on source SHA
+`910f2222c931acbb5b829a7b3bfce97375101717` passed dependencies, lint/format,
+typing, backend coverage (1,900 passed; 81.18%), frontend coverage (947 passed;
+82.09%), renderer/policy checks, production build, Compose contracts, healthy
+branch-scoped Docker startup, and functional Playwright (154 passed; 106
+expected skips). Its visual stage failed 92 of 104 screenshot comparisons at
+the configured 0.5% pixel threshold; 12 passed across all four viewport/scale
+profiles. A representative default-shell image had 42,839 differing pixels
+(3%), and the saved comparisons show text and fine-edge raster differences
+across unrelated pages rather than an ETF-specific layout failure.
+
+Current environment evidence: Playwright 1.62.1 and its validated Chromium are
+installed locally. The checked-in baselines include both Linux and macOS
+images. This host resolves `Segoe UI` to DejaVu Sans and `Arial` to Nimbus Sans;
+the stylesheet requests `"Segoe UI", Arial, sans-serif`. The local gate's
+browser setup installs Chromium without OS dependencies, while GitHub CI uses
+`playwright install --with-deps chromium`. This makes a system-font/rendering
+dependency difference plausible, but it does not prove that is the cause.
+Docker is currently unavailable (permission denied to `/var/run/docker.sock`),
+so a disposable container matching the CI dependency environment could not be
+used for a controlled comparison. The GitHub connector returned no CI runs or
+commit statuses for receipt SHA `4260b0d21a89048c63ae40a6548dbbd7f218dd6a`;
+this documentation-only receipt must not be described as exact-SHA CI green.
+
+No application CSS, screenshot reference, or tolerance was changed. Do not
+regenerate snapshots to silence the mismatch. Next, reproduce the visual suite
+in an isolated environment with the same Linux fonts and browser dependencies
+as CI (without modifying the host), compare the resulting failure count, and
+only then decide whether to fix environment parity or a demonstrated product
+regression. After a successful required gate, obtain exact-SHA CI and record a
+clean, synchronized `ready_for_human_review` checkpoint. The human does not
+need to run the app or tests. AC10 still waits for the provider-platform
+dependency to reach staging; AC14 is the later 30-day production observation.
+
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
 - Incorporated staging SHA: `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`
 - Current code-derived state: 496 registered, 422 native/live-backed, 74
