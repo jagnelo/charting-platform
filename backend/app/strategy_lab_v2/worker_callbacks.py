@@ -174,24 +174,21 @@ async def create_search_dispatch(
         walk_forward_progress_client or UnixSocketWalkForwardProgressClient.from_environment()
     )
 
-    async def terminal_dispatch_writer(context: Any) -> WorkerHandleResult:
-        result = await terminal_writer(context)
-        if result.decision is not WorkerHandleDecision.COMPLETE:
-            return result
+    async def complete_terminal_and_notify(entry: Any, request: Any, observed_at: Any):
         search_receipt = await recovery_application.complete_terminal_if_persisted(
-            entry=context.entry,
-            request=context.request,
-            observed_at=context.observed_at,
+            entry=entry,
+            request=request,
+            observed_at=observed_at,
         )
         if search_receipt is not None and search_receipt.decision is WorkerHandleDecision.COMPLETE:
             dispatch = await _dispatch_for_stream_entry(
                 dispatch_store,
-                context.entry,
-                context.request.runtime_request.attempt_id,
+                entry,
+                request.runtime_request.attempt_id,
             )
             if not isinstance(dispatch, SearchDispatchRecord):
                 return WorkerHandleResult(
-                    context.entry.fingerprint,
+                    entry.fingerprint,
                     WorkerHandleDecision.RETRY,
                     rejection_reason="completed search dispatch could not be reloaded for phase progress",
                 )
@@ -209,6 +206,17 @@ async def create_search_dispatch(
                 dispatch_request_fingerprint=dispatch.request.fingerprint,
                 queue_name=queue_name,
             )
+        return search_receipt
+
+    async def terminal_dispatch_writer(context: Any) -> WorkerHandleResult:
+        result = await terminal_writer(context)
+        if result.decision is not WorkerHandleDecision.COMPLETE:
+            return result
+        search_receipt = await complete_terminal_and_notify(
+            context.entry,
+            context.request,
+            context.observed_at,
+        )
         return result if search_receipt is None else search_receipt
 
     async def lease_state_reader(request: WorkerExecutionRequest):
@@ -236,11 +244,7 @@ async def create_search_dispatch(
     async def terminal_replay_reader(entry: Any, request: WorkerExecutionRequest, observed_at):
         """ACK a fully settled attempt before launching another Nautilus process."""
 
-        return await recovery_application.complete_terminal_if_persisted(
-            entry=entry,
-            request=request,
-            observed_at=observed_at,
-        )
+        return await complete_terminal_and_notify(entry, request, observed_at)
 
     return WorkerServiceCallbacks(
         initialized_materializer,

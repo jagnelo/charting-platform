@@ -1386,6 +1386,17 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
     def install_signals(_stop_event: Any) -> Any:
         return lambda: timeline.append("signals-cleaned")
 
+    async def progress_client(**_kwargs: Any) -> Any:
+        timeline.append("progress-notified")
+        return None
+
+    async def callback_factory(persistence: Any, artifact_root: Path):
+        return await create_search_dispatch(
+            persistence,
+            artifact_root,
+            walk_forward_progress_client=progress_client,
+        )
+
     async def run_worker():
         return await run_strategy_lab_v2_worker(
             WorkerEntrypointConfig(
@@ -1397,7 +1408,7 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
                 consumer_name="multi-strategy-terminal-test",
                 migration_enabled=True,
             ),
-            callback_factory=create_search_dispatch,
+            callback_factory=callback_factory,
             migration_service=AppliedMigration(),  # type: ignore[arg-type]
             session_factory=lambda: object(),
             persistence_factory=lambda _factory: Persistence(),  # type: ignore[arg-type]
@@ -1448,6 +1459,7 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
         "terminal-commit-response-lost",
         "signals-cleaned",
         "runtime-closed",
+        "progress-notified",
         "ack",
         "signals-cleaned",
         "runtime-closed",
@@ -1470,9 +1482,11 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
         "terminal-commit-response-lost",
         "signals-cleaned",
         "runtime-closed",
+        "progress-notified",
         "ack",
         "signals-cleaned",
         "runtime-closed",
+        "progress-notified",
         "ack",
         "signals-cleaned",
         "runtime-closed",
@@ -1499,9 +1513,11 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
         "terminal-commit-response-lost",
         "signals-cleaned",
         "runtime-closed",
+        "progress-notified",
         "ack",
         "signals-cleaned",
         "runtime-closed",
+        "progress-notified",
         "ack",
         "signals-cleaned",
         "runtime-closed",
