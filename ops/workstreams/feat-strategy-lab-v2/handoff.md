@@ -12628,3 +12628,18 @@ canonical ordering: the production composer must materialize that stream from
 the same payload mapping, then build the context/runtime bundle and hardened
 RC5 process plan and wire them into owner-scoped startup/replacement. Keep
 forward-shadow event-tape parity as an explicit acceptance gate.
+
+The warm-up stream materializer is implemented and pushed as
+`8b3dccf97039fa84e9b8e78aecb5169519221821`. It verifies an exact payload-to-
+snapshot-row mapping, requires unique platform sequence values, applies the
+canonical `(event_time, sequence)` order, and materializes using the declared
+effective event types. The bootstrap composition test decodes the published
+stream and verifies its records retain those global sequence values. On the
+committed candidate tree, 34 focused bootstrap/runtime CLI/bundle-artifact
+tests passed, Ruff and MyPy passed, and whitespace validation passed. The
+complete package suite passed 1,522 with one opt-in image skip on the same
+behavioral change before a type-only annotation refinement.
+
+Next, compose owner-scoped component invocation contexts, runtime bundle,
+bootstrap and sandbox plan, then wire the artifact-backed plan into production
+worker start/replacement. This changeset remains in progress.
