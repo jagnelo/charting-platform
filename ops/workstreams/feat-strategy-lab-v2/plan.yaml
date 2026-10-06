@@ -907,15 +907,15 @@ progress:
     branches; unsupported options remain fail-closed pending canonical
     Greeks/delta/settlement evidence.
   next_action: >-
-    Consume the approved platform canonical payload contract by wiring its
-    resolver into the explicit forward-worker callback factory and Compose
-    profile. Then verify event admission, long-idle heartbeat, pause/stop engine
-    disposal and restart recovery against real PostgreSQL/Redis. For backtests,
-    bind the appendable walk-forward queue transition into the owner-scoped
-    application/worker orchestration: resolve exact training manifests after
-    restart, persist the selected OOS phase, and dispatch its stable appended
-    candidate indices through the durable outbox. Prove cancellation/retry and
-    OOS-only result aggregation. Preserve the original experiment identity and
-    candidate-index contract; shared migration and API changes remain gated on
-    exact upstream staging reconciliation.
+    Wire the owner-scoped restart coordinator over the persisted immutable
+    WalkForwardExecutionDefinition: hydrate its exact base candidate trials,
+    derive folds and training windows from the stored calendar/spec, resolve
+    owner result manifests, CAS-append the selected OOS phase, and dispatch its
+    stable candidate indices through the existing durable outbox. Prove
+    cancellation/retry, process restart between every phase boundary, and
+    OOS-only result aggregation without creating a second experiment identity.
+    Then continue full backend integration and exact-tip acceptance, including
+    canonical platform event payload wiring when its approved contract reaches
+    staging. Shared API, migration, and overlapping upstream paths remain
+    gated on line-level staging reconciliation.
     Keep unsupported products fail-closed; stable Nautilus labeling is not a gate.

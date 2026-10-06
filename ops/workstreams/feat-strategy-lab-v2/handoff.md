@@ -13310,3 +13310,26 @@ automatically or persist the final OOS metric-set summary. Next: build an owner-
 scoped coordinator from persisted experiment/trial resources, persist the
 selected OOS suffix with compare-and-set, and dispatch pending indices through
 the existing transactional outbox with restart/cancel/replay coverage.
+
+## 2026-10-06 - Persist the immutable walk-forward execution definition
+
+Added `WalkForwardExecutionDefinition`, which pins the experiment identity,
+ordered immutable base-trial identities, exact observation boundaries,
+anchored/rolling fold rule including gap and embargo, selection metric/direction,
+and maximum task count. It deterministically rebuilds the exact folds and
+training plan after process loss. `PostgresWalkForwardPlanAdapter` persists the
+canonical typed definition as an owner-scoped immutable aggregate using the
+existing aggregate CAS store; exact retries replay, a conflicting definition
+for the same owner/experiment is rejected, and no new database table or
+migration is introduced. The shared canonical contract decoder now recognizes
+the persisted workflow types.
+
+Validation: the plan-persistence, walk-forward, persistence-bundle, and
+result-materialization suites passed 28/28. Focused MyPy passed across the six
+changed implementation/test files; Ruff, formatting, whitespace, and
+workstream validation passed. This provides a durable reconstruction input, but
+does not yet create it from a public experiment submission, verify all base
+trials exist under the owner at write time, or coordinate result hydration,
+queue CAS append, and outbox dispatch after restart. Next: add that
+owner-authenticated application coordinator using the persisted definition and
+existing resource, result, search-state, and dispatch adapters.

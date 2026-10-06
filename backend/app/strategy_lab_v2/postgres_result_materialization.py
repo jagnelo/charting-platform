@@ -27,6 +27,7 @@ from app.strategy_lab_v2 import (
     engine_execution,
     execution,
     execution_orchestration,
+    experiments,
     forward_account,
     forward_context,
     forward_state,
@@ -41,6 +42,7 @@ from app.strategy_lab_v2 import (
     sdk,
     search_dispatch,
     search_state,
+    walk_forward_search,
     worker_process,
     workers,
 )
@@ -735,6 +737,7 @@ def _canonical_dataclass_registry() -> dict[str, type[Any]]:
         capabilities,
         conformance,
         contracts,
+        experiments,
         engine_execution,
         execution,
         execution_orchestration,
@@ -755,6 +758,7 @@ def _canonical_dataclass_registry() -> dict[str, type[Any]]:
         sdk,
         worker_process,
         workers,
+        walk_forward_search,
     ):
         for candidate in vars(module).values():
             if isinstance(candidate, type) and is_dataclass(candidate):
@@ -769,6 +773,7 @@ def _canonical_enum_registry() -> dict[str, type[Enum]]:
         capabilities,
         conformance,
         contracts,
+        experiments,
         engine_execution,
         execution,
         execution_orchestration,
@@ -784,6 +789,7 @@ def _canonical_enum_registry() -> dict[str, type[Enum]]:
         sdk,
         worker_process,
         workers,
+        walk_forward_search,
     ):
         for candidate in vars(module).values():
             if isinstance(candidate, type) and issubclass(candidate, Enum):

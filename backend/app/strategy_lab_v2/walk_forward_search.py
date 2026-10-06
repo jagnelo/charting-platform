@@ -4,11 +4,16 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from decimal import Decimal
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
-from app.strategy_lab_v2.experiments import WalkForwardFold
+from app.strategy_lab_v2.experiments import (
+    WalkForwardFold,
+    WalkForwardSpec,
+    build_walk_forward_folds,
+)
 
 
 class SelectionDirection(StrEnum):
@@ -119,6 +124,90 @@ class WalkForwardTrainingPlan:
             self,
             "tasks",
             tuple(sorted(tasks, key=lambda item: (item.fold_index, item.candidate_index))),
+        )
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+@dataclass(frozen=True, slots=True)
+class WalkForwardExecutionDefinition:
+    """Restart-stable, immutable inputs from which all walk-forward phases derive.
+
+    Candidate trials remain owner-scoped domain resources; this record pins
+    their order together with the exact observation calendar and fold rule so a
+    worker coordinator can reconstruct identical training and OOS tasks after
+    process loss.
+    """
+
+    experiment_fingerprint: str
+    candidate_fingerprints: tuple[str, ...]
+    observation_boundaries: tuple[datetime, ...]
+    spec: WalkForwardSpec
+    metric_id: str
+    direction: SelectionDirection
+    max_tasks: int = 100_000
+
+    def __post_init__(self) -> None:
+        require_sha256_digest(self.experiment_fingerprint, field_name="experiment_fingerprint")
+        candidates = tuple(self.candidate_fingerprints)
+        if not candidates:
+            raise ValueError("walk-forward execution requires base candidate trials")
+        for fingerprint in candidates:
+            require_sha256_digest(fingerprint, field_name="candidate_fingerprint")
+        if len(candidates) != len(set(candidates)):
+            raise ValueError("walk-forward base candidate fingerprints must be unique")
+        boundaries = tuple(self.observation_boundaries)
+        if len(boundaries) < 2:
+            raise ValueError("observation_boundaries must contain at least two timestamps")
+        for boundary in boundaries:
+            if (
+                not isinstance(boundary, datetime)
+                or boundary.tzinfo is None
+                or boundary.utcoffset() is None
+            ):
+                raise ValueError("observation boundaries must be timezone-aware datetimes")
+        boundaries = tuple(boundary.astimezone(UTC) for boundary in boundaries)
+        if any(left >= right for left, right in zip(boundaries, boundaries[1:])):
+            raise ValueError("observation boundaries must be strictly increasing")
+        if not isinstance(self.spec, WalkForwardSpec):
+            raise TypeError("spec must be a WalkForwardSpec")
+        if not isinstance(self.direction, SelectionDirection):
+            raise TypeError("direction must be a SelectionDirection")
+        if not isinstance(self.metric_id, str) or not self.metric_id.strip():
+            raise ValueError("metric_id must not be empty")
+        if (
+            not isinstance(self.max_tasks, int)
+            or isinstance(self.max_tasks, bool)
+            or self.max_tasks < 1
+        ):
+            raise ValueError("max_tasks must be a positive integer")
+        folds = build_walk_forward_folds(len(boundaries) - 1, self.spec)
+        build_walk_forward_training_plan(
+            self.experiment_fingerprint,
+            candidates,
+            folds,
+            metric_id=self.metric_id,
+            direction=self.direction,
+            max_tasks=self.max_tasks,
+        )
+        object.__setattr__(self, "candidate_fingerprints", candidates)
+        object.__setattr__(self, "observation_boundaries", boundaries)
+
+    @property
+    def folds(self) -> tuple[WalkForwardFold, ...]:
+        return build_walk_forward_folds(len(self.observation_boundaries) - 1, self.spec)
+
+    @property
+    def training_plan(self) -> WalkForwardTrainingPlan:
+        return build_walk_forward_training_plan(
+            self.experiment_fingerprint,
+            self.candidate_fingerprints,
+            self.folds,
+            metric_id=self.metric_id,
+            direction=self.direction,
+            max_tasks=self.max_tasks,
         )
 
     @property
@@ -379,6 +468,7 @@ def collect_walk_forward_oos_results(
 
 __all__ = [
     "SelectionDirection",
+    "WalkForwardExecutionDefinition",
     "WalkForwardOosResult",
     "WalkForwardOosTask",
     "WalkForwardSelection",
