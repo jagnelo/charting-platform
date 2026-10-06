@@ -12650,6 +12650,19 @@ type-check/build and scope validation passed, and the branch stack was removed
 with zero retained resources. No visual oracle changed. This does not resolve
 the six protected screenshot diffs or refresh the exact-tip integration gate.
 
+2026-10-06 R1/R6 keyboard receipt at pushed product commit
+`39b9dec08685b400b46607daf6558c49ec8affd4`: Shift+N in a focused WatchList
+opens the existing canonical Notes tool for its active row. The handler is
+listbox-scoped, so text editors and unrelated shell controls keep native key
+behavior. The focused VirtualWatchlistTool suite passed 84/84, Vue type-check
+and production build passed, pinned authenticated Shift+N plus Help browser
+flows passed 2/2, and the four-profile pinned Help screenshot check passed 4/4
+without baseline, mask, threshold, or acceptance changes. TC scope validation
+passed for 144 paths and all six guard self-tests passed. This implements the
+official V25 “Write a Note: Shift-N” shortcut as focused WatchList parity; it
+does not claim global-context parity, full frontend-suite freshness, or exact
+V25 visual approval. The assigned six-service stack was preserved.
+
 ### R2 — Consume the market-data provider platform
 
 - After `feat/market-data-provider-platform` reaches staging, synchronize TC

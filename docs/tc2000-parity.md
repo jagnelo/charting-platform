@@ -9376,3 +9376,14 @@ and uses Backspace to walk toward older selections; selecting a new symbol after
 truncates the forward branch. Editor focus continues to own literal spaces and Backspace. Help and
 authenticated browser regressions use the same contract. This corrects the August 2026
 Shift+Space implementation documented above and adds the V25 history-navigation shortcut.
+
+## 2026-10-06 — TC2000 V25 WatchList note shortcut
+
+The current [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+also lists Shift+N for writing a note. With a WatchList listbox focused, Shift+N now opens the
+existing canonical Notes tool for the active row. The action does not change the current row or
+multi-selection; editor-owned shortcuts remain unaffected because this handler is confined to the
+listbox. Focused unit coverage passed 84/84, the authenticated pinned Shift+N and Help browser
+flows passed 2/2, Vue type-check/build passed, and the unchanged four-profile Help screenshot
+oracle passed 4/4. This is focused keyboard parity, not proof that Shift+N works from every
+workstation context or that the reference board has exact V25 visual coverage.

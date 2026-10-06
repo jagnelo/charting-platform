@@ -143,14 +143,13 @@ current_blocker: >-
   visual coverage passed 4/4 pinned viewport profiles, and type-check/build
   passed. The complete frontend suite and generic integration gate remain open.
 active_changeset_context:
-  name: TC2000 V25 Shift+F selected WatchList flagging
-  status: committed_focused_unit_browser_build_and_seeded_four_profile_visual_verified_full_suite_and_generic_gate_open
-  commit_sha: 99f10230db0a577be621a8e503a4070412be831a
-  remote_sha: 99f10230db0a577be621a8e503a4070412be831a
+  name: TC2000 V25 Shift+N WatchList note shortcut
+  status: committed_focused_unit_browser_build_and_four_profile_visual_verified_full_suite_and_generic_gate_open
+  commit_sha: 39b9dec08685b400b46607daf6558c49ec8affd4
+  remote_sha: 39b9dec08685b400b46607daf6558c49ec8affd4
   intent: >-
-    Implement TC2000 V25 Shift+F flag/unflag for selected persisted WatchList
-    source items through the existing item-flag mutation, preserving the row
-    selection and leaving unbacked rows non-mutable.
+    Implement TC2000 V25 Shift+N for a focused WatchList by opening the existing
+    canonical Notes tool for its active row without changing row selection.
   owned_paths:
     - frontend/src/components/workstation/VirtualWatchlistTool.vue
     - frontend/src/components/workstation/WorkstationToolContent.vue
@@ -161,9 +160,8 @@ active_changeset_context:
     - docs/tc2000-roadmap.md
   next_action: >-
     Continue the complete TC-owned R1/R5/R6 roadmap. Preserve the V25 visual
-    references and acceptance policy. The Help screenshot regression only passes
-    with the browser-side seeded-fixture flag matching the already seeded
-    backend; retain that flag in subsequent pinned visual runs. Resolve the
+    references and acceptance policy. Keep the browser-side seeded-fixture flag
+    aligned with the already seeded backend in pinned visual runs. Resolve the
     generic integration gate only through a verified isolated project. Refresh
     dependency refs; defer R2/R3 and semantic shared-path reconciliation until
     both upstream branches reach staging. Do not duplicate provider/ETF
@@ -441,6 +439,14 @@ progress:
     authenticated multi-row browser flow passed 1/1, and seeded Help visual
     coverage passed all four profiles. Exact V25 review, full frontend suite,
     generic integration, and remaining R1/R5/R6 work remain open.
+    At pushed product commit 39b9dec08685b400b46607daf6558c49ec8affd4,
+    focused WatchList Shift+N opens the existing canonical Notes tool for the
+    active row. VirtualWatchlistTool passed 84/84, pinned authenticated Shift+N
+    and Help flows passed 2/2, the Help visual matrix passed 4/4, and Vue
+    type-check/build plus scope validation/self-tests passed. No visual oracle
+    changed. This is not global-context parity or an exact-tip full frontend
+    suite result. The seeded Shift+L Help rerun passes 4/4; its earlier
+    unseeded 3/4 diagnostic is superseded, so no Shift+L visual delta remains.
     At backend checkpoint d6bd60d, unit/integration suites passed 1622/1622 and
     409/409 at 82.26%. At branch checkpoint 22becb68272854b6ceae6a263d8694090495e009,
     frontend Vitest passed 129 files/1210 tests, focused VirtualWatchlistTool
