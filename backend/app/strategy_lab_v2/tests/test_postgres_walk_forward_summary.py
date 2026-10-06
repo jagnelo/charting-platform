@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from decimal import Decimal
 
 import pytest
 
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.contracts import MetricBasis, MetricValue
 from app.strategy_lab_v2.postgres_walk_forward_summary import (
+    PostgresWalkForwardNativeMetricsAdapter,
     PostgresWalkForwardSummaryAdapter,
     WalkForwardSummaryDecision,
 )
 from app.strategy_lab_v2.tests.test_walk_forward_plan_persistence import MemoryAggregateStore
 from app.strategy_lab_v2.tests.test_walk_forward_summary import _summary_fixture
+from app.strategy_lab_v2.walk_forward_summary import WalkForwardNativeOosMetricSummary
 
 
 @pytest.mark.asyncio
@@ -48,3 +52,43 @@ async def test_walk_forward_summary_rejects_rebinding_same_experiment() -> None:
 
     assert conflicting.decision is WalkForwardSummaryDecision.REJECT
     assert "different OOS result summary" in (conflicting.rejection_reason or "")
+
+
+@pytest.mark.asyncio
+async def test_native_walk_forward_metrics_round_trip_and_reject_owner_rebinding() -> None:
+    adapter = PostgresWalkForwardNativeMetricsAdapter(MemoryAggregateStore())
+    fold_summary = _summary_fixture()
+    native_summary = WalkForwardNativeOosMetricSummary(
+        experiment_fingerprint=fold_summary.experiment_fingerprint,
+        definition_fingerprint=fold_summary.definition_fingerprint,
+        selection_fingerprint=fold_summary.selection.fingerprint,
+        result_manifest_fingerprints=tuple(
+            result.result_fingerprint for result in fold_summary.results
+        ),
+        metrics=(
+            MetricValue(
+                "total_return",
+                Decimal("-0.01"),
+                "fraction",
+                "strategy-lab.metrics.v2",
+                MetricBasis.NET,
+                2,
+            ),
+        ),
+    )
+
+    persisted = await adapter.persist(principal="owner-a", summary=native_summary)
+    replay = await adapter.persist(principal="owner-a", summary=native_summary)
+    restored = await adapter.load(
+        principal="owner-a",
+        experiment_fingerprint=native_summary.experiment_fingerprint,
+    )
+    other_owner = await adapter.load(
+        principal="owner-b",
+        experiment_fingerprint=native_summary.experiment_fingerprint,
+    )
+
+    assert persisted.decision is WalkForwardSummaryDecision.PERSISTED
+    assert replay.decision is WalkForwardSummaryDecision.REPLAY_EXISTING
+    assert restored == native_summary
+    assert other_owner is None

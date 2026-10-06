@@ -120,6 +120,43 @@ class WalkForwardOosSummary:
         return content_digest(self)
 
 
+@dataclass(frozen=True, slots=True)
+class WalkForwardNativeOosMetricSummary:
+    """Durable sidecar for metrics derived from the selected native equity paths."""
+
+    experiment_fingerprint: str
+    definition_fingerprint: str
+    selection_fingerprint: str
+    result_manifest_fingerprints: tuple[str, ...]
+    metrics: tuple[MetricValue, ...]
+
+    def __post_init__(self) -> None:
+        for name in (
+            "experiment_fingerprint",
+            "definition_fingerprint",
+            "selection_fingerprint",
+        ):
+            require_sha256_digest(getattr(self, name), field_name=name)
+        result_fingerprints = tuple(self.result_manifest_fingerprints)
+        if not result_fingerprints:
+            raise ValueError("native OOS metrics must reference at least one result manifest")
+        for fingerprint in result_fingerprints:
+            require_sha256_digest(fingerprint, field_name="result_manifest_fingerprint")
+        if len(set(result_fingerprints)) != len(result_fingerprints):
+            raise ValueError("native OOS result manifest references must be unique")
+        metrics = tuple(self.metrics)
+        if not metrics or any(not isinstance(item, MetricValue) for item in metrics):
+            raise ValueError("native OOS metric summary requires typed metrics")
+        if len({(item.name, item.basis) for item in metrics}) != len(metrics):
+            raise ValueError("native OOS metrics must have unique names and bases")
+        object.__setattr__(self, "result_manifest_fingerprints", result_fingerprints)
+        object.__setattr__(self, "metrics", metrics)
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
 def build_walk_forward_oos_summary(
     *,
     experiment_fingerprint: str,
@@ -223,6 +260,7 @@ def _statistics(values: tuple[Decimal, ...]) -> tuple[Decimal, ...]:
 
 __all__ = [
     "WALK_FORWARD_AGGREGATE_DEFINITION",
+    "WalkForwardNativeOosMetricSummary",
     "WalkForwardOosSummary",
     "build_walk_forward_oos_summary",
 ]

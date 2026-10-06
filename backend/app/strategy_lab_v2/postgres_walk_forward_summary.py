@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Protocol
 
-from app.strategy_lab_v2.canonical import canonical_json, content_digest
+from app.strategy_lab_v2.canonical import canonical_json, content_digest, require_sha256_digest
 from app.strategy_lab_v2.postgres_result_materialization import decode_canonical_contract
 from app.strategy_lab_v2.storage import (
     AggregateKey,
@@ -16,7 +16,10 @@ from app.strategy_lab_v2.storage import (
     StorageTransactionRequest,
     StoredAggregate,
 )
-from app.strategy_lab_v2.walk_forward_summary import WalkForwardOosSummary
+from app.strategy_lab_v2.walk_forward_summary import (
+    WalkForwardNativeOosMetricSummary,
+    WalkForwardOosSummary,
+)
 
 
 class AggregateStore(Protocol):
@@ -37,6 +40,7 @@ class WalkForwardSummaryResolution:
     summary: WalkForwardOosSummary
     aggregate_version: int | None = None
     rejection_reason: str | None = None
+    native_metrics: WalkForwardNativeOosMetricSummary | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.decision, WalkForwardSummaryDecision):
@@ -45,6 +49,10 @@ class WalkForwardSummaryResolution:
             raise TypeError("summary must be a WalkForwardOosSummary")
         if (self.decision is WalkForwardSummaryDecision.REJECT) != bool(self.rejection_reason):
             raise ValueError("only rejected summary resolutions contain a rejection reason")
+        if self.native_metrics is not None and not isinstance(
+            self.native_metrics, WalkForwardNativeOosMetricSummary
+        ):
+            raise TypeError("native_metrics must be a WalkForwardNativeOosMetricSummary")
 
 
 class PostgresWalkForwardSummaryAdapter:
@@ -174,6 +182,150 @@ def _existing_resolution(
     )
 
 
+@dataclass(frozen=True, slots=True)
+class WalkForwardNativeMetricsResolution:
+    decision: WalkForwardSummaryDecision
+    summary: WalkForwardNativeOosMetricSummary
+    aggregate_version: int | None = None
+    rejection_reason: str | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.decision, WalkForwardSummaryDecision):
+            raise TypeError("decision must be a WalkForwardSummaryDecision")
+        if not isinstance(self.summary, WalkForwardNativeOosMetricSummary):
+            raise TypeError("summary must be a WalkForwardNativeOosMetricSummary")
+        if (self.decision is WalkForwardSummaryDecision.REJECT) != bool(self.rejection_reason):
+            raise ValueError("only rejected native metric resolutions contain a reason")
+
+
+class PostgresWalkForwardNativeMetricsAdapter:
+    """Persist native OOS metrics separately from legacy fold summaries."""
+
+    _AGGREGATE_TYPE = "strategy_lab_v2_walk_forward_native_oos_metrics"
+    _SCHEMA_VERSION = 1
+
+    def __init__(self, aggregate_store: AggregateStore) -> None:
+        if not callable(getattr(aggregate_store, "get", None)) or not callable(
+            getattr(aggregate_store, "apply", None)
+        ):
+            raise TypeError("aggregate_store must expose get() and apply()")
+        self._aggregate_store = aggregate_store
+
+    async def persist(
+        self,
+        *,
+        principal: Any,
+        summary: WalkForwardNativeOosMetricSummary,
+    ) -> WalkForwardNativeMetricsResolution:
+        if not isinstance(summary, WalkForwardNativeOosMetricSummary):
+            raise TypeError("summary must be a WalkForwardNativeOosMetricSummary")
+        owner_id = _principal_id(principal)
+        key = _native_aggregate_key(owner_id, summary.experiment_fingerprint)
+        state = _native_state(owner_id, summary)
+        current = await self._aggregate_store.get(key)
+        if current is not None:
+            return _native_existing_resolution(current, owner_id, summary)
+        request_id = content_digest(
+            {
+                "owner_id": owner_id,
+                "experiment_fingerprint": summary.experiment_fingerprint,
+                "summary_fingerprint": summary.fingerprint,
+                "purpose": "strategy-lab-v2-walk-forward-native-oos-metrics",
+            }
+        )
+        outcome = await self._aggregate_store.apply(
+            StorageTransactionRequest(request_id, (AggregateMutation(key, state),))
+        )
+        if outcome.decision in {
+            StorageTransactionDecision.APPLY,
+            StorageTransactionDecision.REPLAY_EXISTING,
+        }:
+            aggregate = next((item for item in outcome.aggregates if item.key == key), None)
+            if aggregate is not None and aggregate.state == state:
+                decision = (
+                    WalkForwardSummaryDecision.PERSISTED
+                    if outcome.decision is StorageTransactionDecision.APPLY
+                    else WalkForwardSummaryDecision.REPLAY_EXISTING
+                )
+                return WalkForwardNativeMetricsResolution(decision, summary, aggregate.version)
+        winner = await self._aggregate_store.get(key)
+        if winner is not None:
+            replay = _native_existing_resolution(winner, owner_id, summary)
+            if replay.decision is WalkForwardSummaryDecision.REPLAY_EXISTING:
+                return replay
+        return WalkForwardNativeMetricsResolution(
+            WalkForwardSummaryDecision.REJECT,
+            summary,
+            rejection_reason=getattr(outcome, "rejection_reason", None)
+            or "native OOS metric summary was not durably accepted",
+        )
+
+    async def load(
+        self,
+        *,
+        principal: Any,
+        experiment_fingerprint: str,
+    ) -> WalkForwardNativeOosMetricSummary | None:
+        owner_id = _principal_id(principal)
+        require_sha256_digest(experiment_fingerprint, field_name="experiment_fingerprint")
+        aggregate = await self._aggregate_store.get(
+            _native_aggregate_key(owner_id, experiment_fingerprint)
+        )
+        if aggregate is None:
+            return None
+        state = aggregate.state
+        if (
+            not isinstance(state, Mapping)
+            or state.get("owner_id") != owner_id
+            or state.get("schema_version") != self._SCHEMA_VERSION
+            or state.get("experiment_fingerprint") != experiment_fingerprint
+        ):
+            raise ValueError("persisted native OOS metrics owner or identity drifted")
+        payload = state.get("summary_json")
+        fingerprint = state.get("summary_fingerprint")
+        if not isinstance(payload, str) or not isinstance(fingerprint, str):
+            raise ValueError("persisted native OOS metric payload is missing")
+        summary = decode_canonical_contract(payload, WalkForwardNativeOosMetricSummary)
+        if summary.fingerprint != fingerprint or canonical_json(summary) != payload:
+            raise ValueError("persisted native OOS metric content identity drifted")
+        return summary
+
+
+def _native_existing_resolution(
+    aggregate: StoredAggregate,
+    owner_id: str,
+    summary: WalkForwardNativeOosMetricSummary,
+) -> WalkForwardNativeMetricsResolution:
+    if aggregate.state == _native_state(owner_id, summary):
+        return WalkForwardNativeMetricsResolution(
+            WalkForwardSummaryDecision.REPLAY_EXISTING,
+            summary,
+            aggregate.version,
+        )
+    return WalkForwardNativeMetricsResolution(
+        WalkForwardSummaryDecision.REJECT,
+        summary,
+        rejection_reason="experiment is already bound to different native OOS metrics",
+    )
+
+
+def _native_state(owner_id: str, summary: WalkForwardNativeOosMetricSummary) -> dict[str, Any]:
+    return {
+        "owner_id": owner_id,
+        "schema_version": PostgresWalkForwardNativeMetricsAdapter._SCHEMA_VERSION,
+        "experiment_fingerprint": summary.experiment_fingerprint,
+        "summary_fingerprint": summary.fingerprint,
+        "summary_json": canonical_json(summary),
+    }
+
+
+def _native_aggregate_key(owner_id: str, experiment_fingerprint: str) -> AggregateKey:
+    return AggregateKey(
+        PostgresWalkForwardNativeMetricsAdapter._AGGREGATE_TYPE,
+        content_digest({"owner_id": owner_id, "experiment_fingerprint": experiment_fingerprint}),
+    )
+
+
 def _state(owner_id: str, summary: WalkForwardOosSummary) -> dict[str, Any]:
     return {
         "owner_id": owner_id,
@@ -202,7 +354,9 @@ def _principal_id(principal: Any) -> str:
 
 
 __all__ = [
+    "PostgresWalkForwardNativeMetricsAdapter",
     "PostgresWalkForwardSummaryAdapter",
+    "WalkForwardNativeMetricsResolution",
     "WalkForwardSummaryDecision",
     "WalkForwardSummaryResolution",
 ]

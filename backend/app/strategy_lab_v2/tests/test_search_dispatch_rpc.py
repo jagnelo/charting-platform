@@ -154,6 +154,25 @@ def test_local_api_bindings_factory_composes_provider_owned_walk_forward_calenda
     assert received == [persistence]
 
 
+def test_local_api_bindings_factory_opens_the_shared_artifact_store(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH", "/run/strategy/preparation.sock")
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", AUTH_TOKEN)
+    artifact_root = tmp_path / "shared-artifacts"
+    monkeypatch.setenv(rpc_module.STRATEGY_LAB_V2_ARTIFACT_ROOT_ENV, str(artifact_root))
+
+    bindings = rpc_module.build_api_bindings(None, object())
+
+    assert bindings.walk_forward_artifact_store is not None
+    assert bindings.walk_forward_artifact_store.root == artifact_root
+
+    monkeypatch.setenv(rpc_module.STRATEGY_LAB_V2_ARTIFACT_ROOT_ENV, "relative-artifacts")
+    with pytest.raises(ValueError, match="must be absolute"):
+        rpc_module._walk_forward_artifact_store_from_environment()
+
+
 def test_local_api_bindings_factory_requires_async_walk_forward_calendar(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

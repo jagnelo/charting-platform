@@ -10,8 +10,9 @@ import pytest
 from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.api_router import ApiAdapterError
 from app.strategy_lab_v2.application import PostgresStrategyLabV2Adapter
+from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest
-from app.strategy_lab_v2.contracts import ScientificTrial
+from app.strategy_lab_v2.contracts import MetricBasis, MetricValue, ScientificTrial
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.experiments import WalkForwardMode, WalkForwardSpec
 from app.strategy_lab_v2.postgres_search_dispatch import SearchDispatchRecord
@@ -19,7 +20,10 @@ from app.strategy_lab_v2.postgres_walk_forward_plan import (
     WalkForwardDefinitionDecision,
     WalkForwardDefinitionResolution,
 )
-from app.strategy_lab_v2.postgres_walk_forward_summary import PostgresWalkForwardSummaryAdapter
+from app.strategy_lab_v2.postgres_walk_forward_summary import (
+    PostgresWalkForwardNativeMetricsAdapter,
+    PostgresWalkForwardSummaryAdapter,
+)
 from app.strategy_lab_v2.resource_domains import normalize_resource_attributes
 from app.strategy_lab_v2.search_dispatch import SearchDispatchDecision
 from app.strategy_lab_v2.search_state import (
@@ -188,7 +192,9 @@ def _setup(*, second_experiment: str | None = None):
         search_state=search_state_store,
         result_materialization=result_materialization,
         walk_forward_summaries=PostgresWalkForwardSummaryAdapter(MemoryAggregateStore()),
+        walk_forward_native_metrics=PostgresWalkForwardNativeMetricsAdapter(MemoryAggregateStore()),
     )
+    adapter._walk_forward_artifact_store = None
     adapter._clock = lambda: datetime(2026, 10, 6, tzinfo=UTC)
     published_trials: list[str] = []
 
@@ -574,7 +580,10 @@ async def test_terminal_reconciliation_authenticates_receipt_and_dispatches_rema
 
 
 @pytest.mark.asyncio
-async def test_oos_phase_hydrates_owner_manifests_appends_and_replays_exact_trials() -> None:
+async def test_oos_phase_hydrates_owner_manifests_appends_and_replays_exact_trials(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
     adapter, reader, _plan_store, definition, first, second = _setup()
     adapter._clock = lambda: datetime(2026, 10, 6, 5, tzinfo=UTC)
     training = materialize_walk_forward_training_trials(
@@ -712,6 +721,28 @@ async def test_oos_phase_hydrates_owner_manifests_appends_and_replays_exact_tria
     assert tuple(result.oos_task_fingerprint for result in hydrated) == tuple(
         task.fingerprint for task in expected_selection.oos_tasks
     )
+    metric = MetricValue(
+        "total_return",
+        Decimal("0.075"),
+        "fraction",
+        "strategy-lab.metrics.v2",
+        MetricBasis.NET,
+        10,
+    )
+    observed_native: dict[str, Any] = {}
+
+    def native_metrics(manifests, *, artifact_store, selection_fingerprint):
+        observed_native["manifests"] = manifests
+        observed_native["artifact_store"] = artifact_store
+        observed_native["selection_fingerprint"] = selection_fingerprint
+        return (metric,)
+
+    monkeypatch.setattr(
+        "app.strategy_lab_v2.application.calculate_walk_forward_native_oos_metrics",
+        native_metrics,
+    )
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    adapter._walk_forward_artifact_store = store
     persisted_summary = await adapter.persist_walk_forward_oos_summary(
         principal=User(),
         request_id="persist-oos-summary",
@@ -720,6 +751,18 @@ async def test_oos_phase_hydrates_owner_manifests_appends_and_replays_exact_tria
     assert persisted_summary.decision.value == "persisted"
     assert persisted_summary.summary.metric_id == definition.metric_id
     assert len(persisted_summary.summary.aggregate_metrics) == 5
+    assert persisted_summary.native_metrics is not None
+    assert persisted_summary.native_metrics.metrics == (metric,)
+    assert len(observed_native["manifests"]) == len(definition.folds)
+    assert observed_native["artifact_store"] is store
+    assert (
+        observed_native["selection_fingerprint"] == persisted_summary.summary.selection.fingerprint
+    )
+    restored_native = await adapter._persistence.walk_forward_native_metrics.load(
+        principal=User(),
+        experiment_fingerprint=definition.experiment_fingerprint,
+    )
+    assert restored_native == persisted_summary.native_metrics
     replay_summary = await adapter.persist_walk_forward_oos_summary(
         principal=User(),
         request_id="persist-oos-summary-replay",

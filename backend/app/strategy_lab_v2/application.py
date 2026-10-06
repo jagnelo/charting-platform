@@ -15,6 +15,7 @@ from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from importlib import import_module
+from pathlib import Path
 from typing import Any, cast
 
 from app.strategy_lab_v2.api_contracts import ApiError, ApiErrorCode
@@ -31,6 +32,7 @@ from app.strategy_lab_v2.api_router import (
     create_strategy_lab_router,
 )
 from app.strategy_lab_v2.artifact_publication import ArtifactPublicationPlan
+from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
 from app.strategy_lab_v2.capability_summary import CapabilitySummary
 from app.strategy_lab_v2.commands import ExecutionCommand, ExecutionCommandResolution
@@ -45,6 +47,7 @@ from app.strategy_lab_v2.contracts import (
     MetricValue,
     PortfolioComposition,
     RunAttempt,
+    RunResultManifest,
     ScientificTrial,
     StrategyPackage,
     StrategyVersion,
@@ -132,6 +135,9 @@ from app.strategy_lab_v2.storage import (
     StorageTransactionRequest,
 )
 from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
+from app.strategy_lab_v2.walk_forward_native_metrics import (
+    calculate_walk_forward_native_oos_metrics,
+)
 from app.strategy_lab_v2.walk_forward_queue import (
     WalkForwardQueueResultEvidence,
     WalkForwardQueueTransition,
@@ -149,6 +155,7 @@ from app.strategy_lab_v2.walk_forward_search import (
     select_walk_forward_oos_tasks,
 )
 from app.strategy_lab_v2.walk_forward_summary import (
+    WalkForwardNativeOosMetricSummary,
     build_walk_forward_oos_summary,
 )
 from app.strategy_lab_v2.walk_forward_trials import (
@@ -174,6 +181,8 @@ class _WalkForwardOosCompletion:
     selection: WalkForwardSelection
     results: tuple[WalkForwardOosResult, ...]
     source_metrics: tuple[MetricValue, ...]
+    native_portfolio_metrics: tuple[MetricValue, ...] | None = None
+    native_metric_summary: WalkForwardNativeOosMetricSummary | None = None
 
 
 CapabilityPreflightResolver = Callable[..., Awaitable[CapabilitySummary] | CapabilitySummary]
@@ -284,6 +293,7 @@ class StrategyLabV2ApiBindings:
     capability_preflight: CapabilityPreflightResolver | None = None
     search_dispatch: SearchDispatchResolver | None = None
     walk_forward_observation_calendar: WalkForwardObservationCalendarResolver | None = None
+    walk_forward_artifact_store: LocalArtifactStore | None = None
     forward_worker_runtime_profile_fingerprint: str | None = None
 
     def __post_init__(self) -> None:
@@ -305,6 +315,10 @@ class StrategyLabV2ApiBindings:
             self.walk_forward_observation_calendar
         ):
             raise TypeError("walk-forward observation calendar binding must be asynchronous")
+        if self.walk_forward_artifact_store is not None and not isinstance(
+            self.walk_forward_artifact_store, LocalArtifactStore
+        ):
+            raise TypeError("walk_forward_artifact_store must be a LocalArtifactStore")
         if self.forward_worker_runtime_profile_fingerprint is not None:
             require_sha256_digest(
                 self.forward_worker_runtime_profile_fingerprint,
@@ -375,6 +389,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         search_dispatch: SearchDispatchResolver | None = None,
         search_dispatch_evidence: SearchDispatchEvidenceResolver | None = None,
         walk_forward_observation_calendar: WalkForwardObservationCalendarResolver | None = None,
+        walk_forward_artifact_store: LocalArtifactStore | None = None,
         host_bindings_factory: StrategyLabV2ApiBindingsFactory | None = None,
         persistence: PostgresStrategyLabV2Persistence | None = None,
         forward_worker_runtime_profile_fingerprint: str | None = None,
@@ -398,6 +413,10 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             walk_forward_observation_calendar
         ):
             raise TypeError("walk-forward observation calendar binding must be asynchronous")
+        if walk_forward_artifact_store is not None and not isinstance(
+            walk_forward_artifact_store, LocalArtifactStore
+        ):
+            raise TypeError("walk_forward_artifact_store must be a LocalArtifactStore")
         if search_dispatch is not None and search_dispatch_evidence is not None:
             raise ValueError("search_dispatch and search_dispatch_evidence are mutually exclusive")
         if forward_worker_runtime_profile_fingerprint is not None:
@@ -419,6 +438,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                     search_dispatch,
                     search_dispatch_evidence,
                     walk_forward_observation_calendar,
+                    walk_forward_artifact_store,
                     forward_worker_runtime_profile_fingerprint,
                 )
             ):
@@ -445,6 +465,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             capability_preflight = bindings.capability_preflight
             search_dispatch = bindings.search_dispatch
             walk_forward_observation_calendar = bindings.walk_forward_observation_calendar
+            walk_forward_artifact_store = bindings.walk_forward_artifact_store
             forward_worker_runtime_profile_fingerprint = (
                 bindings.forward_worker_runtime_profile_fingerprint
             )
@@ -452,6 +473,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         self._search_dispatch = search_dispatch
         self._search_dispatch_evidence = search_dispatch_evidence
         self._walk_forward_observation_calendar = walk_forward_observation_calendar
+        self._walk_forward_artifact_store = walk_forward_artifact_store
         self._forward_worker_lifecycle = (
             ForwardWorkerFleetLifecycleCoordinator(
                 self._persistence.worker_state,
@@ -1645,6 +1667,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise ValueError("persisted OOS queue differs from deterministic training selection")
         oos_evidence: dict[str, WalkForwardQueueResultEvidence] = {}
         source_metrics: list[MetricValue] = []
+        oos_manifests: list[RunResultManifest] = []
         for offset, candidate in enumerate(actual_oos):
             if (
                 candidate.phase is not SearchCandidatePhase.SUCCEEDED
@@ -1696,6 +1719,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                     )
                 )
             source_metrics.append(source_metric)
+            oos_manifests.append(manifest)
             oos_evidence[candidate.attempt_id] = WalkForwardQueueResultEvidence(
                 candidate.result_fingerprint,
                 manifest,
@@ -1709,16 +1733,39 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             state,
             oos_evidence,
         )
+        ordered_results = collect_walk_forward_oos_results(
+            selection,
+            results,
+            metric_id=definition.metric_id,
+        )
+        native_metrics = (
+            None
+            if self._walk_forward_artifact_store is None
+            else calculate_walk_forward_native_oos_metrics(
+                tuple(oos_manifests),
+                artifact_store=self._walk_forward_artifact_store,
+                selection_fingerprint=selection.fingerprint,
+            )
+        )
+        native_metric_summary = (
+            None
+            if native_metrics is None
+            else WalkForwardNativeOosMetricSummary(
+                experiment_fingerprint=experiment_fingerprint,
+                definition_fingerprint=definition.fingerprint,
+                selection_fingerprint=selection.fingerprint,
+                result_manifest_fingerprints=tuple(item.fingerprint for item in oos_manifests),
+                metrics=native_metrics,
+            )
+        )
         return _WalkForwardOosCompletion(
             experiment_fingerprint=experiment_fingerprint,
             definition_fingerprint=definition.fingerprint,
             selection=selection,
-            results=collect_walk_forward_oos_results(
-                selection,
-                results,
-                metric_id=definition.metric_id,
-            ),
+            results=ordered_results,
             source_metrics=tuple(source_metrics),
+            native_portfolio_metrics=native_metrics,
+            native_metric_summary=native_metric_summary,
         )
 
     async def collect_walk_forward_oos_results(
@@ -1773,7 +1820,31 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                     {"experiment_fingerprint": experiment_fingerprint},
                 )
             )
-        return resolution
+        native_summary = completion.native_metric_summary
+        if native_summary is not None:
+            native_resolution = await self._persistence.walk_forward_native_metrics.persist(
+                principal=principal,
+                summary=native_summary,
+            )
+            if native_resolution.decision.value == "reject":
+                raise ApiAdapterError(
+                    ApiError(
+                        ApiErrorCode.CONFLICT,
+                        native_resolution.rejection_reason
+                        or "native walk-forward metrics conflict",
+                        request_id,
+                        409,
+                        False,
+                        {"experiment_fingerprint": experiment_fingerprint},
+                    )
+                )
+        return WalkForwardSummaryResolution(
+            resolution.decision,
+            resolution.summary,
+            resolution.aggregate_version,
+            resolution.rejection_reason,
+            native_summary,
+        )
 
     async def dispatch_walk_forward_training_candidate(
         self,
@@ -2894,8 +2965,21 @@ def get_strategy_lab_v2_adapter() -> StrategyLabApiAdapter:
         _default_adapter = PostgresStrategyLabV2Adapter(
             session_factory,
             host_bindings_factory=bindings_factory,
+            walk_forward_artifact_store=(
+                None if bindings_factory is not None else _artifact_store_from_environment()
+            ),
         )
     return _default_adapter
+
+
+def _artifact_store_from_environment() -> LocalArtifactStore | None:
+    value = os.environ.get("STRATEGY_LAB_V2_ARTIFACT_ROOT", "").strip()
+    if not value:
+        return None
+    root = Path(value).expanduser()
+    if not root.is_absolute():
+        raise ValueError("STRATEGY_LAB_V2_ARTIFACT_ROOT must be absolute")
+    return LocalArtifactStore(root)
 
 
 def _load_api_bindings_factory(spec: str | None) -> StrategyLabV2ApiBindingsFactory | None:

@@ -13730,3 +13730,26 @@ passed 24/24; walk-forward/equity-trace/worker-terminal focused tests passed
 Compose/database/Redis restart validation remain open. Stable Nautilus release
 labeling remains unnecessary; traces continue to require exact qualified
 authoritative result provenance.
+
+## 2026-10-06 - Wire native OOS metrics through finalization
+
+The API host now binds `STRATEGY_LAB_V2_ARTIFACT_ROOT` to the shared local
+artifact store. The default adapter supports this binding without requiring the
+provider-owned calendar plugin; custom API host bindings may supply the same
+store. Compose mounts `strategy_lab_artifacts` read-only in the backend. During
+finalization, the adapter loads each selected OOS manifest through the
+authenticated PostgreSQL result reader, computes metrics from the matching
+receipt/trace artifacts, and persists an immutable owner-keyed native metric
+summary sidecar using generic aggregate storage. This is separate from the
+established fold-distribution summary schema, preserving existing records. The
+finalize response exposes native metric values, summary identity, and explicit
+availability/scope.
+
+Validation: PostgreSQL summary, persistence bundle, walk-forward application,
+API router, and application suites passed 104/104. The local API-binding factory
+subset passed 4/4; the two-fold native compounding fixture passed 1/1. Focused
+MyPy, Ruff, formatting, and diff checks passed. `docker compose config --format
+json` confirmed `/strategy-lab-artifacts` uses the shared named volume read-only.
+A standalone content-addressed aggregate curve artifact remains the next step.
+Broader full-branch, Docker runtime, and PostgreSQL/Redis restart gates remain
+open.

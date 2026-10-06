@@ -53,7 +53,13 @@ from app.strategy_lab_v2.commands import (
     ExecutionCommandReceipt,
     ExecutionCommandResolution,
 )
-from app.strategy_lab_v2.contracts import CarryInMode, ForwardInstance, ForwardState
+from app.strategy_lab_v2.contracts import (
+    CarryInMode,
+    ForwardInstance,
+    ForwardState,
+    MetricBasis,
+    MetricValue,
+)
 from app.strategy_lab_v2.dispatch import DispatchRequest, SearchDispatchIntent
 from app.strategy_lab_v2.experiments import WalkForwardMode, WalkForwardSpec
 from app.strategy_lab_v2.forward_account import initial_forward_account_state
@@ -92,6 +98,10 @@ from app.strategy_lab_v2.postgres_walk_forward_plan import (
     WalkForwardDefinitionDecision,
     WalkForwardDefinitionResolution,
 )
+from app.strategy_lab_v2.postgres_walk_forward_summary import (
+    WalkForwardSummaryDecision,
+    WalkForwardSummaryResolution,
+)
 from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationDecision,
     ResourceMutationResolution,
@@ -118,6 +128,7 @@ from app.strategy_lab_v2.walk_forward_search import (
     SelectionDirection,
     WalkForwardExecutionDefinition,
 )
+from app.strategy_lab_v2.walk_forward_summary import WalkForwardNativeOosMetricSummary
 
 NOW = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
 SNAPSHOT = content_digest({"snapshot": "one"})
@@ -1496,8 +1507,58 @@ def test_walk_forward_finalize_api_returns_versioned_fold_distribution() -> None
     attributes = response.json()["data"]["attributes"]
     assert attributes["aggregation_definition"] == "strategy-lab.walk-forward.fold-distribution.v1"
     assert attributes["result_scope"] == "selected_oos_fold_distribution_not_portfolio_compounding"
+    assert attributes["native_portfolio_metrics"] is None
+    assert attributes["native_metrics_status"] == "artifact_store_not_configured"
     assert len(attributes["aggregate_metrics"]) == 5
     assert response.json()["data"]["meta"]["decision"] == "persisted"
+
+
+def test_walk_forward_finalize_api_exposes_persisted_native_portfolio_metrics() -> None:
+    fold_summary = _summary_fixture()
+    experiment = fold_summary.experiment_fingerprint
+    native_summary = WalkForwardNativeOosMetricSummary(
+        experiment_fingerprint=experiment,
+        definition_fingerprint=fold_summary.definition_fingerprint,
+        selection_fingerprint=fold_summary.selection.fingerprint,
+        result_manifest_fingerprints=tuple(
+            result.result_fingerprint for result in fold_summary.results
+        ),
+        metrics=(
+            MetricValue(
+                "total_return",
+                Decimal("0.075"),
+                "fraction",
+                "strategy-lab.metrics.v2",
+                MetricBasis.NET,
+                10,
+            ),
+        ),
+    )
+    resolution = WalkForwardSummaryResolution(
+        WalkForwardSummaryDecision.PERSISTED,
+        fold_summary,
+        1,
+        native_metrics=native_summary,
+    )
+
+    class NativeMetricsAdapter(FakeAdapter):
+        async def persist_walk_forward_oos_summary(self, **_kwargs: Any) -> Any:
+            return resolution
+
+    with _client(NativeMetricsAdapter()) as client:
+        response = client.post(
+            f"/api/v1/strategy-lab/v2/experiments/{experiment}/walk-forward/finalize"
+        )
+
+    assert response.status_code == 202, response.text
+    attributes = response.json()["data"]["attributes"]
+    assert attributes["native_metrics_status"] == "available"
+    assert attributes["native_metrics_summary_fingerprint"] == native_summary.fingerprint
+    assert attributes["native_portfolio_metrics"][0]["name"] == "total_return"
+    assert (
+        attributes["result_scope"]
+        == "selected_oos_fold_distribution_and_native_portfolio_compounding"
+    )
 
 
 def test_router_lists_preserved_legacy_imports_without_payload_bytes() -> None:

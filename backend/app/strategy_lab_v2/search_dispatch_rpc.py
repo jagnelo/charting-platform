@@ -23,6 +23,7 @@ from typing import Any
 import httpx
 
 from app.strategy_lab_v2.api_contracts import ApiError, ApiErrorCode
+from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import canonical_json, content_digest, require_sha256_digest
 from app.strategy_lab_v2.dispatch import SearchDispatchIntent
 from app.strategy_lab_v2.postgres_result_materialization import decode_canonical_contract
@@ -39,6 +40,7 @@ WALK_FORWARD_PROGRESS_RPC_COMMAND_SCHEMA = "strategy-lab.walk-forward-progress-c
 WALK_FORWARD_PROGRESS_RPC_RESULT_SCHEMA = "strategy-lab.walk-forward-progress-result.v1"
 WALK_FORWARD_PROGRESS_RPC_PATH = "/internal/v1/walk-forward-progress"
 WALK_FORWARD_CALENDAR_FACTORY_ENV = "STRATEGY_LAB_V2_WALK_FORWARD_CALENDAR_FACTORY"
+STRATEGY_LAB_V2_ARTIFACT_ROOT_ENV = "STRATEGY_LAB_V2_ARTIFACT_ROOT"
 
 
 @dataclass(frozen=True, slots=True)
@@ -633,13 +635,25 @@ def build_api_bindings(_session_factory: Any, persistence: Any) -> Any:
     )
 
     calendar_resolver = _walk_forward_calendar_from_environment(persistence)
+    artifact_store = _walk_forward_artifact_store_from_environment()
     return StrategyLabV2ApiBindings(
         search_dispatch=UnixSocketSearchDispatchClient.from_environment(),
         walk_forward_observation_calendar=calendar_resolver,
+        walk_forward_artifact_store=artifact_store,
         forward_worker_runtime_profile_fingerprint=(
             forward_worker_runtime_profile_fingerprint_from_environment()
         ),
     )
+
+
+def _walk_forward_artifact_store_from_environment() -> LocalArtifactStore | None:
+    value = os.environ.get(STRATEGY_LAB_V2_ARTIFACT_ROOT_ENV, "").strip()
+    if not value:
+        return None
+    root = Path(value).expanduser()
+    if not root.is_absolute():
+        raise ValueError(f"{STRATEGY_LAB_V2_ARTIFACT_ROOT_ENV} must be absolute")
+    return LocalArtifactStore(root)
 
 
 def _walk_forward_calendar_from_environment(persistence: Any) -> Any:

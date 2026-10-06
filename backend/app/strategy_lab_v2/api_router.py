@@ -3500,6 +3500,7 @@ def create_strategy_lab_router(
             summary = getattr(resolution, "summary", None)
             if summary is None or not isinstance(getattr(summary, "fingerprint", None), str):
                 raise TypeError("adapter returned an invalid walk-forward summary resolution")
+            native_metrics = getattr(resolution, "native_metrics", None)
             response = JSONResponse(
                 status_code=status.HTTP_202_ACCEPTED,
                 content={
@@ -3517,7 +3518,27 @@ def create_strategy_lab_router(
                                 _serialize_metric_value(metric)
                                 for metric in summary.aggregate_metrics
                             ],
-                            "result_scope": "selected_oos_fold_distribution_not_portfolio_compounding",
+                            "native_portfolio_metrics": (
+                                None
+                                if native_metrics is None
+                                else [
+                                    _serialize_metric_value(metric)
+                                    for metric in native_metrics.metrics
+                                ]
+                            ),
+                            "native_metrics_summary_fingerprint": (
+                                None if native_metrics is None else native_metrics.fingerprint
+                            ),
+                            "native_metrics_status": (
+                                "available"
+                                if native_metrics is not None
+                                else "artifact_store_not_configured"
+                            ),
+                            "result_scope": (
+                                "selected_oos_fold_distribution_and_native_portfolio_compounding"
+                                if native_metrics is not None
+                                else "selected_oos_fold_distribution_not_portfolio_compounding"
+                            ),
                         },
                         "meta": {
                             "request_id": request_id,

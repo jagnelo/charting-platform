@@ -907,15 +907,14 @@ progress:
     branches; unsupported options remain fail-closed pending canonical
     Greeks/delta/settlement evidence.
   next_action: >-
-    Compose the verified native OOS trace calculator into owner-scoped
-    walk-forward finalization. Resolve each selected attempt manifest through
-    the authenticated PostgreSQL reader, use the shared artifact root to verify
-    receipt and Parquet bytes, persist an immutable native portfolio metric/curve
-    artifact with selection and source-manifest lineage, and expose that result
-    alongside (not as a replacement for) fold-distribution statistics. Preserve
-    pre-receipt summary compatibility. Then prove cancellation/retry and process
-    restart between walk-forward phase boundaries, and continue the remaining
-    forward, security, Compose, exact-native, and full-branch gates. Shared
-    router registration, migrations, and overlapping upstream paths remain
-    gated on line-level staging reconciliation. Keep unsupported products
-    fail-closed; stable Nautilus labeling is not a gate.
+    Persist the compounded native OOS portfolio curve as a bounded Parquet
+    artifact with exact selected-result, receipt, and selection lineage; the
+    current API integration durably stores and exposes its evidence-bound
+    metrics sidecar, while source traces permit deterministic curve replay.
+    Keep fold-distribution metrics separate and preserve pre-receipt summary
+    compatibility. Then prove cancellation/retry and process restart between
+    walk-forward phase boundaries, and continue the remaining forward, security,
+    Compose, exact-native, and full-branch gates. Shared router registration,
+    migrations, and overlapping upstream paths remain gated on line-level
+    staging reconciliation. Keep unsupported products fail-closed; stable
+    Nautilus labeling is not a gate.

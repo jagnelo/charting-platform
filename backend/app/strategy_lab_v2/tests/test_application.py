@@ -737,6 +737,32 @@ def test_registered_adapter_loads_configured_local_host_bindings(monkeypatch: An
     assert adapter._capability_preflight is capability_preflight
 
 
+def test_default_api_adapter_opens_configured_shared_artifact_root(
+    monkeypatch: Any,
+    tmp_path: Any,
+) -> None:
+    def session_factory() -> object:
+        return object()
+
+    real_import_module = application_module.import_module
+
+    def import_module(module_name: str) -> Any:
+        if module_name == "app.database":
+            return SimpleNamespace(AsyncSessionLocal=session_factory)
+        return real_import_module(module_name)
+
+    monkeypatch.setattr(application_module, "_default_adapter", None)
+    monkeypatch.setattr(application_module, "import_module", import_module)
+    monkeypatch.delenv("STRATEGY_LAB_V2_API_BINDINGS", raising=False)
+    monkeypatch.setenv("STRATEGY_LAB_V2_ARTIFACT_ROOT", str(tmp_path / "shared-artifacts"))
+
+    adapter = get_strategy_lab_v2_adapter()
+
+    assert isinstance(adapter, PostgresStrategyLabV2Adapter)
+    assert adapter._walk_forward_artifact_store is not None
+    assert adapter._walk_forward_artifact_store.root == tmp_path / "shared-artifacts"
+
+
 @pytest.mark.asyncio
 async def test_application_capability_preflight_resolver_is_persisted_and_owner_scoped() -> None:
     summary = CapabilitySummary(

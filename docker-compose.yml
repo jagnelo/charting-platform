@@ -100,6 +100,7 @@ services:
       STRATEGY_LAB_V2_MIGRATIONS_ENABLED: ${STRATEGY_LAB_V2_MIGRATIONS_ENABLED:-true}
       STRATEGY_LAB_V2_MIGRATION_TARGET: ${STRATEGY_LAB_V2_MIGRATION_TARGET:-head}
       STRATEGY_LAB_V2_API_BINDINGS: ${STRATEGY_LAB_V2_API_BINDINGS:-}
+      STRATEGY_LAB_V2_ARTIFACT_ROOT: /strategy-lab-artifacts
       STRATEGY_LAB_V2_WALK_FORWARD_CALENDAR_FACTORY: ${STRATEGY_LAB_V2_WALK_FORWARD_CALENDAR_FACTORY:-}
       STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH: ${STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH:-/run/strategy-lab-v2/preparation.sock}
       STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN: ${STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN:-}
@@ -167,6 +168,7 @@ services:
       - ./ops:/ops:ro
       - research_jobs:/jobs
       - research_results:/results
+      - strategy_lab_artifacts:/strategy-lab-artifacts:ro
       - strategy_lab_v2_preparation_socket:/run/strategy-lab-v2
 
   # Search preparation hydrates owner-scoped PostgreSQL state and materializes
