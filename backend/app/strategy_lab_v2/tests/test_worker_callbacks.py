@@ -13,7 +13,14 @@ from app.strategy_lab_v2.postgres_search_dispatch import SearchDispatchRecord
 from app.strategy_lab_v2.search_worker_handoff import AuthenticatedSearchDispatchMaterializer
 from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
 from app.strategy_lab_v2.tests.test_worker_evidence_resolution import _context_and_lookup
+from app.strategy_lab_v2.tests.test_worker_initial_state import (
+    _ExecutionState,
+    _receipt,
+    _RuntimeExecution,
+)
+from app.strategy_lab_v2.tests.test_worker_process import _request
 from app.strategy_lab_v2.worker_callbacks import (
+    _SearchDispatchWorkerHandoffMaterializer,
     create,
     create_default_search_dispatch_binding_resolver,
     create_search_dispatch,
@@ -240,6 +247,73 @@ async def test_search_callback_factory_binds_authenticated_dispatch_materializer
     assert callbacks.recovery_writer is not None
     assert callbacks.lease_state_reader is not None
     assert callbacks.cancellation_reader is not None
+
+
+@pytest.mark.asyncio
+async def test_search_handoff_materializer_bootstraps_state_before_returning_request(
+    tmp_path,
+) -> None:
+    request = _request(tmp_path)
+    receipt = _receipt(request)
+    payload_digest = receipt.request.payload_digest
+    dispatch = SearchDispatchRecord(
+        "owner-a",
+        content_digest("bootstrap-experiment"),
+        0,
+        DispatchRequest(
+            receipt.request.idempotency_key,
+            request.runtime_request.attempt_id,
+            payload_digest,
+            "strategy-backtest",
+            NOW,
+        ),
+    )
+    events: list[str] = []
+
+    class Store:
+        async def load_by_payload_digest(self, digest: str):
+            assert digest == payload_digest
+            events.append("dispatch-loaded")
+            return dispatch
+
+    class ExecutionState(_ExecutionState):
+        async def initialize(self, **kwargs: Any):
+            events.append("outcome-initialized")
+            return await super().initialize(**kwargs)
+
+    class RuntimeExecution(_RuntimeExecution):
+        async def initialize(self, **kwargs: Any):
+            events.append("runtime-initialized")
+            return await super().initialize(**kwargs)
+
+    class Persistence:
+        execution_state = ExecutionState()
+        runtime_execution = RuntimeExecution()
+
+    async def authenticated_materializer(_entry: Any, _payload: Any):
+        events.append("handoff-authenticated")
+        return request
+
+    async def binding_resolver(record: SearchDispatchRecord):
+        assert record is dispatch
+        return WorkerSubmissionBinding("owner-a", receipt)
+
+    materializer = _SearchDispatchWorkerHandoffMaterializer(
+        authenticated_materializer,
+        dispatch_store=Store(),
+        queue_name="strategy-backtest",
+        persistence=Persistence(),
+        binding_resolver=binding_resolver,
+    )
+    entry = type("Entry", (), {"payload_digest": payload_digest})()
+
+    assert await materializer(entry, object()) is request
+    assert events == [
+        "handoff-authenticated",
+        "dispatch-loaded",
+        "outcome-initialized",
+        "runtime-initialized",
+    ]
 
 
 @pytest.mark.asyncio
