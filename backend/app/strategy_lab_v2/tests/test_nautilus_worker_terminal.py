@@ -518,6 +518,7 @@ def _successful_context_and_lookup(
     multi_strategy: bool = False,
     with_graph: bool = False,
     session_calendar: SessionCalendarSnapshot | None = None,
+    process_resolution: WorkerProcessResolution | None = None,
 ):
     graph, source_store, request, _conformance_evidence = _runtime_setup(
         tmp_path,
@@ -636,12 +637,14 @@ def _successful_context_and_lookup(
         run_result,
         runtime_result,
     )
-    process = WorkerProcessResolution(
+    process = process_resolution or WorkerProcessResolution(
         request.request_fingerprint,
         WorkerProcessDecision.COMPLETED,
         execution=worker_execution,
         process_id=9001,
     )
+    if process.request_fingerprint != request.request_fingerprint:
+        raise ValueError("process_resolution must belong to the prepared worker request")
     payload = DispatchPayload.from_mapping({"attempt_id": graph.attempt.attempt_id})
     entry = RedisStreamEntry(
         "strategy-lab:v2:stream:backtest",
