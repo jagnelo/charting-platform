@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import os
 import select
 import signal
@@ -10,7 +11,7 @@ import stat
 import subprocess
 import threading
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from typing import BinaryIO, Protocol
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -368,7 +369,7 @@ class HardenedNautilusForwardSessionProcessFactory:
 
     def __init__(
         self,
-        plan_factory: Callable[..., SandboxCommandPlan],
+        plan_factory: Callable[..., SandboxCommandPlan | Awaitable[SandboxCommandPlan]],
         codec: NautilusForwardRuntimeWireCodec | None = None,
         *,
         docker_binary: str = "docker",
@@ -404,31 +405,46 @@ class HardenedNautilusForwardSessionProcessFactory:
             delivery=delivery,
             preparation=preparation,
         )
+        plan_resolution = await asyncio.to_thread(
+            self._build_plan,
+            instance_id,
+            checkpoint_fingerprint,
+            delivery,
+            preparation,
+        )
+        plan = await plan_resolution if inspect.isawaitable(plan_resolution) else plan_resolution
+        if not isinstance(plan, SandboxCommandPlan):
+            raise TypeError("forward plan factory must return SandboxCommandPlan")
         return await asyncio.to_thread(
-            self._start_sync,
+            self._start_plan_sync,
+            plan,
+            instance_id,
+            checkpoint_fingerprint,
+        )
+
+    def _build_plan(
+        self,
+        instance_id: str,
+        checkpoint_fingerprint: str,
+        delivery: NautilusForwardDeliveryInput | None,
+        preparation: ForwardPreparation | None,
+    ) -> SandboxCommandPlan | Awaitable[SandboxCommandPlan]:
+        if delivery is None:
+            return self._plan_factory(instance_id, checkpoint_fingerprint)
+        assert preparation is not None
+        return self._plan_factory(
             instance_id,
             checkpoint_fingerprint,
             delivery,
             preparation,
         )
 
-    def _start_sync(
+    def _start_plan_sync(
         self,
+        plan: SandboxCommandPlan,
         instance_id: str,
         checkpoint_fingerprint: str,
-        delivery: NautilusForwardDeliveryInput | None,
-        preparation: ForwardPreparation | None,
     ) -> NautilusForwardSessionProcess:
-        if delivery is None:
-            plan = self._plan_factory(instance_id, checkpoint_fingerprint)
-        else:
-            assert preparation is not None
-            plan = self._plan_factory(
-                instance_id,
-                checkpoint_fingerprint,
-                delivery,
-                preparation,
-            )
         _validate_forward_checkpoint_plan(plan, instance_id, checkpoint_fingerprint)
         argv = _forward_session_argv(plan, instance_id, self._docker_binary)
         _prepare_writable_output_mounts(

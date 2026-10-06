@@ -37,6 +37,10 @@ from app.strategy_lab_v2.forward_execution_plan_resolution import (
 )
 from app.strategy_lab_v2.forward_processed_prefix import ForwardProcessedEventPrefix
 from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt
+from app.strategy_lab_v2.forward_worker_composition import (
+    materialize_authenticated_forward_runtime_bundle,
+    materialize_authenticated_forward_sandbox_plan,
+)
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.nautilus_engine_input import (
     NautilusComponentStrategyBinding,
@@ -56,12 +60,16 @@ from app.strategy_lab_v2.nautilus_forward_delivery import VerifiedForwardMarketP
 from app.strategy_lab_v2.nautilus_native_event_stream import (
     deserialize_nautilus_native_event_stream,
 )
-from app.strategy_lab_v2.nautilus_runtime_bundle import (
-    materialize_nautilus_verified_forward_warmup_stream,
-)
 from app.strategy_lab_v2.nautilus_runtime_protocol import (
     NAUTILUS_CONTEXT_STREAM_MEDIA_TYPE,
     NAUTILUS_CONTEXT_STREAM_SCHEMA,
+)
+from app.strategy_lab_v2.runtime import RuntimeIsolationProfile
+from app.strategy_lab_v2.sandbox import (
+    sandbox_context_stream_path,
+    sandbox_forward_bootstrap_path,
+    sandbox_input_path,
+    sandbox_native_event_stream_path,
 )
 from app.strategy_lab_v2.sdk import MarketEvent
 from app.strategy_lab_v2.strategy_package_resolution import (
@@ -200,9 +208,12 @@ def test_forward_bootstrap_artifact_is_content_addressed_and_idempotent(tmp_path
     assert first.artifact.schema_version == NAUTILUS_FORWARD_BOOTSTRAP_SCHEMA
     assert first.artifact.retention_class is ArtifactRetention.PINNED_INPUT
     assert first.path == store.path_for(first.artifact.storage_key)
-    assert NautilusForwardRuntimeBootstrap.from_json_bytes(
-        store.read(first.artifact.storage_key), expected_fingerprint=bootstrap.fingerprint
-    ) == bootstrap
+    assert (
+        NautilusForwardRuntimeBootstrap.from_json_bytes(
+            store.read(first.artifact.storage_key), expected_fingerprint=bootstrap.fingerprint
+        )
+        == bootstrap
+    )
 
 
 def test_forward_bootstrap_artifact_fails_closed_on_rejected_publication(
@@ -614,13 +625,16 @@ def test_build_binds_owner_plan_warmup_snapshot_prefix_and_native_inputs(tmp_pat
         )
         for index, event in enumerate(frozen_tape.events)
     )
-    native_reference = materialize_nautilus_verified_forward_warmup_stream(
+    runtime_artifacts = materialize_authenticated_forward_runtime_bundle(
         store,
+        execution_plan=resolved_plan,
         snapshot=snapshot,
-        manifest=manifest,
+        tape_manifest=manifest,
         warmup_tape=snapshot_tape,
-        payloads=warmup_payloads,
+        warmup_payloads=warmup_payloads,
+        engine_input=engine_input,
     )
+    native_reference = runtime_artifacts.native_event_stream
     native_records = tuple(
         deserialize_nautilus_native_event_stream(
             BytesIO(store.read(native_reference.artifact.storage_key)),
@@ -682,7 +696,7 @@ def test_build_binds_owner_plan_warmup_snapshot_prefix_and_native_inputs(tmp_pat
         warmup_payloads=warmup_payloads,
         processed_prefix=processed_prefix,
         engine_input=engine_input,
-        runtime_input_bundle_digest=_digest("runtime-bundle"),
+        runtime_input_bundle_digest=runtime_artifacts.runtime_input.input_bundle_digest,
         native_event_stream=native_reference,
     )
 
@@ -694,3 +708,66 @@ def test_build_binds_owner_plan_warmup_snapshot_prefix_and_native_inputs(tmp_pat
     assert bootstrap.warmup_cursor_sequence != frozen_tape.events[-1].sequence
     assert bootstrap.processed_events[0].canonical_event == processed_canonical
     assert bootstrap.components[0].random_seed == 13
+    assert runtime_artifacts.runtime_input.context_stream == runtime_artifacts.context_stream
+    assert tuple(
+        component_id for component_id, _count in runtime_artifacts.context_stream.component_counts
+    ) == ("component-1",)
+
+    sandbox_evidence = materialize_authenticated_forward_sandbox_plan(
+        store,
+        execution_plan=resolved_plan,
+        checkpoint_fingerprint=processed_prefix.pre_event_checkpoint_fingerprint,
+        warmup_receipt=receipt,
+        snapshot=snapshot,
+        tape_manifest=manifest,
+        warmup_tape=snapshot_tape,
+        warmup_payloads=warmup_payloads,
+        processed_prefix=processed_prefix,
+        engine_input=engine_input,
+        runtime_profile=RuntimeIsolationProfile(
+            runtime_image_digest=_digest("qualified-nautilus-image"),
+            runtime_abi=package.runtime_abi,
+            allowed_dependency_digests=frozenset(
+                dependency.artifact_digest for dependency in strategy.dependencies
+            ),
+        ),
+        image_name="nautilus-runtime",
+        expected_version="2.0.0rc5",
+        output_path=str(tmp_path / "forward-output.json"),
+        submitted_at=NOW,
+    )
+    assert sandbox_input_path(sandbox_evidence.sandbox_plan) == (
+        store.path_for(sandbox_evidence.runtime_artifacts.runtime_input.artifact.storage_key)
+    )
+    assert sandbox_forward_bootstrap_path(sandbox_evidence.sandbox_plan) == (
+        sandbox_evidence.bootstrap_artifact.path
+    )
+    assert sandbox_context_stream_path(sandbox_evidence.sandbox_plan) == (
+        store.path_for(sandbox_evidence.runtime_artifacts.context_stream.artifact.storage_key)
+    )
+    assert sandbox_native_event_stream_path(sandbox_evidence.sandbox_plan) == (
+        store.path_for(sandbox_evidence.runtime_artifacts.native_event_stream.artifact.storage_key)
+    )
+    assert sandbox_evidence.runtime_request.input_bundle_digest == (
+        sandbox_evidence.runtime_artifacts.runtime_input.input_bundle_digest
+    )
+
+    mismatched_binding = replace(
+        engine_input.strategy_bindings[0],
+        parameters_digest=content_digest({"window": 21}),
+    )
+    mismatched_engine_input = replace(
+        engine_input,
+        parameters={"window": 21},
+        strategy_bindings=(mismatched_binding,),
+    )
+    with pytest.raises(ValueError, match="strategy binding differs from its owner package"):
+        materialize_authenticated_forward_runtime_bundle(
+            store,
+            execution_plan=resolved_plan,
+            snapshot=snapshot,
+            tape_manifest=manifest,
+            warmup_tape=snapshot_tape,
+            warmup_payloads=warmup_payloads,
+            engine_input=mismatched_engine_input,
+        )

@@ -7,9 +7,13 @@ from pathlib import Path
 
 import pytest
 
+from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.forward_context import ForwardPortfolioContextPreparation
+from app.strategy_lab_v2.forward_worker_composition import (
+    AuthenticatedForwardSandboxPlanFactory,
+)
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.nautilus_event_adapter import (
     NautilusForwardDeliveryBinding,
@@ -251,6 +255,72 @@ def test_forward_process_factory_requires_delivery_and_preparation_together(
                 delivery=object(),  # type: ignore[arg-type]
             )
         )
+
+
+def test_forward_process_factory_awaits_authenticated_async_plan_builder(
+    tmp_path: Path, monkeypatch
+) -> None:
+    plan = _plan(tmp_path)
+    calls: list[tuple[str, str]] = []
+
+    async def plan_factory(instance_id: str, checkpoint_fingerprint: str):
+        calls.append((instance_id, checkpoint_fingerprint))
+        return plan
+
+    factory = HardenedNautilusForwardSessionProcessFactory(plan_factory)
+    monkeypatch.setattr(factory, "_start_plan_sync", lambda resolved, *_args: resolved)
+    checkpoint = content_digest("async-plan-checkpoint")
+
+    result = asyncio.run(
+        factory.start(
+            instance_id="forward-1",
+            checkpoint_fingerprint=checkpoint,
+        )
+    )
+
+    assert result is plan
+    assert calls == [("forward-1", checkpoint)]
+
+
+def test_owner_bound_sandbox_plan_factory_resolves_inputs_for_its_principal(
+    tmp_path: Path,
+) -> None:
+    delivery = _delivery_input()
+    preparation = _portfolio_preparation(delivery)
+    owner = "forward-owner-1"
+    calls: list[dict[str, object]] = []
+
+    class InputResolver:
+        async def resolve(self, **kwargs):
+            calls.append(kwargs)
+            raise RuntimeError("stop after authenticated resolver invocation")
+
+    factory = AuthenticatedForwardSandboxPlanFactory(
+        LocalArtifactStore(tmp_path / "artifacts"),
+        InputResolver(),  # type: ignore[arg-type]
+        principal=owner,
+        image_name="nautilus-runtime",
+        output_path_resolver=lambda _instance_id, _checkpoint: tmp_path / "out.json",
+    )
+    with pytest.raises(RuntimeError, match="authenticated resolver invocation"):
+        asyncio.run(
+            factory(
+                delivery.delivery_binding.instance_id,
+                delivery.delivery_binding.pre_event_checkpoint_fingerprint,
+                delivery,
+                preparation,
+            )
+        )
+
+    assert calls == [
+        {
+            "instance_id": delivery.delivery_binding.instance_id,
+            "checkpoint_fingerprint": delivery.delivery_binding.pre_event_checkpoint_fingerprint,
+            "principal": owner,
+            "delivery": delivery,
+            "preparation": preparation,
+        }
+    ]
 
 
 def test_forward_process_launch_context_rejects_rebound_payload() -> None:
