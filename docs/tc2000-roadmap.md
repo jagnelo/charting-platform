@@ -3,7 +3,51 @@
 Status: active implementation roadmap  
 Branch: `feat/tc2000-frontend-rework`  
 Parent: `staging`  
-Last reconciled: 2026-10-05
+Last reconciled: 2026-10-06
+
+## 2026-10-06 — Current-source functional and local visual receipts reconciled
+
+At product source `f0e946000e15336d972f33f24520d72b06e5cf7e` and pushed
+documentation checkpoint `0ae95b6c9`, the unchanged pinned Playwright 1.62.1
+seeded functional suite passed `175/177`, with two documented skips and zero
+failures in 18.1 minutes. Two intervening unchanged full retries each recorded
+one different transient test failure (`F8s` login-fixture navigation and `F8k`
+chart plot bounding-box lookup); both passed isolated replays, and both passed
+in the later complete run. The earlier four transient cases also passed in the
+clean full suite. No source, test, assertion, or retry policy changed.
+
+The four-profile local visual matrix now passes `104/104` after ten stale local
+seeded screenshots were refreshed to agree with the state each test asserts
+before capture: workspace-floating, Study structured-result, and two
+sandbox-error profiles. This is deterministic current-product regression
+coverage, not exact V25 visual approval. `REF-SHELL-V25` and
+`REF-STUDY-LAB-V25` remain open; no reference, mask, threshold, skip, or
+acceptance policy changed. The generic integration target remains open because
+Buildx is unavailable and its cleanup trap can remove the assigned stack.
+Provider/ETF consumer reconciliation remains deferred until both upstream
+branches reach staging.
+
+## 2026-10-06 — Exact-source workstation performance and endurance
+
+At product source `f0e946000e15336d972f33f24520d72b06e5cf7e`, the complete
+pinned `workstation_performance.spec.ts` suite passed `4/4` in 2.7 minutes,
+including the 10,000-row network-hydrated watchlist and 50-round float/restore
+churn with the existing row, page-count, memory, and browser-diagnostic
+assertions unchanged. The 10,000-row fixture was seeded by backend startup in a
+uniquely named disposable Compose project; the pinned browser source remained
+read-only. Compose used its default Docker driver (Buildx was unavailable but
+not required for this isolated equivalent). Exact inventory preceded removal
+of that project's four containers, four volumes, network, and two built
+images. Post-cleanup inventory found no disposable project resources, and all
+six assigned TC services remained healthy. Artifacts are under
+`/tmp/tc2000-performance-exact-Ti7rsc`.
+
+An earlier attempt against the assigned stack set the large-fixture switch
+only in the browser process, while backend seeding is startup-only. Its first
+three checks passed; the 10,000-row check correctly observed an empty dataset.
+That harness-mismatch result is retained as diagnostic history and is
+superseded by the isolated, correctly seeded `4/4` receipt above. No product,
+test assertion, performance budget, or provider/ETF behavior changed.
 
 ## 2026-10-05 — Exact-product-tip seeded browser refresh
 

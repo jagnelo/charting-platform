@@ -68,6 +68,15 @@ current_blocker: >-
   with zero restarts. The exact disposable project was removed. The assigned
   six-service stack was subsequently confirmed healthy through the approved
   host context; ordinary sandbox access to the Docker socket remains denied.
+  At product source f0e946, the current workstation performance file also
+  passes 4/4 with the 10,000-row fixture seeded at backend startup and
+  50-round multi-window churn. It ran on an isolated Compose project; exact
+  cleanup removed its four containers, four volumes, network, and two local
+  images while preserving the assigned six-service stack. An earlier assigned
+  stack attempt passed the first three checks but observed zero large-universe
+  rows because the startup-only fixture flag was set only in the browser
+  process; this setup diagnostic is superseded by the correctly seeded 4/4
+  run and is not a product failure.
   Provider and ETF branches remain outside staging, so R2/R3 consumption and
   shared-path reconciliation are deferred.
 active_changeset_context:
@@ -87,8 +96,10 @@ active_changeset_context:
     reference gaps explicitly open. The exact backend combined-coverage gate passes
     at 82.26%; the current seeded functional suite passes 175/177 with two
     documented skips and no failures, and the four-profile local visual matrix
-    passes 104/104 at product source f0e946. Exact V25 screenshot gaps remain
-    explicitly open. Research-runner sandbox/resource
+    passes 104/104 at product source f0e946. The exact-source workstation
+    performance file passes 4/4 with 50-round window churn and a backend-seeded
+    10,000-row fixture. Exact V25 screenshot gaps remain explicitly open.
+    Research-runner sandbox/resource
     probes passed at checkpoint 8e6a818; refresh only if runner configuration
     or source changes. Migration, lint, Compose contract, and provider-change
     probe checks have been reconciled. The remaining branch-local gate is the

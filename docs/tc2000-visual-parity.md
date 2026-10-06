@@ -1,5 +1,23 @@
 # TC2000 Version 25 Visual-Parity Specification
 
+## 2026-10-06 — Current-source functional and seeded visual revalidation
+
+At product source `f0e946000e15336d972f33f24520d72b06e5cf7e` (pushed branch
+checkpoint `804ffd2077f668d3c08498dacc2a0d604615d5a5`), the unchanged seeded
+Playwright 1.62.1 functional suite passed `175/177`, with two documented skips
+and zero failures in the complete run. Two intervening full retries each had
+one transient failure; both failing cases passed isolated replay and in the
+later full run. No source, test, assertion, or retry policy changed.
+
+The four-profile board-guided local matrix passed `104/104` after the ten
+previously mismatching seeded screenshots were refreshed to match the states
+asserted before capture. These images are local product-state regression
+oracles only. `REF-SHELL-V25` and `REF-STUDY-LAB-V25` remain open/`required_missing`;
+the captures do not constitute exact V25 comparison. No threshold, mask,
+reference, skip, or acceptance rule changed. The ten local screenshot files and
+the detailed rationale are recorded in the reference board and workstream
+validation journal.
+
 ## 2026-10-05 — Exact-product-tip dense workstation performance
 
 At pushed checkpoint `93c152dffaca7f50c078439e55c8599ba227e518` (product
