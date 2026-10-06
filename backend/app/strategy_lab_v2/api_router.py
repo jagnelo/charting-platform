@@ -451,6 +451,35 @@ def _json_value(value: Any) -> Any:
     raise TypeError(f"unsupported API JSON value: {type(value).__name__}")
 
 
+def _serialize_metric_value(metric: Any) -> dict[str, Any]:
+    """Serialize typed metric provenance without deepcopying frozen mappings."""
+
+    calculation = metric.calculation_definition
+    return _json_value(
+        {
+            "name": metric.name,
+            "value": metric.value,
+            "unit": metric.unit,
+            "definition_version": metric.definition_version,
+            "basis": metric.basis,
+            "sample_size": metric.sample_size,
+            "annualization_basis": metric.annualization_basis,
+            "calculation_basis": metric.calculation_basis,
+            "null_reason": metric.null_reason,
+            "calculation_definition": None
+            if calculation is None
+            else {
+                "formula_id": calculation.formula_id,
+                "contract_version": calculation.contract_version,
+                "parameters": calculation.parameters,
+            },
+            "evidence_references": tuple(
+                {"role": item.role, "digest": item.digest} for item in metric.evidence_references
+            ),
+        }
+    )
+
+
 def serialize_resource_identifier(identifier: ResourceIdentifier) -> dict[str, Any]:
     """Serialize one JSON:API-style relationship identifier."""
 
@@ -3300,6 +3329,93 @@ def create_strategy_lab_router(
                 _api_error(
                     ApiErrorCode.INTERNAL_ERROR,
                     "Strategy Lab v2 walk-forward result hydration failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
+    @router.post(
+        "/experiments/{experiment_id}/walk-forward/finalize",
+        status_code=status.HTTP_202_ACCEPTED,
+    )
+    async def finalize_walk_forward_oos_results(
+        experiment_id: str,
+        request: Request,
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> JSONResponse:
+        """Persist/replay versioned descriptive metrics for complete OOS folds."""
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            finalize = getattr(adapter, "persist_walk_forward_oos_summary", None)
+            if not callable(finalize):
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        "walk-forward summary adapter is not configured",
+                        request_id,
+                        status.HTTP_501_NOT_IMPLEMENTED,
+                    )
+                )
+            resolution = await _resolve(
+                finalize(
+                    principal=principal,
+                    request_id=request_id,
+                    experiment_fingerprint=experiment_id,
+                )
+            )
+            summary = getattr(resolution, "summary", None)
+            if summary is None or not isinstance(getattr(summary, "fingerprint", None), str):
+                raise TypeError("adapter returned an invalid walk-forward summary resolution")
+            response = JSONResponse(
+                status_code=status.HTTP_202_ACCEPTED,
+                content={
+                    "data": {
+                        "type": "walk-forward-oos-summaries",
+                        "id": summary.fingerprint,
+                        "attributes": {
+                            "experiment_fingerprint": experiment_id,
+                            "definition_fingerprint": summary.definition_fingerprint,
+                            "selection_fingerprint": summary.selection.fingerprint,
+                            "metric_id": summary.metric_id,
+                            "aggregation_definition": "strategy-lab.walk-forward.fold-distribution.v1",
+                            "fold_count": len(summary.results),
+                            "aggregate_metrics": [
+                                _serialize_metric_value(metric)
+                                for metric in summary.aggregate_metrics
+                            ],
+                            "result_scope": "selected_oos_fold_distribution_not_portfolio_compounding",
+                        },
+                        "meta": {
+                            "request_id": request_id,
+                            "decision": resolution.decision.value,
+                            "aggregate_version": resolution.aggregate_version,
+                        },
+                    }
+                },
+            )
+            response.headers["X-Request-ID"] = request_id
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "walk-forward result finalization request is invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 walk-forward result finalization failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Strategy Lab v2 walk-forward result finalization failed",
                     locals().get("request_id", "unknown"),
                     status.HTTP_500_INTERNAL_SERVER_ERROR,
                     retryable=True,

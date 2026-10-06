@@ -42,6 +42,7 @@ from app.strategy_lab_v2.contracts import (
     ForwardInstance,
     ForwardState,
     MetricSet,
+    MetricValue,
     PortfolioComposition,
     RunAttempt,
     ScientificTrial,
@@ -96,6 +97,7 @@ from app.strategy_lab_v2.postgres_forward_state import (
 )
 from app.strategy_lab_v2.postgres_result_publication import PublicationStateResolution
 from app.strategy_lab_v2.postgres_walk_forward_plan import WalkForwardDefinitionResolution
+from app.strategy_lab_v2.postgres_walk_forward_summary import WalkForwardSummaryResolution
 from app.strategy_lab_v2.progress import ExecutionProgressState
 from app.strategy_lab_v2.resource_domains import normalize_resource_attributes
 from app.strategy_lab_v2.resource_mutations import (
@@ -141,8 +143,12 @@ from app.strategy_lab_v2.walk_forward_search import (
     WalkForwardDefinitionRequest,
     WalkForwardExecutionDefinition,
     WalkForwardOosResult,
+    WalkForwardSelection,
     collect_walk_forward_oos_results,
     select_walk_forward_oos_tasks,
+)
+from app.strategy_lab_v2.walk_forward_summary import (
+    build_walk_forward_oos_summary,
 )
 from app.strategy_lab_v2.walk_forward_trials import (
     materialize_walk_forward_oos_trials,
@@ -158,6 +164,15 @@ class _PrincipalIdentity:
     """String owner identity shared by every v2 persistence adapter."""
 
     id: str
+
+
+@dataclass(frozen=True, slots=True)
+class _WalkForwardOosCompletion:
+    experiment_fingerprint: str
+    definition_fingerprint: str
+    selection: WalkForwardSelection
+    results: tuple[WalkForwardOosResult, ...]
+    source_metrics: tuple[MetricValue, ...]
 
 
 CapabilityPreflightResolver = Callable[..., Awaitable[CapabilitySummary] | CapabilitySummary]
@@ -1531,13 +1546,13 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise ValueError("persisted walk-forward OOS queue differs from its deterministic plan")
         return WalkForwardQueueTransition(persisted, transition.oos_task_bindings)
 
-    async def collect_walk_forward_oos_results(
+    async def _collect_walk_forward_oos_completion(
         self,
         *,
         principal: Any,
         request_id: str,
         experiment_fingerprint: str,
-    ) -> tuple[WalkForwardOosResult, ...]:
+    ) -> _WalkForwardOosCompletion:
         """Rehydrate the complete fold-ordered OOS result set for an owner.
 
         This deliberately returns fold receipts rather than pretending that a
@@ -1628,6 +1643,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         if tuple(candidate.trial_fingerprint for candidate in actual_oos) != expected_oos_ids:
             raise ValueError("persisted OOS queue differs from deterministic training selection")
         oos_evidence: dict[str, WalkForwardQueueResultEvidence] = {}
+        source_metrics: list[MetricValue] = []
         for offset, candidate in enumerate(actual_oos):
             if (
                 candidate.phase is not SearchCandidatePhase.SUCCEEDED
@@ -1659,6 +1675,26 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                         {"candidate_index": len(training_state.candidates) + offset},
                     )
                 )
+            source_metric = next(
+                (
+                    metric
+                    for metric in manifest.metric_set.values
+                    if metric.name == definition.metric_id
+                ),
+                None,
+            )
+            if source_metric is None or source_metric.value is None:
+                raise ApiAdapterError(
+                    ApiError(
+                        ApiErrorCode.CONFLICT,
+                        "a successful OOS result lacks the declared non-null selection metric",
+                        request_id,
+                        409,
+                        False,
+                        {"candidate_index": len(training_state.candidates) + offset},
+                    )
+                )
+            source_metrics.append(source_metric)
             oos_evidence[candidate.attempt_id] = WalkForwardQueueResultEvidence(
                 candidate.result_fingerprint,
                 manifest,
@@ -1672,11 +1708,71 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             state,
             oos_evidence,
         )
-        return collect_walk_forward_oos_results(
-            selection,
-            results,
-            metric_id=definition.metric_id,
+        return _WalkForwardOosCompletion(
+            experiment_fingerprint=experiment_fingerprint,
+            definition_fingerprint=definition.fingerprint,
+            selection=selection,
+            results=collect_walk_forward_oos_results(
+                selection,
+                results,
+                metric_id=definition.metric_id,
+            ),
+            source_metrics=tuple(source_metrics),
         )
+
+    async def collect_walk_forward_oos_results(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        experiment_fingerprint: str,
+    ) -> tuple[WalkForwardOosResult, ...]:
+        """Expose the verified OOS-only fold receipts in deterministic order."""
+
+        completion = await self._collect_walk_forward_oos_completion(
+            principal=principal,
+            request_id=request_id,
+            experiment_fingerprint=experiment_fingerprint,
+        )
+        return completion.results
+
+    async def persist_walk_forward_oos_summary(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        experiment_fingerprint: str,
+    ) -> WalkForwardSummaryResolution:
+        """Persist the immutable fold-distribution summary after OOS completion."""
+
+        completion = await self._collect_walk_forward_oos_completion(
+            principal=principal,
+            request_id=request_id,
+            experiment_fingerprint=experiment_fingerprint,
+        )
+        summary = build_walk_forward_oos_summary(
+            experiment_fingerprint=completion.experiment_fingerprint,
+            definition_fingerprint=completion.definition_fingerprint,
+            selection=completion.selection,
+            results=completion.results,
+            source_metrics=completion.source_metrics,
+        )
+        resolution = await self._persistence.walk_forward_summaries.persist(
+            principal=principal,
+            summary=summary,
+        )
+        if resolution.decision.value == "reject":
+            raise ApiAdapterError(
+                ApiError(
+                    ApiErrorCode.CONFLICT,
+                    resolution.rejection_reason or "walk-forward OOS summary conflicts",
+                    request_id,
+                    409,
+                    False,
+                    {"experiment_fingerprint": experiment_fingerprint},
+                )
+            )
+        return resolution
 
     async def dispatch_walk_forward_training_candidate(
         self,

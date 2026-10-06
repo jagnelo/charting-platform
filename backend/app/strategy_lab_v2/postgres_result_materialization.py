@@ -43,6 +43,7 @@ from app.strategy_lab_v2 import (
     search_dispatch,
     search_state,
     walk_forward_search,
+    walk_forward_summary,
     worker_process,
     workers,
 )
@@ -759,6 +760,7 @@ def _canonical_dataclass_registry() -> dict[str, type[Any]]:
         worker_process,
         workers,
         walk_forward_search,
+        walk_forward_summary,
     ):
         for candidate in vars(module).values():
             if isinstance(candidate, type) and is_dataclass(candidate):
@@ -790,6 +792,7 @@ def _canonical_enum_registry() -> dict[str, type[Enum]]:
         worker_process,
         workers,
         walk_forward_search,
+        walk_forward_summary,
     ):
         for candidate in vars(module).values():
             if isinstance(candidate, type) and issubclass(candidate, Enum):

@@ -54,6 +54,7 @@ from app.strategy_lab_v2.postgres_snapshot_coverage import PostgresSnapshotCover
 from app.strategy_lab_v2.postgres_storage import PostgresAggregateStore
 from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAdapter
 from app.strategy_lab_v2.postgres_walk_forward_plan import PostgresWalkForwardPlanAdapter
+from app.strategy_lab_v2.postgres_walk_forward_summary import PostgresWalkForwardSummaryAdapter
 from app.strategy_lab_v2.postgres_worker_recovery import PostgresWorkerRecoveryAdapter
 from app.strategy_lab_v2.postgres_worker_settlement import PostgresWorkerSettlementAdapter
 from app.strategy_lab_v2.postgres_worker_state import PostgresWorkerStateAdapter
@@ -143,6 +144,7 @@ class PostgresStrategyLabV2Persistence:
     search_dispatch: PostgresSearchDispatchAdapter
     snapshot_coverage: PostgresSnapshotCoverageAdapter
     walk_forward_plans: PostgresWalkForwardPlanAdapter
+    walk_forward_summaries: PostgresWalkForwardSummaryAdapter
     submissions: PostgresSubmissionDispatchAdapter
     worker_state: PostgresWorkerStateAdapter
     worker_settlements: PostgresWorkerSettlementAdapter
@@ -345,6 +347,7 @@ class PostgresStrategyLabV2Persistence:
             ),
             snapshot_coverage=PostgresSnapshotCoverageAdapter(session_factory),
             walk_forward_plans=PostgresWalkForwardPlanAdapter(aggregate_store),
+            walk_forward_summaries=PostgresWalkForwardSummaryAdapter(aggregate_store),
             submissions=PostgresSubmissionDispatchAdapter(session_factory, clock=clock),
             worker_state=worker_state,
             worker_settlements=PostgresWorkerSettlementAdapter(session_factory),

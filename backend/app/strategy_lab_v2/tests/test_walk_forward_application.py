@@ -17,6 +17,7 @@ from app.strategy_lab_v2.postgres_walk_forward_plan import (
     WalkForwardDefinitionDecision,
     WalkForwardDefinitionResolution,
 )
+from app.strategy_lab_v2.postgres_walk_forward_summary import PostgresWalkForwardSummaryAdapter
 from app.strategy_lab_v2.resource_domains import normalize_resource_attributes
 from app.strategy_lab_v2.search_state import (
     SearchCandidatePhase,
@@ -27,6 +28,7 @@ from app.strategy_lab_v2.search_state import (
     start_search_candidate,
 )
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs
+from app.strategy_lab_v2.tests.test_walk_forward_plan_persistence import MemoryAggregateStore
 from app.strategy_lab_v2.tests.test_walk_forward_search import _authoritative_result
 from app.strategy_lab_v2.walk_forward_queue import initialize_walk_forward_training_queue
 from app.strategy_lab_v2.walk_forward_search import (
@@ -182,6 +184,7 @@ def _setup(*, second_experiment: str | None = None):
         walk_forward_plans=plan_store,
         search_state=search_state_store,
         result_materialization=result_materialization,
+        walk_forward_summaries=PostgresWalkForwardSummaryAdapter(MemoryAggregateStore()),
     )
     adapter._clock = lambda: datetime(2026, 10, 6, tzinfo=UTC)
     published_trials: list[str] = []
@@ -509,6 +512,19 @@ async def test_oos_phase_hydrates_owner_manifests_appends_and_replays_exact_tria
     )
     assert resumed.decision is SearchStateDecision.REPLAY_EXISTING
     assert resumed.state == appended.resolution.state
+    with pytest.raises(ApiAdapterError, match="all selected OOS folds must succeed"):
+        await adapter.persist_walk_forward_oos_summary(
+            principal=User(),
+            request_id="premature-oos-summary",
+            experiment_fingerprint=definition.experiment_fingerprint,
+        )
+    assert (
+        await adapter._persistence.walk_forward_summaries.load(
+            principal=User(),
+            experiment_fingerprint=definition.experiment_fingerprint,
+        )
+        is None
+    )
 
     state = resumed.state
     oos_by_id = {trial.trial_id: trial for trial in expected_oos.trials}
@@ -547,3 +563,18 @@ async def test_oos_phase_hydrates_owner_manifests_appends_and_replays_exact_tria
     assert tuple(result.oos_task_fingerprint for result in hydrated) == tuple(
         task.fingerprint for task in expected_selection.oos_tasks
     )
+    persisted_summary = await adapter.persist_walk_forward_oos_summary(
+        principal=User(),
+        request_id="persist-oos-summary",
+        experiment_fingerprint=definition.experiment_fingerprint,
+    )
+    assert persisted_summary.decision.value == "persisted"
+    assert persisted_summary.summary.metric_id == definition.metric_id
+    assert len(persisted_summary.summary.aggregate_metrics) == 5
+    replay_summary = await adapter.persist_walk_forward_oos_summary(
+        principal=User(),
+        request_id="persist-oos-summary-replay",
+        experiment_fingerprint=definition.experiment_fingerprint,
+    )
+    assert replay_summary.decision.value == "replay_existing"
+    assert replay_summary.summary == persisted_summary.summary

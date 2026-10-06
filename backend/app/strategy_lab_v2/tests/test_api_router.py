@@ -113,6 +113,7 @@ from app.strategy_lab_v2.submissions import (
 from app.strategy_lab_v2.tests.test_admission import _fixture, _reservation
 from app.strategy_lab_v2.tests.test_forward_corrections import _event as correction_event
 from app.strategy_lab_v2.tests.test_forward_corrections import _state as forward_state
+from app.strategy_lab_v2.tests.test_walk_forward_summary import _summary_fixture
 from app.strategy_lab_v2.walk_forward_search import (
     SelectionDirection,
     WalkForwardExecutionDefinition,
@@ -667,6 +668,14 @@ class FakeAdapter:
                 metric_id="net_return",
                 value=Decimal("0.125"),
             ),
+        )
+
+    async def persist_walk_forward_oos_summary(self, **kwargs: Any) -> Any:
+        self.walk_forward_result_requests.append(kwargs)
+        return SimpleNamespace(
+            summary=_summary_fixture(),
+            decision=SimpleNamespace(value="persisted"),
+            aggregate_version=1,
         )
 
 
@@ -1436,6 +1445,22 @@ def test_walk_forward_results_api_exposes_only_fold_ordered_oos_receipts() -> No
     assert response.json()["data"][0]["attributes"]["fold_index"] == 0
     assert response.json()["data"][0]["attributes"]["value"] == "0.125"
     assert adapter.walk_forward_result_requests[0]["experiment_fingerprint"] == experiment
+
+
+def test_walk_forward_finalize_api_returns_versioned_fold_distribution() -> None:
+    experiment = content_digest("walk-forward-finalize-experiment")
+    adapter = FakeAdapter()
+    with _client(adapter) as client:
+        response = client.post(
+            f"/api/v1/strategy-lab/v2/experiments/{experiment}/walk-forward/finalize"
+        )
+
+    assert response.status_code == 202, response.text
+    attributes = response.json()["data"]["attributes"]
+    assert attributes["aggregation_definition"] == "strategy-lab.walk-forward.fold-distribution.v1"
+    assert attributes["result_scope"] == "selected_oos_fold_distribution_not_portfolio_compounding"
+    assert len(attributes["aggregate_metrics"]) == 5
+    assert response.json()["data"]["meta"]["decision"] == "persisted"
 
 
 def test_router_lists_preserved_legacy_imports_without_payload_bytes() -> None:

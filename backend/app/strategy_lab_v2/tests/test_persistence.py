@@ -40,6 +40,7 @@ from app.strategy_lab_v2.postgres_search_dispatch import (
 from app.strategy_lab_v2.postgres_storage import PostgresAggregateStore
 from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAdapter
 from app.strategy_lab_v2.postgres_walk_forward_plan import PostgresWalkForwardPlanAdapter
+from app.strategy_lab_v2.postgres_walk_forward_summary import PostgresWalkForwardSummaryAdapter
 from app.strategy_lab_v2.postgres_worker_recovery import PostgresWorkerRecoveryAdapter
 from app.strategy_lab_v2.progress import new_progress_state
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
@@ -74,6 +75,8 @@ def test_persistence_bundle_shares_store_and_wires_all_initial_api_dependencies(
     assert isinstance(bundle.submissions, PostgresSubmissionDispatchAdapter)
     assert isinstance(bundle.search_dispatch, PostgresSearchDispatchAdapter)
     assert isinstance(bundle.walk_forward_plans, PostgresWalkForwardPlanAdapter)
+    assert isinstance(bundle.walk_forward_summaries, PostgresWalkForwardSummaryAdapter)
+    assert bundle.walk_forward_summaries._aggregate_store is bundle.aggregate_store
     assert isinstance(bundle.worker_recoveries, PostgresWorkerRecoveryAdapter)
     assert isinstance(bundle.artifact_commits, PostgresArtifactCommitAdapter)
     assert isinstance(
