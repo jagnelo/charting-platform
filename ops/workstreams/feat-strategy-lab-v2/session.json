@@ -86,7 +86,11 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -122,12 +126,12 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "16615eff12f9f7fd5f6ef1cb848019df53ff0f42",
-  "implementation_sha": "16615eff12f9f7fd5f6ef1cb848019df53ff0f42",
-  "last_checkpoint": "2026-10-06T19:53:54.393392+00:00",
-  "last_human_progress_update": "2026-10-06T19:53:51.662863+00:00",
+  "head": "150368fd4afb70fd661eb26e653bf1338b921e63",
+  "implementation_sha": "150368fd4afb70fd661eb26e653bf1338b921e63",
+  "last_checkpoint": "2026-10-06T20:05:50.401544+00:00",
+  "last_human_progress_update": "2026-10-06T20:04:27.956378+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "continue implementation from the branch workstream",
+  "next_action": "Implement and validate authenticated OOS worker initial-state bootstrap before Nautilus execution, then compose exact RC6 native execution, PostgreSQL terminal settlement and Redis ACK/reclaim recovery.",
   "parent_branch": "staging",
   "plan_hash": "e9aaeb4bdbc05084924cb6ff71d5088c00562c4dcb7e54abde98ebdb23ad4573",
   "planning_required": false,
@@ -152,13 +156,13 @@
   "progress": {
     "completed": [],
     "current_blocker": "none",
-    "current_phase": "oos-terminal-settlement-recovery-v1",
-    "next_action": "Run a search-dispatched OOS attempt with the exact RC6 backtest image through DedicatedStrategyWorkerService and PostgresWorkerTerminalAdapter; inject crashes before and after durable settlement, then prove reclaimed Redis delivery ACKs from the persisted receipt without rerunning Nautilus.",
+    "current_phase": "oos-worker-initial-state-bootstrap-v1",
+    "next_action": "Run a search-dispatched OOS attempt with exact RC6 through DedicatedStrategyWorkerService and PostgresWorkerTerminalAdapter; inject pre/post-settlement crashes and prove reclaimed Redis delivery ACKs from durable receipt without rerunning Nautilus.",
     "total": 18,
-    "updated_at": "2026-10-06T19:53:51.662844+00:00"
+    "updated_at": "2026-10-06T20:04:27.956360+00:00"
   },
-  "remote": "16615eff12f9f7fd5f6ef1cb848019df53ff0f42",
-  "remote_sha": "16615eff12f9f7fd5f6ef1cb848019df53ff0f42",
+  "remote": "150368fd4afb70fd661eb26e653bf1338b921e63",
+  "remote_sha": "150368fd4afb70fd661eb26e653bf1338b921e63",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

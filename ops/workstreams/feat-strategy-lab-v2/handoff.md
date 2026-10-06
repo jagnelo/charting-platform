@@ -68,6 +68,31 @@ after matching durable result/completion/settlement evidence has replayed. Keep
 the exact RC6 backtest authority and owner isolation; do not substitute a
 synthetic terminal receipt for native worker output.
 
+## 2026-10-06 - Repair OOS worker initial state before native execution
+
+The real OOS worker handoff can be durably dispatched before Redis consumption,
+but unlike the ordinary API submission path it does not necessarily have its
+public execution outcome/progress or runtime execution state initialized. Added
+an idempotent authenticated worker bootstrap that resolves the exact OOS
+dispatch by payload digest, verifies owner/attempt/submission binding, and
+initializes or authenticates both PostgreSQL-backed sequence-zero state records
+before the worker proceeds to lease/cancellation preflight and Nautilus.
+
+The PostgreSQL-composed walk-forward restart integration now uses the production
+shared content-addressed worker payload table, loads and decodes the persisted
+handoff, resolves its internal submission identity, bootstraps both durable
+state adapters, verifies accepted/queued/runtime records, reconstructs adapters
+to simulate process restart, and replays bootstrap idempotently. Focused callback
+and PostgreSQL recovery tests passed (18); Ruff, formatting, focused MyPy, and
+`git diff --check` passed.
+
+This repairs the startup-state gap but is not the native terminal end-to-end
+proof. Remaining: execute the recovered OOS handoff through the exact RC6
+Nautilus subprocess and production `PostgresWorkerTerminalAdapter`, settle all
+result/summary/artifact/search projections, inject the pre-ACK crash, then prove
+a fresh Redis consumer replays the durable settlement and ACKs without rerunning
+Nautilus.
+
 ## 2026-10-05 - PostgreSQL plus Redis forward recovery integration
 
 The new integration test under `backend/tests/integration/strategy_lab_v2/`
