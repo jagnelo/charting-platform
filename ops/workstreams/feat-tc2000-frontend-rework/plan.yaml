@@ -27,11 +27,16 @@ current_blocker: >-
   focused workstation tests pass 44/44; authenticated Chromium shell-menu
   keyboard, constrained-viewport, scroll, and Help flows pass 3/3; the complete
   frontend suite passes 131 files/1,235 tests; production type-check/build
-  passes. The four local Help-state screenshots have been refreshed after
-  confirming the previous captures showed an earlier, shorter shortcut list;
-  all four profiles passed individually at the existing 0.5% threshold. One
-  combined rerun had a transient network diagnostic error; that profile's
-  isolated replay passed.
+  passes. The committed Help-state snapshot is stale: expected imagery shows
+  only Type, Space, Shift+Space, Ctrl+wheel, F1, and Escape, while the current
+  dialog and the test's own content assertions include Ctrl+Space, Backspace,
+  and additional documented commands. A visual review confirms this content
+  divergence contributes to the pixel failure; the committed snapshot remains
+  unchanged because authoritative V25 Help imagery is still required-missing.
+  Four individual profiles previously passed against locally refreshed capture
+  artifacts, but that did not update the committed oracle. One combined rerun
+  had a transient network diagnostic error; that profile's isolated replay
+  passed.
   Authoritative V25 Help imagery remains required-missing. A current-tip
   four-project matrix completed all 104 cases: 94 passed and 10 failed. Four
   Help-state cases passed content/state assertions but failed the unchanged
@@ -40,11 +45,11 @@ current_blocker: >-
   A focused, pinned Playwright 1.62.1 replay of those exact four Help profiles
   reproduced the same 55,085/56,441/64,009/65,669 pixel differences with clean
   transport. Explicitly resetting the dialog scroll position to zero did not
-  change the mismatch, so that suspected cause is rejected. Retained expected/
-  actual images show Help-panel placement and pane-geometry differences. The
+  change the mismatch, so that suspected cause is rejected. Expected/actual
+  review identifies stale Help content as a concrete mismatch; any remaining
+  panel-placement or pane-geometry drift is not yet isolated. The
   host Playwright CLI cannot launch because its configured Chrome binary is
-  absent; no browser was installed. The discrepancy remains unexplained; do not
-  refresh baselines or weaken policy. Provider and
+  absent; no browser was installed. Do not refresh baselines or weaken policy. Provider and
   ETF refs remain outside
   staging, and the generic integration target is unsafe against the live
   assigned stack because its cleanup deletes that stack's volumes. Exact

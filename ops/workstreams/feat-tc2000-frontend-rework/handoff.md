@@ -18910,3 +18910,19 @@ confirmed the full frontend suite passed 131/131 files and 1,235/1,235 tests
 (exit 0). Exact visual approval, generic
 integration, broader workstation acceptance, and staging-gated provider/ETF
 consumption remain open. The TC scope boundary was preserved.
+
+## 2026-10-06 — Help visual-oracle content discrepancy identified
+
+Compared the committed expected Help screenshot against the actual current-tip
+capture. The expected image contains only Type, Space, Shift+Space, Ctrl+wheel,
+F1, and Escape; the live dialog includes the newer Ctrl+Space, Backspace, and
+other documented commands, which the screenshot test itself also asserts.
+Therefore the Help content mismatch is at least partly a stale committed local
+oracle, despite earlier individual passes against temporary refreshed capture
+artifacts. Authoritative V25 Help imagery remains required-missing, so the
+committed snapshot, 0.5% threshold, masks, and test assertions were not changed.
+Any additional panel-placement/pane-geometry drift remains unisolated. The
+four-profile pinned replay still reproduces 55,085/56,441/64,009/65,669 pixel
+deltas with clean browser transport; resetting dialog scroll to zero did not
+change them. Generic cleanup-safe exact integration and staging-gated provider/
+ETF consumption remain open.
