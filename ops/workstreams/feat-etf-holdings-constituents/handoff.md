@@ -9667,12 +9667,37 @@ the real issuer page/bundle/CSV; the full deterministic adapter file passes
 relaxed, and no provider was added to native coverage beyond the already
 promoted PFDE route.
 
-The corrected source and audit update are committed locally; the durable
-handoff/session/validation receipt still needs to be committed and pushed with
-it. Fresh exact-SHA hosted branch tests must complete before AC7 can advance.
-The last local full browser gate remains at 145 passed, 106 skipped, 9 failed;
-its four explicit network-change errors and the correlated host Docker bridge
-churn remain separately unresolved. AC7/AC8 are still open. AC10 still awaits
+The corrected source and audit update are pushed. Exact-SHA CI run
+[`37534275408`](https://github.com/jagnelo/charting-platform/actions/runs/37534275408)
+completed successfully for commit `910f2222c931acbb5b829a7b3bfce97375101717`:
+backend, frontend unit, branch-declared checks, and hosted Playwright all pass.
+The hosted live-provider matrix had 523 passes and 23 classified skips; both
+PFDE aliases pass. The Exhaustive Integration Gate was skipped as designed for
+feature branches. The required post-fix local `make validate-integration` gate
+then passed workstream validation, dependency checks, Ruff/format, TypeScript,
+backend coverage tests (1,900 passed, 81.18%), frontend unit coverage (947
+passed, 82.09%), renderer/visual-policy checks, production build, Compose
+contracts, Docker stack health, and functional Playwright (154 passed, 106
+expected skips). The runner's research sandbox denials were expected; its
+memory-cgroup probe was contained with status 137. The visual Playwright stage
+failed 92 of 104 screenshots at 0.5% tolerance, across all four viewport/scale
+profiles. Repeated shell, workspace, freshness-gap, and Study Lab images differed
+from their expected snapshots by about 1-3% (for example, the default shell was
+42,839 pixels / 3% different at 1920x1080); this broad, repeatable pattern is
+consistent with a shared screenshot-rendering/baseline mismatch, but the cause
+has not yet been proven. In the 104 visual cases, 92 failed pixel comparison
+and the remaining 12 passed. No snapshots or tolerance settings were changed.
+Representative expected/actual inspection shows the page structure and behavior
+match, with differences concentrated on text and fine UI edges. The local font
+resolver maps `Segoe UI` to DejaVu Sans and `Arial` to Nimbus Sans. The local
+gate installed Chromium without OS dependencies, whereas CI explicitly runs
+`npx playwright install --with-deps chromium`; this makes a browser/font
+dependency mismatch a concrete hypothesis, not a proven cause. Compare browser
+and font metadata in an equivalent isolated/pinned Playwright OS before
+deciding whether any product CSS needs a change.
+Gate cleanup removed only this ETF stack's containers, images, volumes,
+and network; unrelated stacks were left untouched. AC7/AC8 remain open pending a
+valid visual-baseline diagnosis and exact reviewed checkpoint. AC10 still awaits
 provider-platform staging, and AC14 remains the post-integration 30-day
 production observation.
 *** End of File
