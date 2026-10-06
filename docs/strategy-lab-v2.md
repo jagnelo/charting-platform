@@ -79,14 +79,18 @@ to running or terminal. Queue conflicts fail as HTTP 409; they do not dispatch w
 Walk-forward finalization keeps the existing descriptive distribution across
 selected fold metrics and, when the local artifact root is configured, also
 hydrates the exact owner-scoped OOS result manifests and derives portfolio-level
-metrics from their receipt-bound native Nautilus equity traces. The backend
-mounts `strategy_lab_artifacts` read-only at `/strategy-lab-artifacts`; the local
+metrics from their receipt-bound native Nautilus equity traces. It publishes the
+compounded portfolio-equity curve as a bounded, Zstandard-compressed Parquet
+artifact into the same content-addressed store, then registers an owner-scoped
+retention pin before persisting its metrics. The backend mounts
+`strategy_lab_artifacts` at `/strategy-lab-artifacts`; the local
 `STRATEGY_LAB_V2_ARTIFACT_ROOT` must point to that shared absolute path. The
 result exposes `native_metrics_status`, `native_metrics_summary_fingerprint`,
-and `native_portfolio_metrics`; without the artifact store it explicitly reports
+`native_portfolio_metrics`, and `native_portfolio_curve_artifact`; without the artifact store it explicitly reports
 `artifact_store_not_configured` and keeps the legacy fold-distribution scope.
 Native metrics are persisted in a separate owner-scoped immutable PostgreSQL
-aggregate, so existing fold-summary records remain byte-compatible. Each metric
+v2 aggregate, so existing fold-summary and earlier metrics-only v1 records remain
+untouched. Each metric
 binds the selected fold set and source result/trace evidence; fold gaps are
 treated as inactive periods, and no regular cadence is inferred from irregular
 native event marks.

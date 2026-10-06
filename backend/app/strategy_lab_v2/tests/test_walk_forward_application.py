@@ -10,9 +10,20 @@ import pytest
 from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.api_router import ApiAdapterError
 from app.strategy_lab_v2.application import PostgresStrategyLabV2Adapter
+from app.strategy_lab_v2.artifact_retention import (
+    ArtifactRetentionPin,
+    ArtifactRetentionState,
+    add_retention_pin,
+)
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest
-from app.strategy_lab_v2.contracts import MetricBasis, MetricValue, ScientificTrial
+from app.strategy_lab_v2.contracts import (
+    ArtifactManifest,
+    ArtifactRetention,
+    MetricBasis,
+    MetricValue,
+    ScientificTrial,
+)
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.experiments import WalkForwardMode, WalkForwardSpec
 from app.strategy_lab_v2.postgres_search_dispatch import SearchDispatchRecord
@@ -37,12 +48,17 @@ from app.strategy_lab_v2.search_state import (
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs
 from app.strategy_lab_v2.tests.test_walk_forward_plan_persistence import MemoryAggregateStore
 from app.strategy_lab_v2.tests.test_walk_forward_search import _authoritative_result
+from app.strategy_lab_v2.walk_forward_native_metrics import WalkForwardNativeOosMetricCalculation
 from app.strategy_lab_v2.walk_forward_queue import initialize_walk_forward_training_queue
 from app.strategy_lab_v2.walk_forward_search import (
     SelectionDirection,
     WalkForwardDefinitionRequest,
     WalkForwardExecutionDefinition,
     select_walk_forward_oos_tasks,
+)
+from app.strategy_lab_v2.walk_forward_summary import (
+    WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE,
+    WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA,
 )
 from app.strategy_lab_v2.walk_forward_trials import (
     materialize_walk_forward_oos_trials,
@@ -181,6 +197,26 @@ def _setup(*, second_experiment: str | None = None):
             assert principal.id == "42"
             return self.manifests.get(attempt_id)
 
+    class ArtifactRetentionStore:
+        def __init__(self) -> None:
+            self.states: dict[str, ArtifactRetentionState] = {}
+
+        async def read_state(self, manifest_fingerprint: str):
+            return self.states.get(manifest_fingerprint)
+
+        async def ensure_state(self, state: ArtifactRetentionState):
+            current = self.states.get(state.manifest_fingerprint)
+            if current is not None and current != state:
+                raise ValueError("retention state identity is already bound")
+            self.states[state.manifest_fingerprint] = state
+            return SimpleNamespace(state=state)
+
+        async def add_pin(self, pin):
+            state = self.states[pin.artifact_manifest_fingerprint]
+            resolution = add_retention_pin(state, pin)
+            self.states[pin.artifact_manifest_fingerprint] = resolution.state
+            return resolution
+
     reader = Reader()
     plan_store = PlanStore()
     search_state_store = SearchStateStore()
@@ -193,6 +229,7 @@ def _setup(*, second_experiment: str | None = None):
         result_materialization=result_materialization,
         walk_forward_summaries=PostgresWalkForwardSummaryAdapter(MemoryAggregateStore()),
         walk_forward_native_metrics=PostgresWalkForwardNativeMetricsAdapter(MemoryAggregateStore()),
+        artifact_retention=ArtifactRetentionStore(),
     )
     adapter._walk_forward_artifact_store = None
     adapter._clock = lambda: datetime(2026, 10, 6, tzinfo=UTC)
@@ -729,13 +766,22 @@ async def test_oos_phase_hydrates_owner_manifests_appends_and_replays_exact_tria
         MetricBasis.NET,
         10,
     )
+    curve_digest = content_digest("application-native-oos-curve")
+    curve_artifact = ArtifactManifest(
+        curve_digest,
+        256,
+        WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE,
+        WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA,
+        curve_digest,
+        ArtifactRetention.PINNED_RESULT,
+    )
     observed_native: dict[str, Any] = {}
 
     def native_metrics(manifests, *, artifact_store, selection_fingerprint):
         observed_native["manifests"] = manifests
         observed_native["artifact_store"] = artifact_store
         observed_native["selection_fingerprint"] = selection_fingerprint
-        return (metric,)
+        return WalkForwardNativeOosMetricCalculation((metric,), curve_artifact)
 
     monkeypatch.setattr(
         "app.strategy_lab_v2.application.calculate_walk_forward_native_oos_metrics",
@@ -753,6 +799,11 @@ async def test_oos_phase_hydrates_owner_manifests_appends_and_replays_exact_tria
     assert len(persisted_summary.summary.aggregate_metrics) == 5
     assert persisted_summary.native_metrics is not None
     assert persisted_summary.native_metrics.metrics == (metric,)
+    assert persisted_summary.native_metrics.curve_artifact == curve_artifact
+    retained = adapter._persistence.artifact_retention.states[content_digest(curve_artifact)]
+    assert len(retained.pins) == 1
+    assert isinstance(retained.pins[0], ArtifactRetentionPin)
+    assert retained.pins[0].owner_type == "walk_forward_native_oos_metrics"
     assert len(observed_native["manifests"]) == len(definition.folds)
     assert observed_native["artifact_store"] is store
     assert (

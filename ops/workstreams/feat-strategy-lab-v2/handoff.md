@@ -13733,23 +13733,26 @@ authoritative result provenance.
 
 ## 2026-10-06 - Wire native OOS metrics through finalization
 
-The API host now binds `STRATEGY_LAB_V2_ARTIFACT_ROOT` to the shared local
-artifact store. The default adapter supports this binding without requiring the
-provider-owned calendar plugin; custom API host bindings may supply the same
-store. Compose mounts `strategy_lab_artifacts` read-only in the backend. During
-finalization, the adapter loads each selected OOS manifest through the
-authenticated PostgreSQL result reader, computes metrics from the matching
-receipt/trace artifacts, and persists an immutable owner-keyed native metric
-summary sidecar using generic aggregate storage. This is separate from the
-established fold-distribution summary schema, preserving existing records. The
-finalize response exposes native metric values, summary identity, and explicit
-availability/scope.
+The API host binds `STRATEGY_LAB_V2_ARTIFACT_ROOT` to the shared local artifact
+store. During finalization, it loads selected OOS manifests through the
+authenticated PostgreSQL result reader, verifies their receipt/trace bindings,
+and calculates metrics from the compounded native equity path. It now publishes
+that exact quantized path as a bounded Zstandard-compressed Parquet artifact in
+the content-addressed store. The owner/experiment-bound retention pin is
+registered before the curve-backed metrics sidecar is persisted. That sidecar
+uses aggregate type v2, leaving the earlier metrics-only v1 aggregates and the
+fold-distribution summary schema untouched. The finalize response exposes the
+curve manifest beside native metrics and explicit availability/scope. Compose
+mounts the shared artifact volume read-write in the API process so this
+finalization path can publish its result.
 
-Validation: PostgreSQL summary, persistence bundle, walk-forward application,
-API router, and application suites passed 104/104. The local API-binding factory
-subset passed 4/4; the two-fold native compounding fixture passed 1/1. Focused
-MyPy, Ruff, formatting, and diff checks passed. `docker compose config --format
-json` confirmed `/strategy-lab-artifacts` uses the shared named volume read-only.
-A standalone content-addressed aggregate curve artifact remains the next step.
-Broader full-branch, Docker runtime, and PostgreSQL/Redis restart gates remain
-open.
+Validation: walk-forward search, summary, application, and API suites passed
+78/78 after retention-pin integration; focused MyPy passed for five changed
+production modules, Ruff/format/diff checks passed, and Compose rendered with
+`STRATEGY_LAB_V2_ARTIFACT_ROOT=/strategy-lab-artifacts` and the shared named
+volume mounted in the backend. A full Strategy Lab package test attempt again
+stopped emitting output at about 31% and was interrupted; it is inconclusive,
+not a pass. Docker-backed runtime, PostgreSQL/Redis restart, security, exact
+Nautilus v2 conformance, and complete branch gates remain open. The next branch
+slice is to continue closing remaining acceptance criteria while diagnosing the
+repeatable broad-suite stall; do not wait for a stable Nautilus label.

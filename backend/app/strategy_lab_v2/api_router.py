@@ -3529,6 +3529,20 @@ def create_strategy_lab_router(
                             "native_metrics_summary_fingerprint": (
                                 None if native_metrics is None else native_metrics.fingerprint
                             ),
+                            "native_portfolio_curve_artifact": (
+                                None
+                                if native_metrics is None
+                                else {
+                                    "content_digest": native_metrics.curve_artifact.content_digest,
+                                    "byte_length": native_metrics.curve_artifact.byte_length,
+                                    "media_type": native_metrics.curve_artifact.media_type,
+                                    "schema_version": native_metrics.curve_artifact.schema_version,
+                                    "storage_key": native_metrics.curve_artifact.storage_key,
+                                    "retention_class": (
+                                        native_metrics.curve_artifact.retention_class.value
+                                    ),
+                                }
+                            ),
                             "native_metrics_status": (
                                 "available"
                                 if native_metrics is not None

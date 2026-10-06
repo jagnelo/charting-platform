@@ -2,13 +2,22 @@
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Iterator, Sequence
-from decimal import Decimal, localcontext
+from dataclasses import dataclass
+from decimal import ROUND_HALF_EVEN, Decimal, InvalidOperation, localcontext
 from itertools import tee
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest
-from app.strategy_lab_v2.contracts import MetricValue, RunResultManifest
+from app.strategy_lab_v2.contracts import (
+    ArtifactManifest,
+    ArtifactRetention,
+    MetricValue,
+    RunResultManifest,
+)
 from app.strategy_lab_v2.metrics import calculate_event_aligned_equity_metrics
 from app.strategy_lab_v2.nautilus_equity_trace import (
     NAUTILUS_ACCOUNT_EQUITY_TRACE_MEDIA_TYPE,
@@ -18,6 +27,30 @@ from app.strategy_lab_v2.nautilus_equity_trace_receipt import (
     NAUTILUS_EQUITY_TRACE_RECEIPT_MEDIA_TYPE,
     decode_nautilus_equity_trace_receipt,
 )
+from app.strategy_lab_v2.walk_forward_summary import (
+    WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE,
+    WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA,
+)
+
+
+@dataclass(frozen=True, slots=True)
+class WalkForwardNativeOosMetricCalculation:
+    metrics: tuple[MetricValue, ...]
+    curve_artifact: ArtifactManifest
+
+    def __post_init__(self) -> None:
+        metrics = tuple(self.metrics)
+        if not metrics or any(not isinstance(item, MetricValue) for item in metrics):
+            raise ValueError("native OOS calculation requires typed metrics")
+        if not isinstance(self.curve_artifact, ArtifactManifest):
+            raise TypeError("curve_artifact must be an ArtifactManifest")
+        if (
+            self.curve_artifact.media_type != WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE
+            or self.curve_artifact.schema_version != WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA
+            or self.curve_artifact.retention_class is not ArtifactRetention.PINNED_RESULT
+        ):
+            raise ValueError("native OOS calculation curve artifact is unsupported")
+        object.__setattr__(self, "metrics", metrics)
 
 
 def _datetime_ns(value: object) -> int:
@@ -70,7 +103,7 @@ def calculate_walk_forward_native_oos_metrics(
     *,
     artifact_store: LocalArtifactStore,
     selection_fingerprint: str,
-) -> tuple[MetricValue, ...]:
+) -> WalkForwardNativeOosMetricCalculation:
     """Compound fold returns into one OOS equity curve and derive native metrics.
 
     Fold-opening marks are used to rebase each isolated simulation onto the
@@ -114,7 +147,7 @@ def calculate_walk_forward_native_oos_metrics(
         }
     )
 
-    def marks_and_times() -> Iterator[tuple[Decimal, int]]:
+    def marks_and_times() -> Iterator[tuple[int, Decimal, int]]:
         carried_equity: Decimal | None = None
         for index, (reference, manifest) in enumerate(zip(references, records, strict=True)):
             observations = iter_verified_nautilus_account_equity_observations(
@@ -135,7 +168,7 @@ def calculate_walk_forward_native_oos_metrics(
                             )
                         if index == 0:
                             carried_equity = opening
-                            yield carried_equity, observation.event_time_ns
+                            yield index, carried_equity, observation.event_time_ns
                         else:
                             if carried_equity is None:
                                 raise ValueError("prior OOS fold did not provide terminal equity")
@@ -145,21 +178,105 @@ def calculate_walk_forward_native_oos_metrics(
                         continue
                     if opening is None:
                         raise ValueError("native OOS equity trace omitted its opening valuation")
-                    carried_equity = observation.account_equity * scale
-                    yield carried_equity, observation.event_time_ns
+                    try:
+                        carried_equity = (observation.account_equity * scale).quantize(
+                            Decimal("0.000000000000000001"), rounding=ROUND_HALF_EVEN
+                        )
+                    except InvalidOperation as error:
+                        raise ValueError("compounded OOS equity exceeds curve precision") from error
+                    yield index, carried_equity, observation.event_time_ns
                 if opening is None or carried_equity is None:
                     raise ValueError("native OOS equity trace contains no observations")
 
     pair_stream, time_stream = tee(marks_and_times())
     metrics = calculate_event_aligned_equity_metrics(
-        (item[0] for item in pair_stream),
-        event_time_ns=(item[1] for item in time_stream),
+        (item[1] for item in pair_stream),
+        event_time_ns=(item[2] for item in time_stream),
         base_currency=first_reference.base_currency,
         evidence_digest=evidence_digest,
         expected_mark_count=sum(item.observation_count for item in references)
         - (len(references) - 1),
     )
-    return tuple(metrics)
+    curve_artifact = _publish_native_oos_curve(
+        marks_and_times(),
+        artifact_store=artifact_store,
+        metadata={
+            "protocol": WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA,
+            "selection_fingerprint": selection_fingerprint,
+            "portfolio_fingerprint": first_manifest.portfolio.fingerprint,
+            "snapshot_fingerprint": first_manifest.snapshot.fingerprint,
+            "base_currency": first_reference.base_currency,
+            "initial_capital": format(first_manifest.portfolio.initial_capital, "f"),
+            "evidence_digest": evidence_digest,
+            "gap_policy": "inactive_no_pnl",
+        },
+    )
+    return WalkForwardNativeOosMetricCalculation(tuple(metrics), curve_artifact)
 
 
-__all__ = ["calculate_walk_forward_native_oos_metrics"]
+def _publish_native_oos_curve(
+    observations: Iterator[tuple[int, Decimal, int]],
+    *,
+    artifact_store: LocalArtifactStore,
+    metadata: dict[str, str],
+) -> ArtifactManifest:
+    import pyarrow as pa  # type: ignore[import-untyped]
+    import pyarrow.parquet as pq  # type: ignore[import-untyped]
+
+    encoded_metadata = {key.encode(): value.encode() for key, value in metadata.items()}
+    schema = pa.schema(
+        [
+            pa.field("fold_index", pa.int32(), nullable=False),
+            pa.field("event_index", pa.int64(), nullable=False),
+            pa.field("event_time_ns", pa.int64(), nullable=False),
+            pa.field("portfolio_equity", pa.decimal128(38, 18), nullable=False),
+        ],
+        metadata=encoded_metadata,
+    )
+    with TemporaryDirectory(prefix="strategy-lab-walk-forward-curve-") as temporary:
+        path = Path(temporary) / "native-oos-portfolio-equity.parquet"
+        row_count = 0
+        batch: list[dict[str, int | Decimal]] = []
+        with pq.ParquetWriter(path, schema, compression="zstd", use_dictionary=False) as writer:
+            for fold_index, equity, event_time_ns in observations:
+                batch.append(
+                    {
+                        "fold_index": fold_index,
+                        "event_index": row_count,
+                        "event_time_ns": event_time_ns,
+                        "portfolio_equity": equity,
+                    }
+                )
+                row_count += 1
+                if len(batch) == 8_192:
+                    writer.write_table(pa.Table.from_pylist(batch, schema=schema))
+                    batch.clear()
+            if batch:
+                writer.write_table(pa.Table.from_pylist(batch, schema=schema))
+        if row_count < 1:
+            raise ValueError("native OOS equity curve cannot be empty")
+        digest = hashlib.sha256()
+        byte_length = 0
+        with path.open("rb") as source:
+            while chunk := source.read(1_048_576):
+                digest.update(chunk)
+                byte_length += len(chunk)
+        content_digest_value = f"sha256:{digest.hexdigest()}"
+        artifact = ArtifactManifest(
+            content_digest=content_digest_value,
+            byte_length=byte_length,
+            media_type=WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE,
+            schema_version=WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA,
+            storage_key=content_digest_value,
+            retention_class=ArtifactRetention.PINNED_RESULT,
+        )
+        resolution = artifact_store.publish_file(artifact, path)
+        if resolution.integrity is None or not resolution.integrity.verified:
+            raise ValueError("native OOS portfolio curve publication failed integrity checks")
+        return artifact
+
+
+__all__ = [
+    "WalkForwardNativeOosMetricCalculation",
+    "calculate_walk_forward_native_oos_metrics",
+]

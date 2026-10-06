@@ -334,15 +334,33 @@ def test_native_walk_forward_metrics_compound_selected_oos_equity(tmp_path) -> N
     first, store = _native_oos_result(tmp_path, 0, first_window, ("100000", "110000"))
     second, _ = _native_oos_result(tmp_path, 1, second_window, ("100000", "90000"))
 
-    metrics = calculate_walk_forward_native_oos_metrics(
+    calculation = calculate_walk_forward_native_oos_metrics(
         (first, second),
         artifact_store=store,
         selection_fingerprint=content_digest("selected-oos-folds"),
     )
-    values = {metric.name: metric.value for metric in metrics}
+    values = {metric.name: metric.value for metric in calculation.metrics}
     assert values["total_return"] == Decimal("-0.01")
     assert values["total_pnl"] == Decimal("-1000.00")
     assert values["maximum_drawdown"] == Decimal("-0.1")
+    import pyarrow.parquet as pq
+
+    curve = pq.read_table(store.path_for(calculation.curve_artifact.storage_key))
+    assert curve.column("portfolio_equity").to_pylist() == [
+        Decimal("100000.000000000000000000"),
+        Decimal("110000.000000000000000000"),
+        Decimal("99000.000000000000000000"),
+    ]
+    assert curve.schema.metadata[b"selection_fingerprint"].decode() == content_digest(
+        "selected-oos-folds"
+    )
+
+    replay = calculate_walk_forward_native_oos_metrics(
+        (first, second),
+        artifact_store=store,
+        selection_fingerprint=content_digest("selected-oos-folds"),
+    )
+    assert replay.curve_artifact == calculation.curve_artifact
 
 
 def _complete_training_queue(plan, training_trials, queue_bindings, state):

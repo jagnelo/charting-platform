@@ -168,7 +168,7 @@ services:
       - ./ops:/ops:ro
       - research_jobs:/jobs
       - research_results:/results
-      - strategy_lab_artifacts:/strategy-lab-artifacts:ro
+      - strategy_lab_artifacts:/strategy-lab-artifacts
       - strategy_lab_v2_preparation_socket:/run/strategy-lab-v2
 
   # Search preparation hydrates owner-scoped PostgreSQL state and materializes

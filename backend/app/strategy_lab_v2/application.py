@@ -32,6 +32,7 @@ from app.strategy_lab_v2.api_router import (
     create_strategy_lab_router,
 )
 from app.strategy_lab_v2.artifact_publication import ArtifactPublicationPlan
+from app.strategy_lab_v2.artifact_retention import ArtifactRetentionPin, ArtifactRetentionState
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
 from app.strategy_lab_v2.capability_summary import CapabilitySummary
@@ -1738,7 +1739,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             results,
             metric_id=definition.metric_id,
         )
-        native_metrics = (
+        native_calculation = (
             None
             if self._walk_forward_artifact_store is None
             else calculate_walk_forward_native_oos_metrics(
@@ -1747,15 +1748,17 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                 selection_fingerprint=selection.fingerprint,
             )
         )
+        native_metrics = None if native_calculation is None else native_calculation.metrics
         native_metric_summary = (
             None
-            if native_metrics is None
+            if native_calculation is None
             else WalkForwardNativeOosMetricSummary(
                 experiment_fingerprint=experiment_fingerprint,
                 definition_fingerprint=definition.fingerprint,
                 selection_fingerprint=selection.fingerprint,
                 result_manifest_fingerprints=tuple(item.fingerprint for item in oos_manifests),
-                metrics=native_metrics,
+                metrics=native_calculation.metrics,
+                curve_artifact=native_calculation.curve_artifact,
             )
         )
         return _WalkForwardOosCompletion(
@@ -1822,6 +1825,11 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             )
         native_summary = completion.native_metric_summary
         if native_summary is not None:
+            await self._pin_walk_forward_curve(
+                principal=principal,
+                experiment_fingerprint=experiment_fingerprint,
+                manifest=native_summary.curve_artifact,
+            )
             native_resolution = await self._persistence.walk_forward_native_metrics.persist(
                 principal=principal,
                 summary=native_summary,
@@ -1845,6 +1853,61 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             resolution.rejection_reason,
             native_summary,
         )
+
+    async def _pin_walk_forward_curve(
+        self,
+        *,
+        principal: Any,
+        experiment_fingerprint: str,
+        manifest: ArtifactManifest,
+    ) -> ArtifactRetentionPin:
+        owner_id = _principal_identity(principal).id
+        manifest_fingerprint = content_digest(manifest)
+        pin_id = content_digest(
+            {
+                "owner_id": owner_id,
+                "experiment_fingerprint": experiment_fingerprint,
+                "artifact_manifest_fingerprint": manifest_fingerprint,
+                "purpose": "walk-forward-native-oos-curve",
+            }
+        )
+        pin = ArtifactRetentionPin(
+            pin_id=pin_id,
+            artifact_manifest_fingerprint=manifest_fingerprint,
+            owner_type="walk_forward_native_oos_metrics",
+            owner_id=owner_id,
+            created_at=self._clock(),
+        )
+        state = await self._persistence.artifact_retention.read_state(manifest_fingerprint)
+        if state is None:
+            initial = ArtifactRetentionState.from_manifest(manifest, pins=(pin,))
+            try:
+                await self._persistence.artifact_retention.ensure_state(initial)
+                return pin
+            except ValueError:
+                # A concurrent finalizer may have registered the same immutable
+                # manifest first; authenticate the winner before reusing it.
+                state = await self._persistence.artifact_retention.read_state(manifest_fingerprint)
+                if state is None:
+                    raise
+        if (
+            state.manifest_fingerprint != manifest_fingerprint
+            or state.content_digest != manifest.content_digest
+            or state.retention_class is not manifest.retention_class
+        ):
+            raise ValueError("persisted curve retention state differs from its manifest")
+        existing = next((item for item in state.pins if item.pin_id == pin.pin_id), None)
+        if existing is not None:
+            if (
+                existing.owner_type != pin.owner_type
+                or existing.owner_id != pin.owner_id
+                or existing.released_at is not None
+                or existing.expires_at is not None
+            ):
+                raise ValueError("native walk-forward curve retention pin is no longer active")
+            return existing
+        await self._persistence.artifact_retention.add_pin(pin)
+        return pin
 
     async def dispatch_walk_forward_training_candidate(
         self,

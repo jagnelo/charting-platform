@@ -7,6 +7,8 @@ from decimal import Decimal
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.contracts import (
+    ArtifactManifest,
+    ArtifactRetention,
     MetricCalculationDefinition,
     MetricEvidenceReference,
     MetricValue,
@@ -18,6 +20,10 @@ from app.strategy_lab_v2.walk_forward_search import (
 )
 
 WALK_FORWARD_AGGREGATE_DEFINITION = "strategy-lab.walk-forward.fold-distribution.v1"
+WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE = (
+    "application/vnd.charting.strategy-lab.walk-forward-native-equity+parquet"
+)
+WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA = "strategy-lab.walk-forward.native-oos-equity.v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -129,6 +135,7 @@ class WalkForwardNativeOosMetricSummary:
     selection_fingerprint: str
     result_manifest_fingerprints: tuple[str, ...]
     metrics: tuple[MetricValue, ...]
+    curve_artifact: ArtifactManifest
 
     def __post_init__(self) -> None:
         for name in (
@@ -149,6 +156,14 @@ class WalkForwardNativeOosMetricSummary:
             raise ValueError("native OOS metric summary requires typed metrics")
         if len({(item.name, item.basis) for item in metrics}) != len(metrics):
             raise ValueError("native OOS metrics must have unique names and bases")
+        if not isinstance(self.curve_artifact, ArtifactManifest):
+            raise TypeError("curve_artifact must be an ArtifactManifest")
+        if (
+            self.curve_artifact.media_type != WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE
+            or self.curve_artifact.schema_version != WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA
+            or self.curve_artifact.retention_class is not ArtifactRetention.PINNED_RESULT
+        ):
+            raise ValueError("native OOS summary curve artifact is unsupported")
         object.__setattr__(self, "result_manifest_fingerprints", result_fingerprints)
         object.__setattr__(self, "metrics", metrics)
 
@@ -260,6 +275,8 @@ def _statistics(values: tuple[Decimal, ...]) -> tuple[Decimal, ...]:
 
 __all__ = [
     "WALK_FORWARD_AGGREGATE_DEFINITION",
+    "WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE",
+    "WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA",
     "WalkForwardNativeOosMetricSummary",
     "WalkForwardOosSummary",
     "build_walk_forward_oos_summary",

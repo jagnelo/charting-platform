@@ -54,6 +54,8 @@ from app.strategy_lab_v2.commands import (
     ExecutionCommandResolution,
 )
 from app.strategy_lab_v2.contracts import (
+    ArtifactManifest,
+    ArtifactRetention,
     CarryInMode,
     ForwardInstance,
     ForwardState,
@@ -128,7 +130,11 @@ from app.strategy_lab_v2.walk_forward_search import (
     SelectionDirection,
     WalkForwardExecutionDefinition,
 )
-from app.strategy_lab_v2.walk_forward_summary import WalkForwardNativeOosMetricSummary
+from app.strategy_lab_v2.walk_forward_summary import (
+    WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE,
+    WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA,
+    WalkForwardNativeOosMetricSummary,
+)
 
 NOW = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
 SNAPSHOT = content_digest({"snapshot": "one"})
@@ -1533,6 +1539,14 @@ def test_walk_forward_finalize_api_exposes_persisted_native_portfolio_metrics() 
                 10,
             ),
         ),
+        curve_artifact=ArtifactManifest(
+            content_digest("api-native-oos-curve"),
+            256,
+            WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE,
+            WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA,
+            content_digest("api-native-oos-curve"),
+            ArtifactRetention.PINNED_RESULT,
+        ),
     )
     resolution = WalkForwardSummaryResolution(
         WalkForwardSummaryDecision.PERSISTED,
@@ -1554,6 +1568,10 @@ def test_walk_forward_finalize_api_exposes_persisted_native_portfolio_metrics() 
     attributes = response.json()["data"]["attributes"]
     assert attributes["native_metrics_status"] == "available"
     assert attributes["native_metrics_summary_fingerprint"] == native_summary.fingerprint
+    assert (
+        attributes["native_portfolio_curve_artifact"]["content_digest"]
+        == native_summary.curve_artifact.content_digest
+    )
     assert attributes["native_portfolio_metrics"][0]["name"] == "total_return"
     assert (
         attributes["result_scope"]

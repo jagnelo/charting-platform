@@ -199,10 +199,10 @@ class WalkForwardNativeMetricsResolution:
 
 
 class PostgresWalkForwardNativeMetricsAdapter:
-    """Persist native OOS metrics separately from legacy fold summaries."""
+    """Persist curve-backed native OOS metrics in a versioned sidecar aggregate."""
 
-    _AGGREGATE_TYPE = "strategy_lab_v2_walk_forward_native_oos_metrics"
-    _SCHEMA_VERSION = 1
+    _AGGREGATE_TYPE = "strategy_lab_v2_walk_forward_native_oos_metrics_v2"
+    _SCHEMA_VERSION = 2
 
     def __init__(self, aggregate_store: AggregateStore) -> None:
         if not callable(getattr(aggregate_store, "get", None)) or not callable(

@@ -6,7 +6,12 @@ from decimal import Decimal
 import pytest
 
 from app.strategy_lab_v2.canonical import content_digest
-from app.strategy_lab_v2.contracts import MetricBasis, MetricValue
+from app.strategy_lab_v2.contracts import (
+    ArtifactManifest,
+    ArtifactRetention,
+    MetricBasis,
+    MetricValue,
+)
 from app.strategy_lab_v2.postgres_walk_forward_summary import (
     PostgresWalkForwardNativeMetricsAdapter,
     PostgresWalkForwardSummaryAdapter,
@@ -14,7 +19,11 @@ from app.strategy_lab_v2.postgres_walk_forward_summary import (
 )
 from app.strategy_lab_v2.tests.test_walk_forward_plan_persistence import MemoryAggregateStore
 from app.strategy_lab_v2.tests.test_walk_forward_summary import _summary_fixture
-from app.strategy_lab_v2.walk_forward_summary import WalkForwardNativeOosMetricSummary
+from app.strategy_lab_v2.walk_forward_summary import (
+    WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE,
+    WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA,
+    WalkForwardNativeOosMetricSummary,
+)
 
 
 @pytest.mark.asyncio
@@ -74,6 +83,14 @@ async def test_native_walk_forward_metrics_round_trip_and_reject_owner_rebinding
                 MetricBasis.NET,
                 2,
             ),
+        ),
+        curve_artifact=ArtifactManifest(
+            content_digest("native-oos-curve"),
+            256,
+            WALK_FORWARD_NATIVE_EQUITY_CURVE_MEDIA_TYPE,
+            WALK_FORWARD_NATIVE_EQUITY_CURVE_SCHEMA,
+            content_digest("native-oos-curve"),
+            ArtifactRetention.PINNED_RESULT,
         ),
     )
 
