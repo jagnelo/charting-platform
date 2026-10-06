@@ -524,6 +524,150 @@ async def test_service_cancellation_cancels_execution_task(tmp_path: Path) -> No
     assert executor.cancelled
 
 
+async def test_persisted_search_cancellation_terminates_child_and_records_terminal_cancel(
+    tmp_path: Path,
+) -> None:
+    service, payload, entry = _service(tmp_path)
+    request = _request(tmp_path)
+    process_started = asyncio.Event()
+
+    class CancellationAwareExecutor(SerialWorkerProcessExecutor):
+        def __init__(self) -> None:
+            super().__init__(timeout_seconds=1)
+            self.cancelled = False
+
+        async def run_async(
+            self,
+            _request: WorkerExecutionRequest,
+            *,
+            timeout_seconds: float | None = None,
+            poll_interval_seconds: float = 0.005,
+        ) -> WorkerProcessResolution:
+            del timeout_seconds, poll_interval_seconds
+            process_started.set()
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                self.cancelled = True
+                raise
+            raise AssertionError("child should stop after durable search cancellation")
+
+    executor = CancellationAwareExecutor()
+    recoveries: list[WorkerRecoveryContext] = []
+
+    async def materializer(
+        _entry: RedisStreamEntry, _payload: DispatchPayload
+    ) -> WorkerExecutionRequest:
+        return request
+
+    async def cancellation_reader(
+        _entry: RedisStreamEntry, _request: WorkerExecutionRequest
+    ) -> bool:
+        return process_started.is_set()
+
+    async def recovery_writer(context: WorkerRecoveryContext) -> WorkerHandleResult:
+        recoveries.append(context)
+        return WorkerHandleResult(
+            entry.fingerprint,
+            WorkerHandleDecision.COMPLETE,
+            content_digest("durable-cancelled-attempt"),
+        )
+
+    async def completion(*_args: Any) -> WorkerHandleResult:
+        raise AssertionError("cancelled process must not publish a result")
+
+    cancelled = DedicatedStrategyWorkerService(
+        service.scheduler,
+        _Loader(payload),
+        materializer,
+        completion,
+        process_executor=executor,
+        recovery_writer=recovery_writer,
+        cancellation_reader=cancellation_reader,
+        heartbeat_interval_seconds=0.001,
+        clock=lambda: NOW,
+    )
+    result = await cancelled.handle(entry, payload)
+
+    assert result.decision is WorkerHandleDecision.COMPLETE
+    assert executor.cancelled
+    assert len(recoveries) == 1
+    assert recoveries[0].reason.value == "cancelled"
+
+
+async def test_cancellation_state_read_failure_stops_process_for_durable_recovery(
+    tmp_path: Path,
+) -> None:
+    service, payload, entry = _service(tmp_path)
+    request = _request(tmp_path)
+    process_started = asyncio.Event()
+
+    class CancellationAwareExecutor(SerialWorkerProcessExecutor):
+        def __init__(self) -> None:
+            super().__init__(timeout_seconds=1)
+            self.cancelled = False
+
+        async def run_async(
+            self,
+            _request: WorkerExecutionRequest,
+            *,
+            timeout_seconds: float | None = None,
+            poll_interval_seconds: float = 0.005,
+        ) -> WorkerProcessResolution:
+            del timeout_seconds, poll_interval_seconds
+            process_started.set()
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                self.cancelled = True
+                raise
+            raise AssertionError("unknown cancellation state must stop the child")
+
+    executor = CancellationAwareExecutor()
+    recoveries: list[WorkerRecoveryContext] = []
+
+    async def materializer(
+        _entry: RedisStreamEntry, _payload: DispatchPayload
+    ) -> WorkerExecutionRequest:
+        return request
+
+    async def cancellation_reader(
+        _entry: RedisStreamEntry, _request: WorkerExecutionRequest
+    ) -> bool:
+        if process_started.is_set():
+            raise RuntimeError("search state unavailable")
+        return False
+
+    async def recovery_writer(context: WorkerRecoveryContext) -> WorkerHandleResult:
+        recoveries.append(context)
+        return WorkerHandleResult(
+            entry.fingerprint,
+            WorkerHandleDecision.COMPLETE,
+            content_digest("durable-retry-after-cancel-state-error"),
+        )
+
+    async def completion(*_args: Any) -> WorkerHandleResult:
+        raise AssertionError("unknown cancellation state must not publish a result")
+
+    guarded = DedicatedStrategyWorkerService(
+        service.scheduler,
+        _Loader(payload),
+        materializer,
+        completion,
+        process_executor=executor,
+        recovery_writer=recovery_writer,
+        cancellation_reader=cancellation_reader,
+        heartbeat_interval_seconds=0.001,
+        clock=lambda: NOW,
+    )
+    result = await guarded.handle(entry, payload)
+
+    assert result.decision is WorkerHandleDecision.COMPLETE
+    assert executor.cancelled
+    assert len(recoveries) == 1
+    assert recoveries[0].reason.value == "worker_crash"
+
+
 async def test_service_can_delegate_terminal_context_before_acknowledgement(
     tmp_path: Path,
 ) -> None:

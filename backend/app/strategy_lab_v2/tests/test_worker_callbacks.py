@@ -237,6 +237,84 @@ async def test_search_callback_factory_binds_authenticated_dispatch_materializer
     assert callbacks.materializer.domain_hydrator is not None
     assert callbacks.recovery_writer is not None
     assert callbacks.lease_state_reader is not None
+    assert callbacks.cancellation_reader is not None
+
+
+@pytest.mark.asyncio
+async def test_search_worker_cancellation_reader_uses_authenticated_dispatch_owner(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "STRATEGY_LAB_V2_EVIDENCE_RESOLVER",
+        "app.strategy_lab_v2.tests.test_worker_callbacks:search_resolver_factory",
+    )
+    monkeypatch.setenv("STRATEGY_LAB_V2_QUEUE", "strategy-backtest")
+    monkeypatch.setenv(
+        "STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH",
+        "/tmp/strategy-lab-v2-preparation.sock",
+    )
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", "x" * 48)
+    attempt_id = "cancellation-attempt"
+    experiment_fingerprint = content_digest("cancelled-search-experiment")
+    dispatch = SearchDispatchRecord(
+        "owner-cancel-42",
+        experiment_fingerprint,
+        3,
+        DispatchRequest(
+            "cancelled-search-key",
+            attempt_id,
+            content_digest("cancelled-search-payload"),
+            "strategy-backtest",
+            NOW,
+        ),
+    )
+    observed: list[tuple[str, str]] = []
+
+    class Store(_SearchDispatchPersistence._Store):
+        async def load_by_request_fingerprint(self, fingerprint: str):
+            assert fingerprint == dispatch.request.fingerprint
+            return dispatch
+
+    class SearchState(_SearchDispatchPersistence._SearchState):
+        async def load(self, **kwargs: Any):
+            principal = kwargs["principal"]
+            experiment = kwargs["experiment_fingerprint"]
+            assert isinstance(principal, str)
+            assert isinstance(experiment, str)
+            observed.append((principal, experiment))
+            return type(
+                "State",
+                (),
+                {
+                    "experiment_fingerprint": experiment,
+                    "cancellation_requested": True,
+                },
+            )()
+
+    class Persistence(_SearchDispatchPersistence):
+        search_dispatch = Store()
+        search_state = SearchState()
+
+    callbacks = await create_search_dispatch(Persistence(), Path("/tmp/artifacts"))
+    assert callbacks.cancellation_reader is not None
+    entry = type(
+        "Entry",
+        (),
+        {
+            "request_fingerprint": dispatch.request.fingerprint,
+            "attempt_id": attempt_id,
+        },
+    )()
+    request = type(
+        "Request",
+        (),
+        {"runtime_request": type("RuntimeRequest", (), {"attempt_id": attempt_id})()},
+    )()
+
+    requested = await callbacks.cancellation_reader(entry, request)  # type: ignore[arg-type]
+
+    assert requested is True
+    assert observed == [("owner-cancel-42", experiment_fingerprint)]
 
 
 @pytest.mark.asyncio

@@ -42,6 +42,7 @@ from app.strategy_lab_v2.worker_consumer import (
 from app.strategy_lab_v2.worker_process import SerialWorkerProcessExecutor
 from app.strategy_lab_v2.worker_service import (
     DedicatedStrategyWorkerService,
+    WorkerCancellationReader,
     WorkerCompletionWriter,
     WorkerHandoffMaterializer,
     WorkerLeaseHeartbeatWriter,
@@ -187,6 +188,7 @@ class RedisDispatchRuntime:
         terminal_writer: WorkerTerminalWriter | None = None,
         recovery_writer: WorkerRecoveryWriter | None = None,
         lease_state_reader: WorkerLeaseStateReader | None = None,
+        cancellation_reader: WorkerCancellationReader | None = None,
     ) -> DedicatedStrategyWorkerService:
         """Compose the dedicated Redis-to-process worker service."""
 
@@ -209,6 +211,7 @@ class RedisDispatchRuntime:
             terminal_writer=terminal_writer,
             recovery_writer=recovery_writer,
             lease_state_reader=lease_state_reader,
+            cancellation_reader=cancellation_reader,
         )
 
     def forward_worker_service(

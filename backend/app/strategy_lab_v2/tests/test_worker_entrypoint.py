@@ -332,11 +332,15 @@ async def test_worker_entrypoint_passes_recovery_and_live_lease_callbacks() -> N
     async def lease_reader(*_args: Any) -> Any:
         return None
 
+    async def cancellation_reader(*_args: Any) -> bool:
+        return False
+
     callbacks = WorkerServiceCallbacks(
         materializer,
         completion,
         recovery_writer=recovery,
         lease_state_reader=lease_reader,
+        cancellation_reader=cancellation_reader,
     )
 
     class Runtime:
@@ -378,5 +382,6 @@ async def test_worker_entrypoint_passes_recovery_and_live_lease_callbacks() -> N
     service_kwargs = calls["service"][1]
     assert service_kwargs["recovery_writer"] is recovery
     assert service_kwargs["lease_state_reader"] is lease_reader
+    assert service_kwargs["cancellation_reader"] is cancellation_reader
     assert result.decision is WorkerEntrypointDecision.STOPPED
     assert calls["closed"] is True

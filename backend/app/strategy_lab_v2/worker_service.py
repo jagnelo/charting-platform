@@ -51,6 +51,7 @@ WorkerLeaseHeartbeatWriter = Callable[[LeaseObservation], Awaitable[LeaseObserva
 WorkerTerminalWriter = Callable[["WorkerCompletionContext"], Awaitable[WorkerHandleResult]]
 WorkerRecoveryWriter = Callable[["WorkerRecoveryContext"], Awaitable[WorkerHandleResult]]
 WorkerLeaseStateReader = Callable[[WorkerExecutionRequest], Awaitable[LeaseObservationState | None]]
+WorkerCancellationReader = Callable[[RedisStreamEntry, WorkerExecutionRequest], Awaitable[bool]]
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,6 +116,7 @@ class WorkerServiceCallbacks:
     terminal_writer: WorkerTerminalWriter | None = None
     recovery_writer: WorkerRecoveryWriter | None = None
     lease_state_reader: WorkerLeaseStateReader | None = None
+    cancellation_reader: WorkerCancellationReader | None = None
 
     def __post_init__(self) -> None:
         if not callable(self.materializer):
@@ -129,6 +131,8 @@ class WorkerServiceCallbacks:
             raise TypeError("recovery_writer must be callable")
         if self.lease_state_reader is not None and not callable(self.lease_state_reader):
             raise TypeError("lease_state_reader must be callable")
+        if self.cancellation_reader is not None and not callable(self.cancellation_reader):
+            raise TypeError("cancellation_reader must be callable")
 
 
 class DedicatedStrategyWorkerService:
@@ -150,6 +154,7 @@ class DedicatedStrategyWorkerService:
         terminal_writer: WorkerTerminalWriter | None = None,
         recovery_writer: WorkerRecoveryWriter | None = None,
         lease_state_reader: WorkerLeaseStateReader | None = None,
+        cancellation_reader: WorkerCancellationReader | None = None,
     ) -> None:
         if not isinstance(scheduler, RedisDispatchWorkerScheduler):
             raise TypeError("scheduler must be a RedisDispatchWorkerScheduler")
@@ -171,6 +176,8 @@ class DedicatedStrategyWorkerService:
             raise TypeError("recovery_writer must be callable")
         if lease_state_reader is not None and not callable(lease_state_reader):
             raise TypeError("lease_state_reader must be callable")
+        if cancellation_reader is not None and not callable(cancellation_reader):
+            raise TypeError("cancellation_reader must be callable")
         for name, value in (
             ("heartbeat_interval_seconds", heartbeat_interval_seconds),
             ("heartbeat_extension_seconds", heartbeat_extension_seconds),
@@ -199,6 +206,7 @@ class DedicatedStrategyWorkerService:
         self._terminal_writer = terminal_writer
         self._recovery_writer = recovery_writer
         self._lease_state_reader = lease_state_reader
+        self._cancellation_reader = cancellation_reader
 
     @property
     def scheduler(self) -> RedisDispatchWorkerScheduler:
@@ -228,22 +236,82 @@ class DedicatedStrategyWorkerService:
         lease_preflight = await self._lease_preflight(entry, request)
         if lease_preflight is not None:
             return lease_preflight
+        if self._cancellation_reader is not None:
+            try:
+                cancellation_preflight_requested = await asyncio.wait_for(
+                    self._cancellation_reader(entry, request),
+                    timeout=self._heartbeat_interval_seconds,
+                )
+            except Exception as error:  # pragma: no cover - persistence boundary
+                return WorkerHandleResult(
+                    entry.fingerprint,
+                    WorkerHandleDecision.RETRY,
+                    rejection_reason=f"worker cancellation preflight failed: {type(error).__name__}",
+                )
+            if not isinstance(cancellation_preflight_requested, bool):
+                return WorkerHandleResult(
+                    entry.fingerprint,
+                    WorkerHandleDecision.RETRY,
+                    rejection_reason="worker cancellation preflight returned an invalid state",
+                )
+            if cancellation_preflight_requested:
+                return await self._recover_or_retry(
+                    entry,
+                    request,
+                    RecoveryReason.CANCELLED,
+                    "search cancellation was already requested before execution",
+                )
         heartbeat_task: asyncio.Task[None] | None = None
+        cancellation_task: asyncio.Task[None] | None = None
         heartbeat_failure: list[str] = []
+        cancellation_requested: list[bool] = []
+        cancellation_failure: list[str] = []
         if self._heartbeat_writer is not None:
             heartbeat_task = asyncio.create_task(
                 self._heartbeat_loop(request.lease_state, heartbeat_failure)
             )
+        if self._cancellation_reader is not None:
+            cancellation_task = asyncio.create_task(
+                self._cancellation_loop(
+                    entry,
+                    request,
+                    cancellation_requested,
+                    cancellation_failure,
+                )
+            )
         execution_task = asyncio.create_task(self._process_executor.run_async(request))
         try:
             try:
-                if heartbeat_task is None:
+                monitors = tuple(
+                    task for task in (heartbeat_task, cancellation_task) if task is not None
+                )
+                if not monitors:
                     result = await execution_task
                 else:
                     done, _ = await asyncio.wait(
-                        (execution_task, heartbeat_task),
+                        (execution_task, *monitors),
                         return_when=asyncio.FIRST_COMPLETED,
                     )
+                    if cancellation_task is not None and cancellation_task in done:
+                        execution_task.cancel()
+                        try:
+                            await execution_task
+                        except asyncio.CancelledError:
+                            pass
+                        if cancellation_requested:
+                            return await self._recover_or_retry(
+                                entry,
+                                request,
+                                RecoveryReason.CANCELLED,
+                                "search cancellation requested during execution",
+                            )
+                        if cancellation_failure:
+                            return await self._recover_or_retry(
+                                entry,
+                                request,
+                                RecoveryReason.WORKER_CRASH,
+                                cancellation_failure[0],
+                            )
                     if heartbeat_task in done and heartbeat_failure:
                         execution_task.cancel()
                         try:
@@ -275,6 +343,12 @@ class DedicatedStrategyWorkerService:
                 heartbeat_task.cancel()
                 try:
                     await heartbeat_task
+                except asyncio.CancelledError:
+                    pass
+            if cancellation_task is not None:
+                cancellation_task.cancel()
+                try:
+                    await cancellation_task
                 except asyncio.CancelledError:
                     pass
         if heartbeat_failure:
@@ -496,9 +570,40 @@ class DedicatedStrategyWorkerService:
                 return
             state = resolution.state
 
+    async def _cancellation_loop(
+        self,
+        entry: RedisStreamEntry,
+        request: WorkerExecutionRequest,
+        cancellation_requested: list[bool],
+        cancellation_failure: list[str],
+    ) -> None:
+        """Poll durable search state and stop the child when cancellation lands."""
+
+        if self._cancellation_reader is None:
+            return
+        while True:
+            try:
+                requested = await asyncio.wait_for(
+                    self._cancellation_reader(entry, request),
+                    timeout=self._heartbeat_interval_seconds,
+                )
+            except Exception as error:  # pragma: no cover - persistence boundary
+                cancellation_failure.append(
+                    f"worker cancellation state read failed: {type(error).__name__}"
+                )
+                return
+            if not isinstance(requested, bool):
+                cancellation_failure.append("worker cancellation state read was invalid")
+                return
+            if requested:
+                cancellation_requested.append(True)
+                return
+            await self._heartbeat_sleep(self._heartbeat_interval_seconds)
+
 
 __all__ = [
     "DedicatedStrategyWorkerService",
+    "WorkerCancellationReader",
     "WorkerCompletionWriter",
     "WorkerHandoffMaterializer",
     "WorkerLeaseHeartbeatWriter",

@@ -411,6 +411,7 @@ async def run_strategy_lab_v2_worker(
             terminal_writer=callback_set.terminal_writer,
             recovery_writer=callback_set.recovery_writer,
             lease_state_reader=callback_set.lease_state_reader,
+            cancellation_reader=callback_set.cancellation_reader,
         )
         if not callable(getattr(service, "run", None)):
             raise TypeError("runtime.worker_service() must return a worker service")

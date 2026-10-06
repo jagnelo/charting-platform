@@ -35,6 +35,7 @@ from app.strategy_lab_v2.worker_recovery_application import (
     create_worker_recovery_application,
 )
 from app.strategy_lab_v2.worker_service import (
+    WorkerCancellationReader,
     WorkerServiceCallbacks,
     WorkerTerminalWriter,
 )
@@ -177,6 +178,25 @@ async def create_search_dispatch(
     async def lease_state_reader(request: WorkerExecutionRequest):
         return await worker_state.load_lease(request.lease_state.lease.lease_id)
 
+    async def cancellation_reader(entry: Any, request: WorkerExecutionRequest) -> bool:
+        dispatch = await dispatch_store.load_by_request_fingerprint(entry.request_fingerprint)
+        if (
+            not isinstance(dispatch, SearchDispatchRecord)
+            or dispatch.request.attempt_id != entry.attempt_id
+            or request.runtime_request.attempt_id != entry.attempt_id
+        ):
+            raise ValueError("worker cancellation dispatch binding is unavailable")
+        search_state = await persistence.search_state.load(
+            principal=dispatch.owner_id,
+            experiment_fingerprint=dispatch.experiment_fingerprint,
+        )
+        if (
+            search_state is None
+            or search_state.experiment_fingerprint != dispatch.experiment_fingerprint
+        ):
+            raise ValueError("worker cancellation search state is unavailable")
+        return search_state.cancellation_requested
+
     return WorkerServiceCallbacks(
         materializer,
         callbacks.completion_writer,
@@ -184,6 +204,7 @@ async def create_search_dispatch(
         terminal_writer=terminal_dispatch_writer,
         recovery_writer=recovery_application,
         lease_state_reader=lease_state_reader,
+        cancellation_reader=cast(WorkerCancellationReader, cancellation_reader),
     )
 
 
