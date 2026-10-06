@@ -13674,3 +13674,9 @@ context, including the real UDS test; focused MyPy, Ruff, formatting, and
 after it stalled at 31% and was interrupted. Provider decoder configuration and
 all remaining database/Redis, metric, security, Compose, exact-native, and
 full-branch gates remain open.
+
+The optional calendar-factory variable is also passed through the backend
+service's Compose environment. `docker compose config --format json` rendered
+the backend value as the configured factory (empty by default), confirming the
+host plugin setting reaches the application container without enabling an
+unconfigured provider decoder.
