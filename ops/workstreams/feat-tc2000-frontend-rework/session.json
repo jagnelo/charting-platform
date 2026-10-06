@@ -52,16 +52,7 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
-    "docs/tc2000-parity.md",
-    "docs/tc2000-roadmap.md",
-    "frontend/src/components/workstation/VirtualWatchlistTool.vue",
-    "frontend/src/views/WorkstationView.vue",
-    "frontend/tests/e2e/flows.spec.ts",
-    "frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts",
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
   ],
   "docker": {
     "accounting_complete": true,
@@ -135,10 +126,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "a77ecdfe42603e56a907b74f0258e1a93ff11eea",
+  "head": "d4b5dc7f88d74fb013e8f5fc1769aa5a2238e47a",
   "implementation_sha": "fc4ad47f2b82b5b182b8fa9dabd77a55e5094902",
   "interrupted": false,
-  "last_checkpoint": "2026-10-06T20:21:14.406324+00:00",
+  "last_checkpoint": "2026-10-06T20:21:42.271055+00:00",
   "last_human_progress_update": "2026-10-06T20:18:15.576872+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue TC-owned V25 keyboard/workstation parity, then complete current-tip visual and cleanup-safe integration validation; keep provider/ETF consumption gated on staging.",
@@ -176,7 +167,7 @@
     "remote_tracking_sha": "f0fd70a1586ceeb336cb6513948e18b99f6949be",
     "status": "pending_push_github_dns_unavailable"
   },
-  "remote": "a77ecdfe42603e56a907b74f0258e1a93ff11eea",
+  "remote": "d4b5dc7f88d74fb013e8f5fc1769aa5a2238e47a",
   "remote_sha": "f0fd70a1586ceeb336cb6513948e18b99f6949be",
   "remote_synchronized": true,
   "retained_docker_resources": [],
