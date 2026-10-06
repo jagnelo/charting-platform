@@ -5,6 +5,7 @@ export interface OhlcBarsOptions {
   upColor?: string
   downColor?: string
   lineWidth?: number
+  showOpenTick?: boolean
 }
 
 export function ohlcBarsPlugin(opts: OhlcBarsOptions = {}): uPlot.Plugin {
@@ -42,8 +43,10 @@ export function ohlcBarsPlugin(opts: OhlcBarsOptions = {}): uPlot.Plugin {
           ctx.beginPath()
           ctx.moveTo(x, yH)
           ctx.lineTo(x, yL)
-          ctx.moveTo(x - tickWidth, yO)
-          ctx.lineTo(x, yO)
+          if (opts.showOpenTick !== false) {
+            ctx.moveTo(x - tickWidth, yO)
+            ctx.lineTo(x, yO)
+          }
           ctx.moveTo(x, yC)
           ctx.lineTo(x + tickWidth, yC)
           ctx.stroke()

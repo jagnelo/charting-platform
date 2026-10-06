@@ -1732,8 +1732,8 @@ async function initChart() {
     optionsLevelsPlugin(() => optionsExposureStore.data?.key_levels ?? null),
   ]
 
-  if (effectiveChartType.value === 'ohlc') {
-    plugins.unshift(ohlcBarsPlugin({ upColor: '#26a69a', downColor: '#ef5350' }))
+  if (effectiveChartType.value === 'ohlc' || effectiveChartType.value === 'hlc') {
+    plugins.unshift(ohlcBarsPlugin({ upColor: '#26a69a', downColor: '#ef5350', showOpenTick: effectiveChartType.value !== 'hlc' }))
   } else if (effectiveChartType.value === 'baseline') {
     plugins.unshift(baselinePlugin())
   } else if (effectiveChartType.value === 'renko' || effectiveChartType.value === 'kagi' || effectiveChartType.value === 'point_figure') {

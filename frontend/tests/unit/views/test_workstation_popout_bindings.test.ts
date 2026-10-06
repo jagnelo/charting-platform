@@ -523,7 +523,7 @@ describe('WorkstationView pop-out bindings', () => {
     })
     const workstation = wrapper.find('.workstation').element
 
-    for (const expected of ['candles', 'line', 'ohlc']) {
+    for (const expected of ['candles', 'line', 'hlc', 'ohlc']) {
       const event = new KeyboardEvent('keydown', { key: 'b', ctrlKey: true, bubbles: true, cancelable: true })
       workstation.dispatchEvent(event)
       expect(event.defaultPrevented).toBe(true)
@@ -807,6 +807,7 @@ describe('WorkstationView pop-out bindings', () => {
     expect(wrapper.find('.workstation__tool-library-menu').exists()).toBe(false)
     expect(wrapper.get('.workstation__help-popover').attributes('role')).toBe('menu')
     expect(wrapper.get('.workstation__help-popover').text()).toContain("/Open the active chart's plot library and search indicators")
+    expect(wrapper.get('.workstation__help-popover').text()).toContain('Ctrl+BCycle HLC and OHLC bars, candles, and line style on the active chart')
 
     await wrapper.find('.workstation__tabs').trigger('pointerdown')
     expect(wrapper.find('.workstation__help-popover').exists()).toBe(false)

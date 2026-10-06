@@ -20,24 +20,21 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  Current TC work adds supported Ctrl+number chart timeframe shortcuts, Ctrl+B
-  cycling among existing OHLC/candles/line styles, and `/` to open the active
-  chart's plot library. Focused workstation coverage passes 41/41; authenticated
-  Chromium passes the direct-timeframe
-  flow 1/1 and the corrected direct-chart-style flow 1/1. The first style
-  browser replay exposed that an absent persisted bar_type must default to the
-  same Candles style rendered by the chart; this is fixed and covered.
-  HLC Bars remain an unimplemented V25 plot-style gap. At pushed product source
-  701b23a59, the serial frontend suite passes 130/130 files and 1,224/1,224
-  tests; focused workstation bindings pass 41/41; vue-tsc/Vite production build
-  passes; and authenticated Chromium confirms `/` opens the active chart's plot
-  library and focuses indicator search. A uniquely named test account was
-  created only in the assigned stack for that browser check. The protected Help
-  screenshot was not rerun after the slash addition; at the preceding source it
-  had a 3% delta from the newly visible timeframe/Ctrl+B rows. Its baseline remains
-  unchanged pending visual review. Generic integration, broader R1/R5/R6 and AC7,
-  exact V25 review, and staging-gated provider/ETF consumer work remain open.
-  Direct remote refs refreshed 2026-10-06: TC d1127d0d453b16cec80df35ba5aa67cd64d626dc,
+  Current TC frontend parity covers supported Ctrl+number timeframe shortcuts,
+  Ctrl+B cycling through HLC/OHLC/Candles/Line, and `/` opening the active
+  chart's plot library. HLC uses the existing OHLCV data and draws each
+  high-low range plus the close tick; the open tick is omitted. At pushed
+  product source 86eff36ac plus the local HLC change, focused renderer and
+  workstation tests pass 45/45; the full serial frontend suite passes 130/130
+  files and 1,225/1,225 tests; vue-tsc/Vite production build passes; and
+  authenticated F8k-direct-chart-style passes 1/1 across all four styles.
+  The protected application-shell Help screenshot still differs by exactly
+  50,941 pixels (3.0%), exceeding its unchanged 0.5% threshold. This is the
+  same visible-help-state delta as before HLC was added; no baseline or visual
+  acceptance setting was changed. Generic integration, broader R1/R5/R6 and
+  AC4-AC7 evidence, exact V25 review, and staging-gated provider/ETF consumer
+  work remain open.
+  Direct remote refs refreshed 2026-10-06: TC 86eff36ac859a5c2d25cd28520ddfb422008ea5c,
   staging 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider platform
   88132e9145a08d1c935a0111b3dba0fbd88bdff1, and ETF holdings
   2bd221663956581dfb35f5b77961900674449f23. Both upstream dependencies remain
@@ -173,24 +170,23 @@ current_blocker: >-
   passed. Full frontend coverage, generic integration, broader R1/R5/R6 and AC7,
   exact V25 review, and staging-gated provider/ETF consumer work remain open.
 active_changeset_context:
-  name: TC2000 direct timeframe and Ctrl+B chart-style parity
-  status: product_committed_pushed_focused_unit_40_type_build_and_browser_passed_full_suite_open
+  name: TC2000 V25 chart-style and keyboard parity
+  status: local_product_changes_validated_pending_checkpoint
   commit_sha: 587d15c33
   remote_sha: 587d15c33175c7dd8574eab2c5a80766d520996c
   intent: >-
-    Add TC2000 V25 direct selection for supported chart intervals and cycle
-    among the chart's existing standard styles without expanding provider,
-    renderer, or upstream branch ownership.
+    Implement TC2000 V25 direct chart timeframes, plot-library activation, and
+    HLC/OHLC/Candles/Line style cycling using the existing renderer and OHLCV
+    data, without provider/ETF acquisition.
   owned_paths:
     - frontend/src/views/WorkstationView.vue
     - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
     - frontend/tests/e2e/flows.spec.ts
   next_action: >-
-    Complete the workstream/session receipt for the pushed Ctrl+B product
-    commit, then continue remaining TC-owned R1/R5/R6 implementation and
-    exact-tip gates. Preserve V25 visual oracles, keep the missing HLC style
-    explicit, and defer R2/R3/shared-path reconciliation until provider and ETF
-    both reach staging. Stop only at ready_for_human_review.
+    Continue remaining TC-owned R1/R5/R6 implementation and exact-tip gates.
+    Preserve protected visual oracles and defer R2/R3/shared-path reconciliation
+    until provider and ETF both reach staging. Stop only at
+    ready_for_human_review.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -359,6 +355,12 @@ shared_path_exceptions:
   - path: frontend/src/types/index.ts
     owners: [TC, market-data-provider-platform, etf-holdings-constituents]
     reason: TC consumer types only; keep provider and ETF schemas authoritative upstream.
+  - path: frontend/src/lib/uplot/plugins/ohlc-bars.ts
+    owners: [TC]
+    reason: TC V25 HLC plot rendering only; use existing OHLCV without data acquisition or upstream policy.
+  - path: frontend/src/stores/userSettings.ts
+    owners: [TC]
+    reason: accept HLC in existing chart preferences for the TC workstation; no provider or ETF settings.
   - path: frontend/src/components/workstation/MarketMapTool.vue
     owners: [TC, etf-holdings-constituents]
     reason: workstation consumer display and interactions only.
@@ -439,18 +441,17 @@ progress:
     consumption/reconciliation until both dependencies reach staging. Stop at
     ready_for_human_review.
   current_blocker: >-
-    At pushed product tip 701b23a59, the full serial frontend suite passes
-    130/130 files and 1,224/1,224 tests; focused bindings pass 41/41; vue-tsc,
-    production build, and authenticated Chromium slash-to-plot-library check pass.
-    The earlier suite-order
-    timeouts are resolved. The screenshot oracle has not rerun since slash was
-    added; at the preceding source it differed by 3% after the timeframe and
-    Ctrl+B Help additions, and remains protected pending human review. HLC Bars
-    remain unsupported. Generic integration, exact V25 review, broader AC4-AC7
-    evidence, and full R1/R5/R6 roadmap work remain open. Provider and ETF
+    At pushed base 86eff36ac plus the local HLC Bars change, the full serial
+    frontend suite passes 130/130 files and 1,225/1,225 tests; focused renderer/
+    workstation tests pass 45/45; type-check/build and authenticated chart-style
+    browser coverage pass. The protected Help screenshot differs by 50,941 pixels
+    (3.0%) against the unchanged 0.5% threshold; no baseline, mask, or skip was
+    changed. Generic integration, exact V25 review, broader AC4-AC7 evidence,
+    and full R1/R5/R6 roadmap work remain open. Provider and ETF
     branches are still outside staging, so AC2/AC3 consumption and shared-path
     reconciliation remain explicitly deferred.
 historical_implementation_records:
+  - "Added TC2000's documented HLC Bars style to the frontend chart contract and settings, drawing the existing OHLCV high-low range with a close tick and omitting the open tick. Ctrl+B now cycles HLC, OHLC, Candles, Line in that order. The focused renderer/workstation tests passed 45/45; the full serial frontend suite passed 130 files / 1,225 tests; vue-tsc/Vite build passed; authenticated F8k-direct-chart-style passed 1/1 across all four styles. The protected Help screenshot test failed against its unchanged baseline with 50,941 pixels / 3.0% difference (0.5% threshold); no visual baseline/policy was changed."
   - "Authenticated follow-up browser evidence supersedes the earlier unauthenticated CLI attempt: a unique account in the assigned TC stack was used to activate the chart, press `/`, and confirm the plot library reopened with its `Filter indicators` search focused. No account was created outside the branch stack; no other worktree changed. The account remains a test artifact in the assigned stack. The Help visual oracle was not rerun after this shortcut, and its protected baseline remains unchanged."
   - "TC2000's current official keyboard reference lists `/` to add a chart plot. The TC workstation now handles `/` only when the active window is a chart, clicks that chart's existing Chart plot library trigger, and lets the component focus its indicator search. Editor/modifier behavior and non-chart active windows are unchanged. WorkstationView binding suite passed 41/41; full serial frontend Vitest passed 130 files / 1,224 tests; vue-tsc/Vite production build passed. A manual Playwright CLI session reached the application but was redirected to login, so authenticated browser verification was unavailable and is not claimed. The protected Help screenshot oracle was not rerun after adding this shortcut; the prior 3% shortcut-help delta remains pending visual review. No baseline, mask, threshold, skip, provider/ETF behavior, or acceptance policy changed."
   - "Product commit b4a4431be05e06835f975b941c3dea46af9eaba4 adds TC2000 V25 Ctrl+1/3/4/5/6 direct selection for active-chart M1/M5/M15/M30/H1 intervals, leaving Ctrl+2 unclaimed because M2 is absent from the current app timeframe contract. Workstation bindings passed 39/39, and pinned authenticated Chromium F8k-direct-timeframe passed 1/1. The exact product commit was pushed; no provider/ETF behavior or visual oracle/acceptance policy changed."

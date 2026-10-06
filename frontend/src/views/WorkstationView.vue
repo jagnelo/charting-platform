@@ -46,7 +46,7 @@
               <div><dt>Shift+F</dt><dd>Flag or unflag selected WatchList symbols</dd></div>
               <div><dt>Shift+N</dt><dd>Write a note for the active WatchList symbol</dd></div>
               <div><dt>Shift+D</dt><dd>Toggle Trend Line drawing on the active chart</dd></div>
-              <div><dt>Ctrl+B</dt><dd>Cycle OHLC bars, candles, and line style on the active chart</dd></div>
+              <div><dt>Ctrl+B</dt><dd>Cycle HLC and OHLC bars, candles, and line style on the active chart</dd></div>
               <div><dt>Ctrl+1</dt><dd>Set the active chart to 1-minute bars</dd></div>
               <div><dt>Ctrl+3</dt><dd>Set the active chart to 5-minute bars</dd></div>
               <div><dt>Ctrl+4</dt><dd>Set the active chart to 15-minute bars</dd></div>
@@ -259,7 +259,7 @@ const DIRECT_CHART_TIMEFRAME_SHORTCUTS: Readonly<Record<string, Timeframe>> = {
   '5': 'M30',
   '6': 'H1',
 }
-const STANDARD_CHART_STYLES = ['ohlc', 'candles', 'line'] as const
+const STANDARD_CHART_STYLES = ['hlc', 'ohlc', 'candles', 'line'] as const
 const route = useRoute()
 const router = useRouter()
 const chartStore = useChartStore()

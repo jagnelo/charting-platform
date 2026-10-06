@@ -2806,9 +2806,9 @@ test.describe('TC2000 workstation', () => {
     await chart.locator('.chart-root').click({ position: { x: 20, y: 20 } })
     await expect(chart).toHaveClass(/tool-window--active/)
 
-    const supportedStyles = ['ohlc', 'candles', 'line']
+    const supportedStyles = ['hlc', 'ohlc', 'candles', 'line']
     let styleIndex = supportedStyles.indexOf(original)
-    for (let index = 0; index < 3; index += 1) {
+    for (let index = 0; index < supportedStyles.length; index += 1) {
       styleIndex = (styleIndex + 1) % supportedStyles.length
       await workstation.press('Control+b')
       await settings.click()

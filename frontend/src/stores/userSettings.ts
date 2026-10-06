@@ -3,7 +3,7 @@ import { ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import type { ChartBarType } from '@/types'
 
-const VALID_BAR_TYPES: ChartBarType[] = ['candles','line','ohlc','heikin_ashi','area','baseline','renko','kagi','point_figure']
+const VALID_BAR_TYPES: ChartBarType[] = ['hlc','candles','line','ohlc','heikin_ashi','area','baseline','renko','kagi','point_figure']
 
 interface ChartSettings {
   showCurrentPriceProjection?: boolean

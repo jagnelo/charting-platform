@@ -771,6 +771,7 @@ export type IndicatorType =
   | 'pivot_points'
 
 export type ChartBarType =
+  | 'hlc'
   | 'candles'
   | 'line'
   | 'ohlc'
@@ -782,6 +783,7 @@ export type ChartBarType =
   | 'point_figure'
 
 export const CHART_BAR_TYPES: { value: ChartBarType; label: string }[] = [
+  { value: 'hlc',           label: 'HLC Bars' },
   { value: 'candles',      label: 'Candles' },
   { value: 'line',         label: 'Line' },
   { value: 'ohlc',         label: 'OHLC Bars' },

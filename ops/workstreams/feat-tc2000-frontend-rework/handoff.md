@@ -1,5 +1,22 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — HLC Bars rendering and four-style shortcut cycle
+
+The existing chart-style contract now includes HLC Bars. It reuses the OHLC
+renderer and observed OHLCV data, drawing the high-low range and close tick
+without an open tick. Ctrl+B cycles HLC → OHLC → Candles → Line, matching the
+TC2000 reference order; chart settings and user preferences can select HLC.
+
+Renderer and workstation unit tests passed `45/45`; the complete serial frontend
+suite passed `130/130` files and `1,225/1,225` tests; `npm run build` passed
+vue-tsc and Vite; authenticated F8k-direct-chart-style passed `1/1` across all
+four style values. The protected application-shell Help screenshot oracle was
+run at visual-1080p-100 and failed with `50,941` different pixels (`3.0%`),
+above the existing `0.5%` threshold. No screenshot baseline, mask, threshold,
+or skip changed. This remains a visual-review gap; generic integration, exact
+V25 approval, broader acceptance evidence, and staging-dependent provider/ETF
+consumption remain open.
+
 ## 2026-10-06 — Authenticated slash-shortcut browser replay
 
 The initial Playwright CLI navigation correctly redirected to login because
