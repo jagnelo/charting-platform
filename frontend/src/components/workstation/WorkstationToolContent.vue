@@ -1467,7 +1467,7 @@ function handlePersonalRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' 
 
 onMounted(async () => {
   void loadBreadthPythonSeriesAssets()
-  if ((props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth') && !watchlistStore.watchlistSources.length && !watchlistStore.watchlistSourcesLoading) {
+  if ((props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth' || props.tool.tool_type === 'study_lab') && !watchlistStore.watchlistSources.length && !watchlistStore.watchlistSourcesLoading) {
     await watchlistStore.loadWatchlistSources()
     if (disposed) return
   }

@@ -11,7 +11,10 @@
       <div class="study-lab-tool__dataset" aria-label="Study dataset controls">
         <label>Timeframe <select v-model="timeframe" aria-label="Study timeframe"><option v-for="option in timeframeOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
         <label>Benchmark <input v-model.trim="benchmark" aria-label="Study benchmark" placeholder="SPY" /></label>
-        <label>Universe source <input v-model.trim="universeSourceId" aria-label="Study universe source" placeholder="watchlist:123 or market-group:sp500" /></label>
+        <label>Universe source <input v-model.trim="universeSourceId" aria-label="Study universe source" :list="universeSourceListId" placeholder="watchlist:123 or market-group:sp500" /></label>
+        <datalist :id="universeSourceListId">
+          <option v-for="source in universeSourceSuggestions" :key="source.source_id" :value="source.source_id" :label="`${universeSourceKindLabels[source.source_kind]} · ${source.name}`" />
+        </datalist>
         <label>Universe <input v-model.trim="universeSymbols" aria-label="Study universe" :disabled="Boolean(universeSourceId)" placeholder="SPY, XLK, XLE" /></label>
         <label>Adjustment <select v-model="adjustment" aria-label="Study adjustment"><option value="split_adjusted">Split adjusted</option><option value="raw">Raw</option></select></label>
         <label>Session <select v-model="session" aria-label="Study session"><option value="regular">Regular</option><option value="all">All</option></select></label>
@@ -142,6 +145,8 @@ import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
 import { normalizeStructuredNumericSeries } from '@/lib/workstation/numericSeries'
 import { normalizeStudyDashboardPanels } from '@/lib/workstation/studyArtifacts'
 import { describeStudyArtifact } from '@/lib/workstation/studyArtifactAccessibility'
+import { useWatchlistStore } from '@/stores/watchlist'
+import type { WatchlistSourceKind } from '@/types'
 import StudyBarsUPlot from './StudyBarsUPlot.vue'
 import StudyHistogramUPlot from './StudyHistogramUPlot.vue'
 import StudyHeatmap from './StudyHeatmap.vue'
@@ -237,6 +242,20 @@ const configRecord = (key: string): Record<string, unknown> => {
   const value = props.configuration?.[key]
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
 }
+const universeSourceKindLabels: Record<WatchlistSourceKind, string> = {
+  index_membership: 'Indexes',
+  etf_holdings: 'ETF holdings',
+  market_group: 'Market groups',
+  personal: 'Personal watchlists',
+  screener_managed: 'Screener results',
+  combo: 'Combined sources',
+  explicit: 'Explicit sources',
+}
+const universeSourceKindOrder = Object.keys(universeSourceKindLabels) as WatchlistSourceKind[]
+const watchlistStore = useWatchlistStore()
+const universeSourceListId = `study-universe-sources-${getCurrentInstance()?.uid ?? 0}`
+const universeSourceSuggestions = computed(() => [...watchlistStore.watchlistSources]
+  .sort((left, right) => universeSourceKindOrder.indexOf(left.source_kind) - universeSourceKindOrder.indexOf(right.source_kind) || left.name.localeCompare(right.name)))
 const factoryStudyKey = ref('positive_streak')
 const selectedFactoryStudy = computed(() => factoryStudyTemplates.find(item => item.key === factoryStudyKey.value))
 const requiresDeclaredUniverse = computed(() => selectedFactoryStudy.value?.requiresUniverse === true)

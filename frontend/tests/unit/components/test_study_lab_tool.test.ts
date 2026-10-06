@@ -2,8 +2,9 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiGet, apiPost } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
+const { apiGet, apiPost, watchlistSourceState } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), watchlistSourceState: { sources: [] as unknown[] } }))
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost } }))
+vi.mock('@/stores/watchlist', () => ({ useWatchlistStore: () => ({ watchlistSources: watchlistSourceState.sources }) }))
 vi.mock('@/components/workstation/StudyBarsUPlot.vue', () => ({ default: { template: '<div class="bars-chart" />', props: ['name', 'labels', 'values'] } }))
 vi.mock('@/components/workstation/StudySeriesUPlot.vue', () => ({ default: { template: '<div class="series-chart" :data-values="JSON.stringify(values)" />', props: ['name', 'timestamps', 'values'] } }))
 vi.mock('@/components/workstation/StudyHistogramUPlot.vue', () => ({ default: { template: '<div class="histogram-chart" />', props: ['name', 'bins', 'current'] } }))
@@ -13,6 +14,7 @@ vi.mock('@/components/workstation/StudyHeatmap.vue', () => ({ default: { templat
 vi.mock('@/components/workstation/StudyDashboard.vue', () => ({ default: { template: '<div class="dashboard-chart" />', props: ['name', 'panels', 'artifacts'] } }))
 
 import StudyLabTool from '@/components/workstation/StudyLabTool.vue'
+import type { WatchlistSource } from '@/types'
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -24,11 +26,36 @@ describe('StudyLabTool', () => {
   beforeEach(() => {
     apiGet.mockReset()
     apiPost.mockReset()
+    watchlistSourceState.sources = []
   })
 
-  function mountTool(props: Record<string, unknown>, queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })) {
+  function mountTool(props: Record<string, unknown>, queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } }), sources: WatchlistSource[] = []) {
+    watchlistSourceState.sources = sources
     return mount(StudyLabTool, { props, global: { plugins: [[VueQueryPlugin, { queryClient }]] } })
   }
+
+  it('offers canonical watchlist sources while retaining custom source IDs', async () => {
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} }, undefined, [
+      { source_id: 'watchlist:7', source_kind: 'personal', name: 'Growth leaders', locked: false, can_follow: false, can_clone: true, can_edit_membership: true, provenance: {} },
+      { source_id: 'market-group:sp500', source_kind: 'market_group', name: 'S&P 500', locked: true, can_follow: true, can_clone: false, can_edit_membership: false, provenance: {} },
+    ])
+    const sourceInput = wrapper.get('[aria-label="Study universe source"]')
+    const sourceListId = sourceInput.attributes('list')
+    const sources = wrapper.findAll(`#${sourceListId} option`)
+
+    expect(sources).toHaveLength(2)
+    expect(sources[0].attributes('value')).toBe('market-group:sp500')
+    expect(sources[0].attributes('label')).toBe('Market groups · S&P 500')
+    expect(sources[1].attributes('value')).toBe('watchlist:7')
+    expect(sources[1].attributes('label')).toBe('Personal watchlists · Growth leaders')
+
+    await sourceInput.setValue('market-group:sp500')
+    expect(wrapper.find('[aria-label="Study universe"]').attributes('disabled')).toBeDefined()
+
+    await sourceInput.setValue('unpublished:alpha')
+    expect(sourceInput.element).toHaveProperty('value', 'unpublished:alpha')
+    wrapper.unmount()
+  })
 
   it('hydrates serializable dataset controls and normalizes legacy timeframe values', () => {
     const wrapper = mountTool({

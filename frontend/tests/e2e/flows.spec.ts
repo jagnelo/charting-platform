@@ -867,6 +867,12 @@ test.describe('Chart', () => {
 
     const study = page.locator('.study-lab-tool:visible').last()
     await expect(study).toBeVisible({ timeout: 10_000 })
+    const universeSource = study.getByRole('combobox', { name: 'Study universe source' })
+    const universeSourceList = universeSource.getAttribute('list')
+    await expect(universeSource).toHaveAttribute('list', /^study-universe-sources-\d+$/)
+    const sourceSuggestions = study.locator(`#${await universeSourceList} option`)
+    await expect.poll(() => sourceSuggestions.count(), { timeout: 15_000 }).toBeGreaterThan(0)
+    await expect(sourceSuggestions.first()).toHaveAttribute('label', / · /)
     const sourceEditor = study.getByRole('textbox', { name: 'Study Python source' })
     await expect(sourceEditor).toHaveAttribute('aria-haspopup', 'listbox')
     await expect(sourceEditor).toHaveAttribute('aria-expanded', 'false')
