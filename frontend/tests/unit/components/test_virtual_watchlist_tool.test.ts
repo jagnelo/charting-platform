@@ -1419,10 +1419,17 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('select')?.at(-1)?.[0]).toMatchObject({ symbol: 'XLK', instrumentId: 1 })
   })
 
-  it('traverses backward with Shift+Space', async () => {
+  it('traverses backward with Ctrl+Space without adding to multi-selection', async () => {
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows, selected: 'XLK' } })
+    await wrapper.find('.watchlist__scroll').trigger('keydown', { key: ' ', ctrlKey: true })
+    expect(wrapper.emitted('select')?.at(-1)?.[0]).toMatchObject({ symbol: 'XLE', instrumentId: 2 })
+    expect((wrapper.vm as unknown as { selectedSymbols: string[] }).selectedSymbols).toEqual(['XLE'])
+  })
+
+  it('does not treat Shift+Space as reverse traversal', async () => {
     const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows, selected: 'XLK' } })
     await wrapper.find('.watchlist__scroll').trigger('keydown', { key: ' ', shiftKey: true })
-    expect(wrapper.emitted('select')?.at(-1)?.[0]).toMatchObject({ symbol: 'XLE', instrumentId: 2 })
+    expect(wrapper.emitted('select')).toBeUndefined()
   })
 
   it('keeps keyboard traversal selection state aligned with the active row', async () => {

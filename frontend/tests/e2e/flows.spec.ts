@@ -2515,7 +2515,7 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F8k-shift — Shift+Space traverses backward and editor focus owns the shortcut', async ({ page, browserDiagnostics }) => {
+  test('F8k-ctrl-space — Ctrl+Space traverses backward and editor focus owns literal spaces', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
     const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
     await activeSymbol.fill('SPY')
@@ -2523,9 +2523,13 @@ test.describe('TC2000 workstation', () => {
     await expect(activeSymbol).toHaveValue('SPY')
 
     const workstation = page.locator('.workstation:visible').last()
-    await workstation.press('Shift+Space')
+    await workstation.press('Control+Space')
     await expect.poll(() => activeSymbol.inputValue()).not.toBe('SPY')
     const traversedBackwardTo = await activeSymbol.inputValue()
+
+    // Shift+Space is no longer a traversal command.
+    await workstation.press('Shift+Space')
+    await expect(activeSymbol).toHaveValue(traversedBackwardTo)
 
     // A focused editor must retain the keystroke rather than publishing another
     // symbol through the workstation-level keyboard handler.
@@ -2612,7 +2616,7 @@ test.describe('TC2000 workstation', () => {
 
     await helpButton.click()
     await expect(helpMenu).toBeVisible()
-    await expect(helpMenu).toContainText('Shift+Space')
+    await expect(helpMenu).toContainText('Ctrl+Space')
     await expect(helpMenu).toContainText('Over a chart: change timeframe')
     await expect(helpMenu).toContainText('over a WatchList: move through symbols')
     await expect(helpMenu).toContainText('= / -')

@@ -1644,7 +1644,9 @@ function toggleStackedColumn(key: string) {
 }
 
 function onKeydown(event: KeyboardEvent) {
-  if (!['ArrowDown', 'ArrowUp', 'Home', 'End', 'Enter', ' '].includes(event.key)) return
+  const isSpaceTraversal = event.key === ' ' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey
+  const isReverseSpaceTraversal = event.key === ' ' && event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey
+  if (!['ArrowDown', 'ArrowUp', 'Home', 'End', 'Enter'].includes(event.key) && !isSpaceTraversal && !isReverseSpaceTraversal) return
   event.preventDefault()
   const current = filteredRows.value.findIndex(row => row.symbol === (keyboardActiveSymbol.value || props.selected))
   if (event.key === 'Enter') {
@@ -1656,7 +1658,7 @@ function onKeydown(event: KeyboardEvent) {
   if (event.key === 'Home') next = 0
   else if (event.key === 'End') next = filteredRows.value.length - 1
   else {
-    const forward = event.key === 'ArrowDown' || (event.key === ' ' && !event.shiftKey)
+    const forward = event.key === 'ArrowDown' || (event.key === ' ' && !event.ctrlKey)
     const origin = current < 0 ? (forward ? -1 : filteredRows.value.length) : current
     next = Math.max(0, Math.min(filteredRows.value.length - 1, origin + (forward ? 1 : -1)))
   }
@@ -1664,7 +1666,8 @@ function onKeydown(event: KeyboardEvent) {
   if (!row) return
   keyboardActiveSymbol.value = row.symbol
   virtualizer.value.scrollToIndex(next, { align: 'auto' })
-  selectRow(row, { shiftKey: event.shiftKey, ctrlKey: event.ctrlKey, metaKey: event.metaKey } as MouseEvent)
+  // Ctrl+Space is a traversal command, not a multi-select modifier.
+  selectRow(row, { shiftKey: event.shiftKey, ctrlKey: event.ctrlKey && event.key !== ' ', metaKey: event.metaKey } as MouseEvent)
 }
 
 function onCtrlWheel(event: WheelEvent) {

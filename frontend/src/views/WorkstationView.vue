@@ -40,7 +40,7 @@
             <dl>
               <div><dt>Type</dt><dd>Open symbol search</dd></div>
               <div><dt>Space</dt><dd>Next symbol in the focused list</dd></div>
-              <div><dt>Shift+Space</dt><dd>Previous symbol in the focused list</dd></div>
+              <div><dt>Ctrl+Space</dt><dd>Previous symbol in the focused list</dd></div>
               <div><dt>Ctrl+wheel</dt><dd>Over a chart: change timeframe; over a WatchList: move through symbols</dd></div>
               <div><dt>= / -</dt><dd>Over the active chart: change timeframe</dd></div>
               <div><dt>F1 or ?</dt><dd>Show this help</dd></div>
@@ -1946,7 +1946,10 @@ function handleKeydown(event: KeyboardEvent) {
     symbolDraft.value = event.key.toUpperCase()
     return
   }
-  if (event.key !== ' ' || event.ctrlKey || event.metaKey || event.altKey) return
+  if (event.key !== ' ' || event.metaKey || event.altKey) return
+  // Match TC2000 V25: plain Space advances and Ctrl+Space reverses. Shift+Space
+  // is not a traversal command; editor targets have already been excluded.
+  if (event.shiftKey) return
   event.preventDefault()
   if (!allSymbols.value.length) return
   // Explicit shell actions publish the draft synchronously, while the shared
@@ -1957,7 +1960,7 @@ function handleKeydown(event: KeyboardEvent) {
   const draftSymbol = symbolDraft.value.trim().toUpperCase()
   const currentSymbol = allSymbols.value.includes(draftSymbol) ? draftSymbol : activeSymbol.value
   const currentIndex = allSymbols.value.indexOf(currentSymbol)
-  const nextIndex = (currentIndex + (event.shiftKey ? -1 : 1) + allSymbols.value.length) % allSymbols.value.length
+  const nextIndex = (currentIndex + (event.ctrlKey ? -1 : 1) + allSymbols.value.length) % allSymbols.value.length
   void selectSymbol(allSymbols.value[nextIndex], undefined, true)
 }
 

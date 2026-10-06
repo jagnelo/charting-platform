@@ -399,7 +399,7 @@ describe('WorkstationView pop-out bindings', () => {
     const wrapper = mount(WorkstationView, {
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
     })
-    await wrapper.find('.workstation').trigger('keydown', { key: ' ', shiftKey: true })
+    await wrapper.find('.workstation').trigger('keydown', { key: ' ', ctrlKey: true })
     expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'IWM', group: 'blue' }))
 
     releaseHydration()
