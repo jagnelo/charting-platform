@@ -13597,3 +13597,38 @@ suites passed 61/61; focused MyPy passed for `application.py` and
 `api_router.py`; Ruff check/format, `git diff --check`, and the branch workstream
 validator passed. `docker info` was denied on `/var/run/docker.sock`, so no
 claim is made that the exact RC6 image or full Docker-backed profile passed.
+
+## 2026-10-06 - Reconcile walk-forward progress from worker completion
+
+Commit `a9e4e630f` connects successful search-worker terminal receipts to the
+host coordinator. After terminal artifacts, settlement/release, and the
+owner-scoped search success receipt are durable, the worker posts an
+authenticated wake-up hint over the existing local Unix socket. The host
+reloads the dispatch by request fingerprint and verifies owner, experiment,
+attempt, successful queue state, and matching result-completion fingerprint;
+the notification itself is never treated as execution evidence. For a
+walk-forward plan, the coordinator idempotently appends selected OOS trials
+when all training evidence is present, dispatches only pending/failed slots
+through the existing admission/outbox path, and persists the OOS fold summary
+when all selected OOS slots have succeeded. Running attempts are deliberately
+not replayed on each completion. Cancellation is acknowledged without
+dispatching more work. A failed host notification leaves the worker stream
+entry retryable, so recovery replays the same durable terminal receipt and
+idempotent reconciliation.
+
+The initial queue still requires one `dispatch-ready` call. If worker capacity
+is fully saturated and no walk-forward slot is admitted, a caller/scheduler
+must retry that operation after capacity changes; a global scheduler that
+indexes and wakes every pending experiment is not implemented. Also open are
+native artifact-backed portfolio metrics, production host artifact-root and
+frozen-decoder composition, and full database/Redis, security, Compose, exact
+native, and full-branch validation. The previously qualified Nautilus RC5 pin
+is unchanged; RC6 still needs its isolated image build and conformance pass.
+
+Validation at `a9e4e630f`: focused walk-forward application, internal RPC,
+worker callback, and API router suites passed 80/80, with the real local
+Unix-socket test passing separately (81 total). The socket test covered both
+dispatch and the progress notification on the running internal service.
+Focused MyPy passed for five production modules; Ruff check/format and
+`git diff --check` passed. Docker was not required by this slice and remains
+unavailable for its separate exact-image/full-stack gates.
