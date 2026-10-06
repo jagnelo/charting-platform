@@ -13352,3 +13352,19 @@ that caller-supplied observation boundaries were decoded from the frozen
 snapshot's canonical data artifact. Next: expose strict versioned wire parsing
 for this method and bind calendar boundaries to the trusted snapshot/event
 decoder before building the restart/outbox coordinator.
+
+## 2026-10-06 - Derive walk-forward observations from verified event tapes
+
+Added `verified_observation_boundaries` at the content-addressed event-tape
+boundary. It fully verifies the persisted tape bytes, tape fingerprint,
+ordering, and event counts before deriving one walk-forward observation per
+unique UTC event-time batch. Events from simultaneous declared dependencies
+share one observation; the final event is closed with a one-microsecond
+half-open boundary. Arbitrary caller timestamps are not involved. Tests cover
+cross-dependency timestamp coalescing and rejection of tampered tape bytes.
+
+Validation: the event-tape artifact suite passed 26/26; Ruff, formatting, and
+`git diff --check` passed. This is the verified calendar primitive only. Next:
+bind the trusted snapshot/event decoder and SDK manifest resolver into the
+owner-scoped application adapter, then add strict REST parsing for the fold
+parameters and candidate identities without accepting observation dates.

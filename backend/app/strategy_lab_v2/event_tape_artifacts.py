@@ -16,7 +16,7 @@ import tempfile
 from collections import deque
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, BinaryIO, Protocol
 
 from app.strategy_lab_v2.artifact_store import ArtifactStoreDecision, LocalArtifactStore
@@ -452,6 +452,39 @@ def iter_verified_event_tape_stream(
         raise TypeError("store must be a LocalArtifactStore")
     _verify_stream_semantics(resolution, store, max_event_bytes=max_event_bytes)
     return _iter_artifact_events(resolution, store, max_event_bytes=max_event_bytes)
+
+
+def verified_observation_boundaries(
+    resolution: FrozenEventTapeStreamResolution,
+    store: LocalArtifactStore,
+    *,
+    max_event_bytes: int = _DEFAULT_STREAM_EVENT_BYTES,
+) -> tuple[datetime, ...]:
+    """Derive walk-forward boundaries from verified event-time batches.
+
+    Simultaneous events across dependencies form one observation. The final
+    boundary is one microsecond after the last event, making the last batch a
+    representable half-open interval without inventing a market observation.
+    Caller-supplied calendars are deliberately not accepted here.
+    """
+
+    observations: list[datetime] = []
+    for event in iter_verified_event_tape_stream(
+        resolution,
+        store,
+        max_event_bytes=max_event_bytes,
+    ):
+        if not observations or observations[-1] != event.event_time:
+            observations.append(event.event_time)
+    if not observations:
+        raise ValueError("verified frozen event tape contains no observations")
+    try:
+        end = observations[-1] + timedelta(microseconds=1)
+    except OverflowError as error:
+        raise ValueError(
+            "final event time cannot be represented as a half-open boundary"
+        ) from error
+    return (*observations, end)
 
 
 def iter_verified_event_tape_prefix(
@@ -1161,4 +1194,5 @@ __all__ = [
     "iter_verified_event_tape_stream",
     "materialize_frozen_event_tape_stream",
     "select_bounded_verified_event_tape_window",
+    "verified_observation_boundaries",
 ]

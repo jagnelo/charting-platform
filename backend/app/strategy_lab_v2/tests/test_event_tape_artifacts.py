@@ -34,6 +34,7 @@ from app.strategy_lab_v2.event_tape_artifacts import (
     iter_verified_event_tape_prefix,
     iter_verified_event_tape_stream,
     materialize_frozen_event_tape_stream,
+    verified_observation_boundaries,
 )
 from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt
 from app.strategy_lab_v2.forward_warmup_stream import (
@@ -190,6 +191,46 @@ def test_streaming_resolution_preserves_tape_identity_without_retaining_events(t
     assert streamed.event_count == materialized.tape.event_count
     assert tuple(iter_verified_event_tape_stream(streamed, store)) == materialized.tape.events
     assert store.path_for(streamed.artifact.storage_key).read_bytes().count(b"\n") == 2
+
+
+def test_walk_forward_observation_boundaries_come_from_verified_event_batches(tmp_path) -> None:
+    snapshot, manifest, series, payload = _inputs(fields=("close",))
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    _publish(store, series, payload)
+    resolver = FrozenEventTapeArtifactResolver(store, JsonSeriesDecoder())
+    dependency = manifest.data_dependencies[0]
+    simultaneous_manifest = StrategySdkManifest(
+        manifest.strategy,
+        (
+            dependency,
+            StrategyDataDependency("parallel-bars", dependency.requirement, ("close",)),
+        ),
+    )
+    streamed = resolver.resolve(snapshot, simultaneous_manifest)
+
+    boundaries = verified_observation_boundaries(streamed, store)
+
+    assert boundaries == (
+        BASE,
+        BASE + timedelta(days=1),
+        BASE + timedelta(days=1, microseconds=1),
+    )
+
+
+def test_walk_forward_boundaries_reject_tampered_tape_artifact(tmp_path) -> None:
+    snapshot, manifest, series, payload = _inputs(fields=("close",))
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    _publish(store, series, payload)
+    streamed = FrozenEventTapeArtifactResolver(store, JsonSeriesDecoder()).resolve(
+        snapshot,
+        manifest,
+    )
+    stream_path = store.path_for(streamed.artifact.storage_key)
+    stream_path.chmod(0o600)
+    stream_path.write_bytes(stream_path.read_bytes() + b"{}\n")
+
+    with pytest.raises(ArtifactStoreCorruptionError):
+        verified_observation_boundaries(streamed, store)
 
 
 def test_resolve_prefix_publishes_only_disk_backed_rows_through_cursor(tmp_path) -> None:
