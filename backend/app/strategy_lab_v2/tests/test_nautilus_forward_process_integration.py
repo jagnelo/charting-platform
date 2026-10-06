@@ -131,7 +131,22 @@ def _plan_factory(database: Path, image_digest: str):
     output_directory = database.parent / "private-output"
     output_directory.mkdir(mode=0o700, exist_ok=True)
 
-    def resolve(instance_id: str, checkpoint_fingerprint: str):
+    def resolve(
+        instance_id: str,
+        checkpoint_fingerprint: str,
+        delivery: Any,
+        preparation: Any,
+    ):
+        if delivery.delivery_binding.instance_id != instance_id:
+            raise ValueError("native plan builder received delivery for another instance")
+        if delivery.delivery_binding.pre_event_checkpoint_fingerprint != checkpoint_fingerprint:
+            raise ValueError("native plan builder received delivery for another checkpoint")
+        if (
+            preparation.instance_id != instance_id
+            or preparation.pre_event_checkpoint_fingerprint != checkpoint_fingerprint
+            or preparation.delivery_binding_fingerprint != delivery.delivery_binding.fingerprint
+        ):
+            raise ValueError("native plan builder received context rebound to another delivery")
         with sqlite3.connect(database) as connection:
             row = connection.execute(
                 """SELECT fixture_directory FROM checkpoints
@@ -283,13 +298,23 @@ def test_exact_rc5_forward_process_restarts_across_settlement_and_ack_windows(
     )
     before_delivery, before_preparation = _fixture_payload(before)
     first = asyncio.run(
-        factory.start(instance_id=instance_id, checkpoint_fingerprint=before_checkpoint)
+        factory.start(
+            instance_id=instance_id,
+            checkpoint_fingerprint=before_checkpoint,
+            delivery=before_delivery,
+            preparation=before_preparation,
+        )
     )
     first_result = asyncio.run(first.execute(before_delivery, before_preparation))
     _kill_process(first)  # crash before durable account settlement
 
     replay = asyncio.run(
-        factory.start(instance_id=instance_id, checkpoint_fingerprint=before_checkpoint)
+        factory.start(
+            instance_id=instance_id,
+            checkpoint_fingerprint=before_checkpoint,
+            delivery=before_delivery,
+            preparation=before_preparation,
+        )
     )
     replay_result = asyncio.run(replay.execute(before_delivery, before_preparation))
     assert replay_result.fingerprint == first_result.fingerprint
@@ -322,12 +347,22 @@ def test_exact_rc5_forward_process_restarts_across_settlement_and_ack_windows(
 
     after_delivery, after_preparation = _fixture_payload(after)
     continuation = asyncio.run(
-        factory.start(instance_id=instance_id, checkpoint_fingerprint=after_checkpoint)
+        factory.start(
+            instance_id=instance_id,
+            checkpoint_fingerprint=after_checkpoint,
+            delivery=after_delivery,
+            preparation=after_preparation,
+        )
     )
     after_result = asyncio.run(continuation.execute(after_delivery, after_preparation))
     _kill_process(continuation)
     repeated = asyncio.run(
-        factory.start(instance_id=instance_id, checkpoint_fingerprint=after_checkpoint)
+        factory.start(
+            instance_id=instance_id,
+            checkpoint_fingerprint=after_checkpoint,
+            delivery=after_delivery,
+            preparation=after_preparation,
+        )
     )
     repeated_result = asyncio.run(repeated.execute(after_delivery, after_preparation))
     _kill_process(repeated)
