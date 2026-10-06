@@ -9582,4 +9582,53 @@ whether another full browser retry has a stable window. Do not alter generic
 assertions, touch another worktree or staging, or promote/deploy. AC10 still
 awaits provider-platform staging; AC14 remains the post-integration 30-day
 observation.
+
+## 2026-10-06 — full-gate retry after added swap and host diagnostics
+
+The host-context `make validate-integration` retry passed every stage through
+the isolated research-runner probes: workstream/dependency/migration checks,
+Ruff and type-check, backend coverage (1,900 tests, 81.18%), frontend unit
+coverage (947 tests, 82.09%), production build, Compose/provider checks, stack
+health, and runner security/resource probes.
+
+Playwright completed the full 260-case suite: 145 passed, 106 skipped, and 9
+failed. The exact HTML report confirms those totals. All 104 visual cases
+passed. The failures were F9c comparison, F9c narrow, F9c3 keyboard, F9e
+context, F9h Python condition, F8b pop-out close, F8j pop-out geometry,
+F8p-high-low browser-network assertion, and F8q Study Lab execution timeout.
+Four failed contexts explicitly contain `net::ERR_NETWORK_CHANGED` requests to
+the local API at `127.0.0.1:28089`; the other timeout/assertion failures are
+not individually attributed to that error without evidence. No generic
+assertions or application source were changed.
+
+The exact-tip hosted Actions run
+[`37523067557`](https://github.com/jagnelo/charting-platform/actions/runs/37523067557)
+completed successfully on `f41ec0f9b3b65c38e1ce15e1385004a9ee34dc9b`, including
+hosted Playwright; the Exhaustive Integration Gate was skipped as expected on
+this feature branch. This is valid green hosted CI evidence, but does not erase
+the local gate's nine failures.
+
+Read-only host diagnostics found Docker endpoint joins from `testcontainers-ryuk`
+and randomly named containers on the shared default bridge between 21:34 and
+21:45 local time while Playwright was running. Kernel logs show corresponding
+veth renames. This makes Docker bridge churn a strong timing-correlated
+environment explanation for Chromium's explicit network-change errors, but
+does not identify the process that launched those containers or prove
+causality. No Docker daemon restart was logged. At 21:53:30 local, during
+gate cleanup, the kernel recorded a per-container memory-cgroup OOM for UID
+10001; Docker logged a forced stop of that container after 19m42s. It was not a
+host-wide OOM and its timing is after the browser suite, so it is not claimed
+as the cause of earlier test failures. Current post-run headroom was 2.9 GiB
+available memory, 23 GiB free swap, and 120 GiB free disk.
+
+The gate removed only its ETF stack, images, volumes, and network. The separate
+TC2000 and Stremio containers remained running. No unrelated container,
+worktree, branch, or service was changed. The exact-tip branch CI is green and
+the worktree was clean/synchronized before this receipt, but AC7/AC8 remain
+open until local full-gate status and final review checkpoint are resolved.
+Do not ask the human to run the app or tests. Continue with read-only
+investigation or a controlled retry only after a stable browser/network window
+is established; do not relax tests to hide host instability. AC10 still needs
+the provider-platform work to reach staging before this branch can consume its
+contracts. AC14 is a 30-day production observation after integration/deployment.
 *** End of File
