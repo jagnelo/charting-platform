@@ -23,6 +23,12 @@ from app.strategy_lab_v2.forward_execution_plan_resolution import (
     ForwardExecutionPlanReader,
     ResolvedForwardExecutionPlan,
 )
+from app.strategy_lab_v2.forward_history_resolution import (
+    AuthenticatedForwardContextHistoryResolver,
+    ForwardProcessedPrefixResolver,
+    FrozenForwardEventWindowResolver,
+    FrozenForwardPayloadReader,
+)
 from app.strategy_lab_v2.forward_worker_handoff import (
     ForwardEventWorkItem,
     create_authenticated_forward_event_materializer,
@@ -32,11 +38,20 @@ from app.strategy_lab_v2.nautilus_forward_delivery import (
     VerifiedForwardMarketPayloadResolver,
     create_nautilus_forward_delivery_callback_factory,
 )
+from app.strategy_lab_v2.nautilus_forward_input import NautilusForwardDeliveryInput
 from app.strategy_lab_v2.nautilus_forward_recovery import (
     AuthenticatedNautilusForwardCheckpointResolver,
     ResolvedNautilusForwardCheckpoint,
 )
-from app.strategy_lab_v2.nautilus_forward_session import NautilusForwardSessionEventHandler
+from app.strategy_lab_v2.nautilus_forward_session import (
+    AuthenticatedForwardPortfolioContextWindowResolver,
+    ForwardVerifiedHistoryResolver,
+    NautilusForwardSessionEventHandler,
+    NautilusForwardSessionProcessFactory,
+    PersistentNautilusForwardSessionRuntime,
+    ResolvedForwardContextWindow,
+    ResolvedForwardPortfolioContextWindows,
+)
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.redis_transport import RedisStreamEntry
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
@@ -157,6 +172,142 @@ class ForwardRuntimeInputResolver(Protocol):
         instance_id: str,
         checkpoint_fingerprint: str,
     ) -> ResolvedForwardWorkerRuntimeInputs: ...
+
+
+class AuthenticatedForwardDeliveryContextResolver:
+    """Resolve one delivery's portfolio context at its exact owner checkpoint.
+
+    Execution plans and durable checkpoints are resolved through the same
+    owner-bound resolver used when bootstrapping a native process. The platform
+    supplies frozen/canonical readers explicitly; this class only joins their
+    verified history to the immutable plan and exact persisted account state.
+    """
+
+    def __init__(
+        self,
+        persistence: PostgresStrategyLabV2Persistence,
+        runtime_input_resolver: ForwardRuntimeInputResolver,
+        history_resolver: ForwardVerifiedHistoryResolver,
+        *,
+        principal: Any,
+    ) -> None:
+        if not isinstance(persistence, PostgresStrategyLabV2Persistence):
+            raise TypeError("persistence must use PostgresStrategyLabV2Persistence")
+        if not callable(getattr(runtime_input_resolver, "resolve", None)):
+            raise TypeError("runtime_input_resolver must expose authenticated resolve()")
+        if not callable(history_resolver):
+            raise TypeError("history_resolver must resolve verified canonical history")
+        self._persistence = persistence
+        self._runtime_input_resolver = runtime_input_resolver
+        self._history_resolver = history_resolver
+        self._principal = principal
+
+    async def __call__(
+        self, delivery: NautilusForwardDeliveryInput
+    ) -> ResolvedForwardContextWindow | ResolvedForwardPortfolioContextWindows:
+        if not isinstance(delivery, NautilusForwardDeliveryInput):
+            raise TypeError("delivery must use NautilusForwardDeliveryInput")
+        binding = delivery.delivery_binding
+        inputs = await self._runtime_input_resolver.resolve(
+            instance_id=binding.instance_id,
+            checkpoint_fingerprint=binding.pre_event_checkpoint_fingerprint,
+        )
+        if not isinstance(inputs, ResolvedForwardWorkerRuntimeInputs):
+            raise TypeError("runtime input resolver returned invalid authenticated inputs")
+        if inputs.execution_plan.instance.instance_id != binding.instance_id:
+            raise ValueError("forward delivery differs from its owner-scoped execution plan")
+        if inputs.checkpoint.checkpoint_fingerprint != binding.pre_event_checkpoint_fingerprint:
+            raise ValueError("forward delivery differs from its exact durable checkpoint")
+        if inputs.checkpoint.warmup_receipt.fingerprint != binding.warmup_receipt_fingerprint:
+            raise ValueError("forward delivery differs from its persisted warm-up receipt")
+
+        resolver = AuthenticatedForwardPortfolioContextWindowResolver.from_execution_plan(
+            inputs.execution_plan,
+            self._persistence.forward_state,
+            self._persistence.forward_account,
+            self._history_resolver,
+            principal=self._principal,
+        )
+        return await resolver(delivery)
+
+
+def create_authenticated_forward_context_history_resolver(
+    *,
+    snapshot_window_resolver: FrozenForwardEventWindowResolver,
+    frozen_payload_reader: FrozenForwardPayloadReader,
+    processed_prefix_resolver: ForwardProcessedPrefixResolver,
+    principal: Any,
+) -> AuthenticatedForwardContextHistoryResolver:
+    """Bind explicit platform-owned history readers to one authenticated owner."""
+
+    return AuthenticatedForwardContextHistoryResolver(
+        snapshot_window_resolver,
+        frozen_payload_reader,
+        processed_prefix_resolver,
+        principal=principal,
+    )
+
+
+def create_authenticated_forward_delivery_context_resolver(
+    persistence: PostgresStrategyLabV2Persistence,
+    runtime_input_resolver: ForwardRuntimeInputResolver,
+    *,
+    snapshot_window_resolver: FrozenForwardEventWindowResolver,
+    frozen_payload_reader: FrozenForwardPayloadReader,
+    processed_prefix_resolver: ForwardProcessedPrefixResolver,
+    principal: Any,
+) -> AuthenticatedForwardDeliveryContextResolver:
+    """Compose exact-checkpoint portfolio context with verified data adapters."""
+
+    history_resolver = create_authenticated_forward_context_history_resolver(
+        snapshot_window_resolver=snapshot_window_resolver,
+        frozen_payload_reader=frozen_payload_reader,
+        processed_prefix_resolver=processed_prefix_resolver,
+        principal=principal,
+    )
+    return AuthenticatedForwardDeliveryContextResolver(
+        persistence,
+        runtime_input_resolver,
+        history_resolver,
+        principal=principal,
+    )
+
+
+def create_authenticated_forward_session_event_handler(
+    persistence: PostgresStrategyLabV2Persistence,
+    delivery_factory: NautilusForwardDeliveryCallbackFactory,
+    runtime_input_resolver: ForwardRuntimeInputResolver,
+    process_factory: NautilusForwardSessionProcessFactory,
+    *,
+    snapshot_window_resolver: FrozenForwardEventWindowResolver,
+    frozen_payload_reader: FrozenForwardPayloadReader,
+    processed_prefix_resolver: ForwardProcessedPrefixResolver,
+    principal: Any,
+) -> NautilusForwardSessionEventHandler:
+    """Compose owner-authenticated context, durable account, and native runtime."""
+
+    if not isinstance(persistence, PostgresStrategyLabV2Persistence):
+        raise TypeError("persistence must use PostgresStrategyLabV2Persistence")
+    if not isinstance(delivery_factory, NautilusForwardDeliveryCallbackFactory):
+        raise TypeError("delivery_factory must use NautilusForwardDeliveryCallbackFactory")
+    if not callable(getattr(process_factory, "start", None)):
+        raise TypeError("process_factory must launch hardened forward processes")
+    context_resolver = create_authenticated_forward_delivery_context_resolver(
+        persistence,
+        runtime_input_resolver,
+        snapshot_window_resolver=snapshot_window_resolver,
+        frozen_payload_reader=frozen_payload_reader,
+        processed_prefix_resolver=processed_prefix_resolver,
+        principal=principal,
+    )
+    runtime = PersistentNautilusForwardSessionRuntime(process_factory)
+    return NautilusForwardSessionEventHandler(
+        delivery_factory,
+        context_resolver,
+        runtime,
+        persistence.forward_account,
+        principal=principal,
+    )
 
 
 OwnerForwardHandlerFactory = Callable[
@@ -304,11 +455,15 @@ def create_forward_worker_callbacks(
 
 
 __all__ = [
+    "AuthenticatedForwardDeliveryContextResolver",
     "AuthenticatedForwardWorkerRuntimeInputResolver",
     "ForwardRuntimeInputResolver",
     "OwnerForwardHandlerFactory",
     "OwnerScopedForwardEventHandler",
     "ResolvedForwardWorkerRuntimeInputs",
     "create_authenticated_forward_worker_runtime_input_resolver",
+    "create_authenticated_forward_context_history_resolver",
+    "create_authenticated_forward_delivery_context_resolver",
+    "create_authenticated_forward_session_event_handler",
     "create_forward_worker_callbacks",
 ]
