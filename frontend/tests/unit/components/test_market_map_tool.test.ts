@@ -980,7 +980,20 @@ describe('MarketMapTool', () => {
     expect(createWatchlist).toHaveBeenCalledWith('XLK leaders')
     expect(addItem).toHaveBeenCalledWith(9, 1)
     expect(addItem).toHaveBeenCalledWith(9, 2)
-    expect(wrapper.find('[role="status"]').text()).toContain('2 selected members saved')
+    expect(wrapper.get('.market-map-tool__selection-actions span[role="status"]').text()).toContain('2 selected members saved')
+  })
+
+  it('announces selected member symbols to assistive technology', async () => {
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+
+    await wrapper.get('.market-map-tool__tile').trigger('click')
+
+    const selectionStatus = wrapper.get('.market-map-tool__selection-announcement')
+    expect(selectionStatus.attributes('aria-live')).toBe('polite')
+    expect(selectionStatus.attributes('aria-atomic')).toBe('true')
+    expect(selectionStatus.text()).toBe('1 selected member: NVDA')
+    wrapper.unmount()
   })
 
   it('publishes the canonical source and selected members into breadth and Study Lab', async () => {

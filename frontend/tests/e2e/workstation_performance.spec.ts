@@ -426,6 +426,8 @@ test.describe('TC2000 workstation performance guards', () => {
     await memberSearch.fill('SPY')
     await memberSearch.press('Enter')
     await expect(mapWindow.locator('.market-map-tool__source-analysis-actions')).toContainText('1 selected members')
+    await expect(mapWindow.locator('.market-map-tool__selection-announcement'))
+      .toHaveText('1 selected member: SPY')
 
     const mapCanvas = mapWindow.locator('.market-map-tool__canvas')
     await mapWindow.getByRole('button', { name: 'Zoom in Market Map' }).click()

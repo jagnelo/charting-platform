@@ -263,6 +263,7 @@
       <span v-if="publicationMessage" role="status">{{ publicationMessage }}</span>
       <span v-if="publicationError" class="market-map-tool__status--error" role="alert">{{ publicationError }}</span>
     </div>
+    <span v-if="map" class="sr-only market-map-tool__selection-announcement" role="status" aria-live="polite" aria-atomic="true">{{ selectedMemberAnnouncement }}</span>
     <div v-if="map" ref="viewportRef" class="market-map-tool__tiles" aria-label="Market Map tiles" @wheel.prevent="zoomByWheel" @pointerdown="startPan" @pointermove="movePan" @pointerup="endPan" @pointercancel="endPan">
       <div class="market-map-tool__canvas" :style="canvasStyle">
         <canvas
@@ -1610,6 +1611,13 @@ const selectedMembers = computed(() => selectedIds.value
   .map(instrumentId => map.value?.cells.find(cell => cell.instrument_id === instrumentId))
   .filter((cell): cell is NonNullable<typeof cell> => Boolean(cell)))
 const selectedSymbols = computed(() => selectedMembers.value.map(cell => cell.symbol))
+const selectedMemberAnnouncement = computed(() => {
+  const symbols = selectedSymbols.value
+  if (!symbols.length) return ''
+  const preview = symbols.slice(0, 5).join(', ')
+  const remaining = symbols.length - Math.min(symbols.length, 5)
+  return `${symbols.length} selected member${symbols.length === 1 ? '' : 's'}: ${preview}${remaining ? `, and ${remaining} more` : ''}`
+})
 
 function openSelectedInChart() {
   const member = selectedMembers.value[0]
