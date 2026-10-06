@@ -522,11 +522,15 @@ progress:
     geometry differences whose source/state provenance is unresolved. Do not
     refresh baselines or weaken policy. The generic integration target's cleanup
     would delete the six-service assigned stack and four data volumes; establish
-    a cleanup-safe exact route. Provider and ETF feature refs remain outside
-    staging. The Playwright CLI dependency launch stalled; the installed
-    project's Playwright runner with cached Chromium was used against current
-    source via temporary Vite and the assigned backend. The focused authenticated
-    Shift+N browser case passed.
+    a cleanup-safe exact route. Fresh GitHub refs confirm staging is
+    8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider-platform is
+    88132e9145a08d1c935a0111b3dba0fbd88bdff1 (1,856 commits ahead), and ETF
+    holdings is f41ec0f9b3b65c38e1ce15e1385004a9ee34dc9b (1,048 commits ahead);
+    neither dependency tip is an ancestor of staging. Do not consume either
+    before staging promotion. The Playwright CLI dependency launch stalled; the
+    installed project's runner with cached Chromium verified current source via
+    temporary Vite and the assigned backend. Both Shift+N browser flows passed
+    2/2.
 historical_implementation_records:
   - "Added TC2000's documented HLC Bars style to the frontend chart contract and settings, drawing the existing OHLCV high-low range with a close tick and omitting the open tick. Ctrl+B now cycles HLC, OHLC, Candles, Line in that order. The focused renderer/workstation tests passed 45/45; the full serial frontend suite passed 130 files / 1,225 tests; vue-tsc/Vite build passed; authenticated F8k-direct-chart-style passed 1/1 across all four styles. The protected Help screenshot test failed against its unchanged baseline with 50,941 pixels / 3.0% difference (0.5% threshold); no visual baseline/policy was changed."
   - "Authenticated follow-up browser evidence supersedes the earlier unauthenticated CLI attempt: a unique account in the assigned TC stack was used to activate the chart, press `/`, and confirm the plot library reopened with its `Filter indicators` search focused. No account was created outside the branch stack; no other worktree changed. The account remains a test artifact in the assigned stack. The Help visual oracle was not rerun after this shortcut, and its protected baseline remains unchanged."

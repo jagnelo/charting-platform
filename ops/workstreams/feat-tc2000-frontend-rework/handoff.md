@@ -1,5 +1,24 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — Dependency refs refreshed and paired Shift+N browser replay
+
+Read-only GitHub ref discovery succeeded. Staging is
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider-platform is
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings is
+`f41ec0f9b3b65c38e1ce15e1385004a9ee34dc9b`. Fetched only into
+`refs/tc2000/dependency-audit/*` and verified provider is 1,856 commits ahead
+of staging and ETF is 1,048 commits ahead; neither tip is an ancestor. Do not
+consume either or reconcile shared paths until both owner branches reach
+staging.
+
+Retried both current-source authenticated Shift+N browser flows together:
+focused WatchList and workstation shell/editor ownership passed `2/2` in pinned
+project Playwright Chromium. Browser artifacts stayed under
+`/tmp/tc2000-shift-n-both-e2e`; temporary Vite was stopped. The assigned
+six-service stack was not restarted or cleaned. Existing screenshot oracles and
+acceptance policy remain unchanged. Full integration and four Help screenshot
+mismatches remain open.
+
 ## 2026-10-06 — Shift+N shell-level active-symbol Notes
 
 Extended official TC2000 V25 Shift+N note behavior from focused WatchLists to
