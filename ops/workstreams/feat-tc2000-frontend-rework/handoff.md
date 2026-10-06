@@ -1,5 +1,16 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — HLC Bars product checkpoint pushed
+
+The HLC Bars renderer and four-style Ctrl+B cycle are committed and pushed as
+`30323b820a8e34cdcf43e765102a70494751746c`. Focused renderer/workstation
+tests passed 45/45; full serial frontend Vitest passed 130 files / 1,225 tests;
+Vue type-check and Vite build passed; authenticated F8k-direct-chart-style
+passed 1/1 across HLC/OHLC/Candles/Line. The protected Help screenshot still
+differs by 50,941 pixels (3.0%) against the unchanged 0.5% threshold; no visual
+baseline or policy changed. Continue bounded TC-owned frontend work and keep
+provider/ETF consumption deferred until both dependencies reach staging.
+
 ## 2026-10-06 — HLC Bars rendering and four-style shortcut cycle
 
 The existing chart-style contract now includes HLC Bars. It reuses the OHLC

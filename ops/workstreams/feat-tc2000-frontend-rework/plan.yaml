@@ -24,7 +24,7 @@ current_blocker: >-
   Ctrl+B cycling through HLC/OHLC/Candles/Line, and `/` opening the active
   chart's plot library. HLC uses the existing OHLCV data and draws each
   high-low range plus the close tick; the open tick is omitted. At pushed
-  product source 86eff36ac plus the local HLC change, focused renderer and
+  product source 30323b820a8e34cdcf43e765102a70494751746c, focused renderer and
   workstation tests pass 45/45; the full serial frontend suite passes 130/130
   files and 1,225/1,225 tests; vue-tsc/Vite production build passes; and
   authenticated F8k-direct-chart-style passes 1/1 across all four styles.
@@ -34,7 +34,7 @@ current_blocker: >-
   acceptance setting was changed. Generic integration, broader R1/R5/R6 and
   AC4-AC7 evidence, exact V25 review, and staging-gated provider/ETF consumer
   work remain open.
-  Direct remote refs refreshed 2026-10-06: TC 86eff36ac859a5c2d25cd28520ddfb422008ea5c,
+  Direct remote refs refreshed 2026-10-06: TC 30323b820a8e34cdcf43e765102a70494751746c,
   staging 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider platform
   88132e9145a08d1c935a0111b3dba0fbd88bdff1, and ETF holdings
   2bd221663956581dfb35f5b77961900674449f23. Both upstream dependencies remain
@@ -171,9 +171,9 @@ current_blocker: >-
   exact V25 review, and staging-gated provider/ETF consumer work remain open.
 active_changeset_context:
   name: TC2000 V25 chart-style and keyboard parity
-  status: local_product_changes_validated_pending_checkpoint
-  commit_sha: 587d15c33
-  remote_sha: 587d15c33175c7dd8574eab2c5a80766d520996c
+  status: product_commit_pushed_validated_visual_review_open
+  commit_sha: 30323b820a8e34cdcf43e765102a70494751746c
+  remote_sha: 30323b820a8e34cdcf43e765102a70494751746c
   intent: >-
     Implement TC2000 V25 direct chart timeframes, plot-library activation, and
     HLC/OHLC/Candles/Line style cycling using the existing renderer and OHLCV
@@ -441,7 +441,7 @@ progress:
     consumption/reconciliation until both dependencies reach staging. Stop at
     ready_for_human_review.
   current_blocker: >-
-    At pushed base 86eff36ac plus the local HLC Bars change, the full serial
+    At pushed product commit 30323b820, the full serial
     frontend suite passes 130/130 files and 1,225/1,225 tests; focused renderer/
     workstation tests pass 45/45; type-check/build and authenticated chart-style
     browser coverage pass. The protected Help screenshot differs by 50,941 pixels
