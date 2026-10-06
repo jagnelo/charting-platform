@@ -80,6 +80,7 @@ const harness = vi.hoisted(() => {
   const recent = {
     recent: [{ symbol: 'XLK', name: 'Technology Select Sector SPDR Fund', viewedAt: 2 }],
     add: vi.fn(),
+    previous: vi.fn(),
     clear: vi.fn(),
   }
   return { workspace, recent, popoutWindow, chartWindow, ratioWindow }
@@ -377,6 +378,28 @@ describe('WorkstationView pop-out bindings', () => {
     await input.trigger('keydown', { key: 'Enter' })
     expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'XLE', instrumentId: 89, group: 'blue' }))
     expect(wrapper.find('[role="listbox"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('uses Backspace for viewed-symbol history when the workstation owns focus', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    harness.recent.previous.mockReturnValueOnce('XLK').mockReturnValueOnce(null)
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const event = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true })
+    wrapper.find('.workstation').element.dispatchEvent(event)
+    await flushPromises()
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(harness.recent.previous).toHaveBeenCalledOnce()
+    expect(harness.recent.add).toHaveBeenCalledWith('XLK', undefined, false)
+    expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'XLK', group: 'blue' }))
+    const oldestEntryEvent = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true })
+    wrapper.find('.workstation').element.dispatchEvent(oldestEntryEvent)
+    expect(oldestEntryEvent.defaultPrevented).toBe(true)
+    expect(harness.recent.previous).toHaveBeenCalledTimes(2)
     wrapper.unmount()
   })
 

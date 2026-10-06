@@ -9346,10 +9346,12 @@ provider-specific frontend path.
 ## 2026-10-06 — TC2000 V25 symbol traversal shortcut reconciliation
 
 The [current TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
-specifies Spacebar for the next symbol in a list and Ctrl+Spacebar for the previous symbol. The
-workstation shell and focused virtual watchlists now
-follow that contract: unmodified Space advances, Ctrl+Space reverses, and Shift+Space is not a
-traversal command. A focused watchlist treats Ctrl+Space as traversal rather than a multi-select
-modifier. The shell Help menu and authenticated browser regression use the same labels and behavior;
-editor focus continues to own literal spaces. This corrects the August 2026 implementation
-documented above, which used Shift+Space before the current V25 reference was reconciled.
+specifies Spacebar for the next symbol in a list, Ctrl+Spacebar for the previous symbol, and
+Backspace to move through viewed-symbol history. The workstation shell and focused virtual
+watchlists now match Space/Ctrl+Space traversal: unmodified Space advances, Ctrl+Space reverses,
+and Shift+Space is not a traversal command. Focused Ctrl+Space moves the active watchlist row
+without toggling multi-select. The workstation also persists a bounded sequence of viewed symbols
+and uses Backspace to walk toward older selections; selecting a new symbol after stepping back
+truncates the forward branch. Editor focus continues to own literal spaces and Backspace. Help and
+authenticated browser regressions use the same contract. This corrects the August 2026
+Shift+Space implementation documented above and adds the V25 history-navigation shortcut.

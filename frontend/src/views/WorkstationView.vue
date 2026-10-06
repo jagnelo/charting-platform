@@ -41,6 +41,7 @@
               <div><dt>Type</dt><dd>Open symbol search</dd></div>
               <div><dt>Space</dt><dd>Next symbol in the focused list</dd></div>
               <div><dt>Ctrl+Space</dt><dd>Previous symbol in the focused list</dd></div>
+              <div><dt>Backspace</dt><dd>Previous symbol in viewed history</dd></div>
               <div><dt>Ctrl+wheel</dt><dd>Over a chart: change timeframe; over a WatchList: move through symbols</dd></div>
               <div><dt>= / -</dt><dd>Over the active chart: change timeframe</dd></div>
               <div><dt>F1 or ?</dt><dd>Show this help</dd></div>
@@ -283,6 +284,7 @@ const workspaceMenuOpen = ref(false)
 const workspaceOptionIndex = ref(0)
 const keyboardHelpOpen = ref(false)
 const recentSymbolsOpen = ref(false)
+let historyNavigationTarget: string | null = null
 const workspaceFileInput = ref<HTMLInputElement | null>(null)
 // Golden Layout virtual roots capture their tool object when created. Advance
 // this token only after an import/reset replaces the complete workspace object
@@ -897,7 +899,7 @@ function sp500TradableProxy(): string {
   return 'SPY'
 }
 
-async function selectSymbol(raw: string, timestamp?: string, allowNavigationFallback = false, instrumentId?: number | null) {
+async function selectSymbol(raw: string, timestamp?: string, allowNavigationFallback = false, instrumentId?: number | null, recordHistory = true) {
   const requested = raw.trim()
   if (!requested) return
   const generation = ++symbolSelectionGeneration
@@ -979,7 +981,7 @@ async function selectSymbol(raw: string, timestamp?: string, allowNavigationFall
   )
   if (sectorSymbols.has(symbol)) workspaceStore.setConstituentETF(symbol)
   symbolDraft.value = symbol
-  recentStore.add(symbol)
+  recentStore.add(symbol, undefined, recordHistory)
   // Capture the drill-down ETF before loading the newly selected symbol. A stock
   // selection from a constituent list may itself have no holdings endpoint, but
   // its relevant ratio denominator is still the list's active ETF.
@@ -1939,6 +1941,18 @@ function handleKeydown(event: KeyboardEvent) {
     keyboardHelpOpen.value = true
     return
   }
+  if (event.key === 'Backspace' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+    // Backspace is owned even at the oldest entry; never let it fall through
+    // to the browser's page-navigation behavior.
+    event.preventDefault()
+    const previous = recentStore.previous()
+    if (!previous) return
+    historyNavigationTarget = previous
+    void selectSymbol(previous, undefined, true, undefined, false).finally(() => {
+      if (historyNavigationTarget === previous) historyNavigationTarget = null
+    })
+    return
+  }
   if (/^[a-z0-9.=]$/i.test(event.key) && !event.ctrlKey && !event.metaKey && !event.altKey) {
     event.preventDefault()
     symbolInput.value?.focus()
@@ -2030,7 +2044,9 @@ function cycleChartTimeframe(windowKey: string, direction: 1 | -1) {
 
 watch(activeSymbol, symbol => {
   if (!symbol) return
-  recentStore.add(symbol)
+  const isHistoryNavigation = historyNavigationTarget === symbol
+  recentStore.add(symbol, undefined, !isHistoryNavigation)
+  if (isHistoryNavigation) historyNavigationTarget = null
   // Linked row selections can arrive through the workspace bus before the shell's
   // async symbol handler resumes. Keep the auto-ratio tool tied to the newest
   // published symbol at this boundary as well as in the explicit selection path.

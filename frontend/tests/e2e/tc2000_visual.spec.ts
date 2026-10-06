@@ -390,6 +390,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     const menu = page.getByRole('menu', { name: 'Keyboard shortcuts' })
     await expect(menu).toBeVisible()
     await expect(menu).toContainText('Ctrl+Space')
+    await expect(menu).toContainText('Backspace')
     await expect(menu).toContainText(/Over a chart: change timeframe; over a WatchList: move through symbols/i)
     await expect(menu).toContainText('Shortcuts are inactive while a text, numeric, code, or search editor owns focus.')
     await expect(page).toHaveScreenshot('application-shell-help-open.png', {

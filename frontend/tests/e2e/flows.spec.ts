@@ -2540,6 +2540,36 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8k-backspace — Backspace walks viewed-symbol history but remains editing inside the symbol field', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
+    const go = page.getByRole('button', { name: 'Go', exact: true })
+    const footerSymbol = page.locator('.workstation__footer span').first()
+    const workstation = page.locator('.workstation:visible').last()
+
+    await activeSymbol.fill('SPY')
+    await go.click()
+    await expect(footerSymbol).toHaveText('SPY')
+    await activeSymbol.fill('QQQ')
+    await go.click()
+    await expect(footerSymbol).toHaveText('QQQ')
+
+    await workstation.press('Backspace')
+    await expect(activeSymbol).toHaveValue('SPY')
+    await expect(footerSymbol).toHaveText('SPY')
+    // Reaching the oldest entry is a no-op rather than wrapping to the future.
+    await workstation.press('Backspace')
+    await expect(activeSymbol).toHaveValue('SPY')
+    await expect(page).toHaveURL(/\/chart$/)
+
+    // Native editor focus retains Backspace and must not navigate the history.
+    await activeSymbol.fill('QQQ')
+    await activeSymbol.press('Backspace')
+    await expect(activeSymbol).toHaveValue('QQ')
+    await expect(footerSymbol).toHaveText('SPY')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8k-listbox — virtualized watchlists expose an isolated active descendant and Home/End traversal', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     const watchlist = page.getByRole('region', { name: 'Relative to SPY' }).filter({ has: page.locator('.watchlist__row') }).first()
@@ -2617,6 +2647,8 @@ test.describe('TC2000 workstation', () => {
     await helpButton.click()
     await expect(helpMenu).toBeVisible()
     await expect(helpMenu).toContainText('Ctrl+Space')
+    await expect(helpMenu).toContainText('Backspace')
+    await expect(helpMenu).toContainText('Previous symbol in viewed history')
     await expect(helpMenu).toContainText('Over a chart: change timeframe')
     await expect(helpMenu).toContainText('over a WatchList: move through symbols')
     await expect(helpMenu).toContainText('= / -')
