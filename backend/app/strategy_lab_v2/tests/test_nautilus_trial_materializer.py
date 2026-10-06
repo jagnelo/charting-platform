@@ -25,6 +25,7 @@ from app.strategy_lab_v2.nautilus_trial_assembly import NautilusTrialAssemblyErr
 from app.strategy_lab_v2.nautilus_trial_materializer import (
     NautilusTrialMarketContext,
     NautilusTrialRuntimeInputMaterializer,
+    build_frozen_tape_manifest,
     build_nautilus_trial_runtime_evidence,
 )
 from app.strategy_lab_v2.rebalance import (
@@ -233,6 +234,35 @@ def _add_second_strategy(values, graph, store):
         },
     )
     return multi_graph
+
+
+def test_shared_frozen_tape_manifest_unions_strictest_lookback() -> None:
+    source_manifest = _inputs()["strategy_manifest"]
+    dependency = source_manifest.data_dependencies[0]
+    longer = replace(dependency, lookback_periods=dependency.lookback_periods + 5)
+    component_manifest = replace(source_manifest, data_dependencies=(longer,))
+
+    combined = build_frozen_tape_manifest(
+        source_manifest.strategy,
+        (source_manifest, component_manifest),
+    )
+
+    assert combined.strategy == source_manifest.strategy
+    assert combined.data_dependencies == (longer,)
+    assert combined.model_dependencies == source_manifest.model_dependencies
+
+
+def test_shared_frozen_tape_manifest_rejects_conflicting_dependency_identity() -> None:
+    source_manifest = _inputs()["strategy_manifest"]
+    dependency = source_manifest.data_dependencies[0]
+    conflicting = replace(dependency, fields=("close",))
+    component_manifest = replace(source_manifest, data_dependencies=(conflicting,))
+
+    with pytest.raises(ValueError, match="conflicting semantics"):
+        build_frozen_tape_manifest(
+            source_manifest.strategy,
+            (source_manifest, component_manifest),
+        )
 
 
 def test_materializer_resolves_owner_graph_and_verified_inputs(tmp_path: Path) -> None:

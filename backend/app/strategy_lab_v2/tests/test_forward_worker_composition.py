@@ -16,6 +16,7 @@ from app.strategy_lab_v2.forward_worker_composition import (
     AuthenticatedForwardWorkerRuntimeInputResolver,
     OwnerScopedForwardEventHandler,
     ResolvedForwardWorkerRuntimeInputs,
+    build_forward_tape_manifest,
     create_authenticated_forward_delivery_context_resolver,
     create_authenticated_forward_session_event_handler,
     create_forward_worker_callbacks,
@@ -37,6 +38,7 @@ from app.strategy_lab_v2.nautilus_forward_session import (
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.sdk import MarketEvent
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
+from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs as _trial_inputs
 
 
 class _Runtime:
@@ -278,6 +280,40 @@ def _runtime_inputs(
 
 def _unreachable_history(**_kwargs: Any) -> Any:
     raise AssertionError("verified history is resolved only after context binding")
+
+
+def test_forward_tape_manifest_uses_all_owner_plan_component_requirements() -> None:
+    source_manifest = _trial_inputs()["strategy_manifest"]
+    longer_dependency = type(source_manifest.data_dependencies[0])(
+        source_manifest.data_dependencies[0].dependency_id,
+        source_manifest.data_dependencies[0].requirement,
+        source_manifest.data_dependencies[0].fields,
+        source_manifest.data_dependencies[0].lookback_periods + 3,
+    )
+    longer_manifest = type(source_manifest)(
+        source_manifest.strategy,
+        (longer_dependency,),
+        source_manifest.model_dependencies,
+    )
+    plan = object.__new__(ResolvedForwardExecutionPlan)
+    object.__setattr__(
+        plan,
+        "components",
+        {
+            "component-a": SimpleNamespace(
+                strategy=source_manifest.strategy,
+                resolved_package=SimpleNamespace(manifest=source_manifest),
+            ),
+            "component-b": SimpleNamespace(
+                strategy=source_manifest.strategy,
+                resolved_package=SimpleNamespace(manifest=longer_manifest),
+            ),
+        },
+    )
+
+    combined = build_forward_tape_manifest(plan)
+
+    assert combined.data_dependencies == (longer_dependency,)
 
 
 @pytest.mark.asyncio

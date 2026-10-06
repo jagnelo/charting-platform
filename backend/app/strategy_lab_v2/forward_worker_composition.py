@@ -77,6 +77,7 @@ from app.strategy_lab_v2.nautilus_runtime_bundle import (
     materialize_nautilus_verified_forward_warmup_stream,
 )
 from app.strategy_lab_v2.nautilus_trial_assembly import strategy_runtime_identity
+from app.strategy_lab_v2.nautilus_trial_materializer import build_frozen_tape_manifest
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.redis_transport import RedisStreamEntry
 from app.strategy_lab_v2.replay import iter_event_tape_contexts
@@ -229,6 +230,23 @@ class ForwardSandboxPlanInputResolver(Protocol):
         delivery: NautilusForwardDeliveryInput,
         preparation: ForwardPreparation,
     ) -> ForwardSandboxPlanInputs: ...
+
+
+def build_forward_tape_manifest(
+    execution_plan: ResolvedForwardExecutionPlan,
+) -> StrategySdkManifest:
+    """Create the exact shared frozen-tape contract for every plan component."""
+
+    if not isinstance(execution_plan, ResolvedForwardExecutionPlan):
+        raise TypeError("execution_plan must use ResolvedForwardExecutionPlan")
+    components = tuple(execution_plan.components.values())
+    if not components:
+        raise ValueError("forward execution plan must contain resolved components")
+    primary = components[0]
+    return build_frozen_tape_manifest(
+        primary.strategy,
+        tuple(component.resolved_package.manifest for component in components),
+    )
 
 
 class AuthenticatedForwardSandboxPlanFactory:
@@ -972,6 +990,7 @@ __all__ = [
     "ForwardRuntimeInputResolver",
     "ForwardSandboxPlanInputResolver",
     "ForwardSandboxPlanInputs",
+    "build_forward_tape_manifest",
     "MaterializedForwardRuntimeInputArtifacts",
     "MaterializedForwardSandboxPlan",
     "OwnerForwardHandlerFactory",

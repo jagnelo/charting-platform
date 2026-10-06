@@ -8,12 +8,13 @@ assembler. It never fetches market data or imports Nautilus.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest
-from app.strategy_lab_v2.contracts import StrategyDependency
+from app.strategy_lab_v2.contracts import StrategyDependency, StrategyVersion
 from app.strategy_lab_v2.event_tape_artifacts import (
     FrozenEventTapeArtifactResolver,
     FrozenSeriesDecoder,
@@ -91,8 +92,26 @@ def _build_frozen_tape_manifest(
 ) -> StrategySdkManifest:
     """Create the canonical union data binding used to resolve the shared tape."""
 
+    return build_frozen_tape_manifest(graph.strategies[0], component_manifests)
+
+
+def build_frozen_tape_manifest(
+    primary_strategy: StrategyVersion,
+    component_manifests: Sequence[StrategySdkManifest],
+) -> StrategySdkManifest:
+    """Build the shared tape manifest from every component's declared inputs.
+
+    Forward and backtest composition must resolve one portfolio-wide canonical
+    tape. Repeated dependency IDs are compatible only when their requirement
+    and requested fields agree; the strictest declared lookback wins.
+    """
+
     if not component_manifests:
         raise NautilusTrialAssemblyError("trial has no resolved component data manifests")
+    if not isinstance(primary_strategy, StrategyVersion):
+        raise TypeError("primary_strategy must use StrategyVersion")
+    if any(not isinstance(item, StrategySdkManifest) for item in component_manifests):
+        raise TypeError("component_manifests must contain StrategySdkManifest values")
     dependencies_by_id: dict[str, StrategyDataDependency] = {}
     model_dependencies: set[StrategyDependency] = set()
     for manifest in component_manifests:
@@ -108,7 +127,6 @@ def _build_frozen_tape_manifest(
             if previous is None or dependency.lookback_periods > previous.lookback_periods:
                 dependencies_by_id[dependency.dependency_id] = dependency
         model_dependencies.update(manifest.model_dependencies)
-    primary_strategy = graph.strategies[0]
     return StrategySdkManifest(
         strategy=primary_strategy,
         data_dependencies=tuple(dependencies_by_id.values()),
