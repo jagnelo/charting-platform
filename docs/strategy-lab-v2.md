@@ -66,7 +66,8 @@ owner-scoped trial resource path, then initializes the existing PostgreSQL
 search-state queue. Trial keys and mutation idempotency keys derive from the
 definition and trial fingerprints. If the request is interrupted between these
 steps, an exact plan replay republishes any missing trials and initializes or
-replays the queue. Queue conflicts fail as HTTP 409; they do not dispatch work.
+replays the queue without replacing candidate state that has already advanced
+to running or terminal. Queue conflicts fail as HTTP 409; they do not dispatch work.
 The host must still connect pending queue entries to the existing durable
 submission/outbox path. An absent calendar binding preserves the typed 501
 precondition response. An absent overall setting preserves the current typed

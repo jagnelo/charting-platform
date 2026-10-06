@@ -1236,11 +1236,44 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             training,
             now=None,
         )
+        existing = await self._persistence.search_state.load(
+            principal=owner,
+            experiment_fingerprint=definition.experiment_fingerprint,
+        )
+        if existing is not None:
+            if (
+                existing.experiment_fingerprint == definition.experiment_fingerprint
+                and len(existing.candidates) == len(state.candidates)
+                and tuple(item.trial_fingerprint for item in existing.candidates)
+                == tuple(item.trial_fingerprint for item in state.candidates)
+            ):
+                return SearchStateResolution(SearchStateDecision.REPLAY_EXISTING, existing)
+            raise ApiAdapterError(
+                ApiError(
+                    ApiErrorCode.CONFLICT,
+                    "walk-forward training queue conflicts with existing search state",
+                    request_id,
+                    409,
+                    False,
+                    {"experiment_fingerprint": definition.experiment_fingerprint},
+                )
+            )
         resolution = await self._persistence.search_state.initialize(
             principal=owner,
             state=state,
         )
         if resolution.decision is SearchStateDecision.REJECT:
+            raced = await self._persistence.search_state.load(
+                principal=owner,
+                experiment_fingerprint=definition.experiment_fingerprint,
+            )
+            if (
+                raced is not None
+                and len(raced.candidates) == len(state.candidates)
+                and tuple(item.trial_fingerprint for item in raced.candidates)
+                == tuple(item.trial_fingerprint for item in state.candidates)
+            ):
+                return SearchStateResolution(SearchStateDecision.REPLAY_EXISTING, raced)
             raise ApiAdapterError(
                 ApiError(
                     ApiErrorCode.CONFLICT,

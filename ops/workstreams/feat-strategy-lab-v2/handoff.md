@@ -13435,3 +13435,24 @@ selected OOS restart/replay, or compose the deployment's artifact root and
 provider-owned frozen-series decoder. Next: connect the deterministic queue
 assignments to owner-authenticated trial dispatch and durable outbox submission,
 then implement resume/result hydration and selected OOS append/replay.
+
+## 2026-10-06 - Preserve progressed training state on plan replay
+
+Repeated plan creation previously rebuilt the pristine pending search state and
+would conflict after a worker had started or completed a training candidate.
+Initialization now loads the owner-scoped persisted state first and treats it
+as an exact replay only when the experiment and full ordered training-trial
+identity sequence still match. A race lost during initial queue creation is
+resolved with the same owner-scoped reload/check. Existing candidate phases,
+attempt lineage, results, and cancellation are preserved; incompatible queues
+still return a typed 409. Tests advance one candidate to `running`, replay plan
+initialization, and verify the exact state is retained.
+
+Validation: focused walk-forward application and queue/search suites passed
+15/15; MyPy passed for the application module; Ruff, formatting, and whitespace
+checks passed. Dispatch remains the next boundary: its current host resolver
+requires an owner-hydrated immutable `RunAttempt`, runtime/conformance evidence,
+worker lease/capacity, and atomic admission/outbox persistence, so it must be
+coordinated through those existing adapters rather than inferred from queue
+indices. OOS transition/replay and production host artifact/decoder composition
+remain open.

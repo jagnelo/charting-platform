@@ -17,7 +17,12 @@ from app.strategy_lab_v2.postgres_walk_forward_plan import (
     WalkForwardDefinitionResolution,
 )
 from app.strategy_lab_v2.resource_domains import normalize_resource_attributes
-from app.strategy_lab_v2.search_state import SearchStateDecision, SearchStateResolution
+from app.strategy_lab_v2.search_state import (
+    SearchCandidatePhase,
+    SearchStateDecision,
+    SearchStateResolution,
+    start_search_candidate,
+)
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs
 from app.strategy_lab_v2.walk_forward_search import (
     SelectionDirection,
@@ -117,6 +122,10 @@ def _setup(*, second_experiment: str | None = None):
                 SearchStateDecision.REPLAY_EXISTING if current else SearchStateDecision.APPLY,
                 current or state,
             )
+
+        async def load(self, *, principal: Any, experiment_fingerprint: str):
+            assert principal.id == "42"
+            return self.states.get(experiment_fingerprint)
 
     reader = Reader()
     plan_store = PlanStore()
@@ -226,6 +235,22 @@ async def test_application_builds_definition_only_from_host_verified_calendar() 
     assert replay.decision is SearchStateDecision.REPLAY_EXISTING
     assert adapter._persistence.search_state.states[definition.experiment_fingerprint] == queue
     assert len(adapter._published_trials) == len(queue.candidates)
+
+    progressed = start_search_candidate(
+        queue,
+        0,
+        attempt_id="training-attempt-0",
+        now=datetime(2026, 10, 6, 1, tzinfo=UTC),
+    ).state
+    adapter._persistence.search_state.states[definition.experiment_fingerprint] = progressed
+    resumed = await adapter.initialize_walk_forward_training(
+        principal=User(),
+        request_id="request-resume",
+        definition=result.definition,
+    )
+    assert resumed.decision is SearchStateDecision.REPLAY_EXISTING
+    assert resumed.state == progressed
+    assert resumed.state.candidates[0].phase is SearchCandidatePhase.RUNNING
 
 
 @pytest.mark.asyncio
