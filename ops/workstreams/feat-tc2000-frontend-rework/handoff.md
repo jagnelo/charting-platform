@@ -1,5 +1,25 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — Study Lab saved-universe source suggestions
+
+Pushed product commit `c0a2100cd0741e933382a6f72a0237ba8f495bda` enriches
+Study Lab's existing universe-source input with grouped-by-kind datalist
+suggestions from the canonical watchlist-source store. Arbitrary and
+unavailable configured IDs remain editable; source selection still suppresses
+the explicit-symbol field. `WorkstationToolContent` now lazily loads sources
+when it opens Study Lab, using the same store API as breadth. No provider or ETF
+data behavior changed.
+
+Verification on the exact product source: StudyLabTool `48/48`; full serial
+frontend Vitest `129/129` files and `1,212/1,212` tests; type-check/build;
+pinned authenticated F9g flow `1/1`; TC scope guard and six self-tests;
+workstream validator; `git diff --check`. The initial F9g browser attempt
+exposed Chromium's correct `combobox` role for datalist-backed inputs; the test
+locator was updated to that semantic role and the unchanged product flow passed
+on replay. The dev server stopped; the assigned stack stayed running. Overall
+goal remains active: exact V25 approval, generic integration, remaining R1/R5/R6
+work, and upstream staging dependencies are not complete.
+
 ## 2026-10-06 — Dense Market Map selection announcement
 
 Product commit `a1b49aeaebef1bcd481223ce5b6c70f07070eabf` adds a persistent

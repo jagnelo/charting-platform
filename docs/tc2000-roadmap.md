@@ -5,6 +5,26 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-06
 
+## 2026-10-06 — Study Lab saved-universe source suggestions
+
+Product commit `c0a2100cd0741e933382a6f72a0237ba8f495bda` adds source-kind-
+labelled suggestions from the workstation's canonical watchlist-source store to
+Study Lab's existing universe-source input. The input keeps accepting arbitrary
+IDs and preserves configured sources that are absent from the current list;
+choosing a source continues to disable the conflicting explicit-symbol field.
+Opening a Study Lab tool now triggers the same lazy source-list load already
+used by breadth tools. This remains a frontend consumer change only: it does
+not create sources, resolve holdings, or acquire market data.
+
+The focused StudyLabTool suite passed `48/48`; the complete serial frontend
+suite passed `129/129` files and `1,212/1,212` tests; type-check/build passed;
+the pinned authenticated F9g Study-to-watchlist flow passed `1/1`, including
+the populated source-suggestion list. TC scope validation and all six scope
+self-tests, workstream validation, and `git diff --check` passed. Visual
+geometry and acceptance oracles were not changed. This advances one bounded
+R1/R5 usability slice; V25 authority, the generic integration gate, and
+staging-dependent provider/ETF work remain open.
+
 ## 2026-10-06 — Dense Market Map selection announcement
 
 Product commit `a1b49aeaebef1bcd481223ce5b6c70f07070eabf` adds a persistent,
