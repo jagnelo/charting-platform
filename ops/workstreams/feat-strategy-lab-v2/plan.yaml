@@ -930,9 +930,11 @@ progress:
     application. A crash-window worker test proves a settled Redis redelivery
     ACKs with one process invocation; exact RC6 OOS execution/result
     materialization and PostgreSQL worker recovery integrations also pass.
-    These are adjacent proofs, not yet one actual-RC6 walk-forward OOS test
-    crossing PostgreSQL terminal result settlement with real Redis consumer
-    restart/reclaim. Broader worker/Compose restart
+    This session reran the exact RC6 authoritative OOS worker request and the
+    separate exact-RC6 + PostgreSQL + real-Redis forward crash/reclaim
+    integration successfully. These remain adjacent proofs, not yet one
+    actual-RC6 walk-forward OOS test crossing PostgreSQL terminal result
+    settlement with real Redis consumer restart/reclaim. Broader worker/Compose restart
     evidence and full backtest/search/API/security/Compose criteria remain,
     along with exact-tip branch gates.
     The earlier forward-bootstrap artifact/plan composition slice remains

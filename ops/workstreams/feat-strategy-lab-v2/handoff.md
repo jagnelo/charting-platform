@@ -14220,3 +14220,33 @@ worker settlement, Redis ACK, and restart reclaim remain. Next, run the exact
 RC6 OOS process through the production worker and PostgreSQL terminal writer,
 then inject loss after durable terminal commit and prove receipt-first ACK on
 reclaim without a second engine invocation.
+
+## 2026-10-06 - Revalidate exact RC6 and crash-recovery neighbors
+
+Current checkpoint-owned dirty paths:
+
+- `ops/workstreams/feat-strategy-lab-v2/handoff.md`
+- `ops/workstreams/feat-strategy-lab-v2/plan.yaml`
+- `ops/workstreams/feat-strategy-lab-v2/session.json`
+- `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`
+
+The required local Docker execution path was available after using the
+repository's branch-scoped readiness check. The exact pinned Nautilus RC6
+authoritative OOS backtest worker request passed again through
+`SerialWorkerProcessExecutor`, including native result materialization. The
+separate exact-RC6 forward recovery integration also passed against real
+PostgreSQL and Redis: a worker process loss after durable account settlement
+left one pending Redis delivery, a restarted consumer replayed the committed
+receipt and ACKed it without another Nautilus launch, and the next event
+continued from the committed checkpoint. This confirms the current RC6 image
+and the combined database/transport recovery runtime are operational.
+
+These are still adjacent proofs: the forward test uses the forward account
+terminal path, not the backtest/OOS result terminal adapter. The exact missing
+slice remains a single actual-RC6 walk-forward OOS execution through production
+PostgreSQL result publication/completion/settlement and the real Redis
+consumer's post-commit restart/reclaim. Stable Nautilus 2.x labeling is not a
+prerequisite. The first unprivileged container launch failed because the
+restricted shell could not access `/var/run/docker.sock`; the repository's
+documented Docker-capable path reran the exact same RC6 test successfully, so
+this was execution-context restriction rather than engine failure.

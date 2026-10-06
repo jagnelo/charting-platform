@@ -87,7 +87,10 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "ops/workstreams/feat-strategy-lab-v2/session.json"
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -124,14 +127,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "2bf12e30a80a9d68a790c71e5cf45b9f0590663c",
+  "head": "63d586007df123c691fa3c064c3e8535154b2fcf",
   "implementation_sha": "02ea2bfc3cf9234d9cddcdd08f58cefce75930fa",
-  "last_checkpoint": "2026-10-06T20:21:38.911113+00:00",
-  "last_human_progress_update": "2026-10-06T20:20:23.745371+00:00",
+  "last_checkpoint": "2026-10-06T20:30:28.978470+00:00",
+  "last_human_progress_update": "2026-10-06T20:29:34.014434+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Build one integrated test: exact RC6 OOS native output, production PostgreSQL terminal adapters, real Redis consumer crash after settlement before ACK, and restarted receipt-first ACK with no engine rerun.",
   "parent_branch": "staging",
-  "plan_hash": "b618cc987a7d4d4c606b9a9b69acdaa23ea5b8804238f145d79f5f47adce3a5d",
+  "plan_hash": "a562d651b0891c38e9de9aea2937881ca29716d45a2e0470a8296a46247e1a9e",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -153,14 +156,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "none",
+    "current_blocker": "No external dependency; only the integrated backtest/OOS runtime proof remains.",
     "current_phase": "oos-native-terminal-receipt-first-recovery-v1",
-    "next_action": "Build one integrated test: exact RC6 OOS native output, production PostgreSQL terminal adapters, real Redis consumer crash after settlement before ACK, and restarted receipt-first ACK with no engine rerun.",
+    "next_action": "Implement one exact RC6 walk-forward OOS integration through production PostgreSQL terminal settlement and real Redis consumer post-commit reclaim, asserting no second engine run.",
     "total": 18,
-    "updated_at": "2026-10-06T20:20:23.745346+00:00"
+    "updated_at": "2026-10-06T20:29:34.014412+00:00"
   },
-  "remote": "2bf12e30a80a9d68a790c71e5cf45b9f0590663c",
-  "remote_sha": "2bf12e30a80a9d68a790c71e5cf45b9f0590663c",
+  "remote": "63d586007df123c691fa3c064c3e8535154b2fcf",
+  "remote_sha": "63d586007df123c691fa3c064c3e8535154b2fcf",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
