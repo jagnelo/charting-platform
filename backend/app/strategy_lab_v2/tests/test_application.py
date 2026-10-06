@@ -597,6 +597,9 @@ def test_application_adapter_composes_trusted_host_bindings_over_shared_persiste
     async def search_dispatch(**_kwargs: Any) -> SearchDispatchResolution:
         raise AssertionError("resolver is captured here, not invoked")
 
+    async def walk_forward_observation_calendar(**_kwargs: Any) -> tuple[datetime, ...]:
+        raise AssertionError("resolver is captured here, not invoked")
+
     def build_bindings(
         supplied_session_factory: Any,
         persistence: PostgresStrategyLabV2Persistence,
@@ -606,6 +609,7 @@ def test_application_adapter_composes_trusted_host_bindings_over_shared_persiste
         return StrategyLabV2ApiBindings(
             capability_preflight=capability_preflight,
             search_dispatch=search_dispatch,
+            walk_forward_observation_calendar=walk_forward_observation_calendar,
         )
 
     adapter = PostgresStrategyLabV2Adapter(
@@ -617,6 +621,7 @@ def test_application_adapter_composes_trusted_host_bindings_over_shared_persiste
     assert observed["persistence"] is adapter._persistence
     assert adapter._capability_preflight is capability_preflight
     assert adapter._search_dispatch is search_dispatch
+    assert adapter._walk_forward_observation_calendar is walk_forward_observation_calendar
     assert adapter._search_dispatch_evidence is None
 
 

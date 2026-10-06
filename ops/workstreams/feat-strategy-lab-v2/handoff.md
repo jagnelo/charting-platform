@@ -13389,3 +13389,25 @@ contract, not a production host resolver or automatic queue/outbox dispatch.
 Next: implement and bind that authenticated package/snapshot resolver, then
 initialize training search state and coordinate restart-safe results through
 OOS queue append and the existing transactional outbox.
+
+## 2026-10-06 - Resolve walk-forward calendars from owner-pinned artifacts
+
+Added `AuthenticatedWalkForwardCalendarResolver`. It owner-loads the experiment
+portfolio, exact strategy versions, and every package fingerprint pinned by the
+experiment; checks candidate trial ownership/bindings; resolves package archive
+bytes and their embedded SDK manifests from the shared local content-addressed
+store; builds the canonical union data manifest; and runs the existing frozen
+series decoder/event-tape verifier before deriving event-time boundaries. The
+package and data resolvers must share the same artifact store. Decoding is
+offloaded from the API event loop and the resolver can be installed directly as
+`StrategyLabV2ApiBindings.walk_forward_observation_calendar`.
+
+Validation: walk-forward calendar, application binding, walk-forward
+application, and API router tests passed 83/83. The resolver test uses real
+owner-pinned package and frozen-series artifacts and checks that boundaries
+match decoded tape events. Focused MyPy, Ruff, formatting, and whitespace checks
+passed. This supplies the concrete reusable resolver but does not configure the
+deployment host's artifact root or provider-owned decoder. Next: compose those
+local host dependencies, then initialize the training queue and implement
+restart-safe result hydration, selected OOS append, and transactional outbox
+dispatch/cancel/replay coverage.

@@ -55,9 +55,13 @@ the API process. The `walk_forward_observation_calendar` binding must resolve
 the experiment's exact pinned strategy packages, build their union SDK data
 manifest, and derive unique event-time batches through the verified
 content-addressed snapshot decoder. The walk-forward endpoint accepts fold
-policy and candidate identities only; it never accepts observation dates. An
-absent binding preserves the typed 501 precondition response. An absent overall
-setting preserves the current typed 501 response.
+policy and candidate identities only; it never accepts observation dates.
+`AuthenticatedWalkForwardCalendarResolver` composes the owner-scoped resource
+reader, `StrategyPackageArtifactResolver`, and
+`FrozenEventTapeArtifactResolver` for that binding, sharing one content-addressed
+artifact store and offloading archive/data decoding away from the API event
+loop. An absent binding preserves the typed 501 precondition response. An absent
+overall setting preserves the current typed 501 response.
 
 The local transport is versioned JSON over a shared Unix-domain socket, not a
 network listener. The API sends only its authenticated owner identity and
