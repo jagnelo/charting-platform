@@ -454,6 +454,159 @@ def iter_verified_event_tape_stream(
     return _iter_artifact_events(resolution, store, max_event_bytes=max_event_bytes)
 
 
+def materialize_frozen_event_tape_stream(
+    store: LocalArtifactStore,
+    *,
+    snapshot: DataSnapshot,
+    manifest: StrategySdkManifest,
+    events: Iterable[MarketEvent],
+    source_artifact_digests: Iterable[str],
+    max_event_bytes: int = _DEFAULT_STREAM_EVENT_BYTES,
+    max_spool_bytes: int = _DEFAULT_STREAM_SPOOL_BYTES,
+) -> FrozenEventTapeStreamResolution:
+    """Publish an already ordered tape iterator without retaining its rows.
+
+    The caller owns source selection and identity resolution; this boundary
+    validates every streamed row against the frozen SDK declaration, computes
+    the semantic tape binding and raw artifact digest incrementally, and
+    publishes an immutable disk-backed representation.
+    """
+
+    if not isinstance(store, LocalArtifactStore):
+        raise TypeError("store must be a LocalArtifactStore")
+    if not isinstance(snapshot, DataSnapshot):
+        raise TypeError("snapshot must be a DataSnapshot")
+    if not isinstance(manifest, StrategySdkManifest):
+        raise TypeError("manifest must be a StrategySdkManifest")
+    if isinstance(events, str | bytes) or not isinstance(events, Iterable):
+        raise TypeError("events must be an iterable of MarketEvent values")
+    _validate_stream_limits(max_event_bytes)
+    if (
+        not isinstance(max_spool_bytes, int)
+        or isinstance(max_spool_bytes, bool)
+        or max_spool_bytes < 1_048_576
+    ):
+        raise ValueError("max_spool_bytes must be an integer of at least 1 MiB")
+
+    dependencies = {item.dependency_id: item for item in manifest.data_dependencies}
+    if not dependencies:
+        raise ValueError("stream manifest must declare at least one dependency")
+    dependency_coverage = {
+        dependency_id: select_snapshot_series(snapshot, dependency)
+        for dependency_id, dependency in dependencies.items()
+    }
+    allowed_sources = {series.content_digest for series in snapshot.series}
+    source_digests = tuple(sorted(set(source_artifact_digests)))
+    for digest in source_digests:
+        require_sha256_digest(digest, field_name="source_artifact_digest")
+    if not set(source_digests).issubset(allowed_sources):
+        raise ValueError("stream sources are outside the frozen snapshot")
+
+    dependency_counts = {dependency_id: 0 for dependency_id in dependencies}
+    dependency_events: dict[str, tuple[datetime, int]] = {}
+    prior_sort_key: tuple[datetime, int, str, str] | None = None
+    tape_digest = _new_event_tape_digest(snapshot.fingerprint)
+    raw_digest = hashlib.sha256()
+    event_count = 0
+    byte_length = 0
+    with tempfile.TemporaryDirectory(prefix="strategy-lab-event-tape-stream-") as workspace:
+        output_path = f"{workspace}/event-tape.ndjson"
+        with (
+            sqlite3.connect(f"{workspace}/event-ids.sqlite3") as identity_db,
+            open(output_path, "wb") as output,
+        ):
+            identity_db.execute("CREATE TABLE event_ids (event_id TEXT PRIMARY KEY)")
+            for event in events:
+                if not isinstance(event, MarketEvent):
+                    raise TypeError("event-tape stream must contain MarketEvent values")
+                dependency = dependencies.get(event.dependency_id)
+                if dependency is None:
+                    raise ValueError("event-tape stream contains an undeclared dependency")
+                candidates, effective_start, effective_end = dependency_coverage[
+                    event.dependency_id
+                ]
+                if (
+                    event.instrument_id != dependency.requirement.instrument_id
+                    or not effective_start <= event.event_time < effective_end
+                    or not any(
+                        series.start <= event.event_time < series.end for series in candidates
+                    )
+                    or set(event.values) != set(dependency.fields)
+                ):
+                    raise ValueError("event-tape stream row differs from its SDK declaration")
+                sort_key = (
+                    event.event_time,
+                    event.sequence,
+                    event.dependency_id,
+                    event.event_id,
+                )
+                if prior_sort_key is not None and sort_key < prior_sort_key:
+                    raise ValueError("event-tape stream must preserve canonical tape ordering")
+                prior_sort_key = sort_key
+                try:
+                    identity_db.execute("INSERT INTO event_ids VALUES (?)", (event.event_id,))
+                except sqlite3.IntegrityError as error:
+                    raise ValueError("event-tape stream event ids must be unique") from error
+                previous = dependency_events.get(event.dependency_id)
+                if previous is not None and (
+                    event.sequence <= previous[1] or event.event_time < previous[0]
+                ):
+                    raise ValueError("dependency events must advance sequence and time")
+                dependency_events[event.dependency_id] = (event.event_time, event.sequence)
+                wire_event = _encode_stream_event(event)
+                if len(wire_event) > max_event_bytes:
+                    raise ValueError("frozen event-tape stream row exceeds its configured bound")
+                line = wire_event + b"\n"
+                if byte_length + len(line) > max_spool_bytes:
+                    raise ValueError("frozen event-tape stream exceeds its spool limit")
+                if event_count:
+                    tape_digest.update(b",")
+                tape_digest.update(canonical_json(event).encode("utf-8"))
+                output.write(line)
+                raw_digest.update(line)
+                byte_length += len(line)
+                event_count += 1
+                dependency_counts[event.dependency_id] += 1
+            tape_digest.update(_event_tape_digest_suffix())
+            if any(count == 0 for count in dependency_counts.values()):
+                raise ValueError("event-tape stream must cover every declared dependency")
+            output.flush()
+            os.fsync(output.fileno())
+
+        tape_fingerprint = f"sha256:{tape_digest.hexdigest()}"
+        stream_digest = f"sha256:{raw_digest.hexdigest()}"
+        artifact = ArtifactManifest(
+            content_digest=stream_digest,
+            byte_length=byte_length,
+            media_type=FROZEN_EVENT_TAPE_STREAM_MEDIA_TYPE,
+            schema_version=FROZEN_EVENT_TAPE_STREAM_SCHEMA,
+            storage_key=stream_digest,
+            retention_class=ArtifactRetention.PINNED_INPUT,
+        )
+        publication = store.publish_file(artifact, output_path)
+        if publication.decision not in {
+            ArtifactStoreDecision.WRITTEN,
+            ArtifactStoreDecision.REUSED,
+        }:
+            raise ValueError("frozen event-tape stream failed content-addressed publication")
+
+    binding = EventTapeBinding(
+        event_tape_fingerprint=tape_fingerprint,
+        snapshot_fingerprint=snapshot.fingerprint,
+        manifest_fingerprint=manifest.fingerprint,
+        dependency_event_counts=tuple(sorted(dependency_counts.items())),
+    )
+    return FrozenEventTapeStreamResolution(
+        snapshot_fingerprint=snapshot.fingerprint,
+        manifest_fingerprint=manifest.fingerprint,
+        tape_fingerprint=tape_fingerprint,
+        binding=binding,
+        artifact=artifact,
+        event_count=event_count,
+        source_artifact_digests=source_digests,
+    )
+
+
 def select_bounded_verified_event_tape_window(
     resolution: FrozenEventTapeStreamResolution,
     store: LocalArtifactStore,
@@ -938,5 +1091,6 @@ __all__ = [
     "FrozenSeriesDecoder",
     "FrozenSeriesRow",
     "iter_verified_event_tape_stream",
+    "materialize_frozen_event_tape_stream",
     "select_bounded_verified_event_tape_window",
 ]

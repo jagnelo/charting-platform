@@ -12840,3 +12840,24 @@ This does not remove the in-memory warm-up bottleneck or prove actual RC5
 process start/checkpoint replacement. Next: make warm-up tape/canonical join,
 SDK-context generation, and native-event materialization disk-backed, then run
 the resulting plan through the exact pinned RC5 process integration.
+
+## 2026-10-06 - Bounded frozen-tape stream publication primitive
+
+`materialize_frozen_event_tape_stream` now accepts an ordered one-pass event
+iterator and publishes a verified content-addressed tape stream without keeping
+all event rows in RAM. It checks effective snapshot/preflight intervals and
+coverage, canonical event ordering, per-dependency sequence progression,
+dependency completeness, event size/spool limits, and duplicate IDs using a
+temporary SQLite uniqueness index. Empty dependency streams are deliberately
+rejected; the shared `EventTapeBinding` contract requires every declared input
+to have frozen events, so empty warm-up semantics need a separate explicit
+forward representation rather than weakening the common binder.
+
+Validation: event-tape artifact suite 19 passed; full Strategy Lab package
+1,534 passed and one opt-in image test skipped; changed-module MyPy, Ruff,
+formatting, and `git diff --check` passed. This is a verified low-level
+primitive, not yet wired into the forward resolver: the full in-memory
+warm-up join and downstream context/native-event materialization remain open.
+Next, introduce an artifact-backed forward warm-up resolution and consume it
+through the owner-scoped plan factory, then execute that exact plan through RC5
+startup and checkpoint replacement.

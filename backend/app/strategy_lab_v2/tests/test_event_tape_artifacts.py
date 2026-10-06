@@ -31,6 +31,7 @@ from app.strategy_lab_v2.event_tape_artifacts import (
     FrozenEventTapeStreamResolution,
     FrozenSeriesRow,
     iter_verified_event_tape_stream,
+    materialize_frozen_event_tape_stream,
 )
 from app.strategy_lab_v2.nautilus_event_adapter import (
     iter_materialized_nautilus_event_records,
@@ -177,6 +178,44 @@ def test_streaming_resolution_preserves_tape_identity_without_retaining_events(t
     assert streamed.event_count == materialized.tape.event_count
     assert tuple(iter_verified_event_tape_stream(streamed, store)) == materialized.tape.events
     assert store.path_for(streamed.artifact.storage_key).read_bytes().count(b"\n") == 2
+
+
+def test_stream_materializer_preserves_identity_from_one_pass_event_iterator(tmp_path) -> None:
+    snapshot, manifest, series, payload = _inputs(fields=("close",))
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    _publish(store, series, payload)
+    resolver = FrozenEventTapeArtifactResolver(store, JsonSeriesDecoder())
+    source = resolver.resolve(snapshot, manifest)
+    events = iter_verified_event_tape_stream(source, store)
+
+    result = materialize_frozen_event_tape_stream(
+        store,
+        snapshot=snapshot,
+        manifest=manifest,
+        events=events,
+        source_artifact_digests=source.source_artifact_digests,
+    )
+
+    assert result.tape_fingerprint == source.tape_fingerprint
+    assert result.binding == source.binding
+    assert result.event_count == source.event_count
+    assert tuple(iter_verified_event_tape_stream(result, store)) == tuple(
+        iter_verified_event_tape_stream(source, store)
+    )
+
+
+def test_stream_materializer_rejects_empty_dependency_stream(tmp_path) -> None:
+    snapshot, manifest, _series, _payload = _inputs(fields=("close",))
+    store = LocalArtifactStore(tmp_path / "artifacts")
+
+    with pytest.raises(ValueError, match="cover every declared dependency"):
+        materialize_frozen_event_tape_stream(
+            store,
+            snapshot=snapshot,
+            manifest=manifest,
+            events=iter(()),
+            source_artifact_digests=(),
+        )
 
 
 def test_bounded_window_selects_lookback_tail_through_exact_warmup_event(tmp_path) -> None:
