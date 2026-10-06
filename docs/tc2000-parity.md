@@ -7,10 +7,16 @@ assigns Shift+= to increase and Shift+- to decrease vertical projection space.
 The active chart applies this to its Y range symmetrically around the midpoint,
 including logarithmic charts, and stores the level in the chart configuration.
 The keyboard action is ignored in text editors and inactive chart windows, and
-the chart Help overlay documents it. Scale-math tests pass `3/3`; full frontend
-Vitest passes `1,235/1,235` across `294/294` suites and the production build
-passes. Browser hotkey/persistence verification and protected visual review
-remain open; no acceptance oracle or screenshot policy changed.
+the chart Help overlay documents it. Browser verification confirmed linear and
+logarithmic range changes, persistence across reload, editor-focus isolation,
+and unchanged timeframe. It exposed a workstation-shell collision, fixed and
+covered by the shifted-key guard in product commit `b24cc4267`. Scale-math
+tests pass `3/3`, workstation bindings `44/44`, full frontend Vitest
+`1,235/1,235` across `294/294` suites, and production type-check/build pass.
+The unchanged protected Help screenshot passed all four pinned viewport
+profiles. The full 104-case visual matrix remains incomplete after a separate
+run encountered transient `ERR_NETWORK_CHANGED` failures through the temporary
+proxy. No acceptance oracle or screenshot policy changed.
 
 ## 2026-10-06 — Shift+wheel chart-history pan
 

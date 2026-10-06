@@ -12,13 +12,19 @@ as timeframe navigation or type-to-search input. The shell guard and regression
 test are committed and pushed as `b24cc4267067d1e81a7219551cbf61f038cfb32d`.
 Focused projection math passed 3/3, focused workstation bindings passed 44/44,
 the full frontend suite passed 294 suites/1,235 tests, and Vue type-check/
-production build passed. Chart Help documents both shortcuts. The protected visual
-oracle remains unverified at this tip; no baseline, mask, threshold, or skip was
-changed. Provider/ETF behavior is untouched. Product/workstream commits
+production build passed. Chart Help documents both shortcuts. The unchanged
+protected Help screenshot passed in all four pinned Playwright viewport
+profiles. The full 104-case visual matrix was interrupted at 41/104 when
+requests through the temporary Vite proxy began returning `ERR_NETWORK_CHANGED`;
+the run is inconclusive, and no full-matrix result is claimed. No baseline,
+mask, threshold, or skip changed. Provider/ETF behavior is untouched. Product/workstream commits
 `280a79e7f0ec542fc45cc6ccd32234a81990fcd7` and
 `4153701428b326338658c88a65fd6019b82bf246` plus shell fix `b24cc4267067d1e81a7219551cbf61f038cfb32d` are pushed; continue the branch roadmap. The
 generic integration gate, broader AC4–AC7/R1/R5/R6, and staging-dependent
-provider/ETF consumption remain open.
+provider/ETF consumption remain open. The generic `validate-integration`
+target was not invoked because its exit trap runs `docker compose down -v` and
+branch resource cleanup against the live assigned project (six services, four
+data volumes). Preserve those resources while arranging an isolated exact gate.
 
 ## 2026-10-06 — Shift+wheel chart-history navigation
 

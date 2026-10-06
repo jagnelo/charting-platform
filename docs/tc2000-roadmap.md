@@ -11,14 +11,19 @@ The official [TC2000 projection-space reference](https://help.tc2000.com/m/69401
 defines Shift+= and Shift+- as increasing/decreasing chart margins above and
 below price. The active chart now expands/contracts its Y range in the current
 scale space (linear or logarithmic), persists the level in that chart's
-configuration, and lists the shortcuts in chart Help. Focused scale-math tests
-pass `3/3`; the full frontend suite passes `1,235/1,235` across `294/294`
-suites; Vue type-check and production build pass. The authenticated browser
-interaction could not be run in this execution sandbox: Docker socket access is
-denied and the Playwright CLI wrapper did not start. No screenshot baseline,
-mask, threshold, skip, provider/ETF behavior, or upstream worktree changed.
-Browser interaction/persistence and protected visual review remain open, as do
-the generic integration gate and broader AC4–AC7/R1/R5/R6 requirements.
+configuration, and lists the shortcuts in chart Help. Authenticated pinned
+Chromium verified linear/logarithmic range adjustment, configuration persistence
+across reload, editor-focus isolation, and unchanged timeframe. That run exposed
+a workstation-shell collision, fixed by product commit `b24cc4267`: shifted
+`=`/`-` no longer enter timeframe or type-to-search handling. Focused
+WorkstationView tests passed `44/44`; full frontend Vitest passed `1,235/1,235`
+across `294/294` suites; Vue type-check and production build passed. The
+unchanged protected Help screenshot passed `4/4` viewport profiles in pinned
+Playwright 1.62.1 Noble. A separate full 104-case visual run was interrupted
+after repeated `ERR_NETWORK_CHANGED` failures through the temporary loopback
+proxy; no full-matrix result is claimed. No screenshot baseline, mask,
+threshold, skip, provider/ETF behavior, or upstream worktree changed. Generic
+integration and broader AC4–AC7/R1/R5/R6 requirements remain open.
 
 ## 2026-10-06 — Shift+wheel chart-history navigation
 

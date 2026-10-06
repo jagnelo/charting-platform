@@ -20,15 +20,20 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  The projection-space slice is browser-verified in authenticated Chromium
-  against the assigned stack: Shift+=/- changes active-chart linear/logarithmic
-  range, setting survives snapshot/reload, focused editor suppresses the chart
-  action, and timeframe remains D1. Browser discovery found the workstation
-  shell intercepted the shifted keys; a shell guard and regression are now
-  included in pending source changes. Focused workstation tests passed 44/44;
-  exact-tip full frontend suite and build are being refreshed. The protected
-  visual oracle remains unverified at this tip, with no baseline/policy changes.
-  Generic integration, broader AC4-AC7/R1/R5/R6, and staging-gated provider/ETF
+  The projection-space slice is browser-verified in authenticated Chromium:
+  Shift+=/- changes active-chart linear/logarithmic range, setting survives
+  snapshot/reload, focused editor suppresses the chart action, and timeframe
+  remains D1. Browser discovery found and fixed a shell-level shifted-key
+  collision in pushed commit b24cc4267. Focused workstation tests passed
+  44/44; full frontend Vitest passed 294 suites/1,235 tests; type-check/build
+  passed. The protected Help screenshot passed 4/4 pinned viewport profiles.
+  The full 104-case visual matrix is inconclusive after repeated
+  ERR_NETWORK_CHANGED failures through the temporary proxy; no baseline or
+  policy changed. The generic validate-integration target was not invoked after
+  confirming its EXIT cleanup runs `docker compose down -v` and branch resource
+  cleanup against the live assigned project, which currently owns six active
+  services and four data volumes. Preserve those resources while arranging an
+  isolated exact gate. Broader AC4-AC7/R1/R5/R6 and staging-gated provider/ETF
   consumption remain open. Earlier checkpoint detail follows.
   Product commit b6f24fa44 adds V25 Shift+wheel chart-history panning via the
   existing uPlot viewport. Focused WorkstationView bindings passed 44/44, full
@@ -201,7 +206,7 @@ current_blocker: >-
   and ETF consumption is deferred until both branches reach staging.
 active_changeset_context:
   name: TC2000 V25 vertical projection-space keyboard shortcuts
-  status: shell_guard_pushed_browser_verified_visual_review_open
+  status: shell_guard_pushed_projection_browser_help_visual_passed_full_matrix_and_integration_open
   commit_sha: b24cc4267067d1e81a7219551cbf61f038cfb32d
   remote_sha: b24cc4267067d1e81a7219551cbf61f038cfb32d
   intent: >-
@@ -217,9 +222,10 @@ active_changeset_context:
     - docs/tc2000-roadmap.md
     - docs/tc2000-parity.md
   next_action: >-
-    Refresh exact-tip full frontend suite and build evidence; keep the protected
-    visual review and generic integration gates explicit. Continue bounded
-    TC-owned parity work; defer R2/R3 and shared-path reconciliation until both
+    Continue bounded TC-owned parity work and preserve the incomplete full
+    visual-matrix and generic-integration gates as open. Keep the assigned
+    Docker stack and its four data volumes intact; use a genuinely isolated
+    exact-gate route. Defer R2/R3 and shared-path reconciliation until both
     upstream branches reach staging. Stop only at ready_for_human_review.
 planning_state: ready
 local_validation_profile: full_stack_browser

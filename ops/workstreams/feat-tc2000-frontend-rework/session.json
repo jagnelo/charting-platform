@@ -131,11 +131,11 @@
   "head": "4ddb6bb21464868b23b2efc8db420457521270ec",
   "implementation_sha": "b24cc4267067d1e81a7219551cbf61f038cfb32d",
   "interrupted": false,
-  "last_checkpoint": "2026-10-06T18:26:27+00:00",
-  "last_human_progress_update": "2026-10-06T18:26:27+00:00",
+  "last_checkpoint": "2026-10-06T18:44:29+00:00",
+  "last_human_progress_update": "2026-10-06T18:44:29+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue the TC-owned roadmap; keep protected visual review and generic integration gates open, and defer provider/ETF consumption while those branches remain outside staging.",
-  "plan_hash": "0615d5be6d3d7978dfe37f40921f26e924f14e967f33bec0713857cb1fcf40b6",
+  "next_action": "Continue the TC-owned roadmap; preserve the full visual-matrix and generic integration gaps, identify a safe isolated exact-gate route, and defer provider/ETF consumption while those branches remain outside staging.",
+  "plan_hash": "60be88ea9332ab2b129d6f9710f0409453933dba10ec908c995b166117b4b957",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -149,11 +149,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "Authenticated Chromium verified projection changes in linear/log scales, persistence across reload, editor focus isolation, and unchanged timeframe. Browser testing exposed a shell-level shifted-key collision, now fixed with regression coverage. Focused workstation tests (44/44), full frontend suite (294/294 suites; 1,235/1,235 tests), production build, TC scope guard/self-tests, and workstream validation pass. Protected visual review remains open; generic integration, broader AC4-AC7/R1/R5/R6, and provider/ETF staging dependencies remain open.",
+    "current_blocker": "Authenticated Chromium verified projection changes in linear/log scales, persistence across reload, editor focus isolation, and unchanged timeframe. The shifted-key shell collision is fixed. Focused workstation tests (44/44), full frontend suite (294/294 suites; 1,235/1,235 tests), production build, scope self-tests, workstream validation, and protected Help visuals (4/4 pinned viewports) pass. The complete visual matrix was interrupted by ERR_NETWORK_CHANGED through the temporary proxy. Generic validate-integration was not run because its cleanup would remove the live assigned six-service project and four volumes. Broader AC4-AC7/R1/R5/R6 and provider/ETF staging dependencies remain open.",
     "current_phase": "R1_V25_KEYBOARD_PARITY",
-    "next_action": "Commit/push shell shortcut guard and workstream evidence; continue the full TC-owned roadmap, keeping the protected visual oracle and generic integration gate explicit and deferring provider/ETF consumption until both dependencies reach staging. Stop only at ready_for_human_review.",
+    "next_action": "Continue the TC-owned roadmap; preserve the incomplete full visual matrix and generic integration gates, pursue a safe isolated exact gate, and defer provider/ETF consumption until both dependencies reach staging. Stop only at ready_for_human_review.",
     "total": 9,
-    "updated_at": "2026-10-06T18:25:45+00:00"
+    "updated_at": "2026-10-06T18:44:29+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
