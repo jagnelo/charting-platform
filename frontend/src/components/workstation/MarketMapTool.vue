@@ -139,9 +139,10 @@
       <label v-if="colorMetric === 'python' || areaMetric === 'python'">Python output
         <select v-model="pythonCodeVersionId" aria-label="Market Map Python colour asset" :disabled="pythonAssetsLoading || pythonRunLoading">
           <option :value="null">Select a named Boolean or numeric-series output</option>
-          <option v-for="asset in pythonAssets.filter(item => areaMetric !== 'python' || item.outputContract === 'series')" :key="asset.versionId" :value="asset.versionId">{{ asset.name }} · {{ asset.outputContract }}</option>
+          <option v-for="asset in compatiblePythonAssets" :key="asset.versionId" :value="asset.versionId">{{ asset.name }} · {{ asset.outputContract }}</option>
         </select>
       </label>
+      <span v-if="pythonSelectionNotice" class="market-map-tool__status" role="status" aria-live="polite" aria-atomic="true">{{ pythonSelectionNotice }}</span>
       <span v-if="(colorMetric === 'python' || breadthUsesPython) && pythonRunLoading" class="market-map-tool__status" role="status" aria-live="polite" aria-atomic="true">Evaluating isolated Python…</span>
       <span v-if="(colorMetric === 'python' || areaMetric === 'python' || breadthUsesPython) && pythonRunError" class="market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ pythonRunError }}</span>
       <button type="button" class="market-map-tool__run" aria-label="Refresh Market Map" :disabled="loading || (!sourceId && !explicitSymbols.trim())" @click="run">{{ loading ? 'Loading…' : 'Refresh' }}</button>
@@ -368,6 +369,8 @@ const pythonAssets = ref<Array<{
 const pythonAssetsLoading = ref(false)
 const pythonRunLoading = ref(false)
 const pythonRunError = ref('')
+const pythonSelectionNotice = ref('')
+const compatiblePythonAssets = computed(() => pythonAssets.value.filter(asset => areaMetric.value !== 'python' || asset.outputContract === 'series'))
 const periods = ['1D', '1W', 'MTD', 'YTD', '1M', '3M', '6M', '1Y', 'CUSTOM']
 const startDate = ref(String(props.configuration.start_date ?? ''))
 const endDate = ref(String(props.configuration.end_date ?? ''))
@@ -1245,6 +1248,15 @@ function selectCanvasSearch(event: KeyboardEvent) {
 
 watch([visibleLayoutCells, selectedIds, useCanvasTiles], scheduleCanvasDraw, { deep: true })
 watch([viewportZoom, panX, panY], scheduleCanvasDraw)
+watch(areaMetric, (next, previous) => {
+  if (next !== 'python' || previous === 'python') return
+  const selected = pythonAssets.value.find(asset => asset.versionId === pythonCodeVersionId.value)
+  if (!selected || selected.outputContract === 'series') return
+  pythonCodeVersionId.value = null
+  pythonRunId.value = null
+  pythonSelectionNotice.value = 'Tile area requires a numeric-series output. Choose a compatible Python output.'
+})
+watch(pythonCodeVersionId, next => { if (next != null) pythonSelectionNotice.value = '' })
 const breadthCondition = computed<Record<string, unknown> | null>(() => {
   if (colorMetric.value !== 'breadth') return null
   if (advancedBreadthEditor.value) return breadthConditionTree.value

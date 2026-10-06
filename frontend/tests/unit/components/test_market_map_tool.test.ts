@@ -1411,6 +1411,31 @@ describe('MarketMapTool', () => {
     expect(wrapper.get('[role="alert"]').text()).toContain('tile area requires a compatible numeric-series Python output')
   })
 
+  it('clears a selected Boolean output with guidance when Python becomes the tile-area metric', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/code/assets') return Promise.resolve([{
+        kind: 'condition',
+        name: 'Eligibility',
+        versions: [{ id: 27, version_number: 1, output_contract: 'boolean', output_name: 'eligible' }],
+      }])
+      return Promise.resolve([])
+    })
+    const wrapper = mount(MarketMapTool, {
+      props: { configuration: { source_id: 'market-group:sp500', color_metric: 'python', python_code_version_id: 27, python_run_id: 81 } },
+    })
+    await flushPromises()
+
+    await wrapper.get('select[aria-label="Market Map area metric"]').setValue('python')
+    await flushPromises()
+
+    expect(wrapper.get('select[aria-label="Market Map Python colour asset"]').element).toHaveProperty('value', 'Select a named Boolean or numeric-series output')
+    expect(wrapper.get('[role="status"]').text()).toContain('Tile area requires a numeric-series output')
+    expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({
+      python_code_version_id: null,
+      python_run_id: null,
+    }))
+  })
+
   it('ignores stale Python run resolution after the source changes', async () => {
     const previousSources = sourceState.sources
     sourceState.sources = [
