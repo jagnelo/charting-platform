@@ -1,5 +1,26 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — TC2000 V25 direct active-chart timeframe shortcuts
+
+The current worktree adds Ctrl+1/3/4/5/6 shortcuts for 1m/5m/15m/30m/1h
+bars on the active chart, matching the supported intervals in this app's
+existing timeframe contract. Ctrl+2 remains unclaimed because the current
+frontend/backend contract does not provide TC2000's 2-minute interval. The
+handler only consumes a shortcut when a chart is active and its timeframe
+update succeeds; help text and regressions cover the supported map and
+unsupported/non-chart cases.
+
+Verification: WorkstationView pop-out bindings passed 39/39; pinned Chromium
+F8k-direct-timeframe passed 1/1 against the loopback Vite source and assigned
+backend; `git diff --check` passed. The initial E2E invocation targeted
+localhost:80 and failed before the browser flow; rerunning with
+`STACK_URL=http://127.0.0.1:15173` passed. Full frontend suite and
+type-check/build were not rerun because host memory had only about 1.2 GiB
+available with swap exhausted. No provider/ETF behavior or visual oracle,
+baseline, mask, threshold, or acceptance policy changed. Exact V25 review,
+generic integration, broader R1/R5/R6/AC7, and provider/ETF consumption after
+staging remain open.
+
 ## 2026-10-06 — TC2000 V25 active-chart bar navigation
 
 Product commit `a37ae3217` implements the current TC2000 V25 `[` / `]` one-bar
