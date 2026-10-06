@@ -12878,3 +12878,31 @@ calls `resolve_materialized`, and its canonical payload list, context assembly,
 and engine-input tape remain in memory. Next, replace those together with an
 artifact-backed canonical join; do not use this source-order helper as a
 substitute for global canonical ordering.
+
+## 2026-10-06 - Disk-backed canonical warm-up join and cursor cut
+
+Added `forward_warmup_stream.py` with a disk-bounded SQLite join between a
+verified frozen tape stream and a one-pass iterable of source-verified
+canonical payloads. It enforces unique canonical event IDs/sequences, declared
+dependency fields and effective snapshot intervals, exact tape/payload
+coverage, correction exclusion, receipt fingerprint/sequence identity, and a
+strictly prior current event. The prefix is selected by global canonical
+`(event_time, sequence)`, not the tape's per-dependency sequence. It publishes
+both a pinned canonical payload stream and a pinned frozen-tape prefix; readers
+verify artifact bytes, row bounds, ordering, count, and cursor before returning
+a second-pass iterator.
+
+Evidence: focused event-tape suite 24 passed; full Strategy Lab package 1,539
+passed and one opt-in image test skipped; package Ruff, changed-module MyPy,
+format, and whitespace checks passed. The regression fixture intentionally
+reverses global canonical sequence relative to source tape order and proves the
+prefix follows the receipt's global cursor.
+
+Important remaining gap: this resolver is not yet called by
+`AuthenticatedForwardSandboxPlanInputResolver`. That path still requests a
+materialized tape and a complete in-memory canonical payload sequence; context
+and native-event assembly and the bootstrap contract also remain sequence-based.
+Next, route the authenticated worker through this resolution and update its
+context/native-stream/bootstrap consumers to read these verified artifacts
+without materializing their rows, then run the exact plan through RC5 process
+startup/replacement.

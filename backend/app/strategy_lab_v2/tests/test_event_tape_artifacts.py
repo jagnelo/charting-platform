@@ -20,6 +20,7 @@ from app.strategy_lab_v2.capabilities import (
 from app.strategy_lab_v2.contracts import (
     AdjustmentMode,
     ArtifactManifest,
+    CarryInMode,
     DataSeriesManifest,
     DataSnapshot,
     EventGranularity,
@@ -34,11 +35,18 @@ from app.strategy_lab_v2.event_tape_artifacts import (
     iter_verified_event_tape_stream,
     materialize_frozen_event_tape_stream,
 )
+from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt
+from app.strategy_lab_v2.forward_warmup_stream import (
+    iter_verified_forward_warmup_payloads,
+    materialize_forward_warmup_stream,
+)
+from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.nautilus_event_adapter import (
     iter_materialized_nautilus_event_records,
     materialize_nautilus_event_tape,
 )
-from app.strategy_lab_v2.sdk import StrategyDataDependency, StrategySdkManifest
+from app.strategy_lab_v2.nautilus_forward_delivery import VerifiedForwardMarketPayload
+from app.strategy_lab_v2.sdk import MarketEvent, StrategyDataDependency, StrategySdkManifest
 
 BASE = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
 
@@ -632,3 +640,131 @@ async def test_authenticated_tape_resolver_rejects_fingerprint_aliases(tmp_path)
 
     with pytest.raises(ValueError, match="fingerprint does not match its key"):
         await resolver.resolve(requested_fingerprint, manifest)
+
+
+def test_forward_warmup_materializer_joins_canonical_ids_and_cuts_globally(tmp_path) -> None:
+    snapshot, manifest, series, payload = _inputs(fields=("close",))
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    _publish(store, series, payload)
+
+    class SameTimestampDecoder:
+        def iter_rows(self, series: DataSeriesManifest, source: BinaryIO):
+            del source
+            for sequence in range(series.row_count):
+                yield FrozenSeriesRow(
+                    f"bar-{sequence}",
+                    BASE,
+                    sequence,
+                    {"close": Decimal(100 + sequence)},
+                )
+
+    tape_resolver = FrozenEventTapeArtifactResolver(store, SameTimestampDecoder())
+    complete_tape = tape_resolver.resolve(snapshot, manifest)
+    events = tuple(iter_verified_event_tape_stream(complete_tape, store))
+    canonical_events = tuple(
+        CanonicalForwardEvent(
+            event_id=event.event_id,
+            sequence=20 if index == 0 else 10,
+            event_time=event.event_time,
+            arrived_at=event.event_time,
+            source_digest=series.content_digest,
+        )
+        for index, event in enumerate(events)
+    )
+    payloads = tuple(
+        VerifiedForwardMarketPayload(
+            canonical,
+            MarketEvent(
+                dependency_id=event.dependency_id,
+                event_id=event.event_id,
+                instrument_id=event.instrument_id,
+                event_time=event.event_time,
+                sequence=canonical.sequence,
+                values=event.values,
+            ),
+            series.content_digest,
+        )
+        for canonical, event in zip(canonical_events, events, strict=True)
+    )
+    receipt = ForwardWarmupReceipt(
+        instance_id="forward-1",
+        warmup_snapshot_fingerprint=snapshot.fingerprint,
+        carry_in_mode=CarryInMode.FLAT,
+        warmup_result_fingerprint=content_digest("warmup-result"),
+        completed_at=BASE + timedelta(days=3),
+        final_event_id=canonical_events[1].event_id,
+        final_event_sequence=canonical_events[1].sequence,
+        final_event_fingerprint=content_digest(canonical_events[1]),
+    )
+    before_event = CanonicalForwardEvent(
+        event_id="live-next",
+        sequence=canonical_events[1].sequence + 1,
+        event_time=canonical_events[1].event_time + timedelta(hours=1),
+        arrived_at=canonical_events[1].event_time + timedelta(hours=1),
+        source_digest=content_digest("live-source"),
+    )
+
+    resolved = materialize_forward_warmup_stream(
+        store,
+        snapshot=snapshot,
+        manifest=manifest,
+        complete_tape=complete_tape,
+        payloads=iter(payloads),
+        receipt=receipt,
+        before_event=before_event,
+    )
+
+    assert resolved.event_count == 1
+    assert resolved.tape.event_count == 1
+    assert resolved.cursor_event_id == receipt.final_event_id
+    assert (
+        tuple(iter_verified_event_tape_stream(resolved.tape, store))[0].event_id
+        == events[1].event_id
+    )
+    payload_rows = tuple(iter_verified_forward_warmup_payloads(resolved, store))
+    assert len(payload_rows) == 1
+    assert payload_rows[0] == payloads[1]
+
+
+def test_forward_warmup_materializer_rejects_payloads_with_missing_tape_identity(tmp_path) -> None:
+    snapshot, manifest, series, payload = _inputs(fields=("close",))
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    _publish(store, series, payload)
+    complete_tape = FrozenEventTapeArtifactResolver(store, JsonSeriesDecoder()).resolve(
+        snapshot,
+        manifest,
+    )
+    cursor = CanonicalForwardEvent(
+        event_id="missing-event",
+        sequence=10,
+        event_time=BASE,
+        arrived_at=BASE,
+        source_digest=series.content_digest,
+    )
+    receipt = ForwardWarmupReceipt(
+        "forward-1",
+        snapshot.fingerprint,
+        CarryInMode.FLAT,
+        content_digest("warmup-result"),
+        BASE + timedelta(days=1),
+        cursor.event_id,
+        cursor.sequence,
+        content_digest(cursor),
+    )
+
+    with pytest.raises(ValueError, match="omit the exact durable cursor"):
+        materialize_forward_warmup_stream(
+            store,
+            snapshot=snapshot,
+            manifest=manifest,
+            complete_tape=complete_tape,
+            payloads=iter(()),
+            receipt=receipt,
+            before_event=CanonicalForwardEvent(
+                "live-next",
+                11,
+                BASE + timedelta(hours=1),
+                BASE + timedelta(hours=1),
+                content_digest("live-source"),
+            ),
+        )
