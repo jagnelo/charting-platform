@@ -910,7 +910,9 @@ progress:
     Consume the approved platform canonical payload contract by wiring its
     resolver into the explicit forward-worker callback factory and Compose
     profile. Then verify event admission, long-idle heartbeat, pause/stop engine
-    disposal and restart recovery against real PostgreSQL/Redis. In parallel,
-    continue backtest/search acceptance by wiring training-only walk-forward
-    selection and frozen OOS evaluation into resumable candidate execution.
+    disposal and restart recovery against real PostgreSQL/Redis. For backtests,
+    bind each per-fold training and selected OOS task to its fold-specific
+    immutable ScientificTrial and EvaluationWindow, require native result
+    evidence to identify that exact trial/window, then persist the execution
+    lineage in resumable search state with restart/cancel coverage.
     Keep unsupported products fail-closed; stable Nautilus labeling is not a gate.

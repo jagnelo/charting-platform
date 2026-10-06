@@ -13209,3 +13209,44 @@ deterministic planning layer, not the larger walk-forward orchestration gate.
 Next: connect per-fold training-only candidate selection to immutable
 resumable candidate/trial state and freeze the selected candidate's OOS
 execution/aggregation so no test observations influence selection.
+
+## 2026-10-06 - Separate walk-forward training selection from OOS tasks
+
+Added the engine-neutral `walk_forward_search.py` contract. It expands an exact
+candidate-by-fold training task matrix using only each fold's training indices,
+requires complete unique score receipts for the declared metric, and selects a
+candidate per fold with stable candidate-index tie-breaking. Selection binds
+every output task to the exact training evidence fingerprint. Only after
+selection does it emit a task containing that candidate and the fold's test
+indices. OOS result collection accepts exactly those selected task fingerprints
+and returns results in chronological fold order; a training score or an
+unselected candidate cannot be substituted as an OOS result.
+
+Validation: the walk-forward orchestration and full engine-neutral core test
+modules passed 27/27; focused MyPy, Ruff, formatting, and `git diff --check`
+passed. This is a pure planning/evidence contract only: it does not yet persist
+fold tasks/resume state, construct fold-specific `ScientificTrial` windows,
+verify result manifests against training/OOS windows, dispatch Nautilus runs,
+or compute the final aggregate metrics. Next: compose those contracts with the
+existing owner-scoped search state and worker preparation, including explicit
+`training`/`out_of_sample` evaluation-window bindings and restart/cancel tests.
+
+## 2026-10-06 - Materialize fold-specific immutable trials
+
+Added `walk_forward_trials.py` to clone each base candidate into an immutable
+`ScientificTrial` whose half-open `EvaluationWindow` is derived from explicit
+observation boundaries. Training trials score only the fold's training interval.
+After deterministic selection, OOS trials are created only for each fold's
+winner; their scoring interval is the test window and their warm-up begins at
+the fold's training start. No bar duration is guessed, and insufficient or
+non-monotonic boundaries fail closed. Each task binding records the exact trial
+and evaluation-window fingerprints, and the result-binding verifier rejects
+native evidence rebound to another trial or window.
+
+Validation: walk-forward search/materialization and engine-neutral core tests
+passed 30/30. Focused MyPy passed for the new modules, experiments, and tests;
+Ruff, formatting, whitespace, and workstream validation passed. This does not
+yet persist fold-task lineage, resolve result manifests through the bindings,
+dispatch fold trials, or aggregate OOS metrics. Next: make training score
+receipts require the bound trial fingerprints and wire each phase into durable
+owner-scoped search state and worker preparation.
