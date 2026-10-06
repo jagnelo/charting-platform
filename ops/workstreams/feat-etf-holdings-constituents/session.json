@@ -70,7 +70,11 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -106,10 +110,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "82dcf8db453f0a3b96193e7c11eef647efc3ac43",
-  "implementation_sha": "82dcf8db453f0a3b96193e7c11eef647efc3ac43",
-  "last_checkpoint": "2026-10-06T00:41:56.761147+00:00",
-  "last_human_progress_update": "2026-10-05T20:29:50.045088+00:00",
+  "head": "1000a5e76e872911bb6fe3648f3af8c6fd828306",
+  "implementation_sha": "1000a5e76e872911bb6fe3648f3af8c6fd828306",
+  "last_checkpoint": "2026-10-06T00:44:58.192595+00:00",
+  "last_human_progress_update": "2026-10-06T00:43:57.406170+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "The local full_stack_browser gate is agent-owned, not a human task. Recheck Docker inventory and host headroom, and run only after unrelated and unlabeled workloads exit and resource preflight is safe. Do not change those resources or another worktree. AC10 awaits provider-platform staging; AC14 remains post-integration/deployment.",
   "plan_hash": "60a8039ed1eba544637c0203b6b6087dc5d86a02c659b30329c45667c3bd37f4",
@@ -136,14 +140,14 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for; provider totals remain 496 registered / 422 native / 74 fallback. The goal is incomplete with ten of fourteen acceptance criteria complete. Exact-SHA hosted checks passed on the prior receipt SHA; the protected Exhaustive Integration Gate was skipped by feature-branch design, and the Longview challenge remains an explicit access skip, not a live holdings-route pass. The local full_stack_browser gate is agent-owned, not a human task. At 2026-10-06 00:38 UTC, a fresh read-only host check showed six feat-tc2000-frontend-rework services and stremio-server still active; the previously observed unlabeled determined_fermi container had exited. Available RAM was 1.8 GiB, swap use 12 GiB, and load 3.04/2.80/2.70. Do not alter external resources. The local gate remains unsafe until the unrelated services exit and resource preflight is safe. The default sandbox cannot access Docker; inventory was narrowly elevated. The shared runtime-allocation lock is outside the writable worktree. AC7/AC8 remain open for the agent-run local gate and final review checkpoint; AC10 awaits provider-platform staging; AC14 remains post-integration/deployment. Do not mark the goal blocked or complete.",
-    "current_phase": "resource_gate_rechecked_2026_10_06_0038z_local_test_deferred",
-    "next_action": "Recheck Docker inventory and host headroom; run the agent-owned local full_stack_browser gate only after the unrelated feat-tc2000-frontend-rework services exit and resource preflight is safe. Continue only on this ETF branch. Do not change external resources or other worktrees. AC10 awaits provider-platform staging; AC14 is post-integration/deployment.",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for; provider totals are 496 registered / 422 native / 74 fallback. Eleven external containers are active across another worktree performance stack, another feature worktree, and Stremio. Current host has 2.8 GiB available RAM, 13 GiB swap used, and load 4.76/4.94/3.71. Passive wait session 32186 is live. Do not stop or modify those resources. The local ETF app/browser test is agent-owned, not a human task. Shared provider-platform staging and post-deployment observation remain later dependencies.",
+    "current_phase": "resource_wait_on_external_containers_2026_10_06",
+    "next_action": "Poll passive docker wait session 32186. If it returns, re-inventory all containers and host capacity; run the ETF full-stack browser test only after external workloads exit and resource preflight is safe.",
     "total": 14,
-    "updated_at": "2026-10-06T00:38:33.000000+00:00"
+    "updated_at": "2026-10-06T00:43:57.406151+00:00"
   },
-  "remote": "82dcf8db453f0a3b96193e7c11eef647efc3ac43",
-  "remote_sha": "82dcf8db453f0a3b96193e7c11eef647efc3ac43",
+  "remote": "1000a5e76e872911bb6fe3648f3af8c6fd828306",
+  "remote_sha": "1000a5e76e872911bb6fe3648f3af8c6fd828306",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "0bd23cfe-9271-4e5e-8621-db8985e62c75",

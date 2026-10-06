@@ -9377,4 +9377,16 @@ gate remains agent-owned and was not started because the unrelated services
 are still active and host capacity is lower, not safer. No outside container
 or worktree was changed. Recheck only after the other-worktree services exit
 and resource headroom is safe, then run the test from this exact ETF worktree.
+
+### Active resource wait — 2026-10-06 00:42 UTC
+
+The next read-only inventory found a newly active `tc2000-performance-20261006`
+Compose group (frontend, backend, Redis, and PostgreSQL) in addition to the
+six `feat-tc2000-frontend-rework` services and Stremio. The previously unlabeled
+container remains absent. Host state was 2.8 GiB available RAM, 13 GiB swap in
+use, and load 4.76/4.94/3.71. I started a passive `docker wait` on the exact
+eleven running external container IDs (tool session 32186); it does not stop or
+modify them. The ETF browser gate must wait for those containers to exit, then
+recheck capacity before starting. If the wait returns, re-inventory first—new
+containers or inadequate host capacity still mean do not start the gate.
 *** End of File
