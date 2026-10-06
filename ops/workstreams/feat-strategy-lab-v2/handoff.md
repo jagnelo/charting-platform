@@ -13506,3 +13506,29 @@ root/frozen decoder composition, and full integration/security/Compose/native
 acceptance. Docker remains unavailable in this session due denied socket access;
 this defers the exact-image/native validation but does not require waiting for a
 stable Nautilus 2.x label.
+
+## 2026-10-06 - Expose verified walk-forward OOS result receipts
+
+Commit `d28059ab6` adds owner-scoped result hydration after every selected OOS
+queue slot has succeeded. The application re-derives the training-only
+selection from durable training manifests, checks the appended queue against
+the deterministic selected OOS trial identities, then loads each completed
+attempt's owner-authenticated manifest and verifies its completion digest,
+trial, attempt, evaluation window, and authoritative Nautilus provenance. It
+returns exact OOS receipts in fold order and excludes training outcomes. The
+new `GET /api/v1/strategy-lab/v2/experiments/{experiment_id}/walk-forward/results`
+route exposes only that complete OOS set and labels the result scope.
+
+This is fold-level result hydration, not a persisted experiment aggregate
+metric set. A portfolio-level compounded return, Sharpe, drawdown, or related
+statistic cannot be derived honestly from only one scalar selection metric per
+fold; the native per-observation equity/fill artifact path must be used for
+those. Durable aggregate/result-summary identity and persistence remain open,
+alongside completion-driven queue scheduling, deployment host artifact/decoder
+composition, and full native/integration acceptance.
+
+Validation: focused walk-forward application/search, PostgreSQL search-state,
+and API router suites passed 75/75. Tests cover complete and deterministic OOS
+manifest rehydration and the result API envelope. Focused MyPy for application
+and router, Ruff, formatting, `git diff --check`, and workstream validation
+(30 records) passed.
