@@ -23,6 +23,7 @@ from app.strategy_lab_v2.search_dispatch_rpc import (
 from app.strategy_lab_v2.search_worker_handoff import (
     create_authenticated_search_dispatch_materializer,
 )
+from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
 from app.strategy_lab_v2.trial_hydration import (
     NautilusTrialDomainHydrator,
     OwnerScopedDomainReader,
@@ -292,7 +293,17 @@ def default_evidence_resolver_factory(
 def create_default_search_dispatch_binding_resolver(
     persistence: Any,
 ) -> SearchDispatchBindingResolver:
-    """Bind search dispatches to the authoritative persisted submission."""
+    """Bind search dispatches to their exact durable worker submission identity.
+
+    Search candidates are admitted internally and need not have an API
+    submissions-table row. In that case the PostgreSQL search-dispatch record
+    itself is the accepted submission record: it durably binds the idempotency
+    key, queue operation, attempt, payload digest, and creation time. Any
+    submissions-table row remains authoritative for an API-created attempt;
+    it must at least bind the same attempt, while its request digest and
+    operation may describe the original API command rather than the internal
+    worker payload.
+    """
 
     submissions = getattr(persistence, "submissions", None)
     loader = getattr(submissions, "load_submission", None)
@@ -307,6 +318,17 @@ def create_default_search_dispatch_binding_resolver(
             attempt_id=dispatch.request.attempt_id,
         )
         if receipt is None:
+            request = SubmissionRequest(
+                idempotency_key=dispatch.request.idempotency_key,
+                operation=dispatch.request.queue_name,
+                attempt_id=dispatch.request.attempt_id,
+                payload_digest=dispatch.request.payload_digest,
+                submitted_at=dispatch.request.created_at,
+            )
+            receipt = SubmissionReceipt(request, accepted_at=dispatch.request.created_at)
+        if not isinstance(receipt, SubmissionReceipt):
+            raise TypeError("submission lookup must return SubmissionReceipt or None")
+        if receipt.request.attempt_id != dispatch.request.attempt_id:
             return None
         return WorkerSubmissionBinding(dispatch.owner_id, receipt)
 

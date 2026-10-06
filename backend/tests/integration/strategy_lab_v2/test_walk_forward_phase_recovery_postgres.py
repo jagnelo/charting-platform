@@ -40,6 +40,10 @@ from app.strategy_lab_v2.postgres_search_state import (
     PostgresSearchStateSchema,
 )
 from app.strategy_lab_v2.postgres_storage import PostgresAggregateStore, PostgresStorageSchema
+from app.strategy_lab_v2.postgres_submission import (
+    PostgresSubmissionDispatchAdapter,
+    PostgresSubmissionSchema,
+)
 from app.strategy_lab_v2.postgres_walk_forward_plan import PostgresWalkForwardPlanAdapter
 from app.strategy_lab_v2.postgres_worker_state import (
     PostgresWorkerStateAdapter,
@@ -68,6 +72,7 @@ from app.strategy_lab_v2.walk_forward_trials import (
     materialize_walk_forward_training_trials,
     training_score_from_result_manifest,
 )
+from app.strategy_lab_v2.worker_callbacks import create_default_search_dispatch_binding_resolver
 from app.strategy_lab_v2.workers import WorkerKind, WorkerProfile
 
 NOW = datetime(2026, 10, 6, 18, 0, tzinfo=UTC)
@@ -398,6 +403,12 @@ async def test_postgres_composed_walk_forward_recovery_dispatch_and_outbox_resta
         payload_table=f"slv2_wf_full_payloads_{suffix}",
         outbox_table=event_schema.outbox_table,
     )
+    submission_schema = PostgresSubmissionSchema(
+        submission_table=f"slv2_wf_full_submissions_{suffix}",
+        dispatch_table=f"slv2_wf_full_submission_dispatches_{suffix}",
+        payload_table=f"slv2_wf_full_submission_payloads_{suffix}",
+        outbox_table=f"slv2_wf_full_submission_outbox_{suffix}",
+    )
     statements = (
         *search_schema.statements,
         *aggregate_schema.statements,
@@ -405,6 +416,7 @@ async def test_postgres_composed_walk_forward_recovery_dispatch_and_outbox_resta
         *worker_schema.statements,
         *event_schema.statements,
         *dispatch_schema.statements,
+        *submission_schema.statements,
     )
     tables = (
         search_schema.search_table,
@@ -423,6 +435,10 @@ async def test_postgres_composed_walk_forward_recovery_dispatch_and_outbox_resta
         dispatch_schema.admission_table,
         dispatch_schema.dispatch_table,
         dispatch_schema.payload_table,
+        submission_schema.submission_table,
+        submission_schema.dispatch_table,
+        submission_schema.payload_table,
+        submission_schema.outbox_table,
     )
     redis_client: Redis | None = None
     try:
@@ -457,6 +473,10 @@ async def test_postgres_composed_walk_forward_recovery_dispatch_and_outbox_resta
                 result_materialization=PostgresResultMaterializationAdapter(
                     session_factory,
                     schema=manifest_schema,
+                ),
+                submissions=PostgresSubmissionDispatchAdapter(
+                    session_factory,
+                    schema=submission_schema,
                 ),
             )
 
@@ -759,6 +779,21 @@ async def test_postgres_composed_walk_forward_recovery_dispatch_and_outbox_resta
         )
         assert dispatch_record is not None
         assert dispatch_record.request == dispatched.envelope.request
+        binding_resolver = create_default_search_dispatch_binding_resolver(restarted._persistence)
+        submission_binding = await cast(Any, binding_resolver)(dispatch_record)
+        # Internal walk-forward submissions have no API submissions row; the
+        # exact PostgreSQL search-dispatch identity supplies the terminal
+        # submission binding and cannot drift from the payload or attempt.
+        assert submission_binding is not None
+        assert submission_binding.owner_id == owner
+        assert submission_binding.receipt.request.idempotency_key == (
+            dispatch_record.request.idempotency_key
+        )
+        assert submission_binding.receipt.request.operation == dispatch_record.request.queue_name
+        assert submission_binding.receipt.request.attempt_id == dispatch_record.request.attempt_id
+        assert submission_binding.receipt.request.payload_digest == (
+            dispatch_record.request.payload_digest
+        )
 
         persisted_attempt = await restarted._resources.get_domain_contract(
             principal=SimpleNamespace(id=owner),

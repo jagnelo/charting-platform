@@ -481,10 +481,10 @@ async def test_default_evidence_resolver_factory_propagates_search_binding(
 @pytest.mark.asyncio
 async def test_default_search_binding_resolver_loads_authoritative_submission() -> None:
     request = SubmissionRequest(
-        "search-key",
-        "search",
+        "api-submit-key",
+        "run-trial",
         "attempt-1",
-        content_digest("search-payload"),
+        content_digest("api-request-payload"),
         NOW,
     )
     receipt = SubmissionReceipt(request, NOW)
@@ -503,7 +503,7 @@ async def test_default_search_binding_resolver_loads_authoritative_submission() 
         content_digest("search-experiment"),
         0,
         DispatchRequest(
-            "dispatch-key",
+            "search-key",
             "attempt-1",
             content_digest("search-payload"),
             "strategy-backtest",
@@ -518,3 +518,81 @@ async def test_default_search_binding_resolver_loads_authoritative_submission() 
     assert binding.owner_id == "owner-a"
     assert binding.receipt == receipt
     assert calls == [("owner-a", "attempt-1")]
+
+
+@pytest.mark.asyncio
+async def test_default_search_binding_resolver_uses_durable_dispatch_when_no_api_receipt() -> None:
+    class Persistence:
+        class submissions:
+            @staticmethod
+            async def load_submission(*, principal: Any, attempt_id: str) -> None:
+                assert principal == "owner-a"
+                assert attempt_id == "attempt-1"
+                return None
+
+    dispatch = SearchDispatchRecord(
+        "owner-a",
+        content_digest("search-experiment"),
+        0,
+        DispatchRequest(
+            "search-key",
+            "attempt-1",
+            content_digest("search-payload"),
+            "strategy-backtest",
+            NOW,
+        ),
+    )
+    resolver = create_default_search_dispatch_binding_resolver(Persistence())
+
+    binding = await cast(
+        Callable[[SearchDispatchRecord], Awaitable[WorkerSubmissionBinding | None]], resolver
+    )(dispatch)
+
+    assert binding is not None
+    assert binding.owner_id == dispatch.owner_id
+    assert binding.receipt.request.idempotency_key == dispatch.request.idempotency_key
+    assert binding.receipt.request.operation == dispatch.request.queue_name
+    assert binding.receipt.request.attempt_id == dispatch.request.attempt_id
+    assert binding.receipt.request.payload_digest == dispatch.request.payload_digest
+    assert binding.receipt.request.submitted_at == dispatch.request.created_at
+    assert binding.receipt.accepted_at == dispatch.request.created_at
+
+
+@pytest.mark.asyncio
+async def test_default_search_binding_resolver_rejects_submission_dispatch_mismatch() -> None:
+    mismatched_receipt = SubmissionReceipt(
+        SubmissionRequest(
+            "another-key",
+            "strategy-backtest",
+            "different-attempt",
+            content_digest("search-payload"),
+            NOW,
+        ),
+        NOW,
+    )
+
+    class Persistence:
+        class submissions:
+            @staticmethod
+            async def load_submission(**_kwargs: Any) -> SubmissionReceipt:
+                return mismatched_receipt
+
+    dispatch = SearchDispatchRecord(
+        "owner-a",
+        content_digest("search-experiment"),
+        0,
+        DispatchRequest(
+            "search-key",
+            "attempt-1",
+            content_digest("search-payload"),
+            "strategy-backtest",
+            NOW,
+        ),
+    )
+    resolver = create_default_search_dispatch_binding_resolver(Persistence())
+
+    binding = await cast(
+        Callable[[SearchDispatchRecord], Awaitable[WorkerSubmissionBinding | None]], resolver
+    )(dispatch)
+
+    assert binding is None
