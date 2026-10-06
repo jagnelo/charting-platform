@@ -2992,6 +2992,146 @@ def create_strategy_lab_router(
                 )
             )
 
+    @router.post(
+        "/experiments/{experiment_id}/walk-forward/dispatch",
+        status_code=status.HTTP_202_ACCEPTED,
+    )
+    async def dispatch_walk_forward_training_candidate(
+        experiment_id: str,
+        request: Request,
+        body: Any = Body(...),
+        idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> JSONResponse:
+        """Create/replay one fold attempt and stage it through normal dispatch."""
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            body = await _strict_json_body(request, request_id)
+            key = _safe_header_value(idempotency_key, "Idempotency-Key", 256)
+            if not isinstance(body, Mapping) or set(body) != {"candidate_index", "queue_name"}:
+                raise ApiAdapterError(
+                    _api_error(
+                        ApiErrorCode.VALIDATION_ERROR,
+                        "walk-forward dispatch body fields are invalid",
+                        request_id,
+                        status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        details={"required": ["candidate_index", "queue_name"]},
+                    )
+                )
+            candidate_index = body["candidate_index"]
+            queue_name = body["queue_name"]
+            if (
+                not isinstance(candidate_index, int)
+                or isinstance(candidate_index, bool)
+                or candidate_index < 0
+            ):
+                raise ApiAdapterError(
+                    _api_error(
+                        ApiErrorCode.VALIDATION_ERROR,
+                        "candidate_index must be a non-negative integer",
+                        request_id,
+                        status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    )
+                )
+            if not isinstance(queue_name, str) or not queue_name.strip():
+                raise ApiAdapterError(
+                    _api_error(
+                        ApiErrorCode.VALIDATION_ERROR,
+                        "queue_name must be a non-empty string",
+                        request_id,
+                        status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    )
+                )
+            dispatch = getattr(adapter, "dispatch_walk_forward_training_candidate", None)
+            if not callable(dispatch):
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        "walk-forward dispatch adapter is not configured",
+                        request_id,
+                        status.HTTP_501_NOT_IMPLEMENTED,
+                    )
+                )
+            resolution = await _resolve(
+                dispatch(
+                    principal=principal,
+                    request_id=request_id,
+                    idempotency_key=key,
+                    experiment_fingerprint=experiment_id,
+                    candidate_index=candidate_index,
+                    queue_name=queue_name,
+                )
+            )
+            if not isinstance(resolution, SearchDispatchResolution):
+                raise TypeError("adapter returned an invalid search dispatch resolution")
+            if resolution.decision is SearchDispatchDecision.SATURATED:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.RATE_LIMITED,
+                        "search worker capacity is saturated",
+                        request_id,
+                        status.HTTP_429_TOO_MANY_REQUESTS,
+                        retryable=True,
+                    )
+                )
+            if resolution.decision in {
+                SearchDispatchDecision.CONFLICT,
+                SearchDispatchDecision.REJECT,
+            }:
+                code = (
+                    ApiErrorCode.IDEMPOTENCY_CONFLICT
+                    if resolution.decision is SearchDispatchDecision.CONFLICT
+                    else ApiErrorCode.PRECONDITION_FAILED
+                )
+                return _error_response(
+                    _api_error(
+                        code,
+                        resolution.rejection_reason
+                        or "walk-forward candidate dispatch was rejected",
+                        request_id,
+                        status.HTTP_409_CONFLICT,
+                    )
+                )
+            attempt_id = resolution.search_state.candidates[candidate_index].attempt_id
+            if attempt_id is None:
+                raise ValueError("accepted walk-forward dispatch omitted its attempt identity")
+            response = JSONResponse(
+                status_code=status.HTTP_202_ACCEPTED,
+                content=serialize_search_dispatch(
+                    resolution,
+                    request_id=request_id,
+                    candidate_index=candidate_index,
+                    attempt_id=attempt_id,
+                ),
+            )
+            response.headers["X-Request-ID"] = request_id
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "walk-forward dispatch request is invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 walk-forward dispatch failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Strategy Lab v2 walk-forward dispatch failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
     @router.post("/experiments/{experiment_id}/search", status_code=status.HTTP_202_ACCEPTED)
     async def initialize_search(
         experiment_id: str,

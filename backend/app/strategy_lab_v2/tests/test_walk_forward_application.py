@@ -21,6 +21,7 @@ from app.strategy_lab_v2.search_state import (
     SearchCandidatePhase,
     SearchStateDecision,
     SearchStateResolution,
+    record_search_candidate_terminal,
     start_search_candidate,
 )
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs
@@ -72,18 +73,19 @@ def _setup(*, second_experiment: str | None = None):
     class Reader:
         def __init__(self) -> None:
             self.missing: set[tuple[ApiResourceType, str]] = set()
+            self.contracts = contracts
 
         async def get_domain_contract_by_fingerprint(self, **kwargs: Any) -> Any:
             assert kwargs["principal"].id == "42"
             key = (kwargs["resource_type"], kwargs["fingerprint"])
-            return None if key in self.missing else contracts.get(key)
+            return None if key in self.missing else self.contracts.get(key)
 
         async def get_domain_contracts_by_fingerprint(self, **kwargs: Any) -> Any:
             assert kwargs["principal"].id == "42"
             return {
-                fingerprint: contracts[(kwargs["resource_type"], fingerprint)]
+                fingerprint: self.contracts[(kwargs["resource_type"], fingerprint)]
                 for fingerprint in kwargs["fingerprints"]
-                if (kwargs["resource_type"], fingerprint) in contracts
+                if (kwargs["resource_type"], fingerprint) in self.contracts
                 and (kwargs["resource_type"], fingerprint) not in self.missing
             }
 
@@ -142,15 +144,25 @@ def _setup(*, second_experiment: str | None = None):
     async def create_resource(*, principal: Any, request_id: str, request: Any):
         assert principal.id == "42"
         attributes = request.payload["attributes"]
-        normalized = normalize_resource_attributes(ApiResourceType.TRIAL, attributes)
-        trial = normalized.typed_contract
-        assert isinstance(trial, ScientificTrial)
-        assert trial.trial_id == attributes["trial_id"]
-        if trial.trial_id not in published_trials:
-            published_trials.append(trial.trial_id)
+        normalized = normalize_resource_attributes(request.resource_type, attributes)
+        if request.resource_type is ApiResourceType.TRIAL:
+            trial = normalized.typed_contract
+            assert isinstance(trial, ScientificTrial)
+            assert trial.trial_id == attributes["trial_id"]
+            reader.contracts[(ApiResourceType.TRIAL, trial.trial_id)] = trial
+            if trial.trial_id not in published_trials:
+                published_trials.append(trial.trial_id)
+        elif request.resource_type is ApiResourceType.ATTEMPT:
+            attempt = normalized.typed_contract
+            reader.contracts[(ApiResourceType.ATTEMPT, normalized.domain_fingerprint)] = attempt
+        else:
+            raise AssertionError("unexpected walk-forward resource type")
         return SimpleNamespace(
             receipt=SimpleNamespace(
-                resource=SimpleNamespace(meta={"domain_fingerprint": trial.trial_id})
+                resource=SimpleNamespace(
+                    attributes=normalized.attributes,
+                    meta={"domain_fingerprint": normalized.domain_fingerprint},
+                )
             )
         )
 
@@ -272,3 +284,93 @@ async def test_application_fails_closed_without_verified_calendar_binding() -> N
             request=request,
         )
     assert plan_store.received is None
+
+
+@pytest.mark.asyncio
+async def test_training_dispatch_persists_and_replays_attempt_before_host_dispatch() -> None:
+    adapter, reader, _plan_store, definition, first, second = _setup()
+    boundaries = definition.observation_boundaries
+
+    async def resolve_calendar(**_kwargs: Any):
+        return boundaries
+
+    observed: list[dict[str, Any]] = []
+
+    async def dispatch(**kwargs: Any):
+        observed.append(kwargs)
+        return SimpleNamespace(decision="captured")
+
+    adapter._walk_forward_observation_calendar = resolve_calendar
+    adapter.dispatch_search_candidate = dispatch
+    request = WalkForwardDefinitionRequest(
+        candidate_fingerprints=(first.trial_id, second.trial_id),
+        spec=definition.spec,
+        metric_id=definition.metric_id,
+        direction=definition.direction,
+        max_tasks=definition.max_tasks,
+    )
+    await adapter.create_walk_forward_definition(
+        principal=User(),
+        request_id="create-for-dispatch",
+        idempotency_key="walk-forward-create-for-dispatch",
+        experiment_fingerprint=definition.experiment_fingerprint,
+        request=request,
+    )
+
+    first_result = await adapter.dispatch_walk_forward_training_candidate(
+        principal=User(),
+        request_id="dispatch-1",
+        idempotency_key="walk-forward-dispatch-0",
+        experiment_fingerprint=definition.experiment_fingerprint,
+        candidate_index=0,
+        queue_name="strategy-backtest",
+    )
+    second_result = await adapter.dispatch_walk_forward_training_candidate(
+        principal=User(),
+        request_id="dispatch-replay",
+        idempotency_key="walk-forward-dispatch-0",
+        experiment_fingerprint=definition.experiment_fingerprint,
+        candidate_index=0,
+        queue_name="strategy-backtest",
+    )
+
+    assert first_result == second_result
+    assert len(observed) == 2
+    first_intent = observed[0]["dispatch_intent"]
+    replay_intent = observed[1]["dispatch_intent"]
+    assert first_intent == replay_intent
+    assert first_intent.idempotency_key == "walk-forward-dispatch-0"
+    assert first_intent.attempt_id == observed[0]["attempt_id"]
+    assert observed[0]["candidate_index"] == 0
+    assert observed[0]["experiment_fingerprint"] == definition.experiment_fingerprint
+
+    state = adapter._persistence.search_state.states[definition.experiment_fingerprint]
+    started = start_search_candidate(
+        state,
+        0,
+        attempt_id=first_intent.attempt_id,
+        now=datetime(2026, 10, 6, 1, tzinfo=UTC),
+    )
+    failed = record_search_candidate_terminal(
+        started.state,
+        0,
+        attempt_id=first_intent.attempt_id,
+        phase=SearchCandidatePhase.FAILED,
+        now=datetime(2026, 10, 6, 1, 1, tzinfo=UTC),
+    )
+    adapter._persistence.search_state.states[definition.experiment_fingerprint] = failed.state
+    await adapter.dispatch_walk_forward_training_candidate(
+        principal=User(),
+        request_id="dispatch-retry",
+        idempotency_key="walk-forward-dispatch-retry",
+        experiment_fingerprint=definition.experiment_fingerprint,
+        candidate_index=0,
+        queue_name="strategy-backtest",
+    )
+    assert observed[2]["attempt_id"] != first_intent.attempt_id
+    assert any(
+        getattr(attempt, "ordinal", None) == 2
+        and getattr(attempt, "attempt_id", None) == observed[2]["attempt_id"]
+        for (resource_type, _fingerprint), attempt in reader.contracts.items()
+        if resource_type is ApiResourceType.ATTEMPT
+    )

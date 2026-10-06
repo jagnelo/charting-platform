@@ -36,6 +36,7 @@ from app.strategy_lab_v2.capability_summary import CapabilitySummary
 from app.strategy_lab_v2.commands import ExecutionCommand, ExecutionCommandResolution
 from app.strategy_lab_v2.contracts import (
     ArtifactManifest,
+    AttemptState,
     DataSnapshot,
     ExperimentDefinition,
     ForwardInstance,
@@ -1290,6 +1291,174 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                 "persisted walk-forward training queue differs from its immutable plan"
             )
         return resolution
+
+    async def dispatch_walk_forward_training_candidate(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        idempotency_key: str,
+        experiment_fingerprint: str,
+        candidate_index: int,
+        queue_name: str,
+    ) -> SearchDispatchResolution:
+        """Create/replay the exact fold trial attempt and stage its normal dispatch.
+
+        Attempt IDs are derived from the immutable experiment, queue slot, trial,
+        and retry ordinal. The attempt resource is persisted before dispatch so
+        the existing isolated preparation, worker admission, and transactional
+        outbox path remains the only route to Nautilus execution.
+        """
+
+        if not isinstance(request_id, str) or not request_id.strip():
+            raise ValueError("request_id must not be empty")
+        if not isinstance(idempotency_key, str) or not idempotency_key.strip():
+            raise ValueError("idempotency_key must not be empty")
+        if not isinstance(queue_name, str) or not queue_name.strip():
+            raise ValueError("queue_name must not be empty")
+        require_sha256_digest(experiment_fingerprint, field_name="experiment_fingerprint")
+        if (
+            not isinstance(candidate_index, int)
+            or isinstance(candidate_index, bool)
+            or candidate_index < 0
+        ):
+            raise ValueError("candidate_index must be a non-negative integer")
+        owner = _principal_identity(principal)
+        definition = await self._persistence.walk_forward_plans.load(
+            principal=owner,
+            experiment_fingerprint=experiment_fingerprint,
+        )
+        if not isinstance(definition, WalkForwardExecutionDefinition):
+            raise ApiAdapterError(
+                ApiError(
+                    ApiErrorCode.NOT_FOUND,
+                    "walk-forward plan is unavailable to this owner",
+                    request_id,
+                    404,
+                )
+            )
+        initialized = await self.initialize_walk_forward_training(
+            principal=owner,
+            request_id=request_id,
+            definition=definition,
+        )
+        state = initialized.state
+        if candidate_index >= len(state.candidates):
+            raise ValueError("candidate_index is outside the walk-forward training queue")
+        candidate = state.candidates[candidate_index]
+        if state.cancellation_requested:
+            raise ApiAdapterError(
+                ApiError(
+                    ApiErrorCode.CONFLICT,
+                    "walk-forward training cancellation has been requested",
+                    request_id,
+                    409,
+                    False,
+                    {"experiment_fingerprint": experiment_fingerprint},
+                )
+            )
+        if candidate.phase in {SearchCandidatePhase.SUCCEEDED, SearchCandidatePhase.CANCELLED}:
+            raise ApiAdapterError(
+                ApiError(
+                    ApiErrorCode.CONFLICT,
+                    "walk-forward training candidate is already terminal",
+                    request_id,
+                    409,
+                    False,
+                    {"candidate_index": candidate_index},
+                )
+            )
+
+        if candidate.phase is SearchCandidatePhase.RUNNING:
+            if candidate.attempt_id is None:
+                raise ValueError("running walk-forward candidate has no durable attempt identity")
+            attempt_id = candidate.attempt_id
+            ordinal = candidate.attempt_count
+        else:
+            ordinal = candidate.attempt_count + 1
+            attempt_id = content_digest(
+                {
+                    "schema": "strategy-lab.walk-forward-training-attempt.v1",
+                    "owner_id": owner.id,
+                    "experiment_fingerprint": experiment_fingerprint,
+                    "candidate_index": candidate_index,
+                    "trial_fingerprint": candidate.trial_fingerprint,
+                    "ordinal": ordinal,
+                }
+            )
+        attempt_domain_fingerprint = content_digest(
+            {"attempt_id": attempt_id, "trial_id": candidate.trial_fingerprint, "ordinal": ordinal}
+        )
+        attempt = await self._resources.get_domain_contract_by_fingerprint(
+            principal=owner,
+            resource_type=ApiResourceType.ATTEMPT,
+            fingerprint=attempt_domain_fingerprint,
+        )
+        if attempt is None:
+            created_at = self._clock()
+            proposed = RunAttempt(
+                attempt_id=attempt_id,
+                trial_id=candidate.trial_fingerprint,
+                ordinal=ordinal,
+                state=AttemptState.QUEUED,
+                created_at=created_at,
+            )
+            attributes = dict(freeze_json(proposed))
+            attributes["resource_id"] = proposed.attempt_id
+            mutation = ResourceMutationRequest(
+                ApiResourceType.ATTEMPT,
+                f"walk-forward-attempt:{attempt_id}",
+                {"attributes": attributes},
+                created_at,
+            )
+            created = await self.create_resource(
+                principal=owner,
+                request_id=content_digest(
+                    {"attempt_id": attempt_id, "purpose": "publish_walk_forward_attempt"}
+                ),
+                request=mutation,
+            )
+            attempt = (
+                normalize_resource_attributes(
+                    ApiResourceType.ATTEMPT,
+                    created.receipt.resource.attributes,
+                ).typed_contract
+                if created.receipt is not None
+                else None
+            )
+            if attempt is None:
+                # Another request may have won the immutable attempt-identity
+                # reservation; accept only that exact owner-visible winner.
+                attempt = await self._resources.get_domain_contract_by_fingerprint(
+                    principal=owner,
+                    resource_type=ApiResourceType.ATTEMPT,
+                    fingerprint=attempt_domain_fingerprint,
+                )
+        if (
+            not isinstance(attempt, RunAttempt)
+            or attempt.attempt_id != attempt_id
+            or attempt.trial_id != candidate.trial_fingerprint
+            or attempt.ordinal != ordinal
+            or attempt.state is not AttemptState.QUEUED
+        ):
+            raise ValueError(
+                "walk-forward attempt resource is missing or differs from its queue slot"
+            )
+
+        intent = SearchDispatchIntent(
+            idempotency_key=idempotency_key,
+            attempt_id=attempt_id,
+            queue_name=queue_name,
+            created_at=attempt.created_at,
+        )
+        return await self.dispatch_search_candidate(
+            principal=owner,
+            request_id=request_id,
+            experiment_fingerprint=experiment_fingerprint,
+            candidate_index=candidate_index,
+            attempt_id=attempt_id,
+            dispatch_intent=intent,
+        )
 
     async def create_resource(
         self,

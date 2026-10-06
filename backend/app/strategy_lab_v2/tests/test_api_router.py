@@ -54,7 +54,7 @@ from app.strategy_lab_v2.commands import (
     ExecutionCommandResolution,
 )
 from app.strategy_lab_v2.contracts import CarryInMode, ForwardInstance, ForwardState
-from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.dispatch import DispatchRequest, SearchDispatchIntent
 from app.strategy_lab_v2.experiments import WalkForwardMode, WalkForwardSpec
 from app.strategy_lab_v2.forward_account import initial_forward_account_state
 from app.strategy_lab_v2.forward_corrections import CounterfactualReplayPlan
@@ -467,6 +467,7 @@ class FakeAdapter:
         self.preflights: list[tuple[str, str, str]] = []
         self.search_states: dict[str, SearchExecutionState] = {}
         self.search_dispatches: list[SearchDispatchResolution] = []
+        self.walk_forward_dispatch_requests: list[dict[str, Any]] = []
         self.document = _document()
 
     async def list_resources(self, **kwargs: Any) -> ResourceCollection:
@@ -625,6 +626,25 @@ class FakeAdapter:
         )
         self.search_dispatches.append(resolution)
         return resolution
+
+    async def dispatch_walk_forward_training_candidate(
+        self, **kwargs: Any
+    ) -> SearchDispatchResolution:
+        self.walk_forward_dispatch_requests.append(kwargs)
+        attempt_id = "walk-forward-generated-attempt"
+        return await self.dispatch_search_candidate(
+            principal=kwargs["principal"],
+            request_id=kwargs["request_id"],
+            experiment_fingerprint=kwargs["experiment_fingerprint"],
+            candidate_index=kwargs["candidate_index"],
+            attempt_id=attempt_id,
+            dispatch_intent=SearchDispatchIntent(
+                kwargs["idempotency_key"],
+                attempt_id,
+                kwargs["queue_name"],
+                NOW,
+            ),
+        )
 
 
 class ConflictAdapter(FakeAdapter):
@@ -1319,6 +1339,50 @@ def test_search_dispatch_api_rejects_unknown_fields_and_missing_idempotency() ->
         )
         assert invalid.status_code == 422
         assert invalid.json()["errors"][0]["code"] == "validation_error"
+
+
+def test_walk_forward_dispatch_api_generates_attempt_through_search_dispatch_boundary() -> None:
+    experiment = content_digest("walk-forward-dispatch-experiment")
+    adapter = FakeAdapter()
+    with _client(adapter) as client:
+        response = client.post(
+            f"/api/v1/strategy-lab/v2/experiments/{experiment}/walk-forward/dispatch",
+            headers={"Idempotency-Key": "walk-forward-dispatch-key"},
+            json={"candidate_index": 0, "queue_name": "strategy-backtest"},
+        )
+
+    assert response.status_code == 202, response.text
+    assert response.json()["data"]["attributes"]["decision"] == "enqueue"
+    assert len(adapter.walk_forward_dispatch_requests) == 1
+    observed = adapter.walk_forward_dispatch_requests[0]
+    assert observed["experiment_fingerprint"] == experiment
+    assert observed["candidate_index"] == 0
+    assert observed["idempotency_key"] == "walk-forward-dispatch-key"
+    assert observed["queue_name"] == "strategy-backtest"
+
+    with _client(object()) as client:
+        unsupported = client.post(
+            f"/api/v1/strategy-lab/v2/experiments/{experiment}/walk-forward/dispatch",
+            headers={"Idempotency-Key": "walk-forward-dispatch-key"},
+            json={"candidate_index": 0, "queue_name": "strategy-backtest"},
+        )
+    assert unsupported.status_code == 501
+
+
+def test_walk_forward_dispatch_api_rejects_unknown_body_fields() -> None:
+    experiment = content_digest("walk-forward-dispatch-experiment")
+    with _client(FakeAdapter()) as client:
+        response = client.post(
+            f"/api/v1/strategy-lab/v2/experiments/{experiment}/walk-forward/dispatch",
+            headers={"Idempotency-Key": "walk-forward-dispatch-key"},
+            json={
+                "candidate_index": 0,
+                "queue_name": "strategy-backtest",
+                "attempt_id": "caller-cannot-choose-attempt",
+            },
+        )
+    assert response.status_code == 422
+    assert response.json()["errors"][0]["code"] == "validation_error"
 
 
 def test_router_lists_preserved_legacy_imports_without_payload_bytes() -> None:

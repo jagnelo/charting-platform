@@ -68,10 +68,17 @@ definition and trial fingerprints. If the request is interrupted between these
 steps, an exact plan replay republishes any missing trials and initializes or
 replays the queue without replacing candidate state that has already advanced
 to running or terminal. Queue conflicts fail as HTTP 409; they do not dispatch work.
-The host must still connect pending queue entries to the existing durable
-submission/outbox path. An absent calendar binding preserves the typed 501
-precondition response. An absent overall setting preserves the current typed
-501 response.
+`POST /experiments/{experiment_id}/walk-forward/dispatch` selects one queue
+slot. The application creates or reuses an owner-scoped `QUEUED` run-attempt
+resource whose identity binds the experiment, candidate slot, trial fingerprint,
+and retry ordinal, then delegates to the ordinary isolated search preparation
+and atomic worker-admission/transactional-outbox dispatch path. The caller
+chooses only the queue name and slot; it cannot provide the attempt identity or
+worker/runtime evidence. Repeating the same idempotency key reuses the durable
+attempt and dispatch intent. Capacity saturation leaves the candidate pending
+and permits a retry without changing its attempt identity. An absent calendar
+binding preserves the typed 501 precondition response. An absent overall setting
+preserves the current typed 501 response.
 
 The local transport is versioned JSON over a shared Unix-domain socket, not a
 network listener. The API sends only its authenticated owner identity and

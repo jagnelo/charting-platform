@@ -13456,3 +13456,26 @@ worker lease/capacity, and atomic admission/outbox persistence, so it must be
 coordinated through those existing adapters rather than inferred from queue
 indices. OOS transition/replay and production host artifact/decoder composition
 remain open.
+
+## 2026-10-06 - Dispatch walk-forward slots through the normal worker boundary
+
+Added `POST /api/v1/strategy-lab/v2/experiments/{experiment_id}/walk-forward/dispatch`
+for one deterministic training queue slot. The application reloads/replays the
+owner-bound plan and queue, derives the slot's stable attempt ID from owner,
+experiment, slot, trial, and retry ordinal, and persists/reuses an immutable
+`QUEUED` attempt resource before dispatch. The request cannot choose an attempt
+ID or supply runtime evidence. It delegates to the existing
+`dispatch_search_candidate` path, retaining isolated owner hydration, exact
+Nautilus/conformance preflight, worker lease/capacity selection, and the
+transactional admission/dispatch/outbox write. A saturated dispatch leaves the
+queue candidate pending and the saved attempt can be retried; terminal failed
+attempts advance the deterministic ordinal on retry.
+
+Validation: walk-forward application, queue/search, calendar, API router, and
+main application suites passed 97/97. The application test verifies the exact attempt resource and dispatch
+intent are reused on replay; route tests cover accepted dispatch, fail-closed
+unconfigured hosts, and strict body fields. MyPy passed for application/router;
+Ruff and formatting passed. This is per-slot training dispatch, not automatic
+bulk scheduling. Training completion/result-manifest hydration, selected OOS
+trial publication and queue append/replay, host artifact/decoder composition,
+and final branch validation remain open.
