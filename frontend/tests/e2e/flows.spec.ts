@@ -2256,6 +2256,22 @@ test.describe('TC2000 workstation', () => {
     await page.mouse.wheel(0, -180)
     await expect.poll(fingerprint, { timeout: 10_000 }).not.toBe(beforeZoom)
 
+    // TC2000 Shift+wheel pans chart history without changing the zoom span.
+    // Repeated bounded gestures should move away from the latest edge and
+    // expose the existing return-to-latest affordance.
+    await page.keyboard.down('Shift')
+    try {
+      for (let i = 0; i < 8 && !(await chart.locator('.go-to-latest').count()); i += 1) {
+        await page.mouse.wheel(0, -420)
+        await page.waitForTimeout(120)
+      }
+    } finally {
+      await page.keyboard.up('Shift')
+    }
+    await expect(chart.locator('.go-to-latest')).toBeVisible({ timeout: 10_000 })
+    await chart.getByRole('button', { name: 'Go to latest bar' }).click()
+    await expect(chart.locator('.go-to-latest')).toHaveCount(0)
+
     const beforePan = await fingerprint()
     // A horizontal wheel delta is the browser-level equivalent of a
     // trackpad swipe and is handled by the chart's pan path.

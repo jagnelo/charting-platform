@@ -2017,6 +2017,22 @@ function setupInteraction(u: uPlot) {
     const xMax = u.scales.x.max!
     const isPinch = e.ctrlKey
 
+    // TC2000 Shift+wheel pans chart history. Use the vertical wheel delta as
+    // the pan axis, matching the existing horizontal-trackpad gesture while
+    // leaving ordinary wheel zoom and Ctrl+wheel timeframe navigation intact.
+    if (e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX
+      if (delta === 0) return
+      const span = xMax - xMin
+      const pxWidth = getRect().width || 1
+      const panDelta = delta * WHEEL_PAN_SENSITIVITY
+      setXRange(
+        xMin + (panDelta / pxWidth) * span,
+        xMax + (panDelta / pxWidth) * span,
+      )
+      return
+    }
+
     // Price axis — zoom Y
     if (isOnYAxis(e.clientX)) {
       const yMin = u.scales.y.min!, yMax = u.scales.y.max!

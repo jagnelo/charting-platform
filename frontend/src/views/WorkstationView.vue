@@ -57,6 +57,7 @@
               <div><dt>.</dt><dd>Cycle the active chart date pointer off, on, and on with data values</dd></div>
               <div><dt>/</dt><dd>Open the active chart's plot library and search indicators</dd></div>
               <div><dt>[ / ]</dt><dd>Move the active chart backward or forward one bar; Shift moves five bars</dd></div>
+              <div><dt>Shift+wheel</dt><dd>Pan chart history</dd></div>
               <div><dt>Ctrl+wheel</dt><dd>Over a chart: change timeframe; over a WatchList: move through symbols</dd></div>
               <div><dt>= / -</dt><dd>Over the active chart: change timeframe</dd></div>
               <div><dt>F1–F12</dt><dd>Load the chart template assigned to that key</dd></div>
@@ -2149,7 +2150,7 @@ function handleGlobalKeydownCapture(event: KeyboardEvent) {
 function handleWheel(event: WheelEvent) {
   if (handledWheelEvents.has(event)) return
   handledWheelEvents.add(event)
-  const controlPressed = event.ctrlKey || ctrlWheelHeld.value || event.getModifierState?.('Control') === true
+  const controlPressed = !event.shiftKey && (event.ctrlKey || ctrlWheelHeld.value || event.getModifierState?.('Control') === true)
   if (!controlPressed || event.metaKey || event.altKey || event.deltaY === 0) return
   const target = event.target
   if (!(target instanceof Element)) return
