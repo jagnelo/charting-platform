@@ -134,23 +134,32 @@ current_blocker: >-
   and was stopped after the constrained host became unresponsive; do not claim a
   full-suite pass at this tip. The generic integration gate, exact V25 visual
   review, broader criteria, and staging-dependent upstream consumption remain open.
+  At pushed product commit c61246cca261f8dc33d88690c5f411983a8440c1, the
+  workstation now implements the current V25 Backspace viewed-symbol history
+  shortcut using a persisted 50-entry history that preserves repeated visits,
+  walks backward without wrapping, and truncates the future branch on a new
+  selection. Editor Backspace remains native. Focused store/workstation/watchlist
+  tests passed 120/120, pinned authenticated F8k-backspace passed 1/1, Help
+  visual coverage passed 4/4 pinned viewport profiles, and type-check/build
+  passed. The complete frontend suite and generic integration gate remain open.
 active_changeset_context:
-  name: TC2000 V25 symbol traversal shortcut parity
-  status: pushed_focused_unit_browser_build_and_visual_verified_full_suite_and_generic_gate_open
-  commit_sha: 0984717a9514d745908899e25ea9a7212638be09
-  remote_sha: 0984717a9514d745908899e25ea9a7212638be09
+  name: TC2000 V25 Backspace viewed-symbol history
+  status: committed_focused_unit_browser_build_and_four_profile_visual_verified_full_suite_and_generic_gate_open
+  commit_sha: c61246cca261f8dc33d88690c5f411983a8440c1
+  remote_sha: c61246cca261f8dc33d88690c5f411983a8440c1
   intent: >-
-    Match current TC2000 V25 symbol traversal shortcuts across the workstation
-    shell, focused watchlists, Help, tests, and parity documentation while
-    preserving editor ownership of literal spaces and watchlist selection state.
+    Implement TC2000 V25 Backspace through viewed-symbol history using bounded,
+    persisted navigation while preserving repeated visits, non-wrapping back
+    behavior, forward-branch truncation, and native editor Backspace.
   owned_paths:
     - frontend/src/views/WorkstationView.vue
-    - frontend/src/components/workstation/VirtualWatchlistTool.vue
+    - frontend/src/stores/recentInstruments.ts
     - frontend/tests/e2e/flows.spec.ts
     - frontend/tests/e2e/tc2000_visual.spec.ts
-    - frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts
     - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
+    - frontend/tests/unit/stores/test_recent_instruments.test.ts
     - docs/tc2000-parity.md
+    - docs/tc2000-roadmap.md
   next_action: >-
     Continue the complete TC-owned R1/R5/R6 roadmap. Preserve the V25 visual
     references and acceptance policy. Resolve the generic integration gate only
@@ -190,6 +199,7 @@ owned_paths:
   - frontend/src/components/strategy/
   - frontend/src/stores/dashboardLinks.ts
   - frontend/src/stores/panelLinks.ts
+  - frontend/src/stores/recentInstruments.ts
   - frontend/src/stores/workspace.ts
   - frontend/src/lib/workstation/
   - frontend/tests/unit/

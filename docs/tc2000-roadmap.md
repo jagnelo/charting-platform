@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-06
 
+## 2026-10-06 — Backspace navigates viewed-symbol history
+
+Product commit `c61246cca261f8dc33d88690c5f411983a8440c1` adds the current
+TC2000 V25 Backspace symbol-history shortcut on top of the previously aligned
+Space/Ctrl+Space traversal. The bounded, persisted history retains repeated
+visits, walks toward older selections without wrapping, and truncates its
+forward branch if the user selects a new symbol after going back. The Help menu
+advertises the shortcut; text-editor Backspace remains native editing input.
+
+Focused store/workstation/watchlist Vitest passed `120/120`; authenticated
+pinned Chromium `F8k-backspace` passed `1/1`; the single Help visual case passed
+in all four pinned viewport profiles; Vue type-check and production build
+passed. No screenshot baseline or threshold changed. The complete frontend
+suite and generic integration gate remain open at this exact tip; this is a
+bounded keyboard-parity receipt, not whole-roadmap completion.
+
 ## 2026-10-06 — Market Map Python area selection stays contract-valid
 
 Product commit `326a96bf0c7531356fae0db441405c1a951da8ac` keeps the Python

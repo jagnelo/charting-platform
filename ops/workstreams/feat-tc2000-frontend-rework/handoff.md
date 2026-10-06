@@ -1,5 +1,26 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — V25 Backspace viewed-symbol history
+
+Pushed product commit `c61246cca261f8dc33d88690c5f411983a8440c1` implements
+TC2000's current Backspace-through-viewed-symbol-history shortcut. The new
+workstation-owned history is persisted and bounded to 50 entries, preserves
+repeated symbol visits, traverses backward without wrapping, and discards the
+future branch when the user makes a new selection after going back. Backspace
+in the active-symbol editor remains ordinary text editing. The Help menu and
+authenticated browser regression document the same behavior.
+
+Verification: recent-history store, WorkstationView, and VirtualWatchlistTool
+focused suites passed `120/120`; pinned authenticated Chromium
+`F8k-backspace` passed `1/1`; pinned Help screenshot coverage passed `4/4`
+viewport profiles; Vue type-check and production build passed. No screenshot
+baseline or visual acceptance threshold changed. The full frontend suite has
+not produced a current-tip result after the preceding silent resource-stalled
+attempt, and generic integration remains open. The assigned six-service stack
+was preserved. Current direct refs remain TC `c61246cc`, staging `8b885a2f`,
+provider platform `88132e91`, and ETF holdings `2bd22166`; provider/ETF remain
+outside staging, so their consumption is deferred.
+
 ## 2026-10-06 — TC2000 V25 symbol traversal shortcut parity
 
 Pushed product commit `0984717a9514d745908899e25ea9a7212638be09` aligns shell
