@@ -115,6 +115,7 @@
           <div class="sc-row"><kbd>+</kbd><kbd>-</kbd> Zoom in / out</div>
           <div class="sc-row"><kbd>←</kbd><kbd>→</kbd> Pan 5 bars</div>
           <div class="sc-row"><kbd>[</kbd><kbd>]</kbd> Pan 1 bar; Shift for 5 bars</div>
+          <div class="sc-row"><kbd>Shift+=</kbd><kbd>Shift+-</kbd> Increase / decrease vertical projection space</div>
           <div class="sc-row"><kbd>Alt</kbd><kbd>R</kbd> Go to latest</div>
           <div class="sc-row"><kbd>L</kbd> Toggle log scale</div>
           <div class="sc-row"><kbd>?</kbd> This help</div>
@@ -200,6 +201,7 @@ import { useOptionsExposureStore } from '@/stores/optionsExposure'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { useQuery } from '@tanstack/vue-query'
 import { isEditorTarget } from '@/lib/workstation/keyboard'
+import { adjustChartProjectionRange, normalizeChartProjectionSteps } from '@/lib/workstation/chart-projection'
 import { candlestickPlugin }       from '@/lib/uplot/plugins/candlestick'
 import { ohlcBarsPlugin }          from '@/lib/uplot/plugins/ohlc-bars'
 import { baselinePlugin }          from '@/lib/uplot/plugins/baseline'
@@ -301,6 +303,25 @@ const effectiveChartType = computed(() => props.chartType ?? userSettingsStore.c
 type DatePointerMode = 'off' | 'on' | 'on_with_values'
 const DATE_POINTER_MODE_ORDER: readonly DatePointerMode[] = ['off', 'on', 'on_with_values']
 const localDatePointerMode = ref<DatePointerMode>('on_with_values')
+const projectionSteps = ref(normalizeChartProjectionSteps(props.chartSettings?.projection_space))
+watch(() => props.chartSettings?.projection_space, value => {
+  projectionSteps.value = normalizeChartProjectionSteps(value)
+})
+function setProjectionSteps(next: number) {
+  const normalized = normalizeChartProjectionSteps(next)
+  if (normalized === projectionSteps.value) return
+  projectionSteps.value = normalized
+  if (props.chartSettings) emit('configuration', { projection_space: normalized })
+  refreshScalesPreservingX()
+}
+function handleProjectionSpaceKeydown(event: KeyboardEvent) {
+  if (!event.shiftKey || event.ctrlKey || event.metaKey || event.altKey || isEditorTarget(event.target)) return
+  if (event.code !== 'Equal' && event.code !== 'Minus') return
+  const chartPanel = rootRef.value?.closest('.chart-panel')
+  if (chartPanel && !chartPanel.classList.contains('is-active')) return
+  event.preventDefault()
+  setProjectionSteps(projectionSteps.value + (event.code === 'Equal' ? 1 : -1))
+}
 const datePointerMode = computed<DatePointerMode>(() => {
   const configured = props.chartSettings?.date_pointer_mode
   return configured === 'off' || configured === 'on' || configured === 'on_with_values'
@@ -923,8 +944,7 @@ function restoreView(view: ViewSnapshot | null, xOffset = 0) {
     uplot.setScale('x', { min: view.xMin + xOffset, max: view.xMax + xOffset })
   }
   if (!autoY.value && view.yMin != null && view.yMax != null) {
-    manualYMin = view.yMin
-    manualYMax = view.yMax
+    ;[manualYMin, manualYMax] = adjustChartProjectionRange(view.yMin, view.yMax, -projectionSteps.value, isLogScale.value)
     uplot.setScale('y', { min: view.yMin, max: view.yMax })
   }
 }
@@ -1198,15 +1218,24 @@ const hasVolumeIndicator = computed(() =>
 )
 
 // ── Y-scale range ─────────────────────────────────────────────────────────────
+function storeManualYRange(displayMin: number, displayMax: number) {
+  ;[manualYMin, manualYMax] = adjustChartProjectionRange(
+    displayMin,
+    displayMax,
+    -projectionSteps.value,
+    isLogScale.value,
+  )
+}
+
 function yRangeFn(u: uPlot): [number, number] {
   // Manual lock: user has dragged/scrolled the Y axis
   if (!autoY.value && manualYMin !== null && manualYMax !== null) {
     // Log scale: clamp to strictly positive
     if (isLogScale.value) {
       const safeMin = Math.max(manualYMin, manualYMax * 1e-6)
-      return [safeMin, manualYMax]
+      return adjustChartProjectionRange(safeMin, manualYMax, projectionSteps.value, true)
     }
-    return [manualYMin, manualYMax]
+    return adjustChartProjectionRange(manualYMin, manualYMax, projectionSteps.value)
   }
   // Auto-fit to visible bars
   const [x, , highs, lows] = u.data as number[][]
@@ -1234,8 +1263,8 @@ function yRangeFn(u: uPlot): [number, number] {
   const yMin = lo - pad
   const yMax = hi + pad
   // Log scale: floor must be strictly positive — use actual data min, not zero
-  if (isLogScale.value) return [Math.max(yMin, lo * 0.92), yMax]
-  return [yMin, yMax]
+  if (isLogScale.value) return adjustChartProjectionRange(Math.max(yMin, lo * 0.92), yMax, projectionSteps.value, true)
+  return adjustChartProjectionRange(yMin, yMax, projectionSteps.value)
 }
 
 // ── Log scale toggle ──────────────────────────────────────────────────────────
@@ -2040,9 +2069,10 @@ function setupInteraction(u: uPlot) {
       const half = (yMax - yMin) / 2
       const f    = e.deltaY > 0 ? 1.08 : 1 / 1.08
       autoY.value = false
-      manualYMin  = isLogScale.value ? Math.max(mid - half * f, yMax * 1e-6) : mid - half * f
-      manualYMax  = mid + half * f
-      u.setScale('y', { min: manualYMin, max: manualYMax })
+      const displayMin = isLogScale.value ? Math.max(mid - half * f, yMax * 1e-6) : mid - half * f
+      const displayMax = mid + half * f
+      storeManualYRange(displayMin, displayMax)
+      u.setScale('y', { min: displayMin, max: displayMax })
       renderVisualOverlays()
       return
     }
@@ -2125,9 +2155,10 @@ function setupInteraction(u: uPlot) {
       const mid  = (priceStartMin + priceStartMax) / 2
       const half = (priceStartMax - priceStartMin) / 2 * f
       autoY.value = false
-      manualYMin  = isLogScale.value ? Math.max(mid - half, mid * 1e-6) : mid - half
-      manualYMax  = mid + half
-      u.setScale('y', { min: manualYMin, max: manualYMax })
+      const displayMin = isLogScale.value ? Math.max(mid - half, mid * 1e-6) : mid - half
+      const displayMax = mid + half
+      storeManualYRange(displayMin, displayMax)
+      u.setScale('y', { min: displayMin, max: displayMax })
       renderVisualOverlays()
       return
     }
@@ -2222,6 +2253,8 @@ function setupInteraction(u: uPlot) {
 
   const onKeyDown = (e: KeyboardEvent) => {
     if (!keyboardEnabled.value || isEditorTarget(e.target)) return
+    handleProjectionSpaceKeydown(e)
+    if (e.defaultPrevented) return
     const [ts] = u.data as number[][]
     if (!ts?.length) return
     const xMin   = u.scales.x.min!
