@@ -13888,3 +13888,27 @@ dependency. Next product work is backend-owned backtest/search/recovery and
 durable cancellation/retry; also add an authenticated end-to-end curve-download
 fixture. Reconcile frontend browser failures only after the owning branch is
 ready for shared review.
+
+## 2026-10-06 - Authenticated ASGI curve-download proof
+
+Commit `a6559d5b4b1cda7249fe1393f6ed8b3bb83319df` adds a positive HTTP-level
+test through the in-process FastAPI ASGI app. It uses the authenticated
+principal dependency, publishes a real content-addressed artifact to the local
+artifact store, then verifies the streamed response body, content length,
+digest/cache headers, and owner-bound adapter request. The test-only AnyIO
+offload is inlined because this constrained pytest runner otherwise hangs at
+shutdown; the test still exercises ASGI routing, dependency resolution, and
+StreamingResponse iteration.
+
+Validation: `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 backend/.venv/bin/pytest -q -o
+addopts='' backend/app/strategy_lab_v2/tests/test_api_router.py -k
+authenticated_asgi` passed (`1 passed, 57 deselected`); Ruff check/format,
+single-file MyPy, and `git diff --check` passed. The configured pytest runner
+did not exit after reporting the test pass with default plugin autoload, so
+that invocation was interrupted and is not counted as a clean run. Commit
+`a6559d5b4b1cda7249fe1393f6ed8b3bb83319df` was pushed; exact remote equality
+is recorded in the operational checkpoint.
+
+Next: continue backend-owned backtest/search, cancellation/retry, and
+phase-boundary recovery acceptance work; full-stack browser failures remain a
+cross-workstream gate for the TC2000 frontend owner.
