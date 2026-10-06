@@ -12500,10 +12500,17 @@ counted as passing. Host Docker is available (server 29.1.3); an unprivileged
 status probe's Docker permission error is superseded by the elevated host check.
 
 This closes the exact-checkpoint context-composition increment. The active
-runtime-assembly changeset remains in progress. Next implement the per-owner
-forward runtime bootstrap-plan builder: resolve frozen warm-up and canonical
-processed history through explicit platform adapters, prepare immutable engine
-inputs, stage and fingerprint bootstrap/context/native-stream artifacts, and
-build the hardened RC5 sandbox plan bound to the exact instance/checkpoint.
-Then add application/entrypoint fail-closed tests and continue the other open
-acceptance criteria. Do not start a different feature context.
+runtime-assembly changeset remains in progress.
+
+Next implementation context: `strategy-lab-v2-forward-process-bootstrap-input-propagation-v1`.
+Owned files are `backend/app/strategy_lab_v2/nautilus_forward_session.py`,
+`backend/app/strategy_lab_v2/nautilus_forward_process.py`,
+`backend/app/strategy_lab_v2/tests/test_nautilus_forward_session.py`,
+`backend/app/strategy_lab_v2/tests/test_nautilus_forward_process.py`, and
+`backend/app/strategy_lab_v2/tests/test_nautilus_forward_process_integration.py`.
+Thread the accepted delivery and authenticated pre-event context into native
+process startup, retain them for exact-checkpoint replacement after process
+loss, and reject mismatched or absent bootstrap bindings. Preserve direct
+process-factory tests that deliberately build fixed fixtures without dispatch
+context. This enables the subsequent production bootstrap artifact builder;
+do not fabricate a synthetic `before_event` or canonical ordering.
