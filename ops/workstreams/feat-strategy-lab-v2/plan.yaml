@@ -857,23 +857,32 @@ progress:
     - strategy-lab-v2-durable-search-cancellation-v1
     - strategy-lab-v2-postgres-backed-curve-download-v1
   total: 18
-  current_phase: walk-forward-phase-boundary-recovery-v1
+  current_phase: oos-native-terminal-receipt-first-recovery-v1
   active_changeset:
-    id: strategy-lab-v2-walk-forward-phase-boundary-recovery-v1
+    id: strategy-lab-v2-oos-native-terminal-receipt-first-recovery-v1
     scope: >-
-      Audit and close the durable walk-forward training-to-OOS phase boundary
-      across a coordinator/process restart. Persist training completion,
-      training-only selection, selected OOS trial append, and OOS dispatch in
-      PostgreSQL; reconstruct a fresh application/coordinator after an
-      interruption at each boundary and prove deterministic idempotent replay,
-      no duplicate OOS tasks, and no OOS leakage into selection. Preserve
-      attempt identity, outbox/ACK ordering, and owner isolation. Do not modify
+      Close the recovered walk-forward OOS dispatch through exact-pinned native
+      Nautilus execution, PostgreSQL terminal result settlement, and Redis
+      consumer acknowledgement/reclaim. Authenticate and idempotently bootstrap
+      owner-scoped initial execution/runtime state before process launch. On
+      redelivery, replay a matching durable completion/settlement/release before
+      starting Nautilus again. Preserve training-only selection, attempt and
+      payload identity, outbox ordering, and owner isolation. Do not modify
       provider or frontend paths.
     owned_paths:
-      - backend/app/strategy_lab_v2/application.py
-      - backend/app/strategy_lab_v2/postgres_walk_forward_plan.py
-      - backend/app/strategy_lab_v2/walk_forward_search.py
-      - backend/app/strategy_lab_v2/tests/test_walk_forward_application.py
+      - backend/app/strategy_lab_v2/worker_initial_state.py
+      - backend/app/strategy_lab_v2/worker_callbacks.py
+      - backend/app/strategy_lab_v2/worker_service.py
+      - backend/app/strategy_lab_v2/worker_recovery_application.py
+      - backend/app/strategy_lab_v2/worker_entrypoint.py
+      - backend/app/strategy_lab_v2/redis_application.py
+      - backend/app/strategy_lab_v2/tests/test_worker_initial_state.py
+      - backend/app/strategy_lab_v2/tests/test_worker_callbacks.py
+      - backend/app/strategy_lab_v2/tests/test_worker_service.py
+      - backend/app/strategy_lab_v2/tests/test_worker_entrypoint.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_worker_terminal.py
+      - backend/app/strategy_lab_v2/tests/test_search_dispatch_preparation.py
+      - backend/tests/integration/strategy_lab_v2/test_worker_recovery_postgres.py
       - backend/tests/integration/strategy_lab_v2/test_walk_forward_phase_recovery_postgres.py
     status: in_progress
   current_blocker: >-
@@ -916,9 +925,14 @@ progress:
     atomic OOS dispatch/outbox staging, and Redis publisher replay after a
     simulated crash before PostgreSQL outbox acknowledgement. A fresh adapter
     replays the same attempt/dispatch and PostgreSQL acknowledges exactly one
-    published outbox message. OOS consumer completion/ACK after a durable
-    terminal receipt is still only covered by generic worker integration,
-    not the recovered walk-forward OOS path. Broader worker/Compose restart
+    published outbox message. OOS terminal receipt replay now runs before
+    worker lease preflight/process execution through the shared recovery
+    application. A crash-window worker test proves a settled Redis redelivery
+    ACKs with one process invocation; exact RC6 OOS execution/result
+    materialization and PostgreSQL worker recovery integrations also pass.
+    These are adjacent proofs, not yet one actual-RC6 walk-forward OOS test
+    crossing PostgreSQL terminal result settlement with real Redis consumer
+    restart/reclaim. Broader worker/Compose restart
     evidence and full backtest/search/API/security/Compose criteria remain,
     along with exact-tip branch gates.
     The earlier forward-bootstrap artifact/plan composition slice remains
@@ -928,10 +942,12 @@ progress:
     branches; unsupported options remain fail-closed pending canonical
     Greeks/delta/settlement evidence.
   next_action: >-
-    Extend the recovered OOS path through worker terminal settlement and
-    Redis consumer ACK, proving ACK follows a matching durable result receipt
-    across worker restart. Preserve training-only selection, stable attempt
-    identity, and owner isolation. Then continue backtest/search, security,
+    Compose an actual RC6 OOS native execution with production PostgreSQL
+    terminal adapters and a real Redis consumer; inject a crash after terminal
+    settlement but before ACK, then prove the restarted consumer ACKs from the
+    matching durable completion/settlement without running Nautilus again.
+    Preserve training-only selection, stable attempt identity, and owner
+    isolation. Then continue backtest/search, security,
     Compose and exact-tip criteria. Reconcile the 13 browser failures only after the
     frontend owner has completed its work and shared-path semantics can be
     reviewed together. Finish security, Compose scaling, and exact-tip gates.

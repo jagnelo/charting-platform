@@ -109,6 +109,34 @@ binding. This remains native execution/result-evidence proof only: the OOS path
 still needs production PostgreSQL terminal settlement and Redis ACK/reclaim
 across worker restart.
 
+## 2026-10-06 - Receipt-first terminal replay before Nautilus re-execution
+
+The worker service previously materialized the search handoff and immediately
+ran Nautilus on every Redis delivery; a completed terminal receipt was only
+consulted later in the recovery path. Added an optional pre-execution terminal
+replay callback, wired through the worker entrypoint and Redis runtime. The
+search-worker composition delegates to the existing recovery application's
+`complete_terminal_if_persisted`, which requires a matching result completion,
+worker settlement/admission/reservation, released capacity and lease, and
+succeeded search candidate before returning COMPLETE. The worker now ACKs that
+verified receipt before lease preflight or engine launch. Settlement recovery
+also verifies the exact admission fingerprint.
+
+The worker terminal crash-window test simulates a response lost after durable
+commit, then reclaims and redelivers through the real worker entrypoint with a
+counting process executor. First delivery executes once; the redelivery and a
+duplicate both ACK from the durable receipt without another process invocation.
+The production PostgreSQL worker-recovery and OOS walk-forward recovery tests
+passed (4 total), as did 56 focused worker/callback/terminal/recovery tests;
+Ruff, focused MyPy, and diff checks passed. Exact RC6 OOS execution/result
+materialization passed separately (recorded above).
+
+Remaining: one integrated recovered walk-forward OOS test must connect actual
+RC6 native output to the production PostgreSQL terminal adapters and real Redis
+consumer restart/ACK boundary. Partial terminal writes before the full
+completion/settlement/release predicate remain eligible for deterministic
+re-execution; durable repair of those partial projections remains open.
+
 ## 2026-10-05 - PostgreSQL plus Redis forward recovery integration
 
 The new integration test under `backend/tests/integration/strategy_lab_v2/`
