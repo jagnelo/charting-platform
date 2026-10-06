@@ -243,7 +243,7 @@ class NautilusBacktestForwardSession(NautilusNativeForwardSession):
     def _replace_state_with_replay(self, offset: int) -> None:
         """Replace the disposed engine and replay only the settled prefix.
 
-        Keep only one Nautilus BacktestEngine alive while restoring: the RC5
+        Keep only one Nautilus BacktestEngine alive while restoring: the RC6
         runtime fixture showed that a replacement engine can miss its staged
         callback while the previous engine is still active.
         """
@@ -424,8 +424,8 @@ def build_native_forward_session_factory(
         raise NautilusRuntimeDataError("forward engine input differs from the warm-up stream")
     if content_digest(engine_input) != bootstrap.engine_input_fingerprint:
         raise NautilusRuntimeDataError("forward engine input fingerprint differs from bootstrap")
-    if runtime_package_version() != "2.0.0rc5":
-        raise NautilusRuntimeDataError("forward runtime requires the qualified Nautilus RC5 image")
+    if runtime_package_version() != "2.0.0rc6":
+        raise NautilusRuntimeDataError("forward runtime requires the qualified Nautilus RC6 image")
 
     context_digest, _context_length, context_count, component_counts = _context_stream_contract(
         bundle
@@ -726,7 +726,10 @@ def _create_backtest_engine(
         account_type,
         balances,
         base_currency=Currency.from_str(venue_definition["base_currency"]),
-        fee_model=materialize_native_fee_model(venue_definition["fee_model"]),
+        fee_model=materialize_native_fee_model(
+            venue_definition["fee_model"],
+            zero_fee_currency=venue_definition["base_currency"],
+        ),
     )
     for definition in instrument_definitions:
         engine.add_instrument(materialize_native_instrument(definition))

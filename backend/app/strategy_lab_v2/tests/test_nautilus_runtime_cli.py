@@ -241,19 +241,19 @@ def test_v5_cli_bundle_verifies_and_passes_frozen_session_calendar(tmp_path, mon
     monkeypatch.setenv(
         "STRATEGY_CONTEXT_STREAM_DIGEST", bundle.context_stream.artifact.content_digest
     )
-    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc5")
+    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc6")
     observed = []
 
     def fake_run(engine_input, *, session_calendar, **kwargs):
         observed.append(session_calendar)
-        return {"engine_version": "2.0.0rc5", "authoritative": False}
+        return {"engine_version": "2.0.0rc6", "authoritative": False}
 
     monkeypatch.setattr(nautilus_runtime_cli, "run_native_backtest", fake_run)
     assert (
         nautilus_runtime_cli.run_bundle(
             str(input_path),
             str(output_path),
-            expected_version="2.0.0rc5",
+            expected_version="2.0.0rc6",
             expected_snapshot_fingerprint=content_digest("snapshot"),
             max_input_bytes=1_000_000,
             context_stream_path=str(store.path_for(bundle.context_stream.artifact.storage_key)),
@@ -344,15 +344,15 @@ def test_cli_runs_only_digest_attempt_snapshot_and_version_bound_bundle(
 
     def fake_run(engine_input, *, serialized_strategy_invocation_batch):
         calls.append((engine_input, serialized_strategy_invocation_batch))
-        return {"engine_version": "2.0.0rc5", "authoritative": False, "fills": 2}
+        return {"engine_version": "2.0.0rc6", "authoritative": False, "fills": 2}
 
     monkeypatch.setattr(nautilus_runtime_cli, "run_native_backtest", fake_run)
-    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc5")
+    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc6")
     assert (
         nautilus_runtime_cli.run_bundle(
             str(input_path),
             str(output_path),
-            expected_version="2.0.0rc5",
+            expected_version="2.0.0rc6",
             expected_snapshot_fingerprint=content_digest("snapshot"),
             max_input_bytes=len(bundle.wire_bytes),
         )
@@ -360,7 +360,7 @@ def test_cli_runs_only_digest_attempt_snapshot_and_version_bound_bundle(
     )
     assert len(calls) == 1
     result = json.loads(output_path.read_text(encoding="utf-8"))
-    assert result == {"engine_version": "2.0.0rc5", "authoritative": False, "fills": 2}
+    assert result == {"engine_version": "2.0.0rc6", "authoritative": False, "fills": 2}
 
 
 def test_cli_verifies_and_streams_context_sidecar_before_native_run(tmp_path, monkeypatch) -> None:
@@ -410,18 +410,18 @@ def test_cli_verifies_and_streams_context_sidecar_before_native_run(tmp_path, mo
             )
         )
         return {
-            "engine_version": "2.0.0rc5",
+            "engine_version": "2.0.0rc6",
             "authoritative": False,
             "strategy_invocation_result_stream": {"content_digest": "placeholder"},
         }
 
     monkeypatch.setattr(nautilus_runtime_cli, "run_native_backtest", fake_run)
-    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc5")
+    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc6")
     assert (
         nautilus_runtime_cli.run_bundle(
             str(input_path),
             str(output_path),
-            expected_version="2.0.0rc5",
+            expected_version="2.0.0rc6",
             expected_snapshot_fingerprint=content_digest("snapshot"),
             max_input_bytes=1_000_000,
             context_stream_path=str(store.path_for(bundle.context_stream.artifact.storage_key)),
@@ -495,18 +495,18 @@ def test_cli_verifies_and_streams_native_event_sidecar_to_the_adapter(
             )
         )
         return {
-            "engine_version": "2.0.0rc5",
+            "engine_version": "2.0.0rc6",
             "authoritative": False,
             "strategy_invocation_result_stream": {"content_digest": "placeholder"},
         }
 
     monkeypatch.setattr(nautilus_runtime_cli, "run_native_backtest", fake_run)
-    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc5")
+    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc6")
     assert (
         nautilus_runtime_cli.run_bundle(
             str(input_path),
             str(output_path),
-            expected_version="2.0.0rc5",
+            expected_version="2.0.0rc6",
             expected_snapshot_fingerprint=content_digest("snapshot"),
             max_input_bytes=1_000_000,
             context_stream_path=str(store.path_for(bundle.context_stream.artifact.storage_key)),
@@ -559,13 +559,13 @@ def test_cli_rejects_native_event_sidecar_digest_drift_before_result_write(
         "STRATEGY_NATIVE_EVENT_STREAM_DIGEST",
         bundle.native_event_stream.artifact.content_digest,
     )
-    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc5")
+    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc6")
 
     with pytest.raises(ValueError, match="byte length differs"):
         nautilus_runtime_cli.run_bundle(
             str(input_path),
             str(output_path),
-            expected_version="2.0.0rc5",
+            expected_version="2.0.0rc6",
             expected_snapshot_fingerprint=content_digest("snapshot"),
             max_input_bytes=1_000_000,
             context_stream_path=str(store.path_for(bundle.context_stream.artifact.storage_key)),
@@ -599,13 +599,13 @@ def test_cli_rejects_context_sidecar_digest_drift_before_result_write(
     monkeypatch.setenv(
         "STRATEGY_CONTEXT_STREAM_DIGEST", bundle.context_stream.artifact.content_digest
     )
-    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc5")
+    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc6")
 
     with pytest.raises(ValueError, match="byte length differs"):
         nautilus_runtime_cli.run_bundle(
             str(input_path),
             str(output_path),
-            expected_version="2.0.0rc5",
+            expected_version="2.0.0rc6",
             expected_snapshot_fingerprint=content_digest("snapshot"),
             max_input_bytes=1_000_000,
             context_stream_path=str(context_path),
@@ -620,8 +620,8 @@ def test_cli_rejects_context_sidecar_digest_drift_before_result_write(
 @pytest.mark.parametrize(
     ("environment_attempt", "snapshot", "version", "message"),
     [
-        ("attempt-other", content_digest("snapshot"), "2.0.0rc5", "attempt differs"),
-        ("attempt-1", content_digest("different snapshot"), "2.0.0rc5", "snapshot differs"),
+        ("attempt-other", content_digest("snapshot"), "2.0.0rc6", "attempt differs"),
+        ("attempt-1", content_digest("different snapshot"), "2.0.0rc6", "snapshot differs"),
         ("attempt-1", content_digest("snapshot"), "2.0.0", "package version differs"),
     ],
 )
@@ -660,7 +660,7 @@ def test_cli_rejects_duplicate_fields_and_memory_limit_overflow(tmp_path, monkey
         nautilus_runtime_cli.run_bundle(
             str(input_path),
             str(output_path),
-            expected_version="2.0.0rc5",
+            expected_version="2.0.0rc6",
             expected_snapshot_fingerprint=content_digest("snapshot"),
             max_input_bytes=1024,
         )
@@ -670,7 +670,7 @@ def test_cli_rejects_duplicate_fields_and_memory_limit_overflow(tmp_path, monkey
         nautilus_runtime_cli.run_bundle(
             str(input_path),
             str(output_path),
-            expected_version="2.0.0rc5",
+            expected_version="2.0.0rc6",
             expected_snapshot_fingerprint=content_digest("snapshot"),
             max_input_bytes=len(bundle.wire_bytes) - 1,
         )
@@ -731,16 +731,16 @@ def test_cli_streams_component_context_reference_with_counts_to_adapter(
                 max_invocation_result_bytes,
             )
         )
-        return {"engine_version": "2.0.0rc5", "authoritative": False}
+        return {"engine_version": "2.0.0rc6", "authoritative": False}
 
     monkeypatch.setattr(nautilus_runtime_cli, "run_native_backtest", fake_run)
-    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc5")
+    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc6")
 
     assert (
         nautilus_runtime_cli.run_bundle(
             str(input_path),
             str(output_path),
-            expected_version="2.0.0rc5",
+            expected_version="2.0.0rc6",
             expected_snapshot_fingerprint=content_digest("snapshot"),
             max_input_bytes=1_000_000,
             context_stream_path=str(store.path_for(bundle.context_stream.artifact.storage_key)),
@@ -844,7 +844,7 @@ def test_forward_runtime_verifies_mounts_before_building_and_serving_session(
             input_path="/inputs/bundle.json",
             context_stream_path="/inputs/contexts.ndjson",
             native_event_stream_path="/inputs/native-events.ndjson",
-            expected_version="2.0.0rc5",
+            expected_version="2.0.0rc6",
             instance_id="instance-1",
             snapshot_fingerprint="sha256:" + "2" * 64,
             max_input_bytes=1024,
@@ -890,7 +890,7 @@ def test_main_dispatches_fixed_forward_mode_to_native_session_builder(monkeypatc
                 "--output",
                 "/outputs/result",
                 "--expected-version",
-                "2.0.0rc5",
+                "2.0.0rc6",
                 "--snapshot-fingerprint",
                 "sha256:" + "1" * 64,
                 "--max-input-bytes",
@@ -964,5 +964,5 @@ def test_probe_does_not_eagerly_import_forward_only_runtime_modules(monkeypatch,
         lambda *, expected_version: {"engine_version": expected_version},
     )
 
-    assert nautilus_runtime_cli.main(["--probe", "--expected-version", "2.0.0rc5"]) == 0
-    assert capsys.readouterr().out == '{"engine_version":"2.0.0rc5"}\n'
+    assert nautilus_runtime_cli.main(["--probe", "--expected-version", "2.0.0rc6"]) == 0
+    assert capsys.readouterr().out == '{"engine_version":"2.0.0rc6"}\n'

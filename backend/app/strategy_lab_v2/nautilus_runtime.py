@@ -502,7 +502,7 @@ class NautilusRcCompatibilityRuntime:
         require_sha256_digest(self.runtime_image_digest, field_name="runtime_image_digest")
         require_sha256_digest(self.wheel_digest, field_name="wheel_digest")
         if self.wheel_digest != NAUTILUS_V2_RC_WHEEL_SHA256:
-            raise ValueError("the exact Nautilus RC5 wheel digest cannot be overridden")
+            raise ValueError("the exact Nautilus RC6 wheel digest cannot be overridden")
         for name in ("python_version", "rust_version", "contract_version"):
             _nonempty(getattr(self, name), name)
         if not isinstance(self.legacy_runtime_isolated, bool):

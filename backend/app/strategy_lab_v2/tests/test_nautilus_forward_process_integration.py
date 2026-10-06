@@ -1,7 +1,7 @@
 """Opt-in exact-image exercise of forward-process death and durable replay.
 
 Set ``STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_DIGEST`` to an exact-source qualified
-RC5 image ID and run this module with Docker API access to execute the test.
+RC6 image ID and run this module with Docker API access to execute the test.
 The default package suite skips it rather than substituting a fake process.
 """
 
@@ -34,7 +34,7 @@ from app.strategy_lab_v2.tests.forward_replay_ledger import DurableReplayLedger
 _IMAGE_DIGEST = os.environ.get("STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_DIGEST")
 pytestmark = pytest.mark.skipif(
     not _IMAGE_DIGEST,
-    reason="requires an exact-source RC5 image and explicit Docker integration opt-in",
+    reason="requires an exact-source RC6 image and explicit Docker integration opt-in",
 )
 
 
@@ -127,7 +127,7 @@ def _plan_factory(database: Path, image_digest: str):
         return build_nautilus_forward_runtime_sandbox_command(
             request,
             profile,
-            image_name="strategy-lab-v2/nautilus-rc5",
+            image_name="strategy-lab-v2/nautilus-rc6",
             input_bundle_path=bundle_path,
             forward_bootstrap_path=directory / "bootstrap.json",
             bootstrap_fingerprint=bootstrap.fingerprint,
@@ -137,7 +137,7 @@ def _plan_factory(database: Path, image_digest: str):
             native_event_stream_digest=artifact_content_digest(native_path.read_bytes()),
             output_path=output_path,
             instance_id=instance_id,
-            expected_version="2.0.0rc5",
+            expected_version="2.0.0rc6",
             snapshot_fingerprint=bootstrap.snapshot_fingerprint,
         )
 
@@ -157,7 +157,7 @@ def _fixture_payload(directory: Path):
     return NautilusForwardJsonWireCodec().decode_execute_payload(value)
 
 
-def test_exact_rc5_forward_process_restarts_across_settlement_and_ack_windows(
+def test_exact_rc6_forward_process_restarts_across_settlement_and_ack_windows(
     tmp_path: Path,
 ) -> None:
     image_digest = str(_IMAGE_DIGEST)
@@ -173,7 +173,7 @@ def test_exact_rc5_forward_process_restarts_across_settlement_and_ack_windows(
         "--read-only",
         f"--user={os.getuid()}:{os.getgid()}",
         f"--mount=type=bind,src={exports},dst=/outputs",
-        "strategy-lab-v2/nautilus-rc5@" + image_digest,
+        "strategy-lab-v2/nautilus-rc6@" + image_digest,
         "python",
         "-m",
         "app.strategy_lab_v2.nautilus_rc_fixture_probe",

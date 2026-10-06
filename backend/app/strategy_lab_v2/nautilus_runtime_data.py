@@ -358,11 +358,19 @@ def materialize_native_venue(definition: Mapping[str, Any]) -> tuple[Any, Any, A
     return Venue(venue_id), oms_type, account_type, balances
 
 
-def materialize_native_fee_model(definition: Any) -> Any | None:
-    """Build a pinned-runtime fixed-per-fill model, including signed rebates."""
+def materialize_native_fee_model(definition: Any, *, zero_fee_currency: str | None = None) -> Any:
+    """Build an explicit fixed-per-fill model, including a zero-fee model and rebates."""
 
     if definition is None:
-        return None
+        if zero_fee_currency is None:
+            raise NautilusRuntimeDataError(
+                "an explicit zero-fee currency is required when no fee model is configured"
+            )
+        definition = {
+            "kind": "fixed_per_fill",
+            "amount": "0",
+            "currency": zero_fee_currency,
+        }
     item = _required_mapping(definition, "fee model")
     if set(item) != {"kind", "amount", "currency"}:
         raise NautilusRuntimeDataError("fee model fields are invalid")

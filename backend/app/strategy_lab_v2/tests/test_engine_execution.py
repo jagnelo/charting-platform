@@ -94,7 +94,7 @@ def _conformance(
     channel: EngineReleaseChannel = EngineReleaseChannel.STABLE,
     checks: frozenset[ConformanceCheck] = frozenset(ConformanceCheck),
 ):
-    version = "2.0.0" if channel is EngineReleaseChannel.STABLE else "2.0.0rc5"
+    version = "2.0.0" if channel is EngineReleaseChannel.STABLE else "2.0.0rc6"
     evidence = EngineConformanceEvidence(
         engine_id,
         version,
@@ -105,7 +105,7 @@ def _conformance(
         NOW,
         NautilusReleasePin(
             package_version=version,
-            release_tag="v2.0.0" if channel is EngineReleaseChannel.STABLE else "v2.0.0rc5",
+            release_tag="v2.0.0" if channel is EngineReleaseChannel.STABLE else "v2.0.0rc6",
             source_digest=content_digest("nautilus-source"),
             wheel_digest=content_digest("nautilus-wheel"),
             runtime_image_digest=content_digest("runtime-image"),
@@ -462,7 +462,7 @@ def test_parsed_rc_receipt_can_feed_backtest_execution_scope() -> None:
     )
     request, runtime_preflight = _runtime()
     runtime = NautilusRcCompatibilityRuntime(
-        source_digest=content_digest("nautilus-v2-rc5-source"),
+        source_digest=content_digest("nautilus-v2-rc6-source"),
         runtime_image_digest=content_digest("runtime-image"),
         python_version="3.12.11",
         rust_version="1.88.0",
@@ -650,7 +650,7 @@ def test_parsed_rc_receipt_can_feed_backtest_execution_scope() -> None:
         runtime,
         probe,
         receipt,
-        build_digest=content_digest("nautilus-v2-rc5-build"),
+        build_digest=content_digest("nautilus-v2-rc6-build"),
         tested_at=NOW,
     )
 
@@ -694,7 +694,7 @@ def test_compatible_evidence_without_an_isolated_pin_cannot_execute() -> None:
     request, runtime = _runtime()
     evidence = EngineConformanceEvidence(
         "nautilus",
-        "2.0.0rc5",
+        "2.0.0rc6",
         content_digest("engine-build"),
         EngineReleaseChannel.RELEASE_CANDIDATE,
         content_digest("fixture"),

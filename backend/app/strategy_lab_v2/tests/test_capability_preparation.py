@@ -56,7 +56,7 @@ def _cell() -> CapabilityCell:
 def _binding() -> ExecutionCapabilityBinding:
     return ExecutionCapabilityBinding(
         engine_name="nautilus",
-        engine_version="2.0.0rc5",
+        engine_version="2.0.0rc6",
         engine_build_digest=content_digest("wheel-image-build"),
         conformance_fingerprint=content_digest("exact-conformance-report"),
         product_classes=frozenset({ProductClass.EQUITY}),

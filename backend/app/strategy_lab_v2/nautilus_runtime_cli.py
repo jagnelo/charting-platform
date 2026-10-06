@@ -899,7 +899,7 @@ def main(argv: list[str] | None = None) -> int:
     mode.add_argument("--serve-forward", action="store_true")
     parser.add_argument("--input")
     parser.add_argument("--output")
-    parser.add_argument("--expected-version", default="2.0.0rc5")
+    parser.add_argument("--expected-version", default="2.0.0rc6")
     parser.add_argument("--snapshot-fingerprint")
     parser.add_argument("--max-input-bytes", type=int)
     parser.add_argument("--context-stream")

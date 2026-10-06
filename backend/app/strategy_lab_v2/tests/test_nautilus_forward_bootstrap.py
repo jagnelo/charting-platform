@@ -286,7 +286,7 @@ def test_runtime_cli_verifies_forward_bootstrap_and_native_artifact_bindings(
     monkeypatch.setenv("STRATEGY_INPUT_BUNDLE_DIGEST", bundle_digest)
     monkeypatch.setenv("STRATEGY_CONTEXT_STREAM_DIGEST", context_digest)
     monkeypatch.setenv("STRATEGY_NATIVE_EVENT_STREAM_DIGEST", native_digest)
-    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc5")
+    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc6")
     runtime_bundle = {"engine_input": engine_input, "strategy_context_stream": context_reference}
     monkeypatch.setattr(
         nautilus_runtime_cli, "_read_bundle", lambda *_args, **_kwargs: runtime_bundle
@@ -309,7 +309,7 @@ def test_runtime_cli_verifies_forward_bootstrap_and_native_artifact_bindings(
         input_path="/inputs/bundle",
         context_stream_path=str(context_path),
         native_event_stream_path=str(native_path),
-        expected_version="2.0.0rc5",
+        expected_version="2.0.0rc6",
         expected_instance_id=bootstrap.instance_id,
         expected_snapshot_fingerprint=bootstrap.snapshot_fingerprint,
         max_input_bytes=1024,
@@ -331,7 +331,7 @@ def test_runtime_cli_verifies_forward_bootstrap_and_native_artifact_bindings(
             expected_snapshot_fingerprint=bootstrap.snapshot_fingerprint,
             max_input_bytes=1024,
         )
-    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc5")
+    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc6")
 
     context_path.write_bytes(b"tampered strategy context stream")
     with pytest.raises(ValueError, match="context input differs from its artifact length"):
@@ -341,7 +341,7 @@ def test_runtime_cli_verifies_forward_bootstrap_and_native_artifact_bindings(
             input_path="/inputs/bundle",
             context_stream_path=str(context_path),
             native_event_stream_path=str(native_path),
-            expected_version="2.0.0rc5",
+            expected_version="2.0.0rc6",
             expected_instance_id=bootstrap.instance_id,
             expected_snapshot_fingerprint=bootstrap.snapshot_fingerprint,
             max_input_bytes=1024,
@@ -360,7 +360,7 @@ def test_runtime_cli_verifies_forward_bootstrap_and_native_artifact_bindings(
             input_path="/inputs/bundle",
             context_stream_path=str(context_path),
             native_event_stream_path=str(native_path),
-            expected_version="2.0.0rc5",
+            expected_version="2.0.0rc6",
             expected_instance_id=bootstrap.instance_id,
             expected_snapshot_fingerprint=bootstrap.snapshot_fingerprint,
             max_input_bytes=1024,
@@ -389,7 +389,7 @@ def test_runtime_cli_verifies_forward_bootstrap_and_native_artifact_bindings(
             input_path="/inputs/bundle",
             context_stream_path=str(context_path),
             native_event_stream_path=str(native_path),
-            expected_version="2.0.0rc5",
+            expected_version="2.0.0rc6",
             expected_instance_id=bootstrap.instance_id,
             expected_snapshot_fingerprint=bootstrap.snapshot_fingerprint,
             max_input_bytes=1024,
@@ -413,7 +413,7 @@ def test_runtime_cli_verifies_forward_bootstrap_and_native_artifact_bindings(
             input_path="/inputs/bundle",
             context_stream_path=str(context_path),
             native_event_stream_path=str(native_path),
-            expected_version="2.0.0rc5",
+            expected_version="2.0.0rc6",
             expected_instance_id=bootstrap.instance_id,
             expected_snapshot_fingerprint=bootstrap.snapshot_fingerprint,
             max_input_bytes=1024,
@@ -447,7 +447,7 @@ def test_runtime_cli_rejects_tampered_forward_native_artifact(tmp_path, monkeypa
     monkeypatch.setenv("STRATEGY_INPUT_BUNDLE_DIGEST", bundle_digest)
     monkeypatch.setenv("STRATEGY_CONTEXT_STREAM_DIGEST", context_digest)
     monkeypatch.setenv("STRATEGY_NATIVE_EVENT_STREAM_DIGEST", native_digest)
-    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc5")
+    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc6")
     monkeypatch.setattr(
         nautilus_runtime_cli,
         "_read_bundle",
@@ -475,7 +475,7 @@ def test_runtime_cli_rejects_tampered_forward_native_artifact(tmp_path, monkeypa
             input_path="/inputs/bundle",
             context_stream_path=str(context_path),
             native_event_stream_path=str(native_path),
-            expected_version="2.0.0rc5",
+            expected_version="2.0.0rc6",
             expected_instance_id=bootstrap.instance_id,
             expected_snapshot_fingerprint=bootstrap.snapshot_fingerprint,
             max_input_bytes=1024,
@@ -735,7 +735,7 @@ def test_build_binds_owner_plan_warmup_snapshot_prefix_and_native_inputs(
             ),
         ),
         image_name="nautilus-runtime",
-        expected_version="2.0.0rc5",
+        expected_version="2.0.0rc6",
         output_path=str(tmp_path / "forward-output.json"),
         submitted_at=NOW,
     )

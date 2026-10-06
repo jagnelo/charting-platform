@@ -1,4 +1,4 @@
-"""Build and qualify an exact, isolated Nautilus RC5 image locally.
+"""Build and qualify an exact, isolated Nautilus RC6 image locally.
 
 The build context is reconstructed from the image Dockerfile's explicit COPY
 inputs, so unrelated backend files never enter the engine image or Docker
@@ -31,13 +31,13 @@ PYTHON_BASE_IMAGE = (
     "python:3.12.4-slim@sha256:" "a3e58f9399353be051735f09be0316bfdeab571a5c6a24fd78b92df85bcb2d85"
 )
 NAUTILUS_WHEEL_URL = (
-    "https://files.pythonhosted.org/packages/9c/f7/"
-    "c3ff46171588fb1cf52ccfde078e5738ab1929aa72ad8da5831c086a1c8a/"
-    "nautilus_trader-2.0.0rc5-cp312-cp312-manylinux_2_34_x86_64.whl"
+    "https://files.pythonhosted.org/packages/59/9a/"
+    "0886eb3c2610e802cb4c432f97bf5a323ff204ebee0b644ec738bf3f0f54/"
+    "nautilus_trader-2.0.0rc6-cp312-cp312-manylinux_2_34_x86_64.whl"
 )
-NAUTILUS_WHEEL_SHA256 = "eab45fafd2312deda1236554c49a9798bfc76bc8465af864878e2f70189ebebe"
-NAUTILUS_WHEEL_FILENAME = "nautilus_trader-2.0.0rc5-cp312-cp312-manylinux_2_34_x86_64.whl"
-NAUTILUS_PACKAGE_VERSION = "2.0.0rc5"
+NAUTILUS_WHEEL_SHA256 = "9b4002a7bf5e6399c51073039b740ccf3ca7a1e2584ff72c7d479f03eaa9658d"
+NAUTILUS_WHEEL_FILENAME = "nautilus_trader-2.0.0rc6-cp312-cp312-manylinux_2_34_x86_64.whl"
+NAUTILUS_PACKAGE_VERSION = "2.0.0rc6"
 NAUTILUS_RUST_VERSION = "1.98.1"
 EXPECTED_PYTHON_VERSION = "3.12.4"
 SOURCE_DIGEST_LABEL = "org.charting-platform.strategy-lab.nautilus-source-digest"
@@ -274,7 +274,7 @@ def qualify_local_nautilus_rc_image(
     docker_binary: str = "docker",
     runner: CommandRunner = _run,
 ) -> NautilusRcImageQualification:
-    """Build, probe, and publish one current-source RC5 runtime evidence artifact."""
+    """Build, probe, and publish one current-source RC6 runtime evidence artifact."""
 
     if not isinstance(artifact_directory, Path):
         raise TypeError("artifact_directory must be a Path")
@@ -291,7 +291,7 @@ def qualify_local_nautilus_rc_image(
     if image_tag is None:
         timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
         image_tag = (
-            "strategy-lab-v2/nautilus-rc5:source-"
+            "strategy-lab-v2/nautilus-rc6:source-"
             f"{source_digest.removeprefix('sha256:')[:12]}-{timestamp}"
         )
     with tempfile.TemporaryDirectory(prefix="strategy-lab-v2-nautilus-build-") as temporary:

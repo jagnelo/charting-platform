@@ -167,6 +167,11 @@ def test_runtime_fee_model_requires_native_currency_precision_before_import() ->
         materialize_native_fee_model({"kind": "fixed_per_fill", "amount": "1", "currency": "usd"})
 
 
+def test_runtime_requires_explicit_currency_for_zero_fee_model() -> None:
+    with pytest.raises(NautilusRuntimeDataError, match="explicit zero-fee currency"):
+        materialize_native_fee_model(None)
+
+
 def test_runtime_adapter_requires_content_addressed_identities() -> None:
     payload = _payload()
     payload["data_snapshot_fingerprint"] = "not-a-digest"

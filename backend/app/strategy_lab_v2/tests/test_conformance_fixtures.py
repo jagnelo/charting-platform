@@ -384,8 +384,8 @@ def test_executable_suite_requires_exact_expected_checks() -> None:
 
 def _rc_runtime() -> NautilusRcCompatibilityRuntime:
     return NautilusRcCompatibilityRuntime(
-        source_digest=content_digest("nautilus-v2-rc5-source"),
-        runtime_image_digest=content_digest("nautilus-v2-rc5-image"),
+        source_digest=content_digest("nautilus-v2-rc6-source"),
+        runtime_image_digest=content_digest("nautilus-v2-rc6-image"),
         python_version="3.12.11",
         rust_version="1.88.0",
     )
@@ -393,16 +393,16 @@ def _rc_runtime() -> NautilusRcCompatibilityRuntime:
 
 def _rc_resolution(runtime: NautilusRcCompatibilityRuntime) -> ConformanceExecutionResolution:
     expected = {
-        check: content_digest({"check": check.value, "fixture": "rc5"})
+        check: content_digest({"check": check.value, "fixture": "rc6"})
         for check in ConformanceCheck
     }
     return execute_conformance_suite(
         expected,
-        lambda check: {"check": check.value, "fixture": "rc5"},
-        suite_id="rc5-probed-runtime",
+        lambda check: {"check": check.value, "fixture": "rc6"},
+        suite_id="rc6-probed-runtime",
         engine_id="nautilus",
         engine_version=runtime.package_version,
-        build_digest=content_digest("nautilus-v2-rc5-build"),
+        build_digest=content_digest("nautilus-v2-rc6-build"),
         release_channel=runtime.release_channel,
         tested_at=NOW,
         release_pin=runtime.release_pin,
@@ -414,7 +414,7 @@ def _rc_probe(runtime: NautilusRcCompatibilityRuntime) -> NautilusRuntimeProbeEv
         {
             "engine_lifecycle": "passed",
             "implementation": "cpython",
-            "nautilus_package_version": "2.0.0rc5",
+            "nautilus_package_version": "2.0.0rc6",
             "platform": "Linux-x86_64",
             "python_version": "3.12.11",
         },
@@ -426,21 +426,21 @@ def _rc_partial_resolution(
     runtime: NautilusRcCompatibilityRuntime,
 ) -> ConformanceExecutionResolution:
     expected = {
-        check: content_digest({"check": check.value, "fixture": "rc5"})
+        check: content_digest({"check": check.value, "fixture": "rc6"})
         for check in ConformanceCheck
     }
 
     def runner(check: ConformanceCheck):
-        fixture = "deferred" if check is ConformanceCheck.FORWARD_EVENT_TAPE_PARITY else "rc5"
+        fixture = "deferred" if check is ConformanceCheck.FORWARD_EVENT_TAPE_PARITY else "rc6"
         return {"check": check.value, "fixture": fixture}
 
     return execute_conformance_suite(
         expected,
         runner,
-        suite_id="rc5-partial-fixture",
+        suite_id="rc6-partial-fixture",
         engine_id="nautilus",
         engine_version=runtime.package_version,
-        build_digest=content_digest("nautilus-v2-rc5-build"),
+        build_digest=content_digest("nautilus-v2-rc6-build"),
         release_channel=runtime.release_channel,
         tested_at=NOW,
         release_pin=runtime.release_pin,
@@ -763,7 +763,7 @@ def test_local_conformance_publisher_rejects_failed_fixtures_before_writing(
     assert not tuple(tmp_path.iterdir())
 
 
-def test_local_conformance_source_verifies_content_and_exact_rc5_runtime_pins(
+def test_local_conformance_source_verifies_content_and_exact_rc6_runtime_pins(
     tmp_path: Any,
 ) -> None:
     runtime = _rc_runtime()
@@ -900,7 +900,7 @@ def test_rc_conformance_resolver_emits_non_authoritative_partial_evidence() -> N
         runtime,
         probe,
         receipt,
-        build_digest=content_digest("nautilus-v2-rc5-build"),
+        build_digest=content_digest("nautilus-v2-rc6-build"),
         tested_at=NOW,
     )
 
@@ -922,7 +922,7 @@ def test_rc_conformance_resolver_accepts_complete_native_forward_parity() -> Non
         runtime,
         _rc_probe(runtime),
         receipt,
-        build_digest=content_digest("nautilus-v2-rc5-build"),
+        build_digest=content_digest("nautilus-v2-rc6-build"),
         tested_at=NOW,
     )
 
@@ -941,7 +941,7 @@ def test_rc_conformance_can_bind_authoritative_local_backtests() -> None:
         runtime,
         _rc_probe(runtime),
         receipt,
-        build_digest=content_digest("nautilus-v2-rc5-build"),
+        build_digest=content_digest("nautilus-v2-rc6-build"),
         tested_at=NOW,
     )
 
@@ -955,7 +955,7 @@ def test_rc_conformance_can_bind_authoritative_local_backtests() -> None:
     )
 
     assert binding.engine_name == "nautilus"
-    assert binding.engine_version == "2.0.0rc5"
+    assert binding.engine_version == "2.0.0rc6"
     assert binding.conformance_fingerprint == resolution.evidence.fingerprint
     assert binding.authoritative
 
@@ -1013,7 +1013,7 @@ def test_rc_backtest_binding_rejects_missing_required_fixture_check() -> None:
         runtime,
         _rc_probe(runtime),
         incomplete_receipt,
-        build_digest=content_digest("nautilus-v2-rc5-build"),
+        build_digest=content_digest("nautilus-v2-rc6-build"),
         tested_at=NOW,
     )
 
@@ -1044,6 +1044,6 @@ def test_rc_conformance_resolver_rejects_probe_identity_drift() -> None:
             runtime,
             drifted_probe,
             receipt,
-            build_digest=content_digest("nautilus-v2-rc5-build"),
+            build_digest=content_digest("nautilus-v2-rc6-build"),
             tested_at=NOW,
         )

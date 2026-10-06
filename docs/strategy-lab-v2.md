@@ -630,7 +630,7 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   permits an exact stable or release-candidate build; `FORWARD_COMPATIBILITY`
   and `FULL` require all checks. Forward authority is separate from local
   backtest authority.
-- `nautilus_runtime.py` defines the exact `2.0.0rc5` compatibility-runtime
+- `nautilus_runtime.py` defines the exact `2.0.0rc6` compatibility-runtime
   declaration. It binds source, wheel, and runtime-image digests, Python/Rust
   versions, legacy-runtime isolation, and the release pin consumed by
   conformance; it never imports Nautilus or discovers packages.
@@ -1674,7 +1674,7 @@ authorize, persist, enqueue, or execute a request; the package router itself
 continues to own no I/O.
 
 Nautilus is the planned authoritative simulator, isolated from the legacy 1.x
-environment. The current exact `2.0.0rc5` release candidate may be installed
+environment. The current exact `2.0.0rc6` release candidate may be installed
 in a separate Python/Rust/runtime-image boundary and used now for local
 backtest and replay runs. An exact-pinned stable or pre-release v2 build may
 publish authoritative local backtest results after the four simulator checks

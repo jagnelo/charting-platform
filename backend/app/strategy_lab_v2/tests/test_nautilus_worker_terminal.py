@@ -729,7 +729,7 @@ def _terminal_writer(resolver) -> PostgresWorkerTerminalAdapter:
 
 
 @pytest.mark.asyncio
-async def test_rc5_worker_receipt_materializes_authoritative_local_backtest(tmp_path):
+async def test_rc6_worker_receipt_materializes_authoritative_local_backtest(tmp_path):
     context, _lookup, resolver, publisher = _successful_context_and_lookup(tmp_path, stable=False)
 
     resolution = await resolver(context)
@@ -1478,7 +1478,7 @@ async def test_successful_worker_result_identity_is_stable_across_terminal_redel
 
 
 @pytest.mark.asyncio
-async def test_rc5_terminal_writer_composes_postgres_adapters_and_replays_durably(tmp_path):
+async def test_rc6_terminal_writer_composes_postgres_adapters_and_replays_durably(tmp_path):
     context, lookup, _resolver, _publisher, graph = _successful_context_and_lookup(
         tmp_path,
         stable=False,

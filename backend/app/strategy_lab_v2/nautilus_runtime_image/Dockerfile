@@ -10,14 +10,14 @@ ARG NAUTILUS_WHEEL_FILENAME
 ARG NAUTILUS_SOURCE_DIGEST
 
 LABEL org.charting-platform.strategy-lab.nautilus-source-digest=${NAUTILUS_SOURCE_DIGEST} \
-    org.charting-platform.strategy-lab.nautilus-package-version=2.0.0rc5 \
+    org.charting-platform.strategy-lab.nautilus-package-version=2.0.0rc6 \
     org.charting-platform.strategy-lab.nautilus-wheel-sha256=${NAUTILUS_WHEEL_SHA256}
 
 WORKDIR /opt/strategy-lab-v2
 
 RUN test -n "${NAUTILUS_WHEEL_URL}" \
     && test -n "${NAUTILUS_WHEEL_SHA256}" \
-    && test "${NAUTILUS_WHEEL_SHA256}" = "eab45fafd2312deda1236554c49a9798bfc76bc8465af864878e2f70189ebebe" \
+    && test "${NAUTILUS_WHEEL_SHA256}" = "9b4002a7bf5e6399c51073039b740ccf3ca7a1e2584ff72c7d479f03eaa9658d" \
     && test -n "${NAUTILUS_WHEEL_FILENAME}"
 
 ADD --checksum=sha256:${NAUTILUS_WHEEL_SHA256} ${NAUTILUS_WHEEL_URL} /tmp/${NAUTILUS_WHEEL_FILENAME}
@@ -78,4 +78,4 @@ COPY strategy_runtime/__init__.py strategy_runtime/__init__.py
 COPY strategy_runtime/protocol.py strategy_runtime/protocol.py
 COPY strategy_runtime/runner.py strategy_runtime/runner.py
 
-CMD ["python", "-m", "app.strategy_lab_v2.nautilus_runtime_cli", "--probe", "--expected-version", "2.0.0rc5"]
+CMD ["python", "-m", "app.strategy_lab_v2.nautilus_runtime_cli", "--probe", "--expected-version", "2.0.0rc6"]

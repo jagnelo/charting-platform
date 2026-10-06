@@ -61,7 +61,7 @@ def _resolution(tested_at=BASE):
         runtime,
         _rc_probe(runtime),
         _rc_receipt(runtime),
-        build_digest=content_digest("nautilus-v2-rc5-build"),
+        build_digest=content_digest("nautilus-v2-rc6-build"),
         tested_at=tested_at,
     )
 
@@ -96,7 +96,7 @@ def test_local_preparation_composition_uses_shared_persistence_and_pinned_rc(
         runtime=runtime,
         probe_payload=payload["probe"],
         fixture_payload=payload["receipt"],
-        build_digest=content_digest("nautilus-v2-rc5-build"),
+        build_digest=content_digest("nautilus-v2-rc6-build"),
         tested_at=BASE,
     )
     persistence = PostgresStrategyLabV2Persistence.build(lambda: object())
@@ -235,7 +235,7 @@ def test_preparation_service_builds_platform_owned_composition_from_local_bindin
         runtime=runtime,
         probe_payload=payload["probe"],
         fixture_payload=payload["receipt"],
-        build_digest=content_digest("nautilus-v2-rc5-build"),
+        build_digest=content_digest("nautilus-v2-rc6-build"),
         tested_at=BASE,
     )
     original_import_module = importlib.import_module

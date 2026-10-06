@@ -27,10 +27,10 @@ NAUTILUS_RELEASE_PIN_VERSION = "strategy-lab.nautilus-release-pin.v2"
 # local simulation after the applicable conformance checks, but it cannot
 # authorize broker or real-capital execution.
 # Runtime, source, and image digests are supplied by the isolated adapter.
-NAUTILUS_V2_RC_PACKAGE_VERSION = "2.0.0rc5"
-NAUTILUS_V2_RC_RELEASE_TAG = "v2.0.0rc5"
+NAUTILUS_V2_RC_PACKAGE_VERSION = "2.0.0rc6"
+NAUTILUS_V2_RC_RELEASE_TAG = "v2.0.0rc6"
 NAUTILUS_V2_RC_WHEEL_SHA256 = (
-    "sha256:eab45fafd2312deda1236554c49a9798bfc76bc8465af864878e2f70189ebebe"
+    "sha256:9b4002a7bf5e6399c51073039b740ccf3ca7a1e2584ff72c7d479f03eaa9658d"
 )
 
 

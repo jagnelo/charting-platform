@@ -149,7 +149,7 @@ def test_nautilus_runtime_builder_binds_fixed_cli_and_snapshot(tmp_path) -> None
         image_name="strategy-lab/runtime",
         input_bundle_path=tmp_path / "bundle.json",
         output_path=tmp_path / "result.json",
-        expected_version="2.0.0rc5",
+        expected_version="2.0.0rc6",
         snapshot_fingerprint=content_digest("snapshot"),
     )
     command = sandbox_runtime_command(plan)
@@ -172,7 +172,7 @@ def test_nautilus_runtime_builder_binds_readonly_context_stream_sidecar(tmp_path
         image_name="strategy-lab/runtime",
         input_bundle_path=tmp_path / "bundle.json",
         output_path=tmp_path / "result.json",
-        expected_version="2.0.0rc5",
+        expected_version="2.0.0rc6",
         snapshot_fingerprint=content_digest("snapshot"),
         context_stream_path=context_path,
         context_stream_digest=context_digest,
@@ -272,7 +272,7 @@ def test_forward_runtime_builder_binds_instance_and_persistent_cli_mode(tmp_path
         native_event_stream_digest=native_event_digest,
         output_path=tmp_path / "output.json",
         instance_id="forward-instance-1",
-        expected_version="2.0.0rc5",
+        expected_version="2.0.0rc6",
         snapshot_fingerprint=content_digest("snapshot"),
     )
 
@@ -284,7 +284,7 @@ def test_forward_runtime_builder_binds_instance_and_persistent_cli_mode(tmp_path
     assert command[command.index("--native-event-stream") + 1] == "/inputs/native-events"
     instance_index = command.index("--instance-id")
     assert command[instance_index + 1] == "forward-instance-1"
-    assert command[command.index("--expected-version") + 1] == "2.0.0rc5"
+    assert command[command.index("--expected-version") + 1] == "2.0.0rc6"
     assert sandbox_forward_bootstrap_path(plan) == bootstrap_path
     assert sandbox_forward_bootstrap_digest(plan) == bootstrap_fingerprint
     assert sandbox_context_stream_path(plan) == context_path

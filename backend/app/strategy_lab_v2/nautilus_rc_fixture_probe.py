@@ -278,7 +278,7 @@ def run_forward_streaming_fixture() -> dict[str, Any]:
 
 
 def run_native_forward_session_fixture(*, output_directory: Path | None = None) -> dict[str, Any]:
-    """Exercise the concrete session against RC5 with warm-up and live input."""
+    """Exercise the concrete session against RC6 with warm-up and live input."""
 
     instance_id = "forward-native-session-fixture"
     checkpoint = content_digest("forward-native-session-checkpoint")
@@ -667,7 +667,7 @@ def _export_forward_process_fixture(
                     "instance_id": instance_id,
                     "runtime_input_bundle_digest": current_bootstrap.runtime_input_bundle_digest,
                     "snapshot_fingerprint": current_bootstrap.snapshot_fingerprint,
-                    "version": "2.0.0rc5",
+                    "version": "2.0.0rc6",
                 },
                 allow_nan=False,
                 separators=(",", ":"),
@@ -770,7 +770,7 @@ def _forward_tape_event_wire(record) -> dict[str, Any]:
 def _run_forward_event_tape_parity(instrument: Any) -> dict[str, Any]:
     """Send backend-materialized quote, trade, and bar events through Nautilus."""
 
-    instance_id = "rc5-forward-parity-instance"
+    instance_id = "rc6-forward-parity-instance"
     instrument_id = str(instrument.id)
     bar_type = BarType(
         instrument.id,

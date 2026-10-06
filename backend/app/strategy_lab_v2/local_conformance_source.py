@@ -203,7 +203,7 @@ class LocalNautilusRcConformanceEvidencePublisher:
 
 @dataclass(frozen=True, slots=True)
 class LocalNautilusRcConformanceEvidenceSource:
-    """Load one immutable RC5 fixture artifact from an operator-owned directory.
+    """Load one immutable RC6 fixture artifact from an operator-owned directory.
 
     ``artifact_digest`` addresses the artifact bytes; the independently pinned
     source and image digests prevent a valid receipt from being relabeled for a

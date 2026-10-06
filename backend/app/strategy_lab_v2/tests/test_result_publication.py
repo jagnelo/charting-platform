@@ -389,16 +389,16 @@ def test_release_candidate_builds_backtest_authoritative_result_provenance() -> 
     )
     release_pin = replace(
         NAUTILUS_PIN,
-        package_version="2.0.0rc5",
-        release_tag="v2.0.0rc5",
+        package_version="2.0.0rc6",
+        release_tag="v2.0.0rc6",
         wheel_digest=NAUTILUS_V2_RC_WHEEL_SHA256,
     )
     evidence = EngineConformanceEvidence(
         "nautilus",
-        "2.0.0rc5",
+        "2.0.0rc6",
         BUILD,
         EngineReleaseChannel.RELEASE_CANDIDATE,
-        content_digest("rc5-backtest-fixture"),
+        content_digest("rc6-backtest-fixture"),
         backtest_checks,
         NOW,
         release_pin,
@@ -410,7 +410,7 @@ def test_release_candidate_builds_backtest_authoritative_result_provenance() -> 
         result.attempt_id,
         result.snapshot_fingerprint,
         "nautilus",
-        "2.0.0rc5",
+        "2.0.0rc6",
         BUILD,
         content_digest("authorization"),
         content_digest("runtime-preflight"),
@@ -429,7 +429,7 @@ def test_release_candidate_builds_backtest_authoritative_result_provenance() -> 
     assert provenance.execution_scope == NautilusExecutionScope.BACKTEST_AUTHORITATIVE.value
     rc_result = replace(
         result,
-        engine_version="2.0.0rc5",
+        engine_version="2.0.0rc6",
         engine_build_digest=BUILD,
         engine_provenance=provenance,
     )
@@ -454,16 +454,16 @@ def test_release_candidate_with_event_tape_parity_publishes_full_local_simulatio
     result, _, _, runtime, _, stable_plan = _result()
     release_pin = replace(
         NAUTILUS_PIN,
-        package_version="2.0.0rc5",
-        release_tag="v2.0.0rc5",
+        package_version="2.0.0rc6",
+        release_tag="v2.0.0rc6",
         wheel_digest=NAUTILUS_V2_RC_WHEEL_SHA256,
     )
     evidence = EngineConformanceEvidence(
         "nautilus",
-        "2.0.0rc5",
+        "2.0.0rc6",
         BUILD,
         EngineReleaseChannel.RELEASE_CANDIDATE,
-        content_digest("rc5-full-simulation-fixture"),
+        content_digest("rc6-full-simulation-fixture"),
         frozenset(ConformanceCheck),
         NOW,
         release_pin,
@@ -472,7 +472,7 @@ def test_release_candidate_with_event_tape_parity_publishes_full_local_simulatio
     sandbox_plan = _sandbox_plan(release_pin, result.attempt_id)
     execution_plan = replace(
         stable_plan,
-        engine_version="2.0.0rc5",
+        engine_version="2.0.0rc6",
         conformance_report_fingerprint=conformance.fingerprint,
         sandbox_plan_fingerprint=sandbox_plan.fingerprint,
     )
@@ -482,7 +482,7 @@ def test_release_candidate_with_event_tape_parity_publishes_full_local_simulatio
     )
     rc_result = replace(
         result,
-        engine_version="2.0.0rc5",
+        engine_version="2.0.0rc6",
         engine_provenance=provenance,
     )
     integrity = verify_run_result_artifacts(

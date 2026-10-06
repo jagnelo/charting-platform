@@ -30,7 +30,7 @@ def test_rc_runtime_image_requires_explicit_base_and_wheel_integrity_inputs() ->
     assert 'test -n "${NAUTILUS_WHEEL_FILENAME}"' in source
     assert "ARG NAUTILUS_SOURCE_DIGEST" in source
     assert f"{SOURCE_DIGEST_LABEL}=${{NAUTILUS_SOURCE_DIGEST}}" in source
-    assert f"{PACKAGE_VERSION_LABEL}=2.0.0rc5" in source
+    assert f"{PACKAGE_VERSION_LABEL}=2.0.0rc6" in source
     assert f"{WHEEL_DIGEST_LABEL}=${{NAUTILUS_WHEEL_SHA256}}" in source
     assert "ADD --checksum=sha256:${NAUTILUS_WHEEL_SHA256}" in source
     assert "COPY app/strategy_lab_v2/nautilus_runtime_image/reporting-requirements.txt" in source
@@ -152,10 +152,10 @@ def test_rc_runtime_reporting_stack_is_exactly_pinned() -> None:
     ]
 
 
-def test_rc_runtime_image_defaults_to_non_authoritative_rc5_runtime_cli_probe() -> None:
+def test_rc_runtime_image_defaults_to_non_authoritative_rc6_runtime_cli_probe() -> None:
     source = DOCKERFILE.read_text(encoding="utf-8")
 
     assert (
-        'CMD ["python", "-m", "app.strategy_lab_v2.nautilus_runtime_cli", "--probe", "--expected-version", "2.0.0rc5"]'
+        'CMD ["python", "-m", "app.strategy_lab_v2.nautilus_runtime_cli", "--probe", "--expected-version", "2.0.0rc6"]'
         in source
     )

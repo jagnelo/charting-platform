@@ -108,7 +108,7 @@ def _conformance_resolution():
         runtime,
         _rc_probe(runtime),
         _rc_receipt(runtime),
-        build_digest=content_digest("nautilus-v2-rc5-build"),
+        build_digest=content_digest("nautilus-v2-rc6-build"),
         tested_at=BASE,
     )
 

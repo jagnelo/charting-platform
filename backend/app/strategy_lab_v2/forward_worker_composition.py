@@ -672,7 +672,7 @@ def materialize_authenticated_forward_sandbox_plan(
     output_path: str,
     submitted_at: datetime,
 ) -> MaterializedForwardSandboxPlan:
-    """Compose exact owner/checkpoint inputs into an RC5-capable sandbox plan.
+    """Compose exact owner/checkpoint inputs into an RC6-capable sandbox plan.
 
     Snapshot, canonical history, venue/instrument definitions, runtime image,
     and output location are explicit host-owned inputs. The function never

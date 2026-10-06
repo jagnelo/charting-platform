@@ -70,7 +70,7 @@ pytestmark = [
     pytest.mark.integration,
     pytest.mark.skipif(
         not _IMAGE_DIGEST,
-        reason="requires the exact-source Nautilus RC5 image and explicit Docker opt-in",
+        reason="requires the exact-source Nautilus RC6 image and explicit Docker opt-in",
     ),
 ]
 
@@ -88,7 +88,7 @@ def _async_postgres_url(raw_url: str) -> str:
 def _manifest(directory: Path) -> dict[str, Any]:
     value = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
     if not isinstance(value, dict):
-        raise ValueError("RC5 forward fixture manifest must be an object")
+        raise ValueError("RC6 forward fixture manifest must be an object")
     return value
 
 
@@ -111,7 +111,7 @@ def _rebind_bootstrap(
     )
     if bootstrap.processed_events:
         if previous_checkpoint_fingerprint is None:
-            raise ValueError("processed RC5 fixture requires its actual prior checkpoint")
+            raise ValueError("processed RC6 fixture requires its actual prior checkpoint")
         rebound = replace(
             bootstrap,
             processed_checkpoint_fingerprint=checkpoint_fingerprint,
@@ -172,7 +172,7 @@ def _sandbox_plan_factory(
             raise ValueError("persisted PostgreSQL checkpoint differs from the process request")
         directory = directories.get(checkpoint_fingerprint)
         if directory is None:
-            raise ValueError("RC5 fixture catalog has no requested PostgreSQL checkpoint")
+            raise ValueError("RC6 fixture catalog has no requested PostgreSQL checkpoint")
         starts.append(checkpoint_fingerprint)
         manifest = _manifest(directory)
         bootstrap_path = directory / "bootstrap.json"
@@ -187,7 +187,7 @@ def _sandbox_plan_factory(
             or bootstrap.processed_checkpoint_fingerprint != checkpoint_fingerprint
             or bootstrap.warmup_receipt_fingerprint != resolved.warmup_receipt.fingerprint
         ):
-            raise ValueError("RC5 bootstrap differs from authenticated PostgreSQL recovery state")
+            raise ValueError("RC6 bootstrap differs from authenticated PostgreSQL recovery state")
 
         component = bootstrap.components[0]
         bundle_path = directory / "bundle.json"
@@ -196,7 +196,7 @@ def _sandbox_plan_factory(
         if not isinstance(engine_input, dict) or not isinstance(
             engine_input.get("attempt_id"), str
         ):
-            raise ValueError("RC5 bundle has no bound runtime attempt")
+            raise ValueError("RC6 bundle has no bound runtime attempt")
         attempt_id = engine_input["attempt_id"]
         profile = RuntimeIsolationProfile(
             runtime_image_digest=image_digest,
@@ -227,7 +227,7 @@ def _sandbox_plan_factory(
         return build_nautilus_forward_runtime_sandbox_command(
             request,
             profile,
-            image_name="strategy-lab-v2/nautilus-rc5",
+            image_name="strategy-lab-v2/nautilus-rc6",
             input_bundle_path=bundle_path,
             forward_bootstrap_path=bootstrap_path,
             bootstrap_fingerprint=bootstrap.fingerprint,
@@ -237,7 +237,7 @@ def _sandbox_plan_factory(
             native_event_stream_digest=artifact_content_digest(native_path.read_bytes()),
             output_path=output_path,
             instance_id=instance_id,
-            expected_version="2.0.0rc5",
+            expected_version="2.0.0rc6",
             snapshot_fingerprint=bootstrap.snapshot_fingerprint,
         )
 
@@ -253,7 +253,7 @@ class _UnexpectedNativeExecution:
 
 
 @pytest.mark.asyncio
-async def test_exact_rc5_forward_recovery_settles_postgres_then_acks_redis_without_rerun(
+async def test_exact_rc6_forward_recovery_settles_postgres_then_acks_redis_without_rerun(
     pg_container,
     test_database_url: str | None,
     redis_url: str,
@@ -274,7 +274,7 @@ async def test_exact_rc5_forward_recovery_settles_postgres_then_acks_redis_witho
             "--read-only",
             f"--user={os.getuid()}:{os.getgid()}",
             f"--mount=type=bind,src={exports},dst=/outputs",
-            "strategy-lab-v2/nautilus-rc5@" + image_digest,
+            "strategy-lab-v2/nautilus-rc6@" + image_digest,
             "python",
             "-m",
             "app.strategy_lab_v2.nautilus_rc_fixture_probe",
@@ -304,8 +304,8 @@ async def test_exact_rc5_forward_recovery_settles_postgres_then_acks_redis_witho
     redis = Redis.from_url(redis_url, decode_responses=True)
     suffix = uuid4().hex
     instance_id = bootstrap.instance_id
-    principal = f"rc5-forward-owner-{suffix}"
-    namespace = f"strategy-lab:v2:rc5-forward-recovery:{suffix}"
+    principal = f"rc6-forward-owner-{suffix}"
+    namespace = f"strategy-lab:v2:rc6-forward-recovery:{suffix}"
     queue_name = "forward-events"
     state_schema = PostgresForwardStateSchema(
         instance_table=f"slv2_r5_instances_{suffix}",
@@ -355,7 +355,7 @@ async def test_exact_rc5_forward_recovery_settles_postgres_then_acks_redis_witho
             instance_id=instance_id,
             target=ForwardState.WARMING_UP,
             now=created_at + timedelta(seconds=1),
-            idempotency_key=f"rc5-warmup-{suffix}",
+            idempotency_key=f"rc6-warmup-{suffix}",
         )
         assert warming.instance is not None
         warmup = ForwardWarmupReceipt(
@@ -429,7 +429,7 @@ async def test_exact_rc5_forward_recovery_settles_postgres_then_acks_redis_witho
         first_worker = RedisDispatchWorker(
             transport,
             queue_name=queue_name,
-            group_name="rc5-forward-workers",
+            group_name="rc6-forward-workers",
             consumer_name="crashed-before-settlement",
             reclaim_idle_ms=0,
         )
@@ -489,7 +489,7 @@ async def test_exact_rc5_forward_recovery_settles_postgres_then_acks_redis_witho
         retry_worker = RedisDispatchWorker(
             transport,
             queue_name=queue_name,
-            group_name="rc5-forward-workers",
+            group_name="rc6-forward-workers",
             consumer_name="retry-before-settlement",
             reclaim_idle_ms=0,
         )
@@ -539,7 +539,7 @@ async def test_exact_rc5_forward_recovery_settles_postgres_then_acks_redis_witho
         committed = await account_handler(retry_entry, work_item)
         assert committed.decision is WorkerHandleDecision.COMPLETE
         await _kill_process(retry_process)  # PostgreSQL committed; Redis ACK is still pending.
-        assert await redis.xpending(stream_key, "rc5-forward-workers") == {
+        assert await redis.xpending(stream_key, "rc6-forward-workers") == {
             "pending": 1,
             "min": retry_entry.stream_id,
             "max": retry_entry.stream_id,
@@ -565,7 +565,7 @@ async def test_exact_rc5_forward_recovery_settles_postgres_then_acks_redis_witho
         ack_worker = RedisDispatchWorker(
             transport,
             queue_name=queue_name,
-            group_name="rc5-forward-workers",
+            group_name="rc6-forward-workers",
             consumer_name="post-commit-restart",
             reclaim_idle_ms=0,
         )
@@ -580,14 +580,14 @@ async def test_exact_rc5_forward_recovery_settles_postgres_then_acks_redis_witho
         assert replay_cycle.entries[0].acknowledgement is not None
         assert replay_cycle.entries[0].acknowledgement.acknowledged
         assert len(starts) == 2  # receipt-first handler did not launch Nautilus again
-        assert await redis.xpending(stream_key, "rc5-forward-workers") == {
+        assert await redis.xpending(stream_key, "rc6-forward-workers") == {
             "pending": 0,
             "min": None,
             "max": None,
             "consumers": [],
         }
 
-        # Once the first event is ACKed, the next exact RC5 process must rebuild
+        # Once the first event is ACKed, the next exact RC6 process must rebuild
         # from the newly committed PostgreSQL account/admission checkpoint.
         next_fixture_delivery, next_fixture_preparation = _fixture_payload(after_dir)
         next_canonical = next_fixture_delivery.tape.envelopes[0].canonical_event
@@ -640,7 +640,7 @@ async def test_exact_rc5_forward_recovery_settles_postgres_then_acks_redis_witho
         next_worker = RedisDispatchWorker(
             transport,
             queue_name=queue_name,
-            group_name="rc5-forward-workers",
+            group_name="rc6-forward-workers",
             consumer_name="post-ack-continuation",
             reclaim_idle_ms=0,
         )
@@ -693,7 +693,7 @@ async def test_exact_rc5_forward_recovery_settles_postgres_then_acks_redis_witho
         assert continuation_cycle.entries[0].acknowledgement is not None
         assert continuation_cycle.entries[0].acknowledgement.acknowledged
         assert len(starts) == 3
-        assert await redis.xpending(stream_key, "rc5-forward-workers") == {
+        assert await redis.xpending(stream_key, "rc6-forward-workers") == {
             "pending": 0,
             "min": None,
             "max": None,

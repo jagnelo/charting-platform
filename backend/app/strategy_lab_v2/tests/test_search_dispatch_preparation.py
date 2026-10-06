@@ -257,7 +257,7 @@ def _setup(tmp_path: Path, *, runtime_image_digest: str | None = None):
         runtime,
         _rc_probe(runtime),
         _rc_receipt(runtime),
-        build_digest=content_digest("nautilus-v2-rc5-build"),
+        build_digest=content_digest("nautilus-v2-rc6-build"),
         tested_at=BASE,
     )
     worker_state_reader = _WorkerStateReader(pool)
@@ -356,7 +356,7 @@ async def test_resolver_hydrates_materializes_authorizes_and_composes_search_evi
     assert evidence.worker_request.execution_plan.execution_scope.value == (
         "backtest_compatibility"
     )
-    assert evidence.worker_request.execution_plan.engine_version == "2.0.0rc5"
+    assert evidence.worker_request.execution_plan.engine_version == "2.0.0rc6"
     assert evidence.trial_runtime_evidence.runtime_request.request_id == (
         observed["request"].runtime_request_id
     )
@@ -472,7 +472,7 @@ async def test_resolver_fails_closed_when_every_fleet_profile_is_busy(tmp_path: 
 
 
 @pytest.mark.asyncio
-async def test_persisted_owner_graph_composes_exact_authoritative_rc5_worker_request(
+async def test_persisted_owner_graph_composes_exact_authoritative_rc6_worker_request(
     tmp_path: Path,
 ) -> None:
     values, graph, store = _build_inputs(tmp_path)
@@ -520,7 +520,7 @@ async def test_persisted_owner_graph_composes_exact_authoritative_rc5_worker_req
             runtime,
             _rc_probe(runtime),
             _rc_receipt(runtime),
-            build_digest=content_digest("nautilus-v2-rc5-build"),
+            build_digest=content_digest("nautilus-v2-rc6-build"),
             tested_at=BASE,
         )
     )
@@ -655,7 +655,7 @@ async def test_persisted_owner_graph_composes_exact_authoritative_rc5_worker_req
     assert worker_request.execution_plan.data_snapshot_fingerprint == graph.snapshot.fingerprint
     assert worker_request.execution_plan.authoritative
     assert worker_request.execution_plan.execution_scope.value == "backtest_authoritative"
-    assert worker_request.execution_plan.engine_version == "2.0.0rc5"
+    assert worker_request.execution_plan.engine_version == "2.0.0rc6"
     if evidence_source is not None:
         process_executor = SerialWorkerProcessExecutor(timeout_seconds=180)
         first_process_result = process_executor.run(worker_request)
@@ -672,7 +672,7 @@ async def test_persisted_owner_graph_composes_exact_authoritative_rc5_worker_req
 
         attempt_id = graph.attempt.attempt_id
         submission_request = SubmissionRequest(
-            "persisted-rc5-terminal-publication",
+            "persisted-rc6-terminal-publication",
             "backtest",
             attempt_id,
             content_digest({"attempt_id": attempt_id, "trial_id": graph.trial.trial_id}),
@@ -699,7 +699,7 @@ async def test_persisted_owner_graph_composes_exact_authoritative_rc5_worker_req
         completion_entry = RedisStreamEntry(
             "strategy-lab:v2:stream:backtest",
             "1-0",
-            content_digest("persisted-rc5-terminal-message"),
+            content_digest("persisted-rc6-terminal-message"),
             attempt_id,
             content_digest({"attempt_id": attempt_id}),
             worker_request.request_fingerprint,
@@ -729,7 +729,7 @@ async def test_persisted_owner_graph_composes_exact_authoritative_rc5_worker_req
 
         artifact_committer = ArtifactCommitter()
         artifact_publisher = LocalArtifactPublicationService(
-            LocalArtifactStore(tmp_path / "published-rc5-results"),
+            LocalArtifactStore(tmp_path / "published-rc6-results"),
             artifact_committer,
         )
 

@@ -82,8 +82,8 @@ _START = datetime(2024, 1, 1, tzinfo=UTC)
 _END = _START + timedelta(days=365)
 _EVIDENCE = content_digest("provider evidence")
 _NAUTILUS_PIN = NautilusReleasePin(
-    package_version="2.0.0rc5",
-    release_tag="v2.0.0rc5",
+    package_version="2.0.0rc6",
+    release_tag="v2.0.0rc6",
     source_digest=content_digest("nautilus source"),
     wheel_digest=content_digest("nautilus wheel"),
     runtime_image_digest=content_digest("nautilus runtime image"),

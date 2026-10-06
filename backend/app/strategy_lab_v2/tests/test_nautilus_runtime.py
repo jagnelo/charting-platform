@@ -26,8 +26,8 @@ from app.strategy_lab_v2.nautilus_runtime import (
 
 def _runtime() -> NautilusRcCompatibilityRuntime:
     return NautilusRcCompatibilityRuntime(
-        source_digest=content_digest("nautilus-v2-rc5-source"),
-        runtime_image_digest=content_digest("nautilus-v2-rc5-image"),
+        source_digest=content_digest("nautilus-v2-rc6-source"),
+        runtime_image_digest=content_digest("nautilus-v2-rc6-image"),
         python_version="3.12.11",
         rust_version="1.88.0",
     )
@@ -276,9 +276,9 @@ def test_complete_rc_conformance_qualifies_local_authority_after_all_checks() ->
     evidence = EngineConformanceEvidence(
         engine_id="nautilus",
         engine_version=runtime.package_version,
-        build_digest=content_digest("nautilus-v2-rc5-build"),
+        build_digest=content_digest("nautilus-v2-rc6-build"),
         release_channel=runtime.release_channel,
-        fixture_digest=content_digest("nautilus-v2-rc5-fixture"),
+        fixture_digest=content_digest("nautilus-v2-rc6-fixture"),
         passed_checks=frozenset(ConformanceCheck),
         tested_at=datetime(2026, 10, 2, tzinfo=UTC),
         release_pin=runtime.release_pin,
@@ -294,8 +294,8 @@ def test_complete_rc_conformance_qualifies_local_authority_after_all_checks() ->
 def test_rc_runtime_rejects_shared_legacy_environment() -> None:
     with pytest.raises(ValueError, match="isolated"):
         NautilusRcCompatibilityRuntime(
-            source_digest=content_digest("nautilus-v2-rc5-source"),
-            runtime_image_digest=content_digest("nautilus-v2-rc5-image"),
+            source_digest=content_digest("nautilus-v2-rc6-source"),
+            runtime_image_digest=content_digest("nautilus-v2-rc6-image"),
             python_version="3.12.11",
             rust_version="1.88.0",
             legacy_runtime_isolated=False,
@@ -305,8 +305,8 @@ def test_rc_runtime_rejects_shared_legacy_environment() -> None:
 def test_rc_runtime_rejects_a_different_wheel_digest() -> None:
     with pytest.raises(ValueError, match="cannot be overridden"):
         NautilusRcCompatibilityRuntime(
-            source_digest=content_digest("nautilus-v2-rc5-source"),
-            runtime_image_digest=content_digest("nautilus-v2-rc5-image"),
+            source_digest=content_digest("nautilus-v2-rc6-source"),
+            runtime_image_digest=content_digest("nautilus-v2-rc6-image"),
             python_version="3.12.11",
             rust_version="1.88.0",
             wheel_digest=content_digest("different-wheel"),
@@ -319,7 +319,7 @@ def test_probe_evidence_binds_exact_runtime_and_is_non_authoritative() -> None:
         {
             "engine_lifecycle": "passed",
             "implementation": "cpython",
-            "nautilus_package_version": "2.0.0rc5",
+            "nautilus_package_version": "2.0.0rc6",
             "platform": "Linux-x86_64",
             "python_version": "3.12.11",
         },
@@ -337,7 +337,7 @@ def test_probe_evidence_rejects_schema_version_and_runtime_mismatches() -> None:
     payload = {
         "engine_lifecycle": "passed",
         "implementation": "cpython",
-        "nautilus_package_version": "2.0.0rc5",
+        "nautilus_package_version": "2.0.0rc6",
         "platform": "Linux-x86_64",
         "python_version": "3.12.11",
     }

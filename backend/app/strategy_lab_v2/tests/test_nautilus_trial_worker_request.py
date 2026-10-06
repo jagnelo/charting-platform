@@ -145,7 +145,7 @@ def test_worker_request_accepts_conformant_authoritative_rc_backtest(
     request, runtime_evidence = _build_request(tmp_path)
 
     assert request.orchestration_plan.accepted
-    assert request.execution_plan.engine_version == "2.0.0rc5"
+    assert request.execution_plan.engine_version == "2.0.0rc6"
     assert request.execution_plan.execution_scope is NautilusExecutionScope.BACKTEST_AUTHORITATIVE
     assert request.execution_plan.authoritative
     assert request.runtime_input_artifact == (
@@ -163,7 +163,7 @@ def test_worker_request_composes_non_authoritative_rc_compatibility_backtest(
     )
 
     assert request.orchestration_plan.accepted
-    assert request.execution_plan.engine_version == "2.0.0rc5"
+    assert request.execution_plan.engine_version == "2.0.0rc6"
     assert request.execution_plan.execution_scope is NautilusExecutionScope.BACKTEST_COMPATIBILITY
     assert request.execution_plan.authoritative is False
     assert request.runtime_input_artifact == (

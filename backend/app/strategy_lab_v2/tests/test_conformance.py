@@ -98,7 +98,7 @@ def test_complete_release_candidate_conformance_is_authoritative_for_local_simul
     assert report.release_channel is EngineReleaseChannel.RELEASE_CANDIDATE
 
 
-def test_current_rc5_pin_can_qualify_only_with_all_conformance_checks() -> None:
+def test_current_rc6_pin_can_qualify_only_with_all_conformance_checks() -> None:
     pin = replace(
         PIN,
         package_version=NAUTILUS_V2_RC_PACKAGE_VERSION,
@@ -202,7 +202,7 @@ def test_authority_requires_an_isolated_v2_release_pin_and_matching_channel() ->
     assert not shared.authoritative
     assert not shared.release_pin_valid
 
-    prerelease_pin = replace(PIN, release_tag="v2.0.0rc5")
+    prerelease_pin = replace(PIN, release_tag="v2.0.0rc6")
     prerelease = evaluate_engine_conformance(
         EngineConformanceEvidence(
             "nautilus",

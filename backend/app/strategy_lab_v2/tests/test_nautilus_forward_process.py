@@ -136,7 +136,7 @@ def _plan(
         native_event_stream_digest=artifact_content_digest(native_event_stream_path.read_bytes()),
         output_path=output_path,
         instance_id=instance_id,
-        expected_version="2.0.0rc5",
+        expected_version="2.0.0rc6",
         snapshot_fingerprint=content_digest("snapshot"),
     )
 

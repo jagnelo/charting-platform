@@ -439,7 +439,7 @@ def run_native_signed_fee_reconciliation_probe() -> dict[str, Any]:
 
 
 def run_rebalance_schedule_probe() -> dict[str, Any]:
-    """Exercise open, close, and fail-on-misfire callbacks inside RC5."""
+    """Exercise open, close, and fail-on-misfire callbacks inside RC6."""
 
     cases = {
         "session_open": _run_native_execution_probe(
@@ -1560,7 +1560,7 @@ def run_context_stream_cli_probe(
                     "--output",
                     str(output_path),
                     "--expected-version",
-                    "2.0.0rc5",
+                    "2.0.0rc6",
                     "--snapshot-fingerprint",
                     content_digest("adapter-probe-snapshot"),
                     "--max-input-bytes",

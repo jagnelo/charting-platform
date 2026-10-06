@@ -303,7 +303,11 @@ def _write_native_event_catalog(
     """Decode the authenticated native stream into bounded Parquet catalog chunks."""
 
     from nautilus_trader.config import BacktestDataConfig
-    from nautilus_trader.model import BarType, InstrumentId
+    from nautilus_trader.model import (  # type: ignore[attr-defined]
+        BarType,
+        InstrumentId,
+        NautilusDataType,
+    )
     from nautilus_trader.persistence import ParquetDataCatalog  # type: ignore[attr-defined]
 
     tape = payload["event_tape"]
@@ -372,7 +376,10 @@ def _write_native_event_catalog(
         )
 
     data_configs: list[Any] = []
-    for event_type, data_type in (("quote", "QuoteTick"), ("trade", "TradeTick")):
+    for event_type, data_type in (
+        ("quote", NautilusDataType.QuoteTick),
+        ("trade", NautilusDataType.TradeTick),
+    ):
         identifiers = observed_instruments[event_type]
         if identifiers:
             data_configs.append(
@@ -387,7 +394,7 @@ def _write_native_event_catalog(
     if "ohlcv" in observed_types:
         data_configs.append(
             BacktestDataConfig(
-                data_type="Bar",  # type: ignore[call-arg]
+                data_type=NautilusDataType.Bar,  # type: ignore[call-arg]
                 catalog_path=str(catalog_path),
                 bar_types=[
                     str(BarType.from_str(instrument_by_id[item]["bar_type"]))
@@ -508,7 +515,10 @@ def run_native_backtest(
         materialize_native_instrument(definition) for definition in instrument_definitions
     )
     native_venue, oms_type, account_type, balances = materialize_native_venue(venue_definition)
-    native_fee_model = materialize_native_fee_model(venue_definition["fee_model"])
+    native_fee_model = materialize_native_fee_model(
+        venue_definition["fee_model"],
+        zero_fee_currency=venue_definition["base_currency"],
+    )
     from nautilus_trader import __version__  # type: ignore[import-not-found,attr-defined]
     from nautilus_trader.backtest import (  # type: ignore[import-not-found,attr-defined]
         BacktestEngine,

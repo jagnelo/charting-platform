@@ -93,7 +93,7 @@ def _native_futures_margin_decision(
     event_time: datetime,
     event_sequence: int,
 ) -> MarginRiskDecision:
-    """Use RC5's native margin calculator for the post-order futures positions."""
+    """Use RC6's native margin calculator for the post-order futures positions."""
 
     if account_type.upper() != "MARGIN":
         raise NautilusRuntimeDataError("native futures order admission requires a margin account")

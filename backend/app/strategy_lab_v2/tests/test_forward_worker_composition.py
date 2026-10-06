@@ -397,7 +397,7 @@ def test_forward_sandbox_input_resolver_requires_one_authenticated_owner() -> No
         market_context,
         principal="owner-a",
         runtime_profile=profile,
-        expected_version="2.0.0rc5",
+        expected_version="2.0.0rc6",
     )
 
     assert resolver is not None
@@ -410,7 +410,7 @@ def test_forward_sandbox_input_resolver_requires_one_authenticated_owner() -> No
             market_context,
             principal="owner-b",
             runtime_profile=profile,
-            expected_version="2.0.0rc5",
+            expected_version="2.0.0rc6",
         )
 
 
@@ -632,7 +632,7 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
         MarketContextResolver(),
         principal="owner-a",
         runtime_profile=runtime_profile,
-        expected_version="2.0.0rc5",
+        expected_version="2.0.0rc6",
     )
 
     result = await resolver.resolve(
@@ -676,7 +676,7 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
         artifact_store,
         resolver,
         principal="owner-a",
-        image_name="strategy-lab-v2/nautilus-rc5" if image_digest else "nautilus-forward:rc5",
+        image_name="strategy-lab-v2/nautilus-rc6" if image_digest else "nautilus-forward:rc6",
         output_path_resolver=next_output_path,
     )
     sandbox_plan = await plan_factory(
@@ -1280,8 +1280,8 @@ def test_production_owner_handler_factory_binds_plan_and_process_factory(tmp_pat
         runtime_profile=RuntimeIsolationProfile(
             content_digest("forward-runtime-image"), "strategy-runtime.test.v1"
         ),
-        image_name="nautilus-forward:rc5",
-        expected_version="2.0.0rc5",
+        image_name="nautilus-forward:rc6",
+        expected_version="2.0.0rc6",
         output_path_resolver=lambda _owner, _instance, _checkpoint: tmp_path / "output.json",
     )
 
