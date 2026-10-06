@@ -5,6 +5,7 @@ import json
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from io import BytesIO
 from typing import TypedDict
 
 import pytest
@@ -52,8 +53,11 @@ from app.strategy_lab_v2.nautilus_forward_bootstrap import (
     materialize_nautilus_forward_bootstrap_artifact,
 )
 from app.strategy_lab_v2.nautilus_forward_delivery import VerifiedForwardMarketPayload
+from app.strategy_lab_v2.nautilus_native_event_stream import (
+    deserialize_nautilus_native_event_stream,
+)
 from app.strategy_lab_v2.nautilus_runtime_bundle import (
-    materialize_nautilus_native_event_stream_artifact,
+    materialize_nautilus_verified_forward_warmup_stream,
 )
 from app.strategy_lab_v2.nautilus_runtime_protocol import (
     NAUTILUS_CONTEXT_STREAM_MEDIA_TYPE,
@@ -573,13 +577,6 @@ def test_build_binds_owner_plan_warmup_snapshot_prefix_and_native_inputs(tmp_pat
     )
     native_tape = materialize_nautilus_event_tape(frozen_tape, snapshot, manifest)
     store = LocalArtifactStore(tmp_path / "artifacts")
-    native_reference = materialize_nautilus_native_event_stream_artifact(
-        store,
-        events=native_tape.events,
-        source_tape_fingerprint=native_tape.source_tape_fingerprint,
-        adapter_version=native_tape.adapter_version,
-        event_count=len(native_tape.events),
-    )
     native_binding = NautilusComponentStrategyBinding(
         "component-1",
         strategy.fingerprint,
@@ -616,6 +613,24 @@ def test_build_binds_owner_plan_warmup_snapshot_prefix_and_native_inputs(tmp_pat
             content_digest(event.values),
         )
         for index, event in enumerate(frozen_tape.events)
+    )
+    native_reference = materialize_nautilus_verified_forward_warmup_stream(
+        store,
+        snapshot=snapshot,
+        manifest=manifest,
+        warmup_tape=snapshot_tape,
+        payloads=warmup_payloads,
+    )
+    native_records = tuple(
+        deserialize_nautilus_native_event_stream(
+            BytesIO(store.read(native_reference.artifact.storage_key)),
+            expected_source_tape_fingerprint=frozen_tape.fingerprint,
+            expected_adapter_version=native_reference.adapter_version,
+            expected_event_count=native_reference.event_count,
+        )
+    )
+    assert tuple(item["sequence"] for item in native_records) == tuple(
+        item.canonical_event.sequence for item in warmup_payloads
     )
     cursor_event = warmup_payloads[-1].canonical_event
     receipt = ForwardWarmupReceipt(

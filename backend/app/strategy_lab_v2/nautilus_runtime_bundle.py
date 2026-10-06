@@ -18,7 +18,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
-from typing import Any, BinaryIO, cast
+from typing import TYPE_CHECKING, Any, BinaryIO, cast
 
 from app.strategy_lab_v2.artifact_store import (
     ArtifactStoreDecision,
@@ -73,6 +73,11 @@ from strategy_runtime import (
 
 NAUTILUS_RUNTIME_ARTIFACT_MEDIA_TYPE = "application/vnd.charting.strategy-lab.nautilus+json"
 NAUTILUS_RUNTIME_ARTIFACT_SCHEMA = "strategy-lab.nautilus-runtime-bundle.v1"
+
+if TYPE_CHECKING:
+    from app.strategy_lab_v2.contracts import DataSnapshot
+    from app.strategy_lab_v2.event_tape_artifacts import FrozenEventTapeArtifactResolution
+    from app.strategy_lab_v2.nautilus_forward_delivery import VerifiedForwardMarketPayload
 
 
 class NautilusRuntimeBundleError(ValueError):
@@ -445,6 +450,87 @@ def materialize_nautilus_native_event_stream_artifact(
                 os.unlink(temporary_path)
             except FileNotFoundError:
                 pass
+
+
+def materialize_nautilus_verified_forward_warmup_stream(
+    store: LocalArtifactStore,
+    *,
+    snapshot: DataSnapshot,
+    manifest: StrategySdkManifest,
+    warmup_tape: FrozenEventTapeArtifactResolution,
+    payloads: Sequence[VerifiedForwardMarketPayload],
+) -> NautilusNativeEventStreamArtifactReference:
+    """Materialize native replay rows only from exact globally ordered identities.
+
+    Frozen tape sequence numbers order rows within their dependencies; they are
+    not the platform's canonical event sequence. The explicit verified payload
+    mapping supplies that global identity and the order used by forward replay.
+    """
+
+    from app.strategy_lab_v2.contracts import DataSnapshot
+    from app.strategy_lab_v2.event_tape import bind_event_tape
+    from app.strategy_lab_v2.event_tape_artifacts import FrozenEventTapeArtifactResolution
+    from app.strategy_lab_v2.nautilus_event_adapter import (
+        NAUTILUS_EVENT_ADAPTER_VERSION,
+        _effective_event_types,
+        materialize_nautilus_event,
+    )
+    from app.strategy_lab_v2.nautilus_forward_delivery import VerifiedForwardMarketPayload
+
+    if not isinstance(store, LocalArtifactStore):
+        raise TypeError("store must be a LocalArtifactStore")
+    if not isinstance(snapshot, DataSnapshot):
+        raise TypeError("snapshot must be a DataSnapshot")
+    if not isinstance(manifest, StrategySdkManifest):
+        raise TypeError("manifest must be a StrategySdkManifest")
+    if not isinstance(warmup_tape, FrozenEventTapeArtifactResolution):
+        raise TypeError("warmup_tape must use FrozenEventTapeArtifactResolution")
+    if not isinstance(payloads, Sequence) or isinstance(payloads, str | bytes):
+        raise TypeError("payloads must be a sequence of verified forward payloads")
+    payloads = tuple(payloads)
+    if any(not isinstance(item, VerifiedForwardMarketPayload) for item in payloads):
+        raise TypeError("payloads must contain VerifiedForwardMarketPayload values")
+    if warmup_tape.snapshot_fingerprint != snapshot.fingerprint:
+        raise ValueError("warm-up tape differs from its frozen snapshot")
+    bind_event_tape(warmup_tape.tape, snapshot, manifest)
+    tape_events = {event.event_id: event for event in warmup_tape.tape.events}
+    payload_events = {item.canonical_event.event_id: item for item in payloads}
+    if len(payload_events) != len(payloads) or set(payload_events) != set(tape_events):
+        raise ValueError("verified payloads do not exactly cover the frozen warm-up tape")
+    for event_id, payload in payload_events.items():
+        row = tape_events[event_id]
+        market = payload.market_event
+        if (
+            market.dependency_id != row.dependency_id
+            or market.event_id != row.event_id
+            or market.instrument_id != row.instrument_id
+            or market.event_time != row.event_time
+            or market.values != row.values
+        ):
+            raise ValueError("verified canonical payload differs from its frozen source row")
+    ordered = tuple(
+        sorted(payloads, key=lambda item: (item.canonical_event.event_time, item.canonical_event.sequence))
+    )
+    sequences = tuple(item.canonical_event.sequence for item in ordered)
+    if len(sequences) != len(set(sequences)):
+        raise ValueError("verified warm-up canonical sequences must be unique")
+    event_types = _effective_event_types(snapshot, manifest)
+
+    def records() -> Iterable[NautilusEventRecord]:
+        for payload in ordered:
+            dependency_id = payload.market_event.dependency_id
+            event_type = event_types.get(dependency_id)
+            if event_type is None:
+                raise ValueError("verified warm-up event has an undeclared dependency")
+            yield materialize_nautilus_event(payload.market_event, event_type=event_type)
+
+    return materialize_nautilus_native_event_stream_artifact(
+        store,
+        events=records(),
+        source_tape_fingerprint=warmup_tape.tape.fingerprint,
+        adapter_version=NAUTILUS_EVENT_ADAPTER_VERSION,
+        event_count=len(ordered),
+    )
 
 
 def _wire_value(value: Any) -> Any:
@@ -1341,6 +1427,7 @@ __all__ = [
     "materialize_nautilus_context_stream_artifact",
     "materialize_nautilus_component_context_stream_artifact",
     "materialize_nautilus_native_event_stream_artifact",
+    "materialize_nautilus_verified_forward_warmup_stream",
     "materialize_nautilus_runtime_bundle",
     "verify_nautilus_context_stream_artifact_file",
     "verify_nautilus_invocation_result_stream_file",
