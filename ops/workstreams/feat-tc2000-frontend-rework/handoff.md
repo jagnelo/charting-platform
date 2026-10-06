@@ -1,5 +1,20 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — Current-tip full visual matrix result
+
+The pinned four-project matrix completed all 104 visual cases against the
+current branch frontend source: 94 passed and 10 failed. Four keyboard-Help
+states passed semantic/content assertions but exceeded the unchanged 0.5%
+pixel threshold at 2–3% differing pixels (55,085; 56,441; 64,009; 65,669).
+This is a genuine unresolved screenshot-oracle discrepancy, even though four
+individual Help cases had passed after the prior local capture refresh. Do not
+refresh those baselines or change thresholds/masks. Six other failures showed
+`ERR_NETWORK_CHANGED` requests or login navigation timeouts through the
+temporary Vite proxy, so treat those as inconclusive transport failures, not
+product passes. Artifacts: `/tmp/tc2000-visual-20261006.2boYLc`. The source
+mount was read-only and the assigned stack was preserved. The full exact
+integration gate remains open; continue scoped frontend parity work.
+
 ## 2026-10-06 — Official V25 shortcut-gap audit
 
 Compared the current TC2000 V25 hot-key reference with the active workstation.
