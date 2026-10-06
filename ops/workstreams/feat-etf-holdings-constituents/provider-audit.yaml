@@ -6710,7 +6710,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: native_promoted
     disposition: native_promoted
-    last_checked: 2026-09-03
+    last_checked: 2026-10-06
     source_access_declared: issuer_public_product_page_declared_filepoint_complete_holdings_csv
     representative_symbols: [PFDE]
     estimated_us_etf_count: null
@@ -6720,7 +6720,7 @@ providers:
     first_party_domains: [pathfinderetfs.com, sec.gov]
     candidate_routes:
       - "https://pathfinderetfs.com/pfde"
-      - "https://pathfinderetfs.com/assets/js/app.js?version=4"
+      - "https://pathfinderetfs.com/assets/js/app.js?version=5"
       - "https://pathfinderetfs.com/assets/data/FilepointOpalCap.40O6.O6_ETF_Holdings.csv"
     route_complete: true
     symbol_mapping_proven: true
@@ -6734,6 +6734,8 @@ providers:
       - "web:pathfinder-official-pfde-2026-09-03"
       - "web:pathfinder-sec-daily-disclosure-2026-09-03"
       - "live:pathfinder-pfde-current-holdings-2026-09-03"
+      - "web:pathfinder-official-pfde-app-v5-2026-10-06"
+      - "live:pathfinder-pfde-current-holdings-v5-2026-10-06"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -6751,6 +6753,14 @@ providers:
         source: "https://pathfinderetfs.com/assets/data/FilepointOpalCap.40O6.O6_ETF_Holdings.csv"
         result: "The bounded live route returned the current PFDE holdings CSV; the native adapter validated the page and app declaration, parsed dated rows, and preserved ticker/CUSIP/shares/value/weight semantics."
         evidence_ref: "live:pathfinder-pfde-current-holdings-2026-09-03"
+      - date: 2026-10-06
+        source: "https://pathfinderetfs.com/pfde"
+        result: "The first-party PFDE page now declares app.js?version=5; the version-5 bundle still declares the same FilePointOpalCap.40O6.O6_ETF_Holdings.csv route."
+        evidence_ref: "web:pathfinder-official-pfde-app-v5-2026-10-06"
+      - date: 2026-10-06
+        source: "https://pathfinderetfs.com/assets/data/FilepointOpalCap.40O6.O6_ETF_Holdings.csv"
+        result: "The current issuer-hosted CSV returned its dated PFDE holdings rows for 2026-10-06 with the previously verified ticker/CUSIP/shares/value/weight columns."
+        evidence_ref: "live:pathfinder-pfde-current-holdings-v5-2026-10-06"
     disposition_reason: "pathfinder: Pathfinder's official PFDE product page and declared FilePoint CSV provide a complete current holdings route. The native adapter validates the page/app declarations, parses PFDE rows with strict mapping and current dates, and records Pathfinder/Opal provenance without SEC-derived reconstruction."
     next_action: "pathfinder: Monitor the PFDE page/app/CSV for schema and date continuity; add PFOE only after its own executable complete holdings route is proven."
     implementation_sha: 4063289f8d6ba6e8349ad3b5dca3d9d03d3bc528

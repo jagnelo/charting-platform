@@ -15007,7 +15007,7 @@ async def test_graff_adapter_verifies_pathfinder_bundle_and_parses_filepoint_csv
     product_page = """
         <html><body>
         <h1>Pathfinder Disciplined US Equity</h1>
-        <script src="assets/js/app.js?version=4"></script>
+        <script src="assets/js/app.js?version=5"></script>
         </body></html>
     """
     app_script = 'const holdings = "./assets/data/FilepointOpalCap.40O6.O6_ETF_Holdings.csv";'
@@ -15101,7 +15101,7 @@ async def test_graff_adapter_verifies_pathfinder_bundle_and_parses_filepoint_csv
         FakeResponse(
             text=app_script,
             content_type="application/javascript",
-            url="https://pathfinderetfs.com/assets/js/app.js?version=4",
+            url="https://pathfinderetfs.com/assets/js/app.js?version=5",
         ),
         FakeResponse(
             text=raw_csv,
@@ -15115,7 +15115,7 @@ async def test_graff_adapter_verifies_pathfinder_bundle_and_parses_filepoint_csv
 
     assert [request[0] for request in FakeAsyncClient.requested] == [
         "https://pathfinderetfs.com/pfde",
-        "https://pathfinderetfs.com/assets/js/app.js?version=4",
+        "https://pathfinderetfs.com/assets/js/app.js?version=5",
         "https://pathfinderetfs.com/assets/data/FilepointOpalCap.40O6.O6_ETF_Holdings.csv",
     ]
     assert len(result.rows) == 63

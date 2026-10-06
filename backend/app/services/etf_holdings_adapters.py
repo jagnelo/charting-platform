@@ -55814,7 +55814,7 @@ class GraffHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
     SUPPORTED_SYMBOL = "PFDE"
     PRODUCT_PAGE_URL = "https://pathfinderetfs.com/pfde"
-    APP_SCRIPT_URL = "https://pathfinderetfs.com/assets/js/app.js?version=4"
+    APP_SCRIPT_URL = "https://pathfinderetfs.com/assets/js/app.js?version=5"
     HOLDINGS_URL = (
         "https://pathfinderetfs.com/assets/data/FilepointOpalCap.40O6.O6_ETF_Holdings.csv"
     )
@@ -55872,7 +55872,7 @@ class GraffHoldingsAdapter(IssuerCsvHoldingsAdapter):
             product_text = product_response.text
             if (
                 "Pathfinder Disciplined US Equity" not in product_text
-                or "assets/js/app.js?version=4" not in product_text
+                or "assets/js/app.js?version=5" not in product_text
             ):
                 raise ValueError(
                     "Pathfinder PFDE product page did not expose the verified app bundle."
@@ -67638,7 +67638,7 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         source_access="issuer_public_product_page_declared_filepoint_complete_holdings_csv",
         product_page_templates=(
             "https://pathfinderetfs.com/pfde",
-            "https://pathfinderetfs.com/assets/js/app.js?version=4",
+            "https://pathfinderetfs.com/assets/js/app.js?version=5",
         ),
         live_tested_default_route=True,
         terms_note=(
@@ -67652,7 +67652,7 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         source_access="issuer_public_product_page_declared_filepoint_complete_holdings_csv",
         product_page_templates=(
             "https://pathfinderetfs.com/pfde",
-            "https://pathfinderetfs.com/assets/js/app.js?version=4",
+            "https://pathfinderetfs.com/assets/js/app.js?version=5",
         ),
         live_tested_default_route=True,
         terms_note=(
