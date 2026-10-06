@@ -2029,7 +2029,7 @@ function handleKeydown(event: KeyboardEvent) {
       }
     }
   }
-  if (!event.ctrlKey && !event.metaKey && !event.altKey && (event.key === '=' || event.key === '-')) {
+  if (!event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && (event.key === '=' || event.key === '-')) {
     const activeTab = workspaceStore.activeTab
     const activeWindowKey = isPopout.value
       ? String(route.params.windowKey ?? '')
@@ -2096,7 +2096,7 @@ function handleKeydown(event: KeyboardEvent) {
       : activeTab?.active_window_key
     if (activeTab?.windows.some(window => window.instance_key === activeWindowKey && window.tool_type === 'chart')) return
   }
-  if (/^[a-z0-9.=]$/i.test(event.key) && !event.ctrlKey && !event.metaKey && !event.altKey) {
+  if (/^[a-z0-9.=]$/i.test(event.key) && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
     event.preventDefault()
     symbolInput.value?.focus()
     symbolSearchEnabled.value = true

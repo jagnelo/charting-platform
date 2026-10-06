@@ -1109,6 +1109,13 @@ describe('WorkstationView pop-out bindings', () => {
     expect(previous.defaultPrevented).toBe(true)
     expect(harness.workspace.updateToolTimeframe).toHaveBeenNthCalledWith(2, 'chart-main', 'D1')
 
+    for (const key of ['=', '-']) {
+      const projectionShortcut = new KeyboardEvent('keydown', { key, shiftKey: true, bubbles: true, cancelable: true })
+      wrapper.element.dispatchEvent(projectionShortcut)
+      expect(projectionShortcut.defaultPrevented).toBe(false)
+    }
+    expect(harness.workspace.updateToolTimeframe).toHaveBeenCalledTimes(2)
+
     harness.workspace.activeTab.active_window_key = 'benchmark-list'
     const watchlistShortcut = new KeyboardEvent('keydown', { key: '=', bubbles: true, cancelable: true })
     wrapper.element.dispatchEvent(watchlistShortcut)
