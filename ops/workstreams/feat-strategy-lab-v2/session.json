@@ -87,7 +87,9 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "ps/workstreams/feat-strategy-lab-v2/session.json"
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -124,10 +126,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "8b3dccf97039fa84e9b8e78aecb5169519221821",
-  "implementation_sha": "8b3dccf97039fa84e9b8e78aecb5169519221821",
-  "last_checkpoint": "2026-10-06T01:02:33.594163+00:00",
-  "last_human_progress_update": "2026-10-06T01:02:07.638594+00:00",
+  "head": "a7dc176084c08640748abc3db174d8b1d4691b4d",
+  "implementation_sha": "a7dc176084c08640748abc3db174d8b1d4691b4d",
+  "last_checkpoint": "2026-10-06T01:20:34.236200+00:00",
+  "last_human_progress_update": "2026-10-06T01:17:19.651256+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -151,14 +153,14 @@
     "completed": [
       "AC-NAUTILUS"
     ],
-    "current_blocker": "No external dependency blocks implementation. RC5 remains permitted for local backtests and has its conformance evidence. The bootstrap artifact, canonical warm-up cursor binding, and canonical-order native warm-up stream materializer now exist. Production owner context/runtime-bundle/sandbox-plan composition and worker/recovery wiring remain; forward-shadow parity is still an acceptance gate.",
+    "current_blocker": "No external dependency blocks implementation. Exact-pinned Nautilus 2.0.0rc5 remains qualified; production canonical readers and broader branch acceptance work remain implementation tasks.",
     "current_phase": "forward-bootstrap-artifact-and-plan-composition",
-    "next_action": "Build owner-scoped component context streams from verified canonical warm-up payloads and exact strategy manifests; assemble engine input/runtime bundle/bootstrap using the exact checkpoint and account context; build the pinned RC5 sandbox plan and wire it into process startup/replacement. Verify fail-closed owner and checkpoint binding.",
+    "next_action": "Wire the owner-bound plan input resolver to canonical frozen-snapshot readers and the exact engine-input composer; prove process startup/replacement with the materialized bootstrap plan, then advance remaining backtest/search/API/worker/Compose criteria.",
     "total": 18,
-    "updated_at": "2026-10-06T01:02:07.638576+00:00"
+    "updated_at": "2026-10-06T01:17:19.651234+00:00"
   },
-  "remote": "8b3dccf97039fa84e9b8e78aecb5169519221821",
-  "remote_sha": "8b3dccf97039fa84e9b8e78aecb5169519221821",
+  "remote": "a7dc176084c08640748abc3db174d8b1d4691b4d",
+  "remote_sha": "a7dc176084c08640748abc3db174d8b1d4691b4d",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

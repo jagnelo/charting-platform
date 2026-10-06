@@ -12643,3 +12643,47 @@ behavioral change before a type-only annotation refinement.
 Next, compose owner-scoped component invocation contexts, runtime bundle,
 bootstrap and sandbox plan, then wire the artifact-backed plan into production
 worker start/replacement. This changeset remains in progress.
+
+## 2026-10-06 - Owner-bound forward bootstrap and sandbox-plan composition
+
+Implementation commit `a7dc176084c08640748abc3db174d8b1d4691b4d` is pushed to
+`origin/feat/strategy-lab-v2`. It adds production composition for authenticated
+owner-plan component context streams, canonical native warm-up stream, runtime
+bundle, exact-checkpoint bootstrap artifact, runtime request, and fixed
+digest-pinned Nautilus sandbox command. `AuthenticatedForwardSandboxPlanFactory`
+passes the authenticated owner, accepted delivery, and context preparation to
+an explicit host input resolver; it rejects instance/checkpoint/receipt/current
+canonical-event drift before publishing and launching. The hardened process
+factory now supports async plan factories and uses the same path for startup
+and checkpoint replacement.
+
+This implements the runtime assembly and process-factory seam, not the
+platform-owned source readers themselves. The concrete owner-bound resolver
+must still join the canonical frozen-snapshot window/payload readers, exact
+processed-prefix reader, venue/instrument definitions, and engine-input builder
+before it can be installed by the production forward-worker composition.
+Canonical identity and order remain explicit source inputs; no dependency-local
+sequence is treated as global. RC5 is the exact accepted pre-release pin; stable
+2.x labeling is not a dependency. Forward event-tape parity remains an
+acceptance gate for authoritative shadow use.
+
+Validation on the pushed code commit: the full Strategy Lab package passed
+1,524 tests with one opt-in image test skipped; the exact pinned RC5
+process-loss/replay integration passed 1/1. The focused bootstrap/composition/
+process tests passed, package Ruff passed, all four touched Python files passed
+Ruff formatting, package MyPy passed across 407 source files, and
+`git diff --check` passed. A restricted-sandbox attempt at the subprocess test
+stalled during Python executor shutdown and was interrupted; the same focused
+tests passed through the approved host execution path.
+
+The active changeset remains in progress. Next: implement the owner-bound plan
+input resolver over the explicit canonical/frozen platform adapters, then
+exercise its artifact-backed plan through persistent process start and exact
+checkpoint replacement. After this forward slice, continue the unverified
+branch acceptance criteria and full-stack integration gate; do not stop at this
+increment.
+
+This operational checkpoint updates `ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`, and
+`ops/workstreams/feat-strategy-lab-v2/session.json`; these are its only
+workstream paths.
