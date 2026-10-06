@@ -40,8 +40,11 @@ current_blocker: >-
   A focused, pinned Playwright 1.62.1 replay of those exact four Help profiles
   reproduced the same 55,085/56,441/64,009/65,669 pixel differences with clean
   transport. Explicitly resetting the dialog scroll position to zero did not
-  change the mismatch, so that suspected cause is rejected. The discrepancy
-  remains unexplained; do not refresh baselines or weaken policy. Provider and
+  change the mismatch, so that suspected cause is rejected. Retained expected/
+  actual images show Help-panel placement and pane-geometry differences. The
+  host Playwright CLI cannot launch because its configured Chrome binary is
+  absent; no browser was installed. The discrepancy remains unexplained; do not
+  refresh baselines or weaken policy. Provider and
   ETF refs remain outside
   staging, and the generic integration target is unsafe against the live
   assigned stack because its cleanup deletes that stack's volumes. Exact

@@ -53,10 +53,9 @@
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl",
-    "docs/tc2000-roadmap.md",
-    "docs/tc2000-parity.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -64,14 +63,14 @@
     "build_cache_bytes": null,
     "container_count": 6,
     "containers": [
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-worker-1",
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-frontend-1",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-worker-1",
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-backend-1",
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-postgres-1",
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
     ],
-    "known_bytes": 83931679,
+    "known_bytes": 660326160,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
@@ -82,7 +81,7 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 81400351,
+    "volume_bytes": 657258256,
     "volume_count": 4,
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
@@ -130,14 +129,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "81b311f70c594f311ca96f9051c506b50811b2d2",
+  "head": "c6bb34894d05001c6487dbbba27cde31e2890b52",
   "implementation_sha": "fc4ad47f2b82b5b182b8fa9dabd77a55e5094902",
   "interrupted": false,
-  "last_checkpoint": "2026-10-06T19:23:54.569991+00:00",
-  "last_human_progress_update": "2026-10-06T19:36:03.608964+00:00",
+  "last_checkpoint": "2026-10-06T20:12:38.211156+00:00",
+  "last_human_progress_update": "2026-10-06T20:12:42.949501+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue TC-owned V25 keyboard/workstation parity, then complete current-tip visual and cleanup-safe integration validation; keep provider/ETF consumption gated on staging.",
-  "plan_hash": "c95c4e7d43dd46340805af00c41873a453953db764c9239f4ccd34d04f338eff",
+  "plan_hash": "b5737e0bfa1a81a4153e30cf481b3a0de54c00a0d460c402d5ebeeea245a7cc4",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -151,11 +150,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "The current-tip four-project visual matrix completed 104 cases: 94 passed and 10 failed. Four Help-state assertions passed but exceeded the unchanged 0.5% pixel threshold by 2-3%; six failures showed ERR_NETWORK_CHANGED or auth navigation timeouts. Do not refresh baselines or weaken policy. The exact integration gate must use cleanup-safe isolation because the generic target would delete the assigned stack and four volumes. The backend unit-only pytest handle is still uncollected; diagnose it without terminating it. Provider-platform and ETF remain outside staging.",
-    "current_phase": "R1_V25_KEYBOARD_PARITY",
-    "next_action": "Continue TC-owned V25 workstation parity from the official shortcut gap audit, retaining arbitrary personal-watchlist semantics and persisted Golden Layout behavior. Diagnose the live unit-test process and visual proxy flakiness, establish a cleanup-safe exact integration route, and recheck staging/provider/ETF refs before R2/R3. Stop at ready_for_human_review.",
+    "current_blocker": "Four Help visual profiles reproducibly fail at 2-3%; retained expected/actual screenshots show Help placement and dock geometry differences, but source/state provenance is unresolved. Host Playwright CLI cannot launch because Chrome is absent. Exact full integration must avoid the generic cleanup that removes the assigned six-service stack and four volumes; upstream branches remain outside staging.",
+    "current_phase": "R1_VISUAL_LAYOUT_DIAGNOSIS",
+    "next_action": "Trace why the refreshed Linux Help baselines differ from current-source captures, using a pinned browser in an isolated way that preserves the assigned services; continue TC-owned V25 UX work; recheck staging-gated dependencies; then run exact-tip integration and all ACs before ready_for_human_review.",
     "total": 9,
-    "updated_at": "2026-10-06T21:04:00Z"
+    "updated_at": "2026-10-06T20:12:42.949482+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
@@ -171,7 +170,7 @@
     "remote_tracking_sha": "f0fd70a1586ceeb336cb6513948e18b99f6949be",
     "status": "pending_push_github_dns_unavailable"
   },
-  "remote": "81b311f70c594f311ca96f9051c506b50811b2d2",
+  "remote": "c6bb34894d05001c6487dbbba27cde31e2890b52",
   "remote_sha": "f0fd70a1586ceeb336cb6513948e18b99f6949be",
   "remote_synchronized": true,
   "retained_docker_resources": [],

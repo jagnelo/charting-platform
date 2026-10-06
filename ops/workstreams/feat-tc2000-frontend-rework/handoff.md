@@ -9,7 +9,12 @@ As a diagnostic, explicitly setting the focusable Help dialog's `scrollTop` to
 zero before capture did not alter any delta; that test-only experiment was
 removed and no screenshot, mask, threshold, or skip was changed. The mismatch
 is deterministic but its cause remains unresolved and extends beyond the Help
-panel in the full-app screenshot. Exact help artifacts: `/tmp/tc2000-help-replay-a8ace`.
+panel in the full-app screenshot. Inspecting expected/actual images shows changed
+Help-panel placement and workstation pane geometry, so it is not only a scroll
+or text-antialiasing issue; layout-state provenance remains unresolved. The host
+Playwright CLI cannot launch because `/opt/google/chrome/chrome` is absent; no
+host browser was installed and no fresh browser run was claimed. Exact help
+artifacts: `/tmp/tc2000-help-replay-a8ace`.
 The temporary Vite proxy was stopped; the six assigned services and four data
 volumes remain intact. The backend unit-only pytest PID 950317 remains live,
 futex-waiting with no collected result; it was not interrupted. Continue
