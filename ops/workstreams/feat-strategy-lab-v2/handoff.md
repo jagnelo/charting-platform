@@ -12952,3 +12952,31 @@ for the new path. Next: once local memory pressure allows safe image building,
 rebuild/requalify RC5 and run the production artifact-backed plan through the
 actual process, then test checkpoint replacement/replay before continuing the
 remaining forward and backtest acceptance work.
+
+## 2026-10-06 - RC5 artifact-backed process reaches context preparation
+
+The type-preserving v2 stream was rebuilt into an exact-source RC5 image and
+the four backtest conformance checks passed: source digest
+`sha256:1605d5757b8e5e43e57dd7e7ec2fa1229a83b7d598094432672effbc23abe1f4`,
+image digest
+`sha256:4a0144ce12a0dce29bdc8772186a98d30acdacc2c16b6fbea574ffbda1d236c3`,
+evidence digest
+`sha256:521a7c5155d24f97c989ade25d10cc7d155885eac8d6bc7b634cf1f6e56397a6`,
+and conformance fingerprint
+`sha256:600a14e22decfaf21feef10d3f61c2ea7a78f29606604a3297ccea118655554a`.
+The actual authenticated artifact-backed plan then passed the previous
+component-history check but failed when the isolated runtime recomputed its
+forward context preparation. Runtime diagnostics have been extended to report
+only a fixed allowlist of preparation field names (never their values), so the
+next exact-image run can identify the mismatch without leaking event data.
+
+Validation: the exact-source image's conformance gate passed; its production
+plan process test reached execution and failed at the context-preparation
+fingerprint comparison. Focused runtime/IPC/native-stream tests passed 17/17;
+the Strategy Lab package passed 1,540 with one opt-in image test skipped;
+package Ruff, formatting, and MyPy across 408 files passed. Diagnostics and
+v1-compatibility test changes are newer than that image. A subsequent build is
+deferred until shared-host memory/swap headroom recovers; no stable Nautilus
+release or human decision blocks implementation. Next: rebuild with the safe
+diagnostics, inspect the exact mismatched fields, correct context replay/window
+parity, and finish authenticated process startup and checkpoint replacement.

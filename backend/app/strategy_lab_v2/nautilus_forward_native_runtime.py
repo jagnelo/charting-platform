@@ -55,6 +55,29 @@ class _NativeEngineState:
     instrument_definitions: Mapping[str, Mapping[str, Any]]
 
 
+class _ForwardContextPreparationMismatch(NautilusRuntimeDataError):
+    """Safe diagnostic names for an authenticated preparation mismatch."""
+
+    _FIELDS = frozenset(
+        {
+            "payload_fingerprint",
+            "base_window_fingerprint",
+            "next_window_fingerprint",
+            "context",
+            "delivery_binding_fingerprint",
+            "dispatch_fingerprint",
+            "pre_event_checkpoint_fingerprint",
+            "warmup_receipt_fingerprint",
+        }
+    )
+
+    def __init__(self, fields: tuple[str, ...]) -> None:
+        if not fields or any(field not in self._FIELDS for field in fields):
+            raise ValueError("forward context mismatch diagnostic fields are invalid")
+        self.diagnostic_fields = fields
+        super().__init__("forward context differs from the isolated authenticated history")
+
+
 @dataclass(frozen=True, slots=True)
 class _SettledNativeInput:
     delivery: NautilusForwardDeliveryInput
@@ -353,9 +376,21 @@ class NautilusBacktestForwardSession(NautilusNativeForwardSession):
             )
             if local.fingerprint != provided.fingerprint:
                 state.windows[component_id].discard(local)
-                raise NautilusRuntimeDataError(
-                    "forward context differs from the isolated authenticated history"
+                mismatch_fields = tuple(
+                    name
+                    for name in (
+                        "payload_fingerprint",
+                        "base_window_fingerprint",
+                        "next_window_fingerprint",
+                        "context",
+                        "delivery_binding_fingerprint",
+                        "dispatch_fingerprint",
+                        "pre_event_checkpoint_fingerprint",
+                        "warmup_receipt_fingerprint",
+                    )
+                    if getattr(local, name) != getattr(provided, name)
                 )
+                raise _ForwardContextPreparationMismatch(mismatch_fields)
             expected[component_id] = local
         return expected
 

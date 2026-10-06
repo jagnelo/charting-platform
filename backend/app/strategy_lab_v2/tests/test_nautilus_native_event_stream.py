@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from decimal import Decimal
 from io import BytesIO
 
@@ -54,6 +56,42 @@ def _decode(wire: bytes, *, count: int = 2):
     )
 
 
+def _legacy_v1_wire() -> bytes:
+    event = {
+        "dependency_id": "quotes",
+        "event_id": "event-1",
+        "instrument_id": "AAPL.SIM",
+        "event_type": "quote",
+        "event_time_ns": 100,
+        "sequence": 1,
+        "values": {"bid": "100.00", "ask": "100.01"},
+    }
+    record = {
+        "record_type": "event",
+        "index": 0,
+        "native_init_time_ns": 101,
+        "event": event,
+    }
+
+    def encode(value: object) -> bytes:
+        return (json.dumps(value, separators=(",", ":"), sort_keys=True) + "\n").encode()
+
+    record_wire = encode(record)
+    header = {
+        "protocol_version": "strategy-lab.nautilus.native-event-stream.v1",
+        "record_type": "header",
+        "source_tape_fingerprint": content_digest("source-tape"),
+        "adapter_version": "strategy-lab.nautilus-event-adapter.v1",
+        "event_count": 1,
+    }
+    trailer = {
+        "record_type": "trailer",
+        "event_count": 1,
+        "records_sha256": f"sha256:{hashlib.sha256(record_wire).hexdigest()}",
+    }
+    return encode(header) + record_wire + encode(trailer)
+
+
 def test_native_event_stream_is_reproducible_and_preserves_same_time_order() -> None:
     events = (
         _event("event-1", event_time_ns=100, sequence=1),
@@ -70,6 +108,13 @@ def test_native_event_stream_is_reproducible_and_preserves_same_time_order() -> 
     assert [event["event_time_ns"] for event in observed] == [100, 100]
     assert observed[0]["values"]["bid"] == Decimal("100.00")
     assert observed[0]["values"]["ask_size"] == Decimal("12")
+
+
+def test_native_event_stream_still_reads_legacy_v1_artifacts() -> None:
+    observed = _decode(_legacy_v1_wire(), count=1)
+
+    assert observed[0]["event_id"] == "event-1"
+    assert observed[0]["values"] == {"bid": "100.00", "ask": "100.01"}
 
 
 def test_native_event_stream_cursors_keep_independent_positions() -> None:
