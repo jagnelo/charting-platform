@@ -9389,4 +9389,14 @@ eleven running external container IDs (tool session 32186); it does not stop or
 modify them. The ETF browser gate must wait for those containers to exit, then
 recheck capacity before starting. If the wait returns, re-inventory first—new
 containers or inadequate host capacity still mean do not start the gate.
+
+### Passive wait progress — 2026-10-06 00:46 UTC
+
+The monitored performance-test group has exited (four `docker wait` exit codes
+of 0). The passive wait remains active for the other seven IDs. A fresh
+read-only inventory shows the six `feat-tc2000-frontend-rework` services and
+Stremio still running. Host capacity is worse: 1.7 GiB available RAM, 13 GiB
+swap in use, and load 4.35/4.87/3.94. Do not start the ETF browser gate yet;
+continue polling wait session 32186, then recheck all resources when it
+returns. No external container or worktree was modified.
 *** End of File
