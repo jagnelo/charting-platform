@@ -77,6 +77,7 @@ NAUTILUS_RUNTIME_ARTIFACT_SCHEMA = "strategy-lab.nautilus-runtime-bundle.v1"
 if TYPE_CHECKING:
     from app.strategy_lab_v2.contracts import DataSnapshot
     from app.strategy_lab_v2.event_tape_artifacts import FrozenEventTapeArtifactResolution
+    from app.strategy_lab_v2.forward_warmup_stream import ForwardWarmupStreamResolution
     from app.strategy_lab_v2.nautilus_forward_delivery import VerifiedForwardMarketPayload
 
 
@@ -509,7 +510,10 @@ def materialize_nautilus_verified_forward_warmup_stream(
         ):
             raise ValueError("verified canonical payload differs from its frozen source row")
     ordered = tuple(
-        sorted(payloads, key=lambda item: (item.canonical_event.event_time, item.canonical_event.sequence))
+        sorted(
+            payloads,
+            key=lambda item: (item.canonical_event.event_time, item.canonical_event.sequence),
+        )
     )
     sequences = tuple(item.canonical_event.sequence for item in ordered)
     if len(sequences) != len(set(sequences)):
@@ -530,6 +534,63 @@ def materialize_nautilus_verified_forward_warmup_stream(
         source_tape_fingerprint=warmup_tape.tape.fingerprint,
         adapter_version=NAUTILUS_EVENT_ADAPTER_VERSION,
         event_count=len(ordered),
+    )
+
+
+def materialize_nautilus_forward_warmup_artifact_stream(
+    store: LocalArtifactStore,
+    *,
+    snapshot: DataSnapshot,
+    manifest: StrategySdkManifest,
+    warmup: ForwardWarmupStreamResolution,
+) -> NautilusNativeEventStreamArtifactReference:
+    """Create Nautilus-native rows directly from the verified warm-up artifact."""
+
+    from app.strategy_lab_v2.contracts import DataSnapshot
+    from app.strategy_lab_v2.event_tape_artifacts import iter_verified_event_tape_stream
+    from app.strategy_lab_v2.forward_warmup_stream import (
+        ForwardWarmupStreamResolution,
+        iter_verified_forward_warmup_payloads,
+    )
+    from app.strategy_lab_v2.nautilus_event_adapter import (
+        NAUTILUS_EVENT_ADAPTER_VERSION,
+        _effective_event_types,
+        materialize_nautilus_event,
+    )
+
+    if not isinstance(store, LocalArtifactStore):
+        raise TypeError("store must be a LocalArtifactStore")
+    if not isinstance(snapshot, DataSnapshot):
+        raise TypeError("snapshot must use DataSnapshot")
+    if not isinstance(manifest, StrategySdkManifest):
+        raise TypeError("manifest must use StrategySdkManifest")
+    if not isinstance(warmup, ForwardWarmupStreamResolution):
+        raise TypeError("warmup must use ForwardWarmupStreamResolution")
+    if (
+        warmup.snapshot_fingerprint != snapshot.fingerprint
+        or warmup.manifest_fingerprint != manifest.fingerprint
+        or warmup.tape.snapshot_fingerprint != snapshot.fingerprint
+        or warmup.tape.manifest_fingerprint != manifest.fingerprint
+    ):
+        raise ValueError("warm-up artifact stream differs from its frozen snapshot or manifest")
+    if sum(1 for _ in iter_verified_event_tape_stream(warmup.tape, store)) != warmup.event_count:
+        raise ValueError("warm-up frozen tape artifact differs from its canonical join count")
+
+    event_types = _effective_event_types(snapshot, manifest)
+
+    def records() -> Iterable[NautilusEventRecord]:
+        for payload in iter_verified_forward_warmup_payloads(warmup, store):
+            event_type = event_types.get(payload.market_event.dependency_id)
+            if event_type is None:
+                raise ValueError("verified warm-up event has an undeclared dependency")
+            yield materialize_nautilus_event(payload.market_event, event_type=event_type)
+
+    return materialize_nautilus_native_event_stream_artifact(
+        store,
+        events=records(),
+        source_tape_fingerprint=warmup.tape.tape_fingerprint,
+        adapter_version=NAUTILUS_EVENT_ADAPTER_VERSION,
+        event_count=warmup.event_count,
     )
 
 
@@ -1428,6 +1489,7 @@ __all__ = [
     "materialize_nautilus_component_context_stream_artifact",
     "materialize_nautilus_native_event_stream_artifact",
     "materialize_nautilus_verified_forward_warmup_stream",
+    "materialize_nautilus_forward_warmup_artifact_stream",
     "materialize_nautilus_runtime_bundle",
     "verify_nautilus_context_stream_artifact_file",
     "verify_nautilus_invocation_result_stream_file",

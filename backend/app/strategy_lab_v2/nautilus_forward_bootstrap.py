@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from app.strategy_lab_v2.forward_execution_plan_resolution import ResolvedForwardExecutionPlan
     from app.strategy_lab_v2.forward_processed_prefix import ForwardProcessedEventPrefix
     from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt
+    from app.strategy_lab_v2.forward_warmup_stream import ForwardWarmupStreamResolution
     from app.strategy_lab_v2.nautilus_engine_input import NautilusEngineInput
     from app.strategy_lab_v2.nautilus_forward_delivery import VerifiedForwardMarketPayload
     from app.strategy_lab_v2.nautilus_runtime_bundle import (
@@ -40,7 +41,9 @@ if TYPE_CHECKING:
     )
 
 NAUTILUS_FORWARD_BOOTSTRAP_SCHEMA = "strategy-lab.nautilus-forward-bootstrap.v1"
-NAUTILUS_FORWARD_BOOTSTRAP_MEDIA_TYPE = "application/vnd.strategy-lab.nautilus-forward-bootstrap+json"
+NAUTILUS_FORWARD_BOOTSTRAP_MEDIA_TYPE = (
+    "application/vnd.strategy-lab.nautilus-forward-bootstrap+json"
+)
 MAX_NAUTILUS_FORWARD_BOOTSTRAP_BYTES = 16 * 1024 * 1024
 
 
@@ -545,7 +548,6 @@ class NautilusForwardRuntimeBootstrap:
                 raise ValueError("forward bootstrap fingerprint differs from its artifact binding")
         return bootstrap
 
-
     @classmethod
     def from_wire(cls, value: Mapping[str, Any]) -> NautilusForwardRuntimeBootstrap:
         fields = {
@@ -619,8 +621,9 @@ class NautilusForwardRuntimeBootstrap:
         execution_plan: ResolvedForwardExecutionPlan,
         snapshot: DataSnapshot,
         warmup_receipt: ForwardWarmupReceipt,
-        warmup_tape: FrozenEventTapeArtifactResolution,
-        warmup_payloads: Sequence[VerifiedForwardMarketPayload],
+        warmup_tape: FrozenEventTapeArtifactResolution | None = None,
+        warmup_payloads: Sequence[VerifiedForwardMarketPayload] | None = None,
+        warmup_stream: ForwardWarmupStreamResolution | None = None,
         processed_prefix: ForwardProcessedEventPrefix,
         engine_input: NautilusEngineInput,
         runtime_input_bundle_digest: str,
@@ -636,6 +639,7 @@ class NautilusForwardRuntimeBootstrap:
         )
         from app.strategy_lab_v2.forward_processed_prefix import ForwardProcessedEventPrefix
         from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt
+        from app.strategy_lab_v2.forward_warmup_stream import ForwardWarmupStreamResolution
         from app.strategy_lab_v2.nautilus_engine_input import NautilusEngineInput
         from app.strategy_lab_v2.nautilus_forward_delivery import VerifiedForwardMarketPayload
         from app.strategy_lab_v2.nautilus_runtime_bundle import (
@@ -648,11 +652,60 @@ class NautilusForwardRuntimeBootstrap:
             raise TypeError("snapshot must use DataSnapshot")
         if not isinstance(warmup_receipt, ForwardWarmupReceipt):
             raise TypeError("warmup_receipt must use ForwardWarmupReceipt")
-        if not isinstance(warmup_tape, FrozenEventTapeArtifactResolution):
-            raise TypeError("warmup_tape must use FrozenEventTapeArtifactResolution")
-        warmup_payloads = tuple(warmup_payloads)
-        if any(not isinstance(item, VerifiedForwardMarketPayload) for item in warmup_payloads):
-            raise TypeError("warmup_payloads must contain verified canonical payloads")
+        if warmup_stream is not None:
+            if warmup_tape is not None or warmup_payloads is not None:
+                raise ValueError("streaming bootstrap cannot include materialized warm-up rows")
+            if not isinstance(warmup_stream, ForwardWarmupStreamResolution):
+                raise TypeError("warmup_stream must use ForwardWarmupStreamResolution")
+            if (
+                warmup_stream.snapshot_fingerprint != snapshot.fingerprint
+                or warmup_stream.warmup_receipt_fingerprint != warmup_receipt.fingerprint
+                or warmup_stream.cursor_event_id != warmup_receipt.final_event_id
+                or warmup_stream.cursor_event_fingerprint != warmup_receipt.final_event_fingerprint
+            ):
+                raise ValueError("forward bootstrap stream differs from its receipt")
+            tape_fingerprint = warmup_stream.tape.tape_fingerprint
+            warmup_event_count = warmup_stream.event_count
+            warmup_source_artifact_digests = warmup_stream.tape.source_artifact_digests
+            warmup_event_ids: set[str] | None = None
+        else:
+            if not isinstance(warmup_tape, FrozenEventTapeArtifactResolution):
+                raise TypeError("warmup_tape must use FrozenEventTapeArtifactResolution")
+            if warmup_payloads is None:
+                raise TypeError("warmup_payloads must be supplied with a materialized tape")
+            warmup_payloads = tuple(warmup_payloads)
+            if any(not isinstance(item, VerifiedForwardMarketPayload) for item in warmup_payloads):
+                raise TypeError("warmup_payloads must contain verified canonical payloads")
+            if warmup_tape.snapshot_fingerprint != snapshot.fingerprint:
+                raise ValueError("forward bootstrap tape differs from the frozen warm-up snapshot")
+            tape_events = {event.event_id: event for event in warmup_tape.tape.events}
+            payload_events = {item.canonical_event.event_id: item for item in warmup_payloads}
+            if len(payload_events) != len(warmup_payloads) or set(payload_events) != set(
+                tape_events
+            ):
+                raise ValueError("canonical warm-up payloads do not exactly cover the frozen tape")
+            if any(
+                payload.market_event.dependency_id != tape_events[event_id].dependency_id
+                or payload.market_event.event_id != tape_events[event_id].event_id
+                or payload.market_event.instrument_id != tape_events[event_id].instrument_id
+                or payload.market_event.event_time != tape_events[event_id].event_time
+                or payload.market_event.values != tape_events[event_id].values
+                for event_id, payload in payload_events.items()
+            ):
+                raise ValueError("canonical warm-up payload differs from its frozen tape event")
+            canonical_keys = tuple(
+                (item.canonical_event.event_time, item.canonical_event.sequence)
+                for item in warmup_payloads
+            )
+            canonical_sequences = tuple(item.canonical_event.sequence for item in warmup_payloads)
+            if canonical_keys != tuple(sorted(canonical_keys)) or len(canonical_sequences) != len(
+                set(canonical_sequences)
+            ):
+                raise ValueError("canonical warm-up payloads must have unique canonical ordering")
+            tape_fingerprint = warmup_tape.tape.fingerprint
+            warmup_event_count = warmup_tape.tape.event_count
+            warmup_source_artifact_digests = warmup_tape.source_artifact_digests
+            warmup_event_ids = set(payload_events)
         if not isinstance(processed_prefix, ForwardProcessedEventPrefix):
             raise TypeError("processed_prefix must use ForwardProcessedEventPrefix")
         if not isinstance(engine_input, NautilusEngineInput):
@@ -673,31 +726,6 @@ class NautilusForwardRuntimeBootstrap:
             or warmup_receipt.instance_id != instance.instance_id
         ):
             raise ValueError("forward bootstrap warm-up receipt and frozen snapshot differ")
-        if warmup_tape.snapshot_fingerprint != snapshot.fingerprint:
-            raise ValueError("forward bootstrap tape differs from the frozen warm-up snapshot")
-        tape_events = {event.event_id: event for event in warmup_tape.tape.events}
-        payload_events = {item.canonical_event.event_id: item for item in warmup_payloads}
-        if len(payload_events) != len(warmup_payloads) or set(payload_events) != set(tape_events):
-            raise ValueError("canonical warm-up payloads do not exactly cover the frozen tape")
-        if any(
-            payload.market_event.dependency_id != tape_events[event_id].dependency_id
-            or payload.market_event.event_id != tape_events[event_id].event_id
-            or payload.market_event.instrument_id != tape_events[event_id].instrument_id
-            or payload.market_event.event_time != tape_events[event_id].event_time
-            or payload.market_event.values != tape_events[event_id].values
-            for event_id, payload in payload_events.items()
-        ):
-            raise ValueError("canonical warm-up payload differs from its frozen tape event")
-        canonical_keys = tuple(
-            (item.canonical_event.event_time, item.canonical_event.sequence)
-            for item in warmup_payloads
-        )
-        canonical_sequences = tuple(item.canonical_event.sequence for item in warmup_payloads)
-        if (
-            canonical_keys != tuple(sorted(canonical_keys))
-            or len(canonical_sequences) != len(set(canonical_sequences))
-        ):
-            raise ValueError("canonical warm-up payloads must have unique canonical ordering")
         if (
             engine_input.data_snapshot_fingerprint != snapshot.fingerprint
             or engine_input.portfolio.fingerprint != execution_plan.portfolio.fingerprint
@@ -706,10 +734,11 @@ class NautilusForwardRuntimeBootstrap:
                 "forward bootstrap engine input differs from its snapshot or portfolio"
             )
         if (
-            engine_input.event_tape.source_tape_fingerprint != warmup_tape.tape.fingerprint
-            or native_event_stream.source_tape_fingerprint != warmup_tape.tape.fingerprint
-            or native_event_stream.event_count != warmup_tape.tape.event_count
+            engine_input.event_tape.source_tape_fingerprint != tape_fingerprint
+            or native_event_stream.source_tape_fingerprint != tape_fingerprint
+            or native_event_stream.event_count != warmup_event_count
             or native_event_stream.adapter_version != engine_input.event_tape.adapter_version
+            or (warmup_stream is not None and engine_input.event_tape.events)
         ):
             raise ValueError("forward bootstrap native tape is not the exact frozen warm-up tape")
         if (
@@ -725,24 +754,30 @@ class NautilusForwardRuntimeBootstrap:
         }:
             raise ValueError("forward bootstrap prefix manifest is not in the resolved plan")
 
-        warmup_events = {item.canonical_event.event_id: item for item in warmup_payloads}
-        if warmup_receipt.final_event_id is None:
-            if warmup_receipt.final_event_sequence != 0 or warmup_events:
-                raise ValueError("empty warm-up receipt differs from the frozen event tape")
+        if warmup_stream is not None:
+            if warmup_receipt.final_event_id is None or warmup_event_count < 1:
+                raise ValueError("streaming warm-up must bind a non-empty durable cursor")
         else:
-            cursor = warmup_events.get(warmup_receipt.final_event_id)
-            if (
-                cursor is None
-                or cursor.canonical_event.sequence != warmup_receipt.final_event_sequence
-                or content_digest(cursor.canonical_event) != warmup_receipt.final_event_fingerprint
-            ):
-                raise ValueError("warm-up cursor differs from verified canonical history")
+            assert warmup_payloads is not None
+            warmup_events = {item.canonical_event.event_id: item for item in warmup_payloads}
+            if warmup_receipt.final_event_id is None:
+                if warmup_receipt.final_event_sequence != 0 or warmup_events:
+                    raise ValueError("empty warm-up receipt differs from the frozen event tape")
+            else:
+                cursor = warmup_events.get(warmup_receipt.final_event_id)
+                if (
+                    cursor is None
+                    or cursor.canonical_event.sequence != warmup_receipt.final_event_sequence
+                    or content_digest(cursor.canonical_event)
+                    != warmup_receipt.final_event_fingerprint
+                ):
+                    raise ValueError("warm-up cursor differs from verified canonical history")
         if any(
             event.canonical_event.sequence <= warmup_receipt.final_event_sequence
             for event in processed_prefix.events
         ):
             raise ValueError("processed prefix does not follow the frozen warm-up cursor")
-        if set(warmup_events).intersection(
+        if warmup_event_ids is not None and warmup_event_ids.intersection(
             event.canonical_event.event_id for event in processed_prefix.events
         ):
             raise ValueError("warm-up and processed prefix contain duplicate event identities")
@@ -785,7 +820,7 @@ class NautilusForwardRuntimeBootstrap:
         snapshot_source_digests = tuple(
             sorted({series.content_digest for series in snapshot.series})
         )
-        if not set(warmup_tape.source_artifact_digests).issubset(snapshot_source_digests):
+        if not set(warmup_source_artifact_digests).issubset(snapshot_source_digests):
             raise ValueError("warm-up tape references source artifacts outside its snapshot")
         return cls(
             instance_id=instance.instance_id,
@@ -794,9 +829,9 @@ class NautilusForwardRuntimeBootstrap:
             snapshot_fingerprint=snapshot.fingerprint,
             warmup_receipt_fingerprint=warmup_receipt.fingerprint,
             warmup_result_fingerprint=warmup_receipt.warmup_result_fingerprint,
-            warmup_tape_fingerprint=warmup_tape.tape.fingerprint,
-            warmup_event_count=warmup_tape.tape.event_count,
-            warmup_source_artifact_digests=warmup_tape.source_artifact_digests,
+            warmup_tape_fingerprint=tape_fingerprint,
+            warmup_event_count=warmup_event_count,
+            warmup_source_artifact_digests=warmup_source_artifact_digests,
             warmup_cursor_event_id=warmup_receipt.final_event_id,
             warmup_cursor_sequence=warmup_receipt.final_event_sequence,
             warmup_cursor_event_fingerprint=warmup_receipt.final_event_fingerprint,

@@ -13,7 +13,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 import os
-from collections.abc import Awaitable, Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol
@@ -26,6 +26,7 @@ from app.strategy_lab_v2.contracts import DataSnapshot, ForwardInstance
 from app.strategy_lab_v2.event_tape import FrozenEventTape, bind_event_tape
 from app.strategy_lab_v2.event_tape_artifacts import (
     FrozenEventTapeArtifactResolution,
+    FrozenEventTapeStreamResolution,
 )
 from app.strategy_lab_v2.forward_execution_plan_resolution import (
     AuthenticatedForwardExecutionPlanResolver,
@@ -40,6 +41,11 @@ from app.strategy_lab_v2.forward_history_resolution import (
 )
 from app.strategy_lab_v2.forward_processed_prefix import ForwardProcessedEventPrefix
 from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt
+from app.strategy_lab_v2.forward_warmup_stream import (
+    ForwardWarmupStreamResolution,
+    iter_verified_forward_warmup_payloads,
+    materialize_forward_warmup_stream,
+)
 from app.strategy_lab_v2.forward_worker_handoff import (
     ForwardEventWorkItem,
     create_authenticated_forward_event_materializer,
@@ -51,7 +57,7 @@ from app.strategy_lab_v2.nautilus_engine_input import (
     NautilusInstrumentDefinition,
     NautilusVenueDefinition,
 )
-from app.strategy_lab_v2.nautilus_event_adapter import materialize_nautilus_event_tape
+from app.strategy_lab_v2.nautilus_event_adapter import NautilusEventTape
 from app.strategy_lab_v2.nautilus_forward_bootstrap import (
     NautilusForwardBootstrapArtifactReference,
     NautilusForwardRuntimeBootstrap,
@@ -87,6 +93,7 @@ from app.strategy_lab_v2.nautilus_runtime_bundle import (
     NautilusRuntimeInputArtifactReference,
     build_nautilus_runtime_bundle,
     materialize_nautilus_component_context_stream_artifact,
+    materialize_nautilus_forward_warmup_artifact_stream,
     materialize_nautilus_runtime_bundle,
     materialize_nautilus_verified_forward_warmup_stream,
 )
@@ -188,9 +195,8 @@ class ForwardSandboxPlanInputs:
     execution_plan: ResolvedForwardExecutionPlan
     snapshot: DataSnapshot
     tape_manifest: StrategySdkManifest
-    warmup_tape: FrozenEventTapeArtifactResolution
+    warmup_stream: ForwardWarmupStreamResolution
     warmup_receipt: ForwardWarmupReceipt
-    warmup_payloads: tuple[VerifiedForwardMarketPayload, ...]
     processed_prefix: ForwardProcessedEventPrefix
     engine_input: NautilusEngineInput
     runtime_profile: RuntimeIsolationProfile
@@ -203,41 +209,10 @@ class ForwardSandboxPlanInputs:
             raise TypeError("snapshot must use DataSnapshot")
         if not isinstance(self.tape_manifest, StrategySdkManifest):
             raise TypeError("tape_manifest must use StrategySdkManifest")
-        if not isinstance(self.warmup_tape, FrozenEventTapeArtifactResolution):
-            raise TypeError("warmup_tape must use FrozenEventTapeArtifactResolution")
+        if not isinstance(self.warmup_stream, ForwardWarmupStreamResolution):
+            raise TypeError("warmup_stream must use ForwardWarmupStreamResolution")
         if not isinstance(self.warmup_receipt, ForwardWarmupReceipt):
             raise TypeError("warmup_receipt must use ForwardWarmupReceipt")
-        payloads = tuple(self.warmup_payloads)
-        if any(not isinstance(item, VerifiedForwardMarketPayload) for item in payloads):
-            raise TypeError("warmup_payloads must contain verified canonical payloads")
-        tape_by_id = {item.event_id: item for item in self.warmup_tape.tape.events}
-        payload_by_id = {item.canonical_event.event_id: item for item in payloads}
-        if len(payload_by_id) != len(payloads) or set(payload_by_id) != set(tape_by_id):
-            raise ValueError("warm-up payloads must exactly cover the pinned warm-up tape")
-        if any(
-            (
-                payload_by_id[event_id].market_event.dependency_id,
-                payload_by_id[event_id].market_event.instrument_id,
-                payload_by_id[event_id].market_event.event_time,
-                payload_by_id[event_id].market_event.values,
-            )
-            != (
-                event.dependency_id,
-                event.instrument_id,
-                event.event_time,
-                event.values,
-            )
-            for event_id, event in tape_by_id.items()
-        ):
-            raise ValueError("warm-up canonical payload differs from its frozen tape row")
-        if payloads != tuple(
-            sorted(
-                payloads,
-                key=lambda item: (item.canonical_event.event_time, item.canonical_event.sequence),
-            )
-        ):
-            raise ValueError("warm-up canonical payloads must preserve global event ordering")
-        object.__setattr__(self, "warmup_payloads", payloads)
         if not isinstance(self.processed_prefix, ForwardProcessedEventPrefix):
             raise TypeError("processed_prefix must use ForwardProcessedEventPrefix")
         if not isinstance(self.engine_input, NautilusEngineInput):
@@ -249,18 +224,22 @@ class ForwardSandboxPlanInputs:
         instance = self.execution_plan.instance
         if (
             self.snapshot.fingerprint != instance.warmup_snapshot_fingerprint
-            or self.warmup_tape.snapshot_fingerprint != self.snapshot.fingerprint
-            or self.warmup_tape.manifest_fingerprint != self.tape_manifest.fingerprint
+            or self.warmup_stream.snapshot_fingerprint != self.snapshot.fingerprint
+            or self.warmup_stream.manifest_fingerprint != self.tape_manifest.fingerprint
             or self.warmup_receipt.instance_id != instance.instance_id
             or self.warmup_receipt.warmup_snapshot_fingerprint != self.snapshot.fingerprint
+            or self.warmup_stream.cursor_event_id != self.warmup_receipt.final_event_id
+            or self.warmup_stream.cursor_event_fingerprint
+            != self.warmup_receipt.final_event_fingerprint
+            or self.warmup_stream.warmup_receipt_fingerprint != self.warmup_receipt.fingerprint
             or self.processed_prefix.instance_id != instance.instance_id
             or self.processed_prefix.warmup_receipt_fingerprint != self.warmup_receipt.fingerprint
             or self.processed_prefix.manifest_fingerprint != self.tape_manifest.fingerprint
             or self.engine_input.data_snapshot_fingerprint != self.snapshot.fingerprint
             or self.engine_input.portfolio.fingerprint != self.execution_plan.portfolio.fingerprint
             or self.engine_input.event_tape.source_tape_fingerprint
-            != self.warmup_tape.tape.fingerprint
-            or len(self.engine_input.event_tape.events) != self.warmup_tape.tape.event_count
+            != self.warmup_stream.tape.tape_fingerprint
+            or self.engine_input.event_tape.events
         ):
             raise ValueError("forward sandbox inputs do not share the exact owner snapshot")
 
@@ -306,9 +285,9 @@ class ForwardWarmupPayloadReader(Protocol):
         instance_id: str,
         warmup_receipt: ForwardWarmupReceipt,
         manifest: StrategySdkManifest,
-        tape: FrozenEventTapeArtifactResolution,
+        tape: FrozenEventTapeStreamResolution,
     ) -> (
-        Sequence[VerifiedForwardMarketPayload] | Awaitable[Sequence[VerifiedForwardMarketPayload]]
+        Iterable[VerifiedForwardMarketPayload] | Awaitable[Iterable[VerifiedForwardMarketPayload]]
     ): ...
 
 
@@ -459,7 +438,7 @@ class AuthenticatedForwardSandboxPlanInputResolver:
             delivery.verified_market_payload,
             tape_manifest,
         )
-        snapshot, complete_tape = await self._snapshot_tape_resolver.resolve_materialized(
+        snapshot, complete_tape = await self._snapshot_tape_resolver.resolve_with_snapshot(
             plan.instance.warmup_snapshot_fingerprint,
             tape_manifest,
         )
@@ -475,19 +454,15 @@ class AuthenticatedForwardSandboxPlanInputResolver:
             if inspect.isawaitable(payload_resolution)
             else payload_resolution
         )
-        canonical_by_id = _verify_complete_forward_warmup_payloads(
-            complete_tape,
-            complete_payloads,
+        warmup_stream = await asyncio.to_thread(
+            materialize_forward_warmup_stream,
+            self._snapshot_tape_resolver.artifact_store,
+            snapshot=snapshot,
             manifest=tape_manifest,
-            warmup_receipt=checkpoint.warmup_receipt,
+            complete_tape=complete_tape,
+            payloads=complete_payloads,
+            receipt=checkpoint.warmup_receipt,
             before_event=delivery.verified_market_payload.canonical_event,
-        )
-        warmup_tape, warmup_payloads = _cut_forward_warmup_at_receipt(
-            snapshot,
-            complete_tape,
-            canonical_by_id,
-            manifest=tape_manifest,
-            warmup_receipt=checkpoint.warmup_receipt,
         )
 
         prefix_resolution = self._processed_prefix_resolver(
@@ -552,7 +527,7 @@ class AuthenticatedForwardSandboxPlanInputResolver:
             execution_plan=plan,
             snapshot=snapshot,
             tape_manifest=tape_manifest,
-            warmup_tape=warmup_tape,
+            warmup_stream=warmup_stream,
             market_context=market_context,
             checkpoint_fingerprint=checkpoint_fingerprint,
             max_intents_per_event=self._max_intents_per_event,
@@ -561,9 +536,8 @@ class AuthenticatedForwardSandboxPlanInputResolver:
             execution_plan=plan,
             snapshot=snapshot,
             tape_manifest=tape_manifest,
-            warmup_tape=warmup_tape,
+            warmup_stream=warmup_stream,
             warmup_receipt=checkpoint.warmup_receipt,
-            warmup_payloads=warmup_payloads,
             processed_prefix=processed_prefix,
             engine_input=engine_input,
             runtime_profile=self._runtime_profile,
@@ -653,8 +627,7 @@ class AuthenticatedForwardSandboxPlanFactory:
             warmup_receipt=inputs.warmup_receipt,
             snapshot=inputs.snapshot,
             tape_manifest=inputs.tape_manifest,
-            warmup_tape=inputs.warmup_tape,
-            warmup_payloads=inputs.warmup_payloads,
+            warmup_stream=inputs.warmup_stream,
             processed_prefix=inputs.processed_prefix,
             engine_input=inputs.engine_input,
             runtime_profile=inputs.runtime_profile,
@@ -674,8 +647,9 @@ def materialize_authenticated_forward_sandbox_plan(
     warmup_receipt: ForwardWarmupReceipt,
     snapshot: DataSnapshot,
     tape_manifest: StrategySdkManifest,
-    warmup_tape: FrozenEventTapeArtifactResolution,
-    warmup_payloads: Sequence[VerifiedForwardMarketPayload],
+    warmup_stream: ForwardWarmupStreamResolution | None = None,
+    warmup_tape: FrozenEventTapeArtifactResolution | None = None,
+    warmup_payloads: Sequence[VerifiedForwardMarketPayload] | None = None,
     processed_prefix: ForwardProcessedEventPrefix,
     engine_input: NautilusEngineInput,
     runtime_profile: RuntimeIsolationProfile,
@@ -717,6 +691,13 @@ def materialize_authenticated_forward_sandbox_plan(
         or processed_prefix.warmup_receipt_fingerprint != warmup_receipt.fingerprint
     ):
         raise ValueError("forward sandbox inputs differ from the exact owner checkpoint")
+    if warmup_stream is not None and (
+        warmup_stream.snapshot_fingerprint != snapshot.fingerprint
+        or warmup_stream.warmup_receipt_fingerprint != warmup_receipt.fingerprint
+        or warmup_stream.cursor_event_id != warmup_receipt.final_event_id
+        or warmup_stream.cursor_event_fingerprint != warmup_receipt.final_event_fingerprint
+    ):
+        raise ValueError("streamed forward warm-up differs from the exact receipt")
 
     # The runtime CLI validates STRATEGY_ATTEMPT_ID against the immutable
     # engine_input.attempt_id inside the bundle. Derive this process-attempt
@@ -728,26 +709,50 @@ def materialize_authenticated_forward_sandbox_plan(
         attempt_id=attempt_id,
     )
 
-    runtime_artifacts = materialize_authenticated_forward_runtime_bundle(
-        store,
-        execution_plan=execution_plan,
-        snapshot=snapshot,
-        tape_manifest=tape_manifest,
-        warmup_tape=warmup_tape,
-        warmup_payloads=warmup_payloads,
-        engine_input=engine_input,
-    )
-    bootstrap = NautilusForwardRuntimeBootstrap.build(
-        execution_plan=execution_plan,
-        snapshot=snapshot,
-        warmup_receipt=warmup_receipt,
-        warmup_tape=warmup_tape,
-        warmup_payloads=warmup_payloads,
-        processed_prefix=processed_prefix,
-        engine_input=engine_input,
-        runtime_input_bundle_digest=runtime_artifacts.runtime_input.input_bundle_digest,
-        native_event_stream=runtime_artifacts.native_event_stream,
-    )
+    if warmup_stream is not None:
+        if warmup_tape is not None or warmup_payloads is not None:
+            raise ValueError("streaming warm-up cannot be mixed with materialized rows")
+        runtime_artifacts = materialize_authenticated_forward_runtime_bundle_from_stream(
+            store,
+            execution_plan=execution_plan,
+            snapshot=snapshot,
+            tape_manifest=tape_manifest,
+            warmup_stream=warmup_stream,
+            engine_input=engine_input,
+        )
+        bootstrap = NautilusForwardRuntimeBootstrap.build(
+            execution_plan=execution_plan,
+            snapshot=snapshot,
+            warmup_receipt=warmup_receipt,
+            warmup_stream=warmup_stream,
+            processed_prefix=processed_prefix,
+            engine_input=engine_input,
+            runtime_input_bundle_digest=runtime_artifacts.runtime_input.input_bundle_digest,
+            native_event_stream=runtime_artifacts.native_event_stream,
+        )
+    else:
+        if warmup_tape is None or warmup_payloads is None:
+            raise TypeError("materialized warm-up requires both tape and canonical payloads")
+        runtime_artifacts = materialize_authenticated_forward_runtime_bundle(
+            store,
+            execution_plan=execution_plan,
+            snapshot=snapshot,
+            tape_manifest=tape_manifest,
+            warmup_tape=warmup_tape,
+            warmup_payloads=warmup_payloads,
+            engine_input=engine_input,
+        )
+        bootstrap = NautilusForwardRuntimeBootstrap.build(
+            execution_plan=execution_plan,
+            snapshot=snapshot,
+            warmup_receipt=warmup_receipt,
+            warmup_tape=warmup_tape,
+            warmup_payloads=warmup_payloads,
+            processed_prefix=processed_prefix,
+            engine_input=engine_input,
+            runtime_input_bundle_digest=runtime_artifacts.runtime_input.input_bundle_digest,
+            native_event_stream=runtime_artifacts.native_event_stream,
+        )
     bootstrap_artifact = materialize_nautilus_forward_bootstrap_artifact(store, bootstrap)
 
     strategies = tuple(item.strategy for item in execution_plan.components.values())
@@ -914,6 +919,104 @@ def materialize_authenticated_forward_runtime_bundle(
         warmup_tape=warmup_tape,
         payloads=ordered_payloads,
     )
+    context_stream = materialize_nautilus_component_context_stream_artifact(
+        store,
+        components=tuple(component_streams),
+    )
+    bundle = build_nautilus_runtime_bundle(
+        engine_input,
+        context_stream=context_stream,
+        native_event_stream=native_stream,
+    )
+    runtime_input = materialize_nautilus_runtime_bundle(bundle, store)
+    return MaterializedForwardRuntimeInputArtifacts(
+        context_stream,
+        native_stream,
+        runtime_input,
+    )
+
+
+def materialize_authenticated_forward_runtime_bundle_from_stream(
+    store: LocalArtifactStore,
+    *,
+    execution_plan: ResolvedForwardExecutionPlan,
+    snapshot: DataSnapshot,
+    tape_manifest: StrategySdkManifest,
+    warmup_stream: ForwardWarmupStreamResolution,
+    engine_input: NautilusEngineInput,
+) -> MaterializedForwardRuntimeInputArtifacts:
+    """Build runtime artifacts by streaming the verified canonical warm-up rows."""
+
+    if not isinstance(store, LocalArtifactStore):
+        raise TypeError("store must be a LocalArtifactStore")
+    if not isinstance(execution_plan, ResolvedForwardExecutionPlan):
+        raise TypeError("execution_plan must use ResolvedForwardExecutionPlan")
+    if not isinstance(snapshot, DataSnapshot):
+        raise TypeError("snapshot must use DataSnapshot")
+    if not isinstance(tape_manifest, StrategySdkManifest):
+        raise TypeError("tape_manifest must use StrategySdkManifest")
+    if not isinstance(warmup_stream, ForwardWarmupStreamResolution):
+        raise TypeError("warmup_stream must use ForwardWarmupStreamResolution")
+    if not isinstance(engine_input, NautilusEngineInput):
+        raise TypeError("engine_input must use NautilusEngineInput")
+
+    instance = execution_plan.instance
+    if (
+        snapshot.fingerprint != instance.warmup_snapshot_fingerprint
+        or warmup_stream.snapshot_fingerprint != snapshot.fingerprint
+        or warmup_stream.manifest_fingerprint != tape_manifest.fingerprint
+        or engine_input.data_snapshot_fingerprint != snapshot.fingerprint
+        or engine_input.portfolio.fingerprint != execution_plan.portfolio.fingerprint
+        or engine_input.event_tape.source_tape_fingerprint != warmup_stream.tape.tape_fingerprint
+        or engine_input.event_tape.events
+    ):
+        raise ValueError("forward streaming runtime inputs differ from their owner plan")
+
+    bindings = {item.component_id: item for item in engine_input.strategy_bindings}
+    if set(bindings) != set(execution_plan.components):
+        raise ValueError("forward engine input bindings differ from the owner execution plan")
+    component_streams: list[InvocationContextStreamSource] = []
+    for component_id, resolved in execution_plan.components.items():
+        binding = bindings[component_id]
+        manifest = resolved.resolved_package.manifest
+        if (
+            binding.strategy_fingerprint != resolved.strategy.fingerprint
+            or binding.strategy_source_digest != manifest.strategy.source_digest
+            or binding.strategy_manifest_fingerprint != manifest.fingerprint
+            or binding.entrypoint != resolved.package.entrypoint
+            or binding.parameters_digest != content_digest(resolved.binding.parameters)
+        ):
+            raise ValueError("forward runtime strategy binding differs from its owner package")
+        dependency_ids = {item.dependency_id for item in manifest.data_dependencies}
+        market_events = (
+            payload.market_event
+            for payload in iter_verified_forward_warmup_payloads(warmup_stream, store)
+            if payload.market_event.dependency_id in dependency_ids
+        )
+        component_streams.append(
+            InvocationContextStreamSource(
+                component_id=component_id,
+                source=resolved.resolved_package.source,
+                manifest=manifest,
+                contexts=iter_event_tape_contexts(
+                    market_events,
+                    manifest,
+                    random_seed=resolved.binding.random_seed,
+                    parameters=resolved.binding.parameters,
+                ),
+                entrypoint=resolved.package.entrypoint,
+                max_intents_per_event=binding.max_intents_per_event,
+            )
+        )
+
+    native_stream = materialize_nautilus_forward_warmup_artifact_stream(
+        store,
+        snapshot=snapshot,
+        manifest=tape_manifest,
+        warmup=warmup_stream,
+    )
+    if native_stream.event_count != warmup_stream.event_count:
+        raise ValueError("native and canonical warm-up stream counts differ")
     context_stream = materialize_nautilus_component_context_stream_artifact(
         store,
         components=tuple(component_streams),
@@ -1140,7 +1243,7 @@ def _build_forward_nautilus_engine_input(
     execution_plan: ResolvedForwardExecutionPlan,
     snapshot: DataSnapshot,
     tape_manifest: StrategySdkManifest,
-    warmup_tape: FrozenEventTapeArtifactResolution,
+    warmup_stream: ForwardWarmupStreamResolution,
     market_context: ForwardNautilusMarketContext,
     checkpoint_fingerprint: str,
     max_intents_per_event: int,
@@ -1185,7 +1288,7 @@ def _build_forward_nautilus_engine_input(
         trial_id=execution_plan.instance.instance_id,
         attempt_id=checkpoint_fingerprint,
         data_snapshot_fingerprint=snapshot.fingerprint,
-        event_tape=materialize_nautilus_event_tape(warmup_tape.tape, snapshot, tape_manifest),
+        event_tape=NautilusEventTape(warmup_stream.tape.tape_fingerprint, ()),
         instruments=market_context.instruments,
         venue=venue,
         portfolio=portfolio,

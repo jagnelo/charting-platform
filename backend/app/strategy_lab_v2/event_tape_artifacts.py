@@ -752,6 +752,12 @@ class FrozenEventTapeArtifactResolver:
         self._decoder = decoder
         self._max_artifact_bytes = max_artifact_bytes
 
+    @property
+    def artifact_store(self) -> LocalArtifactStore:
+        """The local content-addressed store used for all frozen source reads."""
+
+        return self._artifact_store
+
     def resolve(
         self,
         snapshot: DataSnapshot,

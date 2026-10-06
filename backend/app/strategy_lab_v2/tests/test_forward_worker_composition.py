@@ -14,7 +14,10 @@ from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.authenticated_event_tape import AuthenticatedFrozenEventTapeResolver
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.event_tape import bind_event_tape
-from app.strategy_lab_v2.event_tape_artifacts import FrozenEventTapeArtifactResolution
+from app.strategy_lab_v2.event_tape_artifacts import (
+    FrozenEventTapeArtifactResolution,
+    materialize_frozen_event_tape_stream,
+)
 from app.strategy_lab_v2.forward_context import ForwardStrategyContextPreparation
 from app.strategy_lab_v2.forward_execution_plan import (
     ForwardComponentExecutionPlan,
@@ -23,6 +26,7 @@ from app.strategy_lab_v2.forward_execution_plan import (
 from app.strategy_lab_v2.forward_execution_plan_resolution import ResolvedForwardExecutionPlan
 from app.strategy_lab_v2.forward_processed_prefix import ForwardProcessedEventPrefix
 from app.strategy_lab_v2.forward_warmup import CarryInMode, ForwardWarmupReceipt
+from app.strategy_lab_v2.forward_warmup_stream import iter_verified_forward_warmup_payloads
 from app.strategy_lab_v2.forward_worker_composition import (
     AuthenticatedForwardDeliveryContextResolver,
     AuthenticatedForwardSandboxPlanFactory,
@@ -522,20 +526,31 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
     snapshot_resolver = object.__new__(AuthenticatedFrozenEventTapeResolver)
     snapshot_resolver._principal = "owner-a"
 
-    async def resolve_materialized(
+    warmup_artifacts = LocalArtifactStore(tmp_path / "warmup-artifacts")
+    complete_stream = materialize_frozen_event_tape_stream(
+        warmup_artifacts,
+        snapshot=snapshot,
+        manifest=manifest,
+        events=iter(source_tape.events),
+        source_artifact_digests=source_resolution.source_artifact_digests,
+    )
+    snapshot_resolver._artifact_resolver = SimpleNamespace(artifact_store=warmup_artifacts)
+
+    async def resolve_with_snapshot(
         snapshot_fingerprint: str, requested_manifest: Any
-    ) -> tuple[Any, FrozenEventTapeArtifactResolution]:
+    ) -> tuple[Any, Any]:
         assert snapshot_fingerprint == snapshot.fingerprint
         assert requested_manifest.fingerprint == manifest.fingerprint
-        return snapshot, source_resolution
+        return snapshot, complete_stream
 
-    setattr(snapshot_resolver, "resolve_materialized", resolve_materialized)
+    setattr(snapshot_resolver, "resolve_with_snapshot", resolve_with_snapshot)
 
     class WarmupReader:
         def read_warmup_payloads(self, **kwargs: Any) -> Any:
             assert kwargs["principal"] == "owner-a"
             assert kwargs["instance_id"] == "forward-1"
-            return full_payloads
+            assert kwargs["tape"] is complete_stream
+            return iter(full_payloads)
 
     class PrefixResolver:
         async def __call__(self, **kwargs: Any) -> ForwardProcessedEventPrefix:
@@ -584,20 +599,22 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
     assert result.snapshot is snapshot
     assert result.tape_manifest == manifest
     assert result.warmup_receipt == receipt
-    assert tuple(item.canonical_event.event_id for item in result.warmup_payloads) == (
-        cursor.event_id,
+    warmup_payloads = tuple(
+        iter_verified_forward_warmup_payloads(result.warmup_stream, warmup_artifacts)
     )
+    assert tuple(item.canonical_event.event_id for item in warmup_payloads) == (cursor.event_id,)
     assert result.processed_prefix.pre_event_checkpoint_fingerprint == checkpoint_fingerprint
     assert result.engine_input.data_snapshot_fingerprint == snapshot.fingerprint
     assert result.engine_input.portfolio == portfolio
     assert (
         result.engine_input.event_tape.source_tape_fingerprint
-        == result.warmup_tape.tape.fingerprint
+        == result.warmup_stream.tape.tape_fingerprint
     )
+    assert result.engine_input.event_tape.events == ()
 
     output_directory = tmp_path / "forward-output"
     output_directory.mkdir()
-    artifact_store = LocalArtifactStore(tmp_path / "forward-artifacts")
+    artifact_store = warmup_artifacts
     plan_factory = AuthenticatedForwardSandboxPlanFactory(
         artifact_store,
         resolver,

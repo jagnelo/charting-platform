@@ -46,6 +46,9 @@ from app.strategy_lab_v2.nautilus_event_adapter import (
     materialize_nautilus_event_tape,
 )
 from app.strategy_lab_v2.nautilus_forward_delivery import VerifiedForwardMarketPayload
+from app.strategy_lab_v2.nautilus_runtime_bundle import (
+    materialize_nautilus_forward_warmup_artifact_stream,
+)
 from app.strategy_lab_v2.sdk import MarketEvent, StrategyDataDependency, StrategySdkManifest
 
 BASE = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
@@ -643,7 +646,7 @@ async def test_authenticated_tape_resolver_rejects_fingerprint_aliases(tmp_path)
 
 
 def test_forward_warmup_materializer_joins_canonical_ids_and_cuts_globally(tmp_path) -> None:
-    snapshot, manifest, series, payload = _inputs(fields=("close",))
+    snapshot, manifest, series, payload = _inputs(fields=("open", "high", "low", "close", "volume"))
     store = LocalArtifactStore(tmp_path / "artifacts")
     _publish(store, series, payload)
 
@@ -655,7 +658,13 @@ def test_forward_warmup_materializer_joins_canonical_ids_and_cuts_globally(tmp_p
                     f"bar-{sequence}",
                     BASE,
                     sequence,
-                    {"close": Decimal(100 + sequence)},
+                    {
+                        "open": Decimal(99 + sequence),
+                        "high": Decimal(101 + sequence),
+                        "low": Decimal(98 + sequence),
+                        "close": Decimal(100 + sequence),
+                        "volume": Decimal(1000 + sequence),
+                    },
                 )
 
     tape_resolver = FrozenEventTapeArtifactResolver(store, SameTimestampDecoder())
@@ -724,6 +733,14 @@ def test_forward_warmup_materializer_joins_canonical_ids_and_cuts_globally(tmp_p
     payload_rows = tuple(iter_verified_forward_warmup_payloads(resolved, store))
     assert len(payload_rows) == 1
     assert payload_rows[0] == payloads[1]
+    native = materialize_nautilus_forward_warmup_artifact_stream(
+        store,
+        snapshot=snapshot,
+        manifest=manifest,
+        warmup=resolved,
+    )
+    assert native.event_count == resolved.event_count
+    assert native.source_tape_fingerprint == resolved.tape.tape_fingerprint
 
 
 def test_forward_warmup_materializer_rejects_payloads_with_missing_tape_identity(tmp_path) -> None:

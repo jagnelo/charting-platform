@@ -8,6 +8,7 @@ from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any, Protocol, cast
 
 from app.strategy_lab_v2.api_resources import ApiResourceType
+from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import require_sha256_digest
 from app.strategy_lab_v2.contracts import DataSnapshot
 from app.strategy_lab_v2.event_tape_artifacts import (
@@ -71,12 +72,28 @@ class AuthenticatedFrozenEventTapeResolver:
 
         return self._principal
 
+    @property
+    def artifact_store(self) -> LocalArtifactStore:
+        """Local store for verified snapshot and derived execution artifacts."""
+
+        return self._artifact_resolver.artifact_store
+
     async def resolve(
         self,
         snapshot_fingerprint: str,
         manifest: StrategySdkManifest,
     ) -> FrozenEventTapeStreamResolution:
         """Load exactly one owner's snapshot and verify its required source tape."""
+
+        _snapshot, resolution = await self.resolve_with_snapshot(snapshot_fingerprint, manifest)
+        return resolution
+
+    async def resolve_with_snapshot(
+        self,
+        snapshot_fingerprint: str,
+        manifest: StrategySdkManifest,
+    ) -> tuple[DataSnapshot, FrozenEventTapeStreamResolution]:
+        """Return the owner-authenticated snapshot with its disk-backed event tape."""
 
         snapshot = await self._load_snapshot(snapshot_fingerprint, manifest)
 
@@ -93,7 +110,7 @@ class AuthenticatedFrozenEventTapeResolver:
             or resolution.manifest_fingerprint != manifest.fingerprint
         ):
             raise ValueError("verified frozen event tape differs from its requested inputs")
-        return resolution
+        return snapshot, resolution
 
     async def resolve_prefix(
         self,

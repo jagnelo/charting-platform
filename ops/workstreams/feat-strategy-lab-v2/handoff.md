@@ -12906,3 +12906,26 @@ Next, route the authenticated worker through this resolution and update its
 context/native-stream/bootstrap consumers to read these verified artifacts
 without materializing their rows, then run the exact plan through RC5 process
 startup/replacement.
+
+## 2026-10-06 - Artifact-backed warm-up wired into authenticated plan composition
+
+The authenticated forward-plan resolver now requests the verified frozen tape
+stream and a one-pass canonical payload iterable, then performs the disk-backed
+global-identity join and receipt cursor cut. It stores no full warm-up payload
+tuple in `ForwardSandboxPlanInputs`. The plan factory consumes the verified
+payload and tape artifacts to create bounded component context streams and a
+native event-stream artifact; the bootstrap pins exact source tape fingerprint,
+cursor, event count, and processed-prefix order while carrying no inline event
+rows. Existing materialized helpers remain available for isolated legacy tests,
+but the production authenticated path uses the streamed representation.
+
+Validation: the focused artifact/composition/bootstrap/runtime-bundle suites
+passed 55 tests; the full Strategy Lab package passed 1,539 tests with one
+opt-in image test skipped; the existing exact-pinned RC5 process-loss/replay
+integration passed 1/1. Ruff, changed-file formatting, changed-module MyPy, and
+`git diff --check` passed. The exact-image process test exercises the RC5
+bootstrap/process boundary but still uses its established fixture artifacts;
+it does not yet construct those artifacts through the authenticated production
+plan factory. Next, adapt that fixture (or add a composed exact-image harness)
+to feed this artifact-backed plan through process startup and checkpoint
+replacement, then continue remaining forward and backtest acceptance criteria.
