@@ -201,8 +201,9 @@ current_blocker: >-
   and ETF consumption is deferred until both branches reach staging.
 active_changeset_context:
   name: TC2000 V25 vertical projection-space keyboard shortcuts
-  status: product_committed_browser_and_visual_review_open
+  status: product_and_workstream_pushed_browser_and_visual_review_open
   commit_sha: 280a79e7f
+  remote_sha: 280a79e7f
   remote_sha: pending
   intent: >-
     Implement Shift+= and Shift+- as per-chart vertical projection-space
