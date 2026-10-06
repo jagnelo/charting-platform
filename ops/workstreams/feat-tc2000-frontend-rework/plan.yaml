@@ -510,11 +510,12 @@ progress:
     Continue TC-owned R1/R5/R6 implementation and trace the Help screenshot
     layout-state mismatch. Ctrl+M now opens explicit list membership actions,
     and Shift/Ctrl divider drag now evenly resizes the selected side with
-    persisted Golden Layout proportions. Remaining V25 design gaps include
-    Favorites, custom-date sorting, and Tag Column ownership. Keep the full
-    visual matrix and cleanup-safe exact integration gate open. Defer upstream
-    consumption/reconciliation until both dependencies reach staging. Stop at
-    ready_for_human_review.
+    persisted Golden Layout proportions. Shift+N now opens Notes for the active
+    linked symbol from shell focus while preserving editor/control ownership.
+    Remaining V25 design gaps include Favorites, custom-date sorting, and Tag
+    Column ownership. Keep the full visual matrix and cleanup-safe exact
+    integration gate open. Defer upstream consumption/reconciliation until both
+    dependencies reach staging. Stop at ready_for_human_review.
   current_blocker: >-
     The four Help screenshot profiles reproducibly exceed the unchanged 0.5%
     threshold; retained expected/actual images show Help placement and pane
@@ -522,8 +523,10 @@ progress:
     refresh baselines or weaken policy. The generic integration target's cleanup
     would delete the six-service assigned stack and four data volumes; establish
     a cleanup-safe exact route. Provider and ETF feature refs remain outside
-    staging. The host Playwright CLI lacks its configured Chrome binary, while
-    pinned Docker Chromium remains available for focused browser acceptance.
+    staging. The Playwright CLI dependency launch stalled; the installed
+    project's Playwright runner with cached Chromium was used against current
+    source via temporary Vite and the assigned backend. The focused authenticated
+    Shift+N browser case passed.
 historical_implementation_records:
   - "Added TC2000's documented HLC Bars style to the frontend chart contract and settings, drawing the existing OHLCV high-low range with a close tick and omitting the open tick. Ctrl+B now cycles HLC, OHLC, Candles, Line in that order. The focused renderer/workstation tests passed 45/45; the full serial frontend suite passed 130 files / 1,225 tests; vue-tsc/Vite build passed; authenticated F8k-direct-chart-style passed 1/1 across all four styles. The protected Help screenshot test failed against its unchanged baseline with 50,941 pixels / 3.0% difference (0.5% threshold); no visual baseline/policy was changed."
   - "Authenticated follow-up browser evidence supersedes the earlier unauthenticated CLI attempt: a unique account in the assigned TC stack was used to activate the chart, press `/`, and confirm the plot library reopened with its `Filter indicators` search focused. No account was created outside the branch stack; no other worktree changed. The account remains a test artifact in the assigned stack. The Help visual oracle was not rerun after this shortcut, and its protected baseline remains unchanged."

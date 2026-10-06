@@ -2877,6 +2877,22 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8k-shift-n-shell — Shift+N opens active-symbol notes outside a WatchList and yields to editors', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    await page.locator('.workstation').focus()
+    await page.keyboard.press('Shift+n')
+    const noteTool = page.locator('.tool-window:visible').filter({ has: page.locator('.note-tool') }).last()
+    await expect(noteTool).toBeVisible({ timeout: 10_000 })
+    await expect(noteTool.locator('.note-tool')).toHaveAttribute('aria-label', 'SPY notes', { timeout: 10_000 })
+
+    await page.getByRole('combobox', { name: 'Active symbol' }).fill('SPY')
+    await page.getByRole('combobox', { name: 'Active symbol' }).press('Shift+n')
+    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('SPYn')
+    await expect(page.locator('.tool-window:visible').filter({ has: page.locator('.note-tool') })).toHaveCount(1)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8k-shift-d — Shift+D toggles Trend Line on the active chart only', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })

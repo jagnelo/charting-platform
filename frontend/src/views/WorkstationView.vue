@@ -47,7 +47,7 @@
               <div><dt>Ctrl+M</dt><dd>Choose an explicit personal WatchList membership action for the selected symbols</dd></div>
               <div><dt>Shift+drag divider</dt><dd>Resize panes above the divider evenly</dd></div>
               <div><dt>Ctrl+drag divider</dt><dd>Resize panes below the divider evenly</dd></div>
-              <div><dt>Shift+N</dt><dd>Write a note for the active WatchList symbol</dd></div>
+              <div><dt>Shift+N</dt><dd>Write a note for the active symbol</dd></div>
               <div><dt>Shift+D</dt><dd>Toggle Trend Line drawing on the active chart</dd></div>
               <div><dt>Ctrl+B</dt><dd>Cycle HLC and OHLC bars, candles, and line style on the active chart</dd></div>
               <div><dt>Ctrl+1</dt><dd>Set the active chart to 1-minute bars</dd></div>
@@ -1961,6 +1961,13 @@ function handleKeydown(event: KeyboardEvent) {
     return
   }
   if (workspaceStore.isEditorTarget(event.target) || isInteractiveTarget(event.target)) return
+  if (event.key.toLowerCase() === 'n' && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    const notes = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'notes')
+    if (!notes) return
+    event.preventDefault()
+    void openTool(notes)
+    return
+  }
   if (event.key.toLowerCase() === 'l' && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
     const activeTab = workspaceStore.activeTab
     const activeWindowKey = isPopout.value

@@ -16,6 +16,18 @@ baselines and acceptance policy were not changed; the four Help screenshot
 profiles remain unresolved. Shift+V Favorites, Shift+T custom date sorting,
 and Alt+click Tag Column remain open.
 
+## 2026-10-06 — Shift+N shell-level note shortcut
+
+The official [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+lists “Write a Note: Shift-N” without limiting the command to a focused
+WatchList. Shift+N continues to work in a focused WatchList and now also opens
+the canonical Notes tool from the workstation shell for its active linked
+symbol. The Notes tool's existing `active-instrument` scope is reused; editor
+and interactive-control focus still own their keys. Focused unit and
+authenticated Chromium coverage exercise both contexts and suppression.
+No note persistence, screenshot baseline, threshold, mask, skip, or acceptance
+policy changed.
+
 ## 2026-10-06 — Golden Layout modifier divider resizing
 
 Shift-drag on a horizontal divider evenly resizes all panes above it; Ctrl-drag

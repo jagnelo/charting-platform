@@ -147,11 +147,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "Ctrl+M explicit membership slice passes focused component, type-check/build, and pinned authenticated browser evidence. Remaining: unresolved Help screenshot pixel/layout mismatch; exact full integration needs cleanup-safe isolation; provider and ETF refs remain outside staging.",
-    "current_phase": "R1_CTRL_M_MEMBERSHIP",
-    "next_action": "Continue TC-owned V25 UX and TC-specific Study/Strategy requirements; diagnose visual mismatch provenance and clean exact integration path; recheck upstream staging refs and defer consumption until both reach staging; then verify every acceptance criterion and stop at ready_for_human_review.",
+    "current_blocker": "Shift+N global active-symbol Notes slice passes full frontend tests (132 files/1,244 tests), type-check/build and authenticated current-source browser acceptance. Remaining: four reproducible Help screenshot pixel/layout mismatches above the unchanged threshold; exact full integration needs a cleanup-safe route; GitHub DNS currently prevents refreshing staging/provider/ETF refs, whose consumption remains deferred until staging.",
+    "current_phase": "R1_V25_REMAINING_SHORTCUTS_AND_EXACT_VISUAL_REVIEW",
+    "next_action": "Continue TC-owned R1/R5/R6 implementation and investigate Help layout-state provenance. Keep V25 Favorites/custom-date/Tag Column semantics unresolved until explicit data contracts exist. Recheck upstream refs and consume only after both dependencies reach staging. Establish a cleanup-safe exact gate, verify all acceptance criteria, and stop at ready_for_human_review.",
     "total": 9,
-    "updated_at": "2026-10-06T20:18:15.576852+00:00"
+    "updated_at": "2026-10-06T20:51:26+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",

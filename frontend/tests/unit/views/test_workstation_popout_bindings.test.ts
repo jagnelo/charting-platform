@@ -91,9 +91,10 @@ const harness = vi.hoisted(() => {
 })
 const routeState = vi.hoisted(() => ({ path: '/popout/benchmark-list', params: { windowKey: 'benchmark-list' }, query: {} as Record<string, string> }))
 const apiGet = vi.hoisted(() => vi.fn().mockResolvedValue([]))
+const openableTools = vi.hoisted(() => [{ tool_type: 'notes', title: 'Notes', instance_prefix: 'notes', configuration: { scope: 'active-instrument' } }])
 
 vi.mock('@/stores/workspace', () => ({
-  OPENABLE_WORKSTATION_TOOLS: [],
+  OPENABLE_WORKSTATION_TOOLS: openableTools,
   useWorkspaceStore: () => harness.workspace,
 }))
 vi.mock('@/stores/chart', () => ({
@@ -450,6 +451,34 @@ describe('WorkstationView pop-out bindings', () => {
     editor.dispatchEvent(editorEvent)
     expect(editorEvent.defaultPrevented).toBe(false)
     expect(maximizeClick).toHaveBeenCalledOnce()
+    harness.workspace.isEditorTarget.mockImplementation(() => false)
+    wrapper.unmount()
+  })
+
+  it('uses Shift+N to open active-symbol notes from the shell and yields to interactive controls', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    harness.workspace.openTool.mockReturnValue({ instance_key: 'notes-new', tool_type: 'notes' })
+    const wrapper = mount(WorkstationView, {
+      attachTo: document.body,
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const workstation = wrapper.find('.workstation').element
+    await wrapper.find('.workstation').trigger('keydown', { key: 'N', shiftKey: true })
+    expect(harness.workspace.openTool).toHaveBeenCalledWith(
+      expect.objectContaining({ tool_type: 'notes', configuration: { scope: 'active-instrument' } }),
+      {},
+    )
+
+    const editor = document.createElement('input')
+    workstation.appendChild(editor)
+    harness.workspace.isEditorTarget.mockImplementation(target => target === editor)
+    await wrapper.find('input[aria-label="Active symbol"]').trigger('keydown', { key: 'n', shiftKey: true })
+
+    const button = document.createElement('button')
+    workstation.appendChild(button)
+    await wrapper.find('button[title="Keyboard shortcuts"]').trigger('keydown', { key: 'n', shiftKey: true })
+    expect(harness.workspace.openTool).toHaveBeenCalledTimes(1)
     harness.workspace.isEditorTarget.mockImplementation(() => false)
     wrapper.unmount()
   })

@@ -95,6 +95,20 @@ required-missing in the reference manifest. No threshold, mask, skip, or
 acceptance policy changed. The full visual matrix and full integration gate
 remain open.
 
+## 2026-10-06 — Shift+N shell-level active-symbol notes
+
+The official [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+lists Shift+N to write a note without restricting it to a focused WatchList.
+The existing focused-WatchList shortcut remains; the workstation shell now also
+opens the canonical Notes tool, whose existing `active-instrument` scope follows
+the active linked symbol. Text editors and interactive controls retain key
+ownership. Focused WorkstationView tests passed 45/45, the full serial frontend
+suite passed 132 files/1,244 tests, Vue type-check/build passed (520 modules),
+and authenticated Chromium passed 1/1 for shell dispatch, active-symbol note
+identity, and editor-key ownership.
+No note persistence model, provider behavior, or visual acceptance oracle was
+changed.
+
 ## 2026-10-06 — Shift+= / Shift+- vertical projection space
 
 The official [TC2000 projection-space reference](https://help.tc2000.com/m/69401/l/314789-how-to-create-projection-space-on-a-chart)

@@ -1,5 +1,22 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — Shift+N shell-level active-symbol Notes
+
+Extended official TC2000 V25 Shift+N note behavior from focused WatchLists to
+the workstation shell, reusing the existing Notes tool with its
+`active-instrument` scope. Focused WatchList behavior remains; text editors and
+interactive controls keep native ownership. WorkstationView binding tests pass
+45/45, Vue type-check/build pass (520 modules), and authenticated pinned
+Chromium passes the current-source shell-focused action plus editor input
+isolation flow 1/1. The CLI-first browser wrapper stalled before launch; the
+installed project Playwright runner with cached Chromium ran through temporary
+loopback Vite at port 15175 to the assigned backend at port 28008. Temporary
+Vite was stopped; no Docker services were restarted, and artifacts stayed in
+`/tmp/tc2000-shift-n-e2e`. The assigned stack is still outside this session's
+cleanup scope. No visual baseline, threshold, mask, skip, or acceptance rule
+changed. Full integration, the four reproducible Help pixel mismatches, and
+provider/ETF staging-dependent consumption remain open.
+
 ## 2026-10-06 — V25 modifier divider resizing
 
 Implemented TC2000 V25 Shift-drag resizing for panes above a horizontal divider
