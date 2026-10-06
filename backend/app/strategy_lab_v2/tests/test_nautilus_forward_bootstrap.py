@@ -603,7 +603,21 @@ def test_build_binds_owner_plan_warmup_snapshot_prefix_and_native_inputs(tmp_pat
         13,
         strategy_bindings=(native_binding,),
     )
-    cursor_event = frozen_tape.events[-1]
+    warmup_payloads = tuple(
+        VerifiedForwardMarketPayload(
+            CanonicalForwardEvent(
+                event.event_id,
+                1000 + index,
+                event.event_time,
+                event.event_time,
+                content_digest(event.values),
+            ),
+            replace(event, sequence=1000 + index),
+            content_digest(event.values),
+        )
+        for index, event in enumerate(frozen_tape.events)
+    )
+    cursor_event = warmup_payloads[-1].canonical_event
     receipt = ForwardWarmupReceipt(
         "forward-1",
         snapshot.fingerprint,
@@ -612,13 +626,13 @@ def test_build_binds_owner_plan_warmup_snapshot_prefix_and_native_inputs(tmp_pat
         NOW + timedelta(days=3),
         cursor_event.event_id,
         cursor_event.sequence,
-        _digest("warmup-canonical-event"),
+        content_digest(cursor_event),
     )
     processed_canonical = CanonicalForwardEvent(
         "live-3",
-        3,
-        NOW + timedelta(days=2),
-        NOW + timedelta(days=2, seconds=1),
+        cursor_event.sequence + 1,
+        cursor_event.event_time + timedelta(days=1),
+        cursor_event.event_time + timedelta(days=1, seconds=1),
         _digest("live-source"),
     )
     processed_market = MarketEvent(
@@ -635,7 +649,7 @@ def test_build_binds_owner_plan_warmup_snapshot_prefix_and_native_inputs(tmp_pat
         receipt.fingerprint,
         manifest.fingerprint,
         _digest("before-event"),
-        (("daily-bars", 3),),
+        (("daily-bars", processed_canonical.sequence),),
         (
             VerifiedForwardMarketPayload(
                 processed_canonical,
@@ -650,6 +664,7 @@ def test_build_binds_owner_plan_warmup_snapshot_prefix_and_native_inputs(tmp_pat
         snapshot=snapshot,
         warmup_receipt=receipt,
         warmup_tape=snapshot_tape,
+        warmup_payloads=warmup_payloads,
         processed_prefix=processed_prefix,
         engine_input=engine_input,
         runtime_input_bundle_digest=_digest("runtime-bundle"),
@@ -660,5 +675,7 @@ def test_build_binds_owner_plan_warmup_snapshot_prefix_and_native_inputs(tmp_pat
     assert bootstrap.portfolio_fingerprint == portfolio.fingerprint
     assert bootstrap.snapshot_fingerprint == snapshot.fingerprint
     assert bootstrap.warmup_tape_fingerprint == frozen_tape.fingerprint
+    assert bootstrap.warmup_cursor_sequence == warmup_payloads[-1].canonical_event.sequence
+    assert bootstrap.warmup_cursor_sequence != frozen_tape.events[-1].sequence
     assert bootstrap.processed_events[0].canonical_event == processed_canonical
     assert bootstrap.components[0].random_seed == 13
