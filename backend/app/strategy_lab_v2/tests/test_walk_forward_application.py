@@ -509,3 +509,41 @@ async def test_oos_phase_hydrates_owner_manifests_appends_and_replays_exact_tria
     )
     assert resumed.decision is SearchStateDecision.REPLAY_EXISTING
     assert resumed.state == appended.resolution.state
+
+    state = resumed.state
+    oos_by_id = {trial.trial_id: trial for trial in expected_oos.trials}
+    expected_values = tuple(Decimal(10 + index) for index in range(len(expected_oos.trials)))
+    for offset, binding in enumerate(appended.oos_task_bindings):
+        attempt_id = f"persisted-oos-attempt-{offset}"
+        result_fingerprint = content_digest({"oos-result": offset})
+        result_store.manifests[attempt_id] = _authoritative_result(
+            oos_by_id[binding.trial_fingerprint],
+            definition.metric_id,
+            expected_values[offset],
+            attempt_id=attempt_id,
+            snapshot=reader.contracts[(ApiResourceType.SNAPSHOT, first.snapshot_fingerprint)],
+        )
+        state = start_search_candidate(
+            state,
+            binding.candidate_index,
+            attempt_id=attempt_id,
+            now=datetime(2026, 10, 6, 6 + offset, tzinfo=UTC),
+        ).state
+        state = record_search_candidate_terminal(
+            state,
+            binding.candidate_index,
+            attempt_id=attempt_id,
+            phase=SearchCandidatePhase.SUCCEEDED,
+            result_fingerprint=result_fingerprint,
+            now=datetime(2026, 10, 6, 7 + offset, tzinfo=UTC),
+        ).state
+    adapter._persistence.search_state.states[definition.experiment_fingerprint] = state
+    hydrated = await adapter.collect_walk_forward_oos_results(
+        principal=User(),
+        request_id="collect-oos-results",
+        experiment_fingerprint=definition.experiment_fingerprint,
+    )
+    assert tuple(result.value for result in hydrated) == expected_values
+    assert tuple(result.oos_task_fingerprint for result in hydrated) == tuple(
+        task.fingerprint for task in expected_selection.oos_tasks
+    )

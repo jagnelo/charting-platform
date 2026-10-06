@@ -469,6 +469,7 @@ class FakeAdapter:
         self.search_dispatches: list[SearchDispatchResolution] = []
         self.walk_forward_dispatch_requests: list[dict[str, Any]] = []
         self.walk_forward_phase_requests: list[dict[str, Any]] = []
+        self.walk_forward_result_requests: list[dict[str, Any]] = []
         self.document = _document()
 
     async def list_resources(self, **kwargs: Any) -> ResourceCollection:
@@ -655,6 +656,17 @@ class FakeAdapter:
         return SimpleNamespace(
             resolution=SearchStateResolution(SearchStateDecision.REPLAY_EXISTING, state),
             oos_task_bindings=(),
+        )
+
+    async def collect_walk_forward_oos_results(self, **kwargs: Any) -> Any:
+        self.walk_forward_result_requests.append(kwargs)
+        return (
+            SimpleNamespace(
+                oos_task_fingerprint=content_digest("oos-task-0"),
+                result_fingerprint=content_digest("oos-result-0"),
+                metric_id="net_return",
+                value=Decimal("0.125"),
+            ),
         )
 
 
@@ -1409,6 +1421,21 @@ def test_walk_forward_advance_api_hydrates_and_returns_durable_phase_transition(
     assert len(adapter.walk_forward_phase_requests) == 1
     assert adapter.walk_forward_phase_requests[0]["experiment_fingerprint"] == experiment
     assert adapter.walk_forward_phase_requests[0]["principal"] == "user-1"
+
+
+def test_walk_forward_results_api_exposes_only_fold_ordered_oos_receipts() -> None:
+    experiment = content_digest("walk-forward-results-experiment")
+    adapter = FakeAdapter()
+    with _client(adapter) as client:
+        response = client.get(
+            f"/api/v1/strategy-lab/v2/experiments/{experiment}/walk-forward/results"
+        )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["meta"]["result_scope"] == "selected_out_of_sample_only"
+    assert response.json()["data"][0]["attributes"]["fold_index"] == 0
+    assert response.json()["data"][0]["attributes"]["value"] == "0.125"
+    assert adapter.walk_forward_result_requests[0]["experiment_fingerprint"] == experiment
 
 
 def test_router_lists_preserved_legacy_imports_without_payload_bytes() -> None:

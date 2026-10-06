@@ -134,11 +134,14 @@ from app.strategy_lab_v2.walk_forward_queue import (
     WalkForwardQueueTransition,
     append_selected_oos_queue,
     initialize_walk_forward_training_queue,
+    oos_results_from_search_queue,
     training_scores_from_search_queue,
 )
 from app.strategy_lab_v2.walk_forward_search import (
     WalkForwardDefinitionRequest,
     WalkForwardExecutionDefinition,
+    WalkForwardOosResult,
+    collect_walk_forward_oos_results,
     select_walk_forward_oos_tasks,
 )
 from app.strategy_lab_v2.walk_forward_trials import (
@@ -1527,6 +1530,153 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         if persisted.state != transition.resolution.state:
             raise ValueError("persisted walk-forward OOS queue differs from its deterministic plan")
         return WalkForwardQueueTransition(persisted, transition.oos_task_bindings)
+
+    async def collect_walk_forward_oos_results(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        experiment_fingerprint: str,
+    ) -> tuple[WalkForwardOosResult, ...]:
+        """Rehydrate the complete fold-ordered OOS result set for an owner.
+
+        This deliberately returns fold receipts rather than pretending that a
+        scalar per-fold selection metric is a portfolio return series. Every
+        receipt is rebuilt from its successful durable attempt and authoritative
+        result manifest; incomplete or mismatched folds fail closed.
+        """
+
+        transition = await self.append_walk_forward_oos_candidates(
+            principal=principal,
+            request_id=request_id,
+            experiment_fingerprint=experiment_fingerprint,
+        )
+        state_resolution = transition.resolution
+        if state_resolution.decision is SearchStateDecision.REJECT:
+            raise ApiAdapterError(
+                ApiError(
+                    ApiErrorCode.CONFLICT,
+                    state_resolution.rejection_reason or "walk-forward OOS phase is not ready",
+                    request_id,
+                    409,
+                    True,
+                    {"experiment_fingerprint": experiment_fingerprint},
+                )
+            )
+        state = state_resolution.state
+        owner = _principal_identity(principal)
+        definition = await self._persistence.walk_forward_plans.load(
+            principal=owner,
+            experiment_fingerprint=experiment_fingerprint,
+        )
+        if not isinstance(definition, WalkForwardExecutionDefinition):
+            raise ValueError("walk-forward definition disappeared during result hydration")
+        loaded = await self._resources.get_domain_contracts_by_fingerprint(
+            principal=owner,
+            resource_type=ApiResourceType.TRIAL,
+            fingerprints=definition.candidate_fingerprints,
+        )
+        if set(loaded) != set(definition.candidate_fingerprints) or any(
+            not isinstance(loaded.get(fingerprint), ScientificTrial)
+            for fingerprint in definition.candidate_fingerprints
+        ):
+            raise ValueError("walk-forward base trials are unavailable during result hydration")
+        candidates = tuple(
+            cast(ScientificTrial, loaded[fingerprint])
+            for fingerprint in definition.candidate_fingerprints
+        )
+        plan = definition.training_plan
+        training_trials = materialize_walk_forward_training_trials(
+            plan,
+            candidates,
+            definition.folds,
+            definition.observation_boundaries,
+        )
+        training_state, training_bindings = initialize_walk_forward_training_queue(
+            plan, training_trials, now=None
+        )
+        training_evidence: dict[str, WalkForwardQueueResultEvidence] = {}
+        for candidate in state.candidates[: len(training_state.candidates)]:
+            if candidate.attempt_id is None or candidate.result_fingerprint is None:
+                raise ValueError("successful training queue slot is missing its attempt receipt")
+            manifest = await self._persistence.result_materialization.load_manifest(
+                principal=owner,
+                attempt_id=candidate.attempt_id,
+            )
+            if manifest is None:
+                raise ValueError("training result manifest is unavailable to this owner")
+            training_evidence[candidate.attempt_id] = WalkForwardQueueResultEvidence(
+                candidate.result_fingerprint,
+                manifest,
+            )
+        scores = training_scores_from_search_queue(
+            plan,
+            training_trials,
+            training_bindings,
+            state,
+            training_evidence,
+        )
+        selection = select_walk_forward_oos_tasks(plan, definition.folds, scores)
+        oos_trials = materialize_walk_forward_oos_trials(
+            selection,
+            candidates,
+            definition.folds,
+            definition.observation_boundaries,
+        )
+        expected_oos_ids = tuple(trial.trial_id for trial in oos_trials.trials)
+        actual_oos = state.candidates[len(training_state.candidates) :]
+        if tuple(candidate.trial_fingerprint for candidate in actual_oos) != expected_oos_ids:
+            raise ValueError("persisted OOS queue differs from deterministic training selection")
+        oos_evidence: dict[str, WalkForwardQueueResultEvidence] = {}
+        for offset, candidate in enumerate(actual_oos):
+            if (
+                candidate.phase is not SearchCandidatePhase.SUCCEEDED
+                or candidate.attempt_id is None
+                or candidate.result_fingerprint is None
+            ):
+                raise ApiAdapterError(
+                    ApiError(
+                        ApiErrorCode.CONFLICT,
+                        "all selected OOS folds must succeed before results are available",
+                        request_id,
+                        409,
+                        True,
+                        {"candidate_index": len(training_state.candidates) + offset},
+                    )
+                )
+            manifest = await self._persistence.result_materialization.load_manifest(
+                principal=owner,
+                attempt_id=candidate.attempt_id,
+            )
+            if manifest is None:
+                raise ApiAdapterError(
+                    ApiError(
+                        ApiErrorCode.CONFLICT,
+                        "a successful OOS attempt has no durable result manifest yet",
+                        request_id,
+                        409,
+                        True,
+                        {"candidate_index": len(training_state.candidates) + offset},
+                    )
+                )
+            oos_evidence[candidate.attempt_id] = WalkForwardQueueResultEvidence(
+                candidate.result_fingerprint,
+                manifest,
+            )
+        results = oos_results_from_search_queue(
+            plan,
+            selection,
+            training_bindings,
+            oos_trials,
+            transition.oos_task_bindings,
+            state,
+            oos_evidence,
+        )
+        return collect_walk_forward_oos_results(
+            selection,
+            results,
+            metric_id=definition.metric_id,
+        )
 
     async def dispatch_walk_forward_training_candidate(
         self,

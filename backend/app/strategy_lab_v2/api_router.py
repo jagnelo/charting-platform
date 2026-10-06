@@ -3227,6 +3227,85 @@ def create_strategy_lab_router(
                 )
             )
 
+    @router.get("/experiments/{experiment_id}/walk-forward/results")
+    async def read_walk_forward_oos_results(
+        experiment_id: str,
+        request: Request,
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> JSONResponse:
+        """Return only the complete, owner-authenticated selected OOS receipts."""
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            collect = getattr(adapter, "collect_walk_forward_oos_results", None)
+            if not callable(collect):
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        "walk-forward result adapter is not configured",
+                        request_id,
+                        status.HTTP_501_NOT_IMPLEMENTED,
+                    )
+                )
+            results = await _resolve(
+                collect(
+                    principal=principal,
+                    request_id=request_id,
+                    experiment_fingerprint=experiment_id,
+                )
+            )
+            if not isinstance(results, tuple) or not results:
+                raise TypeError("adapter returned an invalid walk-forward OOS result set")
+            response = JSONResponse(
+                content={
+                    "data": [
+                        {
+                            "type": "walk-forward-oos-results",
+                            "id": result.oos_task_fingerprint,
+                            "attributes": {
+                                "fold_index": index,
+                                "result_fingerprint": result.result_fingerprint,
+                                "metric_id": result.metric_id,
+                                "value": _json_value(result.value),
+                            },
+                        }
+                        for index, result in enumerate(results)
+                    ],
+                    "meta": {
+                        "request_id": request_id,
+                        "experiment_fingerprint": experiment_id,
+                        "result_scope": "selected_out_of_sample_only",
+                        "fold_count": len(results),
+                    },
+                },
+            )
+            response.headers["X-Request-ID"] = request_id
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "walk-forward result request is invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 walk-forward result hydration failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Strategy Lab v2 walk-forward result hydration failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
     @router.post("/experiments/{experiment_id}/search", status_code=status.HTTP_202_ACCEPTED)
     async def initialize_search(
         experiment_id: str,
