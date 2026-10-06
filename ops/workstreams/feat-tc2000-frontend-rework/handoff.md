@@ -1,5 +1,21 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — Focused pinned Help screenshot replay
+
+Replayed the four Help screenshot cases in the pinned Playwright 1.62.1 Noble
+image against current source and the healthy assigned backend. The same 55,085,
+56,441, 64,009, and 65,669 pixel deltas reproduced with clean browser transport.
+As a diagnostic, explicitly setting the focusable Help dialog's `scrollTop` to
+zero before capture did not alter any delta; that test-only experiment was
+removed and no screenshot, mask, threshold, or skip was changed. The mismatch
+is deterministic but its cause remains unresolved and extends beyond the Help
+panel in the full-app screenshot. Exact help artifacts: `/tmp/tc2000-help-replay-a8ace`.
+The temporary Vite proxy was stopped; the six assigned services and four data
+volumes remain intact. The backend unit-only pytest PID 950317 remains live,
+futex-waiting with no collected result; it was not interrupted. Continue
+diagnosing the screenshot-state/environment discrepancy and the cleanup-safe
+exact integration gate.
+
 ## 2026-10-06 — Shortcut target semantics clarified
 
 Rechecked the official remaining V25 shortcut gaps against the existing
