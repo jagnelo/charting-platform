@@ -60,10 +60,17 @@ policy and candidate identities only; it never accepts observation dates.
 reader, `StrategyPackageArtifactResolver`, and
 `FrozenEventTapeArtifactResolver` for that binding, sharing one content-addressed
 artifact store and offloading archive/data decoding away from the API event
-loop. After the immutable definition is stored, plan creation materializes and
-publishes each distinct fold-local training trial through the ordinary
-owner-scoped trial resource path, then initializes the existing PostgreSQL
-search-state queue. Trial keys and mutation idempotency keys derive from the
+loop. The default local API bindings factory accepts an optional
+`STRATEGY_LAB_V2_WALK_FORWARD_CALENDAR_FACTORY=module:factory`; this trusted
+provider-platform adapter factory receives the shared persistence bundle and
+must synchronously return the async resolver. Its implementation owns the
+provider-specific decoder and calls the Strategy Lab composition factory with
+the configured absolute artifact root and runtime ABI. When omitted, calendar
+resolution remains unavailable and plan creation fails closed with the typed
+precondition response. After the immutable definition is stored, plan creation
+materializes and publishes each distinct fold-local training trial through the
+ordinary owner-scoped trial resource path, then initializes the existing
+PostgreSQL search-state queue. Trial keys and mutation idempotency keys derive from the
 definition and trial fingerprints. If the request is interrupted between these
 steps, an exact plan replay republishes any missing trials and initializes or
 replays the queue without replacing candidate state that has already advanced

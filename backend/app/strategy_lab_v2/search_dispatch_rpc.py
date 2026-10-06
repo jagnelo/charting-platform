@@ -9,12 +9,14 @@ code and provider/network access are never exposed through this transport.
 
 from __future__ import annotations
 
+import inspect
 import json
 import math
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
+from importlib import import_module
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +38,7 @@ SEARCH_DISPATCH_RPC_MAX_RESPONSE_BYTES = 128 * 1024 * 1024
 WALK_FORWARD_PROGRESS_RPC_COMMAND_SCHEMA = "strategy-lab.walk-forward-progress-command.v1"
 WALK_FORWARD_PROGRESS_RPC_RESULT_SCHEMA = "strategy-lab.walk-forward-progress-result.v1"
 WALK_FORWARD_PROGRESS_RPC_PATH = "/internal/v1/walk-forward-progress"
+WALK_FORWARD_CALENDAR_FACTORY_ENV = "STRATEGY_LAB_V2_WALK_FORWARD_CALENDAR_FACTORY"
 
 
 @dataclass(frozen=True, slots=True)
@@ -614,20 +617,53 @@ class UnixSocketWalkForwardProgressClient:
             ) from error
 
 
-def build_api_bindings(_session_factory: Any, _persistence: Any) -> Any:
-    """Build API host bindings that delegate search preparation over the UDS."""
+def build_api_bindings(_session_factory: Any, persistence: Any) -> Any:
+    """Build API host bindings for local search and calendar adapters.
+
+    The calendar factory is a trusted host adapter because the provider-platform
+    owns frozen-series decoding. It receives the shared persistence bundle and
+    must return an async owner-authenticated calendar resolver. Keeping this
+    factory optional preserves the existing typed 501 precondition when market
+    data has not been composed into the local host yet.
+    """
 
     from app.strategy_lab_v2.application import StrategyLabV2ApiBindings
     from app.strategy_lab_v2.workers import (
         forward_worker_runtime_profile_fingerprint_from_environment,
     )
 
+    calendar_resolver = _walk_forward_calendar_from_environment(persistence)
     return StrategyLabV2ApiBindings(
         search_dispatch=UnixSocketSearchDispatchClient.from_environment(),
+        walk_forward_observation_calendar=calendar_resolver,
         forward_worker_runtime_profile_fingerprint=(
             forward_worker_runtime_profile_fingerprint_from_environment()
         ),
     )
+
+
+def _walk_forward_calendar_from_environment(persistence: Any) -> Any:
+    specification = os.environ.get(WALK_FORWARD_CALENDAR_FACTORY_ENV, "").strip()
+    if not specification:
+        return None
+    module_name, separator, attribute = specification.partition(":")
+    if not separator or not module_name.strip() or not attribute.strip():
+        raise ValueError(f"{WALK_FORWARD_CALENDAR_FACTORY_ENV} must use module:factory syntax")
+    module = import_module(module_name.strip())
+    factory = getattr(module, attribute.strip(), None)
+    if not callable(factory):
+        raise TypeError(f"{WALK_FORWARD_CALENDAR_FACTORY_ENV} target must be callable")
+    resolver = factory(persistence)
+    if inspect.isawaitable(resolver):
+        if inspect.iscoroutine(resolver):
+            resolver.close()
+        raise TypeError(f"{WALK_FORWARD_CALENDAR_FACTORY_ENV} must return synchronously")
+    if not callable(resolver) or not (
+        inspect.iscoroutinefunction(resolver)
+        or inspect.iscoroutinefunction(getattr(resolver, "__call__", None))
+    ):
+        raise TypeError(f"{WALK_FORWARD_CALENDAR_FACTORY_ENV} must return an async resolver")
+    return resolver
 
 
 def encode_result_response(resolution: SearchDispatchResolution) -> bytes:

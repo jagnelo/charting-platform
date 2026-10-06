@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import socket
+import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from types import ModuleType
 from typing import Any, cast
 
 import httpx
@@ -121,6 +123,50 @@ def test_local_api_bindings_factory_requires_and_uses_complete_socket_configurat
     monkeypatch.delenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN")
     with pytest.raises(ValueError, match="must both be configured"):
         rpc_module.build_api_bindings(None, None)
+
+
+def test_local_api_bindings_factory_composes_provider_owned_walk_forward_calendar(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH", "/run/strategy/preparation.sock")
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", AUTH_TOKEN)
+    persistence = object()
+    received: list[Any] = []
+    module = ModuleType("strategy_lab_test_calendar_host")
+
+    async def calendar_resolver(**_kwargs: Any) -> tuple[datetime, ...]:
+        return (NOW, NOW + timedelta(days=1))
+
+    def build_calendar(value: Any) -> Any:
+        received.append(value)
+        return calendar_resolver
+
+    module.build_calendar = build_calendar  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, module.__name__, module)
+    monkeypatch.setenv(
+        rpc_module.WALK_FORWARD_CALENDAR_FACTORY_ENV,
+        f"{module.__name__}:build_calendar",
+    )
+
+    bindings = rpc_module.build_api_bindings(None, persistence)
+
+    assert bindings.walk_forward_observation_calendar is calendar_resolver
+    assert received == [persistence]
+
+
+def test_local_api_bindings_factory_requires_async_walk_forward_calendar(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = ModuleType("strategy_lab_test_invalid_calendar_host")
+    module.build_calendar = lambda _persistence: lambda **_kwargs: ()  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, module.__name__, module)
+    monkeypatch.setenv(
+        rpc_module.WALK_FORWARD_CALENDAR_FACTORY_ENV,
+        f"{module.__name__}:build_calendar",
+    )
+
+    with pytest.raises(TypeError, match="async resolver"):
+        rpc_module._walk_forward_calendar_from_environment(object())
 
 
 @pytest.mark.asyncio
