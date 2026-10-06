@@ -52,8 +52,7 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
   ],
   "docker": {
     "available": false,
@@ -103,14 +102,14 @@
   "goal_request_state": "ready",
   "goal_state": "requested",
   "goal_unavailable_reason": null,
-  "head": "595606a7ed0c398e009c9531ce5fbda7ebe9d115",
-  "implementation_sha": "0ae95b6c9da80bc5ed1496f243438a2118a57f3a",
+  "head": "9e83a9b5b3a12eabfac66fd96fb3a2df55845b10",
+  "implementation_sha": "9e83a9b5b3a12eabfac66fd96fb3a2df55845b10",
   "interrupted": false,
   "last_checkpoint": "2026-10-05T18:11:59.645734+00:00",
   "last_human_progress_update": "2026-10-06T00:47:52.834476+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "create the session-local Codex goal from goal_request, then record it as active",
-  "plan_hash": "248c33f30b99aadf2bf643064441fa97ab52340bf727118da1976275bbdcba46",
+  "plan_hash": "d45dfa64ee860bcb019d496c3a08af0cafa3c41a9d52170fd6b2eb159d95827d",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -144,8 +143,8 @@
     "remote_tracking_sha": "d413d845939e68e9738b621329fa8d63a419ddf8",
     "status": "synchronized"
   },
-  "remote": "595606a7ed0c398e009c9531ce5fbda7ebe9d115",
-  "remote_sha": "0ae95b6c9da80bc5ed1496f243438a2118a57f3a",
+  "remote": "9e83a9b5b3a12eabfac66fd96fb3a2df55845b10",
+  "remote_sha": "9e83a9b5b3a12eabfac66fd96fb3a2df55845b10",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
