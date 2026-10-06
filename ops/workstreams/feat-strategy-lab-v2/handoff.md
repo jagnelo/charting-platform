@@ -12711,3 +12711,25 @@ The production owner-bound host input resolver and platform-owned canonical
 history/market-context adapters remain the next implementation in this same
 changeset. This correction does not complete the broader branch goal or the
 forward-shadow event-tape parity gate.
+
+## 2026-10-06 - Shared forward/backtest tape-manifest composition
+
+Implementation commit `cae7819980684ad6d3b4eeded7bbb20d3f02f813` adds and
+tests the reusable composition below.
+
+Extracted `build_frozen_tape_manifest` as the shared deterministic rule for
+combining component SDK manifests, and added `build_forward_tape_manifest` to
+apply it to every component in an authenticated forward execution plan. Shared
+dependency IDs now have one explicit compatibility rule across both use cases:
+requirements and fields must agree, and the maximum declared lookback is
+retained. Conflicting declarations fail closed. This is the first reusable
+composition primitive for the pending production owner-bound resolver; the
+resolver and its canonical snapshot/payload/market-context adapters remain
+unfinished. No provider-owned code or other worktree was changed.
+
+Focused evidence: the materializer and forward-worker composition test modules
+passed 19 tests together; Ruff and `git diff --check` passed. This does not
+advance an acceptance criterion to complete: the exact owner-bound resolver,
+full event-tape parity, remaining branch criteria, and required full-stack gate
+are still open. The accepted exact-pinned Nautilus RC5 remains usable; stable
+2.x publication is not a dependency.
