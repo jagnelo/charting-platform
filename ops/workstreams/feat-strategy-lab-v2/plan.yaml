@@ -874,6 +874,7 @@ progress:
       - backend/app/strategy_lab_v2/tests/test_worker_service.py
       - backend/app/strategy_lab_v2/tests/test_worker_callbacks.py
       - backend/app/strategy_lab_v2/tests/test_worker_entrypoint.py
+      - backend/tests/integration/strategy_lab_v2/test_search_dispatch_rpc_postgres.py
     status: in_progress
   current_blocker: >-
     No external or upstream Nautilus dependency blocks implementation. Stable
