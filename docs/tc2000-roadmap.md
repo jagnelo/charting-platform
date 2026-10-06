@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-06
 
+## 2026-10-06 — Shift+wheel chart-history navigation
+
+Product commit `b6f24fa44` implements the current V25 Shift+mouse-wheel chart
+pan using the existing uPlot viewport and bounded history-fetch behavior.
+Ordinary wheel zoom and Ctrl+wheel timeframe navigation retain their existing
+paths; WatchList gestures are unchanged. The workstation Help menu documents
+the gesture. Focused WorkstationView bindings passed `44/44`; the complete
+serial frontend suite passed `130/130` files and `1,232/1,232` tests; Vue
+type-check and production build passed; pinned authenticated Chromium passed
+the chart wheel-zoom, Shift+wheel, trackpad-pan and latest-recovery flow `1/1`.
+No provider/ETF behavior changed. Exact V25 visual review, generic integration,
+broader AC4–AC7/R1/R5/R6 and staging-gated provider/ETF consumption remain open.
+The unchanged protected Help screenshot state assertions passed, but its pixel
+comparison remains over tolerance at `16,753` pixels (about `1.0%` vs `0.5%`);
+no baseline, mask, threshold, or skip changed.
+
 ## 2026-10-06 — F1–F12 chart-template assignment
 
 The [official V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)

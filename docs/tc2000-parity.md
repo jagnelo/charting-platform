@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-10-06 — Shift+wheel chart-history pan
+
+The current [TC2000 V25 shortcut reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+lists Shift+mouse-wheel to pan chart history. The chart routes the modified
+gesture through its existing uPlot viewport range logic, while unmodified
+wheel zoom, Ctrl+wheel timeframe changes, and WatchList traversal retain their
+existing behavior. The Help menu now lists the gesture. Authenticated pinned
+Chromium passed the existing wheel-zoom/trackpad-pan/latest-recovery flow `1/1`
+against the changed worktree source; full frontend Vitest passed `1,232/1,232`,
+and Vue type-check/production build passed. Exact V25 visual review and broader
+interaction acceptance remain open.
+The unchanged Help screenshot's state assertions passed, but pixel comparison
+failed at `16,753` pixels (about `1.0%`, over its `0.5%` limit); no baseline,
+mask, threshold, or skip changed.
+
 ## 2026-10-06 — F1–F12 chart-template assignment
 
 The [current TC2000 V25 shortcut reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)

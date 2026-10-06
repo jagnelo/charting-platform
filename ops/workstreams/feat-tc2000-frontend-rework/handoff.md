@@ -1,5 +1,31 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — Shift+wheel chart-history navigation
+
+Product commit `b6f24fa44` is pushed to the assigned feature branch. The active
+chart handles Shift+wheel as horizontal viewport panning through the existing
+uPlot range logic; regular wheel zoom and Ctrl+wheel timeframe selection remain
+separate, and the shell does not intercept Shift-modified wheel events as
+timeframe shortcuts. The Help menu documents the interaction. Focused
+WorkstationView bindings passed `44/44`; the full serial frontend suite passed
+`130/130` files and `1,232/1,232` tests; `npm run build` passed Vue type-check
+and Vite. Pinned authenticated Chromium passed the current-source gesture flow
+`1/1`, covering zoom, Shift+wheel pan, horizontal trackpad pan, latest-history
+recovery, and renderer identity. TC scope validation accepted the changed paths
+and all six guard self-tests passed. No provider/ETF behavior or visual baseline
+changed. The generic integration gate, protected visual review, broader AC4–AC7/
+R1/R5/R6, and staging-gated upstream consumption remain open.
+
+Owned paths: `frontend/src/components/chart/UPlotChart.vue`,
+`frontend/src/views/WorkstationView.vue`, and the chart gesture coverage in
+`frontend/tests/e2e/flows.spec.ts`.
+
+The unchanged protected keyboard-Help screenshot was also rerun at
+`visual-1080p-100`: semantic/state assertions passed, but pixel comparison
+reported `16,753` differing pixels (about `1.0%` vs the unchanged `0.5%`
+limit). No baseline, mask, threshold, or skip changed; visual review remains
+open.
+
 ## Post-push session-state synchronization
 
 The roadmap/parity/workstream checkpoint was committed as

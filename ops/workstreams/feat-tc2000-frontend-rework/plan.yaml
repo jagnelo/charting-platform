@@ -20,19 +20,15 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  At pushed product commit 82cf7df90b0749751c9efd9041c575a3a250285c, the TC
-  active chart cycles its date pointer Off -> On -> On with data values on `.`.
-  The existing crosshair and OHLCV box are reused; chart configuration records
-  the mode, consecutive browser keypresses retain focus, and no provider/data
-  acquisition was added. Workstation bindings pass 43/43; full serial frontend
-  Vitest passes 130 files/1,227 tests; Vue type-check/production build pass;
-  authenticated Chromium passes the 3-mode cycle and persisted-mode reload
-  1/1; test commit d937f78bb38a930819d6d9dd7c11a0f005f62c44 adds the reload
-  assertion. The unchanged Help
-  screenshot oracle differs by 59,101 pixels (3.0%) against 0.5%; no baseline,
-  mask, threshold, or skip changed. This visual review remains open.
-  Generic integration, broader R1/R5/R6 and AC4-AC7 evidence, exact V25 review,
-  and staging-gated provider/ETF consumption remain open.
+  Product commit b6f24fa44 adds V25 Shift+wheel chart-history panning via the
+  existing uPlot viewport. Focused WorkstationView bindings passed 44/44, full
+  serial frontend Vitest passed 130 files/1,232 tests, type-check/production
+  build passed, and authenticated pinned Chromium passed the current-source
+  chart gesture flow 1/1. The unchanged Help screenshot state assertions pass,
+  but its pixel comparison reports 16,753 pixels (about 1.0%) against the
+  unchanged 0.5% limit. Generic integration, protected visual review, broader
+  AC4-AC7/R1/R5/R6 and staging-gated provider/ETF consumption remain open; no
+  baseline, mask, threshold, or skip changed.
   Current TC frontend parity covers supported Ctrl+number intraday shortcuts,
   plain 1/Daily and 5/Weekly shortcuts, Ctrl+B HLC/OHLC/Candles/Line cycling,
   and `/` opening the active chart's plot library. Plain period shortcuts are
@@ -194,24 +190,18 @@ current_blocker: >-
   tolerance. Full integration and broader AC4-AC7/R1/R5/R6 remain open; provider
   and ETF consumption is deferred until both branches reach staging.
 active_changeset_context:
-  name: TC2000 V25 F1-F12 chart-template assignment
+  name: TC2000 V25 Shift+wheel chart-history pan
   status: product_commit_pushed_validated_visual_review_open
-  commit_sha: 901190d51c60ed72985ade9b2a3e26b2fc57f0fe
-  remote_sha: 901190d51c60ed72985ade9b2a3e26b2fc57f0fe
+  commit_sha: b6f24fa44
+  remote_sha: b6f24fa44
   intent: >-
-    Implement official F1-F12 chart-template assignment through existing saved
-    chart templates; dispatch only to the active chart and preserve template,
-    window, and provider/ETF ownership boundaries.
+    Implement the official Shift+mouse-wheel chart pan using the existing chart
+    viewport while preserving normal wheel zoom, Ctrl+wheel timeframe changes,
+    WatchList gestures, and provider/ETF ownership boundaries.
   owned_paths:
-    - frontend/src/components/workstation/ChartTemplateControl.vue
-    - frontend/src/components/workstation/WorkstationToolContent.vue
+    - frontend/src/components/chart/UPlotChart.vue
     - frontend/src/views/WorkstationView.vue
-    - frontend/tests/unit/components/test_chart_template_control.test.ts
-    - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
-    - frontend/tests/e2e/tc2000_chart_template_hotkeys.spec.ts
-    - ops/workstreams/feat-tc2000-frontend-rework/plan.yaml
-    - docs/tc2000-roadmap.md
-    - docs/tc2000-parity.md
+    - frontend/tests/e2e/flows.spec.ts
   next_action: >-
     Continue one bounded TC-owned R1/R5/R6 frontend parity slice, refresh exact-
     tip full-stack/browser evidence as feasible, preserve protected visual
