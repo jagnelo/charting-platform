@@ -3162,6 +3162,137 @@ def create_strategy_lab_router(
             )
 
     @router.post(
+        "/experiments/{experiment_id}/walk-forward/dispatch-ready",
+        status_code=status.HTTP_202_ACCEPTED,
+    )
+    async def dispatch_walk_forward_ready_candidates(
+        experiment_id: str,
+        request: Request,
+        body: Any = Body(...),
+        idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> JSONResponse:
+        """Batch-dispatch the active walk-forward queue through normal admission."""
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            body = await _strict_json_body(request, request_id)
+            key = _safe_header_value(idempotency_key, "Idempotency-Key", 256)
+            if not isinstance(body, Mapping) or set(body) != {"queue_name"}:
+                raise ApiAdapterError(
+                    _api_error(
+                        ApiErrorCode.VALIDATION_ERROR,
+                        "walk-forward bulk dispatch body fields are invalid",
+                        request_id,
+                        status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        details={"required": ["queue_name"]},
+                    )
+                )
+            queue_name = body["queue_name"]
+            if not isinstance(queue_name, str) or not queue_name.strip():
+                raise ApiAdapterError(
+                    _api_error(
+                        ApiErrorCode.VALIDATION_ERROR,
+                        "queue_name must be a non-empty string",
+                        request_id,
+                        status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    )
+                )
+            dispatch_ready = getattr(adapter, "dispatch_walk_forward_ready_candidates", None)
+            if not callable(dispatch_ready):
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        "walk-forward bulk dispatch adapter is not configured",
+                        request_id,
+                        status.HTTP_501_NOT_IMPLEMENTED,
+                    )
+                )
+            resolutions = await _resolve(
+                dispatch_ready(
+                    principal=principal,
+                    request_id=request_id,
+                    idempotency_key=key,
+                    experiment_fingerprint=experiment_id,
+                    queue_name=queue_name,
+                )
+            )
+            if not isinstance(resolutions, tuple):
+                raise TypeError("adapter returned invalid walk-forward bulk dispatch results")
+            data = []
+            saturated = False
+            for candidate_index, resolution in resolutions:
+                if not isinstance(candidate_index, int) or not isinstance(
+                    resolution, SearchDispatchResolution
+                ):
+                    raise TypeError("adapter returned an invalid walk-forward dispatch item")
+                if resolution.decision is SearchDispatchDecision.SATURATED:
+                    saturated = True
+                    break
+                if resolution.decision in {
+                    SearchDispatchDecision.CONFLICT,
+                    SearchDispatchDecision.REJECT,
+                }:
+                    raise ApiAdapterError(
+                        _api_error(
+                            ApiErrorCode.PRECONDITION_FAILED,
+                            resolution.rejection_reason
+                            or "walk-forward candidate dispatch was rejected",
+                            request_id,
+                            status.HTTP_409_CONFLICT,
+                        )
+                    )
+                attempt_id = resolution.search_state.candidates[candidate_index].attempt_id
+                if attempt_id is None:
+                    raise ValueError("accepted walk-forward dispatch omitted its attempt identity")
+                item = serialize_search_dispatch(
+                    resolution,
+                    request_id=request_id,
+                    candidate_index=candidate_index,
+                    attempt_id=attempt_id,
+                )["data"]
+                data.append(item)
+            response = JSONResponse(
+                status_code=status.HTTP_202_ACCEPTED,
+                content={
+                    "data": data,
+                    "meta": {
+                        "request_id": request_id,
+                        "experiment_fingerprint": experiment_id,
+                        "accepted_count": len(data),
+                        "capacity_saturated": saturated,
+                        "retryable": saturated,
+                    },
+                },
+            )
+            response.headers["X-Request-ID"] = request_id
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "walk-forward bulk dispatch request is invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 walk-forward bulk dispatch failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Strategy Lab v2 walk-forward bulk dispatch failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
+    @router.post(
         "/experiments/{experiment_id}/walk-forward/advance",
         status_code=status.HTTP_202_ACCEPTED,
     )

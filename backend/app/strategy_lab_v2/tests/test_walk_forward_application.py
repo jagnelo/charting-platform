@@ -19,6 +19,7 @@ from app.strategy_lab_v2.postgres_walk_forward_plan import (
 )
 from app.strategy_lab_v2.postgres_walk_forward_summary import PostgresWalkForwardSummaryAdapter
 from app.strategy_lab_v2.resource_domains import normalize_resource_attributes
+from app.strategy_lab_v2.search_dispatch import SearchDispatchDecision
 from app.strategy_lab_v2.search_state import (
     SearchCandidatePhase,
     SearchStateDecision,
@@ -421,6 +422,61 @@ async def test_training_dispatch_persists_and_replays_attempt_before_host_dispat
         and getattr(attempt, "attempt_id", None) == observed[2]["attempt_id"]
         for (resource_type, _fingerprint), attempt in reader.contracts.items()
         if resource_type is ApiResourceType.ATTEMPT
+    )
+
+
+@pytest.mark.asyncio
+async def test_bulk_dispatch_replays_each_slot_with_stable_distinct_idempotency_keys() -> None:
+    adapter, _reader, _plan_store, definition, first, second = _setup()
+
+    async def resolve_calendar(**_kwargs: Any):
+        return definition.observation_boundaries
+
+    observed: list[dict[str, Any]] = []
+
+    async def dispatch(**kwargs: Any):
+        observed.append(kwargs)
+        return SimpleNamespace(decision=SearchDispatchDecision.ENQUEUE)
+
+    adapter._walk_forward_observation_calendar = resolve_calendar
+    adapter.dispatch_search_candidate = dispatch
+    await adapter.create_walk_forward_definition(
+        principal=User(),
+        request_id="bulk-create",
+        idempotency_key="bulk-create-key",
+        experiment_fingerprint=definition.experiment_fingerprint,
+        request=WalkForwardDefinitionRequest(
+            candidate_fingerprints=(first.trial_id, second.trial_id),
+            spec=definition.spec,
+            metric_id=definition.metric_id,
+            direction=definition.direction,
+            max_tasks=definition.max_tasks,
+        ),
+    )
+
+    first_batch = await adapter.dispatch_walk_forward_ready_candidates(
+        principal=User(),
+        request_id="bulk-request",
+        idempotency_key="bulk-key",
+        experiment_fingerprint=definition.experiment_fingerprint,
+        queue_name="strategy-backtest",
+    )
+    replay = await adapter.dispatch_walk_forward_ready_candidates(
+        principal=User(),
+        request_id="bulk-request-replay",
+        idempotency_key="bulk-key",
+        experiment_fingerprint=definition.experiment_fingerprint,
+        queue_name="strategy-backtest",
+    )
+
+    assert tuple(index for index, _ in first_batch) == (0, 1)
+    assert tuple(index for index, _ in replay) == (0, 1)
+    first_keys = tuple(item["dispatch_intent"].idempotency_key for item in observed[:2])
+    replay_keys = tuple(item["dispatch_intent"].idempotency_key for item in observed[2:])
+    assert len(set(first_keys)) == 2
+    assert replay_keys == first_keys
+    assert tuple(item["attempt_id"] for item in observed[2:]) == tuple(
+        item["attempt_id"] for item in observed[:2]
     )
 
 

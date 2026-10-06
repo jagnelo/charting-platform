@@ -469,6 +469,7 @@ class FakeAdapter:
         self.search_states: dict[str, SearchExecutionState] = {}
         self.search_dispatches: list[SearchDispatchResolution] = []
         self.walk_forward_dispatch_requests: list[dict[str, Any]] = []
+        self.walk_forward_bulk_dispatch_requests: list[dict[str, Any]] = []
         self.walk_forward_phase_requests: list[dict[str, Any]] = []
         self.walk_forward_result_requests: list[dict[str, Any]] = []
         self.document = _document()
@@ -648,6 +649,20 @@ class FakeAdapter:
                 NOW,
             ),
         )
+
+    async def dispatch_walk_forward_ready_candidates(
+        self, **kwargs: Any
+    ) -> tuple[tuple[int, SearchDispatchResolution], ...]:
+        self.walk_forward_bulk_dispatch_requests.append(kwargs)
+        result = await self.dispatch_walk_forward_training_candidate(
+            principal=kwargs["principal"],
+            request_id=kwargs["request_id"],
+            idempotency_key=kwargs["idempotency_key"],
+            experiment_fingerprint=kwargs["experiment_fingerprint"],
+            candidate_index=0,
+            queue_name=kwargs["queue_name"],
+        )
+        return ((0, result),)
 
     async def append_walk_forward_oos_candidates(self, **kwargs: Any) -> Any:
         self.walk_forward_phase_requests.append(kwargs)
@@ -1415,6 +1430,28 @@ def test_walk_forward_dispatch_api_rejects_unknown_body_fields() -> None:
         )
     assert response.status_code == 422
     assert response.json()["errors"][0]["code"] == "validation_error"
+
+
+def test_walk_forward_bulk_dispatch_api_uses_idempotent_owner_scoped_boundary() -> None:
+    experiment = content_digest("walk-forward-bulk-dispatch-experiment")
+    adapter = FakeAdapter()
+    with _client(adapter) as client:
+        response = client.post(
+            f"/api/v1/strategy-lab/v2/experiments/{experiment}/walk-forward/dispatch-ready",
+            headers={"Idempotency-Key": "walk-forward-batch-key"},
+            json={"queue_name": "strategy-backtest"},
+        )
+
+    assert response.status_code == 202, response.text
+    assert response.json()["meta"]["accepted_count"] == 1
+    assert response.json()["meta"]["capacity_saturated"] is False
+    assert response.json()["data"][0]["attributes"]["attempt_id"] == (
+        "walk-forward-generated-attempt"
+    )
+    observed = adapter.walk_forward_bulk_dispatch_requests[0]
+    assert observed["experiment_fingerprint"] == experiment
+    assert observed["idempotency_key"] == "walk-forward-batch-key"
+    assert observed["principal"] == "user-1"
 
 
 def test_walk_forward_advance_api_hydrates_and_returns_durable_phase_transition() -> None:

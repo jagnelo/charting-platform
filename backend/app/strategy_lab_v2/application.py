@@ -116,7 +116,7 @@ from app.strategy_lab_v2.runtime_execution import (
     StrategyRuntimePreflight,
     StrategyRuntimeRequest,
 )
-from app.strategy_lab_v2.search_dispatch import SearchDispatchResolution
+from app.strategy_lab_v2.search_dispatch import SearchDispatchDecision, SearchDispatchResolution
 from app.strategy_lab_v2.search_state import (
     SearchCandidatePhase,
     SearchExecutionState,
@@ -1941,6 +1941,107 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             attempt_id=attempt_id,
             dispatch_intent=intent,
         )
+
+    async def dispatch_walk_forward_ready_candidates(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        idempotency_key: str,
+        experiment_fingerprint: str,
+        queue_name: str,
+    ) -> tuple[tuple[int, SearchDispatchResolution], ...]:
+        """Dispatch every nonterminal slot in the current persisted phase.
+
+        Each candidate gets a deterministic idempotency key derived from the
+        request key and its attempt ordinal. A capacity-saturated result stops
+        the batch; retrying the same request replays already accepted slots and
+        continues admitting the remainder as capacity becomes available.
+        """
+
+        if not isinstance(request_id, str) or not request_id.strip():
+            raise ValueError("request_id must not be empty")
+        if not isinstance(idempotency_key, str) or not idempotency_key.strip():
+            raise ValueError("idempotency_key must not be empty")
+        if not isinstance(queue_name, str) or not queue_name.strip():
+            raise ValueError("queue_name must not be empty")
+        require_sha256_digest(experiment_fingerprint, field_name="experiment_fingerprint")
+        owner = _principal_identity(principal)
+        definition = await self._persistence.walk_forward_plans.load(
+            principal=owner,
+            experiment_fingerprint=experiment_fingerprint,
+        )
+        if not isinstance(definition, WalkForwardExecutionDefinition):
+            raise ApiAdapterError(
+                ApiError(
+                    ApiErrorCode.NOT_FOUND,
+                    "walk-forward plan is unavailable to this owner",
+                    request_id,
+                    404,
+                )
+            )
+        initialized = await self.initialize_walk_forward_training(
+            principal=owner,
+            request_id=request_id,
+            definition=definition,
+        )
+        if initialized.state.cancellation_requested:
+            raise ApiAdapterError(
+                ApiError(
+                    ApiErrorCode.CONFLICT,
+                    "walk-forward cancellation has been requested",
+                    request_id,
+                    409,
+                    False,
+                    {"experiment_fingerprint": experiment_fingerprint},
+                )
+            )
+
+        dispatched: list[tuple[int, SearchDispatchResolution]] = []
+        for candidate in initialized.state.candidates:
+            if candidate.phase in {
+                SearchCandidatePhase.SUCCEEDED,
+                SearchCandidatePhase.CANCELLED,
+            }:
+                continue
+            ordinal = (
+                candidate.attempt_count
+                if candidate.phase is SearchCandidatePhase.RUNNING
+                else candidate.attempt_count + 1
+            )
+            slot_key = content_digest(
+                {
+                    "schema": "strategy-lab.walk-forward-bulk-dispatch.v1",
+                    "request_key": idempotency_key,
+                    "experiment_fingerprint": experiment_fingerprint,
+                    "candidate_index": candidate.candidate_index,
+                    "attempt_ordinal": ordinal,
+                }
+            )
+            slot_request_id = content_digest(
+                {
+                    "request_id": request_id,
+                    "candidate_index": candidate.candidate_index,
+                    "attempt_ordinal": ordinal,
+                }
+            )
+            resolution = await self.dispatch_walk_forward_training_candidate(
+                principal=owner,
+                request_id=slot_request_id,
+                idempotency_key=slot_key,
+                experiment_fingerprint=experiment_fingerprint,
+                candidate_index=candidate.candidate_index,
+                queue_name=queue_name,
+            )
+            dispatched.append((candidate.candidate_index, resolution))
+            if resolution.decision is SearchDispatchDecision.SATURATED:
+                break
+            if resolution.decision in {
+                SearchDispatchDecision.CONFLICT,
+                SearchDispatchDecision.REJECT,
+            }:
+                break
+        return tuple(dispatched)
 
     async def create_resource(
         self,
