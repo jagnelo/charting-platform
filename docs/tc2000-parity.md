@@ -9387,3 +9387,13 @@ listbox. Focused unit coverage passed 84/84, the authenticated pinned Shift+N an
 flows passed 2/2, Vue type-check/build passed, and the unchanged four-profile Help screenshot
 oracle passed 4/4. This is focused keyboard parity, not proof that Shift+N works from every
 workstation context or that the reference board has exact V25 visual coverage.
+
+## 2026-10-06 — TC2000 V25 chart trendline shortcut
+
+The current [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+lists Shift+D to draw a Trend Line. The workstation now toggles the existing trendline drawing
+tool when a chart is the active window; editor and control focus retain native behavior. The pinned
+authenticated F8k-shift-d browser flow passed 1/1 for activation, repeat-key cancellation, and
+editor-focus suppression. Vue type-check/production build passed, and the existing four-profile
+Help screenshot oracle passed 4/4 with unchanged baselines and thresholds. The shortcut is
+workstation/chart scoped; this does not claim broader exact V25 visual approval.

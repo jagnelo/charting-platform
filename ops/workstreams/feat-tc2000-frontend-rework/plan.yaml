@@ -143,19 +143,16 @@ current_blocker: >-
   visual coverage passed 4/4 pinned viewport profiles, and type-check/build
   passed. The complete frontend suite and generic integration gate remain open.
 active_changeset_context:
-  name: TC2000 V25 Shift+N WatchList note shortcut
+  name: TC2000 V25 Shift+D active-chart trendline shortcut
   status: committed_focused_unit_browser_build_and_four_profile_visual_verified_full_suite_and_generic_gate_open
-  commit_sha: 39b9dec08685b400b46607daf6558c49ec8affd4
-  remote_sha: 39b9dec08685b400b46607daf6558c49ec8affd4
+  commit_sha: 7c51c36de0225cdff20ac57d166999ad8daa9365
+  remote_sha: 7c51c36de0225cdff20ac57d166999ad8daa9365
   intent: >-
-    Implement TC2000 V25 Shift+N for a focused WatchList by opening the existing
-    canonical Notes tool for its active row without changing row selection.
+    Implement TC2000 V25 Shift+D to toggle the existing Trend Line drawing tool
+    when a chart window is active, while preserving editor/control key ownership.
   owned_paths:
-    - frontend/src/components/workstation/VirtualWatchlistTool.vue
-    - frontend/src/components/workstation/WorkstationToolContent.vue
     - frontend/src/views/WorkstationView.vue
     - frontend/tests/e2e/flows.spec.ts
-    - frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts
     - docs/tc2000-parity.md
     - docs/tc2000-roadmap.md
   next_action: >-
@@ -447,6 +444,12 @@ progress:
     changed. This is not global-context parity or an exact-tip full frontend
     suite result. The seeded Shift+L Help rerun passes 4/4; its earlier
     unseeded 3/4 diagnostic is superseded, so no Shift+L visual delta remains.
+    At pushed product commit 7c51c36de0225cdff20ac57d166999ad8daa9365,
+    Shift+D toggles the existing Trend Line drawing tool for the active chart.
+    Vue type-check/build passed, the pinned authenticated browser flow passed
+    1/1, and the unchanged Help visual matrix passed 4/4 with both shortcuts
+    listed. Scope validation passed 144 paths and six self-tests. This does not
+    close exact V25 review or the full frontend/integration gates.
     At backend checkpoint d6bd60d, unit/integration suites passed 1622/1622 and
     409/409 at 82.26%. At branch checkpoint 22becb68272854b6ceae6a263d8694090495e009,
     frontend Vitest passed 129 files/1210 tests, focused VirtualWatchlistTool

@@ -12663,6 +12663,17 @@ official V25 “Write a Note: Shift-N” shortcut as focused WatchList parity; i
 does not claim global-context parity, full frontend-suite freshness, or exact
 V25 visual approval. The assigned six-service stack was preserved.
 
+2026-10-06 R1/R6 keyboard receipt at pushed product commit
+`7c51c36de0225cdff20ac57d166999ad8daa9365`: Shift+D toggles Trend Line on
+the active chart through the existing drawing store; non-chart active windows
+and editor/control focus do not trigger it. Vue type-check and production build
+passed, pinned authenticated Chromium F8k-shift-d passed 1/1 after correcting a
+test-only case expectation, and the unchanged four-profile Help visual check
+passed 4/4 with both new shortcuts listed. Scope validation passed for 144
+paths and all six self-tests passed. This is focused keyboard parity only; no
+visual baseline or acceptance setting changed, and full frontend/integration
+gates remain open.
+
 ### R2 — Consume the market-data provider platform
 
 - After `feat/market-data-provider-platform` reaches staging, synchronize TC
