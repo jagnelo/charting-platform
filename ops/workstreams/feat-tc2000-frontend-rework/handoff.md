@@ -1,5 +1,18 @@
 # feat/tc2000-frontend-rework
 
+## Checkpoint publication confirmation
+
+The exact-tip validation receipt was committed as
+`cc36d8a4efc687e815091fd725ac1365fa2efbcf` (`docs(ops): checkpoint TC2000
+frontend validation`) and pushed to `origin/feat/tc2000-frontend-rework`.
+Before this follow-up operational record, local HEAD and the remote ref were
+both `cc36d8a4efc687e815091fd725ac1365fa2efbcf` and the worktree was clean.
+The staged review for that receipt contained only `handoff.md`, `session.json`,
+and `validation.jsonl`; no product code was changed. This record is the
+separate post-push state synchronization; its enclosing commit is verified by
+the final `git rev-parse` and remote-ref check. The next permitted action is one
+bounded TC-owned frontend parity implementation slice in this worktree.
+
 ## 2026-10-06 — Exact-tip frontend validation refresh
 
 At product/source tip `25f32efec...`, the full serial frontend Vitest suite
