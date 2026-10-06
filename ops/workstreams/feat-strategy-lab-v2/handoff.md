@@ -13834,3 +13834,27 @@ recovery, security, Compose/browser acceptance, and exact-tip branch gates.
 The provider-owned frozen-series decoder remains the one localized upstream
 composition dependency; it does not block independent product work. Stable
 Nautilus release labeling is not a gate.
+
+## 2026-10-06 - Restore the declared package-wide MyPy gate
+
+Commit `2e5490ce2` fixes the Strategy Lab package's declared MyPy command. The
+new curve-route test helper now narrows FastAPI routes to `APIRoute` and casts
+the wire fixture's candidate list at its untyped JSON boundary. Existing
+forward-capacity test doubles now implement the heartbeat-observation method
+required by the release-store protocol, and the worker-callback test store
+inherits its existing protocol-complete fixture rather than narrowing it.
+Production behavior is unchanged.
+
+Validation: the complete branch-declared six-command suite passed: Strategy
+Lab tests `1,621 passed, 1 skipped`; migration tests `6 passed`; Ruff passed;
+MyPy passed across 429 package/runtime source files; `git diff --check` and
+workstream validation for 30 records passed. This resolves the MyPy failure
+found on the first branch-suite attempt. The test-only inline AnyIO worker
+remains a harness accommodation for direct route invocation; actual streaming
+through the local ASGI/Compose stack remains part of full integration. Commit
+`2e5490ce2` is pushed; exact synchronized tip verification belongs in the
+operational checkpoint.
+
+Next: validate the streaming endpoint in the local ASGI/Compose profile and
+continue the remaining production APIs, search/recovery, security, scaling,
+and full exact-tip gates. Do not wait for stable Nautilus labeling.
