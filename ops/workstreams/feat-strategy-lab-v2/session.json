@@ -150,11 +150,11 @@
     "completed": [
       "AC-NAUTILUS"
     ],
-    "current_blocker": "No upstream or human dependency. The exact RC5 production-plan process and separate exact-image recovery integration pass; remaining gap is unifying those paths in a production-composed crash/replay test.",
-    "current_phase": "authenticated-plan-process-loss-and-replay",
-    "next_action": "Extend the exact-image process-loss/replay test to compose warm-up context, native event stream, and bootstrap through AuthenticatedForwardSandboxPlanFactory; prove pre-settlement death, durable settlement/ACK replay without another engine execution, and post-ACK continuation. Then continue remaining forward and backtest acceptance criteria.",
+    "current_blocker": "No upstream or human dependency. Production-composed exact RC5 execution and forced pre-settlement process-loss/restart/replay pass; durable settlement/ACK and post-checkpoint continuation still use standalone fixture artifacts.",
+    "current_phase": "production-composed-forward-settlement-and-continuation",
+    "next_action": "Adapt durable settlement/ACK replay and post-checkpoint continuation to consume warm-up, context, native-event, and bootstrap artifacts produced by the authenticated plan factory; then continue remaining forward and backtest/search/API/security/Compose acceptance.",
     "total": 18,
-    "updated_at": "2026-10-06T03:33:07.526963+00:00"
+    "updated_at": "2026-10-06T03:37:50+00:00"
   },
   "remote": "84bb163947f49a20b9883a579f294e8d6d8fa047",
   "remote_sha": "84bb163947f49a20b9883a579f294e8d6d8fa047",

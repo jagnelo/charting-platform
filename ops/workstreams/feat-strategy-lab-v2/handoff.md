@@ -13006,3 +13006,24 @@ process-loss/replay harness to create its warm-up/native/bootstrap artifacts
 through this same authenticated plan factory, then verify pre-settlement death,
 durable settlement/ACK replay, post-ACK continuation, and the remaining forward
 and backtest acceptance criteria.
+
+## 2026-10-06 - Production-composed process loss replays deterministically
+
+The authenticated plan test now kills its exact RC5 process after the event has
+executed natively but before the host can settle the account receipt. A fresh
+process is then built from the same owner-authenticated checkpoint, warm-up
+context stream, native-event stream, and bootstrap. Re-execution produces the
+same result fingerprint and native account binding. The separate exact-image
+integration still covers durable settlement, Redis-ACK-window idempotency, and
+post-checkpoint continuation using its existing standalone artifact fixture;
+unifying those parts with the production plan factory is the next forward gate.
+
+Validation: production-composed execution plus forced pre-settlement process
+loss/restart/replay and the existing exact-image settlement/ACK recovery
+integration passed 2/2 against the exact-source RC5 image whose digest and
+four-check evidence are recorded above. The full Strategy Lab package passed
+1,540 with one opt-in skip; package Ruff, MyPy across 408 files, changed-test
+formatting, and whitespace checks passed. Next: rework the durable settlement/
+ACK replay and post-checkpoint continuation harness to consume artifacts from
+the authenticated plan factory, then continue the broader forward and
+backtest/search/API/security/Compose scope.

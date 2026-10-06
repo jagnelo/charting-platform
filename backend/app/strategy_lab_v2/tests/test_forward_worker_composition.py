@@ -5,6 +5,7 @@ import os
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -615,13 +616,22 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
 
     output_directory = tmp_path / "forward-output"
     output_directory.mkdir(mode=0o700)
+    output_index = 0
+
+    def next_output_path(_instance_id: str, _checkpoint: str) -> Path:
+        nonlocal output_index
+        if not image_digest:
+            return output_directory / "output.json"
+        output_index += 1
+        return output_directory / f"output-{output_index}.json"
+
     artifact_store = warmup_artifacts
     plan_factory = AuthenticatedForwardSandboxPlanFactory(
         artifact_store,
         resolver,
         principal="owner-a",
         image_name="strategy-lab-v2/nautilus-rc5" if image_digest else "nautilus-forward:rc5",
-        output_path_resolver=lambda _instance_id, _checkpoint: output_directory / "output.json",
+        output_path_resolver=next_output_path,
     )
     sandbox_plan = await plan_factory(
         instance_id="forward-1",
@@ -671,6 +681,25 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
             )
             execution_result = await started.execute(delivery, preparation)
             assert execution_result.account_event_binding.canonical_event == before_event
+            # Lose the engine after native execution but before durable account
+            # settlement, then rebuild from the same owner-authenticated
+            # checkpoint and require byte-stable deterministic replay.
+            child = started._transport._process
+            child.kill()
+            child.wait(timeout=10)
+            await started.close()
+            restarted = await process_factory.start(
+                instance_id="forward-1",
+                checkpoint_fingerprint=checkpoint_fingerprint,
+                delivery=delivery,
+                preparation=preparation,
+            )
+            try:
+                replay_result = await restarted.execute(delivery, preparation)
+                assert replay_result.fingerprint == execution_result.fingerprint
+                assert replay_result.account_event_binding == execution_result.account_event_binding
+            finally:
+                await restarted.close()
         except Exception as exc:
             stderr_text = stderr_capture.decode("utf-8", errors="replace")[-4000:]
             raise AssertionError(
