@@ -12815,3 +12815,28 @@ disk-backed path and exercise the complete factory through RC5 startup and
 exact checkpoint replacement. Keep canonical reads injected through the
 platform ownership boundary. AC-FORWARD and forward event-tape parity remain
 open; stable Nautilus 2.x publication is not required.
+
+## 2026-10-06 - Materialize the owner-bound sandbox plan in the composition test
+
+Test commit `5fe6adeffb0fb52668f67dfb34fee05560a78378` is pushed to
+`origin/feat/strategy-lab-v2`. The authenticated resolver test now continues
+through `AuthenticatedForwardSandboxPlanFactory`, creating the real
+content-addressed bootstrap, native-event stream, context stream, runtime
+bundle, and hardened sandbox argv. It validates the sandbox controls and
+invokes `HardenedNautilusForwardSessionProcessFactory.start` with only the
+Docker process-start method replaced by an identity capture. Thus owner,
+checkpoint, artifact, and launch-plan composition is exercised end to end; no
+RC5 container was launched by this test.
+
+Validation on the pushed test commit: the forward-worker composition module
+passed 16 tests; full Strategy Lab package passed 1,532 with one opt-in image
+test skipped; package Ruff and formatting passed; package MyPy passed across
+407 files; `git diff --check` passed. The source/test context was exactly one
+test module, reviewed and committed at `5fe6adeffb0fb52668f67dfb34fee05560a78378`;
+the push synchronized `HEAD` and origin at that SHA. No Docker resources were
+created or retained.
+
+This does not remove the in-memory warm-up bottleneck or prove actual RC5
+process start/checkpoint replacement. Next: make warm-up tape/canonical join,
+SDK-context generation, and native-event materialization disk-backed, then run
+the resulting plan through the exact pinned RC5 process integration.
