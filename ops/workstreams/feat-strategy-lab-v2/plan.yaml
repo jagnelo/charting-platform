@@ -855,26 +855,26 @@ progress:
     - strategy-lab-v2-nautilus-forward-runtime-dto-codec-v1
     - strategy-lab-v2-nautilus-forward-runtime-operation-handler-v1
     - strategy-lab-v2-durable-search-cancellation-v1
+    - strategy-lab-v2-postgres-backed-curve-download-v1
   total: 18
-  current_phase: postgres-backed-authenticated-curve-download-v1
+  current_phase: walk-forward-phase-boundary-recovery-v1
   active_changeset:
-    id: strategy-lab-v2-postgres-backed-curve-download-v1
+    id: strategy-lab-v2-walk-forward-phase-boundary-recovery-v1
     scope: >-
-      Prove an authenticated walk-forward curve download through production-
-      composed PostgreSQL records and the local content-addressed artifact
-      store. Seed owner-scoped experiment, OOS metric sidecar, and active
-      retention pin using PostgreSQL; invoke the FastAPI route with the
-      authenticated principal; verify exact streamed bytes and manifest
-      digest/length, and reject foreign-owner, released-pin, and corrupt
-      artifact cases. Do not loosen owner or retention authorization and do not
-      use provider or frontend paths.
+      Audit and close the durable walk-forward training-to-OOS phase boundary
+      across a coordinator/process restart. Persist training completion,
+      training-only selection, selected OOS trial append, and OOS dispatch in
+      PostgreSQL; reconstruct a fresh application/coordinator after an
+      interruption at each boundary and prove deterministic idempotent replay,
+      no duplicate OOS tasks, and no OOS leakage into selection. Preserve
+      attempt identity, outbox/ACK ordering, and owner isolation. Do not modify
+      provider or frontend paths.
     owned_paths:
-      - backend/app/strategy_lab_v2/api_router.py
       - backend/app/strategy_lab_v2/application.py
-      - backend/app/strategy_lab_v2/postgres_walk_forward_summary.py
-      - backend/app/strategy_lab_v2/postgres_artifact_retention.py
-      - backend/app/strategy_lab_v2/tests/test_api_router.py
-      - backend/tests/integration/strategy_lab_v2/test_curve_download_postgres.py
+      - backend/app/strategy_lab_v2/postgres_walk_forward_plan.py
+      - backend/app/strategy_lab_v2/walk_forward_search.py
+      - backend/app/strategy_lab_v2/tests/test_walk_forward_application.py
+      - backend/tests/integration/strategy_lab_v2/test_walk_forward_phase_recovery_postgres.py
     status: in_progress
   current_blocker: >-
     No external or upstream Nautilus dependency blocks implementation. Stable
@@ -886,10 +886,11 @@ progress:
     bounded streaming, active-pin authorization, and post-stream mutation
     verification. The branch-scoped Compose stack built and all six services
     became healthy; the registered route returned 401 to an unauthenticated
-    live request. An authenticated in-process ASGI test now streams persisted
-    content-addressed artifact bytes and verifies digest/length/cache headers,
-    but the full production dependency path with persisted PostgreSQL records
-    has not yet been proven. The full 260-case browser run ended 138 passed, 109 skipped,
+    live request. An authenticated PostgreSQL-backed FastAPI ASGI integration
+    now streams persisted content-addressed artifact bytes, verifies
+    digest/length, and rejects foreign owners, released pins, and corrupted
+    bytes. Live Compose authentication with the production user/session
+    binding remains unproven. The full 260-case browser run ended 138 passed, 109 skipped,
     13 failed, primarily in existing chart/Study Lab v1 surfaces owned by the
     parallel frontend workstream. Those failures keep full-stack acceptance
     open but do not block independent backend implementation. The authenticated
@@ -907,14 +908,12 @@ progress:
     sessions whose durable reservation ended, with targeted lifecycle tests;
     real PostgreSQL/Redis shutdown/restart evidence remains open. The curve
     download path is owner-bound to the persisted metric sidecar and active
-    retention pin; focused success/error/integrity tests pass. Its live route
-    has so far been exercised through the real Compose app only as an
-    unauthenticated request; the authenticated route is covered through an
-    in-process ASGI fixture, while production PostgreSQL-to-artifact download
-    remains unproven.
+    retention pin; focused success/error/integrity tests pass, as does the
+    PostgreSQL-backed ASGI integration. Its live Compose route has so far been
+    exercised only as an unauthenticated request.
     Remaining work includes the backtest/search/API/security/Compose criteria,
-    production PostgreSQL-to-artifact download verification, and exact-tip
-    branch gates.
+    process-restart proof across the walk-forward training/OOS phase boundary,
+    and exact-tip branch gates.
     The earlier forward-bootstrap artifact/plan composition slice remains
     incomplete; its production host composition and database/Redis crash
     recovery evidence remain in the broader acceptance scope.
@@ -922,10 +921,10 @@ progress:
     branches; unsupported options remain fail-closed pending canonical
     Greeks/delta/settlement evidence.
   next_action: >-
-    Validate authenticated curve download against production-composed
-    PostgreSQL owner/metric/pin state and local artifact bytes. Then continue
-    backtest/search and phase-boundary recovery criteria. Reconcile the 13
-    browser failures only after the
+    Close the durable walk-forward training-to-OOS phase boundary under
+    process restart, preserving training-only selection and idempotent OOS
+    dispatch. Then continue backtest/search, security, Compose and exact-tip
+    criteria. Reconcile the 13 browser failures only after the
     frontend owner has completed its work and shared-path semantics can be
     reviewed together. Finish security, Compose scaling, and exact-tip gates.
     Shared router registration, migrations, and overlapping upstream paths

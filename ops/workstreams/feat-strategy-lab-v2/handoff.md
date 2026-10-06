@@ -13939,3 +13939,26 @@ not prove that complete persisted production composition. Exact-pinned Nautilus
 2.0.0rc6 remains the qualified local simulator; no stable 2.x release is
 required. The full-stack browser failures remain owned by the parallel TC2000
 frontend workstream and do not block this independent backend work.
+
+## 2026-10-06 - PostgreSQL-backed authenticated curve download
+
+Commit `9212dc572853cd8d4600b0a06c9c1387bd575163` adds an integration test that
+persists the native OOS metric sidecar and active artifact-retention pin in
+PostgreSQL, then retrieves the curve through the authenticated FastAPI route
+backed by a local content-addressed artifact store. It verifies exact response
+bytes, digest and length headers, foreign-owner isolation, released-pin
+not-found behavior, and corruption rejection. The test uses isolated unique
+PostgreSQL tables and cleans up only those tables afterward.
+
+Validation passed: the Docker-backed PostgreSQL/ASGI integration (`1 passed`),
+Ruff, Ruff format check, MyPy for the integration test, and `git diff --check`.
+The implementation test commit was pushed and matched the branch remote. This
+closes the persisted database-to-artifact API proof; live Compose authentication
+through the production user/session dependency remains open.
+
+Next: audit and strengthen crash recovery across the persisted walk-forward
+training-to-OOS boundary. Reconstruct a new coordinator from PostgreSQL at each
+phase transition, then prove deterministic selection and idempotent OOS task
+append/dispatch without using OOS outcomes for selection. Nautilus stable
+release labeling remains irrelevant; RC6 is exact-pinned and qualified for the
+authorized local simulation scopes.
