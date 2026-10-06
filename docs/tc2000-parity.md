@@ -1,5 +1,22 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-10-06 — Official V25 shortcut gap audit
+
+The current [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+also lists Ctrl+M for personal WatchList membership, Shift+V for Favorites,
+Shift+T for custom date sort, Alt+click for Tag Column membership, and
+Shift/Ctrl+drag on a divider to resize panes above/below it. These commands
+have no mapped workstation implementation in the current source audit and
+remain open. The personal-list commands need an explicit target-selection
+contract because this workstation supports arbitrary personal WatchLists;
+Tag Column behavior and persistence need to be established before wiring the
+mouse modifier; pane resizing must be persisted through Golden Layout rather
+than implemented as a transient DOM resize. The official `2–4`, `6–8`, and
+`9` timeframe commands also remain unavailable because the current timeframe
+contract cannot represent those periods. Existing Home/End WatchList traversal
+and Ctrl+=/Ctrl+- chart zoom are implemented. No behavior or visual oracle
+changed in this audit.
+
 ## 2026-10-06 — Workstation keyboard-help accessibility semantics
 
 The keyboard-shortcut reference is instructional content, not an action menu.

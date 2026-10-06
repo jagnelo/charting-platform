@@ -5,6 +5,32 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-06
 
+## 2026-10-06 — Official V25 shortcut gap audit
+
+The current [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+was checked against the active workstation implementation. Existing coverage
+includes Home/End WatchList traversal, chart `Ctrl+=`/`Ctrl+-` zoom, Space and
+Ctrl+Space symbol traversal, Shift+F/Shift+N WatchList actions, chart style,
+timeframe, bar-history and projection controls, and assigned F-key templates.
+The current timeframe contract still cannot represent the official `2–4`,
+`6–8`, and `9` period shortcuts; do not route them to approximate intervals.
+
+The audit found these additional official interactions without a corresponding
+workstation command path: Ctrl+M add/remove to a personal WatchList, Shift+V
+add/remove to My Favorites, Shift+T custom date sort, Alt+click Tag Column
+membership, and Shift/Ctrl+drag to resize panes above/below a Golden Layout
+divider. These remain open R1/R6 parity tasks. Before implementing the
+personal-list shortcuts, define their target-selection semantics against the
+existing arbitrary user-owned WatchLists; do not silently pick or create a
+list. Verify Tag Column ownership and persistence before binding Alt+click.
+Implement divider resizing through Golden Layout's persisted layout model and
+preserve ordinary splitter drag. Add authenticated browser coverage and keep
+the existing protected visual oracles unchanged for each implemented action.
+
+This is a gap audit, not a claim that the official shortcut set is complete.
+No source behavior, visual baseline, mask, threshold, skip, or acceptance rule
+changed.
+
 ## 2026-10-06 — Keyboard-help accessibility semantics
 
 The workstation shortcut reference is instructional content rather than a
