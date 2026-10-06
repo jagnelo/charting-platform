@@ -9761,3 +9761,16 @@ valid visual-baseline diagnosis and exact reviewed checkpoint. AC10 still awaits
 provider-platform staging, and AC14 remains the post-integration 30-day
 production observation.
 *** End of File
+## Provider-platform dependency recheck — 2026-10-07
+
+Read-only remote refs now report `feat/market-data-provider-platform` at
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1` and `staging` at
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`. The provider branch is not an
+ancestor of staging. Its current `ProviderCapability` enum still has no
+`ETF_HOLDINGS` member, while staging likewise has no shared ETF capability
+bridge. AC10 therefore remains an external dependency: this feature worker
+must not merge, cherry-pick, or mutate the provider branch or staging. The ETF
+branch remains at its own clean synchronized tip and continues to carry the
+current 496 registered / 422 native-live-backed / 74 fallback-only baseline;
+older provider-count entries below are historical checkpoint records, not
+current state.
