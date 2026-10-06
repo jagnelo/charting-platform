@@ -20,6 +20,16 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  At pushed product commit a1b49aeaebef1bcd481223ce5b6c70f07070eabf, dense
+  Market Map member selection now has a persistent polite screen-reader status
+  announcing selected ticker symbols (up to five, then a remaining count) while
+  leaving the visible selection control unchanged. The focused MarketMapTool
+  suite passed 57/57; full serial frontend Vitest passed 129 files/1211 tests;
+  production type-check/build passed; the pinned authenticated 10,000-cell map
+  interaction case passed 1/1 in 17.3 seconds. Browser source was mounted
+  read-only and the assigned stack was not rebuilt/restarted. This adds one
+  concrete AC7 accessibility receipt but does not close broader accessibility,
+  V25, integration, or upstream-consumption requirements.
   At branch checkpoint d6bd60d15f22b630b9f661fb566837d0c1110674, the exact
   current backend sources passed the complete combined unit/integration
   coverage gate using Python 3.12 sys.monitoring: units 1622/1622, integration
@@ -88,27 +98,24 @@ current_blocker: >-
   Provider and ETF branches remain outside staging, so R2/R3 consumption and
   shared-path reconciliation are deferred.
 active_changeset_context:
-  name: 10,000-cell Market Map frontend performance guard
-  status: r6_dense_market_map_browser_guard_passed_generic_gate_and_upstream_dependencies_open
-  commit_sha: f0e946000e15336d972f33f24520d72b06e5cf7e
-  remote_sha: f0e946000e15336d972f33f24520d72b06e5cf7e
+  name: Dense Market Map selected-member accessibility announcement
+  status: r1_r6_selection_announcement_tested_generic_gate_and_upstream_dependencies_open
+  commit_sha: a1b49aeaebef1bcd481223ce5b6c70f07070eabf
+  remote_sha: a1b49aeaebef1bcd481223ce5b6c70f07070eabf
   intent: >-
-    Guard the TC-owned large-universe Market Map canvas at 10,000 deterministic
-    cells, including render budget, pointer hit-testing, keyboard search and
-    selection, zoom, and pan; do not fabricate upstream market-data evidence.
+    Preserve the visible selection count while a persistent polite live region
+    announces selected ticker symbols for assistive technology, bounded to five
+    symbols plus an additional-count summary.
   owned_paths:
+    - frontend/src/components/workstation/MarketMapTool.vue
+    - frontend/tests/unit/components/test_market_map_tool.test.ts
     - frontend/tests/e2e/workstation_performance.spec.ts
   next_action: >-
-    Continue the full TC-owned R1/R5/R6 roadmap. The seeded functional suite
-    passes 175/177 with two documented skips and no failures; the four-profile
-    local visual matrix passes 104/104 but exact V25 references remain open;
-    existing workstation performance passes 4/4 with 50-round window churn
-    and a backend-seeded 10,000-row watchlist; the new focused 10,000-cell map
-    browser guard passes within its 5-second canvas budget. The generic
-    integration target remains unsafe on the assigned stack because Buildx is
-    missing and cleanup targets assigned volumes. Preserve that stack and use
-    only a verified isolated equivalent. Keep provider/ETF implementation out
-    of TC and defer R2/R3/shared-path reconciliation until both reach staging.
+    Continue TC-owned R1/R5/R6 implementation, expanding accessibility and
+    workstation workflows while preserving visual acceptance policy. Find a
+    safe exact-project route for the generic integration gate. Refresh dependency
+    refs; provider/ETF branches remain outside staging, so defer their contract
+    consumption and shared-path reconciliation until staging contains both.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -347,16 +354,21 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R1_R5_R6_EXACT_TIP_VALIDATION_REFRESH
+  current_phase: R1_MARKET_MAP_SELECTION_ACCESSIBILITY
   next_action: >-
-    Continue the full TC-owned R1/R5/R6 roadmap; the synthetic 10,000-cell
-    Market Map guard advances R6 but does not satisfy canonical data, exact V25,
-    full endurance/accessibility/security, or generic integration criteria.
-    Do not duplicate provider/ETF ownership or the implemented Python breadth
-    contracts. Preserve all visual acceptance policy and reference gaps.
-    Refresh dependency refs; defer R2/R3 and semantic shared-path reconciliation
-    until both upstream branches reach staging. Stop only at ready_for_human_review.
+    Continue the complete TC-owned R1/R5/R6 roadmap with the next bounded
+    workstation, Study, or Strategy implementation slice. Preserve V25 visual
+    references and acceptance policy. Resolve the generic integration gate only
+    through a verified isolated project. Do not duplicate provider/ETF ownership
+    or the implemented Python breadth contracts. Refresh dependency refs and
+    defer R2/R3 and semantic shared-path reconciliation until both upstream
+    branches reach staging. Stop only at ready_for_human_review.
   current_blocker: >-
+    The new Market Map selected-member announcement passed focused/full frontend
+    tests, type-check/build, and its pinned dense browser case. This narrows one
+    accessibility gap only. Exact V25 authority, broader accessibility/security/
+    endurance evidence, generic integration, remaining R1/R5/R6 work, and both
+    staging-dependent upstream integrations remain incomplete.
     At backend checkpoint d6bd60d, unit/integration suites passed 1622/1622 and
     409/409 at 82.26%. At branch checkpoint 22becb68272854b6ceae6a263d8694090495e009,
     frontend Vitest passed 129 files/1210 tests, focused VirtualWatchlistTool
@@ -371,6 +383,7 @@ progress:
     verified isolated equivalent. Provider/ETF branches remain outside staging,
     deferring R2/R3 and all shared-path reconciliation.
 historical_implementation_records:
+  - "Pushed product commit a1b49aeaebef1bcd481223ce5b6c70f07070eabf adds a persistent polite live-region announcement for Market Map selection, naming up to five selected tickers and reporting any remainder while preserving the visible selection count. MarketMapTool unit coverage passed 57/57; the full serial frontend suite passed 129 files / 1,211 tests; npm run build passed vue-tsc and Vite (518 modules, existing large-chunk warning); and the pinned authenticated 10,000-cell Market Map browser case passed 1/1 in 17.3 seconds. The browser used the pinned v1.62.1 Noble image, a loopback-only Vite server, the assigned backend, and a read-only frontend mount. The six assigned services remained healthy; no stack recreation, cleanup, visual baseline change, provider/ETF behavior, or upstream worktree mutation occurred. Exact V25 and the generic full integration gate remain open."
   - "At documentation checkpoint df4c8d6f (product source f0e946000e15336d972f33f24520d72b06e5cf7e), the pinned Playwright 1.62.1 full seeded functional suite ran 177 cases against the assigned six-service stack: 171 passed, 2 documented skips, and 4 failed. F8m-chart-panels timed out waiting for Yellow, F8g could not find Study Lab, and F14-instance-scope plus F8z recorded ERR_NETWORK_CHANGED. All four cases passed isolated replay; the nearest F8m wildcard -> chart-panels -> F8g sequence passed 3/3. This is not recorded as a clean full-gate pass. The test source was mounted read-only, outputs were under /tmp/tc2000-functional-df4c8d6f-elevated-results, and the assigned stack stayed healthy. A separate internal-bridge attempt was stopped after proving its non-localhost URL is not a secure browser context; no product or acceptance changes were made."
   - "Product commit f0e946000e15336d972f33f24520d72b06e5cf7e bounds historical breadth and generic event occurrence lists to 100 visible rows per increment, with truthful visible/matching counts and filter/selection resets. Focused ResearchResultsTool tests passed 57/57; full serial frontend Vitest passed 129 files / 1,209 tests; Vue type-check/build, direct TC ownership guard (130 touched paths, all six self-tests), and direct workstream validation (30 records) passed. The assigned Docker socket is denied, so browser replay and the generic full integration gate remain open. This slice changes neither provider/ETF behavior nor visual reference or acceptance policy."
   - "At exact pushed checkpoint 8e6a8180672e332904014a7f59d7ecf0887b72f4, an isolated research-runner project passed all eight expected sandbox-denial probes (unshare, setns, mount, ptrace, fork, network, subprocess, root-write), memory-cgroup denial (exit 137), tmpfs-capacity denial, and bounded concurrent-pressure containment (three child failures, restart count zero). The runner config was 768 MiB, one CPU, 128 PIDs, network none, read-only root, uid 10001:10001. The exact temporary project, volumes, and local image were removed; the assigned TC stack was preserved according to the probe-run cleanup inventory. A fresh Docker-socket inventory is unavailable in this execution sandbox. Probe script behavior was unchanged; only its host temporary-log prefix was narrowed to this unique project. No product source, provider/ETF behavior, or visual acceptance policy changed."

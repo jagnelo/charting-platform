@@ -1,5 +1,17 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — Dense Market Map selection announcement
+
+Product commit `a1b49aeaebef1bcd481223ce5b6c70f07070eabf` adds a persistent
+polite live-region announcement that names up to five selected Market Map
+tickers and summarizes any additional selections. The visible selection count
+and interaction design are unchanged. Component tests passed `57/57`, full
+serial frontend Vitest passed `129` files / `1,211` tests, type-check/build
+passed, and the pinned authenticated 10,000-cell browser case passed `1/1` in
+`17.3s`. Browser source was read-only; a loopback-only dev server proxied to the
+assigned backend, and the assigned stack was left running. This closes one
+narrow accessibility gap, not the broader AC7 or V25 acceptance criteria.
+
 ## 2026-10-06 — Current exact branch-tip frontend suite
 
 At exact branch tip `22becb68272854b6ceae6a263d8694090495e009`, the complete

@@ -5,6 +5,24 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-06
 
+## 2026-10-06 — Dense Market Map selection announcement
+
+Product commit `a1b49aeaebef1bcd481223ce5b6c70f07070eabf` adds a persistent,
+polite screen-reader announcement for Market Map selection. It names up to five
+selected ticker symbols and summarizes any additional selections, while keeping
+the visible selection-count control unchanged. This closes a narrow keyboard /
+assistive-technology feedback gap in the 10,000-cell canvas workflow without
+changing layout or selection behavior.
+
+The MarketMapTool component suite passed `57/57`; the full serial frontend suite
+passed `129` files / `1,211` tests; type-check and production build passed. The
+pinned authenticated 10,000-cell browser case passed `1/1` in `17.3s`, including
+the keyboard search selection and announcement assertion. Browser source was
+read-only, served through a temporary loopback Vite server, and tested against
+the assigned backend without rebuilding or restarting the stack. The V25
+authority gaps and generic integration gate remain open, as do broader AC7
+accessibility/security/endurance requirements.
+
 ## 2026-10-06 — Current branch-tip frontend suite
 
 At exact branch tip `22becb68272854b6ceae6a263d8694090495e009`, the full
