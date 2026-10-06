@@ -82,6 +82,22 @@ def test_search_dispatch_rpc_command_rejects_fingerprint_drift(mutation: dict[st
         rpc_module.SearchDispatchRpcCommand.from_wire(wire)
 
 
+def test_walk_forward_progress_command_round_trips_and_rejects_mutation() -> None:
+    command = rpc_module.WalkForwardProgressRpcCommand.from_call(
+        principal="42",
+        request_id="progress-request",
+        experiment_fingerprint=content_digest("progress-experiment"),
+        attempt_id="attempt-progress",
+        dispatch_request_fingerprint=content_digest("progress-dispatch"),
+        queue_name="strategy-backtest",
+    )
+    assert rpc_module.WalkForwardProgressRpcCommand.from_wire(command.to_wire()) == command
+    mutated = command.to_wire()
+    mutated["principal_id"] = "other-owner"
+    with pytest.raises(ValueError, match="fingerprint"):
+        rpc_module.WalkForwardProgressRpcCommand.from_wire(mutated)
+
+
 def test_local_api_bindings_factory_requires_and_uses_complete_socket_configuration(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -113,6 +129,7 @@ async def test_unix_search_dispatch_client_round_trips_typed_atomic_resolution(
 ) -> None:
     command = rpc_module.SearchDispatchRpcCommand.from_call(**_command_kwargs())
     observed: dict[str, Any] = {}
+    progress_observed: dict[str, Any] = {}
     adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
 
     async def dispatch_search_candidate(**kwargs: Any) -> SearchDispatchResolution:
@@ -120,6 +137,16 @@ async def test_unix_search_dispatch_client_round_trips_typed_atomic_resolution(
         return _resolution(kwargs)
 
     adapter.dispatch_search_candidate = dispatch_search_candidate
+
+    async def reconcile_walk_forward_terminal(**kwargs: Any) -> dict[str, Any]:
+        progress_observed.update(kwargs)
+        return {
+            "decision": "waiting",
+            "dispatched_candidate_indices": (),
+            "summary_fingerprint": None,
+        }
+
+    adapter.reconcile_walk_forward_terminal = reconcile_walk_forward_terminal
     socket_path = tmp_path / "preparation.sock"
     app = create_search_preparation_app(
         adapter,
@@ -152,6 +179,17 @@ async def test_unix_search_dispatch_client_round_trips_typed_atomic_resolution(
         )
 
         resolution = await client(**_command_kwargs())
+        progress = await rpc_module.UnixSocketWalkForwardProgressClient(
+            socket_path,
+            AUTH_TOKEN,
+        )(
+            principal="42",
+            request_id="progress-rpc-1",
+            experiment_fingerprint=command.experiment_fingerprint,
+            attempt_id="attempt-1",
+            dispatch_request_fingerprint=content_digest("dispatch-fingerprint"),
+            queue_name="strategy-backtest",
+        )
     finally:
         server.should_exit = True
         await asyncio.wait_for(server_task, timeout=5)
@@ -162,6 +200,12 @@ async def test_unix_search_dispatch_client_round_trips_typed_atomic_resolution(
     assert observed["principal"] == "42"
     assert observed["request_id"] == "request-rpc-1"
     assert observed["dispatch_intent"] == command.dispatch_intent
+    assert progress.decision == "waiting"
+    assert progress_observed["principal"] == "42"
+    assert progress_observed["attempt_id"] == "attempt-1"
+    assert progress_observed["dispatch_request_fingerprint"] == content_digest(
+        "dispatch-fingerprint"
+    )
     assert socket_path.stat().st_mode & 0o777 == 0o660
 
 
@@ -201,6 +245,48 @@ async def test_unix_search_dispatch_client_preserves_typed_service_error(
     assert raised.value.error.code is ApiErrorCode.CONFLICT
     assert raised.value.error.status_code == 409
     assert raised.value.error.details["attempt_id"] == "attempt-1"
+
+
+@pytest.mark.asyncio
+async def test_unix_walk_forward_progress_client_uses_authenticated_service_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed: dict[str, Any] = {}
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+
+    async def reconcile_walk_forward_terminal(**kwargs: Any) -> dict[str, Any]:
+        observed.update(kwargs)
+        return {
+            "decision": "finalized",
+            "dispatched_candidate_indices": (),
+            "summary_fingerprint": content_digest("walk-forward-summary"),
+        }
+
+    adapter.reconcile_walk_forward_terminal = reconcile_walk_forward_terminal
+    app = create_search_preparation_app(adapter, auth_token=AUTH_TOKEN)
+    monkeypatch.setattr(
+        rpc_module.httpx,
+        "AsyncHTTPTransport",
+        lambda **_kwargs: httpx.ASGITransport(app=app),
+    )
+    client = rpc_module.UnixSocketWalkForwardProgressClient(
+        Path("/tmp/strategy-lab-progress-test.sock"),
+        AUTH_TOKEN,
+    )
+    receipt = await client(
+        principal="42",
+        request_id="progress-request",
+        experiment_fingerprint=content_digest("progress-experiment"),
+        attempt_id="attempt-progress",
+        dispatch_request_fingerprint=content_digest("progress-dispatch"),
+        queue_name="strategy-backtest",
+    )
+
+    assert receipt.decision == "finalized"
+    assert receipt.summary_fingerprint == content_digest("walk-forward-summary")
+    assert observed["principal"] == "42"
+    assert observed["attempt_id"] == "attempt-progress"
+    assert observed["queue_name"] == "strategy-backtest"
 
 
 @pytest.mark.asyncio

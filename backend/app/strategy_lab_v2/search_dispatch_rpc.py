@@ -1,10 +1,10 @@
-"""Authenticated local RPC for isolated search-trial preparation.
+"""Authenticated local RPC for search preparation and terminal progress.
 
-The API process sends only the authenticated owner and immutable dispatch
-coordinates over a Unix-domain socket. A dedicated preparation process hydrates
-the owner-scoped trial, materializes frozen runtime inputs, and performs the
-atomic PostgreSQL dispatch before returning a typed resolution. Strategy code
-and provider/network access are never exposed through this transport.
+The API process sends authenticated owner/dispatch coordinates over a
+Unix-domain socket. Dedicated workers may send terminal-completion wake-up
+hints over the same local boundary. The host authenticates each hint against
+durable dispatch/result state before advancing a walk-forward queue. Strategy
+code and provider/network access are never exposed through this transport.
 """
 
 from __future__ import annotations
@@ -33,6 +33,9 @@ SEARCH_DISPATCH_RPC_PATH = "/internal/v1/search-dispatch"
 SEARCH_DISPATCH_RPC_URL = "http://strategy-lab-v2.local"
 SEARCH_DISPATCH_RPC_MAX_REQUEST_BYTES = 64 * 1024
 SEARCH_DISPATCH_RPC_MAX_RESPONSE_BYTES = 128 * 1024 * 1024
+WALK_FORWARD_PROGRESS_RPC_COMMAND_SCHEMA = "strategy-lab.walk-forward-progress-command.v1"
+WALK_FORWARD_PROGRESS_RPC_RESULT_SCHEMA = "strategy-lab.walk-forward-progress-result.v1"
+WALK_FORWARD_PROGRESS_RPC_PATH = "/internal/v1/walk-forward-progress"
 
 
 @dataclass(frozen=True, slots=True)
@@ -174,6 +177,163 @@ class SearchDispatchRpcCommand:
             "attempt_id": self.attempt_id,
             "dispatch_intent": self.dispatch_intent,
         }
+
+
+@dataclass(frozen=True, slots=True)
+class WalkForwardProgressRpcCommand:
+    """Authenticated wake-up hint bound to one durable worker dispatch."""
+
+    principal_id: str
+    request_id: str
+    experiment_fingerprint: str
+    attempt_id: str
+    dispatch_request_fingerprint: str
+    queue_name: str
+
+    def __post_init__(self) -> None:
+        for name, maximum in (
+            ("principal_id", 256),
+            ("request_id", 128),
+            ("attempt_id", 256),
+            ("queue_name", 128),
+        ):
+            value = getattr(self, name)
+            if not isinstance(value, str) or not value.strip() or len(value) > maximum:
+                raise ValueError(f"{name} must be non-empty and at most {maximum} characters")
+            if any(ord(character) < 32 or ord(character) == 127 for character in value):
+                raise ValueError(f"{name} must not contain control characters")
+        require_sha256_digest(
+            self.experiment_fingerprint,
+            field_name="experiment_fingerprint",
+        )
+        require_sha256_digest(
+            self.dispatch_request_fingerprint,
+            field_name="dispatch_request_fingerprint",
+        )
+
+    @classmethod
+    def from_call(
+        cls,
+        *,
+        principal: Any,
+        request_id: str,
+        experiment_fingerprint: str,
+        attempt_id: str,
+        dispatch_request_fingerprint: str,
+        queue_name: str,
+    ) -> WalkForwardProgressRpcCommand:
+        owner = getattr(principal, "id", principal)
+        if owner is None or isinstance(owner, bool) or not isinstance(owner, str | int):
+            raise ValueError("authenticated principal identity is required")
+        return cls(
+            str(owner).strip(),
+            request_id,
+            experiment_fingerprint,
+            attempt_id,
+            dispatch_request_fingerprint,
+            queue_name,
+        )
+
+    def to_wire(self) -> dict[str, Any]:
+        body: dict[str, Any] = {
+            "attempt_id": self.attempt_id,
+            "dispatch_request_fingerprint": self.dispatch_request_fingerprint,
+            "experiment_fingerprint": self.experiment_fingerprint,
+            "principal_id": self.principal_id,
+            "queue_name": self.queue_name,
+            "request_id": self.request_id,
+            "schema": WALK_FORWARD_PROGRESS_RPC_COMMAND_SCHEMA,
+        }
+        body["command_fingerprint"] = content_digest(body)
+        return body
+
+    @classmethod
+    def from_wire(cls, value: Any) -> WalkForwardProgressRpcCommand:
+        expected = {
+            "attempt_id",
+            "command_fingerprint",
+            "dispatch_request_fingerprint",
+            "experiment_fingerprint",
+            "principal_id",
+            "queue_name",
+            "request_id",
+            "schema",
+        }
+        if not isinstance(value, Mapping) or set(value) != expected:
+            raise ValueError("walk-forward progress command fields are invalid")
+        if value["schema"] != WALK_FORWARD_PROGRESS_RPC_COMMAND_SCHEMA:
+            raise ValueError("walk-forward progress command schema is unsupported")
+        require_sha256_digest(value["command_fingerprint"], field_name="command_fingerprint")
+        unsigned = {key: item for key, item in value.items() if key != "command_fingerprint"}
+        if value["command_fingerprint"] != content_digest(unsigned):
+            raise ValueError("walk-forward progress command fingerprint does not match its content")
+        command = cls(
+            principal_id=value["principal_id"],
+            request_id=value["request_id"],
+            experiment_fingerprint=value["experiment_fingerprint"],
+            attempt_id=value["attempt_id"],
+            dispatch_request_fingerprint=value["dispatch_request_fingerprint"],
+            queue_name=value["queue_name"],
+        )
+        if command.to_wire() != dict(value):
+            raise ValueError("walk-forward progress command is not normalized")
+        return command
+
+    def callback_arguments(self) -> dict[str, Any]:
+        return {
+            "principal": self.principal_id,
+            "request_id": self.request_id,
+            "experiment_fingerprint": self.experiment_fingerprint,
+            "attempt_id": self.attempt_id,
+            "dispatch_request_fingerprint": self.dispatch_request_fingerprint,
+            "queue_name": self.queue_name,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class WalkForwardProgressRpcReceipt:
+    decision: str
+    dispatched_candidate_indices: tuple[int, ...] = ()
+    summary_fingerprint: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.decision not in {"not_walk_forward", "waiting", "dispatched", "finalized"}:
+            raise ValueError("walk-forward progress decision is unsupported")
+        indices = tuple(self.dispatched_candidate_indices)
+        if any(
+            not isinstance(index, int) or isinstance(index, bool) or index < 0 for index in indices
+        ):
+            raise ValueError("dispatched candidate indices must be non-negative integers")
+        if len(indices) != len(set(indices)):
+            raise ValueError("dispatched candidate indices must be unique")
+        if self.summary_fingerprint is not None:
+            require_sha256_digest(self.summary_fingerprint, field_name="summary_fingerprint")
+        if (self.decision == "finalized") != (self.summary_fingerprint is not None):
+            raise ValueError("only finalized progress receipts contain a summary fingerprint")
+
+    def to_wire(self) -> dict[str, Any]:
+        return {
+            "decision": self.decision,
+            "dispatched_candidate_indices": list(self.dispatched_candidate_indices),
+            "schema": WALK_FORWARD_PROGRESS_RPC_RESULT_SCHEMA,
+            "summary_fingerprint": self.summary_fingerprint,
+        }
+
+    @classmethod
+    def from_wire(cls, value: Any) -> WalkForwardProgressRpcReceipt:
+        if not isinstance(value, Mapping) or set(value) != {
+            "decision",
+            "dispatched_candidate_indices",
+            "schema",
+            "summary_fingerprint",
+        }:
+            raise ValueError("walk-forward progress result fields are invalid")
+        if value["schema"] != WALK_FORWARD_PROGRESS_RPC_RESULT_SCHEMA:
+            raise ValueError("walk-forward progress result schema is unsupported")
+        indices = value["dispatched_candidate_indices"]
+        if not isinstance(indices, list):
+            raise ValueError("walk-forward progress candidate indices must be an array")
+        return cls(value["decision"], tuple(indices), value["summary_fingerprint"])
 
 
 @dataclass(frozen=True, slots=True)
@@ -319,6 +479,134 @@ class UnixSocketSearchDispatchClient:
                 ApiError(
                     ApiErrorCode.INTERNAL_ERROR,
                     "preparation service response was invalid",
+                    command.request_id,
+                    502,
+                    True,
+                )
+            ) from error
+
+
+@dataclass(frozen=True, slots=True)
+class UnixSocketWalkForwardProgressClient:
+    """Notify the authenticated local coordinator after durable worker success."""
+
+    socket_path: Path
+    auth_token: str
+    timeout_seconds: float = 600.0
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.socket_path, Path) or not self.socket_path.is_absolute():
+            raise ValueError("preparation socket path must be an absolute Path")
+        if (
+            not isinstance(self.auth_token, str)
+            or len(self.auth_token) < 32
+            or not self.auth_token.isascii()
+            or any(character.isspace() for character in self.auth_token)
+        ):
+            raise ValueError(
+                "preparation auth token must be at least 32 non-space ASCII characters"
+            )
+        if (
+            not isinstance(self.timeout_seconds, int | float)
+            or isinstance(self.timeout_seconds, bool)
+            or not math.isfinite(self.timeout_seconds)
+            or self.timeout_seconds <= 0
+            or self.timeout_seconds > 3600
+        ):
+            raise ValueError("timeout_seconds must be greater than 0 and at most 3600")
+
+    @classmethod
+    def from_environment(
+        cls,
+        environment: Mapping[str, str] | None = None,
+    ) -> UnixSocketWalkForwardProgressClient:
+        values = environment if environment is not None else os.environ
+        socket_value = values.get("STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH", "").strip()
+        token = values.get("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", "").strip()
+        if not socket_value or not token:
+            raise ValueError("preparation socket path and auth token must both be configured")
+        return cls(Path(socket_value), token)
+
+    async def __call__(self, **kwargs: Any) -> WalkForwardProgressRpcReceipt:
+        from app.strategy_lab_v2.application import ApiAdapterError
+
+        command = WalkForwardProgressRpcCommand.from_call(**kwargs)
+        command_bytes = _encode_json(command.to_wire())
+        if len(command_bytes) > SEARCH_DISPATCH_RPC_MAX_REQUEST_BYTES:
+            raise ValueError("walk-forward progress command exceeds the local RPC request limit")
+        transport = httpx.AsyncHTTPTransport(uds=str(self.socket_path), retries=0)
+        try:
+            async with httpx.AsyncClient(
+                transport=transport,
+                base_url=SEARCH_DISPATCH_RPC_URL,
+                timeout=self.timeout_seconds,
+                trust_env=False,
+            ) as client:
+                async with client.stream(
+                    "POST",
+                    WALK_FORWARD_PROGRESS_RPC_PATH,
+                    content=command_bytes,
+                    headers={
+                        "Authorization": f"Bearer {self.auth_token}",
+                        "Content-Type": "application/json",
+                        "X-Request-ID": command.request_id,
+                    },
+                ) as response:
+                    response_bytes = await _read_bounded_response(
+                        response,
+                        limit=64 * 1024,
+                    )
+                    if response.status_code >= 400:
+                        raise ApiAdapterError(
+                            _decode_api_error(
+                                response_bytes,
+                                response_status=response.status_code,
+                                request_id=command.request_id,
+                            )
+                        )
+                    if response.status_code != 200:
+                        raise ApiAdapterError(
+                            ApiError(
+                                ApiErrorCode.INTERNAL_ERROR,
+                                "preparation service returned an unexpected progress status",
+                                command.request_id,
+                                502,
+                                True,
+                            )
+                        )
+        except ApiAdapterError:
+            raise
+        except httpx.TimeoutException as error:
+            raise ApiAdapterError(
+                _service_unavailable_error(command.request_id, "progress service timed out")
+            ) from error
+        except httpx.RequestError as error:
+            raise ApiAdapterError(
+                _service_unavailable_error(command.request_id, "progress service is unavailable")
+            ) from error
+        except ValueError as error:
+            raise ApiAdapterError(
+                ApiError(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "preparation service progress response was invalid",
+                    command.request_id,
+                    502,
+                    True,
+                )
+            ) from error
+
+        try:
+            payload = _decode_json_object(response_bytes)
+            if set(payload) != {"receipt", "schema"}:
+                raise ValueError("walk-forward progress response fields are invalid")
+            if payload["schema"] != WALK_FORWARD_PROGRESS_RPC_RESULT_SCHEMA:
+                raise ValueError("walk-forward progress response schema is unsupported")
+            return WalkForwardProgressRpcReceipt.from_wire(payload["receipt"])
+        except (TypeError, ValueError, json.JSONDecodeError) as error:
+            raise ApiAdapterError(
+                ApiError(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "preparation service progress response was invalid",
                     command.request_id,
                     502,
                     True,
@@ -487,7 +775,13 @@ __all__ = [
     "SEARCH_DISPATCH_RPC_MAX_RESPONSE_BYTES",
     "SEARCH_DISPATCH_RPC_PATH",
     "SEARCH_DISPATCH_RPC_RESULT_SCHEMA",
+    "WALK_FORWARD_PROGRESS_RPC_COMMAND_SCHEMA",
+    "WALK_FORWARD_PROGRESS_RPC_PATH",
+    "WALK_FORWARD_PROGRESS_RPC_RESULT_SCHEMA",
     "SearchDispatchRpcCommand",
+    "UnixSocketWalkForwardProgressClient",
+    "WalkForwardProgressRpcCommand",
+    "WalkForwardProgressRpcReceipt",
     "UnixSocketSearchDispatchClient",
     "build_api_bindings",
     "encode_error_response",

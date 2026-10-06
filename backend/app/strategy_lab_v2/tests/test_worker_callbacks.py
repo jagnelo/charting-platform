@@ -19,6 +19,7 @@ from app.strategy_lab_v2.worker_callbacks import (
     create_search_dispatch,
     default_evidence_resolver_factory,
 )
+from app.strategy_lab_v2.worker_consumer import WorkerHandleDecision, WorkerHandleResult
 from app.strategy_lab_v2.worker_evidence import WorkerSubmissionBinding
 from app.strategy_lab_v2.worker_handoff import materialize_worker_handoff
 
@@ -236,6 +237,123 @@ async def test_search_callback_factory_binds_authenticated_dispatch_materializer
     assert callbacks.materializer.domain_hydrator is not None
     assert callbacks.recovery_writer is not None
     assert callbacks.lease_state_reader is not None
+
+
+@pytest.mark.asyncio
+async def test_terminal_search_success_notifies_walk_forward_coordinator_after_durable_receipt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import app.strategy_lab_v2.worker_callbacks as callbacks_module
+
+    monkeypatch.setenv(
+        "STRATEGY_LAB_V2_EVIDENCE_RESOLVER",
+        "app.strategy_lab_v2.tests.test_worker_callbacks:search_resolver_factory",
+    )
+    monkeypatch.setenv("STRATEGY_LAB_V2_QUEUE", "strategy-backtest")
+    monkeypatch.setenv(
+        "STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH",
+        "/tmp/strategy-lab-v2-preparation.sock",
+    )
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", "x" * 48)
+    attempt_id = "worker-terminal-attempt"
+    request_fingerprint = content_digest("worker-terminal-dispatch")
+    entry_fingerprint = content_digest("worker-terminal-entry")
+    dispatch = SearchDispatchRecord(
+        "owner-42",
+        content_digest("walk-forward-experiment"),
+        0,
+        DispatchRequest(
+            "worker-terminal-key",
+            attempt_id,
+            content_digest("worker-terminal-payload"),
+            "strategy-backtest",
+            NOW,
+        ),
+    )
+    events: list[str] = []
+
+    class Store:
+        async def load_by_request_fingerprint(self, fingerprint: str):
+            events.append("load_dispatch")
+            assert fingerprint == request_fingerprint
+            return dispatch
+
+    class Persistence(_SearchDispatchPersistence):
+        search_dispatch = Store()
+
+        def worker_terminal_writer(self, _resolver: Any):
+            async def terminal(_context: Any) -> WorkerHandleResult:
+                events.append("terminal_persisted")
+                return WorkerHandleResult(
+                    entry_fingerprint,
+                    WorkerHandleDecision.COMPLETE,
+                    content_digest("terminal-receipt"),
+                )
+
+            return terminal
+
+    class Recovery:
+        async def __call__(self, _context: Any):
+            return None
+
+        async def complete_terminal_if_persisted(self, **_kwargs: Any):
+            events.append("search_receipt_persisted")
+            return WorkerHandleResult(
+                entry_fingerprint,
+                WorkerHandleDecision.COMPLETE,
+                content_digest("search-receipt"),
+            )
+
+    monkeypatch.setattr(
+        callbacks_module,
+        "create_worker_recovery_application",
+        lambda *_args, **_kwargs: Recovery(),
+    )
+
+    async def progress(**kwargs: Any):
+        events.append("progress_notified")
+        assert kwargs["principal"] == "owner-42"
+        assert kwargs["experiment_fingerprint"] == dispatch.experiment_fingerprint
+        assert kwargs["attempt_id"] == attempt_id
+        assert kwargs["dispatch_request_fingerprint"] == dispatch.request.fingerprint
+        return callbacks_module.WalkForwardProgressRpcReceipt("waiting")
+
+    callbacks = await create_search_dispatch(
+        Persistence(),
+        Path("/tmp/artifacts"),
+        walk_forward_progress_client=progress,
+    )
+    context = type(
+        "Context",
+        (),
+        {
+            "entry": type(
+                "Entry",
+                (),
+                {
+                    "fingerprint": entry_fingerprint,
+                    "request_fingerprint": request_fingerprint,
+                    "attempt_id": attempt_id,
+                },
+            )(),
+            "request": type(
+                "Request",
+                (),
+                {"runtime_request": type("RuntimeRequest", (), {"attempt_id": attempt_id})()},
+            )(),
+            "observed_at": NOW,
+        },
+    )()
+
+    result = await callbacks.terminal_writer(context)  # type: ignore[misc]
+
+    assert result.decision is WorkerHandleDecision.COMPLETE
+    assert events == [
+        "terminal_persisted",
+        "search_receipt_persisted",
+        "load_dispatch",
+        "progress_notified",
+    ]
 
 
 @pytest.mark.asyncio

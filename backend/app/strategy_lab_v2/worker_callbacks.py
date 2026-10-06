@@ -9,12 +9,17 @@ from importlib import import_module
 from pathlib import Path
 from typing import Any, cast
 
+from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.nautilus_worker_terminal import (
     create_nautilus_oos_worker_terminal_evidence_resolver,
 )
 from app.strategy_lab_v2.persistence import SearchDispatchBindingResolver
 from app.strategy_lab_v2.postgres_search_dispatch import SearchDispatchRecord
-from app.strategy_lab_v2.search_dispatch_rpc import UnixSocketSearchDispatchClient
+from app.strategy_lab_v2.search_dispatch_rpc import (
+    UnixSocketSearchDispatchClient,
+    UnixSocketWalkForwardProgressClient,
+    WalkForwardProgressRpcReceipt,
+)
 from app.strategy_lab_v2.search_worker_handoff import (
     create_authenticated_search_dispatch_materializer,
 )
@@ -38,6 +43,7 @@ from app.strategy_lab_v2.worker_terminal_adapter import WorkerTerminalEvidenceRe
 EvidenceResolverFactory = Callable[
     ..., WorkerTerminalEvidenceResolver | Awaitable[WorkerTerminalEvidenceResolver]
 ]
+WalkForwardProgressClient = Callable[..., Awaitable[WalkForwardProgressRpcReceipt]]
 
 
 async def create(
@@ -75,7 +81,12 @@ async def create(
     )
 
 
-async def create_search_dispatch(persistence: Any, artifact_root: Path) -> WorkerServiceCallbacks:
+async def create_search_dispatch(
+    persistence: Any,
+    artifact_root: Path,
+    *,
+    walk_forward_progress_client: WalkForwardProgressClient | None = None,
+) -> WorkerServiceCallbacks:
     """Build callbacks that authenticate search dispatches before decoding.
 
     This is an explicit callback-factory variant for a worker whose queue is
@@ -124,6 +135,9 @@ async def create_search_dispatch(persistence: Any, artifact_root: Path) -> Worke
     terminal_writer = callbacks.terminal_writer
     if terminal_writer is None:
         raise TypeError("search dispatch workers require a terminal writer")
+    progress_client = (
+        walk_forward_progress_client or UnixSocketWalkForwardProgressClient.from_environment()
+    )
 
     async def terminal_dispatch_writer(context: Any) -> WorkerHandleResult:
         result = await terminal_writer(context)
@@ -134,6 +148,30 @@ async def create_search_dispatch(persistence: Any, artifact_root: Path) -> Worke
             request=context.request,
             observed_at=context.observed_at,
         )
+        if search_receipt is not None and search_receipt.decision is WorkerHandleDecision.COMPLETE:
+            dispatch = await dispatch_store.load_by_request_fingerprint(
+                context.entry.request_fingerprint
+            )
+            if not isinstance(dispatch, SearchDispatchRecord):
+                return WorkerHandleResult(
+                    context.entry.fingerprint,
+                    WorkerHandleDecision.RETRY,
+                    rejection_reason="completed search dispatch could not be reloaded for phase progress",
+                )
+            await progress_client(
+                principal=dispatch.owner_id,
+                request_id=content_digest(
+                    {
+                        "schema": "strategy-lab.walk-forward-completion-notice.v1",
+                        "attempt_id": dispatch.request.attempt_id,
+                        "dispatch_fingerprint": dispatch.request.fingerprint,
+                    }
+                ),
+                experiment_fingerprint=dispatch.experiment_fingerprint,
+                attempt_id=dispatch.request.attempt_id,
+                dispatch_request_fingerprint=dispatch.request.fingerprint,
+                queue_name=queue_name,
+            )
         return result if search_receipt is None else search_receipt
 
     async def lease_state_reader(request: WorkerExecutionRequest):

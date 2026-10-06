@@ -96,6 +96,7 @@ from app.strategy_lab_v2.postgres_forward_state import (
     ForwardStateMutationResolution,
 )
 from app.strategy_lab_v2.postgres_result_publication import PublicationStateResolution
+from app.strategy_lab_v2.postgres_search_dispatch import SearchDispatchRecord
 from app.strategy_lab_v2.postgres_walk_forward_plan import WalkForwardDefinitionResolution
 from app.strategy_lab_v2.postgres_walk_forward_summary import WalkForwardSummaryResolution
 from app.strategy_lab_v2.progress import ExecutionProgressState
@@ -1950,6 +1951,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         idempotency_key: str,
         experiment_fingerprint: str,
         queue_name: str,
+        replay_running: bool = True,
     ) -> tuple[tuple[int, SearchDispatchResolution], ...]:
         """Dispatch every nonterminal slot in the current persisted phase.
 
@@ -1965,6 +1967,8 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise ValueError("idempotency_key must not be empty")
         if not isinstance(queue_name, str) or not queue_name.strip():
             raise ValueError("queue_name must not be empty")
+        if not isinstance(replay_running, bool):
+            raise TypeError("replay_running must be a boolean")
         require_sha256_digest(experiment_fingerprint, field_name="experiment_fingerprint")
         owner = _principal_identity(principal)
         definition = await self._persistence.walk_forward_plans.load(
@@ -2004,6 +2008,8 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                 SearchCandidatePhase.CANCELLED,
             }:
                 continue
+            if candidate.phase is SearchCandidatePhase.RUNNING and not replay_running:
+                continue
             ordinal = (
                 candidate.attempt_count
                 if candidate.phase is SearchCandidatePhase.RUNNING
@@ -2042,6 +2048,170 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             }:
                 break
         return tuple(dispatched)
+
+    async def reconcile_walk_forward_terminal(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        experiment_fingerprint: str,
+        attempt_id: str,
+        dispatch_request_fingerprint: str,
+        queue_name: str,
+    ) -> dict[str, Any]:
+        """Advance, dispatch, or finalize walk-forward from durable completion.
+
+        The internal worker notification is only a wake-up hint. This method
+        authenticates it against PostgreSQL dispatch, search-state, and result
+        completion records before changing any walk-forward state.
+        """
+
+        if not isinstance(request_id, str) or not request_id.strip():
+            raise ValueError("request_id must not be empty")
+        require_sha256_digest(experiment_fingerprint, field_name="experiment_fingerprint")
+        require_sha256_digest(
+            dispatch_request_fingerprint,
+            field_name="dispatch_request_fingerprint",
+        )
+        if not isinstance(attempt_id, str) or not attempt_id.strip():
+            raise ValueError("attempt_id must not be empty")
+        if not isinstance(queue_name, str) or not queue_name.strip():
+            raise ValueError("queue_name must not be empty")
+        owner = _principal_identity(principal)
+        dispatch = await self._persistence.search_dispatch.load_by_request_fingerprint(
+            dispatch_request_fingerprint
+        )
+        if (
+            not isinstance(dispatch, SearchDispatchRecord)
+            or dispatch.owner_id != owner.id
+            or dispatch.experiment_fingerprint != experiment_fingerprint
+            or dispatch.request.attempt_id != attempt_id
+        ):
+            raise ApiAdapterError(
+                ApiError(
+                    ApiErrorCode.AUTHORIZATION_REQUIRED,
+                    "terminal progress notification differs from its durable dispatch",
+                    request_id,
+                    403,
+                    False,
+                )
+            )
+
+        definition = await self._persistence.walk_forward_plans.load(
+            principal=owner,
+            experiment_fingerprint=experiment_fingerprint,
+        )
+        if not isinstance(definition, WalkForwardExecutionDefinition):
+            return {
+                "decision": "not_walk_forward",
+                "dispatched_candidate_indices": (),
+                "summary_fingerprint": None,
+            }
+
+        state = await self._persistence.search_state.load(
+            principal=owner,
+            experiment_fingerprint=experiment_fingerprint,
+        )
+        if state is None or dispatch.candidate_index >= len(state.candidates):
+            raise ValueError("terminal walk-forward candidate state is unavailable")
+        candidate = state.candidates[dispatch.candidate_index]
+        if (
+            candidate.phase is not SearchCandidatePhase.SUCCEEDED
+            or candidate.attempt_id != attempt_id
+            or candidate.result_fingerprint is None
+        ):
+            raise ApiAdapterError(
+                ApiError(
+                    ApiErrorCode.CONFLICT,
+                    "terminal progress notification has no successful durable queue receipt",
+                    request_id,
+                    409,
+                    True,
+                    {"candidate_index": dispatch.candidate_index},
+                )
+            )
+        completion_ledger = await self._persistence.result_completion.load_completion_ledger(
+            principal=owner
+        )
+        completion = next(
+            (item for item in completion_ledger.records if item.attempt_id == attempt_id),
+            None,
+        )
+        if completion is None or completion.result_fingerprint != candidate.result_fingerprint:
+            raise ValueError("terminal progress notification lacks matching completion evidence")
+        if state.cancellation_requested:
+            return {
+                "decision": "waiting",
+                "dispatched_candidate_indices": (),
+                "summary_fingerprint": None,
+            }
+
+        transition = await self.append_walk_forward_oos_candidates(
+            principal=owner,
+            request_id=request_id,
+            experiment_fingerprint=experiment_fingerprint,
+        )
+        state = transition.resolution.state
+        expected_training_count = len(definition.training_plan.tasks)
+        if transition.resolution.decision is SearchStateDecision.REJECT:
+            reason = transition.resolution.rejection_reason or ""
+            if "all training candidates must succeed" not in reason:
+                raise ApiAdapterError(
+                    ApiError(
+                        ApiErrorCode.CONFLICT,
+                        reason or "walk-forward phase could not be reconciled",
+                        request_id,
+                        409,
+                        True,
+                        {"experiment_fingerprint": experiment_fingerprint},
+                    )
+                )
+        elif len(state.candidates) < expected_training_count:
+            raise ValueError("walk-forward phase queue lost training candidates")
+
+        batch_key = content_digest(
+            {
+                "schema": "strategy-lab.walk-forward-completion-batch.v1",
+                "definition_fingerprint": definition.fingerprint,
+            }
+        )
+        batch = await self.dispatch_walk_forward_ready_candidates(
+            principal=owner,
+            request_id=request_id,
+            idempotency_key=batch_key,
+            experiment_fingerprint=experiment_fingerprint,
+            queue_name=queue_name,
+            replay_running=False,
+        )
+        state = await self._persistence.search_state.load(
+            principal=owner,
+            experiment_fingerprint=experiment_fingerprint,
+        )
+        if state is None:
+            raise ValueError("walk-forward search queue disappeared during reconciliation")
+        accepted_batch = tuple(
+            (index, resolution)
+            for index, resolution in batch
+            if resolution.decision
+            in {SearchDispatchDecision.ENQUEUE, SearchDispatchDecision.REPLAY_EXISTING}
+        )
+        summary_fingerprint = None
+        decision = "dispatched" if accepted_batch else "waiting"
+        if len(state.candidates) > expected_training_count and all(
+            item.phase is SearchCandidatePhase.SUCCEEDED for item in state.candidates
+        ):
+            summary = await self.persist_walk_forward_oos_summary(
+                principal=owner,
+                request_id=request_id,
+                experiment_fingerprint=experiment_fingerprint,
+            )
+            summary_fingerprint = summary.summary.fingerprint
+            decision = "finalized"
+        return {
+            "decision": decision,
+            "dispatched_candidate_indices": tuple(index for index, _ in accepted_batch),
+            "summary_fingerprint": summary_fingerprint,
+        }
 
     async def create_resource(
         self,

@@ -2,8 +2,10 @@
 
 This ASGI app is intended to run in its own single-worker process over a Unix
 domain socket. Trial hydration and runtime materialization therefore never run
-on the public FastAPI event loop. Only the API process can invoke the service
-when it has the shared local token and access to the socket volume.
+on the public FastAPI event loop. The API dispatch client and dedicated
+workers' terminal-progress client use the shared local token; completion hints
+are reconciled against PostgreSQL dispatch and result receipts before queue
+state can change.
 """
 
 from __future__ import annotations
@@ -38,7 +40,10 @@ from app.strategy_lab_v2.search_dispatch_rpc import (
     SEARCH_DISPATCH_RPC_MAX_REQUEST_BYTES,
     SEARCH_DISPATCH_RPC_MAX_RESPONSE_BYTES,
     SEARCH_DISPATCH_RPC_PATH,
+    WALK_FORWARD_PROGRESS_RPC_PATH,
     SearchDispatchRpcCommand,
+    WalkForwardProgressRpcCommand,
+    WalkForwardProgressRpcReceipt,
     encode_error_response,
     encode_result_response,
 )
@@ -183,6 +188,90 @@ def create_search_preparation_app(
                     command.request_id,
                     500,
                     False,
+                )
+            )
+
+    @app.post(WALK_FORWARD_PROGRESS_RPC_PATH)
+    async def reconcile_walk_forward_progress(request: Request) -> Response:
+        supplied_token = _bearer_token(request.headers.get("authorization"))
+        if supplied_token is None or not hmac.compare_digest(supplied_token, auth_token):
+            return _error_response(
+                ApiError(
+                    ApiErrorCode.AUTHORIZATION_REQUIRED,
+                    "local preparation authentication is required",
+                    _fallback_request_id(request),
+                    401,
+                    False,
+                )
+            )
+        content_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+        if content_type != "application/json":
+            return _error_response(
+                ApiError(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "local preparation requests must use JSON",
+                    _fallback_request_id(request),
+                    415,
+                    False,
+                )
+            )
+        try:
+            raw_body = await request.body()
+            if len(raw_body) > max_request_bytes:
+                raise ValueError("walk-forward progress command exceeds its byte limit")
+            wire_value = json.loads(
+                raw_body.decode("utf-8"),
+                object_pairs_hook=_unique_object,
+                parse_constant=_reject_constant,
+            )
+            command = WalkForwardProgressRpcCommand.from_wire(wire_value)
+            if request.headers.get("x-request-id") != command.request_id:
+                raise ValueError("request ID header differs from the command")
+        except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as error:
+            return _error_response(
+                ApiError(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "walk-forward progress command is invalid",
+                    _fallback_request_id(request),
+                    422,
+                    False,
+                    {"reason": str(error)[:256]},
+                )
+            )
+
+        try:
+            async with app.state.dispatch_lock:
+                value = await adapter.reconcile_walk_forward_terminal(
+                    **command.callback_arguments()
+                )
+            receipt = WalkForwardProgressRpcReceipt.from_wire(
+                {
+                    **value,
+                    "schema": "strategy-lab.walk-forward-progress-result.v1",
+                    "dispatched_candidate_indices": list(value["dispatched_candidate_indices"]),
+                }
+            )
+            return JSONResponse(
+                {
+                    "receipt": receipt.to_wire(),
+                    "schema": "strategy-lab.walk-forward-progress-result.v1",
+                },
+                status_code=200,
+            )
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except Exception:
+            _LOG.exception(
+                "walk-forward completion reconciliation failed",
+                extra={"request_id": command.request_id},
+            )
+            return _error_response(
+                ApiError(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "walk-forward completion reconciliation failed",
+                    command.request_id,
+                    500,
+                    True,
                 )
             )
 

@@ -12,7 +12,9 @@ from app.strategy_lab_v2.api_router import ApiAdapterError
 from app.strategy_lab_v2.application import PostgresStrategyLabV2Adapter
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import ScientificTrial
+from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.experiments import WalkForwardMode, WalkForwardSpec
+from app.strategy_lab_v2.postgres_search_dispatch import SearchDispatchRecord
 from app.strategy_lab_v2.postgres_walk_forward_plan import (
     WalkForwardDefinitionDecision,
     WalkForwardDefinitionResolution,
@@ -478,6 +480,97 @@ async def test_bulk_dispatch_replays_each_slot_with_stable_distinct_idempotency_
     assert tuple(item["attempt_id"] for item in observed[2:]) == tuple(
         item["attempt_id"] for item in observed[:2]
     )
+
+
+@pytest.mark.asyncio
+async def test_terminal_reconciliation_authenticates_receipt_and_dispatches_remaining_training() -> (
+    None
+):
+    adapter, _reader, _plan_store, definition, first, second = _setup()
+
+    async def resolve_calendar(**_kwargs: Any):
+        return definition.observation_boundaries
+
+    observed: list[dict[str, Any]] = []
+
+    async def dispatch(**kwargs: Any):
+        observed.append(kwargs)
+        return SimpleNamespace(decision=SearchDispatchDecision.ENQUEUE)
+
+    adapter._walk_forward_observation_calendar = resolve_calendar
+    adapter.dispatch_search_candidate = dispatch
+    await adapter.create_walk_forward_definition(
+        principal=User(),
+        request_id="reconcile-create",
+        idempotency_key="reconcile-create-key",
+        experiment_fingerprint=definition.experiment_fingerprint,
+        request=WalkForwardDefinitionRequest(
+            candidate_fingerprints=(first.trial_id, second.trial_id),
+            spec=definition.spec,
+            metric_id=definition.metric_id,
+            direction=definition.direction,
+            max_tasks=definition.max_tasks,
+        ),
+    )
+
+    state = adapter._persistence.search_state.states[definition.experiment_fingerprint]
+    attempt_id = "finished-training-attempt"
+    completed_at = datetime(2026, 10, 6, tzinfo=UTC)
+    started = start_search_candidate(state, 0, attempt_id=attempt_id, now=completed_at)
+    result_fingerprint = content_digest("finished-training-result")
+    succeeded = record_search_candidate_terminal(
+        started.state,
+        0,
+        attempt_id=attempt_id,
+        phase=SearchCandidatePhase.SUCCEEDED,
+        result_fingerprint=result_fingerprint,
+        now=completed_at,
+    )
+    adapter._persistence.search_state.states[definition.experiment_fingerprint] = succeeded.state
+    dispatch_request = DispatchRequest(
+        "finished-dispatch-key",
+        attempt_id,
+        content_digest("finished-payload"),
+        "strategy-backtest",
+        completed_at,
+    )
+
+    class DispatchStore:
+        async def load_by_request_fingerprint(self, fingerprint: str):
+            assert fingerprint == dispatch_request.fingerprint
+            return SearchDispatchRecord(
+                "42",
+                definition.experiment_fingerprint,
+                0,
+                dispatch_request,
+            )
+
+    class CompletionStore:
+        async def load_completion_ledger(self, *, principal: Any):
+            assert principal.id == "42"
+            return SimpleNamespace(
+                records=(
+                    SimpleNamespace(
+                        attempt_id=attempt_id,
+                        result_fingerprint=result_fingerprint,
+                    ),
+                )
+            )
+
+    adapter._persistence.search_dispatch = DispatchStore()
+    adapter._persistence.result_completion = CompletionStore()
+    progress = await adapter.reconcile_walk_forward_terminal(
+        principal=User(),
+        request_id="reconcile-finished-attempt",
+        experiment_fingerprint=definition.experiment_fingerprint,
+        attempt_id=attempt_id,
+        dispatch_request_fingerprint=dispatch_request.fingerprint,
+        queue_name="strategy-backtest",
+    )
+
+    assert progress["decision"] == "dispatched"
+    assert progress["dispatched_candidate_indices"] == (1,)
+    assert [item["candidate_index"] for item in observed] == [1]
 
 
 @pytest.mark.asyncio
