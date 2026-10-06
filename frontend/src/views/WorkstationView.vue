@@ -52,6 +52,8 @@
               <div><dt>Ctrl+4</dt><dd>Set the active chart to 15-minute bars</dd></div>
               <div><dt>Ctrl+5</dt><dd>Set the active chart to 30-minute bars</dd></div>
               <div><dt>Ctrl+6</dt><dd>Set the active chart to hourly bars</dd></div>
+              <div><dt>1</dt><dd>Set the active chart to daily bars</dd></div>
+              <div><dt>5</dt><dd>Set the active chart to weekly bars</dd></div>
               <div><dt>/</dt><dd>Open the active chart's plot library and search indicators</dd></div>
               <div><dt>[ / ]</dt><dd>Move the active chart backward or forward one bar; Shift moves five bars</dd></div>
               <div><dt>Ctrl+wheel</dt><dd>Over a chart: change timeframe; over a WatchList: move through symbols</dd></div>
@@ -258,6 +260,10 @@ const DIRECT_CHART_TIMEFRAME_SHORTCUTS: Readonly<Record<string, Timeframe>> = {
   '4': 'M15',
   '5': 'M30',
   '6': 'H1',
+}
+const DIRECT_CHART_PERIOD_SHORTCUTS: Readonly<Record<string, Timeframe>> = {
+  '1': 'D1',
+  '5': 'W1',
 }
 const STANDARD_CHART_STYLES = ['hlc', 'ohlc', 'candles', 'line'] as const
 const route = useRoute()
@@ -2050,6 +2056,21 @@ function handleKeydown(event: KeyboardEvent) {
       if (historyNavigationTarget === previous) historyNavigationTarget = null
     })
     return
+  }
+  if (!event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+    const timeframe = DIRECT_CHART_PERIOD_SHORTCUTS[event.key]
+    if (timeframe) {
+      const activeTab = workspaceStore.activeTab
+      const activeWindowKey = isPopout.value
+        ? String(route.params.windowKey ?? '')
+        : activeTab?.active_window_key
+      const activeWindow = activeTab?.windows.find(window => window.instance_key === activeWindowKey)
+      if (activeWindow?.tool_type === 'chart' && activeWindowKey
+        && workspaceStore.updateToolTimeframe(activeWindowKey, timeframe)) {
+        event.preventDefault()
+        return
+      }
+    }
   }
   if (/^[a-z0-9.=]$/i.test(event.key) && !event.ctrlKey && !event.metaKey && !event.altKey) {
     event.preventDefault()

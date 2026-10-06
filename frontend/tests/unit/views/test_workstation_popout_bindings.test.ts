@@ -513,6 +513,37 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('maps supported plain number shortcuts to daily and weekly active-chart intervals', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    harness.workspace.activeTab.active_window_key = 'chart-main'
+    harness.workspace.updateToolTimeframe.mockReturnValue(true)
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const workstation = wrapper.find('.workstation').element
+
+    for (const [key, timeframe] of [['1', 'D1'], ['5', 'W1']] as const) {
+      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
+      workstation.dispatchEvent(event)
+      expect(event.defaultPrevented).toBe(true)
+      expect(harness.workspace.updateToolTimeframe).toHaveBeenLastCalledWith('chart-main', timeframe)
+    }
+
+    harness.workspace.updateToolTimeframe.mockClear()
+    const unsupportedInterval = new KeyboardEvent('keydown', { key: '2', bubbles: true, cancelable: true })
+    workstation.dispatchEvent(unsupportedInterval)
+    expect(unsupportedInterval.defaultPrevented).toBe(true) // remains type-to-search
+    expect(harness.workspace.updateToolTimeframe).not.toHaveBeenCalled()
+
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+    const nonChart = new KeyboardEvent('keydown', { key: '1', bubbles: true, cancelable: true })
+    workstation.dispatchEvent(nonChart)
+    expect(nonChart.defaultPrevented).toBe(true) // symbol search retains ownership
+    expect(harness.workspace.updateToolTimeframe).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
   it('cycles supported Ctrl+B chart styles only on the active chart', async () => {
     routeState.path = '/'
     routeState.params = {}
