@@ -12514,3 +12514,37 @@ loss, and reject mismatched or absent bootstrap bindings. Preserve direct
 process-factory tests that deliberately build fixed fixtures without dispatch
 context. This enables the subsequent production bootstrap artifact builder;
 do not fabricate a synthetic `before_event` or canonical ordering.
+
+## 2026-10-06 - Forward process bootstrap-context propagation
+
+The persistent session now passes each accepted delivery and authenticated
+pre-event context into native process creation. A process replacement receives
+the exact delivery/context associated with its requested checkpoint, and the
+managed session retains those inputs for explicit recovery. A restore with no
+cached process is a no-op: identifiers alone cannot reconstruct source-bound
+inputs, so the next accepted delivery supplies them. The hardened factory
+rejects partial or rebound launch context before plan construction while
+preserving two-argument fixed-fixture plan builders that intentionally omit a
+live delivery.
+
+Validation passed: forward session suite 19/19; focused process-context tests
+2/2; Ruff on all four changed Python files; MyPy across 407 Strategy Lab and
+runtime files; focused formatting and `git diff --check`. The complete process
+suite remains unverified because its existing `asyncio.to_thread` process
+tests stall during `asyncio.run()` shutdown in this managed Python environment.
+A minimal Python 3.12.4 reproduction prints that the worker function completed,
+then hangs inside `asyncio.runners.Runner.close`; this narrows the issue from
+the previously observed subprocess stderr drain and is not evidence of a
+product-process failure. Those interrupted commands are recorded as incomplete,
+not passing. Docker-backed execution was not needed for this host-side context
+propagation boundary.
+
+Implementation commit `ae271efffbd48ac14f4705212aa9b3d34d92aeb3` is pushed to
+`origin/feat/strategy-lab-v2`.
+
+The next implementation context is the exact per-owner bootstrap artifact and
+RC5 plan builder, driven by the already-resolved delivery/context and explicit
+platform history readers. Do not synthesize canonical event identity/order or
+read dependency-local rows as a substitute. Stable Nautilus 2.x remains
+unnecessary; retain the qualified exact RC5 pin. Separately investigate the
+managed Python executor-shutdown issue before claiming full package validation.
