@@ -9399,4 +9399,67 @@ Stremio still running. Host capacity is worse: 1.7 GiB available RAM, 13 GiB
 swap in use, and load 4.35/4.87/3.94. Do not start the ETF browser gate yet;
 continue polling wait session 32186, then recheck all resources when it
 returns. No external container or worktree was modified.
+
+### Full gate and browser retry — 2026-10-06
+
+The resource condition improved enough to run the required local profile from
+this exact branch worktree. `make validate-integration` passed workstream
+validation, dependency and migration checks, Ruff/format, backend coverage
+(1,900 passed; 81.18%), frontend unit tests (947 passed), production build,
+Compose contracts, provider-probe policy, and research-runner probes. The
+gate's functional-browser stage ended red on the generic TC2000 F8u chart-to-
+watchlist drag test: its expected RSI header was not found. The same F8u case
+passed when rerun alone against a fresh seeded branch stack.
+
+A fresh full functional flow rerun completed 144 passed and 5 skipped, with 4
+failures. Three reported repeated `net::ERR_NETWORK_CHANGED` requests against
+the local app (F8g-boolean-column, F8w, and F8x-library); the fourth was a
+login redirect timeout in F8r-rotation-narrow. F8u passed again in this full
+rerun. The browser failures are outside ETF behavior and have not been masked
+or changed. The independent 104-test visual matrix passed after its popup
+teardown assertion was hardened. The most recent full `make validate-integration`
+still exits red at `e2e-functional`; its explicit visual stage therefore did
+not run in that command. Do not call the consolidated local gate green.
+
+The ETF test stack, volumes, and its generated images were removed by the
+branch-owned cleanup. A read-only post-cleanup inventory confirms only the six
+`feat-tc2000-frontend-rework` services and Stremio remain; those external
+containers were not changed. Host headroom at the final check was approximately
+3.8 GiB available RAM, 5.6 GiB swap in use, and load 8.22/5.79/4.97. Docker
+events showed normal ETF stack teardown and unrelated `none`-network
+connect/disconnect activity, but do not establish a causal source for the
+browser's `ERR_NETWORK_CHANGED` reports.
+
+Current code-derived provider counts remain 496 registered / 422 native / 74
+fallback-only. The Anydrus/NDOW current artifact declares 77 rows and the
+adapter parsed all 77 including cash; the live test now compares against the
+issuer-declared count with a 70-row sanity floor. The 610-test adapter suite,
+targeted NDOW live test, selected Ruff/format checks, validator, type-check,
+ETF panel/view tests (17 passed), and frontend production build passed.
+
+AC7 remains open: the full local browser gate was not green, and exact-SHA CI
+for the pending changeset has not yet run. AC8 remains open for a clean,
+synchronized review checkpoint. AC10 still depends on the separate provider
+platform reaching staging; AC14 is the 30-day post-integration/deployment
+observation. This is agent-owned work: the human does not need to launch the
+app or run these tests. Next action is to commit/push this reviewed source
+changeset on this branch, obtain its exact-SHA CI receipt, then retry the local
+browser profile only when browser-to-local-app networking is stable. Keep the
+goal active and incomplete; do not integrate, promote, deploy, or modify any
+other worktree.
+
+### Pushed source changeset — 2026-10-06
+
+The four-file Anydrus evidence/live-contract and visual popup teardown changeset
+was committed as `e4ad359ed5a95af9c0a948af3a71cc43cb530686` and pushed to
+`origin/feat/etf-holdings-constituents`. `git ls-remote` and the local tracking
+ref both resolve to that exact SHA. Exact-SHA CI run
+[`37503368911`](https://github.com/jagnelo/charting-platform/actions/runs/37503368911)
+started for this SHA; Backend Tests, Frontend Unit Tests, and Branch-declared
+Tests were in progress at this checkpoint. The hosted run does not replace the
+red local full-stack browser result. The workstream remains at ten of fourteen
+completed criteria, with AC7/AC8 open, AC10 waiting for the provider-platform
+staging dependency, and AC14 remaining post-integration/deployment. Next action:
+poll the exact-SHA jobs, record their terminal results, and continue attempting
+the agent-owned browser gate only after the local-app network is stable.
 *** End of File
