@@ -110,6 +110,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "latest_checkpoint": "2026-10-07: ETF-owned deterministic suites remain green (739 backend tests, 17 frontend tests, Tier-0 safety invariants, provider-ledger invariants, and production build). The CI-equivalent visual run passed 101/104 with three stable 1080p Study Lab baseline deltas; the direct live matrix was diagnostically interrupted after serial issuer transport timeouts and is not acceptance evidence. Provider-platform 88132e9145a08d1c935a0111b3dba0fbd88bdff1 is still not an ancestor of staging 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35 and still lacks ETF_HOLDINGS. Goal remains active.",
+  "current_blocker_latest": "AC7 remains open for the three stable 1080p Study Lab visual baseline deltas and incomplete live-provider acceptance; AC10 remains external because provider-platform 88132e9145a08d1c935a0111b3dba0fbd88bdff1 is not in staging and lacks ETF_HOLDINGS; AC14 remains post-integration observation. Docker is available again and the CI-equivalent container comparison has already been completed. No human app/test action is required.",
   "goal_unavailable_reason": null,
   "head": "1f0e49a58519b99803fcb6dd7234ba49d7b3d86f",
   "implementation_sha": "1f0e49a58519b99803fcb6dd7234ba49d7b3d86f",
