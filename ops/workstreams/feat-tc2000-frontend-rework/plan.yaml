@@ -20,6 +20,17 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  At pushed product commit 82cf7df90b0749751c9efd9041c575a3a250285c, the TC
+  active chart cycles its date pointer Off -> On -> On with data values on `.`.
+  The existing crosshair and OHLCV box are reused; chart configuration records
+  the mode, consecutive browser keypresses retain focus, and no provider/data
+  acquisition was added. Workstation bindings pass 43/43; full serial frontend
+  Vitest passes 130 files/1,227 tests; Vue type-check/production build pass;
+  authenticated Chromium passes the 3-mode cycle 1/1. The unchanged Help
+  screenshot oracle differs by 59,101 pixels (3.0%) against 0.5%; no baseline,
+  mask, threshold, or skip changed. This visual review remains open.
+  Generic integration, broader R1/R5/R6 and AC4-AC7 evidence, exact V25 review,
+  and staging-gated provider/ETF consumption remain open.
   Current TC frontend parity covers supported Ctrl+number intraday shortcuts,
   plain 1/Daily and 5/Weekly shortcuts, Ctrl+B HLC/OHLC/Candles/Line cycling,
   and `/` opening the active chart's plot library. Plain period shortcuts are
@@ -171,17 +182,20 @@ current_blocker: >-
   passed. Full frontend coverage, generic integration, broader R1/R5/R6 and AC7,
   exact V25 review, and staging-gated provider/ETF consumer work remain open.
 active_changeset_context:
-  name: TC2000 V25 direct daily and weekly period shortcuts
+  name: TC2000 V25 active-chart date-pointer mode cycle
   status: product_commit_pushed_validated_visual_review_open
-  commit_sha: 1db492d1346c47e872b717480d2e6bfa45e1949f
-  remote_sha: 1db492d1346c47e872b717480d2e6bfa45e1949f
+  commit_sha: 82cf7df90b0749751c9efd9041c575a3a250285c
+  remote_sha: 82cf7df90b0749751c9efd9041c575a3a250285c
   intent: >-
-    Implement the official plain 1/Daily and 5/Weekly active-chart shortcuts
-    using the existing timeframe contract, preserving Ctrl+number mappings and
-    non-chart symbol search. No provider/ETF acquisition.
+    Implement the official period-key chart date-pointer cycle through the
+    existing crosshair/OHLCV rendering and persist its mode without acquiring
+    data or taking provider/ETF scope.
   owned_paths:
+    - frontend/src/components/chart/UPlotChart.vue
+    - frontend/src/components/workstation/WorkstationToolContent.vue
     - frontend/src/views/WorkstationView.vue
     - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
+    - frontend/tests/e2e/tc2000_date_pointer.spec.ts
     - frontend/tests/e2e/flows.spec.ts
   next_action: >-
     Continue remaining TC-owned R1/R5/R6 implementation and exact-tip gates.
@@ -225,6 +239,7 @@ owned_paths:
   - frontend/src/lib/workstation/
   - frontend/tests/unit/
   - frontend/tests/e2e/flows.spec.ts
+  - frontend/tests/e2e/tc2000_date_pointer.spec.ts
   - frontend/tests/e2e/tc2000_visual.spec.ts
   - frontend/tests/e2e/tc2000_visual.spec.ts-snapshots/
   - frontend/tests/e2e/workstation_performance.spec.ts

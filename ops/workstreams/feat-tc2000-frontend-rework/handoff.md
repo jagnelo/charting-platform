@@ -1,5 +1,19 @@
 # feat/tc2000-frontend-rework
 
+## In progress — next bounded frontend parity slice
+
+The official `.` date-pointer mode cycle is implemented in the active chart:
+Off → On → On with data values. It reuses current chart cursor/OHLCV rendering,
+persists through the chart configuration and preserves consecutive-key focus.
+Focused, full frontend, build, and authenticated
+Chromium checks pass. The protected Help screenshot remains above its unchanged
+0.5% threshold (59,101 pixels, 3.0%); no screenshot policy or baseline was
+modified. Product commit `82cf7df90b0749751c9efd9041c575a3a250285c` is pushed;
+the workstream and roadmap checkpoint follows in a separate documentation
+commit. Next work remains within TC-owned frontend parity; do not add
+provider/ETF/data-readiness behavior or consume the sibling branches until those
+branches reach staging.
+
 ## 2026-10-06 — Plain-number Daily/Weekly interval shortcuts pushed
 
 Product commit `1db492d1346c47e872b717480d2e6bfa45e1949f` implements the

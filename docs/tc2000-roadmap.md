@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-06
 
+## 2026-10-06 — TC2000 date-pointer mode cycle
+
+The [official V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+defines `.` to cycle the active chart's date pointer Off → On → On with data
+values. The chart reuses its existing uPlot crosshair and OHLCV readout; no
+data-source or provider behavior is introduced. The focused WorkstationView
+suite passed 43/43, the complete serial frontend suite passed 130 files /
+1,227 tests, and `npm run build` passed vue-tsc/Vite. Authenticated Chromium
+passed the repeated mode-cycle flow (1/1), including chart focus preservation.
+The existing Help screenshot oracle was
+rerun unchanged at visual-1080p-100 and remains over tolerance: 59,101 pixels
+(3.0%) differ against 0.5%. No baseline, mask, threshold, or skip changed.
+Exact V25 visual review, the generic integration gate, broader roadmap gates,
+and staging-gated provider/ETF consumption remain open.
+
 ## 2026-10-06 — Plain-number Daily/Weekly chart shortcuts
 
 Product commit `1db492d1346c47e872b717480d2e6bfa45e1949f` implements TC2000

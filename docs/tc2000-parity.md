@@ -1,5 +1,17 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-10-06 — Date-pointer display cycle
+
+The [current TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+defines `.` as a cycle through Off, On, and On with data values. The active
+chart routes the key to its existing crosshair and OHLCV readout; editor input
+and non-chart type-to-search are preserved. Authenticated Chromium passed the
+consecutive three-mode cycle (1/1), including focus retention. Workstation
+bindings passed 43/43, full frontend Vitest passed 130 files
+/ 1,227 tests, and type-check/build passed. The unchanged Help screenshot
+oracle remains red at 59,101 pixels (3.0%) against 0.5%; no baseline, mask,
+threshold, or skip changed.
+
 ## 2026-10-06 — Direct Daily/Weekly active-chart shortcuts
 
 The [current TC2000 V25 shortcut reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)

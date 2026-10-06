@@ -52,7 +52,12 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
+    "docs/tc2000-parity.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -67,7 +72,7 @@
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
     ],
-    "known_bytes": 654125405,
+    "known_bytes": 656025707,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
@@ -78,7 +83,7 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 651057501,
+    "volume_bytes": 652957803,
     "volume_count": 4,
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
@@ -126,14 +131,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "76d9fb144f84e12ea86a3ac5f4ecad75484115b4",
+  "head": "82cf7df90b0749751c9efd9041c575a3a250285c",
   "implementation_sha": "6dc93637d9786eb22cf6bdfd13cb7308bbcfde5e",
   "interrupted": false,
   "last_checkpoint": "2026-10-06T15:11:23.930804+00:00",
-  "last_human_progress_update": "2026-10-06T15:53:36.959732+00:00",
+  "last_human_progress_update": "2026-10-06T16:29:58.746483+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "134bc02d8128de4133d0fcb6826ab38517958e00b46e0fb781e3465ca7346b10",
+  "plan_hash": "4489bb693e7550c66e01b537cef3c7b8ff81fc39b4e184a4481f0d4a95d9fc69",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -147,11 +152,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "Product commit 1db492d1346c47e872b717480d2e6bfa45e1949f is pushed with plain 1/Daily and 5/Weekly active-chart keys; focused 42/42, full serial frontend 130 files/1,226 tests, Vue type-check/build, and isolated loopback browser transitions pass. Protected Help screenshot is 58,238 pixels (3.0%) over unchanged 0.5%; no oracle changes. Generic integration, exact V25 visual review, broader R1/R5/R6 and AC4-AC7 remain open. Provider/ETF refs remain outside staging.",
+    "current_blocker": "Product commit 82cf7df90 is pushed and validated: 43/43 focused bindings; 130 files and 1,227 frontend tests; build and authenticated browser 1/1 pass. Help screenshot differs by 59,101 pixels (3.0%) over unchanged 0.5%. Generic integration and remaining AC4-AC7 / R1-R6 evidence remain open; provider and ETF dependencies remain outside staging.",
     "current_phase": "R1_V25_KEYBOARD_PARITY",
-    "next_action": "Continue the next bounded TC-owned workstation/Study/Strategy requirement, keep provider/ETF integrations deferred until both reach staging, and preserve the protected visual oracle. Stop at ready_for_human_review.",
+    "next_action": "Continue TC-owned frontend parity in this worktree; preserve the branch boundary and visual oracle; defer provider/ETF consumption until both reach staging; stop at ready_for_human_review.",
     "total": 9,
-    "updated_at": "2026-10-06T15:53:36.959705+00:00"
+    "updated_at": "2026-10-06T16:29:58.746456+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
@@ -167,7 +172,7 @@
     "remote_tracking_sha": "d413d845939e68e9738b621329fa8d63a419ddf8",
     "status": "synchronized"
   },
-  "remote": "76d9fb144f84e12ea86a3ac5f4ecad75484115b4",
+  "remote": "82cf7df90b0749751c9efd9041c575a3a250285c",
   "remote_sha": "6dc93637d9786eb22cf6bdfd13cb7308bbcfde5e",
   "remote_synchronized": true,
   "retained_docker_resources": [],
