@@ -14019,3 +14019,35 @@ changeset therefore remains in progress. Next, connect the selected OOS queue
 slots to the real PostgreSQL search-dispatch/outbox path and inject restart at
 the durable-dispatch/ACK boundary; preserve the exact attempt identity,
 training-only ranking, owner isolation, and no-duplicate replay assertions.
+
+## 2026-10-06 - Recovered OOS dispatch and Redis outbox replay
+
+The PostgreSQL-composed test now also wires the isolated worker profile,
+PostgreSQL search-dispatch/admission tables, transactional outbox tables, and
+the production RC-bound search-preparation resolver. It dispatches one
+training-selected OOS task through the real worker admission path, verifies
+the domain attempt is durably `RUNNING`, and constructs a fresh application
+adapter to replay the same dispatch intent. The attempt ID and envelope are
+unchanged; PostgreSQL retains exactly one admission, dispatch, payload, and
+outbox row, and foreign-owner lookup is denied.
+
+The test also relays that persisted outbox message to the local Redis test
+service. It simulates publisher loss after Redis accepts the message but
+before PostgreSQL acknowledges publication, reconstructs an adapter, retries
+the same outbox message, and verifies Redis reports exact replay with only one
+stream entry. PostgreSQL then commits the outbox acknowledgement by state
+fingerprint compare-and-set. This exercises the OOS dispatch and publisher
+ACK boundary; execution of the Nautilus OOS attempt through durable worker
+terminal settlement and Redis consumer ACK remains open. Existing generic
+consumer recovery integration does not substitute for that OOS-specific proof.
+
+Validation passed: 19 focused walk-forward, PostgreSQL dispatch, Redis
+consumer, and recovery tests; Ruff check/format, MyPy on the changed runtime
+and integration files, and `git diff --check`. The dispatch integration
+exposed a real bug: walk-forward dispatch published a queued attempt even
+though authoritative preparation requires a running attempt for lease and
+execution authorization. The application now applies the queued-to-running
+lifecycle transition before persisting the dispatch attempt and accepts that
+same state on idempotent replay. The active changeset remains in progress.
+Next, carry the recovered OOS dispatch through result materialization,
+durable worker terminal settlement, and consumer ACK after worker restart.

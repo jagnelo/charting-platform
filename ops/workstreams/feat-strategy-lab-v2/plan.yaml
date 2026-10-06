@@ -911,9 +911,16 @@ progress:
     retention pin; focused success/error/integrity tests pass, as does the
     PostgreSQL-backed ASGI integration. Its live Compose route has so far been
     exercised only as an unauthenticated request.
-    Remaining work includes the backtest/search/API/security/Compose criteria,
-    process-restart proof across the walk-forward training/OOS phase boundary,
-    and exact-tip branch gates.
+    The active walk-forward proof now uses PostgreSQL-backed domain/result
+    persistence, authoritative RC6 trial preparation, worker admission,
+    atomic OOS dispatch/outbox staging, and Redis publisher replay after a
+    simulated crash before PostgreSQL outbox acknowledgement. A fresh adapter
+    replays the same attempt/dispatch and PostgreSQL acknowledges exactly one
+    published outbox message. OOS consumer completion/ACK after a durable
+    terminal receipt is still only covered by generic worker integration,
+    not the recovered walk-forward OOS path. Broader worker/Compose restart
+    evidence and full backtest/search/API/security/Compose criteria remain,
+    along with exact-tip branch gates.
     The earlier forward-bootstrap artifact/plan composition slice remains
     incomplete; its production host composition and database/Redis crash
     recovery evidence remain in the broader acceptance scope.
@@ -921,10 +928,11 @@ progress:
     branches; unsupported options remain fail-closed pending canonical
     Greeks/delta/settlement evidence.
   next_action: >-
-    Close the durable walk-forward training-to-OOS phase boundary under
-    process restart, preserving training-only selection and idempotent OOS
-    dispatch. Then continue backtest/search, security, Compose and exact-tip
-    criteria. Reconcile the 13 browser failures only after the
+    Extend the recovered OOS path through worker terminal settlement and
+    Redis consumer ACK, proving ACK follows a matching durable result receipt
+    across worker restart. Preserve training-only selection, stable attempt
+    identity, and owner isolation. Then continue backtest/search, security,
+    Compose and exact-tip criteria. Reconcile the 13 browser failures only after the
     frontend owner has completed its work and shared-path semantics can be
     reviewed together. Finish security, Compose scaling, and exact-tip gates.
     Shared router registration, migrations, and overlapping upstream paths

@@ -90,6 +90,9 @@ from app.strategy_lab_v2.lifecycle import (
     ForwardEventObservation,
 )
 from app.strategy_lab_v2.lifecycle import (
+    transition_attempt as start_attempt_for_dispatch,
+)
+from app.strategy_lab_v2.lifecycle import (
     transition_forward_instance as validate_forward_transition,
 )
 from app.strategy_lab_v2.nautilus_trial_materializer import NautilusTrialRuntimeEvidence
@@ -2078,12 +2081,16 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         )
         if attempt is None:
             created_at = self._clock()
-            proposed = RunAttempt(
-                attempt_id=attempt_id,
-                trial_id=candidate.trial_fingerprint,
-                ordinal=ordinal,
-                state=AttemptState.QUEUED,
-                created_at=created_at,
+            proposed = start_attempt_for_dispatch(
+                RunAttempt(
+                    attempt_id=attempt_id,
+                    trial_id=candidate.trial_fingerprint,
+                    ordinal=ordinal,
+                    state=AttemptState.QUEUED,
+                    created_at=created_at,
+                ),
+                AttemptState.RUNNING,
+                now=created_at,
             )
             attributes = dict(freeze_json(proposed))
             attributes["resource_id"] = proposed.attempt_id
@@ -2121,7 +2128,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             or attempt.attempt_id != attempt_id
             or attempt.trial_id != candidate.trial_fingerprint
             or attempt.ordinal != ordinal
-            or attempt.state is not AttemptState.QUEUED
+            or attempt.state is not AttemptState.RUNNING
         ):
             raise ValueError(
                 "walk-forward attempt resource is missing or differs from its queue slot"

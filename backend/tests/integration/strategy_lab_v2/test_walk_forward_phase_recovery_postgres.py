@@ -5,22 +5,35 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from importlib import import_module
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
 from uuid import uuid4
 
 import pytest
+from redis.asyncio import Redis
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.application import PostgresStrategyLabV2Adapter
 from app.strategy_lab_v2.canonical import content_digest, freeze_json
+from app.strategy_lab_v2.conformance_fixtures import resolve_nautilus_rc_conformance
+from app.strategy_lab_v2.contracts import AttemptState, ProductClass, RunAttempt, ScientificTrial
+from app.strategy_lab_v2.outbox_relay import OutboxRelayDecision, relay_outbox_message
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
+from app.strategy_lab_v2.postgres_event_transaction import (
+    PostgresExecutionEventSchema,
+    PostgresExecutionEventTransactionAdapter,
+)
 from app.strategy_lab_v2.postgres_resources import PostgresResourceReader
 from app.strategy_lab_v2.postgres_result_materialization import (
     PostgresResultMaterializationAdapter,
     PostgresResultMaterializationSchema,
+)
+from app.strategy_lab_v2.postgres_search_dispatch import (
+    PostgresSearchDispatchAdapter,
+    PostgresSearchDispatchSchema,
 )
 from app.strategy_lab_v2.postgres_search_state import (
     PostgresSearchStateAdapter,
@@ -28,7 +41,17 @@ from app.strategy_lab_v2.postgres_search_state import (
 )
 from app.strategy_lab_v2.postgres_storage import PostgresAggregateStore, PostgresStorageSchema
 from app.strategy_lab_v2.postgres_walk_forward_plan import PostgresWalkForwardPlanAdapter
+from app.strategy_lab_v2.postgres_worker_state import (
+    PostgresWorkerStateAdapter,
+    PostgresWorkerStateSchema,
+)
+from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
 from app.strategy_lab_v2.resource_mutations import ResourceMutationRequest
+from app.strategy_lab_v2.search_dispatch_preparation import NautilusTrialPreparationContext
+from app.strategy_lab_v2.search_preparation_composition import (
+    SearchPreparationHostBindings,
+    create_search_preparation_evidence_resolver,
+)
 from app.strategy_lab_v2.search_state import (
     SearchCandidatePhase,
     SearchCandidateState,
@@ -36,19 +59,33 @@ from app.strategy_lab_v2.search_state import (
     SearchStateDecision,
 )
 from app.strategy_lab_v2.walk_forward_queue import initialize_walk_forward_training_queue
-from app.strategy_lab_v2.walk_forward_search import select_walk_forward_oos_tasks
+from app.strategy_lab_v2.walk_forward_search import (
+    WalkForwardExecutionDefinition,
+    select_walk_forward_oos_tasks,
+)
 from app.strategy_lab_v2.walk_forward_trials import (
     materialize_walk_forward_oos_trials,
     materialize_walk_forward_training_trials,
     training_score_from_result_manifest,
 )
+from app.strategy_lab_v2.workers import WorkerKind, WorkerProfile
 
 NOW = datetime(2026, 10, 6, 18, 0, tzinfo=UTC)
 _WALK_FORWARD_FIXTURES = import_module("app.strategy_lab_v2.tests.test_walk_forward_application")
 User = cast(Any, getattr(_WALK_FORWARD_FIXTURES, "User"))
 _setup = cast(Any, getattr(_WALK_FORWARD_FIXTURES, "_setup"))
-_inputs = cast(
-    Any, getattr(import_module("app.strategy_lab_v2.tests.test_nautilus_trial_assembly"), "_inputs")
+_PREPARATION_FIXTURES = import_module("app.strategy_lab_v2.tests.test_search_dispatch_preparation")
+_preparation_setup = cast(Any, getattr(_PREPARATION_FIXTURES, "_setup"))
+_CONFORMANCE_FIXTURES = import_module("app.strategy_lab_v2.tests.test_conformance_fixtures")
+_rc_probe = cast(Any, getattr(_CONFORMANCE_FIXTURES, "_rc_probe"))
+_rc_receipt = cast(Any, getattr(_CONFORMANCE_FIXTURES, "_rc_receipt"))
+_rc_runtime = cast(Any, getattr(_CONFORMANCE_FIXTURES, "_rc_runtime"))
+_RUNTIME_ABI = getattr(
+    import_module("app.strategy_lab_v2.tests.test_nautilus_trial_materializer"), "RUNTIME_ABI"
+)
+_JsonFrozenSeriesDecoder = getattr(
+    import_module("app.strategy_lab_v2.tests.test_nautilus_trial_assembly"),
+    "JsonFrozenSeriesDecoder",
 )
 _authoritative_result = getattr(
     import_module("app.strategy_lab_v2.tests.test_walk_forward_search"),
@@ -320,16 +357,18 @@ async def test_application_replays_oos_publication_after_postgres_phase_append_i
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_postgres_composed_walk_forward_training_selection_and_append_restart(
+async def test_postgres_composed_walk_forward_recovery_dispatch_and_outbox_restart(
+    tmp_path: Path,
     pg_container,
+    redis_url: str,
     test_database_url: str | None,
 ) -> None:
-    """Reload all phase inputs from PostgreSQL after an OOS append interruption."""
+    """Recover training selection, OOS dispatch, and outbox replay from PostgreSQL."""
 
     raw_url = test_database_url or pg_container.get_connection_url()
     engine = create_async_engine(_async_postgres_url(raw_url), pool_pre_ping=True)
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
-    suffix = uuid4().hex
+    suffix = uuid4().hex[:8]
     search_schema = PostgresSearchStateSchema(
         search_table=f"slv2_wf_full_search_{suffix}",
         candidate_table=f"slv2_wf_full_candidates_{suffix}",
@@ -341,26 +380,66 @@ async def test_postgres_composed_walk_forward_training_selection_and_append_rest
     manifest_schema = PostgresResultMaterializationSchema(
         manifest_table=f"slv2_wf_full_manifests_{suffix}"
     )
+    worker_schema = PostgresWorkerStateSchema(
+        profile_table=f"slv2_wf_full_worker_profiles_{suffix}",
+        reservation_table=f"slv2_wf_full_worker_reservations_{suffix}",
+        lease_table=f"slv2_wf_full_leases_{suffix}",
+        observation_table=f"slv2_wf_full_lease_observations_{suffix}",
+    )
+    event_schema = PostgresExecutionEventSchema(
+        event_table=f"slv2_wf_full_events_{suffix}",
+        cursor_table=f"slv2_wf_full_event_cursors_{suffix}",
+        audit_table=f"slv2_wf_full_audit_{suffix}",
+        outbox_table=f"slv2_wf_full_outbox_{suffix}",
+    )
+    dispatch_schema = PostgresSearchDispatchSchema(
+        admission_table=f"slv2_wf_full_admissions_{suffix}",
+        dispatch_table=f"slv2_wf_full_dispatches_{suffix}",
+        payload_table=f"slv2_wf_full_payloads_{suffix}",
+        outbox_table=event_schema.outbox_table,
+    )
+    statements = (
+        *search_schema.statements,
+        *aggregate_schema.statements,
+        *manifest_schema.statements,
+        *worker_schema.statements,
+        *event_schema.statements,
+        *dispatch_schema.statements,
+    )
     tables = (
         search_schema.search_table,
         search_schema.candidate_table,
         aggregate_schema.aggregate_table,
         aggregate_schema.receipt_table,
         manifest_schema.manifest_table,
+        worker_schema.profile_table,
+        worker_schema.reservation_table,
+        worker_schema.lease_table,
+        worker_schema.observation_table,
+        event_schema.event_table,
+        event_schema.cursor_table,
+        event_schema.audit_table,
+        event_schema.outbox_table,
+        dispatch_schema.admission_table,
+        dispatch_schema.dispatch_table,
+        dispatch_schema.payload_table,
     )
+    redis_client: Redis | None = None
     try:
         async with engine.begin() as connection:
-            statements = (
-                *search_schema.statements,
-                *aggregate_schema.statements,
-                *manifest_schema.statements,
-            )
             for statement in statements:
                 await connection.execute(text(statement))
 
-        graph = _inputs()
         _fixture, source_reader, _unused_plans, definition, first, second = _setup()
         aggregate_store = PostgresAggregateStore(session_factory, schema=aggregate_schema)
+        search_state = PostgresSearchStateAdapter(session_factory, schema=search_schema)
+        worker_state = PostgresWorkerStateAdapter(session_factory, schema=worker_schema)
+        dispatch_store = PostgresSearchDispatchAdapter(
+            session_factory,
+            schema=dispatch_schema,
+            search_state=search_state,
+            worker_state=worker_state,
+        )
 
         def build_persistence():
             return replace(
@@ -368,7 +447,13 @@ async def test_postgres_composed_walk_forward_training_selection_and_append_rest
                 aggregate_store=aggregate_store,
                 resources=PostgresResourceReader(aggregate_store),
                 walk_forward_plans=PostgresWalkForwardPlanAdapter(aggregate_store),
-                search_state=PostgresSearchStateAdapter(session_factory, schema=search_schema),
+                search_state=search_state,
+                search_dispatch=dispatch_store,
+                worker_state=worker_state,
+                execution_events=PostgresExecutionEventTransactionAdapter(
+                    session_factory,
+                    schema=event_schema,
+                ),
                 result_materialization=PostgresResultMaterializationAdapter(
                     session_factory,
                     schema=manifest_schema,
@@ -376,26 +461,87 @@ async def test_postgres_composed_walk_forward_training_selection_and_append_rest
             )
 
         phase_time = datetime.now(UTC) - timedelta(minutes=5)
+        (
+            _preparation_graph,
+            artifact_store,
+            _package_resolver,
+            _runtime_materializer,
+            base_context,
+            _worker_reader,
+        ) = _preparation_setup(tmp_path / "walk-forward-dispatch")
+        first = _preparation_graph.trial
+        second = ScientificTrial.create(
+            experiment_fingerprint=_preparation_graph.experiment.fingerprint,
+            snapshot_fingerprint=first.snapshot_fingerprint,
+            preflight_report=first.preflight_report,
+            parameter_set={"window": 21},
+            scenario=first.scenario,
+            seed=first.seed,
+        )
+        definition = WalkForwardExecutionDefinition(
+            experiment_fingerprint=_preparation_graph.experiment.fingerprint,
+            candidate_fingerprints=(first.trial_id, second.trial_id),
+            observation_boundaries=definition.observation_boundaries,
+            spec=definition.spec,
+            metric_id=definition.metric_id,
+            direction=definition.direction,
+        )
+        runtime = _rc_runtime()
+        conformance = resolve_nautilus_rc_conformance(
+            runtime,
+            _rc_probe(runtime),
+            _rc_receipt(runtime),
+            build_digest=content_digest("nautilus-v2-rc6-build"),
+            tested_at=NOW,
+        )
+        context = NautilusTrialPreparationContext.from_authoritative_backtest_conformance(
+            conformance_resolution=conformance,
+            product_classes=frozenset({ProductClass.EQUITY}),
+            execution_models=frozenset({"bar-close-v1"}),
+            account_models=frozenset({"cash-equity-v1"}),
+            market_context=base_context.market_context,
+            runtime_profile=base_context.runtime_profile,
+            admission_ledger=base_context.admission_ledger,
+            image_name=base_context.image_name,
+            output_path=base_context.output_path,
+            now=phase_time + timedelta(minutes=1),
+            lease_duration=base_context.lease_duration,
+        )
+
+        async def resolve_context(_request, _graph):
+            return context
+
+        persistence = build_persistence()
+        evidence_resolver = create_search_preparation_evidence_resolver(
+            persistence,
+            artifact_store.root,
+            host_bindings=SearchPreparationHostBindings(
+                runtime_abi=_RUNTIME_ABI,
+                series_decoder=_JsonFrozenSeriesDecoder(),
+                context_resolver=resolve_context,
+            ),
+            conformance_resolution=conformance,
+        )
+        await worker_state.ensure_profile(
+            WorkerProfile(
+                "walk-forward-recovery-worker",
+                WorkerKind.BACKTEST,
+                context.runtime_profile.fingerprint,
+            )
+        )
+
         adapter = PostgresStrategyLabV2Adapter(
             session_factory,
-            persistence=build_persistence(),
+            persistence=persistence,
             clock=lambda: phase_time + timedelta(minutes=1),
         )
         owner = "42"
         contracts = (
-            (ApiResourceType.STRATEGY, graph["strategy_manifest"].strategy),
-            (ApiResourceType.PACKAGE, graph["strategy_package"]),
-            (ApiResourceType.PORTFOLIO, graph["portfolio"]),
-            (
-                ApiResourceType.SNAPSHOT,
-                graph["snapshot"],
-            ),
-            (
-                ApiResourceType.EXPERIMENT,
-                source_reader.contracts[
-                    (ApiResourceType.EXPERIMENT, definition.experiment_fingerprint)
-                ],
-            ),
+            (ApiResourceType.STRATEGY, _preparation_graph.strategies[0]),
+            (ApiResourceType.PACKAGE, next(iter(_preparation_graph.packages.values()))),
+            (ApiResourceType.PORTFOLIO, _preparation_graph.portfolio),
+            (ApiResourceType.SNAPSHOT, _preparation_graph.snapshot),
+            (ApiResourceType.EXPERIMENT, _preparation_graph.experiment),
             (ApiResourceType.TRIAL, first),
             (ApiResourceType.TRIAL, second),
         )
@@ -450,9 +596,7 @@ async def test_postgres_composed_walk_forward_training_selection_and_append_rest
                 definition.metric_id,
                 Decimal(index + 1),
                 attempt_id=attempt_id,
-                snapshot=source_reader.contracts[
-                    (ApiResourceType.SNAPSHOT, first.snapshot_fingerprint)
-                ],
+                snapshot=_preparation_graph.snapshot,
             )
             ensured = await adapter._persistence.result_materialization.ensure(
                 principal=owner,
@@ -539,6 +683,7 @@ async def test_postgres_composed_walk_forward_training_selection_and_append_rest
             session_factory,
             persistence=build_persistence(),
             clock=lambda: phase_time + timedelta(minutes=1),
+            search_dispatch_evidence=evidence_resolver,
         )
         resumed = await restarted.append_walk_forward_oos_candidates(
             principal=owner,
@@ -585,7 +730,123 @@ async def test_postgres_composed_walk_forward_training_selection_and_append_rest
             )
             is None
         )
+
+        oos_candidate_index = len(initialized.state.candidates)
+        dispatch_command = {
+            "principal": owner,
+            "request_id": "dispatch-recovered-oos-candidate",
+            "idempotency_key": "walk-forward-oos-recovery-dispatch-key",
+            "experiment_fingerprint": definition.experiment_fingerprint,
+            "candidate_index": oos_candidate_index,
+            "queue_name": "strategy-backtest",
+        }
+        dispatched = await restarted.dispatch_walk_forward_training_candidate(**dispatch_command)
+        assert dispatched.decision.value == "enqueue"
+        assert dispatched.envelope is not None
+        assert (
+            dispatched.search_state.candidates[oos_candidate_index].attempt_id
+            == dispatched.envelope.request.attempt_id
+        )
+        assert (
+            dispatched.search_state.candidates[oos_candidate_index].phase
+            is SearchCandidatePhase.RUNNING
+        )
+        dispatch_record = await restarted._persistence.search_dispatch.load(
+            principal=owner,
+            experiment_fingerprint=definition.experiment_fingerprint,
+            candidate_index=oos_candidate_index,
+            attempt_id=dispatched.envelope.request.attempt_id,
+        )
+        assert dispatch_record is not None
+        assert dispatch_record.request == dispatched.envelope.request
+
+        persisted_attempt = await restarted._resources.get_domain_contract(
+            principal=SimpleNamespace(id=owner),
+            resource_type=ApiResourceType.ATTEMPT,
+            resource_id=dispatched.envelope.request.attempt_id,
+        )
+        assert persisted_attempt is not None
+        assert isinstance(persisted_attempt, RunAttempt)
+        assert persisted_attempt.attempt_id == dispatched.envelope.request.attempt_id
+        assert persisted_attempt.state is AttemptState.RUNNING
+        assert (
+            await restarted._persistence.search_dispatch.load(
+                principal="foreign-owner",
+                experiment_fingerprint=definition.experiment_fingerprint,
+                candidate_index=oos_candidate_index,
+            )
+            is None
+        )
+
+        post_dispatch_restart = PostgresStrategyLabV2Adapter(
+            session_factory,
+            persistence=build_persistence(),
+            clock=lambda: phase_time + timedelta(minutes=1),
+            search_dispatch_evidence=evidence_resolver,
+        )
+        replayed_dispatch = await post_dispatch_restart.dispatch_walk_forward_training_candidate(
+            **dispatch_command
+        )
+        assert replayed_dispatch.decision.value == "replay_existing"
+        assert replayed_dispatch.envelope == dispatched.envelope
+        assert replayed_dispatch.search_state == dispatched.search_state
+        assert replayed_dispatch.admission_ledger == dispatched.admission_ledger
+
+        outbox = await post_dispatch_restart._persistence.execution_events.load_outbox()
+        assert len(outbox.messages) == 1
+        assert (
+            outbox.messages[0].aggregate_id
+            == f"{definition.experiment_fingerprint}:{oos_candidate_index}"
+        )
+        assert outbox.messages[0].topic == dispatched.envelope.request.queue_name
+        assert outbox.messages[0].payload_digest == dispatched.envelope.request.payload_digest
+
+        redis_instance = Redis.from_url(redis_url, decode_responses=True)
+        redis_client = redis_instance
+        redis_namespace = f"strategy-lab:v2:walk-forward-recovery:{suffix}"
+        transport = RedisDispatchTransport(redis_instance, namespace=redis_namespace)
+        outbox_message = outbox.messages[0]
+        first_relay = await relay_outbox_message(outbox, outbox_message, transport)
+        assert first_relay.decision is OutboxRelayDecision.PUBLISHED
+
+        # Simulate publisher loss after Redis accepted the envelope but before
+        # PostgreSQL recorded the outbox acknowledgement.
+        relay_restart = PostgresStrategyLabV2Adapter(
+            session_factory,
+            persistence=build_persistence(),
+            clock=lambda: phase_time + timedelta(minutes=1),
+            search_dispatch_evidence=evidence_resolver,
+        )
+        still_pending = await relay_restart._persistence.execution_events.load_outbox()
+        assert outbox_message.message_id not in still_pending.published_message_ids
+        replayed_relay = await relay_outbox_message(still_pending, outbox_message, transport)
+        assert replayed_relay.decision is OutboxRelayDecision.REPLAY_EXISTING
+        assert replayed_relay.state.published_message_ids == frozenset({outbox_message.message_id})
+        assert await redis_instance.xlen(transport.stream_key(outbox_message.topic)) == 1
+
+        acknowledged = await relay_restart._persistence.execution_events.acknowledge_outbox(
+            outbox_message.message_id,
+            expected_state_fingerprint=still_pending.fingerprint,
+        )
+        assert acknowledged.decision.value == "acknowledged"
+        durable_outbox = await relay_restart._persistence.execution_events.load_outbox()
+        assert durable_outbox.published_message_ids == frozenset({outbox_message.message_id})
+        async with engine.connect() as connection:
+            for table in (
+                dispatch_schema.admission_table,
+                dispatch_schema.dispatch_table,
+                dispatch_schema.payload_table,
+                event_schema.outbox_table,
+            ):
+                count = await connection.scalar(text(f"SELECT count(*) FROM {table}"))
+                assert count == 1, table
     finally:
+        if redis_client is not None:
+            await redis_client.delete(
+                f"strategy-lab:v2:walk-forward-recovery:{suffix}:stream:strategy-backtest",
+                f"strategy-lab:v2:walk-forward-recovery:{suffix}:idempotency",
+            )
+            await redis_client.aclose()
         async with engine.begin() as connection:
             for table in tables:
                 await connection.execute(text(f"DROP TABLE IF EXISTS {table} CASCADE"))
