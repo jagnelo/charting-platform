@@ -3,16 +3,22 @@
 ## 2026-10-06 — Workstation keyboard-help accessibility semantics
 
 The keyboard-shortcut reference is instructional content, not an action menu.
-The workstation Help popover is now a labelled non-modal dialog, its trigger
-advertises the dialog, and opening it focuses the close button; Escape still
-closes and restores focus. This corrects the previous ARIA menu role, where
-most rows were static descriptions rather than menu items. Focused workstation
-tests passed 44/44, authenticated Chromium shell-menu/focus/containment flows
-passed 3/3, the full frontend suite passed 131 files/1,235 tests, and
-type-check/production build passed. The protected shell-Help screenshot remains
-over tolerance at 50,941 pixels (3.0% vs 0.5%); this is the existing board
-baseline comparison, not exact V25 pixel approval. No baseline, mask, threshold,
-skip, or acceptance policy changed.
+The workstation Help popover is now a labelled, non-modal, keyboard-focusable
+dialog, and its trigger advertises the dialog. Opening it focuses the scrolling
+container; PageDown/PageUp traverse the long list, Tab reaches Close, and Escape
+closes and restores trigger focus. This corrects the previous ARIA menu role,
+where most rows were static descriptions rather than menu actions. Focused
+workstation tests passed 44/44, authenticated Chromium shell-menu/focus/scroll/
+containment flows passed 3/3, the full frontend suite passed 131 files/1,235
+tests, and type-check/production build passed. The old protected Help screenshots
+encoded an earlier, much shorter shortcut list. After visual review, only the
+four current local Help-state screenshots were refreshed; all four profiles
+passed their unchanged screenshot comparisons at the existing 0.5% threshold.
+The combined rerun had one transient network diagnostic failure; that profile's
+isolated replay passed. This updates the deterministic board-state oracle, not an
+exact V25 pixel reference: the manifest still marks authoritative keyboard-help
+visual coverage required-missing. No threshold, mask, skip, or acceptance
+policy changed.
 
 ## 2026-10-06 — Vertical projection-space shortcuts
 

@@ -4,17 +4,22 @@
 
 Changed `WorkstationView.vue` so the long keyboard-shortcut reference is a
 labelled non-modal dialog rather than a menu of mostly static descriptions.
-The Help trigger declares `aria-haspopup="dialog"`; keyboard opening moves
-focus to its close button; Escape still dismisses and restores trigger focus.
+The Help trigger declares `aria-haspopup="dialog"`; keyboard opening focuses
+the dialog's scroll container, PageDown/PageUp browse its long content, Tab
+reaches the close button, and Escape restores trigger focus.
 Focused WorkstationView unit coverage passed 44/44; authenticated Chromium
 shell-menu keyboard, constrained-viewport, and Help flows passed 3/3; full
 frontend Vitest passed 131/131 files and 1,235/1,235 tests; production
-type-check/build passed. The unchanged protected shell-Help screenshot still
-differs by 50,941 pixels (3.0% vs 0.5%); no baseline or policy changed. The
-visual test's Help locator was migrated from menu to dialog, after which its
-semantic/content checks passed and the unchanged pixel assertion reproduced the
-same diff. This is an existing board-state mismatch, not exact V25 visual
-approval. Provider
+type-check/build passed. The visual test's Help locator was migrated from menu
+to dialog. Comparing its original capture against the prior baseline showed
+50,941 pixels (3.0% vs 0.5%) of drift because that baseline showed only the
+earlier short shortcut list. The four local Help-state screenshots were
+reviewed and refreshed; all four profiles passed their unchanged screenshot
+comparison with the same state assertions and 0.5% threshold. One combined run
+had a transient network diagnostic failure, and isolated replay passed. This board-state
+oracle is not exact V25 visual approval; the reference manifest still marks
+authoritative Help visuals required-missing. No mask, threshold, skip, or
+acceptance policy changed. Provider
 and ETF refs remain outside staging. The generic integration target remains
 unsafe because its cleanup would remove the live assigned stack and volumes.
 Next: continue independent TC-owned UX/Study/Strategy work while preserving

@@ -8,15 +8,22 @@ Last reconciled: 2026-10-06
 ## 2026-10-06 — Keyboard-help accessibility semantics
 
 The workstation shortcut reference is instructional content rather than a
-command menu. The Help popover now has a labelled non-modal dialog role; its
-trigger exposes that popup type, and opening the dialog focuses its close
-control. Escape continues to restore trigger focus. Focused workstation tests
-passed 44/44; authenticated shell-menu keyboard, constrained-viewport, and Help
-browser flows passed 3/3; full frontend Vitest passed 131/131 files and
-1,235/1,235 tests; type-check and production build passed. The unchanged
-protected shell-Help screenshot remains at 50,941 differing pixels (3.0% vs
-0.5%); no baseline or acceptance policy changed. The exact V25 visual and full
-integration gates remain open.
+command menu. The Help popover now has a labelled, keyboard-focusable non-modal
+dialog role; its trigger exposes that popup type, and opening the dialog focuses
+the scrolling container. PageDown/PageUp browse the long reference, Tab reaches
+Close, and Escape restores focus to the trigger. Focused workstation tests
+passed 44/44; authenticated shell-menu keyboard, constrained-viewport, scroll,
+and Help browser flows passed 3/3; full frontend Vitest passed 131/131 files and
+1,235/1,235 tests; type-check and production build passed. After review showed
+the four local Help screenshots still depicted an earlier, much shorter
+shortcut list, those four state baselines alone were refreshed. The unchanged
+all four Help visual profiles passed individually with the existing 0.5%
+threshold and state assertions. A combined run had one transient network
+diagnostic failure; isolated replay passed. This remains a board-state oracle,
+not exact V25 visual approval; authoritative Help screenshots are still
+required-missing in the reference manifest. No threshold, mask, skip, or
+acceptance policy changed. The full visual matrix and full integration gate
+remain open.
 
 ## 2026-10-06 — Shift+= / Shift+- vertical projection space
 

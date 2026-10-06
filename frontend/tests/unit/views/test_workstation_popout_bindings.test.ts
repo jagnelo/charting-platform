@@ -935,7 +935,7 @@ describe('WorkstationView pop-out bindings', () => {
     const help = wrapper.get('button[title="Keyboard shortcuts"]')
     await help.trigger('keydown', { key: 'ArrowDown' })
     const helpMenu = wrapper.get('.workstation__help-popover')
-    await vi.waitFor(() => expect(document.activeElement).toBe(helpMenu.get('button[aria-label="Close keyboard shortcuts"]').element))
+    await vi.waitFor(() => expect(document.activeElement).toBe(helpMenu.element))
     await helpMenu.trigger('keydown', { key: 'Escape' })
     expect(wrapper.find('.workstation__help-popover').exists()).toBe(false)
     expect(document.activeElement).toBe(help.element)

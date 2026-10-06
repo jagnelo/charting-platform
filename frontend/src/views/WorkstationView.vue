@@ -35,7 +35,7 @@
         <button type="button" title="Open active-symbol alerts" @click="openAlertsTool">Alerts</button>
         <div class="workstation__help-menu">
           <button ref="keyboardHelpTrigger" type="button" title="Keyboard shortcuts" aria-haspopup="dialog" :aria-expanded="keyboardHelpOpen" :aria-controls="keyboardHelpMenuId" @click="toggleKeyboardHelp()" @keydown="handleShellTriggerKeydown('help', $event)">Help</button>
-          <div v-if="keyboardHelpOpen" :id="keyboardHelpMenuId" ref="keyboardHelpMenuRoot" class="workstation__help-popover" role="dialog" aria-modal="false" aria-labelledby="keyboard-help-title" :style="keyboardHelpMenuStyle" @click.stop @keydown="handleShellMenuKeydown('help', $event)">
+          <div v-if="keyboardHelpOpen" :id="keyboardHelpMenuId" ref="keyboardHelpMenuRoot" class="workstation__help-popover" role="dialog" aria-modal="false" aria-labelledby="keyboard-help-title" tabindex="0" :style="keyboardHelpMenuStyle" @click.stop @keydown="handleShellMenuKeydown('help', $event)">
             <header><strong id="keyboard-help-title">Keyboard shortcuts</strong><button type="button" aria-label="Close keyboard shortcuts" @click="closeShellMenuToTrigger('help')"><WorkstationGlyph kind="close" /></button></header>
             <dl>
               <div><dt>Type</dt><dd>Open symbol search</dd></div>
@@ -616,8 +616,7 @@ async function focusShellMenu(menu: ShellMenuRoot, focusIndex = 0) {
   }
   const items = shellMenuItems(menu)
   if (menu === 'help') {
-    const closeButton = keyboardHelpMenuRoot.value?.querySelector<HTMLButtonElement>('button[aria-label="Close keyboard shortcuts"]')
-    closeButton?.focus()
+    keyboardHelpMenuRoot.value?.focus()
     return
   }
   if (!items.length) return
