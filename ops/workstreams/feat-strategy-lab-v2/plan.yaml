@@ -933,10 +933,14 @@ progress:
     materialization and PostgreSQL worker recovery integrations also pass.
     A new integration proves PostgreSQL OOS terminal adapters persist and
     replay result publication/completion/manifest/metrics/artifact commits/
-    worker settlement before a real Redis consumer ACKs a reclaimed delivery.
-    It uses a deterministic OOS worker-result fixture and directly calls the
-    terminal writer on reclaim; exact RC6 process execution and production
-    pre-execution terminal-replay composition remain unproven together.
+    worker settlement before the production worker service ACKs a reclaimed
+    delivery from its pre-execution `terminal_replay_reader`. The reader uses
+    `WorkerRecoveryApplication.complete_terminal_if_persisted`, and an
+    instrumented process executor confirms Nautilus is not launched on replay.
+    Terminal result, completion, worker lease/capacity, and settlement ports
+    use PostgreSQL; the worker result is a deterministic OOS fixture and the
+    search-dispatch/search-state test ports are in-memory. Exact RC6 execution
+    remains a separate proof and is not yet composed into this path.
     This session reran the exact RC6 authoritative OOS worker request and the
     separate exact-RC6 + PostgreSQL + real-Redis forward crash/reclaim
     integration successfully. These remain adjacent proofs, not yet one
@@ -952,12 +956,14 @@ progress:
     branches; unsupported options remain fail-closed pending canonical
     Greeks/delta/settlement evidence.
   next_action: >-
-    Compose an actual RC6 OOS native execution with production PostgreSQL
-    terminal adapters and the production pre-execution terminal-replay reader
-    in a real Redis worker. Inject a crash after terminal settlement but before
-    ACK, then prove the restarted consumer ACKs from the matching durable
-    completion/settlement without running Nautilus again. Preserve
-    training-only selection, stable attempt identity, and owner isolation.
+    Replace the deterministic OOS result in the PostgreSQL/Redis
+    receipt-first integration with output from the exact-pinned RC6 worker
+    request. Retain production PostgreSQL terminal adapters, the worker
+    service, and WorkerRecoveryApplication. Inject loss after PostgreSQL
+    terminal settlement but before ACK, then prove the restarted consumer ACKs
+    from the matching durable completion/settlement without running Nautilus
+    again. Preserve training-only selection, stable attempt identity, and
+    owner isolation.
     Then continue backtest/search, security,
     Compose and exact-tip criteria. Reconcile the 13 browser failures only after the
     frontend owner has completed its work and shared-path semantics can be

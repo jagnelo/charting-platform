@@ -14251,22 +14251,24 @@ restricted shell could not access `/var/run/docker.sock`; the repository's
 documented Docker-capable path reran the exact same RC6 test successfully, so
 this was execution-context restriction rather than engine failure.
 
-## 2026-10-06 - PostgreSQL OOS terminal replay with real Redis reclaim
+## 2026-10-06 - PostgreSQL OOS terminal replay with production Redis worker
 
-Commit `4236c4ede46028071fd4672f13e2b05b8781d691` adds a scoped integration
-test over PostgreSQL terminal adapters and a real Redis stream. It settles an
-OOS-shaped result through result publication, completion, manifest, metric,
-artifact commit, worker settlement, and capacity/lease release; simulates loss
-before Redis ACK; reconstructs fresh adapters; reclaims the delivery under a
-new consumer; then replays the stable receipt and ACKs with one row per durable
-projection. Cleanup removes only UUID-named PostgreSQL tables and a unique
-Redis namespace. The new test plus three related regressions passed (4 total);
-Ruff, formatting, MyPy, and `git diff --check` passed.
+Commit `4236c4ede46028071fd4672f13e2b05b8781d691` first added scoped
+PostgreSQL terminal persistence and Redis reclaim coverage. Follow-up commit
+`ff888743aa9b3332e16ec3a2cb0a96e7e3f32ee2` sends the reclaimed entry through
+`DedicatedStrategyWorkerService` and
+`WorkerRecoveryApplication.complete_terminal_if_persisted` before ACK. The
+recovery application verifies PostgreSQL completion, settlement, released
+capacity/lease evidence, and terminal search receipt. An instrumented process
+executor proves Nautilus is not launched on replay. Result, publication,
+manifest, metrics, artifact commits, capacity/lease, and settlement use real
+PostgreSQL adapters; Redis Streams are real. Test-owned search-dispatch and
+candidate-state adapters are in-memory. The OOS process result remains a
+deterministic fixture, not an actual RC6 process.
 
-This is explicitly not the final combined acceptance proof: the worker result
-comes from a deterministic OOS fixture, not an actual RC6 process, and the
-reclaim callback invokes the terminal writer directly instead of composing the
-worker service's production pre-execution `terminal_replay_reader` with
-PostgreSQL recovery/search state. Next, combine exact RC6 execution, that
-receipt-first production worker path, PostgreSQL terminal settlement, and real
-Redis post-commit reclaim; prove the engine is not run twice.
+The updated integration plus three receipt/terminal regressions passed (4
+total); Ruff, formatting, MyPy, and `git diff --check` passed. It materially
+closes the real PostgreSQL terminal + production receipt-first service + Redis
+reclaim seam, but the exact RC6 process has not yet been run inside this
+composition. Next replace the fixture result with the exact-pinned RC6 worker
+request and retain the same post-commit loss/no-second-launch assertions.
