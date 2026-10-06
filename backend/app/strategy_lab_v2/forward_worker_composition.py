@@ -14,7 +14,7 @@ import asyncio
 import inspect
 import os
 from collections.abc import Awaitable, Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -159,9 +159,10 @@ class MaterializedForwardSandboxPlan:
         if (
             self.runtime_request.input_bundle_digest
             != self.runtime_artifacts.runtime_input.input_bundle_digest
+            or self.runtime_request.attempt_id != self.runtime_artifacts.runtime_input.attempt_id
             or self.sandbox_plan.request_fingerprint != self.runtime_request.fingerprint
         ):
-            raise ValueError("forward sandbox plan differs from its pinned runtime request")
+            raise ValueError("forward sandbox plan differs from its pinned runtime attempt")
 
 
 @dataclass(frozen=True, slots=True)
@@ -377,6 +378,16 @@ def materialize_authenticated_forward_sandbox_plan(
     ):
         raise ValueError("forward sandbox inputs differ from the exact owner checkpoint")
 
+    # The runtime CLI validates STRATEGY_ATTEMPT_ID against the immutable
+    # engine_input.attempt_id inside the bundle. Derive this process-attempt
+    # identity once and bind it before any bundle/bootstrap bytes are published.
+    attempt_id = forward_runtime_attempt_id(instance.instance_id, checkpoint_fingerprint)
+    engine_input = replace(
+        engine_input,
+        trial_id=instance.instance_id,
+        attempt_id=attempt_id,
+    )
+
     runtime_artifacts = materialize_authenticated_forward_runtime_bundle(
         store,
         execution_plan=execution_plan,
@@ -406,13 +417,6 @@ def materialize_authenticated_forward_sandbox_plan(
     identity = strategy_runtime_identity(strategies, packages)
     if runtime_profile.runtime_abi != identity.runtime_abi:
         raise ValueError("forward runtime isolation ABI differs from its exact strategy packages")
-    attempt_id = content_digest(
-        {
-            "checkpoint_fingerprint": checkpoint_fingerprint,
-            "instance_id": instance.instance_id,
-            "kind": "forward-process-bootstrap",
-        }
-    )
     runtime_request = StrategyRuntimeRequest(
         request_id=content_digest(
             {
@@ -456,6 +460,22 @@ def materialize_authenticated_forward_sandbox_plan(
         bootstrap_artifact,
         runtime_request,
         sandbox_plan,
+    )
+
+
+def forward_runtime_attempt_id(instance_id: str, checkpoint_fingerprint: str) -> str:
+    """Return the deterministic runtime request identity for one exact cursor."""
+
+    if not isinstance(instance_id, str) or not instance_id.strip():
+        raise ValueError("instance_id must not be empty")
+    if not isinstance(checkpoint_fingerprint, str) or not checkpoint_fingerprint.strip():
+        raise ValueError("checkpoint_fingerprint must not be empty")
+    return content_digest(
+        {
+            "checkpoint_fingerprint": checkpoint_fingerprint,
+            "instance_id": instance_id,
+            "kind": "forward-process-bootstrap",
+        }
     )
 
 
@@ -960,6 +980,7 @@ __all__ = [
     "create_authenticated_forward_worker_runtime_input_resolver",
     "materialize_authenticated_forward_runtime_bundle",
     "materialize_authenticated_forward_sandbox_plan",
+    "forward_runtime_attempt_id",
     "create_authenticated_forward_context_history_resolver",
     "create_authenticated_forward_delivery_context_resolver",
     "create_authenticated_forward_session_event_handler",

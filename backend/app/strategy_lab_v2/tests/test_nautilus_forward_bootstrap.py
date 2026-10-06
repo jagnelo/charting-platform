@@ -66,6 +66,7 @@ from app.strategy_lab_v2.nautilus_runtime_protocol import (
 )
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile
 from app.strategy_lab_v2.sandbox import (
+    sandbox_attempt_id,
     sandbox_context_stream_path,
     sandbox_forward_bootstrap_path,
     sandbox_input_path,
@@ -515,7 +516,9 @@ def test_forward_bootstrap_event_rejects_source_and_correction_mismatch() -> Non
         NautilusForwardBootstrapEvent(canonical, market, source_digest)
 
 
-def test_build_binds_owner_plan_warmup_snapshot_prefix_and_native_inputs(tmp_path) -> None:
+def test_build_binds_owner_plan_warmup_snapshot_prefix_and_native_inputs(
+    tmp_path, monkeypatch
+) -> None:
     fixture = _engine_inputs()
     snapshot = fixture["snapshot"]
     portfolio = fixture["portfolio"]
@@ -751,6 +754,30 @@ def test_build_binds_owner_plan_warmup_snapshot_prefix_and_native_inputs(tmp_pat
     assert sandbox_evidence.runtime_request.input_bundle_digest == (
         sandbox_evidence.runtime_artifacts.runtime_input.input_bundle_digest
     )
+    assert sandbox_evidence.runtime_request.attempt_id == (
+        sandbox_evidence.runtime_artifacts.runtime_input.attempt_id
+    )
+    assert sandbox_attempt_id(sandbox_evidence.sandbox_plan) == (
+        sandbox_evidence.runtime_artifacts.runtime_input.attempt_id
+    )
+    bundle_path = store.path_for(
+        sandbox_evidence.runtime_artifacts.runtime_input.artifact.storage_key
+    )
+    monkeypatch.setenv(
+        "STRATEGY_INPUT_BUNDLE_DIGEST",
+        sandbox_evidence.runtime_request.input_bundle_digest,
+    )
+    monkeypatch.setenv(
+        "STRATEGY_ATTEMPT_ID",
+        sandbox_evidence.runtime_request.attempt_id,
+    )
+    decoded_bundle = nautilus_runtime_cli._read_bundle(str(bundle_path), max_bytes=1_000_000)
+    assert decoded_bundle["engine_input"]["attempt_id"] == (
+        sandbox_evidence.runtime_request.attempt_id
+    )
+    monkeypatch.setenv("STRATEGY_ATTEMPT_ID", _digest("mismatched-runtime-attempt"))
+    with pytest.raises(ValueError, match="attempt differs from the sandbox request"):
+        nautilus_runtime_cli._read_bundle(str(bundle_path), max_bytes=1_000_000)
 
     mismatched_binding = replace(
         engine_input.strategy_bindings[0],
