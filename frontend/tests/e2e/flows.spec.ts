@@ -2771,6 +2771,27 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8k-direct-timeframe — supported Ctrl+number shortcuts select active-chart intervals', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    const workstation = page.locator('.workstation:visible').last()
+    const chart = page.locator('.tool-window:visible').filter({ has: page.locator('.chart-tool') }).first()
+    await expect(chart).toBeVisible({ timeout: 10_000 })
+    const timeframe = chart.locator('select.tool-window__timeframe')
+    const original = await timeframe.inputValue()
+    await chart.locator('.chart-root').click({ position: { x: 20, y: 20 } })
+    await expect(chart).toHaveClass(/tool-window--active/)
+
+    for (const [shortcut, expected] of [['Control+1', 'M1'], ['Control+3', 'M5'], ['Control+4', 'M15'], ['Control+5', 'M30'], ['Control+6', 'H1']] as const) {
+      await workstation.press(shortcut)
+      await expect(timeframe).toHaveValue(expected)
+    }
+
+    await timeframe.selectOption(original)
+    await expect(timeframe).toHaveValue(original)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8l — hidden workstation surfaces suspend market-analysis refreshes', async ({ page, browserDiagnostics }) => {
     const refreshRequests: string[] = []
     page.on('request', request => {

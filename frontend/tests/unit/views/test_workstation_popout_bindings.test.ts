@@ -481,6 +481,38 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('maps supported Ctrl+number shortcuts to direct active-chart timeframes', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    harness.workspace.activeTab.active_window_key = 'chart-main'
+    harness.workspace.updateToolTimeframe.mockReturnValue(true)
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const workstation = wrapper.find('.workstation').element
+
+    for (const [key, timeframe] of [['1', 'M1'], ['3', 'M5'], ['4', 'M15'], ['5', 'M30'], ['6', 'H1']] as const) {
+      const event = new KeyboardEvent('keydown', { key, ctrlKey: true, bubbles: true, cancelable: true })
+      workstation.dispatchEvent(event)
+      expect(event.defaultPrevented).toBe(true)
+      expect(harness.workspace.updateToolTimeframe).toHaveBeenLastCalledWith('chart-main', timeframe)
+    }
+
+    harness.workspace.updateToolTimeframe.mockClear()
+    const unsupportedInterval = new KeyboardEvent('keydown', { key: '2', ctrlKey: true, bubbles: true, cancelable: true })
+    workstation.dispatchEvent(unsupportedInterval)
+    expect(unsupportedInterval.defaultPrevented).toBe(false)
+    expect(harness.workspace.updateToolTimeframe).not.toHaveBeenCalled()
+
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+    const nonChart = new KeyboardEvent('keydown', { key: '1', ctrlKey: true, bubbles: true, cancelable: true })
+    workstation.dispatchEvent(nonChart)
+    expect(nonChart.defaultPrevented).toBe(false)
+    expect(harness.workspace.updateToolTimeframe).not.toHaveBeenCalled()
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+    wrapper.unmount()
+  })
+
   it('replays a newer shell traversal after late workspace hydration', async () => {
     routeState.path = '/'
     routeState.params = {}
