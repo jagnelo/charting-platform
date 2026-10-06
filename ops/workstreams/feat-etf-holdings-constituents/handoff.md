@@ -9284,6 +9284,7 @@ active; about 3.6 GiB RAM is available, 10 GiB swap is used, and host load is
 run exact-SHA CI again; then retry the Docker/browser gate only after those
 other-worktree containers exit and resource preflight confirms adequate headroom.
 *** End of File
+
 ### Longview fix exact-SHA CI passed; local resource gate remains held — 2026-10-05
 
 The published fix SHA `05aa350a769b9e039e4d12ebb7c97c4d3c6ca947` completed
@@ -9462,4 +9463,72 @@ completed criteria, with AC7/AC8 open, AC10 waiting for the provider-platform
 staging dependency, and AC14 remaining post-integration/deployment. Next action:
 poll the exact-SHA jobs, record their terminal results, and continue attempting
 the agent-owned browser gate only after the local-app network is stable.
+
+### Follow-up local-gate and exact-SHA results — 2026-10-06
+
+The isolated `make test-backend-coverage` retry completed successfully across
+its full test set. Exact-SHA GitHub Actions run
+[`37503724978`](https://github.com/jagnelo/charting-platform/actions/runs/37503724978)
+on `7d387f65722c3ff89894df1e62e223863dbd92b3` is terminal and green for Backend
+Tests, Frontend Unit Tests, Branch-declared Tests, and hosted Playwright. The
+protected Exhaustive Integration Gate was skipped as expected on this feature
+branch.
+
+The next `make validate-integration` attempt could not complete locally. The
+workstream validator and backend-dependency stages ran, but session-runtime
+setup could not write the shared lock at
+`/home/m920q/charting-platform/.ai/runtime/allocations.lock`, which is outside
+the assigned writable worktree. Frontend dependency validation then failed
+when npm attempted to run esbuild and received `EPERM`. This is an execution
+environment boundary, not a reported ETF test failure. The command did not
+reach frontend unit tests, the local Compose/browser run, or the visual stage.
+The earlier local functional-flow failures (`ERR_NETWORK_CHANGED` and one
+login redirect timeout), plus passing focused retries and the independent
+104-test visual matrix, remain accurately recorded above; they do not make the
+consolidated local gate green.
+
+No other worktree or external container was modified, and no app/test action
+is required from the human. The goal stays active at ten of fourteen complete.
+AC7 and AC8 remain open pending a valid local full gate and final synchronized
+review checkpoint. AC10 still awaits the shared provider platform reaching
+staging; AC14 is the post-integration/deployment observation. Resume by
+resolving the local full-stack execution boundary within the authorized scope,
+then rerun the full gate and update this branch's checkpoint. Do not integrate,
+promote, deploy, or touch another worktree.
+
+### Host-context full-gate retry and network diagnosis — 2026-10-06
+
+The host-context `make validate-integration` run resolved the sandbox startup
+problem and passed workstream validation, dependency/migration/lint checks,
+backend coverage, frontend tests/type-check/build, Compose/provider/research
+probes, and ETF stack startup. The browser stage ran 260 cases: 148 passed,
+106 were intentionally skipped, and six failed. All six were unrelated
+workstation flows and reported multiple `net::ERR_NETWORK_CHANGED` failures
+against `127.0.0.1:28089`, including failures while requesting ETF holdings.
+The visual cases within that Playwright run passed (104 cases); the separately
+configured visual stage did not run because the functional stage was red.
+
+A serial retry of the six failures passed five; `F8s-market-map-watchlist`
+again failed with the same broad local API network-change diagnostics. Retrying
+that one test alone reproduced it. Immediately after, the ETF backend returned
+HTTP 200 from `/health` and was healthy with zero restarts. Read-only Docker
+events in the exact interval show bridge connect/disconnect activity and
+ephemeral Testcontainers alongside routine health checks from the separate
+TC2000 stack. This supports a shared local network-instability hypothesis, but
+does not prove the cause. No generic assertion was changed or suppressed. Only
+the ETF-owned test stack/resources were removed; external containers and
+worktrees remain untouched.
+
+Therefore the consolidated local gate is still not green and AC7 stays open;
+hosted exact-SHA run
+[`37503724978`](https://github.com/jagnelo/charting-platform/actions/runs/37503724978)
+remains green for Backend, Frontend Unit, Branch-declared, and hosted Playwright
+checks (the protected exhaustive gate is skipped on feature branches). AC8
+remains open until a valid full local gate and final synchronized workstream
+checkpoint are available. The saved goal remains active at ten of fourteen
+criteria. AC10 awaits provider-platform staging; AC14 is the
+post-integration/deployment observation. The human does not need to run the app
+or tests. Next, passively wait for the host's Docker network activity to settle,
+then retry the required full local gate in this worktree; do not change generic
+tests, another worktree, or staging/deployment state.
 *** End of File
