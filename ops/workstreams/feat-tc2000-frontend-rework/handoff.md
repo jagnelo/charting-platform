@@ -1,5 +1,23 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — TC2000 V25 Ctrl+B standard chart-style shortcut
+
+The active chart now cycles through this app's supported OHLC bars, Candles,
+and Line styles with Ctrl+B. The default for an unset per-window `bar_type` is
+Candles, matching the chart renderer; special styles are left unchanged by the
+three-style cycle except that Ctrl+B starts the standard cycle at OHLC. Chart
+configuration outside `bar_type` is preserved. TC2000's reference also names
+HLC Bars, which the app does not yet implement; that parity gap remains open.
+Product commit `587d15c33` is pushed to `feat/tc2000-frontend-rework`.
+
+Verification: WorkstationView bindings passed 40/40; pinned authenticated
+Chromium F8k-direct-chart-style passed 1/1; `npm run build` (vue-tsc and Vite)
+passed. The full serial frontend suite was attempted but did not complete: it
+reported six timeouts in `WorkspaceLayoutHost`, then stopped emitting results
+for several minutes. The same file passed 10/10 in isolation; this is not a
+full-suite pass. No visual oracle or acceptance policy changed. Provider/ETF
+work remains deferred until both branches reach staging.
+
 ## 2026-10-06 — TC2000 V25 direct active-chart timeframe shortcuts
 
 The current worktree adds Ctrl+1/3/4/5/6 shortcuts for 1m/5m/15m/30m/1h
