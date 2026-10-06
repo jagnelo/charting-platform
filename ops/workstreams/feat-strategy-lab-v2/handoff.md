@@ -13802,3 +13802,35 @@ and exact-tip validation remain open. No provider or other worktree files were
 changed. The tree was reviewed before the implementation commit; the remaining
 worktree changes are only this branch's plan, handoff, session state, and
 append-only validation journal, to be committed separately.
+
+## 2026-10-06 - Owner-scoped walk-forward curve artifact download
+
+Implementation commit `9a7ba28f921affc1a114025bf80e8c9fe1afa698` adds the
+owner-authenticated `GET /experiments/{experiment_id}/walk-forward/curve`
+route. The application resolves only the caller's persisted native OOS metric
+sidecar and requires its exact active retention pin before returning a
+download capability. The local store verifies the manifest's digest and byte
+length on a no-follow regular-file descriptor; the API bounds responses at 1
+GiB and streams in 1 MiB chunks from that already-verified descriptor, then
+rechecks the bytes and file metadata after consumption. Foreign-owner, missing,
+released-pin, corrupt, and over-bound cases fail closed.
+
+Validation: four focused assertions passed (API success/error cases, artifact
+manifest length/bound, and application owner/pin checks). Ruff check and
+format, focused MyPy for `api_router.py`, `application.py`, and
+`artifact_store.py`, and `git diff --check` passed. The pytest process emits all
+four passing test results but does not emit its normal final summary before
+the runner disappears; direct invocation outside ASGI was found to require an
+inline test-only AnyIO worker because the local harness otherwise stalls at
+thread offload. This is an incomplete runtime-validation detail, not a
+Nautilus or upstream dependency; validate the endpoint through the live local
+ASGI/Compose profile. Commit `9a7ba28f921affc1a114025bf80e8c9fe1afa698` was
+pushed to `origin/feat/strategy-lab-v2`; confirm exact remote equality in the
+operational checkpoint.
+
+Next: run the route through the actual local ASGI/Compose path and continue
+remaining backtest/search APIs, durable cancellation/retry and phase-boundary
+recovery, security, Compose/browser acceptance, and exact-tip branch gates.
+The provider-owned frozen-series decoder remains the one localized upstream
+composition dependency; it does not block independent product work. Stable
+Nautilus release labeling is not a gate.
