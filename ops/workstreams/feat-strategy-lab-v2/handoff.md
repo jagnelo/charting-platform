@@ -13756,3 +13756,49 @@ not a pass. Docker-backed runtime, PostgreSQL/Redis restart, security, exact
 Nautilus v2 conformance, and complete branch gates remain open. The next branch
 slice is to continue closing remaining acceptance criteria while diagnosing the
 repeatable broad-suite stall; do not wait for a stable Nautilus label.
+
+## 2026-10-06 - Upgrade and qualify Nautilus 2.0.0rc6
+
+The isolated runtime now pins the PyPI CPython 3.12 Linux x86_64 wheel for
+Nautilus 2.0.0rc6 with SHA256
+`9b4002a7bf5e6399c51073039b740ccf3ca7a1e2584ff72c7d479f03eaa9658d`. The
+source-bound image was built without network access and published local
+qualification evidence at
+`.ai/runtime/strategy-lab-v2/nautilus-rc-evidence/d4096225c1cbfa4d057614935f860d0c2dd1e830ce489cb0a0ee53aceeabe47e.json`.
+It records image digest
+`sha256:b730d698257882a9e75b64a1a68a7531942ed214ce4d50ea5835f707d771e926`,
+source digest
+`sha256:e3df48eab6bc28ba5dfd895b26b1552b5421cf0515768552fc6a14464a40157f`,
+and conformance fingerprint
+`sha256:12215d1fef26edd498fa22fde65042b0067b91ec4fe976527248e8e5bdcc81ac`.
+The fixture proves engine lifecycle, deterministic native replay,
+multi-instrument accounting, native orders/fills/cost reporting, and forward
+event-tape parity (3/3 event types, zero mismatches). The raw receipt remains
+marked non-authoritative; conformance evidence qualifies the exact image and
+never enables broker or real-capital use.
+
+The RC6 upgrade exposed two API differences that are now handled: venue
+construction requires an explicit fee model, so omitted fees become an
+explicit zero fixed-per-fill model in the declared base currency; and
+`BacktestDataConfig` requires `NautilusDataType` enum values for quote, trade,
+and bar catalog inputs. Missing base currency continues to fail closed.
+
+Validation: exact-image forward process-loss/replay passed 1/1 and exact-image
+PostgreSQL/Redis recovery passed 1/1. The complete Strategy Lab package suite
+passed 1,617 tests with one opt-in image test skipped. Ruff lint and formatting
+passed on all 33 changed Python files, focused MyPy passed on 12 production
+modules, and `git diff --check` passed. The backend's Nautilus stubs lag the RC6
+`NautilusDataType` and `BacktestDataConfig` API, so narrowly scoped type ignores
+document that isolated-runtime boundary. Implementation commit
+`8a59aedc67a960f32f7a1d1c83ceb188e2e0b8c4` has been pushed to
+`origin/feat/strategy-lab-v2`; the remote matched the local hash. The separate
+operational checkpoint is being prepared.
+
+Stable release labeling is not a dependency. The next implementation context
+is a bounded, owner-scoped API path to retrieve the published walk-forward
+curve artifact bytes, verifying the manifest digest and authorization. The
+provider-owned frozen-series decoder, broader recovery/security/Compose gates,
+and exact-tip validation remain open. No provider or other worktree files were
+changed. The tree was reviewed before the implementation commit; the remaining
+worktree changes are only this branch's plan, handoff, session state, and
+append-only validation journal, to be committed separately.

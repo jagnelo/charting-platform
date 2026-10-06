@@ -886,8 +886,13 @@ progress:
     status: in_progress
   current_blocker: >-
     No external or upstream Nautilus dependency blocks implementation. Stable
-    release labeling is not a gate; exact-pinned RC5 has passed its four-check
-    backtest qualification and exact-image forward recovery probes. The
+    release labeling is not a gate; exact-pinned Nautilus 2.0.0rc6 passed all
+    four authoritative local-backtest conformance checks and the fifth
+    forward-event-tape parity check in its isolated image. The broad Strategy
+    Lab package suite and exact-image PostgreSQL/Redis recovery tests also pass.
+    The RC6 runtime upgrade is committed as 8a59aedc67a960f32f7a1d1c83ceb188e2e0b8c4
+    and synchronized to origin; the accompanying operational checkpoint is
+    being finalized. The
     authenticated production plan now proves deterministic replay after
     process loss, durable settlement and ACK, and fresh-process continuation
     from its authenticated prior-event prefix. Forward event handoffs now renew
@@ -901,20 +906,20 @@ progress:
     evidence remains open. Worker heartbeats now also dispose cached Nautilus
     sessions whose durable reservation ended, with targeted lifecycle tests;
     real PostgreSQL/Redis shutdown/restart evidence remains open. The next
-    product seam is canonical event payload activation in Compose, followed by the remaining
+    product seam is secure owner-scoped retrieval of published walk-forward
+    curve artifact bytes, followed by the remaining
     backtest/search/API/security/Compose criteria and exact-tip branch gates.
     Provider-platform, ETF, and TC2000 contracts remain owned by their
     branches; unsupported options remain fail-closed pending canonical
     Greeks/delta/settlement evidence.
   next_action: >-
-    Persist the compounded native OOS portfolio curve as a bounded Parquet
-    artifact with exact selected-result, receipt, and selection lineage; the
-    current API integration durably stores and exposes its evidence-bound
-    metrics sidecar, while source traces permit deterministic curve replay.
-    Keep fold-distribution metrics separate and preserve pre-receipt summary
-    compatibility. Then prove cancellation/retry and process restart between
-    walk-forward phase boundaries, and continue the remaining forward, security,
-    Compose, exact-native, and full-branch gates. Shared router registration,
-    migrations, and overlapping upstream paths remain gated on line-level
-    staging reconciliation. Keep unsupported products fail-closed; stable
-    Nautilus labeling is not a gate.
+    Finish and push the operational checkpoint for commit
+    8a59aedc67a960f32f7a1d1c83ceb188e2e0b8c4, including exact validation and
+    synchronized branch state. Then implement owner-scoped artifact-byte
+    retrieval for the walk-forward curve manifest, with digest verification,
+    authorization, and bounded streaming. Continue cancellation/retry and phase-boundary restart
+    evidence plus remaining forward, security, Compose, and exact-tip branch
+    gates. Shared router registration, migrations, and overlapping upstream
+    paths remain gated on line-level staging reconciliation. Provider-owned
+    frozen-series decoder composition remains upstream-dependent; unsupported
+    products stay fail-closed.
