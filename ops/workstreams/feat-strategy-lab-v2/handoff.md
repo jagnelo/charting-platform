@@ -12579,3 +12579,21 @@ platform history readers. Do not synthesize canonical event identity/order or
 read dependency-local rows as a substitute. Stable Nautilus 2.x remains
 unnecessary; retain the qualified exact RC5 pin. Separately investigate the
 managed Python executor-shutdown issue before claiming full package validation.
+
+## 2026-10-06 - Forward bootstrap composition plan reconciliation
+
+The active plan phase and changeset now match the session checkpoint:
+`strategy-lab-v2-forward-bootstrap-artifact-and-plan-composition-v1`. The owned
+scope is production composition of the complete frozen warm-up tape, exact
+processed prefix, engine input/runtime bundle, content-addressed stream
+artifacts, and RC5 sandbox plan into owner-scoped forward worker startup and
+replacement. Explicit platform readers must supply globally canonical
+identities/order; dependency-local tape sequence is never promoted to canonical
+identity. The live blocker is implementation work, not Nautilus stable-release
+availability. Exact-pinned RC5 remains permitted for local backtests; the
+forward-shadow acceptance gate still includes event-tape parity.
+
+Plan checkpoint `522695fe4fad4e1713bfd46d7c74467fc306f3ff` is pushed and
+verified equal to `origin/feat/strategy-lab-v2`; the worktree was clean at that
+boundary. Workstream validation passed before commit. Focused code changes and
+tests for this newly scoped changeset have not yet begun.
