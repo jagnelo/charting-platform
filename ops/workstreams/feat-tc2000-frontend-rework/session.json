@@ -52,6 +52,10 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl",
+    "docs/tc2000-roadmap.md",
+    "docs/tc2000-parity.md",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json"
   ],
   "docker": {
@@ -126,14 +130,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "5a284a5cd867cb2c96f952afb4881ac7fce53023",
+  "head": "81b311f70c594f311ca96f9051c506b50811b2d2",
   "implementation_sha": "fc4ad47f2b82b5b182b8fa9dabd77a55e5094902",
   "interrupted": false,
   "last_checkpoint": "2026-10-06T19:23:54.569991+00:00",
   "last_human_progress_update": "2026-10-06T19:36:03.608964+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue TC-owned V25 keyboard/workstation parity, then complete current-tip visual and cleanup-safe integration validation; keep provider/ETF consumption gated on staging.",
-  "plan_hash": "a10c77bfec6844ea026c7c45c3a2993399d56b5f1db9eb3d9ece7b278ffb071f",
+  "plan_hash": "c95c4e7d43dd46340805af00c41873a453953db764c9239f4ccd34d04f338eff",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -151,7 +155,7 @@
     "current_phase": "R1_V25_KEYBOARD_PARITY",
     "next_action": "Continue TC-owned V25 workstation parity from the official shortcut gap audit, retaining arbitrary personal-watchlist semantics and persisted Golden Layout behavior. Diagnose the live unit-test process and visual proxy flakiness, establish a cleanup-safe exact integration route, and recheck staging/provider/ETF refs before R2/R3. Stop at ready_for_human_review.",
     "total": 9,
-    "updated_at": "2026-10-06T20:04:00Z"
+    "updated_at": "2026-10-06T21:04:00Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
@@ -167,9 +171,9 @@
     "remote_tracking_sha": "f0fd70a1586ceeb336cb6513948e18b99f6949be",
     "status": "pending_push_github_dns_unavailable"
   },
-  "remote": "d20f5b2f18daf536ff9e18def1b4ba6992a521cc",
+  "remote": "81b311f70c594f311ca96f9051c506b50811b2d2",
   "remote_sha": "f0fd70a1586ceeb336cb6513948e18b99f6949be",
-  "remote_synchronized": false,
+  "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "40277689-45a1-4b10-b129-2435358ad9d2",

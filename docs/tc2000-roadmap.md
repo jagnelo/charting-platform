@@ -22,7 +22,12 @@ membership, and Shift/Ctrl+drag to resize panes above/below a Golden Layout
 divider. These remain open R1/R6 parity tasks. Before implementing the
 personal-list shortcuts, define their target-selection semantics against the
 existing arbitrary user-owned WatchLists; do not silently pick or create a
-list. Verify Tag Column ownership and persistence before binding Alt+click.
+list. Existing row context actions already inspect list membership and support
+explicit copy/move to a selected destination, and Shift+F separately toggles
+the Flagged Items aggregate; neither behavior defines the destination for
+Ctrl+M or makes flags equivalent to Favorites. Shift+T likewise needs a
+date-valued field and persistence contract beyond the current mounted-surface
+column sort. Verify Tag Column ownership and persistence before binding Alt+click.
 Implement divider resizing through Golden Layout's persisted layout model and
 preserve ordinary splitter drag. Add authenticated browser coverage and keep
 the existing protected visual oracles unchanged for each implemented action.

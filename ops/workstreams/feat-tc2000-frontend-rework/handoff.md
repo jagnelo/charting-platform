@@ -1,5 +1,20 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — Shortcut target semantics clarified
+
+Rechecked the official remaining V25 shortcut gaps against the existing
+WatchList implementation. The row context menu already exposes explicit list
+membership inspection and copy/move to a user-selected destination; Shift+F is
+a separate persisted Flagged Items aggregate. Neither provides a safe implicit
+destination for Ctrl+M or defines Favorites, so those commands remain design
+gaps rather than being misrepresented as the existing flag action. Shift+T
+also needs a date-valued field and persistence contract beyond the current
+per-surface header sort. Roadmap/parity docs now explain these contracts. No
+product source changed. TC ownership scope, workstream validation, and diff
+checks pass. Type-check/build execution yielded no reliable completion output
+and is not claimed as passing. Continue the full goal; do not close this slice
+as whole-workstream completion.
+
 ## 2026-10-06 — Current-tip full visual matrix result
 
 The pinned four-project matrix completed all 104 visual cases against the

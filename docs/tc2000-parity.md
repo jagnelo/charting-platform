@@ -9,6 +9,15 @@ Shift/Ctrl+drag on a divider to resize panes above/below it. These commands
 have no mapped workstation implementation in the current source audit and
 remain open. The personal-list commands need an explicit target-selection
 contract because this workstation supports arbitrary personal WatchLists;
+this is not an absence of list-membership UI: WatchList row context actions
+already support explicit source/destination inspection, copy, and move, while
+`Shift+F` toggles the separate Flagged Items aggregate. The missing piece is a
+documented, keyboard-addressable TC2000 destination model for Ctrl+M and
+Favorites that does not guess among user-owned lists or conflate favorites
+with flags. Shift+T also needs a defined date-valued row field and persistence
+contract; the current header sort is per mounted surface and does not expose a
+custom-date domain object. These should be implemented only after those
+contracts exist and can be tested as persisted state.
 Tag Column behavior and persistence need to be established before wiring the
 mouse modifier; pane resizing must be persisted through Golden Layout rather
 than implemented as a transient DOM resize. The official `2–4`, `6–8`, and
