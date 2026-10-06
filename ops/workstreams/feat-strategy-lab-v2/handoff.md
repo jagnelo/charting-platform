@@ -13680,3 +13680,27 @@ service's Compose environment. `docker compose config --format json` rendered
 the backend value as the configured factory (empty by default), confirming the
 host plugin setting reaches the application container without enabling an
 unconfigured provider decoder.
+
+## 2026-10-06 - Persist native OOS equity-trace receipts
+
+New Nautilus OOS result manifests now reference a pinned, content-addressed
+JSON receipt containing the full typed `NautilusAccountEquityTraceReference`
+for the byte-verified equity trace. The worker publishes this generated receipt
+through the existing artifact publisher and verifies it with the rest of the
+run's result artifacts before acknowledging completion. The receipt preserves
+trial, attempt, portfolio, snapshot, source-tape, evaluation-window, scoring
+bounds, currency, initial-capital, observation-count, and trace-artifact
+identity needed for later OOS aggregation. It does not yet calculate an
+aggregate portfolio curve or summary metric set.
+
+Compatibility is explicit: when terminal redelivery encounters an existing
+immutable manifest created before this receipt artifact existed, materialization
+replays the original artifact set and does not rewrite the successful result.
+New results include the receipt; receipt bytes are independently checked for
+canonical JSON, schema, digest, and length.
+
+Validation: result-materialization, worker-terminal, and PostgreSQL result
+materialization suites passed 23/23; tests verify receipt rehydration, tamper
+rejection, publication, and legacy immutable replay. Ruff, focused MyPy, format,
+and `git diff --check` passed. Walk-forward aggregate metrics and their
+artifact-root/host read composition remain open, as do the broader branch gates.
