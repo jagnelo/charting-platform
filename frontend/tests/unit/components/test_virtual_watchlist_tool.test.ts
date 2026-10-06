@@ -1398,6 +1398,21 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.get('.watchlist__compare-button').attributes('aria-label')).toBe('Compare 2 selected symbols')
   })
 
+  it('uses Shift+N to open a note for the active WatchList row', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: { label: 'Momentum', rows, selected: 'XLE' },
+    })
+    const event = new KeyboardEvent('keydown', { key: 'n', shiftKey: true, bubbles: true, cancelable: true })
+    wrapper.get('[role="listbox"]').element.dispatchEvent(event)
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(wrapper.emitted('row-action')?.at(-1)).toEqual([
+      'note',
+      expect.objectContaining({ symbol: 'XLE', instrumentId: 2 }),
+    ])
+    expect(wrapper.emitted('select')).toBeUndefined()
+  })
+
   it('supports keyboard navigation and focus recovery for row context actions', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       attachTo: document.body,

@@ -2661,6 +2661,7 @@ test.describe('TC2000 workstation', () => {
     await expect(helpMenu).toContainText('Backspace')
     await expect(helpMenu).toContainText('Shift+L')
     await expect(helpMenu).toContainText('Shift+F')
+    await expect(helpMenu).toContainText('Shift+N')
     await expect(helpMenu).toContainText('Previous symbol in viewed history')
     await expect(helpMenu).toContainText('Over a chart: change timeframe')
     await expect(helpMenu).toContainText('over a WatchList: move through symbols')
@@ -2691,6 +2692,24 @@ test.describe('TC2000 workstation', () => {
     await activeSymbol.press('F1')
     await expect(helpMenu).toBeHidden()
     await expect(activeSymbol).toHaveValue('SPY')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8k-shift-n — Shift+N opens a note for the active WatchList symbol', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    const listbox = page.getByRole('listbox', { name: /symbols$/ }).first()
+    await expect(listbox).toBeVisible({ timeout: 10_000 })
+    const row = listbox.getByRole('option').first()
+    await expect(row).toBeVisible()
+    const symbol = (await row.getAttribute('aria-label'))?.split(' ')[0]
+    expect(symbol).toBeTruthy()
+    await row.click()
+    await listbox.press('Shift+n')
+    const noteTool = page.locator('.tool-window:visible').filter({ has: page.locator('.note-tool') }).last()
+    await expect(noteTool).toBeVisible({ timeout: 10_000 })
+    await expect(noteTool.locator('.note-tool')).toHaveAttribute('aria-label', `${symbol} notes`, { timeout: 10_000 })
+    await expect(noteTool.getByRole('textbox', { name: 'Instrument note' })).toBeEnabled({ timeout: 10_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

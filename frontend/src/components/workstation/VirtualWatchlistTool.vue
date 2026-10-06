@@ -1644,6 +1644,14 @@ function toggleStackedColumn(key: string) {
 }
 
 function onKeydown(event: KeyboardEvent) {
+  const isNoteShortcut = event.key.toLowerCase() === 'n' && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey
+  if (isNoteShortcut) {
+    event.preventDefault()
+    const activeSymbol = keyboardActiveSymbol.value || props.selected
+    const activeRow = filteredRows.value.find(row => row.symbol === activeSymbol)
+    if (activeRow) emit('row-action', 'note', activeRow)
+    return
+  }
   const isFlagShortcut = event.key.toLowerCase() === 'f' && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey
   if (isFlagShortcut) {
     event.preventDefault()
