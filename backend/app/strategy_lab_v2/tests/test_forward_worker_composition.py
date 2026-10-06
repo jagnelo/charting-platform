@@ -5,7 +5,7 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -25,6 +25,7 @@ from app.strategy_lab_v2.forward_processed_prefix import ForwardProcessedEventPr
 from app.strategy_lab_v2.forward_warmup import CarryInMode, ForwardWarmupReceipt
 from app.strategy_lab_v2.forward_worker_composition import (
     AuthenticatedForwardDeliveryContextResolver,
+    AuthenticatedForwardSandboxPlanFactory,
     AuthenticatedForwardSandboxPlanInputResolver,
     AuthenticatedForwardWorkerRuntimeInputResolver,
     ForwardNautilusMarketContext,
@@ -35,6 +36,7 @@ from app.strategy_lab_v2.forward_worker_composition import (
     build_forward_tape_manifest,
     create_authenticated_forward_delivery_context_resolver,
     create_authenticated_forward_session_event_handler,
+    create_authenticated_forward_worker_handler_factory,
     create_forward_worker_callbacks,
 )
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
@@ -923,6 +925,89 @@ def test_owner_session_handler_composes_authenticated_context_and_native_runtime
     assert isinstance(handler, NautilusForwardSessionEventHandler)
     assert handler.principal == "owner-a"
     assert isinstance(handler.runtime, PersistentNautilusForwardSessionRuntime)
+
+
+def test_production_owner_handler_factory_binds_plan_and_process_factory(tmp_path: Any) -> None:
+    owner = "owner-a"
+    persistence = PostgresStrategyLabV2Persistence.build(lambda: None)
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    package_resolver = StrategyPackageArtifactResolver(
+        store,
+        runtime_abi="strategy-runtime.test.v1",
+    )
+
+    class SnapshotResolver(AuthenticatedFrozenEventTapeResolver):
+        @property
+        def principal(self) -> Any:
+            return self._principal
+
+        def resolve_bounded_window(self, *_args: Any, **_kwargs: Any) -> Any:
+            return None
+
+    class RuntimeResolver:
+        principal = owner
+
+        async def resolve(self, **_kwargs: Any) -> Any:
+            raise AssertionError("runtime plan is resolved only when a process starts")
+
+    class FrozenReader:
+        def read_frozen_payloads(self, **_kwargs: Any) -> Any:
+            return ()
+
+    class WarmupReader:
+        def read_warmup_payloads(self, **_kwargs: Any) -> Any:
+            return ()
+
+    class MarketContextResolver:
+        def resolve(self, **_kwargs: Any) -> Any:
+            return None
+
+    def prefix_factory(principal: Any) -> Any:
+        assert principal == owner
+        return _unreachable_history
+
+    def market_context_factory(principal: Any) -> MarketContextResolver:
+        assert principal == owner
+        return MarketContextResolver()
+
+    def snapshot_factory(principal: Any) -> SnapshotResolver:
+        resolver = SnapshotResolver.__new__(SnapshotResolver)
+        resolver._principal = principal
+        return resolver
+
+    handler_factory = create_authenticated_forward_worker_handler_factory(
+        persistence,
+        package_resolver,
+        store,
+        snapshot_resolver_factory=snapshot_factory,
+        frozen_payload_reader=FrozenReader(),
+        warmup_payload_reader=WarmupReader(),
+        processed_prefix_resolver_factory=prefix_factory,
+        market_context_resolver_factory=market_context_factory,
+        runtime_profile=RuntimeIsolationProfile(
+            content_digest("forward-runtime-image"), "strategy-runtime.test.v1"
+        ),
+        image_name="nautilus-forward:rc5",
+        expected_version="2.0.0rc5",
+        output_path_resolver=lambda _owner, _instance, _checkpoint: tmp_path / "output.json",
+    )
+
+    handler = cast(
+        NautilusForwardSessionEventHandler,
+        handler_factory(owner, _delivery_factory(), RuntimeResolver()),
+    )
+
+    assert handler.principal == owner
+    assert isinstance(handler.runtime, PersistentNautilusForwardSessionRuntime)
+    process_factory = getattr(handler.runtime, "_process_factory")
+    sandbox_factory = getattr(process_factory, "_plan_factory")
+    assert isinstance(sandbox_factory, AuthenticatedForwardSandboxPlanFactory)
+    assert sandbox_factory._principal == owner
+    input_resolver = cast(
+        AuthenticatedForwardSandboxPlanInputResolver,
+        sandbox_factory._input_resolver,
+    )
+    assert input_resolver._snapshot_tape_resolver.principal == owner
 
 
 def _delivery_factory():

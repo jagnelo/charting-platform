@@ -64,7 +64,10 @@ from app.strategy_lab_v2.nautilus_forward_delivery import (
     create_nautilus_forward_delivery_callback_factory,
 )
 from app.strategy_lab_v2.nautilus_forward_input import NautilusForwardDeliveryInput
-from app.strategy_lab_v2.nautilus_forward_process import ForwardPreparation
+from app.strategy_lab_v2.nautilus_forward_process import (
+    ForwardPreparation,
+    HardenedNautilusForwardSessionProcessFactory,
+)
 from app.strategy_lab_v2.nautilus_forward_recovery import (
     AuthenticatedNautilusForwardCheckpointResolver,
     ResolvedNautilusForwardCheckpoint,
@@ -1369,6 +1372,99 @@ def create_authenticated_forward_session_event_handler(
     )
 
 
+def create_authenticated_forward_worker_handler_factory(
+    persistence: PostgresStrategyLabV2Persistence,
+    package_resolver: StrategyPackageArtifactResolver,
+    store: LocalArtifactStore,
+    *,
+    snapshot_resolver_factory: Callable[[Any], AuthenticatedFrozenEventTapeResolver],
+    frozen_payload_reader: FrozenForwardPayloadReader,
+    warmup_payload_reader: ForwardWarmupPayloadReader,
+    processed_prefix_resolver_factory: Callable[[Any], ForwardProcessedPrefixResolver],
+    market_context_resolver_factory: Callable[[Any], ForwardNautilusMarketContextResolver],
+    runtime_profile: RuntimeIsolationProfile,
+    image_name: str,
+    expected_version: str,
+    output_path_resolver: Callable[[Any, str, str], str | os.PathLike[str]],
+) -> OwnerForwardHandlerFactory:
+    """Compose an owner-isolated handler with its exact sandbox plan factory.
+
+    Platform-owned canonical readers and market metadata remain injected. This
+    factory binds their authenticated owner once, then uses the same exact plan
+    resolver for initial process start and checkpoint replacement.
+    """
+
+    if not isinstance(persistence, PostgresStrategyLabV2Persistence):
+        raise TypeError("persistence must use PostgresStrategyLabV2Persistence")
+    if not isinstance(package_resolver, StrategyPackageArtifactResolver):
+        raise TypeError("package_resolver must use StrategyPackageArtifactResolver")
+    if not isinstance(store, LocalArtifactStore):
+        raise TypeError("store must use LocalArtifactStore")
+    if not callable(snapshot_resolver_factory):
+        raise TypeError("snapshot_resolver_factory must bind a snapshot resolver per owner")
+    if not callable(getattr(frozen_payload_reader, "read_frozen_payloads", None)):
+        raise TypeError("frozen_payload_reader must expose read_frozen_payloads")
+    if not callable(getattr(warmup_payload_reader, "read_warmup_payloads", None)):
+        raise TypeError("warmup_payload_reader must expose read_warmup_payloads")
+    if not callable(processed_prefix_resolver_factory):
+        raise TypeError("processed_prefix_resolver_factory must bind a resolver per owner")
+    if not callable(market_context_resolver_factory):
+        raise TypeError("market_context_resolver_factory must bind a resolver per owner")
+    if not isinstance(runtime_profile, RuntimeIsolationProfile):
+        raise TypeError("runtime_profile must use RuntimeIsolationProfile")
+    if not isinstance(image_name, str) or not image_name.strip():
+        raise ValueError("image_name must not be empty")
+    if not isinstance(expected_version, str) or not expected_version.strip():
+        raise ValueError("expected_version must not be empty")
+    if not callable(output_path_resolver):
+        raise TypeError("output_path_resolver must be callable")
+
+    def build_for_owner(
+        principal: str,
+        delivery_factory: NautilusForwardDeliveryCallbackFactory,
+        runtime_input_resolver: ForwardRuntimeInputResolver,
+    ) -> NautilusForwardSessionEventHandler:
+        snapshot_resolver = snapshot_resolver_factory(principal)
+        if not isinstance(snapshot_resolver, AuthenticatedFrozenEventTapeResolver):
+            raise TypeError("snapshot resolver factory returned an invalid owner resolver")
+        if snapshot_resolver.principal != principal:
+            raise ValueError("snapshot resolver factory returned another owner's resolver")
+        processed_prefix_resolver = processed_prefix_resolver_factory(principal)
+        market_context_resolver = market_context_resolver_factory(principal)
+        input_resolver = AuthenticatedForwardSandboxPlanInputResolver(
+            runtime_input_resolver,
+            snapshot_resolver,
+            warmup_payload_reader,
+            processed_prefix_resolver,
+            market_context_resolver,
+            principal=principal,
+            runtime_profile=runtime_profile,
+            expected_version=expected_version,
+        )
+        sandbox_plan_factory = AuthenticatedForwardSandboxPlanFactory(
+            store,
+            input_resolver,
+            principal=principal,
+            image_name=image_name,
+            output_path_resolver=lambda instance_id, checkpoint_fingerprint: (
+                output_path_resolver(principal, instance_id, checkpoint_fingerprint)
+            ),
+        )
+        process_factory = HardenedNautilusForwardSessionProcessFactory(sandbox_plan_factory)
+        return create_authenticated_forward_session_event_handler(
+            persistence,
+            delivery_factory,
+            runtime_input_resolver,
+            process_factory,
+            snapshot_window_resolver=snapshot_resolver,
+            frozen_payload_reader=frozen_payload_reader,
+            processed_prefix_resolver=processed_prefix_resolver,
+            principal=principal,
+        )
+
+    return build_for_owner
+
+
 OwnerForwardHandlerFactory = Callable[
     [str, NautilusForwardDeliveryCallbackFactory, ForwardRuntimeInputResolver],
     NautilusForwardSessionEventHandler | Awaitable[NautilusForwardSessionEventHandler],
@@ -1537,5 +1633,6 @@ __all__ = [
     "create_authenticated_forward_context_history_resolver",
     "create_authenticated_forward_delivery_context_resolver",
     "create_authenticated_forward_session_event_handler",
+    "create_authenticated_forward_worker_handler_factory",
     "create_forward_worker_callbacks",
 ]
