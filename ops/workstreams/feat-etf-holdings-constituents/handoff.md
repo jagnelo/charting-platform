@@ -9344,4 +9344,26 @@ remain open for the local Docker/browser gate and final review checkpoint. AC10
 still awaits the separate provider-platform dependency reaching staging, and
 AC14 is the post-integration/deployment observation. No integration, promotion,
 deployment, or other-worktree change was performed.
+
+### Local browser-gate resource recheck — 2026-10-06
+
+The required app/browser acceptance test is agent-owned; it is not a task for
+the human developer. A fresh read-only Docker inventory found six running
+services belonging to `feat-tc2000-frontend-rework`, `stremio-server`, and a
+newly observed unlabeled container `determined_fermi` (up for two seconds at
+the time of observation). Host state was 2.9 GiB available RAM, 12 GiB swap in
+use, and load 2.77/2.62/2.63. The local `full_stack_browser` gate was not
+started: unrelated and unlabeled workloads remain active, so the existing
+resource-safety condition is not met. No external container or worktree was
+changed. The normal sandbox cannot access the Docker socket; the inventory was
+read through a narrowly scoped read-only elevated command. The UV-managed
+preflight confirmed this assigned worktree, but its shared runtime-allocation
+lock is outside the writable worktree.
+
+Next action: recheck Docker inventory and host headroom, then run the local
+browser gate when unrelated and unlabeled workloads have exited and resource
+preflight is safe. AC10 still depends on the separate provider-platform work
+reaching staging; AC14 remains the 30-day post-integration/deployment
+observation. The goal is incomplete; do not ask the human to run the app or
+count this resource check as the required test.
 *** End of File
