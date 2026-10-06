@@ -431,79 +431,22 @@ progress:
   total: 9
   current_phase: R1_V25_KEYBOARD_PARITY
   next_action: >-
-    Continue bounded TC-owned R1/R5/R6 implementation, exact-tip validation, and
-    V25 parity review without changing visual acceptance policy. Defer upstream
-    consumption/reconciliation until both dependencies reach staging. Stop only
-    at ready_for_human_review.
+    Continue bounded TC-owned R1/R5/R6 implementation and exact-tip validation
+    without changing visual acceptance policy. Retry the protected Help visual
+    check after human review of its known shortcut-help delta. Defer upstream
+    consumption/reconciliation until both dependencies reach staging. Stop at
+    ready_for_human_review.
   current_blocker: >-
-    Ctrl+number and Ctrl+B chart shortcut slices are implemented and focused
-    browser/unit checks pass. The exact-tip full frontend suite remains
-    unverified because the serial run timed out six WorkspaceLayoutHost tests
-    and stalled without further results, though that file passed in isolation.
-    The production build passes. Exact V25 review, generic integration, broader
-    AC7/R1/R5/R6, and staging-dependent provider/ETF consumption remain open.
-    Study Lab's saved-universe source suggestions and authenticated consumer
-    flow now pass at product commit c0a2100cd0741e933382a6f72a0237ba8f495bda.
-    Exact V25 authority, generic integration, broader AC7 evidence, and the
-    remaining R1/R5/R6 work are still incomplete. Provider and ETF branches
-    remain outside staging; AC2/AC3 consumption and shared-path reconciliation
-    must wait for both to reach staging.
-    The new Market Map selected-member announcement passed focused/full frontend
-    tests, type-check/build, and its pinned dense browser case. This narrows one
-    accessibility gap only. Exact V25 authority, broader accessibility/security/
-    endurance evidence, generic integration, remaining R1/R5/R6 work, and both
-    staging-dependent upstream integrations remain incomplete.
-    Product commit effcca4e25f65a205a93da7a4ee1b4a817a80bcd adds the V25
-    Shift+L maximize/restore shortcut. Focused unit, authenticated browser,
-    type-check/build, and correctly seeded pinned Help screenshot coverage pass;
-    the initial unseeded visual diagnostic is superseded and not acceptance
-    evidence. Exact V25 review and remaining roadmap gates stay open.
-    Product commit 99f10230db0a577be621a8e503a4070412be831a adds the current
-    V25 Shift+F selected-row flag/unflag behavior using existing persisted item
-    mutations. Focused UI tests passed 83/83, type-check/build passed, the
-    authenticated multi-row browser flow passed 1/1, and seeded Help visual
-    coverage passed all four profiles. Exact V25 review, full frontend suite,
-    generic integration, and remaining R1/R5/R6 work remain open.
-    At pushed product commit 39b9dec08685b400b46607daf6558c49ec8affd4,
-    focused WatchList Shift+N opens the existing canonical Notes tool for the
-    active row. VirtualWatchlistTool passed 84/84, pinned authenticated Shift+N
-    and Help flows passed 2/2, the Help visual matrix passed 4/4, and Vue
-    type-check/build plus scope validation/self-tests passed. No visual oracle
-    changed. This is not global-context parity or an exact-tip full frontend
-    suite result. The seeded Shift+L Help rerun passes 4/4; its earlier
-    unseeded 3/4 diagnostic is superseded, so no Shift+L visual delta remains.
-    At pushed product commit 7c51c36de0225cdff20ac57d166999ad8daa9365,
-    Shift+D toggles the existing Trend Line drawing tool for the active chart.
-    Vue type-check/build passed, the pinned authenticated browser flow passed
-    1/1, and the unchanged Help visual matrix passed 4/4 with both shortcuts
-    listed. Scope validation passed 144 paths and six self-tests. This does not
-    close exact V25 review or the full frontend/integration gates.
-    At synchronized branch tip 90872e8e4a800f07b1f9853383e069b04fcaf1d5,
-    the exact-tip frontend coverage command was attempted serially with one
-    worker. It remained silent without a test summary while host memory fell to
-    870 MiB available and swap was exhausted, so it was stopped to avoid OOM.
-    Treat as inconclusive resource-limited validation, not a test failure/pass;
-    the full suite remains open for a safe-memory retry.
-    At backend checkpoint d6bd60d, unit/integration suites passed 1622/1622 and
-    409/409 at 82.26%. At branch checkpoint 22becb68272854b6ceae6a263d8694090495e009,
-    frontend Vitest passed 129 files/1210 tests, focused VirtualWatchlistTool
-    passed 81/81, type-check passed, and production build passed with only the
-    existing large-chunk warning. The pinned seeded functional suite passed
-    175/177 with two documented skips and zero failures at product source
-    f0e9460; the four-profile local visual matrix passed 104/104, the isolated
-    10k-row/50-round workstation performance suite passed 4/4, and the separate
-    10k-cell Market Map browser guard passed 1/1. These do not close exact V25
-    approval or the generic full integration gate. Docker Buildx is unavailable
-    and the generic helper's cleanup targets the assigned volumes; use only a
-    verified isolated equivalent. Provider/ETF branches remain outside staging,
-    deferring R2/R3 and all shared-path reconciliation.
-    At product commit a37ae3217, pinned authenticated Chromium passed the
-    bracket-navigation and Help cases 2/2. The four-profile Help visual check
-    passed 4/4 with unchanged references/thresholds; frontend type-check and
-    production build passed; scope guard and all six scope self-tests passed.
-    The goal remains active: broader frontend/full-integration evidence, exact
-    V25 review, remaining TC-owned roadmap criteria, and staging-gated provider/
-    ETF consumption/reconciliation are incomplete.
+    At pushed tip 29e5deca5, the complete serial frontend suite passes
+    130/130 files and 1,223/1,223 tests after test-isolation fixes. The earlier
+    broad-run WorkspaceLayoutHost timeouts are resolved. The current shortcut
+    Help screenshot differs by 3% from its protected baseline after the added
+    timeframe and Ctrl+B rows; the baseline remains untouched and requires
+    human visual review before any update. HLC Bars are still unsupported by the
+    chart renderer. Generic integration, exact V25 review, broader AC4-AC7
+    evidence, and full R1/R5/R6 roadmap work remain open. Provider and ETF
+    branches are still outside staging, so AC2/AC3 consumption and shared-path
+    reconciliation remain explicitly deferred.
 historical_implementation_records:
   - "Product commit b4a4431be05e06835f975b941c3dea46af9eaba4 adds TC2000 V25 Ctrl+1/3/4/5/6 direct selection for active-chart M1/M5/M15/M30/H1 intervals, leaving Ctrl+2 unclaimed because M2 is absent from the current app timeframe contract. Workstation bindings passed 39/39, and pinned authenticated Chromium F8k-direct-timeframe passed 1/1. The exact product commit was pushed; no provider/ETF behavior or visual oracle/acceptance policy changed."
   - "Pushed product commit 587d15c33175c7dd8574eab2c5a80766d520996c cycles the active chart through supported OHLC/Candles/Line styles, preserves other configuration, defaults missing bar_type to Candles, and leaves HLC Bars as an explicit renderer gap. Focused workstation bindings passed 40/40; authenticated pinned Chromium F8k-direct-chart-style passed 1/1 after a first browser replay exposed the missing-config default; npm run build (vue-tsc and Vite) passed. Two full serial Vitest attempts each reported six WorkspaceLayoutHost timeouts and stopped producing results; that file passed 10/10 in isolation. No full-suite pass is claimed."
