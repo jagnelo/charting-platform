@@ -48,13 +48,19 @@ class WalkForwardCalendarDomainReader(Protocol):
 
 
 class ResolvedPackage(Protocol):
-    manifest: StrategySdkManifest
-    package_fingerprint: str
-    strategy_fingerprint: str
+    @property
+    def manifest(self) -> StrategySdkManifest: ...
+
+    @property
+    def package_fingerprint(self) -> str: ...
+
+    @property
+    def strategy_fingerprint(self) -> str: ...
 
 
 class PackageManifestResolver(Protocol):
-    store: LocalArtifactStore
+    @property
+    def store(self) -> LocalArtifactStore: ...
 
     def resolve(
         self,
