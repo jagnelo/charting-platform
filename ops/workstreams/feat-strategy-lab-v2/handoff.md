@@ -12779,3 +12779,39 @@ result is synchronized (`HEAD` and `origin/feat/strategy-lab-v2` both
 No Docker resources were created or retained. The worktree is now limited to
 this branch-owned operational checkpoint; next action is the adapter and
 process-wiring implementation described above.
+
+## 2026-10-06 - Owner-scoped forward process factory wiring
+
+Implementation commit `2812b10b268704d51aca0f0a8a41842c07db1717` is pushed to
+`origin/feat/strategy-lab-v2`. Added
+`create_authenticated_forward_worker_handler_factory`, which assembles the
+owner's authenticated runtime-plan resolver, snapshot/tape resolver,
+source-verified warm-up and processed-prefix readers, market metadata
+resolver, exact RC5 runtime profile, artifact-backed sandbox-plan factory,
+and hardened forward process factory. The same hardened factory is given to
+the persistent session coordinator, so checkpoint replacement rebuilds its
+plan from the new exact checkpoint. Owner identity is bound and checked at
+construction; artifact output paths receive owner, instance, and checkpoint
+identities. Platform data readers remain explicit injections, not duplicated
+provider implementations.
+
+The package suite passed 1,532 tests with one opt-in image test skipped;
+package Ruff and formatting passed; package MyPy passed across 407 files; and
+whitespace validation passed. The new composition test verifies per-owner
+resolver and plan-factory binding. This remains fixture-level handler
+composition: the actual adapter implementations and a full start/replace run
+through the pinned RC5 process have not yet been proven. No Docker resources
+were created or retained. The implementation commit and remote tip were both
+`2812b10b268704d51aca0f0a8a41842c07db1717` before this checkpoint.
+
+Context closure: owned paths were `forward_worker_composition.py` and
+`tests/test_forward_worker_composition.py`; both were reviewed and tested, then
+committed as `2812b10b268704d51aca0f0a8a41842c07db1717`. Push was synchronized
+with the remote at that SHA; the implementation worktree was clean before
+starting this separate operational checkpoint. No resources remain to clean.
+
+Next: replace the full in-memory forward warm-up join with a verified
+disk-backed path and exercise the complete factory through RC5 startup and
+exact checkpoint replacement. Keep canonical reads injected through the
+platform ownership boundary. AC-FORWARD and forward event-tape parity remain
+open; stable Nautilus 2.x publication is not required.
