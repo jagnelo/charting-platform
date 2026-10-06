@@ -20,6 +20,16 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Current local slice adds official V25 Shift+=/Shift+- vertical projection
+  space. The persisted active-chart setting expands/contracts linear or
+  logarithmic Y ranges; focused scale-math tests pass 3/3, full frontend Vitest
+  passes 294 suites/1,235 tests, and type-check/production build pass. The
+  authenticated browser interaction/persistence could not be verified in this
+  sandbox (Docker socket denied; Playwright CLI startup stalled), and the
+  protected visual oracle has not been run at this tip. Keep both browser and
+  visual evidence open; generic integration and broader AC4-AC7/R1/R5/R6 plus
+  staging-gated provider/ETF consumption remain open. No visual oracle was
+  changed. Earlier checkpoint detail follows.
   Product commit b6f24fa44 adds V25 Shift+wheel chart-history panning via the
   existing uPlot viewport. Focused WorkstationView bindings passed 44/44, full
   serial frontend Vitest passed 130 files/1,232 tests, type-check/production
@@ -190,23 +200,26 @@ current_blocker: >-
   tolerance. Full integration and broader AC4-AC7/R1/R5/R6 remain open; provider
   and ETF consumption is deferred until both branches reach staging.
 active_changeset_context:
-  name: TC2000 V25 Shift+wheel chart-history pan
-  status: product_commit_pushed_validated_visual_review_open
-  commit_sha: b6f24fa44
-  remote_sha: b6f24fa44
+  name: TC2000 V25 vertical projection-space keyboard shortcuts
+  status: product_committed_browser_and_visual_review_open
+  commit_sha: 280a79e7f
+  remote_sha: pending
   intent: >-
-    Implement the official Shift+mouse-wheel chart pan using the existing chart
-    viewport while preserving normal wheel zoom, Ctrl+wheel timeframe changes,
-    WatchList gestures, and provider/ETF ownership boundaries.
+    Implement Shift+= and Shift+- as per-chart vertical projection-space
+    changes in linear and logarithmic scales, preserving chart identity,
+    editor/inactive-window keyboard ownership, and provider/ETF boundaries.
   owned_paths:
     - frontend/src/components/chart/UPlotChart.vue
-    - frontend/src/views/WorkstationView.vue
-    - frontend/tests/e2e/flows.spec.ts
+    - frontend/src/lib/workstation/chart-projection.ts
+    - frontend/tests/unit/lib/test_chart_projection.test.ts
+    - docs/tc2000-roadmap.md
+    - docs/tc2000-parity.md
   next_action: >-
-    Continue one bounded TC-owned R1/R5/R6 frontend parity slice, refresh exact-
-    tip full-stack/browser evidence as feasible, preserve protected visual
-    oracles, and defer R2/R3/shared-path reconciliation until provider and ETF
-    both reach staging. Stop only at ready_for_human_review.
+    Run the authenticated chart shortcut and persisted-configuration browser
+    check plus the unchanged protected visual oracle when the assigned browser
+    runtime is available. Continue bounded TC-owned parity work; defer R2/R3
+    and shared-path reconciliation until both upstream branches reach staging.
+    Stop only at ready_for_human_review.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."

@@ -1,5 +1,17 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-10-06 — Vertical projection-space shortcuts
+
+The [official TC2000 chart reference](https://help.tc2000.com/m/69401/l/314789-how-to-create-projection-space-on-a-chart)
+assigns Shift+= to increase and Shift+- to decrease vertical projection space.
+The active chart applies this to its Y range symmetrically around the midpoint,
+including logarithmic charts, and stores the level in the chart configuration.
+The keyboard action is ignored in text editors and inactive chart windows, and
+the chart Help overlay documents it. Scale-math tests pass `3/3`; full frontend
+Vitest passes `1,235/1,235` across `294/294` suites and the production build
+passes. Browser hotkey/persistence verification and protected visual review
+remain open; no acceptance oracle or screenshot policy changed.
+
 ## 2026-10-06 — Shift+wheel chart-history pan
 
 The current [TC2000 V25 shortcut reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)

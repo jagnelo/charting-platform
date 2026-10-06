@@ -1,5 +1,20 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — Vertical projection-space shortcuts (in progress)
+
+Product commit `280a79e7f` implements official TC2000 Shift+=/Shift+- vertical projection space in the
+active chart. It expands/contracts the current Y range symmetrically, works in
+linear and logarithmic scale space, and persists its level through the existing
+per-chart configuration path. Chart Help documents both shortcuts. Focused
+scale-math tests pass 3/3, complete frontend Vitest passes 294 suites/1,235
+tests, and Vue type-check/production build pass. Browser interaction and
+configuration reload remain unverified because the sandbox denies the Docker
+socket and the Playwright CLI wrapper failed to start; the protected visual
+oracle has not been rerun at this tip. Keep these gates open. No screenshot
+oracle or provider/ETF behavior changed. Next: verify live shortcut behavior,
+round-trip persistence, and protected visual state in the approved pinned
+browser runtime, then update exact-tip validation and session metadata.
+
 ## 2026-10-06 — Shift+wheel chart-history navigation
 
 Product commit `b6f24fa44` is pushed to the assigned feature branch. The active

@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-06
 
+## 2026-10-06 — Shift+= / Shift+- vertical projection space
+
+The official [TC2000 projection-space reference](https://help.tc2000.com/m/69401/l/314789-how-to-create-projection-space-on-a-chart)
+defines Shift+= and Shift+- as increasing/decreasing chart margins above and
+below price. The active chart now expands/contracts its Y range in the current
+scale space (linear or logarithmic), persists the level in that chart's
+configuration, and lists the shortcuts in chart Help. Focused scale-math tests
+pass `3/3`; the full frontend suite passes `1,235/1,235` across `294/294`
+suites; Vue type-check and production build pass. The authenticated browser
+interaction could not be run in this execution sandbox: Docker socket access is
+denied and the Playwright CLI wrapper did not start. No screenshot baseline,
+mask, threshold, skip, provider/ETF behavior, or upstream worktree changed.
+Browser interaction/persistence and protected visual review remain open, as do
+the generic integration gate and broader AC4–AC7/R1/R5/R6 requirements.
+
 ## 2026-10-06 — Shift+wheel chart-history navigation
 
 Product commit `b6f24fa44` implements the current V25 Shift+mouse-wheel chart
