@@ -242,6 +242,32 @@ class PostgresSearchDispatchAdapter:
                     raise ValueError("PostgreSQL search dispatch identity is ambiguous")
                 return _single_dispatch_record(rows)
 
+    async def load_by_payload_digest(self, payload_digest: str) -> SearchDispatchRecord | None:
+        """Resolve a dispatch from the payload identity preserved by the outbox.
+
+        The Redis envelope created by the shared outbox has its own transport
+        request fingerprint and event identifier; neither is the original
+        search-dispatch request fingerprint or attempt ID. The content-addressed
+        payload digest is preserved end to end and uniquely binds the durable
+        dispatch record to the authenticated worker handoff.
+        """
+
+        _validate_digest(payload_digest, "payload_digest")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                rows = await self._select_dispatch_rows(
+                    session,
+                    "WHERE payload_digest = :payload_digest",
+                    {"payload_digest": payload_digest},
+                )
+                if len(rows) > 1:
+                    raise ValueError("PostgreSQL search dispatch payload identity is ambiguous")
+                record = _single_dispatch_record(rows)
+                if record is not None and record.request.payload_digest != payload_digest:
+                    raise ValueError("PostgreSQL search dispatch payload identity drifted")
+                return record
+
     async def load_admission_ledger(self, *, principal: Any) -> ExecutionAdmissionLedger:
         """Load and authenticate an owner's immutable worker-admission receipts."""
 

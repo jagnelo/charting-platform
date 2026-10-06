@@ -808,6 +808,17 @@ async def test_postgres_composed_walk_forward_recovery_dispatch_and_outbox_resta
         outbox_message = outbox.messages[0]
         first_relay = await relay_outbox_message(outbox, outbox_message, transport)
         assert first_relay.decision is OutboxRelayDecision.PUBLISHED
+        assert first_relay.envelope is not None
+        # Outbox envelopes have their own event/request identity. The
+        # authenticated worker handoff must resolve through its preserved
+        # content digest, not conflate transport IDs with OOS attempt IDs.
+        relay_request = first_relay.envelope.request
+        assert relay_request.attempt_id != dispatch_record.request.attempt_id
+        assert relay_request.fingerprint != dispatch_record.request.fingerprint
+        dispatch_by_payload = await dispatch_store.load_by_payload_digest(
+            relay_request.payload_digest
+        )
+        assert dispatch_by_payload == dispatch_record
 
         # Simulate publisher loss after Redis accepted the envelope but before
         # PostgreSQL recorded the outbox acknowledgement.
@@ -831,6 +842,7 @@ async def test_postgres_composed_walk_forward_recovery_dispatch_and_outbox_resta
         assert acknowledged.decision.value == "acknowledged"
         durable_outbox = await relay_restart._persistence.execution_events.load_outbox()
         assert durable_outbox.published_message_ids == frozenset({outbox_message.message_id})
+
         async with engine.connect() as connection:
             for table in (
                 dispatch_schema.admission_table,

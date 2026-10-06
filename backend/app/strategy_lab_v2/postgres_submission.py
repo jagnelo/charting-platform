@@ -178,8 +178,12 @@ class PostgresSubmissionDispatchAdapter:
         session: AsyncSessionLike = self._session_factory()
         async with session:
             async with session.begin():
-                prior_receipt = await self._load_submission(session, owner_id, request.idempotency_key)
-                prior_dispatch = await self._load_dispatch(session, owner_id, request.idempotency_key)
+                prior_receipt = await self._load_submission(
+                    session, owner_id, request.idempotency_key
+                )
+                prior_dispatch = await self._load_dispatch(
+                    session, owner_id, request.idempotency_key
+                )
                 ledger = SubmissionReceiptLedger(
                     (prior_receipt,) if prior_receipt is not None else ()
                 )
@@ -259,9 +263,7 @@ class PostgresSubmissionDispatchAdapter:
             async with session.begin():
                 return await self._load_payload(session, payload_digest)
 
-    async def load_submission(
-        self, *, principal: Any, attempt_id: str
-    ) -> SubmissionReceipt | None:
+    async def load_submission(self, *, principal: Any, attempt_id: str) -> SubmissionReceipt | None:
         """Load the one owner-scoped submission bound to an execution attempt.
 
         Terminal evidence resolvers use this authenticated lookup to bind a
@@ -344,7 +346,9 @@ class PostgresSubmissionDispatchAdapter:
                     raise ValueError("PostgreSQL worker submission owner is malformed")
                 receipt = _decode_submission(row)
                 if row.get("request_fingerprint") != receipt.request.fingerprint:
-                    raise ValueError("PostgreSQL worker submission fingerprint does not match bytes")
+                    raise ValueError(
+                        "PostgreSQL worker submission fingerprint does not match bytes"
+                    )
                 if row.get("attempt_id") != attempt_id:
                     raise ValueError("PostgreSQL worker submission attempt identity drifted")
                 if receipt.request.fingerprint != request_fingerprint:
@@ -401,13 +405,74 @@ class PostgresSubmissionDispatchAdapter:
                     raise ValueError("PostgreSQL worker dispatch owner is malformed")
                 receipt = _decode_submission(row)
                 if row.get("request_fingerprint") != receipt.request.fingerprint:
-                    raise ValueError("PostgreSQL worker submission fingerprint does not match bytes")
+                    raise ValueError(
+                        "PostgreSQL worker submission fingerprint does not match bytes"
+                    )
                 if row.get("attempt_id") != attempt_id:
                     raise ValueError("PostgreSQL worker submission attempt identity drifted")
                 if row.get("dispatch_request_fingerprint") != request_fingerprint:
                     raise ValueError("PostgreSQL worker dispatch fingerprint identity drifted")
                 if row.get("dispatch_attempt_id") != attempt_id:
                     raise ValueError("PostgreSQL worker dispatch attempt identity drifted")
+                return WorkerSubmissionBinding(owner_id, receipt)
+
+    async def load_dispatch_binding_by_payload_digest(
+        self, *, payload_digest: str, attempt_id: str
+    ) -> WorkerSubmissionBinding | None:
+        """Resolve a submission from the content identity retained by Redis.
+
+        The transactional outbox assigns a transport request fingerprint that
+        differs from the original dispatch request fingerprint. The immutable
+        payload digest remains unchanged and is joined to the owner-scoped
+        accepted submission and dispatch rows here.
+        """
+
+        require_sha256_digest(payload_digest, field_name="payload_digest")
+        if not isinstance(attempt_id, str) or not attempt_id.strip():
+            raise ValueError("attempt_id must not be empty")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                result = await session.execute(
+                    _statement(
+                        f"""
+                        SELECT s.owner_id, s.idempotency_key, s.request_fingerprint,
+                               s.operation, s.attempt_id, s.payload_digest,
+                               s.submitted_at, s.accepted_at,
+                               d.request_fingerprint AS dispatch_request_fingerprint,
+                               d.attempt_id AS dispatch_attempt_id,
+                               d.payload_digest AS dispatch_payload_digest
+                        FROM {self._schema.submission_table} AS s
+                        INNER JOIN {self._schema.dispatch_table} AS d
+                          ON d.owner_id = s.owner_id
+                         AND d.idempotency_key = s.idempotency_key
+                        WHERE d.payload_digest = :payload_digest
+                          AND d.attempt_id = :attempt_id
+                        FOR SHARE
+                        """
+                    ),
+                    {"payload_digest": payload_digest, "attempt_id": attempt_id},
+                )
+                rows = list(result.mappings())
+                if not rows:
+                    return None
+                if len(rows) != 1:
+                    raise ValueError("PostgreSQL worker payload binding is ambiguous")
+                row = rows[0]
+                owner_id = row.get("owner_id")
+                if not isinstance(owner_id, str) or not owner_id.strip():
+                    raise ValueError("PostgreSQL worker submission owner is malformed")
+                receipt = _decode_submission(row)
+                if row.get("request_fingerprint") != receipt.request.fingerprint:
+                    raise ValueError(
+                        "PostgreSQL worker submission fingerprint does not match bytes"
+                    )
+                if row.get("attempt_id") != attempt_id:
+                    raise ValueError("PostgreSQL worker submission attempt identity drifted")
+                if row.get("dispatch_attempt_id") != attempt_id:
+                    raise ValueError("PostgreSQL worker dispatch attempt identity drifted")
+                if row.get("dispatch_payload_digest") != payload_digest:
+                    raise ValueError("PostgreSQL worker dispatch payload identity drifted")
                 return WorkerSubmissionBinding(owner_id, receipt)
 
     async def _load_payload(
@@ -438,9 +503,7 @@ class PostgresSubmissionDispatchAdapter:
             raise ValueError("PostgreSQL dispatch payload identity drifted")
         return record
 
-    async def _insert_payload(
-        self, session: AsyncSessionLike, payload: DispatchPayload
-    ) -> None:
+    async def _insert_payload(self, session: AsyncSessionLike, payload: DispatchPayload) -> None:
         result = await session.execute(
             _statement(
                 f"""
@@ -487,9 +550,7 @@ class PostgresSubmissionDispatchAdapter:
             raise ValueError("PostgreSQL submission outbox fingerprint does not match bytes")
         return message
 
-    async def _insert_outbox(
-        self, session: AsyncSessionLike, message: OutboxMessage
-    ) -> None:
+    async def _insert_outbox(self, session: AsyncSessionLike, message: OutboxMessage) -> None:
         result = await session.execute(
             _statement(
                 f"""
@@ -637,9 +698,7 @@ def _submission_outbox_message(
 ) -> OutboxMessage:
     """Bind an API submission to the shared execution outbox namespace."""
 
-    event_id = content_digest(
-        {"owner_id": owner_id, "submission_fingerprint": request.fingerprint}
-    )
+    event_id = content_digest({"owner_id": owner_id, "submission_fingerprint": request.fingerprint})
     request_id = content_digest(
         {"owner_id": owner_id, "submission_fingerprint": request.fingerprint, "kind": "outbox"}
     )

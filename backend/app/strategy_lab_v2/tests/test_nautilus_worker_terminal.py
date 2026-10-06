@@ -1124,7 +1124,10 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
         async def execute(self, statement: Any, params: Any) -> QueryResult:
             sql = str(statement)
             if dispatch_adapter.schema.dispatch_table in sql:
-                assert params == {"request_fingerprint": dispatch_request.fingerprint}
+                assert params in (
+                    {"request_fingerprint": dispatch_request.fingerprint},
+                    {"payload_digest": dispatch_request.payload_digest},
+                )
                 return QueryResult(
                     (
                         {
@@ -1225,9 +1228,14 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
             *,
             request_fingerprint: str,
             attempt_id: str,
+            payload_digest: str | None = None,
             search_dispatch_binding_resolver: Any,
         ) -> WorkerTerminalEvidenceLookup | None:
-            record = await self.search_dispatch.load_by_request_fingerprint(request_fingerprint)
+            record = (
+                await self.search_dispatch.load_by_payload_digest(payload_digest)
+                if payload_digest is not None
+                else await self.search_dispatch.load_by_request_fingerprint(request_fingerprint)
+            )
             if record is None or record.request.attempt_id != attempt_id:
                 return None
             binding = await search_dispatch_binding_resolver(record)

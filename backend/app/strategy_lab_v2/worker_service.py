@@ -412,7 +412,7 @@ class DedicatedStrategyWorkerService:
             )
         if (
             state.lease.lease_id != request.lease_state.lease.lease_id
-            or state.lease.attempt_id != entry.attempt_id
+            or state.lease.attempt_id != request.runtime_request.attempt_id
             or state.lease.worker_id != request.admission.worker_id
         ):
             return WorkerHandleResult(

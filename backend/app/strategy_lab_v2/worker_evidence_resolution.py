@@ -32,15 +32,14 @@ from app.strategy_lab_v2.worker_terminal_adapter import WorkerTerminalEvidence
 
 ArtifactPlanResolver = Callable[
     [WorkerCompletionContext, WorkerTerminalEvidenceLookup],
-    Sequence[ArtifactPublicationPlan]
-    | Awaitable[Sequence[ArtifactPublicationPlan]],
+    Sequence[ArtifactPublicationPlan] | Awaitable[Sequence[ArtifactPublicationPlan]],
 ]
 WorkerRuntimeErrorFactory = Callable[[WorkerCompletionContext, RuntimeExecutionState], ApiError]
 
 
 class EvidenceLookup(Protocol):
     def __call__(
-        self, *, request_fingerprint: str, attempt_id: str
+        self, *, request_fingerprint: str, attempt_id: str, payload_digest: str | None = None
     ) -> WorkerTerminalEvidenceLookup | None | Awaitable[WorkerTerminalEvidenceLookup | None]: ...
 
 
@@ -65,8 +64,7 @@ class SandboxArtifactPublisher(Protocol):
 
 ArtifactPathResolver = Callable[
     [WorkerCompletionContext, WorkerTerminalEvidenceLookup],
-    Mapping[str, str | os.PathLike[str]]
-    | Awaitable[Mapping[str, str | os.PathLike[str]]],
+    Mapping[str, str | os.PathLike[str]] | Awaitable[Mapping[str, str | os.PathLike[str]]],
 ]
 
 
@@ -146,9 +144,7 @@ def build_worker_terminal_evidence(
     if len({content_digest(item) for item in plans}) != len(plans):
         raise ValueError("artifact_plans must be unique")
     plans = tuple(sorted(plans, key=content_digest))
-    if released_at is not None and (
-        released_at.tzinfo is None or released_at.utcoffset() is None
-    ):
+    if released_at is not None and (released_at.tzinfo is None or released_at.utcoffset() is None):
         raise ValueError("released_at must be timezone-aware")
 
     runtime_phase = process_execution.runtime_result.state.phase
@@ -189,9 +185,7 @@ def build_worker_terminal_evidence(
         if not isinstance(error, ApiError):
             raise TypeError("runtime_error_factory must return an ApiError")
         if error.request_id != context.request.request_fingerprint:
-            raise ValueError(
-                "runtime_error_factory returned an error for a different request"
-            )
+            raise ValueError("runtime_error_factory returned an error for a different request")
     if runtime_phase is RuntimeExecutionPhase.CANCELLED and error is not None:
         raise ValueError("cancelled worker evidence cannot carry an error")
     if runtime_phase not in {
@@ -277,6 +271,7 @@ def create_worker_terminal_evidence_resolver(
         loaded = lookup_loader(
             request_fingerprint=context.entry.request_fingerprint,
             attempt_id=attempt_id,
+            payload_digest=context.entry.payload_digest,
         )
         lookup = await loaded if inspect.isawaitable(loaded) else loaded
         if lookup is None:
@@ -353,13 +348,10 @@ def create_sandbox_artifact_plan_resolver(
                     committed_at=context.observed_at,
                 )
                 if not isinstance(publication, ArtifactPublicationResolution):
-                    raise TypeError(
-                        "publisher returned an invalid artifact publication resolution"
-                    )
+                    raise TypeError("publisher returned an invalid artifact publication resolution")
                 if publication.decision is ArtifactPublicationDecision.REJECT:
                     raise ValueError(
-                        publication.rejection_reason
-                        or "artifact publication was rejected"
+                        publication.rejection_reason or "artifact publication was rejected"
                     )
                 if publication.artifact_plan is None:
                     raise ValueError("artifact publication omitted its verified plan")

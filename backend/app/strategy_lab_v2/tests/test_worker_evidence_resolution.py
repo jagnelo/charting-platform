@@ -341,8 +341,9 @@ async def test_factory_loads_lookup_and_resolves_artifact_plans(tmp_path: Path) 
     context, lookup = _context_and_lookup(tmp_path)
     calls: list[tuple[str, str]] = []
 
-    async def load(*, request_fingerprint: str, attempt_id: str):
+    async def load(*, request_fingerprint: str, attempt_id: str, payload_digest: str | None = None):
         calls.append((request_fingerprint, attempt_id))
+        assert payload_digest == context.entry.payload_digest
         return lookup
 
     async def artifacts(_context: WorkerCompletionContext, received_lookup):
@@ -369,9 +370,10 @@ async def test_factory_forwards_host_runtime_error_factory(tmp_path: Path) -> No
             500,
         )
 
-    async def load(*, request_fingerprint: str, attempt_id: str):
+    async def load(*, request_fingerprint: str, attempt_id: str, payload_digest: str | None = None):
         assert request_fingerprint == context.entry.request_fingerprint
         assert attempt_id == context.request.admission.attempt_id
+        assert payload_digest == context.entry.payload_digest
         return lookup
 
     async def artifacts(_context: WorkerCompletionContext, _lookup):

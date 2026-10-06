@@ -18,6 +18,56 @@ Buildx still gates only final Compose/browser validation; provider, ETF, and
 TC2000 shared paths remain gated only until their approved work reaches
 staging.
 
+## 2026-10-06 - Authenticate OOS worker dispatch across the outbox relay
+
+The recovered walk-forward OOS integration exposed a dispatch identity mismatch:
+the shared outbox intentionally creates a Redis transport envelope with its own
+event/request identity, while search-worker callbacks attempted to load the
+original dispatch by that transport fingerprint and compare the event ID with
+the actual attempt. This prevented OOS handoffs from reaching the authenticated
+worker/terminal path. Search dispatch and submission persistence now resolve
+owner-bound records by the unchanged content-addressed payload digest, validate
+that digest and the attempt decoded from the durable worker handoff, and keep
+direct-queue fingerprint/attempt checks strict. Cancellation, terminal
+publication, recovery, and lease preflight now use the authenticated runtime
+attempt rather than the outbox event ID.
+
+Validation: the full Strategy Lab package plus all walk-forward PostgreSQL
+recovery integrations passed (`1,629 passed, 1 skipped`). This includes a real
+PostgreSQL assertion that the outbox's relay envelope identities differ from
+the persisted search dispatch and that the payload digest resolves the exact
+owner-scoped record. Worker handoff, callback/recovery, submission payload
+ambiguity, and terminal tests passed; Ruff, MyPy for nine changed production
+modules, and `git diff --check` passed. This closes the outbox-to-search-worker
+identity defect, but does not yet prove a recovered OOS run through the actual
+Nautilus process, production terminal adapter, durable result settlement, and
+Redis ACK/reclaim boundary.
+
+The current changeset owns these paths until committed and published:
+`backend/app/strategy_lab_v2/nautilus_worker_terminal.py`,
+`backend/app/strategy_lab_v2/persistence.py`,
+`backend/app/strategy_lab_v2/postgres_search_dispatch.py`,
+`backend/app/strategy_lab_v2/postgres_submission.py`,
+`backend/app/strategy_lab_v2/search_worker_handoff.py`,
+`backend/app/strategy_lab_v2/worker_callbacks.py`,
+`backend/app/strategy_lab_v2/worker_evidence_resolution.py`,
+`backend/app/strategy_lab_v2/worker_recovery_application.py`,
+`backend/app/strategy_lab_v2/worker_service.py`,
+`backend/app/strategy_lab_v2/tests/test_nautilus_worker_terminal.py`,
+`backend/app/strategy_lab_v2/tests/test_postgres_submission.py`,
+`backend/app/strategy_lab_v2/tests/test_search_worker_handoff.py`,
+`backend/app/strategy_lab_v2/tests/test_worker_evidence_resolution.py`,
+`backend/tests/integration/strategy_lab_v2/test_walk_forward_phase_recovery_postgres.py`,
+`ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`, and
+`ops/workstreams/feat-strategy-lab-v2/session.json`.
+
+Next: use the recovered OOS handoff to run the authoritative worker through
+`PostgresWorkerTerminalAdapter`, then prove a fresh Redis consumer only ACKs
+after matching durable result/completion/settlement evidence has replayed. Keep
+the exact RC6 backtest authority and owner isolation; do not substitute a
+synthetic terminal receipt for native worker output.
+
 ## 2026-10-05 - PostgreSQL plus Redis forward recovery integration
 
 The new integration test under `backend/tests/integration/strategy_lab_v2/`
@@ -14051,3 +14101,27 @@ lifecycle transition before persisting the dispatch attempt and accepts that
 same state on idempotent replay. The active changeset remains in progress.
 Next, carry the recovered OOS dispatch through result materialization,
 durable worker terminal settlement, and consumer ACK after worker restart.
+
+## 2026-10-06 - Preserve OOS dispatch identity through worker callbacks
+
+The outbox relay wraps the persisted search-dispatch payload in a new transport
+request whose event ID, attempt ID, and request fingerprint are intentionally
+different from the underlying domain attempt. Worker cancellation, terminal
+progress, recovery, lease preflight, and evidence lookup must therefore bind
+through the immutable payload digest and then verify the persisted owner and
+attempt, rather than compare transport IDs with domain IDs. The callback and
+persistence paths now do so; direct submission queues retain strict identity
+validation. Payload-digest lookup rejects ambiguous bindings.
+
+Validation passed: 70 focused tests covering Nautilus terminal handling,
+submission/search dispatch resolution, worker callbacks/recovery/service, and
+the Docker-backed PostgreSQL-composed walk-forward recovery path. Ruff check
+and format, MyPy across nine production modules, and `git diff --check` passed.
+The unprivileged Docker-socket attempt could not start the three integration
+cases; rerunning the same command through the local Docker-capable execution
+path passed all 70 tests. This closes an identity/authentication bug at the
+handoff seam, but not OOS Nautilus execution through durable terminal result
+publication and Redis consumer ACK/reclaim. Exact pinned Nautilus RC6 remains
+qualified; stable release labeling is not a gate. Next, execute this recovered
+OOS attempt through the production worker/terminal composition and prove
+PostgreSQL settlement before ACK plus receipt-first reclaim after restart.

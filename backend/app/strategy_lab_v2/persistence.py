@@ -572,6 +572,7 @@ class PostgresStrategyLabV2Persistence:
         *,
         request_fingerprint: str,
         attempt_id: str,
+        payload_digest: str | None = None,
         search_dispatch_binding_resolver: SearchDispatchBindingResolver | None = None,
     ) -> WorkerTerminalEvidenceLookup | None:
         """Resolve a Redis dispatch identity and load authenticated evidence.
@@ -587,11 +588,43 @@ class PostgresStrategyLabV2Persistence:
         ):
             raise TypeError("search_dispatch_binding_resolver must be callable or None")
 
-        binding = await self.submissions.load_dispatch_binding(
-            request_fingerprint=request_fingerprint,
-            attempt_id=attempt_id,
-        )
+        binding = None
+        dispatch_record = None
+        if payload_digest is not None:
+            dispatch_record = await self.search_dispatch.load_by_payload_digest(payload_digest)
+            if dispatch_record is not None:
+                if dispatch_record.request.attempt_id != attempt_id:
+                    raise ValueError("search dispatch payload belongs to a different attempt")
+                if search_dispatch_binding_resolver is None:
+                    return None
+                resolved_binding = search_dispatch_binding_resolver(dispatch_record)
+                if isinstance(resolved_binding, Awaitable):
+                    resolved_binding = await resolved_binding
+                if resolved_binding is not None and not isinstance(
+                    resolved_binding, WorkerSubmissionBinding
+                ):
+                    raise TypeError(
+                        "search dispatch binding resolver must return WorkerSubmissionBinding or None"
+                    )
+                if resolved_binding is None:
+                    return None
+                if resolved_binding.owner_id != dispatch_record.owner_id:
+                    raise ValueError("search dispatch owner identity drifted")
+                if resolved_binding.receipt.request.attempt_id != attempt_id:
+                    raise ValueError("search dispatch submission attempt identity drifted")
+                binding = resolved_binding
         if binding is None:
+            if payload_digest is not None:
+                binding = await self.submissions.load_dispatch_binding_by_payload_digest(
+                    payload_digest=payload_digest,
+                    attempt_id=attempt_id,
+                )
+        if binding is None:
+            binding = await self.submissions.load_dispatch_binding(
+                request_fingerprint=request_fingerprint,
+                attempt_id=attempt_id,
+            )
+        if binding is None and dispatch_record is None:
             dispatch = await self.search_dispatch.load_by_request_fingerprint(request_fingerprint)
             if dispatch is None:
                 return None
@@ -615,6 +648,8 @@ class PostgresStrategyLabV2Persistence:
             if resolved_binding.receipt.request.attempt_id != attempt_id:
                 raise ValueError("search dispatch submission attempt identity drifted")
             binding = resolved_binding
+        if binding is None:
+            return None
         inputs = await self.load_worker_terminal_evidence_inputs(
             principal=binding.owner_id,
             attempt_id=attempt_id,
@@ -638,11 +673,15 @@ class PostgresStrategyLabV2Persistence:
         """
 
         async def lookup(
-            *, request_fingerprint: str, attempt_id: str
+            *,
+            request_fingerprint: str,
+            attempt_id: str,
+            payload_digest: str | None = None,
         ) -> WorkerTerminalEvidenceLookup | None:
             return await self.load_worker_terminal_evidence_for_request(
                 request_fingerprint=request_fingerprint,
                 attempt_id=attempt_id,
+                payload_digest=payload_digest,
                 search_dispatch_binding_resolver=search_dispatch_binding_resolver,
             )
 

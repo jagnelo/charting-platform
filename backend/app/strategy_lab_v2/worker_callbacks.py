@@ -47,6 +47,29 @@ EvidenceResolverFactory = Callable[
 WalkForwardProgressClient = Callable[..., Awaitable[WalkForwardProgressRpcReceipt]]
 
 
+async def _dispatch_for_stream_entry(dispatch_store: Any, entry: Any, attempt_id: str):
+    """Resolve a search dispatch through the immutable payload identity.
+
+    The outbox relay gives the Redis envelope a transport-specific request
+    fingerprint and event ID. The stored search request identity is therefore
+    recovered from the payload digest, then checked against the worker handoff.
+    """
+
+    payload_digest = getattr(entry, "payload_digest", None)
+    loader = getattr(dispatch_store, "load_by_payload_digest", None)
+    if callable(loader) and isinstance(payload_digest, str):
+        dispatch = await loader(payload_digest)
+    else:  # compatibility for simple host adapters and older direct queues
+        dispatch = await dispatch_store.load_by_request_fingerprint(entry.request_fingerprint)
+    if not isinstance(dispatch, SearchDispatchRecord):
+        return None
+    if dispatch.request.attempt_id != attempt_id or (
+        payload_digest is not None and dispatch.request.payload_digest != payload_digest
+    ):
+        return None
+    return dispatch
+
+
 async def create(
     persistence: Any,
     artifact_root: Path,
@@ -150,8 +173,10 @@ async def create_search_dispatch(
             observed_at=context.observed_at,
         )
         if search_receipt is not None and search_receipt.decision is WorkerHandleDecision.COMPLETE:
-            dispatch = await dispatch_store.load_by_request_fingerprint(
-                context.entry.request_fingerprint
+            dispatch = await _dispatch_for_stream_entry(
+                dispatch_store,
+                context.entry,
+                context.request.runtime_request.attempt_id,
             )
             if not isinstance(dispatch, SearchDispatchRecord):
                 return WorkerHandleResult(
@@ -179,11 +204,11 @@ async def create_search_dispatch(
         return await worker_state.load_lease(request.lease_state.lease.lease_id)
 
     async def cancellation_reader(entry: Any, request: WorkerExecutionRequest) -> bool:
-        dispatch = await dispatch_store.load_by_request_fingerprint(entry.request_fingerprint)
+        attempt_id = request.runtime_request.attempt_id
+        dispatch = await _dispatch_for_stream_entry(dispatch_store, entry, attempt_id)
         if (
             not isinstance(dispatch, SearchDispatchRecord)
-            or dispatch.request.attempt_id != entry.attempt_id
-            or request.runtime_request.attempt_id != entry.attempt_id
+            or dispatch.request.queue_name != queue_name
         ):
             raise ValueError("worker cancellation dispatch binding is unavailable")
         search_state = await persistence.search_state.load(
@@ -244,10 +269,13 @@ def default_evidence_resolver_factory(
     publisher = artifact_publication(artifact_root)
     hydrator = NautilusTrialDomainHydrator(cast(OwnerScopedDomainReader, resources))
 
-    async def lookup(*, request_fingerprint: str, attempt_id: str):
+    async def lookup(
+        *, request_fingerprint: str, attempt_id: str, payload_digest: str | None = None
+    ):
         return await lookup_loader(
             request_fingerprint=request_fingerprint,
             attempt_id=attempt_id,
+            payload_digest=payload_digest,
             search_dispatch_binding_resolver=search_dispatch_binding_resolver,
         )
 

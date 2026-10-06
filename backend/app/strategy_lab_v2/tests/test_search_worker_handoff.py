@@ -43,6 +43,13 @@ class DispatchStore:
         return self.record
 
 
+class OutboxDispatchStore(DispatchStore):
+    async def load_by_payload_digest(self, payload_digest: str) -> SearchDispatchRecord | None:
+        if self.record is None or self.record.request.payload_digest != payload_digest:
+            return None
+        return self.record
+
+
 class StaticTrialHydrator:
     def __init__(self, graph: HydratedNautilusTrial) -> None:
         self.graph = graph
@@ -130,6 +137,26 @@ async def test_authenticated_materializer_binds_entry_before_decoding(tmp_path: 
 
     assert actual == expected
     assert store.request_fingerprints == [entry.request_fingerprint]
+
+
+@pytest.mark.asyncio
+async def test_authenticated_materializer_resolves_outbox_transport_identity_by_payload(
+    tmp_path: Path,
+) -> None:
+    entry, payload, record, expected = _entry_and_payload(tmp_path)
+    transport_entry = replace(
+        entry,
+        attempt_id=content_digest("outbox-event-id"),
+        request_fingerprint=content_digest("outbox-envelope-request"),
+    )
+    materializer = AuthenticatedSearchDispatchMaterializer(
+        OutboxDispatchStore(record),
+        queue_name="strategy-backtest",
+    )
+
+    actual = await materializer(transport_entry, payload)
+
+    assert actual == expected
 
 
 @pytest.mark.asyncio

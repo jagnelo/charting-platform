@@ -64,11 +64,13 @@ class WorkerRecoveryApplication:
             raise TypeError("context must be a WorkerRecoveryContext")
 
         request = context.request
-        attempt_id = context.entry.attempt_id
-        if request.runtime_request.attempt_id != attempt_id:
+        attempt_id = request.runtime_request.attempt_id
+        if not isinstance(attempt_id, str) or not attempt_id.strip():
             return _retry(context, "worker recovery attempt does not match its dispatch")
-        dispatch = await self._persistence.search_dispatch.load_by_request_fingerprint(
-            context.entry.request_fingerprint
+        dispatch = await _dispatch_for_entry(
+            self._persistence.search_dispatch,
+            context.entry,
+            attempt_id=attempt_id,
         )
         if not isinstance(dispatch, SearchDispatchRecord):
             return _retry(context, "authenticated worker dispatch was not found")
@@ -137,7 +139,7 @@ class WorkerRecoveryApplication:
         next_attempt_id = (
             None
             if existing is not None
-            else _retry_attempt_id(context.entry.request_fingerprint, attempt_id, reason)
+            else _retry_attempt_id(dispatch.request.fingerprint, attempt_id, reason)
         )
         recovery = await self._persistence.worker_recoveries.recover(
             principal=dispatch.owner_id,
@@ -267,13 +269,13 @@ class WorkerRecoveryApplication:
         infrastructure failure.
         """
 
-        attempt_id = getattr(entry, "attempt_id", None)
+        attempt_id = getattr(getattr(request, "runtime_request", None), "attempt_id", None)
         if not isinstance(attempt_id, str) or not attempt_id.strip():
-            raise TypeError("entry must expose an attempt_id")
-        if getattr(getattr(request, "runtime_request", None), "attempt_id", None) != attempt_id:
-            return _retry_entry(entry, "terminal search receipt attempt differs from its dispatch")
-        dispatch = await self._persistence.search_dispatch.load_by_request_fingerprint(
-            entry.request_fingerprint
+            raise TypeError("request must expose a runtime attempt_id")
+        dispatch = await _dispatch_for_entry(
+            self._persistence.search_dispatch,
+            entry,
+            attempt_id=attempt_id,
         )
         if not isinstance(dispatch, SearchDispatchRecord):
             return _retry_entry(entry, "authenticated worker dispatch was not found")
@@ -484,7 +486,10 @@ def create_worker_recovery_application(
     """Validate persistence capabilities and create the worker recovery seam."""
 
     required = {
-        "search_dispatch": ("load_by_request_fingerprint", "load_admission_ledger"),
+        "search_dispatch": (
+            "load_by_request_fingerprint",
+            "load_admission_ledger",
+        ),
         "search_state": ("load", "record_terminal"),
         "worker_recoveries": ("load_ledger", "recover"),
         "result_completion": ("load_completion_ledger",),
@@ -505,6 +510,29 @@ def create_worker_recovery_application(
         queue_name=queue_name,
         dispatch_client=dispatch_client,
     )
+
+
+async def _dispatch_for_entry(
+    dispatch_store: Any,
+    entry: Any,
+    *,
+    attempt_id: str,
+) -> SearchDispatchRecord | None:
+    """Authenticate an OOS dispatch from the payload identity on Redis."""
+
+    payload_digest = getattr(entry, "payload_digest", None)
+    loader = getattr(dispatch_store, "load_by_payload_digest", None)
+    if callable(loader) and isinstance(payload_digest, str):
+        dispatch = await loader(payload_digest)
+    else:
+        dispatch = await dispatch_store.load_by_request_fingerprint(entry.request_fingerprint)
+    if not isinstance(dispatch, SearchDispatchRecord):
+        return None
+    if dispatch.request.attempt_id != attempt_id or (
+        payload_digest is not None and dispatch.request.payload_digest != payload_digest
+    ):
+        return None
+    return dispatch
 
 
 def _attempt_chain_through(

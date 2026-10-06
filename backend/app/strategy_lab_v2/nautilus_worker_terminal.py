@@ -116,6 +116,7 @@ def create_nautilus_oos_worker_terminal_evidence_resolver(
         loaded = lookup_loader(
             request_fingerprint=context.entry.request_fingerprint,
             attempt_id=attempt_id,
+            payload_digest=context.entry.payload_digest,
         )
         lookup = await loaded if inspect.isawaitable(loaded) else loaded
         if lookup is None:

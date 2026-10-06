@@ -96,15 +96,23 @@ class AuthenticatedSearchDispatchMaterializer:
             raise TypeError("entry must be a RedisStreamEntry")
         if not isinstance(payload, DispatchPayload):
             raise TypeError("payload must be a DispatchPayload")
-        record = await self._dispatch_store.load_by_request_fingerprint(entry.request_fingerprint)
+        payload_loader = getattr(self._dispatch_store, "load_by_payload_digest", None)
+        if callable(payload_loader):
+            payload_bound = True
+            record = await payload_loader(entry.payload_digest)
+        else:
+            payload_bound = False
+            record = await self._dispatch_store.load_by_request_fingerprint(
+                entry.request_fingerprint
+            )
         if record is None:
             raise ValueError("search dispatch record is not available")
         if not isinstance(record, SearchDispatchRecord):
             raise TypeError("dispatch store returned an invalid search dispatch record")
         request = record.request
-        if request.fingerprint != entry.request_fingerprint:
+        if not payload_bound and request.fingerprint != entry.request_fingerprint:
             raise ValueError("Redis request identity does not match PostgreSQL dispatch")
-        if request.attempt_id != entry.attempt_id:
+        if not payload_bound and request.attempt_id != entry.attempt_id:
             raise ValueError("Redis attempt identity does not match PostgreSQL dispatch")
         if request.payload_digest != entry.payload_digest:
             raise ValueError("Redis payload identity does not match PostgreSQL dispatch")

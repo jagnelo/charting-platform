@@ -58,11 +58,15 @@ class FakeSession:
         if "INNER JOIN strategy_lab_v2_submission_dispatches" in sql:
             rows = []
             for (owner_id, idempotency_key), dispatch in self.dispatches.items():
-                if (
-                    dispatch.get("request_fingerprint")
-                    != values.get("request_fingerprint")
-                    or dispatch.get("attempt_id") != values.get("attempt_id")
-                ):
+                matches_request = "request_fingerprint" in values and dispatch.get(
+                    "request_fingerprint"
+                ) == values.get("request_fingerprint")
+                matches_payload = "payload_digest" in values and dispatch.get(
+                    "payload_digest"
+                ) == values.get("payload_digest")
+                if not (matches_request or matches_payload) or dispatch.get(
+                    "attempt_id"
+                ) != values.get("attempt_id"):
                     continue
                 submission = self.submissions.get((owner_id, idempotency_key))
                 if submission is None:
@@ -70,9 +74,13 @@ class FakeSession:
                 row = dict(submission)
                 row["dispatch_request_fingerprint"] = dispatch["request_fingerprint"]
                 row["dispatch_attempt_id"] = dispatch["attempt_id"]
+                row["dispatch_payload_digest"] = dispatch["payload_digest"]
                 rows.append(row)
             return FakeResult(rows)
-        if sql.lstrip().startswith("SELECT") and "request_fingerprint = :request_fingerprint" in sql:
+        if (
+            sql.lstrip().startswith("SELECT")
+            and "request_fingerprint = :request_fingerprint" in sql
+        ):
             rows = [
                 row
                 for row in self.submissions.values()
@@ -147,7 +155,9 @@ def _request(
 @pytest.mark.asyncio
 async def test_submission_adapter_stages_receipt_and_dispatch_atomically() -> None:
     session = FakeSession()
-    adapter = PostgresSubmissionDispatchAdapter(lambda: session, clock=lambda: NOW + timedelta(minutes=1))
+    adapter = PostgresSubmissionDispatchAdapter(
+        lambda: session, clock=lambda: NOW + timedelta(minutes=1)
+    )
     request, payload = _request()
 
     accepted = await adapter.submit(principal="alice", request=request, payload=payload)
@@ -177,6 +187,11 @@ async def test_submission_adapter_stages_receipt_and_dispatch_atomically() -> No
         attempt_id="attempt-1",
     )
     assert dispatch_binding == binding
+    payload_binding = await adapter.load_dispatch_binding_by_payload_digest(
+        payload_digest=request.payload_digest,
+        attempt_id="attempt-1",
+    )
+    assert payload_binding == binding
 
     await adapter.submit(principal="bob", request=request, payload=payload)
     bob_dispatch_fingerprint = session.dispatches[("bob", request.idempotency_key)][
@@ -185,6 +200,11 @@ async def test_submission_adapter_stages_receipt_and_dispatch_atomically() -> No
     with pytest.raises(ValueError, match="ambiguous"):
         await adapter.load_dispatch_binding(
             request_fingerprint=bob_dispatch_fingerprint,
+            attempt_id="attempt-1",
+        )
+    with pytest.raises(ValueError, match="ambiguous"):
+        await adapter.load_dispatch_binding_by_payload_digest(
+            payload_digest=request.payload_digest,
             attempt_id="attempt-1",
         )
     with pytest.raises(ValueError, match="ambiguous"):
