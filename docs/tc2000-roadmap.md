@@ -5,6 +5,23 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-06
 
+## 2026-10-06 — Shift+L toggles the selected workstation window
+
+Product commit `effcca4e25f65a205a93da7a4ee1b4a817a80bcd` implements TC2000
+V25's Shift+L maximize/restore shortcut for the selected docked tool (or the
+tool shown in a pop-out). It routes through that tool's existing maximize
+control, preserving Golden Layout's stack behavior. Text and other interactive
+controls retain their native keyboard input. The Help menu lists the shortcut.
+
+Focused WorkstationView tests passed `37/37`; type-check and production build
+passed. Pinned authenticated Chromium passed `F8k-shift-l` and the adjacent
+`F8k-help` flow (`2/2`). The pinned four-profile Help screenshot check passed
+`3/4`; `visual-1080p-100` differs from its protected local snapshot by 16,676
+pixels (`1.0%`, above its existing `0.5%` tolerance). The other three profiles
+passed. No baseline, threshold, mask, or acceptance policy changed. The
+workstream retains this visual delta for review; this bounded receipt is not
+whole-roadmap completion.
+
 ## 2026-10-06 — Backspace navigates viewed-symbol history
 
 Product commit `c61246cca261f8dc33d88690c5f411983a8440c1` adds the current

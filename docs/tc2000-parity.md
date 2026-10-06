@@ -1,5 +1,14 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-10-06 — Selected-window maximize shortcut
+
+The current [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+defines Shift+L to maximize the selected window and repeat Shift+L to restore
+normal layout. The workstation now routes this shortcut through the selected
+tool's existing maximize control; the Help menu documents it, and editor or
+interactive-control focus remains excluded from shell shortcuts. Unit, browser,
+build, and visual verification are recorded in the roadmap checkpoint.
+
 ## 2026-09-05 — Generic source history analysis-readiness visibility
 
 The provider-neutral watchlist source-history contract now exposes analysis-ready member counts

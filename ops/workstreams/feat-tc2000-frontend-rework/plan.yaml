@@ -143,14 +143,14 @@ current_blocker: >-
   visual coverage passed 4/4 pinned viewport profiles, and type-check/build
   passed. The complete frontend suite and generic integration gate remain open.
 active_changeset_context:
-  name: TC2000 V25 Backspace viewed-symbol history
-  status: committed_focused_unit_browser_build_and_four_profile_visual_verified_full_suite_and_generic_gate_open
-  commit_sha: c61246cca261f8dc33d88690c5f411983a8440c1
-  remote_sha: c61246cca261f8dc33d88690c5f411983a8440c1
+  name: TC2000 V25 Shift+L selected-window maximize
+  status: committed_focused_unit_browser_build_verified_help_visual_3_of_4_full_suite_and_generic_gate_open
+  commit_sha: effcca4e25f65a205a93da7a4ee1b4a817a80bcd
+  remote_sha: effcca4e25f65a205a93da7a4ee1b4a817a80bcd
   intent: >-
-    Implement TC2000 V25 Backspace through viewed-symbol history using bounded,
-    persisted navigation while preserving repeated visits, non-wrapping back
-    behavior, forward-branch truncation, and native editor Backspace.
+    Implement TC2000 V25 Shift+L maximize/restore for the selected docked or
+    popped-out tool through the existing Golden Layout action while preserving
+    native editor and interactive-control keyboard ownership.
   owned_paths:
     - frontend/src/views/WorkstationView.vue
     - frontend/src/stores/recentInstruments.ts
@@ -162,11 +162,13 @@ active_changeset_context:
     - docs/tc2000-roadmap.md
   next_action: >-
     Continue the complete TC-owned R1/R5/R6 roadmap. Preserve the V25 visual
-    references and acceptance policy. Resolve the generic integration gate only
-    through a verified isolated project. Refresh dependency refs; defer R2/R3
-    and semantic shared-path reconciliation until both upstream branches reach
-    staging. Do not duplicate provider/ETF ownership or implemented Python
-    breadth contracts. Stop only at ready_for_human_review.
+    references and acceptance policy, including the recorded one-profile Help
+    screenshot delta; do not update its baseline or threshold without an
+    evidence-backed review. Resolve the generic integration gate only through a
+    verified isolated project. Refresh dependency refs; defer R2/R3 and semantic
+    shared-path reconciliation until both upstream branches reach staging. Do
+    not duplicate provider/ETF ownership or implemented Python breadth
+    contracts. Stop only at ready_for_human_review.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -428,6 +430,10 @@ progress:
     accessibility gap only. Exact V25 authority, broader accessibility/security/
     endurance evidence, generic integration, remaining R1/R5/R6 work, and both
     staging-dependent upstream integrations remain incomplete.
+    Product commit effcca4e25f65a205a93da7a4ee1b4a817a80bcd adds the V25
+    Shift+L maximize/restore shortcut. Its focused unit, authenticated browser,
+    type-check, and build checks pass; pinned Help screenshot coverage is 3/4
+    because visual-1080p-100 exceeds the unchanged local image-diff tolerance.
     At backend checkpoint d6bd60d, unit/integration suites passed 1622/1622 and
     409/409 at 82.26%. At branch checkpoint 22becb68272854b6ceae6a263d8694090495e009,
     frontend Vitest passed 129 files/1210 tests, focused VirtualWatchlistTool

@@ -1,5 +1,33 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — TC2000 V25 Shift+L selected-window maximize
+
+Pushed product commit `effcca4e25f65a205a93da7a4ee1b4a817a80bcd` adds
+Shift+L maximize/restore for the selected docked tool or the tool shown in a
+pop-out. The handler uses the selected tool's existing maximize button, so
+Golden Layout continues to own stack state. Text-editor and other interactive
+focus remains exempt. Help and the parity matrix document the shortcut; the
+official V25 source is
+https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts.
+
+Evidence: WorkstationView unit file `37/37`; `npm run build` (Vue type-check
+and production build) passed; pinned authenticated `F8k-shift-l` and adjacent
+`F8k-help` passed `2/2`; `git diff --check` and TC scope guard passed. The
+four-profile pinned Help screenshot check was `3/4`: `visual-1080p-100` differed
+from the protected baseline by 16,676 pixels (`1.0%` versus the unchanged
+`0.5%` limit), while the other three profiles passed. No visual baseline or
+acceptance setting changed. The workstream/runtime wrapper reported its known
+read-only allocation-registry warning; direct UV-managed validation succeeded
+for all 30 workstream records and scope checks. Browser source was mounted
+read-only; the temporary loopback Vite server was stopped; assigned Docker
+services were left intact.
+
+Product commit is pushed and direct local/remote refs matched at
+`effcca4e25f65a205a93da7a4ee1b4a817a80bcd`. Documentation/workstream updates
+are pending as a separate checkpoint commit. Preserve the Help screenshot
+delta and all visual oracles; next continue the TC-owned R1/R5/R6 roadmap, with
+the generic integration gate and upstream staging dependencies still open.
+
 ## 2026-10-06 — V25 Backspace viewed-symbol history
 
 Pushed product commit `c61246cca261f8dc33d88690c5f411983a8440c1` implements
