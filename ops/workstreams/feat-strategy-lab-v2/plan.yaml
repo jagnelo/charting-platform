@@ -894,7 +894,10 @@ progress:
     bounded streaming, active-pin authorization, and post-stream mutation
     verification. The branch-scoped Compose stack built and all six services
     became healthy; the registered route returned 401 to an unauthenticated
-    live request. The full 260-case browser run ended 138 passed, 109 skipped,
+    live request. An authenticated in-process ASGI test now streams persisted
+    content-addressed artifact bytes and verifies digest/length/cache headers,
+    but the full production dependency path with persisted PostgreSQL records
+    has not yet been proven. The full 260-case browser run ended 138 passed, 109 skipped,
     13 failed, primarily in existing chart/Study Lab v1 surfaces owned by the
     parallel frontend workstream. Those failures keep full-stack acceptance
     open but do not block independent backend implementation. The authenticated
@@ -913,19 +916,22 @@ progress:
     real PostgreSQL/Redis shutdown/restart evidence remains open. The curve
     download path is owner-bound to the persisted metric sidecar and active
     retention pin; focused success/error/integrity tests pass. Its live route
-    has so far been exercised through the real app only as an unauthenticated
-    request, so an authorized end-to-end byte transfer remains unproven.
+    has so far been exercised through the real Compose app only as an
+    unauthenticated request; the authenticated route is covered through an
+    in-process ASGI fixture, while production PostgreSQL-to-artifact download
+    remains unproven.
     Remaining work includes the backtest/search/API/security/Compose criteria,
-    authenticated curve transfer, and exact-tip branch gates.
+    production PostgreSQL-to-artifact download verification, and exact-tip
+    branch gates.
     Provider-platform, ETF, and TC2000 contracts remain owned by their
     branches; unsupported options remain fail-closed pending canonical
     Greeks/delta/settlement evidence.
   next_action: >-
     Continue backend-owned backtest/search and durable cancellation/retry and
-    phase-boundary recovery criteria; build an authenticated live curve download
-    fixture so the production ASGI path proves owner authorization and streamed
-    bytes. Reconcile the 13 browser failures only after the frontend owner has
-    completed its work and shared-path semantics can be reviewed together.
+    phase-boundary recovery criteria; extend curve download validation through
+    the production PostgreSQL-backed application composition. Reconcile the 13
+    browser failures only after the frontend owner has completed its work and
+    shared-path semantics can be reviewed together.
     Finish security, Compose scaling, and exact-tip gates. Shared router
     registration, migrations, and overlapping upstream paths remain gated on
     line-level staging reconciliation.
