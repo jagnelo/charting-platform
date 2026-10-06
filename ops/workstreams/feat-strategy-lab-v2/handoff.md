@@ -13987,3 +13987,10 @@ transactional dispatch/outbox boundary, including interruption after durable
 append but before dispatch acknowledgement. Keep training-only selection and
 owner isolation explicit; do not claim complete phase recovery from these
 focused cases alone.
+
+Cross-check after this recovery commit: the walk-forward application plus
+PostgreSQL search-state suites passed 15 tests, and the existing PostgreSQL
+search-dispatch plus Redis consumer/ACK integration suites passed 2 tests.
+This confirms compatibility with training-only selection and the established
+worker dispatch/ACK boundary, but does not itself prove a walk-forward OOS
+dispatch survives a coordinator restart.
