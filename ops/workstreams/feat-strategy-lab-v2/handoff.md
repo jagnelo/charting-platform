@@ -13632,3 +13632,25 @@ dispatch and the progress notification on the running internal service.
 Focused MyPy passed for five production modules; Ruff check/format and
 `git diff --check` passed. Docker was not required by this slice and remains
 unavailable for its separate exact-image/full-stack gates.
+
+## 2026-10-06 - Compose authenticated walk-forward calendar from local artifacts
+
+Added `create_walk_forward_calendar_resolver`, a production composition for the
+existing authenticated calendar resolver. It uses the persistence layer's
+owner-scoped PostgreSQL resource reader, creates one local content-addressed
+artifact store, and binds both verified strategy-package resolution and frozen
+event-tape resolution to that same store. The concrete frozen-series decoder
+remains an explicit provider-platform-owned host input; the calendar path does
+not acquire data or accept caller-supplied timestamps. Also tightened the
+resolver protocols to model immutable/read-only package results accurately.
+
+Validation: the new composition tests and existing authenticated calendar
+tests passed 6/6; focused MyPy passed for the resolver and composition module;
+Ruff and formatting passed. A broader 1,610-test Strategy Lab suite emitted
+progress through 31% and then stopped producing output while its process handle
+remained live; it is inconclusive and is not counted as passing. Production
+host configuration still must provide the provider-owned frozen-series
+decoder, and DB/Redis restart+cancellation plus native metric, security,
+Compose, exact-native, and full-branch gates remain open. No stable Nautilus
+release is required; the existing exact RC5 local backtest qualification is
+unchanged.
