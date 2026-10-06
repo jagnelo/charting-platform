@@ -7,11 +7,18 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
-from app.strategy_lab_v2.contracts import EvaluationWindow, ScientificTrial
+from app.strategy_lab_v2.contracts import (
+    EvaluationWindow,
+    MetricValue,
+    RunResultManifest,
+    ScientificTrial,
+)
 from app.strategy_lab_v2.experiments import WalkForwardFold
 from app.strategy_lab_v2.walk_forward_search import (
+    WalkForwardOosResult,
     WalkForwardSelection,
     WalkForwardTrainingPlan,
+    WalkForwardTrainingScore,
 )
 
 
@@ -191,6 +198,78 @@ def verify_walk_forward_result_binding(
         raise ValueError("native result evidence differs from the exact walk-forward trial window")
 
 
+def training_score_from_result_manifest(
+    binding: WalkForwardTrialBinding,
+    result: RunResultManifest,
+    *,
+    metric_id: str,
+) -> WalkForwardTrainingScore:
+    """Extract a training-selection score only from its exact authoritative run."""
+
+    _verify_authoritative_walk_forward_result(binding, result, expected_purpose="training")
+    metric = _selection_metric(result, metric_id)
+    if metric.value is None:
+        raise ValueError("a null metric cannot be used for training selection")
+    return WalkForwardTrainingScore(
+        training_task_fingerprint=binding.task_fingerprint,
+        metric_id=metric_id,
+        value=metric.value,
+        result_fingerprint=result.fingerprint,
+    )
+
+
+def oos_result_from_manifest(
+    binding: WalkForwardTrialBinding,
+    result: RunResultManifest,
+    *,
+    metric_id: str,
+) -> WalkForwardOosResult:
+    """Extract an OOS receipt only from its exact selected authoritative run."""
+
+    _verify_authoritative_walk_forward_result(binding, result, expected_purpose="out_of_sample")
+    metric = _selection_metric(result, metric_id)
+    if metric.value is None:
+        raise ValueError("a null metric cannot be aggregated as an OOS result")
+    return WalkForwardOosResult(
+        oos_task_fingerprint=binding.task_fingerprint,
+        result_fingerprint=result.fingerprint,
+        metric_id=metric_id,
+        value=metric.value,
+    )
+
+
+def _verify_authoritative_walk_forward_result(
+    binding: WalkForwardTrialBinding,
+    result: RunResultManifest,
+    *,
+    expected_purpose: str,
+) -> None:
+    if not isinstance(result, RunResultManifest):
+        raise TypeError("result must be a RunResultManifest")
+    if binding.purpose != expected_purpose:
+        raise ValueError(f"result binding purpose must be {expected_purpose}")
+    window = result.trial.evaluation_window
+    if window is None:
+        raise ValueError("walk-forward result trial must bind an evaluation window")
+    verify_walk_forward_result_binding(
+        binding,
+        result.trial,
+        result_trial_fingerprint=result.trial_id,
+        result_window_fingerprint=window.fingerprint,
+    )
+    if not result.engine_authoritative or result.engine_name.lower() != "nautilus":
+        raise ValueError("walk-forward selection requires an authoritative Nautilus result")
+
+
+def _selection_metric(result: RunResultManifest, metric_id: str) -> MetricValue:
+    if not isinstance(metric_id, str) or not metric_id.strip():
+        raise ValueError("metric_id must not be empty")
+    matches = tuple(metric for metric in result.metric_set.values if metric.name == metric_id)
+    if len(matches) != 1:
+        raise ValueError("selection metric must resolve to exactly one result metric")
+    return matches[0]
+
+
 def _validate_inputs(
     plan: WalkForwardTrainingPlan,
     candidates: tuple[ScientificTrial, ...],
@@ -265,5 +344,7 @@ __all__ = [
     "WalkForwardTrialBinding",
     "materialize_walk_forward_oos_trials",
     "materialize_walk_forward_training_trials",
+    "oos_result_from_manifest",
+    "training_score_from_result_manifest",
     "verify_walk_forward_result_binding",
 ]

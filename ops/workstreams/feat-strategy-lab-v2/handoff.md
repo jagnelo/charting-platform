@@ -13250,3 +13250,12 @@ yet persist fold-task lineage, resolve result manifests through the bindings,
 dispatch fold trials, or aggregate OOS metrics. Next: make training score
 receipts require the bound trial fingerprints and wire each phase into durable
 owner-scoped search state and worker preparation.
+
+Manifest evidence is now consumed directly by `training_score_from_result_manifest`
+and `oos_result_from_manifest`. Both require a succeeded typed result manifest
+whose trial and evaluation-window fingerprints equal the planned binding,
+whose selection metric resolves uniquely and is non-null, and whose engine is
+authoritative Nautilus. This closes the seam where a caller could attach an
+arbitrary metric value/result digest to an otherwise valid task. Training and
+OOS run manifests remain connected to persisted task lineage only after the
+next durable-state composition step.
