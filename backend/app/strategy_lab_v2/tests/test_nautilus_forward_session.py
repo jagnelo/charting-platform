@@ -544,10 +544,14 @@ async def test_persistent_native_runtime_reuses_one_process_and_deduplicates_lat
     assert factory.processes[0].close_calls == 1
     assert order == ["execute", "close", "execute"]
 
-    await runtime.close(instance_id=INSTANCE_ID)
+    await runtime.close_inactive(frozenset())
 
     assert factory.processes[1].close_calls == 1
     assert order == ["execute", "close", "execute", "close"]
+
+    await runtime.close(instance_id=INSTANCE_ID)
+
+    assert factory.processes[1].close_calls == 1
 
 
 @pytest.mark.asyncio

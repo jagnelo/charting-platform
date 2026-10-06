@@ -15,7 +15,7 @@ import inspect
 import os
 from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Protocol
 
 from app.strategy_lab_v2.api_resources import ApiResourceType
@@ -52,6 +52,11 @@ from app.strategy_lab_v2.forward_worker_authorization import (
 from app.strategy_lab_v2.forward_worker_handoff import (
     ForwardEventWorkItem,
     create_authenticated_forward_event_materializer,
+)
+from app.strategy_lab_v2.forward_worker_lifecycle import (
+    FORWARD_WORKER_HEARTBEAT_INTERVAL_SECONDS,
+    FORWARD_WORKER_LEASE_DURATION,
+    ForwardWorkerLifecycleCoordinator,
 )
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.nautilus_engine_input import (
@@ -116,7 +121,11 @@ from app.strategy_lab_v2.sandbox import (
 from app.strategy_lab_v2.sdk import StrategySdkManifest
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
 from app.strategy_lab_v2.worker_consumer import WorkerHandleResult
-from app.strategy_lab_v2.workers import WorkerKind, WorkerProfile
+from app.strategy_lab_v2.workers import (
+    WorkerKind,
+    WorkerProfile,
+    forward_worker_profile_from_environment,
+)
 from strategy_runtime import InvocationContextStreamSource
 
 if TYPE_CHECKING:
@@ -1669,6 +1678,24 @@ class OwnerScopedForwardEventHandler:
                 if inspect.isawaitable(result):
                     await result
 
+    async def close_inactive_sessions(self, active_instance_ids: frozenset[str]) -> None:
+        """Dispose native sessions after their worker reservation is released."""
+
+        if not isinstance(active_instance_ids, frozenset) or any(
+            not isinstance(instance_id, str) or not instance_id.strip()
+            for instance_id in active_instance_ids
+        ):
+            raise TypeError("active_instance_ids must be a frozenset of non-empty strings")
+        async with self._handlers_lock:
+            handlers = tuple(self._handlers.values())
+        for handler in handlers:
+            close_inactive = getattr(handler.runtime, "close_inactive", None)
+            if not callable(close_inactive):
+                raise TypeError("owner forward runtime must expose close_inactive()")
+            result = close_inactive(active_instance_ids)
+            if inspect.isawaitable(result):
+                await result
+
 
 def create_forward_worker_callbacks(
     persistence: PostgresStrategyLabV2Persistence,
@@ -1678,7 +1705,7 @@ def create_forward_worker_callbacks(
     event_type_by_dependency: Mapping[str, str],
     package_resolver: StrategyPackageArtifactResolver,
     owner_handler_factory: OwnerForwardHandlerFactory,
-    worker_profile: WorkerProfile,
+    worker_profile: WorkerProfile | None = None,
 ) -> ForwardWorkerCallbacks:
     """Build the production worker callbacks over authenticated persistence.
 
@@ -1689,9 +1716,10 @@ def create_forward_worker_callbacks(
 
     if not isinstance(persistence, PostgresStrategyLabV2Persistence):
         raise TypeError("persistence must use PostgresStrategyLabV2Persistence")
+    resolved_profile = worker_profile or forward_worker_profile_from_environment()
     if (
-        not isinstance(worker_profile, WorkerProfile)
-        or worker_profile.kind is not WorkerKind.FORWARD
+        not isinstance(resolved_profile, WorkerProfile)
+        or resolved_profile.kind is not WorkerKind.FORWARD
     ):
         raise TypeError("worker_profile must be a FORWARD WorkerProfile")
     materializer = create_authenticated_forward_event_materializer(
@@ -1718,6 +1746,21 @@ def create_forward_worker_callbacks(
     ) -> WorkerHandleResult:
         return await owner_handler(entry, work_item)
 
+    lifecycle = ForwardWorkerLifecycleCoordinator(
+        persistence.worker_state,
+        profile=resolved_profile,
+        lease_duration=FORWARD_WORKER_LEASE_DURATION,
+    )
+
+    async def heartbeat() -> None:
+        authorizations = await lifecycle.heartbeat_active(now=datetime.now(UTC))
+        await owner_handler.close_inactive_sessions(
+            frozenset(authorization.reservation.attempt_id for authorization in authorizations)
+        )
+
+    async def startup() -> None:
+        await persistence.worker_state.ensure_profile(resolved_profile)
+
     # Import locally to keep worker entrypoint definitions independent from
     # host composition and avoid a module cycle during callback loading.
     from app.strategy_lab_v2.forward_worker_entrypoint import ForwardWorkerCallbacks
@@ -1727,8 +1770,11 @@ def create_forward_worker_callbacks(
         handler=handler,
         authorization_resolver=DurableForwardWorkerAuthorizationResolver(
             persistence.worker_state,
-            profile=worker_profile,
+            profile=resolved_profile,
         ),
+        startup=startup,
+        heartbeat=heartbeat,
+        heartbeat_interval_seconds=FORWARD_WORKER_HEARTBEAT_INTERVAL_SECONDS,
         close=owner_handler.close,
     )
 

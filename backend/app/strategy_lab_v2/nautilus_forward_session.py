@@ -232,6 +232,28 @@ class PersistentNautilusForwardSessionRuntime:
         for instance_id in instance_ids:
             await self.close(instance_id=instance_id)
 
+    async def close_inactive(self, active_instance_ids: frozenset[str]) -> None:
+        """Dispose engine processes whose durable worker reservations ended."""
+
+        if not isinstance(active_instance_ids, frozenset) or any(
+            not isinstance(instance_id, str) or not instance_id.strip()
+            for instance_id in active_instance_ids
+        ):
+            raise TypeError("active_instance_ids must be a frozenset of non-empty strings")
+        async with self._sessions_lock:
+            inactive = tuple(
+                sorted(
+                    instance_id
+                    for instance_id in self._sessions
+                    if instance_id not in active_instance_ids
+                )
+            )
+            # Prevent another event from reusing a process selected for disposal.
+            for instance_id in inactive:
+                self._sessions[instance_id].closing = True
+        for instance_id in inactive:
+            await self.close(instance_id=instance_id)
+
     async def _session_for(
         self,
         instance_id: str,

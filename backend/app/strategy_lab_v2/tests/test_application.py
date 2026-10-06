@@ -1,5 +1,5 @@
 from dataclasses import dataclass, replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any, cast
@@ -60,6 +60,10 @@ from app.strategy_lab_v2.outcomes import OutcomeStatus
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.postgres_commands import PostgresCommandAdapter
 from app.strategy_lab_v2.postgres_execution_state import PostgresExecutionStateAdapter
+from app.strategy_lab_v2.postgres_forward_state import (
+    ForwardStateMutationDecision,
+    ForwardStateMutationResolution,
+)
 from app.strategy_lab_v2.postgres_resources import PostgresResourceReader
 from app.strategy_lab_v2.postgres_result_publication import (
     PublicationStateDecision,
@@ -226,6 +230,86 @@ async def test_application_forward_lifecycle_is_owner_scoped_and_utc_normalized(
     assert observed["transition"]["now"].tzinfo is UTC
     assert observed["transition"]["idempotency_key"] == "application-forward-lifecycle-key"
     assert observed["warmup"]["principal"].id == "42"
+
+
+@pytest.mark.asyncio
+async def test_application_forward_activation_and_stop_bind_worker_capacity() -> None:
+    instance = _instance(ForwardState.PAUSED)
+    observed: list[tuple[str, dict[str, Any]]] = []
+
+    class ForwardStore:
+        current = instance
+
+        async def load_instance(self, **_kwargs: Any) -> Any:
+            return self.current
+
+        async def transition(self, **kwargs: Any) -> Any:
+            self.current = replace(
+                self.current,
+                state=kwargs["target"],
+                updated_at=kwargs["now"],
+            )
+            return ForwardStateMutationResolution(
+                ForwardStateMutationDecision.APPLIED,
+                self.current,
+            )
+
+    class WorkerLifecycle:
+        async def acquire(self, **kwargs: Any) -> None:
+            observed.append(("acquire", kwargs))
+
+        async def release(self, **kwargs: Any) -> bool:
+            observed.append(("release", kwargs))
+            return True
+
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+    adapter._persistence = SimpleNamespace(forward_state=ForwardStore())
+    adapter._forward_worker_lifecycle = WorkerLifecycle()
+
+    activated = await adapter.transition_forward_instance(
+        principal=_User(42),
+        instance_id=instance.instance_id,
+        target=ForwardState.ACTIVE,
+        now=NOW + timedelta(minutes=1),
+        idempotency_key="resume-instance",
+    )
+    stopped = await adapter.transition_forward_instance(
+        principal=_User(42),
+        instance_id=instance.instance_id,
+        target=ForwardState.STOPPED,
+        now=NOW + timedelta(minutes=2),
+        idempotency_key="stop-instance",
+    )
+
+    assert activated.instance is not None and activated.instance.state is ForwardState.ACTIVE
+    assert stopped.instance is not None and stopped.instance.state is ForwardState.STOPPED
+    assert [item[0] for item in observed] == ["acquire", "release"]
+    assert observed[0][1]["activation_key"] == "resume-instance"
+    assert observed[1][1]["instance_id"] == instance.instance_id
+
+
+@pytest.mark.asyncio
+async def test_application_refuses_activation_without_forward_worker_profile() -> None:
+    instance = _instance(ForwardState.PAUSED)
+
+    class ForwardStore:
+        async def load_instance(self, **_kwargs: Any) -> Any:
+            return instance
+
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+    adapter._persistence = SimpleNamespace(forward_state=ForwardStore())
+    adapter._forward_worker_lifecycle = None
+
+    with pytest.raises(ApiAdapterError) as error:
+        await adapter.transition_forward_instance(
+            principal=_User(42),
+            instance_id=instance.instance_id,
+            target=ForwardState.ACTIVE,
+            now=NOW + timedelta(minutes=1),
+            idempotency_key="resume-no-worker",
+        )
+
+    assert error.value.error.code is ApiErrorCode.PRECONDITION_FAILED
 
 
 @pytest.mark.asyncio

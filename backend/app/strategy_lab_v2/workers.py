@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+import socket
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -50,6 +53,46 @@ class WorkerProfile:
     @property
     def fingerprint(self) -> str:
         return content_digest(self)
+
+
+def forward_worker_profile_from_environment(
+    environment: Mapping[str, str] | None = None,
+) -> WorkerProfile | None:
+    """Resolve the shared API/worker profile identity from local environment.
+
+    Each replica receives a process-specific id from Compose's ``HOSTNAME``
+    unless an explicit id is set. The API discovers all such profiles by the
+    shared runtime fingerprint, so replica scaling remains possible.
+    """
+
+    env = os.environ if environment is None else environment
+    runtime_fingerprint = forward_worker_runtime_profile_fingerprint_from_environment(env)
+    if runtime_fingerprint is None:
+        return None
+    worker_id = env.get("STRATEGY_LAB_V2_FORWARD_WORKER_ID") or env.get("HOSTNAME")
+    if not worker_id:
+        worker_id = f"forward-worker-{socket.gethostname()}"
+    return WorkerProfile(
+        worker_id=worker_id,
+        kind=WorkerKind.FORWARD,
+        runtime_profile_fingerprint=runtime_fingerprint,
+    )
+
+
+def forward_worker_runtime_profile_fingerprint_from_environment(
+    environment: Mapping[str, str] | None = None,
+) -> str | None:
+    """Resolve the shared, immutable runtime profile fingerprint."""
+
+    env = os.environ if environment is None else environment
+    runtime_fingerprint = env.get("STRATEGY_LAB_V2_FORWARD_RUNTIME_PROFILE_FINGERPRINT")
+    if runtime_fingerprint is None or not runtime_fingerprint.strip():
+        return None
+    require_sha256_digest(
+        runtime_fingerprint,
+        field_name="STRATEGY_LAB_V2_FORWARD_RUNTIME_PROFILE_FINGERPRINT",
+    )
+    return runtime_fingerprint
 
 
 @dataclass(frozen=True, slots=True)
@@ -280,6 +323,62 @@ def rank_available_backtest_worker_pools(
             {
                 "attempt_id": attempt_id,
                 "purpose": "strategy-lab-v2-worker-profile-selection-v1",
+                "worker_id": pool.profile.worker_id,
+            }
+        )
+        return last_used, stable_tie_break
+
+    return tuple(sorted(available, key=rank))
+
+
+def rank_available_forward_worker_pools(
+    pools: tuple[WorkerPoolState, ...] | list[WorkerPoolState],
+    *,
+    attempt_id: str,
+) -> tuple[WorkerPoolState, ...]:
+    """Rank idle, safe, one-node forward worker profiles deterministically."""
+
+    _nonempty(attempt_id, "attempt_id")
+    pools = tuple(pools)
+    if any(not isinstance(pool, WorkerPoolState) for pool in pools):
+        raise TypeError("pools must contain WorkerPoolState values")
+    worker_ids = [pool.profile.worker_id for pool in pools]
+    if len(worker_ids) != len(set(worker_ids)):
+        raise ValueError("worker pools must have unique profile identities")
+    already_reserved = tuple(
+        pool
+        for pool in pools
+        if any(item.active and item.attempt_id == attempt_id for item in pool.reservations)
+    )
+    if len(already_reserved) > 1:
+        raise ValueError("a forward instance cannot be reserved on multiple worker profiles")
+    if already_reserved:
+        pool = already_reserved[0]
+        if (
+            pool.profile.kind is not WorkerKind.FORWARD
+            or not pool.profile.isolation_required
+            or not pool.profile.engine_disposal_required
+        ):
+            raise ValueError("existing forward reservation is not on a safe forward worker")
+        return already_reserved
+    available = tuple(
+        pool
+        for pool in pools
+        if pool.profile.kind is WorkerKind.FORWARD
+        and pool.profile.isolation_required
+        and pool.profile.engine_disposal_required
+        and not pool.active_reservations
+    )
+
+    def rank(pool: WorkerPoolState) -> tuple[datetime, str]:
+        last_used = max(
+            (item.acquired_at for item in pool.reservations),
+            default=datetime.min.replace(tzinfo=UTC),
+        )
+        stable_tie_break = content_digest(
+            {
+                "attempt_id": attempt_id,
+                "purpose": "strategy-lab-v2-forward-worker-profile-selection-v1",
                 "worker_id": pool.profile.worker_id,
             }
         )

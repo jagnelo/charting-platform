@@ -59,6 +59,9 @@ class ForwardWorkerCallbacks:
     materializer: ForwardEventMaterializer
     handler: ForwardEventHandler
     authorization_resolver: ForwardWorkerAuthorizationResolver
+    startup: Callable[[], Awaitable[None]] | None = None
+    heartbeat: Callable[[], Awaitable[None]] | None = None
+    heartbeat_interval_seconds: float = 60.0
     close: Callable[[], Awaitable[None] | None] | None = None
 
     def __post_init__(self) -> None:
@@ -68,6 +71,11 @@ class ForwardWorkerCallbacks:
             raise TypeError("handler must be callable")
         if not callable(self.authorization_resolver):
             raise TypeError("authorization_resolver must be callable")
+        if self.startup is not None and not callable(self.startup):
+            raise TypeError("startup must be callable or None")
+        if self.heartbeat is not None and not callable(self.heartbeat):
+            raise TypeError("heartbeat must be callable or None")
+        _positive_float(self.heartbeat_interval_seconds, "heartbeat_interval_seconds")
         if self.close is not None and not callable(self.close):
             raise TypeError("close must be callable or None")
 
@@ -266,6 +274,8 @@ async def run_forward_strategy_lab_v2_worker(
     callback_set = _coerce_callbacks(callbacks)
 
     try:
+        if callback_set.startup is not None:
+            await callback_set.startup()
         runtime = await runtime_factory(config.redis_url, namespace=config.redis_namespace)
     except BaseException:
         if callback_set.close is not None:
@@ -301,6 +311,7 @@ async def run_forward_strategy_lab_v2_worker(
         if not callable(cleanup):
             raise TypeError("signal installer must return a cleanup callable")
         relay_task: asyncio.Task[None] | None = None
+        lease_heartbeat_task: asyncio.Task[None] | None = None
         try:
             outbox_scheduler_factory = getattr(runtime, "outbox_scheduler", None)
             outbox_persistence = getattr(persistence, "execution_events", None)
@@ -314,8 +325,42 @@ async def run_forward_strategy_lab_v2_worker(
                 if not callable(getattr(scheduler, "run", None)):
                     raise TypeError("runtime.outbox_scheduler() must return a scheduler")
                 relay_task = asyncio.create_task(scheduler.run(event))
-            cycles = await service.run(event, max_cycles=max_cycles)
+            service_task = asyncio.create_task(service.run(event, max_cycles=max_cycles))
+            if callback_set.heartbeat is not None:
+                lease_heartbeat_task = asyncio.create_task(
+                    _forward_lease_heartbeat_loop(
+                        event,
+                        callback_set.heartbeat,
+                        interval_seconds=callback_set.heartbeat_interval_seconds,
+                        sleep=sleep,
+                    )
+                )
+                done, _ = await asyncio.wait(
+                    (service_task, lease_heartbeat_task),
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+                if lease_heartbeat_task in done:
+                    heartbeat_error = lease_heartbeat_task.exception()
+                    if heartbeat_error is not None:
+                        event.set()
+                        if not service_task.done():
+                            service_task.cancel()
+                            with suppress(asyncio.CancelledError):
+                                await service_task
+                        raise heartbeat_error
+                    if not service_task.done():
+                        event.set()
+                        service_task.cancel()
+                        with suppress(asyncio.CancelledError):
+                            await service_task
+                        raise RuntimeError("forward instance lease heartbeat stopped unexpectedly")
+            cycles = await service_task
         finally:
+            event.set()
+            if lease_heartbeat_task is not None:
+                lease_heartbeat_task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await lease_heartbeat_task
             if relay_task is not None:
                 relay_task.cancel()
                 with suppress(asyncio.CancelledError):
@@ -335,6 +380,23 @@ async def run_forward_strategy_lab_v2_worker(
         tuple(cycles),
         True,
     )
+
+
+async def _forward_lease_heartbeat_loop(
+    stop_event: object,
+    heartbeat: Callable[[], Awaitable[None]],
+    *,
+    interval_seconds: float,
+    sleep: Callable[[float], Awaitable[None]],
+) -> None:
+    """Keep active forward-instance leases alive beside the Redis pump."""
+
+    is_set = getattr(stop_event, "is_set")
+    while not is_set():
+        await sleep(interval_seconds)
+        if is_set():
+            return
+        await heartbeat()
 
 
 def _coerce_callbacks(value: Any) -> ForwardWorkerCallbacks:

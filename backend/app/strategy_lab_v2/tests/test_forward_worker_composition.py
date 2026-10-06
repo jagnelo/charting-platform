@@ -88,6 +88,7 @@ from app.strategy_lab_v2.workers import WorkerKind, WorkerProfile
 class _Runtime:
     def __init__(self) -> None:
         self.closed = 0
+        self.closed_inactive: list[frozenset[str]] = []
 
     async def execute(self, *_args: Any) -> None:
         return None
@@ -97,6 +98,9 @@ class _Runtime:
 
     async def close_all(self) -> None:
         self.closed += 1
+
+    async def close_inactive(self, active_instance_ids: frozenset[str]) -> None:
+        self.closed_inactive.append(active_instance_ids)
 
 
 class _RuntimeInputResolver:
@@ -145,6 +149,31 @@ async def test_owner_handlers_are_cached_separately_and_closed_at_shutdown() -> 
 
     assert runtimes["owner-a"].closed == 1
     assert runtimes["owner-b"].closed == 1
+
+
+@pytest.mark.asyncio
+async def test_owner_runtimes_reconcile_sessions_to_durable_active_assignments() -> None:
+    runtimes: dict[str, _Runtime] = {}
+
+    async def factory(
+        owner_id: str, _delivery_factory: Any, _inputs: Any
+    ) -> NautilusForwardSessionEventHandler:
+        runtime = _Runtime()
+        runtimes[owner_id] = runtime
+        return _handler(owner_id, runtime)
+
+    routed = OwnerScopedForwardEventHandler(
+        factory,
+        _delivery_factory(),
+        lambda _owner: _RuntimeInputResolver(),  # type: ignore[arg-type]
+    )
+    await routed._handler_for("owner-a")
+    await routed._handler_for("owner-b")
+
+    await routed.close_inactive_sessions(frozenset({"forward-active"}))
+
+    assert runtimes["owner-a"].closed_inactive == [frozenset({"forward-active"})]
+    assert runtimes["owner-b"].closed_inactive == [frozenset({"forward-active"})]
 
 
 @pytest.mark.asyncio

@@ -892,17 +892,24 @@ progress:
     process loss, durable settlement and ACK, and fresh-process continuation
     from its authenticated prior-event prefix. Forward event handoffs now renew
     their persisted lease while processing and retry without releasing capacity
-    if heartbeat evidence fails. Remaining work is product implementation and
-    broader validation: bind instance activation/termination to reservation and
-    lease lifecycle, activate canonical event payload resolution, and complete
-    the remaining backtest/search/API/security/Compose criteria and exact-tip
-    branch gates. Provider-platform, ETF, and TC2000 contracts remain owned by
-    their branches; unsupported options remain fail-closed pending canonical
+    if heartbeat evidence fails. Forward activation/resume now discovers the
+    exact runtime's local worker fleet, reserves one replica and persists its
+    lease before lifecycle transition; pause/stop releases it, while the
+    isolated worker registers its hostname-bound profile and renews active
+    instance leases. These are separate durable adapter transactions, so
+    retries reconcile an interrupted activation; broader crash/recovery
+    evidence remains open. Worker heartbeats now also dispose cached Nautilus
+    sessions whose durable reservation ended, with targeted lifecycle tests;
+    real PostgreSQL/Redis shutdown/restart evidence remains open. The next
+    product seam is canonical event payload activation in Compose, followed by the remaining
+    backtest/search/API/security/Compose criteria and exact-tip branch gates.
+    Provider-platform, ETF, and TC2000 contracts remain owned by their
+    branches; unsupported options remain fail-closed pending canonical
     Greeks/delta/settlement evidence.
   next_action: >-
-    Bind instance activation and termination to durable worker reservation,
-    lease acquisition and capacity release; forward event-processing heartbeat
-    is now implemented separately. Then activate the canonical event-stream
-    callback path. Continue broader forward-shadow and remaining backtest,
-    search, API, security, and Compose acceptance. Keep unsupported products
-    fail-closed; stable Nautilus labeling is not a gate.
+    Consume the approved platform canonical payload contract by wiring its
+    resolver into the explicit forward-worker callback factory and Compose
+    profile. Then verify event admission, long-idle heartbeat, pause/stop engine
+    disposal and restart recovery against real PostgreSQL/Redis. Continue broader forward-shadow and
+    remaining backtest, search, API, security, and Compose acceptance. Keep
+    unsupported products fail-closed; stable Nautilus labeling is not a gate.

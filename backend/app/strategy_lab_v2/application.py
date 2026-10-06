@@ -13,7 +13,7 @@ import inspect
 import os
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from importlib import import_module
 from typing import Any
 
@@ -67,18 +67,30 @@ from app.strategy_lab_v2.forward_warmup import (
     ForwardWarmupResolution,
 )
 from app.strategy_lab_v2.forward_worker_authorization import ForwardWorkerAuthorization
+from app.strategy_lab_v2.forward_worker_lifecycle import (
+    FORWARD_WORKER_LEASE_DURATION,
+    ForwardWorkerCapacityUnavailable,
+    ForwardWorkerFleetLifecycleCoordinator,
+)
 from app.strategy_lab_v2.legacy import (
     LegacyCompatibilityAssessment,
     LegacyImportRequest,
     LegacyImportResolution,
 )
-from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent, ForwardEventObservation
+from app.strategy_lab_v2.lifecycle import (
+    CanonicalForwardEvent,
+    ForwardEventObservation,
+)
+from app.strategy_lab_v2.lifecycle import (
+    transition_forward_instance as validate_forward_transition,
+)
 from app.strategy_lab_v2.nautilus_trial_materializer import NautilusTrialRuntimeEvidence
 from app.strategy_lab_v2.outcomes import ExecutionOutcome
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.postgres_forward_account import ForwardAccountStateResolution
 from app.strategy_lab_v2.postgres_forward_state import (
     ForwardInstanceResolution,
+    ForwardStateMutationDecision,
     ForwardStateMutationResolution,
 )
 from app.strategy_lab_v2.postgres_result_publication import PublicationStateResolution
@@ -232,6 +244,7 @@ class StrategyLabV2ApiBindings:
 
     capability_preflight: CapabilityPreflightResolver | None = None
     search_dispatch: SearchDispatchResolver | None = None
+    forward_worker_runtime_profile_fingerprint: str | None = None
 
     def __post_init__(self) -> None:
         if self.capability_preflight is not None and not callable(self.capability_preflight):
@@ -244,6 +257,11 @@ class StrategyLabV2ApiBindings:
             raise TypeError("search_dispatch must be callable")
         if self.search_dispatch is not None and not _is_async_callable(self.search_dispatch):
             raise TypeError("search_dispatch host binding must be asynchronous")
+        if self.forward_worker_runtime_profile_fingerprint is not None:
+            require_sha256_digest(
+                self.forward_worker_runtime_profile_fingerprint,
+                field_name="forward_worker_runtime_profile_fingerprint",
+            )
         if self.capability_preflight is None and self.search_dispatch is None:
             raise ValueError("at least one Strategy Lab v2 API host binding is required")
 
@@ -306,6 +324,8 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         search_dispatch_evidence: SearchDispatchEvidenceResolver | None = None,
         host_bindings_factory: StrategyLabV2ApiBindingsFactory | None = None,
         persistence: PostgresStrategyLabV2Persistence | None = None,
+        forward_worker_runtime_profile_fingerprint: str | None = None,
+        forward_worker_lease_duration: timedelta = FORWARD_WORKER_LEASE_DURATION,
     ) -> None:
         if not callable(session_factory):
             raise TypeError("session_factory must be callable")
@@ -319,6 +339,13 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise TypeError("search_dispatch_evidence must be callable")
         if search_dispatch is not None and search_dispatch_evidence is not None:
             raise ValueError("search_dispatch and search_dispatch_evidence are mutually exclusive")
+        if forward_worker_runtime_profile_fingerprint is not None:
+            require_sha256_digest(
+                forward_worker_runtime_profile_fingerprint,
+                field_name="forward_worker_runtime_profile_fingerprint",
+            )
+        if forward_worker_lease_duration <= timedelta(0):
+            raise ValueError("forward_worker_lease_duration must be positive")
         if host_bindings_factory is not None:
             if not callable(host_bindings_factory):
                 raise TypeError("host_bindings_factory must be callable")
@@ -326,7 +353,12 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                 raise TypeError("host_bindings_factory must be synchronous")
             if any(
                 binding is not None
-                for binding in (capability_preflight, search_dispatch, search_dispatch_evidence)
+                for binding in (
+                    capability_preflight,
+                    search_dispatch,
+                    search_dispatch_evidence,
+                    forward_worker_runtime_profile_fingerprint,
+                )
             ):
                 raise ValueError(
                     "host bindings cannot be combined with explicit resolver arguments"
@@ -350,9 +382,21 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                 raise TypeError("host_bindings_factory must return StrategyLabV2ApiBindings")
             capability_preflight = bindings.capability_preflight
             search_dispatch = bindings.search_dispatch
+            forward_worker_runtime_profile_fingerprint = (
+                bindings.forward_worker_runtime_profile_fingerprint
+            )
         self._capability_preflight = capability_preflight
         self._search_dispatch = search_dispatch
         self._search_dispatch_evidence = search_dispatch_evidence
+        self._forward_worker_lifecycle = (
+            ForwardWorkerFleetLifecycleCoordinator(
+                self._persistence.worker_state,
+                runtime_profile_fingerprint=forward_worker_runtime_profile_fingerprint,
+                lease_duration=forward_worker_lease_duration,
+            )
+            if forward_worker_runtime_profile_fingerprint is not None
+            else None
+        )
         self._resources = self._persistence.resources
         self._capabilities = self._persistence.capability
         self._search_dispatch_store = self._persistence.search_dispatch
@@ -1238,11 +1282,11 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         if not isinstance(now, datetime) or now.tzinfo is None or now.utcoffset() is None:
             raise ValueError("now must be a timezone-aware datetime")
         owner = _principal_identity(principal)
+        instance = await self._persistence.forward_state.load_instance(
+            principal=owner,
+            instance_id=instance_id,
+        )
         if target is ForwardState.WARMING_UP:
-            instance = await self._persistence.forward_state.load_instance(
-                principal=owner,
-                instance_id=instance_id,
-            )
             if instance is not None:
                 plan = await self._resources.get_domain_contract(
                     principal=owner,
@@ -1261,13 +1305,65 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                         "an exact forward execution plan must exist before warm-up activation"
                     )
                 plan.validate_bindings(instance=instance, portfolio=portfolio)
-        return await self._persistence.forward_state.transition(
+        should_acquire = target in {ForwardState.WARMING_UP, ForwardState.ACTIVE}
+        if instance is not None and target is not instance.state:
+            try:
+                validate_forward_transition(instance, target, now=now.astimezone(UTC))
+            except ValueError:
+                # Let the durable transition adapter return its canonical
+                # conflict receipt without reserving capacity for an invalid
+                # state change.
+                should_acquire = False
+        if should_acquire and instance is not None:
+            if self._forward_worker_lifecycle is None:
+                raise ApiAdapterError(
+                    ApiError(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        "forward worker lifecycle is not configured",
+                        "forward-lifecycle-" + content_digest(idempotency_key)[:32],
+                        412,
+                        False,
+                        {"reason": "a dedicated FORWARD worker profile is required"},
+                    )
+                )
+            try:
+                await self._forward_worker_lifecycle.acquire(
+                    instance_id=instance_id,
+                    activation_key=idempotency_key,
+                    now=now.astimezone(UTC),
+                )
+            except ForwardWorkerCapacityUnavailable as error:
+                raise ApiAdapterError(
+                    ApiError(
+                        ApiErrorCode.CONFLICT,
+                        str(error),
+                        "forward-lifecycle-" + content_digest(idempotency_key)[:32],
+                        409,
+                        True,
+                        {"instance_id": instance_id},
+                    )
+                ) from error
+        resolution = await self._persistence.forward_state.transition(
             principal=owner,
             instance_id=instance_id,
             target=target,
             now=now.astimezone(UTC),
             idempotency_key=idempotency_key,
         )
+        if (
+            target in {ForwardState.PAUSED, ForwardState.STOPPED}
+            and resolution.decision
+            in {
+                ForwardStateMutationDecision.APPLIED,
+                ForwardStateMutationDecision.REPLAY_EXISTING,
+            }
+            and self._forward_worker_lifecycle is not None
+        ):
+            await self._forward_worker_lifecycle.release(
+                instance_id=instance_id,
+                now=now.astimezone(UTC),
+            )
+        return resolution
 
     async def complete_forward_warmup(
         self, *, principal: Any, receipt: ForwardWarmupReceipt

@@ -330,9 +330,15 @@ def build_api_bindings(_session_factory: Any, _persistence: Any) -> Any:
     """Build API host bindings that delegate search preparation over the UDS."""
 
     from app.strategy_lab_v2.application import StrategyLabV2ApiBindings
+    from app.strategy_lab_v2.workers import (
+        forward_worker_runtime_profile_fingerprint_from_environment,
+    )
 
     return StrategyLabV2ApiBindings(
-        search_dispatch=UnixSocketSearchDispatchClient.from_environment()
+        search_dispatch=UnixSocketSearchDispatchClient.from_environment(),
+        forward_worker_runtime_profile_fingerprint=(
+            forward_worker_runtime_profile_fingerprint_from_environment()
+        ),
     )
 
 

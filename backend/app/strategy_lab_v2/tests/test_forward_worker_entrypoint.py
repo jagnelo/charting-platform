@@ -118,7 +118,6 @@ async def test_failed_forward_startup_migration_never_opens_redis() -> None:
 async def test_forward_worker_composes_dedicated_queue_and_closes_runtime() -> None:
     calls: dict[str, Any] = {}
     stop_event = asyncio.Event()
-    stop_event.set()
 
     class Persistence:
         forward_dispatch = object()
@@ -128,6 +127,7 @@ async def test_forward_worker_composes_dedicated_queue_and_closes_runtime() -> N
         async def run(self, event: asyncio.Event, *, max_cycles: int | None = None):
             assert event is stop_event
             assert max_cycles == 2
+            await event.wait()
             return ()
 
     class Runtime:
@@ -145,12 +145,22 @@ async def test_forward_worker_composes_dedicated_queue_and_closes_runtime() -> N
     async def runtime_factory(*_args: Any, **_kwargs: Any) -> Runtime:
         return Runtime()
 
+    async def heartbeat() -> None:
+        calls["heartbeat"] = True
+        stop_event.set()
+
+    async def startup() -> None:
+        calls["startup"] = True
+
     result = await run_forward_strategy_lab_v2_worker(
         _config(reclaim_idle_ms=11, batch_size=2, block_ms=7, interval_seconds=2),
         callback_factory=lambda _persistence: ForwardWorkerCallbacks(
             lambda *_a: None,  # type: ignore[arg-type]
             lambda *_a: None,  # type: ignore[arg-type]
             lambda *_a: None,  # type: ignore[arg-type]
+            startup=startup,
+            heartbeat=heartbeat,
+            heartbeat_interval_seconds=0.1,
             close=lambda: calls.update(callbacks_closed=True),
         ),  # type: ignore[arg-type]
         migration_service=_Migration(MigrationDecision.APPLIED),  # type: ignore[arg-type]
@@ -177,5 +187,7 @@ async def test_forward_worker_composes_dedicated_queue_and_closes_runtime() -> N
     assert calls["service"][1]["payload_loader"] is Persistence.forward_dispatch
     assert calls["service"][1]["interval_seconds"] == 2
     assert isinstance(calls["service"][1]["handler"], AuthorizedForwardEventHandler)
+    assert calls["startup"] is True
+    assert calls["heartbeat"] is True
     assert calls["closed"] is True
     assert calls["callbacks_closed"] is True

@@ -13137,3 +13137,55 @@ event-handoff lease improvement, not instance activation/termination wiring.
 Next: bind instance start/stop to durable reservation and lease lifecycle, then
 activate the canonical platform event payload resolver in the opt-in Compose
 worker.
+
+## 2026-10-06 - Bind forward activation to the local worker fleet
+
+Added an owner-scoped forward lifecycle coordinator. Before `WARMING_UP` or
+resume to `ACTIVE`, the API validates the immutable execution-plan binding,
+discovers registered `FORWARD` profiles matching the exact runtime digest,
+selects an idle replica deterministically, and persists its one-node
+reservation and idempotent lease before applying the lifecycle transition.
+`PAUSED` and `STOPPED` release the active reservation and lease. Retries reuse
+the active attempt assignment; resume after release receives fresh reservation
+and lease identities. Capacity saturation is a retryable conflict rather than
+an unreserved activation.
+
+The isolated callback factory registers a hostname-bound worker profile during
+startup, and the worker entrypoint keeps active instance leases alive beside
+the Redis pump. API and worker Compose services now receive the same runtime
+profile fingerprint; each replica derives a distinct worker id from its
+container hostname unless an explicit standalone id is supplied. This supports
+independent replica slots while preserving one concurrent engine per process.
+Reservation/lease persistence and lifecycle state transition are separate
+transactions; deterministic retry reconciliation is implemented, but broader
+crash/race recovery and explicit Nautilus session disposal on stop still need
+runtime evidence.
+
+Validation: 31 focused lifecycle, API, worker-state, callback-composition,
+entrypoint, and RPC-binding tests passed. The local RPC socket round-trip test
+was excluded because this sandbox denies AF_UNIX socket creation. Ruff,
+formatting, focused MyPy, `docker compose config --quiet`, and workstream checks
+passed. Next: bind the canonical platform market-payload resolver into the
+opt-in Compose callback factory and validate real PostgreSQL/Redis recovery and
+engine shutdown semantics.
+
+## 2026-10-06 - Dispose forward sessions after reservation release
+
+The forward worker's durable lease heartbeat now reconciles each cached owner
+runtime against the profile's active reservations. Persistent Nautilus processes
+for instances no longer assigned to this worker are marked closing under the
+session-map lock, drained through the per-session execution lock, and disposed.
+This covers API-driven pause/stop cleanup without making Redis dispatch the
+authority for execution state; a later activation can reconstruct from its
+durable checkpoint in a fresh process.
+
+Validation: the persistent native runtime close/reuse regression, owner runtime
+reconciliation and shutdown tests, four forward lifecycle API tests, and worker
+entrypoint heartbeat/shutdown test passed (8 targeted cases). Focused MyPy on
+six changed source modules, Ruff, formatting, `git diff --check`, Compose config,
+and workstream validation passed. Full PostgreSQL/Redis restart validation and
+canonical platform payload wiring remain open. The exact platform interface is
+not present on this branch and remains owned by the provider-platform topic;
+do not duplicate or reach into that worktree. Next: consume its approved
+contract when available, while proceeding with branch-owned backtest/search,
+API, security, and Compose acceptance.

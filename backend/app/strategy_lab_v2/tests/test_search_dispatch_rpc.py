@@ -87,6 +87,11 @@ def test_local_api_bindings_factory_requires_and_uses_complete_socket_configurat
 ) -> None:
     monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH", "/run/strategy/preparation.sock")
     monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", AUTH_TOKEN)
+    forward_profile_digest = content_digest("forward-runtime")
+    monkeypatch.setenv("STRATEGY_LAB_V2_FORWARD_WORKER_ID", "forward-worker-1")
+    monkeypatch.setenv(
+        "STRATEGY_LAB_V2_FORWARD_RUNTIME_PROFILE_FINGERPRINT", forward_profile_digest
+    )
 
     from app.strategy_lab_v2.application import StrategyLabV2ApiBindings
 
@@ -95,6 +100,7 @@ def test_local_api_bindings_factory_requires_and_uses_complete_socket_configurat
     assert isinstance(bindings, StrategyLabV2ApiBindings)
     assert isinstance(bindings.search_dispatch, rpc_module.UnixSocketSearchDispatchClient)
     assert bindings.search_dispatch.socket_path == Path("/run/strategy/preparation.sock")
+    assert bindings.forward_worker_runtime_profile_fingerprint == forward_profile_digest
 
     monkeypatch.delenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN")
     with pytest.raises(ValueError, match="must both be configured"):
