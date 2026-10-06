@@ -863,16 +863,21 @@ progress:
       hardened RC5 sandbox plan using the accepted delivery, exact durable
       checkpoint, complete frozen snapshot tape, processed prefix, and explicit
       canonical platform readers. Preserve immutable identity/order provenance,
-      fail closed on missing or mismatched evidence, and introduce no broker or
-      real-capital path.
+      fail closed on missing or mismatched evidence, require persisted forward
+      worker reservation/lease authorization before dispatch handling, and
+      introduce no broker or real-capital path.
     owned_paths:
       - backend/app/strategy_lab_v2/forward_worker_composition.py
+      - backend/app/strategy_lab_v2/forward_worker_entrypoint.py
+      - backend/app/strategy_lab_v2/forward_worker_authorization.py
       - backend/app/strategy_lab_v2/forward_history_resolution.py
       - backend/app/strategy_lab_v2/nautilus_forward_bootstrap.py
       - backend/app/strategy_lab_v2/nautilus_runtime_bundle.py
       - backend/app/strategy_lab_v2/nautilus_engine_input.py
       - backend/app/strategy_lab_v2/nautilus_forward_process.py
       - backend/app/strategy_lab_v2/tests/test_forward_worker_composition.py
+      - backend/app/strategy_lab_v2/tests/test_forward_worker_entrypoint.py
+      - backend/app/strategy_lab_v2/tests/test_forward_worker_authorization.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_forward_bootstrap.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_forward_process.py
     status: in_progress
@@ -889,7 +894,9 @@ progress:
     their branches; unsupported options remain fail-closed pending canonical
     Greeks/delta/settlement evidence.
   next_action: >-
-    Continue forward-shadow acceptance beyond the exact RC5 checkpoint replay
-    probe, then implement and validate remaining backtest, search, API,
-    security, and Compose criteria. Keep unsupported products fail-closed and
-    do not wait for a stable Nautilus label.
+    Bind the required forward-worker authorization resolver to durable
+    reservation/lease lookup and capacity lifecycle, then continue event-stream
+    activation and broader forward-shadow acceptance. Next implement and
+    validate remaining backtest, search, API, security, and Compose criteria.
+    Keep unsupported products fail-closed; stable Nautilus labeling is not a
+    gate.

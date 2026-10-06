@@ -6,11 +6,13 @@ from typing import Any
 import pytest
 
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.forward_worker_authorization import AuthorizedForwardEventHandler
 from app.strategy_lab_v2.forward_worker_entrypoint import (
     ForwardWorkerCallbacks,
     ForwardWorkerEntrypointConfig,
     ForwardWorkerEntrypointDecision,
     ForwardWorkerEntrypointStartupError,
+    _coerce_callbacks,
     _load_callback_factory,
     run_forward_strategy_lab_v2_worker,
 )
@@ -78,6 +80,17 @@ def test_forward_callback_factory_loader_requires_module_attribute_syntax() -> N
         _load_callback_factory("missing_strategy_lab_callbacks:create")
 
 
+def test_forward_callback_coercion_rejects_unauthorized_legacy_pairs() -> None:
+    def callback(*_args: Any) -> None:
+        return None
+
+    with pytest.raises(TypeError, match="authorization tuple"):
+        _coerce_callbacks((callback, callback))
+
+    accepted = _coerce_callbacks((callback, callback, callback))
+    assert accepted.authorization_resolver is callback
+
+
 @pytest.mark.asyncio
 async def test_failed_forward_startup_migration_never_opens_redis() -> None:
     opened = False
@@ -137,6 +150,7 @@ async def test_forward_worker_composes_dedicated_queue_and_closes_runtime() -> N
         callback_factory=lambda _persistence: ForwardWorkerCallbacks(
             lambda *_a: None,  # type: ignore[arg-type]
             lambda *_a: None,  # type: ignore[arg-type]
+            lambda *_a: None,  # type: ignore[arg-type]
             close=lambda: calls.update(callbacks_closed=True),
         ),  # type: ignore[arg-type]
         migration_service=_Migration(MigrationDecision.APPLIED),  # type: ignore[arg-type]
@@ -162,5 +176,6 @@ async def test_forward_worker_composes_dedicated_queue_and_closes_runtime() -> N
     }
     assert calls["service"][1]["payload_loader"] is Persistence.forward_dispatch
     assert calls["service"][1]["interval_seconds"] == 2
+    assert isinstance(calls["service"][1]["handler"], AuthorizedForwardEventHandler)
     assert calls["closed"] is True
     assert calls["callbacks_closed"] is True

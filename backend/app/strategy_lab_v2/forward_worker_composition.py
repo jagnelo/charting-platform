@@ -46,6 +46,7 @@ from app.strategy_lab_v2.forward_warmup_stream import (
     iter_verified_forward_warmup_payloads,
     materialize_forward_warmup_stream,
 )
+from app.strategy_lab_v2.forward_worker_authorization import ForwardWorkerAuthorizationResolver
 from app.strategy_lab_v2.forward_worker_handoff import (
     ForwardEventWorkItem,
     create_authenticated_forward_event_materializer,
@@ -1674,6 +1675,7 @@ def create_forward_worker_callbacks(
     event_type_by_dependency: Mapping[str, str],
     package_resolver: StrategyPackageArtifactResolver,
     owner_handler_factory: OwnerForwardHandlerFactory,
+    authorization_resolver: ForwardWorkerAuthorizationResolver,
 ) -> ForwardWorkerCallbacks:
     """Build the production worker callbacks over authenticated persistence.
 
@@ -1684,6 +1686,8 @@ def create_forward_worker_callbacks(
 
     if not isinstance(persistence, PostgresStrategyLabV2Persistence):
         raise TypeError("persistence must use PostgresStrategyLabV2Persistence")
+    if not callable(authorization_resolver):
+        raise TypeError("authorization_resolver must be callable")
     materializer = create_authenticated_forward_event_materializer(
         persistence.forward_dispatch,
         queue_name=queue_name,
@@ -1715,6 +1719,7 @@ def create_forward_worker_callbacks(
     return ForwardWorkerCallbacks(
         materializer=materializer,
         handler=handler,
+        authorization_resolver=authorization_resolver,
         close=owner_handler.close,
     )
 

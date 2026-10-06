@@ -200,10 +200,12 @@ async def test_production_callback_assembly_uses_durable_dispatch_and_shutdown_h
         event_type_by_dependency={"dependency": "ohlcv"},
         package_resolver=package_resolver,
         owner_handler_factory=lambda owner_id, _delivery, _inputs: _handler(owner_id, runtime),
+        authorization_resolver=lambda _entry, _work_item: None,
     )
 
     assert callable(callbacks.materializer)
     assert callable(callbacks.handler)
+    assert callable(callbacks.authorization_resolver)
     assert callbacks.close is not None
     close_result = callbacks.close()
     if close_result is not None:

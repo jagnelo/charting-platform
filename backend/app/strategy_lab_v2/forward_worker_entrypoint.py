@@ -16,11 +16,16 @@ import socket
 from collections.abc import Awaitable, Callable, Mapping
 from contextlib import suppress
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from enum import StrEnum
 from importlib import import_module
 from types import ModuleType
 from typing import Any, cast
 
+from app.strategy_lab_v2.forward_worker_authorization import (
+    AuthorizedForwardEventHandler,
+    ForwardWorkerAuthorizationResolver,
+)
 from app.strategy_lab_v2.forward_worker_service import (
     ForwardEventHandler,
     ForwardEventMaterializer,
@@ -49,10 +54,11 @@ from app.strategy_lab_v2.worker_entrypoint import (
 
 @dataclass(frozen=True, slots=True)
 class ForwardWorkerCallbacks:
-    """Host-owned authenticated forward handoff and settlement callbacks."""
+    """Host callbacks; execution is always wrapped in persisted lease authorization."""
 
     materializer: ForwardEventMaterializer
     handler: ForwardEventHandler
+    authorization_resolver: ForwardWorkerAuthorizationResolver
     close: Callable[[], Awaitable[None] | None] | None = None
 
     def __post_init__(self) -> None:
@@ -60,6 +66,8 @@ class ForwardWorkerCallbacks:
             raise TypeError("materializer must be callable")
         if not callable(self.handler):
             raise TypeError("handler must be callable")
+        if not callable(self.authorization_resolver):
+            raise TypeError("authorization_resolver must be callable")
         if self.close is not None and not callable(self.close):
             raise TypeError("close must be callable or None")
 
@@ -188,8 +196,11 @@ class ForwardWorkerEntrypointStartupError(RuntimeError):
 ForwardWorkerCallbackFactory = Callable[
     [PostgresStrategyLabV2Persistence],
     ForwardWorkerCallbacks
-    | tuple[ForwardEventMaterializer, ForwardEventHandler]
-    | Awaitable[ForwardWorkerCallbacks | tuple[ForwardEventMaterializer, ForwardEventHandler]],
+    | tuple[ForwardEventMaterializer, ForwardEventHandler, ForwardWorkerAuthorizationResolver]
+    | Awaitable[
+        ForwardWorkerCallbacks
+        | tuple[ForwardEventMaterializer, ForwardEventHandler, ForwardWorkerAuthorizationResolver]
+    ],
 ]
 PersistenceFactory = Callable[[Callable[[], Any]], PostgresStrategyLabV2Persistence]
 RuntimeFactory = Callable[..., Awaitable[Any]]
@@ -275,7 +286,11 @@ async def run_forward_strategy_lab_v2_worker(
             worker,
             payload_loader=persistence.forward_dispatch,
             materializer=callback_set.materializer,
-            handler=callback_set.handler,
+            handler=AuthorizedForwardEventHandler(
+                callback_set.authorization_resolver,
+                callback_set.handler,
+                clock=lambda: datetime.now(UTC),
+            ),
             interval_seconds=config.interval_seconds,
             sleep=sleep,
         )
@@ -325,11 +340,16 @@ async def run_forward_strategy_lab_v2_worker(
 def _coerce_callbacks(value: Any) -> ForwardWorkerCallbacks:
     if isinstance(value, ForwardWorkerCallbacks):
         return value
-    if isinstance(value, tuple) and len(value) == 2:
+    if isinstance(value, tuple) and len(value) == 3:
         return ForwardWorkerCallbacks(
-            cast(ForwardEventMaterializer, value[0]), cast(ForwardEventHandler, value[1])
+            cast(ForwardEventMaterializer, value[0]),
+            cast(ForwardEventHandler, value[1]),
+            cast(ForwardWorkerAuthorizationResolver, value[2]),
         )
-    raise TypeError("callback_factory must return ForwardWorkerCallbacks or a two-item tuple")
+    raise TypeError(
+        "callback_factory must return ForwardWorkerCallbacks or a three-item "
+        "materializer/handler/authorization tuple"
+    )
 
 
 def _load_callback_factory(spec: str | None) -> ForwardWorkerCallbackFactory:

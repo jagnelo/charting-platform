@@ -13066,3 +13066,21 @@ full composition module is not claimed green; its broad invocation previously
 stalled before clean completion. Next: continue forward-shadow acceptance
 beyond this exact process probe and address the remaining backtest, search, API,
 security, and Compose criteria. No stable Nautilus release is required.
+
+## 2026-10-06 - Require lease authorization at forward worker entry
+
+The dedicated worker entrypoint now requires every callback set to provide an
+authorization resolver and wraps its event handler in
+`AuthorizedForwardEventHandler` before constructing the Redis service. The
+legacy two-callback tuple is rejected so a materializer plus arbitrary handler
+cannot bypass the persisted FORWARD reservation/lease checks. Production
+callback composition carries the resolver explicitly. This closes the
+entrypoint-level authorization bypass; binding the production resolver to the
+durable worker profile/reservation/lease rows and capacity lifecycle remains
+open.
+
+Validation: forward worker authorization, entrypoint, and callback composition
+tests passed 11/11; focused MyPy passed on the entrypoint and composition
+modules; Ruff and formatting passed. Next: wire the required resolver to the
+owner's persisted worker authorization records, then continue forward event
+activation and the larger Strategy Lab acceptance scope.
