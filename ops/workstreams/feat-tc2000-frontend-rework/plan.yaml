@@ -20,22 +20,24 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  Current TC work adds supported Ctrl+number chart timeframe shortcuts and
-  Ctrl+B cycling among existing OHLC/candles/line styles. Focused workstation
-  coverage passes 40/40; authenticated Chromium passes the direct-timeframe
+  Current TC work adds supported Ctrl+number chart timeframe shortcuts, Ctrl+B
+  cycling among existing OHLC/candles/line styles, and `/` to open the active
+  chart's plot library. Focused workstation coverage passes 41/41; authenticated
+  Chromium passes the direct-timeframe
   flow 1/1 and the corrected direct-chart-style flow 1/1. The first style
   browser replay exposed that an absent persisted bar_type must default to the
   same Candles style rendered by the chart; this is fixed and covered.
-  HLC Bars remain an unimplemented V25 plot-style gap. A deterministic serial
-  frontend run now passes 130/130 files and 1,223/1,223 tests after repairing
-  test isolation: fake timers are restored, mounted search components are
-  unmounted, and the DPR-dependent metric test sets its own baseline. Type-check
-  and production build passed before these test-only changes. The protected
-  application-shell Help screenshot oracle reports a 3% pixel difference after
-  the intentional shortcut-help additions; its baseline remains unchanged under
-  the visual-review policy. Generic integration, broader R1/R5/R6 and AC7,
+  HLC Bars remain an unimplemented V25 plot-style gap. At pushed tip a585be780
+  plus the local slash-shortcut change, the deterministic serial frontend suite passes
+  130/130 files and 1,224/1,224 tests; the focused workstation bindings pass
+  41/41, and vue-tsc/Vite production build passes. The repository Playwright CLI
+  launched Chromium, but the app redirected its unseeded session to /login, so
+  no authenticated browser-flow pass is claimed. The protected Help screenshot
+  is not rerun after the slash addition; at the preceding source it had a 3%
+  delta from the newly visible timeframe/Ctrl+B rows. Its baseline remains
+  unchanged pending visual review. Generic integration, broader R1/R5/R6 and AC7,
   exact V25 review, and staging-gated provider/ETF consumer work remain open.
-  Direct remote refs refreshed 2026-10-06: TC d9a79d288556625e8ff219da6d92475d388a8094,
+  Direct remote refs refreshed 2026-10-06: TC a585be7805e534663a05ef21552e39e0627f873c,
   staging 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider platform
   88132e9145a08d1c935a0111b3dba0fbd88bdff1, and ETF holdings
   2bd221663956581dfb35f5b77961900674449f23. Both upstream dependencies remain
@@ -437,17 +439,18 @@ progress:
     consumption/reconciliation until both dependencies reach staging. Stop at
     ready_for_human_review.
   current_blocker: >-
-    At pushed tip 29e5deca5, the complete serial frontend suite passes
-    130/130 files and 1,223/1,223 tests after test-isolation fixes. The earlier
-    broad-run WorkspaceLayoutHost timeouts are resolved. The current shortcut
-    Help screenshot differs by 3% from its protected baseline after the added
-    timeframe and Ctrl+B rows; the baseline remains untouched and requires
-    human visual review before any update. HLC Bars are still unsupported by the
-    chart renderer. Generic integration, exact V25 review, broader AC4-AC7
+    At pushed tip a585be780 plus local slash-shortcut changes, the full serial
+    frontend suite passes 130/130 files and 1,224/1,224 tests; focused bindings
+    pass 41/41; vue-tsc and production build pass. The earlier suite-order
+    timeouts are resolved. The screenshot oracle has not rerun since slash was
+    added; at the preceding source it differed by 3% after the timeframe and
+    Ctrl+B Help additions, and remains protected pending human review. HLC Bars
+    remain unsupported. Generic integration, exact V25 review, broader AC4-AC7
     evidence, and full R1/R5/R6 roadmap work remain open. Provider and ETF
     branches are still outside staging, so AC2/AC3 consumption and shared-path
     reconciliation remain explicitly deferred.
 historical_implementation_records:
+  - "TC2000's current official keyboard reference lists `/` to add a chart plot. The TC workstation now handles `/` only when the active window is a chart, clicks that chart's existing Chart plot library trigger, and lets the component focus its indicator search. Editor/modifier behavior and non-chart active windows are unchanged. WorkstationView binding suite passed 41/41; full serial frontend Vitest passed 130 files / 1,224 tests; vue-tsc/Vite production build passed. A manual Playwright CLI session reached the application but was redirected to login, so authenticated browser verification was unavailable and is not claimed. The protected Help screenshot oracle was not rerun after adding this shortcut; the prior 3% shortcut-help delta remains pending visual review. No baseline, mask, threshold, skip, provider/ETF behavior, or acceptance policy changed."
   - "Product commit b4a4431be05e06835f975b941c3dea46af9eaba4 adds TC2000 V25 Ctrl+1/3/4/5/6 direct selection for active-chart M1/M5/M15/M30/H1 intervals, leaving Ctrl+2 unclaimed because M2 is absent from the current app timeframe contract. Workstation bindings passed 39/39, and pinned authenticated Chromium F8k-direct-timeframe passed 1/1. The exact product commit was pushed; no provider/ETF behavior or visual oracle/acceptance policy changed."
   - "Pushed product commit 587d15c33175c7dd8574eab2c5a80766d520996c cycles the active chart through supported OHLC/Candles/Line styles, preserves other configuration, defaults missing bar_type to Candles, and leaves HLC Bars as an explicit renderer gap. Focused workstation bindings passed 40/40; authenticated pinned Chromium F8k-direct-chart-style passed 1/1 after a first browser replay exposed the missing-config default; npm run build (vue-tsc and Vite) passed. Two full serial Vitest attempts each reported six WorkspaceLayoutHost timeouts and stopped producing results; that file passed 10/10 in isolation. No full-suite pass is claimed."
   - "Pushed product commit c0a2100cd0741e933382a6f72a0237ba8f495bda adds source-kind-labelled canonical saved-universe suggestions to Study Lab's existing editable source-ID input and loads the source store when a Study Lab tool opens. Unknown/custom source IDs remain supported, explicit-symbol behavior is unchanged, and no provider/ETF acquisition was added. StudyLabTool passed 48/48; full serial frontend Vitest passed 129 files/1212 tests; type-check/build passed; pinned authenticated F9g passed 1/1. Scope guard, six self-tests, workstream validation, and diff check passed. The first browser attempt correctly revealed Chromium exposes a datalist input as a combobox; the locator was corrected and the unchanged test then passed. No visual oracle or acceptance policy changed."

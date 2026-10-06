@@ -552,6 +552,39 @@ describe('WorkstationView pop-out bindings', () => {
     defaultStyleWrapper.unmount()
   })
 
+  it('opens the active chart plot library with slash but leaves other windows untouched', () => {
+    routeState.path = '/'
+    routeState.params = {}
+    harness.workspace.activeTab.active_window_key = 'chart-main'
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const workstation = wrapper.find('.workstation').element
+    const toolWindow = document.createElement('section')
+    toolWindow.className = 'tool-window'
+    toolWindow.dataset.windowKey = 'chart-main'
+    const trigger = document.createElement('button')
+    trigger.setAttribute('aria-label', 'Chart plot library')
+    const click = vi.fn()
+    trigger.addEventListener('click', click)
+    toolWindow.append(trigger)
+    document.body.append(toolWindow)
+
+    const event = new KeyboardEvent('keydown', { key: '/', bubbles: true, cancelable: true })
+    workstation.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(true)
+    expect(click).toHaveBeenCalledOnce()
+
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+    const nonChart = new KeyboardEvent('keydown', { key: '/', bubbles: true, cancelable: true })
+    workstation.dispatchEvent(nonChart)
+    expect(nonChart.defaultPrevented).toBe(false)
+    expect(click).toHaveBeenCalledOnce()
+
+    toolWindow.remove()
+    wrapper.unmount()
+  })
+
   it('replays a newer shell traversal after late workspace hydration', async () => {
     routeState.path = '/'
     routeState.params = {}
@@ -773,6 +806,7 @@ describe('WorkstationView pop-out bindings', () => {
     await wrapper.get('button[title="Keyboard shortcuts"]').trigger('click')
     expect(wrapper.find('.workstation__tool-library-menu').exists()).toBe(false)
     expect(wrapper.get('.workstation__help-popover').attributes('role')).toBe('menu')
+    expect(wrapper.get('.workstation__help-popover').text()).toContain("/Open the active chart's plot library and search indicators")
 
     await wrapper.find('.workstation__tabs').trigger('pointerdown')
     expect(wrapper.find('.workstation__help-popover').exists()).toBe(false)

@@ -52,6 +52,7 @@
               <div><dt>Ctrl+4</dt><dd>Set the active chart to 15-minute bars</dd></div>
               <div><dt>Ctrl+5</dt><dd>Set the active chart to 30-minute bars</dd></div>
               <div><dt>Ctrl+6</dt><dd>Set the active chart to hourly bars</dd></div>
+              <div><dt>/</dt><dd>Open the active chart's plot library and search indicators</dd></div>
               <div><dt>[ / ]</dt><dd>Move the active chart backward or forward one bar; Shift moves five bars</dd></div>
               <div><dt>Ctrl+wheel</dt><dd>Over a chart: change timeframe; over a WatchList: move through symbols</dd></div>
               <div><dt>= / -</dt><dd>Over the active chart: change timeframe</dd></div>
@@ -1967,6 +1968,21 @@ function handleKeydown(event: KeyboardEvent) {
     if (activeWindow?.tool_type !== 'chart') return
     event.preventDefault()
     drawingsStore.setActiveTool(drawingsStore.activeToolType === 'trendline' ? null : 'trendline')
+    return
+  }
+  if (event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+    const activeTab = workspaceStore.activeTab
+    const activeWindowKey = isPopout.value
+      ? String(route.params.windowKey ?? '')
+      : activeTab?.active_window_key
+    const activeWindow = activeTab?.windows.find(window => window.instance_key === activeWindowKey)
+    if (activeWindow?.tool_type !== 'chart' || !activeWindowKey) return
+    const toolWindow = Array.from(document.querySelectorAll<HTMLElement>('.tool-window[data-window-key]'))
+      .find(tool => tool.dataset.windowKey === activeWindowKey)
+    const plotLibraryTrigger = toolWindow?.querySelector<HTMLButtonElement>('button[aria-label="Chart plot library"]')
+    if (!plotLibraryTrigger) return
+    event.preventDefault()
+    plotLibraryTrigger.click()
     return
   }
   if (event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {

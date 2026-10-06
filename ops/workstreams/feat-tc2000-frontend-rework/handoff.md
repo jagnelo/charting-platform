@@ -1,5 +1,22 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — TC2000 V25 slash-to-add-plot shortcut
+
+The workstation now supports TC2000's `/` shortcut when a chart is the active
+window. It opens that chart's existing plot library; the library focuses its
+indicator search field. The handler is inert for other active tool types and
+when modifiers are held, while editor controls retain normal text-entry
+behavior. The keyboard-help menu documents the action.
+
+The focused WorkstationView binding suite passed `41/41`; the complete serial
+frontend suite passed `130/130` files and `1,224/1,224` tests; and
+`npm run build` passed vue-tsc and Vite. The Playwright CLI launched Chromium
+but the unauthenticated session was redirected to `/login`; no authenticated
+browser flow is claimed. The protected Help screenshot was not rerun after this
+shortcut was added; at the preceding source it showed a 3% delta after the
+timeframe and Ctrl+B help rows. The baseline, masks, thresholds, and skips
+remain unchanged pending visual review. No provider/ETF behavior changed.
+
 ## 2026-10-06 — Frontend serial-suite isolation and Help visual delta
 
 The full frontend Vitest suite now passes serially: `130/130` files and
