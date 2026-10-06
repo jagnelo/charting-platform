@@ -881,16 +881,14 @@ progress:
     evidence sha256:5ed875d94c2242fcc302dec2f70df67832249c8f1aabbf3a112f671a969f4132,
     conformance sha256:0f3c976fc0d11d4fe65a0bd2a2db0e338a975ba4abecf3f77ec7f97505eca51f).
     Exact-image process-loss, production PostgreSQL/Redis settlement/ACK, and
-    post-ACK checkpoint continuation passed 3/3. This context adds owner-bound
-    exact-checkpoint portfolio context/history and handler composition; 46
-    adjacent tests passed, the final focused composition suite passed 10/10,
-    package Ruff passed, and MyPy passed across 407 files. The broad package
-    suite remains unverified: an isolated forward-process test and a minimal
-    `asyncio.to_thread(lambda: 42)` reproduction both hang during
-    `asyncio.run()` executor shutdown in the managed Python environment, after
-    the worker function completes. This is a validation/runtime issue, not an
-    external product dependency, and is not counted as a test pass. Docker
-    server 29.1.3 is reachable. Overall ACs remain incomplete: the dedicated
+    post-ACK checkpoint continuation passed 3/3. Forward bootstrap-context
+    propagation passed the session suite 19/19, process unit module 7/7, and
+    exact RC5 process-loss integration 1/1 against the qualified image above.
+    The full Strategy Lab package passed 1,520 tests with one opt-in image test
+    skipped; package Ruff and MyPy across 407 files also passed. A sandbox-only
+    executor-shutdown delay was bypassed using the approved local host
+    execution path; it is not a product or interpreter blocker. Scoped Docker
+    cleanup found no remaining resources. Overall ACs remain incomplete: the dedicated
     forward worker still lacks full
     warm-up/bootstrap artifact and hardened RC5 process-plan composition, and
     backtest/search/API/security/Compose integration plus full exact-tip
@@ -903,5 +901,5 @@ progress:
     Build the per-owner warm-up/bootstrap artifact and RC5 sandbox plan from
     the accepted delivery, authenticated context, and explicit platform
     readers; never derive canonical identity or ordering from frozen
-    dependency-local rows. Continue investigating managed-Python executor
-    shutdown so the full native forward-process suite can run to completion.
+    dependency-local rows. Wire the validated bootstrap and sandbox plan into
+    the production owner-scoped forward worker composition.

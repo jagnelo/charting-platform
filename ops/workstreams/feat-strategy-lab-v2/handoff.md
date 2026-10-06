@@ -12542,6 +12542,37 @@ propagation boundary.
 Implementation commit `ae271efffbd48ac14f4705212aa9b3d34d92aeb3` is pushed to
 `origin/feat/strategy-lab-v2`.
 
+## 2026-10-06 - Exact RC5 process launch-context proof
+
+The opt-in exact-image forward recovery test now requires each process-plan
+builder invocation to receive the matching accepted delivery and authenticated
+preparation. It fails on instance, checkpoint, or delivery-binding rebound;
+the test passed against the qualified current-source image
+`sha256:9a43fef85e6ff688fe8d42697ed87b9e85ebbfeecd634b90880138bc3b26627b`.
+Process-factory unit coverage passed 7/7, the persistent session suite passed
+19/19, and the complete Strategy Lab package passed 1,520/1,521 (the one skip is
+the opt-in image test). Ruff passed; MyPy passed across all 407 package/runtime
+files and separately for the modified integration harness. Docker cleanup
+reported zero remaining containers, images, volumes, or Testcontainers sessions.
+
+Correction to the preceding executor-shutdown note: the long wait occurs only
+inside the restricted command sandbox. The same UV-managed Python 3.12.4
+`asyncio.to_thread` check completed immediately on the approved local host
+execution path, as did the process tests and full package suite. Do not carry
+that sandbox limitation as a Strategy Lab or Python-runtime blocker.
+
+The process-launch propagation slice is verified. The actual production
+bootstrap-artifact and sandbox-plan builder is still missing: the pure
+`NautilusForwardRuntimeBootstrap.build` contract exists, but owner-scoped worker
+composition does not yet assemble its frozen warm-up tape, exact processed
+prefix, engine input, runtime bundle, stream artifacts, and RC5 sandbox plan.
+Next, implement that composition with explicit canonical/frozen-platform
+readers and route it into the owner-scoped forward process factory. Continue to
+reject synthetic event identities and dependency-local ordering.
+
+Implementation test commit `bf76e7fae3b057b96f315e2609a85b1ed629b503` is
+pushed to `origin/feat/strategy-lab-v2`.
+
 The next implementation context is the exact per-owner bootstrap artifact and
 RC5 plan builder, driven by the already-resolved delivery/context and explicit
 platform history readers. Do not synthesize canonical event identity/order or
