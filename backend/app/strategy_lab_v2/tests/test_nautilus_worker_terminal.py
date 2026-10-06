@@ -928,6 +928,17 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
             )
             return RuntimeStateResolution(decision, self.state)
 
+        async def load(self, *, principal, attempt_id):
+            assert principal == "owner-terminal-test"
+            assert attempt_id == self.state.attempt_id
+            return self.state
+
+        async def initialize(self, *, principal, state):
+            assert principal == "owner-terminal-test"
+            decision = "replay_existing" if state == self.state else "registered"
+            self.state = state
+            return SimpleNamespace(decision=SimpleNamespace(value=decision))
+
     class ExecutionStatePort:
         def __init__(self):
             state = lookup.inputs.execution
@@ -936,12 +947,29 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
                 state.progress,
                 frozenset({content_digest("initial-progress-checkpoint")}),
             )
+            self.context = None
+
+        async def read_context(self, *, principal, attempt_id):
+            assert principal == "owner-terminal-test"
+            assert attempt_id == context.request.runtime_request.attempt_id
+            return self.context
+
+        async def initialize(self, *, principal, outcome, progress):
+            assert principal == "owner-terminal-test"
+            self.context = ExecutionCommandContext(outcome, progress)
+            self.outcome = outcome
+            self.progress = ProgressCheckpoint(
+                progress,
+                frozenset({content_digest("bootstrapped-progress-checkpoint")}),
+            )
+            return SimpleNamespace(decision=SimpleNamespace(value="applied"))
 
         async def transition(self, *, outcome_update, progress_update, **_kwargs):
             outcome_resolution = apply_outcome_update(self.outcome, outcome_update)
             progress_resolution = apply_progress_checkpoint(self.progress, progress_update)
             self.outcome = outcome_resolution.state
             self.progress = progress_resolution.checkpoint
+            self.context = ExecutionCommandContext(self.outcome, self.progress.state)
             replay = (
                 outcome_resolution.decision.value == "replay_existing"
                 and progress_resolution.decision is ProgressCheckpointDecision.REPLAY_EXISTING
@@ -1201,6 +1229,8 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
         submissions = submission_adapter
         resources = domain_reader
         worker_state = worker_state_port
+        execution_state = execution_state_port
+        runtime_execution = runtime_port
         search_state = search_state_port
         result_completion = completion_port
         worker_settlements = settlement_port
@@ -1241,7 +1271,11 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
             binding = await search_dispatch_binding_resolver(record)
             if binding != lookup.binding:
                 return None
-            return lookup
+            assert execution_state_port.context is not None
+            return replace(
+                lookup,
+                inputs=replace(lookup.inputs, execution=execution_state_port.context),
+            )
 
         def worker_terminal_writer(self, evidence_resolver: Any) -> Any:
             self.terminal_adapter = PostgresWorkerTerminalAdapter(
@@ -1294,6 +1328,9 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
     )
 
     class EvidenceProcessExecutor(SerialWorkerProcessExecutor):
+        def __init__(self):
+            self.calls = 0
+
         async def run_async(
             self,
             request,
@@ -1303,7 +1340,10 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
         ):
             del timeout_seconds, poll_interval_seconds
             assert request == context.request
+            self.calls += 1
             return context.process
+
+    process_executor = EvidenceProcessExecutor()
 
     class OrderedRedis(FakeRedis):
         async def xack(self, *args):
@@ -1363,7 +1403,7 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
             persistence_factory=lambda _factory: Persistence(),  # type: ignore[arg-type]
             runtime_factory=runtime_factory,
             signal_installer=install_signals,
-            process_executor=EvidenceProcessExecutor(),
+            process_executor=process_executor,
             # The retry clock must be at or after the process's persisted
             # terminal timestamp; the lease release uses that immutable time.
             clock=lambda: context.observed_at,
@@ -1412,6 +1452,7 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
         "signals-cleaned",
         "runtime-closed",
     ]
+    assert process_executor.calls == 1
     first = first_resolution.handler
     duplicate_run = await run_worker()
     assert duplicate_run.decision is WorkerEntrypointDecision.STOPPED
@@ -1423,6 +1464,7 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
     assert len(duplicate_cycle.entries) == 1
     duplicate_resolution = duplicate_cycle.entries[0]
     assert duplicate_resolution.decision.value == "acknowledged"
+    assert process_executor.calls == 1
     redelivered = duplicate_resolution.handler
     assert timeline == [
         "terminal-commit-response-lost",

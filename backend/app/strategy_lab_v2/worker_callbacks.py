@@ -233,6 +233,15 @@ async def create_search_dispatch(
             raise ValueError("worker cancellation search state is unavailable")
         return search_state.cancellation_requested
 
+    async def terminal_replay_reader(entry: Any, request: WorkerExecutionRequest, observed_at):
+        """ACK a fully settled attempt before launching another Nautilus process."""
+
+        return await recovery_application.complete_terminal_if_persisted(
+            entry=entry,
+            request=request,
+            observed_at=observed_at,
+        )
+
     return WorkerServiceCallbacks(
         initialized_materializer,
         callbacks.completion_writer,
@@ -241,6 +250,7 @@ async def create_search_dispatch(
         recovery_writer=recovery_application,
         lease_state_reader=lease_state_reader,
         cancellation_reader=cast(WorkerCancellationReader, cancellation_reader),
+        terminal_replay_reader=terminal_replay_reader,
     )
 
 

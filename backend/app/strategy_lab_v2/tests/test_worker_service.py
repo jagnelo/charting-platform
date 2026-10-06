@@ -119,6 +119,39 @@ async def test_service_materializes_runs_and_delegates_durable_completion(tmp_pa
     assert result.entry_fingerprint == entry.fingerprint
 
 
+async def test_service_replays_durable_terminal_receipt_before_starting_process(
+    tmp_path: Path,
+) -> None:
+    service, payload, entry = _service(tmp_path)
+    replayed: list[tuple[RedisStreamEntry, WorkerExecutionRequest]] = []
+
+    async def replay_reader(
+        received_entry: RedisStreamEntry,
+        request: WorkerExecutionRequest,
+        _observed_at,
+    ) -> WorkerHandleResult:
+        replayed.append((received_entry, request))
+        return WorkerHandleResult(
+            received_entry.fingerprint,
+            WorkerHandleDecision.COMPLETE,
+            content_digest("persisted-terminal-replay"),
+        )
+
+    class NeverExecute(SerialWorkerProcessExecutor):
+        async def run_async(self, *_args: Any, **_kwargs: Any):
+            raise AssertionError("durably completed attempt must not rerun Nautilus")
+
+    service._terminal_replay_reader = replay_reader
+    service._process_executor = NeverExecute()
+
+    result = await service.handle(entry, payload)
+
+    assert result.decision is WorkerHandleDecision.COMPLETE
+    assert result.receipt_digest == content_digest("persisted-terminal-replay")
+    assert len(replayed) == 1
+    assert replayed[0][0] is entry
+
+
 async def test_service_recovers_expired_persisted_lease_before_starting_process(
     tmp_path: Path,
 ) -> None:

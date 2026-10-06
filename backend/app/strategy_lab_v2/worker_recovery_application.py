@@ -323,6 +323,7 @@ class WorkerRecoveryApplication:
         )
         if (
             settlement is None
+            or settlement.admission_fingerprint != request.admission.fingerprint
             or settlement.reservation_id != request.admission.reservation_id
             or settlement.worker_id != request.admission.worker_id
         ):

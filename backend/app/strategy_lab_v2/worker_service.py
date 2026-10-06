@@ -52,6 +52,9 @@ WorkerTerminalWriter = Callable[["WorkerCompletionContext"], Awaitable[WorkerHan
 WorkerRecoveryWriter = Callable[["WorkerRecoveryContext"], Awaitable[WorkerHandleResult]]
 WorkerLeaseStateReader = Callable[[WorkerExecutionRequest], Awaitable[LeaseObservationState | None]]
 WorkerCancellationReader = Callable[[RedisStreamEntry, WorkerExecutionRequest], Awaitable[bool]]
+WorkerTerminalReplayReader = Callable[
+    [RedisStreamEntry, WorkerExecutionRequest, datetime], Awaitable[WorkerHandleResult | None]
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,6 +120,7 @@ class WorkerServiceCallbacks:
     recovery_writer: WorkerRecoveryWriter | None = None
     lease_state_reader: WorkerLeaseStateReader | None = None
     cancellation_reader: WorkerCancellationReader | None = None
+    terminal_replay_reader: WorkerTerminalReplayReader | None = None
 
     def __post_init__(self) -> None:
         if not callable(self.materializer):
@@ -133,6 +137,8 @@ class WorkerServiceCallbacks:
             raise TypeError("lease_state_reader must be callable")
         if self.cancellation_reader is not None and not callable(self.cancellation_reader):
             raise TypeError("cancellation_reader must be callable")
+        if self.terminal_replay_reader is not None and not callable(self.terminal_replay_reader):
+            raise TypeError("terminal_replay_reader must be callable")
 
 
 class DedicatedStrategyWorkerService:
@@ -155,6 +161,7 @@ class DedicatedStrategyWorkerService:
         recovery_writer: WorkerRecoveryWriter | None = None,
         lease_state_reader: WorkerLeaseStateReader | None = None,
         cancellation_reader: WorkerCancellationReader | None = None,
+        terminal_replay_reader: WorkerTerminalReplayReader | None = None,
     ) -> None:
         if not isinstance(scheduler, RedisDispatchWorkerScheduler):
             raise TypeError("scheduler must be a RedisDispatchWorkerScheduler")
@@ -178,6 +185,8 @@ class DedicatedStrategyWorkerService:
             raise TypeError("lease_state_reader must be callable")
         if cancellation_reader is not None and not callable(cancellation_reader):
             raise TypeError("cancellation_reader must be callable")
+        if terminal_replay_reader is not None and not callable(terminal_replay_reader):
+            raise TypeError("terminal_replay_reader must be callable")
         for name, value in (
             ("heartbeat_interval_seconds", heartbeat_interval_seconds),
             ("heartbeat_extension_seconds", heartbeat_extension_seconds),
@@ -207,6 +216,7 @@ class DedicatedStrategyWorkerService:
         self._recovery_writer = recovery_writer
         self._lease_state_reader = lease_state_reader
         self._cancellation_reader = cancellation_reader
+        self._terminal_replay_reader = terminal_replay_reader
 
     @property
     def scheduler(self) -> RedisDispatchWorkerScheduler:
@@ -233,6 +243,29 @@ class DedicatedStrategyWorkerService:
                 WorkerHandleDecision.REJECT,
                 rejection_reason="worker handoff materializer returned an invalid request",
             )
+        if self._terminal_replay_reader is not None:
+            try:
+                replay = await self._terminal_replay_reader(entry, request, self._clock())
+            except Exception as error:  # pragma: no cover - persistence boundary
+                return WorkerHandleResult(
+                    entry.fingerprint,
+                    WorkerHandleDecision.RETRY,
+                    rejection_reason=f"worker terminal replay lookup failed: {type(error).__name__}",
+                )
+            if replay is not None:
+                if not isinstance(replay, WorkerHandleResult):
+                    return WorkerHandleResult(
+                        entry.fingerprint,
+                        WorkerHandleDecision.RETRY,
+                        rejection_reason="worker terminal replay reader returned an invalid receipt",
+                    )
+                if replay.entry_fingerprint != entry.fingerprint:
+                    return WorkerHandleResult(
+                        entry.fingerprint,
+                        WorkerHandleDecision.REJECT,
+                        rejection_reason="worker terminal replay references a different entry",
+                    )
+                return replay
         lease_preflight = await self._lease_preflight(entry, request)
         if lease_preflight is not None:
             return lease_preflight
