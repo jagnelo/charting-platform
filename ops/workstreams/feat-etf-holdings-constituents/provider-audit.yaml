@@ -2399,14 +2399,14 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: native_promoted
     disposition: native_promoted
-    last_checked: 2026-09-05
+    last_checked: 2026-10-06
     source_access_declared: issuer_product_page_declared_filepoint_holdings_json
     representative_symbols:
       - NDOW
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: 2026-09-03
+    source_freshness: 2026-10-05
     first_party_domains:
       - www.anydrusfunds.com
     candidate_routes:
@@ -2424,6 +2424,7 @@ providers:
       - "live:anydrus-ndow-application-200-2026-09-05"
       - "live:anydrus-ndow-dated-filepoint-json-2026-09-03"
       - "live:anydrus-ndow-complete-84-rows-2026-09-05"
+      - "live:anydrus-ndow-complete-77-rows-2026-10-06"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -2437,6 +2438,10 @@ providers:
         source: "https://www.anydrusfunds.com/"
         result: "The official page returned HTTP 200 and its application script declared the primary FilePoint route plus dated JSON fallback. The bounded search found a complete NDOW payload dated 2026-09-03 with 84 declared and 84 parsed constituents, including provider-published symbols and cash."
         evidence_ref: "live:anydrus-ndow-complete-84-rows-2026-09-05"
+      - date: 2026-10-06
+        source: "https://www.anydrusfunds.com/"
+        result: "The bounded opt-in application-route check found the 2026-10-05 FilePoint JSON artifact; the issuer declared 77 holdings and the adapter parsed exactly 77, including cash. This confirms the portfolio count is variable and the prior fixed 80-row test floor was stale."
+        evidence_ref: "live:anydrus-ndow-complete-77-rows-2026-10-06"
     disposition_reason: "anydrus: The prior placeholder page was superseded by a repeatable official route: the page-declared application exposes a bounded dated FilePoint JSON artifact with complete NDOW rows, strict identity/count validation, deterministic parsing, and opt-in live evidence."
     next_action: "anydrus: Keep the bounded dated-route canary active; revalidate after route drift or when no artifact is found within the 16-day search window."
     implementation_sha: 93a488ea8da77f7acf056e52f695787c69243f17

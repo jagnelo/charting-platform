@@ -4629,7 +4629,10 @@ async def test_live_anydrus_ndow_page_declared_filepoint_holdings_json():
             pytest.skip(str(exc))
         raise
 
-    _assert_live_holdings_result(result, adapter_key="anydrus", min_rows=80)
+    _assert_live_holdings_result(result, adapter_key="anydrus", min_rows=70)
+    declared_count = result.raw_json.get("declared_holdings_count")
+    assert declared_count is not None
+    assert len(result.rows) == int(declared_count)
     metadata = result.legal_metadata or {}
     assert metadata["source_provider"] == "anydrus"
     assert metadata["source_format"] == "filepoint_json"

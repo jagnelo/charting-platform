@@ -2213,6 +2213,15 @@ Evidence refs: `web:anydrus-ndow-official-page-2026-09-05`,
 `live:anydrus-ndow-dated-filepoint-json-2026-09-03`, and
 `live:anydrus-ndow-complete-84-rows-2026-09-05`.
 
+### Current portfolio-count recheck — 2026-10-06
+
+The bounded official-route canary found the `2026-10-05` FilePoint artifact:
+Anydrus declared 77 holdings and the adapter parsed exactly 77, including cash.
+The live contract now checks the issuer-declared count instead of assuming a
+fixed 80-row minimum, while retaining a 70-row sanity floor. The adapter
+continues to reject a payload containing fewer rows than the issuer declares.
+Evidence: `live:anydrus-ndow-complete-77-rows-2026-10-06`.
+
 ## WisdomTree DXJ/NTSX native route promotion — 2026-09-06
 
 A fresh application-equivalent probe confirmed that WisdomTree's Python HTTP

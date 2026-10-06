@@ -327,7 +327,13 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     })
     if (!popup.isClosed()) {
       const closed = popup.waitForEvent('close')
-      await popoutTool.locator('button[title="Close"]').click()
+      try {
+        await popoutTool.locator('button[title="Close"]').click()
+      } catch (error) {
+        // Closing this pop-out destroys its page context; Chromium can report
+        // that expected teardown as a failed click at larger viewport sizes.
+        if (!popup.isClosed()) throw error
+      }
       await closed
     }
     await expect(sourceTool).toBeVisible()
