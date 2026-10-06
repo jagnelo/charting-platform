@@ -416,12 +416,14 @@ async def _materialize_successful_oos_result(
     result = materialized.manifest
 
     session_intervals = materialized.generated_session_intervals
+    equity_trace_receipt = materialized.generated_equity_trace_receipt
     artifact_sources = _artifact_sources(
         tuple(
             artifact
             for artifact in result.output_artifacts
             if (schedule_audit_artifact is None or artifact != schedule_audit_artifact)
             and (session_intervals is None or artifact != session_intervals.artifact)
+            and (equity_trace_receipt is None or artifact != equity_trace_receipt.manifest)
         ),
         equity_reference,
         reports_reference,
@@ -442,6 +444,12 @@ async def _materialize_successful_oos_result(
             publication_result = await artifact_publisher.publish(
                 artifact,
                 session_intervals.payload,
+                committed_at=terminal_at,
+            )
+        elif equity_trace_receipt is not None and artifact == equity_trace_receipt.manifest:
+            publication_result = await artifact_publisher.publish(
+                artifact,
+                equity_trace_receipt.payload,
                 committed_at=terminal_at,
             )
         else:

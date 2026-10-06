@@ -13,6 +13,10 @@ from app.strategy_lab_v2.metrics import METRIC_DEFINITION_VERSION
 from app.strategy_lab_v2.nautilus_equity_trace import (
     NautilusAccountEquityTraceWriter,
 )
+from app.strategy_lab_v2.nautilus_equity_trace_receipt import (
+    NAUTILUS_EQUITY_TRACE_RECEIPT_MEDIA_TYPE,
+    decode_nautilus_equity_trace_receipt,
+)
 from app.strategy_lab_v2.nautilus_native_reports import NautilusNativeReportsWriter
 from app.strategy_lab_v2.nautilus_result_materialization import (
     materialize_nautilus_oos_run_result,
@@ -333,10 +337,26 @@ def test_nautilus_oos_result_materialization_binds_metrics_and_native_artifacts(
 
     assert materialized.decision is ResultMaterializationDecision.MATERIALIZE
     assert materialized.manifest is not None
+    assert materialized.generated_equity_trace_receipt is not None
+    equity_receipt = materialized.generated_equity_trace_receipt
+    assert equity_receipt.reference == trace_reference
+    assert (
+        decode_nautilus_equity_trace_receipt(
+            equity_receipt.manifest,
+            equity_receipt.payload,
+        )
+        == trace_reference
+    )
+    with pytest.raises(ValueError, match="manifest"):
+        decode_nautilus_equity_trace_receipt(
+            equity_receipt.manifest,
+            equity_receipt.payload + b" ",
+        )
     manifest = materialized.manifest
     manifest_digests = {item.content_digest for item in manifest.output_artifacts}
     assert trace_reference.artifact.content_digest in manifest_digests
     assert reports_reference.artifact.content_digest in manifest_digests
+    assert equity_receipt.manifest.content_digest in manifest_digests
     metrics = {item.name: item for item in manifest.metric_set.values}
     assert metrics["oos_fill_count"].value == Decimal(1)
     assert metrics["oos_reported_commission:USD"].value == Decimal("2.00")
@@ -363,6 +383,23 @@ def test_nautilus_oos_result_materialization_binds_metrics_and_native_artifacts(
     )
     assert replay.decision is ResultMaterializationDecision.REPLAY_EXISTING
     assert replay.manifest == manifest
+
+    legacy_manifest = replace(
+        manifest,
+        output_artifacts=tuple(
+            artifact
+            for artifact in manifest.output_artifacts
+            if artifact.media_type != NAUTILUS_EQUITY_TRACE_RECEIPT_MEDIA_TYPE
+        ),
+    )
+    legacy_replay = materialize_nautilus_oos_run_result(
+        *arguments,
+        created_at=NOW,
+        existing=legacy_manifest,
+    )
+    assert legacy_replay.decision is ResultMaterializationDecision.REPLAY_EXISTING
+    assert legacy_replay.manifest == legacy_manifest
+    assert legacy_replay.generated_equity_trace_receipt is None
 
 
 def test_nautilus_oos_materialization_persists_calendar_bound_session_intervals(tmp_path) -> None:

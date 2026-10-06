@@ -23,6 +23,10 @@ from app.strategy_lab_v2.nautilus_equity_trace import (
     NautilusAccountEquityTraceReference,
     iter_verified_nautilus_account_equity_observations,
 )
+from app.strategy_lab_v2.nautilus_equity_trace_receipt import (
+    NautilusEquityTraceReceiptArtifact,
+    build_nautilus_equity_trace_receipt,
+)
 from app.strategy_lab_v2.nautilus_native_reports import NautilusNativeReportsReference
 from app.strategy_lab_v2.nautilus_result_metrics import build_nautilus_oos_metric_set
 from app.strategy_lab_v2.nautilus_session_equity import (
@@ -46,10 +50,11 @@ from app.strategy_lab_v2.result_materialization import (
 
 @dataclass(frozen=True, slots=True)
 class NautilusOosResultMaterialization:
-    """Canonical run-result resolution and any generated interval artifact bytes."""
+    """Canonical result plus generated artifacts needed to retain its evidence."""
 
     resolution: ResultMaterializationResolution
     generated_session_intervals: NautilusSessionEquityIntervalsArtifact | None = None
+    generated_equity_trace_receipt: NautilusEquityTraceReceiptArtifact | None = None
 
     @property
     def decision(self) -> ResultMaterializationDecision:
@@ -269,11 +274,22 @@ def materialize_nautilus_oos_run_result(
         ),
     )
 
+    generated_equity_trace_receipt = build_nautilus_equity_trace_receipt(equity_reference)
+    # Result manifests are immutable across deployments. A terminal retry for a
+    # result created before receipt artifacts existed must replay its original
+    # artifact set, not silently rebind that successful attempt.
+    equity_trace_receipt = (
+        generated_equity_trace_receipt
+        if existing is None or generated_equity_trace_receipt.manifest in existing.output_artifacts
+        else None
+    )
+
     artifacts_by_digest: dict[str, ArtifactManifest] = {}
     for artifact in (
         *tuple(output_artifacts),
         equity_reference.artifact,
         native_reports_reference.artifact,
+        *(() if equity_trace_receipt is None else (equity_trace_receipt.manifest,)),
         *(() if session_intervals_artifact is None else (session_intervals_artifact.artifact,)),
     ):
         if not isinstance(artifact, ArtifactManifest):
@@ -305,6 +321,7 @@ def materialize_nautilus_oos_run_result(
             existing=existing,
         ),
         generated_session_intervals=session_intervals_artifact,
+        generated_equity_trace_receipt=equity_trace_receipt,
     )
 
 

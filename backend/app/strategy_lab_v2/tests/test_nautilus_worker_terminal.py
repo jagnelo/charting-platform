@@ -47,6 +47,10 @@ from app.strategy_lab_v2.lease_observations import (
 from app.strategy_lab_v2.lifecycle import ExecutionAttemptLease
 from app.strategy_lab_v2.migration_startup import MigrationDecision, MigrationResolution
 from app.strategy_lab_v2.nautilus_equity_trace import NautilusAccountEquityTraceWriter
+from app.strategy_lab_v2.nautilus_equity_trace_receipt import (
+    NAUTILUS_EQUITY_TRACE_RECEIPT_MEDIA_TYPE,
+    decode_nautilus_equity_trace_receipt,
+)
 from app.strategy_lab_v2.nautilus_native_reports import NautilusNativeReportsWriter
 from app.strategy_lab_v2.nautilus_rebalance_schedule import (
     NautilusRebalanceScheduleAudit,
@@ -726,7 +730,7 @@ def _terminal_writer(resolver) -> PostgresWorkerTerminalAdapter:
 
 @pytest.mark.asyncio
 async def test_rc5_worker_receipt_materializes_authoritative_local_backtest(tmp_path):
-    context, _lookup, resolver, _publisher = _successful_context_and_lookup(tmp_path, stable=False)
+    context, _lookup, resolver, publisher = _successful_context_and_lookup(tmp_path, stable=False)
 
     resolution = await resolver(context)
 
@@ -741,6 +745,20 @@ async def test_rc5_worker_receipt_materializes_authoritative_local_backtest(tmp_
         NautilusExecutionScope.BACKTEST_AUTHORITATIVE.value
     )
     assert resolution.publication is not None and resolution.publication.accepted
+    receipt_artifacts = tuple(
+        artifact
+        for artifact in resolution.result.output_artifacts
+        if artifact.media_type == NAUTILUS_EQUITY_TRACE_RECEIPT_MEDIA_TYPE
+    )
+    assert len(receipt_artifacts) == 1
+    receipt = decode_nautilus_equity_trace_receipt(
+        receipt_artifacts[0],
+        publisher.store.path_for(receipt_artifacts[0].storage_key).read_bytes(),
+    )
+    assert receipt.trial_id == resolution.result.trial_id
+    assert receipt.attempt_id == resolution.result.attempt_id
+    assert receipt.portfolio_fingerprint == resolution.result.portfolio_fingerprint
+    assert receipt.snapshot_fingerprint == resolution.result.snapshot.fingerprint
 
 
 @pytest.mark.asyncio
