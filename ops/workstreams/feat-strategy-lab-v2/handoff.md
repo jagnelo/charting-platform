@@ -12687,3 +12687,27 @@ This operational checkpoint updates `ops/workstreams/feat-strategy-lab-v2/handof
 `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`, and
 `ops/workstreams/feat-strategy-lab-v2/session.json`; these are its only
 workstream paths.
+
+## 2026-10-06 - Bind forward sandbox and runtime bundle attempt identity
+
+Audit found a real launch-time contract mismatch: the sandbox environment
+carried a deterministic process attempt ID while the serialized Nautilus
+engine input retained the preparatory attempt ID. The runtime CLI rejects that
+mismatch before opening the forward session. Commit
+`8eb724f38157d79255ef6fbd0540e5d805b9d6ea` now derives the process attempt from
+the exact instance/checkpoint and binds it into the engine input before
+publishing runtime/bootstrap bytes. The runtime request, artifact reference,
+sandbox environment, and embedded engine input are asserted to share that ID;
+the CLI validator test also rejects a deliberately rebound value.
+
+Validation on the pushed implementation: the full Strategy Lab package passed
+1,524 tests with one opt-in image skip; the exact RC5 process-loss/replay
+integration passed 1/1 using the recorded image digest. Package Ruff, changed
+file formatting, MyPy across 407 source files, and `git diff --check` passed.
+The attempted restricted subprocess run remains an interrupted observation;
+the host-path focused run passed.
+
+The production owner-bound host input resolver and platform-owned canonical
+history/market-context adapters remain the next implementation in this same
+changeset. This correction does not complete the broader branch goal or the
+forward-shadow event-tape parity gate.
