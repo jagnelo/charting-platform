@@ -368,7 +368,7 @@ class HardenedNautilusForwardSessionProcessFactory:
 
     def __init__(
         self,
-        plan_factory: Callable[[str, str], SandboxCommandPlan],
+        plan_factory: Callable[..., SandboxCommandPlan],
         codec: NautilusForwardRuntimeWireCodec | None = None,
         *,
         docker_binary: str = "docker",
@@ -388,17 +388,47 @@ class HardenedNautilusForwardSessionProcessFactory:
         self._response_timeout_seconds = response_timeout_seconds
 
     async def start(
-        self, *, instance_id: str, checkpoint_fingerprint: str
+        self,
+        *,
+        instance_id: str,
+        checkpoint_fingerprint: str,
+        delivery: NautilusForwardDeliveryInput | None = None,
+        preparation: ForwardPreparation | None = None,
     ) -> NautilusForwardSessionProcess:
         if not isinstance(instance_id, str) or not instance_id.strip():
             raise ValueError("instance_id must not be empty")
         require_sha256_digest(checkpoint_fingerprint, field_name="checkpoint_fingerprint")
-        return await asyncio.to_thread(self._start_sync, instance_id, checkpoint_fingerprint)
+        _validate_forward_launch_context(
+            instance_id,
+            checkpoint_fingerprint,
+            delivery=delivery,
+            preparation=preparation,
+        )
+        return await asyncio.to_thread(
+            self._start_sync,
+            instance_id,
+            checkpoint_fingerprint,
+            delivery,
+            preparation,
+        )
 
     def _start_sync(
-        self, instance_id: str, checkpoint_fingerprint: str
+        self,
+        instance_id: str,
+        checkpoint_fingerprint: str,
+        delivery: NautilusForwardDeliveryInput | None,
+        preparation: ForwardPreparation | None,
     ) -> NautilusForwardSessionProcess:
-        plan = self._plan_factory(instance_id, checkpoint_fingerprint)
+        if delivery is None:
+            plan = self._plan_factory(instance_id, checkpoint_fingerprint)
+        else:
+            assert preparation is not None
+            plan = self._plan_factory(
+                instance_id,
+                checkpoint_fingerprint,
+                delivery,
+                preparation,
+            )
         _validate_forward_checkpoint_plan(plan, instance_id, checkpoint_fingerprint)
         argv = _forward_session_argv(plan, instance_id, self._docker_binary)
         _prepare_writable_output_mounts(
@@ -463,6 +493,44 @@ class HardenedNautilusForwardSessionProcessFactory:
             self._codec,
             base_checkpoint_fingerprint=checkpoint_fingerprint,
         )
+
+
+def _validate_forward_launch_context(
+    instance_id: str,
+    checkpoint_fingerprint: str,
+    *,
+    delivery: NautilusForwardDeliveryInput | None,
+    preparation: ForwardPreparation | None,
+) -> None:
+    """Reject partial or rebound delivery context before invoking a plan builder."""
+
+    if (delivery is None) != (preparation is None):
+        raise ValueError("forward process launch requires both delivery and preparation")
+    if delivery is None:
+        return
+    if not isinstance(delivery, NautilusForwardDeliveryInput):
+        raise TypeError("delivery must use NautilusForwardDeliveryInput")
+    if not isinstance(
+        preparation,
+        ForwardStrategyContextPreparation | ForwardPortfolioContextPreparation,
+    ):
+        raise TypeError("preparation must use an authenticated forward context")
+    binding = delivery.delivery_binding
+    if binding.instance_id != instance_id:
+        raise ValueError("forward process delivery belongs to another instance")
+    if binding.pre_event_checkpoint_fingerprint != checkpoint_fingerprint:
+        raise ValueError("forward process delivery differs from its requested checkpoint")
+    expected = {
+        "instance_id": binding.instance_id,
+        "payload_fingerprint": delivery.verified_market_payload.fingerprint,
+        "delivery_binding_fingerprint": binding.fingerprint,
+        "dispatch_fingerprint": binding.dispatch_record_fingerprint,
+        "pre_event_checkpoint_fingerprint": binding.pre_event_checkpoint_fingerprint,
+        "warmup_receipt_fingerprint": binding.warmup_receipt_fingerprint,
+    }
+    for name, value in expected.items():
+        if getattr(preparation, name) != value:
+            raise ValueError(f"forward process context {name} differs from its delivery")
 
 
 def _validate_forward_checkpoint_plan(

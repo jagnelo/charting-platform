@@ -280,10 +280,19 @@ class PersistentProcessFactory:
         self.order = order
         self.processes: list[PersistentProcess] = []
         self.start_calls: list[tuple[str, str]] = []
+        self.launch_contexts: list[tuple[Any, Any]] = []
         self.fail_execution = False
 
-    async def start(self, *, instance_id: str, checkpoint_fingerprint: str) -> PersistentProcess:
+    async def start(
+        self,
+        *,
+        instance_id: str,
+        checkpoint_fingerprint: str,
+        delivery: Any,
+        preparation: Any,
+    ) -> PersistentProcess:
         self.start_calls.append((instance_id, checkpoint_fingerprint))
+        self.launch_contexts.append((delivery, preparation))
         process = PersistentProcess(instance_id, checkpoint_fingerprint, self.order)
         process.fail_execution = self.fail_execution
         self.processes.append(process)
@@ -526,6 +535,10 @@ async def test_persistent_native_runtime_reuses_one_process_and_deduplicates_lat
         (INSTANCE_ID, work_item.dispatch.pre_event_checkpoint_fingerprint),
         (INSTANCE_ID, next_checkpoint),
     ]
+    assert factory.launch_contexts == [
+        (delivery, preparation),
+        (next_delivery, next_preparation),
+    ]
     assert len(factory.processes[0].preparations) == 1
     assert len(factory.processes[1].preparations) == 1
     assert factory.processes[0].close_calls == 1
@@ -566,6 +579,7 @@ async def test_persistent_native_runtime_restore_clears_only_volatile_idempotenc
         (INSTANCE_ID, work_item.dispatch.pre_event_checkpoint_fingerprint),
         (INSTANCE_ID, work_item.dispatch.pre_event_checkpoint_fingerprint),
     ]
+    assert factory.launch_contexts == [(delivery, preparation), (delivery, preparation)]
     assert factory.processes[0].close_calls == 1
     assert len(process.preparations) == 1
     assert order == ["execute", "close", "execute"]

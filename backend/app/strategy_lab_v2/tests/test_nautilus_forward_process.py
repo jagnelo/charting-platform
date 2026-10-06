@@ -9,19 +9,28 @@ import pytest
 
 from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.forward_context import ForwardPortfolioContextPreparation
+from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
+from app.strategy_lab_v2.nautilus_event_adapter import (
+    NautilusForwardDeliveryBinding,
+    materialize_nautilus_forward_tape,
+)
 from app.strategy_lab_v2.nautilus_forward_bootstrap import (
     NautilusForwardBootstrapComponent,
     NautilusForwardRuntimeBootstrap,
 )
+from app.strategy_lab_v2.nautilus_forward_input import NautilusForwardDeliveryInput
 from app.strategy_lab_v2.nautilus_forward_process import (
     HardenedNautilusForwardSessionProcessFactory,
     _forward_session_argv,
+    _validate_forward_launch_context,
 )
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile, RuntimeIsolationRequest
 from app.strategy_lab_v2.runtime_execution import StrategyRuntimeRequest
 from app.strategy_lab_v2.sandbox import (
     build_nautilus_forward_runtime_sandbox_command,
 )
+from app.strategy_lab_v2.sdk import MarketEvent
 
 NOW = datetime(2024, 1, 1, tzinfo=UTC)
 
@@ -148,6 +157,58 @@ def _fake_runtime_binary(tmp_path: Path) -> Path:
     return script
 
 
+def _delivery_input() -> NautilusForwardDeliveryInput:
+    canonical = CanonicalForwardEvent(
+        "event-1",
+        1,
+        NOW,
+        NOW,
+        content_digest("canonical-source"),
+    )
+    market = MarketEvent(
+        "dependency-1",
+        canonical.event_id,
+        "US.ABC",
+        canonical.event_time,
+        canonical.sequence,
+        {"open": 10, "high": 10, "low": 10, "close": 10, "volume": 1},
+    )
+    binding = NautilusForwardDeliveryBinding(
+        "forward-1",
+        content_digest(canonical),
+        "1-0",
+        content_digest("redis-entry"),
+        content_digest("dispatch"),
+        content_digest("request"),
+        content_digest("checkpoint"),
+        content_digest("warmup"),
+        "enqueue",
+    )
+    tape = materialize_nautilus_forward_tape(
+        "forward-1",
+        (canonical,),
+        (market,),
+        event_type_by_dependency={"dependency-1": "ohlcv"},
+        delivery_bindings=(binding,),
+    )
+    return NautilusForwardDeliveryInput(binding, tape, market, canonical.source_digest)
+
+
+def _portfolio_preparation(
+    delivery: NautilusForwardDeliveryInput,
+) -> ForwardPortfolioContextPreparation:
+    binding = delivery.delivery_binding
+    return ForwardPortfolioContextPreparation(
+        instance_id=binding.instance_id,
+        payload_fingerprint=delivery.verified_market_payload.fingerprint,
+        delivery_binding_fingerprint=binding.fingerprint,
+        dispatch_fingerprint=binding.dispatch_record_fingerprint,
+        pre_event_checkpoint_fingerprint=binding.pre_event_checkpoint_fingerprint,
+        warmup_receipt_fingerprint=binding.warmup_receipt_fingerprint,
+        component_preparations={},
+    )
+
+
 def test_forward_process_factory_launches_persistent_hardened_ipc(tmp_path: Path) -> None:
     plan = _plan(tmp_path)
     docker_stub = _fake_runtime_binary(tmp_path)
@@ -172,6 +233,52 @@ def test_forward_process_factory_launches_persistent_hardened_ipc(tmp_path: Path
         await process.close()
 
     asyncio.run(exercise())
+
+
+def test_forward_process_factory_requires_delivery_and_preparation_together(
+    tmp_path: Path,
+) -> None:
+    factory = HardenedNautilusForwardSessionProcessFactory(
+        lambda _instance_id, _checkpoint: pytest.fail("plan builder must not run"),
+        docker_binary=str(tmp_path / "must-not-launch"),
+    )
+
+    with pytest.raises(ValueError, match="both delivery and preparation"):
+        asyncio.run(
+            factory.start(
+                instance_id="forward-1",
+                checkpoint_fingerprint=content_digest("checkpoint"),
+                delivery=object(),  # type: ignore[arg-type]
+            )
+        )
+
+
+def test_forward_process_launch_context_rejects_rebound_payload() -> None:
+    delivery = _delivery_input()
+    preparation = _portfolio_preparation(delivery)
+    _validate_forward_launch_context(
+        delivery.delivery_binding.instance_id,
+        delivery.delivery_binding.pre_event_checkpoint_fingerprint,
+        delivery=delivery,
+        preparation=preparation,
+    )
+
+    rebound = ForwardPortfolioContextPreparation(
+        instance_id=preparation.instance_id,
+        payload_fingerprint=content_digest("different-payload"),
+        delivery_binding_fingerprint=preparation.delivery_binding_fingerprint,
+        dispatch_fingerprint=preparation.dispatch_fingerprint,
+        pre_event_checkpoint_fingerprint=preparation.pre_event_checkpoint_fingerprint,
+        warmup_receipt_fingerprint=preparation.warmup_receipt_fingerprint,
+        component_preparations={},
+    )
+    with pytest.raises(ValueError, match="payload_fingerprint differs"):
+        _validate_forward_launch_context(
+            delivery.delivery_binding.instance_id,
+            delivery.delivery_binding.pre_event_checkpoint_fingerprint,
+            delivery=delivery,
+            preparation=rebound,
+        )
 
 
 def test_forward_process_factory_rejects_stale_durable_checkpoint_before_launch(

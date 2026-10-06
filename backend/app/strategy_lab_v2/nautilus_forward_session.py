@@ -97,13 +97,20 @@ class NautilusForwardSessionProcessFactory(Protocol):
     """Launch one pinned, network-disabled process for a forward instance."""
 
     def start(
-        self, *, instance_id: str, checkpoint_fingerprint: str
+        self,
+        *,
+        instance_id: str,
+        checkpoint_fingerprint: str,
+        delivery: NautilusForwardDeliveryInput,
+        preparation: ForwardStrategyContextPreparation | ForwardPortfolioContextPreparation,
     ) -> NautilusForwardSessionProcess | Awaitable[NautilusForwardSessionProcess]: ...
 
 
 @dataclass(slots=True)
 class _ManagedNautilusForwardSession:
     process: NautilusForwardSessionProcess
+    bootstrap_delivery: NautilusForwardDeliveryInput
+    bootstrap_preparation: ForwardStrategyContextPreparation | ForwardPortfolioContextPreparation
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     closing: bool = False
     last_delivery_fingerprint: str | None = None
@@ -139,12 +146,23 @@ class PersistentNautilusForwardSessionRuntime:
         _validate_preparation_binding(delivery, preparation)
         instance_id = delivery.delivery_binding.instance_id
         checkpoint_fingerprint = delivery.delivery_binding.pre_event_checkpoint_fingerprint
-        session, _created = await self._session_for(instance_id, checkpoint_fingerprint)
+        session, _created = await self._session_for(
+            instance_id,
+            checkpoint_fingerprint,
+            delivery=delivery,
+            preparation=preparation,
+        )
         async with session.lock:
             if session.closing:
                 raise RuntimeError("forward native session is closing")
             if session.process.base_checkpoint_fingerprint != checkpoint_fingerprint:
-                await self._replace_process(instance_id, session, checkpoint_fingerprint)
+                await self._replace_process(
+                    instance_id,
+                    session,
+                    checkpoint_fingerprint,
+                    delivery=delivery,
+                    preparation=preparation,
+                )
             delivery_fingerprint = delivery.delivery_binding.fingerprint
             preparation_fingerprint = preparation.fingerprint
             if session.last_delivery_fingerprint == delivery_fingerprint:
@@ -172,12 +190,22 @@ class PersistentNautilusForwardSessionRuntime:
         if not isinstance(instance_id, str) or not instance_id.strip():
             raise ValueError("instance_id must not be empty")
         require_sha256_digest(checkpoint_fingerprint, field_name="checkpoint_fingerprint")
-        session, created = await self._session_for(instance_id, checkpoint_fingerprint)
+        async with self._sessions_lock:
+            session = self._sessions.get(instance_id)
+        if session is None:
+            # A new process cannot be reconstructed from identifiers alone.
+            # The next accepted delivery will supply exact source-bound inputs.
+            return
         async with session.lock:
             if session.closing:
                 raise RuntimeError("forward native session is closing")
-            if not created:
-                await self._replace_process(instance_id, session, checkpoint_fingerprint)
+            await self._replace_process(
+                instance_id,
+                session,
+                checkpoint_fingerprint,
+                delivery=session.bootstrap_delivery,
+                preparation=session.bootstrap_preparation,
+            )
             session.last_delivery_fingerprint = None
             session.last_preparation_fingerprint = None
             session.last_execution = None
@@ -205,7 +233,12 @@ class PersistentNautilusForwardSessionRuntime:
             await self.close(instance_id=instance_id)
 
     async def _session_for(
-        self, instance_id: str, checkpoint_fingerprint: str
+        self,
+        instance_id: str,
+        checkpoint_fingerprint: str,
+        *,
+        delivery: NautilusForwardDeliveryInput,
+        preparation: ForwardStrategyContextPreparation | ForwardPortfolioContextPreparation,
     ) -> tuple[_ManagedNautilusForwardSession, bool]:
         async with self._sessions_lock:
             current = self._sessions.get(instance_id)
@@ -213,17 +246,29 @@ class PersistentNautilusForwardSessionRuntime:
                 if current.closing:
                     raise RuntimeError("forward native session is closing")
                 return current, False
-            process = await self._start_process(instance_id, checkpoint_fingerprint)
-            managed = _ManagedNautilusForwardSession(process)
+            process = await self._start_process(
+                instance_id,
+                checkpoint_fingerprint,
+                delivery=delivery,
+                preparation=preparation,
+            )
+            managed = _ManagedNautilusForwardSession(process, delivery, preparation)
             self._sessions[instance_id] = managed
             return managed, True
 
     async def _start_process(
-        self, instance_id: str, checkpoint_fingerprint: str
+        self,
+        instance_id: str,
+        checkpoint_fingerprint: str,
+        *,
+        delivery: NautilusForwardDeliveryInput,
+        preparation: ForwardStrategyContextPreparation | ForwardPortfolioContextPreparation,
     ) -> NautilusForwardSessionProcess:
         process_resolution = self._process_factory.start(
             instance_id=instance_id,
             checkpoint_fingerprint=checkpoint_fingerprint,
+            delivery=delivery,
+            preparation=preparation,
         )
         process = (
             await process_resolution
@@ -252,6 +297,9 @@ class PersistentNautilusForwardSessionRuntime:
         instance_id: str,
         session: _ManagedNautilusForwardSession,
         checkpoint_fingerprint: str,
+        *,
+        delivery: NautilusForwardDeliveryInput,
+        preparation: ForwardStrategyContextPreparation | ForwardPortfolioContextPreparation,
     ) -> None:
         previous = session.process
         try:
@@ -265,7 +313,14 @@ class PersistentNautilusForwardSessionRuntime:
         session.last_preparation_fingerprint = None
         session.last_execution = None
         try:
-            session.process = await self._start_process(instance_id, checkpoint_fingerprint)
+            session.process = await self._start_process(
+                instance_id,
+                checkpoint_fingerprint,
+                delivery=delivery,
+                preparation=preparation,
+            )
+            session.bootstrap_delivery = delivery
+            session.bootstrap_preparation = preparation
         except BaseException:
             session.closing = True
             raise
