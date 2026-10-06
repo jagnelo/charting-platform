@@ -13565,3 +13565,35 @@ and API router suites passed 75/75. Tests cover complete and deterministic OOS
 manifest rehydration and the result API envelope. Focused MyPy for application
 and router, Ruff, formatting, `git diff --check`, and workstream validation
 (30 records) passed.
+
+## 2026-10-06 - Bulk dispatch the persisted walk-forward phase
+
+Commit `df03016cb` adds `POST
+/api/v1/strategy-lab/v2/experiments/{experiment_id}/walk-forward/dispatch-ready`
+and the matching application operation. The owner-authenticated operation
+walks every nonterminal slot in the persisted queue and routes each through the
+existing immutable-attempt, isolated preparation, worker-admission, and
+transactional-outbox path. Per-slot idempotency keys bind the caller's batch
+key, experiment, queue index, and retry ordinal; repeating a partially accepted
+batch replays existing attempts and continues through the remaining slots.
+Dispatch stops when worker capacity is saturated, returning the accepted prefix
+and a retryable saturation marker. The endpoint does not choose candidate
+parameters or bypass queue/worker policy.
+
+This reduces the walk-forward fan-out from one HTTP dispatch request per slot
+to one resumable batch request, but it is not yet completion-triggered: a
+caller/scheduler must invoke the batch operation after a phase is initialized
+or advances. Automatically reconciling terminal worker receipts into phase
+advance, follow-on dispatch, and final summary persistence remains open, as do
+native artifact-backed portfolio metrics, production artifact-root/decoder
+composition, and the full Docker-backed integration/security/Compose gate.
+Nautilus 2.0.0rc5 remains the exact qualified isolated build. Upstream has
+published rc6, but this session's Docker socket is inaccessible, so rc6 has
+not been built or conformance-qualified; the legacy backend 1.226.0 pin remains
+intentionally isolated per the branch plan.
+
+Validation at `df03016cb`: focused walk-forward application and API router
+suites passed 61/61; focused MyPy passed for `application.py` and
+`api_router.py`; Ruff check/format, `git diff --check`, and the branch workstream
+validator passed. `docker info` was denied on `/var/run/docker.sock`, so no
+claim is made that the exact RC6 image or full Docker-backed profile passed.
