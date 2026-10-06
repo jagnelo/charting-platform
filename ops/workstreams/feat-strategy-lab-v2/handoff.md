@@ -13994,3 +13994,28 @@ search-dispatch plus Redis consumer/ACK integration suites passed 2 tests.
 This confirms compatibility with training-only selection and the established
 worker dispatch/ACK boundary, but does not itself prove a walk-forward OOS
 dispatch survives a coordinator restart.
+
+## 2026-10-06 - Fully PostgreSQL-composed OOS selection recovery
+
+The new `test_postgres_composed_walk_forward_training_selection_and_append_restart`
+test builds the application persistence bundle over isolated PostgreSQL schemas
+for owner-scoped domain resources, walk-forward plans, training result
+manifests, and search state. It persists the experiment dependency graph,
+initializes and completes the training candidates with authoritative manifests,
+then simulates loss after OOS trial resources are published but before the
+queue append commits. A fresh `PostgresStrategyLabV2Adapter` reloads those
+records, derives the same training-only selection, publishes/replays OOS trials,
+and leaves exactly one pending queue slot per selected OOS task. Foreign-owner
+resource reads remain unavailable.
+
+Validation passed: all three Docker-backed PostgreSQL recovery tests passed;
+Ruff check/format, MyPy for the integration module, and `git diff --check` also
+passed. This closes the previous limitation where the application-level test
+kept domain resources and result manifests in memory across its simulated
+restart. It still stops before OOS search-dispatch admission, transactional
+outbox relay, and Redis consumer ACK; the existing generic dispatch/ACK tests
+are compatibility evidence, not proof of this walk-forward path. The active
+changeset therefore remains in progress. Next, connect the selected OOS queue
+slots to the real PostgreSQL search-dispatch/outbox path and inject restart at
+the durable-dispatch/ACK boundary; preserve the exact attempt identity,
+training-only ranking, owner isolation, and no-duplicate replay assertions.
