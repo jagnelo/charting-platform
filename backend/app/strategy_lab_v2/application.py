@@ -15,7 +15,7 @@ from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from importlib import import_module
-from typing import Any
+from typing import Any, cast
 
 from app.strategy_lab_v2.api_contracts import ApiError, ApiErrorCode
 from app.strategy_lab_v2.api_resources import (
@@ -31,7 +31,7 @@ from app.strategy_lab_v2.api_router import (
     create_strategy_lab_router,
 )
 from app.strategy_lab_v2.artifact_publication import ArtifactPublicationPlan
-from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
+from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
 from app.strategy_lab_v2.capability_summary import CapabilitySummary
 from app.strategy_lab_v2.commands import ExecutionCommand, ExecutionCommandResolution
 from app.strategy_lab_v2.contracts import (
@@ -117,6 +117,7 @@ from app.strategy_lab_v2.search_dispatch import SearchDispatchResolution
 from app.strategy_lab_v2.search_state import (
     SearchCandidatePhase,
     SearchExecutionState,
+    SearchStateDecision,
     SearchStateResolution,
 )
 from app.strategy_lab_v2.storage import (
@@ -127,10 +128,12 @@ from app.strategy_lab_v2.storage import (
     StorageTransactionRequest,
 )
 from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
+from app.strategy_lab_v2.walk_forward_queue import initialize_walk_forward_training_queue
 from app.strategy_lab_v2.walk_forward_search import (
     WalkForwardDefinitionRequest,
     WalkForwardExecutionDefinition,
 )
+from app.strategy_lab_v2.walk_forward_trials import materialize_walk_forward_training_trials
 from app.strategy_lab_v2.worker_handoff import encode_worker_handoff
 from app.strategy_lab_v2.worker_process import WorkerExecutionRequest
 from app.strategy_lab_v2.workers import WorkerProfile
@@ -1110,10 +1113,150 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             direction=request.direction,
             max_tasks=request.max_tasks,
         )
-        return await self.persist_walk_forward_definition(
+        resolution = await self.persist_walk_forward_definition(
             principal=owner,
             definition=definition,
         )
+        if resolution.decision.value in {"apply", "replay_existing"}:
+            await self.initialize_walk_forward_training(
+                principal=owner,
+                request_id=request_id,
+                definition=definition,
+            )
+        return resolution
+
+    async def initialize_walk_forward_training(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        definition: WalkForwardExecutionDefinition,
+    ) -> SearchStateResolution:
+        """Persist fold-local trials and initialize their resumable search queue.
+
+        Every trial resource uses its immutable fingerprint as identity and an
+        idempotency key derived from the immutable walk-forward definition. If
+        the process stops between trial publication and queue creation, replaying
+        the same plan repairs the missing suffix before the queue is accepted.
+        """
+
+        if not isinstance(request_id, str) or not request_id.strip():
+            raise ValueError("request_id must not be empty")
+        if not isinstance(definition, WalkForwardExecutionDefinition):
+            raise TypeError("definition must be a WalkForwardExecutionDefinition")
+        owner = _principal_identity(principal)
+        persisted = await self._persistence.walk_forward_plans.load(
+            principal=owner,
+            experiment_fingerprint=definition.experiment_fingerprint,
+        )
+        if persisted != definition:
+            raise ValueError("walk-forward definition is not the persisted owner-scoped plan")
+        experiment = await self._resources.get_domain_contract_by_fingerprint(
+            principal=owner,
+            resource_type=ApiResourceType.EXPERIMENT,
+            fingerprint=definition.experiment_fingerprint,
+        )
+        if not isinstance(experiment, ExperimentDefinition):
+            raise ValueError("walk-forward experiment is unavailable to this owner")
+        snapshot = await self._resources.get_domain_contract_by_fingerprint(
+            principal=owner,
+            resource_type=ApiResourceType.SNAPSHOT,
+            fingerprint=experiment.snapshot_fingerprint,
+        )
+        if (
+            not isinstance(snapshot, DataSnapshot)
+            or snapshot.fingerprint != experiment.snapshot_fingerprint
+            or snapshot.capability_contract_digest != experiment.capability_contract_digest
+        ):
+            raise ValueError("walk-forward experiment snapshot binding is inconsistent")
+        loaded = await self._resources.get_domain_contracts_by_fingerprint(
+            principal=owner,
+            resource_type=ApiResourceType.TRIAL,
+            fingerprints=definition.candidate_fingerprints,
+        )
+        if set(loaded) != set(definition.candidate_fingerprints):
+            raise ValueError("one or more walk-forward base trials are unavailable to this owner")
+        candidates = tuple(loaded[fingerprint] for fingerprint in definition.candidate_fingerprints)
+        if any(not isinstance(trial, ScientificTrial) for trial in candidates):
+            raise ValueError("walk-forward base trial has an invalid domain contract")
+        typed_candidates = cast(tuple[ScientificTrial, ...], candidates)
+        if tuple(trial.trial_id for trial in typed_candidates) != definition.candidate_fingerprints:
+            raise ValueError("walk-forward candidates differ from the persisted plan")
+        if any(
+            trial.experiment_fingerprint != definition.experiment_fingerprint
+            or trial.snapshot_fingerprint != snapshot.fingerprint
+            or trial.preflight_fingerprint != snapshot.preflight_report.fingerprint
+            or trial.evaluation_window is not None
+            for trial in typed_candidates
+        ):
+            raise ValueError("walk-forward candidates must be exact unwindowed experiment trials")
+
+        plan = definition.training_plan
+        training = materialize_walk_forward_training_trials(
+            plan,
+            typed_candidates,
+            definition.folds,
+            definition.observation_boundaries,
+        )
+        published: set[str] = set()
+        for trial in training.trials:
+            if trial.trial_id in published:
+                continue
+            published.add(trial.trial_id)
+            raw_attributes = freeze_json(trial)
+            if not isinstance(raw_attributes, Mapping):
+                raise TypeError("walk-forward trial did not encode as a domain mapping")
+            attributes = dict(raw_attributes)
+            attributes["trial_id"] = trial.trial_id
+            mutation = ResourceMutationRequest(
+                ApiResourceType.TRIAL,
+                f"walk-forward:{definition.fingerprint}:{trial.trial_id}",
+                {"attributes": attributes},
+                self._clock(),
+            )
+            created = await self.create_resource(
+                principal=owner,
+                request_id=content_digest(
+                    {
+                        "walk_forward_definition": definition.fingerprint,
+                        "trial_id": trial.trial_id,
+                        "operation": "publish_training_trial",
+                    }
+                ),
+                request=mutation,
+            )
+            if (
+                created.receipt is None
+                or created.receipt.resource.meta.get("domain_fingerprint") != trial.trial_id
+            ):
+                raise ValueError("walk-forward training trial was not durably published")
+
+        state, _bindings = initialize_walk_forward_training_queue(
+            plan,
+            training,
+            now=None,
+        )
+        resolution = await self._persistence.search_state.initialize(
+            principal=owner,
+            state=state,
+        )
+        if resolution.decision is SearchStateDecision.REJECT:
+            raise ApiAdapterError(
+                ApiError(
+                    ApiErrorCode.CONFLICT,
+                    resolution.rejection_reason
+                    or "walk-forward training queue conflicts with existing search state",
+                    request_id,
+                    409,
+                    False,
+                    {"experiment_fingerprint": definition.experiment_fingerprint},
+                )
+            )
+        if resolution.state != state:
+            raise ValueError(
+                "persisted walk-forward training queue differs from its immutable plan"
+            )
+        return resolution
 
     async def create_resource(
         self,

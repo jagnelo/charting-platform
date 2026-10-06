@@ -60,8 +60,17 @@ policy and candidate identities only; it never accepts observation dates.
 reader, `StrategyPackageArtifactResolver`, and
 `FrozenEventTapeArtifactResolver` for that binding, sharing one content-addressed
 artifact store and offloading archive/data decoding away from the API event
-loop. An absent binding preserves the typed 501 precondition response. An absent
-overall setting preserves the current typed 501 response.
+loop. After the immutable definition is stored, plan creation materializes and
+publishes each distinct fold-local training trial through the ordinary
+owner-scoped trial resource path, then initializes the existing PostgreSQL
+search-state queue. Trial keys and mutation idempotency keys derive from the
+definition and trial fingerprints. If the request is interrupted between these
+steps, an exact plan replay republishes any missing trials and initializes or
+replays the queue. Queue conflicts fail as HTTP 409; they do not dispatch work.
+The host must still connect pending queue entries to the existing durable
+submission/outbox path. An absent calendar binding preserves the typed 501
+precondition response. An absent overall setting preserves the current typed
+501 response.
 
 The local transport is versioned JSON over a shared Unix-domain socket, not a
 network listener. The API sends only its authenticated owner identity and

@@ -16,6 +16,8 @@ from app.strategy_lab_v2.postgres_walk_forward_plan import (
     WalkForwardDefinitionDecision,
     WalkForwardDefinitionResolution,
 )
+from app.strategy_lab_v2.resource_domains import normalize_resource_attributes
+from app.strategy_lab_v2.search_state import SearchStateDecision, SearchStateResolution
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs
 from app.strategy_lab_v2.walk_forward_search import (
     SelectionDirection,
@@ -92,11 +94,59 @@ def _setup(*, second_experiment: str | None = None):
                 aggregate_version=1,
             )
 
+        async def load(self, *, principal: Any, experiment_fingerprint: str):
+            assert principal.id == "42"
+            assert experiment_fingerprint == definition.experiment_fingerprint
+            return definition
+
+    class SearchStateStore:
+        def __init__(self) -> None:
+            self.states: dict[str, Any] = {}
+
+        async def initialize(self, *, principal: Any, state: Any):
+            assert principal.id == "42"
+            current = self.states.get(state.experiment_fingerprint)
+            if current is not None and current != state:
+                return SearchStateResolution(
+                    SearchStateDecision.REJECT,
+                    current,
+                    rejection_reason="different search state",
+                )
+            self.states[state.experiment_fingerprint] = state
+            return SearchStateResolution(
+                SearchStateDecision.REPLAY_EXISTING if current else SearchStateDecision.APPLY,
+                current or state,
+            )
+
     reader = Reader()
     plan_store = PlanStore()
+    search_state_store = SearchStateStore()
     adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
     adapter._resources = reader
-    adapter._persistence = SimpleNamespace(walk_forward_plans=plan_store)
+    adapter._persistence = SimpleNamespace(
+        walk_forward_plans=plan_store,
+        search_state=search_state_store,
+    )
+    adapter._clock = lambda: datetime(2026, 10, 6, tzinfo=UTC)
+    published_trials: list[str] = []
+
+    async def create_resource(*, principal: Any, request_id: str, request: Any):
+        assert principal.id == "42"
+        attributes = request.payload["attributes"]
+        normalized = normalize_resource_attributes(ApiResourceType.TRIAL, attributes)
+        trial = normalized.typed_contract
+        assert isinstance(trial, ScientificTrial)
+        assert trial.trial_id == attributes["trial_id"]
+        if trial.trial_id not in published_trials:
+            published_trials.append(trial.trial_id)
+        return SimpleNamespace(
+            receipt=SimpleNamespace(
+                resource=SimpleNamespace(meta={"domain_fingerprint": trial.trial_id})
+            )
+        )
+
+    adapter.create_resource = create_resource
+    adapter._published_trials = published_trials
     return adapter, reader, plan_store, definition, original, second
 
 
@@ -163,6 +213,19 @@ async def test_application_builds_definition_only_from_host_verified_calendar() 
     assert observed["principal"].id == "42"
     assert observed["snapshot"].fingerprint == first.snapshot_fingerprint
     assert tuple(item.trial_id for item in observed["candidates"]) == request.candidate_fingerprints
+    queue = adapter._persistence.search_state.states[definition.experiment_fingerprint]
+    assert tuple(item.trial_fingerprint for item in queue.candidates) == tuple(
+        adapter._published_trials
+    )
+    assert queue.updated_at is None
+    replay = await adapter.initialize_walk_forward_training(
+        principal=User(),
+        request_id="request-replay",
+        definition=result.definition,
+    )
+    assert replay.decision is SearchStateDecision.REPLAY_EXISTING
+    assert adapter._persistence.search_state.states[definition.experiment_fingerprint] == queue
+    assert len(adapter._published_trials) == len(queue.candidates)
 
 
 @pytest.mark.asyncio

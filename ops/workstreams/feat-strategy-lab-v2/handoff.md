@@ -13411,3 +13411,27 @@ deployment host's artifact root or provider-owned decoder. Next: compose those
 local host dependencies, then initialize the training queue and implement
 restart-safe result hydration, selected OOS append, and transactional outbox
 dispatch/cancel/replay coverage.
+
+## 2026-10-06 - Initialize walk-forward training from the persisted plan
+
+Walk-forward plan creation now continues beyond immutable plan persistence. It
+revalidates the persisted owner/experiment/snapshot/base-trial graph, rebuilds
+the exact training tasks, publishes each distinct fold-windowed trial through
+the standard owner-scoped resource mutation adapter, and initializes the
+existing PostgreSQL resumable search queue. Trial identity and mutation keys
+derive from the plan and trial fingerprints. Queue initialization omits
+wall-clock timestamps so an exact retry has byte-identical initial state. A
+crash between per-trial publication and queue creation is recoverable by replay;
+PostgreSQL resource mutation and queue adapters retain their own transaction and
+CAS guarantees. A conflicting pre-existing search queue fails closed with HTTP
+409 and does not dispatch anything.
+
+Validation: the focused walk-forward application, queue/search, calendar,
+router, and main application suites passed 94/94. Focused MyPy for the changed
+application and queue modules passed; Ruff, formatting, and `git diff --check`
+passed. This starts the durable training queue but does not yet dispatch its
+pending candidates through the submission/outbox flow, coordinate results and
+selected OOS restart/replay, or compose the deployment's artifact root and
+provider-owned frozen-series decoder. Next: connect the deterministic queue
+assignments to owner-authenticated trial dispatch and durable outbox submission,
+then implement resume/result hydration and selected OOS append/replay.

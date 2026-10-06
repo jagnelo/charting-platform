@@ -99,9 +99,9 @@ def initialize_walk_forward_training_queue(
     plan: WalkForwardTrainingPlan,
     training_trials: MaterializedWalkForwardTrials,
     *,
-    now: datetime,
+    now: datetime | None = None,
 ) -> tuple[SearchExecutionState, tuple[WalkForwardQueueTaskBinding, ...]]:
-    """Flatten fold-major training tasks into stable legacy candidate indices."""
+    """Flatten tasks into stable indices; omit time for deterministic replay."""
 
     _validate_training_materialization(plan, training_trials)
     index_by_trial: dict[str, int] = {}
