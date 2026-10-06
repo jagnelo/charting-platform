@@ -8,9 +8,10 @@ persists through the chart configuration and preserves consecutive-key focus.
 Focused, full frontend, build, and authenticated
 Chromium checks pass. The protected Help screenshot remains above its unchanged
 0.5% threshold (59,101 pixels, 3.0%); no screenshot policy or baseline was
-modified. Product commit `82cf7df90b0749751c9efd9041c575a3a250285c` is pushed;
-the workstream and roadmap checkpoint follows in a separate documentation
-commit. Next work remains within TC-owned frontend parity; do not add
+modified. Product commit `82cf7df90b0749751c9efd9041c575a3a250285c` and
+browser persistence test commit `d937f78bb38a930819d6d9dd7c11a0f005f62c44` are
+pushed. A follow-up workstream receipt records the reload evidence. Next work
+remains within TC-owned frontend parity; do not add
 provider/ETF/data-readiness behavior or consume the sibling branches until those
 branches reach staging.
 

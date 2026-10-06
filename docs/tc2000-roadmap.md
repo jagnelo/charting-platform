@@ -13,7 +13,9 @@ values. The chart reuses its existing uPlot crosshair and OHLCV readout; no
 data-source or provider behavior is introduced. The focused WorkstationView
 suite passed 43/43, the complete serial frontend suite passed 130 files /
 1,227 tests, and `npm run build` passed vue-tsc/Vite. Authenticated Chromium
-passed the repeated mode-cycle flow (1/1), including chart focus preservation.
+passed the repeated mode-cycle flow (1/1), including chart focus preservation
+and a saved-mode workspace reload regression (test commit
+`d937f78bb38a930819d6d9dd7c11a0f005f62c44`).
 The existing Help screenshot oracle was
 rerun unchanged at visual-1080p-100 and remains over tolerance: 59,101 pixels
 (3.0%) differ against 0.5%. No baseline, mask, threshold, or skip changed.
