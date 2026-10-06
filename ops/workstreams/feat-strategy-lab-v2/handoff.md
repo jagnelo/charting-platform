@@ -13654,3 +13654,23 @@ decoder, and DB/Redis restart+cancellation plus native metric, security,
 Compose, exact-native, and full-branch gates remain open. No stable Nautilus
 release is required; the existing exact RC5 local backtest qualification is
 unchanged.
+
+## 2026-10-06 - Wire the calendar resolver into the API host factory
+
+The previous composition slice exposed the authenticated resolver builder but
+the configured default API binding factory did not install any calendar
+resolver. Added the optional trusted local setting
+`STRATEGY_LAB_V2_WALK_FORWARD_CALENDAR_FACTORY=module:factory`; the factory is
+called synchronously with the shared PostgreSQL persistence bundle and must
+return an async resolver. This lets the provider-platform host adapter own its
+frozen-series decoder and compose it through
+`create_walk_forward_calendar_resolver` without importing provider code into
+the Strategy Lab domain. If unset, the existing typed precondition response
+remains fail-closed. Documented the host contract in `docs/strategy-lab-v2.md`.
+
+Validation: API RPC and calendar composition suites passed 15/15 in host
+context, including the real UDS test; focused MyPy, Ruff, formatting, and
+`git diff --check` passed. The 1,610-test aggregate suite remains inconclusive
+after it stalled at 31% and was interrupted. Provider decoder configuration and
+all remaining database/Redis, metric, security, Compose, exact-native, and
+full-branch gates remain open.
