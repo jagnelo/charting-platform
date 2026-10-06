@@ -792,9 +792,9 @@ test.describe('Chart', () => {
 
     const helpTrigger = page.getByRole('button', { name: 'Help', exact: true })
     await helpTrigger.press('ArrowDown')
-    const helpMenu = page.getByRole('menu', { name: 'Keyboard shortcuts' })
+    const helpMenu = page.getByRole('dialog', { name: 'Keyboard shortcuts' })
     await expect(helpMenu).toBeVisible()
-    await expect(helpMenu.getByRole('menuitem').first()).toBeFocused()
+    await expect(helpMenu.getByRole('button', { name: 'Close keyboard shortcuts' })).toBeFocused()
     await helpMenu.press('Escape')
     await expect(helpMenu).toHaveCount(0)
     await expect(helpTrigger).toBeFocused()
@@ -1618,7 +1618,7 @@ test.describe('TC2000 workstation', () => {
     await page.goto('/chart/SPY')
     const checks = [
       [page.getByRole('button', { name: 'Workspace', exact: true }), page.getByRole('menu', { name: 'Workspace layouts' })],
-      [page.getByRole('button', { name: 'Help', exact: true }), page.getByRole('menu', { name: 'Keyboard shortcuts' })],
+      [page.getByRole('button', { name: 'Help', exact: true }), page.getByRole('dialog', { name: 'Keyboard shortcuts' })],
       [page.getByRole('button', { name: 'Add tool', exact: true }), page.getByRole('menu', { name: 'Workstation tools' })],
     ] as const
     for (const [trigger, menu] of checks) {
@@ -2709,7 +2709,7 @@ test.describe('TC2000 workstation', () => {
     await page.goto('/chart')
     const workstation = page.locator('.workstation')
     const helpButton = page.getByRole('button', { name: 'Help', exact: true })
-    const helpMenu = page.getByRole('menu', { name: 'Keyboard shortcuts' })
+    const helpMenu = page.getByRole('dialog', { name: 'Keyboard shortcuts' })
 
     await helpButton.click()
     await expect(helpMenu).toBeVisible()

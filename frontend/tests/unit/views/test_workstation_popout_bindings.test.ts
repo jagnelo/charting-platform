@@ -887,7 +887,9 @@ describe('WorkstationView pop-out bindings', () => {
 
     await wrapper.get('button[title="Keyboard shortcuts"]').trigger('click')
     expect(wrapper.find('.workstation__tool-library-menu').exists()).toBe(false)
-    expect(wrapper.get('.workstation__help-popover').attributes('role')).toBe('menu')
+    expect(wrapper.get('.workstation__help-popover').attributes('role')).toBe('dialog')
+    expect(wrapper.get('button[title="Keyboard shortcuts"]').attributes('aria-haspopup')).toBe('dialog')
+    expect(wrapper.get('.workstation__help-popover').attributes('aria-labelledby')).toBe('keyboard-help-title')
     expect(wrapper.get('.workstation__help-popover').text()).toContain("/Open the active chart's plot library and search indicators")
     expect(wrapper.get('.workstation__help-popover').text()).toContain('Ctrl+BCycle HLC and OHLC bars, candles, and line style on the active chart')
 
@@ -933,7 +935,7 @@ describe('WorkstationView pop-out bindings', () => {
     const help = wrapper.get('button[title="Keyboard shortcuts"]')
     await help.trigger('keydown', { key: 'ArrowDown' })
     const helpMenu = wrapper.get('.workstation__help-popover')
-    await vi.waitFor(() => expect(document.activeElement).toBe(helpMenu.get('[role="menuitem"]').element))
+    await vi.waitFor(() => expect(document.activeElement).toBe(helpMenu.get('button[aria-label="Close keyboard shortcuts"]').element))
     await helpMenu.trigger('keydown', { key: 'Escape' })
     expect(wrapper.find('.workstation__help-popover').exists()).toBe(false)
     expect(document.activeElement).toBe(help.element)

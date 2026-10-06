@@ -34,9 +34,9 @@
         <button type="button" title="Open Study Lab layout" @click="openStudyLab">Study</button>
         <button type="button" title="Open active-symbol alerts" @click="openAlertsTool">Alerts</button>
         <div class="workstation__help-menu">
-          <button ref="keyboardHelpTrigger" type="button" title="Keyboard shortcuts" aria-haspopup="menu" :aria-expanded="keyboardHelpOpen" :aria-controls="keyboardHelpMenuId" @click="toggleKeyboardHelp()" @keydown="handleShellTriggerKeydown('help', $event)">Help</button>
-          <div v-if="keyboardHelpOpen" :id="keyboardHelpMenuId" ref="keyboardHelpMenuRoot" class="workstation__help-popover" role="menu" aria-label="Keyboard shortcuts" :style="keyboardHelpMenuStyle" @click.stop @keydown="handleShellMenuKeydown('help', $event)">
-            <header><strong>Keyboard shortcuts</strong><button type="button" role="menuitem" tabindex="-1" aria-label="Close keyboard shortcuts" @click="closeShellMenuToTrigger('help')"><WorkstationGlyph kind="close" /></button></header>
+          <button ref="keyboardHelpTrigger" type="button" title="Keyboard shortcuts" aria-haspopup="dialog" :aria-expanded="keyboardHelpOpen" :aria-controls="keyboardHelpMenuId" @click="toggleKeyboardHelp()" @keydown="handleShellTriggerKeydown('help', $event)">Help</button>
+          <div v-if="keyboardHelpOpen" :id="keyboardHelpMenuId" ref="keyboardHelpMenuRoot" class="workstation__help-popover" role="dialog" aria-modal="false" aria-labelledby="keyboard-help-title" :style="keyboardHelpMenuStyle" @click.stop @keydown="handleShellMenuKeydown('help', $event)">
+            <header><strong id="keyboard-help-title">Keyboard shortcuts</strong><button type="button" aria-label="Close keyboard shortcuts" @click="closeShellMenuToTrigger('help')"><WorkstationGlyph kind="close" /></button></header>
             <dl>
               <div><dt>Type</dt><dd>Open symbol search</dd></div>
               <div><dt>Space</dt><dd>Next symbol in the focused list</dd></div>
@@ -615,6 +615,11 @@ async function focusShellMenu(menu: ShellMenuRoot, focusIndex = 0) {
     return
   }
   const items = shellMenuItems(menu)
+  if (menu === 'help') {
+    const closeButton = keyboardHelpMenuRoot.value?.querySelector<HTMLButtonElement>('button[aria-label="Close keyboard shortcuts"]')
+    closeButton?.focus()
+    return
+  }
   if (!items.length) return
   const index = focusIndex < 0 ? items.length - 1 : Math.min(focusIndex, items.length - 1)
   items[Math.max(0, index)]?.focus()

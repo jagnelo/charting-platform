@@ -20,6 +20,19 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  The long workstation keyboard-help reference is now exposed as a labelled
+  non-modal dialog instead of an ARIA menu containing mostly static text. The
+  focused workstation tests pass 44/44; authenticated Chromium shell-menu
+  keyboard, constrained-viewport, and Help flows pass 3/3; the complete
+  frontend suite passes 131 files/1,235 tests; production type-check/build
+  passes. The current protected Help screenshot still differs by 50,941 pixels
+  (3.0% against the unchanged 0.5% threshold), reflecting a board-baseline
+  mismatch after accumulated Help content changes; that asset is not an exact
+  V25 authority. No baseline or policy changed. Provider and ETF refs remain outside
+  staging, and the generic integration target is unsafe against the live
+  assigned stack because its cleanup deletes that stack's volumes. Exact
+  integration, exact V25 review, broader AC4-AC7/R1/R5/R6 and upstream staging
+  dependencies remain open. Earlier checkpoint detail follows.
   The projection-space slice is browser-verified in authenticated Chromium:
   Shift+=/- changes active-chart linear/logarithmic range, setting survives
   snapshot/reload, focused editor suppresses the chart action, and timeframe

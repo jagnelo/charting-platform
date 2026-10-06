@@ -1,5 +1,19 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-10-06 — Workstation keyboard-help accessibility semantics
+
+The keyboard-shortcut reference is instructional content, not an action menu.
+The workstation Help popover is now a labelled non-modal dialog, its trigger
+advertises the dialog, and opening it focuses the close button; Escape still
+closes and restores focus. This corrects the previous ARIA menu role, where
+most rows were static descriptions rather than menu items. Focused workstation
+tests passed 44/44, authenticated Chromium shell-menu/focus/containment flows
+passed 3/3, the full frontend suite passed 131 files/1,235 tests, and
+type-check/production build passed. The protected shell-Help screenshot remains
+over tolerance at 50,941 pixels (3.0% vs 0.5%); this is the existing board
+baseline comparison, not exact V25 pixel approval. No baseline, mask, threshold,
+skip, or acceptance policy changed.
+
 ## 2026-10-06 — Vertical projection-space shortcuts
 
 The [official TC2000 chart reference](https://help.tc2000.com/m/69401/l/314789-how-to-create-projection-space-on-a-chart)

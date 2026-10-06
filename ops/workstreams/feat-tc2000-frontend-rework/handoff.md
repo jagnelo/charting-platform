@@ -1,5 +1,25 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-06 — Workstation Help accessibility semantics
+
+Changed `WorkstationView.vue` so the long keyboard-shortcut reference is a
+labelled non-modal dialog rather than a menu of mostly static descriptions.
+The Help trigger declares `aria-haspopup="dialog"`; keyboard opening moves
+focus to its close button; Escape still dismisses and restores trigger focus.
+Focused WorkstationView unit coverage passed 44/44; authenticated Chromium
+shell-menu keyboard, constrained-viewport, and Help flows passed 3/3; full
+frontend Vitest passed 131/131 files and 1,235/1,235 tests; production
+type-check/build passed. The unchanged protected shell-Help screenshot still
+differs by 50,941 pixels (3.0% vs 0.5%); no baseline or policy changed. The
+visual test's Help locator was migrated from menu to dialog, after which its
+semantic/content checks passed and the unchanged pixel assertion reproduced the
+same diff. This is an existing board-state mismatch, not exact V25 visual
+approval. Provider
+and ETF refs remain outside staging. The generic integration target remains
+unsafe because its cleanup would remove the live assigned stack and volumes.
+Next: continue independent TC-owned UX/Study/Strategy work while preserving
+the exact integration, protected visual and staging-dependency gates as open.
+
 ## 2026-10-06 — Vertical projection-space shortcuts (in progress)
 
 Product commit `280a79e7f0ec542fc45cc6ccd32234a81990fcd7` implements official

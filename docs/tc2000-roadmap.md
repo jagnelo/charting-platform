@@ -5,6 +5,19 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-06
 
+## 2026-10-06 — Keyboard-help accessibility semantics
+
+The workstation shortcut reference is instructional content rather than a
+command menu. The Help popover now has a labelled non-modal dialog role; its
+trigger exposes that popup type, and opening the dialog focuses its close
+control. Escape continues to restore trigger focus. Focused workstation tests
+passed 44/44; authenticated shell-menu keyboard, constrained-viewport, and Help
+browser flows passed 3/3; full frontend Vitest passed 131/131 files and
+1,235/1,235 tests; type-check and production build passed. The unchanged
+protected shell-Help screenshot remains at 50,941 differing pixels (3.0% vs
+0.5%); no baseline or acceptance policy changed. The exact V25 visual and full
+integration gates remain open.
+
 ## 2026-10-06 — Shift+= / Shift+- vertical projection space
 
 The official [TC2000 projection-space reference](https://help.tc2000.com/m/69401/l/314789-how-to-create-projection-space-on-a-chart)

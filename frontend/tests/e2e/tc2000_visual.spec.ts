@@ -387,12 +387,12 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await page.goto('/')
     await waitForShellReady(page)
     await page.getByRole('button', { name: 'Help', exact: true }).click()
-    const menu = page.getByRole('menu', { name: 'Keyboard shortcuts' })
-    await expect(menu).toBeVisible()
-    await expect(menu).toContainText('Ctrl+Space')
-    await expect(menu).toContainText('Backspace')
-    await expect(menu).toContainText(/Over a chart: change timeframe; over a WatchList: move through symbols/i)
-    await expect(menu).toContainText('Shortcuts are inactive while a text, numeric, code, or search editor owns focus.')
+    const helpDialog = page.getByRole('dialog', { name: 'Keyboard shortcuts' })
+    await expect(helpDialog).toBeVisible()
+    await expect(helpDialog).toContainText('Ctrl+Space')
+    await expect(helpDialog).toContainText('Backspace')
+    await expect(helpDialog).toContainText(/Over a chart: change timeframe; over a WatchList: move through symbols/i)
+    await expect(helpDialog).toContainText('Shortcuts are inactive while a text, numeric, code, or search editor owns focus.')
     await expect(page).toHaveScreenshot('application-shell-help-open.png', {
       animations: 'disabled',
       caret: 'hide',
