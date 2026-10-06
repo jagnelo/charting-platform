@@ -733,10 +733,16 @@ async def test_persisted_owner_graph_composes_exact_authoritative_rc6_worker_req
             artifact_committer,
         )
 
-        async def load_terminal_lookup(*, request_fingerprint: str, attempt_id: str):
+        async def load_terminal_lookup(
+            *,
+            request_fingerprint: str,
+            attempt_id: str,
+            payload_digest: str | None = None,
+        ):
             if (
                 request_fingerprint != worker_request.request_fingerprint
                 or attempt_id != graph.attempt.attempt_id
+                or payload_digest != completion_entry.payload_digest
             ):
                 return None
             return terminal_lookup
