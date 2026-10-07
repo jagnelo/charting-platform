@@ -14331,3 +14331,8 @@ The package test harness now installs its already-locked uvloop dependency for
 both pytest-managed loops and direct `asyncio.run` tests. With authorized Unix
 socket permissions, the exact package suite passed 1,632 tests with one
 platform-appropriate skip in 28.89s; Ruff, MyPy, and diff checks also passed.
+
+The exact-tip combined backend unit/integration/Strategy Lab coverage gate also
+completed successfully, generating `coverage-combined.xml` at 83.35% line
+coverage against the required 75% threshold. Docker readiness and owned-resource
+cleanup completed through the repository workflow.
