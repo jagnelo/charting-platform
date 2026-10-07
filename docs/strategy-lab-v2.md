@@ -1686,3 +1686,13 @@ forward-shadow activation additionally requires backtest/forward event-tape
 parity. The local Compose
 worker/storage and API phases follow shared-path reconciliation, and the
 TC2000-native UI remains a separate authorization boundary.
+# Current validation boundary (2026-10-07)
+
+The authoritative persisted-owner/native Nautilus RC6 path is already exercised
+end-to-end by
+`app/strategy_lab_v2/tests/test_search_dispatch_preparation.py::test_persisted_owner_graph_composes_exact_authoritative_rc6_worker_request`:
+it hydrates persisted ownership, executes the pinned native worker, and feeds
+the resulting `WorkerProcessResolution` through terminal evidence and artifact
+publication. The remaining integration gap is specifically the PostgreSQL/
+Redis crash-replay fixture using that exact request instead of its current
+synthetic request fixture.
