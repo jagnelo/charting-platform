@@ -1111,12 +1111,11 @@ current_blocker: >-
   remains active.
 
 next_action: >-
-  Keep monitoring only for a safe local full-integration window. Recheck Docker
-  and host capacity read-only; run the assigned `full_stack_browser` gate only
-  after the unrelated `feat-tc2000-frontend-rework` services and Stremio have
-  exited and resources are safe. Never stop or mutate those services from this
-  branch. Preserve the branch boundary and do not rewrite/delete the unrelated
-  remote alias ref without explicit human direction. Keep AC7/AC8 open until
-  the local gate and final workstream checkpoint pass. Await the human's notice
-  before any provider-platform integration (AC10); AC14 remains the later
-  30-day post-integration/deployment observation.
+  Publish the final operational checkpoint for implementation SHA
+  `5854dd2fc70e7424280782c3a61df5f6ed5b04c6`, then verify the feature branch is
+  clean and synchronized and stop at `ready_for_human_review`. AC7's local
+  integration gate, complete opt-in provider matrix, and exact-SHA CI are green;
+  classified live skips remain unverified rather than accepted. Do not touch
+  staging, the provider-platform worktree, the separate remote alias ref, or
+  deploy. AC10 remains the external provider-platform staging dependency, and
+  AC14 remains the post-integration/deployment 30-day observation.

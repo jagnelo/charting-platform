@@ -9922,8 +9922,28 @@ tests passed; Ruff passed; the isolated live UFO case passed; and the full
 546-case live matrix completed with 532 passes, 14 classified skips, and zero
 failures. Skips remain route-specific unverified evidence, not acceptance.
 
-The exact-commit CI result for `310e970b` is mixed (the live-route failure
-above; E2E passed). Commit and push this ProcureAM repair, then verify new
-exact-SHA CI. The full local Docker integration gate was green before this
-provider-specific repair; CI will retest the repaired adapter and all E2E tests.
-AC10 and AC14 remain external as described above.
+The exact-commit CI result for `310e970b` was mixed (the live-route failure
+above; E2E passed). The ProcureAM repair was committed as
+`5854dd2fc70e7424280782c3a61df5f6ed5b04c6` and pushed. Exact-SHA GitHub Actions
+run `37643014307` completed successfully: backend tests, frontend unit tests,
+branch-declared tests, and Playwright E2E all passed; the exhaustive integration
+job was skipped as expected for a feature branch. The branch-declared job
+reported 528 live-provider passes, 18 classified skips, zero failures, and 611
+ETF adapter unit tests passing. The 18 skipped provider routes remain
+unverified, not accepted.
+
+Together with the full local `make validate-integration` result recorded above,
+the focused post-fix adapter/Ruff/UFO checks, and the full opt-in live matrix
+(532 passed, 14 classified skips, zero failures), this clears the known
+branch-owned validation failures and satisfies AC7. The exact implementation
+SHA is `5854dd2fc70e7424280782c3a61df5f6ed5b04c6`; a separate operational
+checkpoint will record this evidence and be verified clean and synchronized.
+The enclosing documentation-only checkpoint commit is intentionally not
+self-referenced in these files; verify its SHA externally with Git.
+
+The branch is ready for human review after that durable checkpoint. This does
+not complete the whole saved objective: AC10 still depends on the separate
+provider-platform work reaching staging with `ETF_HOLDINGS`, and AC14 is the
+post-integration/deployment 30-day shadow observation. Those are external
+gates, not current branch-local failures. No staging, other worktree, or
+deployment was changed.
