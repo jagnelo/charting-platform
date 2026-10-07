@@ -895,14 +895,17 @@ progress:
     slices are also green, and the authenticated live Compose curve transfer is
     now proven against the real FastAPI/PostgreSQL stack and shared artifact
     volume. Remaining work is branch acceptance rather than an engine-version
-    wait: exact-tip backend/full-stack validation. Provider-platform,
+    wait: exact-tip full-browser acceptance and cross-workstream reconciliation.
+    Provider-platform,
     ETF, and TC2000 contracts remain owned by their branches; shared router,
     migration, and provider-decoder reconciliation must wait for their staged
     contracts. Existing browser failures are in the parallel TC2000-owned
     surfaces, not this backend package.
   next_action: >-
-    Continue branch-owned acceptance with the exact-tip backend and full-stack
-    gates. Preserve engine-neutral
+    Backend package, coverage, Compose API, and migration gates are green.
+    Continue with the exact-tip full-browser acceptance profile when the
+    parallel frontend workstream is ready, then perform line-level shared-path
+    reconciliation. Preserve engine-neutral
     SDK boundaries, owner isolation, durable receipt-before-ACK semantics, and
     fail-closed unsupported products. Reconcile shared router/migration,
     provider-decoder, ETF, and TC2000 paths only after their approved branches
