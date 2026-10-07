@@ -14313,3 +14313,9 @@ content-addressed artifact from the shared Docker volume. The HTTP response was
 200 with matching 43-byte content length, digest, ETag, private-cache policy,
 and native curve media/schema headers. The stack was then torn down with only
 branch-owned resources removed.
+
+Exact-tip deployment contracts are green: `make test-compose-contract` rendered
+both the main and RPI Compose files successfully, and the schema migration
+compatibility gate completed with no migration delta since the recorded base.
+The complete package run remains intentionally unclaimed because it stalls at
+30% under the bounded runner with no terminal pytest result.
