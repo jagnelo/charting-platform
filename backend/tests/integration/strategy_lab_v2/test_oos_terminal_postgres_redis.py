@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from dataclasses import replace
 from datetime import timedelta
 from pathlib import Path
@@ -9,22 +10,48 @@ from typing import Any, cast
 from uuid import uuid4
 
 import pytest
+import pytest_asyncio
 from redis.asyncio import Redis
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from app.strategy_lab_v2.admission import ExecutionAdmissionLedger
+from app.strategy_lab_v2.api_resources import ApiResourceType
+from app.strategy_lab_v2.application import PostgresStrategyLabV2Adapter
 from app.strategy_lab_v2.artifact_application import LocalArtifactPublicationService
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
-from app.strategy_lab_v2.dispatch import DispatchRequest, build_dispatch_envelope
+from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.contracts import (
+    AttemptState,
+    EvaluationWindow,
+    ProductClass,
+    ScientificTrial,
+)
+from app.strategy_lab_v2.dispatch import (
+    DispatchRequest,
+    SearchDispatchIntent,
+    build_dispatch_envelope,
+)
 from app.strategy_lab_v2.dispatch_payload import DispatchPayload
+from app.strategy_lab_v2.lifecycle import transition_attempt
+from app.strategy_lab_v2.local_conformance_source import LocalNautilusRcConformanceEvidenceSource
+from app.strategy_lab_v2.nautilus_trial_materializer import (
+    NautilusTrialMarketContext,
+    NautilusTrialRuntimeInputMaterializer,
+)
 from app.strategy_lab_v2.nautilus_worker_terminal import (
     create_nautilus_oos_worker_terminal_evidence_resolver,
 )
-from app.strategy_lab_v2.outcomes import OutcomeUpdate
+from app.strategy_lab_v2.outcomes import (
+    OutcomeUpdate,
+    new_execution_outcome,
+)
+from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.postgres_artifact_commit import (
     PostgresArtifactCommitAdapter,
     PostgresArtifactCommitSchema,
 )
+from app.strategy_lab_v2.postgres_commands import ExecutionCommandContext
 from app.strategy_lab_v2.postgres_execution_state import (
     PostgresExecutionStateAdapter,
     PostgresExecutionStateSchema,
@@ -59,9 +86,15 @@ from app.strategy_lab_v2.postgres_worker_state import (
     PostgresWorkerStateAdapter,
     PostgresWorkerStateSchema,
 )
-from app.strategy_lab_v2.progress import ExecutionProgressUpdate, ProgressPhase
-from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
+from app.strategy_lab_v2.progress import ExecutionProgressUpdate, ProgressPhase, new_progress_state
+from app.strategy_lab_v2.redis_transport import RedisDispatchTransport, RedisStreamEntry
+from app.strategy_lab_v2.resource_mutations import ResourceMutationDecision, ResourceMutationRequest
+from app.strategy_lab_v2.runtime import RuntimeIsolationProfile
 from app.strategy_lab_v2.search_dispatch import SearchDispatchResolution
+from app.strategy_lab_v2.search_dispatch_preparation import (
+    NautilusTrialPreparationContext,
+    NautilusTrialSearchDispatchEvidenceResolver,
+)
 from app.strategy_lab_v2.search_state import (
     SearchCandidatePhase,
     SearchCandidateState,
@@ -69,22 +102,49 @@ from app.strategy_lab_v2.search_state import (
     SearchStateDecision,
     record_search_candidate_terminal,
 )
+from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
+from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
+from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import (
+    BASE,
+    JsonFrozenSeriesDecoder,
+)
+from app.strategy_lab_v2.tests.test_nautilus_trial_materializer import (
+    RUNTIME_ABI,
+    _build_inputs,
+)
 from app.strategy_lab_v2.tests.test_nautilus_worker_terminal import (
     NOW,
-    _successful_context_and_lookup,
+)
+from app.strategy_lab_v2.tests.test_postgres_storage import FakeSession
+from app.strategy_lab_v2.tests.test_search_dispatch_preparation import (
+    _contract_attributes,
+    _WorkerStateReader,
 )
 from app.strategy_lab_v2.tests.test_trial_hydration import MemoryDomainReader
-from app.strategy_lab_v2.trial_hydration import NautilusTrialDomainHydrator
+from app.strategy_lab_v2.trial_hydration import (
+    NautilusTrialDomainHydrator,
+)
 from app.strategy_lab_v2.worker_consumer import (
     RedisDispatchWorker,
     RedisDispatchWorkerScheduler,
     WorkerEntryDecision,
 )
-from app.strategy_lab_v2.worker_evidence import WorkerTerminalEvidenceLookup
-from app.strategy_lab_v2.worker_process import SerialWorkerProcessExecutor
+from app.strategy_lab_v2.worker_evidence import (
+    WorkerSubmissionBinding,
+    WorkerTerminalEvidenceInputs,
+    WorkerTerminalEvidenceLookup,
+)
+from app.strategy_lab_v2.worker_process import (
+    SerialWorkerProcessExecutor,
+    WorkerProcessDecision,
+)
 from app.strategy_lab_v2.worker_recovery_application import WorkerRecoveryApplication
-from app.strategy_lab_v2.worker_service import DedicatedStrategyWorkerService
+from app.strategy_lab_v2.worker_service import (
+    DedicatedStrategyWorkerService,
+    WorkerCompletionContext,
+)
 from app.strategy_lab_v2.worker_terminal_adapter import PostgresWorkerTerminalAdapter
+from app.strategy_lab_v2.workers import WorkerKind, WorkerPoolState, WorkerProfile
 
 
 def _async_postgres_url(raw_url: str) -> str:
@@ -97,9 +157,173 @@ def _async_postgres_url(raw_url: str) -> str:
     raise ValueError("integration database URL must use PostgreSQL")
 
 
+async def _exact_rc6_owner_request(tmp_path: Path):
+    """Build the same owner-hydrated request used by the RC6 authority test."""
+
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    evidence_source = LocalNautilusRcConformanceEvidenceSource.from_environment()
+    if evidence_source is None:
+        pytest.skip("exact pinned Nautilus RC6 evidence is required for this integration")
+    image_name = os.environ.get("STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_NAME", "").strip()
+    if not image_name:
+        raise ValueError("the exact local Nautilus RC image name must be configured with evidence")
+
+    values, graph, store = _build_inputs(tmp_path)
+    prior_trial = graph.trial
+    trial = ScientificTrial.create(
+        experiment_fingerprint=prior_trial.experiment_fingerprint,
+        snapshot_fingerprint=prior_trial.snapshot_fingerprint,
+        preflight_report=prior_trial.preflight_report,
+        parameter_set=prior_trial.parameter_set,
+        scenario=prior_trial.scenario,
+        seed=prior_trial.seed,
+        randomization=prior_trial.randomization,
+        evaluation_window=EvaluationWindow(
+            start=BASE,
+            end=BASE + timedelta(days=2),
+            purpose="out_of_sample",
+        ),
+    )
+    graph = replace(
+        graph,
+        trial=trial,
+        attempt=transition_attempt(
+            replace(graph.attempt, trial_id=trial.trial_id),
+            target=AttemptState.RUNNING,
+            now=BASE + timedelta(seconds=1),
+        ),
+    )
+    package_resolver = StrategyPackageArtifactResolver(store, runtime_abi=RUNTIME_ABI)
+    materializer = NautilusTrialRuntimeInputMaterializer(
+        artifact_store=store,
+        strategy_package_resolver=package_resolver,
+        series_decoder=JsonFrozenSeriesDecoder(),
+    )
+    conformance_resolution = evidence_source.load()
+    runtime_profile = RuntimeIsolationProfile(
+        runtime_image_digest=evidence_source.expected_runtime_image_digest,
+        runtime_abi=RUNTIME_ABI,
+        allowed_dependency_digests=frozenset(
+            dependency.artifact_digest for dependency in graph.strategies[0].dependencies
+        ),
+    )
+    worker_pool = WorkerPoolState(
+        WorkerProfile(
+            "dispatch-preparation-worker", WorkerKind.BACKTEST, runtime_profile.fingerprint
+        )
+    )
+    output_path = tmp_path / "persisted-dispatch-result.json"
+    preparation_context = NautilusTrialPreparationContext.from_authoritative_backtest_conformance(
+        conformance_resolution=conformance_resolution,
+        product_classes=frozenset({ProductClass.EQUITY}),
+        execution_models=frozenset({"bar-close-v1"}),
+        account_models=frozenset({"cash-equity-v1"}),
+        market_context=NautilusTrialMarketContext(values["instruments"], values["venue"]),
+        runtime_profile=runtime_profile,
+        admission_ledger=ExecutionAdmissionLedger(),
+        image_name=image_name,
+        output_path=output_path,
+        now=BASE + timedelta(seconds=4),
+        lease_duration=timedelta(minutes=15),
+    )
+    owner = SimpleNamespace(id="persisted-owner")
+    session = FakeSession()
+    persistence = PostgresStrategyLabV2Persistence.build(
+        lambda: session, clock=lambda: BASE + timedelta(seconds=4)
+    )
+    adapter = PostgresStrategyLabV2Adapter(
+        lambda: session, clock=lambda: BASE + timedelta(seconds=4), persistence=persistence
+    )
+
+    contracts = (
+        (ApiResourceType.STRATEGY, graph.strategies[0], "strategy-resource"),
+        (
+            ApiResourceType.PACKAGE,
+            graph.packages[graph.strategies[0].fingerprint],
+            "package-resource",
+        ),
+        (ApiResourceType.PORTFOLIO, graph.portfolio, "portfolio-resource"),
+        (ApiResourceType.SNAPSHOT, graph.snapshot, "snapshot-resource"),
+        (ApiResourceType.EXPERIMENT, graph.experiment, "experiment-resource"),
+        (ApiResourceType.TRIAL, graph.trial, graph.trial.trial_id),
+        (ApiResourceType.ATTEMPT, graph.attempt, graph.attempt.attempt_id),
+    )
+    for index, (resource_type, contract, resource_id) in enumerate(contracts):
+        attributes = _contract_attributes(contract)
+        if resource_type is ApiResourceType.ATTEMPT and attributes["updated_at"] is None:
+            attributes.pop("updated_at")
+        attributes["resource_id"] = resource_id
+        response = await adapter.create_resource(
+            principal=owner,
+            request_id=f"persisted-oos-{index}",
+            request=ResourceMutationRequest(
+                resource_type, f"persisted-oos-key-{index}", {"attributes": attributes}, BASE
+            ),
+        )
+        assert response.resolution.decision is ResourceMutationDecision.ACCEPT
+
+    hydrator = NautilusTrialDomainHydrator(persistence.resources)
+    assert (
+        await hydrator.hydrate_attempt(
+            principal=owner, attempt_resource_id=graph.attempt.attempt_id
+        )
+        == graph
+    )
+    resolver = NautilusTrialSearchDispatchEvidenceResolver(
+        domain_hydrator=hydrator,
+        runtime_materializer=materializer,
+        strategy_package_resolver=package_resolver,
+        artifact_store=store,
+        worker_state_reader=_WorkerStateReader(worker_pool),
+        context_resolver=lambda _request, _graph: preparation_context,
+    )
+    evidence = await resolver(
+        principal=owner,
+        request_id="persisted-oos-worker-request",
+        experiment_fingerprint=graph.experiment.fingerprint,
+        candidate_index=0,
+        attempt_id=graph.attempt.attempt_id,
+        dispatch_intent=SearchDispatchIntent(
+            "persisted-oos-intent",
+            graph.attempt.attempt_id,
+            "strategy-backtest",
+            BASE + timedelta(seconds=4),
+        ),
+    )
+    request = evidence.worker_request
+    process_executor = SerialWorkerProcessExecutor(timeout_seconds=180)
+    first_process = process_executor.run(request)
+    process = process_executor.run(request)
+    assert process.decision is WorkerProcessDecision.COMPLETED
+    execution = process.execution
+    assert execution is not None
+    assert (
+        first_process.execution is not None and first_process.execution.nautilus_result is not None
+    ), first_process
+    assert execution.decision.value == "succeeded", (
+        execution.decision,
+        execution.rejection_reason,
+        execution.nautilus_result,
+        execution.nautilus_result.status if execution.nautilus_result else None,
+        execution.nautilus_result.sandbox_result
+        if execution.nautilus_result
+        else None,
+        execution.runtime_result,
+    )
+    return owner, graph, request, process, persistence, store
+
+
+@pytest_asyncio.fixture(scope="session")
+async def exact_rc6_owner_request(tmp_path_factory):
+    """Run the pinned worker before session-scoped PostgreSQL/Redis fixtures."""
+
+    return await _exact_rc6_owner_request(tmp_path_factory.mktemp("exact-rc6-oos"))
+
+
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_oos_terminal_commit_survives_worker_loss_before_real_redis_ack(
+    exact_rc6_owner_request,
     pg_container,
     test_database_url: str | None,
     redis_url: str,
@@ -108,11 +332,49 @@ async def test_oos_terminal_commit_survives_worker_loss_before_real_redis_ack(
 ) -> None:
     """Production receipt-first worker reclaims a settled OOS Redis delivery."""
 
-    context, lookup, _resolver, _publisher, graph = _successful_context_and_lookup(
-        tmp_path / "oos-terminal", stable=False, with_graph=True
+    owner, graph, worker_request, process_result, owner_persistence, artifact_store = (
+        exact_rc6_owner_request
     )
-    owner_id = lookup.binding.owner_id
-    attempt_id = context.request.admission.attempt_id
+    owner_id = str(owner.id)
+    attempt_id = worker_request.admission.attempt_id
+    submission = SubmissionReceipt(
+        SubmissionRequest(
+            "exact-rc6-oos-terminal",
+            "backtest",
+            attempt_id,
+            content_digest({"attempt_id": attempt_id, "trial_id": graph.trial.trial_id}),
+            BASE,
+        ),
+        BASE,
+    )
+    entry = RedisStreamEntry(
+        "strategy-lab:v2:stream:backtest",
+        "1-0",
+        content_digest("exact-rc6-oos-terminal-message"),
+        attempt_id,
+        content_digest({"attempt_id": attempt_id}),
+        worker_request.request_fingerprint,
+    )
+    lookup = WorkerTerminalEvidenceLookup(
+        WorkerSubmissionBinding(owner_id, submission),
+        WorkerTerminalEvidenceInputs(
+            attempt_id,
+            submission,
+            ExecutionCommandContext(
+                replace(
+                    new_execution_outcome(submission.submission_id, attempt_id, accepted_at=BASE),
+                    sequence=1,
+                ),
+                replace(
+                    new_progress_state(attempt_id, total_units=1, now=BASE),
+                    sequence=1,
+                    phase=ProgressPhase.RUNNING,
+                ),
+            ),
+            None,
+        ),
+    )
+    context = WorkerCompletionContext(entry, worker_request, process_result, NOW)
     suffix = uuid4().hex
     schemas = (
         PostgresArtifactCommitSchema(f"slv2_oos_artifacts_{suffix}"),
@@ -189,10 +451,10 @@ async def test_oos_terminal_commit_survives_worker_loss_before_real_redis_ack(
                         SearchCandidatePhase.RUNNING,
                         attempt_id,
                         1,
-                        updated_at=NOW,
+                        updated_at=BASE,
                     ),
                 ),
-                updated_at=NOW,
+                updated_at=BASE,
             )
 
         async def load(self, *, principal: str, experiment_fingerprint: str):
@@ -259,7 +521,7 @@ async def test_oos_terminal_commit_survives_worker_loss_before_real_redis_ack(
         ) -> WorkerTerminalEvidenceLookup | None:
             if (
                 request_fingerprint != dispatch.fingerprint
-                or attempt_id != context.request.runtime_request.attempt_id
+                or attempt_id != worker_request.runtime_request.attempt_id
                 or payload_digest != context.entry.payload_digest
             ):
                 return None

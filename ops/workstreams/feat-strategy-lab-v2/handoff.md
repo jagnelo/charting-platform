@@ -14272,3 +14272,21 @@ closes the real PostgreSQL terminal + production receipt-first service + Redis
 reclaim seam, but the exact RC6 process has not yet been run inside this
 composition. Next replace the fixture result with the exact-pinned RC6 worker
 request and retain the same post-commit loss/no-second-launch assertions.
+
+## 2026-10-07 - Compose exact RC6 OOS native result with PostgreSQL/Redis reclaim
+
+The OOS terminal integration now builds the persisted-owner graph and exact
+authoritative RC6 `WorkerExecutionRequest`, runs the pinned native worker before
+the session-scoped PostgreSQL/Redis containers, and feeds that native result
+through the production PostgreSQL terminal adapter. It then simulates worker
+loss after durable terminal commit and proves receipt-first replay/ACK on a
+fresh Redis consumer with zero second process launches. The test also preserves
+outbox request identity separately from the worker request fingerprint and
+aligns the durable search candidate clock with the native process receipt.
+
+Validation: Docker-backed exact RC6 OOS PostgreSQL/Redis integration passed
+(1 test, 9.83s); Ruff, focused MyPy, and `git diff --check` passed. The combined
+native-to-terminal/reclaim gap is closed for the pinned local RC6 backtest
+scope. Remaining branch gates are the previously documented shared-path
+reconciliation and full-stack/browser profile; no stable Nautilus 2.x label is
+required for this local backtest proof.

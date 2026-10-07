@@ -1688,11 +1688,13 @@ worker/storage and API phases follow shared-path reconciliation, and the
 TC2000-native UI remains a separate authorization boundary.
 # Current validation boundary (2026-10-07)
 
-The authoritative persisted-owner/native Nautilus RC6 path is already exercised
-end-to-end by
-`app/strategy_lab_v2/tests/test_search_dispatch_preparation.py::test_persisted_owner_graph_composes_exact_authoritative_rc6_worker_request`:
-it hydrates persisted ownership, executes the pinned native worker, and feeds
-the resulting `WorkerProcessResolution` through terminal evidence and artifact
-publication. The remaining integration gap is specifically the PostgreSQL/
-Redis crash-replay fixture using that exact request instead of its current
-synthetic request fixture.
+The authoritative persisted-owner/native Nautilus RC6 path is exercised both
+in
+`app/strategy_lab_v2/tests/test_search_dispatch_preparation.py::test_persisted_owner_graph_composes_exact_authoritative_rc6_worker_request`
+and in the Docker-backed
+`backend/tests/integration/strategy_lab_v2/test_oos_terminal_postgres_redis.py::test_oos_terminal_commit_survives_worker_loss_before_real_redis_ack`
+integration. The latter composes the exact owner-hydrated request and native
+process result with the production PostgreSQL terminal adapter, durable result
+publication/completion/settlement, and Redis crash-reclaim ACK path; replay
+asserts that no second Nautilus process is launched. The combined OOS/native
+terminal boundary is therefore closed for the pinned RC6 backtest scope.
