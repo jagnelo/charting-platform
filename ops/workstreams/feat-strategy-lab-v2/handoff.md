@@ -14326,3 +14326,8 @@ runtime timed out with exit 124, while the affected forward-composition test
 completed in 1.30s when its executor boundary was bypassed. Production
 `asyncio.to_thread` offloading remains unchanged; no runtime-isolation behavior
 was weakened to accommodate the host runner.
+
+The package test harness now installs its already-locked uvloop dependency for
+both pytest-managed loops and direct `asyncio.run` tests. With authorized Unix
+socket permissions, the exact package suite passed 1,632 tests with one
+platform-appropriate skip in 28.89s; Ruff, MyPy, and diff checks also passed.
