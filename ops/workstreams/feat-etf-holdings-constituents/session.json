@@ -57,7 +57,7 @@
       "text": "A 30-day production shadow gate is documented as a post-integration/deployment acceptance step, targeting at least 95% eligible Tier 0 checks, no two consecutive missed freshness deadlines, and zero silent identity/schema/completeness violations."
     }
   ],
-  "active_session_id": "0bd23cfe-9271-4e5e-8621-db8985e62c75",
+  "active_session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
   "branch": "feat/etf-holdings-constituents",
   "claim": {
     "branch": "feat/etf-holdings-constituents",
@@ -70,10 +70,14 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
+  "current_blocker_latest": "The visual matrix is green (104/104) and the live ETF provider matrix completed with 535 passes, 11 classified issuer/access/transient skips, and 0 failures. AC7 still requires make validate-integration and exact-SHA CI. AC10 remains external because provider-platform 88132e9145a08d1c935a0111b3dba0fbd88bdff1 is not in staging and lacks ETF_HOLDINGS; AC14 remains post-integration observation. No human app/test action is required.",
   "dirty_paths": [
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
+    "frontend/tests/e2e/tc2000_visual.spec.ts-snapshots/study-lab-sandbox-error-gap-visual-1440p-125-linux.png",
+    "Makefile",
+    "frontend/tests/e2e/tc2000_visual.spec.ts"
   ],
   "docker": {
     "accounting_complete": true,
@@ -108,16 +112,15 @@
     "objective": "Advance feat/etf-holdings-constituents: Make ETF constituent availability truthful, cost-governed, resilient, and observable per symbol; integrate ETF holdings with the shared provider platform after it reaches staging; remediate the full fallback inventory in relevance order; and deliver tested monitoring and user-visible degradation behavior without silently treating SEC, stale, partial, or unverified data as current support.. Acceptance criteria: AC1: Durable ETF workstream state is current and internally consistent: the plan, handoff, provider-universe document, registry counts, audit counts, and next action agree at every checkpoint.; AC2: A complete provider-audit ledger accounts for every current fallback-only adapter key exactly once, uses the approved deterministic ranking, and records issuer-specific dated source evidence, disposition, and next action.; AC3: Every provider counted as native has a concrete provider-owned holdings route, provider-specific fetch entry point, strict parsing/mapping, truthful provenance and freshness, deterministic tests, and concrete opt-in live coverage.; AC4: Every provider remaining fallback-only has a current issuer-specific audit disposition; no fallback is silently promoted through SEC data and no generic unattempted discovery note is accepted as final evidence.; AC5: All 140 providers in the starting fallback population have been processed to either a verified native promotion or a defensible dated terminal/blocked disposition, with no missing, duplicate, or stale ledger entries.; AC6: ISSUER_ADAPTER_CONFIGS, FALLBACK_ISSUER_AUDITS, native/fallback counts, native adapter ownership, deterministic tests, live-provider coverage, documentation, and the provider-audit ledger satisfy exhaustive matrix invariants.; AC7: Focused checks, the complete deterministic adapter suite, default live contracts, the complete opt-in live provider matrix, Ruff, the Docker-backed full-integration gate, and exact-SHA CI are green or any genuine external outage is narrowly evidenced without misrepresenting validation.; AC8: The feature branch is clean and synchronized at an exact reviewed SHA, durable handoff and validation records are complete, and the workstream stops at ready_for_human_review without integration, promotion, deployment, or cross-worktree mutation.; AC9: Every tracked ETF symbol exposes an additive capability outcome; only complete, fresh, identity-verified current or successor-native data is marked usable_for_current_analysis, while SEC, stale, partial, failed, unreviewed, and unknown routes are explicit.; AC10: ETF holdings consumes the shared provider-platform entitlement, quota, health, availability, and aggregate 20 EUR/USD-equivalent monthly budget contracts; no duplicate generic provider runtime or unapproved paid activation exists.; AC11: The 75 current fallback identities are reassessed at symbol level in relevance order, with Tier 0 US ETFs receiving a completed free/zero-cost/cheap-source investigation and an explicit current, degraded, stale, unavailable, successor, or not-applicable outcome.; AC12: Bounded opt-in ETF canaries persist source, transport, schema, completeness, freshness, latency, failure-streak, circuit, and recovery evidence; route drift and stale data cannot silently serve as current holdings.; AC13: ETF API and UI surfaces distinguish current, degraded, stale, unavailable, not-applicable, and unknown holdings; historical snapshots remain inspectable with provenance and current-analysis flows reject non-current data unless a user explicitly selects historical evidence.; AC14: A 30-day production shadow gate is documented as a post-integration/deployment acceptance step, targeting at least 95% eligible Tier 0 checks, no two consecutive missed freshness deadlines, and zero silent identity/schema/completeness violations.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "ready",
-  "goal_state": "active",
-  "latest_checkpoint": "2026-10-07: ETF-owned deterministic suites remain green (739 backend tests, 17 frontend tests, Tier-0 safety invariants, provider-ledger invariants, and production build). The CI-equivalent visual run passed 101/104 with three stable 1080p Study Lab baseline deltas; the direct live matrix was diagnostically interrupted after serial issuer transport timeouts and is not acceptance evidence. Provider-platform 88132e9145a08d1c935a0111b3dba0fbd88bdff1 is still not an ancestor of staging 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35 and still lacks ETF_HOLDINGS. Goal remains active.",
-  "current_blocker_latest": "AC7 remains open for the three stable 1080p Study Lab visual baseline deltas and incomplete live-provider acceptance; AC10 remains external because provider-platform 88132e9145a08d1c935a0111b3dba0fbd88bdff1 is not in staging and lacks ETF_HOLDINGS; AC14 remains post-integration observation. Docker is available again and the CI-equivalent container comparison has already been completed. No human app/test action is required.",
+  "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "1f0e49a58519b99803fcb6dd7234ba49d7b3d86f",
-  "implementation_sha": "1f0e49a58519b99803fcb6dd7234ba49d7b3d86f",
-  "last_checkpoint": "2026-10-06T22:38:05+00:00",
+  "head": "1a2eff410876e2b83e69be7218195bff5755e4aa",
+  "implementation_sha": "1a2eff410876e2b83e69be7218195bff5755e4aa",
+  "last_checkpoint": "2026-10-07T14:37:00+00:00",
   "last_human_progress_update": "2026-10-06T18:53:15.533458+00:00",
+  "latest_checkpoint": "2026-10-07: Branch-owned full validation passes: make validate-integration completed with 154 functional E2E passes and 106 intentional skips, plus 104/104 visual cases at the unchanged 0.5% threshold. Backend coverage, 948 frontend unit tests, lint/types/build, Compose contracts, stack health, and research-runner probes passed. The app issue from unavailable crypto.randomUUID on HTTP was fixed for chart templates and watchlist column sets and has a focused regression test. The opt-in issuer matrix remains 535 passed, 11 classified skips, 0 failed; skipped issuer routes are not accepted. Branch commit/push and exact-SHA CI remain. AC10 remains external: provider-platform staging integration with ETF_HOLDINGS. AC14 remains post-integration 30-day observation.",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Local post-fix make validate-integration completed on 2026-10-06. Workstream/dependency checks, Ruff/format, TypeScript, backend coverage (1900 passed, 81.18%), frontend unit (947 passed, 82.09%), renderer/visual-policy checks, production build, Compose contracts, Docker health, and functional Playwright (154 passed, 106 expected skips) were green. The visual Playwright stage failed 92/104 screenshot comparisons at a 0.5% pixel tolerance across all four viewport/scale profiles; 12 passed. A representative default-shell comparison differed at 42,839 pixels (3%), with differences concentrated on text and fine UI edges across unrelated pages rather than ETF-specific layout. Local Playwright is 1.62.1 with validated Chromium; committed baselines include Linux and macOS. The local font resolver maps Segoe UI to DejaVu Sans and Arial to Nimbus Sans; the local gate installed Chromium without OS dependencies while CI explicitly uses `npx playwright install --with-deps chromium`. This makes a system-font/rendering dependency mismatch plausible, not proven. Docker is currently unavailable due permission denied on `/var/run/docker.sock`, preventing an isolated container comparison. GitHub connector returned no statuses or PR-triggered workflow runs for documentation receipt 4260b0d21a89048c63ae40a6548dbbd7f218dd6a, so exact-SHA CI for that receipt is unverified. Do not regenerate snapshots or relax thresholds. Next reproduce the visual suite in an isolated CI-equivalent Linux font/browser environment without modifying the host; only adjust a product style if that controlled comparison shows an actual regression. Then rerun the full local gate, require exact-SHA CI, and make the branch clean/synchronized for review. No human app/test action is required. AC10 awaits provider-platform staging; AC14 is the post-integration/deployment 30-day observation.",
+  "next_action": "Commit and push the verified ETF branch changes, then verify exact-SHA CI. Do not mutate staging or the provider-platform worktree; AC10 and AC14 remain external dependencies.",
   "plan_hash": "60a8039ed1eba544637c0203b6b6087dc5d86a02c659b30329c45667c3bd37f4",
   "planning_required": false,
   "planning_state": "ready",
@@ -127,7 +130,8 @@
     "e83b4e4f-2c58-4ace-949e-cbd7155927e5",
     "70226446-14cf-41f6-828c-abe83c833146",
     "2fcd05d8-12db-42ac-8cb6-83d9db9efafa",
-    "2adafcab-638d-45ad-ab31-e3c6c7ef135a"
+    "2adafcab-638d-45ad-ab31-e3c6c7ef135a",
+    "0bd23cfe-9271-4e5e-8621-db8985e62c75"
   ],
   "progress": {
     "completed": [
@@ -142,17 +146,17 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for; provider state remains 496 registered / 422 native / 74 fallback-only. AC1-6 and AC9/11-13 remain complete. Pathfinder's stale-bundle route is repaired at source commit 1f0e49a58519b99803fcb6dd7234ba49d7b3d86f. Exact-SHA CI run 37534275408 on feature receipt 910f2222c931acbb5b829a7b3bfce97375101717 passed backend, frontend, provider matrix (523 passed, 23 classified skips), and hosted Playwright; exhaustive integration is intentionally skipped on feature branches. The local post-fix full gate passed backend (1900/1900, 81.18%), frontend (947/947, 82.09%), builds, stack health, and functional Playwright (154 passed, 106 expected skips), but visual screenshots failed 92/104 at the repository's 0.5% tolerance across all four viewport/scale profiles; 12 passed. A representative shell image differs at 3% of pixels, with text/fine-edge deltas across unrelated pages. Local `fc-match` maps Segoe UI to DejaVu Sans and Arial to Nimbus Sans; CI installs Playwright OS dependencies, unlike the local browser-only install, so font/rendering mismatch is plausible but unproven. Docker socket permission denied currently prevents a disposable CI-equivalent container comparison. No application CSS, visual snapshot, or threshold changed. GitHub connector returned no statuses or PR-triggered workflow runs for documentation receipt 4260b0d21a89048c63ae40a6548dbbd7f218dd6a; its exact-SHA CI is unverified. AC7/AC8 remain open until the rendering delta is isolated, the required gate is green, exact-SHA CI is verified, and the branch reaches a clean/synchronized ready-for-review checkpoint. The runner's isolated memory-cgroup probe reported contained status 137 without a host-wide OOM finding. ETF-only Docker resources were cleaned up; unrelated stacks were not touched. AC10 needs provider-platform staging; AC14 is the post-integration/deployment 30-day observation. No human app/test action is required.",
-    "current_phase": "pathfinder_v5_repaired_hosted_ci_green_local_gate_visual_baseline_delta_2026_10_06",
-    "next_action": "The isolated CI-equivalent Playwright run completed 101/104: all 1440p cases and the broad shell/workspace/freshness cases passed; only three 1080p Study Lab screenshots remain above 0.5% (structured-result 100%, sandbox-error 100% and 125%). Treat the host-vs-container font/rendering difference as confirmed for the original broad failure pattern, but do not change snapshots, CSS, or thresholds for the three residual deltas without a demonstrated cause. Next reproduce those three in the hosted CI environment or inspect their exact text/chart-label raster differences, then rerun the required full gate and exact-SHA CI before the clean ready-for-human-review checkpoint. AC10 awaits provider-platform staging and AC14 requires 30-day post-integration observation. Do not ask the human to run the app or tests.",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for; provider state remains 496 registered / 422 native / 74 fallback-only. AC1-6 and AC9/11-13 remain complete. The full branch-owned integration gate now passes, including functional E2E (154 passed, 106 intentional skips) and visual parity (104/104 at unchanged 0.5% threshold); the focused UUID-fallback regression test and TypeScript check also pass. The opt-in issuer matrix remains 535 passed, 11 classified issuer/access/transient skips, and 0 failed; skipped routes remain unverified, not promoted. AC7 awaits commit/push and exact-SHA CI. AC10 remains external because provider-platform is not in staging and lacks ETF_HOLDINGS. AC14 is the post-integration/deployment 30-day observation. No human app/test action is required.",
+    "current_phase": "branch_local_full_integration_green_exact_sha_ci_pending_2026_10_07",
+    "next_action": "Commit and push this branch's verified work, then verify exact-SHA CI. Do not mutate staging or the provider-platform worktree. Preserve the 11 issuer skips as unverified. AC10 awaits provider-platform staging with ETF_HOLDINGS; AC14 is a post-integration 30-day production observation.",
     "total": 14,
-    "updated_at": "2026-10-07T00:17:00+00:00"
+    "updated_at": "2026-10-07T14:37:00+00:00"
   },
-  "remote": "1f0e49a58519b99803fcb6dd7234ba49d7b3d86f",
-  "remote_sha": "1f0e49a58519b99803fcb6dd7234ba49d7b3d86f",
+  "remote": "1a2eff410876e2b83e69be7218195bff5755e4aa",
+  "remote_sha": "1a2eff410876e2b83e69be7218195bff5755e4aa",
   "remote_synchronized": true,
   "schema": 2,
-  "session_id": "0bd23cfe-9271-4e5e-8621-db8985e62c75",
+  "session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
   "state": "checkpointed",
   "takeover_history": [
     {
@@ -184,6 +188,12 @@
       "displaced_session_id": "2adafcab-638d-45ad-ab31-e3c6c7ef135a",
       "new_session_id": "0bd23cfe-9271-4e5e-8621-db8985e62c75",
       "reason": "Human authorization: resume the existing saved ETF holdings goal and continue autonomously in its assigned worktree."
+    },
+    {
+      "at": "2026-10-07T10:40:26.845077+00:00",
+      "displaced_session_id": "0bd23cfe-9271-4e5e-8621-db8985e62c75",
+      "new_session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
+      "reason": "Human authorization: fix the identified failing gates on this branch and continue autonomously in its assigned worktree."
     }
   ],
   "validation_tier": "full_integration",

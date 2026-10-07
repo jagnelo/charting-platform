@@ -721,6 +721,10 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ versions: [{ id: 777 }] }) })
     })
     await page.route(/\/api\/v1\/research\/runs$/, async route => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+        return
+      }
       if (route.request().method() !== 'POST') return route.continue()
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(runningRun) })
     })
@@ -728,7 +732,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(runningRun) })
     })
     await page.goto('/chart')
-    await expect(page.locator('.workstation')).toBeVisible()
+    await waitForShellReady(page)
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
     await page.getByRole('button', { name: 'Study', exact: true }).click()
     const study = page.locator('.study-lab-tool')
@@ -742,6 +746,8 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(study.locator('.study-lab-tool__run-status--running')).toBeVisible({ timeout: 10_000 })
     await expect(study).toContainText('running 12/100')
     await expect(study.getByRole('button', { name: 'Cancel', exact: true })).toBeVisible()
+    await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 15_000 })
+    await expect(page.getByRole('region', { name: 'Study Lab research results' })).toContainText('No persisted studies yet.')
     await expect(page).toHaveScreenshot('study-lab-running-gap.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -843,6 +849,10 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ versions: [{ id: 779 }] }) })
     })
     await page.route(/\/api\/v1\/research\/runs$/, async route => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+        return
+      }
       if (route.request().method() !== 'POST') return route.continue()
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(failedRun) })
     })
@@ -870,6 +880,8 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await warnings.locator('summary').click()
     await expect(warnings).toContainText('run was terminated')
     await expect(study).toContainText('Rerun snapshot')
+    await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 15_000 })
+    await expect(page.getByRole('region', { name: 'Study Lab research results' })).toContainText('No persisted studies yet.')
     await expect(page).toHaveScreenshot('study-lab-sandbox-error-gap.png', {
       animations: 'disabled',
       caret: 'hide',

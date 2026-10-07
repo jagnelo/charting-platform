@@ -47,6 +47,24 @@ describe('ChartTemplateControl', () => {
     expect(apiPut.mock.calls[0][1].payload.configuration).not.toHaveProperty('symbol')
   })
 
+  it('can save a template when randomUUID is unavailable in an insecure browser context', async () => {
+    vi.stubGlobal('crypto', {})
+    const wrapper = mount(ChartTemplateControl, { props: { configuration: { symbol: 'SPY' } } })
+    await wrapper.get('button[aria-label="Chart templates"]').trigger('click')
+    await wrapper.get('[aria-label="Chart template name"]').setValue('HTTP template')
+    await wrapper.get('.chart-template__save button').trigger('click')
+
+    try {
+      expect(apiPut).toHaveBeenCalledWith(
+        expect.stringMatching(/\/chart_template\/http-template-[a-z0-9-]+$/),
+        expect.any(Object),
+      )
+    } finally {
+      wrapper.unmount()
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('publishes a saved indicator stack for the active chart without template identity', async () => {
     apiGet.mockResolvedValueOnce([{
       stable_key: 'trend-20', name: 'Trend 20', version: 3,

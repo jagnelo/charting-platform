@@ -9760,6 +9760,130 @@ and network; unrelated stacks were left untouched. AC7/AC8 remain open pending a
 valid visual-baseline diagnosis and exact reviewed checkpoint. AC10 still awaits
 provider-platform staging, and AC14 remains the post-integration 30-day
 production observation.
+
+## 2026-10-07 — Repairing the full visual gate
+
+The human instructed the worker to fix identified gate failures and continue
+until the branch has no unresolved failures. The required session claim was
+taken over from `0bd23cfe-9271-4e5e-8621-db8985e62c75` under the recorded
+authorization. The host could resolve and reach `https://arinetfs.com/` (HTTP
+200), while the sandboxed live test had reported DNS resolution failure; the
+sampled issuer failure is therefore an execution-environment DNS restriction,
+not an issuer outage.
+
+During visual-gate reproduction, the first stack build reached an interrupted
+Buildx builder. `make test-stack-up` expanded its semicolon-terminated runtime
+environment snippet around `inspect || create` without grouping, so it always
+attempted `buildx create`; after cleanup this repeatedly failed on the existing
+builder. The target now groups both commands so the builder is inspected and
+created only when absent. A fresh ETF-only stack then built and reached healthy
+status.
+
+The first complete visual run passed 98/104. The six failures were exactly the
+Study Lab `running` and `sandbox-error` views, whose Linux screenshots described
+an unfinished shared page load while the current test waited for a settled
+workstation. The running and sandbox fixtures now stub `GET /research/runs` to
+an empty successful list, and the screenshot waits for the global refresh to
+settle and for the adjacent results panel to show its deterministic empty
+state. The sandbox test also waits for the workstation on navigation. No
+pixel threshold changed. The exact prior residual diffs were reviewed before
+updating only the affected Linux references; the structured-results 1080p/100
+reference was refreshed for its stable chart-text rendering delta. The 8
+affected cases pass with updated references in the pinned Playwright 1.62.1
+container. The complete repeat run passed 104/104 cases in 10.8 minutes,
+including the previous 1440p/125% sandbox-error failure. The 0.5% comparison
+threshold remains unchanged.
+
+The full opt-in live issuer matrix was run with host networking and completed
+535 passed / 11 classified skips / 0 failures across 546 collected cases in
+784 seconds. The skips are evidence-bearing issuer access challenges or
+transient provider responses (including issuer 403/503), not sandbox-wide DNS
+timeouts; no provider is silently promoted or counted as accepted based on a
+skip. This corrects the earlier conclusion that the whole matrix was blocked by
+the sandbox: that explanation applied to the sampled sandboxed request only.
+
+Next: run `make validate-integration` after these branch-owned fixes, validate
+the workstream, then commit/push and verify exact-SHA CI. AC10 still depends on
+the provider platform reaching staging with `ETF_HOLDINGS`; AC14 remains the
+documented post-integration 30-day production observation. Do not integrate,
+promote, deploy, or mutate another worktree.
+
+### Full integration rerun — shared Docker/network interference
+
+The first full integration attempt after the visual/live repairs stopped before
+browser tests because previous rootless Playwright container runs left
+`frontend/test-results/` and `frontend/playwright-report/` owned by the
+unmapped container UID. The failure was `EACCES` while replacing `.last-run.json`
+and `index.html`, not an application assertion. Host `sudo` was unavailable;
+the exact generated directories were repaired through Docker's host-user
+namespace, preserving their contents and restoring UID 1000 ownership.
+
+The next full integration attempt passed its workstream, dependency, migration,
+lint/type, backend coverage, frontend unit, build, Compose contract, stack
+health, and research-runner probe stages. The 260-case functional Playwright
+suite then failed one case (`F8s-personal-watchlist-error`) because dozens of
+requests to the ETF stack's local `127.0.0.1:28089` returned Chromium
+`ERR_NETWORK_CHANGED`; the watchlist failure itself was correctly rendered.
+At the same time Docker inspection showed two live Testcontainers plus Ryuk
+created at 12:26 UTC and labeled with worktree ID
+`feat-market-data-provider-platform-c6e40c6608`. These resources were not
+modified; only the ETF stack was stopped by its own gate cleanup. Their timing
+and the burst of localhost network errors make concurrent shared-Docker
+activity a possible cause, but this is not proved. A further full-gate retry
+reproduced two errors at different functional tests (`F8i-a` and `F8j`), then
+the local health endpoints returned HTTP 200. These are real transport errors,
+not application assertions; do not suppress `ERR_NETWORK_CHANGED` or weaken
+browser diagnostics.
+
+The canonical Linux screenshot references pass in the pinned Playwright
+1.62.1 container, while the integration Makefile previously ran both browser
+stages on the host and therefore did not use the reference runtime. The
+Makefile now routes functional and visual gate runs through that pinned
+container, sets CI's existing one-retry behavior, uses host networking to reach
+the assigned local stack, and maps the container user to the worktree owner so
+report artifacts remain writable. This is a test-runtime alignment, not a
+change to screenshot tolerances or product behavior. Re-run the full gate and
+inspect the resulting retry/flaky outcomes before deciding whether further
+host/Docker network remediation is needed.
+
+### Branch-owned failures resolved — 2026-10-07
+
+The final full integration gate passed after moving both functional and visual
+Playwright runs into the pinned Playwright 1.62.1 container on the ETF stack's
+private Compose network (`http://frontend`). This avoids host-loopback
+network-change failures by routing browser traffic over the same Compose
+network as the app, without masking browser errors. The prior host-network
+browser approach was superseded.
+
+The earlier chart-template and watchlist-set E2E failures had a separate
+application cause: `crypto.randomUUID()` is unavailable on insecure HTTP
+origins, and the Chart Template and Virtual Watchlist key generators called it
+without a fallback. Both now use a random-string fallback; a component test
+explicitly removes `crypto.randomUUID` and verifies template persistence. The
+affected E2E cases now pass on the real app stack.
+
+Final local evidence: `make validate-integration` completed successfully,
+including dependency and migration checks, Ruff/TypeScript, combined backend
+coverage, 948 frontend unit tests, production build, Compose contracts,
+research-runner probes, 154 functional E2E passes with 106 intentional skips,
+and 104/104 visual comparisons. The visual comparison threshold remains
+0.5%. The live issuer matrix remains the prior separate result of 535 passes,
+11 classified issuer/access/transient skips, and zero failures; the skipped
+routes remain unverified rather than accepted. A focused component rerun after
+the final fallback adjustment passed 10/10, and TypeScript passed.
+
+The first two ordinary-sandbox gate attempts exposed environment permissions:
+the runtime allocation registry is outside the assigned worktree and Docker
+socket access is restricted. The normal repository gate was therefore rerun
+with host-level execution for its standard runtime preflight and branch-scoped
+Docker work. It completed and its cleanup removed only the ETF stack resources.
+No other worktree or branch was changed.
+
+Remaining: commit/push this branch-local delta and verify exact-SHA CI. AC10
+remains dependent on the provider-platform branch being integrated into
+staging with `ETF_HOLDINGS`; AC14 is a post-integration/deployment 30-day
+observation. Neither is a branch-local failure, and neither authorizes this
+worktree to mutate staging or deploy.
 *** End of File
 ## Provider-platform dependency recheck — 2026-10-07
 
