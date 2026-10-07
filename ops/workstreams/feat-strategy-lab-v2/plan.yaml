@@ -890,18 +890,18 @@ progress:
     No Nautilus release or implementation dependency blocks the local backend:
     exact-pinned Nautilus 2.0.0rc6 passed the required conformance scopes, and
     the native OOS request now crosses PostgreSQL terminal settlement and Redis
-    crash-reclaim ACK with no second engine launch. Remaining work is branch
-    acceptance rather than an engine-version wait: authenticated live Compose
-    transfer, broader worker/forward crash-restart evidence, security and
-    scaling gates, and exact-tip/full-stack validation. Provider-platform,
+    crash-reclaim ACK with no second engine launch. Forward event/terminal
+    recovery, worker-fleet leases, and branch-owned security/isolation/scaling
+    slices are also green. Remaining work is branch acceptance rather than an
+    engine-version wait: authenticated live Compose transfer and exact-tip/full-
+    stack validation. Provider-platform,
     ETF, and TC2000 contracts remain owned by their branches; shared router,
     migration, and provider-decoder reconciliation must wait for their staged
     contracts. Existing browser failures are in the parallel TC2000-owned
     surfaces, not this backend package.
   next_action: >-
     Continue branch-owned acceptance with authenticated live Compose curve
-    transfer and PostgreSQL/Redis forward-worker restart/stop evidence, then
-    run the exact-tip backend and security/scaling gates. Preserve engine-neutral
+    transfer, then run the exact-tip backend and full-stack gates. Preserve engine-neutral
     SDK boundaries, owner isolation, durable receipt-before-ACK semantics, and
     fail-closed unsupported products. Reconcile shared router/migration,
     provider-decoder, ETF, and TC2000 paths only after their approved branches
