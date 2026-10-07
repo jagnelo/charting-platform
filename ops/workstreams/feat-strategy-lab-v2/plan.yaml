@@ -887,88 +887,22 @@ progress:
       - backend/tests/integration/strategy_lab_v2/test_walk_forward_phase_recovery_postgres.py
     status: in_progress
   current_blocker: >-
-    No external or upstream Nautilus dependency blocks implementation. Stable
-    release labeling is not a gate; exact-pinned Nautilus 2.0.0rc6 passed all
-    four authoritative local-backtest conformance checks and the fifth
-    forward-event-tape parity check in its isolated image. The branch-declared
-    package and migration suites pass, package Ruff/MyPy are green, and the
-    owner-scoped curve-download path is committed with digest/length checks,
-    bounded streaming, active-pin authorization, and post-stream mutation
-    verification. The branch-scoped Compose stack built and all six services
-    became healthy; the registered route returned 401 to an unauthenticated
-    live request. An authenticated PostgreSQL-backed FastAPI ASGI integration
-    now streams persisted content-addressed artifact bytes, verifies
-    digest/length, and rejects foreign owners, released pins, and corrupted
-    bytes. Live Compose authentication with the production user/session
-    binding remains unproven. The full 260-case browser run ended 138 passed, 109 skipped,
-    13 failed, primarily in existing chart/Study Lab v1 surfaces owned by the
-    parallel frontend workstream. Those failures keep full-stack acceptance
-    open but do not block independent backend implementation. The authenticated
-    production plan now proves deterministic replay after
-    process loss, durable settlement and ACK, and fresh-process continuation
-    from its authenticated prior-event prefix. Forward event handoffs now renew
-    their persisted lease while processing and retry without releasing capacity
-    if heartbeat evidence fails. Forward activation/resume now discovers the
-    exact runtime's local worker fleet, reserves one replica and persists its
-    lease before lifecycle transition; pause/stop releases it, while the
-    isolated worker registers its hostname-bound profile and renews active
-    instance leases. These are separate durable adapter transactions, so
-    retries reconcile an interrupted activation; broader crash/recovery
-    evidence remains open. Worker heartbeats now also dispose cached Nautilus
-    sessions whose durable reservation ended, with targeted lifecycle tests;
-    real PostgreSQL/Redis shutdown/restart evidence remains open. The curve
-    download path is owner-bound to the persisted metric sidecar and active
-    retention pin; focused success/error/integrity tests pass, as does the
-    PostgreSQL-backed ASGI integration. Its live Compose route has so far been
-    exercised only as an unauthenticated request.
-    The active walk-forward proof now uses PostgreSQL-backed domain/result
-    persistence, authoritative RC6 trial preparation, worker admission,
-    atomic OOS dispatch/outbox staging, and Redis publisher replay after a
-    simulated crash before PostgreSQL outbox acknowledgement. A fresh adapter
-    replays the same attempt/dispatch and PostgreSQL acknowledges exactly one
-    published outbox message. OOS terminal receipt replay now runs before
-    worker lease preflight/process execution through the shared recovery
-    application. A crash-window worker test proves a settled Redis redelivery
-    ACKs with one process invocation; exact RC6 OOS execution/result
-    materialization and PostgreSQL worker recovery integrations also pass.
-    A new integration proves PostgreSQL OOS terminal adapters persist and
-    replay result publication/completion/manifest/metrics/artifact commits/
-    worker settlement before the production worker service ACKs a reclaimed
-    delivery from its pre-execution `terminal_replay_reader`. The reader uses
-    `WorkerRecoveryApplication.complete_terminal_if_persisted`, and an
-    instrumented process executor confirms Nautilus is not launched on replay.
-    Terminal result, completion, worker lease/capacity, and settlement ports
-    use PostgreSQL; the worker result is a deterministic OOS fixture and the
-    search-dispatch/search-state test ports are in-memory. Exact RC6 execution
-    remains a separate proof and is not yet composed into this path.
-    This session reran the exact RC6 authoritative OOS worker request and the
-    separate exact-RC6 + PostgreSQL + real-Redis forward crash/reclaim
-    integration successfully. These remain adjacent proofs, not yet one
-    actual-RC6 walk-forward OOS test crossing PostgreSQL terminal result
-    settlement through the production receipt-first worker path with real Redis
-    consumer restart/reclaim. Broader worker/Compose restart
-    evidence and full backtest/search/API/security/Compose criteria remain,
-    along with exact-tip branch gates.
-    The earlier forward-bootstrap artifact/plan composition slice remains
-    incomplete; its production host composition and database/Redis crash
-    recovery evidence remain in the broader acceptance scope.
-    Provider-platform, ETF, and TC2000 contracts remain owned by their
-    branches; unsupported options remain fail-closed pending canonical
-    Greeks/delta/settlement evidence.
+    No Nautilus release or implementation dependency blocks the local backend:
+    exact-pinned Nautilus 2.0.0rc6 passed the required conformance scopes, and
+    the native OOS request now crosses PostgreSQL terminal settlement and Redis
+    crash-reclaim ACK with no second engine launch. Remaining work is branch
+    acceptance rather than an engine-version wait: authenticated live Compose
+    transfer, broader worker/forward crash-restart evidence, security and
+    scaling gates, and exact-tip/full-stack validation. Provider-platform,
+    ETF, and TC2000 contracts remain owned by their branches; shared router,
+    migration, and provider-decoder reconciliation must wait for their staged
+    contracts. Existing browser failures are in the parallel TC2000-owned
+    surfaces, not this backend package.
   next_action: >-
-    Replace the deterministic OOS result in the PostgreSQL/Redis
-    receipt-first integration with output from the exact-pinned RC6 worker
-    request. Retain production PostgreSQL terminal adapters, the worker
-    service, and WorkerRecoveryApplication. Inject loss after PostgreSQL
-    terminal settlement but before ACK, then prove the restarted consumer ACKs
-    from the matching durable completion/settlement without running Nautilus
-    again. Preserve training-only selection, stable attempt identity, and
-    owner isolation.
-    Then continue backtest/search, security,
-    Compose and exact-tip criteria. Reconcile the 13 browser failures only after the
-    frontend owner has completed its work and shared-path semantics can be
-    reviewed together. Finish security, Compose scaling, and exact-tip gates.
-    Shared router registration, migrations, and overlapping upstream paths
-    remain gated on line-level staging reconciliation.
-    Provider-owned frozen-series decoder composition remains upstream-dependent;
-    unsupported products stay fail-closed.
+    Continue branch-owned acceptance with authenticated live Compose curve
+    transfer and PostgreSQL/Redis forward-worker restart/stop evidence, then
+    run the exact-tip backend and security/scaling gates. Preserve engine-neutral
+    SDK boundaries, owner isolation, durable receipt-before-ACK semantics, and
+    fail-closed unsupported products. Reconcile shared router/migration,
+    provider-decoder, ETF, and TC2000 paths only after their approved branches
+    reach staging; do not duplicate those contracts here.
