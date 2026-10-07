@@ -14319,3 +14319,10 @@ both the main and RPI Compose files successfully, and the schema migration
 compatibility gate completed with no migration delta since the recorded base.
 The complete package run remains intentionally unclaimed because it stalls at
 30% under the bounded runner with no terminal pytest result.
+
+The stall was isolated to the execution environment: a trivial
+`asyncio.run(asyncio.to_thread(lambda: 1))` under the repository UV/Python
+runtime timed out with exit 124, while the affected forward-composition test
+completed in 1.30s when its executor boundary was bypassed. Production
+`asyncio.to_thread` offloading remains unchanged; no runtime-isolation behavior
+was weakened to accommodate the host runner.
