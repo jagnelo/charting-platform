@@ -43377,6 +43377,40 @@ class ProcureHoldingsAdapter(IssuerCsvHoldingsAdapter):
         headers["Referer"] = "https://procureetfs.com/"
         return headers
 
+    async def _discover_source_url_from_product_page(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None,
+        identifiers: dict[str, str],
+    ) -> str | None:
+        product_page_url = self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if not product_page_url:
+            return None
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+
+        # ProcureAM repeats its latest CSV in a footer link whose upload-directory
+        # month can lag the actual file. Prefer the product page's dedicated table
+        # link, and fail closed if that marked section has no usable file.
+        table_links = re.search(
+            r'<div\b[^>]*class=["\'][^"\']*\bufo-tables-links\b[^"\']*["\'][^>]*>(.*?)</div\s*>',
+            response.text,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        if table_links:
+            return _discover_holdings_download_url(product_page_url, table_links.group(1))
+        return _discover_holdings_download_url(product_page_url, response.text)
+
     async def fetch_latest(
         self,
         *,

@@ -28229,8 +28229,11 @@ async def test_procure_adapter_discovers_current_holdings_csv_from_product_page(
     FakeAsyncClient.queue = [
         FakeResponse(
             text=(
-                '<a href="https://procureetfs.com/wp-content/uploads/2026/06/'
-                'UFO-JP-Holdings-Jun-12-2026.csv">Download All Holdings (.xls)</a>'
+                '<div class="ufo-tables-links">'
+                '<a href="https://procureetfs.com/wp-content/uploads/2026/10/'
+                'UFO-JP-Holdings-Oct-07-2026.csv">Download All Holdings (.xls)</a>'
+                '</div><footer><a href="https://procureetfs.com/wp-content/uploads/2026/09/'
+                'UFO-JP-Holdings-Oct-07-2026.csv">here</a></footer>'
             ),
             content_type="text/html",
         ),
@@ -28238,9 +28241,9 @@ async def test_procure_adapter_discovers_current_holdings_csv_from_product_page(
             text="\n".join(
                 [
                     "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag",
-                    "06/12/2026,UFO,RKLB,773121108,Rocket Lab Corp,617581,114.78,70885947.18,6.40%,1107289600,19625000,785,",
-                    "06/12/2026,UFO,MDA CN,BMZ0WL3,MDA Space Ltd,1363203,57.05,55481170.79,5.01%,1107289600,19625000,785,",
-                    "06/12/2026,UFO,USD,,US DOLLAR,1000,1,1000,0.01%,1107289600,19625000,785,1",
+                    "10/07/2026,UFO,RKLB,773121108,Rocket Lab Corp,617581,114.78,70885947.18,6.40%,1107289600,19625000,785,",
+                    "10/07/2026,UFO,MDA CN,BMZ0WL3,MDA Space Ltd,1363203,57.05,55481170.79,5.01%,1107289600,19625000,785,",
+                    "10/07/2026,UFO,USD,,US DOLLAR,1000,1,1000,0.01%,1107289600,19625000,785,1",
                 ]
             ),
             content_type="text/csv",
@@ -28252,7 +28255,7 @@ async def test_procure_adapter_discovers_current_holdings_csv_from_product_page(
 
     assert FakeAsyncClient.requested[0][0] == "https://procureetfs.com/ufo/"
     assert FakeAsyncClient.requested[1][0] == (
-        "https://procureetfs.com/wp-content/uploads/2026/06/" "UFO-JP-Holdings-Jun-12-2026.csv"
+        "https://procureetfs.com/wp-content/uploads/2026/10/" "UFO-JP-Holdings-Oct-07-2026.csv"
     )
     assert FakeAsyncClient.requested[1][1]["headers"]["Referer"] == "https://procureetfs.com/"
     assert len(result.rows) == 3
@@ -28268,7 +28271,32 @@ async def test_procure_adapter_discovers_current_holdings_csv_from_product_page(
     assert result.rows[2].row_type == "cash"
     assert result.rows[2].symbol is None
     assert result.legal_metadata["route_resolution"] == "issuer_product_page_discovery"
-    assert result.legal_metadata["composition_date"] == "2026-06-12"
+    assert result.legal_metadata["composition_date"] == "2026-10-07"
+
+
+@pytest.mark.asyncio
+async def test_procure_adapter_does_not_fall_back_to_stale_footer_link(monkeypatch):
+    adapter = get_holdings_adapter("procuream")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<div class="ufo-tables-links"><span>No current file</span></div>'
+                '<footer><a href="https://procureetfs.com/wp-content/uploads/2026/09/'
+                'UFO-JP-Holdings-Oct-07-2026.csv">here</a></footer>'
+            ),
+            content_type="text/html",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="needs issuer route metadata"):
+        await adapter.fetch_latest(symbol="UFO")
+
+    assert len(FakeAsyncClient.requested) == 1
+    assert FakeAsyncClient.requested[0][0] == "https://procureetfs.com/ufo/"
 
 
 @pytest.mark.asyncio

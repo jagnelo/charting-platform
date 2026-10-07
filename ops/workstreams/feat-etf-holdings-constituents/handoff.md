@@ -9898,3 +9898,32 @@ branch remains at its own clean synchronized tip and continues to carry the
 current 496 registered / 422 native-live-backed / 74 fallback-only baseline;
 older provider-count entries below are historical checkpoint records, not
 current state.
+
+### ProcureAM UFO live-route drift — 2026-10-07
+
+The push-triggered CI run for exact commit
+`310e970b749937546d0f614b2f74b694ce59c693` passed backend tests, frontend unit
+tests, and the complete Playwright E2E job, but its branch-declared test job
+found one live-provider failure. ProcureAM's UFO product page contained two
+links to the same `UFO-JP-Holdings-Oct-07-2026.csv`: the current CSV under
+`/2026/10/` inside the product's `ufo-tables-links` section, and a stale footer
+duplicate under `/2026/09/`. Generic URL scoring resolved the tie
+lexicographically and selected the stale path (HTTP 404). Read-only checks
+confirmed the current table URL returns HTTP 200 and the footer URL returns
+HTTP 404.
+
+`ProcureHoldingsAdapter` now selects from the dedicated product-table section
+first, and fails closed if the marked section exists but has no usable holdings
+file; it only uses generic page discovery if the section is absent. The
+deterministic adapter tests now include both current and stale duplicate URLs,
+verify selection of the current one, and verify fail-closed behavior when the
+marked section has no current file. Post-fix checks: all 611 ETF adapter unit
+tests passed; Ruff passed; the isolated live UFO case passed; and the full
+546-case live matrix completed with 532 passes, 14 classified skips, and zero
+failures. Skips remain route-specific unverified evidence, not acceptance.
+
+The exact-commit CI result for `310e970b` is mixed (the live-route failure
+above; E2E passed). Commit and push this ProcureAM repair, then verify new
+exact-SHA CI. The full local Docker integration gate was green before this
+provider-specific repair; CI will retest the repaired adapter and all E2E tests.
+AC10 and AC14 remain external as described above.
