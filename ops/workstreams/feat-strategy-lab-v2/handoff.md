@@ -14290,3 +14290,8 @@ native-to-terminal/reclaim gap is closed for the pinned local RC6 backtest
 scope. Remaining branch gates are the previously documented shared-path
 reconciliation and full-stack/browser profile; no stable Nautilus 2.x label is
 required for this local backtest proof.
+
+## 2026-10-07 - Revalidate exact RC6 forward recovery
+
+The branch-owned exact RC6 forward recovery integration also passes against real
+PostgreSQL and Redis (`test_exact_rc6_forward_recovery_settles_postgres_then_acks_redis_without_rerun`, 1 passed in 10.28s). It verifies durable forward settlement before Redis ACK, process-loss/reclaim replay without a second Nautilus launch, and continuation from the committed checkpoint. This narrows the remaining forward gap to broader Compose/live-authentication and race/restart coverage rather than the qualified RC6 process or core receipt-before-ACK protocol.
