@@ -14301,3 +14301,7 @@ The branch-owned isolation/scaling regression slice also passed 35 tests in
 and read-only constraints, Compose replica identity, and forward worker fleet
 assignment/lifecycle. These gates are green; no source change was required for
 this validation slice.
+
+The broader PostgreSQL/Redis forward-worker acceptance slice passed 3 tests in
+5.33s: forward event recovery, worker terminal recovery, and worker-fleet
+reservation/lease behavior. These restart/reclaim and capacity gates are green.
