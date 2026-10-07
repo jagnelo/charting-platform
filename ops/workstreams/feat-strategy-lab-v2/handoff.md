@@ -14305,3 +14305,11 @@ this validation slice.
 The broader PostgreSQL/Redis forward-worker acceptance slice passed 3 tests in
 5.33s: forward event recovery, worker terminal recovery, and worker-fleet
 reservation/lease behavior. These restart/reclaim and capacity gates are green.
+
+The branch-scoped live Compose stack also proved authenticated curve transfer:
+the real FastAPI/PostgreSQL deployment accepted a disposable JWT, resolved
+owner-scoped native metric and retention-pin state, and streamed the exact
+content-addressed artifact from the shared Docker volume. The HTTP response was
+200 with matching 43-byte content length, digest, ETag, private-cache policy,
+and native curve media/schema headers. The stack was then torn down with only
+branch-owned resources removed.
