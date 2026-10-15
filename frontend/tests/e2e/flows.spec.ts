@@ -212,13 +212,34 @@ test.describe('Chart', () => {
     await expect(boxSize).toHaveValue('5')
     await expect(reversal).toHaveValue('2')
 
-    const resetRequest = page.waitForRequest(request => request.url().includes('/ohlcv/SPY/D1/transformed') && request.url().includes('bar_type=point_figure') && !request.url().includes('box_size=') && !request.url().includes('reversal='))
-    // Clearing box size blurs it when the reversal field is edited, so install
-    // the observer before the first clear rather than after that change fires.
+    const resetSaved = page.waitForResponse(response => {
+      const request = response.request()
+      if (!response.ok() || request.method() !== 'PUT' || !new URL(request.url()).pathname.endsWith('/snapshot')) return false
+      const snapshot = request.postDataJSON() as { tabs?: { windows?: { instance_key?: string; configuration?: Record<string, unknown> }[] }[] }
+      return snapshot.tabs?.some(tab => tab.windows?.some(window =>
+        window.instance_key === 'primary-chart'
+        && window.configuration?.bar_type === 'point_figure'
+        && !('box_size' in window.configuration)
+        && !('reversal' in window.configuration),
+      )) ?? false
+    })
+    // Resetting can reuse the initial point-and-figure response from the
+    // five-second request cache. Prove the cleared configuration is persisted,
+    // then reload to verify its real server parameters with an empty client cache.
     await boxSize.fill('')
     await reversal.fill('')
     await reversal.press('Tab')
+    await expect(boxSize).toHaveValue('')
+    await expect(reversal).toHaveValue('')
+    await resetSaved
+    const resetRequest = page.waitForRequest(request => request.url().includes('/ohlcv/SPY/D1/transformed') && request.url().includes('bar_type=point_figure') && !request.url().includes('box_size=') && !request.url().includes('reversal='))
+    await page.reload()
     await resetRequest
+    await settings.click()
+    await expect(rendering).toHaveValue('point_figure')
+    await expect(boxSize).toHaveValue('')
+    await expect(reversal).toHaveValue('')
+    await expect(chart.locator('.uplot')).toBeVisible({ timeout: 15_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

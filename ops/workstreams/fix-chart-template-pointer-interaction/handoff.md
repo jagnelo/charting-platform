@@ -9,7 +9,47 @@ Created from `staging` at `5267f11a491795d85ee35b56cabbe550394f3823`.
 - Closure record: pending validation; human already delegated technical closure for this narrow repair. Deployment remains unauthorized.
 - Planning state: ready; PTR1-PTR5 and full_stack_browser retain all required validation. Delegated technical closure will be recorded after validation; deployment remains unauthorized.
 
-## Active changeset: pointer-validation-harness-reconciliation
+## Active changeset: pointer-transform-reset-observer
+
+Boundary verified clean/synchronized at543a7817a9bd24a8543066dd96c9472b45e98cd8.
+Prior Market Map synchronization context (flows.spec.ts + own ops) is committed,
+pushed and focused-behavior validated: the unchanged original handoff assertions
+and both untouched1080Study screenshots passed3/3 in49.3s with an isolated
+browser namespace, secure localhost proxy and read-only UbuntuDejaVu fonts.
+The child test process completed successfully; its first fixture proxy retained
+keep-alive handles and was stopped explicitly, then shutdown was corrected.
+No full integration pass or acceptance follows from this focused result.
+
+The full no-retry replay then found a separate F9c-transform observer defect;
+it was stopped explicitly as RED/incomplete after preserving its trace at
+`/tmp/chart-pointer-repair-evidence-20261015/final-isolated-transform-failure`.
+Trace requests prove initial point_figure with brick_size12 is fetched,5/2
+overrides are fetched, and resetting legitimately reuses that first response.
+The final persisted primary-chart configuration already omits box_size/reversal.
+The production dedupe coordinator retains completed responses for5000ms; no
+network request is required for that valid cache hit. This context owns only
+flows.spec.ts and this workstream: retain the UI reset, observe its successful
+saved configuration, reload to empty the client cache, then retain the exact
+parameter-free transformed-request assertion and verify restored fields/chart.
+No production cache change, forced request, weakened assertion or longer timeout.
+Focused validation now passes3/3 in33.8s with retries disabled; the corrected
+fixture launcher exits0 and removes its own browser container. Workstream and
+diff checks pass. Reviewed staging owns only flows.spec.ts and own workstream;
+publish this context before the next independent validation repair. Full profile
+is still open; no red/interrupted run is relabelled green.
+
+Further evidence: rawNoble falls back toWenQuanYi monospace; host usesDejaVu.
+Supplying host DejaVu font files read-only preserves Noble's sans rendering and
+made both old visual mismatches pass without reference/source changes. The
+normal host attempt passed all Market Map product assertions but strict browser
+diagnostics failed ERR_NETWORK_CHANGED; the isolated proxy removes host network
+churn from Chromium's namespace. All artifacts retained under the evidence root.
+The earlier staging5267f11a job badge was success, but direct terminal-log audit
+found103visual passes +1flaky structured-result1080 screenshot (16142pixels)
+which recovered on retry. This is not clean non-flaky product acceptance.
+Do not conceal or count any red/interrupted/flaky run as a passing full profile.
+
+## Published changeset: pointer-validation-harness-reconciliation
 
 Context boundary: clean matching HEAD/origin
 `8b4e68538f2e0cc476434e0767b97f6d1954e808`; diff-check passed. The geometry

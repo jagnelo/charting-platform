@@ -20,6 +20,7 @@ scope:
   - Preserve the no-comparison default geometry and the existing narrow viewport two-row toolbar.
   - Validate restored templates, real percentage labels, independent ordinary pointer actions and adjacent toolbar behavior on an isolated seeded application.
   - Reconcile the observed pre-existing Market Map browser-test refresh race using terminal request/render/selection assertions; retain all existing product assertions and ordinary clicks.
+  - Make the existing transform-reset browser observer respect legitimate client cache reuse while retaining a real parameter-free server request assertion after persisted-state reload.
 owned_paths:
   - frontend/src/components/workstation/WorkstationToolContent.vue
   - frontend/tests/e2e/flows.spec.ts
@@ -45,15 +46,15 @@ migration_impact: none
 deployment_impact: none
 status: in_progress
 active_changeset_context:
-  name: pointer-validation-harness-reconciliation
-  intent: Synchronize the existing Market Map regression with its completed refresh before selection/publication; no product, oracle, tolerance or timeout changes.
+  name: pointer-transform-reset-observer
+  intent: Verify persisted cleared transform parameters and their server request after reload, without disabling production caching or weakening assertions.
   owned_paths:
     - frontend/tests/e2e/flows.spec.ts
     - ops/workstreams/fix-chart-template-pointer-interaction/
 remaining_gaps: []
 progress:
-  completed: [PTR1, PTR3]
+  completed: [PTR1, PTR2, PTR3]
   total: 5
   current_phase: full_regression_harness_reconciliation
   current_blocker: none
-  next_action: Validate/publish the minimal existing-test synchronization repair after the completed functional phase; retain ongoing unchanged visual evidence and replay the full final functional suite after visual completion.
+  next_action: Validate and publish the cache-aware transform-reset test, then complete no-retry full validation in the isolated browser/font fixture; no original red or interrupted run is acceptance.
