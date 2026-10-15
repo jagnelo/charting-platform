@@ -10286,3 +10286,76 @@ green acceptance and the new local cleanup failure already requires a later
 test-source repair. The old local run20560 continues unchanged. One permitted
 next action after this receipt is synchronized: finish observing that run,
 then repair/revalidate the close-event cleanup in a separate owned context.
+
+### Active context: linked-popout cleanup race
+
+Prior documentation context is closed: cost contract `eac06ac4`, separate
+receipt `bcfff382f1b64ac42455c375e6ff502590869f85`, both pushed; clean matching
+HEAD/origin and diff-check verified before opening this context. Owned paths:
+`frontend/tests/e2e/flows.spec.ts` and these four workstream records only.
+Intent: replace the observed direct cleanup click/wait with the existing
+`closePopupWhenOpen` helper after the prior suite terminates. Preserve actual
+symbol/timeframe propagation, final page-count and critical browser diagnostics
+assertions. No production UI change, new skip, changed timeout, retry increase,
+baseline or tolerance change is proposed. Validate the failed case repeatedly
+and adjacent popup cases in the pinned project runtime, then the unchanged full
+profile and exact-source hosted CI. Do not run a second browser against the
+same account/database while process 20560 is still collecting its final result.
+
+The prior functional subprocess is now terminal: 153 passed / 106 declared
+skips / 1 flaky, zero final failures, in 16.1 minutes. This corrects the earlier
+provisional description of a terminal failed case: its first attempt failed
+at cleanup, but the configured retry passed. It still needs repair rather
+than acceptance as stable. The separate 104-case visual subprocess is running;
+it loads `tc2000_visual.spec.ts`, not the completed functional spec. Therefore
+the isolated functional cleanup edit can now proceed without changing active
+visual/application source. Only the direct three-line close sequence is
+replaced by the existing helper, with an explanatory comment. All propagation,
+page-count and critical diagnostics assertions remain. No new final full-profile
+claim is made for the changed functional spec; wait for visual completion before
+replaying any browser against the same account/database. The successful retry
+trace is also retained at `.ai/validation/etf-popout-close-retry-20261015/`.
+
+The unchanged visual run also exposed a first-attempt 1440p/100 sandbox-error
+screenshot mismatch (29,916 pixels). Inspection of actual/expected/diff images
+proves that the adjacent SPY chart is still `Loading SPY...` and the shell is
+`Refreshing...`, while the existing baseline has the fully rendered chart.
+The case checks shell/layout visibility but omits the existing
+`waitForShellReady` used before the adjacent running/structured Study Lab cases.
+This is concrete readiness evidence, not an unsupported font/baseline guess.
+Artifacts and retry trace are retained in
+`.ai/validation/etf-visual-loading-failure-20261015/` and
+`.ai/validation/etf-visual-loading-retry-20261015/`. Do not edit its active
+visual spec now or mix it silently into the popup context. Finish the popup
+focused validation/commit/receipt first, then open the separate visual-readiness
+repair using the existing helper and unchanged screenshot oracle. The final
+visual retry outcome is pending the authoritative run's terminal summary.
+
+Process20560 is now terminal, exit0. Functional: 153 passed / 106 skipped /
+1 recovered flaky; visual: 103 passed / 1 recovered flaky in 14.2 minutes.
+The earlier backend/frontend stages passed 1938/948 tests and 81.24% backend
+coverage. Normal cleanup removed only ETF containers, four owned images,
+temporary volumes/network/builder; no host-wide prune or retained provider
+data was removed. This is not stable acceptance: both observed races remain
+scheduled for real fixes and revalidation. ETF-only seeded stack setup is now
+running as process97969, log
+`.ai/validation/etf-browser-races-stack-20261015.log`. After it is healthy,
+run the four collected popup cases three times with retries disabled. Close
+the popup context before editing the visual spec; preserve the existing
+baseline and add actual adjacent-chart readiness for that second repair.
+
+Popup cleanup context closure: focused pinned-container replay passed all
+12 cases (four cases, three repetitions, retries0) in 1.4 minutes. Source-only
+commit `086950cc90112b8cf2a786cb04e8471dd6bce9da` is pushed; local/origin match.
+Only `frontend/tests/e2e/flows.spec.ts` was staged/reviewed in that commit;
+propagation, page-count and browser diagnostics assertions are unchanged.
+The four operational files form this separate receipt, whose enclosing hash
+is verified externally. The prior exact revision `bcfff382` now has fully green
+hosted CI `38783637301` including backend/frontend/branch/E2E; its live matrix
+was 521 passed / 25 explicit unverified skips. That prior CI is not claimed
+as final-source acceptance of either browser repair. The local full gate's
+two recovered flakes and initial CPU/wall timing attempt remain visible above.
+The healthy ETF-only seeded stack is retained for the separate visual-readiness
+repair. Next action after clean synchronized receipt verification: open that
+isolated context, add real chart readiness, replay all four configurations
+without retries, then run the unchanged final full gate and source CI.

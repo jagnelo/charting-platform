@@ -61,7 +61,7 @@ integration_checkpoint:
   coordination_document: /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md
   contract_document: ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md
   cost_consumer_contract_document: ops/workstreams/feat-etf-holdings-constituents/shared-cost-admission.md
-  active_preparation_context: 'Shared cost-admission consumer contract; docs-only, clean synchronized starting boundary f532914d873c4e0f397e3b697bcc1d6f79562cd0. Owns the new cost contract, its integration-checkpoint link, and four workstream records. Existing full-profile and exact-source CI observation continues; no product acceptance or paid activation.'
+  published_preparation_context: 'Shared cost-admission consumer contract published as eac06ac4dc879c305616892deeb2d2d4c6846d07; separate receipt bcfff382f1b64ac42455c375e6ff502590869f85 is synchronized. Documentation only, not shared-runtime acceptance or paid activation.'
   downstream_consumers:
     - TC2000 current holdings capability and explicit unavailable lineage
     - Strategy Lab v2 point-in-time holdings membership and retained provenance
@@ -286,7 +286,7 @@ progress:
   completed:
     - EICP1
   total: 7
-current_phase: cost_contract_published_local_browser_cleanup_failure_diagnosed
+current_phase: popup_cleanup_published_visual_readiness_repair_next
 current_blocker: >-
   The five failures from CI 38771431871 are repaired in the current source
   delta. Final bounded replay passes all five without skips; the full backend
@@ -296,12 +296,19 @@ current_blocker: >-
   live sweep, and its unchanged replay passed. Precise transport classification
   is published as 76a8341e with parser failures still hard. The first full local gate stopped at the existing
   research-runner wall/CPU-limit race (both one second). A controlled retry
-  with single-thread numerical libraries and unchanged tests/limits is live;
-  no passing full-profile result is claimed yet.
+  with single-thread numerical libraries and unchanged tests/limits exited0,
+  but recovered flakes prevent stable final acceptance.
   That retry has passed 1938 backend and 948 frontend tests and runtime probes,
-  but its F8n-cross-window-links case fails at a direct popup close click after
-  successful symbol/timeframe assertions. Preserve the still-running suite;
-  then apply the existing same-file close-event helper in a separate context.
+  and its functional subprocess finished 153 passed, 106 skipped, 1 flaky.
+  F8n-cross-window-links failed its first cleanup click after successful
+  symbol/timeframe assertions; its configured retry passed. The isolated
+  same-file close-event helper fix is now applied after functional subprocess
+  exit. The separate visual run finished 103 passed and 1 recovered flaky;
+  a sandbox screenshot captured the adjacent chart loading. Gate exit0 is
+  not stable acceptance. The popup repair is published as 086950cc after
+  twelve focused passes with retries disabled. Close its operational receipt
+  before the separate visual-readiness repair. Focused visual verification
+  and final full-profile/source CI validation remain required.
   The shared cost contract is published as eac06ac4; it is preparation, not
   proof of shared-runtime admission or acceptance of a budget scope reduction.
   The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Provider
@@ -1301,11 +1308,13 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Poll local full-profile process 20560 (retained log above) and the next
-  published exact-source CI; fix any actual new failures. Keep the
-  local research-runner CPU/wall timeout race explicit and retain all limits,
-  tests, coverage thresholds and cleanup boundaries. Publish the operational
-  receipts coherent and avoid cancelling useful live CI with metadata pushes.
+  Verify the clean synchronized popup receipt, then open the isolated visual
+  readiness repair. The prior gate20560 exited0 but recovered two flakes;
+  popup cleanup now passes twelve repetitions with retries disabled and is
+  published as 086950cc. Add the missing shell/adjacent-chart readiness in
+  the sandbox screenshot test, verify all four display configurations without
+  retries, then run the unchanged final full profile and exact-source CI.
+  Preserve the CPU/wall timing evidence, all limits/thresholds and cleanup scope.
   After Provider reaches synchronized green
   staging and this source is unfrozen, merge staging here and implement/test
   the real governance bridge, run the required full profile and exact-source
