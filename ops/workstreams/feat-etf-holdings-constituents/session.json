@@ -81,12 +81,12 @@
   "goal_unavailable_reason": null,
   "head": "d7c4bf97cafdb73719f38e187d79c1230043fcfb",
   "implementation_sha": "d7c4bf97cafdb73719f38e187d79c1230043fcfb",
-  "last_checkpoint": "2026-10-15T21:55:00Z",
+  "last_checkpoint": "2026-10-15T21:58:00Z",
   "local_validation_profile": "full_stack_browser",
   "last_human_progress_update": "2026-10-06T18:53:15.533458+00:00",
   "latest_checkpoint": "The exact released common repair baseline82d881e76be8de538abb6ec5c454d96afe0ee56a is reconciled in this ETF worktree. Preserved ETF product source and existing structural conflict recovery. Kept staging's populated comparison/Plots geometry and merged snapshotSaveGeneration plus accepted-superseded acknowledgement with workspace identity/newer revision protection and trailing save behavior. Preserved ETF sandbox visual helper, positive .uplot, no chart gap state, settled refresh and empty research-results assertions; screenshot/tolerance/diagnostics unchanged; popup guard still requires actual closure. Added fail-closed handling for explicit future/futures rows because the ETF resolver only creates Equity/Stock identities: future holdings now remain unresolved instead of entering equity lookup/provider enrichment or synthetic stock materialization. Regressions cover unknown ESU6 and collision with an existing ESU6 equity; resolver test file passed21/21 and diff-check passed. The earlier unchanged local full-profile result (1938 backend,81.24%;948 frontend;154 functional;104 visual;zero retries/flakes, normal exit0) and CI38788420409 are for the pre-merge source only, not acceptance of this combined tree. No local browser/Docker/full gate started because Provider owns the first heavy slot. Provider shared-cost/free-only admission contract remains pending; full_stack_browser and exact-source CI remain required before ETF checkpoint review.",
   "next_action": "Continue bounded ETF identity/asset-kind and consumer-contract preparation without guessing Provider interfaces. Explicit future/futures rows now fail closed in equity-only identity resolution and remain unresolved rather than synthetic stocks; implement typed future resolution only if the accepted product contract defines it. Coordinate the required unchanged full_stack_browser gate after Provider's first heavy local validation slot and recheck host capacity; then run exact-source CI. Do not implement ETF_HOLDINGS until the actual shared producer contract and unsafe-operation denial semantics are reviewed and tested. Preserve cash and other mixed-asset identities, the monthly cap, all fourteen original criteria, and post-integration observation gate; no sibling/staging mutation, product acceptance, paid/trial activation, deployment or data cleanup.",
-  "plan_hash": "28df1431d6bda751a2ef007ee31d69f383e04309baf871806e80862e7a67ae4b",
+  "plan_hash": "55c5ec3748eac491743c9077d441d0f7e670db0f2bc40fe2a22097a1c9e6e697",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -104,9 +104,9 @@
     ],
     "total": 7,
     "current_phase": "released_common_repair_reconciled_provider_contract_and_full_profile_pending",
-    "current_blocker": "Common repair baseline82d881e76be8de538abb6ec5c454d96afe0ee56a is released and reconciled; this is not ETF product acceptance. Bounded merged-tree workspace-store tests pass74/74, frontend type-check passed, and the ETF resolver unit file passes22/22 including persistence of unresolved future lineage. Provider owns the first heavy gate; required ETF full profile is deferred until coordinated slot/capacity. Actual Provider shared free-only/cost admission contract is pending, including fail-closed unsafe paid=true semantics. No duplicate ledger or transport bypass.",
+    "current_blocker": "Common repair baseline82d881e76be8de538abb6ec5c454d96afe0ee56a is released and reconciled; this is not ETF product acceptance. Bounded merged-tree workspace-store tests pass74/74, frontend type-check passed, the ETF resolver file passes22/22 including persisted unresolved future lineage, and the 14-case persisted-consumer module passes in host context. Its first TestClient request stalls in the restricted sandbox (exact process waited on futex and timed out) but passes in host context; no application defect is reproduced. Provider owns the first heavy gate; required ETF full profile is deferred until coordinated slot/capacity. Actual Provider shared free-only/cost admission contract is pending, including fail-closed unsafe paid=true semantics. No duplicate ledger or transport bypass.",
     "next_action": "Continue focused identity/asset-kind and consumer-contract preparation. Future/futures rows stay unresolved until a typed safe resolver is defined. Coordinate the required unchanged full_stack_browser gate after Provider's first validation slot, then exact-source CI and checkpoint review. Keep ETF_HOLDINGS bridge gated on the accepted actual Provider contract and retain all roadmap requirements.",
-    "updated_at": "2026-10-15T21:55:00Z"
+    "updated_at": "2026-10-15T21:58:00Z"
   },
   "remote": "d7c4bf97cafdb73719f38e187d79c1230043fcfb",
   "remote_sha": "d7c4bf97cafdb73719f38e187d79c1230043fcfb",

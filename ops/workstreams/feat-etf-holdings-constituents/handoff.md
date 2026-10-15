@@ -10946,3 +10946,18 @@ pytest invocation showed 22 passing tests but returned nonzero on the
 repository-wide coverage floor; rerunning with `--no-cov` isolated the focused
 test result, without weakening the required full profile. This test does not
 establish future-instrument support or the shared Provider bridge.
+
+### Persisted consumer TestClient environment check — 2026-10-15
+
+The earlier unresolved local rerun of the 14-case persisted-consumer module was
+revisited without starting the full Docker/browser profile. In the restricted
+sandbox, the first selected API consumer test printed its test name but waited
+on a futex; exact host-side process inspection identified pytest PID 787604
+waiting in `futex_do_wait`. Its bounded 75-second command ended by timeout
+(exit 124), with no assertion result. The same isolated test then passed in
+host context (`1 passed` in 4.49 seconds), and the complete module passed
+`14/14` in 7.06 seconds with only two existing Nautilus NumPy deprecation
+warnings. This points to the restricted TestClient execution environment, not
+a reproduced API or consumer failure. No code workaround was added for an
+environment-only stall; the required full Docker/browser profile remains a
+separate pending gate.
