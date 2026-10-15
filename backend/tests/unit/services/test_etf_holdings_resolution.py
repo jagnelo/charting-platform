@@ -472,14 +472,126 @@ async def test_resolver_does_not_bind_future_ticker_to_existing_equity(db):
 
 
 @pytest.mark.asyncio
-async def test_ingest_persists_future_holding_as_unresolved_without_equity_identity(
-    db, monkeypatch
+@pytest.mark.parametrize(
+    "holding_type",
+    [
+        "fixed_income",
+        "option",
+        "derivative",
+        "derivative_swap",
+        "fund",
+        "crypto",
+        "commodity",
+        "other",
+        "unclassified",
+    ],
+)
+async def test_resolver_keeps_non_equity_rows_out_of_equity_ticker_matching(
+    db, monkeypatch, holding_type
 ):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")
 
     def unexpected_provider_call():
-        raise AssertionError("future holdings must not invoke equity identity providers")
+        raise AssertionError("non-equity rows must not enter equity provider resolution")
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_identifier_providers", unexpected_provider_call
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_metadata_provider", unexpected_provider_call
+    )
+
+    instrument, confidence, note = await _resolve_or_create_constituent(
+        async_db,
+        CanonicalHoldingRow(
+            symbol="MIXED1",
+            name="Reported non-equity holding",
+            currency="USD",
+            holding_type=holding_type,
+            row_type="security",
+        ),
+        source_provider="issuer-test",
+    )
+
+    assert instrument is None
+    assert confidence is None
+    assert "typed non-equity identity resolver is required" in note
+    assert db.execute(select(Instrument)).scalars().all() == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "holding_type",
+    [
+        "fixed_income",
+        "option",
+        "derivative",
+        "derivative_swap",
+        "fund",
+        "crypto",
+        "commodity",
+        "other",
+        "unclassified",
+    ],
+)
+async def test_resolver_does_not_bind_non_equity_ticker_to_existing_equity(
+    db, holding_type
+):
+    async_db = AsyncSessionAdapter(db)
+    equity_type_id = await ensure_instrument_type(async_db, "Equity", "Stock")
+    existing_equity = Instrument(
+        instrument_type_id=equity_type_id,
+        symbol="MIXED1",
+        name="Example Equity",
+        currency="USD",
+        is_active=True,
+    )
+    db.add(existing_equity)
+    db.flush()
+
+    instrument, confidence, note = await _resolve_or_create_constituent(
+        async_db,
+        CanonicalHoldingRow(
+            symbol="MIXED1",
+            name="Reported non-equity holding",
+            currency="USD",
+            holding_type=holding_type,
+            row_type="security",
+        ),
+        source_provider="issuer-test",
+    )
+
+    assert instrument is None
+    assert confidence is None
+    assert "typed non-equity identity resolver is required" in note
+    assert db.execute(select(Instrument)).scalars().all() == [existing_equity]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "holding_type",
+    [
+        "future",
+        "fixed_income",
+        "option",
+        "derivative",
+        "derivative_swap",
+        "fund",
+        "crypto",
+        "commodity",
+        "other",
+        "unclassified",
+    ],
+)
+async def test_ingest_persists_non_equity_holding_as_unresolved_without_equity_identity(
+    db, monkeypatch, holding_type
+):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")
+
+    def unexpected_provider_call():
+        raise AssertionError("non-equity holdings must not invoke equity identity providers")
 
     monkeypatch.setattr(
         "app.services.etf_holdings.get_identifier_providers", unexpected_provider_call
@@ -490,19 +602,19 @@ async def test_ingest_persists_future_holding_as_unresolved_without_equity_ident
 
     etf_instrument = await ensure_lightweight_etf_instrument(
         async_db,
-        symbol="FUTETF",
-        name="Futures Strategy ETF",
+        symbol="MIXETF",
+        name="Mixed Strategy ETF",
     )
     snapshot = await ingest_holdings_snapshot(
         async_db,
         etf_instrument=etf_instrument,
         rows=[
             CanonicalHoldingRow(
-                symbol="ESU6",
-                name="E-mini S&P 500 Sep 2026",
+                symbol="MIXED1",
+                name="Reported non-equity holding",
                 weight=Decimal("1"),
                 currency="USD",
-                holding_type="future",
+                holding_type=holding_type,
                 row_type="security",
             )
         ],
@@ -518,16 +630,17 @@ async def test_ingest_persists_future_holding_as_unresolved_without_equity_ident
         select(ETFHolding).where(ETFHolding.snapshot_id == snapshot.id)
     ).scalars().all()
     assert len(holdings) == 1
-    assert holdings[0].reported_symbol == "ESU6"
-    assert holdings[0].holding_type == "future"
+    assert holdings[0].reported_symbol == "MIXED1"
+    assert holdings[0].holding_type == holding_type
     assert holdings[0].row_type == "security"
     assert holdings[0].is_resolved is False
     assert holdings[0].constituent_instrument_id is None
+    assert holdings[0].resolution_note is not None
     assert snapshot.row_count == 1
     assert snapshot.resolved_count == 0
     assert snapshot.unresolved_count == 1
     assert (
-        db.execute(select(Instrument).where(Instrument.symbol == "ESU6"))
+        db.execute(select(Instrument).where(Instrument.symbol == "MIXED1"))
         .scalar_one_or_none()
         is None
     )

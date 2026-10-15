@@ -838,20 +838,30 @@ async def _resolve_or_create_constituent(
     source_provider: str,
     allow_provider_enrichment: bool = True,
 ) -> tuple[Instrument | None, Decimal | None, str | None]:
-    if row.row_type != "security" or row.holding_type in {"cash", "currency", "collateral"}:
+    holding_type = str(row.holding_type or "").strip().lower()
+    if row.row_type != "security" or holding_type in {"cash", "currency", "collateral"}:
         return None, None, None
 
-    # ETF rows explicitly identified as futures are not equity constituents.
-    # This resolver only materializes Equity/Stock instruments and the generic
-    # symbol lookup below can otherwise bind a futures contract (for example,
-    # ESU6) to an unrelated equity or create a synthetic equity identity.
-    # Until ETF holdings have a typed future-resolution contract, preserve the
-    # reported row as unresolved rather than guessing from its ticker.
-    if str(row.holding_type or "").strip().lower() in {"future", "futures"}:
+    # This resolver only creates Equity/Stock identities. Letting any other
+    # declared asset kind continue through identifier or ticker lookup can bind
+    # it to an unrelated equity; the fallback can also materialize a synthetic
+    # Equity/Stock. Keep unsupported or unknown kinds in holdings lineage until
+    # a resolver can prove their own canonical instrument type.
+    if holding_type not in {"equity", "stock", "common_stock", "preferred_stock"}:
+        if holding_type in {"future", "futures"}:
+            note = (
+                "Future holding retained without constituent resolution; "
+                "equity-only identity matching is unsafe."
+            )
+        else:
+            note = (
+                f"{holding_type or 'Unknown'} holding retained without constituent resolution; "
+                "a typed non-equity identity resolver is required."
+            )
         return (
             None,
             None,
-            "Future holding retained without constituent resolution; equity-only identity matching is unsafe.",
+            note,
         )
 
     for identifier_type, value in [

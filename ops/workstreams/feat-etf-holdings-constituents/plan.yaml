@@ -1319,10 +1319,12 @@ next_action: >-
   that repair release is not product-checkpoint acceptance. The merged
   snapshot-save behavior, chart geometry, and ETF's stronger visual readiness
   assertions have bounded passing tests recorded in handoff.md. Explicit
-  future/futures holdings now fail closed in the equity-only resolver; focused
-  resolver tests passed22/22, including persisted unresolved holdings, with
-  unknown and equity-collision tickers remaining unresolved rather than
-  synthetic equities. The14-case persisted-consumer module passed locally in
+  future/futures and other declared non-equity holdings now fail closed in the
+  equity-only resolver; fixed_income, option, derivative, fund, crypto,
+  commodity, other, and unknown types remain unresolved instead of attaching
+  to an equity by ticker or creating a synthetic stock. The focused resolver
+  and capability tests passed149/149, including persisted holdings lineage,
+  unknown and equity-collision tickers. The 14-case persisted-consumer module passed locally in
   host context; its first TestClient request stalls only in the restricted
   sandbox and is not an application failure. Continue branch-owned
   identity/asset-kind and consumer-contract preparation. The actual

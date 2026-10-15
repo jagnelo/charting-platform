@@ -10961,3 +10961,28 @@ warnings. This points to the restricted TestClient execution environment, not
 a reproduced API or consumer failure. No code workaround was added for an
 environment-only stall; the required full Docker/browser profile remains a
 separate pending gate.
+
+### Non-equity holding identities remain typed and unresolved — 2026-10-15
+
+The resolver audit found that the earlier future-only guard still let other
+explicitly typed security rows reach the same equity-only lookup and fallback
+`Equity/Stock` creation. Adapter values include `fixed_income`, `option`,
+`derivative`, `fund`, `crypto`, `commodity`, and `other`, in addition to
+`future`; arbitrary unknown holding types also took the equity path.
+
+The resolver now attempts equity identity matching/materialization only for
+declared equity-like rows (`equity`, `stock`, `common_stock`, or
+`preferred_stock`). Explicit futures retain the specific unresolved note; other
+non-equity and unknown types remain in snapshot rows with their original
+reported symbol/type and no equity constituent link. Tests cover both an
+unmapped ticker and collisions with an existing `Equity/Stock` ticker for each
+non-equity category, plus ingestion persistence/counts. This is a deliberate
+fail-closed identity boundary, not support for resolving bonds, funds, crypto,
+commodities, options, swaps, or futures to their canonical typed instruments.
+
+Validation: `test_etf_holdings_resolution.py` and
+`test_etf_holdings_capability.py` passed **149/149** together; Ruff and
+`git diff --check` passed. The separate persisted-consumer API module previously
+passed 14/14 in host context. Full profile, actual Provider runtime, and exact-
+source CI are still required; Provider remains first in the coordinated heavy
+validation order.
