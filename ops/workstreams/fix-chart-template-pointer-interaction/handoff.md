@@ -9,7 +9,41 @@ Created from `staging` at `5267f11a491795d85ee35b56cabbe550394f3823`.
 - Closure record: pending validation; human already delegated technical closure for this narrow repair. Deployment remains unauthorized.
 - Planning state: ready; PTR1-PTR5 and full_stack_browser retain all required validation. Delegated technical closure will be recorded after validation; deployment remains unauthorized.
 
-## Active changeset: pointer-transform-reset-observer
+## Active changeset: pointer-visual-state-fixture
+
+Boundary: clean matching HEAD/origin67abfc8752d5c0f7297d044dcec3d9afadc2df0f;
+diff-check passed. Cache-aware transform context owns flows.spec.ts + own ops,
+was staged/reviewed, committed, pushed and focused-tested3/3 without retries.
+It is complete as a changeset, not product acceptance. The next permitted
+action is this existing-visual-fixture repair, owning only
+frontend/tests/e2e/tc2000_visual.spec.ts and this workstream.
+
+Independently viewed the existing sandbox-error1080 reference: its adjacent
+chart explicitly says Loading SPY, header is Unavailable/Refreshing and the
+Persisted runs panel is loading. The old test never holds those reads, so a
+fast seeded backend can render a different background. TC's already validated
+fixture repair demonstrates holding exactly those existing gap-state reads.
+Implement only equivalent loading fixtures and explicit state assertions here,
+preserving the image, screenshot tolerance, original failure/recovery checks
+and all product code. For structured-result, wait for the newly opened Study
+workspace's real chart and empty persisted-results state, plus rendered result
+canvases, before the original screenshot. Its old readiness wait only covered
+the preceding US Top Down layout. The exact staging gate's103pass+1flaky visual
+receipt confirms this is a real pre-existing gate problem, not acceptance.
+
+Some earlier journal `at` values were manually rounded labels rather than
+captured command-end times (the18:48 focused-reset row was written before
+the18:46:30 session progress receipt). Treat command transcripts, durations,
+commit/source and CI timestamps as authoritative; no future execution is
+claimed by those manual labels. This correction preserves the append-only log.
+\n+Focused validation of both visual fixture repairs now passes8/8 across all
+four protected profiles in1.0m with retries disabled. No application source,
+image reference, mask, tolerance or original assertion was removed/changed.
+Own workstream validation and diff-check pass. Publish this independently
+reviewed context, then run the entire260case matrix on the resulting clean
+source. The original failures and interrupted runs remain non-acceptance.
+
+## Published changeset: pointer-transform-reset-observer
 
 Boundary verified clean/synchronized at543a7817a9bd24a8543066dd96c9472b45e98cd8.
 Prior Market Map synchronization context (flows.spec.ts + own ops) is committed,

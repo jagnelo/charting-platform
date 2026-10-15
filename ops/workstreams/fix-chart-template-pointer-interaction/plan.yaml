@@ -21,9 +21,11 @@ scope:
   - Validate restored templates, real percentage labels, independent ordinary pointer actions and adjacent toolbar behavior on an isolated seeded application.
   - Reconcile the observed pre-existing Market Map browser-test refresh race using terminal request/render/selection assertions; retain all existing product assertions and ordinary clicks.
   - Make the existing transform-reset browser observer respect legitimate client cache reuse while retaining a real parameter-free server request assertion after persisted-state reload.
+  - Pin the existing Study sandbox-error visual fixture's adjacent loading surfaces and explicitly await structured-result chart readiness; preserve every reference and screenshot tolerance.
 owned_paths:
   - frontend/src/components/workstation/WorkstationToolContent.vue
   - frontend/tests/e2e/flows.spec.ts
+  - frontend/tests/e2e/tc2000_visual.spec.ts
   - ops/workstreams/fix-chart-template-pointer-interaction/
 dependencies:
   - Synchronized staging 5267f11a491795d85ee35b56cabbe550394f3823; exact CI run 38773602828 has passed all required jobs including Exhaustive Integration Gate.
@@ -46,10 +48,10 @@ migration_impact: none
 deployment_impact: none
 status: in_progress
 active_changeset_context:
-  name: pointer-transform-reset-observer
-  intent: Verify persisted cleared transform parameters and their server request after reload, without disabling production caching or weakening assertions.
+  name: pointer-visual-state-fixture
+  intent: Establish the loaded or loading adjacent states already depicted by the existing Study screenshots, with stronger state assertions and unchanged pixel oracles.
   owned_paths:
-    - frontend/tests/e2e/flows.spec.ts
+    - frontend/tests/e2e/tc2000_visual.spec.ts
     - ops/workstreams/fix-chart-template-pointer-interaction/
 remaining_gaps: []
 progress:
@@ -57,4 +59,4 @@ progress:
   total: 5
   current_phase: full_regression_harness_reconciliation
   current_blocker: none
-  next_action: Validate and publish the cache-aware transform-reset test, then complete no-retry full validation in the isolated browser/font fixture; no original red or interrupted run is acceptance.
+  next_action: Validate and publish the deterministic Study visual fixtures across all four profiles, then complete no-retry full validation; no original red, interrupted or flaky run is acceptance.
