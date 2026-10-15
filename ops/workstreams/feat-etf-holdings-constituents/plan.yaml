@@ -288,9 +288,18 @@ progress:
   completed:
     - EICP1
   total: 7
-current_phase: local_repairs_full_gate_green_provider_staging_dependency
+current_phase: shared_cost_contract_recorded_provider_release_pending
 current_blocker: >-
-  The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). All repaired branch-local gates now pass: normal full integration exit0 with1938 backend,948 frontend,154 functional,104 visual and zero browser flakes; sourceCI38788420409 green. Remaining dependency is the accepted Provider product checkpoint on synchronized green staging, not a failing ETF test. Actual shared identity/entitlement/quota/aggregate monthly-budget/health bridge and combined runtime acceptance remain open. Native CI27 skips stay unverified; ten host replays pass unchanged and DFTT stays unavailable.
+  The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74).
+  Central reconciliation identifies staging workflow commit
+  98f0b888817c461fa00e6e310c5b378b0c4c512f; its exhaustive/Playwright CI was
+  still running and no Provider product baseline is released. Provider has
+  been asked to resolve shared aggregate subscription-cost admission or prove
+  a tested free-only checkpoint boundary. ETF's exact consumer contract and
+  independent tests are recorded in shared-cost-admission.md. No feature
+  import, staging merge, or competing local full gate is appropriate before
+  coordinator release. Prior ETF source gates remain green; shared identity,
+  entitlement, quota, budget and health integration remain unimplemented.
 
 remaining_gaps:
   - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the documented native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, TrimTabs/Abacus FCF, Anydrus/NDOW, M.D. Sass/SASS, Amplius/AAAA, Argent/AMID-ABIG-ALIL, VistaShares/RTOO-AIS-AMMO-QUSA-OMAH-ACKY-DRKY, Baillie Gifford/BGGG-BGIA-BGEG-BGUS, and Arin/ATTR, current code and provider-universe documentation report 496/422/74 and future counts must remain derived."
@@ -1279,4 +1288,11 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Publish this four-file operational receipt; verify clean matching branch hashes and exact enclosing CI using the ignored final verification receipt, without self-referential hash loops. Resume actual Provider bridge only after accepted Provider checkpoint is released on synchronized green staging and ETF source is unfrozen; import staging in this worktree, implement additive capability and real shared governance/consumer acceptance, then rerun full profile and exact-source CI. Preserve all original roadmap criteria and later observation gate; no other-worktree edits, integration, deployment, paid activation or trial.
+  Await coordinator confirmation that Provider has delivered and staging has
+  released the real aggregate-cost contract or its tested, non-bypassable
+  free-only checkpoint, with staging CI green. Until then preserve this branch's
+  clean source boundary and do not import Provider or merge staging. After
+  release, reconcile the actual producer API, implement ETF consumer contract
+  tests and the shared runtime bridge here, then run the required full profile
+  and exact-source CI. Preserve original criteria, monthly ceiling and
+  observation gate; no sibling edits, deployment, paid activation or trial.

@@ -26,9 +26,16 @@ SIGTERM is historical, not an accepted passing exit. Do not rerun a completed
 gate or poll its dead process. Publish these four records and externally
 verify the enclosing operational commit/CI as described below.
 
-The feature/checkpoint is not complete or integration-authorized. Actual
-Provider identity, entitlement, quota, monthly-budget and health reconciliation
-still requires its accepted green staging release. The original goal and all
+The feature/checkpoint is not complete or integration-authorized. The central
+reconciliation confirms staging workflow commit
+`98f0b888817c461fa00e6e310c5b378b0c4c512f` is published while exhaustive and
+Playwright CI runs; no Provider product baseline is released. Provider has
+been asked to close the shared aggregate subscription-cost admission gap or
+prove a tested free-only checkpoint boundary. Exact ETF allow/deny semantics,
+zero-transport behavior and remaining producer/consumer test ownership are
+recorded in `shared-cost-admission.md`. Actual Provider identity, entitlement,
+quota, monthly-budget and health reconciliation still requires its accepted
+green staging release. The original goal and all
 fourteen criteria remain in `plan.yaml`; the concrete interfaces and acceptance
 matrix are in `integration-checkpoint.md` and `shared-cost-admission.md`.
 Registry496/422/74 and15 Tier-0/156 Tier-1 outcomes remain accounted for.
@@ -38,6 +45,31 @@ and DFTT remains explicitly unavailable rather than accepting another fund.
 Do not activate paid sources, a deployment or the later observation trial.
 
 ## Historical evidence and dated implementation entries
+
+### Central reconciliation contract response — 2026-10-15
+
+Read the coordinator's `feature-integration-reconciliation.md` in staging at
+workflow commit `98f0b888817c461fa00e6e310c5b378b0c4c512f`. At that report,
+exhaustive/Playwright CI was still running and no Provider product checkpoint
+had been released. Provider owns the shared producer and must identify its
+real aggregate subscription-cost decision or deliver the tested free-only
+boundary requested by the coordinator. This ETF checkout remains on its
+published source and does not import Provider or staging before coordinator
+release.
+
+The consumer contract and independent test ownership are captured in
+`shared-cost-admission.md`. In short: deny before any HTTP/SEC attempt when
+identity, entitlement, terms, account, cost, currency or quota evidence is
+unknown or rejected; charge each real attempt under reviewed producer
+semantics; enforce aggregate commitments once across consumers under the
+approved 20 EUR/USD-equivalent cap; never activate a paid subscription or
+billable trial; and preserve raw and point-in-time ETF history on denial.
+ETF's pending tests exercise the real shared boundary and prove zero transport
+on denial across direct adapters, retries, redirects, pages, workers and SEC
+fallback. Provider separately owns durable ledger, currency, deduplication,
+concurrency, restart and paid-activation tests. Existing persisted consumer
+tests do not prove these shared-runtime contracts. No tests or local heavy gate
+were run for this documentation handoff.
 
 ## Controlled CI-equivalent visual comparison — 2026-10-07
 

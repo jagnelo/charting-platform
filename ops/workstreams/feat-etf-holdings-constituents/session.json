@@ -42,11 +42,12 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "current_blocker_latest": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). All repaired branch-local gates now pass: normal full integration exit0 with1938 backend,948 frontend,154 functional,104 visual and zero browser flakes; sourceCI38788420409 green. Remaining dependency is the accepted Provider product checkpoint on synchronized green staging, not a failing ETF test. Actual shared identity/entitlement/quota/aggregate monthly-budget/health bridge and combined runtime acceptance remain open. Native CI27 skips stay unverified; ten host replays pass unchanged and DFTT stays unavailable.",
+  "current_blocker_latest": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). Central reconciliation records staging workflow commit98f0b888817c461fa00e6e310c5b378b0c4c512f with exhaustive/Playwright CI still running and no released Provider product baseline. Provider was asked to resolve shared aggregate subscription-cost admission or prove a tested free-only checkpoint boundary. ETF's exact consumer contract and independent tests are recorded in shared-cost-admission.md. No feature import, staging merge or competing local full gate before coordinator release. Shared identity/entitlement/quota/budget/health bridge and combined runtime tests remain open.",
   "dirty_paths": [
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/shared-cost-admission.md",
     "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
   ],
   "docker": {
@@ -84,13 +85,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85",
+  "head": "6e2c9843f7c20a4c1d45c34b4cc11592700f9f5f",
   "implementation_sha": "b01f59bf156e7a43efe3d9a7897a648ca97f0b16",
-  "last_checkpoint": "2026-10-15T20:26:00Z",
+  "last_checkpoint": "2026-10-15T20:28:45Z",
   "last_human_progress_update": "2026-10-06T18:53:15.533458+00:00",
-  "latest_checkpoint": "Normal durable full integration completed with actual ETF_DURABLE_GATE_EXIT=0 after scoped cleanup:1938 backend,948 frontend,154 functional,104 visual;no browser retries/flakes. Coverage81.24% exceeds unchanged75% floor. Exact source8e84e7a CI38788420409 is fully green. Original interrupted outer143 is retained as historical, not reclassified. Feature checkpoint still awaits actual staged Provider integration.",
+  "latest_checkpoint": "Prior normal durable full integration passed actual exit0 after cleanup:1938 backend,948 frontend,154 functional,104 visual;zero browser flakes;coverage81.24%. Source8e84e7a CI38788420409 green. Central reconciliation identifies workflow staging98f0b888;exhaustive/Playwright CI still running and no Provider product baseline released. Exact aggregate-cost/free-only consumer contract and independent tests recorded in shared-cost-admission.md;no merge/import/gate started.",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish this four-file operational receipt; verify clean matching branch hashes and exact enclosing CI using the ignored final verification receipt, without self-referential hash loops. Resume actual Provider bridge only after accepted Provider checkpoint is released on synchronized green staging and ETF source is unfrozen; import staging in this worktree, implement additive capability and real shared governance/consumer acceptance, then rerun full profile and exact-source CI. Preserve all original roadmap criteria and later observation gate; no other-worktree edits, integration, deployment, paid activation or trial.",
+  "next_action": "Await coordinator confirmation of Provider's resolved aggregate-cost contract or tested non-bypassable free-only boundary and green staging release. Until then keep this branch clean and do not import Provider or merge staging. After release reconcile the actual producer contract, implement ETF shared-runtime consumer tests here, then run required full profile and exact-source CI; preserve monthly ceiling and roadmap. No sibling edits, deployment, paid activation or trial.",
   "plan_hash": "b67dc0e45547a515be81a9859fd69478438025844ffb989c6a1144ba5829505f",
   "planning_required": false,
   "planning_state": "ready",
@@ -108,13 +109,13 @@
       "EICP1"
     ],
     "total": 7,
-    "current_phase": "local_repairs_full_gate_green_provider_staging_dependency",
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). All repaired branch-local gates now pass: normal full integration exit0 with1938 backend,948 frontend,154 functional,104 visual and zero browser flakes; sourceCI38788420409 green. Remaining dependency is the accepted Provider product checkpoint on synchronized green staging, not a failing ETF test. Actual shared identity/entitlement/quota/aggregate monthly-budget/health bridge and combined runtime acceptance remain open. Native CI27 skips stay unverified; ten host replays pass unchanged and DFTT stays unavailable.",
-    "next_action": "Publish this four-file operational receipt; verify clean matching branch hashes and exact enclosing CI using the ignored final verification receipt, without self-referential hash loops. Resume actual Provider bridge only after accepted Provider checkpoint is released on synchronized green staging and ETF source is unfrozen; import staging in this worktree, implement additive capability and real shared governance/consumer acceptance, then rerun full profile and exact-source CI. Preserve all original roadmap criteria and later observation gate; no other-worktree edits, integration, deployment, paid activation or trial.",
-    "updated_at": "2026-10-15T20:26:00Z"
+    "current_phase": "shared_cost_contract_recorded_provider_release_pending",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). Central reconciliation records staging workflow commit98f0b888817c461fa00e6e310c5b378b0c4c512f with exhaustive/Playwright CI still running and no released Provider product baseline. Provider was asked to resolve shared aggregate subscription-cost admission or prove a tested free-only checkpoint boundary. ETF's exact consumer contract and independent tests are recorded in shared-cost-admission.md. No feature import, staging merge or competing local full gate before coordinator release. Shared identity/entitlement/quota/budget/health bridge and combined runtime tests remain open.",
+    "next_action": "Await coordinator confirmation of Provider's resolved aggregate-cost contract or tested non-bypassable free-only boundary and green staging release. Until then keep this branch clean and do not import Provider or merge staging. After release reconcile the actual producer contract, implement ETF shared-runtime consumer tests here, then run required full profile and exact-source CI; preserve monthly ceiling and roadmap. No sibling edits, deployment, paid activation or trial.",
+    "updated_at": "2026-10-15T20:29:08Z"
   },
-  "remote": "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85",
-  "remote_sha": "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85",
+  "remote": "6e2c9843f7c20a4c1d45c34b4cc11592700f9f5f",
+  "remote_sha": "6e2c9843f7c20a4c1d45c34b4cc11592700f9f5f",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
@@ -310,14 +311,15 @@
     }
   },
   "active_changeset": {
-    "name": "final browser repairs validation follow-up",
-    "state": "validated_operational_receipt_ready_to_publish",
-    "baseline": "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85",
-    "intent": "Publish completed normal full gate and exact-source CI evidence; preserve actual staged Provider dependency and all original requirements.",
+    "name": "central shared-cost contract reconciliation",
+    "state": "contract_and_test_ownership_recorded_waiting_for_provider_release",
+    "baseline": "6e2c9843f7c20a4c1d45c34b4cc11592700f9f5f",
+    "intent": "Record exact ETF consumer contract and independent tests requested by the central staging reconciliation; preserve clean code boundary and wait for released green Provider staging.",
     "owned_paths": [
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
+      "ops/workstreams/feat-etf-holdings-constituents/shared-cost-admission.md",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ]
   },

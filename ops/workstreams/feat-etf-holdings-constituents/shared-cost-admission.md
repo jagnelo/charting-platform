@@ -137,3 +137,99 @@ accounting where applicable, with deterministic intercepted issuer transports.
 5. Keep the full monthly-budget and post-deployment observation requirements
    visible for continuation. No deployment or trial activation follows from a
    development checkpoint or a green test run.
+
+## Central reconciliation update — 2026-10-15
+
+The coordinator's published reconciliation at staging workflow commit
+`98f0b888817c461fa00e6e310c5b378b0c4c512f` confirms that the Provider product
+baseline has not been released. Its exhaustive/Playwright CI was still running
+when the handoff arrived. Provider has been asked to either deliver the shared
+aggregate subscription-cost admission contract or demonstrate a tested
+free-only checkpoint boundary. ETF has not imported Provider code, merged
+staging, or started another local full gate in response.
+
+The exact consumer contract required from Provider is:
+
+1. Given the canonical fund/instrument, actual publisher and account scope,
+   environment, concrete operation, entitlement and terms revision, and
+   current review/expiry evidence, return a durable allow/deny decision with a
+   stable denial reason. Missing or ambiguous identity, account, terms, or
+   review evidence denies before transport.
+2. For an allow, provide the reviewed cost/quota basis for this operation and
+   its actual outbound attempt. Cost, currency, billing period, reset window,
+   or quota dimensions that are unknown, stale, malformed, negative, or
+   non-finite deny; ETF must not infer a price, exchange rate, quota, or zero
+   from an omitted field or settlement default.
+3. Apply shared quota and cost admission atomically before every outbound
+   attempt. The transport boundary must cover redirects, pagination, retries,
+   alternate HTTP clients, and SEC fallback. Each attempt carries a stable
+   idempotency key and durable reservation/settlement reference. An exhausted
+   next attempt is denied before that request leaves the process. HTTP, timeout,
+   or parse failure still records the attempt and follows Provider's reviewed
+   billing/uncertain-settlement rule; it does not silently refund or create a
+   fresh ETF snapshot.
+4. Aggregate recurring commitments once per actual subscription across all
+   providers and consumers, retain the source currency and billing period, and
+   use only a coordinator-approved currency/equivalence policy. Atomically
+   deny new commitments or usage that would exceed the approved 20 EUR/USD-
+   equivalent monthly ceiling. Concurrent calls, process restarts, timeouts,
+   and duplicate settlement cannot overspend, clear, or double-count it.
+5. The current no-paid-activation rule is absolute: ETF cannot activate a
+   subscription, start a billable trial, or change entitlement. Existing paid
+   commitments must remain visible to the shared aggregate calculation. A
+   conditional free-only checkpoint must deny every paid or uncertain-cost
+   operation even if a general routing flag is enabled; it must enforce that
+   at the shared boundary or reject the unsafe configuration at startup for
+   every caller. A false default flag alone does not satisfy this contract.
+6. Reads of cached/current/historical ETF data perform no provider request and
+   reserve no quota or money. A denied refresh preserves raw artifacts and
+   snapshot provenance, stores the decision/reason, and exposes unavailable
+   when there is no prior usable snapshot or degraded/stale when one exists.
+   It cannot make historical data current or bypass admission through a
+   background worker, API, direct adapter, or fallback.
+
+These are semantic requirements, not proposed names or signatures for a new
+Provider API. Provider must identify the actual accepted callable and evidence
+fields, or identify the shared repair owner and its staged contract. ETF will
+adapt only after that producer contract is present in coordinator-released,
+green staging. No ETF-owned ledger or guessed per-request price is implied.
+
+### Independent tests still required
+
+The persisted-consumer preparation tests cover snapshot, API, basket, denial,
+freshness, and point-in-time behavior. They do not exercise Provider admission.
+Once the producer interface is identified, ETF still needs independent
+consumer-contract tests against the real shared runtime (with issuer transports
+intercepted and call-counted):
+
+- Allowed, reviewed free operation reaches only its exact issuer route and
+  stores shared decision/reservation/settlement references with the validated
+  raw artifact.
+- Missing, expired, ambiguous, or restricted terms; unknown cost/quota/currency;
+  denied entitlement; and exhausted budget each produce the exact persisted
+  denial and zero calls through every HTTP client, redirect, retry, page,
+  worker, and SEC fallback path.
+- The accepted free-only boundary denies when the general paid-routing flag is
+  true as well as false, or unsafe startup configuration fails before serving
+  any operation. No test may activate a paid plan or trial.
+- A multi-attempt operation reserves each reviewed attempt; after a denied
+  page/redirect/retry reservation there is no corresponding transport call.
+  Transport, HTTP, timeout, and parser failures retain raw/error evidence and
+  settle or hold the reservation according to Provider's actual contract.
+- Concurrent ETF/other-provider admission, process restart, ambiguous
+  settlement, and duplicate idempotency replay preserve the same aggregate
+  balance. These tests require the real shared database/ledger; mocks alone do
+  not establish this behavior.
+- A denial with prior data retains source, composition, fetched, and
+  knowledge-time lineage and rejects current analysis when stale/degraded; a
+  denial without prior data remains unavailable. Cached and historical reads
+  assert zero transport and zero reservation.
+
+Provider owns producer-side tests for subscription deduplication, currency
+equivalence, exact ceiling arithmetic, atomic concurrent admission,
+restart/uncertain-settlement recovery, and enforcement of the paid-activation
+boundary. ETF owns its adapter/consumer no-transport and truthful-state tests.
+The two suites must run against the same staged runtime for checkpoint
+acceptance. None of these new shared-contract tests is claimed implemented or
+passing by this documentation update; no tests were run for this documentation
+only change.
