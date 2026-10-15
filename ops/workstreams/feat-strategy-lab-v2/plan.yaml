@@ -6,7 +6,8 @@ integration_checkpoint:
   id: strategy-lab-v2-integration-1
   active_changeset:
     name: capability-consumer-api-outage-evidence
-    status: validated
+    status: synchronized
+    source_commit: d1d60af7e0c555d4e5c346180629ce5e812feb16
     intent: Verify the actual API and preflight service expose revoked evidence and upstream outages without authorizing execution or leaking resolver details.
     owned_paths:
       - backend/app/strategy_lab_v2/tests/test_capability_consumer_api.py
@@ -194,11 +195,9 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2]
   total: 5
-  current_phase: integration-1-consumer-evidence
-  current_blocker: Combined reconciliation awaits synchronized green Provider then ETF then TC2000
-    staging; independent preparation proceeds now.
-  next_action: Validate branch-owned consumer rejection paths and record exact upstream reconciliation
-    needs using the existing writer claim.
+  current_phase: integration-1-awaiting-central-baseline
+  current_blocker: Coordinator status dated 2026-10-15T16:35:47Z lists no accepted product checkpoints and no source freezes; Provider, ETF and TC2000 remain in preparation. Required combined baseline is unavailable.
+  next_action: Read staging/ops/feature-integration-status.yaml on resume; after the coordinator releases synchronized green staging containing all three accepted upstream checkpoints and confirms this source unfrozen, merge it here and implement the documented consumer reconciliation.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging

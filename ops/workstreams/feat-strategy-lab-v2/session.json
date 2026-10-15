@@ -35,10 +35,9 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "ackend/app/strategy_lab_v2/tests/test_capability_preparation.py",
-    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/integration-checkpoint.md",
+    "ps/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
   "docker": {
@@ -76,14 +75,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "906588ccb3cb5a21a27cd4623c85d1741bedc23f",
+  "head": "d1d60af7e0c555d4e5c346180629ce5e812feb16",
   "implementation_sha": "9c1e2fa1f056dcd69bc5ad89111d0aceba58e7ab",
   "last_checkpoint": "2026-10-15T16:36:00.952575+00:00",
-  "last_human_progress_update": "2026-10-15T16:34:39.355196+00:00",
+  "last_human_progress_update": "2026-10-15T16:41:32.797225+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
-  "plan_hash": "dcff86beac8b198e28fdbe8d7306b8bd15a10b6b4d27029ade64d7235ef4533b",
+  "plan_hash": "552f3af898f6c99e2c80f5ba8508e271c35c9e46b575b55aa09669dff911c2e8",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -108,13 +107,13 @@
       "SLICP1",
       "SLICP2"
     ],
-    "current_blocker": "Combined consumer wiring awaits synchronized green Provider, ETF and TC2000 staging and source release.",
-    "current_phase": "integration-1-consumer-evidence",
-    "next_action": "Publish preparation evidence; reconcile actual staged contracts only after coordinator green receipt.",
+    "current_blocker": "Coordinator queue has no accepted product checkpoints; combined green baseline is unavailable.",
+    "current_phase": "integration-1-awaiting-central-baseline",
+    "next_action": "Read coordinator status on resume; reconcile only after green Provider/ETF/TC staging and source-release receipt.",
     "total": 5,
-    "updated_at": "2026-10-15T16:34:39.355175+00:00"
+    "updated_at": "2026-10-15T16:41:32.797198+00:00"
   },
-  "remote": "906588ccb3cb5a21a27cd4623c85d1741bedc23f",
+  "remote": "d1d60af7e0c555d4e5c346180629ce5e812feb16",
   "remote_sha": "9c1e2fa1f056dcd69bc5ad89111d0aceba58e7ab",
   "remote_synchronized": true,
   "retained_docker_resources": [],
