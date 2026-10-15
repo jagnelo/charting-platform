@@ -43,14 +43,15 @@ migration_impact: none
 deployment_impact: none
 status: in_progress
 active_changeset_context:
-  name: pointer-repair-plan
-  intent: Record the exact desktop geometry defect, guarded source boundary and acceptance before product edits.
+  name: pointer-toolbar-geometry
+  intent: Separate populated comparison hit targets from Plots while preserving empty and narrow layouts; validate on the isolated seeded application.
   owned_paths:
+    - frontend/src/components/workstation/WorkstationToolContent.vue
     - ops/workstreams/fix-chart-template-pointer-interaction/
 remaining_gaps: []
 progress:
-  completed: []
+  completed: [PTR1, PTR3]
   total: 5
-  current_phase: plan_and_before_evidence
+  current_phase: full_regression_pending
   current_blocker: none
-  next_action: Validate and publish this plan, then reproduce on the repair source and implement only the responsive geometry change.
+  next_action: Publish the focused browser-validated geometry, then run the unchanged complete browser matrix on that exact source; long-label stress and final cleanup remain.

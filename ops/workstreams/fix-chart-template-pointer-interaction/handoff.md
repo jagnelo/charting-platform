@@ -9,7 +9,38 @@ Created from `staging` at `5267f11a491795d85ee35b56cabbe550394f3823`.
 - Closure record: pending validation; human already delegated technical closure for this narrow repair. Deployment remains unauthorized.
 - Planning state: ready; PTR1-PTR5 and full_stack_browser retain all required validation. Delegated technical closure will be recorded after validation; deployment remains unauthorized.
 
-## Active changeset: pointer-repair-plan
+## Active changeset: pointer-toolbar-geometry
+
+Boundary verified clean and synchronized at `58075cefa5b90338f3ca95d78151ca7761a47751`.
+This context owns WorkstationToolContent.vue and this workstream. Implement
+conditional comparison-aware geometry, preserving no-comparison and narrow
+positions; use the isolated seeded application for before/after ordinary clicks.
+Planning context is closed and published. No sibling stacks or Help references
+are owned here.
+
+Source checkpoint: the six-line conditional geometry patch passes all 923
+frontend tests (108 files), type checking and production build. The baseline
+bundle `index-DOowz8qP.js` reproduced ordinary populated Remove RSP timeout
+(Plots intercepts). Rebuilt/force-recreated only this project's frontend;
+`index-5WPCnrNS.js` now gives all five toolbar controls independent center hits.
+Desktop ordinary Plots/close/removal and saved-template restore pass with RSP
++23.50%; two populated comparisons also pass. Removing all comparisons restores
+the exact baseline Plots rectangle. At 390x800 TC Classic the chart is on-screen
+(367px wide), all five centers own their targets, ordinary Plots/close/removal
+and template restore pass; the plot menu is x45..345 within the viewport.
+Post-reload browser console: zero errors/warnings; backend tail: successful
+local API calls, existing missing-Alpaca-key skip warning, no traceback.
+Evidence moved intact to `/tmp/chart-pointer-repair-evidence-20261015` after
+closing only this diagnostic browser. The six own services/four generated
+volumes remain for the full regression run. Source checkpoint commit/push
+precedes exact-source full regression; long-label stress review, full profile,
+CI, cleanup and delegated technical closure are still required. Not accepted.
+
+The human has now approved the reviewed local-only Help reference policy;
+authorization was delivered to the existing TC owner. Help changes remain
+outside this repair's owned paths, and official V25 parity stays roadmap debt.
+
+## Completed planning context
 
 Owns this workstream only. Existing source is bootstrap commit
 `936074d3679b0b76687dd0d39231417c56eecda6`, clean and pushed before preflight.
@@ -34,7 +65,7 @@ behavior. Reproduce and validate on this worktree's actual seeded application.
 Do not update Help snapshots, import TC/ETF/Provider code, spend provider quota,
 delete test accounts or touch other feature stacks. The single TC test account
 reported in its retained DB is not this repair's cleanup target. The Help-only
-interim reference-policy question is still pending and is a separate issue.
+interim reference-policy implementation remains a separate TC-owned issue.
 
 Planning closure: the committed planning receipt was synchronized, the guarded
 `plan-ready` check passed, and the already-created session-local goal was recorded
