@@ -206,13 +206,18 @@ green staging result, dependent agents reconcile against that result before
 their own review and integration. A named batch is permitted only when all its
 sources are accepted and compatible without unimplemented dependency wiring.
 
-After a green integration, retain the source branch as the audit record. Further
-implementation uses a separately bootstrapped continuation branch based on
-current green staging, carrying the complete outstanding roadmap and the
-checkpoint receipt. Record the human's continuation authorization; checkpoint
-acceptance alone does not authorize additional product scope. A continuation
-must never advance a source that a coordinator has frozen for integration.
-Promotion to master and deployment remain separate human decisions.
+After a green integration, retain the exact source SHA and checkpoint receipt
+as the audit record. Under the human's 2026-10-15 direction, these four existing
+feature sessions may continue their original authorized roadmap in the same
+branches/worktrees: the coordinator first releases the frozen source, then the
+owning agent merges current synchronized green staging into its own clean source,
+reconciles behavior, validates, and resumes development. It must retain each
+checkpoint's history and never rewrite the accepted source. A later integration
+requires a new checkpoint acceptance and exact-source validation. A separately
+bootstrapped continuation branch is optional when explicitly chosen by the human;
+it is not required to resume these existing sessions. Never advance a frozen
+source or infer authorization for additional product scope. Promotion to master
+and deployment remain separate human decisions.
 
 The human-authorized 2026-10-15 direction for the provider, ETF, TC2000, and
 Strategy Lab v2 workstreams is recorded in
@@ -221,6 +226,16 @@ It supersedes their earlier full-feature-before-integration planning assumption,
 including the provider trial's placement, but does not accept any branch or
 authorize a merge. Each owning session incorporates it into its own plan and
 session-local goal; another writer must not edit that session's claimed files.
+
+The central-first coordination plan and the four session resume instructions are
+in [`docs/feature-integration-coordination.md`](feature-integration-coordination.md).
+The coordinator owns combined-contract analysis, sequencing, source freezes,
+staging merges, and combined validation. Source agents own product reconciliation
+and repair in their claimed worktrees. Read-only central analysis does not confer
+write ownership of those worktrees. Session goal objectives may be updated through
+the supported Codex App Server goal API at the human's request; retain a before
+receipt and verify accounting because replacement semantics may vary by version. Do not
+change its paused/blocked/active state or start turns merely to install guidance.
 
 ### Scoped standing automation authorization
 

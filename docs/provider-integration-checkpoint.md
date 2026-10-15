@@ -140,7 +140,11 @@ later statement accepting the implementation.
 
 Once the human accepts a named checkpoint, the existing closure fields record
 that checkpoint scope and the outstanding roadmap. The coordinator then uses
-the existing guarded merge path. After green integration, further development
-belongs in an authorized continuation from current green staging, carrying the
-roadmap and accepted source receipt. The original feature's completion must
-never be inferred from its branch having been integrated.
+the existing guarded merge path. After green integration and coordinator release
+of the frozen source, the existing feature session may merge green staging into
+its own branch, validate the combined contracts, and continue the original
+authorized roadmap in that same worktree. Preserve the accepted source SHA and
+checkpoint receipt; subsequent integrations need a fresh acceptance. See
+[`feature-integration-coordination.md`](feature-integration-coordination.md) for
+the central-first sequence and each session's task. The original feature's
+completion must never be inferred from its branch having been integrated.
