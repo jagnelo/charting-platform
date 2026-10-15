@@ -138,11 +138,11 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "Coordinator TCP1 pointer repair awaits synchronized green staging; Provider/ETF synchronization and exact TCP4 full integration remain open. Parent-tip Actions run 38808585497 succeeded but does not cover the unpushed Help commits.",
+    "current_blocker": "Exact-source Actions run 38812796211 passed for 36bad277052247a4f68af8d1e259c3cf403f787a. Coordinator TCP1 pointer repair awaits synchronized green staging; Provider/ETF synchronization and exact TCP4 full integration remain open.",
     "current_phase": "TCP2_HELP_REVIEWED_PUSH_AND_EXACT_CI",
-    "next_action": "Focused Help flow, four visual profiles, Vitest, build, branch-declared checks, visual-policy validation, and diff check are locally green. Push the reviewed Help commits, then inspect and record Actions for their exact full SHA. Do not sync TC source before coordinator green staging.",
+    "next_action": "Help follow-up is reviewed, pushed, and exact-source Actions passed. Continue TCP1/TCP3/TCP4 when coordinator pointer repair and synchronized Provider/ETF staging gates release; do not sync TC source before green staging.",
     "total": 5,
-    "updated_at": "2026-10-15T21:49:29+00:00"
+    "updated_at": "2026-10-15T22:40:00+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
