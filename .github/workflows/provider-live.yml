@@ -29,10 +29,6 @@ jobs:
       # The owner has made a final private single-user retention decision.
       # This does not bypass entitlement, quota, or jurisdiction controls.
       PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK: "true"
-      # The live suite writes aggregate-only, credential-free usage telemetry.
-      # Keep it in the runner temp area and upload it as a redacted artifact
-      # below; never place provider credentials or payloads in the artifact.
-      PROVIDER_LIVE_USAGE_LEDGER: ${{ runner.temp }}/provider-live-usage.jsonl
       PROVIDER_LIVE_USAGE_SCOPE: github:${{ github.repository }}:${{ github.ref_name }}
       # GitHub runners are ephemeral. The environment-specific durable
       # coordinator is required before any provider call; a temp SQLite file
@@ -233,6 +229,11 @@ jobs:
         run: bash scripts/ci-retry.sh -- bash -c 'cd backend && uv sync --frozen --dev'
 
       - name: Run one bounded live read per provider
+        env:
+          # runner context is available at step level, not jobs.<job_id>.env.
+          # Keep aggregate-only usage telemetry in the runner temp area; the
+          # artifact step below uploads only this redacted ledger.
+          PROVIDER_LIVE_USAGE_LEDGER: ${{ runner.temp }}/provider-live-usage.jsonl
         run: |
           if [ "${{ inputs.dinari_sandbox_canary }}" = "true" ]; then
             uv run --project backend python scripts/run-live-provider-probes.py \

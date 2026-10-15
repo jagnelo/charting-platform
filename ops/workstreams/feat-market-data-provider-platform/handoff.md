@@ -25175,4 +25175,21 @@ exact candidate receipts remain separate gates.
   human acceptance; deployment/CI/RPi secret-store verification; and the full
   roadmap. The central coordinator retains pointer/browser work and guarded
   staging integration.
+
+## 2026-10-15 Provider-live workflow context correction
+
+- Confirmed against GitHub's official context-availability table that
+  `runner` is not supported in `jobs.<job_id>.env` but is supported in
+  `jobs.<job_id>.steps.env`. Moved only `PROVIDER_LIVE_USAGE_LEDGER` to the
+  bounded live-probe step, retaining the same runner-temp path used by the
+  redacted artifact upload.
+- Static YAML parsing and workflow invariants pass: manual-dispatch trigger,
+  staging/master ref guard, persistent PostgreSQL quota-ledger setting, and
+  upload path are unchanged. `make test-workflow` passes 76 tests with an
+  isolated UV cache. No provider transport was invoked.
+- This is an in-progress workflow syntax fix, not evidence that the zero-job
+  run's sole cause is proven and not provider-live acceptance. Publish this
+  source change for exact-commit hosted CI; do not dispatch provider-live from
+  this feature branch or spend quota. The normal feature-branch live suite
+  remains manual-dispatch-only and ref-guarded.
 *** End of File
