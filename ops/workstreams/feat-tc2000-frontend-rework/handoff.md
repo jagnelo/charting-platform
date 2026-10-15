@@ -19512,3 +19512,20 @@ delivery through green staging, Provider/ETF staging synchronization, and TCP4
 full integration remain open. Do not duplicate the pointer fix, synchronize TC
 from staging, or claim full branch completion.
 
+After that checkpoint, I visually re-reviewed the four tracked Linux Help
+references at both 1920x1080 and 2560x1440, at 100% and 125%: shortcut labels
+remain distinct from their descriptions, with no unintended horizontal
+clipping. The already-recorded exact-source browser evidence covers all 27 rows,
+ordinary PageDown/PageUp/Home scrolling, Tab-to-Close, Escape dismissal, and
+focus restoration; the four Help screenshots passed at the unchanged 0.5%
+tolerance. The human-approved local staging references remain explicitly
+non-official: `keyboard_help.state` and its review status stay
+`required_missing`, and official V25 Help parity remains unfinished.
+
+The follow-up exact branch run `38816924131` completed successfully for SHA
+`d4a0c81715908f20d7518917f2fa341d6d7cae90`: Backend, Frontend Unit,
+Branch-declared, and Playwright E2E jobs passed; Exhaustive Integration Gate was
+skipped as expected on the feature branch. This closes that coherent CI context
+only; TCP1 still awaits coordinator repair through green staging, Provider/ETF
+staging synchronization and TCP4 full integration remain open.
+
