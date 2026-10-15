@@ -14554,3 +14554,38 @@ specific source/schema/version inventory and backup before anyone can decide
 whether to authorize a schema-verified metadata transition or retain its
 isolated history; this source performs neither automatically. Preserve writer
 claim `35f63909-6dea-4459-9682-dc8eecc9c720` and the complete product roadmap.
+
+## 2026-10-15 — released common-repair reconciliation
+
+The exact common-repair-only staging baseline
+`82d881e76be8de538abb6ec5c454d96afe0ee56a` was released with canonical receipt
+`.ai/staging-attempts/20261015T213902Z-82d881e76be8.json` and green exact CI
+`38805309009`. It is not a Provider/ETF/TC2000 product baseline or checkpoint
+acceptance. This Strategy branch merged that exact commit as
+`bda8cb11dde9995846ab9b942aae50a5ec34b3db`, preserving the chart-template and
+workspace-save repairs; targeted workspace-store tests passed (74 tests).
+
+The prior exact-source CI run `38773900358` exposed a real coverage-path issue:
+the backend job measured `tests/unit` but omitted the already-present
+`app/strategy_lab_v2/tests` package suite, leaving the unchanged 55% threshold
+to fail at 34.35%. `.github/workflows/ci.yml` and `make test-unit` now include
+that package suite conditionally in the same coverage invocation; the threshold
+is unchanged. YAML parsing passed. This is a narrow response to observed CI
+evidence; a fresh exact-source hosted run is still required, and no full local
+unit/Docker/browser gate was started ahead of Provider's reserved validation
+slot.
+
+Post-merge bounded evidence: 30 migration compatibility/startup/schema tests,
+74 workspace-store tests and 58 workflow helper tests passed; the workflow YAML
+parses and `git diff --check` is required before publication. Coordinator AST
+audit found 115 distinct revision IDs and zero duplicates across all four
+worktrees. Strategy remains uniquely namespaced `slv2_0001`–`slv2_0008`; the
+legacy/mixed-history guard remains fail-closed. No actual retained legacy/mixed
+database is identified, so there is no current database-transition decision or
+human blocker. PostgreSQL fresh/previous-release and combined migration gates
+remain open; these focused checks do not establish them.
+
+The actual Strategy consumer reconciliation still depends on released accepted
+Provider → ETF → TC2000 product checkpoints in synchronized green staging. Do
+not import sibling code directly, activate brokers/capital, or call this
+checkpoint accepted. The full roadmap and existing writer claim remain intact.

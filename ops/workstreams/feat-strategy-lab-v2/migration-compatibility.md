@@ -52,22 +52,25 @@ implementations. Combined source, types, constraints and runtime behavior still
 need validation after accepted staging integration. Nonstandard version tables
 or schemas require explicit configuration review before use.
 
-## Decision needed for existing applied Strategy or mixed databases
+## Conditional handling if an actual retained database is identified
 
-No live database inventory has been performed. Before converting any actual
-legacy database, the owning operator/coordinator must identify its exact source
-revision, all current version rows, complete Strategy/upstream schema and an
-approved backup/restore point. Preserve all existing data while gathering this
-evidence. A revision row alone cannot establish which of the two DDL histories
-was executed; mixed or partial schema must remain stopped.
+No live or retained legacy/mixed database has been identified, and no database
+inventory or upgrade has been performed. There is no current human decision
+blocking this branch. The guard already fails closed for ambiguous legacy
+histories, so unknown databases remain preserved and stopped rather than
+rewritten.
 
-The human decision is whether to authorize a narrowly specified, schema-verified
-legacy metadata transition for each identified database, or retain that database
-on its original isolated migration history. No such transition is included or
-authorized by this source change. Any later transition must prove row/schema
-preservation, map all current heads (including descendants), prevent upstream
-migrations from being silently skipped and pass PostgreSQL migration regression
-before operational use. Never blindly stamp a common head or the new Strategy head.
+If a concrete database is later found, first identify its exact source revision,
+all current version rows, complete Strategy/upstream schema and an approved
+backup/restore point. Preserve all existing data while gathering this evidence;
+a revision row alone cannot establish which DDL history was executed. Only if
+continued use requires converting that database should the owning
+operator/coordinator decide on a narrowly specified, schema-verified metadata
+transition or retain it on its original isolated migration history. Any
+transition must prove row/schema preservation, map all current heads (including
+descendants), prevent upstream migrations from being silently skipped and pass
+PostgreSQL migration regression before operational use. Never blindly stamp a
+common head or the new Strategy head.
 
 ## Regression evidence and integration boundary
 

@@ -61,26 +61,34 @@ this checkpoint preparation.
 ## Required sequence and review receipt
 
 1. Prepare and run independent consumer/negative-path tests in this worktree.
-2. Wait for the coordinator's exact synchronized green staging receipt containing
-   accepted Provider, ETF and TC2000 checkpoints, and verify source is unfrozen.
-3. Merge that staging baseline into this clean feature branch, reconcile each
-   contract above and every overlapping router/migration/config/worker path.
+2. Reconcile the separately released common repair baseline
+   `82d881e76be8de538abb6ec5c454d96afe0ee56a` in this same branch. Its scope is
+   shared chart-template/workspace and workflow repair; it contains no Provider,
+   ETF or TC2000 product checkpoint and does not complete SLICP3.
+3. Wait for a coordinator release that includes accepted Provider, ETF and
+   TC2000 product checkpoints, and verify this source is unfrozen. Merge that
+   exact synchronized green product baseline here; reconcile each contract above
+   and every overlapping router/migration/config/worker path.
 4. Run full_integration/full_stack_browser and exact-source branch CI. Preserve
    failures and explicit unsupported operations; fixture green is insufficient.
 5. Publish a clean pushed checkpoint for human review, including tested source,
    migration/default impacts, limitations, original-criterion dispositions and
    `integration_capture: exact branch HEAD`. Human acceptance stays pending.
 
-The central coordinator alone integrates into staging. After all four integrations
-are green and source freeze is released, merge the common green staging into this
-same branch, validate affected contracts and continue the complete roadmap.
+The central coordinator alone integrates into staging. The common repair merge
+does not replace the later Provider → ETF → TC2000 product sequence. After the
+four product integrations are green and any source freeze is released, merge the
+common green product staging into this same branch, validate affected contracts
+and continue the complete roadmap.
 
 ## Independent migration collision repair
 
 The 2026-10-15 explicit coordinator task permits the narrow shared migration/env
 repair before upstream integration. Strategy IDs are uniquely namespaced, with
 a read-only applied-history gate and preserved upstream IDs. See
-`migration-compatibility.md`: source graph collisions are removed, while existing
-legacy Strategy/mixed database upgrade paths remain held for a reviewed,
-database-specific transition. This is not full PostgreSQL or combined-source
-migration acceptance and does not complete SLICP3/SLICP4.
+`migration-compatibility.md`: source graph collisions are removed. No retained
+legacy Strategy/mixed database is currently identified, so no database
+transition decision is pending. If a concrete database is identified, preserve
+it and review its exact schema/history before deciding whether conversion is
+needed. This is not full PostgreSQL or combined-source migration acceptance and
+does not complete SLICP3/SLICP4.
