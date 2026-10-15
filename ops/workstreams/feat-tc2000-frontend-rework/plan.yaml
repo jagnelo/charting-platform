@@ -50,11 +50,14 @@ current_blocker: >-
   settle-wait was added without changing the PageUp assertion, and Help now
   implements Home-to-top directly; the unchanged flow then passed. Frontend
   Vitest passed (exit 0), and the pinned production build/type check passed.
-  Exact Actions run 38808585497 is still in progress for its published SHA
-  bb070a4541cde95e66f26f007d5e4c7c52fba38f; its frontend unit and
-  branch-declared jobs passed, but backend tests have not completed. Do not
-  infer green. Preserve assigned runtime/data/listener 15190 and wait for the
-  coordinator's green staging pointer repair before source synchronization.
+  Exact Actions run 38808585497 completed successfully for its published SHA
+  bb070a4541cde95e66f26f007d5e4c7c52fba38f: backend, frontend unit,
+  branch-declared, and E2E jobs passed; Exhaustive Integration Gate was skipped
+  on the feature branch. This parent run does not validate the unpushed Help
+  commits be6b125/6fb51f1. Push the reviewed, locally validated Help commits,
+  then inspect Actions for the exact pushed SHA. Preserve assigned
+  runtime/data/listener 15190 and wait for coordinator green staging before
+  source synchronization.
   Provider/ETF synchronization and exact TCP4 full integration remain open.
 
   Checkpoint adoption 2026-10-15: the populated-comparison pointer check found
@@ -595,11 +598,11 @@ progress:
   total: 5
   current_phase: TCP2_HELP_READABILITY_REVIEWED;_TCP1_COORDINATOR_STAGING_WAIT
   next_action: >-
-    Finish the Help readability changeset with branch-declared validation,
-    exact-source documentation, and a clean pushed checkpoint. Check Actions
-    run 38808585497 for its terminal result. Do not duplicate pointer repair or
-    synchronize TC source before green staging; continue TCP3/TCP4 roadmap and
-    preserve assigned runtime/data/listener 15190.
+    Push the reviewed Help source and exact-source validation commits, then
+    inspect Actions against the full pushed SHA and record its terminal result.
+    Do not duplicate pointer repair or synchronize TC source before green
+    staging; continue TCP3/TCP4 roadmap and preserve assigned
+    runtime/data/listener 15190.
     Keep official V25 Help parity required_missing. Do not duplicate the
     coordinator-owned pointer repair or synchronize TC source until green
     staging. Continue the full roadmap and preserve the integration gate and
@@ -618,9 +621,11 @@ progress:
     staging. Provider/ETF green-staging synchronization and the exact full
     integration gate remain incomplete. The Help local-only staging reference
     is reviewed and adopted at unchanged thresholds; official V25 Help visual
-    parity remains required_missing and unfinished. The existing GitHub Actions
-    run on the latest published documentation SHA remains in progress; do not
-    treat local checks as remote CI completion.
+    parity remains required_missing and unfinished. Parent-tip Actions run
+    38808585497 on bb070a4541cde95e66f26f007d5e4c7c52fba38f completed
+    successfully (Backend, Frontend Unit, Branch-declared, and E2E passed;
+    Exhaustive Integration Gate skipped). This is not CI for unpushed Help
+    commits be6b125/6fb51f1; inspect the exact-source run after push.
 historical_implementation_records:
   - "Added TC2000's documented HLC Bars style to the frontend chart contract and settings, drawing the existing OHLCV high-low range with a close tick and omitting the open tick. Ctrl+B now cycles HLC, OHLC, Candles, Line in that order. The focused renderer/workstation tests passed 45/45; the full serial frontend suite passed 130 files / 1,225 tests; vue-tsc/Vite build passed; authenticated F8k-direct-chart-style passed 1/1 across all four styles. The protected Help screenshot test failed against its unchanged baseline with 50,941 pixels / 3.0% difference (0.5% threshold); no visual baseline/policy was changed."
   - "Authenticated follow-up browser evidence supersedes the earlier unauthenticated CLI attempt: a unique account in the assigned TC stack was used to activate the chart, press `/`, and confirm the plot library reopened with its `Filter indicators` search focused. No account was created outside the branch stack; no other worktree changed. The account remains a test artifact in the assigned stack. The Help visual oracle was not rerun after this shortcut, and its protected baseline remains unchanged."

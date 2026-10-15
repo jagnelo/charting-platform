@@ -19503,11 +19503,14 @@ stack remained healthy. The branch's Vite preview was restored on 15190 against
 the assigned backend on 28008 and verified HTTP 200. No assigned Compose
 service or volume was restarted or removed.
 
-Latest published Actions run `38808585497` remains in progress for exact SHA
-`bb070a4541cde95e66f26f007d5e4c7c52fba38f`; Frontend Unit Tests and
-Branch-declared Tests passed, while Backend Tests were still running at the
-last read. Do not call this remote run green. TCP1 coordinator pointer delivery
-through green staging, Provider/ETF staging synchronization, and TCP4 full
-integration remain open. Do not duplicate the pointer fix, synchronize TC from
-staging, or claim full branch completion.
+Published-parent Actions run `38808585497` completed successfully for exact
+SHA `bb070a4541cde95e66f26f007d5e4c7c52fba38f`: Backend Tests, Frontend Unit
+Tests, Branch-declared Tests, and E2E Tests (Playwright) passed; Exhaustive
+Integration Gate was skipped on the feature branch. This is parent-tip evidence
+only and does not cover unpushed Help commits `be6b125` and `6fb51f1`. Push the
+reviewed, locally validated Help changes together and inspect/record Actions
+for their exact full SHA before describing remote CI status. TCP1 coordinator
+pointer delivery through green staging, Provider/ETF staging synchronization,
+and TCP4 full integration remain open. Do not duplicate the pointer fix,
+synchronize TC from staging, or claim full branch completion.
 
