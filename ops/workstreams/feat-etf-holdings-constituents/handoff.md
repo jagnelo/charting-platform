@@ -11206,3 +11206,14 @@ seconds because this execution could not access `/var/run/docker.sock`
 (`permission denied`). That proves the required Docker/browser profile could
 not be started from this session; it does not establish whether Docker Desktop
 itself is stopped. No second profile or competing browser was launched.
+
+### Current-source focused identity regression replay — 2026-10-15 22:36Z
+
+From clean synchronized pre-record HEAD `c58cfeafdba77ee22b89caec9ec7d3057657c6f3`,
+the ETF resolver regression module passed 52/52 in 6.41 seconds with
+`--no-cov` (`backend/tests/unit/services/test_etf_holdings_resolution.py`).
+This rechecks the current identity/futures/sentinel unit contract after the
+common-repair merge without consuming Docker or browser capacity. It is narrow
+focused evidence only; it does not replace the required combined
+`full_stack_browser`, live issuer dispositions, Provider bridge contract, or
+exact-source CI.

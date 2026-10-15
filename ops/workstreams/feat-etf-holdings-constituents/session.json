@@ -30,9 +30,9 @@
     }
   ],
   "active_changeset": {
-    "baseline": "9da9b30de5e49169ff5ec81983f2f7f0a6dce486",
-    "intent": "Record the already-published ETF-owned Study Lab readiness repair and its exact evidence, distinguish prior-source full-profile results from current post-82 source, and refresh branch-owned resume state without changing tests, screenshots, assertions, Provider interfaces, or the full roadmap.",
-    "name": "Reconcile Study Lab readiness evidence after common repair release",
+    "baseline": "c58cfeafdba77ee22b89caec9ec7d3057657c6f3",
+    "intent": "Record the focused ETF identity-resolution result on the current common-repair-merged source while preserving the distinction from the required combined full profile, exact-source CI, and unreleased Provider contract.",
+    "name": "Record focused identity-resolution replay on the released-merge source",
     "owned_paths": [
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
@@ -40,7 +40,7 @@
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
       "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md"
     ],
-    "state": "completed_readiness_evidence_reconciliation_provider_slot_pending"
+    "state": "completed_focused_resolver_replay_provider_slot_pending"
   },
   "active_session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
   "branch": "feat/etf-holdings-constituents",
@@ -95,7 +95,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "9da9b30de5e49169ff5ec81983f2f7f0a6dce486",
+  "head": "c58cfeafdba77ee22b89caec9ec7d3057657c6f3",
   "implementation_sha": "dd9b7a08ce79303638c3951dd937270e97bbff33",
   "integration_checkpoint": {
     "acceptance_authorization": "pending",
@@ -190,9 +190,9 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-15T22:34:00Z",
+  "last_checkpoint": "2026-10-15T22:36:00Z",
   "last_human_progress_update": "2026-10-15T22:12:26.620198+00:00",
-  "latest_checkpoint": "2026-10-15 22:34Z: Refreshed the readiness record from clean pre-record HEAD/origin 9da9b30. ETF-owned adjacent-chart readiness fix b01f59bf is already published; focused screenshot matrix passed12/12 across four display projects x3 with retries0 and no oracle/tolerance changes. Coordinator-reported readonly-DejaVu replay passed both unchanged 1080p Study screenshots3/3; artifacts are not in this checkout. Common green staging82d881e is already merged through bff2d390; CI38805309009 is reported 104 visual passes/no retries. The last ETF full profile and exact CI (8e84e7a / 38788420409) are historical and predate 82 plus later ETF identity test changes; current combined full_stack_browser and exact-source CI remain pending. No replay process is live. The required preflight's docker-ready attempt timed out after180s with permission denied on /var/run/docker.sock; no profile was started. Provider contract/first heavy slot remains open; goal and full roadmap remain active.",
+  "latest_checkpoint": "2026-10-15 22:36Z: Focused resolver regressions passed52/52 in6.41s with --no-cov at clean synchronized pre-record HEAD c58cfeafd. This is a narrow current-source unit replay only. The ETF-owned visual readiness repair b01f59bf remains published with focused visual 12/12; coordinator-reported readonly-DejaVu replay passed both unchanged 1080p Study screenshots3/3 but its artifacts are not in this checkout. Common green staging82d881e is already merged via bff2d390; CI38805309009 is reported 104 visual passes/no retries. The last full ETF profile and exact CI (8e84e7a / 38788420409) are historical and predate 82 and later identity tests; current combined full_stack_browser and exact-source CI remain pending. No replay process is live. Preflight Docker access failed after180s with permission denied on /var/run/docker.sock; daemon state not inferred. Provider contract/first heavy slot remains open; goal and full roadmap remain active.",
   "local_profile_execution": {
     "cleanup": {
       "host_wide_prune": false,
@@ -229,7 +229,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "next_action": "Resume independent ETF checkpoint preparation without guessing Provider interfaces. Once a reviewed green Provider checkpoint and exact synchronized staging SHA are available, reconcile that exact source in this same branch, implement/test ETF_HOLDINGS against the real shared runtime, and run the required full_stack_browser plus exact-source CI after Provider's first slot. Preserve the full roadmap; do not wait for the full Provider feature or 30-day trial, merge sibling branches, activate paid/trial routes, deploy, or clean retained data.",
-  "plan_hash": "918b197171d95093776b0b9f5acfbb188dae774291fb49f869435d5ee1df47bb",
+  "plan_hash": "dd8e2b59e45a021fec667076d885b0da72e5584ea9af8f8e2ddb7a58af560163",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -284,10 +284,10 @@
     "current_phase": "provider_contract_pending",
     "next_action": "Continue independent checkpoint preparation without guessing Provider interfaces. When a reviewed green Provider producer contract and exact synchronized staging SHA are released, reconcile that source in this same branch, implement/test the real ETF_HOLDINGS bridge and transport-level negative paths, and coordinate full_stack_browser plus exact-source CI after Provider's first slot. Preserve the entire ETF roadmap.",
     "total": 7,
-    "updated_at": "2026-10-15T22:34:00.000000+00:00"
+    "updated_at": "2026-10-15T22:36:00.000000+00:00"
   },
-  "remote": "9da9b30de5e49169ff5ec81983f2f7f0a6dce486",
-  "remote_sha": "9da9b30de5e49169ff5ec81983f2f7f0a6dce486",
+  "remote": "c58cfeafdba77ee22b89caec9ec7d3057657c6f3",
+  "remote_sha": "c58cfeafdba77ee22b89caec9ec7d3057657c6f3",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

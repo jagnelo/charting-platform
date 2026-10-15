@@ -49,8 +49,8 @@ integration_checkpoint:
     promotion, deployment or trial activation.
   acceptance_authorization: pending
   latest_resume_reconciliation:
-    recorded_at: "2026-10-15T22:31:00Z"
-    branch_head: 9da9b30de5e49169ff5ec81983f2f7f0a6dce486
+    recorded_at: "2026-10-15T22:36:00Z"
+    branch_head: c58cfeafdba77ee22b89caec9ec7d3057657c6f3
     common_repair_staging_sha: 82d881e76be8de538abb6ec5c454d96afe0ee56a
     common_repair_etf_merge_sha: bff2d390eaf128d54a5bb588298a3b528c9a6785
     common_repair_ci_run: 38805309009
@@ -59,6 +59,7 @@ integration_checkpoint:
     exact_head_ci: not_checked_for_9da9b30de5e49169ff5ec81983f2f7f0a6dce486
     visual_readiness_source: b01f59bf156e7a43efe3d9a7897a648ca97f0b16
     visual_readiness_focus: 12_pass_all_four_display_projects_x3_retries0
+    current_source_resolver_test: "52 passed in 6.41s with --no-cov at c58cfeafdba77ee22b89caec9ec7d3057657c6f3"
     coordinator_visual_replay: "reported: both unmodified 1080 Study gap screenshots 3/3 with readonly DejaVu secure-localhost fixture; no matching artifact found in this worktree"
     prior_full_profile: "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85; terminal exit 0; 1938 backend, 948 frontend, 154 functional plus 106 declared skips, 104 visual; historical, predates merged 82d881e and later ETF identity tests"
     docker_runtime_check: "agent-session-start waited 180s; Docker API access denied at /var/run/docker.sock; daemon state not inferred"
@@ -170,10 +171,10 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: Reconcile Study Lab readiness evidence after common repair release
-    state: completed_readiness_evidence_reconciliation_provider_slot_pending
-    baseline: 9da9b30de5e49169ff5ec81983f2f7f0a6dce486
-    intent: Record the already-published ETF-owned Study Lab readiness repair and its exact evidence, distinguish prior-source full-profile results from current post-82 source, and refresh the branch-owned resume state without changing tests, screenshots, assertions, Provider interfaces, or the full roadmap.
+    name: Record focused identity-resolution replay on the released-merge source
+    state: completed_focused_resolver_replay_provider_slot_pending
+    baseline: c58cfeafdba77ee22b89caec9ec7d3057657c6f3
+    intent: Record the focused ETF identity-resolution result on the current common-repair-merged source while preserving the distinction from the required combined full profile, exact-source CI, and unreleased Provider contract.
     owned_paths:
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md
