@@ -60,6 +60,8 @@ integration_checkpoint:
   preparation_ci_result: Backend and frontend passed; hosted Playwright 151 passed and 109 skipped; branch live matrix 522 passed, 19 classified skips, 5 failures across four issuer routes. Follow-up repairs are required.
   coordination_document: /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md
   contract_document: ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md
+  cost_consumer_contract_document: ops/workstreams/feat-etf-holdings-constituents/shared-cost-admission.md
+  active_preparation_context: 'Shared cost-admission consumer contract; docs-only, clean synchronized starting boundary f532914d873c4e0f397e3b697bcc1d6f79562cd0. Owns the new cost contract, its integration-checkpoint link, and four workstream records. Existing full-profile and exact-source CI observation continues; no product acceptance or paid activation.'
   downstream_consumers:
     - TC2000 current holdings capability and explicit unavailable lineage
     - Strategy Lab v2 point-in-time holdings membership and retained provenance

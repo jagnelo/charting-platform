@@ -44,6 +44,8 @@
   },
   "current_blocker_latest": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). Four issuer repairs are synchronized as ea7572ab; source CI backend/frontend/Playwright passed. Live sweep 529 passed,16 skips,1 transient BGIG ReadError; unchanged BGIG replay passed. Precise classifier fix is synchronized as 76a8341e with hard parser/identity negatives. Local full profile20560 passed1938 backend and948 frontend tests and reached runtime probes; final browser/visual result pending. Shared runtime still awaits Provider in synchronized green staging; current staging advance is workflow-only.",
   "dirty_paths": [
+    "ops/workstreams/feat-etf-holdings-constituents/shared-cost-admission.md",
+    "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
@@ -257,6 +259,13 @@
     "dispositions_document": "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "preparation_baseline": "f2670b0bbde8bb680173d847a43734f7391745f7",
     "preparation_sha": "d1040b41b99b3ece8e25e777ef51a300393c7429",
+    "current_published_sha": "f532914d873c4e0f397e3b697bcc1d6f79562cd0",
+    "current_published_ci": {
+      "id": 38782444991,
+      "url": "https://github.com/jagnelo/charting-platform/actions/runs/38782444991",
+      "status": "in_progress",
+      "application_source_sha": "ea7572ab63985c9bc520befb377001a44c3a4d5b"
+    },
     "ci": {
       "id": 38771431871,
       "url": "https://github.com/jagnelo/charting-platform/actions/runs/38771431871",
@@ -290,21 +299,17 @@
     }
   },
   "active_changeset": {
-    "name": "issuer route drift repair",
-    "state": "implementation_pushed_validation_running",
-    "baseline": "c20da8a99b4daec5db8d4144b5e76a4baaa41f93",
-    "intent": "Repair the four issuer routes responsible for five genuine live CI failures using retained public artifacts and strict regression tests.",
+    "name": "shared cost-admission consumer contract",
+    "state": "in_progress_documentation_only",
+    "baseline": "f532914d873c4e0f397e3b697bcc1d6f79562cd0",
+    "intent": "Pin existing shared cost interfaces and explicit producer/consumer acceptance cases without a duplicate runtime, paid activation, or an implicit waiver of the original aggregate monthly ceiling. Continue observing existing broader validation.",
     "owned_paths": [
-      "backend/app/services/etf_holdings_adapters.py",
-      "backend/tests/unit/services/test_etf_holdings_adapters.py",
-      "backend/tests/live/test_etf_holdings_live_providers.py",
-      "docs/etf-provider-universe.md",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
       "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md",
-      "backend/tests/unit/services/test_etf_holdings_issuer_route_drift.py"
+      "ops/workstreams/feat-etf-holdings-constituents/shared-cost-admission.md"
     ],
     "evidence_directory": ".ai/validation/issuer-drift-2026-10-15/"
   },

@@ -48,6 +48,12 @@ interfaces. Provider ref inspected during preparation: `65a467b43`.
 
 ## ETF-owned bridge design and remaining implementation
 
+The detailed shared cost-admission producer/consumer contract and conditional
+free-only checkpoint acceptance matrix are in [shared-cost-admission.md](shared-cost-admission.md).
+They distinguish existing quota/cost settlement from recurring-budget admission;
+neither the proposed contract nor a free default marks the original budget
+criterion complete.
+
 The bridge is an ETF consumer of the shared runtime. It does not own a second
 token bucket, entitlement table, recurring-budget ledger, health scheduler, or
 quota coordinator. The following wiring is required once Provider is present

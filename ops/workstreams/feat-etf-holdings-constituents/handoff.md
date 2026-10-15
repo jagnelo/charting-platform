@@ -10233,3 +10233,45 @@ owned chart-template repair stack/build started during our existing run;
 it is not modified. Resource contention is observed, not assigned as an
 unproven failure cause. Next action remains finishing this validation context,
 not declaring checkpoint acceptance or editing another worktree.
+
+### Clean boundary: shared cost-admission consumer contract
+
+The issuer repair/classifier source and separate operational receipt are
+committed/pushed. Boundary verification: HEAD and origin both
+`f532914d873c4e0f397e3b697bcc1d6f79562cd0`, clean worktree and diff-check.
+Focused checks and exact prior CI outcomes are recorded above; broader local
+validation remains live, not accepted. Current exact-source hosted run is
+`38782444991`. The next independently scoped context is documentation-only
+shared cost-admission consumer preparation. It owns a new
+`shared-cost-admission.md`, its link in `integration-checkpoint.md`, and these
+four workstream records. It must identify concrete producer/consumer tests,
+existing shared interfaces versus gaps, and the checkpoint's strictly bounded
+free-only alternative without waiving the original aggregate monthly ceiling.
+No application changes, Provider edits, paid requests, activation, or new ledger.
+Continue monitoring process 20560 and the hosted run without restarting them.
+
+The detailed cost contract is now written in `shared-cost-admission.md` and
+linked from `integration-checkpoint.md`. It defines shared full-budget versus
+conditionally accepted free-only boundaries, zero/unknown-cost distinction,
+actual-attempt accounting, retained billing lineage and twelve concrete
+producer/consumer acceptance scenarios. Current Provider source has a new
+uncommitted reviewed-paid fixture that tests paid-flag true eligibility and
+false exclusion; this is explicitly distinguished from proof that an enabled
+flag cannot bypass a checkpoint's free-only constraint. No sibling tests were
+run or files changed. Workstream validation passes 30 records; diff-check
+passes. The six owned documentation/record files stay within this named
+context pending the live validation outcomes, so publishing them does not
+cancel useful hosted run 38782444991. No new product or shared-runtime success
+is claimed from this documentation.
+
+The continuing full-profile run exposed a new terminal test-case failure in
+`F8n-cross-window-links`: both symbol/timeframe assertions passed, but the
+popup closed during its direct cleanup click. The existing same-file
+`closePopupWhenOpen` helper already handles that observed close-event race;
+this case still bypasses it. Retained evidence is copied to
+`.ai/validation/etf-popout-close-failure-20261015/`; the broader run is still
+progressing and no oracle has changed. Finish publishing this documentation
+context cleanly, then repair the observed cleanup path in a separate context
+after the authoritative local run terminates. Because a further source repair
+is now required, the intermediate hosted run is not the final review candidate;
+publishing this completed context must not become a reason to delay the fix.
