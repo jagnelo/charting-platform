@@ -11114,3 +11114,49 @@ first heavy validation slot. This small regression is not ETF checkpoint
 acceptance. Next: resume the full bridge only after a reviewed green Provider
 contract/release; preserve all cost/quota denials, canonical identity, retention
 semantics, and the original roadmap.
+
+### Central-first ETF resume and current-source reconciliation — 2026-10-15 22:24Z
+
+The active goal resumed by reading the coordinator's local
+`feature-integration-coordination.md`, checkpoint section of
+`agent-orchestration.md`, and `provider-integration-checkpoint.md` before this
+workstream. The exact central-first task and all fourteen original ACs remain
+preserved in `plan.yaml`, `session.json`, and the checkpoint disposition table;
+checkpoint acceptance remains pending. UV-managed session status confirmed
+existing writer `bb0f68af-76ab-45c0-83f1-52d805be699f` on the assigned ETF
+worktree and retained the full integration/browser validation tier. The
+standard preflight wrapper hit the known sandbox-only allocation-lock denial,
+then the UV-managed status helper completed; no writer was started or replaced.
+This documentation-only changeset owns `plan.yaml`, `handoff.md`, `session.json`,
+`validation.jsonl`, and `integration-checkpoint.md`; no source or test path is
+part of this context.
+
+At this resume, ETF HEAD was `159d1df48c8a242d6ace076e9accbfc901b1552d`,
+clean and synchronized with its origin branch. The exact released common repair
+SHA `82d881e76be8de538abb6ec5c454d96afe0ee56a` is already the second parent of
+ETF merge `bff2d390eaf128d54a5bb588298a3b528c9a6785`; do not duplicate it. The
+21:42Z coordinator receipt still reports no Provider product checkpoint and
+no accepted product checkpoint. Its older 16:55Z central YAML is stale. The
+current direction reserves Provider's first heavy validation slot, so no ETF
+full profile was started.
+
+The runtime source snapshot at `13fd50a` remains representative: the only code
+delta through current HEAD is the three security-sentinel regression entries in
+`test_etf_holdings_resolution.py`. Current GitHub combined status lookup for
+`159d1df` returned no statuses. Focused resolution tests pass52/52, Ruff passes,
+and the workstream validator passes31 records; this is not current exact-source
+CI or a full profile. The historical 1938/948/154/104 local gate was run at
+`8e84e7a`, before the current merged source, and is not current acceptance.
+Persisted consumer tests cover stored API/basket outcomes; they do not prove
+real Provider request transport, quota, cost admission, or the ETF bridge.
+
+The current ETF runtime still has no `ETF_HOLDINGS` capability, no durable
+per-request shared reservation/settlement, no aggregate recurring subscription
+cost contract, and no awaited async adapter invocation. Do not mock or guess
+these producer interfaces. Continue against the exact reviewed green Provider
+checkpoint once released; do not wait for full Provider completion or the
+30-day trial. Then merge its exact synchronized staging SHA into this same ETF
+branch, implement the actual bridge, and run the required combined profile and
+exact-source CI. No product checkpoint acceptance, staging write, sibling edit,
+promotion, deployment, paid/trial activation, or retained-data cleanup is
+implied by this resume record.

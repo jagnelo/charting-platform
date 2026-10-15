@@ -48,6 +48,18 @@ integration_checkpoint:
     its 30-day trial. No staging writes, sibling edits, frozen-source changes,
     promotion, deployment or trial activation.
   acceptance_authorization: pending
+  latest_resume_reconciliation:
+    recorded_at: "2026-10-15T22:24:00Z"
+    branch_head: 159d1df48c8a242d6ace076e9accbfc901b1552d
+    common_repair_staging_sha: 82d881e76be8de538abb6ec5c454d96afe0ee56a
+    common_repair_etf_merge_sha: bff2d390eaf128d54a5bb588298a3b528c9a6785
+    provider_checkpoint: unreleased
+    exact_head_ci: no_statuses_returned_for_159d1df48c8a242d6ace076e9accbfc901b1552d
+    local_full_profile: required_but_not_run_on_current_source; coordinated_after_provider_first_slot
+    next_action: >-
+      Consume only a reviewed green Provider producer checkpoint; then merge its
+      exact synchronized staging SHA into this same clean ETF branch and
+      implement/test the actual ETF_HOLDINGS bridge without guessing interfaces.
   disposition_semantics: Target scope of the named checkpoint; these dispositions are not current completion claims. EICP1-EICP7 require fresh evidence before review.
   source_baseline: f2670b0bbde8bb680173d847a43734f7391745f7
   implementation_evidence_baseline: 5854dd2fc70e7424280782c3a61df5f6ed5b04c6
@@ -149,16 +161,16 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: ETF security-sentinel identity regression
-    state: completed_focused_regression_provider_contract_pending
-    baseline: 7f343faa2236cb1e8e266b1024842f55df3564a9
-    intent: Add exact parser-default holding_type security coverage to the existing unresolved-row, existing-equity-collision, and persisted-snapshot regressions; do not change source behavior unless a focused test demonstrates a defect.
+    name: Central-first ETF resume and current-source evidence reconciliation
+    state: in_progress
+    baseline: 159d1df48c8a242d6ace076e9accbfc901b1552d
+    intent: Re-read central coordination and checkpoint rules, reconcile the released staging merge and prior green evidence with current ETF source, and refresh ETF-owned resume records while preserving the full original roadmap and Provider-owned shared governance boundary.
     owned_paths:
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md
       - ops/workstreams/feat-etf-holdings-constituents/session.json
       - ops/workstreams/feat-etf-holdings-constituents/validation.jsonl
-      - backend/tests/unit/services/test_etf_holdings_resolution.py
+      - ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md
 scope:
   - "Keep branch-owned ETF workstream and provider-universe documentation code-derived; the current reconciled baseline is 496 registered, 422 native/live-backed, and 74 fallback-only providers after the evidence-backed Arin/ATTR route promotion."
   - "Create and maintain a branch-owned exhaustive provider audit ledger covering all 140 current fallback-only adapter keys, with deterministic prioritization, source evidence, attempt dates, route disposition, and next action."
@@ -1309,9 +1321,22 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  The bounded security-sentinel identity regression is complete: the exact parser-default "security" holding type is covered in the no-match, equity-collision, and persisted-snapshot matrices; the focused resolution module passed52/52 with coverage disabled, Ruff and workstream validation passed. Resume ETF_HOLDINGS work only against a reviewed green Provider producer contract and coordinated first heavy-validation release. The exact synchronized green common repair baseline82d881e76be8de538abb6ec5c454d96afe0ee56a
-  has been merged into this clean ETF branch as second parent of bff2d390e;
-  that repair release is not product-checkpoint acceptance. The merged
+  The central-first resume was reconciled at branch HEAD
+  159d1df48c8a242d6ace076e9accbfc901b1552d. Exact staging release
+  82d881e76be8de538abb6ec5c454d96afe0ee56a is already the second parent of
+  ETF merge bff2d390eaf128d54a5bb588298a3b528c9a6785; this is a common repair
+  baseline only, not Provider or ETF product-checkpoint acceptance. GitHub
+  returned no combined status checks for current ETF HEAD. The application and
+  runtime source is unchanged since the 13fd50a runtime inventory; the only
+  later code/test delta is the three-case security-sentinel regression in
+  dd9b7a08ce79303638c3951dd937270e97bbff33. That focused resolution module
+  passed52/52 with coverage disabled, Ruff passed, and the workstream validator
+  passed31 records. The earlier1938-backend/948-frontend/154-functional/104-
+  visual local profile is historical at8e84e7a and is not current-source proof.
+  Provider's product checkpoint and shared producer contract remain unreleased;
+  follow the coordinator's first-slot direction and do not start the heavy
+  profile until it is released. The actual ETF_HOLDINGS bridge remains gated on
+  a reviewed Provider contract; do not guess or stub its interfaces. The merged
   snapshot-save behavior, chart geometry, and ETF's stronger visual readiness
   assertions have bounded passing tests recorded in handoff.md. Explicit
   future/futures and other declared non-equity holdings now fail closed in the
@@ -1322,13 +1347,13 @@ next_action: >-
   unknown and equity-collision tickers. The parser-default security-sentinel
   regression now passes through all three identity and persistence matrices;
   the full resolution module passes52/52. The 14-case persisted-consumer module passed locally in
-  host context; its first TestClient request stalls only in the restricted
-  sandbox and is not an application failure. Current ETF-tree inspection found
-  no ETF_HOLDINGS capability or durable request reservation, and the existing
-  dispatcher is synchronous while holdings adapters are async. Continue the
+  host context; this proves stored consumer outcomes only, not shared-runtime
+  transport/admission. The earlier sandbox TestClient stall was environmental,
+  not an assertion failure. Current ETF-tree inspection found no ETF_HOLDINGS
+  capability, durable per-request shared reservation/settlement, aggregate
+  recurring-cost admission, or awaited async adapter dispatch. Continue the
   branch-owned producer/consumer contract inventory; do not code against a
-  guessed interface. The actual
-  ETF_HOLDINGS bridge remains gated on an accepted, tested Provider producer
+  guessed interface. ETF_HOLDINGS remains gated on a reviewed, tested Provider
   contract, especially shared cost/free-only admission and denial before every
   real request, page, retry, redirect, alternate client, or SEC fallback. Do
   not guess costs or quotas or create an ETF-only ledger. Provider owns the

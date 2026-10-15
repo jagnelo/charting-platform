@@ -42,13 +42,16 @@ not acceptance of a Provider checkpoint. On this tree:
   request-level admission. A bridge needs the accepted producer's compatible
   async/transport contract, not just a top-level wrapper around adapter output.
 
-The exact current tree is `13fd50a789b1c09e11a74ef178cb505521c38f4c`. The
-adapter, refresh, and EDGAR source blobs equal their previously inventoried
-blobs (`508c7458…`, `a235ffbe…`, and `63ac7778…` respectively), so the lexical
-transport inventory below remains current despite later resolver and workstream
-changes. The common repair release is already an ancestor; it did not include a
-Provider product checkpoint. Do not use these current-tree primitives to infer
-that the Provider contract is accepted or sufficient.
+The runtime implementation snapshot was recorded at
+`13fd50a789b1c09e11a74ef178cb505521c38f4c`. The current full branch tip at this
+resume is `159d1df48c8a242d6ace076e9accbfc901b1552d`; a source diff from the
+runtime snapshot to that tip contains only the three security-sentinel test
+parameter additions in `test_etf_holdings_resolution.py`. The adapter,
+refresh, and EDGAR source blobs still equal their inventoried blobs
+(`508c7458…`, `a235ffbe…`, and `63ac7778…` respectively), so this lexical
+transport inventory remains current. The common repair release is already an
+ancestor; it did not include a Provider product checkpoint. Do not use these
+runtime primitives to infer that the Provider contract is accepted or sufficient.
 
 The bridge's first implementation review must therefore reconcile, from the
 green staged producer, (1) exact capability and migration values, (2) a
@@ -216,3 +219,54 @@ trial activation authorization. It is not a prerequisite for this development
 checkpoint. After all four checkpoints reach green staging and the coordinator
 releases the source, merge that common baseline into this same branch, validate
 and continue the complete original roadmap. Preserve every source receipt.
+
+## Current central-first resume reconciliation — 2026-10-15 22:24Z
+
+The owning ETF session resumed after first re-reading the local coordinator
+copy of `feature-integration-coordination.md`, the accepted-checkpoint section
+of `agent-orchestration.md`, and `provider-integration-checkpoint.md`. The
+canonical UV-managed preflight/status helper confirmed the existing writer
+`bb0f68af-76ab-45c0-83f1-52d805be699f`, implementation role, exact assigned
+worktree, `full_integration` tier and `full_stack_browser` profile. Its initial
+shared allocation-lock access was denied inside the sandbox, but the wrapper
+continued and the UV-managed status helper completed; no new writer or takeover
+was created.
+
+Current ETF branch HEAD is `159d1df48c8a242d6ace076e9accbfc901b1552d`, clean
+and equal to its origin branch at inspection. Exact staging repair SHA
+`82d881e76be8de538abb6ec5c454d96afe0ee56a` is already the second parent of ETF
+merge `bff2d390eaf128d54a5bb588298a3b528c9a6785`. This is only the released
+common chart/save repair baseline; it is not a Provider or ETF product
+checkpoint. The latest coordinator receipt dated 21:42Z still records
+`provider_product_checkpoint: null`, no accepted product checkpoint, and no ETF
+acceptance. The older central status YAML dated 16:55Z is not the latest
+coordination evidence. The current human/coordinator direction reserves the
+first heavy local validation slot for Provider; the ETF full profile was not
+started.
+
+The GitHub combined-status lookup for exact ETF HEAD `159d1df` returned an
+empty status list. The branch contains the focused security-sentinel test
+commit `dd9b7a08ce79303638c3951dd937270e97bbff33`, whose resolver module passed
+52/52 with `--no-cov`; Ruff and the 31-record workstream validator passed.
+This is focused test evidence only. The previously green 1938-backend,
+948-frontend, 154-functional, 104-visual profile belongs to source
+`8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85`, before later source/merge changes,
+and is retained as historical evidence rather than current acceptance. The
+14-case persisted consumer suite tests stored API/basket outcomes and explicitly
+does not prove shared Provider transport or admission.
+
+Current-source review confirms that the checked-out Provider runtime still has
+nine capabilities and no `ETF_HOLDINGS`; its resolver/call path does not provide
+durable ETF request reservation/settlement or aggregate recurring-subscription
+cost admission, its usage cost defaults to one for missing/malformed values,
+and its invocation path runs synchronous callbacks in an executor while ETF
+adapters are async. No such contract is to be inferred from the old Provider
+candidate snapshot. Therefore the real bridge and transport-negative tests
+cannot safely be implemented against this source. Next: preserve the full
+roadmap and consumer matrix, wait only for a reviewed green Provider producer
+checkpoint (not the full Provider feature or 30-day trial), reconcile its exact
+synchronized staging SHA into this same branch, then implement and validate the
+actual bridge. Exact-source CI and current-source `full_stack_browser` remain
+required before ETF checkpoint review. Human acceptance, staging integration,
+promotion, deployment, paid activation, trial activation and data cleanup are
+not authorized.
