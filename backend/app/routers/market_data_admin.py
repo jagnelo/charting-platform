@@ -1,8 +1,9 @@
 """Backend-only market-data governance and diagnostics endpoints."""
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from types import SimpleNamespace
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator
@@ -62,6 +63,9 @@ class ProviderQuotaBaselineRequest(BaseModel):
     used_units: int = Field(ge=0)
     observed_at: datetime
     evidence_reference: str = Field(min_length=1, max_length=256)
+    source: Literal["operator_dashboard_attestation", "operator_owner_attestation"] = (
+        "operator_dashboard_attestation"
+    )
 
     @field_validator("observed_at")
     @classmethod
@@ -74,6 +78,13 @@ class ProviderQuotaBaselineRequest(BaseModel):
     @classmethod
     def require_non_secret_evidence_reference(cls, value: str) -> str:
         return normalize_quota_evidence_reference(value)
+
+
+class SecIssuerReportMaterializationRequest(BaseModel):
+    """Explicit report-cycle acknowledgement for bounded issuer-only writes."""
+
+    reviewed_cycle_count: int = Field(ge=1)
+    max_candidates: int = Field(default=500, ge=1, le=500)
 
 
 def _refresh_lease_expired(job: MarketRefreshJob, now: datetime) -> bool:
@@ -172,15 +183,18 @@ async def list_tokenized_assets(
     snapshots_by_instrument: dict[int, LatestPriceSnapshot] = {}
     if instrument_ids:
         snapshots = (
-            await db.execute(
-                select(LatestPriceSnapshot)
-                .where(LatestPriceSnapshot.instrument_id.in_(instrument_ids))
-                .order_by(LatestPriceSnapshot.fetched_at.desc())
+            (
+                await db.execute(
+                    select(LatestPriceSnapshot)
+                    .where(LatestPriceSnapshot.instrument_id.in_(instrument_ids))
+                    .order_by(LatestPriceSnapshot.fetched_at.desc())
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         snapshots_by_instrument = {
-            snapshot.instrument_id: snapshot
-            for snapshot in reversed(snapshots)
+            snapshot.instrument_id: snapshot for snapshot in reversed(snapshots)
         }
     return [
         {
@@ -484,7 +498,7 @@ async def reconcile_provider_quota_coordinator_baseline(
             used_units=body.used_units,
             observed_at=body.observed_at,
             evidence_reference=body.evidence_reference,
-            source="operator_dashboard_attestation",
+            source=body.source,
             actor_user_id=current_user.id,
         )
     except ProviderQuotaAdmissionError as exc:
@@ -593,6 +607,43 @@ async def list_market_events(
         }
         for row in rows
     ]
+
+
+@router.post("/events/refresh")
+async def refresh_market_events_window(
+    provider: str = Query(min_length=1, max_length=100),
+    start: date = Query(...),
+    end: date = Query(...),
+    max_pages: int = Query(default=1, ge=1, le=100),
+    force_refresh: bool = Query(default=False),
+    retry_blocked: bool = Query(default=False),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """Ingest one explicit event window and retain a bounded cursor continuation."""
+
+    if start > end:
+        raise HTTPException(status_code=422, detail="start must not be after end")
+    from app.services.market_events import (
+        market_event_provider_names,
+        refresh_market_events,
+    )
+
+    normalized_provider = provider.strip().lower()
+    if normalized_provider not in market_event_provider_names([normalized_provider]):
+        raise HTTPException(
+            status_code=422,
+            detail=f"provider {normalized_provider!r} has no market-event capability",
+        )
+    return await refresh_market_events(
+        db,
+        start=start,
+        end=end,
+        provider_names=[normalized_provider],
+        max_pages=max_pages,
+        force_refresh=force_refresh,
+        retry_blocked=retry_blocked,
+    )
 
 
 @router.get("/event-consensus")
@@ -906,6 +957,30 @@ async def list_sec_directory_candidates(
     }
 
 
+@router.post("/sec-directory-candidates/materialize")
+async def materialize_sec_directory_issuer_candidates(
+    request: SecIssuerReportMaterializationRequest,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """Materialize validated issuer rows from the exact retained clean SEC report.
+
+    This never refetches SEC and never creates instruments or listings. Rows
+    with conflicting or stale identity evidence remain quarantined.
+    """
+
+    from app.services.market_event_edgar_scan import materialize_sec_directory_issuer_report
+
+    result = await materialize_sec_directory_issuer_report(
+        db,
+        reviewed_cycle_count=request.reviewed_cycle_count,
+        max_candidates=request.max_candidates,
+    )
+    if result.get("status") == "blocked":
+        raise HTTPException(status_code=409, detail=result)
+    return result
+
+
 @router.get("/fundamentals")
 async def list_fundamental_facts(
     issuer_id: int | None = None,
@@ -978,6 +1053,30 @@ async def list_short_interest(
         }
         for row in rows
     ]
+
+
+@router.post("/short-interest/{instrument_id}/refresh")
+async def refresh_instrument_short_interest(
+    instrument_id: int,
+    start: date | None = None,
+    end: date | None = None,
+    max_pages: int = Query(default=1, ge=1, le=100),
+    retry_blocked: bool = Query(default=False),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """Fetch a bounded page slice and durably persist/resume FINRA history."""
+
+    from app.services.short_interest import refresh_short_interest_for_instrument
+
+    return await refresh_short_interest_for_instrument(
+        db,
+        instrument_id,
+        start=start,
+        end=end,
+        max_pages=max_pages,
+        retry_blocked=retry_blocked,
+    )
 
 
 @router.get("/coverage")

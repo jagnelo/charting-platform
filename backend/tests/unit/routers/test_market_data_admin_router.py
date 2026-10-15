@@ -1,5 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
 from app.config import provider_rate_limit_seed
 from app.models.market_data_foundation import (
     Issuer,
@@ -74,7 +76,10 @@ def test_quota_baseline_reconciliation_is_admin_only_and_contract_derived(
     assert payload["unit"] == "credits"
     assert payload["quota_group"] == "account"
     assert payload["used_units"] == 25
-    assert payload["limit_units"] == provider_rate_limit_seed("marketdata_app")["quota_contract"]["dimensions"][0]["limit"]
+    assert (
+        payload["limit_units"]
+        == provider_rate_limit_seed("marketdata_app")["quota_contract"]["dimensions"][0]["limit"]
+    )
     assert payload["source"] == "operator_dashboard_attestation"
     assert payload["actor_user_id"] is not None
     assert "API key" not in response.text
@@ -93,8 +98,7 @@ def test_quota_baseline_reconciliation_is_admin_only_and_contract_derived(
     assert dimension["status"] == "verified"
     assert dimension["effective_used_units"] == 25
     assert dimension["remaining_units"] == (
-        provider_rate_limit_seed("marketdata_app")["quota_contract"]["dimensions"][0]["limit"]
-        - 25
+        provider_rate_limit_seed("marketdata_app")["quota_contract"]["dimensions"][0]["limit"] - 25
     )
 
     summary = client.get(
@@ -104,10 +108,8 @@ def test_quota_baseline_reconciliation_is_admin_only_and_contract_derived(
     assert summary.status_code == 200, summary.text
     assert summary.json()["baselines"][0]["effective_used_units"] == 25
     assert summary.json()["baselines"][0]["remaining_units"] == (
-        provider_rate_limit_seed("marketdata_app")["quota_contract"]["dimensions"][0]["limit"]
-        - 25
+        provider_rate_limit_seed("marketdata_app")["quota_contract"]["dimensions"][0]["limit"] - 25
     )
-
     bad_dimension = {**body, "dimension": "requests_per_second"}
     rejected = client.post(path, json=bad_dimension, headers=admin_headers)
     assert rejected.status_code == 422
@@ -127,6 +129,99 @@ def test_quota_baseline_reconciliation_is_admin_only_and_contract_derived(
         "evidence_reference": "dashboard:alpaca:access-token-example",
     }
     assert client.post(path, json=secret_labeled, headers=admin_headers).status_code == 422
+
+
+def test_quota_baseline_accepts_explicit_owner_attestation(client, admin_headers):
+    response = client.post(
+        "/api/v1/market-data/quota-coordinator/baselines",
+        json={
+            "provider": "marketdata_app",
+            "capability": "price_history",
+            "dimension": "credits_per_day",
+            "used_units": 0,
+            "observed_at": datetime.now(UTC).isoformat(),
+            "evidence_reference": "owner:marketdata-app:2026-09-16",
+            "source": "operator_owner_attestation",
+        },
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 201, response.text
+    assert response.json()["source"] == "operator_owner_attestation"
+
+
+@pytest.mark.parametrize(
+    ("provider", "dimension", "used_units", "evidence"),
+    [
+        ("massive", "requests_per_minute", 2, "dashboard:massive:stocks-minute-pool"),
+        ("marketstack", "requests_per_month", 37, "dashboard:marketstack:free-month-pool"),
+    ],
+)
+def test_quota_baseline_reconciliation_supports_dashboard_only_provider_pools(
+    client, admin_headers, provider, dimension, used_units, evidence
+):
+    """Dashboard-only quota snapshots seed the provider's exact reviewed pool."""
+
+    response = client.post(
+        "/api/v1/market-data/quota-coordinator/baselines",
+        json={
+            "provider": provider,
+            "capability": "price_history",
+            "dimension": dimension,
+            "used_units": used_units,
+            "observed_at": datetime.now(UTC).isoformat(),
+            "evidence_reference": evidence,
+            "source": "operator_dashboard_attestation",
+        },
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 201, response.text
+    payload = response.json()
+    contract_dimension = next(
+        item
+        for item in provider_rate_limit_seed(provider)["quota_contract"]["dimensions"]
+        if item["name"] == dimension
+    )
+    assert payload["provider"] == provider
+    assert payload["dimension"] == dimension
+    assert payload["unit"] == contract_dimension["unit"]
+    assert payload["limit_units"] == contract_dimension["limit"]
+    assert payload["used_units"] == used_units
+    assert payload["source"] == "operator_dashboard_attestation"
+
+    status = client.get(
+        "/api/v1/market-data/quota-coordinator/baselines",
+        params={
+            "provider": provider,
+            "capability": "price_history",
+            "dimension": dimension,
+        },
+        headers=admin_headers,
+    )
+    assert status.status_code == 200, status.text
+    row = status.json()["dimensions"][0]
+    assert row["status"] == "verified"
+    assert row["effective_used_units"] == used_units
+    assert row["remaining_units"] == contract_dimension["limit"] - used_units
+
+
+def test_quota_baseline_rejects_unrecognized_attestation_source(client, admin_headers):
+    response = client.post(
+        "/api/v1/market-data/quota-coordinator/baselines",
+        json={
+            "provider": "marketdata_app",
+            "capability": "price_history",
+            "dimension": "credits_per_day",
+            "used_units": 0,
+            "observed_at": datetime.now(UTC).isoformat(),
+            "evidence_reference": "owner:marketdata-app:2026-09-16",
+            "source": "assumed_zero",
+        },
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 422
 
 
 def test_event_consensus_status_requires_admin_and_exposes_conflicts(
@@ -265,8 +360,10 @@ def test_sec_directory_candidate_report_is_admin_only_and_paginated(client, admi
                 "active_materialization_mode": "disabled",
                 "active_directory_total": 2,
                 "active_source_fingerprint": fingerprint,
+                "last_completed_cycle_number": 1,
                 "last_completed_report_cycle_number": 1,
                 "last_completed_cycle_clean": True,
+                "last_completed_cycle_failures": 0,
                 "last_completed_directory_total": 2,
                 "last_completed_materialization_mode": "disabled",
                 "last_completed_source_fingerprint": fingerprint,
@@ -347,3 +444,20 @@ def test_sec_directory_candidate_report_is_admin_only_and_paginated(client, admi
         "domain_key": issuer.domain_key,
         "legal_name": issuer.legal_name,
     }
+
+    materialize_path = f"{path}/materialize"
+    assert (
+        client.post(
+            materialize_path,
+            json={"reviewed_cycle_count": 1},
+        ).status_code
+        == 401
+    )
+    materialized = client.post(
+        materialize_path,
+        json={"reviewed_cycle_count": 1, "max_candidates": 10},
+        headers=admin_headers,
+    )
+    assert materialized.status_code == 200, materialized.text
+    assert materialized.json()["created"] == 1
+    assert materialized.json()["provider_http_requests"] == 0

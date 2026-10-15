@@ -10,7 +10,9 @@ redemption, trading and wallet-transfer APIs are outside this subsystem.
 
 from __future__ import annotations
 
+import os
 import time
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from email.utils import parsedate_to_datetime
@@ -22,15 +24,22 @@ from uuid import UUID
 import httpx
 
 from app.config import (
+    DINARI_SANDBOX_MAX_SERVER_RETRIES,
     bybit_xstocks_market_data_use_authority_missing,
+    kraken_market_data_use_authority_missing,
     settings,
     xstocks_market_data_use_authority_missing,
 )
-from app.providers.base import TokenizedAssetRecord
+from app.providers.base import (
+    ProviderAccountUsage,
+    ProviderAccountUsageDimension,
+    TokenizedAssetRecord,
+)
 from app.providers.errors import (
     ProviderNotConfiguredError,
     ProviderRateLimitError,
     ProviderResponseError,
+    provider_response_headers,
     raise_for_provider_error_envelope,
 )
 from app.providers.telemetry import observe_response
@@ -118,7 +127,15 @@ def _http_json(
     headers: dict[str, str] | None = None,
     retry_server_errors: int = 0,
     retry_delay_seconds: float = 0.25,
+    response_observer: Callable[[httpx.Response], None] | None = None,
 ) -> Any:
+    if provider_name == "kraken_xstocks":
+        missing = kraken_market_data_use_authority_missing()
+        if missing:
+            raise ProviderNotConfiguredError(
+                "kraken market-data use lacks current, scoped written authority: "
+                + ", ".join(missing)
+            )
     attempts = max(0, min(int(retry_server_errors), 2))
     for attempt in range(attempts + 1):
         try:
@@ -132,6 +149,8 @@ def _http_json(
         except httpx.RequestError as exc:
             raise ProviderResponseError(provider_name or url.split("/", 3)[2], str(exc)) from exc
         observe_response(response)
+        if response_observer is not None:
+            response_observer(response)
         try:
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
@@ -154,7 +173,9 @@ def _http_json(
                     status_code=response.status_code,
                     headers=safe_headers,
                 ) from exc
-            raise ProviderResponseError(provider, message, status_code=response.status_code) from exc
+            raise ProviderResponseError(
+                provider, message, status_code=response.status_code
+            ) from exc
         break
     try:
         payload = response.json()
@@ -213,7 +234,12 @@ def _dinari_json(
     """Read Dinari with a bounded recovery only on the observed Sandbox host."""
 
     host = url.split("/", 3)[2].lower() if "://" in url else ""
-    sandbox_retry_attempts = 2 if host.endswith(".sandbox.dinari.com") else 0
+    sandbox_retry_attempts = 0
+    if (
+        host.endswith(".sandbox.dinari.com")
+        and os.getenv("DINARI_SANDBOX_CANARY_RUN", "").strip() != "1"
+    ):
+        sandbox_retry_attempts = DINARI_SANDBOX_MAX_SERVER_RETRIES
 
     return _http_json(
         url,
@@ -335,13 +361,85 @@ class XStocksProvider:
         if missing:
             raise ProviderNotConfiguredError(
                 "xStocks market-data use lacks current, scoped automation and "
-                "jurisdiction authority: "
-                + ", ".join(missing)
+                "jurisdiction authority: " + ", ".join(missing)
             )
 
     def _headers(self) -> dict[str, str]:
         key = str(getattr(settings, "XSTOCKS_API_KEY", "") or "").strip()
         return {"X-API-KEY": key} if key else {}
+
+    def fetch_account_usage(self) -> ProviderAccountUsage:
+        """Capture xStocks' native shared public-API minute counters.
+
+        The API has no separate usage endpoint. A single one-row public asset
+        page is used as a bounded read, and its exact limit/remaining/reset
+        response headers are retained together with the complete response
+        body. Missing or malformed headers fail closed; local usage is never
+        represented as the shared-IP baseline.
+        """
+
+        self._require_market_data_authority()
+        captured: dict[str, str] = {}
+
+        def capture_headers(response: httpx.Response) -> None:
+            captured.update(provider_response_headers(response))
+
+        payload = _http_json(
+            f"{self.base_url}/public/assets",
+            provider_name=self.name,
+            params={"page": 0, "pageSize": 1},
+            headers=self._headers(),
+            response_observer=capture_headers,
+        )
+        if not isinstance(payload, dict) or not isinstance(payload.get("nodes"), list):
+            raise ProviderResponseError(
+                self.name, "xStocks returned an invalid account-usage probe payload"
+            )
+        observed_at = _now()
+        try:
+            limit = int(captured["x-ratelimit-limit"])
+            remaining = int(captured["x-ratelimit-remaining"])
+            reset_value = captured["x-ratelimit-reset"].strip()
+            try:
+                reset_epoch = float(reset_value)
+            except ValueError:
+                reset_at = datetime.fromisoformat(reset_value.replace("Z", "+00:00"))
+                if reset_at.tzinfo is None:
+                    raise ValueError("xStocks reset timestamp omitted timezone")
+            else:
+                if not isfinite(reset_epoch):
+                    raise ValueError("xStocks reset epoch is not finite")
+                reset_at = datetime.fromtimestamp(reset_epoch, tz=UTC)
+        except (KeyError, TypeError, ValueError, OverflowError, OSError) as exc:
+            raise ProviderResponseError(
+                self.name,
+                "xStocks omitted or returned invalid native limit/remaining/reset headers",
+            ) from exc
+        if limit <= 0 or remaining < 0 or remaining > limit or reset_at.timestamp() <= 0:
+            raise ProviderResponseError(
+                self.name, "xStocks returned invalid native request-window counters"
+            )
+        dimension = ProviderAccountUsageDimension(
+            name="public_requests_per_minute",
+            unit="requests",
+            limit=limit,
+            remaining=remaining,
+            consumed=limit - remaining,
+            reset_at=reset_at,
+        )
+        return ProviderAccountUsage(
+            provider=self.name,
+            observed_at=observed_at,
+            unit="requests",
+            limit=limit,
+            remaining=remaining,
+            consumed=limit - remaining,
+            reset_at=reset_at,
+            account_plan="public_rate_limit_headers",
+            dimensions=(dimension,),
+            raw_payload=payload,
+            response_headers=captured,
+        )
 
     def _record(
         self, payload: dict[str, Any], *, price: Decimal | None = None
@@ -798,19 +896,75 @@ class KrakenXStocksProvider:
     base_url = "https://api.kraken.com/0/public"
     description = "Kraken public xStocks pair metadata and ticker data"
 
+    @staticmethod
+    def _market_identity(identifier: str) -> tuple[str, str]:
+        normalized = identifier.strip().replace("/", "").upper()
+        for quote in ("USDT", "USDC", "USD", "EUR", "GBP", "CHF", "CAD", "AUD", "JPY"):
+            if not normalized.endswith(quote):
+                continue
+            base = normalized[: -len(quote)]
+            if base.endswith("X") and len(base) > 1 and base[:-1].isalnum():
+                return base[:-1], quote
+        raise ProviderResponseError(
+            KrakenXStocksProvider.name,
+            "provider returned an invalid xStocks market identifier",
+        )
+
     def discover_tokenized_assets(
         self, *, page: int = 0, page_size: int = 100
     ) -> list[TokenizedAssetRecord]:
-        payload = _http_json(f"{self.base_url}/AssetPairs", provider_name=self.name)
+        payload = _http_json(
+            f"{self.base_url}/AssetPairs",
+            provider_name=self.name,
+            params={"aclass_base": "tokenized_asset"},
+        )
         body = _required_object(payload, self.name, "asset-pairs response")
         rows = _required_object(body.get("result"), self.name, "asset-pairs result")
         if any(not isinstance(value, dict) for value in rows.values()):
             raise ProviderResponseError(self.name, "provider returned a non-object asset-pair row")
-        candidates = [
-            {"symbol": key, **value}
-            for key, value in rows.items()
-            if "xstock" in f"{key} {value.get('wsname', '')} {value.get('altname', '')}".lower()
-        ]
+
+        def is_xstock_pair(key: str, value: dict[str, Any]) -> bool:
+            labels = " ".join(str(value.get(field) or "") for field in ("wsname", "altname"))
+            if "xstock" in f"{key} {labels}".lower():
+                return True
+
+            # Kraken identifies xStocks with the underlying ticker plus a
+            # lower-case ``x`` (for example ``AAPLx``), not the literal word
+            # "xstock". Prefer the human-readable pair base so an unrelated
+            # uppercase crypto symbol ending in X is not classified as an
+            # xStock merely because of its suffix.
+            pair_base = str(value.get("wsname") or "").partition("/")[0].strip()
+            return (
+                len(pair_base) >= 2
+                and pair_base.endswith("x")
+                and pair_base[:-1].isalnum()
+                and pair_base[:-1].upper() == pair_base[:-1]
+            )
+
+        candidate_rows: dict[str, dict[str, Any]] = {}
+        for key, value in rows.items():
+            if not is_xstock_pair(key, value):
+                continue
+            canonical_symbol = str(value.get("altname") or key).strip()
+            if not canonical_symbol:
+                raise ProviderResponseError(self.name, "xStocks pair is missing its alternate name")
+            existing = candidate_rows.get(canonical_symbol)
+            provider_keys = set(
+                existing.get("provider_pair_keys", []) if existing is not None else []
+            )
+            provider_keys.add(key)
+            if existing is not None and any(
+                existing.get(field) != value.get(field)
+                for field in ("wsname", "base", "quote", "status")
+            ):
+                raise ProviderResponseError(
+                    self.name,
+                    "provider returned conflicting xStocks aliases for one alternate pair",
+                )
+            canonical = {"symbol": canonical_symbol, **value}
+            canonical["provider_pair_keys"] = sorted(provider_keys)
+            candidate_rows[canonical_symbol] = canonical
+        candidates = [candidate_rows[key] for key in sorted(candidate_rows)]
         start = max(0, page) * max(1, page_size)
         return [self._record(row) for row in candidates[start : start + max(1, page_size)]]
 
@@ -843,13 +997,29 @@ class KrakenXStocksProvider:
                 return value
             return None
 
+        base_symbol = str(row.get("base") or symbol)
+        if (
+            base_symbol.endswith("x")
+            and len(base_symbol) > 1
+            and base_symbol[:-1].isalnum()
+            and base_symbol[:-1].upper() == base_symbol[:-1]
+        ):
+            base_symbol = base_symbol[:-1]
+        quote_symbol = str(row.get("quote") or "USD")
+        quote_symbol = {
+            "ZUSD": "USD",
+            "ZEUR": "EUR",
+            "ZGBP": "GBP",
+            "ZJPY": "JPY",
+            "ZCAD": "CAD",
+        }.get(quote_symbol, quote_symbol)
         return TokenizedAssetRecord(
             provider=KrakenXStocksProvider.name,
             asset_id=symbol,
             symbol=symbol,
             name=str(row.get("wsname") or symbol),
-            underlying_symbol=str(row.get("base") or symbol),
-            currency=str(row.get("quote") or "USD"),
+            underlying_symbol=base_symbol,
+            currency=quote_symbol,
             price=_checked_decimal(
                 quote_value("c", "last"), KrakenXStocksProvider.name, "last price"
             ),
@@ -867,11 +1037,10 @@ class KrakenXStocksProvider:
         return next((row for row in rows if row.symbol == identifier), None)
 
     def get_tokenized_price(self, identifier: str) -> TokenizedAssetRecord | None:
-        asset = self.get_tokenized_asset(identifier)
         payload = _http_json(
             f"{self.base_url}/Ticker",
             provider_name=self.name,
-            params={"pair": identifier},
+            params={"pair": identifier, "asset_class": "tokenized_asset"},
         )
         body = _required_object(payload, self.name, "ticker response")
         result = _required_object(body.get("result"), self.name, "ticker result")
@@ -879,31 +1048,26 @@ class KrakenXStocksProvider:
             raise ProviderResponseError(self.name, "provider returned no ticker rows")
         if any(not isinstance(value, dict) for value in result.values()):
             raise ProviderResponseError(self.name, "provider returned a non-object ticker row")
-        quote = next(iter(result.values()))
-        record = asset or self._record({"symbol": identifier}, quote)
-
-        def quote_value(*keys: str) -> Any:
-            for key in keys:
-                if key not in quote:
-                    continue
-                value = quote[key]
-                if isinstance(value, list):
-                    if not value:
-                        return None
-                    return value[0]
-                if key in {"c", "b", "a"}:
-                    raise ProviderResponseError(
-                        self.name, f"provider returned an invalid {key} quote field"
-                    )
-                return value
-            return None
-
-        record.price = _checked_decimal(quote_value("c", "last"), self.name, "last price")
-        record.bid = _checked_decimal(quote_value("b", "bid"), self.name, "bid price")
-        record.ask = _checked_decimal(quote_value("a", "ask"), self.name, "ask price")
-        record.raw_payload = {"asset": record.raw_payload, "ticker": quote}
-        record.observed_at = _now()
-        return record
+        normalized_identifier = identifier.strip().replace("/", "").upper()
+        matching_quotes = [
+            (key, value)
+            for key, value in result.items()
+            if str(key).strip().replace("/", "").upper() == normalized_identifier
+        ]
+        if len(matching_quotes) != 1:
+            raise ProviderResponseError(
+                self.name, "provider ticker response did not match the requested market"
+            )
+        _market, quote = matching_quotes[0]
+        underlying, quote_currency = self._market_identity(identifier)
+        return self._record(
+            {
+                "symbol": identifier,
+                "base": underlying,
+                "quote": quote_currency,
+            },
+            quote,
+        )
 
 
 def _iso_datetime(value: Any, provider_name: str, field: str) -> datetime:
@@ -1998,9 +2162,7 @@ class OndoGlobalMarketsProvider:
 
         normalized_timespan = str(timespan or "").strip().upper()
         if normalized_timespan not in {"DAY", "WEEK", "MONTH", "YEAR"}:
-            raise ProviderResponseError(
-                self.name, "unsupported Ondo historical price timespan"
-            )
+            raise ProviderResponseError(self.name, "unsupported Ondo historical price timespan")
         rows = self.fetch_tokenized_ohlc(
             identifier,
             interval="1day",

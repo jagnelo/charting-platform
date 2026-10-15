@@ -27,9 +27,7 @@ class TestProvidersRouter:
             client.get("/api/v1/providers/usage/account", headers=auth_headers).status_code == 403
         )
         assert (
-            client.post(
-                "/api/v1/providers/usage/account/refresh", headers=auth_headers
-            ).status_code
+            client.post("/api/v1/providers/usage/account/refresh", headers=auth_headers).status_code
             == 403
         )
         assert (
@@ -104,7 +102,16 @@ class TestProvidersRouter:
         resolved_issue = next(row for row in resolved.json() if row["provider_symbol"] == "ABC")
         assert resolved_issue["resolution"]["canonical_cik"] == "1"
 
-    def test_list_and_patch_policy(self, client, admin_headers):
+    def test_list_and_patch_policy(self, client, admin_headers, monkeypatch):
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "finra_otc_query_api")
+        monkeypatch.setattr(
+            settings,
+            "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+            "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster",
+        )
+        monkeypatch.setattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 86400)
         res = client.get("/api/v1/providers/policies", headers=admin_headers)
         assert res.status_code == 200
         rows = res.json()
@@ -141,7 +148,9 @@ class TestProvidersRouter:
             and row["capability"] == "universe_discovery"
         )
         assert otc["routing_eligible"] is False
-        assert "FINRA_OTC_OPERATION_COSTS" in otc["missing_routing_control_variables"]
+        assert "FINRA_OTC_SYMBOL_DIRECTORY_URL" in otc["required_routing_control_variables"]
+        assert "FINRA_OTC_POLL_INTERVAL_SECONDS" in otc["required_routing_control_variables"]
+        assert "FINRA_OTC_OPERATION_COSTS" not in otc["missing_routing_control_variables"]
 
         target = rows[0]
         provider = target["provider"]

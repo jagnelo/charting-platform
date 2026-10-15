@@ -1,5 +1,75 @@
 # Project TODO Memory
 
+### 2026-10-04 — Bounded historical-event ingestion and acceptance refresh
+
+- [x] Added admin-only, provider/date-bounded market-event refresh with a
+      per-call page budget, durable cursor continuation, completion status, and
+      no-refetch behavior for completed windows unless explicitly forced.
+      Existing scheduled forward refresh is unchanged. Focused FINRA/event/
+      short-interest tests passed `102/102`; Docker-backed combined backend
+      tests passed `2,884/2,884` at `82.24%` coverage. Ruff, diff check,
+      workstream validation, and scoped Docker cleanup passed.
+- [x] Refreshed the full live preflight using the existing owner-only quota
+      ledger. It stopped before transport at `0/0` with 78 quota/cost/baseline,
+      11 rights/safety, and 21 operation-coverage blockers; zero provider API
+      requests were made. The detailed redacted receipt is in
+      `ops/workstreams/feat-market-data-provider-platform/validation.jsonl`.
+- [ ] Resolve the live matrix's external evidence gates before provider
+      transport: exact active-use baselines and remaining quota/reset/byte
+      contracts; written data-use/jurisdiction authority; FINRA async-result
+      bounds and an authorized complete OTC source; and GitHub/RPi/production
+      secret-store verification. Keep all blocked providers non-routable.
+- [ ] Resolve the separately recorded browser-profile failures with the
+      owning frontend workstream; do not change frontend files here. The
+      full provider matrix and final 30-day shadow phase remain unaccepted.
+
+### 2026-10-03 — Provider durable-storage rights gates extended
+
+- [x] Reconcile current first-party retention terms for MarketData.app and
+      Twelve Data against the product's explicit append-only archive goal.
+      MarketData.app requires deleting downloaded data when its subscription
+      ends; Twelve Data limits storage to the active subscription/tier and
+      requires deletion within 30 days after expiration/termination. Twelve
+      Data Basic is documented for internal non-display usage, not the
+      platform's persisted chart-display path. See the provider-specific source
+      audit and controls in `docs/data-providers.md`.
+- [x] Record the owner's one-time blanket approval for private persistent
+      storage and remove per-provider owner-storage approval gates. Keep only
+      distinct provider contract, access, entitlement, quota, and third-party
+      data-rights controls. Quota/account-introspection probes remain separate
+      from normal market-data ingestion.
+- [x] Wire non-secret controls into local examples, backend/worker Compose,
+      RPi backend/worker Compose, and protected provider-live workflow vars.
+      Focused registry/secret/live-runner tests passed `103/103`; runtime route
+      denial regressions passed `4/4`; Ruff passed. No provider request was
+      sent for this audit or implementation.
+- [ ] Obtain written archive/display authority for these account plans, or
+      keep durable MarketData.app and Twelve Data ingestion non-routable. A
+      fresh current-candidate full manifest preflight at `2026-10-03T12:16:42Z`
+      stopped before network access (`0/0`): 81 quota/cost/baseline blockers,
+      10 required live safety gates, and 21 unresolved operation cases. The
+      existing broader external gates remain in `plan.yaml` and the latest
+      redacted `validation.jsonl` receipt.
+
+### 2026-10-03 — Correct current provider quota evidence
+
+- [x] Recheck first-party FMP guidance. Its current plan page confirms 250
+      calls/day and 500 MB over a trailing 30-day bandwidth window; newer
+      official usage-limit guidance says not to promise one daily reset time
+      for every account and points to the dashboard. The code seed now keeps
+      the daily reset provider-defined until current account evidence is
+      configured; an older 3 PM Eastern claim is not a universal default.
+- [x] Confirm Tiingo Starter's published bandwidth is 1 GB/month (not 2 GB).
+      Its hourly, daily, monthly-bandwidth boundaries are documented, while
+      the distinct-symbol monthly anchor remains unspecified.
+- [x] Confirm Marketstack currently publishes 100 free requests/month and
+      charges one request per requested ticker; its FAQ separately conflicts
+      at 1,000/month and provides no monthly reset anchor. Keep the 100-call
+      ceiling and the account-specific reset gate.
+- [ ] Re-run quota contract/wiring tests and safe full-matrix preflight on
+      the corrected source; do not send provider traffic until baseline and
+      rights/cost admission succeeds.
+
 ### 2026-10-02 — Exact-current preflight after tokenized pagination correction
 
 - [x] At exact pushed source `c4352c3d3`, the full provider matrix stopped
@@ -720,13 +790,12 @@
       current daily usage date, then replay its bounded live matrix. Until that
       evidence exists, EODHD remains fail-closed and no quota is inferred.
 
-- [x] Reconcile the current official EODHD API-limits page: it documents
-      1,000 HTTP requests/minute with a per-minute reset, while the Free
-      Starter card still says 20 requests/minute. The configured key's bounded
-      `/user` response reports a 20-call daily limit, stale
+- [x] Record the conflicting official EODHD minute limits: the Free Starter
+      pricing row says 20 requests/minute, while the API-limits page says
+      1,000/minute on every plan. Runtime enforces 20/minute until active-key
+      evidence is reviewed and never widens automatically. The configured
+      key's bounded `/user` response reported a 20-call daily limit, stale
       `apiRequestsDate=2026-09-15`, and native minute headers `1200/1199`.
-      Preserve this contradiction and keep ordinary routing fail-closed; do
-      not infer the active account entitlement or current daily baseline.
 - [x] Run current-source keyless matrices for OpenFIGI (`3/3`) and Binance
       (`3/3`) after native usage refreshes. Redacted receipts are durable in
       the provider workstream; keyed OpenFIGI limits remain unproven.
@@ -1333,12 +1402,14 @@
 
 - [x] Probe CoinGecko's documented `/key` account-usage endpoint once with the
       configured Demo key. The official endpoint is Pro-only: the bounded
-      request returned HTTP 401 error code `10005` and made no data request
-      beyond the usage introspection attempt. Do not implement a fabricated
-      Demo usage counter or reset window; retain the documented 100/minute and
-      10,000/month dimensions, keep the monthly reset boundary unknown, and
-      keep monthly-pool routing fail-closed until provider/account evidence
-      establishes the boundary. No secret or response payload was committed.
+      request returned HTTP 401 error code `10005`; the probe is recorded in
+      the private usage ledger. Current pricing documents 100 calls/minute,
+      10,000 successful credits/month, and a first-of-month UTC reset. The
+      Demo adapter now tracks this application's attempted minute calls and
+      monthly successful calls in its durable coordinator, and no longer
+      advertises or repeats Pro-only `/key` usage on Demo. The account-usage
+      method remains available only for a configured entitled plan. No secret
+      or response payload was committed.
 
 ### 2026-09-16 — Alpha Vantage compact-history completeness guard
 
@@ -1378,7 +1449,10 @@
       plan/limit baseline. Focused quota/runtime/coordinator coverage passes
       5/5; the bounded credentialed MarketData.app matrix passed 7/7 cases
       (9 requests, 17,241 response bytes), including `/user/`; its account
-      usage reservation settled with zero daily-credit units. The full backend
+      usage reservation settled with zero daily-credit units under the old
+      interpretation. The later official docs audit shows a successful `/user/`
+      response consumes at least one credit; treat this receipt as historical,
+      not current quota-safety evidence. The full backend
       unit suite passes 2,294/2,294. The receipt is not-current-source while
       this worktree remains dirty.
 
@@ -2883,7 +2957,7 @@ current capability/quota ledger.
       Routine push/PR CI receives no provider credentials. GitHub environment
       creation/upload is externally blocked until the repository-owner
       `jagnelo` account is authenticated in `gh`; the active
-      `jagnelo-symbiotech` account received HTTP 403.
+      `an account without repository access` account received HTTP 403.
 - [x] Persist GitHub live-run aggregate usage receipts in a 90-day redacted
       artifact from runner-temporary storage, including failed/blocked runs;
       artifacts contain no credentials or payloads and remain separate from
@@ -18775,10 +18849,15 @@ The current source also passes the focused authenticated top-down browser slice 
 - [x] Preserve the bounded `/user` bootstrap path for the independently
       documented daily pool; only the explicitly allow-listed unresolved minute
       dimensions may be observed there, never treated as zero or routable.
-- [ ] Obtain current account/provider evidence for the configured EODHD key,
-      populate the three controls in each environment, then replay the EODHD
-      live matrix from the committed source. A passing `/user` snapshot alone
-      does not promote the conflicting minute pool.
+- [x] Resolve the EODHD minute-pool discrepancy from first-party evidence:
+      the detailed API-limits page sets 1,000/minute and the configured key's
+      2026-10-14 response reports 1,200/1,199. The repository default uses the
+      documented 1,000/minute; an explicit environment override is required
+      before using this key's 1,200 native limit.
+- [ ] Replay the full EODHD matrix against the current candidate when its
+      20-call/day free allowance has enough headroom; the 16-call full-suite
+      reservation and 10-call profile entitlement probe currently do not fit.
+      `/api/user` is zero daily credits but consumes one request/minute unit.
 
 ### 2026-09-17 — Docker-backed integration validation
 
@@ -18845,3 +18924,25 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] This is fail-closed safety evidence, not provider acceptance; no routing
       promotion, deployment, deferred-provider activation, or shadow run is
       authorized from this receipt.
+
+### 2026-10-04 — Massive quota buckets and durable-use restrictions
+
+- [x] Reconcile current Massive REST guidance: Stocks Basic is 5 requests/minute
+      per asset-class account bucket. The current Basic-access FAQ explicitly
+      says reference data, corporate actions, and minute aggregates work on
+      Basic, so all stock adapter operations use the shared Stocks bucket; the
+      previous separate-reference-bucket interpretation was incorrect. The
+      provider's exact reset boundary and native current-use counter remain
+      unpublished, so active usage still requires durable-ledger admission.
+- [x] Reconcile current Market Data Terms (updated 2025-08-28): Individual use
+      is personal/display-only, copying and non-display use need express prior
+      written consent, data must be deleted on account termination/restriction,
+      and any other viewer requires Business licensing. The runtime now needs
+      written authority for automated persistent archive and the actual app
+      audience; the old personal-use attestation no longer admits this archive.
+- [ ] Resolve Massive provider entitlement/terms controls and obtain a safe
+      active rolling-window usage baseline before further live probes. The
+      separate-reference-bucket evidence requirement has been removed because
+      the current first-party Basic FAQ says all stock-class REST operations
+      share the 5/minute asset-class allowance. No undocumented reset instant
+      or native current-use counter is assumed.

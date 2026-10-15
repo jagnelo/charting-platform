@@ -68,10 +68,12 @@ from app.providers.massive import (
     estimate_ohlcv_request_count as estimate_massive_ohlcv_request_count,
 )
 from app.providers.optional_market_data import (
+    estimate_fmp_ohlcv_request_count,
     estimate_marketdata_app_latest_ohlcv_credit_count,
     estimate_marketdata_app_ohlcv_credit_count,
     estimate_marketstack_latest_ohlcv_request_count,
     estimate_marketstack_ohlcv_request_count,
+    estimate_tiingo_ohlcv_request_count,
     estimate_twelve_data_latest_ohlcv_request_count,
     estimate_twelve_data_ohlcv_request_count,
 )
@@ -589,9 +591,7 @@ async def persist_price_history_bars(
             },
         )
     else:
-        insert_stmt = insert_stmt.on_conflict_do_nothing(
-            index_elements=_OHLCV_CONFLICT_COLUMNS
-        )
+        insert_stmt = insert_stmt.on_conflict_do_nothing(index_elements=_OHLCV_CONFLICT_COLUMNS)
     await db.execute(insert_stmt, [_bar_as_dict(bar) for bar in bars])
     await _touch_ohlcv_dataset_state(
         db,
@@ -645,9 +645,7 @@ async def recompute_synthetic_ohlcv(
                 OHLCVBar.instrument_id == c.constituent_instrument_id,
                 OHLCVBar.timeframe == timeframe,
                 OHLCVBar.is_adjusted.is_(True),
-                _default_series_bar_condition(
-                    c.constituent_instrument_id, timeframe, True
-                ),
+                _default_series_bar_condition(c.constituent_instrument_id, timeframe, True),
             )
             .order_by(OHLCVBar.ts)
         )
@@ -1097,6 +1095,8 @@ async def _fetch_provider(
     twelve_data_cost = estimate_twelve_data_ohlcv_request_count(timeframe, start, end)
     ibkr_cost = estimate_ibkr_ohlcv_request_count(timeframe, start, end)
     marketdata_app_cost = estimate_marketdata_app_ohlcv_credit_count(timeframe, start, end)
+    fmp_cost = estimate_fmp_ohlcv_request_count(timeframe, start, end)
+    tiingo_cost = estimate_tiingo_ohlcv_request_count(timeframe, start, end)
     operation_cost_overrides = {
         **({"alpaca": alpaca_cost} if alpaca_cost is not None else {}),
         **({"binance": binance_cost} if binance_cost is not None else {}),
@@ -1107,13 +1107,17 @@ async def _fetch_provider(
         **({"twelve_data": twelve_data_cost} if twelve_data_cost is not None else {}),
         **({"ibkr": ibkr_cost} if ibkr_cost is not None else {}),
         **({"marketdata_app": marketdata_app_cost} if marketdata_app_cost is not None else {}),
+        **({"fmp": fmp_cost} if fmp_cost is not None else {}),
+        **({"tiingo": tiingo_cost} if tiingo_cost is not None else {}),
     }
     execution = await execute_provider_call(
         db,
         ProviderCapability.PRICE_HISTORY,
         f"fetch_ohlcv:{timeframe.value}",
         instrument_id=instrument.id,
-        usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
+        usage_identity=lambda provider_name: provider_symbol_for_instrument(
+            instrument, provider_name
+        ),
         operation_cost_overrides=operation_cost_overrides or None,
         adjusted=adjusted,
         history_start=start,
@@ -1191,7 +1195,9 @@ async def _attach_provider_series(
             basis_value = getattr(bar.adjustment_basis, "value", bar.adjustment_basis)
             adjustment_basis = AdjustmentBasis(str(basis_value))
         except ValueError:
-            adjustment_basis = AdjustmentBasis.PROVIDER_ADJUSTED if adjusted else AdjustmentBasis.RAW
+            adjustment_basis = (
+                AdjustmentBasis.PROVIDER_ADJUSTED if adjusted else AdjustmentBasis.RAW
+            )
         session_code = str(bar.session or "regular").strip() or "regular"
         adjustment_version = str(bar.adjustment_version or "legacy")
         feed_scope = str((bar.provenance or {}).get("feed") or "provider_native")
@@ -1199,7 +1205,12 @@ async def _attach_provider_series(
             (session_code, adjustment_basis, adjustment_version, feed_scope), []
         ).append(bar)
 
-    for (session_code, adjustment_basis, adjustment_version, feed_scope), scoped_bars in grouped.items():
+    for (
+        session_code,
+        adjustment_basis,
+        adjustment_version,
+        feed_scope,
+    ), scoped_bars in grouped.items():
         series = await get_or_create_series(
             db,
             SeriesScope(
@@ -1351,7 +1362,9 @@ async def _fetch_ohlcv_latest_impl(
                                 "market_series_id": pg_insert(OHLCVBar).excluded.market_series_id,
                                 "session": pg_insert(OHLCVBar).excluded.session,
                                 "adjustment_basis": pg_insert(OHLCVBar).excluded.adjustment_basis,
-                                "adjustment_version": pg_insert(OHLCVBar).excluded.adjustment_version,
+                                "adjustment_version": pg_insert(
+                                    OHLCVBar
+                                ).excluded.adjustment_version,
                                 "provenance": pg_insert(OHLCVBar).excluded.provenance,
                             },
                         ),
@@ -1595,6 +1608,18 @@ async def _fetch_provider_latest(
     twelve_data_cost = estimate_twelve_data_latest_ohlcv_request_count(timeframe, limit)
     ibkr_cost = estimate_ibkr_latest_ohlcv_request_count(timeframe, limit)
     marketdata_app_cost = estimate_marketdata_app_latest_ohlcv_credit_count(timeframe, limit)
+    fmp_provider = get_provider("fmp")
+    fmp_cost = estimate_fmp_ohlcv_request_count(
+        timeframe,
+        fmp_provider.latest_window_start(timeframe, limit),
+        datetime.now(UTC),
+    )
+    tiingo_provider = get_provider("tiingo")
+    tiingo_cost = estimate_tiingo_ohlcv_request_count(
+        timeframe,
+        tiingo_provider.latest_window_start(timeframe, limit),
+        datetime.now(UTC),
+    )
     operation_cost_overrides = {
         **({"alpaca": alpaca_cost} if alpaca_cost is not None else {}),
         **({"binance": binance_cost} if binance_cost is not None else {}),
@@ -1605,6 +1630,8 @@ async def _fetch_provider_latest(
         **({"twelve_data": twelve_data_cost} if twelve_data_cost is not None else {}),
         **({"ibkr": ibkr_cost} if ibkr_cost is not None else {}),
         **({"marketdata_app": marketdata_app_cost} if marketdata_app_cost is not None else {}),
+        **({"fmp": fmp_cost} if fmp_cost is not None else {}),
+        **({"tiingo": tiingo_cost} if tiingo_cost is not None else {}),
     }
 
     def provider_history_start(provider_name: str) -> datetime:
@@ -1617,7 +1644,9 @@ async def _fetch_provider_latest(
         ProviderCapability.PRICE_HISTORY,
         f"fetch_latest_ohlcv:{timeframe.value}",
         instrument_id=instrument.id,
-        usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
+        usage_identity=lambda provider_name: provider_symbol_for_instrument(
+            instrument, provider_name
+        ),
         operation_cost_overrides=operation_cost_overrides or None,
         adjusted=adjusted,
         history_start=provider_history_start,

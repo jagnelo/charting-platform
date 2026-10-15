@@ -258,8 +258,22 @@ async def test_resolve_provider_chain_prefers_supported_then_bound_provider(
     # This test exercises the legacy-bound ordering contract explicitly. The
     # new workstation keeps yfinance disabled by default; opt in here so the
     # ordering assertion does not accidentally reintroduce it as an implicit
-    # provider dependency.
+    # provider dependency. This test-only evidence also clears the separate
+    # default-false archive-rights gate; the compatibility switch alone is not
+    # permission to collect and retain Yahoo data.
     monkeypatch.setattr(settings, "ENABLE_LEGACY_YFINANCE_FALLBACK", True)
+    monkeypatch.setattr(settings, "YFINANCE_PERSISTENT_STORAGE_AUTHORIZED", True)
+    monkeypatch.setattr(
+        settings,
+        "YFINANCE_PERSISTENT_STORAGE_AUTHORITY_REFERENCE",
+        "unit-test-written-authority-fixture",
+    )
+    monkeypatch.setattr(
+        settings,
+        "YFINANCE_PERSISTENT_STORAGE_AUTHORITY_SCOPE",
+        "written_yahoo_automated_collection_internal_display_perpetual_archive",
+    )
+    monkeypatch.setattr(settings, "YFINANCE_PERSISTENT_STORAGE_REVIEWED_AT", datetime.now(UTC))
     monkeypatch.setattr(settings, "ALPACA_API_KEY", "unit-key")
     monkeypatch.setattr(settings, "ALPACA_SECRET_KEY", "unit-secret")
     monkeypatch.setattr(

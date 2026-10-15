@@ -2,8 +2,9 @@
 
 Live adapters reserve their reviewed provider-specific quota in the durable
 coordinator before transport. This owner-managed ledger separately records
-observed provider/request/byte counts and bounded operation names; it never
-stores credentials or response bodies and is not itself quota admission.
+observed provider/request/byte counts and bounded operation names; response
+bodies are kept in a separate owner-private archive and neither file is itself
+quota admission.
 """
 
 from __future__ import annotations
@@ -11,6 +12,9 @@ from __future__ import annotations
 import fcntl
 import json
 import os
+import stat
+import threading
+import time
 from collections import defaultdict
 from collections.abc import Mapping
 from contextvars import ContextVar, Token
@@ -21,6 +25,9 @@ from typing import Any
 from uuid import uuid4
 
 DEFAULT_LEDGER = Path.home() / ".config" / "charting-platform" / "provider-live-usage.jsonl"
+DEFAULT_RESPONSE_ARCHIVE = (
+    Path.home() / ".config" / "charting-platform" / "provider-live-responses.jsonl"
+)
 _CAPACITY_HEADERS = {
     "api-credits-left",
     "api-credits-request",
@@ -49,7 +56,11 @@ _CAPACITY_HEADERS = {
     "x-ratelimit-available",
     "x-ratelimit-expiry",
     "x-ratelimit-limit",
+    "x-ratelimit-limit-day",
+    "x-ratelimit-limit-month",
     "x-ratelimit-remaining",
+    "x-ratelimit-remaining-day",
+    "x-ratelimit-remaining-month",
     "x-ratelimit-reset",
     "x-ratelimit-used",
 }
@@ -73,16 +84,53 @@ _ACTIVE_REQUEST_ADMISSION: ContextVar[bool] = ContextVar(
     "provider_live_request_admission", default=False
 )
 _DINARI_CANARY_REQUESTS = 0
+_PROVIDER_LIVE_MINIMUM_INTERVAL_SECONDS = {
+    "alpha_vantage": 13.0,
+    # Massive Basic documents five requests/minute per asset class. Live
+    # probes do not encode the asset class in this pacing helper, so use one
+    # stricter provider-wide start interval; the durable coordinator remains
+    # authoritative for the provider's separate account buckets.
+    "massive": 20.0,
+    "kraken": 1.1,
+}
+_PROVIDER_LIVE_START_LOCK = threading.Lock()
+_PROVIDER_LIVE_LAST_START: dict[str, float] = {}
+
+
+def wait_for_provider_start_window(provider_name: str) -> float:
+    """Pace known provider ceilings before a durable reservation is created.
+
+    Alpha Vantage's documented five-per-minute ceiling is enforced with a
+    13-second minimum start interval; Massive's five-per-minute ceiling uses a
+    20-second interval to leave margin for rolling-window boundaries; Kraken's
+    public safe frequency is at most one request/second. These in-process
+    pacers leave margin around provider windows. The shared coordinator still
+    performs the authoritative cross-process/account reservation immediately
+    afterward.
+    """
+
+    interval = _PROVIDER_LIVE_MINIMUM_INTERVAL_SECONDS.get(provider_name)
+    if interval is None:
+        return 0.0
+    waited = 0.0
+    with _PROVIDER_LIVE_START_LOCK:
+        now = time.monotonic()
+        previous = _PROVIDER_LIVE_LAST_START.get(provider_name)
+        if previous is not None:
+            waited = max(0.0, interval - (now - previous))
+            if waited:
+                time.sleep(waited)
+        _PROVIDER_LIVE_LAST_START[provider_name] = time.monotonic()
+    return waited
 
 
 def reserve_dinari_sandbox_canary_request() -> int:
     """Consume one operator-configured Dinari Sandbox canary allowance.
 
-    Dinari does not publish a numeric Sandbox quota that can be used for
-    durable application routing.  The explicit canary path therefore uses a
-    process-local, operator-supplied request cap only.  This is an application
-    safety budget, not a claim about (or replacement for) Dinari's entitlement.
-    Every attempted request consumes one slot, including provider failures.
+    Dinari does not publish a numeric Sandbox quota. The process-local cap is
+    an additional backstop to the shared-ledger application policy of one
+    catalogue request per UTC day; neither value is represented as Dinari's
+    quota. Every attempted request consumes the slot, including failures.
     """
 
     if os.getenv("DINARI_SANDBOX_CANARY_RUN", "") != "1":
@@ -94,13 +142,9 @@ def reserve_dinari_sandbox_canary_request() -> int:
     try:
         limit = int(raw_limit)
     except (TypeError, ValueError) as exc:
-        raise RuntimeError(
-            "DINARI_SANDBOX_CANARY_MAX_REQUESTS must be a positive integer"
-        ) from exc
-    if limit <= 0:
-        raise RuntimeError(
-            "DINARI_SANDBOX_CANARY_MAX_REQUESTS must be a positive integer"
-        )
+        raise RuntimeError("DINARI_SANDBOX_CANARY_MAX_REQUESTS must be exactly 1") from exc
+    if limit != 1:
+        raise RuntimeError("DINARI_SANDBOX_CANARY_MAX_REQUESTS must be exactly 1")
     global _DINARI_CANARY_REQUESTS
     if _DINARI_CANARY_REQUESTS >= limit:
         from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
@@ -169,6 +213,12 @@ def reconcile_native_account_usage(
             observed_at=observed_at,
             evidence_reference=evidence_reference,
             source="provider_account_observation",
+            native_snapshot_includes_prior_local_activity=(
+                (provider_name == "marketdata_app" and dimension_name == "credits_per_day")
+                or (provider_name == "eodhd" and dimension_name == "calls_per_day")
+                or (provider_name == "finnhub" and dimension_name == "calls_per_minute")
+                or (provider_name == "xstocks" and dimension_name == "public_requests_per_minute")
+            ),
         )
         results.append(
             {
@@ -186,6 +236,119 @@ def ledger_path() -> Path:
 
     configured = os.getenv("PROVIDER_LIVE_USAGE_LEDGER", "").strip()
     return Path(configured or DEFAULT_LEDGER).expanduser()
+
+
+def response_archive_path() -> Path:
+    """Return the private archive path for redacted live response bodies."""
+
+    configured = os.getenv("PROVIDER_LIVE_RESPONSE_ARCHIVE", "").strip()
+    return Path(configured or DEFAULT_RESPONSE_ARCHIVE).expanduser()
+
+
+def _validate_response_archive_path(path: Path) -> Path:
+    """Reject response payload destinations inside the checked-out repository."""
+
+    repository_root = Path(__file__).resolve().parents[3]
+    resolved = path.resolve()
+    if resolved == repository_root or repository_root in resolved.parents:
+        raise RuntimeError("provider live response archive must be outside the repository")
+    return resolved
+
+
+def ensure_response_archive_writable() -> Path:
+    """Preflight the private response archive before any provider request."""
+
+    path = response_archive_path()
+    _validate_response_archive_path(path)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        descriptor = _open_private_response_archive(path)
+        os.close(descriptor)
+    except OSError as exc:
+        raise RuntimeError(f"provider live response archive is not writable: {path}") from exc
+    return path
+
+
+def _open_private_response_archive(path: Path) -> int:
+    """Open an owner-owned regular file without following a symlink."""
+
+    flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND
+    if not hasattr(os, "O_NOFOLLOW"):
+        raise OSError("the response archive requires no-follow open support")
+    descriptor = os.open(path, flags | os.O_NOFOLLOW, 0o600)
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_uid != os.geteuid():
+            raise OSError("the response archive must be an owner-owned regular file")
+        os.fchmod(descriptor, 0o600)
+    except BaseException:
+        os.close(descriptor)
+        raise
+    return descriptor
+
+
+def archive_response_payloads(
+    provider: str,
+    operation: str,
+    payloads: list[Any],
+    *,
+    response_bytes: int,
+    response_metadata: list[dict[str, Any]] | None = None,
+    case_id: str | None = None,
+) -> Path | None:
+    """Durably append every captured, redacted live response body and headers.
+
+    The usage ledger intentionally contains aggregates only. This separate
+    owner-private archive preserves provider payloads for replay/audit without
+    adding them to GitHub artifacts or tracked workstream receipts.
+    """
+
+    if not payloads:
+        return None
+    if response_metadata is not None and len(response_metadata) != len(payloads):
+        raise RuntimeError(
+            "provider live response metadata mismatch: "
+            f"{len(response_metadata)} responses, {len(payloads)} captured bodies"
+        )
+    from app.providers.errors import redact_provider_payload
+
+    path = response_archive_path()
+    _validate_response_archive_path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    run_id = os.getenv("PROVIDER_LIVE_RUN_ID", "").strip() or _PROCESS_RUN_ID
+    now = datetime.now(UTC).isoformat()
+    normalized_case_id = str(case_id if case_id is not None else _CURRENT_CASE_ID.get())
+    rows = [
+        {
+            "at": now,
+            "run_id": run_id,
+            "provider": str(provider).strip() or "unknown",
+            "operation": str(operation).strip() or "unspecified",
+            "case_id": normalized_case_id,
+            "response_index": index,
+            "response_count": len(payloads),
+            "operation_response_bytes": max(0, int(response_bytes)),
+            "response_metadata": (
+                response_metadata[index] if response_metadata is not None else None
+            ),
+            "payload": redact_provider_payload(payload),
+        }
+        for index, payload in enumerate(payloads)
+    ]
+    try:
+        descriptor = _open_private_response_archive(path)
+        with os.fdopen(descriptor, "a", encoding="utf-8") as handle:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            try:
+                for row in rows:
+                    handle.write(json.dumps(row, sort_keys=True) + "\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+    except OSError as exc:
+        raise RuntimeError(f"provider live response archive write failed: {path}") from exc
+    return path
 
 
 def activate_case(case_id: str) -> Token[str]:
@@ -215,18 +378,28 @@ def deactivate_request_admission(token: Token[bool]) -> None:
 def require_request_admission() -> None:
     """Reject a live HTTP request unless its operation reserved quota first."""
 
-    if os.getenv("RUN_LIVE_PROVIDER_TESTS") == "1" and not _ACTIVE_REQUEST_ADMISSION.get():
+    runtime_admission_active = False
+    try:
+        from app.services.provider_runtime import provider_runtime_quota_admission_active
+
+        runtime_admission_active = provider_runtime_quota_admission_active()
+    except ImportError:
+        # Some isolated guard tests deliberately load this helper without the
+        # application package on sys.path; direct-test admission still works.
+        pass
+    admitted = _ACTIVE_REQUEST_ADMISSION.get() or runtime_admission_active
+    if os.getenv("RUN_LIVE_PROVIDER_TESTS") == "1" and not admitted:
         raise RuntimeError(
             "live provider HTTP request blocked: no active durable quota reservation"
         )
     if (
         os.getenv("RUN_LIVE_PROVIDER_TESTS") == "1"
         and os.getenv("DINARI_SANDBOX_CANARY_RUN") == "1"
-        and _ACTIVE_REQUEST_ADMISSION.get()
+        and admitted
     ):
-        # The Dinari canary intentionally has no durable provider reservation.
-        # Count at the transport guard instead, so one adapter operation that
-        # fans out to several HTTP requests consumes several cap units.
+        # Count the additional run-level canary cap at the transport guard so
+        # one durably reserved adapter operation that fans out to several HTTP
+        # requests consumes several cap units.
         reserve_dinari_sandbox_canary_request()
 
 
@@ -357,6 +530,7 @@ def record_observation(
         "observed",
         "provider_error",
         "expected_entitlement_denial",
+        "archive_failure",
     }:
         raise ValueError("provider live usage disposition is invalid")
     normalized_reservation_id = None
@@ -564,3 +738,5 @@ def _reset_for_test() -> None:
     _CURRENT_CASE_ID.set("")
     global _DINARI_CANARY_REQUESTS
     _DINARI_CANARY_REQUESTS = 0
+    with _PROVIDER_LIVE_START_LOCK:
+        _PROVIDER_LIVE_LAST_START.clear()

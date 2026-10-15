@@ -14,6 +14,8 @@ from app.providers.finra_otc_directory import (
     FINRAOTCDirectoryProvider,
     parse_otc_markets_security_master,
 )
+from app.providers.telemetry import activate as activate_provider_telemetry
+from app.providers.telemetry import deactivate as deactivate_provider_telemetry
 
 _OTC_MARKETS_SECURITY_MASTER = (
     "Date|SecID|CompID|Symbol|CUSIP|Company Name|Security Name|Security Type|"
@@ -27,6 +29,7 @@ _ORF_SECURITY_MASTER = (
     "DTC_ELGBL_FL|SCRTY_TYPE_CD|WIS_DSTRD_CD|STTS_CD|NACTV_DT|TEST_SCRTY_FL|"
     "PRICE_CK_FL|SCRTY_EFCTV_TS|SIP_SYM_ID|OTCBB_QUOTE_FL|CLASS_TX|OFRNG_TYPE_CD\n"
     "100|123456789|AAA||Alpha Corp|100|||||A||N|Y|20260916120000|AAA|Y|A|\n"
+    "Footer - Count: 00000001, Facility: ORF, File Created: 20260916120000\n"
 )
 _ORF_INACTIVE_SECURITY_MASTER = _ORF_SECURITY_MASTER.replace(
     "100|123456789|AAA||Alpha Corp|100|||||A||N|Y|20260916120000|AAA|Y|A|",
@@ -42,61 +45,29 @@ def test_finra_otc_directory_requires_explicit_source(monkeypatch):
 
 def test_finra_otc_directory_parses_status_and_preserves_source(monkeypatch):
     monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "https://example.test/otc.txt")
-    response = Mock()
-    response.text = (
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "")
+    payload = (
         "Issue_Sym_id|Issue_Type_Cd|Issue_Short_Nm|Status|Mkt_Cat|OATS_Rptbl_Fl|Unit_of_Trade\n"
         "AAA|Common Stock|Alpha Corp|Active|u|Y|100\n"
         "BBB|Common Stock|Beta Corp|Ineligible|u|N|100\n"
     )
-    response.raise_for_status.return_value = None
-    with (
-        patch.object(directory, "_cache", None),
-        patch("app.providers.finra_otc_directory.httpx.get", return_value=response) as get,
-    ):
-        page = FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
-    assert page["total"] == 2
-    assert page["quotes"][0]["symbol"] == "AAA"
-    assert page["quotes"][0]["status"] == "active"
-    assert page["quotes"][1]["status"] == "inactive"
-    assert page["quotes"][0]["source_record"]["issue_sym_id"] == "AAA"
-    assert page["source_files"] == ["https://example.test/otc.txt"]
-    get.assert_called_once()
+    rows = directory._parse_directory(payload)
+    assert len(rows) == 2
+    assert rows[0]["symbol"] == "AAA"
+    assert rows[0]["status"] == "active"
+    assert rows[1]["status"] == "inactive"
+    assert rows[0]["source_record"]["issue_sym_id"] == "AAA"
 
 
-def test_finra_otc_directory_cache_is_scoped_to_configured_source(monkeypatch):
-    first_url = "https://example.test/otc-first.txt"
-    second_url = "https://example.test/otc-second.txt"
+def test_finra_otc_directory_rejects_undocumented_single_url_without_network(monkeypatch):
     monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "")
-    monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", first_url)
-    first_response = Mock(
-        text=(
-            "Issue_Sym_id|Issue_Type_Cd|Issue_Short_Nm|Status|Mkt_Cat|OATS_Rptbl_Fl|Unit_of_Trade\n"
-            "AAA|Common Stock|Alpha Corp|Active|u|Y|100\n"
-        )
+    monkeypatch.setattr(
+        settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "https://api.finra.org/otcSecurityMaster"
     )
-    second_response = Mock(
-        text=(
-            "Issue_Sym_id|Issue_Type_Cd|Issue_Short_Nm|Status|Mkt_Cat|OATS_Rptbl_Fl|Unit_of_Trade\n"
-            "BBB|Common Stock|Beta Corp|Active|u|Y|100\n"
-        )
-    )
-    first_response.raise_for_status.return_value = None
-    second_response.raise_for_status.return_value = None
-    with (
-        patch.object(directory, "_cache", None),
-        patch(
-            "app.providers.finra_otc_directory.httpx.get",
-            side_effect=[first_response, second_response],
-        ) as get,
-    ):
-        first_page = FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
-        monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", second_url)
-        second_page = FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
-
-    assert first_page["quotes"][0]["symbol"] == "AAA"
-    assert second_page["quotes"][0]["symbol"] == "BBB"
-    assert second_page["source_files"] == [second_url]
-    assert get.call_count == 2
+    with patch("app.providers.finra_otc_directory.httpx.get") as get:
+        with pytest.raises(ProviderNotConfiguredError, match="official FINRA OTC Query API"):
+            FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+    get.assert_not_called()
 
 
 def test_finra_otc_directory_orf_cache_is_scoped_to_credentials(monkeypatch):
@@ -113,9 +84,13 @@ def test_finra_otc_directory_orf_cache_is_scoped_to_credentials(monkeypatch):
     )
     monkeypatch.setattr(settings, "FINRA_ORF_USERNAME", "traqs-user")
     monkeypatch.setattr(settings, "FINRA_ORF_REFRESH_TOKEN", "first-refresh-token")
+    monkeypatch.setattr(settings, "FINRA_ORF_CUSIP_LICENSED", True)
+    monkeypatch.setattr(settings, "FINRA_ORF_CUSIP_LICENSE_EVIDENCE", "CGS agreement ref")
     first_active = Mock(text=_ORF_SECURITY_MASTER, status_code=200, headers={})
     first_inactive = Mock(text=_ORF_INACTIVE_SECURITY_MASTER, status_code=200, headers={})
-    second_active = Mock(text=_ORF_SECURITY_MASTER.replace("AAA", "CCC"), status_code=200, headers={})
+    second_active = Mock(
+        text=_ORF_SECURITY_MASTER.replace("AAA", "CCC"), status_code=200, headers={}
+    )
     second_inactive = Mock(
         text=_ORF_INACTIVE_SECURITY_MASTER.replace("BBB", "DDD"),
         status_code=200,
@@ -138,28 +113,28 @@ def test_finra_otc_directory_orf_cache_is_scoped_to_credentials(monkeypatch):
     assert post.call_count == 4
 
 
-def test_finra_otc_directory_parses_official_otc_markets_security_master(monkeypatch):
-    monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "https://example.test/otc.txt")
-    response = Mock()
-    response.text = (
-        "Date|SecID|CompID|Symbol|CUSIP|Company Name|Security Name|Security Type|"
-        "Security Class|Security Status|OTC Tier|Tier ID|Overnight Eligible|Reference Price\n"
-        "2026-09-16|100|200|AAA|123456789|Alpha Corp|Alpha Common|common|A|A|OTCQX|2|Y|12.3456\n"
-        "2026-09-16|101|201|BBB||Beta Corp|Beta Warrant|warrant|B|H|Grey Market|30|N|0.125\n"
-    )
-    response.raise_for_status.return_value = None
-    with (
-        patch.object(directory, "_cache", None),
-        patch("app.providers.finra_otc_directory.httpx.get", return_value=response),
-    ):
-        page = FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
-    assert page["total"] == 2
-    assert page["quotes"][0]["security_id"] == "100"
-    assert page["quotes"][0]["cusip"] == "123456789"
-    assert page["quotes"][0]["status"] == "active"
-    assert page["quotes"][0]["overnight_eligible"] == "Y"
-    assert page["quotes"][1]["status"] == "inactive"
-    assert page["quotes"][1]["financial_status"] == "H"
+def test_parse_otc_markets_security_master_fixture_without_enabling_live_source():
+    rows = parse_otc_markets_security_master(_OTC_MARKETS_SECURITY_MASTER)
+    assert len(rows) == 2
+    assert rows[0]["security_id"] == "100"
+    assert rows[0]["cusip"] == "123456789"
+    assert rows[0]["status"] == "active"
+    assert rows[0]["overnight_eligible"] == "Y"
+    assert rows[1]["status"] == "inactive"
+    assert rows[1]["financial_status"] == "H"
+
+
+def test_orf_security_master_keeps_rows_when_unlicensed_cusip_field_is_blank(monkeypatch):
+    monkeypatch.setattr(settings, "FINRA_ORF_CUSIP_LICENSED", False)
+    monkeypatch.setattr(settings, "FINRA_ORF_CUSIP_LICENSE_EVIDENCE", "")
+    payload = _ORF_SECURITY_MASTER.replace("100|123456789|", "100||")
+
+    rows = directory._parse_orf_security_master(payload, expected_active=True)
+
+    assert len(rows) == 1
+    assert rows[0]["finra_otc_id"] == "100"
+    assert rows[0]["symbol"] == "AAA"
+    assert rows[0]["cusip"] is None
 
 
 def test_finra_otc_directory_fetches_documented_orf_active_and_inactive_masters(monkeypatch):
@@ -176,6 +151,8 @@ def test_finra_otc_directory_fetches_documented_orf_active_and_inactive_masters(
     )
     monkeypatch.setattr(settings, "FINRA_ORF_USERNAME", "traqs-user")
     monkeypatch.setattr(settings, "FINRA_ORF_REFRESH_TOKEN", "refresh-token")
+    monkeypatch.setattr(settings, "FINRA_ORF_CUSIP_LICENSED", True)
+    monkeypatch.setattr(settings, "FINRA_ORF_CUSIP_LICENSE_EVIDENCE", "CGS agreement ref")
     active = Mock(text=_ORF_SECURITY_MASTER, status_code=200)
     active.headers = {}
     active.raise_for_status.return_value = None
@@ -191,8 +168,11 @@ def test_finra_otc_directory_fetches_documented_orf_active_and_inactive_masters(
         ) as post,
     ):
         page = FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+        subsequent_page = FINRAOTCDirectoryProvider().discover_universe_page("OTC", 1)
     assert page["total"] == 2
     assert [row["symbol"] for row in page["quotes"]] == ["AAA", "BBB"]
+    assert subsequent_page["quotes"] == [page["quotes"][1]]
+    assert subsequent_page["source_documents"] == {}
     assert page["quotes"][0]["status"] == "active"
     assert page["quotes"][1]["status"] == "inactive"
     assert page["quotes"][1]["symbol_suffix"] == "P"
@@ -200,8 +180,87 @@ def test_finra_otc_directory_fetches_documented_orf_active_and_inactive_masters(
         "https://apidownload.finratraqs.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF",
         "https://apidownload.finratraqs.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERIN&facility=ORF",
     ]
-    assert all(call.kwargs["headers"]["Authorization"] == "Bearer token" for call in post.call_args_list)
+    assert page["source_documents"] == {
+        page["source_files"][0]: _ORF_SECURITY_MASTER,
+        page["source_files"][1]: _ORF_INACTIVE_SECURITY_MASTER,
+    }
+    assert all(
+        call.kwargs["headers"]["Authorization"] == "Bearer token" for call in post.call_args_list
+    )
     assert all(call.kwargs["data"] == {"username": "traqs-user"} for call in post.call_args_list)
+
+
+def test_orf_active_file_response_is_observed_when_inactive_download_fails(monkeypatch):
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "finra_orf_security_master")
+    monkeypatch.setattr(
+        settings,
+        "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+        "https://apidownload.finratraqs.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF",
+    )
+    monkeypatch.setattr(
+        settings,
+        "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL",
+        "https://apidownload.finratraqs.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERIN&facility=ORF",
+    )
+    monkeypatch.setattr(settings, "FINRA_ORF_USERNAME", "traqs-user")
+    monkeypatch.setattr(settings, "FINRA_ORF_REFRESH_TOKEN", "refresh-token")
+    monkeypatch.setattr(settings, "FINRA_ORF_CUSIP_LICENSED", True)
+    monkeypatch.setattr(settings, "FINRA_ORF_CUSIP_LICENSE_EVIDENCE", "fixture-license")
+    active = httpx.Response(
+        200,
+        text=_ORF_SECURITY_MASTER,
+        request=httpx.Request("POST", "https://apidownload.finratraqs.org/active"),
+    )
+
+    with (
+        patch.object(directory, "_cache", None),
+        patch("app.providers.finra_otc_directory._orf_access_token", return_value="access-token"),
+        patch(
+            "app.providers.finra_otc_directory.httpx.post",
+            side_effect=[active, httpx.ReadTimeout("inactive file unavailable")],
+        ),
+    ):
+        measurement, token = activate_provider_telemetry(capture_response_payloads=True)
+        try:
+            with pytest.raises(ProviderResponseError, match="transport failure"):
+                FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+        finally:
+            deactivate_provider_telemetry(token)
+
+    assert measurement.http_requests == 1
+    assert measurement.response_payloads == [_ORF_SECURITY_MASTER]
+
+
+def test_finra_otc_directory_orf_rejects_cusip_without_license_evidence(monkeypatch):
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "finra_orf_security_master")
+    monkeypatch.setattr(
+        settings,
+        "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+        "https://apidownload.finratraqs.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF",
+    )
+    monkeypatch.setattr(
+        settings,
+        "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL",
+        "https://apidownload.finratraqs.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERIN&facility=ORF",
+    )
+    monkeypatch.setattr(settings, "FINRA_ORF_USERNAME", "traqs-user")
+    monkeypatch.setattr(settings, "FINRA_ORF_REFRESH_TOKEN", "refresh-token")
+    monkeypatch.setattr(settings, "FINRA_ORF_CUSIP_LICENSED", False)
+    monkeypatch.setattr(settings, "FINRA_ORF_CUSIP_LICENSE_EVIDENCE", "")
+    active = Mock(text=_ORF_SECURITY_MASTER, status_code=200)
+    active.headers = {}
+    inactive = Mock(text=_ORF_INACTIVE_SECURITY_MASTER, status_code=200)
+    inactive.headers = {}
+    with (
+        patch.object(directory, "_cache", None),
+        patch("app.providers.finra_otc_directory._orf_access_token", return_value="token"),
+        patch(
+            "app.providers.finra_otc_directory.httpx.post",
+            side_effect=[active, inactive],
+        ),
+        pytest.raises(ProviderResponseError, match="CGS license evidence"),
+    ):
+        FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
 
 
 def test_finra_otc_directory_orf_requires_traqs_refresh_credentials(monkeypatch):
@@ -250,6 +309,27 @@ def test_finra_otc_directory_orf_requires_documented_download_handler_path(monke
         FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
 
 
+@pytest.mark.parametrize(
+    ("payload", "match"),
+    [
+        (_ORF_SECURITY_MASTER.rsplit("\n", 2)[0] + "\n", "footer"),
+        (
+            _ORF_SECURITY_MASTER.replace("Count: 00000001", "Count: 00000002"),
+            "footer count",
+        ),
+        (
+            _ORF_SECURITY_MASTER.replace("Facility: ORF", "Facility: TRACE"),
+            "footer",
+        ),
+    ],
+)
+def test_orf_security_master_requires_and_checks_documented_footer(payload, match, monkeypatch):
+    monkeypatch.setattr(settings, "FINRA_ORF_CUSIP_LICENSED", True)
+    monkeypatch.setattr(settings, "FINRA_ORF_CUSIP_LICENSE_EVIDENCE", "fixture license")
+    with pytest.raises(ValueError, match=match):
+        directory._parse_orf_security_master(payload, expected_active=True)
+
+
 def test_parse_otc_markets_security_master_verifies_validation_record_count():
     validation = (
         "Datafile|Source|Date/Time|Record Count\n"
@@ -272,8 +352,7 @@ def test_parse_otc_markets_security_master_verifies_validation_record_count():
             "record count does not match",
         ),
         (
-            "Datafile|Source|Date/Time|Record Count\n"
-            "file|Other Source|2026-09-16 17:25:00|2\n",
+            "Datafile|Source|Date/Time|Record Count\n" "file|Other Source|2026-09-16 17:25:00|2\n",
             "unexpected source",
         ),
         (
@@ -283,9 +362,7 @@ def test_parse_otc_markets_security_master_verifies_validation_record_count():
         ),
     ],
 )
-def test_parse_otc_markets_security_master_rejects_invalid_validation_file(
-    validation, match
-):
+def test_parse_otc_markets_security_master_rejects_invalid_validation_file(validation, match):
     with pytest.raises(ProviderResponseError, match=match):
         parse_otc_markets_security_master(
             _OTC_MARKETS_SECURITY_MASTER,
@@ -307,26 +384,20 @@ def test_parse_otc_markets_security_master_rejects_invalid_validation_file(
         ),
     ],
 )
-def test_finra_otc_directory_rejects_invalid_otc_markets_rows(monkeypatch, row, match):
-    monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "https://example.test/otc.txt")
-    response = Mock()
-    response.text = (
+def test_finra_otc_directory_rejects_invalid_otc_markets_rows(row, match):
+    response_text = (
         "Date|SecID|CompID|Symbol|CUSIP|Company Name|Security Name|Security Type|"
-        "Security Class|Security Status|OTC Tier|Tier ID|Overnight Eligible|Reference Price\n"
-        + row
+        "Security Class|Security Status|OTC Tier|Tier ID|Overnight Eligible|Reference Price\n" + row
     )
-    response.raise_for_status.return_value = None
-    with (
-        patch.object(directory, "_cache", None),
-        patch("app.providers.finra_otc_directory.httpx.get", return_value=response),
-    ):
-        with pytest.raises(ProviderResponseError, match=match):
-            FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+    with pytest.raises(ProviderResponseError, match=match):
+        directory._parse_directory(response_text)
 
 
-def test_finra_otc_directory_supports_current_dapi_partition_pagination(monkeypatch):
+def test_legacy_dapi_parser_follows_every_partition_page_as_fixture_only(monkeypatch):
     dapi_url = "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster"
     monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", dapi_url)
+    monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "client")
+    monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "secret")
 
     partitions = Mock()
     partitions.json.return_value = {
@@ -335,7 +406,12 @@ def test_finra_otc_directory_supports_current_dapi_partition_pagination(monkeypa
     partitions.raise_for_status.return_value = None
 
     first_page = Mock()
-    first_page.headers = {"record-total": "2"}
+    first_page.headers = {
+        "record-total": "2",
+        "record-offset": "0",
+        "record-limit": "5000",
+        "record-max-limit": "5000",
+    }
     first_page.json.return_value = [
         {
             "issueSymbolIdentifier": "AAA",
@@ -355,37 +431,104 @@ def test_finra_otc_directory_supports_current_dapi_partition_pagination(monkeypa
     first_page.raise_for_status.return_value = None
 
     with (
-        patch.object(directory, "_cache", None),
+        patch.object(directory, "_dapi_partition_cache", None),
+        patch("app.providers.finra_otc_directory._access_token", return_value="token"),
         patch("app.providers.finra_otc_directory.httpx.get", return_value=partitions) as get,
         patch("app.providers.finra_otc_directory.httpx.post", return_value=first_page) as post,
     ):
-        page = FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+        rows = directory._fetch_dapi_rows(dapi_url)
 
-    assert page["total"] == 2
-    assert [row["symbol"] for row in page["quotes"]] == ["AAA", "BBB"]
-    assert page["quotes"][0]["status"] == "active"
-    assert page["quotes"][0]["as_of_date"] == "2026-09-04"
-    assert page["quotes"][0]["source_record"]["finraIssuerIdentifier"] == "1"
+    assert len(rows) == 2
+    assert [row["symbol"] for row in rows] == ["AAA", "BBB"]
+    assert rows[0]["status"] == "active"
+    assert rows[0]["as_of_date"] == "2026-09-04"
+    assert rows[0]["source_record"]["finraIssuerIdentifier"] == "1"
     get.assert_called_once_with(
         "https://api.finra.org/partitions/group/otcMarket/name/otcSecurityMaster",
-        headers={"User-Agent": settings.NASDAQ_USER_AGENT, "Accept": "application/json"},
+        headers={
+            "Authorization": "Bearer token",
+            "User-Agent": settings.NASDAQ_USER_AGENT,
+            "Accept": "application/json",
+        },
         timeout=30,
     )
     post.assert_called_once()
     assert post.call_args.kwargs["json"]["compareFilters"][0]["fieldValue"] == "2026-09-04"
 
 
+def test_query_api_discovery_exposes_lossless_page_and_raw_documents(monkeypatch):
+    dapi_url = "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster"
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "finra_otc_query_api")
+    monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", dapi_url)
+    monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "client")
+    monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "secret")
+    partitions = Mock(
+        text='{"availablePartitions":[{"partitions":["2026-09-04"]}]}',
+        status_code=200,
+        headers={},
+    )
+    partitions.json.return_value = {"availablePartitions": [{"partitions": ["2026-09-04"]}]}
+    partitions.raise_for_status.return_value = None
+    page_response = Mock(
+        text=(
+            '[{"issueSymbolIdentifier":"AAA","securityDescription":"Alpha",'
+            '"asOfDate":"2026-09-04","finraIssuerIdentifier":"1"}]'
+        ),
+        status_code=200,
+        headers={
+            "record-total": "1",
+            "record-offset": "0",
+            "record-limit": "5000",
+            "record-max-limit": "5000",
+        },
+    )
+    page_response.json.return_value = [
+        {
+            "issueSymbolIdentifier": "AAA",
+            "securityDescription": "Alpha",
+            "asOfDate": "2026-09-04",
+            "finraIssuerIdentifier": "1",
+        }
+    ]
+    page_response.raise_for_status.return_value = None
+
+    with (
+        patch.object(directory, "_dapi_partition_cache", None),
+        patch("app.providers.finra_otc_directory._access_token", return_value="token"),
+        patch("app.providers.finra_otc_directory.httpx.get", return_value=partitions),
+        patch("app.providers.finra_otc_directory.httpx.post", return_value=page_response),
+    ):
+        provider = FINRAOTCDirectoryProvider()
+        page = provider.discover_universe_page("EQUITY", 0)
+
+    assert provider.supported_discovery_types() == ["EQUITY"]
+    assert page["total"] == 1
+    assert page["complete"] is True
+    assert page["next_offset"] is None
+    assert page["source_snapshot_date"] == "2026-09-04"
+    assert page["quotes"][0]["symbol"] == "AAA"
+    assert len(page["source_documents"]) == 2
+    assert all(isinstance(value, str) for value in page["source_documents"].values())
+
+
 def test_finra_otc_directory_continues_after_payload_capped_short_page(monkeypatch):
     dapi_url = "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster"
     monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", dapi_url)
+    monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "client")
+    monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "secret")
 
     partitions = Mock()
     partitions.json.return_value = {"availablePartitions": [{"partitions": ["2026-09-04"]}]}
     partitions.raise_for_status.return_value = None
 
-    def page_response(symbol: str) -> Mock:
+    def page_response(symbol: str, offset: int) -> Mock:
         response = Mock()
-        response.headers = {"record-total": "2", "record-limit": "1"}
+        response.headers = {
+            "record-total": "2",
+            "record-offset": str(offset),
+            "record-limit": "1",
+            "record-max-limit": "5000",
+        }
         response.json.return_value = [
             {
                 "issueSymbolIdentifier": symbol,
@@ -397,11 +540,12 @@ def test_finra_otc_directory_continues_after_payload_capped_short_page(monkeypat
         return response
 
     with (
-        patch.object(directory, "_cache", None),
+        patch.object(directory, "_dapi_partition_cache", None),
+        patch("app.providers.finra_otc_directory._access_token", return_value="token"),
         patch("app.providers.finra_otc_directory.httpx.get", return_value=partitions),
         patch(
             "app.providers.finra_otc_directory.httpx.post",
-            side_effect=[page_response("AAA"), page_response("BBB")],
+            side_effect=[page_response("AAA", 0), page_response("BBB", 1)],
         ) as post,
     ):
         rows = directory._fetch_dapi_rows(dapi_url)
@@ -410,31 +554,30 @@ def test_finra_otc_directory_continues_after_payload_capped_short_page(monkeypat
     assert [call.kwargs["json"]["offset"] for call in post.call_args_list] == [0, 1]
 
 
-def test_finra_otc_directory_transport_failure_is_typed(monkeypatch):
+def test_finra_otc_directory_unreviewed_transport_is_never_attempted(monkeypatch):
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "")
     monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "https://example.test/otc.txt")
-    failure = httpx.ConnectError(
-        "connection failed",
-        request=httpx.Request("GET", "https://example.test/otc.txt"),
-    )
-    with patch.object(directory, "_cache", None), patch(
-        "app.providers.finra_otc_directory.httpx.get", side_effect=failure
-    ):
-        with pytest.raises(ProviderResponseError) as exc_info:
+    with patch("app.providers.finra_otc_directory.httpx.get") as get:
+        with pytest.raises(ProviderNotConfiguredError):
             FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
-    assert exc_info.value.provider_name == "finra_otc_directory"
+    get.assert_not_called()
 
 
 def test_finra_otc_dapi_malformed_payload_is_typed(monkeypatch):
     dapi_url = "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster"
     monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", dapi_url)
+    monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "client")
+    monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "secret")
     partitions = Mock()
     partitions.raise_for_status.return_value = None
     partitions.json.side_effect = ValueError("not json")
-    with patch.object(directory, "_cache", None), patch(
-        "app.providers.finra_otc_directory.httpx.get", return_value=partitions
+    with (
+        patch.object(directory, "_dapi_partition_cache", None),
+        patch("app.providers.finra_otc_directory._access_token", return_value="token"),
+        patch("app.providers.finra_otc_directory.httpx.get", return_value=partitions),
     ):
         with pytest.raises(ProviderResponseError) as exc_info:
-            FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+            directory._fetch_dapi_rows(dapi_url)
     assert exc_info.value.provider_name == "finra_otc_directory"
 
 
@@ -458,29 +601,17 @@ def test_finra_otc_dapi_malformed_payload_is_typed(monkeypatch):
     ],
 )
 def test_finra_otc_legacy_directory_rejects_malformed_rows(monkeypatch, text, match):
-    monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "https://example.test/otc.txt")
-    response = Mock()
-    response.text = text
-    response.raise_for_status.return_value = None
-    with (
-        patch.object(directory, "_cache", None),
-        patch("app.providers.finra_otc_directory.httpx.get", return_value=response),
-    ):
-        with pytest.raises(ProviderResponseError, match=match):
-            FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+    with pytest.raises(ProviderResponseError, match=match):
+        directory._parse_directory(text)
 
 
 def test_finra_otc_legacy_http_failure_is_typed(monkeypatch):
-    monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "https://example.test/otc.txt")
     response = httpx.Response(
         500,
         request=httpx.Request("GET", "https://example.test/otc.txt"),
     )
-    with patch.object(directory, "_cache", None), patch(
-        "app.providers.finra_otc_directory.httpx.get", return_value=response
-    ):
-        with pytest.raises(ProviderResponseError) as exc_info:
-            FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+    with pytest.raises(ProviderResponseError) as exc_info:
+        directory._raise_for_provider_status(response)
     assert exc_info.value.provider_name == "finra_otc_directory"
     assert exc_info.value.status_code == 500
 
@@ -488,6 +619,8 @@ def test_finra_otc_legacy_http_failure_is_typed(monkeypatch):
 def test_finra_otc_dapi_rate_limit_preserves_headers(monkeypatch):
     dapi_url = "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster"
     monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", dapi_url)
+    monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "client")
+    monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "secret")
     partitions = Mock()
     partitions.raise_for_status.return_value = None
     partitions.json.return_value = {"availablePartitions": [{"partitions": ["2026-09-04"]}]}
@@ -498,12 +631,13 @@ def test_finra_otc_dapi_rate_limit_preserves_headers(monkeypatch):
         json={"error": "rate limit"},
     )
     with (
-        patch.object(directory, "_cache", None),
+        patch.object(directory, "_dapi_partition_cache", None),
+        patch("app.providers.finra_otc_directory._access_token", return_value="token"),
         patch("app.providers.finra_otc_directory.httpx.get", return_value=partitions),
         patch("app.providers.finra_otc_directory.httpx.post", return_value=response),
     ):
         with pytest.raises(ProviderRateLimitError) as exc_info:
-            FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+            directory._fetch_dapi_rows(dapi_url)
     assert exc_info.value.status_code == 429
     assert exc_info.value.scope == "ip"
     assert exc_info.value.headers == {"retry-after": "60", "x-ratelimit-remaining": "0"}

@@ -9,10 +9,13 @@ transient provider outage therefore cannot delist the universe.
 
 from __future__ import annotations
 
+import hashlib
 import logging
+import re
 from copy import deepcopy
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, func, or_, select
@@ -40,6 +43,7 @@ from app.models.market_data_foundation import (
     MarketUniverseReconciliationRun,
 )
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.provider_observation import UniverseDiscoverySnapshot
 from app.models.provider_runtime import ProviderCapability
 from app.providers import get_discovery_provider
 from app.providers.base import IdentifierRecord
@@ -64,13 +68,43 @@ from app.services.market_data_identity import (
 )
 from app.services.market_data_monitoring import record_coverage_snapshot
 from app.services.provider_observations import store_universe_discovery_snapshot
+from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
 from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
 
 logger = logging.getLogger(__name__)
 
 _MISSING_CONFIRMATIONS = 3
 _NASDAQ_TRADER_SOURCE_FILES = frozenset({"nasdaqlisted", "otherlisted"})
-_NASDAQ_TRADER_VENUES = frozenset({"XNAS", "XNYS", "ARCX", "XASE", "BATS", "IEXG"})
+_NASDAQ_TRADER_VENUES = frozenset(
+    {"XNAS", "XNYS", "ARCX", "XASE", "BATS", "IEXG", "TXSE", "XBOS", "XCHI"}
+)
+# CTA Tape A/B includes these additional primary-listing MICs. They are only
+# eligible for NMS lifecycle processing after CTA and Nasdaq's source files
+# have both completed in the same reconciliation cycle and date.
+_NMS_LIFECYCLE_VENUES = frozenset(
+    {
+        *_NASDAQ_TRADER_VENUES,
+        "24EQ",
+        "XADF",
+        "XCIS",
+        "XISE",
+        "EDGA",
+        "EDGX",
+        "EPRL",
+        "LTSE",
+        "MEMX",
+        "XPSX",
+        "BATY",
+        "CBSX",
+    }
+)
+_CTA_SYMBOL_FILE = re.compile(r"CTA\.Symbol\.File\.(\d{8})\.csv", re.IGNORECASE)
+_FINRA_OTC_QUERY_SOURCE_FILES = frozenset(
+    {
+        "https://api.finra.org/partitions/group/otcmarket/name/otcsecuritymaster",
+        "https://api.finra.org/data/group/otcmarket/name/otcsecuritymaster",
+    }
+)
 _ACTIVE_STATUSES = {"active", "listed", "tradable", "live"}
 _TYPE_MAP: dict[str, tuple[str, str]] = {
     "EQUITY": ("Equity", "Stock"),
@@ -97,8 +131,12 @@ def _utc(value: datetime | None = None) -> datetime:
     return current if current.tzinfo is not None else current.replace(tzinfo=UTC)
 
 
-def _row_symbol(row: dict[str, Any]) -> str:
-    return str(row.get("symbol") or row.get("ticker") or "").strip().upper()
+def _row_symbol(row: dict[str, Any], *, preserve_case: bool = False) -> str:
+    value = str(row.get("symbol") or row.get("ticker") or "").strip()
+    # CTA's official symbol file contains source symbols that differ only by
+    # case. Preserve that provider-native spelling through listing keys and
+    # provider-symbol aliases instead of silently merging distinct rows.
+    return value if preserve_case else value.upper()
 
 
 def _normalize_cik(value: Any) -> str:
@@ -199,12 +237,97 @@ def _listing_key(
 def _authoritative_absence_scope(provider_name: str, quote_type: str) -> str | None:
     """Return the reviewed, complete directory scope eligible for absence evidence."""
 
-    if provider_name == "nasdaq" and quote_type.strip().upper() in {"EQUITY", "ETF"}:
-        return "US_NMS"
-    # FINRA's configured OTC security-master endpoint remains unreviewed; its
-    # Daily List is a delta feed and generic discovery APIs are corroboration,
-    # not complete authoritative snapshots.
+    # Nasdaq Trader's files are retained as useful listing evidence, but do not
+    # constitute a complete cross-tape US NMS roster. Until the CTA Tape A/B
+    # file and Nasdaq-listed Tape C scope are both reconciled as one same-session
+    # snapshot, a Nasdaq-only miss must never count toward delisting.
+    if (
+        provider_name == "finra_otc_directory"
+        and quote_type.strip().upper() == "EQUITY"
+        and str(getattr(settings, "FINRA_OTC_SOURCE_KIND", "") or "").strip().lower()
+        == "finra_otc_query_api"
+    ):
+        return "US_OTC"
     return None
+
+
+async def _latest_deferred_massive_scan(
+    db: AsyncSession,
+    *,
+    data_source_id: int,
+    quote_type: str,
+) -> tuple[MarketUniverseReconciliationRun, list[UniverseDiscoverySnapshot]] | None:
+    """Load the latest quota-deferred Massive scan and its already-stored pages."""
+
+    run = (
+        await db.execute(
+            select(MarketUniverseReconciliationRun)
+            .where(
+                MarketUniverseReconciliationRun.data_source_id == data_source_id,
+                MarketUniverseReconciliationRun.quote_type == quote_type,
+                MarketUniverseReconciliationRun.status == "deferred",
+                MarketUniverseReconciliationRun.error.like(
+                    "durable provider quota admission denied%"
+                ),
+            )
+            .order_by(
+                MarketUniverseReconciliationRun.observed_at.desc(),
+                MarketUniverseReconciliationRun.id.desc(),
+            )
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if run is None:
+        return None
+
+    snapshot_ids = (run.provenance or {}).get("discovery_snapshot_ids")
+    if isinstance(snapshot_ids, list) and snapshot_ids:
+        ids = [value for value in snapshot_ids if isinstance(value, int) and value > 0]
+        snapshots = (
+            (
+                await db.execute(
+                    select(UniverseDiscoverySnapshot)
+                    .where(UniverseDiscoverySnapshot.id.in_(ids))
+                    .order_by(UniverseDiscoverySnapshot.offset.asc())
+                )
+            )
+            .scalars()
+            .all()
+        )
+    else:
+        # Recover incomplete runs created before page IDs were included in
+        # provenance. Those versions stored every page with the run timestamp.
+        snapshots = (
+            (
+                await db.execute(
+                    select(UniverseDiscoverySnapshot)
+                    .where(
+                        UniverseDiscoverySnapshot.data_source_id == data_source_id,
+                        UniverseDiscoverySnapshot.quote_type == quote_type,
+                        UniverseDiscoverySnapshot.observed_at == run.observed_at,
+                    )
+                    .order_by(UniverseDiscoverySnapshot.offset.asc())
+                )
+            )
+            .scalars()
+            .all()
+        )
+    return (run, list(snapshots)) if snapshots else None
+
+
+def _massive_page_cursor(page: dict[str, Any]) -> str | None:
+    """Read the opaque Massive continuation token from current or older pages."""
+
+    cursor = page.get("next_cursor")
+    if isinstance(cursor, str) and cursor.strip():
+        return cursor.strip()
+    next_url = page.get("next_url")
+    if not isinstance(next_url, str) or not next_url:
+        return None
+    values = parse_qs(urlparse(next_url).query).get("cursor", [])
+    if len(values) != 1 or not values[0].strip():
+        return None
+    return values[0].strip()
 
 
 def _nms_venue_coverage(rows: list[dict[str, Any]]) -> dict[str, Any]:
@@ -241,9 +364,9 @@ def _nms_venue_coverage(rows: list[dict[str, Any]]) -> dict[str, Any]:
 async def _completed_nms_session(
     db: AsyncSession, *, exchange_mic: str | None, observed_at: datetime
 ) -> tuple[date, str] | None:
-    """Resolve a completed session only for a venue covered by Nasdaq Trader."""
+    """Resolve a completed session for a venue covered by the NMS source union."""
 
-    if exchange_mic not in _NASDAQ_TRADER_VENUES:
+    if exchange_mic not in _NMS_LIFECYCLE_VENUES:
         return None
     exchange = (
         await db.execute(select(Exchange).where(Exchange.mic == exchange_mic))
@@ -425,6 +548,60 @@ async def _find_instrument(
     return by_symbol[0] if len(by_symbol) == 1 else None
 
 
+async def _provider_symbol_instruments(
+    db: AsyncSession,
+    *,
+    data_source_id: int,
+    provider_symbol: str,
+    provider_exchange_code: str | None,
+) -> list[Instrument]:
+    """Find existing owners of one exact provider-scoped symbol binding.
+
+    Provider symbols are not canonical security identifiers, but an already
+    persisted provider+symbol+venue binding is the only safe continuity hint
+    available when a later universe row omits security identifiers. Consult it
+    before creating a second Instrument that would collide with the binding's
+    uniqueness constraint. If stronger identity evidence disagrees, callers
+    quarantine the row instead of silently reassigning the alias.
+    """
+
+    query = (
+        select(Instrument)
+        .join(
+            InstrumentProviderSymbol,
+            InstrumentProviderSymbol.instrument_id == Instrument.id,
+        )
+        .where(
+            InstrumentProviderSymbol.data_source_id == data_source_id,
+            InstrumentProviderSymbol.provider_symbol == provider_symbol,
+        )
+    )
+    if provider_exchange_code is None:
+        query = query.where(InstrumentProviderSymbol.provider_exchange_code.is_(None))
+    else:
+        query = query.where(
+            InstrumentProviderSymbol.provider_exchange_code == provider_exchange_code
+        )
+    return (await db.execute(query)).scalars().unique().all()
+
+
+async def _listing_instruments(
+    db: AsyncSession, *, symbol: str, exchange_id: int | None
+) -> list[Instrument]:
+    """Return exact ticker/venue candidates so ambiguity is not mistaken for absence."""
+
+    query = (
+        select(Instrument)
+        .join(InstrumentListing, InstrumentListing.instrument_id == Instrument.id)
+        .where(InstrumentListing.ticker == symbol)
+    )
+    if exchange_id is None:
+        query = query.where(InstrumentListing.exchange_id.is_(None))
+    else:
+        query = query.where(InstrumentListing.exchange_id == exchange_id)
+    return (await db.execute(query)).scalars().unique().all()
+
+
 async def _quarantine_candidate(
     db: AsyncSession,
     *,
@@ -435,7 +612,11 @@ async def _quarantine_candidate(
     payload: dict[str, Any],
     reason: str,
 ) -> None:
-    fingerprint = f"{provider_name}:{symbol}:{exchange_mic}:{reason}"
+    # The human-readable reason may exceed indexed database column limits.
+    # Store a stable digest as the identity key; the complete reason and source
+    # evidence remain in the issue payload and immutable observation record.
+    legacy_fingerprint = f"{provider_name}:{symbol}:{exchange_mic}:{reason}"
+    fingerprint = hashlib.sha256(legacy_fingerprint.encode("utf-8")).hexdigest()
     existing = (
         await db.execute(
             select(InstrumentReconciliationIssue).where(
@@ -446,6 +627,20 @@ async def _quarantine_candidate(
             )
         )
     ).scalar_one_or_none()
+    # Reuse issues created by the former readable fingerprint scheme when its
+    # value fit the database column. Long legacy values could not have been
+    # persisted; short ones must not become duplicate open issues after deploy.
+    if existing is None and len(legacy_fingerprint) <= 80:
+        existing = (
+            await db.execute(
+                select(InstrumentReconciliationIssue).where(
+                    InstrumentReconciliationIssue.data_source_id == data_source_id,
+                    InstrumentReconciliationIssue.provider_symbol == symbol,
+                    InstrumentReconciliationIssue.issue_type == "unresolved_universe_identity",
+                    InstrumentReconciliationIssue.fingerprint == legacy_fingerprint,
+                )
+            )
+        ).scalar_one_or_none()
     issue_payload = {"reason": reason, "quote": payload}
     observed_at = _utc()
     if existing is None:
@@ -614,7 +809,7 @@ async def _reconcile_rows(
     for quote in rows:
         if not isinstance(quote, dict):
             raise ValueError("discovery provider returned a non-object quote row")
-        symbol = _row_symbol(quote)
+        symbol = _row_symbol(quote, preserve_case=provider_name == "cta_plan")
         if not symbol:
             raise ValueError("discovery provider returned a quote row without a symbol")
         normalized_type = _row_type(quote, quote_type)
@@ -667,8 +862,40 @@ async def _reconcile_rows(
             run.quarantined_count += 1
             continue
 
+        provider_bound_candidates = await _provider_symbol_instruments(
+            db,
+            data_source_id=run.data_source_id,
+            provider_symbol=symbol,
+            provider_exchange_code=quote.get("exchange"),
+        )
+        if len(provider_bound_candidates) > 1:
+            await _quarantine_candidate(
+                db,
+                data_source_id=run.data_source_id,
+                provider_name=provider_name,
+                symbol=symbol,
+                exchange_mic=exchange_mic,
+                payload=quote,
+                reason="provider symbol is already bound to multiple instruments",
+            )
+            run.quarantined_count += 1
+            continue
+        provider_bound = provider_bound_candidates[0] if provider_bound_candidates else None
+
         ticker_match = None
         if stable_owner is not None:
+            if provider_bound is not None and provider_bound.id != stable_owner.id:
+                await _quarantine_candidate(
+                    db,
+                    data_source_id=run.data_source_id,
+                    provider_name=provider_name,
+                    symbol=symbol,
+                    exchange_mic=exchange_mic,
+                    payload=quote,
+                    reason="provider symbol binding conflicts with stable security identity",
+                )
+                run.quarantined_count += 1
+                continue
             ticker_match = await _find_instrument(
                 db,
                 symbol=symbol,
@@ -687,6 +914,41 @@ async def _reconcile_rows(
                 run.quarantined_count += 1
                 continue
             instrument = stable_owner
+        elif provider_bound is not None:
+            cik = _normalize_cik(quote.get("sec_cik") or quote.get("cik"))
+            if security_identifiers:
+                reason = "provider symbol binding conflicts with new security identifiers"
+            elif cik:
+                ticker_match = await _find_instrument(
+                    db,
+                    symbol=symbol,
+                    exchange_id=exchange.id if exchange else None,
+                    sec_cik=cik,
+                )
+                reason = (
+                    "provider symbol binding conflicts with issuer identity"
+                    if ticker_match is not provider_bound
+                    else None
+                )
+            else:
+                # Reuse an exact source+symbol+venue binding when this provider
+                # omits stable identifiers. Other providers may have created
+                # duplicate ticker candidates; the scoped binding prevents a
+                # second row from colliding with the database's unique alias.
+                reason = None
+            if reason is not None:
+                await _quarantine_candidate(
+                    db,
+                    data_source_id=run.data_source_id,
+                    provider_name=provider_name,
+                    symbol=symbol,
+                    exchange_mic=exchange_mic,
+                    payload=quote,
+                    reason=reason,
+                )
+                run.quarantined_count += 1
+                continue
+            instrument = provider_bound
         elif security_identifiers:
             # A new stable key is stronger than a legacy ticker/venue match;
             # create a provisional candidate rather than silently merging it.
@@ -698,6 +960,22 @@ async def _reconcile_rows(
                 exchange_id=exchange.id if exchange else None,
                 sec_cik=quote.get("sec_cik") or quote.get("cik"),
             )
+            if instrument is None and not (quote.get("sec_cik") or quote.get("cik")):
+                ticker_candidates = await _listing_instruments(
+                    db, symbol=symbol, exchange_id=exchange.id if exchange else None
+                )
+                if len(ticker_candidates) > 1:
+                    await _quarantine_candidate(
+                        db,
+                        data_source_id=run.data_source_id,
+                        provider_name=provider_name,
+                        symbol=symbol,
+                        exchange_mic=exchange_mic,
+                        payload=quote,
+                        reason="ticker/venue matches multiple instruments without a provider binding",
+                    )
+                    run.quarantined_count += 1
+                    continue
         created = instrument is None
         if instrument is None:
             instrument = Instrument(
@@ -891,12 +1169,47 @@ async def _mark_missing(
     provider_name: str,
     quote_type: str,
     active_keys: set[tuple[str, str | None, str]],
+    active_symbol_mics: set[tuple[str, str | None]] | None = None,
     observed_at: datetime,
     missing_confirmations: int,
 ) -> None:
-    absence_scope = _authoritative_absence_scope(provider_name, quote_type)
     provenance = run.provenance if isinstance(run.provenance, dict) else {}
+    absence_scope = _authoritative_absence_scope(provider_name, quote_type)
+    if provider_name in {"cta_plan", "nasdaq"} and provenance.get("nms_union_complete") is True:
+        absence_scope = "US_NMS"
     source_files = provenance.get("source_files")
+    if absence_scope == "US_OTC":
+        normalized_source_files = (
+            {str(source_file).strip().lower() for source_file in source_files}
+            if isinstance(source_files, list)
+            else set()
+        )
+        snapshot_date_raw = str(provenance.get("source_snapshot_date") or "").strip()
+        try:
+            snapshot_date = date.fromisoformat(snapshot_date_raw)
+        except ValueError:
+            return
+        if (
+            run.status != "complete"
+            or run.quote_type.strip().upper() != "EQUITY"
+            or provenance.get("provider") != provider_name
+            or str(provenance.get("quote_type") or "").strip().upper() != "EQUITY"
+            or provenance.get("snapshot_complete") is not True
+            or provenance.get("absence_scope") != absence_scope
+            or not _FINRA_OTC_QUERY_SOURCE_FILES.issubset(normalized_source_files)
+        ):
+            return
+        await _mark_missing_otc(
+            db,
+            run=run,
+            provider_name=provider_name,
+            quote_type=quote_type,
+            active_keys=active_keys,
+            observed_at=observed_at,
+            snapshot_date=snapshot_date,
+            missing_confirmations=missing_confirmations,
+        )
+        return
     if (
         absence_scope is None
         or run.status != "complete"
@@ -905,10 +1218,30 @@ async def _mark_missing(
         or str(provenance.get("quote_type") or "").strip().upper() != quote_type.strip().upper()
         or provenance.get("snapshot_complete") is not True
         or provenance.get("absence_scope") != absence_scope
-        or not isinstance(source_files, list)
-        or not _NASDAQ_TRADER_SOURCE_FILES.issubset(
-            {str(source_file).strip().lower() for source_file in source_files}
-        )
+    ):
+        return
+
+    nms_snapshot_date: date | None = None
+    if absence_scope == "US_NMS":
+        cycle_runs = provenance.get("nms_union_provider_runs")
+        cycle_id = provenance.get("reconciliation_cycle_id")
+        if (
+            not cycle_id
+            or provenance.get("nms_union_complete") is not True
+            or provenance.get("nms_union_cycle_id") != cycle_id
+            or not isinstance(cycle_runs, dict)
+            or not {"cta_plan:EQUITY", "nasdaq:EQUITY", "nasdaq:ETF"}.issubset(set(cycle_runs))
+            or not isinstance(source_files, list)
+        ):
+            return
+        try:
+            nms_snapshot_date = date.fromisoformat(
+                str(provenance.get("nms_union_snapshot_date") or "")
+            )
+        except ValueError:
+            return
+    elif not isinstance(source_files, list) or not _NASDAQ_TRADER_SOURCE_FILES.issubset(
+        {str(source_file).strip().lower() for source_file in source_files}
     ):
         return
 
@@ -926,14 +1259,20 @@ async def _mark_missing(
     )
     session_by_mic: dict[str, tuple[date, str] | None] = {}
     completed_sessions: dict[str, str] = {}
+    prior_run_cache: dict[int, MarketUniverseReconciliationRun | None] = {}
     absence_observed_at = _utc(run.finished_at or observed_at)
     for observation in observations:
-        if observation.exchange_mic not in _NASDAQ_TRADER_VENUES:
+        venue_scope = _NMS_LIFECYCLE_VENUES if absence_scope == "US_NMS" else _NASDAQ_TRADER_VENUES
+        if observation.exchange_mic not in venue_scope:
             continue
         key = _listing_key(
             observation.provider_symbol, observation.exchange_mic, observation.quote_type
         )
-        if key in active_keys:
+        if (
+            (observation.provider_symbol, observation.exchange_mic) in active_symbol_mics
+            if absence_scope == "US_NMS" and active_symbol_mics is not None
+            else key in active_keys
+        ):
             continue
 
         mic = str(observation.exchange_mic)
@@ -947,6 +1286,27 @@ async def _mark_missing(
         if completed_session is None:
             continue
         session_date, timezone = completed_session
+        # Count a directory miss only against the completed session represented
+        # by the files' own generation date. Re-reading a stale/304-cached file
+        # on a later day must not manufacture another absence confirmation.
+        if nms_snapshot_date is not None and nms_snapshot_date != session_date:
+            continue
+        if observation.run_id is not None and nms_snapshot_date is not None:
+            if observation.run_id not in prior_run_cache:
+                prior_run_cache[observation.run_id] = await db.get(
+                    MarketUniverseReconciliationRun, observation.run_id
+                )
+            previous_run = prior_run_cache[observation.run_id]
+            previous_provenance = (
+                previous_run.provenance
+                if previous_run is not None and isinstance(previous_run.provenance, dict)
+                else {}
+            )
+            if (
+                str(previous_provenance.get("source_snapshot_date") or "")
+                == nms_snapshot_date.isoformat()
+            ):
+                continue
         if observation.last_missing_at is not None:
             last_missing_session = (
                 _utc(observation.last_missing_at).astimezone(ZoneInfo(timezone)).date()
@@ -1002,15 +1362,19 @@ async def _mark_missing(
         # be retired as a side effect of another venue's absence.
         if observation.instrument_id is not None:
             bindings = (
-                await db.execute(
-                    select(InstrumentProviderSymbol).where(
-                        InstrumentProviderSymbol.instrument_id == observation.instrument_id,
-                        InstrumentProviderSymbol.data_source_id == observation.data_source_id,
-                        InstrumentProviderSymbol.provider_symbol == observation.provider_symbol,
-                        InstrumentProviderSymbol.is_active.is_(True),
+                (
+                    await db.execute(
+                        select(InstrumentProviderSymbol).where(
+                            InstrumentProviderSymbol.instrument_id == observation.instrument_id,
+                            InstrumentProviderSymbol.data_source_id == observation.data_source_id,
+                            InstrumentProviderSymbol.provider_symbol == observation.provider_symbol,
+                            InstrumentProviderSymbol.is_active.is_(True),
+                        )
                     )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             for binding in bindings:
                 binding_mic = normalize_exchange_mic(binding.provider_exchange_code)
                 if (
@@ -1033,6 +1397,208 @@ async def _mark_missing(
         }
 
 
+async def _mark_missing_otc(
+    db: AsyncSession,
+    *,
+    run: MarketUniverseReconciliationRun,
+    provider_name: str,
+    quote_type: str,
+    active_keys: set[tuple[str, str | None, str]],
+    observed_at: datetime,
+    snapshot_date: date,
+    missing_confirmations: int,
+) -> None:
+    """Apply OTC absences only once per complete FINRA snapshot date."""
+
+    observations = (
+        (
+            await db.execute(
+                select(MarketUniverseLifecycleObservation).where(
+                    MarketUniverseLifecycleObservation.data_source_id == run.data_source_id,
+                    MarketUniverseLifecycleObservation.quote_type == quote_type,
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    prior_run_cache: dict[int, MarketUniverseReconciliationRun | None] = {}
+    absence_observed_at = _utc(run.finished_at or observed_at)
+    for observation in observations:
+        key = _listing_key(
+            observation.provider_symbol,
+            observation.exchange_mic,
+            observation.quote_type,
+        )
+        if key in active_keys:
+            continue
+        if (
+            observation.lifecycle_status in {"missing", "missing_pending"}
+            and not observation.present
+        ):
+            prior_run = None
+            if observation.run_id is not None:
+                if observation.run_id not in prior_run_cache:
+                    prior_run_cache[observation.run_id] = await db.get(
+                        MarketUniverseReconciliationRun, observation.run_id
+                    )
+                prior_run = prior_run_cache[observation.run_id]
+            prior_provenance = (
+                prior_run.provenance
+                if prior_run is not None and isinstance(prior_run.provenance, dict)
+                else {}
+            )
+            if str(prior_provenance.get("source_snapshot_date") or "") == snapshot_date.isoformat():
+                continue
+            observation.consecutive_missing += 1
+        else:
+            observation.consecutive_missing = 1
+        observation.present = False
+        observation.last_missing_at = absence_observed_at
+        observation.observed_at = absence_observed_at
+        observation.run_id = run.id
+        observation.consecutive_seen = 0
+        observation.lifecycle_status = (
+            "missing"
+            if observation.consecutive_missing >= missing_confirmations
+            else "missing_pending"
+        )
+        run.missing_count += 1
+        if observation.consecutive_missing < missing_confirmations:
+            continue
+        if observation.listing_id is not None:
+            listing = await db.get(InstrumentListing, observation.listing_id)
+            if listing is not None and listing.is_active:
+                listing.is_active = False
+                listing.delisted_at = listing.delisted_at or absence_observed_at
+                db.add(
+                    MarketEvent(
+                        instrument_id=observation.instrument_id,
+                        event_type="listing_delisted_candidate",
+                        event_key=(
+                            f"{provider_name}:{observation.provider_symbol}:delisted:"
+                            f"{snapshot_date.isoformat()}"
+                        ),
+                        event_time=absence_observed_at,
+                        effective_date=snapshot_date,
+                        source=provider_name,
+                        payload={
+                            "exchange_mic": observation.exchange_mic,
+                            "confirmations": observation.consecutive_missing,
+                            "source_snapshot_date": snapshot_date.isoformat(),
+                        },
+                        is_provisional=True,
+                    )
+                )
+        if observation.instrument_id is not None:
+            bindings = (
+                (
+                    await db.execute(
+                        select(InstrumentProviderSymbol).where(
+                            InstrumentProviderSymbol.instrument_id == observation.instrument_id,
+                            InstrumentProviderSymbol.data_source_id == observation.data_source_id,
+                            InstrumentProviderSymbol.provider_symbol == observation.provider_symbol,
+                            InstrumentProviderSymbol.is_active.is_(True),
+                        )
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            for binding in bindings:
+                binding_mic = normalize_exchange_mic(binding.provider_exchange_code)
+                if (
+                    observation.exchange_mic is not None
+                    and binding_mic is not None
+                    and binding_mic != observation.exchange_mic
+                ):
+                    continue
+                binding.is_active = False
+                binding.retired_at = binding.retired_at or absence_observed_at
+        if observation.instrument_id is not None and await _deactivate_if_unlisted(
+            db, observation.instrument_id
+        ):
+            run.deactivated_count += 1
+    run.provenance = {
+        **(run.provenance or {}),
+        "absence_scope": "US_OTC",
+        "absence_snapshot_date": snapshot_date.isoformat(),
+    }
+
+
+async def _reactivate_complete_nms_rows(
+    db: AsyncSession,
+    *,
+    run: MarketUniverseReconciliationRun,
+    provider_name: str,
+    snapshot_date: date,
+) -> None:
+    """Reactivate rows only after the same-cycle NMS source union is complete."""
+
+    observations = (
+        (
+            await db.execute(
+                select(MarketUniverseLifecycleObservation).where(
+                    MarketUniverseLifecycleObservation.run_id == run.id,
+                    MarketUniverseLifecycleObservation.present.is_(True),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for observation in observations:
+        listing = (
+            await db.get(InstrumentListing, observation.listing_id)
+            if observation.listing_id is not None
+            else None
+        )
+        if listing is not None and not listing.is_active:
+            listing.is_active = True
+            instrument = await db.get(Instrument, observation.instrument_id)
+            if instrument is not None:
+                instrument.is_active = True
+                if instrument.identity_status == IdentityStatus.RETIRED.value:
+                    instrument.identity_status = IdentityStatus.PROVISIONAL.value
+            db.add(
+                MarketEvent(
+                    instrument_id=observation.instrument_id,
+                    event_type="listing_reactivated_candidate",
+                    event_key=(
+                        f"{provider_name}:{observation.provider_symbol}:reactivated:"
+                        f"{snapshot_date.isoformat()}"
+                    ),
+                    event_time=_utc(run.finished_at),
+                    effective_date=snapshot_date,
+                    source=provider_name,
+                    payload={
+                        "exchange_mic": observation.exchange_mic,
+                        "reconciliation_run_id": run.id,
+                        "nms_union_cycle_id": run.provenance.get("nms_union_cycle_id"),
+                    },
+                    is_provisional=True,
+                )
+            )
+        if observation.instrument_id is None:
+            continue
+        bindings = (
+            (
+                await db.execute(
+                    select(InstrumentProviderSymbol).where(
+                        InstrumentProviderSymbol.instrument_id == observation.instrument_id,
+                        InstrumentProviderSymbol.data_source_id == run.data_source_id,
+                        InstrumentProviderSymbol.provider_symbol == observation.provider_symbol,
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        for binding in bindings:
+            binding.is_active = True
+            binding.retired_at = None
+
+
 async def reconcile_us_universe(
     db: AsyncSession,
     *,
@@ -1049,48 +1615,162 @@ async def reconcile_us_universe(
             else settings.MARKET_UNIVERSE_MISSING_CONFIRMATIONS
         ),
     )
-    chain = await resolve_provider_chain(db, ProviderCapability.UNIVERSE_DISCOVERY)
+    # Build only the providers that can safely execute a paginated
+    # reconciliation operation. An operation-less capability chain includes
+    # descriptors whose exact page cost, quota headroom, or routing controls
+    # are not admitted; invoking those later creates misleading failed runs
+    # with "no enabled providers" instead of leaving them visible as deferred.
+    chain = await resolve_provider_chain(
+        db,
+        ProviderCapability.UNIVERSE_DISCOVERY,
+        operation="reconcile_universe_page",
+    )
     if provider_name:
         chain = [item for item in chain if item.provider_name == provider_name]
     if not chain:
         return {"status": "no_provider", "providers": [], "runs": []}
     results: list[dict[str, Any]] = []
+    reconciliation_cycle_id = _utc().isoformat()
+    nms_cycle_runs: dict[tuple[str, str], dict[str, Any]] = {}
     for resolved in chain:
         provider = get_discovery_provider(resolved.provider_name)
         requested_types = quote_types or provider.supported_discovery_types()
         for quote_type in requested_types:
             observed_at = _utc()
-            run = MarketUniverseReconciliationRun(
-                data_source_id=resolved.data_source.id,
-                quote_type=quote_type,
-                observed_at=observed_at,
-                status="running",
-                provenance={
-                    "provider": resolved.provider_name,
-                    "quote_type": quote_type,
-                    "complete_absence_confirmation": confirmations,
-                },
-            )
-            db.add(run)
-            await db.flush()
+            resumed_pages: list[UniverseDiscoverySnapshot] = []
+            resume = None
+            if resolved.provider_name == "massive":
+                resume = await _latest_deferred_massive_scan(
+                    db,
+                    data_source_id=resolved.data_source.id,
+                    quote_type=quote_type,
+                )
+            if resume is not None:
+                run, resumed_pages = resume
+                run.status = "running"
+                run.error = None
+                run.finished_at = None
+                run.provenance = {
+                    **(run.provenance or {}),
+                    "continuation_count": int((run.provenance or {}).get("continuation_count", 0))
+                    + 1,
+                    "last_continued_at": observed_at.isoformat(),
+                }
+            else:
+                run = MarketUniverseReconciliationRun(
+                    data_source_id=resolved.data_source.id,
+                    quote_type=quote_type,
+                    observed_at=observed_at,
+                    status="running",
+                    provenance={
+                        "provider": resolved.provider_name,
+                        "quote_type": quote_type,
+                        "complete_absence_confirmation": confirmations,
+                        "reconciliation_cycle_id": reconciliation_cycle_id,
+                        "discovery_snapshot_ids": [],
+                    },
+                )
+                db.add(run)
+                await db.flush()
+            run_id = run.id
+            run_data_source_id = run.data_source_id
+            run_quote_type = run.quote_type
+            run_observed_at = run.observed_at
+            run_initial_provenance = dict(run.provenance or {})
             rows: list[dict[str, Any]] = []
             offset = 0
+            cursor: str | None = None
             total: int | None = None
             total_scope: str | None = None
             seen_next_urls: set[str] = set()
             seen_listing_keys: set[tuple[str, str | None, str]] = set()
             source_files: set[str] = set()
             source_file_evidence_complete = True
+            source_file_creation_times: dict[str, str] = {}
+            source_snapshot_date: str | None = None
+            try:
+                for stored_snapshot in resumed_pages:
+                    stored_page = stored_snapshot.payload.get("page")
+                    if not isinstance(stored_page, dict):
+                        raise ValueError("stored Massive discovery page payload is malformed")
+                    stored_quotes = stored_page.get("quotes")
+                    if not isinstance(stored_quotes, list) or any(
+                        not isinstance(row, dict) for row in stored_quotes
+                    ):
+                        raise ValueError("stored Massive discovery page rows are malformed")
+                    for quote in stored_quotes:
+                        symbol = _row_symbol(quote)
+                        if not symbol:
+                            raise ValueError("stored Massive discovery page omitted a symbol")
+                        listing_key = _listing_key(
+                            symbol,
+                            normalize_exchange_mic(quote.get("exchange")),
+                            _row_type(quote, quote_type),
+                        )
+                        if listing_key in seen_listing_keys:
+                            raise ValueError(
+                                "stored Massive discovery pages contain duplicate listings"
+                            )
+                        seen_listing_keys.add(listing_key)
+                    rows.extend(stored_quotes)
+                    stored_total = stored_page.get("total")
+                    if stored_total is not None:
+                        if total is not None and total != stored_total:
+                            raise ValueError(
+                                "stored Massive discovery pages changed declared total"
+                            )
+                        total = stored_total
+                    stored_scope = stored_page.get("total_scope", "filtered")
+                    if total_scope is not None and total_scope != stored_scope:
+                        raise ValueError("stored Massive discovery pages changed total scope")
+                    total_scope = stored_scope
+                    stored_next_url = stored_page.get("next_url")
+                    if isinstance(stored_next_url, str) and stored_next_url:
+                        if stored_next_url in seen_next_urls:
+                            raise ValueError("stored Massive discovery pages repeat a next_url")
+                        seen_next_urls.add(stored_next_url)
+                    offset = stored_page.get("next_offset") or offset
+                    cursor = _massive_page_cursor(stored_page) or cursor
+                if resumed_pages and (offset <= 0 or not cursor):
+                    raise ValueError("stored Massive discovery pages lack a resumable cursor")
+            except (TypeError, ValueError) as exc:
+                run.status = "failed"
+                run.error = f"stored Massive discovery continuation is invalid: {exc}"[:4000]
+                run.finished_at = _utc()
+                await db.commit()
+                results.append(
+                    {
+                        "provider": resolved.provider_name,
+                        "quote_type": quote_type,
+                        "status": run.status,
+                        "expected": 0,
+                        "observed": 0,
+                        "new": 0,
+                        "missing": 0,
+                        "deactivated": 0,
+                        "quarantined": 0,
+                    }
+                )
+                continue
             try:
                 while True:
+                    if resolved.provider_name == "massive" and cursor:
+
+                        def invoke_discovery(candidate, _symbol):
+                            return candidate.discover_universe_page(
+                                quote_type, offset, cursor=cursor
+                            )
+                    else:
+
+                        def invoke_discovery(candidate, _symbol):
+                            return candidate.discover_universe_page(quote_type, offset)
+
                     execution = await execute_provider_call(
                         db,
                         ProviderCapability.UNIVERSE_DISCOVERY,
                         f"reconcile_universe_page:{quote_type}:{offset}",
                         provider_name=resolved.provider_name,
-                        invoke=lambda candidate, _symbol: candidate.discover_universe_page(
-                            quote_type, offset
-                        ),
+                        invoke=invoke_discovery,
                         response_items=lambda page: len(page.get("quotes") or []),
                         # An empty terminal page is valid for cursor-based
                         # feeds after at least one page, but an empty first
@@ -1114,15 +1794,130 @@ async def reconcile_us_universe(
                         and not _NASDAQ_TRADER_SOURCE_FILES.issubset(page_source_files)
                     ):
                         source_file_evidence_complete = False
-                    await store_universe_discovery_snapshot(
+                    if resolved.provider_name == "nasdaq":
+                        raw_creation_times = page.get("source_file_creation_times")
+                        page_creation_times = (
+                            {
+                                str(name).strip().lower(): str(value).strip()
+                                for name, value in raw_creation_times.items()
+                                if isinstance(name, str)
+                                and isinstance(value, str)
+                                and value.strip()
+                            }
+                            if isinstance(raw_creation_times, dict)
+                            else {}
+                        )
+                        if set(page_creation_times) != _NASDAQ_TRADER_SOURCE_FILES:
+                            source_file_evidence_complete = False
+                        else:
+                            try:
+                                creation_dates = {
+                                    name: datetime.fromisoformat(value).date()
+                                    for name, value in page_creation_times.items()
+                                }
+                            except ValueError:
+                                source_file_evidence_complete = False
+                            else:
+                                if len(set(creation_dates.values())) != 1:
+                                    source_file_evidence_complete = False
+                                elif source_snapshot_date is None:
+                                    source_snapshot_date = next(
+                                        iter(creation_dates.values())
+                                    ).isoformat()
+                                elif (
+                                    source_snapshot_date
+                                    != next(iter(creation_dates.values())).isoformat()
+                                ):
+                                    source_file_evidence_complete = False
+                            if not source_file_creation_times:
+                                source_file_creation_times = page_creation_times
+                            elif source_file_creation_times != page_creation_times:
+                                source_file_evidence_complete = False
+                    if resolved.provider_name == "cta_plan":
+                        page_snapshot_date = str(page.get("source_snapshot_date") or "").strip()
+                        raw_payload = page.get("raw_source_payload")
+                        cta_files = [
+                            source_file
+                            for source_file in page_source_files
+                            if _CTA_SYMBOL_FILE.fullmatch(source_file)
+                        ]
+                        if (
+                            quote_type.strip().upper() != "EQUITY"
+                            or page.get("complete") is not True
+                            or "cta_symbol_file_index" not in page_source_files
+                            or len(cta_files) != 1
+                            or not isinstance(raw_payload, dict)
+                            or not isinstance(raw_payload.get("index_html"), str)
+                            or not isinstance(raw_payload.get("symbol_file_csv"), str)
+                            or not raw_payload.get("symbol_file_csv")
+                            or isinstance(page.get("source_row_count"), bool)
+                            or not isinstance(page.get("source_row_count"), int)
+                            or page.get("source_row_count", 0) < len(page.get("quotes") or [])
+                        ):
+                            source_file_evidence_complete = False
+                        try:
+                            page_date = date.fromisoformat(page_snapshot_date)
+                            filename_match = (
+                                _CTA_SYMBOL_FILE.fullmatch(cta_files[0])
+                                if len(cta_files) == 1
+                                else None
+                            )
+                            filename_date = (
+                                datetime.strptime(filename_match.group(1), "%Y%m%d").date()
+                                if filename_match
+                                else None
+                            )
+                        except ValueError:
+                            source_file_evidence_complete = False
+                        else:
+                            if filename_date != page_date:
+                                source_file_evidence_complete = False
+                            if source_snapshot_date is None:
+                                source_snapshot_date = page_date.isoformat()
+                            elif source_snapshot_date != page_date.isoformat():
+                                source_file_evidence_complete = False
+                    if resolved.provider_name == "finra_otc_directory":
+                        page_snapshot_date = str(page.get("source_snapshot_date") or "").strip()
+                        try:
+                            date.fromisoformat(page_snapshot_date)
+                        except ValueError as exc:
+                            raise ValueError(
+                                "FINRA OTC directory omitted a valid source snapshot date"
+                            ) from exc
+                        if source_snapshot_date is None:
+                            source_snapshot_date = page_snapshot_date
+                        elif source_snapshot_date != page_snapshot_date:
+                            raise ValueError(
+                                "FINRA OTC directory changed snapshot date during pagination"
+                            )
+                    if resolved.provider_name == "cta_plan":
+                        page_snapshot_date = str(page.get("source_snapshot_date") or "").strip()
+                        try:
+                            date.fromisoformat(page_snapshot_date)
+                        except ValueError as exc:
+                            raise ValueError(
+                                "CTA Plan symbol file omitted a valid source snapshot date"
+                            ) from exc
+                        if source_snapshot_date is None:
+                            source_snapshot_date = page_snapshot_date
+                        elif source_snapshot_date != page_snapshot_date:
+                            raise ValueError("CTA Plan symbol file date changed during pagination")
+                    page_observed_at = _utc()
+                    stored_snapshot = await store_universe_discovery_snapshot(
                         db,
                         data_source_id=execution.data_source.id,
                         quote_type=quote_type,
                         offset=offset,
                         page=page,
-                        observed_at=observed_at,
-                        fetched_at=observed_at,
+                        observed_at=page_observed_at,
+                        fetched_at=page_observed_at,
                     )
+                    snapshot_ids = list((run.provenance or {}).get("discovery_snapshot_ids") or [])
+                    snapshot_ids.append(stored_snapshot.id)
+                    run.provenance = {
+                        **(run.provenance or {}),
+                        "discovery_snapshot_ids": snapshot_ids,
+                    }
                     # Commit the raw page before normalisation/lifecycle work.
                     # Discovery responses are quota-limited observations; a
                     # worker crash after the HTTP response must not erase the
@@ -1130,6 +1925,12 @@ async def reconcile_us_universe(
                     # inspectable as ``running``/``failed`` and can be
                     # reconciled again without losing this evidence.
                     await db.commit()
+                    validation_errors = page.get("validation_errors") or []
+                    if validation_errors:
+                        raise ValueError(
+                            "discovery provider response was retained but failed validation: "
+                            + "; ".join(str(error) for error in validation_errors)
+                        )
                     raw_page_rows = page.get("quotes")
                     if raw_page_rows is None:
                         raw_page_rows = []
@@ -1139,7 +1940,9 @@ async def reconcile_us_universe(
                         raise ValueError("discovery provider returned a non-object quote row")
                     page_rows = list(raw_page_rows)
                     for quote in page_rows:
-                        symbol = _row_symbol(quote)
+                        symbol = _row_symbol(
+                            quote, preserve_case=resolved.provider_name == "cta_plan"
+                        )
                         if not symbol:
                             # Let the shared row normalizer produce the more
                             # specific missing-symbol failure below.
@@ -1196,6 +1999,11 @@ async def reconcile_us_universe(
                         raise ValueError(
                             "discovery provider returned a non-progressing next_offset"
                         )
+                    next_cursor = page.get("next_cursor")
+                    if next_cursor is not None and (
+                        not isinstance(next_cursor, str) or not next_cursor.strip()
+                    ):
+                        raise ValueError("discovery provider returned an invalid next_cursor")
                     if raw_next_url is not None and not isinstance(raw_next_url, str):
                         raise ValueError("discovery provider returned an invalid next_url")
                     if isinstance(raw_next_url, str) and raw_next_url:
@@ -1213,9 +2021,11 @@ async def reconcile_us_universe(
                         # not turn malformed pagination into an unbounded
                         # retry loop.
                         offset = next_offset
+                        cursor = next_cursor
                         continue
                     if next_url:
                         offset += len(page_rows)
+                        cursor = next_cursor
                         continue
                     if total_scope == "raw":
                         if page.get("complete") is not True:
@@ -1244,13 +2054,10 @@ async def reconcile_us_universe(
                     and len(rows) != total
                 ):
                     raise ValueError(
-                        "nasdaq directory returned "
-                        f"{len(rows)} rows but declared total {total}"
+                        "nasdaq directory returned " f"{len(rows)} rows but declared total {total}"
                     )
                 run.expected_count = (
-                    len(rows)
-                    if total_scope == "raw"
-                    else total if total is not None else len(rows)
+                    len(rows) if total_scope == "raw" else total if total is not None else len(rows)
                 )
                 if resolved.provider_name == "nasdaq" and quote_type.strip().upper() in {
                     "EQUITY",
@@ -1286,9 +2093,25 @@ async def reconcile_us_universe(
                 run.provenance = {
                     **(run.provenance or {}),
                     "snapshot_complete": True,
+                    "snapshot_consistency": (
+                        "resumed_provider_cursor_across_invocations"
+                        if int((run.provenance or {}).get("continuation_count", 0)) > 0
+                        else "single_invocation"
+                    ),
+                    "source_file_evidence_complete": source_file_evidence_complete,
                     "source_files": sorted(source_files),
+                    **(
+                        {"source_file_creation_times": source_file_creation_times}
+                        if source_file_creation_times
+                        else {}
+                    ),
                     "absence_scope": absence_scope,
                     "total_scope": total_scope or "filtered",
+                    **(
+                        {"source_snapshot_date": source_snapshot_date}
+                        if source_snapshot_date is not None
+                        else {}
+                    ),
                 }
                 if absence_scope is not None:
                     await _mark_missing(
@@ -1301,18 +2124,70 @@ async def reconcile_us_universe(
                         missing_confirmations=confirmations,
                     )
             except Exception as exc:
-                # A failed/empty provider run is never treated as a complete
-                # universe.  Its snapshots and error remain inspectable.
-                run.status = "failed"
-                run.error = redact_provider_message(exc)[:4000]
-                logger.warning(
-                    "universe reconciliation %s/%s failed: %s",
-                    resolved.provider_name,
-                    quote_type,
-                    redact_provider_message(exc)[:1000],
+                # Capacity/admission rejections occur before HTTP. Preserve a
+                # distinct deferred status so an exhausted provider allowance
+                # is not misreported as a provider failure. In either case no
+                # incomplete snapshot may drive absence/lifecycle decisions.
+                if not db.is_active:
+                    # A failed database flush (for example, an old provider
+                    # symbol colliding with a new candidate) invalidates the
+                    # transaction. Roll back only the derived reconciliation
+                    # work; each fetched raw page was committed before row
+                    # normalization and remains available for lossless replay.
+                    # Re-fetch the already-persisted run, or recreate its
+                    # failure record if the first fetch failed before any page
+                    # commit made the initial run durable.
+                    await db.rollback()
+                    run = await db.get(MarketUniverseReconciliationRun, run_id)
+                    if run is None:
+                        run = MarketUniverseReconciliationRun(
+                            id=run_id,
+                            data_source_id=run_data_source_id,
+                            quote_type=run_quote_type,
+                            observed_at=run_observed_at,
+                            status="running",
+                            provenance=run_initial_provenance,
+                        )
+                        db.add(run)
+                run.status = (
+                    "deferred" if isinstance(exc, ProviderQuotaAdmissionError) else "failed"
                 )
+                run.error = redact_provider_message(exc)[:4000]
+                if run.status == "deferred":
+                    logger.info(
+                        "universe reconciliation %s/%s deferred before transport: %s",
+                        resolved.provider_name,
+                        quote_type,
+                        redact_provider_message(exc)[:1000],
+                    )
+                else:
+                    logger.warning(
+                        "universe reconciliation %s/%s failed: %s",
+                        resolved.provider_name,
+                        quote_type,
+                        redact_provider_message(exc)[:1000],
+                    )
             run.finished_at = _utc()
             await db.commit()
+            if (
+                run.status == "complete"
+                and resolved.provider_name in {"cta_plan", "nasdaq"}
+                and source_file_evidence_complete
+                and source_snapshot_date
+            ):
+                symbol_mics = {
+                    (
+                        _row_symbol(row, preserve_case=resolved.provider_name == "cta_plan"),
+                        normalize_exchange_mic(row.get("exchange")),
+                    )
+                    for row in rows
+                    if _row_symbol(row, preserve_case=resolved.provider_name == "cta_plan")
+                }
+                nms_cycle_runs[(resolved.provider_name, quote_type.strip().upper())] = {
+                    "run": run,
+                    "snapshot_date": source_snapshot_date,
+                    "symbol_mics": symbol_mics,
+                }
             results.append(
                 {
                     "provider": resolved.provider_name,
@@ -1326,10 +2201,77 @@ async def reconcile_us_universe(
                     "quarantined": run.quarantined_count,
                 }
             )
+    # NMS absences require three complete scopes from this same invocation:
+    # CTA Tape A/B, Nasdaq-listed Tape C (represented by Nasdaq Trader's full
+    # listing files), and Nasdaq's ETF classification. CTA's broad EQUITY type
+    # cannot identify ETFs by itself, so use symbol+MIC membership across all
+    # scopes to conservatively protect either type from a false absence.
+    required_nms_scopes = (
+        ("cta_plan", "EQUITY"),
+        ("nasdaq", "EQUITY"),
+        ("nasdaq", "ETF"),
+    )
+    nms_scopes = [nms_cycle_runs.get(scope) for scope in required_nms_scopes]
+    if all(scope is not None for scope in nms_scopes):
+        complete_scopes = [scope for scope in nms_scopes if scope is not None]
+        snapshot_dates = {scope["snapshot_date"] for scope in complete_scopes}
+        cycle_ids = {
+            str(scope["run"].provenance.get("reconciliation_cycle_id") or "")
+            for scope in complete_scopes
+        }
+        if len(snapshot_dates) == 1 and cycle_ids == {reconciliation_cycle_id}:
+            active_symbol_mics = set().union(*(scope["symbol_mics"] for scope in complete_scopes))
+            union_runs = {
+                f"{provider}:{quote_type}": scope["run"].id
+                for (provider, quote_type), scope in zip(
+                    required_nms_scopes, complete_scopes, strict=True
+                )
+            }
+            union_date = next(iter(snapshot_dates))
+            nms_snapshot_date = date.fromisoformat(union_date)
+            for (provider, quote_type), scope in zip(
+                required_nms_scopes, complete_scopes, strict=True
+            ):
+                run = scope["run"]
+                run.provenance = {
+                    **(run.provenance or {}),
+                    "absence_scope": "US_NMS",
+                    "nms_union_complete": True,
+                    "nms_union_cycle_id": reconciliation_cycle_id,
+                    "nms_union_snapshot_date": union_date,
+                    "nms_union_provider_runs": union_runs,
+                }
+                await _reactivate_complete_nms_rows(
+                    db,
+                    run=run,
+                    provider_name=provider,
+                    snapshot_date=nms_snapshot_date,
+                )
+                await _mark_missing(
+                    db,
+                    run=run,
+                    provider_name=provider,
+                    quote_type=quote_type,
+                    active_keys=set(),
+                    active_symbol_mics=active_symbol_mics,
+                    observed_at=_utc(run.finished_at),
+                    missing_confirmations=confirmations,
+                )
+                result_row = next(
+                    row
+                    for row in results
+                    if row["provider"] == provider
+                    and row["quote_type"].strip().upper() == quote_type
+                )
+                result_row["missing"] = run.missing_count
+                result_row["deactivated"] = run.deactivated_count
+            await db.commit()
     statuses = [row["status"] for row in results]
     overall_status = (
         "complete"
         if statuses and all(status == "complete" for status in statuses)
+        else "deferred"
+        if statuses and all(status == "deferred" for status in statuses)
         else "failed"
         if statuses and all(status == "failed" for status in statuses)
         else "partial"

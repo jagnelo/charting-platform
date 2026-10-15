@@ -47,7 +47,9 @@ PORT_BASES = {
 SHARED_ENV_OVERRIDE = "CHARTING_PLATFORM_SHARED_ENV_FILE"
 RUNTIME_DIR_OVERRIDE = "CHARTING_PLATFORM_RUNTIME_DIR"
 DEFAULT_SHARED_ENV = Path.home() / ".config" / "charting-platform" / "app.env"
-DEFAULT_QUOTA_LEDGER_DIR = Path.home() / ".config" / "charting-platform" / "provider-quota"
+DEFAULT_QUOTA_LEDGER_DIR = (
+    Path.home() / ".config" / "charting-platform" / "provider-quota"
+)
 QUOTA_LEDGER_DIR_OVERRIDE = "PROVIDER_QUOTA_LEDGER_HOST_DIR"
 SHARED_ENV_TARGETS = (Path(".env"), Path("backend/.env.dev"))
 
@@ -331,9 +333,7 @@ def install_shared_env_links() -> Path | None:
     if not stat.S_ISREG(source_lstat.st_mode):
         raise SystemExit(f"shared env source must be a regular file: {source}")
     if stat.S_IMODE(source_lstat.st_mode) & 0o077:
-        raise SystemExit(
-            f"shared env source must be owner-only (chmod 600): {source}"
-        )
+        raise SystemExit(f"shared env source must be owner-only (chmod 600): {source}")
     source = source.resolve(strict=True)
     checkout = root()
     for relative_target in SHARED_ENV_TARGETS:
@@ -345,7 +345,14 @@ def install_shared_env_links() -> Path | None:
                 )
             continue
         if target.exists():
-            raise SystemExit(f"refusing to replace existing env file: {target}")
+            # Preserve operator-owned checkout configuration. The backend
+            # target is still linked when available, so an existing root
+            # .env must not prevent ordinary test/runtime allocation.
+            print(
+                f"preserving existing env file without replacing it: {target}",
+                file=sys.stderr,
+            )
+            continue
         target.parent.mkdir(parents=True, exist_ok=True)
         target.symlink_to(source)
     return source
@@ -355,7 +362,9 @@ def ensure_shared_quota_ledger_dir() -> Path:
     """Create the private, non-secret host directory shared across worktrees."""
 
     configured = os.getenv(QUOTA_LEDGER_DIR_OVERRIDE, "").strip()
-    directory = Path(configured).expanduser() if configured else DEFAULT_QUOTA_LEDGER_DIR
+    directory = (
+        Path(configured).expanduser() if configured else DEFAULT_QUOTA_LEDGER_DIR
+    )
     if directory.is_symlink():
         raise SystemExit(f"refusing a symlink quota-ledger directory: {directory}")
     try:
@@ -364,7 +373,9 @@ def ensure_shared_quota_ledger_dir() -> Path:
             raise SystemExit(f"quota-ledger path must be a directory: {directory}")
         os.chmod(directory, 0o700)
     except OSError as exc:
-        raise SystemExit(f"could not prepare private quota-ledger directory: {directory}") from exc
+        raise SystemExit(
+            f"could not prepare private quota-ledger directory: {directory}"
+        ) from exc
     return directory
 
 

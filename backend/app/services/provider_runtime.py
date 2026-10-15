@@ -76,6 +76,16 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 HistoryStartSpec = datetime | Callable[[str], datetime | None]
+_ACTIVE_PROVIDER_QUOTA_ADMISSION: contextvars.ContextVar[bool] = contextvars.ContextVar(
+    "provider_runtime_quota_admission", default=False
+)
+
+
+def provider_runtime_quota_admission_active() -> bool:
+    """Return whether the current adapter call holds its durable quota reservation."""
+
+    return _ACTIVE_PROVIDER_QUOTA_ADMISSION.get()
+
 
 _ALPHA = Decimal("0.2")
 _token_buckets: dict[tuple[str, str], tuple[tuple[int, int], TokenBucket]] = {}
@@ -83,6 +93,7 @@ _semaphores: dict[tuple[str, str], tuple[int, asyncio.Semaphore]] = {}
 _DEFAULT_SCORE_FLOOR = Decimal("0")
 _DEFAULT_SCORE_CEILING = Decimal("100")
 _DEFAULT_LEARNED_WEIGHT = Decimal("0")
+_POSITIVE_LIVE_PROBE_STATUSES = frozenset({"passed", "not_required", "credentialed_live_verified"})
 _DEFAULT_EFFECTIVE_SCORE = Decimal("0")
 _DEFAULT_BASE_PRIORITY = 100
 
@@ -347,9 +358,7 @@ def _persist_response_payloads(log_row: ProviderRequestLog, payloads: list[Any])
     """Attach all ordered response bodies to the immutable request log."""
 
     if payloads:
-        log_row.response_payloads = [
-            _json_safe_response_payload(payload) for payload in payloads
-        ]
+        log_row.response_payloads = [_json_safe_response_payload(payload) for payload in payloads]
 
 
 def _nonnegative_integer(value: Any) -> int | None:
@@ -399,6 +408,25 @@ def _entitlement_seed(provider_name: str, capability: ProviderCapability) -> dic
             base["usage_terms"] = (
                 f"MarketData.app {plan} account plan; provider credits, single-IP, concurrency, "
                 "data-age, and licensing terms apply."
+            )
+    if provider_name == "tiingo":
+        plan = str(getattr(settings, "TIINGO_REVIEWED_PLAN", "starter") or "").strip().lower()
+        quota_seed = provider_rate_limit_seed("tiingo")
+        contract = quota_seed.get("quota_contract")
+        custom_profile_incomplete = plan == "custom" and (
+            not isinstance(contract, dict)
+            or not contract.get("dimensions")
+            or "custom_account_quota_values_or_evidence"
+            in (contract.get("unknown_dimensions") or [])
+        )
+        if plan not in {"starter", "power", "custom"} or custom_profile_incomplete:
+            base["configured_plan"] = "unreviewed"
+            base["usage_terms"] = "Tiingo account plan quota profile is incomplete or unrecognized."
+        else:
+            base["configured_plan"] = f"tiingo-{plan}-operator-reviewed"
+            base["is_free"] = plan == "starter"
+            base["usage_terms"] = (
+                f"Tiingo {plan} plan; provider-specific request, symbol, and bandwidth quotas apply."
             )
     base.setdefault(
         "live_probe_status",
@@ -541,6 +569,18 @@ def _dimension_costs_for_operation(
                         raise ProviderQuotaUnknownError(
                             f"No valid reviewed dimension cost for {data_source.name}/{operation}/{name}"
                         )
+                    if unit in {"byte", "bytes"} and str(data_source.name).strip().lower() in {
+                        "fmp",
+                        "tiingo",
+                    }:
+                        # These providers' configured byte bounds are per
+                        # HTTP response. Their history adapters can partition
+                        # one logical fetch into multiple requests, with the
+                        # exact request count supplied as the operation cost.
+                        # Reserve the per-response ceiling for every planned
+                        # request so aggregate bandwidth cannot be
+                        # under-reserved before transport begins.
+                        parsed *= default_cost
                     result[name] = parsed
                     continue
                 if unit in {"concurrent_requests", "concurrency"}:
@@ -568,14 +608,14 @@ def _account_usage_bootstrap_dimension_costs(
     data_source: DataSource,
     default_units: Decimal,
 ) -> dict[str, int] | None:
-    """Return an explicit first-snapshot plan when provider pools are unknown.
+    """Build a safe first-snapshot plan for explicitly reconciled quota pools.
 
-    This is intentionally opt-in per provider contract.  It does not invent a
-    provider allowance: finite dimensions with no active native baseline are
-    excluded for this one control-plane request, while the provider-declared
-    account-usage probe concurrency dimension remains reserved.  The response
-    must then reconcile the native counter before ordinary reads can consume
-    that pool.
+    Only finite dimensions whose native account-usage response is explicitly
+    mapped may be omitted from the pre-call debit: that response establishes
+    the post-call baseline, including the usage probe itself. Every other
+    finite pool must already have a usable baseline (or an explicit local-zero
+    baseline). An unreported pool cannot be made safe by calling an endpoint
+    that does not report it.
     """
 
     if operation != "fetch_account_usage":
@@ -600,21 +640,25 @@ def _account_usage_bootstrap_dimension_costs(
         provider_quota_baseline_status,
     )
 
-    unknown: set[str] = set()
+    reconciled = account_usage_reconciled_dimensions(policy, operation)
+    bootstrap_unknown: set[str] = set()
     for dimension in finite:
+        name = str(dimension["name"])
         try:
             status = provider_quota_baseline_status(
                 provider_name=provider_name,
                 capability=capability,
                 policy=policy,
-                dimension_name=str(dimension["name"]),
+                dimension_name=name,
             )
         except ProviderQuotaUnknownError:
-            # A provider-defined reset is intentionally unresolved during
-            # bootstrap. Treat that pool as unknown for this zero-cost native
-            # observation; do not turn the observation into a guessed window.
-            unknown.add(str(dimension["name"]))
-            continue
+            if name in reconciled:
+                bootstrap_unknown.add(name)
+                continue
+            raise ProviderQuotaUnknownError(
+                f"provider account-usage probe cannot safely charge unreported "
+                f"quota dimension {provider_name}/{name}"
+            ) from None
         except (
             ProviderQuotaAdmissionError,
             ProviderQuotaCoordinatorError,
@@ -623,11 +667,19 @@ def _account_usage_bootstrap_dimension_costs(
         ) as exc:
             raise ProviderQuotaUnknownError(
                 f"provider account-usage baseline status is unavailable for "
-                f"{provider_name}/{dimension['name']}"
+                f"{provider_name}/{name}"
             ) from exc
+        if status.get("status") == "initializable":
+            continue
         if status.get("status") != "verified":
-            unknown.add(str(dimension["name"]))
-    if not unknown:
+            if name in reconciled:
+                bootstrap_unknown.add(name)
+                continue
+            raise ProviderQuotaUnknownError(
+                f"provider account-usage probe cannot safely charge unreported "
+                f"quota dimension {provider_name}/{name}"
+            )
+    if not bootstrap_unknown:
         return None
     costs = _dimension_costs_for_operation(
         policy,
@@ -635,7 +687,7 @@ def _account_usage_bootstrap_dimension_costs(
         operation,
         default_units,
     )
-    for name in unknown:
+    for name in bootstrap_unknown:
         costs[name] = 0
     return costs
 
@@ -846,11 +898,7 @@ def _observed_dimension_totals(policy: ProviderPolicy, measurement: Any) -> dict
             # observation when the response also proves the provider's reset
             # boundary.  Do not turn a limit/remaining pair from a different
             # endpoint, stale cache, or changed contract into durable usage.
-            if (
-                header_limit == limit
-                and 0 <= remaining <= header_limit
-                and reset_epoch > 0
-            ):
+            if header_limit == limit and 0 <= remaining <= header_limit and reset_epoch > 0:
                 totals[name] = header_limit - remaining
             continue
         if unit in {"credit", "credits"} and window_seconds == 86400 and "marketdata.app" in source:
@@ -888,7 +936,13 @@ def _observed_dimension_totals(policy: ProviderPolicy, measurement: Any) -> dict
 
 
 def _coordinator_settlement(
-    policy: ProviderPolicy, measurement: Any, reserved_units: dict[str, int]
+    policy: ProviderPolicy,
+    measurement: Any,
+    reserved_units: dict[str, int],
+    *,
+    provider_name: str | None = None,
+    operation: str | None = None,
+    error: Exception | None = None,
 ) -> tuple[dict[str, int], set[str]]:
     """Use exact transport evidence; retain worst-case debit when ambiguous."""
 
@@ -898,9 +952,7 @@ def _coordinator_settlement(
         return {}, set(reserved_units)
     observed: dict[str, int] = {}
     unknown: set[str] = set()
-    dimensions_by_name = {
-        str(item.get("name")): item for item in quota_dimensions(policy)
-    }
+    dimensions_by_name = {str(item.get("name")): item for item in quota_dimensions(policy)}
     for name, reserved in reserved_units.items():
         unit = str(dimensions_by_name.get(name, {}).get("unit") or "").lower()
         if unit in {"concurrent_requests", "concurrency"}:
@@ -914,7 +966,52 @@ def _coordinator_settlement(
             # Operation-specific request/credit/weight costs are the reviewed
             # provider contract. A received response proves the operation ran.
             observed[name] = reserved
+    # Marketstack's FAQ documents that API errors do not count toward its
+    # monthly request allowance. The HTTP attempt still consumes the
+    # independent requests-per-second budget, and response bytes remain measured.
+    _apply_marketstack_api_error_usage(provider_name, error, observed)
+    # EODHD explicitly returns HTTP 403 when a valid token lacks access to an
+    # endpoint. A credentialed account-usage snapshot after this exact
+    # Fundamentals denial showed that its weighted daily-call counter did not
+    # move, while the request still counts toward the separate minute request
+    # limit (per EODHD's API Limits documentation). Do not charge the 10-call
+    # Fundamentals daily debit for that denied operation; retain all other
+    # reserved dimensions conservatively. Keep this narrow to the operation
+    # actually verified rather than generalizing to arbitrary provider errors.
+    if (
+        provider_name == "eodhd"
+        and operation == "get_instrument_profile"
+        and getattr(error, "status_code", None) == 403
+    ):
+        observed["calls_per_day"] = 0
     return observed, unknown
+
+
+def _provider_http_status(error: Exception | None) -> int | None:
+    """Return a valid HTTP status carried by a typed provider error."""
+
+    status = getattr(error, "status_code", None)
+    if isinstance(status, bool) or not isinstance(status, int) or not 100 <= status <= 599:
+        return None
+    return status
+
+
+def _apply_marketstack_api_error_usage(
+    provider_name: str | None,
+    error: Exception | None,
+    consumed_dimension_units: dict[str, int],
+) -> None:
+    """Apply Marketstack's documented no-monthly-debit rule to API errors."""
+
+    status = _provider_http_status(error)
+    if (
+        provider_name == "marketstack"
+        and status is not None
+        and status >= 400
+        and "requests_per_month" in consumed_dimension_units
+    ):
+        # The separate requests-per-second window still counts the attempt.
+        consumed_dimension_units["requests_per_month"] = 0
 
 
 async def _settle_coordinator_best_effort(
@@ -924,6 +1021,9 @@ async def _settle_coordinator_best_effort(
     measurement: Any | None,
     reserved_units: dict[str, int],
     not_sent: bool = False,
+    provider_name: str | None = None,
+    operation: str | None = None,
+    error: Exception | None = None,
 ) -> None:
     # Provider-native cumulative headers are intentionally not copied into the
     # independent durable coordinator here. They may include calls from other
@@ -943,7 +1043,14 @@ async def _settle_coordinator_best_effort(
         observed = {name: 0 for name in reserved_units}
         unknown: set[str] = set()
     else:
-        observed, unknown = _coordinator_settlement(policy, measurement, reserved_units)
+        observed, unknown = _coordinator_settlement(
+            policy,
+            measurement,
+            reserved_units,
+            provider_name=provider_name,
+            operation=operation,
+            error=error,
+        )
     try:
         await settle_provider_quota_async(
             reservation,
@@ -1181,30 +1288,29 @@ def _apply_policy_defaults(
     ):
         if getattr(policy, field_name) is None and rate_seed.get(field_name) is not None:
             setattr(policy, field_name, rate_seed[field_name])
-    # EODHD's former repository seed was deliberately non-routable at the
-    # published Free Starter card's 20 requests/minute, with an explicit
-    # source-conflict marker. After the first-party limits page resolved that
-    # conflict, refresh only rows that still exactly carry that old
-    # repository-owned contract. Do not rewrite pinned or operator-customized
-    # policy rows merely because the code seed changed.
+    # Migrate only the exact prior repository-owned EODHD 1,000/minute seed
+    # back to the stricter Free-plan 20/minute cap. The pricing card's Free
+    # row conflicts with the broad API-limits page; never change a pinned or
+    # operator-customized policy row based only on a code-seed update.
     if (
         provider_name == "eodhd"
         and not policy.is_pinned
-        and policy.tokens_per_minute == 20
+        and policy.tokens_per_minute == 1000
         and policy.quota_source == rate_seed.get("quota_source")
         and isinstance(policy.quota_contract, dict)
-        and policy.quota_contract.get("unknown_dimensions")
-        == ["published_minute_limit_conflict", "requests_per_minute_reset_boundary"]
+        and not policy.quota_contract.get("unknown_dimensions")
+        and "source_conflicts" not in policy.quota_contract
         and any(
             isinstance(dimension, dict)
             and dimension.get("name") == "requests_per_minute"
-            and dimension.get("limit") == 20
-            and dimension.get("reset") == "provider_defined"
+            and dimension.get("limit") == 1000
+            and dimension.get("source") == "https://eodhd.com/financial-apis/api-limits"
+            and dimension.get("limit_basis") == "documented all-plan request ceiling"
             for dimension in policy.quota_contract.get("dimensions") or []
         )
-        and rate_seed.get("tokens_per_minute") == 1000
+        and rate_seed.get("tokens_per_minute") == 20
     ):
-        policy.tokens_per_minute = 1000
+        policy.tokens_per_minute = 20
     seeded_contract = rate_seed.get("quota_contract")
     if seeded_contract:
         # Refresh contracts generated from the same repository/provider source
@@ -1349,9 +1455,7 @@ def quota_dimensions(policy: ProviderPolicy) -> list[dict[str, Any]]:
     """
 
     contract = policy.quota_contract or {}
-    if not isinstance(contract, dict) or not provider_quota_reset_is_known(
-        contract.get("reset")
-    ):
+    if not isinstance(contract, dict) or not provider_quota_reset_is_known(contract.get("reset")):
         return []
     dimensions = contract.get("dimensions")
     if not isinstance(dimensions, list) or not dimensions:
@@ -1373,9 +1477,7 @@ def quota_dimensions(policy: ProviderPolicy) -> list[dict[str, Any]]:
             return []
         if "reset" in item and not provider_quota_reset_is_known(item.get("reset")):
             return []
-        if "safety_reset" in item and not provider_quota_reset_is_known(
-            item.get("safety_reset")
-        ):
+        if "safety_reset" in item and not provider_quota_reset_is_known(item.get("safety_reset")):
             return []
         # A quota group is optional for backward compatibility, but an
         # explicitly supplied value must be non-blank.  Blank grouping would
@@ -1416,9 +1518,7 @@ def quota_contract_missing_dimensions(policy: ProviderPolicy) -> list[str]:
     bootstrap = contract.get("account_usage_bootstrap")
     if isinstance(bootstrap, dict) and bootstrap.get("enabled") is True:
         if not account_usage_reconciled_dimensions(policy):
-            missing.append(
-                "quota_contract.account_usage_bootstrap.reconciled_dimensions"
-            )
+            missing.append("quota_contract.account_usage_bootstrap.reconciled_dimensions")
     unknown_dimensions = contract.get("unknown_dimensions")
     if isinstance(unknown_dimensions, list):
         safety_resolved: set[str] = set()
@@ -1431,10 +1531,9 @@ def quota_contract_missing_dimensions(policy: ProviderPolicy) -> list[str]:
                 admission_reset = provider_quota_admission_reset(
                     primary_reset, dimension.get("safety_reset")
                 )
-                if (
-                    admission_reset != str(primary_reset or "").strip()
-                    and provider_quota_reset_is_admission_safe(admission_reset)
-                ):
+                if admission_reset != str(
+                    primary_reset or ""
+                ).strip() and provider_quota_reset_is_admission_safe(admission_reset):
                     dimension_name = str(dimension.get("name") or "").strip()
                     explicit_names = {
                         str(item or "").strip()
@@ -1484,12 +1583,17 @@ def quota_contract_missing_dimensions(policy: ProviderPolicy) -> list[str]:
                 valid = bool(str(value or "").strip())
             if not valid:
                 missing.append(f"{prefix}.{field_name}")
+        baseline_mode = str(
+            item.get("baseline_mode") or contract.get("baseline_mode") or ""
+        ).strip()
+        if baseline_mode == "local_zero" and item.get("application_usage_only") is not True:
+            missing.append(f"{prefix}.application_usage_only")
         effective_reset = item.get("reset", contract.get("reset"))
-        admission_reset = provider_quota_admission_reset(
-            effective_reset, item.get("safety_reset")
-        )
+        admission_reset = provider_quota_admission_reset(effective_reset, item.get("safety_reset"))
         if not provider_quota_reset_is_admission_safe(admission_reset):
-            suffix = "unknown" if not provider_quota_reset_is_known(admission_reset) else "unresolved"
+            suffix = (
+                "unknown" if not provider_quota_reset_is_known(admission_reset) else "unresolved"
+            )
             missing.append(f"{prefix}.reset.{suffix}")
     return missing
 
@@ -1578,9 +1682,7 @@ def policy_has_known_quota(policy: ProviderPolicy) -> bool:
     )
 
 
-def policy_allows_account_usage_bootstrap(
-    policy: ProviderPolicy, operation: str | None
-) -> bool:
+def policy_allows_account_usage_bootstrap(policy: ProviderPolicy, operation: str | None) -> bool:
     """Allow only a native usage snapshot when the provider pool is unresolved.
 
     This exception is deliberately narrower than normal quota admission.  A
@@ -1615,9 +1717,8 @@ def policy_allows_account_usage_bootstrap(
         if str(item or "").strip()
     }
     # A provider may explicitly authorize a native usage probe to run while
-    # one named pool remains unresolved (for example EODHD's conflicting
-    # minute-limit sources). This exception is exact-name allow-listed and
-    # never makes ordinary data operations routable.
+    # one named pool remains unresolved. This exception is exact-name
+    # allow-listed and never makes ordinary data operations routable.
     if unknown_dimensions - allowed_unknown_dimensions:
         return False
     if contract.get("untracked_constraints"):
@@ -1659,32 +1760,101 @@ def provider_rate_limit_error(
             # than silently dropping it. Missing or malformed values remain
             # unknown; this never invents a cooldown.
             exc.retry_at = _retry_at_from_headers(exc.headers)
+        if exc.retry_at is None and provider_name.lower() == "edgar":
+            # SEC's current security policy says a rate-limited user may
+            # resume only after remaining below the threshold for ten
+            # minutes. Do not retry a blocked SEC scope immediately when its
+            # response omits Retry-After.
+            exc.retry_at = datetime.now(UTC) + timedelta(minutes=10)
         return exc
     response = exc.response if isinstance(exc, httpx.HTTPStatusError) else None
     status_code = getattr(response, "status_code", None)
     message = str(exc)
     lower = message.lower()
-    is_quota = status_code in {418, 429} or any(
-        marker in lower
-        for marker in (
-            "rate limit",
-            "rate_limit",
-            "too many requests",
-            "quota exceeded",
-            "quota limit",
+    edgar_rate_block = False
+    if provider_name.lower() == "edgar" and status_code == 403 and response is not None:
+        # SEC website rate blocks may be returned as an IP-level 403 rather
+        # than a conventional 429. Inspect only a short response prefix and
+        # retain no body text in durable telemetry.
+        response_prefix = bytes(getattr(response, "content", b"") or b"")[:8192].lower()
+        edgar_rate_block = b"rate" in response_prefix and any(
+            marker in response_prefix for marker in (b"threshold", b"limit", b"exceed")
         )
+    is_quota = (
+        status_code in {418, 429}
+        or any(
+            marker in lower
+            for marker in (
+                "rate limit",
+                "rate_limit",
+                "too many requests",
+                "quota exceeded",
+                "quota limit",
+            )
+        )
+        or edgar_rate_block
     )
     if not is_quota:
         return None
     headers = dict(getattr(response, "headers", {}) or {})
+    retry_at = _retry_at_from_headers(headers)
+    if retry_at is None and provider_name.lower() == "edgar":
+        retry_at = datetime.now(UTC) + timedelta(minutes=10)
     return ProviderRateLimitError(
         provider_name,
         message or f"{provider_name} rate limit exceeded",
-        retry_at=_retry_at_from_headers(headers),
+        retry_at=retry_at,
         status_code=status_code,
         scope=scope,
         headers=headers,
     )
+
+
+async def _apply_provider_capacity_hold(
+    db: AsyncSession,
+    *,
+    data_source_id: int,
+    policy: ProviderPolicy,
+    error: ProviderRateLimitError,
+) -> None:
+    """Hold the affected quota scope until reset or an explicit operator choice.
+
+    A provider rejection without a trustworthy reset cannot be converted into
+    an invented cooldown. Disable policies sharing that account/quota scope;
+    the admin policy endpoint is the explicit operator decision that can
+    re-enable them after external usage is reconciled. When a reset is known,
+    use persistent per-capability circuits for the same scope instead.
+    """
+
+    scope = str(error.scope or policy.quota_scope or "").strip()
+    policies_query = select(ProviderPolicy).where(
+        ProviderPolicy.data_source_id == data_source_id
+    )
+    if scope:
+        policies_query = policies_query.where(ProviderPolicy.quota_scope == scope)
+    policies = list((await db.execute(policies_query)).scalars().all())
+    if not policies:
+        policies = [policy]
+
+    if error.retry_at is None:
+        for affected_policy in policies:
+            affected_policy.is_enabled = False
+        await db.flush()
+        return
+
+    affected_capabilities = [item.capability for item in policies]
+    health_rows = (
+        await db.execute(
+            select(ProviderHealthState).where(
+                ProviderHealthState.data_source_id == data_source_id,
+                ProviderHealthState.capability.in_(affected_capabilities),
+            )
+        )
+    ).scalars().all()
+    for health in health_rows:
+        if health.circuit_open_until is None or health.circuit_open_until < error.retry_at:
+            health.circuit_open_until = error.retry_at
+    await db.flush()
 
 
 def _capacity_response_headers(headers: dict[str, str] | None) -> dict[str, str]:
@@ -1708,6 +1878,21 @@ def _capacity_response_headers(headers: dict[str, str] | None) -> dict[str, str]
         "x-ratelimit-used",
         "x-ratelimit-available",
         "x-ratelimit-expiry",
+        "x-ratelimit-limit-second",
+        "x-ratelimit-remaining-second",
+        "x-ratelimit-reset-second",
+        "x-ratelimit-limit-minute",
+        "x-ratelimit-remaining-minute",
+        "x-ratelimit-reset-minute",
+        "x-ratelimit-limit-hour",
+        "x-ratelimit-remaining-hour",
+        "x-ratelimit-reset-hour",
+        "x-ratelimit-limit-day",
+        "x-ratelimit-remaining-day",
+        "x-ratelimit-reset-day",
+        "x-ratelimit-limit-month",
+        "x-ratelimit-remaining-month",
+        "x-ratelimit-reset-month",
         "x-rate-limit-limit",
         "x-rate-limit-remaining",
         "x-rate-limit-reset",
@@ -1901,9 +2086,9 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
             elif (
                 not entitlement_was_new
                 and str(entitlement.live_probe_status or "not_run").strip().lower()
-                not in {"passed", "not_required"}
+                not in _POSITIVE_LIVE_PROBE_STATUSES
                 and str(entitlement_seed.get("live_probe_status") or "not_run")
-                in {"passed", "not_required"}
+                in _POSITIVE_LIVE_PROBE_STATUSES
             ):
                 # Promote only repository-recorded positive evidence. Never
                 # downgrade or overwrite an operator-managed passing status.
@@ -2068,10 +2253,10 @@ async def resolve_provider_chain(
         )
         if (not configured_plan or configured_plan == "unreviewed") and not account_usage_probe:
             continue
-        if str(entitlement.live_probe_status or "not_run").strip().lower() not in {
-            "passed",
-            "not_required",
-        }:
+        if (
+            str(entitlement.live_probe_status or "not_run").strip().lower()
+            not in _POSITIVE_LIVE_PROBE_STATUSES
+        ):
             continue
         if (
             provider_configuration_required(data_source.name)
@@ -2271,6 +2456,7 @@ async def execute_provider_call(
         chain = [resolved for resolved in chain if resolved.provider_name == provider_name]
     loop = asyncio.get_event_loop()
     last_error: Exception | None = None
+    admission_denied: set[str] = set()
 
     for resolved in chain:
         resolved_usage_identity = (
@@ -2353,6 +2539,7 @@ async def execute_provider_call(
             raise
         if reservations is None:
             semaphore.release()
+            admission_denied.add(resolved.provider_name)
             continue
         from app.services.provider_quota_coordinator import reserve_provider_quota_async
 
@@ -2387,6 +2574,7 @@ async def execute_provider_call(
                 release_only_dimensions=release_only_dimensions,
             )
             semaphore.release()
+            admission_denied.add(resolved.provider_name)
             continue
         if (
             resolved.policy.tokens_per_minute is not None
@@ -2411,6 +2599,7 @@ async def execute_provider_call(
                     not_sent=True,
                 )
                 semaphore.release()
+                admission_denied.add(resolved.provider_name)
                 continue
         try:
             log_row = ProviderRequestLog(
@@ -2472,12 +2661,16 @@ async def execute_provider_call(
             # ``run_in_executor`` does not propagate ContextVar state by
             # itself. Copy it after activation so synchronous adapters can
             # report transport bytes without changing their return types.
-            invocation_context = contextvars.copy_context()
-            result = await loop.run_in_executor(
-                None,
-                invocation_context.run,
-                lambda: invoke(resolved.provider, provider_symbol),
-            )
+            admission_token = _ACTIVE_PROVIDER_QUOTA_ADMISSION.set(True)
+            try:
+                invocation_context = contextvars.copy_context()
+                result = await loop.run_in_executor(
+                    None,
+                    invocation_context.run,
+                    lambda: invoke(resolved.provider, provider_symbol),
+                )
+            finally:
+                _ACTIVE_PROVIDER_QUOTA_ADMISSION.reset(admission_token)
             log_row.http_requests = measurement.http_requests
             log_row.response_bytes = measurement.response_bytes
             log_row.response_headers = dict(measurement.response_headers)
@@ -2549,6 +2742,9 @@ async def execute_provider_call(
                 policy=resolved.policy,
                 measurement=measurement,
                 reserved_units=dimension_units,
+                provider_name=resolved.provider_name,
+                operation=operation,
+                error=exc,
             )
             rate_error = provider_rate_limit_error(
                 resolved.provider_name,
@@ -2574,22 +2770,39 @@ async def execute_provider_call(
                     )
                 )
                 await db.flush()
-                # A provider-supplied reset is authoritative.  Do not sleep
-                # blindly or retry the same provider in a tight loop.
-                if rate_error.retry_at is not None:
-                    resolved.health.circuit_open_until = rate_error.retry_at
-                else:
-                    resolved.health.circuit_open_until = (
-                        datetime.now(UTC) + timedelta(seconds=resolved.policy.cooldown_seconds or 0)
-                        if resolved.policy.cooldown_seconds
-                        else None
-                    )
+                # Persist the reset hold across every capability sharing this
+                # provider quota scope. If the provider omitted a trustworthy
+                # reset, fail closed until an administrator explicitly
+                # reconciles usage and re-enables the policy; never invent a
+                # generic cooldown.
+                await _apply_provider_capacity_hold(
+                    db,
+                    data_source_id=resolved.data_source.id,
+                    policy=resolved.policy,
+                    error=rate_error,
+                )
             last_error = exc
             consumed_dimension_units = _consumed_dimension_costs(
                 resolved.policy, measurement, dimension_units
             )
+            _apply_marketstack_api_error_usage(
+                resolved.provider_name, exc, consumed_dimension_units
+            )
+            # Once a provider response is observed, the request may have
+            # consumed request/credit/weight/bandwidth quota even if parsing,
+            # validation, or stream completion fails. Preserve those reviewed
+            # operation debits on the policy windows as well as the durable
+            # coordinator; only concurrency leases are always released.
+            failure_dimensions = set(distinct_dimensions)
+            if measurement.http_requests:
+                failure_dimensions.update(
+                    str(dimension["name"])
+                    for dimension in quota_dimensions(resolved.policy)
+                    if str(dimension.get("unit") or "").lower()
+                    not in {"concurrent_requests", "concurrency"}
+                )
             settled_dimension_units = {
-                name: (value if name in distinct_dimensions else 0)
+                name: (value if name in failure_dimensions else 0)
                 for name, value in consumed_dimension_units.items()
             }
             log_row.settled_usage_units = _settled_usage_units(
@@ -2604,7 +2817,7 @@ async def execute_provider_call(
                 success=False,
                 reserved_dimension_units=dimension_units,
                 consumed_dimension_units=consumed_dimension_units,
-                consume_on_failure_dimensions=distinct_dimensions,
+                consume_on_failure_dimensions=failure_dimensions,
                 release_only_dimensions=release_only_dimensions,
             )
             latency_ms = int((time.perf_counter() - started) * 1000)
@@ -2683,6 +2896,18 @@ async def execute_provider_call(
             bounded_redact_provider_message(last_error),
         )
         raise last_error
+    if admission_denied:
+        # A candidate was eligible when routing was evaluated, but its
+        # reservation was refused by the durable quota coordinator before
+        # transport. Keep this distinct from "no enabled providers": callers
+        # can defer and retry after the provider-specific window resets without
+        # counting the provider as faulty or recording a failed data fetch.
+        from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
+
+        names = ", ".join(sorted(admission_denied))
+        raise ProviderQuotaAdmissionError(
+            f"durable provider quota admission denied for {capability.value}/{operation}: {names}"
+        )
     raise RuntimeError(f"No enabled providers available for capability '{capability.value}'")
 
 
@@ -2749,11 +2974,7 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
                 "quota_source": policy.quota_source,
                 "quota_verified_at": policy.quota_verified_at,
                 "quota_state": (
-                    "known"
-                    if quota_known
-                    else "bootstrap_only"
-                    if bootstrap_only
-                    else "unknown"
+                    "known" if quota_known else "bootstrap_only" if bootstrap_only else "unknown"
                 ),
                 "quota_missing_dimensions": quota_contract_missing_dimensions(policy),
                 "operation_costs_configured": provider_contract_operation_costs_configured(
@@ -2779,7 +3000,7 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
                     and not missing_routing_controls
                     and str(entitlement.configured_plan or "").strip().lower() != "unreviewed"
                     and str(entitlement.live_probe_status or "not_run").strip().lower()
-                    in {"passed", "not_required"}
+                    in _POSITIVE_LIVE_PROBE_STATUSES
                     and (entitlement.is_free or settings.ALLOW_PAID_PROVIDER_ROUTING)
                     and provider_contract_operation_costs_configured(policy, data_source)
                 ),

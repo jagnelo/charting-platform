@@ -480,8 +480,30 @@ async def test_market_universe_reconciliation_delegates_when_enabled(monkeypatch
 
 
 def test_market_universe_reconciliation_cron_is_daily_and_flag_guarded(monkeypatch):
-    original_enabled = settings.MARKET_UNIVERSE_RECONCILIATION_ENABLED
+    schedule_flags = (
+        "INSTRUMENT_SYNC_SCHEDULE_ENABLED",
+        "MARKET_DATA_REFRESH_SCHEDULE_ENABLED",
+        "ETF_HOLDINGS_REFRESH_ENABLED",
+        "ETF_HOLDINGS_SEC_BACKFILL_ENABLED",
+        "ETF_HOLDINGS_CLASSIFICATION_REFRESH_ENABLED",
+        "BENCHMARK_FAMILY_HOLDINGS_REFRESH_ENABLED",
+        "CORE_WORKSTATION_BOOTSTRAP_ENABLED",
+        "PROVIDER_AVAILABILITY_MONITOR_ENABLED",
+        "TOKENIZED_ASSET_REFRESH_ENABLED",
+        "TOKENIZED_CATALOG_REFRESH_ENABLED",
+        "TOKENIZED_HISTORICAL_REFRESH_ENABLED",
+        "TOKENIZED_EVENT_REFRESH_ENABLED",
+        "MARKET_EVENTS_REFRESH_ENABLED",
+        "MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED",
+        "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED",
+        "MARKET_EVENTS_PRELISTING_ENABLED",
+        "MARKET_UNIVERSE_RECONCILIATION_ENABLED",
+        "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED",
+    )
+    original_values = {name: getattr(settings, name) for name in schedule_flags}
     try:
+        for name in schedule_flags:
+            monkeypatch.setattr(settings, name, False)
         monkeypatch.setattr(settings, "MARKET_UNIVERSE_RECONCILIATION_ENABLED", False)
         importlib.reload(arq_worker)
         assert not any(
@@ -501,7 +523,8 @@ def test_market_universe_reconciliation_cron_is_daily_and_flag_guarded(monkeypat
         assert matching_jobs[0].hour == 21
         assert matching_jobs[0].minute == 0
     finally:
-        monkeypatch.setattr(settings, "MARKET_UNIVERSE_RECONCILIATION_ENABLED", original_enabled)
+        for name, value in original_values.items():
+            monkeypatch.setattr(settings, name, value)
         importlib.reload(arq_worker)
 
 

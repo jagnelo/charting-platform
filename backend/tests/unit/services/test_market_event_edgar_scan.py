@@ -150,7 +150,9 @@ async def test_edgar_directory_scan_pages_unique_ciks_and_wraps_durably(db, monk
         return SimpleNamespace(result=kwargs["invoke"](provider, None))
 
     async def fake_refresh(_db, ciks, **kwargs):
-        refresh_calls.append((list(ciks), kwargs))
+        refresh_calls.append(
+            (list(ciks), {key: value for key, value in kwargs.items() if key != "after_issuer"})
+        )
         return {"status": "no_events", "events": 0, "failures": 0, "issuers": []}
 
     monkeypatch.setattr(market_event_edgar_scan, "execute_provider_call", fake_execute)
@@ -170,6 +172,9 @@ async def test_edgar_directory_scan_pages_unique_ciks_and_wraps_durably(db, monk
     )
     assert blocked_materialization["status"] == "blocked"
     assert page_calls == [(0, 2)]
+    # The cursor must survive an ORM identity-map refresh / worker restart,
+    # not merely remain mutated on the in-memory JSON dictionary.
+    db.expire_all()
     second = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory(
         AsyncSessionAdapter(db), max_issuers=2, max_submissions_requests=2
     )
@@ -230,6 +235,169 @@ async def test_edgar_directory_scan_pages_unique_ciks_and_wraps_durably(db, monk
     assert third["wrapped"] is True
     assert state.status == "partial"
     assert state.provenance["directory_offset"] == 2
+
+
+@pytest.mark.asyncio
+async def test_edgar_directory_scan_retries_failed_cik_before_advancing(db, monkeypatch):
+    page_calls = []
+    refresh_calls = []
+    should_fail = [True]
+
+    async def fake_execute(_db, capability, operation, **kwargs):
+        assert capability.value == "market_events"
+        assert operation == "discover_issuer_ciks_page"
+        provider = SimpleNamespace(
+            discover_issuer_ciks_page=lambda offset, *, limit: page_calls.append((offset, limit))
+            or {
+                "total": 3,
+                "offset": offset,
+                "limit": limit,
+                "source_fingerprint": _DIRECTORY_FINGERPRINT,
+                "issuers": (
+                    [
+                        {"cik": "0000000011", "name": "One", "tickers": ["ONE"]},
+                        {"cik": "0000000012", "name": "Two", "tickers": ["TWO"]},
+                    ]
+                    if offset == 0
+                    else [{"cik": "0000000013", "name": "Three", "tickers": ["THREE"]}]
+                ),
+            }
+        )
+        return SimpleNamespace(result=kwargs["invoke"](provider, None))
+
+    async def fake_refresh(_db, ciks, **kwargs):
+        refresh_calls.append(list(ciks))
+        if should_fail[0]:
+            should_fail[0] = False
+            return {
+                "status": "partial",
+                "events": 0,
+                "failures": 1,
+                "issuers": [
+                    {"cik": cik, "status": "failed" if cik.endswith("12") else "refreshed"}
+                    for cik in ciks
+                ],
+            }
+        return {
+            "status": "no_events",
+            "events": 0,
+            "failures": 0,
+            "issuers": [{"cik": cik, "status": "refreshed"} for cik in ciks],
+        }
+
+    monkeypatch.setattr(market_event_edgar_scan, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(market_event_edgar_scan, "refresh_edgar_ipo_pipeline", fake_refresh)
+
+    first = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory(
+        AsyncSessionAdapter(db), max_issuers=2, max_submissions_requests=2
+    )
+    state = db.execute(
+        select(MarketEventScanState).where(
+            MarketEventScanState.scan_key == "edgar:ipo_pipeline:sec_directory"
+        )
+    ).scalar_one()
+    assert first["directory_offset"] == 2
+    assert first["cycle_failed"] is True
+    assert state.provenance["active_cycle_failed_ciks"] == ["0000000012"]
+    assert state.provenance["last_batch_failed_ciks"] == ["0000000012"]
+
+    db.expire_all()
+    retry = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory(
+        AsyncSessionAdapter(db), max_issuers=2, max_submissions_requests=2
+    )
+    assert retry["pending_retry_ciks"] == []
+    assert retry["directory_offset"] == 2
+    assert retry["cycle_failed"] is False
+    assert page_calls == [(0, 2)]
+    assert refresh_calls == [["0000000011", "0000000012"], ["0000000012"]]
+
+    db.expire_all()
+    next_page = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory(
+        AsyncSessionAdapter(db), max_issuers=2, max_submissions_requests=2
+    )
+    assert next_page["cycle_complete"] is True
+    assert page_calls == [(0, 2), (2, 2)]
+
+
+@pytest.mark.asyncio
+async def test_edgar_directory_scan_checkpoints_each_issuer_before_process_restart(db, monkeypatch):
+    page_calls = []
+    refresh_calls = []
+    checkpoints_before_interruption = [2]
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        def fetch_page(offset, *, limit):
+            page_calls.append((offset, limit))
+            directory = [
+                {"cik": "0000000021", "name": "One", "tickers": ["ONE"]},
+                {"cik": "0000000022", "name": "Two", "tickers": ["TWO"]},
+                {"cik": "0000000023", "name": "Three", "tickers": ["THREE"]},
+            ]
+            return {
+                "total": len(directory),
+                "offset": offset,
+                "limit": limit,
+                "source_fingerprint": _DIRECTORY_FINGERPRINT,
+                "issuers": directory[offset : offset + limit],
+            }
+
+        return SimpleNamespace(
+            result=kwargs["invoke"](SimpleNamespace(discover_issuer_ciks_page=fetch_page), None)
+        )
+
+    async def fake_refresh(_db, ciks, **kwargs):
+        refresh_calls.append(list(ciks))
+        outcomes = []
+        for cik in ciks:
+            outcome = {"cik": cik, "status": "refreshed", "events": 0}
+            outcomes.append(outcome)
+            await kwargs["after_issuer"](outcome)
+            checkpoints_before_interruption[0] -= 1
+            if checkpoints_before_interruption[0] == 0:
+                raise RuntimeError("simulated worker interruption after durable issuer checkpoint")
+        return {"status": "no_events", "events": 0, "failures": 0, "issuers": outcomes}
+
+    monkeypatch.setattr(market_event_edgar_scan, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(market_event_edgar_scan, "refresh_edgar_ipo_pipeline", fake_refresh)
+
+    with pytest.raises(RuntimeError, match="simulated worker interruption"):
+        await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory(
+            AsyncSessionAdapter(db), max_issuers=2, max_submissions_requests=2
+        )
+
+    db.expire_all()
+    state = db.execute(
+        select(MarketEventScanState).where(
+            MarketEventScanState.scan_key == "edgar:ipo_pipeline:sec_directory"
+        )
+    ).scalar_one()
+    candidates = db.execute(select(SecIssuerDirectoryCandidate)).scalars().all()
+    assert state.provenance["directory_offset"] == 2
+    assert [candidate.cik for candidate in candidates] == ["0000000021", "0000000022"]
+
+    resumed = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory(
+        AsyncSessionAdapter(db), max_issuers=2, max_submissions_requests=2
+    )
+    assert resumed["cycle_complete"] is True
+    assert page_calls == [(0, 2), (2, 2)]
+    assert refresh_calls == [
+        ["0000000021", "0000000022"],
+        ["0000000023"],
+    ]
+    candidates = (
+        db.execute(
+            select(SecIssuerDirectoryCandidate).order_by(
+                SecIssuerDirectoryCandidate.directory_offset
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert [candidate.cik for candidate in candidates] == [
+        "0000000021",
+        "0000000022",
+        "0000000023",
+    ]
 
 
 @pytest.mark.asyncio
@@ -790,3 +958,119 @@ async def test_edgar_directory_scan_requires_reviewed_source_fingerprint(db, mon
     assert changed["status"] == "failed"
     assert "source changed since the reviewed" in changed["reason"]
     assert db.execute(select(Issuer)).scalars().all() == []
+
+
+@pytest.mark.asyncio
+async def test_sec_report_materialization_uses_persisted_rows_and_resumes_without_refetching(db):
+    from datetime import UTC, datetime
+
+    fingerprint = "b" * 64
+    state = MarketEventScanState(
+        scan_key="edgar:ipo_pipeline:sec_directory",
+        provider="edgar",
+        operation="discover_issuer_ciks_page",
+        cycle_count=1,
+        status="complete",
+        provenance={
+            "last_completed_cycle_number": 1,
+            "last_completed_report_cycle_number": 4,
+            "last_completed_cycle_clean": True,
+            "last_completed_materialization_mode": "disabled",
+            "last_completed_source_fingerprint": fingerprint,
+            "last_completed_directory_total": 2,
+        },
+    )
+    existing = _issuer(52)
+    db.add_all([state, existing])
+    db.flush()
+    db.add_all(
+        [
+            SecIssuerDirectoryCandidate(
+                cycle_number=4,
+                directory_offset=0,
+                directory_total=2,
+                source_fingerprint=fingerprint,
+                materialization_mode="disabled",
+                cik="0000000051",
+                conformed_name="New SEC Issuer",
+                name_candidates=["New SEC Issuer"],
+                tickers=["NEW"],
+                source_payload={"cik": "0000000051", "name": "New SEC Issuer"},
+                admission_decision="would_create",
+                decision_reason="No issuer matches this CIK.",
+                cycle_status="complete",
+                cycle_complete=True,
+                cycle_clean=True,
+                cycle_failure_count=0,
+                observed_at=datetime.now(UTC),
+            ),
+            SecIssuerDirectoryCandidate(
+                cycle_number=4,
+                directory_offset=1,
+                directory_total=2,
+                source_fingerprint=fingerprint,
+                materialization_mode="disabled",
+                cik="0000000052",
+                conformed_name="Existing SEC Issuer",
+                name_candidates=["Existing SEC Issuer"],
+                tickers=["OLD"],
+                source_payload={"cik": "0000000052", "name": "Existing SEC Issuer"},
+                admission_decision="already_exists",
+                decision_reason="CIK already matches an issuer.",
+                matched_issuer_id=existing.id,
+                matched_issuer_domain_key=existing.domain_key,
+                matched_issuer_legal_name=existing.legal_name,
+                cycle_status="complete",
+                cycle_complete=True,
+                cycle_clean=True,
+                cycle_failure_count=0,
+                observed_at=datetime.now(UTC),
+            ),
+        ]
+    )
+    db.flush()
+
+    first = await market_event_edgar_scan.materialize_sec_directory_issuer_report(
+        AsyncSessionAdapter(db), reviewed_cycle_count=1, max_candidates=1
+    )
+    assert first == {
+        "status": "complete",
+        "report_cycle_number": 4,
+        "reviewed_cycle_count": 1,
+        "source_fingerprint": fingerprint,
+        "processed": 1,
+        "created": 1,
+        "already_exists": 0,
+        "identity_conflicts_quarantined": 0,
+        "remaining_would_create": 0,
+        "provider_http_requests": 0,
+        "instrument_rows_created": 0,
+        "listing_rows_created": 0,
+    }
+    issuer = db.execute(select(Issuer).where(Issuer.cik == "0000000051")).scalar_one()
+    assert issuer.provenance["directory_report_cycle"] == 4
+    assert issuer.provenance["source_fingerprint"] == fingerprint
+    candidate = db.execute(
+        select(SecIssuerDirectoryCandidate).where(SecIssuerDirectoryCandidate.cik == "0000000051")
+    ).scalar_one()
+    assert candidate.admission_decision == "created"
+    assert candidate.matched_issuer_id == issuer.id
+    assert db.execute(select(Instrument)).scalars().all() == []
+    assert db.execute(select(InstrumentListing)).scalars().all() == []
+
+    rerun = await market_event_edgar_scan.materialize_sec_directory_issuer_report(
+        AsyncSessionAdapter(db), reviewed_cycle_count=1, max_candidates=1
+    )
+    assert rerun["status"] == "complete"
+    assert rerun["processed"] == 0
+    assert rerun["created"] == 0
+    assert db.execute(select(Issuer).where(Issuer.cik == "0000000051")).scalars().all() == [issuer]
+
+
+@pytest.mark.asyncio
+async def test_sec_report_materialization_rejects_unreviewed_cycle_count(db):
+    result = await market_event_edgar_scan.materialize_sec_directory_issuer_report(
+        AsyncSessionAdapter(db), reviewed_cycle_count=1
+    )
+    assert result["status"] == "blocked"
+    assert result["reason"] == "no SEC directory scan is recorded"

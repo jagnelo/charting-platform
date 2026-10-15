@@ -62,7 +62,7 @@ class TestStrategyLabAPI:
         }
 
     def test_promoted_python_signal_run_queues_isolated_research(
-        self, client, auth_headers, instrument, ohlcv_bars
+        self, client, auth_headers, instrument, ohlcv_bars, tmp_path
     ):
         asset_res = client.post(
             "/api/v1/code/assets",
@@ -105,6 +105,8 @@ class TestStrategyLabAPI:
         assert run["result_summary"]["result_kind"] == "python_signal_research"
         assert isinstance(run["result_summary"]["research_run_id"], int)
         assert run["result_summary"]["output_contract"] == "boolean"
+        queued_job = tmp_path / "research-jobs" / f"{run['result_summary']['research_run_id']}.json"
+        assert queued_job.is_file()
 
     def test_create_list_version_and_run_strategy(
         self, client, auth_headers, db, instrument, ohlcv_bars

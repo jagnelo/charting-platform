@@ -34,7 +34,7 @@ OPTIONAL_PROVIDER_DESCRIPTORS = {
     ),
     "marketstack": ConfiguredProvider(
         "marketstack",
-        "https://api.marketstack.com/v1",
+        "https://api.marketstack.com/v2",
         "Optional EOD/intraday provider; disabled until terms and credentials are reviewed.",
     ),
     "eodhd": ConfiguredProvider(

@@ -1,9 +1,15 @@
 from __future__ import annotations
 
+import asyncio
+import base64
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from hashlib import sha256
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 from sqlalchemy import select
 
@@ -18,25 +24,59 @@ from app.models.provider_runtime import (
     ProviderPolicy,
     ProviderRequestLog,
 )
+from app.providers import finra_otc_directory
 from app.providers.base import ProviderAccountUsage, ProviderAccountUsageDimension
+from app.providers.errors import ProviderRateLimitError, ProviderResponseError
+from app.providers.finra import FINRAProvider
+from app.providers.finra_otc_directory import FINRAOTCDirectoryProvider
 from app.providers.registry import get_provider_usage_profile
-from app.providers.telemetry import observe_response
-from app.services.provider_quota_coordinator import provider_quota_coordinator_summary
+from app.providers.telemetry import observe_binary_response_payload, observe_response
+from app.services.provider_quota_coordinator import (
+    ProviderQuotaAdmissionError,
+    provider_quota_coordinator_summary,
+)
 from app.services.provider_runtime import (
     ProviderQuotaUnknownError,
     ResolvedProvider,
     TokenBucket,
+    _apply_marketstack_api_error_usage,
     _apply_policy_defaults,
+    _apply_provider_capacity_hold,
     _capacity_response_headers,
+    _coordinator_settlement,
+    _entitlement_seed,
     _get_bucket,
     _get_semaphore,
     execute_provider_call,
     policy_allows_account_usage_bootstrap,
+    provider_runtime_quota_admission_active,
     quota_contract_missing_dimensions,
     resolve_provider_chain,
     seed_provider_runtime,
 )
 from tests.unit.conftest import AsyncSessionAdapter
+
+
+def _grant_test_perpetual_archive(monkeypatch, prefix: str) -> None:
+    """Supply a deliberately explicit provider grant for routing unit tests."""
+
+    monkeypatch.setattr(settings, f"{prefix}_PERSISTENT_STORAGE_AUTHORIZED", True)
+    monkeypatch.setattr(
+        settings,
+        f"{prefix}_PERSISTENT_STORAGE_AUTHORITY_REFERENCE",
+        "unit-test written provider grant",
+    )
+    monkeypatch.setattr(
+        settings,
+        f"{prefix}_PERSISTENT_STORAGE_AUTHORITY_SCOPE",
+        "written_single_user_automated_internal_display_perpetual_archive",
+    )
+    monkeypatch.setattr(
+        settings,
+        f"{prefix}_PERSISTENT_STORAGE_REVIEWED_AT",
+        datetime(2026, 10, 1, tzinfo=UTC),
+    )
+    monkeypatch.setattr(settings, f"{prefix}_PERSISTENT_STORAGE_EXPIRES_AT", None)
 
 
 def test_capacity_response_headers_retain_provider_native_usage_state_only():
@@ -49,6 +89,9 @@ def test_capacity_response_headers_retain_provider_native_usage_state_only():
             "X-Api-Ratelimit-Remaining": "87",
             "X-Api-Ratelimit-Reset": "1700000000",
             "X-Api-Ratelimit-Consumed": "4",
+            "X-RateLimit-Limit-Second": "5",
+            "X-RateLimit-Remaining-Second": "4",
+            "X-RateLimit-Reset-Second": "1791837416",
             "Authorization": "secret",
         }
     ) == {
@@ -59,7 +102,246 @@ def test_capacity_response_headers_retain_provider_native_usage_state_only():
         "x-api-ratelimit-remaining": "87",
         "x-api-ratelimit-reset": "1700000000",
         "x-api-ratelimit-consumed": "4",
+        "x-ratelimit-limit-second": "5",
+        "x-ratelimit-remaining-second": "4",
+        "x-ratelimit-reset-second": "1791837416",
     }
+
+
+def test_unresettable_capacity_rejection_disables_only_shared_quota_scope_policies(db):
+    source = DataSource(name="marketstack", is_active=True)
+    db.add(source)
+    db.flush()
+    request_policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.UNIVERSE_DISCOVERY,
+        is_enabled=True,
+        quota_scope="api_key",
+    )
+    history_policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.PRICE_HISTORY,
+        is_enabled=True,
+        quota_scope="api_key",
+    )
+    independent_policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.ACCOUNT_USAGE,
+        is_enabled=True,
+        quota_scope="separate_pool",
+    )
+    db.add_all([request_policy, history_policy, independent_policy])
+    db.flush()
+
+    asyncio.run(
+        _apply_provider_capacity_hold(
+            AsyncSessionAdapter(db),
+            data_source_id=source.id,
+            policy=request_policy,
+            error=ProviderRateLimitError(
+                "marketstack",
+                "monthly usage limit reached",
+                status_code=429,
+                scope="api_key",
+            ),
+        )
+    )
+
+    assert request_policy.is_enabled is False
+    assert history_policy.is_enabled is False
+    assert independent_policy.is_enabled is True
+
+
+def test_provider_reset_circuit_is_shared_across_same_quota_scope(db):
+    source = DataSource(name="marketstack-reset-test", is_active=True)
+    db.add(source)
+    db.flush()
+    discovery = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.UNIVERSE_DISCOVERY,
+        is_enabled=True,
+        quota_scope="api_key",
+    )
+    history = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.PRICE_HISTORY,
+        is_enabled=True,
+        quota_scope="api_key",
+    )
+    separate = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.ACCOUNT_USAGE,
+        is_enabled=True,
+        quota_scope="separate_pool",
+    )
+    db.add_all([discovery, history, separate])
+    db.flush()
+    discovery_health = ProviderHealthState(
+        data_source_id=source.id,
+        capability=ProviderCapability.UNIVERSE_DISCOVERY,
+    )
+    history_health = ProviderHealthState(
+        data_source_id=source.id,
+        capability=ProviderCapability.PRICE_HISTORY,
+    )
+    separate_health = ProviderHealthState(
+        data_source_id=source.id,
+        capability=ProviderCapability.ACCOUNT_USAGE,
+    )
+    db.add_all([discovery_health, history_health, separate_health])
+    db.flush()
+    reset_at = datetime(2026, 10, 16, tzinfo=UTC)
+
+    asyncio.run(
+        _apply_provider_capacity_hold(
+            AsyncSessionAdapter(db),
+            data_source_id=source.id,
+            policy=discovery,
+            error=ProviderRateLimitError(
+                "marketstack-reset-test",
+                "temporary provider capacity limit",
+                retry_at=reset_at,
+                status_code=429,
+                scope="api_key",
+            ),
+        )
+    )
+
+    assert discovery_health.circuit_open_until == reset_at
+    assert history_health.circuit_open_until == reset_at
+    assert separate_health.circuit_open_until is None
+
+
+def test_eodhd_entitlement_403_does_not_consume_daily_call_credit():
+    policy = SimpleNamespace(
+        quota_contract={
+            "reset": "per_dimension",
+            "dimensions": [
+                {
+                    "name": "calls_per_day",
+                    "limit": 20,
+                    "window_seconds": 86400,
+                    "unit": "calls",
+                    "scope": "api_key",
+                    "source": "https://eodhd.com/financial-apis/api-limits",
+                    "reset": "calendar_day_gmt",
+                },
+                {
+                    "name": "requests_per_minute",
+                    "limit": 1000,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "api_key",
+                    "source": "https://eodhd.com/financial-apis/api-limits",
+                    "reset": "rolling",
+                },
+            ],
+        }
+    )
+    measurement = SimpleNamespace(http_requests=1, response_bytes=128)
+    entitlement_error = ProviderResponseError(
+        "eodhd", "plan does not include Fundamentals", status_code=403
+    )
+
+    observed, unknown = _coordinator_settlement(
+        policy,
+        measurement,
+        {"calls_per_day": 10, "requests_per_minute": 1},
+        provider_name="eodhd",
+        operation="get_instrument_profile",
+        error=entitlement_error,
+    )
+
+    assert observed == {"calls_per_day": 0, "requests_per_minute": 1}
+    assert unknown == set()
+
+
+def test_eodhd_quota_exception_rule_is_narrowly_scoped():
+    policy = SimpleNamespace(
+        quota_contract={
+            "reset": "per_dimension",
+            "dimensions": [
+                {
+                    "name": "calls_per_day",
+                    "limit": 20,
+                    "window_seconds": 86400,
+                    "unit": "calls",
+                    "scope": "api_key",
+                    "source": "https://eodhd.com/financial-apis/api-limits",
+                    "reset": "calendar_day_gmt",
+                }
+            ],
+        }
+    )
+    measurement = SimpleNamespace(http_requests=1, response_bytes=128)
+    error = ProviderResponseError("eodhd", "forbidden", status_code=403)
+
+    observed, _ = _coordinator_settlement(
+        policy,
+        measurement,
+        {"calls_per_day": 10},
+        provider_name="eodhd",
+        operation="fetch_ohlcv",
+        error=error,
+    )
+
+    assert observed == {"calls_per_day": 10}
+
+
+def test_marketstack_api_errors_do_not_debit_monthly_allowance_only():
+    policy = SimpleNamespace(
+        quota_contract={
+            "dimensions": [
+                {"name": "requests_per_month", "unit": "requests", "window_seconds": 2592000},
+                {"name": "requests_per_second", "unit": "requests", "window_seconds": 1},
+            ]
+        }
+    )
+    measurement = SimpleNamespace(http_requests=1, response_bytes=128)
+    api_error = ProviderResponseError("marketstack", "provider rejected request", status_code=403)
+
+    observed, unknown = _coordinator_settlement(
+        policy,
+        measurement,
+        {"requests_per_month": 1, "requests_per_second": 1},
+        provider_name="marketstack",
+        operation="get_current_price",
+        error=api_error,
+    )
+
+    assert observed == {"requests_per_month": 0, "requests_per_second": 1}
+    assert unknown == set()
+
+    process_local_costs = {"requests_per_month": 1, "requests_per_second": 1}
+    _apply_marketstack_api_error_usage("marketstack", api_error, process_local_costs)
+    assert process_local_costs == {"requests_per_month": 0, "requests_per_second": 1}
+
+    # A timeout or post-response parsing error has no HTTP status and remains
+    # conservatively charged against the monthly reservation.
+    ambiguous_costs = {"requests_per_month": 1, "requests_per_second": 1}
+    _apply_marketstack_api_error_usage("marketstack", RuntimeError("ambiguous"), ambiguous_costs)
+    assert ambiguous_costs == {"requests_per_month": 1, "requests_per_second": 1}
+
+
+def test_tiingo_selected_plan_is_visible_in_provider_entitlement_diagnostics(monkeypatch):
+    monkeypatch.setattr(settings, "TIINGO_REVIEWED_PLAN", "starter")
+    starter = _entitlement_seed("tiingo", ProviderCapability.PRICE_HISTORY)
+    assert starter["configured_plan"] == "tiingo-starter-operator-reviewed"
+    assert starter["is_free"] is True
+
+    monkeypatch.setattr(settings, "TIINGO_REVIEWED_PLAN", "power")
+    power = _entitlement_seed("tiingo", ProviderCapability.PRICE_HISTORY)
+    assert power["configured_plan"] == "tiingo-power-operator-reviewed"
+    assert power["is_free"] is False
+
+    monkeypatch.setattr(settings, "TIINGO_REVIEWED_PLAN", "custom")
+    monkeypatch.setattr(settings, "TIINGO_CUSTOM_UNIQUE_SYMBOLS_PER_MONTH", 0)
+    monkeypatch.setattr(settings, "TIINGO_CUSTOM_REQUESTS_PER_HOUR", 0)
+    monkeypatch.setattr(settings, "TIINGO_CUSTOM_REQUESTS_PER_DAY", 0)
+    monkeypatch.setattr(settings, "TIINGO_CUSTOM_BANDWIDTH_BYTES_PER_MONTH", 0)
+    monkeypatch.setattr(settings, "TIINGO_CUSTOM_QUOTA_EVIDENCE", "")
+    unreviewed = _entitlement_seed("tiingo", ProviderCapability.PRICE_HISTORY)
+    assert unreviewed["configured_plan"] == "unreviewed"
 
 
 def test_account_usage_bootstrap_allows_only_explicit_unknown_dimensions():
@@ -160,49 +442,33 @@ def test_account_usage_bootstrap_requires_valid_reconciled_dimension_map():
 
 
 @pytest.mark.parametrize("pinned", [False, True])
-def test_eodhd_legacy_repository_seed_migrates_only_unpinned_policy(pinned, monkeypatch):
+def test_eodhd_legacy_high_repository_seed_migrates_only_unpinned_policy(pinned, monkeypatch):
     monkeypatch.setattr(settings, "EODHD_REVIEWED_MINUTE_LIMIT", 0)
     monkeypatch.setattr(settings, "EODHD_REVIEWED_MINUTE_RESET", "")
     monkeypatch.setattr(settings, "EODHD_MINUTE_QUOTA_EVIDENCE", "")
     current_seed = provider_rate_limit_seed("eodhd")
     legacy_contract = deepcopy(current_seed["quota_contract"])
     request_dimension = next(
-        item
-        for item in legacy_contract["dimensions"]
-        if item["name"] == "requests_per_minute"
+        item for item in legacy_contract["dimensions"] if item["name"] == "requests_per_minute"
     )
     request_dimension.update(
         {
-            "limit": 20,
-            "source": "https://eodhd.com/lp/historical-eod-api",
-            "reset": "provider_defined",
-            "limit_basis": "conservative seed pending account-specific review",
+            "limit": 1000,
+            "source": "https://eodhd.com/financial-apis/api-limits",
+            "reset": "rolling",
+            "limit_basis": "documented all-plan request ceiling",
         }
     )
-    legacy_contract["account_usage_bootstrap"]["reconciled_dimensions"] = [
-        "calls_per_day"
-    ]
-    legacy_contract["account_usage_bootstrap"]["allowed_unknown_dimensions"] = [
-        "published_minute_limit_conflict",
-        "requests_per_minute_reset_boundary",
-    ]
-    legacy_contract["source_conflicts"] = [
-        {
-            "source": "https://eodhd.com/financial-apis/api-limits",
-            "claim": "1,000 requests per minute on every plan",
-            "conflicts_with": "https://eodhd.com/lp/historical-eod-api",
-        }
-    ]
-    legacy_contract["unknown_dimensions"] = [
-        "published_minute_limit_conflict",
-        "requests_per_minute_reset_boundary",
-    ]
+    legacy_contract["account_usage_bootstrap"]["reconciled_dimensions"] = ["calls_per_day"]
+    legacy_contract["account_usage_bootstrap"]["allowed_unknown_dimensions"] = []
+    legacy_contract.pop("source_conflicts", None)
+    legacy_contract["unknown_dimensions"] = []
     policy = ProviderPolicy(
         data_source_id=1,
         capability=ProviderCapability.PRICE_HISTORY,
         is_enabled=True,
         is_pinned=pinned,
-        tokens_per_minute=20,
+        tokens_per_minute=1000,
         quota_contract=legacy_contract,
         quota_scope=current_seed["quota_scope"],
         quota_source=current_seed["quota_source"],
@@ -217,9 +483,11 @@ def test_eodhd_legacy_repository_seed_migrates_only_unpinned_policy(pinned, monk
     )
 
     if pinned:
-        assert policy.tokens_per_minute == 20
+        assert policy.tokens_per_minute == 1000
         assert policy.quota_contract == legacy_contract
     else:
+        # The detailed EODHD limits page documents 1,000 requests/minute;
+        # the former 20/minute pricing-card interpretation was corrected.
         assert policy.tokens_per_minute == 1000
         assert policy.quota_contract == current_seed["quota_contract"]
 
@@ -308,6 +576,7 @@ async def test_execute_provider_call_persists_transport_measurement(db, monkeypa
     monkeypatch.setattr("app.services.provider_runtime.resolve_provider_chain", fake_chain)
 
     def invoke(_provider, _symbol):
+        assert provider_runtime_quota_admission_active()
         response = type(
             "Response",
             (),
@@ -330,6 +599,7 @@ async def test_execute_provider_call_persists_transport_measurement(db, monkeypa
         "get_current_price",
         invoke=invoke,
     )
+    assert not provider_runtime_quota_admission_active()
     row = db.execute(select(ProviderRequestLog)).scalar_one()
     assert row.http_requests == 1
     assert row.response_bytes == len(b"measured-response")
@@ -346,6 +616,252 @@ async def test_execute_provider_call_persists_transport_measurement(db, monkeypa
     assert windows["response_bytes"].consumed_units == len(b"measured-response")
     assert windows["credits_per_minute"].consumed_units == 3
     assert all(item.reserved_units == 0 for item in windows.values())
+
+    def invoke_with_validation_error(_provider, _symbol):
+        assert provider_runtime_quota_admission_active()
+        response = type(
+            "Response",
+            (),
+            {
+                "content": b"provider-row-that-fails-validation",
+                "json": lambda _self: {"symbol": "AAPL", "provider_field": "still-retain"},
+                "headers": {},
+            },
+        )()
+        observe_response(response)
+        raise ProviderResponseError("measured-provider", "row validation failed")
+
+    with pytest.raises(ProviderResponseError, match="row validation failed"):
+        await execute_provider_call(
+            async_db,
+            ProviderCapability.LATEST_PRICE,
+            "get_current_price",
+            invoke=invoke_with_validation_error,
+        )
+    assert not provider_runtime_quota_admission_active()
+    rows = db.execute(select(ProviderRequestLog).order_by(ProviderRequestLog.id)).scalars().all()
+    assert rows[-1].response_payloads == [{"symbol": "AAPL", "provider_field": "still-retain"}]
+    assert rows[-1].http_requests == 1
+    assert rows[-1].error_message == "row validation failed"
+
+    partial_result = b"finra-partial-result"
+
+    def invoke_with_partial_binary_result(_provider, _symbol):
+        observe_binary_response_payload("finra_async_result", partial_result, complete=False)
+        raise ProviderResponseError("measured-provider", "stream interrupted")
+
+    with pytest.raises(ProviderResponseError, match="stream interrupted"):
+        await execute_provider_call(
+            async_db,
+            ProviderCapability.LATEST_PRICE,
+            "get_current_price",
+            invoke=invoke_with_partial_binary_result,
+        )
+    rows = db.execute(select(ProviderRequestLog).order_by(ProviderRequestLog.id)).scalars().all()
+    assert rows[-1].response_payloads == [
+        {
+            "kind": "finra_async_result",
+            "encoding": "base64",
+            "complete": False,
+            "bytes_received": len(partial_result),
+            "sha256": sha256(partial_result).hexdigest(),
+            "body_base64": base64.b64encode(partial_result).decode("ascii"),
+        }
+    ]
+    assert rows[-1].error_message == "stream interrupted"
+
+
+@pytest.mark.asyncio
+async def test_execute_provider_call_reports_quota_denial_before_transport(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(
+        name="quota-denied-provider",
+        is_active=True,
+        config={"usage_tracking": {"operation_costs": {"get_current_price": 1}}},
+    )
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.LATEST_PRICE,
+        is_enabled=True,
+        max_concurrency=1,
+        quota_scope="api_key",
+        quota_source="unit-test contract",
+        quota_contract={
+            "reset": "rolling",
+            "dimensions": [
+                {
+                    "name": "requests_per_minute",
+                    "limit": 1,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "api_key",
+                    "source": "unit-test contract",
+                }
+            ],
+        },
+    )
+    health = ProviderHealthState(
+        data_source_id=source.id,
+        capability=ProviderCapability.LATEST_PRICE,
+        ewma_latency_ms=Decimal("0"),
+        ewma_success_rate=Decimal("1"),
+        ewma_completeness=Decimal("1"),
+        ewma_freshness=Decimal("1"),
+        ewma_consistency=Decimal("1"),
+        observed_score=Decimal("0"),
+    )
+    resolved = ResolvedProvider(
+        provider_name=source.name,
+        provider=object(),
+        data_source=source,
+        policy=policy,
+        health=health,
+    )
+
+    async def fake_chain(*_args, **_kwargs):
+        return [resolved]
+
+    async def deny_reservation(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr("app.services.provider_runtime.resolve_provider_chain", fake_chain)
+    monkeypatch.setattr("app.services.provider_routing.reserve_provider_contract", deny_reservation)
+
+    with pytest.raises(ProviderQuotaAdmissionError, match="quota admission denied"):
+        await execute_provider_call(
+            async_db,
+            ProviderCapability.LATEST_PRICE,
+            "get_current_price",
+            provider_name=source.name,
+            invoke=lambda *_args: pytest.fail("quota denial must precede provider transport"),
+        )
+
+    assert db.execute(select(ProviderRequestLog)).scalars().all() == []
+
+
+@pytest.mark.asyncio
+async def test_execute_provider_call_retains_first_orf_file_if_second_download_fails(
+    db, monkeypatch
+):
+    """A paid-for ORF response survives failure of its paired file request."""
+
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(
+        name="finra_otc_directory",
+        is_active=True,
+        config={
+            "usage_tracking": {
+                "operation_costs": {"discover_universe_page": 3},
+            }
+        },
+    )
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.UNIVERSE_DISCOVERY,
+        is_enabled=True,
+        max_concurrency=1,
+        quota_scope="traqs_account",
+        quota_source="unit-test reviewed operation contract",
+        quota_contract={
+            "reset": "rolling",
+            "dimensions": [
+                {
+                    "name": "requests_per_minute",
+                    "limit": 10,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "traqs_account",
+                    "source": "unit-test reviewed operation contract",
+                },
+            ],
+        },
+        score_floor=Decimal("0"),
+        score_ceiling=Decimal("100"),
+        learned_weight=Decimal("0"),
+        effective_score=Decimal("0"),
+    )
+    health = ProviderHealthState(
+        data_source_id=source.id,
+        capability=ProviderCapability.UNIVERSE_DISCOVERY,
+        ewma_latency_ms=Decimal("0"),
+        ewma_success_rate=Decimal("1"),
+        ewma_completeness=Decimal("1"),
+        ewma_freshness=Decimal("1"),
+        ewma_consistency=Decimal("1"),
+        observed_score=Decimal("0"),
+        failure_streak=0,
+    )
+    resolved = ResolvedProvider(
+        provider_name="finra_otc_directory",
+        provider=FINRAOTCDirectoryProvider(),
+        data_source=source,
+        policy=policy,
+        health=health,
+    )
+
+    async def fake_chain(*_args, **_kwargs):
+        return [resolved]
+
+    monkeypatch.setattr("app.services.provider_runtime.resolve_provider_chain", fake_chain)
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "finra_orf_security_master")
+    monkeypatch.setattr(
+        settings,
+        "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+        "https://apidownload.finratraqs.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF",
+    )
+    monkeypatch.setattr(
+        settings,
+        "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL",
+        "https://apidownload.finratraqs.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERIN&facility=ORF",
+    )
+    monkeypatch.setattr(settings, "FINRA_ORF_USERNAME", "traqs-user")
+    monkeypatch.setattr(settings, "FINRA_ORF_REFRESH_TOKEN", "refresh-token")
+    active_payload = (
+        "FINRA_OTC_ID|SYM_CD|SCRTY_DS|STTS_CD|CUSIP_ID\n"
+        "100|AAA|Example Active|A|\n"
+        "Footer - Count: 00000001, Facility: ORF, File Created: 20260916120000\n"
+    )
+    active = httpx.Response(
+        200,
+        text=active_payload,
+        request=httpx.Request(
+            "POST",
+            "https://apidownload.finratraqs.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF",
+        ),
+    )
+    with (
+        patch.object(
+            finra_otc_directory,
+            "_cache",
+            None,
+        ),
+        patch(
+            "app.providers.finra_otc_directory._orf_access_token",
+            return_value="access-token",
+        ),
+        patch(
+            "app.providers.finra_otc_directory.httpx.post",
+            side_effect=[active, httpx.ReadTimeout("inactive file unavailable")],
+        ),
+    ):
+        with pytest.raises(ProviderResponseError, match="transport failure"):
+            await execute_provider_call(
+                async_db,
+                ProviderCapability.UNIVERSE_DISCOVERY,
+                "discover_universe_page:OTC:0",
+                invoke=lambda candidate, _symbol: candidate.discover_universe_page("OTC", 0),
+                response_items=lambda page: len(page.get("quotes") or []),
+            )
+
+    request_log = db.execute(select(ProviderRequestLog)).scalar_one()
+    assert request_log.success is False
+    assert request_log.http_requests == 1
+    assert request_log.response_payloads == [active_payload]
+    assert request_log.error_message == "transport failure: inactive file unavailable"
 
 
 @pytest.mark.asyncio
@@ -580,7 +1096,7 @@ async def test_finra_async_download_settles_measured_bytes_in_monthly_window(db,
     )
     resolved = ResolvedProvider(
         provider_name="finra",
-        provider=object(),
+        provider=FINRAProvider(),
         data_source=source,
         policy=policy,
         health=health,
@@ -613,6 +1129,42 @@ async def test_finra_async_download_settles_measured_bytes_in_monthly_window(db,
     window = windows[0]
     assert window.dimension == "download_bytes_per_calendar_month"
     assert window.consumed_units == len(b"async-result")
+    assert window.reserved_units == 0
+
+    partial_body = b"received-before-reset"
+    request = httpx.Request("GET", "https://signed.example.test/result")
+
+    def interrupted_body():
+        yield partial_body
+        raise httpx.ReadError("connection reset", request=request)
+
+    response = MagicMock(status_code=200)
+    response.headers = {"content-length": "128"}
+    response.iter_bytes.return_value = interrupted_body()
+    response.raise_for_status.return_value = None
+    response.__enter__.return_value = response
+    response.__exit__.return_value = None
+    with (
+        patch("app.providers.finra.httpx.stream", return_value=response),
+        pytest.raises(ProviderResponseError, match="transport failure"),
+    ):
+        await execute_provider_call(
+            async_db,
+            ProviderCapability.SHORT_INTEREST,
+            "download_async_result",
+            invoke=lambda provider, _symbol: provider.download_async_result(
+                "https://signed.example.test/result", max_bytes=1024
+            ),
+            response_items=len,
+        )
+
+    request_logs = db.execute(select(ProviderRequestLog).order_by(ProviderRequestLog.id)).scalars()
+    assert [row.response_bytes for row in request_logs] == [
+        len(b"async-result"),
+        len(partial_body),
+    ]
+    window = db.execute(select(ProviderQuotaWindow)).scalar_one()
+    assert window.consumed_units == len(b"async-result") + len(partial_body)
     assert window.reserved_units == 0
 
 
@@ -669,6 +1221,7 @@ async def test_provider_chain_filters_raw_only_provider_for_adjusted_history(db,
     monkeypatch.setattr(settings, "ALPHA_VANTAGE_API_KEY", "configured-key")
     monkeypatch.setattr(settings, "ALPHA_VANTAGE_REVIEWED_RESET", "rolling")
     monkeypatch.setattr(settings, "ALPHA_VANTAGE_QUOTA_EVIDENCE", "reviewed test fixture")
+    _grant_test_perpetual_archive(monkeypatch, "ALPHA_VANTAGE")
     # The live Alpha Vantage contract intentionally keeps its daily reset
     # boundary unknown. This resolver test supplies an explicit reviewed test
     # fixture so it can isolate the raw-vs-adjusted capability filter without
@@ -724,6 +1277,7 @@ async def test_provider_chain_requires_positive_live_probe_evidence(db, monkeypa
     ).scalar_one()
     entitlement.live_probe_status = "passed"
     db.commit()
+    _grant_test_perpetual_archive(monkeypatch, "ALPACA")
 
     chain = await resolve_provider_chain(async_db, ProviderCapability.PRICE_HISTORY)
     # The current Alpaca contract is source-backed; once transport evidence
@@ -758,10 +1312,11 @@ async def test_unreviewed_provider_entitlement_is_not_runtime_usable(db, monkeyp
 
 
 @pytest.mark.asyncio
-async def test_eodhd_free_plan_migrates_and_blocks_unentitled_fundamentals_even_when_paid_routing_enabled(
+async def test_eodhd_free_plan_migrates_and_requires_entitlement_and_provider_terms(
     db, monkeypatch
 ):
     async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK", False)
     current_seeds = deepcopy(settings.PROVIDER_ENTITLEMENT_SEEDS)
     current_eodhd_seed = deepcopy(current_seeds["eodhd"])
     legacy_eodhd_seed = deepcopy(current_eodhd_seed)
@@ -808,9 +1363,9 @@ async def test_eodhd_free_plan_migrates_and_blocks_unentitled_fundamentals_even_
     # Pretend positive live evidence exists to prove the plan gate itself
     # remains fail-closed when the global paid-routing switch is enabled.
     reviewed_test_seeds = deepcopy(current_seeds)
-    reviewed_test_seeds["eodhd"]["capabilities"]["instrument_metadata"][
-        "live_probe_status"
-    ] = "passed"
+    reviewed_test_seeds["eodhd"]["capabilities"]["instrument_metadata"]["live_probe_status"] = (
+        "passed"
+    )
     monkeypatch.setattr(settings, "PROVIDER_ENTITLEMENT_SEEDS", reviewed_test_seeds)
     metadata_chain = await resolve_provider_chain(
         async_db,
@@ -825,7 +1380,25 @@ async def test_eodhd_free_plan_migrates_and_blocks_unentitled_fundamentals_even_
         operation="fetch_ohlcv:D1",
         adjusted=False,
     )
-    assert any(provider.provider_name == "eodhd" for provider in free_history_chain)
+    assert all(provider.provider_name != "eodhd" for provider in free_history_chain)
+
+    # The owner's storage consent is global and does not admit vendor-restricted
+    # display. The provider-specific display-terms exception is independent.
+    monkeypatch.setattr(settings, "EODHD_PROVIDER_DISPLAY_TERMS_AUTHORIZED", True)
+    monkeypatch.setattr(
+        settings,
+        "EODHD_PROVIDER_DISPLAY_TERMS_EVIDENCE",
+        "unit-test provider terms exception",
+    )
+    granted_history_chain = await resolve_provider_chain(
+        async_db,
+        ProviderCapability.PRICE_HISTORY,
+        operation="fetch_ohlcv:D1",
+        adjusted=False,
+    )
+    assert any(provider.provider_name == "eodhd" for provider in granted_history_chain)
+
+
 @pytest.mark.asyncio
 async def test_marketdata_app_entitlement_and_quota_follow_explicit_reviewed_plan(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
@@ -919,6 +1492,7 @@ async def test_marketdata_app_account_usage_can_be_polled_before_plan_review(db,
     monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "")
     monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 0)
     monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", None)
+    monkeypatch.setattr(settings, "MARKETDATA_APP_PERSISTENT_STORAGE_AUTHORIZED", False)
 
     await seed_provider_runtime(async_db)
 
@@ -936,6 +1510,42 @@ async def test_marketdata_app_account_usage_can_be_polled_before_plan_review(db,
         operation_cost_overrides={"marketdata_app": 1},
     )
     assert all(item.provider_name != "marketdata_app" for item in price_chain)
+
+
+@pytest.mark.asyncio
+async def test_marketdata_app_and_twelve_data_persistent_routes_require_written_archive_rights(
+    db, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK", False)
+    monkeypatch.setattr(settings, "MARKETDATA_APP_API_KEY", "configured-key")
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "starter_trial")
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 10000)
+    monkeypatch.setattr(
+        settings,
+        "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT",
+        datetime(2030, 1, 1, tzinfo=UTC),
+    )
+    monkeypatch.setattr(settings, "MARKETDATA_APP_PERSISTENT_STORAGE_AUTHORIZED", False)
+    monkeypatch.setattr(settings, "TWELVE_DATA_API_KEY", "configured-key")
+    monkeypatch.setattr(settings, "TWELVE_DATA_PERSISTENT_STORAGE_AUTHORIZED", False)
+
+    await seed_provider_runtime(async_db)
+
+    marketdata_chain = await resolve_provider_chain(
+        async_db,
+        ProviderCapability.PRICE_HISTORY,
+        operation="fetch_ohlcv:D1",
+        operation_cost_overrides={"marketdata_app": 1},
+    )
+    twelve_data_chain = await resolve_provider_chain(
+        async_db,
+        ProviderCapability.PRICE_HISTORY,
+        operation="fetch_ohlcv:D1",
+        operation_cost_overrides={"twelve_data": 1},
+    )
+    assert all(item.provider_name != "marketdata_app" for item in marketdata_chain)
+    assert all(item.provider_name != "twelve_data" for item in twelve_data_chain)
 
 
 @pytest.mark.asyncio
@@ -976,7 +1586,7 @@ async def test_marketdata_app_account_usage_bootstraps_fresh_durable_coordinator
 
 
 @pytest.mark.asyncio
-async def test_alpaca_account_usage_bootstrap_observes_headers_without_admitting_data(
+async def test_alpaca_account_usage_bootstrap_observes_headers_with_documented_data_quota(
     db, monkeypatch, tmp_path
 ):
     """Alpaca's native header snapshot is allowed without guessing its reset window."""
@@ -1004,6 +1614,9 @@ async def test_alpaca_account_usage_bootstrap_observes_headers_without_admitting
         operation="fetch_ohlcv:D1",
         operation_cost_overrides={"alpaca": 1},
     )
+    # Alpaca's documented 200-requests/minute contract is enough to admit a
+    # bounded data call; the header probe refines durable usage observations,
+    # not a fictitious daily allowance.
     assert any(item.provider_name == "alpaca" for item in price_chain)
 
     observed_at = datetime.now(UTC).replace(microsecond=0)
@@ -1038,14 +1651,8 @@ async def test_alpaca_account_usage_bootstrap_observes_headers_without_admitting
 
     assert result.provider_name == "alpaca"
     summary = provider_quota_coordinator_summary(provider_name="alpaca")
-    assert any(
-        row["dimension"] == "account_usage_probe_concurrency"
-        for row in summary["windows"]
-    )
-    assert all(
-        row["dimension"] != "market_data_requests_per_minute"
-        for row in summary["windows"]
-    )
+    assert any(row["dimension"] == "account_usage_probe_concurrency" for row in summary["windows"])
+    assert all(row["dimension"] != "market_data_requests_per_minute" for row in summary["windows"])
 
 
 @pytest.mark.asyncio
@@ -1059,8 +1666,32 @@ async def test_alpaca_account_usage_bootstrap_observes_headers_without_admitting
                 provider="twelve_data",
                 observed_at=datetime.now(UTC),
                 unit="credits",
+                limit=8,
+                remaining=5,
+                consumed=3,
+                reset_at=datetime.now(UTC) + timedelta(seconds=30),
                 account_plan="Basic",
-                dimensions=(),
+                dimensions=(
+                    ProviderAccountUsageDimension(
+                        name="credits_per_minute",
+                        unit="credits",
+                        limit=8,
+                        remaining=5,
+                        consumed=3,
+                        reset_at=datetime.now(UTC) + timedelta(seconds=30),
+                    ),
+                    ProviderAccountUsageDimension(
+                        name="requests_per_day",
+                        unit="requests",
+                        limit=800,
+                        remaining=763,
+                        consumed=37,
+                        reset_at=datetime.now(UTC).replace(
+                            hour=0, minute=0, second=0, microsecond=0
+                        )
+                        + timedelta(days=1),
+                    ),
+                ),
             ),
         ),
         (
@@ -1079,7 +1710,7 @@ async def test_alpaca_account_usage_bootstrap_observes_headers_without_admitting
 async def test_native_account_usage_bootstraps_unknown_provider_pools(
     db, monkeypatch, tmp_path, provider_name, setting_name, usage
 ):
-    """A provider-native snapshot is the only accepted first-pool observation."""
+    """Bootstrap may waive only unknown pools returned by that snapshot."""
 
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr(settings, setting_name, "configured-key")
@@ -1102,12 +1733,16 @@ async def test_native_account_usage_bootstraps_unknown_provider_pools(
 
     assert result.provider_name == provider_name
     summary = provider_quota_coordinator_summary(provider_name=provider_name)
-    assert any(
-        row["dimension"] == "account_usage_probe_concurrency"
-        for row in summary["windows"]
-    )
+    assert any(row["dimension"] == "account_usage_probe_concurrency" for row in summary["windows"])
     assert all(
-        row["dimension"] not in {"credits_per_minute", "credits_per_day", "requests_per_minute", "calls_per_day"}
+        row["dimension"]
+        not in {
+            "credits_per_minute",
+            "credits_per_day",
+            "requests_per_day",
+            "requests_per_minute",
+            "calls_per_day",
+        }
         for row in summary["windows"]
     )
 
@@ -1117,6 +1752,11 @@ async def test_marketstack_history_route_requires_monthly_reset_review(db, monke
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr(settings, "MARKETSTACK_API_KEY", "configured-key")
     monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_EXCHANGE", "")
+    # The public Free cap uses a conservative rolling-30-day window and needs
+    # no account override. Simulate an account-specific fixed-month override;
+    # it must remain non-routable until its quota evidence is supplied.
+    monkeypatch.setattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_RESET", "fixed_month")
+    monkeypatch.setattr(settings, "MARKETSTACK_QUOTA_EVIDENCE", "")
 
     await seed_provider_runtime(async_db)
 
@@ -1140,6 +1780,7 @@ async def test_marketstack_history_route_requires_monthly_reset_review(db, monke
 async def test_history_route_enforces_seeded_provider_lookback_bound(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr(settings, "MARKETSTACK_API_KEY", "configured-key")
+    monkeypatch.setattr(settings, "PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK", True)
     await seed_provider_runtime(async_db)
 
     now = datetime.now(UTC)
@@ -1158,7 +1799,7 @@ async def test_history_route_enforces_seeded_provider_lookback_bound(db, monkeyp
         history_start=now - timedelta(days=367),
     )
 
-    assert all(item.provider_name != "marketstack" for item in within_bound)
+    assert any(item.provider_name == "marketstack" for item in within_bound)
     assert all(item.provider_name != "marketstack" for item in beyond_bound)
 
 
@@ -1166,6 +1807,7 @@ async def test_history_route_enforces_seeded_provider_lookback_bound(db, monkeyp
 async def test_history_route_evaluates_provider_specific_start_factory(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr(settings, "MARKETSTACK_API_KEY", "configured-key")
+    monkeypatch.setattr(settings, "PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK", True)
     await seed_provider_runtime(async_db)
 
     now = datetime.now(UTC)
@@ -1184,7 +1826,7 @@ async def test_history_route_evaluates_provider_specific_start_factory(db, monke
     )
 
     assert "marketstack" in seen
-    assert all(item.provider_name != "marketstack" for item in chain)
+    assert any(item.provider_name == "marketstack" for item in chain)
 
 
 @pytest.mark.asyncio
@@ -1407,6 +2049,7 @@ async def test_otc_directory_requires_explicit_source_before_resolution(db, monk
     monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_REVIEWED", False)
     monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_EVIDENCE", "")
     monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "")
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "")
     monkeypatch.setattr(
         settings,
         "PROVIDER_RATE_LIMIT_SEEDS",
@@ -1450,11 +2093,8 @@ async def test_otc_directory_requires_explicit_source_before_resolution(db, monk
 
     assert all(item.provider_name != "finra_otc_directory" for item in chain)
 
-    monkeypatch.setattr(
-        settings,
-        "FINRA_OTC_SYMBOL_DIRECTORY_URL",
-        "https://example.test/otc-directory.txt",
-    )
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "")
+    monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "https://example.test/otc.txt")
     await seed_provider_runtime(async_db)
     chain = await resolve_provider_chain(async_db, ProviderCapability.UNIVERSE_DISCOVERY)
 
@@ -1480,36 +2120,56 @@ async def test_otc_directory_requires_explicit_source_before_resolution(db, monk
 
     monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_REVIEWED", True)
     monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_EVIDENCE", "FINRA support case 123")
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "finra_orf_security_master")
+    active_url = (
+        "https://apidownload.finratraqs.org/DownloadHandler.ashx?"
+        "action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF"
+    )
+    inactive_url = (
+        "https://apidownload.finratraqs.org/DownloadHandler.ashx?"
+        "action=DOWNLOAD&file=EQUITYMASTERIN&facility=ORF"
+    )
+    monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", active_url)
+    monkeypatch.setattr(settings, "FINRA_OTC_REVIEWED_SOURCE_URL", active_url)
+    monkeypatch.setattr(settings, "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL", inactive_url)
+    monkeypatch.setattr(settings, "FINRA_OTC_REVIEWED_INACTIVE_SOURCE_URL", inactive_url)
+    monkeypatch.setattr(settings, "FINRA_ORF_USERNAME", "traqs-user")
+    monkeypatch.setattr(settings, "FINRA_ORF_REFRESH_TOKEN", "refresh-token")
     monkeypatch.setattr(
-        settings, "FINRA_OTC_REVIEWED_SOURCE_URL", "https://example.test/otc-directory.txt"
+        settings, "FINRA_ORF_REFRESH_TOKEN_STATE_FILE", "/tmp/orf-refresh-token-state.json"
     )
     monkeypatch.setattr(settings, "FINRA_OTC_TERMS_REVIEWED", True)
     monkeypatch.setattr(settings, "FINRA_OTC_COMPLETENESS_REVIEWED", True)
     monkeypatch.setattr(settings, "FINRA_OTC_REDISTRIBUTION_REVIEWED", True)
     monkeypatch.setattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 900)
+    monkeypatch.setattr(settings, "FINRA_ORF_CUSIP_LICENSED", True)
+    monkeypatch.setattr(settings, "FINRA_ORF_CUSIP_LICENSE_EVIDENCE", "unit-test CGS license")
     await seed_provider_runtime(async_db)
     chain = await resolve_provider_chain(async_db, ProviderCapability.UNIVERSE_DISCOVERY)
-
+    # All source/access/terms/quota evidence now matches the documented ORF
+    # active/inactive files. No owner-storage attestation is involved.
     assert any(item.provider_name == "finra_otc_directory" for item in chain)
 
 
 @pytest.mark.asyncio
-async def test_otc_directory_default_entitlement_remains_unreviewed(db, monkeypatch):
+async def test_otc_directory_default_entitlement_uses_verified_query_api_contract(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr(
         settings,
         "FINRA_OTC_SYMBOL_DIRECTORY_URL",
         "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster",
     )
+    monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "configured-test-client")
+    monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "configured-test-secret")
     await seed_provider_runtime(async_db)
     chain = await resolve_provider_chain(async_db, ProviderCapability.UNIVERSE_DISCOVERY)
 
-    assert all(item.provider_name != "finra_otc_directory" for item in chain)
+    assert any(item.provider_name == "finra_otc_directory" for item in chain)
     entitlement = db.execute(
         select(ProviderEntitlement).join(DataSource).where(DataSource.name == "finra_otc_directory")
     ).scalar_one()
-    assert entitlement.configured_plan == "unreviewed"
-    assert entitlement.live_probe_status == "blocked_until_orf_entitlement"
+    assert entitlement.configured_plan == "public-query-api"
+    assert entitlement.live_probe_status == "credentialed_live_verified"
 
 
 @pytest.mark.asyncio

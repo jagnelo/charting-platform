@@ -668,6 +668,7 @@ class WorkerSettings:
             or settings.MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED
             or settings.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED
             or settings.MARKET_EVENTS_PRELISTING_ENABLED
+            or settings.MARKET_UNIVERSE_RECONCILIATION_ENABLED
             or settings.PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED
         )
         else []

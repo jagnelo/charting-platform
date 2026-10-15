@@ -61,12 +61,34 @@ def pytest_collection_modifyitems(config, items):
 
     if os.getenv("PROVIDER_LIVE_MATRIX_RUN", "").strip() != "1":
         return
-    items.sort(
-        key=lambda item: (
+    raw_case_order = os.getenv("PROVIDER_LIVE_CASE_ORDER", "").strip()
+    case_order: list[str] = []
+    if raw_case_order:
+        try:
+            decoded_case_order = json.loads(raw_case_order)
+        except json.JSONDecodeError:
+            pytest.exit("provider live case order is invalid JSON", returncode=2)
+        if (
+            not isinstance(decoded_case_order, list)
+            or any(not isinstance(item, str) or not item for item in decoded_case_order)
+            or len(decoded_case_order) != len(set(decoded_case_order))
+        ):
+            pytest.exit("provider live case order is malformed", returncode=2)
+        case_order = decoded_case_order
+    case_rank = {node_id: index for index, node_id in enumerate(case_order)}
+
+    def ordering(item):
+        # Parameterized manifest cases append ``[case-id]`` to their node ID;
+        # rank them using the unparameterized manifest node requested by the
+        # parent runner.
+        manifest_node_id = item.nodeid.split("[", 1)[0]
+        return (
             0 if "account_usage" in item.nodeid else 1,
+            case_rank.get(manifest_node_id, len(case_rank)),
             item.nodeid,
         )
-    )
+
+    items.sort(key=ordering)
 
 
 @pytest.fixture(autouse=True)
@@ -80,6 +102,22 @@ def isolate_external_provider_credentials(request, monkeypatch):
     for name in _PROVIDER_CREDENTIAL_SETTINGS:
         monkeypatch.delenv(name, raising=False)
         monkeypatch.setattr(settings, name, "")
+
+
+@pytest.fixture(autouse=True)
+def isolate_integration_research_job_directories(request, monkeypatch, tmp_path):
+    """Keep API integration tests from writing into shared host research paths."""
+
+    if not request.node.nodeid.startswith("tests/integration/"):
+        return
+    from app.config import settings
+
+    job_directory = tmp_path / "research-jobs"
+    result_directory = tmp_path / "research-results"
+    job_directory.mkdir()
+    result_directory.mkdir()
+    monkeypatch.setattr(settings, "RESEARCH_JOB_DIR", str(job_directory))
+    monkeypatch.setattr(settings, "RESEARCH_RESULT_DIR", str(result_directory))
 
 
 @pytest.fixture(autouse=True)

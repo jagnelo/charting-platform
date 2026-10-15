@@ -95,16 +95,18 @@ acceptance_criteria:
     text: Local development, GitHub staging validation, GitHub master validation, and live/production each use separate explicit secret stores; current local keys are never copied to CI; no credential is tracked or exposed in routine PR CI/artifacts/logs; provider credentials reach only trusted backend/worker processes.
   - id: AC-PROVIDER-CONTRACT-AUDIT
     text: Every registered external provider capability has a source-backed, versioned contract for plan, authentication scope, exact quota units/windows/resets/shared pools, operation costs, pagination, response bytes, history/venue/freshness, and data-use rights; provider documentation, account endpoints, and live headers are reconciled, and verified limits are not left unknown or incorrectly gated.
+  - id: AC-DURABLE-DATA-RIGHTS
+    text: The owner has granted blanket approval for private durable storage of data returned by all providers; do not request per-provider owner approval again. Provider authentication, account entitlements, quotas, and any explicit provider or embedded third-party restrictions remain separate provider facts and must be reported accurately rather than described as missing owner consent.
   - id: AC-DURABLE-CROSS-SESSION-USAGE
     text: Provider usage reservations survive process/session restart and coordinate all workers sharing the same account scope; local worktrees share an owner-only local ledger, deployments use shared durable runtime storage, and CI attempts reconcile prior redacted receipts and worst-case interrupted usage before spending shared credentials.
   - id: AC-UNIVERSE-COMPLETE
-    text: Complete US NMS snapshots use official Nasdaq Trader files with daily conditional requests; complete OTC snapshots use a currently documented and authorized complete source (FINRA otcSecurityMaster only if its availability/current status and use rights are established) plus Daily List lifecycle deltas; totals, venue coverage, cursor completion, duplicate detection, identifier ambiguity, ticker changes, and three-complete-day deactivation evidence are reported and tested.
+    text: Complete US-listed equity/ETF reconciliation must cover distinct official listing-source scopes rather than treating Nasdaq Trader's two files as the whole market. Include CTA Plan's daily Tape A/B symbol file (preserve prior symbols and every source row; parse instrument type and primary listing participant code) and Nasdaq's Nasdaq-listed/Tape C roster; retain Nasdaq Trader's two files as valuable supplementary/cross-check evidence, not sole whole-NMS authority. Verify each source's full pagination/file integrity, date/generation evidence, participant-code-to-MIC mappings, and venue coverage before it can contribute absence evidence. Combine only same-session, individually complete source scopes for universe-wide lifecycle decisions; partial or stale source runs may add observations but may not count absence. Preserve every OTC source row/page from FINRA's official Query API otcSecurityMaster dataset, live-verified against the public Symbol Directory, plus FINRA Daily List lifecycle deltas. Commit each SEC issuer response, candidate, failure-retry state, and next cursor atomically per CIK so a restart never re-fetches completed CIKs; test totals, cursor completion, duplicate detection, stable partition dates, ticker changes, and three-distinct-complete-snapshot-day deactivation evidence. A partial snapshot is never authoritative and no relevant provider row may be silently discarded.
   - id: AC-SEC-PRELISTING-POLICY
-    text: SEC directory scans first stage a complete report with issuer creation disabled; after that clean scan, only validated missing CIK/name issuers may be created, while likely future listings become inactive provisional instruments only on strong unambiguous evidence and all ambiguous evidence is quarantined.
+    text: SEC directory scans first stage a complete report with issuer creation disabled; after that exact clean report is reviewed, a bounded no-refetch operation materializes only validated missing CIK/name issuer rows from retained source payloads, while likely future listings become inactive provisional instruments only on strong unambiguous evidence and all ambiguous evidence is quarantined.
   - id: AC-INTEGRATION-WORKFLOW
     text: External-service code changes are enforced by repository workflow checks requiring provider/capability declaration, contract evidence, fixture tests, bounded current-source live tests, secret scope, usage impact, and explicit deferral status; future changes cannot silently bypass the live-validation policy.
   - id: AC-DINARI-SANDBOX-ISOLATION
-    text: Dinari Sandbox may run as a live-environment canary only through a separate non-persisting path; sandbox payloads never enter canonical production data, usage, alert, or analytics tables, and Dinari production routing remains disabled under the approved free-only budget.
+    text: Dinari Sandbox may run only through a separately capped canary; every returned response payload is retained in the owner-private redacted response archive, while Sandbox observations never enter canonical production data, usage, alert, or analytics tables. Dinari production routing remains disabled under the approved free-only budget.
   - id: AC-SHADOW-FINAL-PHASE
     text: The 30-day deployed shadow run remains disabled and is not part of the current implementation phase; after every other controllable acceptance gate is complete, it will be planned and authorized as the final gate before human closure and staging integration.
 branch_tests:
@@ -123,10 +125,30 @@ approved_execution_decisions:
     rule: Use every eligible provider for every capability it supports, ranked dynamically by capability, history, freshness, health, entitlement, exact cost, and remaining usage.
     pricing: Free tiers only for now. Total future provider spend is capped at 20 per month and any paid upgrade requires a later evidence-based proposal and explicit approval.
     marketstack: Keep the existing Free plan and its 100 monthly calls; do not ask again about upgrading unless measured unmet demand justifies a proposal.
+    owner_data_storage_authorization: On 2026-10-05 the owner explicitly authorized private, persistent storage of data returned by every provider. This is final owner consent; do not ask again or treat missing per-provider owner approval as a blocker. Continue to track provider access, quotas, and any explicit provider/third-party terms separately.
   identity_and_universe:
-    nms_source: Nasdaq Trader official nasdaqlisted.txt and otherlisted.txt; fetch once per completed market day with conditional validators and immediate 429/reset handling.
-    otc_source: FINRA Daily List lifecycle deltas plus the documented ORF active/inactive security-master pair; legacy otcSecurityMaster remains only a candidate.
-    otc_source_validation_gate: FINRA's ORF file-download specification documents EQUITYMASTERAC and EQUITYMASTERIN as the complete active/inactive pair. The API uses a separate TRAQS refresh-token/assigned-username flow and requires product authorization/MFA plus reviewed use/redistribution terms; FINRA Gateway client credentials are not interchangeable. Configure and route the pair only after those controls are recorded; Daily List alone is not a complete security master.
+    nms_source: CTA Plan's official daily Tape A/B symbol file plus the Nasdaq-listed/Tape C roster are required primary scopes; Nasdaq Trader nasdaqlisted.txt and otherlisted.txt remain supplementary and must not alone authorize whole-NMS absence. Fetch each source once per completed market day where supported, persist exact payloads, and honor conditional validators / documented reset responses. Participant-code mappings must be sourced and unknown codes retained with the run held incomplete rather than dropped.
+    otc_source: >-
+      FINRA's official Query API otcMarket/otcSecurityMaster dataset is the
+      current complete OTC starting roster behind the public Symbol Directory.
+      A credentialed live traversal on 2026-10-07 returned 18,009 rows and
+      18,009 unique symbols in four pages with a stable 2026-10-07 partition
+      date. Every raw partition/page body is retained before normalization.
+      FINRA Daily List remains the lifecycle-delta source between complete
+      daily snapshots. Alpha Vantage's observed listing response contains no
+      OTC venue and remains non-authoritative for OTC completeness. ORF is an
+      optional separately entitled alternative, not a prerequisite.
+    otc_source_validation_gate: >-
+      The Query API source passed live total/uniqueness/pagination/partition
+      validation on 2026-10-07. Current-source acceptance still requires a
+      clean exact-commit rerun after this implementation is committed. The
+      runtime must retain every raw page, reject partial or inconsistent
+      snapshots, and count absence only once per distinct complete provider
+      snapshot date. FINRA's documented 500,000 offset boundary must fail
+      closed and require filtered tranches if the roster ever approaches it;
+      it must never cause truncation. ORF remains optional. OTC Markets' full
+      security-data file is about $1,500/month for internal use (or $2,000/month including external display), above the
+      approved $20 cap; see the official product/pricing page linked above.
     sec_issuers: First complete bounded SEC directory cycle with issuer materialization disabled, review its report, then create only missing validated CIK/name Issuer rows.
     prelisting: After the staged SEC gate, create inactive provisional instruments only for strong, unambiguous identity/venue evidence; quarantine the rest.
     delisting: Require three consecutive complete daily authoritative snapshot misses; incomplete runs do not count and authoritative reappearance reactivates the listing.
@@ -135,7 +157,7 @@ approved_execution_decisions:
     ibkr: Deferred by user; keep non-routable and report exact gateway/session preflight.
     ondo_global_markets: Deferred by user; keep non-routable and do not request credentials in this phase.
     dinari: Sandbox-only, including a production-host canary isolated from canonical persistence; production API access remains disabled because the documented starting price is 2000 per month.
-    xstocks: Sole user is an eligible non-US person; public API calls need no account. Live response-header limit is 1000 per rolling minute with remaining/reset headers and must be enforced as provider-native state.
+    xstocks: Sole user is an eligible non-US person; public API calls need no account. Live response headers report the shared 1000/minute pool and an ISO-8601 UTC reset timestamp; native baseline snapshot, durable reconciliation, and provider-specific limiting are implemented, with exact-candidate live evidence still required.
     marketdata_app: Use the explicitly configured Starter Trial quota of 10000 credits/day through the timezone-aware configured expiry (30 days from the 2026-09-11 18:09 Lisbon key-email time, i.e. 2026-10-11 18:09+01:00); after expiry automatically fall back to Free Forever at 100/day. The plan/limit/expiry remain provider-specific environment configuration. Do not infer the account plan from /user/ headers; paid-plan quota changes require an explicit plan/limit configuration and paid-routing authorization.
     unknown_quotas: Investigate official documentation, account endpoints, and bounded live headers; do not ask the user to guess operational limits. Keep only truly undiscoverable dimensions non-routable.
   credentials:
@@ -162,27 +184,563 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
-    2026-10-02 EODHD policy/preflight drift was found and corrected: the
-    application already used the first-party all-plan 1,000-request/minute
-    ceiling, but the live safety reporter still required a custom account
-    override and described obsolete conflicting-source evidence. The reporter
-    now recognizes the documented default and only accepts a reviewed lower
-    account override with reset/evidence; custom values above 1,000 fail closed
-    and cannot widen the provider-published cap. Focused tests pass 73/73 and
-    EODHD account-usage live evidence passed 1/1 at exact base source
-    313337668b28ec94b465d602f01c8d24564acf33. The corrected exact-source full
-    EODHD matrix and full provider safety preflight remain pending.
+    Current live-acceptance checkpoint, 2026-10-15 07:32Z: the frozen staged
+    candidate tree `2af5d4c9b4055e9c389f4cd4568726fb226707ce` still has 21/27
+    successful provider manifests. The six outstanding are Alpha Vantage,
+    CTA Plan, Dinari, EODHD's free-plan profile-entitlement case, Marketstack
+    exchange-directory pagination, and Nasdaq. No provider request was made
+    during the 07:21Z exact-candidate receipt audit. Alpha Vantage's reviewed
+    nine-request reservation is held until its rolling daily window resets at
+    2026-10-15 07:42:39Z; then rerun the complete manifest. EODHD's full
+    16-credit manifest, CTA/Nasdaq's two-request safety caps, and the Dinari
+    one-request sandbox canary remain scheduled after their 2026-10-16 reset.
+    Marketstack is held after 25 successful XNAS pages and an explicit HTTP
+    429 monthly-limit response; the owner's 12/100 dashboard snapshot predates
+    that run. A read-only browser attempt at 07:27Z reached the account login
+    page in an isolated profile and could not inspect the post-run balance.
+    Do not retry Marketstack until the balance/reset is reconciled and its
+    directory-page billing unit is known. Runtime audit found that a provider
+    429 with no reset header and no configured cooldown was recorded but did
+    not leave an enforceable hold. The candidate now opens a persistent
+    circuit across the exact quota scope when reset evidence exists, and
+    disables same-scope policies when reset evidence is absent, leaving
+    re-enable as an explicit admin decision rather than inventing a delay.
+    Both paths are covered by tests; exact-candidate full-matrix validation is
+    still required. GitHub environment
+    secret presence and RPi deployment secrets remain externally unverified;
+    the local secret-wiring tests only prove workflow references.
   - >-
-    2026-10-02 exact-source full-stack browser validation at base source
-    313337668b28ec94b465d602f01c8d24564acf33 booted the complete seeded Docker
-    stack and completed 150 passed, 105 skipped, and 5 failed of 260. Isolated
-    retry passed four failed cases (including transient local-browser network
-    and chart-template interaction errors); one frontend heatmap-to-Study-Lab
-    interaction reproducibly fails because a document overlay intercepts the
-    click. The stack stayed healthy; no frontend code was changed or authorized.
-    Exact-source research-runner isolation/resource probes passed. Browser gate
-    remains red pending explicit frontend-scope approval or independent
-    resolution; backend/provider work continues without frontend changes.
+    US equity-listing venue completeness remains open. CTA Plan's anonymous
+    daily Tape A/B file is now implemented as an independent provider: its
+    latest published CSV and directory response are retained verbatim, source
+    date and prior ticker are preserved, unknown participant mappings fail
+    closed, and the client reserves exactly two requests per market day under
+    a clearly labeled local safety cap (CTA publishes no numeric HTTP quota).
+    Its first exact-candidate live attempt found a source pair `TpC`/`TPC` that
+    collided under the adapter's former uppercase normalization; both full
+    responses were archived, and an offline replay of the corrected
+    case-preserving parser parsed all 7,681 source rows with zero parser errors.
+    CTA-specific reconciliation now preserves both exact spellings through
+    listing and provider-symbol alias persistence, covered by regression tests.
+    Canonical cross-provider issuer identity resolution remains open. The live
+    case must be repeated on a frozen candidate after the local daily
+    two-request cap resets.
+    The first same-cycle complete NMS union is now materialized locally by
+    replaying the already archived 2026-10-13 CTA and Nasdaq source responses:
+    7,630 CTA equity rows, 7,487 Nasdaq equity rows, and 5,761 Nasdaq ETF rows,
+    all complete with zero missing, deactivated, or quarantined rows. The three
+    runs share a cycle ID and are marked as a complete NMS union; the replay
+    made zero external requests and retains the original raw response bodies.
+    This closes the first combined-snapshot gap, not the entire US venue audit.
+    Exact-candidate live acceptance remains open, canonical cross-provider
+    issuer identity resolution remains open, and Nasdaq is a supplemental
+    directory rather than an independent authoritative absence source.
+    Nasdaq Trader remains a supplementary cross-check, and NYSE Pillar files
+    remain diagnostic only until their field semantics and exclusions are
+    reconciled. Official mapping references include the CTA Symbol File
+    specification, TXSE SIP participant/MIC table, 24X CTA input specification,
+    and current ISO MIC catalogue.
+  - >-
+    The 2026-10-14 15:14Z full live preflight evaluated all 27 providers,
+    admitted 21 full manifests, and held Alpha Vantage (daily request headroom),
+    CTA Plan and Nasdaq (their two-request local daily file caps), Dinari (no
+    key-applicable Sandbox quota/reset and endpoint-cost profile), EODHD (its
+    full weighted-credit reservation lacked daily headroom), and Marketstack
+    directory discovery (uncertain page billing cost and unresolved MIC).
+    Tiingo is routable: its account-specific custom profile is private and the
+    owner reports 50/hour, 1,000/day, and 2 GB bandwidth remaining. The latest
+    reply is treated as a fresh dashboard observation at receipt time
+    2026-10-14T15:12Z; preserve earlier ledger debits and reconcile only
+    requests after that observation. Marketstack's owner reports 12/100 calls
+    used; because this repeats the earlier value without a dashboard timestamp
+    and the local ledger has since charged additional requests, retain the
+    conservative 18/100 estimate rather than erasing those debits. Its official FAQ says one request per looked-up
+    ticker, but does not establish the charge for an exchange-wide paginated
+    ticker list. The 15:14Z full no-network preflight used the actual persistent
+    quota ledger, admitted 21 providers, and held six; it sent zero provider
+    requests. The nine-request Alpha Vantage full-manifest reservation still
+    does not fit. Its two calendar cases remain open and should be retried as a
+    case-only slice after fresh admission permits them. A quota-coordinator
+    regression was found during this review: settled application reservations
+    predating a recreated `local_zero` baseline were omitted from effective
+    usage. The implementation now counts those reservations by their own
+    timestamps, so rolling-window debits still age out individually, and a
+    focused regression test covers both cases. The shared Alpha Vantage ledger
+    showed 32 settled local calls in the conservative rolling 24-hour window:
+    seven from 2026-10-13 16:13Z-16:14Z and 25 from 2026-10-14 07:42Z-13:36Z.
+    The first-party daily cap is 25, so retain the hold and make no Alpha
+    Vantage requests; re-run exact-case admission after newer requests begin
+    aging out. This usage is attributable to this workstream, not evidence of
+    outside use.
+    Exact-candidate receipt verification at tree
+    `5f6c5fc59f2d2da92073310af80f0358c565eeba` confirms 21/27 complete
+    manifests; the six providers above remain incomplete. Expected entitlement
+    denials and intentional no-request dispositions are explicit; this is not
+    full acceptance.
+  - >-
+    Kraken xStocks API route, updated 2026-10-11: the older 2026-10-09 run
+    lacked successful HTTP evidence, but exact-candidate live case
+    `test_kraken_public_xstocks_asset_and_ticker` passed on tree
+    731db5fa54a75d34440ac54a47ebf17fec77ecd8 with three successful requests,
+    including discovery, asset, and price reads from the public Kraken API.
+    This supersedes the older report that the endpoint returned no entries.
+    The provider's full current-source acceptance still requires repeating
+    this case on the final frozen tree; no account-side API Partner action is
+    currently indicated by the successful public reads.
+  - >-
+    Massive quota/account evidence refreshed 2026-10-11: first-party Basic
+    documentation confirms five REST requests/minute per asset class, shared
+    across keys on one account, but publishes no current-use endpoint or
+    reset-counter response contract. The runtime now explicitly marks its
+    zero baseline as `application_usage_only: true` and enforces a strict
+    shared rolling 60-second application envelope; this is local application
+    accounting, not a claim that external account traffic is zero. The
+    exact-case zero-transport preflight passed on 2026-10-11T22:51Z. A fresh
+    Playwright browser is installed, but the Massive dashboard redirects to
+    login and no authenticated session is configured. Current-source live
+    acceptance still requires a safe bounded run on a frozen tree.
+  - >-
+    Tiingo Starter quota evidence refreshed 2026-10-10: current official
+    pricing publishes 500 unique symbols/month, 50 requests/hour, 1,000
+    requests/day, and 1 GB monthly bandwidth. General API documentation says
+    hourly usage resets each hour, daily usage resets at midnight Eastern, and
+    monthly bandwidth resets on the first at midnight Eastern. It does not
+    specify the unique-symbol reset anchor or whether the hourly reset is a
+    fixed clock bucket or rolling. The branch already models these exact
+    published limits and known reset boundaries. A current shared account
+    usage baseline is still missing: official docs reference `/account/usage`,
+    but prior bounded checks redirected to an unusable web path and one
+    authenticated request received a Cloudflare 403 explicitly marked not to
+    retry. The public dashboard also requires login. Do not repeat that API
+    probe or send other Tiingo requests until a current baseline is available.
+    Sources:
+    https://www.tiingo.com/account/billing/pricing,
+    https://www.tiingo.com/documentation/,
+    https://www.tiingo.com/blog/presenting-tiingo-api/.
+  - >-
+    OTC directory source status, updated 2026-10-10: the FINRA Query API
+    `otcMarket/otcSecurityMaster` route returned a complete 18,017-symbol
+    snapshot in the admitted-provider live run at 08:28 UTC. A read-only
+    browser check of FINRA's public Symbol Directory at 09:37 UTC established
+    that the UI itself calls this same FINRA Query API. Its four
+    `issueSymbolIdentifier`-sorted pages (offsets 0, 5,000, 10,000, and 15,000)
+    contained exactly 18,017 unique symbols and matched the already archived
+    provider snapshot's symbol set exactly (18,017 intersection; no extras or
+    omissions). This is an exact UI/API pagination and symbol-set cross-check,
+    not an independent second data source; it does not establish that every
+    row is currently active or prove non-OTC venue coverage. The UI also made
+    four unsorted offset reads. Their responses were retained, but their
+    distinct-symbol total is not asserted because those unsorted offsets are
+    not safe completeness evidence. The
+    browser-triggered ten FINRA requests and all ten response bodies were
+    recorded in the owner-private usage ledger/archive under a separate public
+    directory observation scope; whether FINRA attributes those requests to
+    the configured API key or only to the host/IP is unresolved. The provider
+    adapter retains each raw page before requesting its successor and
+    validates its complete paginated snapshot.
+    ORF TRAQS credentials, written ORF-specific answers, and OTC Markets'
+    $1,500/month file are not prerequisites for this FINRA Query API source.
+    ORF remains a separate optional trade-reporting facility, not the Query
+    API directory. Remaining acceptance is a clean exact-source rerun and
+    routine full-snapshot reconciliation alongside the other venue sources.
+    The application, development Compose, and RPi release Compose default
+    `MARKET_UNIVERSE_RECONCILIATION_ENABLED` to true so unattended daily
+    NMS/OTC reconciliation runs by default. Set it false to disable explicitly.
+    The live deployment is not changed from this feature branch; provider
+    quota, source-completeness, and repeated-absence safeguards remain in
+    force. Do not treat this as an unresolved FINRA source-access request.
+  - >-
+    Alpha Vantage is now a concrete low-cost first validation path: its official
+    LISTING_STATUS documentation says the CSV contains all active US stocks and
+    ETFs, but does not list the included venues or explicitly guarantee OTC
+    venue completeness. The adapter now returns that complete CSV as one page,
+    keeps the original CSV and every parsed row, and tags ETFs separately from
+    stocks; instrument seeding honors recognized row-level types. A required
+    live test reserves exactly one API request. The recorded ledger contains
+    25 Alpha Vantage requests from this workstream on 2026-10-06 (three
+    seven-request runs plus two two-request runs), consuming the conservative
+    rolling 25/24-hour safety allowance as of 16:26 UTC. The owner reports no outside
+    use in the prior 24 hours. The 04:17 run's durable receipt records all
+    seven manifest tests passing with seven requests, no failures, and no
+    skips, but marks the evidence `not_current_source` because the worktree is
+    dirty. The live runner supports exact, case-scoped probes with
+    quota-operation mappings and subset-only receipts. On 2026-10-06, the
+    owner confirmed no outside Alpha Vantage use during the prior 24 hours.
+    Using that confirmation only for this invocation, the runner temporarily
+    treated this key scope as coordinator-exclusive and preserved the durable
+    account ledger; no persistent exclusivity setting was changed. Two exact
+    live cases then passed (current price and symbol search), with two measured
+    HTTP requests paced 13 seconds apart. The receipt is `not_current_source`
+    because the feature worktree is dirty, so it is live evidence but not
+    current-source acceptance. A later exact run used two more requests.
+    On 2026-10-06, the owner confirmed no outside Alpha Vantage use in the
+    previous 24 hours. The shared private quota ledger recorded an
+    owner-attested zero baseline for the 1-second and 1-minute windows at
+    17:21:43 UTC without changing the daily allowance or prior reservations;
+    temporary invocation-only exclusivity allowed safe rolling-window
+    reconciliation. A listing-status probe against the current checkout then
+    passed with exactly one request at 17:23:55 UTC and retained the 1,068,761-byte
+    response in the private archive. Its receipt remains `not_current_source`
+    because the worktree is dirty. This validates the current endpoint/adapter
+    path only; parsing the retained CSV again found 14,483 active rows (8,598
+    Stock, 5,885 ETF), with exchange labels AMEX, BATS, NASDAQ, NYSE, NYSE
+    ARCA, and NYSE MKT and no OTC label. The returned file therefore still
+    does not establish venue/OTC completeness. Preserve the one request in the
+    durable daily ledger and do not reset usage based on the owner's
+    no-outside-use statement.
+    Do not make further Alpha Vantage requests until at least one tracked
+    request ages out of the rolling 24-hour window and a fresh baseline
+    confirms capacity. The endpoint
+    is not yet an authoritative OTC master because its venue coverage remains
+    unproven.
+  - >-
+    FINRA ORF status, clarified 2026-10-09: ORF/TRAQS is a distinct optional
+    source and is not required for the OTC starting roster or daily lifecycle
+    reconciliation. The implemented FINRA Query API `otcSecurityMaster` plus
+    Daily List path is the selected route; its full starting roster was live-
+    validated at 18,009 unique rows across four pages on 2026-10-07. Do not
+    request ORF credentials, written entitlement answers, or owner action for
+    this plan. If ORF is evaluated later as an additional source, its own
+    credential, quota, and data-contract evidence must be established then.
+  - >-
+    Marketstack's documented Free plan limit is 100 requests/month, but its
+    current FAQ conflicts by also stating 1,000/month and it does not publish
+    a reliable reset boundary. The integration conservatively enforces the
+    lower 100-request allowance over a rolling 30-day safety window while
+    retaining the provider-defined native reset as unknown. On 2026-10-10 the
+    case named `fetch_account_usage` passed with one request and 430 response
+    bytes, but source inspection shows it actually fetches one AAPL EOD row and
+    is not a native quota-only endpoint. The generic remaining header lacks a
+    limit/reset pair and did not establish monthly usage; the `17:46Z` focused
+    history preflight remained blocked on that unknown baseline. The immediate
+    full-roster preflight also holds discovery on its missing MIC and page-cost
+    contract.
+    First-party FAQ documentation says a request with five specifically
+    queried ticker symbols consumes five requests, while the documented
+    paginated `/exchanges/{mic}/tickers` listing endpoint does not say whether
+    page cost is one request or proportional to returned rows. Do not infer
+    that billing rule or make discovery requests until resolved. Sources:
+    https://marketstack.com/pricing,
+    https://marketstack.com/contact,
+    https://docs.apilayer.com/marketstack/docs/playground.
+  - >-
+    A fresh MarketData.app `/user` account-usage-only live probe passed 1/1 on
+    2026-10-06, with one HTTP request and no market-data operations. Its native
+    credit limit, consumed/remaining amounts, and reset were reconciled into
+    the durable quota coordinator. This improves cross-session quota evidence
+    but does not change MarketData.app's separate archive-rights gate; the
+    receipt is `not_current_source` because the worktree remains dirty.
+    A second account-usage-only refresh at 17:29 UTC passed 1/1 and confirmed
+    10,000 credits remaining from the current 10,000-credit quota, plus an
+    OPRA entitlement delayed by 15 minutes. Its native snapshot was reconciled
+    into the durable quota coordinator. No market data was fetched; the trial
+    remains configured to expire October 11, 2026 at 18:09 Lisbon time.
+    The live receipt is not current-source acceptance because the worktree is
+    dirty; the data-bearing archive-rights gate remains separate.
+  - >-
+    2026-10-06 fresh live evidence: Alpaca's complete seven-case manifest passed
+    7/7 with eight HTTP requests and 6,526,882 archived response bytes; no
+    trading/order endpoint ran. MarketData.app's account-usage-only test passed
+    1/1 and reconciled the observed 10,000-credit limit/remaining and OPRA
+    delayed-15-minute entitlement. Both receipts are `not_current_source`
+    because this worktree is dirty. Alpha Vantage's listing-status read passed
+    one case with 14,483 active records and no OTC venue label; the CSV remains
+    non-authoritative for the complete OTC universe. Nasdaq NMS preflight sent
+    zero requests because the client-owned two-request daily pool lacks
+    headroom; Finnhub preflight sent zero because its second/minute baselines
+    are unknown. The 17:33:30Z all-provider preflight evaluated 26 providers,
+    sent zero requests, and reported 91 quota/cost/baseline findings, 15 live
+    safety/rights findings, 17 unresolved operation dispositions, and five
+    missing ORF environment inputs. These are overlapping counts, not unique
+    blocker totals. The declared Docker-backed full backend gate separately
+    passed 2,951/2,951 with 82.29% coverage; this full provider matrix remains
+    blocked before transport and is not accepted.
+  - >-
+    Historical 2026-10-06 snapshot: Binance's keyless crypto manifest passed
+    3/3 with five HTTP requests and 17,685,466 response bytes retained
+    privately. The then-current full 26-provider preflight at 17:39:36Z found the private quota
+    ledger read-only under the restricted shell; an elevated network-disabled
+    retry opened the same ledger at 17:41:01Z and sent zero provider requests.
+    That historical matrix was blocked by 91 quota/cost/baseline findings,
+    15 safety/rights findings, 17 unresolved operations, and five FINRA ORF
+    inputs (overlapping categories). Alpha Vantage's one-second/minute
+    baselines remain unknown, so no extra call was made despite the owner's
+    no-outside-use report. Later evidence supersedes its ORF finding: the
+    FINRA Query API OTC security-master route is now selected and live-verified;
+    ORF is optional and requires no owner action for the current plan.
+  - >-
+    2026-10-04 provider-specific data-rights audit found missing persistent
+    ingestion gates for Finnhub, Marketstack, and EODHD. Finnhub's public plans
+    identify personal-use licensing but do not establish this application's
+    automated display or post-termination archive rights. Marketstack's
+    service agreement ends all licenses and bars further Content use at
+    termination; its FAQ identifies Tiingo as the licensed US-equity source,
+    so an app archive requires rights covering both provider and upstream
+    source. EODHD's personal terms permit private storage/manipulation/analysis
+    but explicitly prohibit displaying or granting access to the data, while
+    this app's market-data surfaces display it; no public post-termination
+    retention right was found. Added distinct default-false written authority
+    gates for each provider, including audience, automated/internal display,
+    and perpetual archive scope. EODHD account-usage inspection remains a
+    separate non-persisting quota bootstrap operation. These three providers
+    remain non-routable until exact current written authority is recorded.
+    Sources:
+    https://api.finnhub.io/pricing-crypto-api,
+    https://marketstack.com/agreement,
+    https://marketstack.com/faq,
+    https://eodhd.com/financial-apis/terms-conditions,
+    https://eodhd.com/financial-apis/commercial-vs-personal-license-use.
+  - >-
+    2026-10-04 expanded rights audit found additional provider gaps and added
+    source-specific fail-closed controls for Alpaca, Alpha Vantage, Binance,
+    Kraken (including its xStocks adapter), and Nasdaq Trader. Alpaca's Basic
+    terms describe personal/non-commercial use and bar copying for publication,
+    distribution, or commercial enterprise absent written consent, but do not
+    expressly resolve this application's perpetual server-side archive.
+    Alpha Vantage grants private/individual personal non-commercial platform
+    use under a revocable license; the current EULA does not expressly grant a
+    permanent response database or retention after access ends. Binance's
+    current developer guide supports applications, automated workflows,
+    dashboards, and internal services, but reviewed sources do not expressly
+    grant permanent local archive rights. Kraken API guidance requires prior
+    permission for certain API uses, while Global Terms restrict automated
+    activity on Content and third-party applications absent written consent.
+    Nasdaq Trader describes symbol data as internal non-commercial unless
+    separately licensed; the public material does not expressly cover this
+    app's automated daily database retention. Ordinary data routes now require
+    exact written authority; Alpaca and Binance usage/header-control reads are
+    separately exempt when they persist only quota evidence. SEC EDGAR public
+    filing content is explicitly free to access and reuse, subject to fair
+    access; OpenFIGI states FIGI symbology has no reuse restrictions, so those
+    sources retain their source-specific, not generic, controls. Sources:
+    https://files.alpaca.markets/disclosures/library/TermsAndConditions.pdf,
+    https://www.alphavantage.co/terms_of_service/,
+    https://developers.binance.com/en/docs/introduction,
+    https://docs-legacy.kraken.com/api/docs/guides/global-intro/,
+    https://www.kraken.com/legal/global-terms,
+    https://nasdaqtrader.com/trader.aspx?id=symbollookup,
+    https://www.ctaplan.com/publicdocs/ctaplan/CQS_Pillar_Output_Specification_ETH.pdf,
+    https://www.iso20022.org/market-identifier-codes,
+    https://www.sec.gov/about/webmaster-frequently-asked-questions,
+    https://www.openfigi.com/about/faq.
+  - >-
+    2026-10-04 official provider-terms clarification: the first-party terms
+    were checked against the current storage gates. FRED API terms prohibit
+    API-connected software/system development and AI/ML use, and separately
+    prohibit storage/cache/archive/database incorporation; every FRED series
+    may also carry third-party-owner rights. FMP's published 2023-08-01 terms
+    require prior written approval to copy/download, limit self-service use to
+    personal/non-commercial activity, terminate data-use rights with the
+    subscription, require deletion on termination, and require notification
+    of IP/domain aliases where data is stored/processed. CoinGecko section 6
+    permits conditional active-term storage (refresh at least every 24 hours
+    and strong encryption), but requires prompt permanent deletion of all
+    stored provider data when access ends; because the product explicitly
+    requires a complete durable archive and has no provider-wide termination
+    erasure, its stricter written retention gate remains closed. Tiingo Starter
+    and Trial prohibit any durable storage; paid plans require deletion across
+    primary stores, logs, queues, archives, backups, and disaster recovery on
+    expiration/cancellation/termination/downgrade unless a separate written
+    retention agreement applies. Massive Individual terms limit use to
+    personal/non-business display, restrict non-display/derived strategies
+    absent a license, and require deletion if access is terminated, restricted,
+    or suspended. Existing provider-specific fail-closed gates remain correct;
+    no provider requests were made. Sources:
+    https://fred.stlouisfed.org/legal/,
+    https://site.financialmodelingprep.com/terms-of-service,
+    https://www.coingecko.com/en/api_terms,
+    https://app.tiingo.com/tos/,
+    https://massive.com/terms/market_data_terms.pdf.
+  - >-
+    2026-10-04 CoinGecko Demo entitlement, durable-retention, and identity gap:
+    current pricing lists 100 calls/minute and 10,000 monthly credits, while an
+    older public FAQ still says 30 calls/minute. The provider contract records
+    that discrepancy, uses a stricter rolling 60-second local envelope, and
+    does not assume an unpublished native reset boundary. Monthly credits reset
+    on the first calendar day; the documented Pro `/key` usage operation is
+    not presumed available to Demo. CoinGecko's terms/pricing do not establish
+    this application's persistent automated archive and post-termination
+    retention rights, so routing now requires exact written authority for
+    application use, archive, audience, attribution, and retention/deletion.
+    Discovery page snapshots now preserve each complete native market row and
+    CoinGecko ID, but canonical identity promotion still does not consume that
+    provider-native ID; discovery stays deferred to prevent same-ticker token
+    collisions. No provider call was made. Sources:
+    https://www.coingecko.com/en/api/pricing,
+    https://support.coingecko.com/hc/en-us/articles/4538771776153-What-is-the-rate-limit-for-CoinGecko-API-public-plan,
+    https://support.coingecko.com/hc/en-us/articles/16760509234713-When-does-my-request-volume-monthly-API-credit-reset,
+    https://www.coingecko.com/en/api_terms.
+  - >-
+    2026-10-04 Coinbase's current US Market Data Terms (updated 2026-08-07)
+    prohibit use in AI/ML development, validation, or operation without prior
+    express written consent. The terms also do not establish this application's
+    durable archive/retention rights. Coinbase therefore remains non-routable,
+    including for AI-orchestrated ephemeral live tests, until provider-written
+    authority explicitly covers the intended AI-related automation, private
+    audience, persistent retention, and non-redistribution. The runtime now
+    rejects generic automated-storage scope and requires
+    `internal_ai_automated_persistent_nonredistributed`. No Coinbase API call
+    was made. Source: https://www.coinbase.com/legal/market_data?country=US&currency=USD.
+  - >-
+    2026-10-04 Twelve Data usage-contract follow-up: the first-party generated
+    Node SDK response model documents `current_usage`/`plan_limit` and optional
+    `daily_usage`/`plan_daily_limit` fields as request counts. The adapter now
+    persists these as separate request-count observations alongside the
+    header-backed API-credit observation. This closes the response-field
+    discovery gap, but not the unit-mapping gap: public sources reviewed do
+    not establish that these request counts equal the weighted 8/minute and
+    800/day credit pools on Basic. The provider account-usage probe itself
+    costs one credit; it remains blocked until its daily credit debit can be
+    safely admitted. Request counters are not reconciled into credit routing.
+    No Twelve Data request was made for this follow-up. Sources:
+    https://github.com/twelvedata/twelvedata-node/blob/master/src/models/GetApiUsage200Response.ts,
+    https://support.twelvedata.com/en/articles/5713553-control-over-api-usage,
+    https://support.twelvedata.com/en/articles/5615854-credits.
+  - >-
+    2026-10-04 FRED API user-key boundary audit: official key guidance requires
+    a distinct API key per application and each application user to use their
+    own key. FRED's current Services Terms also require user-facing terms and
+    non-endorsement/privacy disclosures for applications serving other users;
+    current terms separately prohibit software/system-development and AI/ML-
+    connected use plus persistence/cache/archive/database incorporation absent
+    prior written permission, while third-party series owners retain separate
+    rights. This backend has only one server-configured key and no per-user key
+    or disclosure flow, so an explicit owner-only personal-use scope is now
+    required in both runtime and live preflight; multi-user FRED remains
+    disabled. The published v1 threshold remains 120 requests/minute before
+    429, but scope/reset remain unpublished and are still not inferred. No
+    FRED request was made. Sources:
+    https://fred.stlouisfed.org/docs/api/api_key.html,
+    https://fred.stlouisfed.org/docs/api/terms_of_use.html,
+    https://fred.stlouisfed.org/legal/,
+    https://fred.stlouisfed.org/docs/api/fred/errors.html.
+  - >-
+    2026-10-04 post-focused-run full preflight at 2026-10-04T05:42:14Z stopped
+    before transport with 0/0 selected cases; the current candidate is dirty,
+    so result is `not_current_source`. It reports 80 provider-specific
+    quota/cost/baseline records, 11 required live-capability safety records,
+    and 21 unresolved capability operations. These sections overlap; 112 is
+    a record total, not unique blockers. Compared with the pre-test report,
+    EODHD's remaining profile-operation reservation and Nasdaq's explicit
+    two-request-per-market-day cap now block additional reads. The six
+    separately admitted suites passed 24/24 cases with 34 requests; those
+    calls are reflected in the shared ledger and have separate workstream
+    receipts. Do not repeat EODHD/Nasdaq calls until their applicable windows
+    reset and usage is reconciled. Full current-source provider acceptance,
+    remaining safe live cases, all external rights/source and jurisdiction
+    gates, target secret stores, complete venue reconciliation, and the later
+    shadow phase remain open.
+  - >-
+    2026-10-04 current dirty-candidate full live-matrix preflight at
+    2026-10-04T05:35:56Z stopped before network transport: 0/0 cases,
+    providers_selected=[], and no missing environment-variable names. It
+    reports 78 provider-specific quota/cost/baseline records, 11 required live
+    capability safety records (10 non-routable; EDGAR's contract is verified
+    while its active-use baseline remains unknown), and 21 unresolved
+    capability operations. These sections overlap; 110 is their record count,
+    not unique blockers. No provider API requests were made. This is diagnostic
+    only because the source tree is dirty. External use-right/source/egress
+    evidence, current shared-use baselines, target secret stores, bounded
+    operations, complete venue reconciliation, and the later shadow phase
+    remain unresolved.
+  - >-
+    2026-10-03 current first-party terms audit: Tiingo Starter/Trial prohibits
+    persistent storage and requires deletion when the plan ends absent written
+    retention rights; FMP prohibits content copying/downloading without prior
+    written approval. MarketData.app requires deletion of downloaded data when
+    its subscription ends; its terms also make professional classification
+    depend in part on the nature of research/monitoring use. Twelve Data limits
+    storage to subscription/tier terms, requires deletion within 30 days after
+    expiration/termination, and its Basic Free pricing lists internal
+    non-display use rather than display. Added default-false, provider-specific
+    durable-ingestion gates for all four services; MarketData.app and Twelve
+    Data gates include internal display/non-display and post-termination
+    retention in the required written scope. All four remain non-routable for
+    persistent ingestion absent provider-written authority. Account-usage
+    reads and direct live probes are explicitly separated where they do not
+    persist provider response bodies. Focused registry/secret/live-runner tests
+    passed 103/103; new runtime archive-route regressions passed 4/4; Ruff
+    passed. The current dirty-candidate full preflight at 2026-10-03T12:16:42Z
+    stopped before transport at 0/0 with 81 quota/cost/baseline blockers, 10
+    required live safety gates, and 21 unresolved capability operations. No
+    provider requests were made during this audit/implementation. Rights remain
+    unavailable for these account plans, so durable ingestion and the full
+    provider acceptance matrix remain blocked.
+  - >-
+    2026-10-03 resumed implementation and current-candidate validation:
+    corrected account-usage bootstrap so only native-response-mapped dimensions
+    can be omitted from the pre-call quota debit; unreported metered pools now
+    block before transport unless an exact baseline/local-zero policy exists.
+    Twelve Data's one-credit `/api_usage` call is correctly blocked when its
+    unreported `credits_per_day` baseline is unknown. Focused quota/runtime
+    tests passed 97/97; live-runner/quota-contract tests passed 166/166; the
+    non-ETF unit inventory passed 1,967/1,967; Docker PostgreSQL/Redis passed
+    386/386. Bounded dirty-candidate live evidence passed Alpaca 7/7, Binance
+    3/3, OpenFIGI 3/3, MarketData.app 7/7, EODHD 3/3, and Nasdaq's complete
+    directory/pagination case 1/1. These are not committed-source acceptance
+    receipts. The latest full manifest preflight at 2026-10-03T12:16:42Z
+    stopped at 0/0 with zero new requests: 81 quota/cost/baseline rows, 10
+    safety/rights gates, and 21 unresolved capability operations. EODHD lacks
+    enough daily
+    credits for its high-cost profile-denial probe; Nasdaq's explicit
+    two-request/day client cap is exhausted. One earlier Twelve Data usage
+    probe consumed one documented daily credit that was not represented in the
+    old quota reservation; any operator baseline must include that request.
+    First-party documentation review corrected a stale FMP reset assumption:
+    current guidance says its 250-call/day allowance has no single reset time
+    that can be promised to every account, so the code seed now retains
+    `provider_defined` and requires the current account dashboard boundary
+    before routing. Its free bandwidth pool remains 500 MB over a trailing 30
+    days (reserved as 500,000,000 decimal bytes). Tiingo's current Starter cap
+    is 1 GB/month, not the earlier 2 GB estimate. Marketstack's pricing page
+    confirms the conservative 100 free requests/month and its FAQ specifies
+    per-ticker request charging, while that FAQ still conflicts elsewhere at
+    1,000/month and does not disclose the monthly reset anchor. Documentation
+    review caused no provider requests. On the corrected candidate, the
+    focused quota-contract/secret-wiring suite passed 143/143, the full
+    non-ETF unit inventory passed 1,967/1,967, Docker PostgreSQL/Redis passed
+    386/386 in 832.29 seconds, workflow tests passed 47/47, and Ruff, diff,
+    and workstream validation passed. No commit is permitted until the full
+    staged-candidate live matrix passes.
+  - >-
+    2026-10-02 branch tip `65a467b43d7830b0875d9c3ad538e47a06d4a6db` has
+    exact-base EODHD live evidence `3/3` (7 requests; 7,596,154 bytes) and the
+    explicitly authorized Dinari Sandbox canary `1/1` (14 requests). A fresh
+    current-working-tree run passed the non-ETF-owned unit selection
+    `1,922/1,922` (37 warnings; ETF-holdings-owned tests excluded), Docker
+    PostgreSQL/Redis integration `386/386` (57 warnings), workflow `47/47`,
+    frontend unit/visual checks `923/923`, both visual contracts, Ruff, diff
+    check, and 30-record workstream validation. The prior `1,967` headline is
+    not the count for this explicit non-ETF test selection. Resource audit
+    reported zero containers, testcontainer sessions, volumes, and known
+    bytes. The exact-base full provider matrix stopped before transport at
+    `0/0`: 80 quota/cost/baseline blockers, 7 rights/capability-safety gates,
+    and 21 unresolved capability live cases.
+  - >-
+    2026-10-02 seeded full-stack browser run at exact product source
+    `65a467b43d7830b0875d9c3ad538e47a06d4a6db` completed 151 passed, 106
+    skipped, and 3 failed of 260. The failures were the chart-template Remove
+    RSP click intercepted by the plot-library overlay, a coverage-limited
+    freshness test timing out while waiting for its mocked technical response,
+    and one `ERR_NETWORK_CHANGED` navigation. No frontend source was changed.
+    Only this worktree's stack was stopped; resource inspection then reported
+    zero containers, volumes, testcontainer sessions, and known bytes.
+  - >-
+    2026-10-02 SEC policy audit found that the local adapter modeled the
+    documented 10-requests/second ceiling but omitted the SEC's stated
+    ten-minute below-threshold recovery after a rate block, and live safety
+    output incorrectly called the contract "routable" while the durable
+    active IP baseline was unknown. A provider-specific 600-second cooldown,
+    recognized SEC rate-threshold 403 handling, accurate preflight wording,
+    documentation, and regressions are implemented in the current uncommitted
+    working tree. The focused quota/runner suite passed 166/166; the fresh
+    current-working-tree non-ETF-owned unit selection passed 1,922/1,922,
+    Docker PostgreSQL/Redis integration passed 386/386, workflow tests passed
+    47/47, and frontend unit/visual checks passed 923/923. Do not commit this
+    integration change until the exhaustive staged-candidate live suite can
+    run and pass. The exact-base SEC-specific live probe stopped before
+    transport at 0/0 because the shared IP active usage baseline remains
+    unknown.
   - >-
     2026-10-02 exact pushed source c4352c3d3 reran the full provider live
     preflight after the tokenized pagination correction. It stopped before
@@ -722,8 +1280,10 @@ remaining_gaps:
     (including the intentional zero-request guard for unbounded response-priced
     history), and the explicitly capped Dinari Sandbox canary passed `1/1`
     with 14 requests and 120,335 bytes. Receipts are redacted and durable in
-    `validation.jsonl`; Dinari remains non-routable/non-persisting because its
-    Sandbox quota and commercial/redistribution terms are unpublished. All
+    `validation.jsonl`; Dinari remains non-routable because its Sandbox quota
+    and commercial/redistribution terms are unpublished. Its canary response
+    payloads are retained in the owner-private response archive, not discarded.
+    All
     provider-contract/legal/capability, complete NMS/OTC/SEC universe,
     external secret-store, deferred-provider, publication, and final-shadow
     gates remain open.
@@ -1389,17 +1949,18 @@ remaining_gaps:
     156/156 and the complete backend unit gate passes 2,358/2,358 with 37
     warnings at 70.78% coverage.
   - >-
-    EODHD's conflicting official minute-pool claims (20/minute on the Free
-    Starter card versus 1,000/minute on the general limits page), plus the
-    configured account's native 1,200/minute header, are represented
-    explicitly rather than enforced as a confirmed account limit.
-    `EODHD_REVIEWED_MINUTE_LIMIT`,
-    `EODHD_REVIEWED_MINUTE_RESET`, and `EODHD_MINUTE_QUOTA_EVIDENCE` must all
-    be present before ordinary history/profile/quote/discovery routing can be
-    admitted. The native `/user` bootstrap remains eligible only for the
-    independently documented daily pool; its explicitly allow-listed unknown
-    minute dimensions are never treated as zero; a positive reviewed
-    provider-native limit is accepted without an arbitrary upper cap. Commits
+    The detailed EODHD API-limits page documents 1,000 HTTP requests/minute
+    and per-minute resets; a fresh 2026-10-14 response from the configured key
+    reported `X-RateLimit-Limit=1200` and `X-RateLimit-Remaining=1199`. The
+    Free Starter pricing card still conflicts at 20/minute. The checked-in
+    default now uses the documented 1,000/minute ceiling and retains native
+    headers as observations without dynamic widening. This key may use 1,200
+    only through the explicit `EODHD_REVIEWED_MINUTE_LIMIT`,
+    `EODHD_REVIEWED_MINUTE_RESET`, and `EODHD_MINUTE_QUOTA_EVIDENCE` override.
+    Daily weighted credits remain 20/day with a midnight-GMT reset; current
+    EODHD account usage headroom is still below the full 16-call live suite,
+    and the 10-credit Fundamentals entitlement case remains separately
+    blocked by available daily credits. Commits
     `d190251d1` and
     `b97533bf8` also fix
     the live reservation planner so this bounded exception is actually
@@ -1741,12 +2302,21 @@ remaining_gaps:
     adapter validates/merges both pipe-delimited snapshots with duplicate and
     status checks. The adapter now follows the documented TRAQS refresh-token
     and POST-download contract; Gateway client credentials are not reused for
-    ORF. The pair still requires an ORF Web Access Agreement, MFA, product
-    entitlement, exact source/terms/redistribution review, and an
-    operator-provided two-file operation-cost bound; no ORF request or routing
-    is enabled by this implementation. OTC Markets' overnight specification
-    remains a separate commercial candidate. The legacy `otcSecurityMaster`
-    parser is not promoted by the ORF support.
+    ORF. Current public standard terms restrict the Web Access Agreement to
+    internal ORF processing and prohibit populating reference-data databases
+    for distribution. The separate vendor agreement does not expressly grant
+    post-termination perpetual retention, and CUSIPs require a separate CGS
+    license unless the account receives an explicitly confirmed no-CUSIP
+    variant. The adapter's new default-false archive gate accepts only the
+    exact `written_single_user_automated_internal_display_perpetual_archive`
+    scope; ORF routing also requires documented CUSIP/no-CUSIP evidence and
+    rejects unlicensed CUSIP rows as a whole-response error. Owner-dependent
+    TRAQS/MFA/product entitlement, provider-written archive authority, CUSIP
+    status, exact source/terms/redistribution review, and an operator-provided
+    two-file operation-cost bound remain open; no ORF request or routing is
+    enabled. OTC Markets' overnight specification remains a separate
+    commercial candidate. The legacy `otcSecurityMaster` parser is not
+    promoted by the ORF support.
   - >-
     Massive's official free Stocks Basic terms are personal,
     non-business/non-commercial, and non-redistributed. The implementation now
@@ -1795,7 +2365,7 @@ remaining_gaps:
     probe passed; event routing remains subject to the free-plan corporate-
     action entitlement and redistribution terms, not a local page bound.
   - the latest lock-protected live matrix on 2026-09-13 collected 47 cases and passed 41 after using the existing owner-managed credentials. The six honest outcomes were Alpha Vantage's typed documented 25-requests/day capacity response for IPO-calendar and both earnings reads plus exact intentional credential preflights for Tradier, IBKR, and Ondo. All other configured provider and public tokenized probes produced positive bounded transport observations; the safety preflight still reports FRED, FINRA OTC, Nasdaq, xStocks, Bybit, Marketstack discovery, MarketData.app plan/options, and Tiingo/FMP byte-map controls as non-routable until reviewed. The runner returned exit code 2 and made no acceptance claim. Each environment must configure its own SEC contact value.
-  - the checked-in manual GitHub live workflow is environment-scoped and fail-safe, but the `jagnelo` `provider-live-validation` environment cannot currently be inspected or populated from this session because the local `gh` credential is invalid for `jagnelo-symbiotech`; owner authentication is required before GitHub secret/variable presence can be verified
+  - the checked-in manual GitHub live workflow is environment-scoped and fail-safe, but the `jagnelo` `provider-live-validation` environment cannot currently be inspected or populated from this session because the local `gh` credential is invalid for `an account without repository access`; owner authentication is required before GitHub secret/variable presence can be verified
   - IBKR's concrete read-only Client Portal Gateway adapter is fixture-covered and wired through local/RPi/GitHub configuration. Its generic conid history path now explicitly advertises documented futures history, including the expired-futures two-year provider limit; live evidence remains blocked until an operator supplies the gateway URL and interactive session cookie, and automated gateway login/options methods remain intentionally out of scope
   - Dinari and Ondo Global Markets are now concrete fixture-covered tokenized adapters. Dinari exposes UUID metadata, fair price/quote, aggregate history, news, dividends, splits, and the generic corporate-action surface; its replacement Sandbox pair now has positive live evidence after the operator-only base URL was corrected to the documented Sandbox host. Ondo exposes metadata, indicative price, a primary/underlying market summary, and validated primary/underlying OHLC but still lacks its exact credential. Both remain non-routable because account quotas, caching, commercial/US eligibility, and redistribution terms are not yet fully verified.
   - Historical context only: the post-change live attempt at 2026-09-10T14:29Z collected 37 tests before the newly supplied Alpaca, MarketData.app, and Dinari Sandbox credentials were configured. The available provider probes recorded only aggregate request/byte telemetry outside Git; Dinari and Ondo stopped at their exact credential preflights in that run. The superseding 2026-09-11 matrix is recorded below; no historical run is treated as current acceptance evidence.
@@ -1921,8 +2491,408 @@ remaining_gaps:
       provider baselines, legal/source admission, deployment secret stores,
       complete venue reconciliation, routing promotion, and the final shadow
       phase remain open.
+  - >-
+    2026-10-04 extension of the provider-specific data-rights audit closed a
+    route-control gap for registered Robinhood Stock Token, Gate TradFi,
+    Tradier, IBKR, Ondo Global Markets, and legacy yfinance adapters. Robinhood
+    documents portfolio-tracker display and a 60 req/s endpoint limit, but its
+    limited/revocable/terminable license does not establish post-termination
+    archive rights. Gate API terms permit app display only while active and
+    terminate all rights plus require destruction on termination. Tradier
+    publicly says non-partner API entitlements are personal-use only, and
+    upstream exchange terms retain proprietary interests. IBKR uses
+    exchange-specific subscriber agreements. Ondo requires API onboarding,
+    advertises display-oriented market/ohlc data, and its public terms do not
+    authorize indefinite archive. Yahoo's current US terms prohibit automated
+    collection absent express prior permission, so an explicit legacy switch is
+    not a data-use grant. Each adapter now requires independently reviewed,
+    provider-specific written permission for automated internal use, relevant
+    upstream rights, and a permanent archive; all are default-false and no
+    provider was enabled or called. Tradier, IBKR, and Ondo remain explicitly
+    owner-deferred. Sources: https://docs.robinhood.com/chain/stock-token-apis/,
+    https://docs.robinhood.com/chain/stock-tokens/,
+    https://docs.robinhood.com/chain/terms-of-service/,
+    https://www.gate.com/en-us/legal/user-agreement,
+    https://docs.tradier.com/docs/faq,
+    https://docs.tradier.com/docs/market-data,
+    https://s3.amazonaws.com/documents.tradierbrokerage.com/tbi/nyse_agreement-06022021.pdf,
+    https://www.interactivebrokers.com/en/accounts/forms-and-disclosures-market-data.php,
+    https://docs.ondo.finance/api-reference/overview,
+    https://docs.ondo.finance/legal/terms-of-service,
+    https://legal.yahoo.com/us/en/yahoo/terms/otos/index.html.
 progress:
   completed:
+    - >-
+      2026-10-09 provider-specific continuation: CoinGecko Demo's Pro-only
+      `/key` usage endpoint is explicitly unavailable, not retried; the Demo
+      manifest passed search/profile/universe `3/3` (4 requests, 258,391
+      bytes). Twelve Data Basic quota accounting now distinguishes weighted
+      8 credits/minute from 800 API requests/day; its native usage snapshot is
+      first in the live manifest and the complete bounded suite passed `2/2`
+      (6 requests, 183,855 bytes). Fixed ISO-string baseline timestamp handling
+      in quota diagnostics. Focused tests and Ruff/format pass. The
+      `2026-10-09T08:21:17Z` zero-request full preflight now admits 12 and holds
+      14 of 26 with no missing credentials or global coordinator failure.
+      Receipts remain `not_current_source` because the worktree is dirty.
+    - >-
+      2026-10-09 full backend gate passed `2,646/2,646` unit tests and
+      `388/388` Docker integration tests (`3,034` total) at `82%` combined
+      coverage. Stale Twelve Data usage-fixture and CoinGecko Demo account-usage
+      inventory assertions were corrected; focused tests and `git diff
+      --check` passed. EODHD native usage passed `1/1` after a clear
+      account-usage preflight, but EODHD's full manifest remains held because
+      the current daily headroom is below its `15`-unit reservation. The full
+      provider preflight still has 12 eligible and 14 held, with no missing
+      local credentials or global coordinator blocker. Current candidate is
+      dirty; no exact committed-source/all-provider live acceptance claim.
+    - >-
+      2026-10-09 FMP quota audit: official sources confirm the Basic 250-call
+      daily pool and 500 MB trailing-30-day bandwidth pool; current values are
+      dashboard-only, with no documented public usage endpoint found. The
+      dashboard browser check had no authenticated session, so no account
+      values were guessed and no API request was sent. The owner's current
+      dashboard counters are needed for FMP while independent provider work
+      continues.
+    - >-
+      2026-10-09 FMP quota/reset correction and current full validation: replaced
+      the false unresolved-reset/rolling-24-hour assumption for FMP Basic with
+      the documented 15:00 EST (UTC-05:00) daily reset; updated quota usage
+      boundary diagnostics to preserve the fixed standard-time UTC offset
+      year-round rather than applying daylight-saving shifts. The
+      focused quota/registry/account-usage suites passed 179/179. The complete
+      Docker backend gate passed 2,647 unit + 388 integration tests (3,035
+      total) at 82% coverage, with safe scoped cleanup. The fresh zero-request
+      full-provider preflight, run with access to the shared quota ledger,
+      admitted 12 and quarantined 14 of 26, with no missing local credentials
+      and no global ledger blocker. It is not all-provider live acceptance.
+      Remaining provider holds are account usage/headroom, incomplete
+      Dinari/FMP/Marketstack/Massive quota or operation-cost controls, and
+      Bybit/xStocks deployment-egress evidence. FMP current daily calls and
+      trailing bandwidth are still dashboard-only; the owner readout is
+      requested, while other provider work remains autonomous.
+    - >-
+      2026-10-09 exact reset correction and final gate: FMP documents `3 PM
+      EST`, and the FAQ defines EST as UTC-05:00. The provider uses fixed
+      `15:00 UTC-05:00` (20:00 UTC year-round), not a daylight-saving-aware
+      New York reset. Focused quota, registry, account-usage, and usage-display
+      tests passed 196/196; Ruff, format, and diff checks passed. The complete
+      Docker gate passed 2,647 unit and 388 integration tests (3,035 total) at
+      82% coverage. Integration took 727.37 seconds; scoped cleanup removed no
+      containers or images. The refreshed no-network preflight again admitted
+      12 and quarantined 14 of 26 with zero provider requests, no missing local
+      credentials, and no global ledger blocker. FMP remains held for current
+      dashboard balances; its reset contract is resolved.
+    - >-
+      2026-10-09 Dinari public-contract research: official Stock Data,
+      Quickstart, and Fees documentation confirms free Sandbox access, data
+      endpoints for stocks/history/quotes/news/splits/dividends, best-effort
+      data quality guidance, and production API access starting at $2,000 per
+      month. The official sources reviewed publish no Sandbox rate/quota
+      windows, reset boundary, endpoint costs, or native usage counter. No
+      Dinari request was sent. Keep its Sandbox canary non-routable until an
+      account-specific quota profile is evidenced; production remains disabled
+      under the low-cost scope.
+    - >-
+      2026-10-09 supplemental validation: Alpaca 7/7, Binance 3/3, FINRA 2/2,
+      FINRA OTC Query API 1/1, MarketData.app 7/7, and OpenFIGI 3/3 (23/23,
+      35 requests, 32,203,226 bytes); EDGAR 5/5 (9 requests, 7,999,101 bytes);
+      Nasdaq full official directory 1/1 (2 requests, 892,411 bytes). Across
+      these eight live-eligible provider suites: 29/29 cases, 46 requests, and
+      41,094,738 response bytes, with no failures or skips. Receipts remain
+      `not_current_source` while the checkout is dirty. The combined backend
+      gate passed 2,637/2,637 unit plus 388/388 Docker integration tests
+      (`3,025` total), 82% coverage (`66,688` statements; `11,775` missed),
+      with scoped cleanup. The post-test zero-request preflight at 04:44:13Z
+      evaluated all 26 providers, admitted seven, quarantined 19, and found 108
+      overlapping quota/cost/baseline findings plus five safety findings.
+      Nasdaq was safely returned to quarantine after its reviewed two-request
+      daily pool was consumed by its passing directory test. The durable
+      coordinator was ready and no credential environment names were missing.
+      Stale ORF owner-action text was corrected: ORF/TRAQS is optional, not a
+      dependency for the FINRA Query API OTC path.
+    - >-
+      2026-10-09 SEC EDGAR admission and pagination completion: revalidated
+      the official 10-requests/second per-IP ceiling and 600-second recovery
+      behavior, then distinguished the application's durable, coordinator-
+      measured request budget from any native SEC remaining-usage counter
+      (none is published). EDGAR's exact 10/sec ceiling remains IP-scoped;
+      only platform-generated requests are represented in the shared ledger.
+      Added an explicit `application_usage_only` baseline mode for that exact
+      EDGAR pool and taught live preflight to accept only such explicit
+      provider declarations. Added exact per-test operation mappings for all
+      five EDGAR manifest cases. The full EDGAR live suite passed 5/5 across
+      9 measured HTTP requests and 7,999,101 response bytes; the previously
+      missing ticker/exchange snapshot fingerprint is now SHA-256 over the
+      normalized complete directory and is stable across its pages. The full
+      preflight now admits seven providers and quarantines 19, reducing
+      provider-specific findings from 110 to 103, with zero requests during
+      preflight. The live receipt is `not_current_source` because the checkout
+      is dirty, so it is transport/schema evidence rather than exact-source
+      acceptance. Focused tests, Ruff, and formatting pass; a new full Docker
+      backend gate is required after these application changes.
+    - >-
+      2026-10-06 fixed a FINRA live-runner safety mismatch: synchronous
+      short-interest and Daily List cases now consult their exact operation-
+      scoped registry controls instead of treating the explanatory
+      "no owner storage approval needed" summary as a failed routability
+      status. This honors the owner's final private-storage authorization
+      while preserving FINRA's independent quota, source, credentials, and
+      provider-use checks. Regression and provider-registry tests passed
+      97/97; Ruff check/format and `git diff --check` passed. An elevated,
+      transport-disabled preflight now reports only the real unknown
+      per-minute request and per-calendar-month byte baselines for the two
+      synchronous operations, with zero FINRA requests. The same preflight
+      confirms separate ORF TRAQS credentials/terms/quota/source gates remain.
+    - >-
+      2026-10-06 corrected EODHD live-runner safety to evaluate an
+      account-usage-only probe against `fetch_account_usage` controls rather
+      than the broader market-data display-rights gate. The registry already
+      exempted this account metadata operation, so this removes an accidental
+      quota-bootstrap deadlock without relaxing data-bearing EODHD routes.
+      Owner-authorized usage-only preflight passed with zero requests, then the
+      exact live account-usage case passed 1/1 and reconciled provider-native
+      request-window usage through the durable coordinator. No market data
+      was fetched; its receipt is `not_current_source` because the worktree is
+      dirty. The live-runner, provider-registry, and account-usage suites
+      passed 111/111; Ruff, formatting, and diff checks passed.
+    - >-
+      2026-10-06 Dinari Sandbox canary isolation correction: successful and
+      failed canary responses are no longer appended to the private raw-body
+      archive. Durable quota reservations and redacted transport/usage
+      measurements remain intact; the per-process request cap still counts
+      every outbound call. A regression covers both response paths, and the
+      canary still cannot run without its account-reviewed quota profile and
+      current durable baseline. The tokenized-provider, live-runner, and
+      live-usage unit suites passed 183/183; Ruff, format, and diff checks
+      passed. No Dinari request was made.
+    - >-
+      2026-10-06 corrected the Alpha Vantage quota reset test so a reviewed
+      calendar-day reset resolves only the daily reset boundary and preserves
+      the unknown per-second and per-minute boundaries. The complete provider
+      registry test file passed 31/31 with exit code 0 when run without the
+      repository's default coverage/report addopts. Revalidated FINRA provider
+      and ORF fixture behavior: 70/70 tests passed with exit code 0 under the
+      same focused configuration. Refreshed the official ORF agreement audit
+      and updated operator docs/workstream: Vendor account applicability,
+      five-year access/use recordkeeping and audit availability, and broad
+      indemnity need explicit FINRA clarification for this individual private
+      app. No FINRA or Alpha provider request was sent. ORF entitlement, terms,
+      OTC completeness, current-source full live matrix, and full integration
+      gates remain open.
+    - >-
+      2026-10-04 full seeded browser acceptance replay completed against the
+      exact branch Compose stack with provider egress denied: 150 passed, 109
+      skipped, and one frontend interaction failure in
+      `tests/e2e/flows.spec.ts:257` (`F9c-template-comparison`). The `Remove
+      RSP` click timed out because the chart `Plots 0` control intercepted
+      pointer events; Playwright error context, screenshot, and video are
+      retained under `frontend/test-results/` for that case. Frontend source
+      changes are outside this branch's scope, so no fix was made. The exact
+      isolated stack was fully torn down with no host-wide prune, retained
+      volumes, or test-container sessions. Provider egress was denied and no
+      provider HTTP requests were made. This is not a green browser gate.
+    - >-
+      2026-10-04 read-only inspection of the owner-only durable quota SQLite
+      ledger confirmed cross-session account observations and same-window
+      local debits: MarketData.app's configured 10,000-credit daily window
+      had 29 local credits recorded, and EODHD's 20-call daily window had 15
+      calls recorded, both through approximately 05:39 UTC. Recent provider-
+      specific observations also exist for Alpaca, Binance, OpenFIGI, and
+      Nasdaq. These counters are stale by the current review time and cannot
+      establish activity in CI/deployment or other clients. The ledger was
+      inspected read-only, without provider HTTP.
+    - >-
+      2026-10-04 FINRA ORF archive admission now requires the exact
+      single-user automated/internal-display/perpetual-retention authority
+      scope; generic archive approval is rejected. ORF admission also requires
+      explicit CUSIP-license or account no-CUSIP evidence, while any returned
+      unlicensed CUSIP fails the full response. Reconciled the gate to FINRA's
+      public agreement/specification. Focused provider tests pass 197/197,
+      Docker PostgreSQL/Redis integration passes 388/388 in 721 seconds
+      (57 warnings; integration-only coverage is not the combined threshold),
+      workflow tests pass 50/50, workstream validation passes for 30 records,
+      Ruff/format/diff checks pass, and no provider request was made. Added a
+      narrow validator compatibility rule for one existing structured
+      aggregate checkpoint without rewriting the append-only validation
+      ledger.
+    - >-
+      2026-10-04 added explicit, default-false durable-archive authority gates
+      for Robinhood Stock Tokens, Gate TradFi, Tradier, IBKR, Ondo Global
+      Markets, and legacy yfinance, with provider-specific settings, registry
+      routing checks, environment examples, operator documentation, and
+      default-denial/scope/expiry tests. This does not grant authority or admit
+      any route. Focused registry/runtime/secret-wiring/live-runner tests pass
+      `170/170`; Docker-backed PostgreSQL/Redis integration passes `388/388`
+      with 57 warnings. Ruff, formatting, workstream validation, and diff
+      checks pass. No provider request was made. A fresh live-matrix preflight
+      was rejected before execution because the runner has no explicit
+      preflight-only mode; no live result is inferred.
+    - >-
+      2026-10-04 reconciled first-party data-use terms for Finnhub, Marketstack,
+      and EODHD against actual app use. Added separate default-false
+      post-termination archive/display authority configuration and provider
+      routing gates, while preserving EODHD's non-persisting account-usage
+      bootstrap. Added operator configuration documentation and updated the
+      provider matrix. Initial focused registry test is running; no provider
+      HTTP request was made. This closes a code-level rights-gate omission but
+      does not grant provider authority or admit these routes.
+    - >-
+      2026-10-04 CoinGecko Demo rights/quota and row-retention follow-up:
+      corrected the provider's call/minute contract to the current pricing page
+      value (100/minute), retained the older 30/minute FAQ discrepancy, and
+      enforced a rolling local 60-second envelope while leaving provider reset
+      semantics explicitly unknown. Added a default-false written-authority
+      gate before any CoinGecko data transport because current public terms
+      require full deletion at access termination and this application has no
+      compliant provider-wide erasure path; the terms' 24-hour active-cache
+      allowance is not a perpetual-archive grant. Discovery results now carry
+      both CoinGecko's native ID and the
+      complete source market row into durable page snapshots; provider-native
+      ID reconciliation is still missing, so universe discovery remains
+      deferred. FRED's application-user scope controls are now included in
+      admin routing-control diagnostics. The live runner now includes
+      CoinGecko in its rights-safety inventory and reports missing written
+      archive authority before transport. Ruff check/format passed; focused
+      provider/config/transport/quota/live-runner tests passed `469/469`;
+      Docker-backed backend integration passed `388/388`. The latest full
+      matrix preflight at 2026-10-04T09:17:36Z stopped at 0/0 with 80
+      quota/cost/baseline records, 12 safety records, and 21 unresolved
+      operations (113 overlapping records), with no missing credential names
+      and no provider request. The full unit/combined gate remains inconclusive:
+      an outdated mocked CoinGecko transport fixture was corrected; the later
+      complete unit run stalled in the unmodified ETF adapter file. The known
+      `test_regan_adapter_falls_back_to_requests_after_async_timeouts` also
+      remained stalled when isolated; excluding it reached another idle
+      asyncio-selector wait in that same file. Excluding the whole ETF adapter
+      unit-test file produced `2,005/2,005` passing unit tests. The combined
+      coverage run with that file excluded was OOM-killed at 69% (exit 152);
+      kernel evidence identifies the Docker memory-cgroup kill and scoped
+      cleanup found no test resources left. The separate Docker integration
+      gate passed `388/388`. No ETF-owned source or test was changed because
+      that adapter work is outside this branch's approved scope. Dirty candidate source remains
+      `65a467b43d7830b0875d9c3ad538e47a06d4a6db`; these results are not
+      exact-source live acceptance.
+    - >-
+      2026-10-04 focused live verification on the current dirty source: under
+      the shared durable quota ledger, the manifest runner passed Alpaca 7/7
+      (8 upstream requests), EODHD 3/3 (7), MarketData.app 7/7 (9), Nasdaq 1/1
+      (2), OpenFIGI 3/3 (3), and Binance 3/3 (5): 24 cases, 34 upstream
+      requests total, with separate receipts for every run. The SEC EDGAR
+      attempt stopped before transport at 0/0 because all seven operations
+      lacked a current active per-IP requests/second baseline. A refreshed
+      full-matrix preflight after these calls stopped before transport at
+      0/0 with 80 quota/cost/baseline records, 11 safety records (10
+      non-routable; EDGAR's documented contract is verified but its active
+      baseline is missing), and 21 unresolved operation dispositions. Those
+      sections overlap; their 112 combined entries are not unique blockers.
+      EODHD profile headroom and the Nasdaq client daily cap now correctly
+      prevent further calls until their windows reset. These dirty-tree
+      receipts are not exact-source live acceptance.
+    - >-
+      2026-10-04 first-party data-rights and local secret-store audit: FRED,
+      FMP, CoinGecko, Tiingo, and Massive terms were reconciled against the
+      per-provider gates and recorded in docs/data-providers.md and the
+      handoff. CoinGecko's terms permit only actively maintained/encrypted
+      storage but require permanent deletion on API termination; that still
+      conflicts with this platform's no-discard archive intent, so the route
+      remains closed pending written retention authority or a different
+      product policy. FMP must receive the actual IP/domain aliases of every
+      storage/processing host in addition to written copy/download, automated
+      archive, and post-termination retention authorization. Local
+      `/home/m920q/.config/charting-platform/app.env` is present with mode
+      0600, and its variable-name inventory includes the registered local
+      provider keys; the Dinari key ID matches the current replacement
+      Sandbox ID. `scripts/worktree-runtime.py` and the provider-live runner
+      default to this shared home path, so credentials are reusable by new
+      worktrees on this host and are not Git-tracked. The worktree RPi env file
+      is absent; GitHub CLI is unavailable and no connected GitHub operation
+      can read Actions secret metadata. CI/RPi/production secret stores remain
+      external and unverified. No credentials were printed and no API calls
+      were made.
+    - >-
+      2026-10-04 FINRA signed-result telemetry redaction: captured response
+      payloads now redact sensitive fields across provider casing conventions
+      and signed query credentials before persistence; FINRA's operational
+      resultLink remains transient for the immediate download only, while its
+      diagnostic raw payload and repr are sanitized. Focused provider
+      error/telemetry/FINRA tests passed 51/51; Ruff and diff check passed. The
+      Docker-backed combined backend unit/integration gate passed 2,886/2,886
+      with exit 0 and 82.24% line coverage; scoped resource audit reported no
+      worktree containers, test sessions, volumes, or known bytes. No live
+      provider calls were made. Provider live, data-rights, complete-universe,
+      secret-store, routing-promotion, and final-shadow gates remain open.
+    - >-
+      2026-10-04 bounded historical market-event ingestion: added an admin-only
+      provider/date-window refresh route with a per-invocation page budget,
+      durable cursor continuation, explicit pagination status, and opt-in
+      refresh of completed windows. Existing scheduled refresh keeps its
+      forward-window behavior. A completed historical query is not fetched
+      again by default. Regressions cover page-budget resume, completion
+      skipping, route authorization, and reversed-date rejection. Focused
+      FINRA/event/short-interest coverage passed 102/102; the Docker-backed
+      combined backend gate passed 2,884/2,884 at 82.24% coverage; full backend
+      Ruff, diff check, and workstream validation passed. The scoped Docker
+      resource audit reported zero containers, test sessions, volumes, or
+      known bytes. No provider requests were made by these tests.
+    - >-
+      2026-10-04 FINRA Daily List cursor integrity: the adapter now validates
+      authoritative page headers, retains every well-formed returned row,
+      returns current-page rows before restarting when the reported total
+      changes, and splits bounded date windows before the synchronous offset
+      ceiling. Fallback event identity includes page and duplicate occurrence,
+      preventing even identical rows without provider IDs from collapsing.
+      Missing totals and unsplittable large windows fail closed. Focused
+      FINRA/provider event/quota tests passed 153/153; changed-file Ruff,
+      diff check, and workstream validation passed. This is fixture coverage,
+      not live FINRA acceptance; complete OTC source authorization remains open.
+    - >-
+      2026-10-04 explicit resume and provider-contract follow-up: the user
+      resumed this previously blocked workstream, so its status is active again
+      and the old blocker remains historical evidence. A fresh full live
+      preflight at 2026-10-04T00:54:52Z stopped before transport at 0/0 with
+      80 quota/baseline rows, 10 rights/safety gates, and 21 unresolved live
+      operations. CoinGecko's account-usage `/key` endpoint is documented only
+      on the Pro host with Pro authentication; its Demo endpoint catalog omits
+      the operation, so the Demo-key baseline remains unknown. Dinari's 2024
+      API License PDF documents a conditional 1,000,000-call rolling-30-day
+      ceiling, but does not prove that ceiling applies to this free Sandbox
+      key; the contract remains unknown and fail-closed. This conditional
+      evidence is now recorded in provider documentation/config. The focused
+      quota-contract suite passed 116/116, changed-file Ruff and diff checks
+      passed, and local `app.env` permissions are 0600. No provider request
+      was made during this resumed audit.
+    - >-
+      2026-10-03 quota-bootstrap correction and current-candidate test phase:
+      runtime and direct live-probe plans now exempt only explicitly
+      reconciled quota dimensions; unknown unreported dimensions are charged
+      normally and fail closed when their baseline is unknown. The isolated
+      Twelve Data account-usage preflight stopped at 0/0 with the precise
+      `credits_per_day` blocker. Branch-owned non-ETF units passed
+      1,967/1,967 (37 warnings), Docker PostgreSQL/Redis integration passed
+      386/386 (57 warnings), focused quota/runtime tests passed 97/97, and
+      runner/quota-contract tests passed 166/166. Bounded dirty-candidate live
+      suites passed Alpaca 7/7, Binance 3/3, OpenFIGI 3/3, MarketData.app 7/7,
+      EODHD 3/3, and complete Nasdaq directory pagination 1/1. Current full
+      manifest preflight remains fail-closed at 0/0: 81 quota/cost/baseline
+      blockers, 8 safety/rights gates, and 21 unresolved capability cases.
+      Nasdaq's client-imposed daily cap and EODHD's profile-probe daily
+      headroom must reset before repeating those cases. No live evidence is
+      marked committed-source or full-matrix acceptance.
+    - >-
+      2026-10-02 resumed current-working-tree validation: the explicit
+      non-ETF-owned unit selection passed `1,922/1,922` (37 warnings), Docker
+      PostgreSQL/Redis integration passed `386/386` (57 warnings), workflow
+      tests passed `47/47`, frontend unit/visual tests passed `923/923`, both
+      visual contracts passed, Ruff/diff/workstream checks passed, and the
+      exact worktree Docker audit found zero resources/bytes. This corrects an
+      earlier `1,967` count that did not describe this non-ETF selection.
+      Exact-base EODHD and Dinari Sandbox live evidence passed as separately
+      recorded. The uncommitted SEC recovery/403 safety patch still cannot pass
+      the exhaustive staged-candidate live gate because shared EDGAR IP usage
+      is unknown; the exact-base full matrix remains fail-closed at 0/0 with 80
+      quota/cost/baseline rows (60 unknown-use, 9 incomplete contracts, 2
+      insufficient-headroom, 9 Dinari reset), 7 rights/jurisdiction gates,
+      and 21 unresolved capability cases.
     - >-
       2026-10-02 CoinGecko Demo usage capability correction: removed the
       Pro-only `/key` request from the Demo adapter, account-usage capability,
@@ -2432,7 +3402,7 @@ progress:
       provider request occurred.
     - >-
       2026-09-16 GitHub target-secret-store verification recheck: `gh auth
-      status` confirms that only the invalid `jagnelo-symbiotech` session is
+      status` confirms that only the invalid `an account without repository access` session is
       installed; the desired `jagnelo` owner session is unavailable. No
       GitHub state was mutated. Static workflow wiring remains locally
       validated, but protected `provider-live-staging` and
@@ -3080,7 +4050,7 @@ progress:
     - FINRA asynchronous presigned-result downloads now fail closed without a positive operator-supplied byte bound, validate declared and measured sizes, never forward OAuth credentials, and settle measured bytes against the durable monthly credential budget when a reviewed bound is configured
     - Twelve Data, Tradier, and Binance provider-native cumulative usage headers are retained and reconciled into their matching durable quota windows only when the observed values prove the reviewed contract limit; stale or mismatched observations cannot reduce local accounting
     - Tiingo's published symbol, request, and bandwidth magnitudes are represented with exact `calendar_day_est`/`calendar_month_est` resets where its current general documentation is explicit; the distinct-symbol and hourly reset anchors remain unconfirmed, so durable reservations stay fail-closed until those dimensions and reviewed per-operation byte bounds are admitted
-    - FMP's current official pricing contract is represented as a conservative 500,000,000-byte trailing-30-day (`rolling_30_days`) pool; the configured account's 512 MB report is retained as a source discrepancy, while the official 3 PM Eastern daily-call reset is modeled exactly and reviewed per-operation byte reservations remain required before routing
+    - FMP's current official pricing contract is represented as a conservative 500,000,000-byte trailing-30-day (`rolling_30_days`) pool; the configured account's 512 MB report is retained as a source discrepancy; current first-party limit guidance does not promise a universal daily-call reset, so the seed remains provider-defined until current account evidence is configured; reviewed per-operation byte reservations remain required before routing
     - Massive's documented `reference/ipos` and `marketstatus/upcoming` endpoints are normalized into the shared market-event surfaces with inclusive date bounds, IPO status filtering, holiday/early-close exchange metadata, verbatim payload provenance, and explicit cursor-page continuation; each one-request operation has its own quota cost and never triggers hidden pagination or compound reads
     - tokenized provider transport now converts network, HTTP, rate-limit, and invalid-JSON failures into redacted typed errors; only allow-listed rate headers are retained, `Retry-After` is parsed for retry metadata, and the finite Robinhood retry consumes the typed 429 path without leaking raw httpx failures
     - tokenized live validation now covers the xStocks and Robinhood corporate-action endpoints with positive transport observations; Robinhood event normalization filters malformed rows before optional symbol matching, with fixture coverage for bounded pagination/filter semantics
@@ -3337,6 +4307,21 @@ progress:
       reconciliation still require the explicit `MARKETSTACK_DISCOVERY_EXCHANGE`
       MIC. Registry/runtime coverage passes 48/48 and the complete backend unit
       suite passes 1,757/1,757; no live provider calls were rerun.
+    - >-
+      A provider-documentation review corrected Marketstack discovery to its
+      documented `/exchanges/{mic}/tickers` route instead of an unverified
+      `exchange=` query filter. Because the public per-symbol billing language
+      does not specify exchange-wide listing-page cost, the guessed one-request
+      discovery cost was removed; quota admission now fails closed for that
+      operation. `MARKETSTACK_DISCOVERY_MAX_PAGE_COST` and
+      `MARKETSTACK_DISCOVERY_COST_EVIDENCE` are configurable through local/RPi
+      Compose and GitHub live CI; old DataSource rows cannot retain the former
+      guessed cost. The current adapter/quota/runner/secret suite passes
+      353/353 and its runtime/registry/universe companion passes 128/128. Ruff,
+      diff checks, both Compose parses, and workstream validation pass. The
+      14:52Z full preflight made zero provider requests. No Marketstack live
+      discovery call was sent because its page charge and archive rights remain
+      unresolved.
     - >-
       Provider availability preflights now use the same operation-aware
       registry configuration contract as runtime routing. Dinari's key-ID plus
@@ -4175,37 +5160,110 @@ progress:
       Docker-backed backend gate then passed `2,551/2,551` at `81.79%` line
       coverage; Compose/RPi/E2E contracts passed and all `45` workflow tests
       passed. Exact receipts are appended in `validation.jsonl`.
-  total: 22
-  current_phase: provider_contract_and_quota_audit
+  total: 23
+  current_phase: exact-candidate validation and external provider admission closure
   current_blocker: >-
-    A material source/documentation discrepancy remains: the initial plan
-    selected FINRA otcSecurityMaster, but current public FINRA docs do not list
-    that dataset. Separate source-review controls now keep its endpoint
-    non-routable and its live test skips before any request; do not spend
-    credentials until the user selects a source-confirmation or
-    alternative-provider path. Other gates include provider-contract and usage
-    accounting, complete NMS/OTC reconciliation, staged SEC evidence, four
-    isolated secret domains, Dinari Sandbox isolation, and exact-current-source
-    live tests. Staging/master/production credentials require owner
-    provisioning; the 30-day shadow run remains the final separately
-    authorized phase after all other controllable gates pass.
-    required before promotion. Provider live-ledger receipts
-    now preserve provider-scoped failures separately from the process-wide
-    matrix status, so historical usage diagnostics no longer overstate failed
-    providers when unrelated matrix cases fail. Published bandwidth pools for
-    FINRA, Tiingo, and FMP are guarded by conservative decimal-byte ceilings
-    with an explicit contract basis rather than an assumed binary conversion.
-    Production provider-rate seeds are also regression-guarded against the
-    retired generic cooldown, concurrency, and burst defaults. Latest-price
-    refresh coalescing is now covered at the process, explicit Redis-client,
-    and independent-worker-client boundaries by the authoritative Docker-backed
-    gate.
-    Provider-native account-usage observations are now durable and exposed by
-    admin history/refresh endpoints; only MarketData.app currently supplies the
-    native account snapshot contract. The direct credentialed account probe
-    passed 1/1, but routing remains fail-closed until the reviewed plan/credit
-    pair and response-priced option bound are recorded. The provider-platform
-    migration graph now reports one deterministic head (`bc2d3e4f5a6b`) and
+    Continued local implementation is not blocked by an owner decision. The
+    prior staged candidate is `32dafe227755d7a890bfeb4d96ffc53542af7ba7`; its
+    exact-tree receipts are stale after a temporary-path gate fix and mechanical
+    formatting in five branch-touched files. The new candidate has not yet been
+    live-tested.
+    Its Docker-backed backend gate passed 2,746 unit plus 390 integration tests
+    at 82% coverage before the formatting-only change. Previous-candidate
+    provider receipts passed 21/26 full
+    manifests: 65 cases, 147 requests, 57,348,779 response bytes; 147 archived
+    response rows match the measured requests. Receipt verification confirms
+    the same candidate and has no failures among those slices. Five complete
+    manifests were safely held: Dinari (Sandbox quota/cost contract unverified),
+    EODHD (16-call daily reservation exceeds headroom), Marketstack (monthly
+    baseline and discovery MIC/page cost unknown), Nasdaq (today's two-file
+    cap used), and Tiingo (current request/byte/symbol counters unavailable).
+    After the successful slices, the latest no-transport preflight admits 20
+    and holds six; Alpha Vantage is additionally held because its next 9-call
+    reservation no longer fits today's remaining daily quota. NMS needs another
+    distinct complete session date. The migration compatibility gate has now
+    passed all three changed migrations with a previous-release /health 200
+    smoke after moving its temporary checkout to /var/tmp. GitHub CI secret
+    names could not be inspected because gh is absent and the connected GitHub
+    tool does not expose that endpoint; deployment secret stores remain
+    unverified because no deployment target was named. The final 30-day shadow
+    run remains deferred. `make validate-integration` passes its workstream,
+    dependency, and migration stages but currently fails backend formatting
+    because Ruff flags many untouched files; the five branch-touched files
+    flagged by Ruff are formatted. Continue locally without guessing usage, clearing
+    ledgers, committing, integrating, deploying, activating routing, or starting
+    that shadow run.
+  historical_blocker_detail: >-
+    The user explicitly resumed this previously blocked workstream on
+    2026-10-04; the old blocked checkpoint is historical. The latest full
+    manifest preflight at 2026-10-04T09:17:36Z opened the existing owner-only
+    durable quota ledger, passed manifest inventory, and stopped before
+    provider transport at 0/0: 80 provider quota/cost/baseline records, 12
+    required rights/safety records, and 21 unresolved live operations (113
+    combined records; categories overlap). It made zero requests and is
+    diagnostic (`not_current_source`) because the candidate is dirty. Unknown
+    active-use observations remain across Alpha Vantage, Bybit, Coinbase,
+    CoinGecko, EDGAR, Finnhub, FINRA, Gate, Kraken/xStocks, Massive, Robinhood
+    Tokens, Twelve Data, and other finite provider pools. Incomplete contracts
+    include Dinari Sandbox reset/quota, FMP/Tiingo operation-byte bounds, and
+    Marketstack plan/reset/cap. Written use/retention or jurisdiction evidence
+    remains open for Coinbase, CoinGecko, FINRA Equity/OTC, FRED, FMP, Massive,
+    Tiingo, xStocks, and Bybit xStocks. FINRA async result-byte admission and
+    an authorized complete OTC source remain open. FINRA's ORF pair now has a
+    complete-source parser and fail-closed archive/CUSIP gates, but the public
+    Web Access Agreement restricts use to internal ORF processing, the public
+    vendor form does not establish perpetual post-termination archive rights,
+    and CUSIPs require a separate CGS license or written no-CUSIP confirmation.
+    TRAQS/MFA/product entitlement, provider-written archive authority, CUSIP
+    status, and exact two-file request costs remain external prerequisites;
+    none is inferred from the supplied Gateway credentials. The full provider matrix is
+    not accepted until each enabled in-scope operation has bounded exact-source
+    live evidence.
+    A fresh live-matrix attempt was rejected by the command-level reviewer
+    before execution because the runner has no explicit preflight-only mode
+    and could send requests if gates passed; this is neither a preflight result
+    nor a provider failure. The latest recorded full-matrix diagnostic remains
+    2026-10-04T09:17:36Z (`not_current_source`, 0 selected providers, 0 cases,
+    0 requests). This checkpoint's focused provider tests pass `197/197`,
+    workflow tests pass `50/50`, Docker integration passes `388/388` in 721
+    seconds, and branch validation passes for 30 workstreams; no provider
+    requests were made.
+    The exact dirty-candidate combined backend unit/integration gate now passes
+    `2,900/2,900` at `82.31%` coverage (above the required 75%), with 89
+    warnings in 1,158.23 seconds. Docker cleanup ran without host-wide pruning;
+    no provider HTTP requests were made. The first complete run exposed one
+    yfinance compatibility-ordering fixture that enabled the legacy switch
+    without test-only evidence for the separate default-false archive-rights
+    gate. The fixture was corrected to include that explicit scope, and the
+    full combined rerun passed. Earlier ETF test-stall and OOM observations are
+    historical and superseded for the current combined backend gate. The last
+    recorded seeded browser profile remains older evidence (152 passed, 106
+    skipped, 2 frontend-scope failures); it has not been rerun on this dirty
+    candidate, and no frontend files were changed. GitHub/RPi/production secret
+    stores remain unverified.
+    Tradier, IBKR, and Ondo remain user-deferred; Dinari production remains
+    disabled. No integration, deployment, routing activation,
+    sibling-worktree change, or 30-day shadow run is authorized.
+    Provider live-ledger receipts preserve provider-scoped failures separately
+    from process-wide matrix status. Published bandwidth pools for FINRA,
+    Tiingo, and FMP use conservative decimal-byte ceilings; production
+    provider-rate seeds remain guarded against retired generic fallbacks.
+    Latest-price refresh coalescing is covered at process, explicit Redis, and
+    independent-worker boundaries by Docker-backed tests.
+    Provider-native account-usage observations are durable and exposed by
+    admin history/refresh endpoints for MarketData.app, Twelve Data, EODHD,
+    Binance, OpenFIGI, and Alpaca. Their baseline mappings remain
+    provider/dimension-specific: MarketData.app daily credits; Twelve Data
+    minute credits (not the separately documented daily-credit pool); EODHD
+    current-date daily calls and reviewed minute requests; Binance fixed-minute
+    request weight; OpenFIGI's key-dependent mapping window; and Alpaca's
+    rolling-window market-data request headers. This describes implemented
+    snapshot contracts, not current account state for the dirty candidate: the
+    latest full matrix stopped before transport at 0/0, so no current usage is
+    inferred from it. Previously recorded credentialed account probes are
+    historical evidence only. Routing remains fail-closed until each required
+    current baseline, plan, operation cost, and rights gate is satisfied. The
+    provider-platform migration graph now reports one deterministic head (`bc2d3e4f5a6b`) and
     staging compatibility has passed. Tokenized catalog refreshes now preserve
     redacted provider/page failures and continue to later qualified providers;
     all-provider failure is distinct from mixed-provider partial degradation.
@@ -5372,4 +6430,411 @@ progress:
       and Docker integration `386/386`. No identity-selection behavior or ETF
       adapter ownership changed; unresolved provider and owner-controlled gates
       remain fail-closed.
-  next_action: Commit the EODHD safety-preflight correction and its regression coverage with the current exact-source browser/resource receipts. At the resulting clean SHA, rerun the full branch-owned non-ETF unit inventory, Docker PostgreSQL/Redis integration, workflow, frontend, and relevant browser/resource validation; run the bounded EODHD provider matrix (subject to its native 20 weighted-credit daily balance), then refresh the complete provider safety preflight. Continue resolving repository-controlled provider quota/contract/universe gaps. Stop only when remaining gates are genuinely owner-controlled legal/account/secret-store/scope decisions; keep routing fail-closed and do not integrate, deploy, activate routing, modify another worktree, or start the final 30-day shadow run.
+  next_action: >-
+    Continue from the 2026-10-14 15:44Z evidence. The full backend gate passed
+    2,765 unit tests plus 392 Docker integration tests at 82% combined coverage;
+    the focused quota suite passed 64 tests and Ruff passed on the changed
+    Python files. Workstream validation passes all 30 records. The quota
+    coordinator now counts pre-baseline local reservations for `local_zero`
+    scopes while preserving per-request rolling expiry. A fresh full no-network
+    preflight at 15:14Z admits 21/27 provider manifests and holds six. The
+    owner-reported Tiingo balances were persisted to the cross-session private
+    ledger at 15:12Z: 50/50 hourly, 1,000/1,000 daily, and 2/2 GB monthly;
+    distinct-symbol usage was not supplied. Marketstack's repeated 12/100
+    report lacks a timestamp, so retain the safer ledger estimate of 18/100
+    used (82 remaining). Alpha Vantage's daily cap is 25 and its reset boundary
+    is not published; 32 local reservations appeared in the conservative
+    rolling 24-hour ledger before the accounting fix. Its full nine-call
+    manifest is held, as are CTA Plan and Nasdaq (local daily file caps), Dinari
+    (no reviewed Sandbox reset/cost contract), EODHD (weighted daily credits),
+    and Marketstack venue discovery (page cost and MIC). No provider HTTP call
+    was made during the latest preflight. Continue source/account research for
+    Dinari and Marketstack; retry daily-limited providers only after fresh exact
+    admission. Repeat the eligible provider live matrix on the finalized exact
+    candidate and reconcile current-source receipts. Finish venue lifecycle and
+    secret-store evidence where access permits; preserve shared quota/archive
+    state. Do not change frontend/ETF adapters, integrate, deploy, or start the
+    final 30-day shadow run.
+
+    EODHD first-party sources conflict on the Free minute limit: pricing says
+    20 requests/minute and the API-limits page says 1,000/minute on every plan.
+    Enforce 20/minute; native headers are evidence and never auto-widen the cap.
+    Its separate 20 daily weighted-credit allowance resets at midnight GMT.
+    Explicit account-reviewed EODHD minute overrides now accept any positive
+    limit with reviewed reset/evidence; a native header may seed usage only if
+    observed consumption fits the configured cap. The 374 focused quota,
+    account-usage, registry, runtime, and live-admission tests pass, including
+    the 1,200-native-limit versus 20-local-cap case. These edits postdate the
+    last full backend gate and all old exact-tree provider receipts.
+
+    Since that preflight, the opt-in live matrix ran the 19 admitted providers
+    and completed 47/49 cases. The two failures were isolated to Massive live
+    test assumptions/scheduling, not provider HTTP errors: the IPO test used a
+    nonexistent record attribute, and pytest's collection hook reordered the
+    exhaustive OTC pagination case ahead of smaller quota-sensitive probes.
+    The test now uses the actual stable `event_key`; search asserts an exact
+    AAPL match anywhere within a bounded result set; the runner passes its
+    provider-manifest order through an explicit collection-order contract; and
+    Massive live probes apply a provider-specific 13-second start interval as
+    an extra safety margin over the durable five-requests/minute coordinator.
+    All `146/146` runner and secret-wiring unit tests pass. The corrected
+    Massive provider slice then passed `4/4` live cases, including complete
+    paginated OTC-directory retrieval and raw-page archival. The receipt is
+    `not_current_source` because the checkout remains dirty; this does not
+    substitute for one exact-tree all-provider receipt.
+
+    At 23:32Z on October 11 (October 12 in Lisbon), a fresh zero-transport
+    preflight admitted 19 providers and held seven; it made zero provider
+    requests. An earlier selected full live slice passed 45/45 cases. The four
+    daily-limited providers (Alpha Vantage, EODHD, MarketData.app, Nasdaq) need
+    a fresh post-reset admission before their complete manifests can run.
+    Dinari's Sandbox key still lacks a verified account quota/reset and
+    per-operation cost profile. Massive's published five-requests/minute
+    Stocks bucket is explicitly recorded as application-only and enforced
+    with a rolling 60-second shared envelope; it does not represent external
+    account use. Tiingo's documented
+    hourly, daily, monthly-bandwidth, and unique-symbol dimensions lack a
+    verified current account baseline; its previously failed usage route must
+    not be retried. Marketstack lacks a current plan/month-to-date usage
+    baseline and its discovery page-cost/MIC contract; its invalid
+    data-endpoint-as-usage adapter must not return. All provider calls made by
+    managed local worktrees share the owner-private durable quota ledger.
+    Chromium is now installed in the user cache after temporary storage became
+    available. The Marketstack dashboard redirects to login; no credentials or
+    account password were entered. If current baselines remain absent from
+    provider APIs, exact non-secret dashboard counters for Massive, Tiingo,
+    and Marketstack may still be needed. First-party Marketstack sources define
+    billing per ticker lookup and exclude HTTP errors, and document the
+    all-plan `/exchanges/{mic}/tickers` endpoint with pagination up to 1,000
+    rows; they do not say whether directory pages are charged per page or per
+    returned row. Authenticated GitHub access is not installed in this
+    runtime, so remote CI secret-name inspection remains unverified; deployment
+    secret checks additionally require a concrete target. These infrastructure
+    checks do not block local implementation or testing. Never clear usage,
+    guess a limit, or send data calls for held providers to force acceptance.
+
+    SEC issuer materialization is complete for 8,028 validated missing CIK/name
+    candidates. FINRA OTC has one complete persisted snapshot of 18,017 rows;
+    two additional distinct clean source days are still required before
+    absence-based deactivation. No complete NMS reconciliation snapshot is
+    persisted. The reconciliation schedule is enabled in configuration, but
+    the latest check of the assigned isolated dev Compose project found only
+    PostgreSQL and Redis running; no worker is currently running there. Verify
+    scheduled NMS and subsequent OTC runs when the worker/deployment is active,
+    retaining every complete dated source snapshot and never counting a partial
+    run. FINRA's current public Query API
+    security-master plus Daily List path is selected; ORF credentials/email
+    are not required.
+
+    Earlier successful provider receipts are tied to earlier source trees.
+    After code and workstream content stabilize, refresh exact-candidate
+    case-level live receipts for every safely admitted manifest, then retry
+    held slices only when their provider-specific account evidence or reset
+    permits the complete reservation. Keep current-source success, historical
+    success, quota hold, provider entitlement hold, and missing owner-only
+    evidence distinct. Keep the separately authorized 30-day deployed shadow
+    run as the last gate before closure/integration; it is not authorized by
+    this implementation objective. Do not modify frontend or ETF constituent
+    adapters, another worktree, staging, or deployment; stop at
+    `ready_for_human_review` and leave closure authorization pending.
+    Superseding the earlier held-provider counts above: the 2026-10-12 13:53Z
+    fresh preflight admitted 20 of 26 providers and held six (Alpha Vantage,
+    Dinari, EODHD, Marketstack, Nasdaq, Tiingo), with zero provider requests.
+    Offline verification of the exact staged tree
+    `930eb221813f365d4a3fc67590b6e524348878cd` confirmed complete manifests for
+    the other 20 providers and missing receipts for those same six. The current
+    full backend gate is green at 2,743 unit + 390 Docker integration tests,
+    82.44% coverage, and migration compatibility. The next Nasdaq daily window
+    begins 2026-10-13 04:00Z; preserve it for the scheduled full-universe run
+    after diagnosing the prior `universe_discovery` resolver failure. Do not
+    infer zero usage for Marketstack or Tiingo. Official-source follow-up did
+    not establish Dinari Sandbox key-specific quota counters, Marketstack's
+    exchange-directory page cost/current monthly use, or Tiingo account-use
+    counters. See the 13:56Z handoff entry for the exact per-provider holds.
+  historical_next_action_detail: >-
+    Continue source-backed account/usage research and run only provider cases
+    admitted by the durable coordinator using current baselines. Do not treat
+    CoinGecko's Pro-only `/key` as available to its Demo credential or apply
+    Dinari's agreement-specific 2024 ceiling to Sandbox without account proof.
+    The owner's final private-use/storage risk decision supersedes older
+    provider-terms approval tasks in this historical plan; those terms are not
+    human blockers. A fresh full preflight at 2026-10-09T01:29:42Z evaluated
+    all 26 providers, admitted 6, quarantined 20, found zero missing env names,
+    and made zero provider requests. The refreshed preflight at
+    2026-10-09T02:24:13Z reports 110 overlapping provider-specific
+    quota/cost/baseline findings and 5 concrete safety findings, with 6
+    providers eligible and 20 quarantined. It evaluated all 26 providers,
+    found no missing environment-variable names, and made zero provider HTTP
+    requests. After that preflight, the MarketData.app account-usage and
+    bounded option-history live cases both passed (1/1 each), with the usage
+    snapshot reconciled into the durable ledger; these focused receipts are
+    not-current-source because the worktree is dirty. The option-history
+    safety diagnostic was corrected to reflect the existing automatic
+    inclusive-date credit estimate and reservation. All selected live cases
+    for the six eligible providers then passed 23/23 across 35 measured HTTP
+    requests, and the refreshed 02:24:13Z full preflight retained 6 eligible /
+    20 quarantined. FMP's
+    per-operation application byte budgets have now been configured; its
+    remaining FMP-specific safety gap is account daily/bandwidth evidence.
+    The Docker-backed backend gate on the current dirty candidate
+    passed 2,634 unit tests plus all 388 integration tests (3,022 total) at
+    82% combined coverage. Before quota-spending calls, reconcile finite-pool
+    usage for shared keys and keep all subsequent calls in the durable ledger.
+    FMP byte budgets and usage evidence, FINRA async-result byte admission,
+    and complete OTC security-master coverage remain provider-specific work.
+    The SEC, Nasdaq, usage, and per-operation bounds remain provider-specific,
+    not generic. Local app.env is shared across worktrees on this host; CI,
+    RPi, and production secret stores remain unverified. The full browser
+    profile has completed but is not green: 150 passed, 109 skipped, and one
+    frontend chart-template click timeout; frontend fixes remain out of scope.
+    The chart was blocked because `Plots 0` intercepts `Remove RSP`. Admit
+    only safe remaining live cases and rerun the exhaustive exact-candidate
+    provider matrix when the live runner is safely admissible. Do not bypass
+    the command-level rejection of the current live runner invocation. Do not
+    commit until exact-source live acceptance is green; do not integrate,
+    deploy, activate routing, change another worktree, or start the final
+    30-day shadow run. Keep user-deferred Tradier/IBKR/Ondo and Dinari
+    production disabled.
+current_gate_checkpoint: >-
+  Updated 2026-10-13 11:38Z: exact staged tree
+  `3166d70a39c500d63ecc37aeeac9ce50dd66f6ad` passed 20/20 preflight-admitted
+  provider manifests (56/56 cases, zero failures/skips, 138 requests,
+  55,488,120 response bytes); all requests match private response-archive
+  records. Receipt verification remains incomplete for six safely held
+  providers: Alpha Vantage, Dinari, EODHD, Marketstack, Nasdaq, and Tiingo.
+  The current no-transport preflight admits 20/26. Backend coverage passed
+  2,746 unit + 390 integration tests at 82%; migration compatibility,
+  frontend checks/build, 76 workflow tests, focused changed-file Ruff, and all
+  30 workstream validations passed. `make validate-integration` remains red
+  only at broad Ruff formatting of untouched baseline files after workstream,
+  dependencies, and migrations pass. NMS needs one more distinct complete
+  session date; GitHub Actions and deployment secret stores cannot be verified
+  without authenticated access to those environments; the final 30-day shadow
+  run remains a later gate. No owner action blocks continued local work.
+  Branch remains in progress; no closure authorization is recorded.
+  Fresh preflight at 11:37Z reconfirmed the same six quota/cost/baseline holds
+  with zero provider requests. The local worker's universe schedule is enabled
+  at 21:00 UTC, while account-usage refresh and SEC directory scans are disabled
+  in the running environment; these were inspected only and not changed.
+  A fresh full FINRA OTC directory reconciliation then completed against the
+  isolated local database: 18,017 expected and observed rows, 18,017 new
+  lifecycle records, zero quarantined, zero missing, and zero deactivated.
+  All source pages were retained. This validates FINRA OTC paging and local
+  materialization, but not NMS venues or three-distinct-day absence evidence.
+  The checkout-local Git identity and origin were verified as jagnelo; no
+  account correction was needed. Continue autonomously with current Nasdaq
+  source admission, distinct-date snapshots, and remaining provider-specific
+  live acceptance; no owner action is currently required for local work.
+  Latest zero-transport preflight evaluated 26 providers: 19 eligible, 7 held
+  (Alpha Vantage, Dinari, EODHD, MarketData.app, Marketstack, Nasdaq, Tiingo).
+  All 53 prior selected live cases passed, but that does not satisfy the full
+  all-provider gate while these providers are held. MarketData.app's supplied
+  2026-09-11 18:09 UTC trial start is past its 30-day window, so its configured
+  entitlement is now the Free Forever 100 credits/day. The 2024 Dinari public
+  license template gives a 1,000,000-call rolling-30-day ceiling but does not
+  prove it applies to this Sandbox key. Marketstack public pages conflict
+  between 100 and 1,000 free monthly calls; keep the owner-reported 100 cap
+  until confirmed. FINRA full OTC reconciliation passed at 18,017/18,017, but
+  Nasdaq NMS snapshots and three-distinct-session-day lifecycle evidence
+  remain. Shared local secrets are owner-only and reachable through this
+  worktree's backend env symlink; GitHub API and deployment secret stores are
+  not verified. These items and their exact next actions are in handoff.md.
+  Latest full_stack_browser retry: backend unit 2,742/2,742, integration
+  390/390, and frontend 923/923 passed; E2E remains red with 152 passed,
+  106 skipped, and two unrelated frontend flow failures. Do not edit frontend
+  without explicit approval. Exact staged tree 226474dc935e was live-verified
+  across all 19 currently admitted provider manifests: 49/49 cases and 130
+  provider HTTP requests; receipt verification confirms seven providers remain
+  held (Alpha Vantage, Dinari, EODHD, MarketData.app, Marketstack, Nasdaq,
+  Tiingo). This does not satisfy the complete 26-provider live gate. FINRA OTC
+  still needs two additional distinct source dates, and NMS has no complete
+  persisted snapshot. Local Git identity/SSH remote are confirmed as jagnelo;
+  GitHub Actions and deployment secret stores remain unverified. See latest
+  handoff sections for exact reset gates, dashboard data still needed, and
+  provider-specific reasons.
+  Latest candidate workflow validation: the live runner now accepts unstaged
+  updates only within this branch's already-staged workstream directory; all
+  other source/workflow/test edits remain required to be staged. Its 114-test
+  runner unit module and Ruff checks passed. On the resulting exact staged tree
+  0d0edd9f020eb905499bf3935203dc42061837d0, all 19 quota-admitted provider
+  manifests passed 49/49 cases and 130 HTTP requests. The zero-request receipt
+  verifier confirmed those 19 receipts on this same tree; seven providers
+  remain held and overall live acceptance remains incomplete. See the latest
+  handoff section and validation ledger for the receipt path and exact gates.
+  The full backend branch gate has now passed 2,743/2,743 unit tests and
+  390/390 Docker-backed integration tests at 82.44% combined coverage
+  (55,361/67,156 lines), including migration compatibility. The only failed
+  attempt was traced to `/tmp/charting-research/jobs/22.tmp` returning
+  `EDQUOT`; the failing test passed alone, and the complete rerun passed with
+  `TMPDIR`, `RESEARCH_JOB_DIR`, and `RESEARCH_RESULT_DIR` under `/var/tmp`.
+  The full browser gate remains red on the two recorded E2E failures; no
+  frontend change was made.
+  Superseding older count snapshots: the exact staged candidate tree is
+  `930eb221813f365d4a3fc67590b6e524348878cd`; offline receipt verification at
+  13:53Z found 20/26 complete provider manifests, with Alpha Vantage, Dinari,
+  EODHD, Marketstack, Nasdaq, and Tiingo missing. Fresh no-network preflight
+  admitted 20 and held those same six, sending zero provider requests. The
+  backend gate remains green (2,743 unit tests, 390 Docker integrations,
+  82.44% coverage, migration compatibility). No identity/remote change was
+  needed: local Git author, SSH route, and origin already target the correct
+  repository owner. Nasdaq's next daily directory window begins 2026-10-13
+  04:00Z; preserve it for the scheduled universe reconciliation. Dinari's
+  public license template gives a rolling 1,000,000-call/30-day ceiling but
+  does not prove that entitlement or usage counters for this Sandbox key.
+  Marketstack still lacks verified current monthly use and directory-page
+  billing; Tiingo still lacks verified account counters. Live acceptance is
+  therefore incomplete; do not close or integrate.
+  14:05Z local-runtime repair: the previous worktree worker image was stale;
+  its saved Nasdaq profile omitted the current branch's reconciliation-page
+  cost alias, which explains the saved pre-transport no-provider failures.
+  Rebuilding and recreating the branch-only worker succeeded despite Compose's
+  final `/tmp` metadata write returning EDQUOT after image export. The new
+  worker is image `sha256:d4b7730c189d456dbf86c6e4f82d55b8fc572fa231e8ea0754dc203110d363d7`,
+  has bootstrap disabled, and resolved Nasdaq for `reconcile_universe_page`
+  with cost 2. This local no-transport check made zero provider requests and
+  persisted the cost. The next scheduled universe job after Nasdaq's daily
+  quota reset must still prove live NMS materialization; no source-tree change
+  or additional live provider receipt resulted.
+  14:13Z Tiingo usage lookup: from the configured worker secret, the official
+  historical `api.tiingo.com/account/usage` path returned 301 to
+  `www.tiingo.com/account/usage`, whose target returned 404; the trailing-slash
+  path also redirected. Four usage-only HTTP attempts are recorded in
+  validation.jsonl and should be counted in any subsequently supplied account
+  dashboard baseline. No market data was requested and no usage dimension was
+  cleared. Do not retry the dead endpoint. Tiingo current-use baseline remains
+  an external account-dashboard fact.
+  The isolated Dinari canary preflight at 14:13Z found the one-request UTC-day
+  allowance already consumed; it made zero provider requests, so no repeat
+  canary was sent. A worktree-local TMPDIR retry also made the current worker
+  image build pass with exit code 0 after the earlier `/tmp` metadata EDQUOT;
+  its temporary directory was removed. The currently running worker was not
+  restarted because its already-verified branch image and source tree are
+  unchanged.
+  Latest exact-candidate status at 2026-10-13 07:43Z: the complete Nasdaq
+  Trader live manifest passed using two official files (891,965 response
+  bytes). Their exact archived payloads were replayed at 07:53Z through the
+  normal parser, raw discovery-snapshot persistence, and reconciliation path,
+  with zero additional provider requests. Complete source-date 2026-10-13
+  runs are persisted for EQUITY (7,487/7,487) and ETF (5,761/5,761), with no
+  unknown MICs, quarantines, missing rows, or deactivations. Raw discovery
+  snapshot pages are stored for both types. This is the first fresh NMS
+  materialization on the current source date; absence deactivation still
+  requires three distinct complete session dates. Exact-candidate live
+  provider acceptance remains 22/26; Dinari, EODHD, Marketstack, and Tiingo
+  remain the only full-manifest gaps. The local checkout identity and origin
+  already target the requested repository; DNS prevented a remote read-only
+  verification in this execution. Branch status remains in_progress and no
+  integration, deployment, or closure authorization exists.
+  2026-10-13 08:02Z account-usage refresh: the shared durable quota ledger is
+  writable under the authorized host execution route; no temporary ledger was
+  used. EODHD's `/api/user` snapshot reports 6/20 daily calls used with GMT
+  reset, so the full manifest's 16-call reservation is safely held until the
+  next reset and fresh preflight. The one-case usage receipt is diagnostic,
+  not exact-candidate acceptance. Tiingo full tests remain held for the actual
+  current counters across monthly symbol, hourly/day request, and monthly byte
+  dimensions; do not assume zero. Marketstack full tests remain held for its
+  current 100/month account usage; venue discovery additionally needs an exact
+  page-cost and MIC plan. Dinari still has no published Sandbox quota or usage
+  headers; retain its separate one-read/day local canary policy rather than
+  representing it as a provider quota. Zero-transport preflights confirm these
+  precise blockers. Candidate full manifests remain 22/26 and the goal remains
+  active/in_progress.
+  Exact-candidate receipt verification reran after these diagnostics with
+  tree `ef9b2986b24924a7277a5fa438b7d6f68131b178`: 22/26 full manifests,
+  exactly Dinari/EODHD/Marketstack/Tiingo missing, zero verifier HTTP requests.
+  EODHD's standalone account-usage pass is not a full matching-candidate
+  receipt and does not increase the acceptance count.
+  The 08:09Z full-roster preflight sent zero provider requests, admitted 21,
+  and safely held five: Dinari, EODHD, Marketstack, Nasdaq, and Tiingo.
+  Nasdaq's hold is temporary because today's accepted two-file fetch consumed
+  its configured daily allowance; the other four holds remain as described
+  above. A separately quota-admitted FINRA OTC live case passed 1/1 at 08:16Z
+  (not-current-source receipt), and its six archived responses were replayed
+  with zero provider requests into the worktree database. FINRA's complete
+  source dates now number three (2026-10-09/12/13); run 47 materialized all
+  18,008 rows with zero quarantines/deactivations and 20 absences still
+  pending. NMS now has a third complete source date (2026-10-13), materialized
+  from the matching archived CTA/Nasdaq response pairs into one same-cycle
+  complete union with zero missing/deactivated/quarantined rows. The replay
+  made zero external requests; source-body archive and provenance are retained.
+  The post-FINRA full-roster preflight at 08:31Z still admits 21 and holds the
+  same five providers with zero transport; the new FINRA usage is reflected in
+  the durable ledger and introduced no additional hold.
+  Exact-candidate receipts are stored outside Git at
+  `/var/tmp/md-provider-platform-20261013-0928/provider-live-candidate.jsonl`.
+  The 147 response-archive rows were checked by run ID and count only; payloads
+  and credentials were not printed. An EODHD usage-only probe passed 1/1 but is
+  not a full data manifest and does not clear its hold. The final zero-transport
+  preflight admitted 20 and held six: Alpha Vantage (daily headroom), Dinari
+  (Sandbox contract), EODHD (daily headroom), Marketstack (usage/discovery cost),
+  Nasdaq (daily file cap), and Tiingo (unknown account counters). No requests
+  were sent by that preflight. These remain operational gates rather than owner
+  approval requests; pursue local source-backed work and rerun only after fresh
+  provider-specific admission permits the full reservation.
+    - >-
+      2026-10-14 archived NMS replay: the already captured complete CTA Plan
+      and Nasdaq file bodies from the 2026-10-13 source date were parsed with
+      the current adapters and reconciled through `reconcile_us_universe`.
+      Runs 67/68/69 contain 7,630 CTA equities, 7,487 Nasdaq equities, and
+      5,761 Nasdaq ETFs; all three are complete in one cycle, each reports
+      `nms_union_complete=true`, and each has zero missing, deactivated, or
+      quarantined rows. Three raw discovery snapshots are persisted; replay
+      provenance is explicit; external provider requests were zero. This closes
+      the missing same-date NMS-union evidence, but not the remaining venue,
+      exact-candidate live-acceptance, or identity-reconciliation gates.
+    - >-
+      2026-10-14 Alpha Vantage live verification: after the provider-specific
+      rolling window reset, the current staged candidate tree
+      `df08f39e3e8bcefdda4e46940997e9366fe5b380` passed all 9/9 credentialed
+      manifest cases with exactly nine HTTP requests and no failures. Coverage
+      included daily/weekly/monthly history, latest price, search, earnings
+      history/calendar, IPO calendar, and listing status. The run returned
+      1,827,417 bytes, all retained in the private response archive; aggregate
+      usage run `6da03f70-1e1e-4824-bf9d-1c5d09925d9f` is persisted across
+      sessions. The run did not write a candidate-receipt file. A subsequent
+      exact-tree verifier now confirms the independently evidenced run and
+      other new receipts as part of 21/27 complete current-candidate manifests.
+      Six manifests remain held; all-provider live acceptance remains false.
+    - >-
+      2026-10-14 07:36Z live-admission refresh: the full no-transport preflight
+      evaluated all 27 providers, found 20 eligible and held seven: Alpha
+      Vantage, CTA Plan, Dinari, EODHD, Marketstack, Nasdaq, and Tiingo. The
+      Dinari-only canary check with the approved authority reference and an
+      exact one-request UTC-day cap confirmed the local control is valid; it
+      made zero HTTP requests and correctly held because the day's single slot
+      was already consumed. No quota or usage assumption was bypassed.
+  2026-10-14 17:37Z follow-up: Tiingo dashboard balances were refreshed in
+  the shared private quota coordinator (50/50 hourly, 1000/1000 daily, 2/2 GB
+  bandwidth). The coordinator retained 8 daily requests and 6,054 bandwidth
+  bytes of observed local usage. Tiingo's exact staged-candidate small-read
+  case passed all four operations; Marketstack's bounded history/current-price
+  case passed both calls. Neither proves Marketstack universe-directory cost
+  or venue scope. The preflight now admits 21/27 providers and holds six:
+  Alpha Vantage, CTA Plan, Dinari, EODHD, Marketstack, and Nasdaq. The complete
+  Docker-backed backend coverage gate passed 2,766 unit tests plus 392
+  integration tests (3,158 total) at 82% combined coverage. Two stale EODHD
+  test assumptions exposed during the run were corrected and the full gate
+  rerun passed. Provider live acceptance remains incomplete; no commit,
+  integration, deployment, or goal closure occurred.
+  Exact-candidate refresh at 17:57Z: staged tree
+  `e2cff3c8567f8709be62a9ca129d4d0e0fe4f612` has 19 fully passed provider
+  manifests (56 cases) and one partial Marketstack bounded case, 57 passing
+  cases / 131 requests total. The receipt verifier identifies seven incomplete
+  providers/routes: Alpha Vantage, CTA Plan, Dinari, EODHD, Marketstack
+  directory, Nasdaq, and Tiingo. The latest no-network preflight admits 20/27
+  and holds those seven; Tiingo's one-hour baseline aged out before its current
+  candidate test and no request was sent. Provider acceptance, multi-date
+  NMS/OTC lifecycle evidence, CI/deployment secret verification, and the
+  separately deferred shadow run remain incomplete.
+  2026-10-14 18:27Z update: the owner supplied fresh Tiingo account balances
+  (50/50 hourly, 1000/1000 daily, 2/2 GB monthly bandwidth). The shared private
+  ledger now uses that snapshot for requests/hour, requests/day, and the custom
+  2 GB monthly byte ceiling; the 500-symbol/month limit remains enforced and
+  was not reset from an unreported dashboard counter. Marketstack usage is
+  12/100 monthly. The no-request preflight now admits 21 providers and safely
+  holds six: Alpha Vantage, CTA Plan, Dinari, EODHD, Marketstack directory,
+  and Nasdaq. Full browser suite: 150 passed, 109 skipped, one unrelated chart
+  template click timeout. The Buildx startup recipe was fixed after the first
+  attempt exposed unconditional fallback parsing; the isolated stack then
+  built and became healthy. Provider-live acceptance and other listed gates
+  remain incomplete.

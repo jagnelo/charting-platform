@@ -48,6 +48,30 @@ def test_runtime_supports_operator_selected_writable_state_roots(tmp_path, monke
     assert quota_root.stat().st_mode & 0o777 == 0o700
 
 
+def test_runtime_preserves_existing_root_env_and_links_backend_secrets(
+    tmp_path, monkeypatch, capsys
+):
+    runtime = load("runtime_existing_env", "scripts/worktree-runtime.py")
+    checkout = tmp_path / "worktree"
+    (checkout / "backend").mkdir(parents=True)
+    existing_env = checkout / ".env"
+    existing_env.write_text("operator-owned=keep\n")
+    shared_env = tmp_path / "shared.env"
+    shared_env.write_text("provider-key=private\n")
+    shared_env.chmod(0o600)
+    monkeypatch.setattr(runtime, "root", lambda: checkout)
+    monkeypatch.setattr(runtime, "shared_env_path", lambda: shared_env)
+
+    linked = runtime.install_shared_env_links()
+
+    assert linked == shared_env.resolve()
+    assert existing_env.read_text() == "operator-owned=keep\n"
+    assert (checkout / "backend" / ".env.dev").resolve() == shared_env.resolve()
+    assert (
+        "preserving existing env file without replacing it" in capsys.readouterr().err
+    )
+
+
 def test_docker_status_accounts_unique_images_volumes_and_builder(monkeypatch):
     session = load("agent_session", "scripts/agent-session.py")
     monkeypatch.setattr(session.shutil, "which", lambda command: "/usr/bin/docker")

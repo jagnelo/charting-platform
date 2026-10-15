@@ -14,9 +14,9 @@ import shutil
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 import uuid
-import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -48,10 +48,7 @@ def git(*args: str, cwd: Path | None = None, check: bool = True) -> str:
 def dirty_paths(path: Path) -> list[str]:
     """Return porcelain paths without the two-column status prefix."""
     status = run("git", "status", "--porcelain", cwd=path).stdout.rstrip("\r\n")
-    return [
-        line[3:] if len(line) >= 3 else line
-        for line in status.splitlines()
-    ]
+    return [line[3:] if len(line) >= 3 else line for line in status.splitlines()]
 
 
 def root() -> Path:
@@ -343,7 +340,7 @@ def docker_system_df() -> dict[str, Any] | None:
 
 
 def numeric_size(value: Any) -> int:
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         return int(value)
     if isinstance(value, str):
         match = re.fullmatch(
@@ -657,28 +654,55 @@ def evidence_sha_matches_current_source(
         return False
     checkout = worktree or root()
     ancestor = run(
-        "git", "merge-base", "--is-ancestor", evidence_sha, head,
-        cwd=checkout, check=False,
+        "git",
+        "merge-base",
+        "--is-ancestor",
+        evidence_sha,
+        head,
+        cwd=checkout,
+        check=False,
     )
     if ancestor.returncode != 0:
         return False
     changed = git("diff", "--name-only", f"{evidence_sha}..{head}", cwd=checkout)
     allowed_prefix = f"ops/workstreams/{stream.name}/"
-    return bool(changed) and all(item.startswith(allowed_prefix) for item in changed.splitlines())
+    return bool(changed) and all(
+        item.startswith(allowed_prefix) for item in changed.splitlines()
+    )
 
 
 def external_service_path(path: str) -> bool:
     """Return whether a path can change an external-provider integration."""
 
+    provider_service_modules = {
+        "backend/app/services/bulk_fetch.py",
+        "backend/app/services/instrument_mastering.py",
+        "backend/app/services/instrument_sync.py",
+        "backend/app/services/market_data_persistence.py",
+        "backend/app/services/market_event_edgar_scan.py",
+        "backend/app/services/market_events.py",
+        "backend/app/services/market_universe.py",
+        "backend/app/services/risk_free_rate.py",
+        "backend/app/services/short_interest.py",
+    }
     return (
         path.startswith(("backend/app/providers/", "backend/tests/live/"))
-        or path.startswith(("backend/app/schemas/provider", "backend/app/tasks/", "backend/app/workers/"))
+        or path.startswith(
+            (
+                "backend/app/schemas/provider",
+                "backend/app/tasks/",
+                "backend/app/workers/",
+            )
+        )
+        or path.startswith("backend/app/services/provider_")
         or path.startswith("backend/tests/integration/provider")
         or path.startswith("backend/alembic/versions/")
-        or path in {
+        or path.startswith("backend/app/routers/provider")
+        or path
+        in {
             "backend/app/config.py",
             "backend/app/models/provider_runtime.py",
-            "backend/app/routers/providers.py",
+            "backend/app/routers/market_data_admin.py",
             "backend/app/services/provider_runtime.py",
             "backend/app/services/provider_routing.py",
             "backend/app/services/provider_account_usage.py",
@@ -698,6 +722,7 @@ def external_service_path(path: str) -> bool:
             "docker-compose.yml",
             "deploy/rpi/compose.yml",
         }
+        or path in provider_service_modules
     )
 
 
@@ -715,9 +740,7 @@ def provider_integration_changed(plan: dict[str, Any], worktree: Path) -> bool:
     return any(external_service_path(item) for item in result.stdout.splitlines())
 
 
-def provider_live_evidence_current(
-    stream: Path, head: str, worktree: Path
-) -> bool:
+def provider_live_evidence_current(stream: Path, head: str, worktree: Path) -> bool:
     """Require a clean, full provider matrix at unchanged provider source."""
 
     journal = stream / "validation.jsonl"
@@ -731,8 +754,12 @@ def provider_live_evidence_current(
         if not isinstance(value, dict):
             continue
         total = value.get("case_count")
-        decisions = parse_plan(stream / "plan.yaml").get("approved_execution_decisions") or {}
-        provider_decisions = decisions.get("providers") if isinstance(decisions, dict) else {}
+        decisions = (
+            parse_plan(stream / "plan.yaml").get("approved_execution_decisions") or {}
+        )
+        provider_decisions = (
+            decisions.get("providers") if isinstance(decisions, dict) else {}
+        )
         expected_deferrals = {
             str(provider): str(decision).strip()
             for provider, decision in (provider_decisions or {}).items()
@@ -1200,9 +1227,9 @@ def finish(session_id: str, interrupted: bool, next_action: str) -> None:
                 raise SystemExit(
                     "normal finish requires passing validation evidence for the current HEAD"
                 )
-            if provider_integration_changed(plan, path) and not provider_live_evidence_current(
-                stream, head, path
-            ):
+            if provider_integration_changed(
+                plan, path
+            ) and not provider_live_evidence_current(stream, head, path):
                 raise SystemExit(
                     "normal finish requires a passing full provider live matrix for the "
                     "current provider source SHA; focused probes, skips, or incomplete "

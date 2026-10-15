@@ -85,7 +85,9 @@ class MassiveProvider:
     description = "Massive US reference data and bounded split-adjustable aggregate bars"
 
     def __init__(self) -> None:
-        self._cursor_by_page: dict[int, str] = {}
+        # Keep independent cursors for stock and OTC catalogues. Both use the
+        # same endpoint but are distinct market-filtered result sets.
+        self._cursor_by_page: dict[tuple[str, int], str] = {}
 
     def _api_key(self) -> str:
         # MARKETDATA_API_KEY is retained as a deployment-compatible alias.
@@ -138,7 +140,9 @@ class MassiveProvider:
 
         payload = self._get_path(_TICKERS_PATH, params)
         if not isinstance(payload, dict):
-            raise ProviderResponseError(self.name, "Massive ticker endpoint returned an invalid object")
+            raise ProviderResponseError(
+                self.name, "Massive ticker endpoint returned an invalid object"
+            )
         return payload
 
     def fetch_ohlcv(
@@ -168,7 +172,9 @@ class MassiveProvider:
         if not normalized_symbol:
             raise ProviderResponseError(self.name, "Massive aggregate request requires a symbol")
         if mapping is None:
-            raise ProviderResponseError(self.name, f"Massive does not support timeframe {timeframe.value}")
+            raise ProviderResponseError(
+                self.name, f"Massive does not support timeframe {timeframe.value}"
+            )
         if end <= start:
             return []
 
@@ -192,7 +198,9 @@ class MassiveProvider:
         while True:
             payload = self._get_path(next_path, self._params(**next_params))
             if not isinstance(payload, dict):
-                raise ProviderResponseError(self.name, "Massive aggregate endpoint returned an invalid object")
+                raise ProviderResponseError(
+                    self.name, "Massive aggregate endpoint returned an invalid object"
+                )
             provider_adjusted = payload.get("adjusted")
             if provider_adjusted is not None and provider_adjusted is not adjusted:
                 raise ProviderResponseError(
@@ -231,7 +239,9 @@ class MassiveProvider:
                 break
             next_path, cursor = _aggregate_next_page(next_url, self.name)
             if cursor in seen_cursors:
-                raise ProviderResponseError(self.name, "Massive aggregate pagination repeated a cursor")
+                raise ProviderResponseError(
+                    self.name, "Massive aggregate pagination repeated a cursor"
+                )
             seen_cursors.add(cursor)
             next_params = {"cursor": cursor}
 
@@ -263,7 +273,9 @@ class MassiveProvider:
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
         seconds = _TF_SECONDS.get(timeframe)
         if seconds is None:
-            raise ProviderResponseError(self.name, f"Massive does not support timeframe {timeframe.value}")
+            raise ProviderResponseError(
+                self.name, f"Massive does not support timeframe {timeframe.value}"
+            )
         return datetime.now(UTC) - timedelta(seconds=seconds * max(1, limit) * 1.4 + 86400)
 
     @staticmethod
@@ -280,28 +292,42 @@ class MassiveProvider:
     ) -> OHLCVBar:
         required = ("t", "o", "h", "l", "c")
         if any(field not in row for field in required):
-            raise ProviderResponseError("massive", "Massive aggregate row is missing a required field")
+            raise ProviderResponseError(
+                "massive", "Massive aggregate row is missing a required field"
+            )
         try:
             timestamp_ms = float(row["t"])
             values = {field: float(row[field]) for field in ("o", "h", "l", "c")}
             volume = float(row["v"]) if row.get("v") is not None else None
             vwap = float(row["vw"]) if row.get("vw") is not None else None
         except (TypeError, ValueError, OverflowError) as exc:
-            raise ProviderResponseError("massive", "Massive aggregate row contains a non-numeric value") from exc
+            raise ProviderResponseError(
+                "massive", "Massive aggregate row contains a non-numeric value"
+            ) from exc
         if not isfinite(timestamp_ms) or timestamp_ms < 0 or timestamp_ms != int(timestamp_ms):
-            raise ProviderResponseError("massive", "Massive aggregate row contains an invalid timestamp")
+            raise ProviderResponseError(
+                "massive", "Massive aggregate row contains an invalid timestamp"
+            )
         if any(not isfinite(value) for value in values.values()):
-            raise ProviderResponseError("massive", "Massive aggregate row contains a non-finite OHLC value")
+            raise ProviderResponseError(
+                "massive", "Massive aggregate row contains a non-finite OHLC value"
+            )
         if volume is not None and (not isfinite(volume) or volume < 0):
-            raise ProviderResponseError("massive", "Massive aggregate row contains an invalid volume")
+            raise ProviderResponseError(
+                "massive", "Massive aggregate row contains an invalid volume"
+            )
         if vwap is not None and (not isfinite(vwap) or vwap < 0):
             raise ProviderResponseError("massive", "Massive aggregate row contains an invalid VWAP")
-        if values["h"] < max(values["o"], values["c"]) or values["l"] > min(values["o"], values["c"]):
+        if values["h"] < max(values["o"], values["c"]) or values["l"] > min(
+            values["o"], values["c"]
+        ):
             raise ProviderResponseError("massive", "Massive aggregate row violates OHLC bounds")
         try:
             timestamp = datetime.fromtimestamp(timestamp_ms / 1000, tz=UTC)
         except (OverflowError, OSError, ValueError) as exc:
-            raise ProviderResponseError("massive", "Massive aggregate row contains an invalid timestamp") from exc
+            raise ProviderResponseError(
+                "massive", "Massive aggregate row contains an invalid timestamp"
+            ) from exc
         provenance = {
             "provider": "massive",
             "endpoint": endpoint,
@@ -331,7 +357,9 @@ class MassiveProvider:
     def _rows(payload: dict[str, Any], operation: str) -> list[dict[str, Any]]:
         rows = payload.get("results", [])
         if not isinstance(rows, list):
-            raise ProviderResponseError("massive", f"Massive {operation} returned an invalid results array")
+            raise ProviderResponseError(
+                "massive", f"Massive {operation} returned an invalid results array"
+            )
         if any(not isinstance(row, dict) for row in rows):
             raise ProviderResponseError("massive", f"Massive {operation} returned a malformed row")
         return rows
@@ -539,17 +567,27 @@ class MassiveProvider:
             raise ProviderResponseError(
                 self.name, "Massive split returned a different ticker than requested"
             )
-        execution_date = _required_action_date(row.get("execution_date"), self.name, "execution_date")
+        execution_date = _required_action_date(
+            row.get("execution_date"), self.name, "execution_date"
+        )
         adjustment_type = _optional_text(row.get("adjustment_type"))
         if adjustment_type not in {"forward_split", "reverse_split", "stock_dividend"}:
-            raise ProviderResponseError(self.name, "Massive split returned an invalid adjustment_type")
+            raise ProviderResponseError(
+                self.name, "Massive split returned an invalid adjustment_type"
+            )
         split_from = _optional_action_decimal(row.get("split_from"), self.name, "split_from")
         split_to = _optional_action_decimal(row.get("split_to"), self.name, "split_to")
         if (split_from is None) != (split_to is None):
-            raise ProviderResponseError(self.name, "Massive split returned only one ratio component")
+            raise ProviderResponseError(
+                self.name, "Massive split returned only one ratio component"
+            )
         if split_from is not None and (split_from <= 0 or split_to <= 0):
-            raise ProviderResponseError(self.name, "Massive split returned a non-positive ratio component")
-        split_ratio = split_to / split_from if split_from is not None and split_to is not None else None
+            raise ProviderResponseError(
+                self.name, "Massive split returned a non-positive ratio component"
+            )
+        split_ratio = (
+            split_to / split_from if split_from is not None and split_to is not None else None
+        )
         source_id = _optional_text(row.get("id"))
         source_key = source_id or (
             f"{adjustment_type}:{execution_date.isoformat()}:{split_from}:{split_to}"
@@ -583,7 +621,10 @@ class MassiveProvider:
         currency = _optional_text(row.get("currency"))
         source_id = _optional_text(row.get("id"))
         base_key = source_id or ":".join(
-            [str(dates[field] or "") for field in ("declaration_date", "ex_dividend_date", "pay_date")]
+            [
+                str(dates[field] or "")
+                for field in ("declaration_date", "ex_dividend_date", "pay_date")
+            ]
         )
         events: list[InstrumentEventRecord] = []
         if dates["ex_dividend_date"] is not None:
@@ -652,14 +693,22 @@ class MassiveProvider:
             raw_payload=str(row),
         )
 
-    def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]:
-        if quote_type.strip().upper() not in {"EQUITY", "EQUITIES", "STOCK", "STOCKS"}:
+    def discover_universe_page(
+        self, quote_type: str, offset: int, *, cursor: str | None = None
+    ) -> dict[str, Any]:
+        normalized_type = quote_type.strip().upper()
+        if normalized_type in {"EQUITY", "EQUITIES", "STOCK", "STOCKS"}:
+            market = "stocks"
+        elif normalized_type == "OTC":
+            market = "otc"
+        else:
             return {"total": 0, "quotes": []}
         page = max(offset, 0) // _PAGE_SIZE
-        cursor = self._cursor_by_page.get(page)
+        cursor_key = (market, page)
+        cursor = cursor or self._cursor_by_page.get(cursor_key)
         payload = self._get(
             self._params(
-                market="stocks",
+                market=market,
                 locale="us",
                 active="true",
                 limit=_PAGE_SIZE,
@@ -675,13 +724,17 @@ class MassiveProvider:
                 "name": result.name,
                 "exchange": result.exchange,
                 "instrument_type": result.instrument_type,
+                # Universe snapshots are durable source evidence. Preserve
+                # every field Massive returned instead of retaining only the
+                # normalized subset used by the instrument model.
+                "raw_payload": result.raw_payload,
             }
             for result in (self._result(row) for row in rows)
         ]
         next_url = (payload or {}).get("next_url")
         next_cursor = _require_next_cursor(next_url, self.name, "ticker discovery")
         if next_cursor:
-            self._cursor_by_page[page + 1] = next_cursor
+            self._cursor_by_page[(market, page + 1)] = next_cursor
         return {
             # Massive exposes cursor pagination rather than a global result
             # count. Do not mislabel each page length as the universe total;
@@ -690,12 +743,16 @@ class MassiveProvider:
             "total": None,
             "quotes": quotes,
             "next_url": next_url,
+            "next_cursor": next_cursor,
             "next_offset": offset + _PAGE_SIZE if next_url else None,
             "complete": not bool(next_url),
+            # Snapshot persistence retains the provider envelope as well as
+            # normalized rows, including count/status/request identifiers.
+            "raw_payload": payload,
         }
 
     def supported_discovery_types(self) -> list[str]:
-        return ["EQUITY"]
+        return ["EQUITY", "OTC"]
 
     def fetch_market_events(
         self,
@@ -744,7 +801,9 @@ class MassiveProvider:
         )
         raw_payload = self._get_path(_IPOS_PATH, params)
         if not isinstance(raw_payload, dict):
-            raise ProviderResponseError(self.name, "Massive IPO endpoint returned an invalid object")
+            raise ProviderResponseError(
+                self.name, "Massive IPO endpoint returned an invalid object"
+            )
         payload = raw_payload
         events = []
         for row in self._rows(payload, "IPO calendar"):
@@ -787,11 +846,17 @@ class MassiveProvider:
         elif isinstance(raw_payload, dict):
             rows = raw_payload.get("results", [])
         else:
-            raise ProviderResponseError(self.name, "Massive market-holiday endpoint returned an invalid container")
+            raise ProviderResponseError(
+                self.name, "Massive market-holiday endpoint returned an invalid container"
+            )
         if not isinstance(rows, list):
-            raise ProviderResponseError(self.name, "Massive market-holiday endpoint returned an invalid results array")
+            raise ProviderResponseError(
+                self.name, "Massive market-holiday endpoint returned an invalid results array"
+            )
         if any(not isinstance(row, dict) for row in rows):
-            raise ProviderResponseError(self.name, "Massive market-holiday endpoint returned a malformed row")
+            raise ProviderResponseError(
+                self.name, "Massive market-holiday endpoint returned a malformed row"
+            )
         events: list[MarketEventRecord] = []
         for row in rows:
             event_date = _parse_date(row.get("date"))
@@ -823,14 +888,16 @@ class MassiveProvider:
         symbol = str(row.get("ticker") or "").strip().upper()
         stable_key = symbol or str(row.get("isin") or row.get("us_code") or "").strip()
         if not stable_key:
-            raise ProviderResponseError("massive", "Massive IPO endpoint returned a row without an identity")
+            raise ProviderResponseError(
+                "massive", "Massive IPO endpoint returned a row without an identity"
+            )
         effective_date = _parse_date(
-            row.get("listing_date")
-            or row.get("issue_start_date")
-            or row.get("announced_date")
+            row.get("listing_date") or row.get("issue_start_date") or row.get("announced_date")
         )
         if effective_date is None:
-            raise ProviderResponseError("massive", "Massive IPO endpoint returned a row without a valid date")
+            raise ProviderResponseError(
+                "massive", "Massive IPO endpoint returned a row without a valid date"
+            )
         status = str(row.get("ipo_status") or "").strip().lower()
         event_time = _parse_datetime(row.get("last_updated")) or datetime.combine(
             effective_date, datetime.min.time(), tzinfo=UTC
@@ -849,10 +916,14 @@ class MassiveProvider:
     @staticmethod
     def _result(row: dict[str, Any]) -> ProviderSearchResult:
         if not isinstance(row, dict):
-            raise ProviderResponseError("massive", "Massive ticker endpoint returned a malformed row")
+            raise ProviderResponseError(
+                "massive", "Massive ticker endpoint returned a malformed row"
+            )
         symbol = str(row.get("ticker") or "").strip().upper()
         if not symbol:
-            raise ProviderResponseError("massive", "Massive ticker endpoint returned a row without a ticker")
+            raise ProviderResponseError(
+                "massive", "Massive ticker endpoint returned a row without a ticker"
+            )
         return ProviderSearchResult(
             symbol=symbol,
             name=str(row.get("name") or symbol),
@@ -862,9 +933,7 @@ class MassiveProvider:
         )
 
 
-def _require_next_cursor(
-    next_url: Any, provider_name: str, operation: str
-) -> str | None:
+def _require_next_cursor(next_url: Any, provider_name: str, operation: str) -> str | None:
     """Validate Massive's continuation URL and return its sole cursor.
 
     Massive's reference endpoints expose an opaque continuation URL, but the
@@ -896,9 +965,13 @@ def _aggregate_next_page(next_url: Any, provider_name: str) -> tuple[str, str]:
         raise ProviderResponseError(provider_name, "Massive aggregate returned an invalid next_url")
     parsed = urlparse(next_url)
     if parsed.scheme != "https" or parsed.netloc != "api.massive.com":
-        raise ProviderResponseError(provider_name, "Massive aggregate returned an untrusted next_url host")
+        raise ProviderResponseError(
+            provider_name, "Massive aggregate returned an untrusted next_url host"
+        )
     if not parsed.path.startswith("/v2/aggs/ticker/"):
-        raise ProviderResponseError(provider_name, "Massive aggregate returned an invalid next_url path")
+        raise ProviderResponseError(
+            provider_name, "Massive aggregate returned an invalid next_url path"
+        )
     cursor_values = parse_qs(parsed.query).get("cursor", [])
     if len(cursor_values) != 1 or not cursor_values[0].strip():
         raise ProviderResponseError(
@@ -914,7 +987,9 @@ def _corporate_actions_next_page(
     """Validate a Massive corporate-action continuation before following it."""
 
     if not isinstance(next_url, str):
-        raise ProviderResponseError(provider_name, "Massive corporate-actions returned an invalid next_url")
+        raise ProviderResponseError(
+            provider_name, "Massive corporate-actions returned an invalid next_url"
+        )
     parsed = urlparse(next_url)
     if parsed.scheme != "https" or parsed.netloc != "api.massive.com":
         raise ProviderResponseError(
@@ -1027,7 +1102,9 @@ def _optional_action_decimal(value: Any, provider_name: str, field: str) -> Deci
     try:
         parsed = Decimal(str(value))
     except (InvalidOperation, TypeError, ValueError) as exc:
-        raise ProviderResponseError(provider_name, f"Massive action returned an invalid {field}") from exc
+        raise ProviderResponseError(
+            provider_name, f"Massive action returned an invalid {field}"
+        ) from exc
     if not parsed.is_finite():
         raise ProviderResponseError(provider_name, f"Massive action returned a non-finite {field}")
     return parsed

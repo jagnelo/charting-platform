@@ -70,9 +70,7 @@ def _window_start_for_dimension(
 
     window_start = None
     dimension_reset = str(dimension.get("reset") or reset)
-    admission_reset = provider_quota_admission_reset(
-        dimension_reset, dimension.get("safety_reset")
-    )
+    admission_reset = provider_quota_admission_reset(dimension_reset, dimension.get("safety_reset"))
     if not provider_quota_reset_is_admission_safe(admission_reset):
         raise ProviderQuotaUnknownError(
             f"provider quota reset boundary is unresolved: {dimension_reset or 'missing'}"
@@ -90,15 +88,22 @@ def _window_start_for_dimension(
         eastern = now.astimezone(ZoneInfo("America/New_York"))
         reset_local = eastern.replace(hour=0, minute=0, second=0, microsecond=0)
         window_start = reset_local.astimezone(UTC)
-    elif admission_reset in {"09:30 America/New_York", "15:00 America/New_York"} and window_seconds >= 86400:
+    elif (
+        admission_reset in {"09:30 America/New_York", "15:00 America/New_York"}
+        and window_seconds >= 86400
+    ):
         eastern = now.astimezone(ZoneInfo("America/New_York"))
         reset_hour, reset_minute = (
             int(part) for part in admission_reset.split(" ", 1)[0].split(":")
         )
-        reset_local = eastern.replace(
-            hour=reset_hour, minute=reset_minute, second=0, microsecond=0
-        )
+        reset_local = eastern.replace(hour=reset_hour, minute=reset_minute, second=0, microsecond=0)
         if eastern < reset_local:
+            reset_local -= timedelta(days=1)
+        window_start = reset_local.astimezone(UTC)
+    elif admission_reset == "15:00 UTC-05:00" and window_seconds >= 86400:
+        fixed_est = now.astimezone(ZoneInfo("Etc/GMT+5"))
+        reset_local = fixed_est.replace(hour=15, minute=0, second=0, microsecond=0)
+        if fixed_est < reset_local:
             reset_local -= timedelta(days=1)
         window_start = reset_local.astimezone(UTC)
     rolling = window_start is None and "rolling" in admission_reset
@@ -159,6 +164,8 @@ async def _claim_distinct_identity(
         if existing is None:
             raise
         return False
+
+
 @dataclass(frozen=True, slots=True)
 class ProviderRequirements:
     capability: ProviderCapability
@@ -364,8 +371,8 @@ async def reserve_provider_quota(
             window = (await db.execute(query)).scalar_one_or_none()
             if window is None:
                 raise
-    available = window.limit_units - window.reserved_units - (
-        0 if release_only else window.consumed_units
+    available = (
+        window.limit_units - window.reserved_units - (0 if release_only else window.consumed_units)
     )
     if available < units:
         return None
@@ -499,9 +506,7 @@ def settle_provider_contract(
     """Move one runtime reservation into consumption without a separate lease."""
 
     if isinstance(units, bool) or not isinstance(units, int) or units < 0:
-        raise ProviderQuotaUnknownError(
-            "provider settlement requires non-negative integer units"
-        )
+        raise ProviderQuotaUnknownError("provider settlement requires non-negative integer units")
     settled_units = units
     for window in windows:
         dimension = str(window.dimension)
@@ -515,9 +520,7 @@ def settle_provider_contract(
             or not isinstance(raw_consumed, int)
             or raw_consumed < 0
         ):
-            raise ProviderQuotaUnknownError(
-                f"Invalid settlement units for dimension {dimension}"
-            )
+            raise ProviderQuotaUnknownError(f"Invalid settlement units for dimension {dimension}")
         reserved = raw_reserved
         consumed = raw_consumed
         window.reserved_units = max(0, window.reserved_units - reserved)

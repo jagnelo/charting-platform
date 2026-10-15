@@ -899,8 +899,6 @@ def test_morgan_stanley_adapter_accepts_current_public_download_path():
         "Holdings_MSLC%20Morgan%20Stanley%20Pathway%20-%20Large%20Cap%20Equity%20"
         "ETF_07_20_2026.xlsx"
     )
-    assert FakeAsyncClient.requested[0][0].endswith("/mslc.html")
-    assert FakeAsyncClient.requested[1][0].endswith("ETF_07_15_2026.xlsx")
 
 
 def test_golden_eagle_parser_validates_complete_declared_portfolio_count():

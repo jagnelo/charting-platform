@@ -112,6 +112,14 @@ async def _ensure_instrument_type(db: AsyncSession, asset_class_name: str, type_
     return it.id
 
 
+def _seed_quote_type(row: dict, fallback: str) -> str:
+    """Use a recognized row-level type when a provider returns mixed listings."""
+    value = str(row.get("instrument_type") or "").strip().upper()
+    if value in {"CS", "COMMON_STOCK", "COMMON STOCK", "STOCK", "EQUITIES"}:
+        value = "EQUITY"
+    return value if value in _QUOTE_TYPE_TAXONOMY else fallback
+
+
 # ── Seed ──────────────────────────────────────────────────────────────────────
 
 
@@ -486,7 +494,8 @@ async def seed_universe(db: AsyncSession) -> dict:
     for discovery in discovery_chain:
         discovery_provider = discovery.provider
         for quote_type in discovery_provider.supported_discovery_types():
-            type_id = type_id_map[quote_type]
+            if quote_type not in type_id_map:
+                raise ValueError(f"provider returned unsupported discovery type {quote_type!r}")
             offset = 0
             total = None
             seen_next_urls: set[str] = set()
@@ -521,6 +530,12 @@ async def seed_universe(db: AsyncSession) -> dict:
                 # snapshot is immutable evidence and the next invocation
                 # replays the provider's exact pagination contract.
                 await db.commit()
+                validation_errors = page.get("validation_errors") or []
+                if validation_errors:
+                    raise ValueError(
+                        "discovery provider response was retained but failed validation: "
+                        + "; ".join(str(error) for error in validation_errors)
+                    )
                 raw_quotes = page.get("quotes")
                 if raw_quotes is None:
                     raw_quotes = []
@@ -593,6 +608,9 @@ async def seed_universe(db: AsyncSession) -> dict:
                     if not symbol:
                         continue
 
+                    row_quote_type = _seed_quote_type(q, quote_type)
+                    row_type_id = type_id_map[row_quote_type]
+
                     # Preserve the raw discovery snapshot, but never merge
                     # distinct issuers solely because their ticker matches.
                     if q.get("identity_ambiguity"):
@@ -610,8 +628,8 @@ async def seed_universe(db: AsyncSession) -> dict:
 
                     symbol_key = _seed_symbol_key(symbol)
                     exchange_mic = normalize_exchange_mic(exchange)
-                    qualified_key = (symbol_key, exchange_mic, type_id)
-                    symbol_type_key = (symbol_key, type_id)
+                    qualified_key = (symbol_key, exchange_mic, row_type_id)
+                    symbol_type_key = (symbol_key, row_type_id)
 
                     stable_identifiers = _seed_stable_identifiers(q)
                     stable_identifier_conflict = any(
@@ -670,7 +688,7 @@ async def seed_universe(db: AsyncSession) -> dict:
                             quote_type,
                         )
                         continue
-                    if stable_owner is not None and stable_owner.instrument_type_id != type_id:
+                    if stable_owner is not None and stable_owner.instrument_type_id != row_type_id:
                         logger.warning(
                             "seed_universe: stable identity for %s belongs to a different "
                             "instrument type; retaining discovery snapshot without promotion",
@@ -699,7 +717,7 @@ async def seed_universe(db: AsyncSession) -> dict:
                         inst = Instrument(
                             symbol=symbol,
                             name=name,
-                            instrument_type_id=type_id,
+                            instrument_type_id=row_type_id,
                             currency=currency,
                             is_active=True,
                         )
@@ -721,7 +739,7 @@ async def seed_universe(db: AsyncSession) -> dict:
                             inst.name = name
                         if currency:
                             inst.currency = currency
-                        inst.instrument_type_id = type_id
+                        inst.instrument_type_id = row_type_id
                         # Discovery is evidence, not canonical lifecycle truth.  In
                         # particular, a provider row may carry a delisted/inactive
                         # status; never silently reactivate an existing instrument
@@ -795,7 +813,7 @@ async def seed_universe(db: AsyncSession) -> dict:
                         page_provider_name,
                         symbol,
                         provider_exchange_code=exchange,
-                        provider_instrument_type=quote_type,
+                        provider_instrument_type=row_quote_type,
                         currency=currency,
                         is_primary=True,
                         extra_data=provider_extra_data or None,
@@ -849,7 +867,7 @@ async def seed_universe(db: AsyncSession) -> dict:
                     await _upsert_stats(db, inst, q, source_provider=page_provider_name)
                     await ensure_internal_identifier(db, inst)
 
-                    if quote_type in _EQUITY_DETAIL_TYPES:
+                    if row_quote_type in _EQUITY_DETAIL_TYPES:
                         ed = (
                             await db.execute(
                                 select(EquityDetail).where(EquityDetail.instrument_id == inst.id)
@@ -880,7 +898,7 @@ async def seed_universe(db: AsyncSession) -> dict:
                                 }
                         ed.field_provenance = field_provenance or None
 
-                    elif quote_type == "CURRENCY":
+                    elif row_quote_type == "CURRENCY":
                         pair = _parse_forex_pair(symbol)
                         if pair:
                             fd = (
@@ -908,7 +926,7 @@ async def seed_universe(db: AsyncSession) -> dict:
                             }
                             fd.field_provenance = field_provenance
 
-                    elif quote_type == "FUTURE":
+                    elif row_quote_type == "FUTURE":
                         fut = (
                             await db.execute(
                                 select(FutureDetail).where(FutureDetail.instrument_id == inst.id)

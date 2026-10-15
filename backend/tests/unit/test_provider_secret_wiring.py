@@ -15,6 +15,12 @@ _LIVE_SCRIPT_SPEC = importlib.util.spec_from_file_location(
 assert _LIVE_SCRIPT_SPEC and _LIVE_SCRIPT_SPEC.loader
 _LIVE_SCRIPT = importlib.util.module_from_spec(_LIVE_SCRIPT_SPEC)
 _LIVE_SCRIPT_SPEC.loader.exec_module(_LIVE_SCRIPT)
+_RPI_SCRIPT_SPEC = importlib.util.spec_from_file_location(
+    "rpi_deployment_helper_for_provider_secrets", ROOT / "scripts/rpi.py"
+)
+assert _RPI_SCRIPT_SPEC and _RPI_SCRIPT_SPEC.loader
+_RPI_SCRIPT = importlib.util.module_from_spec(_RPI_SCRIPT_SPEC)
+_RPI_SCRIPT_SPEC.loader.exec_module(_RPI_SCRIPT)
 routing_safety_preflight = _LIVE_SCRIPT.routing_safety_preflight
 setting_is_configured = _LIVE_SCRIPT.setting_is_configured
 usage_scope_is_configured = _LIVE_SCRIPT.usage_scope_is_configured
@@ -72,6 +78,7 @@ PROVIDER_WORKFLOW_CONFIGURATION_SETTINGS = {
     "IBKR_READ_ONLY_TIMEOUT_SECONDS",
     "IBKR_CONID_MAP",
     "DINARI_API_BASE_URL",
+    "DINARI_SANDBOX_QUOTA_PROFILE",
     "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED",
     "PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS",
 }
@@ -94,10 +101,14 @@ PROVIDER_SAFETY_SETTINGS = {
     "FINRA_OTC_SOURCE_EVIDENCE",
     "FINRA_OTC_REVIEWED_SOURCE_URL",
     "FINRA_OTC_REVIEWED_INACTIVE_SOURCE_URL",
+    "FINRA_ORF_REFRESH_TOKEN_STATE_FILE",
+    "FINRA_ORF_REFRESH_TOKEN_STATE_FILE",
     "FINRA_OTC_TERMS_REVIEWED",
     "FINRA_OTC_COMPLETENESS_REVIEWED",
     "FINRA_OTC_REDISTRIBUTION_REVIEWED",
     "FINRA_OTC_POLL_INTERVAL_SECONDS",
+    "FINRA_ORF_CUSIP_LICENSED",
+    "FINRA_ORF_CUSIP_LICENSE_EVIDENCE",
     "ALPHA_VANTAGE_REVIEWED_RESET",
     "ALPHA_VANTAGE_QUOTA_EVIDENCE",
     "EDGAR_REVIEWED_RESET",
@@ -111,8 +122,8 @@ PROVIDER_SAFETY_SETTINGS = {
     "FRED_REVIEWED_QUOTA_EVIDENCE",
     "FRED_REVIEWED_RESET",
     "FRED_RESET_EVIDENCE",
-    "FRED_PERSISTED_STORAGE_AUTHORIZED",
-    "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE",
+    "FRED_APPLICATION_USER_SCOPE",
+    "FRED_APPLICATION_USER_SCOPE_EVIDENCE",
     "FRED_AUTOMATED_USE_AUTHORIZED",
     "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE",
     "FRED_SERIES_RIGHTS_EVIDENCE",
@@ -121,13 +132,16 @@ PROVIDER_SAFETY_SETTINGS = {
     "COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE",
     "COINBASE_MARKET_DATA_USE_REVIEWED_AT",
     "COINBASE_MARKET_DATA_USE_EXPIRES_AT",
+    "KRAKEN_MARKET_DATA_USE_AUTHORIZED",
+    "KRAKEN_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+    "KRAKEN_MARKET_DATA_USE_AUTHORITY_SCOPE",
+    "KRAKEN_MARKET_DATA_USE_REVIEWED_AT",
+    "KRAKEN_MARKET_DATA_USE_EXPIRES_AT",
     "XSTOCKS_MARKET_DATA_USE_AUTHORIZED",
     "XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE",
     "XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
     "XSTOCKS_MARKET_DATA_USE_REVIEWED_AT",
     "XSTOCKS_MARKET_DATA_USE_EXPIRES_AT",
-    "XSTOCKS_MARKET_DATA_USE_JURISDICTION_AUTHORIZED",
-    "XSTOCKS_MARKET_DATA_USE_JURISDICTION_EVIDENCE",
     "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORIZED",
     "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE",
     "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
@@ -136,22 +150,44 @@ PROVIDER_SAFETY_SETTINGS = {
     "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED",
     "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE",
     "TIINGO_OPERATION_BYTE_BOUNDS",
+    "TIINGO_REVIEWED_PLAN",
+    "TIINGO_CUSTOM_UNIQUE_SYMBOLS_PER_MONTH",
+    "TIINGO_CUSTOM_REQUESTS_PER_HOUR",
+    "TIINGO_CUSTOM_REQUESTS_PER_DAY",
+    "TIINGO_CUSTOM_BANDWIDTH_BYTES_PER_MONTH",
+    "TIINGO_CUSTOM_QUOTA_EVIDENCE",
+    "TIINGO_PROVIDER_ARCHIVE_TERMS_AUTHORIZED",
+    "TIINGO_PROVIDER_ARCHIVE_TERMS_EVIDENCE",
     "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET",
     "TIINGO_REVIEWED_HOURLY_RESET",
     "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE",
     "TIINGO_HOURLY_QUOTA_EVIDENCE",
+    "TWELVE_DATA_PROVIDER_ARCHIVE_TERMS_AUTHORIZED",
+    "TWELVE_DATA_PROVIDER_ARCHIVE_TERMS_EVIDENCE",
     "FMP_OPERATION_BYTE_BOUNDS",
+    "FMP_PROVIDER_ARCHIVE_TERMS_AUTHORIZED",
+    "FMP_PROVIDER_ARCHIVE_TERMS_EVIDENCE",
+    "FMP_REVIEWED_PLAN",
+    "FMP_STOCK_LIST_ENTITLED",
     "FMP_REVIEWED_DAILY_RESET",
+    "FMP_REVIEWED_CALL_RESET",
     "FMP_REVIEWED_BANDWIDTH_RESET",
+    "FMP_CALL_QUOTA_EVIDENCE",
     "FMP_DAILY_QUOTA_EVIDENCE",
     "FMP_BANDWIDTH_QUOTA_EVIDENCE",
     "EODHD_REVIEWED_MINUTE_LIMIT",
     "EODHD_REVIEWED_MINUTE_RESET",
     "EODHD_MINUTE_QUOTA_EVIDENCE",
+    "EODHD_PROVIDER_DISPLAY_TERMS_AUTHORIZED",
+    "EODHD_PROVIDER_DISPLAY_TERMS_EVIDENCE",
     "MARKETDATA_APP_REVIEWED_PLAN",
     "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT",
     "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT",
     "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS",
+    "MARKETDATA_APP_PROVIDER_RETENTION_TERMS_AUTHORIZED",
+    "MARKETDATA_APP_PROVIDER_RETENTION_TERMS_EVIDENCE",
+    "MARKETSTACK_PROVIDER_ARCHIVE_TERMS_AUTHORIZED",
+    "MARKETSTACK_PROVIDER_ARCHIVE_TERMS_EVIDENCE",
     "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED",
     "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS",
     "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER",
@@ -168,6 +204,7 @@ PROVIDER_CONFIGURATION_SETTINGS = {
     "FINRA_OTC_SOURCE_EVIDENCE",
     "FINRA_OTC_REVIEWED_SOURCE_URL",
     "FINRA_OTC_REVIEWED_INACTIVE_SOURCE_URL",
+    "FINRA_ORF_REFRESH_TOKEN_STATE_FILE",
     "MARKETSTACK_DISCOVERY_EXCHANGE",
     "IBKR_READ_ONLY_URL",
     "ALLOW_PAID_PROVIDER_ROUTING",
@@ -179,6 +216,7 @@ PROVIDER_CONFIGURATION_SETTINGS = {
     "PROVIDER_QUOTA_EXCLUSIVE_ACCOUNT_SCOPES",
     "PROVIDER_QUOTA_CONCURRENCY_LEASE_GRACE_SECONDS",
     "PROVIDER_QUOTA_LEDGER_PATH",
+    "DINARI_SANDBOX_QUOTA_PROFILE",
 }
 TOKENIZED_REFRESH_SETTINGS = {
     "TOKENIZED_ASSET_REFRESH_ENABLED",
@@ -239,6 +277,13 @@ def test_local_and_rpi_compose_pass_secrets_only_to_trusted_provider_processes()
             assert f"{name}:" not in research, (relative_path, "research-runner", name)
 
 
+def test_rpi_secret_inventory_matches_the_provider_secret_manifest():
+    assert set(_RPI_SCRIPT.PROVIDER_SECRET_ENV_NAMES) == PROVIDER_SECRET_NAMES
+    source = (ROOT / "scripts/rpi.py").read_text()
+    assert "optional provider credential names present (values withheld)" in source
+    assert "optional provider credential names absent" in source
+
+
 def test_research_runner_cannot_read_the_durable_provider_quota_ledger():
     """User-supplied research code must not observe or mutate quota state."""
 
@@ -271,6 +316,25 @@ def test_trusted_local_and_rpi_processes_share_the_durable_quota_ledger():
         assert mount in backend, (relative_path, "backend")
         assert mount in worker, (relative_path, "worker")
         assert mount not in research, (relative_path, "research-runner")
+
+
+def test_finra_orf_rotating_token_state_is_shared_only_by_trusted_processes():
+    for relative_path in ("docker-compose.yml", "deploy/rpi/compose.yml"):
+        compose = (ROOT / relative_path).read_text()
+        backend = _service_environment(compose, "backend")
+        worker = _service_environment(compose, "worker")
+        research = _service_environment(compose, "research-runner")
+        mount = (
+            "${FINRA_ORF_REFRESH_TOKEN_STATE_HOST_DIR:-${HOME}/.config/charting-platform/"
+            "provider-secrets/finra-orf}:/var/lib/charting-platform/provider-secrets/finra-orf"
+            if relative_path == "docker-compose.yml"
+            else "${FINRA_ORF_REFRESH_TOKEN_STATE_HOST_DIR:-/var/lib/charting-platform/"
+            "provider-secrets/finra-orf}:/var/lib/charting-platform/provider-secrets/finra-orf"
+        )
+        for name, service in (("backend", backend), ("worker", worker)):
+            assert "FINRA_ORF_REFRESH_TOKEN_STATE_FILE:" in service, (relative_path, name)
+            assert mount in service, (relative_path, name)
+        assert "provider-secrets/finra-orf" not in research
 
 
 def test_local_and_rpi_compose_pass_provider_safety_settings_to_backend_and_worker_only():
@@ -355,6 +419,18 @@ def test_deployment_defaults_keep_new_tokenized_providers_visible():
         assert '"tokenized_historical_prices":["dinari","ondo_global_markets"]' in compose
 
 
+def test_owner_private_retention_decision_is_consistent_across_runtime_targets():
+    assert Settings(_env_file=None).PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK is True
+    for relative_path in ("docker-compose.yml", "deploy/rpi/compose.yml"):
+        compose = (ROOT / relative_path).read_text()
+        assert (
+            "PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK: "
+            "${PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK:-true}"
+        ) in compose
+    workflow = (ROOT / ".github/workflows/provider-live.yml").read_text()
+    assert 'PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK: "true"' in workflow
+
+
 def test_provider_chain_examples_match_backend_tokenized_history_contract():
     """Keep public configuration examples aligned with backend defaults."""
 
@@ -403,6 +479,10 @@ def test_live_workflow_is_branch_scoped_environment_isolated_and_maps_each_secre
         "PROVIDER_USAGE_PROFILE_SEEDS: ${{ vars.PROVIDER_USAGE_PROFILE_SEEDS || '__CODE_DEFAULT__' }}"
         in workflow
     )
+    assert (
+        "DINARI_SANDBOX_QUOTA_PROFILE: ${{ vars.DINARI_SANDBOX_QUOTA_PROFILE || '__CODE_DEFAULT__' }}"
+        in workflow
+    )
     for name in PROVIDER_SECRET_NAMES:
         assert f"{name}: ${{{{ secrets.{name} }}}}" in workflow
     for name in PROVIDER_SAFETY_SETTINGS:
@@ -439,32 +519,27 @@ def test_live_workflow_is_branch_scoped_environment_isolated_and_maps_each_secre
     assert (
         "FINRA_ASYNC_MAX_RESULT_BYTES: ${{ vars.FINRA_ASYNC_MAX_RESULT_BYTES || '0' }}" in workflow
     )
+    assert "FINRA_EQUITY_DATA_USE_" not in workflow
     assert "FRED_REVIEWED_LIMIT_SCOPE: ${{ vars.FRED_REVIEWED_LIMIT_SCOPE || '' }}" in workflow
     assert (
-        "ALPHA_VANTAGE_REVIEWED_RESET: ${{ vars.ALPHA_VANTAGE_REVIEWED_RESET || '' }}"
-        in workflow
+        "ALPHA_VANTAGE_REVIEWED_RESET: ${{ vars.ALPHA_VANTAGE_REVIEWED_RESET || '' }}" in workflow
     )
     assert (
-        "ALPHA_VANTAGE_QUOTA_EVIDENCE: ${{ vars.ALPHA_VANTAGE_QUOTA_EVIDENCE || '' }}"
-        in workflow
+        "ALPHA_VANTAGE_QUOTA_EVIDENCE: ${{ vars.ALPHA_VANTAGE_QUOTA_EVIDENCE || '' }}" in workflow
     )
     assert "EDGAR_REVIEWED_RESET: ${{ vars.EDGAR_REVIEWED_RESET || '' }}" in workflow
     assert "EDGAR_QUOTA_EVIDENCE: ${{ vars.EDGAR_QUOTA_EVIDENCE || '' }}" in workflow
     assert (
-        "FINNHUB_REVIEWED_MINUTE_RESET: ${{ vars.FINNHUB_REVIEWED_MINUTE_RESET || '' }}"
-        in workflow
+        "FINNHUB_REVIEWED_MINUTE_RESET: ${{ vars.FINNHUB_REVIEWED_MINUTE_RESET || '' }}" in workflow
     )
     assert (
-        "FINNHUB_REVIEWED_SECOND_RESET: ${{ vars.FINNHUB_REVIEWED_SECOND_RESET || '' }}"
-        in workflow
+        "FINNHUB_REVIEWED_SECOND_RESET: ${{ vars.FINNHUB_REVIEWED_SECOND_RESET || '' }}" in workflow
     )
     assert (
-        "FINNHUB_MINUTE_QUOTA_EVIDENCE: ${{ vars.FINNHUB_MINUTE_QUOTA_EVIDENCE || '' }}"
-        in workflow
+        "FINNHUB_MINUTE_QUOTA_EVIDENCE: ${{ vars.FINNHUB_MINUTE_QUOTA_EVIDENCE || '' }}" in workflow
     )
     assert (
-        "FINNHUB_SECOND_QUOTA_EVIDENCE: ${{ vars.FINNHUB_SECOND_QUOTA_EVIDENCE || '' }}"
-        in workflow
+        "FINNHUB_SECOND_QUOTA_EVIDENCE: ${{ vars.FINNHUB_SECOND_QUOTA_EVIDENCE || '' }}" in workflow
     )
     assert (
         "FRED_REVIEWED_REQUESTS_PER_MINUTE: ${{ vars.FRED_REVIEWED_REQUESTS_PER_MINUTE || '0' }}"
@@ -475,12 +550,9 @@ def test_live_workflow_is_branch_scoped_environment_isolated_and_maps_each_secre
     )
     assert "FRED_REVIEWED_RESET: ${{ vars.FRED_REVIEWED_RESET || '' }}" in workflow
     assert "FRED_RESET_EVIDENCE: ${{ vars.FRED_RESET_EVIDENCE || '' }}" in workflow
+    assert "FRED_APPLICATION_USER_SCOPE: ${{ vars.FRED_APPLICATION_USER_SCOPE || '' }}" in workflow
     assert (
-        "FRED_PERSISTED_STORAGE_AUTHORIZED: ${{ vars.FRED_PERSISTED_STORAGE_AUTHORIZED || 'false' }}"
-        in workflow
-    )
-    assert (
-        "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE: ${{ vars.FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE || '' }}"
+        "FRED_APPLICATION_USER_SCOPE_EVIDENCE: ${{ vars.FRED_APPLICATION_USER_SCOPE_EVIDENCE || '' }}"
         in workflow
     )
     assert (
@@ -491,13 +563,23 @@ def test_live_workflow_is_branch_scoped_environment_isolated_and_maps_each_secre
         "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE: ${{ vars.FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE || '' }}"
         in workflow
     )
-    assert "FRED_SERIES_RIGHTS_EVIDENCE: ${{ vars.FRED_SERIES_RIGHTS_EVIDENCE || '{}' }}" in workflow
+    assert (
+        "FRED_SERIES_RIGHTS_EVIDENCE: ${{ vars.FRED_SERIES_RIGHTS_EVIDENCE || '{}' }}" in workflow
+    )
     for name in (
         "COINBASE_MARKET_DATA_USE_AUTHORIZED",
         "COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
         "COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE",
         "COINBASE_MARKET_DATA_USE_REVIEWED_AT",
         "COINBASE_MARKET_DATA_USE_EXPIRES_AT",
+    ):
+        assert f"{name}:" in workflow
+    for name in (
+        "KRAKEN_MARKET_DATA_USE_AUTHORIZED",
+        "KRAKEN_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+        "KRAKEN_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "KRAKEN_MARKET_DATA_USE_REVIEWED_AT",
+        "KRAKEN_MARKET_DATA_USE_EXPIRES_AT",
     ):
         assert f"{name}:" in workflow
     for name in (
@@ -516,25 +598,71 @@ def test_live_workflow_is_branch_scoped_environment_isolated_and_maps_each_secre
         "XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
         "XSTOCKS_MARKET_DATA_USE_REVIEWED_AT",
         "XSTOCKS_MARKET_DATA_USE_EXPIRES_AT",
-        "XSTOCKS_MARKET_DATA_USE_JURISDICTION_AUTHORIZED",
-        "XSTOCKS_MARKET_DATA_USE_JURISDICTION_EVIDENCE",
     ):
         assert f"{name}:" in workflow
     assert (
-        "TIINGO_OPERATION_BYTE_BOUNDS: ${{ vars.TIINGO_OPERATION_BYTE_BOUNDS || '{}' }}" in workflow
+        "TIINGO_OPERATION_BYTE_BOUNDS: ${{ vars.TIINGO_OPERATION_BYTE_BOUNDS || '__CODE_DEFAULT__' }}"
+        in workflow
     )
-    assert "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET: ${{ vars.TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET || '' }}" in workflow
-    assert "TIINGO_REVIEWED_HOURLY_RESET: ${{ vars.TIINGO_REVIEWED_HOURLY_RESET || '' }}" in workflow
-    assert "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE: ${{ vars.TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE || '' }}" in workflow
-    assert "TIINGO_HOURLY_QUOTA_EVIDENCE: ${{ vars.TIINGO_HOURLY_QUOTA_EVIDENCE || '' }}" in workflow
-    assert "FMP_OPERATION_BYTE_BOUNDS: ${{ vars.FMP_OPERATION_BYTE_BOUNDS || '{}' }}" in workflow
+    assert "TIINGO_REVIEWED_PLAN: ${{ vars.TIINGO_REVIEWED_PLAN || 'starter' }}" in workflow
+    for name in (
+        "TIINGO_CUSTOM_UNIQUE_SYMBOLS_PER_MONTH",
+        "TIINGO_CUSTOM_REQUESTS_PER_HOUR",
+        "TIINGO_CUSTOM_REQUESTS_PER_DAY",
+        "TIINGO_CUSTOM_BANDWIDTH_BYTES_PER_MONTH",
+        "TIINGO_CUSTOM_QUOTA_EVIDENCE",
+    ):
+        assert f"{name}:" in workflow
+    for name in (
+        "TIINGO_PROVIDER_ARCHIVE_TERMS_AUTHORIZED",
+        "TIINGO_PROVIDER_ARCHIVE_TERMS_EVIDENCE",
+    ):
+        assert f"{name}:" in workflow
+    for name in (
+        "TWELVE_DATA_PROVIDER_ARCHIVE_TERMS_AUTHORIZED",
+        "TWELVE_DATA_PROVIDER_ARCHIVE_TERMS_EVIDENCE",
+    ):
+        assert f"{name}:" in workflow
+    assert (
+        "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET: ${{ vars.TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET || '' }}"
+        in workflow
+    )
+    assert (
+        "TIINGO_REVIEWED_HOURLY_RESET: ${{ vars.TIINGO_REVIEWED_HOURLY_RESET || '' }}" in workflow
+    )
+    assert (
+        "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE: ${{ vars.TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE || '' }}"
+        in workflow
+    )
+    assert (
+        "TIINGO_HOURLY_QUOTA_EVIDENCE: ${{ vars.TIINGO_HOURLY_QUOTA_EVIDENCE || '' }}" in workflow
+    )
+    assert (
+        "FMP_OPERATION_BYTE_BOUNDS: ${{ vars.FMP_OPERATION_BYTE_BOUNDS || '__CODE_DEFAULT__' }}"
+        in workflow
+    )
+    assert "FMP_REVIEWED_PLAN: ${{ vars.FMP_REVIEWED_PLAN || 'basic' }}" in workflow
+    assert "FMP_STOCK_LIST_ENTITLED: ${{ vars.FMP_STOCK_LIST_ENTITLED || 'false' }}" in workflow
+    for name in (
+        "FMP_PROVIDER_ARCHIVE_TERMS_AUTHORIZED",
+        "FMP_PROVIDER_ARCHIVE_TERMS_EVIDENCE",
+    ):
+        assert f"{name}:" in workflow
     assert "FMP_REVIEWED_DAILY_RESET: ${{ vars.FMP_REVIEWED_DAILY_RESET || '' }}" in workflow
-    assert "FMP_REVIEWED_BANDWIDTH_RESET: ${{ vars.FMP_REVIEWED_BANDWIDTH_RESET || '' }}" in workflow
+    assert "FMP_REVIEWED_CALL_RESET: ${{ vars.FMP_REVIEWED_CALL_RESET || '' }}" in workflow
+    assert (
+        "FMP_REVIEWED_BANDWIDTH_RESET: ${{ vars.FMP_REVIEWED_BANDWIDTH_RESET || '' }}" in workflow
+    )
     assert "FMP_DAILY_QUOTA_EVIDENCE: ${{ vars.FMP_DAILY_QUOTA_EVIDENCE || '' }}" in workflow
-    assert "FMP_BANDWIDTH_QUOTA_EVIDENCE: ${{ vars.FMP_BANDWIDTH_QUOTA_EVIDENCE || '' }}" in workflow
+    assert "FMP_CALL_QUOTA_EVIDENCE: ${{ vars.FMP_CALL_QUOTA_EVIDENCE || '' }}" in workflow
+    assert (
+        "FMP_BANDWIDTH_QUOTA_EVIDENCE: ${{ vars.FMP_BANDWIDTH_QUOTA_EVIDENCE || '' }}" in workflow
+    )
     assert "EODHD_REVIEWED_MINUTE_LIMIT: ${{ vars.EODHD_REVIEWED_MINUTE_LIMIT || '0' }}" in workflow
     assert "EODHD_REVIEWED_MINUTE_RESET: ${{ vars.EODHD_REVIEWED_MINUTE_RESET || '' }}" in workflow
     assert "EODHD_MINUTE_QUOTA_EVIDENCE: ${{ vars.EODHD_MINUTE_QUOTA_EVIDENCE || '' }}" in workflow
+    assert "EODHD_PROVIDER_DISPLAY_TERMS_AUTHORIZED:" in workflow
+    assert "EODHD_PROVIDER_DISPLAY_TERMS_EVIDENCE:" in workflow
     assert (
         "MARKETDATA_APP_REVIEWED_PLAN: ${{ vars.MARKETDATA_APP_REVIEWED_PLAN || '' }}" in workflow
     )
@@ -550,6 +678,16 @@ def test_live_workflow_is_branch_scoped_environment_isolated_and_maps_each_secre
         "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS: ${{ vars.MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS || '0' }}"
         in workflow
     )
+    for name in (
+        "MARKETDATA_APP_PROVIDER_RETENTION_TERMS_AUTHORIZED",
+        "MARKETDATA_APP_PROVIDER_RETENTION_TERMS_EVIDENCE",
+    ):
+        assert f"{name}:" in workflow
+    for name in (
+        "MARKETSTACK_PROVIDER_ARCHIVE_TERMS_AUTHORIZED",
+        "MARKETSTACK_PROVIDER_ARCHIVE_TERMS_EVIDENCE",
+    ):
+        assert f"{name}:" in workflow
     assert (
         "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED: ${{ vars.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED || 'false' }}"
         in workflow
@@ -574,16 +712,31 @@ def test_live_workflow_is_branch_scoped_environment_isolated_and_maps_each_secre
         "MARKETSTACK_DISCOVERY_EXCHANGE: ${{ vars.MARKETSTACK_DISCOVERY_EXCHANGE || '' }}"
         in workflow
     )
-    assert "MARKETSTACK_REVIEWED_MONTHLY_LIMIT: ${{ vars.MARKETSTACK_REVIEWED_MONTHLY_LIMIT || '0' }}" in workflow
-    assert "MARKETSTACK_REVIEWED_MONTHLY_RESET: ${{ vars.MARKETSTACK_REVIEWED_MONTHLY_RESET || '' }}" in workflow
+    assert (
+        "MARKETSTACK_REVIEWED_MONTHLY_LIMIT: ${{ vars.MARKETSTACK_REVIEWED_MONTHLY_LIMIT || '100' }}"
+        in workflow
+    )
+    assert (
+        "MARKETSTACK_REVIEWED_MONTHLY_RESET: ${{ vars.MARKETSTACK_REVIEWED_MONTHLY_RESET || '' }}"
+        in workflow
+    )
     assert "MARKETSTACK_QUOTA_EVIDENCE: ${{ vars.MARKETSTACK_QUOTA_EVIDENCE || '' }}" in workflow
 
 
 def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     example = (ROOT / "backend/.env.example").read_text()
-    assert "FINRA_OTC_SYMBOL_DIRECTORY_URL=" in example
-    assert "FINRA_OTC_SYMBOL_DIRECTORY_URL=https://" not in example
+    assert (
+        "FINRA_OTC_SYMBOL_DIRECTORY_URL="
+        "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster"
+    ) in example
+    assert "FINRA_OTC_SOURCE_KIND=finra_otc_query_api" in example
+    assert (
+        "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL=https://apidownload.finratraqs.org/"
+        "DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERIN&facility=ORF"
+    ) in example
     assert "FINRA_ASYNC_MAX_RESULT_BYTES=0" in example
+    assert "FINRA_EQUITY_DATA_USE_AUTHORIZED=" not in example
+    assert "FINRA_OTC_PERSISTENT_STORAGE_AUTHORIZED=" not in example
     assert "ALPACA_CORPORATE_ACTIONS_MAX_PAGES=0" in example
     assert "ALPACA_REVIEWED_RESET=" in example
     assert "ALPACA_QUOTA_EVIDENCE=" in example
@@ -591,6 +744,8 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "MASSIVE_MARKET_DATA_USE_AUTHORIZED=false" in example
     assert "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE=" in example
     assert "MASSIVE_MARKET_DATA_USE_EXPIRES_AT=" in example
+    assert "KRAKEN_MARKET_DATA_USE_AUTHORIZED=false" in example
+    assert "KRAKEN_MARKET_DATA_USE_AUTHORITY_SCOPE=" in example
     assert "FRED_REVIEWED_LIMIT_SCOPE=" in example
     assert "ALPHA_VANTAGE_REVIEWED_RESET=" in example
     assert "ALPHA_VANTAGE_QUOTA_EVIDENCE=" in example
@@ -604,20 +759,38 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "FRED_REVIEWED_QUOTA_EVIDENCE=" in example
     assert "FRED_REVIEWED_RESET=" in example
     assert "FRED_RESET_EVIDENCE=" in example
-    assert "FRED_PERSISTED_STORAGE_AUTHORIZED=false" in example
-    assert "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE=" in example
+    assert "FRED_APPLICATION_USER_SCOPE=" in example
+    assert "FRED_APPLICATION_USER_SCOPE_EVIDENCE=" in example
+    assert "FRED_PERSISTED_STORAGE_AUTHORIZED=" not in example
+    assert "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE=" not in example
     assert "FRED_AUTOMATED_USE_AUTHORIZED=false" in example
     assert "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE=" in example
     assert "FRED_SERIES_RIGHTS_EVIDENCE={}" in example
-    assert "TIINGO_OPERATION_BYTE_BOUNDS={}" in example
+    assert 'TIINGO_OPERATION_BYTE_BOUNDS={"fetch_ohlcv":1048576' in example
+    assert "TIINGO_REVIEWED_PLAN=starter" in example
+    assert "TIINGO_CUSTOM_UNIQUE_SYMBOLS_PER_MONTH=0" in example
+    assert "TIINGO_CUSTOM_REQUESTS_PER_HOUR=0" in example
+    assert "TIINGO_CUSTOM_REQUESTS_PER_DAY=0" in example
+    assert "TIINGO_CUSTOM_BANDWIDTH_BYTES_PER_MONTH=0" in example
+    assert "TIINGO_CUSTOM_QUOTA_EVIDENCE=" in example
+    assert "TIINGO_PROVIDER_ARCHIVE_TERMS_AUTHORIZED=false" in example
+    assert "TIINGO_PROVIDER_ARCHIVE_TERMS_EVIDENCE=" in example
     assert "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET=" in example
     assert "TIINGO_REVIEWED_HOURLY_RESET=" in example
     assert "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE=" in example
     assert "TIINGO_HOURLY_QUOTA_EVIDENCE=" in example
-    assert "FMP_OPERATION_BYTE_BOUNDS={}" in example
+    assert "TWELVE_DATA_PROVIDER_ARCHIVE_TERMS_AUTHORIZED=false" in example
+    assert "TWELVE_DATA_PROVIDER_ARCHIVE_TERMS_EVIDENCE=" in example
+    assert 'FMP_OPERATION_BYTE_BOUNDS={"fetch_ohlcv":1048576' in example
+    assert "FMP_PROVIDER_ARCHIVE_TERMS_AUTHORIZED=false" in example
+    assert "FMP_PROVIDER_ARCHIVE_TERMS_EVIDENCE=" in example
+    assert "FMP_REVIEWED_PLAN=basic" in example
+    assert "FMP_STOCK_LIST_ENTITLED=false" in example
     assert "FMP_REVIEWED_DAILY_RESET=" in example
+    assert "FMP_REVIEWED_CALL_RESET=" in example
     assert "FMP_REVIEWED_BANDWIDTH_RESET=" in example
     assert "FMP_DAILY_QUOTA_EVIDENCE=" in example
+    assert "FMP_CALL_QUOTA_EVIDENCE=" in example
     assert "FMP_BANDWIDTH_QUOTA_EVIDENCE=" in example
     assert "EODHD_REVIEWED_MINUTE_LIMIT=0" in example
     assert "EODHD_REVIEWED_MINUTE_RESET=" in example
@@ -626,14 +799,15 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=0" in example
     assert "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT=" in example
     assert "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS=0" in example
-    assert "MARKETSTACK_REVIEWED_MONTHLY_LIMIT=0" in example
+    assert "MARKETDATA_APP_PROVIDER_RETENTION_TERMS_AUTHORIZED=false" in example
+    assert "MARKETDATA_APP_PROVIDER_RETENTION_TERMS_EVIDENCE=" in example
+    assert "MARKETSTACK_REVIEWED_MONTHLY_LIMIT=100" in example
     assert "MARKETSTACK_REVIEWED_MONTHLY_RESET=" in example
     assert "MARKETSTACK_QUOTA_EVIDENCE=" in example
     assert "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED=false" in example
     assert "PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS=[]" in example
     assert "XSTOCKS_MARKET_DATA_USE_AUTHORIZED=false" in example
     assert "XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE=" in example
-    assert "XSTOCKS_MARKET_DATA_USE_JURISDICTION_AUTHORIZED=false" in example
     assert "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORIZED=false" in example
     assert "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED=false" in example
     assert "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED=false" in example
@@ -669,6 +843,7 @@ def test_policy_seed_deployment_fallback_preserves_code_defaults():
             "PROVIDER_RATE_LIMIT_SEEDS",
             "PROVIDER_FRESHNESS_SEEDS",
             "PROVIDER_USAGE_PROFILE_SEEDS",
+            "DINARI_SANDBOX_QUOTA_PROFILE",
         ):
             assert f"{name}: ${{{name}:-__CODE_DEFAULT__}}" in compose
     for relative_path in (".env.example", "backend/.env.example"):
@@ -677,6 +852,7 @@ def test_policy_seed_deployment_fallback_preserves_code_defaults():
             "PROVIDER_RATE_LIMIT_SEEDS",
             "PROVIDER_FRESHNESS_SEEDS",
             "PROVIDER_USAGE_PROFILE_SEEDS",
+            "DINARI_SANDBOX_QUOTA_PROFILE",
         ):
             assert f"{name}=__CODE_DEFAULT__" in example
 
@@ -706,11 +882,36 @@ def test_optional_market_data_use_review_timestamps_accept_blank_compose_values(
     assert configured.MASSIVE_MARKET_DATA_USE_EXPIRES_AT is None
 
 
+def test_dinari_quota_profile_uses_code_default_when_unset_or_sentinel(monkeypatch):
+    monkeypatch.delenv("DINARI_SANDBOX_QUOTA_PROFILE", raising=False)
+    assert Settings(_env_file=None).DINARI_SANDBOX_QUOTA_PROFILE == {}
+    assert (
+        Settings(
+            _env_file=None, DINARI_SANDBOX_QUOTA_PROFILE="__CODE_DEFAULT__"
+        ).DINARI_SANDBOX_QUOTA_PROFILE
+        == {}
+    )
+
+
+def test_marketstack_exchange_page_cost_is_unknown_by_default():
+    configured = Settings(_env_file=None)
+
+    assert configured.MARKETSTACK_DISCOVERY_MAX_PAGE_COST == 0
+    assert configured.MARKETSTACK_DISCOVERY_COST_EVIDENCE == ""
+
+
 def test_live_preflight_reports_non_routable_safety_controls_without_guessing(monkeypatch):
+    monkeypatch.setenv("PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK", "false")
     monkeypatch.setenv("ALPACA_CORPORATE_ACTIONS_MAX_PAGES", "0")
     monkeypatch.setenv("ALPACA_REVIEWED_RESET", "")
     monkeypatch.setenv("ALPACA_QUOTA_EVIDENCE", "")
     monkeypatch.setenv("FINRA_ASYNC_MAX_RESULT_BYTES", "0")
+    monkeypatch.setenv("FINRA_OTC_SOURCE_KIND", "finra_otc_query_api")
+    monkeypatch.setenv(
+        "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+        "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster",
+    )
+    monkeypatch.setenv("FINRA_OTC_POLL_INTERVAL_SECONDS", "86400")
     monkeypatch.setenv("MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", "0")
     monkeypatch.setenv("MASSIVE_REVIEWED_RESET", "")
     monkeypatch.setenv("MASSIVE_QUOTA_EVIDENCE", "")
@@ -732,6 +933,8 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("FRED_REVIEWED_QUOTA_EVIDENCE", "")
     monkeypatch.setenv("FRED_REVIEWED_RESET", "")
     monkeypatch.setenv("FRED_RESET_EVIDENCE", "")
+    monkeypatch.setenv("FRED_APPLICATION_USER_SCOPE", "")
+    monkeypatch.setenv("FRED_APPLICATION_USER_SCOPE_EVIDENCE", "")
     monkeypatch.setenv("FRED_PERSISTED_STORAGE_AUTHORIZED", "false")
     monkeypatch.setenv("FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE", "")
     monkeypatch.setenv("FRED_AUTOMATED_USE_AUTHORIZED", "false")
@@ -742,6 +945,11 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE", "")
     monkeypatch.setenv("COINBASE_MARKET_DATA_USE_REVIEWED_AT", "")
     monkeypatch.setenv("COINBASE_MARKET_DATA_USE_EXPIRES_AT", "")
+    monkeypatch.setenv("KRAKEN_MARKET_DATA_USE_AUTHORIZED", "false")
+    monkeypatch.setenv("KRAKEN_MARKET_DATA_USE_AUTHORITY_REFERENCE", "")
+    monkeypatch.setenv("KRAKEN_MARKET_DATA_USE_AUTHORITY_SCOPE", "")
+    monkeypatch.setenv("KRAKEN_MARKET_DATA_USE_REVIEWED_AT", "")
+    monkeypatch.setenv("KRAKEN_MARKET_DATA_USE_EXPIRES_AT", "")
     monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_AUTHORIZED", "false")
     monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE", "")
     monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE", "")
@@ -769,6 +977,8 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("MARKETSTACK_REVIEWED_MONTHLY_LIMIT", "0")
     monkeypatch.setenv("MARKETSTACK_REVIEWED_MONTHLY_RESET", "")
     monkeypatch.setenv("MARKETSTACK_QUOTA_EVIDENCE", "")
+    monkeypatch.setenv("MARKETSTACK_DISCOVERY_MAX_PAGE_COST", "")
+    monkeypatch.setenv("MARKETSTACK_DISCOVERY_COST_EVIDENCE", "")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN", "")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "0")
     monkeypatch.setenv("MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", "0")
@@ -778,34 +988,44 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["alpaca market-data quota"].startswith("routable:")
     assert statuses["massive corporate actions"].startswith("routable:")
     assert statuses["massive market-data use"].startswith("non-routable:")
-    assert statuses["finra otc directory"].startswith("non-routable:")
+    assert "provider-license restriction" in statuses["massive market-data use"]
+    assert "not missing owner permission" in statuses["massive market-data use"]
+    assert statuses["finra otc directory"].startswith("routable:")
+    assert "official OTC Symbol Directory Query API" in statuses["finra otc directory"]
+    assert "lossless record-total pagination" in statuses["finra otc directory"]
     assert statuses["fred"].startswith("non-routable:")
     assert statuses["alpha_vantage"].startswith("routable:")
-    assert statuses["edgar quota"].startswith("routable:")
+    assert statuses["edgar quota"].startswith("routable: contract verified;")
+    assert "10-minute throttle recovery hold" in statuses["edgar quota"]
+    assert "active shared-scope usage baseline is checked separately" in statuses["edgar quota"]
     assert statuses["finnhub"].startswith("routable:")
     assert statuses["coinbase market-data use"].startswith("non-routable:")
     assert statuses["nasdaq"].startswith("routable:")
     assert statuses["dinari sandbox canary quota"].startswith("non-routable:")
     assert statuses["xstocks"].startswith("non-routable:")
     assert statuses["bybit_xstocks"].startswith("non-routable:")
-    assert _LIVE_SCRIPT.LIVE_PREFLIGHT_ROUTING_CONTROLS["bybit_xstocks"] == (
-        "bybit_xstocks",
-    )
-    assert (
-        statuses["marketstack discovery"] == "non-routable: MARKETSTACK_DISCOVERY_EXCHANGE is unset"
-    )
+    assert _LIVE_SCRIPT.LIVE_PREFLIGHT_ROUTING_CONTROLS["bybit_xstocks"] == ("bybit_xstocks",)
+    assert statuses["marketstack discovery"].startswith("non-routable:")
+    for missing in (
+        "MARKETSTACK_DISCOVERY_EXCHANGE",
+        "MARKETSTACK_DISCOVERY_MAX_PAGE_COST",
+        "MARKETSTACK_DISCOVERY_COST_EVIDENCE",
+        "MARKETSTACK_REVIEWED_MONTHLY_LIMIT",
+        "MARKETSTACK_PROVIDER_ARCHIVE_TERMS_AUTHORIZED",
+    ):
+        assert missing in statuses["marketstack discovery"]
     assert statuses["marketstack quota"].startswith("non-routable:")
     assert statuses["tiingo"].startswith("non-routable:")
     assert statuses["fmp"] == (
         "non-routable: missing reviewed controls for FMP_OPERATION_BYTE_BOUNDS is not valid JSON, "
-        "FMP_REVIEWED_DAILY_RESET, FMP_DAILY_QUOTA_EVIDENCE, FMP_BANDWIDTH_QUOTA_EVIDENCE"
+        "FMP_PROVIDER_ARCHIVE_TERMS_AUTHORIZED, FMP_PROVIDER_ARCHIVE_TERMS_EVIDENCE"
     )
     assert (
         statuses["marketdata.app account plan"]
         == "non-routable: explicit reviewed plan/limit pair required"
     )
     assert statuses["marketdata.app option chain"].startswith("non-routable:")
-    assert statuses["marketdata.app option quote history"].startswith("non-routable:")
+    assert statuses["marketdata.app option quote history"].startswith("routable for bounded calls:")
     assert "xstocks" in _LIVE_SCRIPT.LIVE_PREFLIGHT_ROUTING_CONTROLS
     assert _LIVE_SCRIPT.LIVE_PREFLIGHT_ROUTING_CONTROLS["edgar"] == ("edgar quota",)
 
@@ -814,14 +1034,14 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("FRED_REVIEWED_QUOTA_EVIDENCE", "provider-confirmed scope")
     monkeypatch.setenv("FRED_REVIEWED_RESET", "rolling")
     monkeypatch.setenv("FRED_RESET_EVIDENCE", "current provider/account review")
-    monkeypatch.setenv("FRED_PERSISTED_STORAGE_AUTHORIZED", "true")
+    monkeypatch.setenv("FRED_APPLICATION_USER_SCOPE", "owner_personal_only")
     monkeypatch.setenv(
-        "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE", "written permission for persisted data"
+        "FRED_APPLICATION_USER_SCOPE_EVIDENCE", "single owner uses their own FRED key"
     )
+    monkeypatch.setenv("FRED_PERSISTED_STORAGE_AUTHORIZED", "false")
+    monkeypatch.setenv("FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE", "")
     monkeypatch.setenv("FRED_AUTOMATED_USE_AUTHORIZED", "true")
-    monkeypatch.setenv(
-        "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE", "written automated-use permission"
-    )
+    monkeypatch.setenv("FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE", "written automated-use permission")
     from app.config import FRED_MAPPED_SERIES_IDS
 
     monkeypatch.setenv(
@@ -839,7 +1059,26 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     )
     monkeypatch.setenv("COINBASE_MARKET_DATA_USE_REVIEWED_AT", "2026-09-16T00:00:00+00:00")
     statuses = routing_safety_preflight()
+    assert statuses["coinbase market-data use"] != "routable"
+
+    monkeypatch.setenv(
+        "COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "internal_ai_automated_persistent_nonredistributed",
+    )
+    statuses = routing_safety_preflight()
     assert statuses["coinbase market-data use"] == "routable"
+
+    statuses = routing_safety_preflight()
+    assert statuses["kraken market-data use"].startswith("non-routable:")
+    monkeypatch.setenv("KRAKEN_MARKET_DATA_USE_AUTHORIZED", "true")
+    monkeypatch.setenv("KRAKEN_MARKET_DATA_USE_AUTHORITY_REFERENCE", "written Kraken approval")
+    monkeypatch.setenv(
+        "KRAKEN_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "single_user_personal_automated_internal_persistent_archive_nonredistributed",
+    )
+    monkeypatch.setenv("KRAKEN_MARKET_DATA_USE_REVIEWED_AT", "2026-09-16T00:00:00+00:00")
+    statuses = routing_safety_preflight()
+    assert statuses["kraken market-data use"] == "routable"
 
     monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_AUTHORIZED", "true")
     monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE", "terms amendment")
@@ -865,8 +1104,16 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
         "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE",
         "deployment outside restricted egress",
     )
+    monkeypatch.setenv("BYBIT_XSTOCKS_MARKET_DATA_USE_USER_JURISDICTION_AUTHORIZED", "true")
+    monkeypatch.setenv(
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_USER_JURISDICTION_EVIDENCE",
+        "verified user jurisdiction review",
+    )
     statuses = routing_safety_preflight()
-    assert statuses["bybit_xstocks"] == "routable: anonymous public calls are bounded by the documented 600/5-second/IP ceiling"
+    assert (
+        statuses["bybit_xstocks"]
+        == "routable: anonymous public calls are bounded by the documented 600/5-second/IP ceiling"
+    )
 
     monkeypatch.setenv("ALPACA_CORPORATE_ACTIONS_MAX_PAGES", "0")
     monkeypatch.setenv("ALPACA_REVIEWED_RESET", "")
@@ -877,37 +1124,48 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("EDGAR_REVIEWED_RESET", "rolling")
     monkeypatch.setenv("EDGAR_QUOTA_EVIDENCE", "current SEC/account review")
     statuses = routing_safety_preflight()
-    assert statuses["edgar quota"] == "routable"
+    assert statuses["edgar quota"] == (
+        "routable: contract configured with reviewed reset evidence; active shared-scope usage baseline is checked separately"
+    )
     monkeypatch.setenv("MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", "0")
     monkeypatch.setenv("MASSIVE_MARKET_DATA_USE_AUTHORIZED", "true")
-    monkeypatch.setenv("MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE", "Massive personal-use terms review")
+    monkeypatch.setenv(
+        "MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE", "Massive personal-use terms review"
+    )
     monkeypatch.setenv(
         "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE",
-        "personal_noncommercial_nonredistributed",
+        "written_automated_persistent_archive_and_audience",
     )
     monkeypatch.setenv("MASSIVE_MARKET_DATA_USE_REVIEWED_AT", "2026-09-16T00:00:00+00:00")
     statuses = routing_safety_preflight()
     assert statuses["massive corporate actions"].startswith("routable:")
     assert statuses["massive market-data use"] == "routable"
 
+    monkeypatch.setenv("FINRA_OTC_SOURCE_KIND", "finra_orf_security_master")
     monkeypatch.setenv(
         "FINRA_OTC_OPERATION_COSTS",
         '{"discover_universe_page": 3, "reconcile_universe_page": 3}',
     )
     monkeypatch.setenv("FINRA_OTC_SOURCE_REVIEWED", "true")
     monkeypatch.setenv("FINRA_OTC_SOURCE_EVIDENCE", "FINRA support case 123")
-    monkeypatch.setenv(
-        "FINRA_OTC_SYMBOL_DIRECTORY_URL",
-        "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster",
+    active_orf_url = (
+        "https://apidownload.finratraqs.org/DownloadHandler.ashx?"
+        "action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF"
     )
-    monkeypatch.setenv(
-        "FINRA_OTC_REVIEWED_SOURCE_URL",
-        "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster",
+    inactive_orf_url = (
+        "https://apidownload.finratraqs.org/DownloadHandler.ashx?"
+        "action=DOWNLOAD&file=EQUITYMASTERIN&facility=ORF"
     )
+    monkeypatch.setenv("FINRA_OTC_SYMBOL_DIRECTORY_URL", active_orf_url)
+    monkeypatch.setenv("FINRA_OTC_REVIEWED_SOURCE_URL", active_orf_url)
+    monkeypatch.setenv("FINRA_OTC_INACTIVE_SECURITY_MASTER_URL", inactive_orf_url)
+    monkeypatch.setenv("FINRA_OTC_REVIEWED_INACTIVE_SOURCE_URL", inactive_orf_url)
     monkeypatch.setenv("FINRA_OTC_TERMS_REVIEWED", "true")
     monkeypatch.setenv("FINRA_OTC_COMPLETENESS_REVIEWED", "true")
     monkeypatch.setenv("FINRA_OTC_REDISTRIBUTION_REVIEWED", "true")
     monkeypatch.setenv("FINRA_OTC_POLL_INTERVAL_SECONDS", "900")
+    monkeypatch.setenv("FINRA_ORF_CUSIP_LICENSED", "true")
+    monkeypatch.setenv("FINRA_ORF_CUSIP_LICENSE_EVIDENCE", "unit-test CGS license")
     statuses = routing_safety_preflight()
     assert statuses["finra otc directory"] == "routable"
 
@@ -915,15 +1173,17 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
         "TIINGO_OPERATION_BYTE_BOUNDS",
         '{"fetch_ohlcv": 1, "fetch_latest_ohlcv": 1, "get_current_price": 1, "bulk_fetch": 1, "search_instruments": 1, "get_instrument_profile": 1}',
     )
+    monkeypatch.setenv("TIINGO_PROVIDER_ARCHIVE_TERMS_AUTHORIZED", "true")
+    monkeypatch.setenv("TIINGO_PROVIDER_ARCHIVE_TERMS_EVIDENCE", "reviewed provider archive terms")
     monkeypatch.setenv(
         "FMP_OPERATION_BYTE_BOUNDS",
-        '{"fetch_ohlcv": 1, "fetch_latest_ohlcv": 1, "get_current_price": 1, "bulk_fetch": 1, "get_instrument_profile": 1, "fetch_market_events": 1, "discover_universe_page": 1}',
+        '{"fetch_ohlcv": 1, "fetch_latest_ohlcv": 1, "get_current_price": 1, "bulk_fetch": 1, "get_instrument_profile": 1, "fetch_market_events": 1, "discover_universe_page": 1, "fetch_account_usage": 65536}',
     )
+    monkeypatch.setenv("FMP_PROVIDER_ARCHIVE_TERMS_AUTHORIZED", "true")
+    monkeypatch.setenv("FMP_PROVIDER_ARCHIVE_TERMS_EVIDENCE", "reviewed provider archive terms")
     statuses = routing_safety_preflight()
     assert statuses["tiingo"] == "routable"
-    assert statuses["fmp"] == (
-        "non-routable: missing reviewed controls for FMP_REVIEWED_DAILY_RESET, FMP_DAILY_QUOTA_EVIDENCE, FMP_BANDWIDTH_QUOTA_EVIDENCE"
-    )
+    assert statuses["fmp"] == "routable"
 
     monkeypatch.setenv("TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "calendar_month_est")
     monkeypatch.setenv("TIINGO_REVIEWED_HOURLY_RESET", "rolling")
@@ -932,16 +1192,14 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     statuses = routing_safety_preflight()
     assert statuses["tiingo"] == "routable"
 
-    monkeypatch.setenv("FMP_BANDWIDTH_QUOTA_EVIDENCE", "current plan evidence")
+    monkeypatch.setenv("FMP_REVIEWED_DAILY_RESET", "unrecognized_reset")
     statuses = routing_safety_preflight()
     assert statuses["fmp"] == (
-        "non-routable: missing reviewed controls for FMP_REVIEWED_DAILY_RESET, FMP_DAILY_QUOTA_EVIDENCE"
+        "non-routable: missing reviewed controls for FMP_REVIEWED_DAILY_RESET"
     )
 
     monkeypatch.setenv("FMP_REVIEWED_DAILY_RESET", "calendar_day_utc")
     monkeypatch.setenv("FMP_REVIEWED_BANDWIDTH_RESET", "rolling_30_days")
-    monkeypatch.setenv("FMP_DAILY_QUOTA_EVIDENCE", "current account evidence")
-    monkeypatch.setenv("FMP_BANDWIDTH_QUOTA_EVIDENCE", "current plan evidence")
     statuses = routing_safety_preflight()
     assert statuses["fmp"] == "routable"
 
@@ -956,6 +1214,12 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("MARKETSTACK_REVIEWED_MONTHLY_LIMIT", "100")
     monkeypatch.setenv("MARKETSTACK_REVIEWED_MONTHLY_RESET", "calendar_month_utc")
     monkeypatch.setenv("MARKETSTACK_QUOTA_EVIDENCE", "current account review")
+    monkeypatch.setenv("MARKETSTACK_DISCOVERY_MAX_PAGE_COST", "1000")
+    monkeypatch.setenv("MARKETSTACK_DISCOVERY_COST_EVIDENCE", "current provider billing review")
+    monkeypatch.setenv("MARKETSTACK_PROVIDER_ARCHIVE_TERMS_AUTHORIZED", "true")
+    monkeypatch.setenv(
+        "MARKETSTACK_PROVIDER_ARCHIVE_TERMS_EVIDENCE", "reviewed provider archive terms"
+    )
     monkeypatch.setenv("ALLOW_PAID_PROVIDER_ROUTING", "true")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN", "starter")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "10000")
@@ -1084,12 +1348,12 @@ def test_live_runner_can_select_only_manifest_cases_for_a_provider():
     )
     assert "marketdata_app" in arguments[-1]
     all_arguments = _LIVE_SCRIPT.selected_live_test_arguments(None)
-    expected_nodes = sorted(
-        {
+    expected_nodes = list(
+        dict.fromkeys(
             f"tests/live/{relative_path}::{function_name}"
-            for cases in _LIVE_SCRIPT.LIVE_PROVIDER_CASES.values()
-            for relative_path, function_name in cases
-        }
+            for provider in sorted(_LIVE_SCRIPT.LIVE_PROVIDER_CASES)
+            for relative_path, function_name in _LIVE_SCRIPT.LIVE_PROVIDER_CASES[provider]
+        )
     )
     expected_filter_terms = set(_LIVE_SCRIPT.LIVE_PROVIDER_CASES)
     expected_filter_terms.update(
@@ -1101,6 +1365,16 @@ def test_live_runner_can_select_only_manifest_cases_for_a_provider():
     assert all_arguments[:-2] == expected_nodes
     assert all_arguments[-2] == "-k"
     assert set(all_arguments[-1].split(" or ")) == expected_filter_terms
+
+
+def test_massive_live_cases_preserve_quota_safe_manifest_order():
+    arguments = _LIVE_SCRIPT.selected_live_test_arguments(["massive"])
+    assert arguments[:-2] == [
+        "tests/live/test_market_data_providers_live.py::test_massive_credentialed_reference",
+        "tests/live/test_market_data_providers_live.py::test_massive_credentialed_corporate_actions_complete",
+        "tests/live/test_market_data_providers_live.py::test_massive_credentialed_ipo_cursor_continuation",
+        "tests/live/test_market_data_providers_live.py::test_massive_credentialed_otc_ticker_universe_pagination_is_complete",
+    ]
 
 
 def test_live_runner_uses_staging_merge_base_after_metadata_commit(monkeypatch):
@@ -1194,9 +1468,6 @@ def test_external_provider_adapters_use_the_quota_guarded_httpx_transport():
                 module
                 for module in imported_modules
                 if module in unguarded_network_modules
-                or any(
-                    module.startswith(f"{blocked}.")
-                    for blocked in unguarded_network_modules
-                )
+                or any(module.startswith(f"{blocked}.") for blocked in unguarded_network_modules)
             )
             assert not unguarded, (path.relative_to(ROOT), unguarded)

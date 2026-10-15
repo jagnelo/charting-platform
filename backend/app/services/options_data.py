@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
@@ -10,7 +11,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import provider_positive_integer, settings
-from app.lib.bs_greeks import estimate_greeks
+from app.lib.quantlib_greeks import calculate_greeks
 from app.models.instrument import Instrument, OptionDetail, OptionRight, OptionStyle
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import (
@@ -38,6 +39,71 @@ from app.services.risk_free_rate import get_risk_free_rate
 # Backward-compatible private name retained for existing service tests and
 # callers while the reviewed estimator now lives with the provider adapter.
 _marketdata_option_quote_credit_bound = estimate_marketdata_app_option_quote_history_credit_count
+
+_OPTION_GREEK_FIELDS = ("delta", "gamma", "theta", "vega", "rho")
+
+
+def _estimate_missing_option_greeks(
+    contract: OptionContractRecord,
+    *,
+    spot: float | None,
+    risk_free_rate: float,
+    valuation_date: date,
+) -> tuple[dict[str, Decimal | None], dict]:
+    """Fill absent provider Greeks with the labeled American model/fallback.
+
+    Provider values always win. The complete model output and exact inputs are
+    retained under ``local_greek_estimation`` so downstream analytics can
+    distinguish estimates from provider-supplied observations.
+    """
+
+    values: dict[str, Decimal | None] = {
+        name: getattr(contract, name) for name in _OPTION_GREEK_FIELDS
+    }
+    extra_greeks = dict(contract.extra_greeks or {})
+    if (
+        not any(values[name] is None for name in _OPTION_GREEK_FIELDS)
+        or spot is None
+        or not math.isfinite(spot)
+        or spot <= 0
+        or contract.implied_vol is None
+    ):
+        return values, extra_greeks
+    try:
+        implied_vol = float(contract.implied_vol)
+        strike = float(contract.strike)
+    except (TypeError, ValueError, OverflowError):
+        return values, extra_greeks
+    if (
+        not math.isfinite(implied_vol)
+        or implied_vol <= 0
+        or not math.isfinite(strike)
+        or strike <= 0
+        or contract.expiry_date <= valuation_date
+    ):
+        return values, extra_greeks
+
+    estimate = calculate_greeks(
+        spot=spot,
+        strike=strike,
+        expiry=contract.expiry_date,
+        implied_vol=implied_vol,
+        risk_free_rate=risk_free_rate,
+        dividend_yield=0.0,
+        is_call=contract.right.lower().startswith("c"),
+        valuation_date=valuation_date,
+    )
+    for name in _OPTION_GREEK_FIELDS:
+        if values[name] is not None:
+            continue
+        value = estimate.get(name)
+        if isinstance(value, int | float) and math.isfinite(float(value)):
+            values[name] = Decimal(str(round(float(value), 8)))
+    extra_greeks["local_greek_estimation"] = {
+        "source": "local_model",
+        **estimate,
+    }
+    return values, extra_greeks
 
 
 def _option_quote_payload(point: object) -> dict:
@@ -240,7 +306,9 @@ async def list_option_expirations(
             ProviderCapability.OPTION_CHAIN,
             "list_option_expirations",
             instrument_id=underlying.id,
-            usage_identity=lambda provider_name: provider_symbol_for_instrument(underlying, provider_name),
+            usage_identity=lambda provider_name: provider_symbol_for_instrument(
+                underlying, provider_name
+            ),
             invoke=lambda provider, _provider_symbol: provider.list_option_expirations(
                 provider_symbol_for_instrument(underlying, provider.name)
             ),
@@ -405,9 +473,7 @@ async def sync_option_chain_snapshot(
         getattr(settings, "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", 0)
     )
     operation_cost_overrides = (
-        {"marketdata_app": marketdata_chain_bound}
-        if marketdata_chain_bound is not None
-        else None
+        {"marketdata_app": marketdata_chain_bound} if marketdata_chain_bound is not None else None
     )
 
     def invoke_option_chain(provider, provider_symbol):
@@ -423,7 +489,9 @@ async def sync_option_chain_snapshot(
             f"fetch_option_chain:{expiration.isoformat()}",
             instrument_id=underlying.id,
             operation_cost_overrides=operation_cost_overrides,
-            usage_identity=lambda provider_name: provider_symbol_for_instrument(underlying, provider_name),
+            usage_identity=lambda provider_name: provider_symbol_for_instrument(
+                underlying, provider_name
+            ),
             invoke=lambda provider, _provider_symbol: invoke_option_chain(
                 provider,
                 provider_symbol_for_instrument(underlying, provider.name),
@@ -491,33 +559,12 @@ async def sync_option_chain_snapshot(
             observed_at=observed_at,
         )
 
-        # Estimate missing greeks via Black-Scholes when provider didn't supply them
-        delta = contract.delta
-        gamma = contract.gamma
-        extra_greeks = dict(contract.extra_greeks or {})
-        if (
-            (delta is None or gamma is None)
-            and contract.implied_vol is not None
-            and spot_f is not None
-        ):
-            tte = max(0.0, (contract.expiry_date - today).days / 365.25)
-            if tte > 0:
-                is_call = contract.right.lower().startswith("c")
-                est_delta, est_gamma = estimate_greeks(
-                    spot_f,
-                    float(contract.strike),
-                    tte,
-                    float(contract.implied_vol),
-                    rfr,
-                    is_call=is_call,
-                )
-                if delta is None:
-                    delta = Decimal(str(round(est_delta, 8)))
-                if gamma is None:
-                    gamma = Decimal(str(round(est_gamma, 8)))
-                extra_greeks.update(
-                    {"greeks_source": "bs_estimated", "rfr_used": rfr, "div_yield_used": 0.0}
-                )
+        greeks, extra_greeks = _estimate_missing_option_greeks(
+            contract,
+            spot=spot_f,
+            risk_free_rate=rfr,
+            valuation_date=today,
+        )
 
         point_values = {
             "option_instrument_id": option_instrument.id,
@@ -532,11 +579,11 @@ async def sync_option_chain_snapshot(
             "volume": contract.volume,
             "open_interest": contract.open_interest,
             "implied_vol": contract.implied_vol,
-            "delta": delta,
-            "gamma": gamma,
-            "theta": contract.theta,
-            "vega": contract.vega,
-            "rho": contract.rho,
+            "delta": greeks["delta"],
+            "gamma": greeks["gamma"],
+            "theta": greeks["theta"],
+            "vega": greeks["vega"],
+            "rho": greeks["rho"],
             "extra_greeks": extra_greeks or None,
             "raw_payload": contract.raw_payload,
             "observation_hash": hashlib.sha256(
@@ -715,9 +762,7 @@ async def sync_option_quote_history(
     # contract and cost one credit per 1,000 returned quotes.  A date range
     # therefore gives an exact conservative bound: at most one observation
     # per calendar day, with weekends/holidays reducing the actual charge.
-    marketdata_quote_bound = estimate_marketdata_app_option_quote_history_credit_count(
-        start, end
-    )
+    marketdata_quote_bound = estimate_marketdata_app_option_quote_history_credit_count(start, end)
     if marketdata_quote_bound is None:
         return
     try:
@@ -727,7 +772,9 @@ async def sync_option_quote_history(
             "fetch_option_quote_history",
             instrument_id=option_instrument.id,
             operation_cost_overrides={"marketdata_app": marketdata_quote_bound},
-            usage_identity=lambda provider_name: provider_symbol_for_instrument(option_instrument, provider_name),
+            usage_identity=lambda provider_name: provider_symbol_for_instrument(
+                option_instrument, provider_name
+            ),
             invoke=lambda provider, _provider_symbol: provider.fetch_option_quote_history(
                 provider_symbol_for_instrument(option_instrument, provider.name),
                 start=start,

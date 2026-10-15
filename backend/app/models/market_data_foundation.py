@@ -298,18 +298,16 @@ class ProviderQuotaWindow(Base, TimestampMixin):
     # is intentionally separate from the request capability so an account-wide
     # allowance is not multiplied when different operations use the same key.
     # Missing values are backfilled to the legacy capability key by migration.
-    quota_group: Mapped[str] = mapped_column(
-        String(80), nullable=False, index=True
-    )
+    quota_group: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     # A provider may publish independent budgets (for example requests/minute
     # and requests/month).  Each dimension is reserved independently; routing
     # must satisfy all dimensions before selecting a provider.
     dimension: Mapped[str] = mapped_column(String(80), nullable=False, default="default")
     window_started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     window_seconds: Mapped[int] = mapped_column(Integer, nullable=False)
-    limit_units: Mapped[int] = mapped_column(Integer, nullable=False)
-    reserved_units: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    consumed_units: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    limit_units: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    reserved_units: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    consumed_units: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
     cost_cents: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False, default=0)
     source: Mapped[str] = mapped_column(String(40), nullable=False, default="configured")
 
@@ -343,9 +341,7 @@ class ProviderQuotaIdentity(Base, TimestampMixin):
         Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
     )
     capability: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
-    quota_group: Mapped[str] = mapped_column(
-        String(80), nullable=False, index=True
-    )
+    quota_group: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
 
     dimension: Mapped[str] = mapped_column(String(80), nullable=False)
     window_started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -694,7 +690,9 @@ class MarketEventConsensus(Base, TimestampMixin):
         DateTime(timezone=True), nullable=True, index=True
     )
     announced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    status: Mapped[str] = mapped_column(String(24), nullable=False, default="single_source", index=True)
+    status: Mapped[str] = mapped_column(
+        String(24), nullable=False, default="single_source", index=True
+    )
     observation_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     source_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     agreement_fields: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
@@ -788,7 +786,9 @@ class MarketEventScanState(Base, TimestampMixin):
         nullable=True,
         index=True,
     )
-    cycle_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cycle_started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     last_scanned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     cycle_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     scanned_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -799,9 +799,7 @@ class MarketEventScanState(Base, TimestampMixin):
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     provenance: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
 
-    __table_args__ = (
-        Index("ix_market_event_scan_provider_operation", "provider", "operation"),
-    )
+    __table_args__ = (Index("ix_market_event_scan_provider_operation", "provider", "operation"),)
 
 
 class ProviderPaginationState(Base, TimestampMixin):
@@ -953,7 +951,9 @@ class FundamentalFactObservation(Base, TimestampMixin):
     accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     source: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     source_identifier: Mapped[str | None] = mapped_column(String(180), nullable=True)
-    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
 
     __table_args__ = (
@@ -1014,7 +1014,9 @@ class ShortInterestProviderObservation(Base, TimestampMixin):
     days_to_cover: Mapped[Decimal | None] = mapped_column(Numeric(12, 8), nullable=True)
     source: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     source_identifier: Mapped[str | None] = mapped_column(String(180), nullable=True)
-    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
 
     __table_args__ = (

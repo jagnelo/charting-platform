@@ -69,7 +69,9 @@ class AlphaVantageProvider:
                     headers=provider_response_headers(response),
                 ) from exc
             raise ProviderResponseError(
-                self.name, f"Alpha Vantage request failed with HTTP {response.status_code}", status_code=response.status_code
+                self.name,
+                f"Alpha Vantage request failed with HTTP {response.status_code}",
+                status_code=response.status_code,
             ) from exc
         try:
             payload = response.json()
@@ -87,7 +89,9 @@ class AlphaVantageProvider:
                 headers=provider_response_headers(response),
             )
         if not isinstance(payload, dict):
-            raise ProviderResponseError(self.name, "Alpha Vantage returned an invalid response object")
+            raise ProviderResponseError(
+                self.name, "Alpha Vantage returned an invalid response object"
+            )
         return payload
 
     def _get_text(self, function: str, **params: Any) -> str | None:
@@ -111,11 +115,15 @@ class AlphaVantageProvider:
                     headers=provider_response_headers(response),
                 ) from exc
             raise ProviderResponseError(
-                self.name, f"Alpha Vantage request failed with HTTP {response.status_code}", status_code=response.status_code
+                self.name,
+                f"Alpha Vantage request failed with HTTP {response.status_code}",
+                status_code=response.status_code,
             ) from exc
         text = response.text
         if not isinstance(text, str):
-            raise ProviderResponseError(self.name, "Alpha Vantage returned an invalid text response")
+            raise ProviderResponseError(
+                self.name, "Alpha Vantage returned an invalid text response"
+            )
         if "Error Message" in text:
             raise ProviderResponseError(self.name, text[:240])
         lowered = text.lower()
@@ -140,16 +148,24 @@ class AlphaVantageProvider:
                 headers=provider_response_headers(response),
             )
         return text
+
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
         if not query.strip() or limit <= 0:
             return []
         payload = self._get("SYMBOL_SEARCH", keywords=query.strip())
         matches = payload.get("bestMatches", [])
         if not isinstance(matches, list) or any(not isinstance(row, dict) for row in matches):
-            raise ProviderResponseError(self.name, "Alpha Vantage returned malformed symbol-search rows")
+            raise ProviderResponseError(
+                self.name, "Alpha Vantage returned malformed symbol-search rows"
+            )
         for row in matches:
-            if not str(row.get("1. symbol") or "").strip() or not str(row.get("2. name") or "").strip():
-                raise ProviderResponseError(self.name, "Alpha Vantage returned an incomplete symbol-search row")
+            if (
+                not str(row.get("1. symbol") or "").strip()
+                or not str(row.get("2. name") or "").strip()
+            ):
+                raise ProviderResponseError(
+                    self.name, "Alpha Vantage returned an incomplete symbol-search row"
+                )
         return [
             ProviderSearchResult(
                 symbol=str(row.get("1. symbol") or ""),
@@ -233,12 +249,23 @@ class AlphaVantageProvider:
         bars: list[OHLCVBar] = []
         for date_text, row in series.items():
             if not isinstance(row, dict):
-                raise ProviderResponseError(self.name, "Alpha Vantage returned a malformed daily-series row")
+                raise ProviderResponseError(
+                    self.name, "Alpha Vantage returned a malformed daily-series row"
+                )
             try:
                 ts = datetime.strptime(date_text, "%Y-%m-%d").replace(tzinfo=UTC)
                 if not (start <= ts < end):
                     continue
-                values = [row[f"{index}. {field}"] for index, field in ((1, "open"), (2, "high"), (3, "low"), (4, "close"), (5, "volume"))]
+                values = [
+                    row[f"{index}. {field}"]
+                    for index, field in (
+                        (1, "open"),
+                        (2, "high"),
+                        (3, "low"),
+                        (4, "close"),
+                        (5, "volume"),
+                    )
+                ]
                 numbers = [float(value) for value in values]
                 if not all(isfinite(value) for value in numbers):
                     raise ValueError(f"non-finite Alpha Vantage {timeframe.value} value")
@@ -322,7 +349,9 @@ class AlphaVantageProvider:
         normalized_symbol = symbol.strip().upper()
         payload = self._get("EARNINGS", symbol=normalized_symbol)
         if not isinstance(payload, dict):
-            raise ProviderResponseError(self.name, "Alpha Vantage returned an invalid earnings object")
+            raise ProviderResponseError(
+                self.name, "Alpha Vantage returned an invalid earnings object"
+            )
 
         rows: list[tuple[str, dict[str, Any]]] = []
         for section, kind in (("annualEarnings", "annual"), ("quarterlyEarnings", "quarterly")):
@@ -376,37 +405,68 @@ class AlphaVantageProvider:
     def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]:
         if quote_type.strip().upper() not in {"EQUITY", "EQUITIES", "STOCK", "STOCKS"}:
             return {"total": 0, "quotes": []}
+        if offset != 0:
+            raise ProviderResponseError(
+                self.name,
+                "LISTING_STATUS returns its full CSV in one response; nonzero page offsets are invalid",
+            )
         text = self._get_text("LISTING_STATUS", state="active")
         if not text:
-            return {"total": 0, "quotes": []}
+            return {"total": 0, "quotes": [], "complete": True, "raw_payload": text}
         try:
             reader = csv.DictReader(io.StringIO(text), strict=True)
-            if not reader.fieldnames or not {"symbol", "name", "exchange", "assetType", "status"}.issubset(
-                set(reader.fieldnames)
-            ):
+            if not reader.fieldnames or not {
+                "symbol",
+                "name",
+                "exchange",
+                "assetType",
+                "status",
+            }.issubset(set(reader.fieldnames)):
                 raise ValueError("Alpha Vantage listing CSV is missing required columns")
             rows = list(reader)
         except (csv.Error, TypeError, ValueError) as exc:
-            raise ProviderResponseError(self.name, "Alpha Vantage returned malformed listing CSV") from exc
+            raise ProviderResponseError(
+                self.name, "Alpha Vantage returned malformed listing CSV"
+            ) from exc
         if any(None in row or any(value is None for value in row.values()) for row in rows):
-            raise ProviderResponseError(self.name, "Alpha Vantage returned malformed listing CSV rows")
-        page_size = 1000
-        page = rows[max(offset, 0) : max(offset, 0) + page_size]
+            raise ProviderResponseError(
+                self.name, "Alpha Vantage returned malformed listing CSV rows"
+            )
         quotes = [
             {
                 "symbol": str(row.get("symbol") or "").upper(),
                 "name": str(row.get("name") or ""),
                 "exchange": str(row.get("exchange") or ""),
-                "instrument_type": str(row.get("assetType") or "EQUITY").upper(),
+                "instrument_type": (
+                    "ETF" if str(row.get("assetType") or "").strip().upper() == "ETF" else "EQUITY"
+                ),
                 "status": str(row.get("status") or "active").lower(),
                 "ipo_date": row.get("ipoDate") or None,
                 "delisting_date": row.get("delistingDate") or None,
+                # Keep all provider fields, including fields added later to the
+                # CSV schema, alongside the normalized values.
+                "raw_payload": dict(row),
             }
-            for row in page
+            for row in rows
         ]
-        if any(not quote["symbol"] or not quote["name"] for quote in quotes):
-            raise ProviderResponseError(self.name, "Alpha Vantage returned incomplete listing rows")
-        return {"total": len(rows), "quotes": quotes}
+        validation_errors = []
+        if any(not quote["symbol"] for quote in quotes):
+            # Return the complete source artifact to the caller so its raw
+            # discovery snapshot is committed before reconciliation rejects
+            # these rows. A missing company name is recoverable metadata: the
+            # discovery importer retains the raw row and uses the ticker as a
+            # provisional display name until another source resolves it.
+            validation_errors.append("Alpha Vantage returned a listing row without a symbol")
+        return {
+            "total": len(quotes),
+            "quotes": quotes,
+            "complete": not validation_errors,
+            "validation_errors": validation_errors,
+            # The endpoint is a single complete CSV response, not a remote
+            # paginated API. Persist the original body once instead of
+            # repeatedly downloading the same full file for 1,000-row slices.
+            "raw_payload": text,
+        }
 
     def supported_discovery_types(self) -> list[str]:
         return ["EQUITY"]
@@ -424,11 +484,15 @@ class AlphaVantageProvider:
             return []
         try:
             reader = csv.DictReader(io.StringIO(text), strict=True)
-            if not reader.fieldnames or not {"symbol", "name", "ipoDate"}.issubset(set(reader.fieldnames)):
+            if not reader.fieldnames or not {"symbol", "name", "ipoDate"}.issubset(
+                set(reader.fieldnames)
+            ):
                 raise ValueError("Alpha Vantage IPO CSV is missing required columns")
             rows = list(reader)
         except (csv.Error, TypeError, ValueError) as exc:
-            raise ProviderResponseError(self.name, "Alpha Vantage returned malformed IPO CSV") from exc
+            raise ProviderResponseError(
+                self.name, "Alpha Vantage returned malformed IPO CSV"
+            ) from exc
         if any(None in row or any(value is None for value in row.values()) for row in rows):
             raise ProviderResponseError(self.name, "Alpha Vantage returned malformed IPO CSV rows")
         result: list[MarketEventRecord] = []
@@ -436,12 +500,16 @@ class AlphaVantageProvider:
             try:
                 event_date = date.fromisoformat(str(row.get("ipoDate") or ""))
             except ValueError as exc:
-                raise ProviderResponseError(self.name, "Alpha Vantage returned an invalid IPO date") from exc
+                raise ProviderResponseError(
+                    self.name, "Alpha Vantage returned an invalid IPO date"
+                ) from exc
             if start and event_date < start or end and event_date > end:
                 continue
             symbol = str(row.get("symbol") or "").strip().upper()
             if not symbol:
-                raise ProviderResponseError(self.name, "Alpha Vantage returned an IPO row without a symbol")
+                raise ProviderResponseError(
+                    self.name, "Alpha Vantage returned an IPO row without a symbol"
+                )
             result.append(
                 MarketEventRecord(
                     event_type="ipo",
@@ -519,8 +587,7 @@ class AlphaVantageProvider:
                 MarketEventRecord(
                     event_type="earnings",
                     event_key=(
-                        f"alpha_vantage:earnings_calendar:{symbol}:"
-                        f"{event_date.isoformat()}"
+                        f"alpha_vantage:earnings_calendar:{symbol}:" f"{event_date.isoformat()}"
                     ),
                     event_time=datetime.combine(event_date, datetime.min.time(), tzinfo=UTC),
                     effective_date=event_date,
@@ -558,7 +625,9 @@ def _optional_earnings_date(value: Any, field: str) -> datetime | None:
     try:
         return datetime.strptime(value.strip(), "%Y-%m-%d").replace(tzinfo=UTC)
     except ValueError as exc:
-        raise ProviderResponseError("alpha_vantage", f"Alpha Vantage returned an invalid {field}") from exc
+        raise ProviderResponseError(
+            "alpha_vantage", f"Alpha Vantage returned an invalid {field}"
+        ) from exc
 
 
 def _checked_earnings_decimal(value: Any, field: str) -> Decimal | None:
@@ -569,7 +638,9 @@ def _checked_earnings_decimal(value: Any, field: str) -> Decimal | None:
     try:
         parsed = Decimal(str(value).strip())
     except (InvalidOperation, TypeError, ValueError) as exc:
-        raise ProviderResponseError("alpha_vantage", f"Alpha Vantage returned an invalid {field}") from exc
+        raise ProviderResponseError(
+            "alpha_vantage", f"Alpha Vantage returned an invalid {field}"
+        ) from exc
     if not parsed.is_finite():
         raise ProviderResponseError("alpha_vantage", f"Alpha Vantage returned an invalid {field}")
     return parsed

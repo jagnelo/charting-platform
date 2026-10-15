@@ -124,19 +124,30 @@ def _window_end_for_reset(
         return next_local.astimezone(UTC)
     if normalized in {"calendar_day_utc", "calendar_day_gmt"}:
         utc_start = started_at.astimezone(UTC)
-        return (utc_start + timedelta(days=1)).replace(
-            hour=0, minute=0, second=0, microsecond=0
+        return (utc_start + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    reset_parts = normalized.split(maxsplit=1)
+    if len(reset_parts) == 2 and reset_parts[1] in {"america/new_york", "utc-05:00"}:
+        clock, timezone_name = reset_parts
+        try:
+            hour_text, minute_text = clock.split(":", maxsplit=1)
+            hour, minute = int(hour_text), int(minute_text)
+        except (ValueError, TypeError):
+            return started_at + timedelta(seconds=window_seconds)
+        if not (0 <= hour <= 23 and 0 <= minute <= 59):
+            return started_at + timedelta(seconds=window_seconds)
+        timezone = (
+            ZoneInfo("America/New_York")
+            if timezone_name == "america/new_york"
+            else ZoneInfo("Etc/GMT+5")
         )
-    if normalized.startswith("09:30"):
-        timezone = ZoneInfo("America/New_York")
         eastern = started_at.astimezone(timezone)
         next_date = eastern.date() + timedelta(days=1)
         next_local = datetime(
             next_date.year,
             next_date.month,
             next_date.day,
-            9,
-            30,
+            hour,
+            minute,
             tzinfo=timezone,
         )
         return next_local.astimezone(UTC)
@@ -500,8 +511,7 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
     logs = (
         (
             await db.execute(
-                select(ProviderRequestLog)
-                .order_by(ProviderRequestLog.requested_at.asc())
+                select(ProviderRequestLog).order_by(ProviderRequestLog.requested_at.asc())
             )
         )
         .scalars()

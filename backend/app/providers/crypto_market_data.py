@@ -8,7 +8,10 @@ from typing import Any
 
 import httpx
 
-from app.config import coinbase_market_data_use_authority_missing
+from app.config import (
+    coinbase_market_data_use_authority_missing,
+    kraken_market_data_use_authority_missing,
+)
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.providers.errors import (
     ProviderNotConfiguredError,
@@ -43,6 +46,7 @@ def _require_raw_history(provider_name: str, adjusted: bool) -> None:
             f"{provider_name} exchange candles are raw; request adjusted=False",
         )
 
+
 _COINBASE_CANDLES_PER_REQUEST = 300
 _KRAKEN_CANDLES_PER_REQUEST = 720
 
@@ -53,6 +57,14 @@ def _require_coinbase_market_data_authority() -> None:
         raise ProviderNotConfiguredError(
             "coinbase market-data use lacks current, scoped written authority: "
             + ", ".join(missing)
+        )
+
+
+def _require_kraken_market_data_authority() -> None:
+    missing = kraken_market_data_use_authority_missing()
+    if missing:
+        raise ProviderNotConfiguredError(
+            "kraken market-data use lacks current, scoped written authority: " + ", ".join(missing)
         )
 
 
@@ -130,6 +142,8 @@ def _get_json(
     params: dict[str, Any] | None = None,
     timeout: float,
 ) -> Any:
+    if provider_name == "kraken":
+        _require_kraken_market_data_authority()
     try:
         response = httpx.get(url, params=params, timeout=timeout)
         observe_response(response)
@@ -287,9 +301,7 @@ class CoinbaseProvider:
         seconds = _TF_SECONDS.get(timeframe)
         if seconds is None:
             raise ProviderResponseError(self.name, f"unsupported crypto timeframe: {timeframe}")
-        return datetime.now(UTC) - timedelta(
-            seconds=seconds * max(limit, 1)
-        )
+        return datetime.now(UTC) - timedelta(seconds=seconds * max(limit, 1))
 
     def get_current_price(self, symbol: str) -> float | None:
         _require_coinbase_market_data_authority()
@@ -321,7 +333,9 @@ class CoinbaseProvider:
             base_currency = str(item.get("base_currency") or "").strip()
             product_id = str(item.get("id") or "").strip()
             if not base_currency or not product_id:
-                raise ProviderResponseError(self.name, "Coinbase returned an incomplete product identity")
+                raise ProviderResponseError(
+                    self.name, "Coinbase returned an incomplete product identity"
+                )
         return {
             "total": len(products),
             "quotes": [
@@ -384,14 +398,32 @@ class KrakenProvider:
                 timeout=30,
             )
             if not isinstance(payload, dict):
-                raise ProviderResponseError(self.name, "Kraken returned an invalid OHLC JSON object")
+                raise ProviderResponseError(
+                    self.name, "Kraken returned an invalid OHLC JSON object"
+                )
             result = payload.get("result")
             if not isinstance(result, dict):
                 raise ProviderResponseError(self.name, "Kraken returned an invalid OHLC result")
             row_lists = [value for key, value in result.items() if key != "last"]
             if not row_lists or any(not isinstance(value, list) for value in row_lists):
-                raise ProviderResponseError(self.name, "Kraken returned an invalid OHLC row container")
+                raise ProviderResponseError(
+                    self.name, "Kraken returned an invalid OHLC row container"
+                )
             rows = _required_candle_rows(row_lists[0], self.name, 7)
+            if len(rows) >= _KRAKEN_CANDLES_PER_REQUEST:
+                oldest_returned = min(
+                    _candle_timestamp(row[0], self.name, "timestamp") for row in rows
+                )
+                # A provider bucket may begin less than one interval after an
+                # arbitrary caller timestamp. Allow that boundary alignment,
+                # but fail if the cap demonstrably starts beyond it.
+                if oldest_returned - start > timedelta(seconds=seconds):
+                    raise ProviderResponseError(
+                        self.name,
+                        "Kraken REST OHLC returned its 720-data-point cap before the "
+                        "requested start; refusing incomplete history. Recover older bars "
+                        "from Kraken's historical OHLCVT archive or aggregate trade history.",
+                    )
             max_timestamp: datetime | None = None
             for row in rows:
                 ts = _candle_timestamp(row[0], self.name, "timestamp")
@@ -469,9 +501,7 @@ class KrakenProvider:
         seconds = _TF_SECONDS.get(timeframe)
         if seconds is None:
             raise ProviderResponseError(self.name, f"unsupported crypto timeframe: {timeframe}")
-        return datetime.now(UTC) - timedelta(
-            seconds=seconds * max(limit, 1)
-        )
+        return datetime.now(UTC) - timedelta(seconds=seconds * max(limit, 1))
 
     def get_current_price(self, symbol: str) -> float | None:
         payload = _get_json(
@@ -494,26 +524,40 @@ class KrakenProvider:
             return {"total": 0, "quotes": []}
         payload = _get_json(self.name, f"{self.base_url}/AssetPairs", timeout=30)
         if not isinstance(payload, dict):
-            raise ProviderResponseError(self.name, "Kraken returned an invalid asset-pairs JSON object")
+            raise ProviderResponseError(
+                self.name, "Kraken returned an invalid asset-pairs JSON object"
+            )
         result = payload.get("result")
         if not isinstance(result, dict):
             raise ProviderResponseError(self.name, "Kraken returned an invalid asset-pairs result")
         if any(not isinstance(item, dict) for item in result.values()):
             raise ProviderResponseError(self.name, "Kraken returned a non-object asset-pair row")
         products = [
-            item for item in result.values() if str(item.get("quote", "")).upper() in {"ZUSD", "USD"}
+            item
+            for item in result.values()
+            if str(item.get("quote", "")).upper() in {"ZUSD", "USD"}
         ]
         page = products[offset : offset + 500]
         for item in page:
             base = str(item.get("base") or "").strip()
             pair_name = str(item.get("wsname") or item.get("altname") or "").strip()
-            if not base or not pair_name:
-                raise ProviderResponseError(self.name, "Kraken returned an incomplete asset-pair identity")
+            if not base or not pair_name or "/" not in pair_name:
+                raise ProviderResponseError(
+                    self.name, "Kraken returned an incomplete asset-pair identity"
+                )
+            displayed_base = pair_name.split("/", 1)[0].strip().upper()
+            if not displayed_base:
+                raise ProviderResponseError(
+                    self.name, "Kraken returned an incomplete asset-pair identity"
+                )
+        next_offset = offset + len(page) if offset + len(page) < len(products) else None
         return {
             "total": len(products),
+            "next_offset": next_offset,
+            "complete": next_offset is None,
             "quotes": [
                 {
-                    "symbol": f"{str(item['base']).replace('X', '')}-USD",
+                    "symbol": f"{str(item['wsname']).split('/', 1)[0].strip().upper()}-USD",
                     "longName": str(item.get("wsname") or item["altname"]),
                     "exchange": "Kraken",
                     "quoteType": "CRYPTOCURRENCY",

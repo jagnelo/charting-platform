@@ -8,20 +8,29 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import (
+    DINARI_SANDBOX_OPERATION_MINIMUM_REQUEST_COSTS,
+    FMP_PUBLIC_QUOTA_EVIDENCE,
     bybit_xstocks_market_data_use_authority_missing,
     coinbase_market_data_use_authority_missing,
+    coingecko_market_data_use_authority_missing,
+    eodhd_provider_display_terms_missing,
+    finra_equity_data_use_authority_missing,
     fred_data_use_controls_missing,
     fred_series_rights_missing,
+    kraken_market_data_use_authority_missing,
     marketdata_app_reviewed_plan,
     marketdata_app_reviewed_plan_pair,
     marketdata_app_trial_expiry_has_elapsed,
     marketdata_app_trial_expiry_is_valid,
     massive_market_data_use_authority_missing,
+    provider_contract_exception_missing,
     provider_positive_integer,
+    provider_quota_admission_reset,
     provider_quota_reset_is_admission_safe,
     provider_rate_limit_seed,
     provider_required_operation_byte_bounds,
     provider_reviewed_flag,
+    provider_terms_exception_missing,
     settings,
     xstocks_market_data_use_authority_missing,
 )
@@ -51,6 +60,7 @@ from app.providers.binance import BinanceProvider
 from app.providers.coingecko import CoinGeckoProvider
 from app.providers.configured import OPTIONAL_PROVIDER_DESCRIPTORS
 from app.providers.crypto_market_data import CoinbaseProvider, KrakenProvider
+from app.providers.cta_plan import CTAPlanProvider
 from app.providers.edgar import EdgarProvider, is_valid_edgar_user_agent
 from app.providers.etf_holdings_internal import ETFHoldingsInternalProvider
 from app.providers.finra import FINRAProvider
@@ -100,9 +110,10 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
     "openfigi": OpenFigiProvider(),  # Stable identifier enrichment (FIGI, ISIN)
     "massive": MassiveProvider(),  # Reference ticker universe corroboration
     "nasdaq": NasdaqProvider(),  # Official US NMS listing/lifecycle directory evidence
+    "cta_plan": CTAPlanProvider(),  # Official CTA Tape A/B daily listing directory
     "alpha_vantage": AlphaVantageProvider(),  # Quota-limited daily-history corroboration
     "finra": FINRAProvider(),  # Consolidated short-interest datasets (endpoint configurable)
-    "finra_otc_directory": FINRAOTCDirectoryProvider(),  # DAPI/OTC Markets legacy and documented ORF pair; source-review gates control routing
+    "finra_otc_directory": FINRAOTCDirectoryProvider(),  # official FINRA Query API OTC security master; ORF remains optional
     # Optional low-cost adapters. They remain absent from default chains and
     # entitlement seeds until credentials, quotas, and redistribution terms
     # are reviewed by operations.
@@ -133,18 +144,33 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
 # example, Equity/ETF from Derivative/Option.
 _PROVIDER_INSTRUMENT_KINDS: dict[str, frozenset[str]] = {
     "alpaca": frozenset({"equity", "stock", "etf", "crypto", "cryptocurrency", "crypto_spot"}),
-    "alpha_vantage": frozenset({"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency"}),
+    "alpha_vantage": frozenset(
+        {"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency"}
+    ),
     "massive": frozenset({"equity", "stock", "etf"}),
     "edgar": frozenset({"equity", "stock", "etf", "reit", "mutual_fund", "closed_end_fund"}),
     "nasdaq": frozenset({"equity", "stock", "etf", "reit", "mutual_fund", "closed_end_fund"}),
+    "cta_plan": frozenset({"equity", "stock", "etf"}),
     "finra": frozenset({"equity", "stock", "etf", "reit", "mutual_fund", "closed_end_fund"}),
-    "finra_otc_directory": frozenset({"equity", "stock", "etf", "reit", "mutual_fund", "closed_end_fund"}),
-    "tiingo": frozenset({"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency"}),
-    "twelve_data": frozenset({"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency", "future"}),
-    "finnhub": frozenset({"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency"}),
+    "finra_otc_directory": frozenset(
+        {"equity", "stock", "etf", "reit", "mutual_fund", "closed_end_fund"}
+    ),
+    "tiingo": frozenset(
+        {"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency"}
+    ),
+    "twelve_data": frozenset(
+        {"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency", "future"}
+    ),
+    "finnhub": frozenset(
+        {"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency"}
+    ),
     "marketstack": frozenset({"equity", "stock", "etf"}),
-    "eodhd": frozenset({"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency", "future"}),
-    "fmp": frozenset({"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency", "future"}),
+    "eodhd": frozenset(
+        {"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency", "future"}
+    ),
+    "fmp": frozenset(
+        {"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency", "future"}
+    ),
     "tradier": frozenset({"equity", "stock", "etf", "option", "options"}),
     "marketdata_app": frozenset({"equity", "stock", "etf", "option", "options"}),
     # Tokenized assets are first-class instruments created by
@@ -158,17 +184,57 @@ _PROVIDER_INSTRUMENT_KINDS: dict[str, frozenset[str]] = {
     "kraken_xstocks": frozenset({"tokenized_securities", "tokenized_security", "tokenized"}),
     "dinari": frozenset({"tokenized_securities", "tokenized_security", "tokenized"}),
     "ondo_global_markets": frozenset({"tokenized_securities", "tokenized_security", "tokenized"}),
-    "ibkr": frozenset({"equity", "stock", "etf", "option", "options", "future", "forex", "currency", "crypto", "cryptocurrency"}),
-    "yfinance": frozenset({"equity", "stock", "etf", "option", "options", "future", "forex", "currency", "crypto", "cryptocurrency", "index"}),
+    "ibkr": frozenset(
+        {
+            "equity",
+            "stock",
+            "etf",
+            "option",
+            "options",
+            "future",
+            "forex",
+            "currency",
+            "crypto",
+            "cryptocurrency",
+        }
+    ),
+    "yfinance": frozenset(
+        {
+            "equity",
+            "stock",
+            "etf",
+            "option",
+            "options",
+            "future",
+            "forex",
+            "currency",
+            "crypto",
+            "cryptocurrency",
+            "index",
+        }
+    ),
     "binance": frozenset({"crypto", "cryptocurrency", "crypto_spot"}),
     "coinbase": frozenset({"crypto", "cryptocurrency", "crypto_spot"}),
     "kraken": frozenset({"crypto", "cryptocurrency", "crypto_spot", "future"}),
     "coingecko": frozenset({"crypto", "cryptocurrency", "crypto_spot"}),
     "fred": frozenset({"macro", "currency", "forex", "fixed_income"}),
-    "openfigi": frozenset({
-        "equity", "stock", "etf", "option", "options", "future", "forex", "currency",
-        "crypto", "cryptocurrency", "index", "fixed_income", "commodity",
-    }),
+    "openfigi": frozenset(
+        {
+            "equity",
+            "stock",
+            "etf",
+            "option",
+            "options",
+            "future",
+            "forex",
+            "currency",
+            "crypto",
+            "cryptocurrency",
+            "index",
+            "fixed_income",
+            "commodity",
+        }
+    ),
     "etf_holdings_internal": frozenset({"equity", "etf"}),
 }
 
@@ -215,7 +281,9 @@ def provider_supports_adjustment(provider_name: str, adjusted: bool | None) -> b
 def _instrument_kind(value: str | None) -> str:
     """Normalize model/provider class labels into stable routing tokens."""
 
-    return "".join(character for character in str(value or "").strip().lower() if character.isalnum())
+    return "".join(
+        character for character in str(value or "").strip().lower() if character.isalnum()
+    )
 
 
 def provider_supports_instrument(
@@ -239,6 +307,8 @@ def provider_supports_instrument(
         for value in (asset_class, instrument_type)
         if value
     )
+
+
 # Keep descriptor-only entries visible for broker/crypto integrations that do
 # not yet have a concrete adapter. ``setdefault`` preserves concrete classes.
 for _name, _descriptor in OPTIONAL_PROVIDER_DESCRIPTORS.items():
@@ -297,7 +367,10 @@ def _capability_names(provider: ProviderDescriptor) -> list[str]:
         (("discover_universe_page", "supported_discovery_types"), "universe_discovery"),
         (("list_option_expirations", "fetch_option_chain"), "option_chain"),
         (("fetch_option_quote_history",), "option_quote_history"),
-        (("discover_tokenized_assets", "get_tokenized_asset", "get_tokenized_price"), "tokenized_assets"),
+        (
+            ("discover_tokenized_assets", "get_tokenized_asset", "get_tokenized_price"),
+            "tokenized_assets",
+        ),
         (("fetch_tokenized_historical_prices",), "tokenized_historical_prices"),
         (("fetch_tokenized_corporate_actions",), "tokenized_corporate_actions"),
     ]
@@ -305,6 +378,11 @@ def _capability_names(provider: ProviderDescriptor) -> list[str]:
         name for required_methods, name in capabilities if _supports(provider, *required_methods)
     ]
     provider_name = str(getattr(provider, "name", "")).lower()
+    if provider_name == "coingecko" and str(
+        getattr(settings, "COINGECKO_REVIEWED_PLAN", "demo") or "demo"
+    ).strip().lower() in {"demo", "free-demo"}:
+        # CoinGecko's account-usage endpoint is Pro-only, not part of Demo.
+        capabilities = [name for name in capabilities if name != "account_usage"]
     # EDGAR's filing-driven IPO detector is a market-event subtype with an
     # issuer/CIK input rather than the calendar-wide ``fetch_market_events``
     # shape. Keep it under the existing market-events policy/quota capability;
@@ -544,6 +622,8 @@ _CONFIGURATION_SETTINGS: dict[str, tuple[str, ...]] = {
 # separate from credential diagnostics so an operator can distinguish
 # "credential missing" from "credential present but quota safety incomplete".
 _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
+    # Alpaca, Nasdaq, and Binance have no separate
+    # operational control need no routing setting for owner-approved storage.
     # Alpaca's native request-window headers are the quota evidence. Corporate
     # action pagination is governed by a resumable per-job fairness budget in
     # the ingestion service, never by a routing admission gate.
@@ -564,15 +644,17 @@ _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
         "FINRA_OTC_COMPLETENESS_REVIEWED",
         "FINRA_OTC_REDISTRIBUTION_REVIEWED",
         "FINRA_OTC_POLL_INTERVAL_SECONDS",
+        "FINRA_ORF_REFRESH_TOKEN_STATE_FILE",
     ),
+    "dinari": ("DINARI_SANDBOX_QUOTA_PROFILE",),
     "fred": (
         "FRED_REVIEWED_LIMIT_SCOPE",
         "FRED_REVIEWED_REQUESTS_PER_MINUTE",
         "FRED_REVIEWED_QUOTA_EVIDENCE",
         "FRED_REVIEWED_RESET",
         "FRED_RESET_EVIDENCE",
-        "FRED_PERSISTED_STORAGE_AUTHORIZED",
-        "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE",
+        "FRED_APPLICATION_USER_SCOPE",
+        "FRED_APPLICATION_USER_SCOPE_EVIDENCE",
         "FRED_AUTOMATED_USE_AUTHORIZED",
         "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE",
         "FRED_SERIES_RIGHTS_EVIDENCE",
@@ -587,19 +669,40 @@ _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
         "FINNHUB_MINUTE_QUOTA_EVIDENCE",
         "FINNHUB_SECOND_QUOTA_EVIDENCE",
     ),
+    # Kraken Spot and Kraken xStocks use public endpoints under the same
+    # provider terms and therefore share one written-consent gate.
+    "kraken": (
+        "KRAKEN_MARKET_DATA_USE_AUTHORIZED",
+        "KRAKEN_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+        "KRAKEN_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "KRAKEN_MARKET_DATA_USE_REVIEWED_AT",
+        "KRAKEN_MARKET_DATA_USE_EXPIRES_AT",
+    ),
+    "kraken_xstocks": (
+        "KRAKEN_MARKET_DATA_USE_AUTHORIZED",
+        "KRAKEN_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+        "KRAKEN_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "KRAKEN_MARKET_DATA_USE_REVIEWED_AT",
+        "KRAKEN_MARKET_DATA_USE_EXPIRES_AT",
+    ),
     "coinbase": (
         "COINBASE_MARKET_DATA_USE_AUTHORIZED",
         "COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
         "COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE",
         "COINBASE_MARKET_DATA_USE_REVIEWED_AT",
     ),
+    "coingecko": (
+        "COINGECKO_MARKET_DATA_USE_AUTHORIZED",
+        "COINGECKO_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+        "COINGECKO_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "COINGECKO_MARKET_DATA_USE_REVIEWED_AT",
+        "COINGECKO_MARKET_DATA_USE_EXPIRES_AT",
+    ),
     "xstocks": (
         "XSTOCKS_MARKET_DATA_USE_AUTHORIZED",
         "XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE",
         "XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
         "XSTOCKS_MARKET_DATA_USE_REVIEWED_AT",
-        "XSTOCKS_MARKET_DATA_USE_JURISDICTION_AUTHORIZED",
-        "XSTOCKS_MARKET_DATA_USE_JURISDICTION_EVIDENCE",
     ),
     "bybit_xstocks": (
         "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORIZED",
@@ -615,18 +718,31 @@ _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
         "TIINGO_REVIEWED_HOURLY_RESET",
         "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE",
         "TIINGO_HOURLY_QUOTA_EVIDENCE",
+        "TIINGO_PROVIDER_ARCHIVE_TERMS_AUTHORIZED",
+        "TIINGO_PROVIDER_ARCHIVE_TERMS_EVIDENCE",
     ),
     "fmp": (
         "FMP_OPERATION_BYTE_BOUNDS",
+        "FMP_REVIEWED_PLAN",
         "FMP_REVIEWED_DAILY_RESET",
+        "FMP_REVIEWED_CALL_RESET",
         "FMP_REVIEWED_BANDWIDTH_RESET",
+        "FMP_CALL_QUOTA_EVIDENCE",
         "FMP_DAILY_QUOTA_EVIDENCE",
         "FMP_BANDWIDTH_QUOTA_EVIDENCE",
+        "FMP_PROVIDER_ARCHIVE_TERMS_AUTHORIZED",
+        "FMP_PROVIDER_ARCHIVE_TERMS_EVIDENCE",
     ),
     "marketstack": (
         "MARKETSTACK_REVIEWED_MONTHLY_LIMIT",
         "MARKETSTACK_REVIEWED_MONTHLY_RESET",
         "MARKETSTACK_QUOTA_EVIDENCE",
+        "MARKETSTACK_PROVIDER_ARCHIVE_TERMS_AUTHORIZED",
+        "MARKETSTACK_PROVIDER_ARCHIVE_TERMS_EVIDENCE",
+    ),
+    "eodhd": (
+        "EODHD_PROVIDER_DISPLAY_TERMS_AUTHORIZED",
+        "EODHD_PROVIDER_DISPLAY_TERMS_EVIDENCE",
     ),
     # MarketData.app account plans have distinct daily credit pools.  Native
     # response headers are telemetry; admission uses only this explicit
@@ -634,6 +750,12 @@ _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
     "marketdata_app": (
         "MARKETDATA_APP_REVIEWED_PLAN",
         "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT",
+        "MARKETDATA_APP_PROVIDER_RETENTION_TERMS_AUTHORIZED",
+        "MARKETDATA_APP_PROVIDER_RETENTION_TERMS_EVIDENCE",
+    ),
+    "twelve_data": (
+        "TWELVE_DATA_PROVIDER_ARCHIVE_TERMS_AUTHORIZED",
+        "TWELVE_DATA_PROVIDER_ARCHIVE_TERMS_EVIDENCE",
     ),
 }
 
@@ -681,16 +803,21 @@ def provider_required_settings(name: str, operation: str | None = None) -> tuple
         required.append("MARKETDATA_API_KEY")
     if name == "edgar":
         required.append("EDGAR_USER_AGENT")
-    if name == "finra_otc_directory" and str(
-        getattr(settings, "FINRA_OTC_SOURCE_KIND", "") or ""
-    ).strip().lower() == "finra_orf_security_master":
+    if (
+        name == "finra_otc_directory"
+        and str(getattr(settings, "FINRA_OTC_SOURCE_KIND", "") or "").strip().lower()
+        == "finra_orf_security_master"
+    ):
         required.extend(
             (
                 "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL",
-                "FINRA_CLIENT_ID",
-                "FINRA_CLIENT_SECRET",
+                "FINRA_ORF_USERNAME",
+                "FINRA_ORF_REFRESH_TOKEN",
+                "FINRA_ORF_REFRESH_TOKEN_STATE_FILE",
             )
         )
+    elif name == "finra_otc_directory":
+        required.extend(("FINRA_CLIENT_ID", "FINRA_CLIENT_SECRET"))
     return tuple(dict.fromkeys(required))
 
 
@@ -705,33 +832,37 @@ def provider_missing_settings(name: str, operation: str | None = None) -> list[s
         return missing
     for setting_name in provider_required_settings(name, operation):
         value = str(getattr(settings, setting_name, "") or "").strip()
-        if not value or (setting_name == "EDGAR_USER_AGENT" and not is_valid_edgar_user_agent(value)):
+        if not value or (
+            setting_name == "EDGAR_USER_AGENT" and not is_valid_edgar_user_agent(value)
+        ):
             missing.append(setting_name)
     return missing
 
 
-def provider_routing_control_settings(
-    name: str, operation: str | None = None
-) -> tuple[str, ...]:
+def provider_routing_control_settings(name: str, operation: str | None = None) -> tuple[str, ...]:
     """Return non-secret routing-safety setting names for operator diagnostics."""
 
+    if name == "finra" and operation in {"fetch_short_interest", "fetch_market_events"}:
+        # These synchronous operations do not use the separate async-result
+        # byte bound. The owner has approved private persistence; provider
+        # authentication and byte/quota accounting are checked independently.
+        return ()
+    if name == "alpaca" and operation == "fetch_account_usage":
+        # The native usage snapshot is the bounded quota bootstrap and does
+        # not route market data into the permanent archive.
+        return ()
+    if name == "binance" and operation == "fetch_account_usage":
+        # This bounded native-header snapshot persists usage evidence only; it
+        # does not ingest Binance market data into the application's archive.
+        return ()
     if name == "alpaca" and operation == "fetch_account_usage":
         # The native usage snapshot is the explicit bootstrap mechanism for
         # observing Alpaca's reset-bearing headers. Requiring the reviewed
         # reset pair before that one control-plane read would be circular.
         return ()
-    if name == "massive" and operation is not None and operation != "fetch_instrument_events":
-        return tuple(_ROUTING_CONTROL_SETTINGS[name])
-    # The async signed-result bound is independent from FINRA's synchronous
-    # short-interest and OTC Daily List calls. Those dataset operations already
-    # reserve the published 3 MB synchronous response ceiling against the
-    # credential's monthly byte pool; do not make them wait for an async-only
-    # operator bound.
-    if name == "finra" and operation in {
-        "fetch_short_interest",
-        "fetch_market_events",
-    }:
-        return ()
+    # FINRA's published Equity Data terms permit internal non-commercial
+    # use. Owner storage approval is final; only async calls need their
+    # separate positive result-byte bound.
     # Account introspection is the mechanism used to discover the operator's
     # actual MarketData.app plan/credit window. Requiring the reviewed plan
     # before this one bounded request would make the review gate circular. The
@@ -739,27 +870,162 @@ def provider_routing_control_settings(
     # any market-data or options operation.
     if name == "marketdata_app" and operation == "fetch_account_usage":
         return ()
+    if name == "twelve_data" and operation == "fetch_account_usage":
+        # The one-credit native usage snapshot is diagnostic only; it does
+        # not write any provider market data into the application's archive.
+        return ()
+    if name == "marketstack" and _marketstack_requires_discovery_scope(operation):
+        # This is an operation-scoped uncertainty: the public per-symbol
+        # billing rule does not establish the cost of an exchange-wide page.
+        # The explicit upper-bound and evidence are required only for listing
+        # discovery, never for independent EOD/quote reads.
+        return (
+            *(
+                control
+                for control in _ROUTING_CONTROL_SETTINGS[name]
+                if "_PERSISTENT_STORAGE_" not in control
+            ),
+            "MARKETSTACK_DISCOVERY_MAX_PAGE_COST",
+            "MARKETSTACK_DISCOVERY_COST_EVIDENCE",
+        )
+    if name == "fmp" and str(operation or "").split(":", 1)[0] in {
+        "discover_universe_page",
+        "reconcile_universe_page",
+    }:
+        # The configured Basic key was live-verified to receive HTTP 402 from
+        # stable/stock-list. Do not infer access from the plan label alone.
+        return (*_ROUTING_CONTROL_SETTINGS[name], "FMP_STOCK_LIST_ENTITLED")
     # EODHD's native /user snapshot observes both weighted daily usage and
     # current per-key minute headers. It is the bounded bootstrap operation;
     # ordinary operations use the documented separate request/credit pools.
     if name == "eodhd" and operation == "fetch_account_usage":
         return ()
 
-    controls = _ROUTING_CONTROL_SETTINGS.get(name, ())
-    if name == "finra_otc_directory" and str(
-        getattr(settings, "FINRA_OTC_SOURCE_KIND", "") or ""
-    ).strip().lower() == "finra_orf_security_master":
+    if (
+        name == "finra_otc_directory"
+        and str(getattr(settings, "FINRA_OTC_SOURCE_KIND", "") or "").strip().lower()
+        == "finra_otc_query_api"
+    ):
+        # Query API mode has a first-party fixed source and an exact platform
+        # quota contract. The ORF-only review/cost controls must not be exposed
+        # to operators as requirements for this source variant.
+        return (
+            "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+            "FINRA_OTC_POLL_INTERVAL_SECONDS",
+        )
+
+    # Private provider-data persistence has the owner's final global approval.
+    # Former per-provider owner attestations are compatibility settings only;
+    # they do not appear as required routing controls.
+    controls = tuple(
+        control
+        for control in _ROUTING_CONTROL_SETTINGS.get(name, ())
+        if "_PERSISTENT_STORAGE_" not in control
+    )
+    if (
+        name == "finra_otc_directory"
+        and str(getattr(settings, "FINRA_OTC_SOURCE_KIND", "") or "").strip().lower()
+        == "finra_orf_security_master"
+    ):
         controls = (
             *controls,
             "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL",
             "FINRA_OTC_REVIEWED_INACTIVE_SOURCE_URL",
         )
+        if provider_reviewed_flag(getattr(settings, "FINRA_ORF_CUSIP_LICENSED", False)):
+            controls = (*controls, "FINRA_ORF_CUSIP_LICENSE_EVIDENCE")
     return controls
 
 
-def provider_missing_routing_controls(
-    name: str, operation: str | None = None
-) -> list[str]:
+def dinari_sandbox_quota_profile_missing() -> list[str]:
+    """Require a complete account-reviewed quota/cost profile for Dinari canaries.
+
+    Dinari's 2024 public API license template states a rolling 30-day call
+    ceiling, but current public docs do not establish that template's
+    applicability to this Sandbox account or provide an account usage baseline.
+    This rejects the in-code unknown seed rather than silently assuming that
+    older generic ceiling is the active Sandbox entitlement.
+    """
+
+    profile = getattr(settings, "DINARI_SANDBOX_QUOTA_PROFILE", {})
+    if not isinstance(profile, dict) or not profile:
+        return ["DINARI_SANDBOX_QUOTA_PROFILE"]
+
+    missing: list[str] = []
+    if not str(profile.get("quota_scope") or "").strip():
+        missing.append("DINARI_SANDBOX_QUOTA_PROFILE.quota_scope")
+    if not str(profile.get("quota_source") or "").strip():
+        missing.append("DINARI_SANDBOX_QUOTA_PROFILE.quota_source")
+    contract = profile.get("quota_contract")
+    if not isinstance(contract, dict):
+        missing.append("DINARI_SANDBOX_QUOTA_PROFILE.quota_contract")
+        contract = {}
+    if (
+        not provider_quota_reset_is_admission_safe(contract.get("reset"))
+        and str(contract.get("reset") or "").strip() != "per_dimension"
+    ):
+        missing.append("DINARI_SANDBOX_QUOTA_PROFILE.quota_contract.reset")
+    if contract.get("unknown_dimensions"):
+        missing.append("DINARI_SANDBOX_QUOTA_PROFILE.quota_contract.unknown_dimensions")
+    if contract.get("untracked_constraints"):
+        missing.append("DINARI_SANDBOX_QUOTA_PROFILE.quota_contract.untracked_constraints")
+    dimensions = contract.get("dimensions")
+    if not isinstance(dimensions, list) or not dimensions:
+        missing.append("DINARI_SANDBOX_QUOTA_PROFILE.quota_contract.dimensions")
+        dimensions = []
+    dimension_names: set[str] = set()
+    for index, dimension in enumerate(dimensions):
+        prefix = f"DINARI_SANDBOX_QUOTA_PROFILE.quota_contract.dimensions[{index}]"
+        if not isinstance(dimension, dict):
+            missing.append(prefix)
+            continue
+        name = str(dimension.get("name") or "").strip()
+        if not name or name in dimension_names:
+            missing.append(f"{prefix}.name")
+        dimension_names.add(name)
+        if provider_positive_integer(dimension.get("limit")) is None:
+            missing.append(f"{prefix}.limit")
+        if provider_positive_integer(dimension.get("window_seconds")) is None:
+            missing.append(f"{prefix}.window_seconds")
+        if not str(dimension.get("unit") or "").strip():
+            missing.append(f"{prefix}.unit")
+        if not str(dimension.get("scope") or "").strip():
+            missing.append(f"{prefix}.scope")
+        if not str(dimension.get("quota_group") or "").strip():
+            missing.append(f"{prefix}.quota_group")
+        if not str(dimension.get("source") or "").strip():
+            missing.append(f"{prefix}.source")
+        reset = provider_quota_admission_reset(
+            dimension.get("reset", contract.get("reset")),
+            dimension.get("safety_reset"),
+        )
+        if not provider_quota_reset_is_admission_safe(reset):
+            missing.append(f"{prefix}.reset")
+
+    # Canary operation costs are per-operation worst-case reservations, not
+    # average request counts. Require an explicit reviewed value for every
+    # operation exercised by the Dinari live test.
+    operation_costs = profile.get("operation_costs")
+    expected_operations = DINARI_SANDBOX_OPERATION_MINIMUM_REQUEST_COSTS
+    if not isinstance(operation_costs, dict):
+        missing.append("DINARI_SANDBOX_QUOTA_PROFILE.operation_costs")
+    else:
+        for operation, minimum_cost in sorted(expected_operations.items()):
+            configured_cost = provider_positive_integer(operation_costs.get(operation))
+            if configured_cost is None:
+                missing.append(f"DINARI_SANDBOX_QUOTA_PROFILE.operation_costs.{operation}")
+            elif configured_cost < minimum_cost:
+                missing.append(
+                    "DINARI_SANDBOX_QUOTA_PROFILE.operation_costs."
+                    f"{operation}.minimum_{minimum_cost}_requests"
+                )
+    dimension_costs = profile.get("dimension_costs", {})
+    if not isinstance(dimension_costs, dict):
+        missing.append("DINARI_SANDBOX_QUOTA_PROFILE.dimension_costs")
+    return list(dict.fromkeys(missing))
+
+
+def provider_missing_routing_controls(name: str, operation: str | None = None) -> list[str]:
     """Return missing provider-specific routing controls without their values.
 
     Some controls apply to one response-priced operation rather than every
@@ -772,17 +1038,40 @@ def provider_missing_routing_controls(
     required = provider_routing_control_settings(name, operation)
     if not required and name != "eodhd":
         return []
+    if name == "fred" and provider_reviewed_flag(
+        getattr(settings, "PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK", False)
+    ):
+        # The owner-approved private deployment uses the documented 120/minute
+        # ceiling with provider_rate_limit_seed's shared-key rolling envelope.
+        # Keep provider scope/reset uncertainty in diagnostics, not as an
+        # unresolved owner-review setting.
+        return []
+    if name == "dinari":
+        return dinari_sandbox_quota_profile_missing()
     if name == "finra":
         if operation in {"fetch_short_interest", "fetch_market_events"}:
-            return []
-        configured = provider_positive_integer(
-            getattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 0)
-        )
+            return finra_equity_data_use_authority_missing()
+        configured = provider_positive_integer(getattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 0))
         return [] if configured is not None else list(required)
     if name == "massive":
-        missing = massive_market_data_use_authority_missing()
-        return list(dict.fromkeys(missing))
+        return massive_market_data_use_authority_missing()
     if name == "finra_otc_directory":
+        source_kind = str(getattr(settings, "FINRA_OTC_SOURCE_KIND", "") or "").strip().lower()
+        if source_kind == "finra_otc_query_api":
+            missing: list[str] = []
+            configured_source = _normalized_reviewed_https_source(
+                getattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "")
+            )
+            if configured_source != (
+                "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster"
+            ):
+                missing.append("FINRA_OTC_SYMBOL_DIRECTORY_URL")
+            if (
+                provider_positive_integer(getattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 0))
+                is None
+            ):
+                missing.append("FINRA_OTC_POLL_INTERVAL_SECONDS")
+            return missing
         configured_map = getattr(settings, "FINRA_OTC_OPERATION_COSTS", {}) or {}
         operations = ("discover_universe_page", "reconcile_universe_page")
         missing: list[str] = []
@@ -795,16 +1084,11 @@ def provider_missing_routing_controls(
             for operation in operations
         ):
             missing.append("FINRA_OTC_OPERATION_COSTS")
-        if not provider_reviewed_flag(
-            getattr(settings, "FINRA_OTC_SOURCE_REVIEWED", False)
-        ):
+        if not provider_reviewed_flag(getattr(settings, "FINRA_OTC_SOURCE_REVIEWED", False)):
             missing.append("FINRA_OTC_SOURCE_REVIEWED")
-        if not str(
-            getattr(settings, "FINRA_OTC_SOURCE_EVIDENCE", "") or ""
-        ).strip():
+        if not str(getattr(settings, "FINRA_OTC_SOURCE_EVIDENCE", "") or "").strip():
             missing.append("FINRA_OTC_SOURCE_EVIDENCE")
-        source_kind = str(getattr(settings, "FINRA_OTC_SOURCE_KIND", "") or "").strip().lower()
-        if source_kind not in {"legacy_candidate", "finra_orf_security_master"}:
+        if source_kind != "finra_orf_security_master":
             missing.append("FINRA_OTC_SOURCE_KIND")
         configured_source = _normalized_reviewed_https_source(
             getattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "")
@@ -815,6 +1099,8 @@ def provider_missing_routing_controls(
         if configured_source is None or reviewed_source != configured_source:
             missing.append("FINRA_OTC_REVIEWED_SOURCE_URL")
         if source_kind == "finra_orf_security_master":
+            if not str(getattr(settings, "FINRA_ORF_REFRESH_TOKEN_STATE_FILE", "") or "").strip():
+                missing.append("FINRA_ORF_REFRESH_TOKEN_STATE_FILE")
             inactive_source = _normalized_reviewed_https_source(
                 getattr(settings, "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL", "")
             )
@@ -825,18 +1111,20 @@ def provider_missing_routing_controls(
                 missing.append("FINRA_OTC_INACTIVE_SECURITY_MASTER_URL")
             if inactive_source is None or reviewed_inactive_source != inactive_source:
                 missing.append("FINRA_OTC_REVIEWED_INACTIVE_SOURCE_URL")
-        if not provider_reviewed_flag(
-            getattr(settings, "FINRA_OTC_TERMS_REVIEWED", False)
-        ):
+        if not provider_reviewed_flag(getattr(settings, "FINRA_OTC_TERMS_REVIEWED", False)):
             missing.append("FINRA_OTC_TERMS_REVIEWED")
-        if not provider_reviewed_flag(
-            getattr(settings, "FINRA_OTC_COMPLETENESS_REVIEWED", False)
-        ):
+        if not provider_reviewed_flag(getattr(settings, "FINRA_OTC_COMPLETENESS_REVIEWED", False)):
             missing.append("FINRA_OTC_COMPLETENESS_REVIEWED")
         if not provider_reviewed_flag(
             getattr(settings, "FINRA_OTC_REDISTRIBUTION_REVIEWED", False)
         ):
             missing.append("FINRA_OTC_REDISTRIBUTION_REVIEWED")
+        if (
+            source_kind == "finra_orf_security_master"
+            and provider_reviewed_flag(getattr(settings, "FINRA_ORF_CUSIP_LICENSED", False))
+            and not str(getattr(settings, "FINRA_ORF_CUSIP_LICENSE_EVIDENCE", "") or "").strip()
+        ):
+            missing.append("FINRA_ORF_CUSIP_LICENSE_EVIDENCE")
         poll_interval = provider_positive_integer(
             getattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 0)
         )
@@ -848,15 +1136,9 @@ def provider_missing_routing_controls(
         reviewed_limit = provider_positive_integer(
             getattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 0)
         )
-        quota_evidence = str(
-            getattr(settings, "FRED_REVIEWED_QUOTA_EVIDENCE", "") or ""
-        ).strip()
-        reviewed_reset = str(
-            getattr(settings, "FRED_REVIEWED_RESET", "") or ""
-        ).strip()
-        reset_evidence = str(
-            getattr(settings, "FRED_RESET_EVIDENCE", "") or ""
-        ).strip()
+        quota_evidence = str(getattr(settings, "FRED_REVIEWED_QUOTA_EVIDENCE", "") or "").strip()
+        reviewed_reset = str(getattr(settings, "FRED_REVIEWED_RESET", "") or "").strip()
+        reset_evidence = str(getattr(settings, "FRED_RESET_EVIDENCE", "") or "").strip()
         missing: list[str] = []
         if scope not in {"api_key", "account", "ip", "deployment"}:
             missing.append("FRED_REVIEWED_LIMIT_SCOPE")
@@ -879,12 +1161,8 @@ def provider_missing_routing_controls(
             for item in dimensions
             if isinstance(item, dict)
         )
-        reviewed_reset = str(
-            getattr(settings, "ALPHA_VANTAGE_REVIEWED_RESET", "") or ""
-        ).strip()
-        quota_evidence = str(
-            getattr(settings, "ALPHA_VANTAGE_QUOTA_EVIDENCE", "") or ""
-        ).strip()
+        reviewed_reset = str(getattr(settings, "ALPHA_VANTAGE_REVIEWED_RESET", "") or "").strip()
+        quota_evidence = str(getattr(settings, "ALPHA_VANTAGE_QUOTA_EVIDENCE", "") or "").strip()
         if has_safety_envelope and not reviewed_reset and not quota_evidence:
             return []
         missing: list[str] = []
@@ -901,18 +1179,10 @@ def provider_missing_routing_controls(
             for item in dimensions
             if isinstance(item, dict)
         )
-        minute_reset = str(
-            getattr(settings, "FINNHUB_REVIEWED_MINUTE_RESET", "") or ""
-        ).strip()
-        second_reset = str(
-            getattr(settings, "FINNHUB_REVIEWED_SECOND_RESET", "") or ""
-        ).strip()
-        minute_evidence = str(
-            getattr(settings, "FINNHUB_MINUTE_QUOTA_EVIDENCE", "") or ""
-        ).strip()
-        second_evidence = str(
-            getattr(settings, "FINNHUB_SECOND_QUOTA_EVIDENCE", "") or ""
-        ).strip()
+        minute_reset = str(getattr(settings, "FINNHUB_REVIEWED_MINUTE_RESET", "") or "").strip()
+        second_reset = str(getattr(settings, "FINNHUB_REVIEWED_SECOND_RESET", "") or "").strip()
+        minute_evidence = str(getattr(settings, "FINNHUB_MINUTE_QUOTA_EVIDENCE", "") or "").strip()
+        second_evidence = str(getattr(settings, "FINNHUB_SECOND_QUOTA_EVIDENCE", "") or "").strip()
         if (
             has_safety_envelope
             and not minute_reset
@@ -930,9 +1200,14 @@ def provider_missing_routing_controls(
             missing.append("FINNHUB_MINUTE_QUOTA_EVIDENCE")
         if not second_evidence:
             missing.append("FINNHUB_SECOND_QUOTA_EVIDENCE")
-        return missing
+        return list(dict.fromkeys(missing))
     if name == "fmp":
-        missing: list[str] = []
+        missing: list[str] = provider_contract_exception_missing("FMP")
+        if str(operation or "").split(":", 1)[0] in {
+            "discover_universe_page",
+            "reconcile_universe_page",
+        } and not provider_reviewed_flag(getattr(settings, "FMP_STOCK_LIST_ENTITLED", False)):
+            missing.append("FMP_STOCK_LIST_ENTITLED")
         configured_map = getattr(settings, "FMP_OPERATION_BYTE_BOUNDS", {}) or {}
         operations = provider_required_operation_byte_bounds(name)
         if not isinstance(configured_map, dict) or not all(
@@ -942,18 +1217,34 @@ def provider_missing_routing_controls(
             for operation in operations
         ):
             missing.append("FMP_OPERATION_BYTE_BOUNDS")
-        daily_reset = str(
-            getattr(settings, "FMP_REVIEWED_DAILY_RESET", "") or ""
-        ).strip()
+        plan = str(getattr(settings, "FMP_REVIEWED_PLAN", "basic") or "").strip().lower()
+        if plan not in {"basic", "starter", "premium", "ultimate"}:
+            missing.append("FMP_REVIEWED_PLAN")
+        daily_reset = str(getattr(settings, "FMP_REVIEWED_DAILY_RESET", "") or "").strip()
+        call_reset = str(getattr(settings, "FMP_REVIEWED_CALL_RESET", "") or "").strip()
+        explicit_call_reset = bool(call_reset)
+        if not call_reset and plan == "basic":
+            call_reset = daily_reset
         daily_evidence = str(
-            getattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "") or ""
+            getattr(settings, "FMP_CALL_QUOTA_EVIDENCE", "")
+            or getattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "")
+            or FMP_PUBLIC_QUOTA_EVIDENCE
+            or ""
         ).strip()
-        # The seeded FAQ boundary is not sufficient live evidence because
-        # newer official FMP guidance declines to promise one reset time.
-        if not provider_quota_reset_is_admission_safe(daily_reset):
-            missing.append("FMP_REVIEWED_DAILY_RESET")
+        # The contract already supplies a strict rolling-24-hour safety
+        # envelope when FMP does not publish a universal reset instant. A
+        # provider-native reset override is optional; validate it only when
+        # configured, matching provider_rate_limit_seed() and the live runner.
+        if call_reset and not provider_quota_reset_is_admission_safe(call_reset):
+            missing.append(
+                "FMP_REVIEWED_CALL_RESET"
+                if explicit_call_reset or plan != "basic"
+                else "FMP_REVIEWED_DAILY_RESET"
+            )
         if not daily_evidence:
-            missing.append("FMP_DAILY_QUOTA_EVIDENCE")
+            missing.append(
+                "FMP_DAILY_QUOTA_EVIDENCE" if plan == "basic" else "FMP_CALL_QUOTA_EVIDENCE"
+            )
         # The current official FMP pricing contract defines the bandwidth
         # pool as trailing 30 days. A blank override therefore keeps the
         # documented rolling window; a supplied value is still validated so a
@@ -965,19 +1256,16 @@ def provider_missing_routing_controls(
             reviewed_bandwidth_reset
         ):
             missing.append("FMP_REVIEWED_BANDWIDTH_RESET")
-        if not str(
-            getattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "") or ""
-        ).strip():
+        bandwidth_evidence = str(
+            getattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "") or FMP_PUBLIC_QUOTA_EVIDENCE or ""
+        ).strip()
+        if not bandwidth_evidence:
             missing.append("FMP_BANDWIDTH_QUOTA_EVIDENCE")
         return list(dict.fromkeys(missing))
     if name == "tiingo":
-        missing: list[str] = []
+        missing: list[str] = provider_contract_exception_missing("TIINGO")
         seed_contract = provider_rate_limit_seed(name).get("quota_contract")
-        dimensions = (
-            seed_contract.get("dimensions", [])
-            if isinstance(seed_contract, dict)
-            else []
-        )
+        dimensions = seed_contract.get("dimensions", []) if isinstance(seed_contract, dict) else []
         has_symbol_safety = False
         has_hourly_safety = False
         for dimension in dimensions:
@@ -1003,15 +1291,11 @@ def provider_missing_routing_controls(
         unique_reset = str(
             getattr(settings, "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "") or ""
         ).strip()
-        hourly_reset = str(
-            getattr(settings, "TIINGO_REVIEWED_HOURLY_RESET", "") or ""
-        ).strip()
+        hourly_reset = str(getattr(settings, "TIINGO_REVIEWED_HOURLY_RESET", "") or "").strip()
         unique_evidence = str(
             getattr(settings, "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE", "") or ""
         ).strip()
-        hourly_evidence = str(
-            getattr(settings, "TIINGO_HOURLY_QUOTA_EVIDENCE", "") or ""
-        ).strip()
+        hourly_evidence = str(getattr(settings, "TIINGO_HOURLY_QUOTA_EVIDENCE", "") or "").strip()
         if not (
             has_symbol_safety
             and has_hourly_safety
@@ -1030,34 +1314,53 @@ def provider_missing_routing_controls(
                 missing.append("TIINGO_HOURLY_QUOTA_EVIDENCE")
         return list(dict.fromkeys(missing))
     if name == "marketstack":
-        missing: list[str] = []
+        missing: list[str] = provider_contract_exception_missing("MARKETSTACK")
         reviewed_limit = provider_positive_integer(
             getattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_LIMIT", 0)
         )
+        reviewed_reset = str(
+            getattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_RESET", "") or ""
+        ).strip()
+        quota_evidence = str(getattr(settings, "MARKETSTACK_QUOTA_EVIDENCE", "") or "").strip()
+        # The documented Free-plan cap defaults to 100 requests and the
+        # quota contract enforces a strict rolling-30-day window. Account
+        # evidence is needed only when the configured plan ceiling or native
+        # reset differs from that reviewed public baseline.
         if reviewed_limit is None:
             missing.append("MARKETSTACK_REVIEWED_MONTHLY_LIMIT")
-        if not provider_quota_reset_is_admission_safe(
-            getattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_RESET", "")
-        ):
+        custom_account_policy = reviewed_limit not in {None, 100} or bool(reviewed_reset)
+        if reviewed_reset and not provider_quota_reset_is_admission_safe(reviewed_reset):
             missing.append("MARKETSTACK_REVIEWED_MONTHLY_RESET")
-        if not str(getattr(settings, "MARKETSTACK_QUOTA_EVIDENCE", "") or "").strip():
+        if custom_account_policy and not quota_evidence:
             missing.append("MARKETSTACK_QUOTA_EVIDENCE")
+        if _marketstack_requires_discovery_scope(operation):
+            if (
+                provider_positive_integer(
+                    getattr(settings, "MARKETSTACK_DISCOVERY_MAX_PAGE_COST", 0)
+                )
+                is None
+            ):
+                missing.append("MARKETSTACK_DISCOVERY_MAX_PAGE_COST")
+            if not str(getattr(settings, "MARKETSTACK_DISCOVERY_COST_EVIDENCE", "") or "").strip():
+                missing.append("MARKETSTACK_DISCOVERY_COST_EVIDENCE")
         return list(dict.fromkeys(missing))
     if name == "eodhd":
-        configured_limit = getattr(settings, "EODHD_REVIEWED_MINUTE_LIMIT", 0)
-        if isinstance(configured_limit, int) and not isinstance(configured_limit, bool) and configured_limit < 0:
-            return ["EODHD_REVIEWED_MINUTE_LIMIT"]
-        reviewed_limit = provider_positive_integer(
-            configured_limit
-        )
-        # The published 1,000/minute contract is active by default. Only an
-        # explicitly configured future account/plan override needs its own
-        # reset and evidence; a partial override fails closed.
-        if reviewed_limit is None:
-            return []
-        if reviewed_limit > 1000:
-            return ["EODHD_REVIEWED_MINUTE_LIMIT"]
         missing: list[str] = []
+        if operation != "fetch_account_usage":
+            missing.extend(eodhd_provider_display_terms_missing())
+        configured_limit = getattr(settings, "EODHD_REVIEWED_MINUTE_LIMIT", 0)
+        if (
+            isinstance(configured_limit, int)
+            and not isinstance(configured_limit, bool)
+            and configured_limit < 0
+        ):
+            return list(dict.fromkeys([*missing, "EODHD_REVIEWED_MINUTE_LIMIT"]))
+        reviewed_limit = provider_positive_integer(configured_limit)
+        # The code-seeded Free-plan limit is active by default. An explicit
+        # account/plan override may be any positive native limit, but requires
+        # its own reset semantics and evidence; a partial override fails closed.
+        if reviewed_limit is None:
+            return missing
         if not provider_quota_reset_is_admission_safe(
             getattr(settings, "EODHD_REVIEWED_MINUTE_RESET", "")
         ):
@@ -1067,20 +1370,28 @@ def provider_missing_routing_controls(
         return list(dict.fromkeys(missing))
     if name == "coinbase":
         return coinbase_market_data_use_authority_missing()
+    if name in {"kraken", "kraken_xstocks"}:
+        return kraken_market_data_use_authority_missing()
+    if name == "coingecko":
+        return coingecko_market_data_use_authority_missing()
     if name == "xstocks":
         return xstocks_market_data_use_authority_missing()
     if name == "bybit_xstocks":
         return bybit_xstocks_market_data_use_authority_missing()
     if name == "marketdata_app":
         reviewed_pair = marketdata_app_reviewed_plan_pair()
-        if marketdata_app_reviewed_plan() is not None:
-            return []
-        missing: list[str] = []
-        if reviewed_pair is None:
-            missing.extend(required)
-        configured_plan = str(
-            getattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "") or ""
-        ).strip().lower()
+        if operation != "fetch_account_usage":
+            missing = provider_terms_exception_missing(
+                "MARKETDATA_APP_PROVIDER_RETENTION_TERMS_AUTHORIZED",
+                "MARKETDATA_APP_PROVIDER_RETENTION_TERMS_EVIDENCE",
+            )
+        else:
+            missing = []
+        if marketdata_app_reviewed_plan() is None and reviewed_pair is None:
+            missing.extend(required[:2])
+        configured_plan = (
+            str(getattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "") or "").strip().lower()
+        )
         if (
             reviewed_pair is not None
             and configured_plan.endswith("_trial")
@@ -1088,7 +1399,9 @@ def provider_missing_routing_controls(
             and not marketdata_app_trial_expiry_has_elapsed()
         ):
             missing.append("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT")
-        return list(dict.fromkeys(missing or required))
+        return list(dict.fromkeys(missing))
+    if name == "twelve_data":
+        return provider_contract_exception_missing("TWELVE_DATA")
     configured_map = getattr(settings, required[0], {}) or {}
     if not isinstance(configured_map, dict):
         return list(required)
@@ -1132,9 +1445,7 @@ def _normalized_reviewed_https_source(value: object) -> str | None:
         or parsed.fragment
     ):
         return None
-    return urlunsplit(
-        (parsed.scheme.lower(), parsed.netloc.lower(), parsed.path, parsed.query, "")
-    )
+    return urlunsplit((parsed.scheme.lower(), parsed.netloc.lower(), parsed.path, parsed.query, ""))
 
 
 def provider_is_configured(name: str, operation: str | None = None) -> bool:
@@ -1172,14 +1483,19 @@ def get_provider_usage_profile(name: str) -> dict:
                 merged[key] = dict(profile.get(key) or {}) | value
             else:
                 merged[key] = value
+    if name == "dinari":
+        reviewed_profile = getattr(settings, "DINARI_SANDBOX_QUOTA_PROFILE", {})
+        if isinstance(reviewed_profile, dict):
+            for key in ("operation_costs", "dimension_costs"):
+                value = reviewed_profile.get(key)
+                if isinstance(value, dict):
+                    merged[key] = dict(merged.get(key) or {}) | value
     rate_seed = provider_rate_limit_seed(name)
     byte_bounds = dict(rate_seed.get("_byte_reservation_bounds") or {})
     if byte_bounds:
         bandwidth_dimensions = [
             dimension
-            for dimension in rate_seed
-            .get("quota_contract", {})
-            .get("dimensions", [])
+            for dimension in rate_seed.get("quota_contract", {}).get("dimensions", [])
             if isinstance(dimension, dict)
             and str(dimension.get("unit") or "").lower() in {"byte", "bytes"}
         ]
@@ -1196,9 +1512,7 @@ def get_provider_usage_profile(name: str) -> dict:
                 dimension_name: byte_bounds,
             }
     if name == "finra":
-        async_result_bound = provider_positive_integer(
-            settings.FINRA_ASYNC_MAX_RESULT_BYTES
-        )
+        async_result_bound = provider_positive_integer(settings.FINRA_ASYNC_MAX_RESULT_BYTES)
         if async_result_bound is not None:
             bandwidth_dimension = "download_bytes_per_calendar_month"
             merged["operation_costs"] = {
@@ -1215,9 +1529,7 @@ def get_provider_usage_profile(name: str) -> dict:
                     "download_async_result": {},
                 },
                 bandwidth_dimension: {
-                    **dict(
-                        (merged.get("dimension_costs") or {}).get(bandwidth_dimension) or {}
-                    ),
+                    **dict((merged.get("dimension_costs") or {}).get(bandwidth_dimension) or {}),
                     "download_async_result": async_result_bound,
                 },
             }
@@ -1227,8 +1539,7 @@ def get_provider_usage_profile(name: str) -> dict:
             reviewed_costs = {
                 str(operation).strip(): cost
                 for operation, cost in operation_costs.items()
-                if str(operation).strip()
-                and provider_positive_integer(cost) is not None
+                if str(operation).strip() and provider_positive_integer(cost) is not None
             }
             if reviewed_costs:
                 merged["operation_costs"] = {
@@ -1250,6 +1561,54 @@ def get_provider_usage_profile(name: str) -> dict:
                 **dict(merged.get("operation_costs") or {}),
                 "fetch_option_chain": max_symbols,
             }
+    if name == "marketstack":
+        # This catalogue request selects an exchange MIC, not a set of named
+        # symbols. Its reviewed provider-specific cost is one request per
+        # fetched page; a site/account override may replace it with evidence.
+        operation_costs = dict(merged.get("operation_costs") or {})
+        discovery_cost = provider_positive_integer(
+            getattr(settings, "MARKETSTACK_DISCOVERY_MAX_PAGE_COST", 0)
+        )
+        discovery_evidence = str(
+            getattr(
+                settings,
+                "MARKETSTACK_DISCOVERY_COST_EVIDENCE",
+                "",
+            )
+            or ""
+        ).strip()
+        if discovery_cost is not None and discovery_evidence:
+            operation_costs["discover_universe_page"] = discovery_cost
+        else:
+            operation_costs.pop("discover_universe_page", None)
+        merged["operation_costs"] = operation_costs
+    # Universe reconciliation pages use the same provider adapter method and
+    # one-page transport as explicit discovery calls. Reuse that reviewed
+    # charge only where a provider did not declare a distinct reconciliation
+    # cost. Missing discovery costs remain missing (fail closed); this is an
+    # alias, not a guessed unit price.
+    operation_costs = dict(merged.get("operation_costs") or {})
+    if (
+        "reconcile_universe_page" not in operation_costs
+        and "discover_universe_page" in operation_costs
+    ):
+        operation_costs["reconcile_universe_page"] = operation_costs["discover_universe_page"]
+        merged["operation_costs"] = operation_costs
+    dimension_costs = merged.get("dimension_costs")
+    if isinstance(dimension_costs, dict):
+        aliased_dimension_costs = dict(dimension_costs)
+        for dimension, operation_map in dimension_costs.items():
+            if not isinstance(operation_map, dict):
+                continue
+            if (
+                "reconcile_universe_page" not in operation_map
+                and "discover_universe_page" in operation_map
+            ):
+                aliased_dimension_costs[dimension] = {
+                    **operation_map,
+                    "reconcile_universe_page": operation_map["discover_universe_page"],
+                }
+        merged["dimension_costs"] = aliased_dimension_costs
     return merged
 
 
@@ -1299,6 +1658,28 @@ async def ensure_data_source(db: AsyncSession, provider_name: str) -> DataSource
                 **dict(existing_usage_tracking.get("operation_costs") or {}),
             },
         }
+        if provider_name == "marketstack":
+            # Existing DataSource rows may retain the former guessed
+            # discover_universe_page: 1 seed. Do not let that stale default
+            # survive an application upgrade; only an evidenced
+            # operation-specific setting may restore it.
+            operation_costs = dict(config["usage_tracking"].get("operation_costs") or {})
+            discovery_cost = provider_positive_integer(
+                getattr(settings, "MARKETSTACK_DISCOVERY_MAX_PAGE_COST", 0)
+            )
+            discovery_evidence = str(
+                getattr(
+                    settings,
+                    "MARKETSTACK_DISCOVERY_COST_EVIDENCE",
+                    "",
+                )
+                or ""
+            ).strip()
+            if discovery_cost is not None and discovery_evidence:
+                operation_costs["discover_universe_page"] = discovery_cost
+            else:
+                operation_costs.pop("discover_universe_page", None)
+            config["usage_tracking"]["operation_costs"] = operation_costs
         if isinstance(dimension_costs, dict):
             config["usage_tracking"]["dimension_costs"] = dimension_costs
         src.config = config

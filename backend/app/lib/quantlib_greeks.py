@@ -85,11 +85,50 @@ def calculate_greeks(
         option = ql.VanillaOption(payoff, exercise)
         option.setPricingEngine(ql.BinomialVanillaEngine(process, "crr", max(50, steps)))
 
+        def american_npv(*, rate: float, volatility: float) -> float:
+            bumped_rate = ql.YieldTermStructureHandle(ql.FlatForward(ql_date, rate, day_count))
+            bumped_volatility = ql.BlackVolTermStructureHandle(
+                ql.BlackConstantVol(ql_date, calendar, volatility, day_count)
+            )
+            bumped_process = ql.BlackScholesMertonProcess(
+                spot_handle, div_handle, bumped_rate, bumped_volatility
+            )
+            bumped_option = ql.VanillaOption(payoff, exercise)
+            bumped_option.setPricingEngine(
+                ql.BinomialVanillaEngine(bumped_process, "crr", max(50, steps))
+            )
+            return float(bumped_option.NPV())
+
+        def finite_difference_greek(parameter: str) -> float | None:
+            try:
+                if parameter == "vega":
+                    bump = max(1e-5, implied_vol * 1e-3)
+                    lower = max(1e-8, implied_vol - bump)
+                    upper = implied_vol + bump
+                    return (
+                        american_npv(rate=risk_free_rate, volatility=upper)
+                        - american_npv(rate=risk_free_rate, volatility=lower)
+                    ) / (upper - lower)
+                bump = 1e-5
+                return (
+                    american_npv(rate=risk_free_rate + bump, volatility=implied_vol)
+                    - american_npv(rate=risk_free_rate - bump, volatility=implied_vol)
+                ) / (2.0 * bump)
+            except Exception:
+                return None
+
         def optional_greek(name: str) -> float | None:
             try:
                 return float(getattr(option, name)())
             except Exception:
                 return None
+
+        vega = optional_greek("vega")
+        if vega is None:
+            vega = finite_difference_greek("vega")
+        rho = optional_greek("rho")
+        if rho is None:
+            rho = finite_difference_greek("rho")
 
         return {
             **base,
@@ -98,8 +137,8 @@ def calculate_greeks(
             "delta": float(option.delta()),
             "gamma": float(option.gamma()),
             "theta": optional_greek("theta"),
-            "vega": optional_greek("vega"),
-            "rho": optional_greek("rho"),
+            "vega": vega,
+            "rho": rho,
             "fallback": False,
             "steps": max(50, steps),
         }

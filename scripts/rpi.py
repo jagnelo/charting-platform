@@ -28,6 +28,36 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 COMPOSE = ROOT / "deploy" / "rpi" / "compose.yml"
 EXAMPLE = ROOT / "deploy" / "rpi" / "rpi.env.example"
+PROVIDER_SECRET_ENV_NAMES = (
+    "ALPACA_API_KEY",
+    "ALPACA_SECRET_KEY",
+    "ALPHA_VANTAGE_API_KEY",
+    "COINBASE_API_KEY",
+    "COINGECKO_API_KEY",
+    "DINARI_API_KEY_ID",
+    "DINARI_API_SECRET_KEY",
+    "EODHD_API_KEY",
+    "FINNHUB_API_KEY",
+    "FINRA_CLIENT_ID",
+    "FINRA_CLIENT_SECRET",
+    "FINRA_ORF_REFRESH_TOKEN",
+    "FINRA_ORF_USERNAME",
+    "FMP_API_KEY",
+    "FRED_API_KEY",
+    "IBKR_READ_ONLY_SESSION_COOKIE",
+    "KRAKEN_API_KEY",
+    "MARKETDATA_API_KEY",
+    "MARKETDATA_APP_API_KEY",
+    "MARKETSTACK_API_KEY",
+    "MASSIVE_API_KEY",
+    "ONDO_GLOBAL_MARKETS_API_KEY",
+    "OPENFIGI_API_KEY",
+    "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+    "TIINGO_API_KEY",
+    "TRADIER_API_KEY",
+    "TWELVE_DATA_API_KEY",
+    "XSTOCKS_API_KEY",
+)
 
 
 def git(*args: str) -> str:
@@ -148,6 +178,7 @@ def preflight(config: dict[str, str]) -> None:
     root = shlex.quote(config["RPI_DEPLOY_ROOT"])
     port = shlex.quote(config["RPI_HTTP_PORT"])
     platform = config["RPI_DOCKER_PLATFORM"]
+    provider_secret_names = " ".join(PROVIDER_SECRET_ENV_NAMES)
     if platform == "linux/arm/v7":
         uname_pattern, docker_pattern = "^armv7", "^(arm|armv7l)$"
     else:
@@ -165,6 +196,17 @@ for required_name in SECRET_KEY POSTGRES_PASSWORD CORS_ORIGINS; do
   # the diagnostic, because this command is captured by the local deploy tool.
   grep -Eq "^$required_name=.+$" "$env_file" || {{ echo "missing or empty deployment setting: $required_name" >&2; exit 25; }}
 done
+provider_secret_names_present=""
+provider_secret_names_absent=""
+for provider_secret_name in {provider_secret_names}; do
+  if grep -Eq "^$provider_secret_name=.+$" "$env_file"; then
+    provider_secret_names_present="$provider_secret_names_present $provider_secret_name"
+  else
+    provider_secret_names_absent="$provider_secret_names_absent $provider_secret_name"
+  fi
+done
+printf 'optional provider credential names present (values withheld):%s\\n' "${{provider_secret_names_present:- none}}"
+printf 'optional provider credential names absent:%s\\n' "${{provider_secret_names_absent:- none}}"
 if grep -Eq '^PROVIDER_QUOTA_LEDGER_DATABASE_URL=' "$env_file"; then
   quota_url="$(sed -n 's/^PROVIDER_QUOTA_LEDGER_DATABASE_URL=//p' "$env_file" | tail -1)"
   case "$quota_url" in

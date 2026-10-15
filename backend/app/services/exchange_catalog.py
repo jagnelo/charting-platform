@@ -32,6 +32,10 @@ class ExchangeDefinition:
 
 
 _DEFINITIONS: dict[str, ExchangeDefinition] = {
+    "24EQ": ExchangeDefinition("24EQ", "24X National Exchange"),
+    "XADF": ExchangeDefinition("XADF", "FINRA Alternative Display Facility"),
+    "XBOS": ExchangeDefinition("XBOS", "Nasdaq Texas (formerly Nasdaq BX)"),
+    "XCIS": ExchangeDefinition("XCIS", "NYSE National"),
     "XNAS": ExchangeDefinition(
         "XNAS",
         "Nasdaq",
@@ -40,10 +44,21 @@ _DEFINITIONS: dict[str, ExchangeDefinition] = {
     "ARCX": ExchangeDefinition("ARCX", "NYSE Arca"),
     "XASE": ExchangeDefinition("XASE", "NYSE American"),
     "BATS": ExchangeDefinition("BATS", "Cboe BZX"),
+    "BATY": ExchangeDefinition("BATY", "Cboe BYX"),
+    "CBSX": ExchangeDefinition("CBSX", "Cboe Stock Exchange"),
+    "EDGA": ExchangeDefinition("EDGA", "Cboe EDGA"),
+    "EDGX": ExchangeDefinition("EDGX", "Cboe EDGX"),
+    "EPRL": ExchangeDefinition("EPRL", "MIAX Pearl Equities"),
+    "LTSE": ExchangeDefinition("LTSE", "Long-Term Stock Exchange"),
+    "MEMX": ExchangeDefinition("MEMX", "Members Exchange"),
+    "TXSE": ExchangeDefinition("TXSE", "Texas Stock Exchange"),
+    "XPSX": ExchangeDefinition("XPSX", "Nasdaq PSX"),
+    "XISX": ExchangeDefinition("XISX", "Nasdaq ISE"),
+    "XISE": ExchangeDefinition("XISE", "Nasdaq ISE Equities"),
     "XCBO": ExchangeDefinition("XCBO", "Cboe C2"),
     "IEXG": ExchangeDefinition("IEXG", "Investors Exchange"),
     "OTCM": ExchangeDefinition("OTCM", "OTC Markets"),
-    "XCHI": ExchangeDefinition("XCHI", "Chicago Stock Exchange"),
+    "XCHI": ExchangeDefinition("XCHI", "NYSE Texas"),
 }
 
 _ALIASES: dict[str, str] = {
@@ -68,6 +83,10 @@ _ALIASES: dict[str, str] = {
     "CBOE BZX": "BATS",
     "IEX": "IEXG",
     "IEXG": "IEXG",
+    "TXSE": "TXSE",
+    "TEXAS STOCK EXCHANGE": "TXSE",
+    "NASDAQ TEXAS": "XBOS",
+    "NYSE TEXAS": "XCHI",
     "OTC": "OTCM",
     "OTCQX": "OTCM",
     "OTCQB": "OTCM",

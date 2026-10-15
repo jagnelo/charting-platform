@@ -32,6 +32,7 @@ from urllib.parse import urlsplit
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     Column,
     DateTime,
@@ -55,8 +56,8 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 _QUOTA_EVIDENCE_REFERENCE = re.compile(
-    r"(?i)^(?:dashboard|account-usage|provider-doc|support-ticket|workflow-run|test-fixture|operator-note):"
-    r"[a-z][a-z0-9]{0,19}(?:-[a-z][a-z0-9]{0,19}){0,4}:"
+    r"(?i)^(?:dashboard|account-usage|provider-doc|support-ticket|workflow-run|test-fixture|operator-note|owner|application-policy):"
+    r"[a-z][a-z0-9]{0,19}(?:[_-][a-z0-9]{1,20}){0,4}:"
     r"(?:\d{4}-\d{2}-\d{2}|[a-z][a-z0-9]{0,19}(?:-[a-z0-9]{1,20}){1,4})$"
 )
 
@@ -77,11 +78,9 @@ class QuotaReservation:
 
 
 _LIVE_RECEIPT_STATUSES = frozenset(
-    {"observed", "provider_error", "expected_entitlement_denial"}
+    {"observed", "provider_error", "expected_entitlement_denial", "archive_failure"}
 )
-_LIVE_RECEIPT_RECONCILIATION_STATES = frozenset(
-    {"reconciled", "pending", "uncertain"}
-)
+_LIVE_RECEIPT_RECONCILIATION_STATES = frozenset({"reconciled", "pending", "uncertain"})
 
 
 def _validated_live_receipt_field(
@@ -97,6 +96,23 @@ def _validated_live_receipt_field(
         or any(marker in candidate.lower() for marker in ("api_key", "secret", "token", "password"))
     ):
         raise ProviderQuotaCoordinatorError(f"live receipt {name} is invalid")
+    return candidate
+
+
+def _validated_live_receipt_provider(value: object) -> str:
+    """Validate an application provider slug without treating it as a secret.
+
+    Provider names are controlled identifiers (for example,
+    ``robinhood_tokens``), not credential values. The generic receipt-field
+    redaction check rejects words such as ``token`` anywhere, which incorrectly
+    rejected legitimate provider slugs. Keep provider identifiers constrained
+    to a lowercase slug while retaining the sensitive-marker rejection for
+    free-form run IDs and usage scopes.
+    """
+
+    candidate = str(value or "").strip()
+    if not re.fullmatch(r"[a-z][a-z0-9_-]{0,99}", candidate):
+        raise ProviderQuotaCoordinatorError("live receipt provider is invalid")
     return candidate
 
 
@@ -119,9 +135,9 @@ _windows = Table(
     Column("dimension", String(128), nullable=False),
     Column("window_started_at", DateTime(timezone=True), nullable=False),
     Column("window_seconds", Integer, nullable=False),
-    Column("limit_units", Integer, nullable=False),
-    Column("reserved_units", Integer, nullable=False, default=0),
-    Column("consumed_units", Integer, nullable=False, default=0),
+    Column("limit_units", BigInteger, nullable=False),
+    Column("reserved_units", BigInteger, nullable=False, default=0),
+    Column("consumed_units", BigInteger, nullable=False, default=0),
     UniqueConstraint(
         "provider_name",
         "account_scope",
@@ -150,8 +166,8 @@ _baselines = Table(
     Column("window_started_at", DateTime(timezone=True), nullable=False),
     Column("window_seconds", Integer, nullable=False),
     Column("rolling", Boolean, nullable=False),
-    Column("limit_units", Integer, nullable=False),
-    Column("used_units", Integer, nullable=False),
+    Column("limit_units", BigInteger, nullable=False),
+    Column("used_units", BigInteger, nullable=False),
     Column("observed_at", DateTime(timezone=True), nullable=False),
     Column("source", String(48), nullable=False),
     Column("evidence_reference", String(256), nullable=False),
@@ -173,7 +189,7 @@ _reservations = Table(
     Column("unit", String(32), nullable=False),
     Column("window_started_at", DateTime(timezone=True), nullable=False),
     Column("window_seconds", Integer, nullable=False),
-    Column("reserved_units", Integer, nullable=False),
+    Column("reserved_units", BigInteger, nullable=False),
     Column("release_only", Boolean, nullable=False, default=False),
     Column("lease_expires_at", DateTime(timezone=True), nullable=True),
     Column("identity_digest", String(64), nullable=True),
@@ -242,9 +258,7 @@ _HEALTH_PROBE_KEY = "health-probe-v1"
 
 
 def _engine_url() -> str:
-    configured_url = str(
-        getattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", "") or ""
-    ).strip()
+    configured_url = str(getattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", "") or "").strip()
     if configured_url:
         return configured_url
     configured_path = str(
@@ -306,6 +320,7 @@ def _engine_for(url: str, require_persistent: bool = False) -> Engine:
                 metadata.create_all(connection)
                 _upgrade_identity_schema(engine, connection=connection)
                 _upgrade_baseline_schema(engine, connection=connection)
+                _upgrade_unit_width_schema(engine, connection=connection)
                 connection.commit()
             except BaseException:
                 connection.rollback()
@@ -314,6 +329,7 @@ def _engine_for(url: str, require_persistent: bool = False) -> Engine:
         metadata.create_all(engine)
         _upgrade_identity_schema(engine)
         _upgrade_baseline_schema(engine)
+        _upgrade_unit_width_schema(engine)
     if engine.dialect.name == "sqlite" and engine.url.database != ":memory:":
         try:
             database = Path(engine.url.database or "").expanduser()
@@ -330,6 +346,7 @@ def _upgrade_identity_schema(engine: Engine, *, connection=None) -> None:
     """Add claim ownership to pre-existing private coordinator ledgers."""
 
     if engine.dialect.name == "sqlite":
+
         def upgrade_sqlite(connection) -> None:
             columns = {
                 str(row[1])
@@ -347,6 +364,7 @@ def _upgrade_identity_schema(engine: Engine, *, connection=None) -> None:
                     "ALTER TABLE provider_quota_ledger_identity "
                     "ADD COLUMN state VARCHAR(24) NOT NULL DEFAULT 'consumed'"
                 )
+
         if connection is not None:
             upgrade_sqlite(connection)
         else:
@@ -368,6 +386,7 @@ def _upgrade_baseline_schema(engine: Engine, *, connection=None) -> None:
     """Add resolved provider reset semantics to existing private ledgers."""
 
     if engine.dialect.name == "sqlite":
+
         def upgrade_sqlite(connection) -> None:
             columns = {
                 str(row[1])
@@ -392,6 +411,44 @@ def _upgrade_baseline_schema(engine: Engine, *, connection=None) -> None:
                 "ALTER TABLE provider_quota_ledger_baseline "
                 "ADD COLUMN IF NOT EXISTS reset VARCHAR(64) NOT NULL DEFAULT 'unknown'"
             )
+
+
+def _upgrade_unit_width_schema(engine: Engine, *, connection=None) -> None:
+    """Widen durable provider quota counters to hold byte-sized entitlements."""
+
+    if engine.dialect.name != "postgresql":
+        # SQLite's INTEGER storage class already holds signed 64-bit values.
+        return
+
+    columns_by_table = {
+        "provider_quota_ledger_window": (
+            "limit_units",
+            "reserved_units",
+            "consumed_units",
+        ),
+        "provider_quota_ledger_baseline": ("limit_units", "used_units"),
+        "provider_quota_ledger_reservation": ("reserved_units",),
+    }
+
+    def upgrade_postgresql(upgrade_connection) -> None:
+        for table_name, column_names in columns_by_table.items():
+            for column_name in column_names:
+                result = upgrade_connection.exec_driver_sql(
+                    "SELECT data_type FROM information_schema.columns "
+                    "WHERE table_schema = current_schema() AND table_name = %s "
+                    "AND column_name = %s",
+                    (table_name, column_name),
+                ).scalar_one_or_none()
+                if result == "integer":
+                    upgrade_connection.exec_driver_sql(
+                        f"ALTER TABLE {table_name} ALTER COLUMN {column_name} TYPE BIGINT"
+                    )
+
+    if connection is not None:
+        upgrade_postgresql(connection)
+    else:
+        with engine.begin() as upgrade_connection:
+            upgrade_postgresql(upgrade_connection)
 
 
 def _secure_sqlite_location(engine: Engine, url: str) -> None:
@@ -436,9 +493,7 @@ def _secure_sqlite_location(engine: Engine, url: str) -> None:
     except ProviderQuotaCoordinatorError:
         raise
     except OSError:
-        raise ProviderQuotaCoordinatorError(
-            "provider quota ledger path is unavailable"
-        ) from None
+        raise ProviderQuotaCoordinatorError("provider quota ledger path is unavailable") from None
 
 
 @contextmanager
@@ -467,25 +522,27 @@ def account_scope_for_provider(provider_name: str, quota_scope: str | None = Non
 
     raw_scopes = getattr(settings, "PROVIDER_QUOTA_ACCOUNT_SCOPES", {}) or {}
     if not isinstance(raw_scopes, dict):
-        raise ProviderQuotaCoordinatorError(
-            "provider quota account scopes must be a JSON object"
-        )
+        raise ProviderQuotaCoordinatorError("provider quota account scopes must be a JSON object")
     scope_kind = str(quota_scope or "").strip().lower()
     keyed_scope = f"{provider_name}:{scope_kind}" if scope_kind else ""
-    if scope_kind in {"ip", "ip_or_pair", "public_api"}:
+    if scope_kind in {"ip", "ip_or_pair", "public_api", "public_credential"}:
         default_scope = f"{provider_name}:shared-{scope_kind}"
         if provider_name in {"finra", "finra_otc_directory"} and scope_kind == "ip":
             # Both adapters call the same FINRA API platform from the same
             # public egress IP; its published 1,200/min ceiling is not per
             # adapter or dataset.
             default_scope = "finra:shared-ip"
+        if provider_name in {"finra", "finra_otc_directory"} and scope_kind == "public_credential":
+            # Both adapters use the same FINRA public client credential and
+            # therefore share the published 10 GB monthly download pool.
+            default_scope = "finra:shared-public-credential"
         if provider_name in {"kraken", "kraken_xstocks"} and scope_kind == "ip":
             # Both adapters use Kraken's public Spot REST API from the same
             # deployment egress address.
             default_scope = "kraken:shared-ip"
     else:
         default_scope = provider_name
-    if scope_kind in {"ip", "ip_or_pair", "public_api"}:
+    if scope_kind in {"ip", "ip_or_pair", "public_api", "public_credential"}:
         value = raw_scopes.get(keyed_scope, default_scope)
     else:
         value = raw_scopes.get(keyed_scope, raw_scopes.get(provider_name, default_scope))
@@ -549,18 +606,18 @@ def _safe_stored_evidence_reference(value: str | None) -> str | None:
         return None
 
 
-def _utc(value: datetime) -> datetime:
+def _utc(value: datetime | str) -> datetime:
     # SQLAlchemy returns naive values for timezone-aware DateTime columns on
     # SQLite, but those values were stored as UTC by this module. Do not
     # reinterpret them as the host's local timezone when normalizing twice.
+    if isinstance(value, str):
+        value = datetime.fromisoformat(value.replace("Z", "+00:00"))
     if value.tzinfo is None:
         return value
     return value.astimezone(UTC).replace(tzinfo=None)
 
 
-def _window_start(
-    dimension: dict[str, Any], *, reset: str, now: datetime
-) -> tuple[datetime, bool]:
+def _window_start(dimension: dict[str, Any], *, reset: str, now: datetime) -> tuple[datetime, bool]:
     """Mirror the runtime's provider-defined fixed/calendar/rolling resets."""
 
     from app.services.provider_routing import _window_start_for_dimension
@@ -634,9 +691,7 @@ def _dimension_specs(
                 # The REST base class uses a 30 second transport timeout. This
                 # is a lease-recovery horizon, not a provider quota/default.
                 timeout = 30.0
-            grace = int(
-                getattr(settings, "PROVIDER_QUOTA_CONCURRENCY_LEASE_GRACE_SECONDS", 10)
-            )
+            grace = int(getattr(settings, "PROVIDER_QUOTA_CONCURRENCY_LEASE_GRACE_SECONDS", 10))
             if timeout <= 0 or grace < 0:
                 raise ProviderQuotaAdmissionError(
                     f"provider concurrency lease is invalid for {provider_name}"
@@ -660,6 +715,7 @@ def _dimension_specs(
                 "baseline_mode": str(
                     dimension.get("baseline_mode") or contract.get("baseline_mode") or ""
                 ).strip(),
+                "application_usage_only": dimension.get("application_usage_only") is True,
                 "units": 1 if release_only else units,
                 "release_only": release_only,
                 "lease_expires_at": lease_expires_at,
@@ -682,15 +738,19 @@ def _insert_ignore(connection, table: Table, values: dict[str, Any], conflict_co
     if dialect == "sqlite":
         from sqlalchemy.dialects.sqlite import insert as dialect_insert
 
-        statement = dialect_insert(table).values(**values).on_conflict_do_nothing(
-            index_elements=conflict_columns
+        statement = (
+            dialect_insert(table)
+            .values(**values)
+            .on_conflict_do_nothing(index_elements=conflict_columns)
         )
         return connection.execute(statement)
     if dialect == "postgresql":
         from sqlalchemy.dialects.postgresql import insert as dialect_insert
 
-        statement = dialect_insert(table).values(**values).on_conflict_do_nothing(
-            index_elements=conflict_columns
+        statement = (
+            dialect_insert(table)
+            .values(**values)
+            .on_conflict_do_nothing(index_elements=conflict_columns)
         )
         return connection.execute(statement)
     return connection.execute(insert(table).values(**values))
@@ -710,14 +770,9 @@ def _window_values(spec: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _find_window(
-    connection, spec: dict[str, Any], *, lock: bool = True, required: bool = True
-):
+def _find_window(connection, spec: dict[str, Any], *, lock: bool = True, required: bool = True):
     query = select(_windows).where(
-        *[
-            getattr(_windows.c, key) == value
-            for key, value in _window_values(spec).items()
-        ]
+        *[getattr(_windows.c, key) == value for key, value in _window_values(spec).items()]
     )
     if lock and connection.dialect.name == "postgresql":
         query = query.with_for_update()
@@ -750,8 +805,10 @@ def _baseline_query(spec: dict[str, Any], *, lock: bool = True):
                 _baselines.c.window_started_at == spec["window_started_at"],
             ]
         )
-    query = select(_baselines).where(*predicates).order_by(
-        _baselines.c.observed_at.desc(), _baselines.c.id.desc()
+    query = (
+        select(_baselines)
+        .where(*predicates)
+        .order_by(_baselines.c.observed_at.desc(), _baselines.c.id.desc())
     )
     if lock:
         query = query.with_for_update()
@@ -761,9 +818,12 @@ def _baseline_query(spec: dict[str, Any], *, lock: bool = True):
 def _baseline_for_reservation(connection, spec: dict[str, Any], now: datetime):
     """Find an exact active baseline, or safely roll a prior one forward.
 
-    A missing first baseline always blocks. After an operator has established
-    one, an explicitly exclusive account scope can use zero at a documented
-    fixed reset boundary, or after a complete rolling window has elapsed.
+    A missing first baseline always blocks unless the exact reviewed dimension
+    opts into ``local_zero``. That mode initializes only coordinator-tracked
+    application usage; it is not a claim about provider-reported or unrelated
+    external traffic. Explicitly exclusive account scopes may also roll an
+    established baseline forward at a documented reset boundary or after a
+    complete rolling window.
     """
 
     lookup = {**spec, "now": now}
@@ -773,9 +833,14 @@ def _baseline_for_reservation(connection, spec: dict[str, Any], now: datetime):
 
     if str(spec.get("baseline_mode") or "").strip() == "local_zero":
         # This branch is driven only by an explicit provider contract field.
-        # It applies to a quota owned by this deployment, where a missing row
-        # cannot hide consumption by another client. Persist the zero as a
-        # normal baseline so restarts and subsequent workers share it.
+        # The contract must identify the quota scope and mark this as
+        # application-only when the provider has no native usage counter.
+        # Persist the zero as a normal baseline so restarts and subsequent
+        # workers share the same measured application usage.
+        if spec.get("application_usage_only") is not True:
+            raise ProviderQuotaAdmissionError(
+                "local-zero quota baseline is missing application-only scope"
+            )
         rollover_at = _utc(spec["window_started_at"])
         idempotency_key = hashlib.sha256(
             "|".join(
@@ -805,9 +870,7 @@ def _baseline_for_reservation(connection, spec: dict[str, Any], now: datetime):
                 "used_units": 0,
                 "observed_at": _utc(now),
                 "source": "local_policy",
-                "evidence_reference": (
-                    f"application-policy:{spec['provider_name']}:local-zero"
-                ),
+                "evidence_reference": (f"application-policy:{spec['provider_name']}:local-zero"),
                 "source_provider_name": str(spec["provider_name"]),
                 "actor_user_id": None,
                 "idempotency_key": idempotency_key,
@@ -886,29 +949,36 @@ def _baseline_for_reservation(connection, spec: dict[str, Any], now: datetime):
 
 
 def _settled_units_since_baseline(connection, spec: dict[str, Any], baseline) -> int:
-    """Count only completed local debits after the absolute account snapshot."""
+    """Count completed local debits not already represented by the baseline.
+
+    Provider/operator snapshots include usage that predates their observation,
+    so only later debits are added to those. A local-zero baseline represents
+    no external usage at all; therefore all settled application reservations
+    in the active quota window must count, including entries predating that
+    baseline. Rolling windows age each debit out using its own timestamp.
+    """
 
     predicates = [
         _reservations.c.account_scope == spec["account_scope"],
         _reservations.c.quota_group == spec["quota_group"],
         _reservations.c.dimension == spec["dimension"],
         _reservations.c.state == "settled",
-        _reservations.c.created_at >= baseline["observed_at"],
     ]
+    is_local_zero = baseline.get("source") == "local_policy" and str(
+        baseline.get("evidence_reference") or ""
+    ).endswith(":local-zero")
+    if not is_local_zero:
+        predicates.append(_reservations.c.created_at >= baseline["observed_at"])
     if spec["rolling"]:
         predicates.append(
             _reservations.c.created_at
-            >= _utc(spec["now"] - timedelta(seconds=int(spec["window_seconds"])) )
+            >= _utc(spec["now"] - timedelta(seconds=int(spec["window_seconds"])))
         )
     else:
-        predicates.append(
-            _reservations.c.window_started_at == spec["window_started_at"]
-        )
+        predicates.append(_reservations.c.window_started_at == spec["window_started_at"])
     return int(
         connection.execute(
-            select(func.coalesce(func.sum(_reservations.c.reserved_units), 0)).where(
-                *predicates
-            )
+            select(func.coalesce(func.sum(_reservations.c.reserved_units), 0)).where(*predicates)
         ).scalar_one()
     )
 
@@ -930,9 +1000,7 @@ def _active_reserved_units(connection, spec: dict[str, Any], now: datetime) -> i
         predicates.append(_windows.c.window_started_at == spec["window_started_at"])
     return int(
         connection.execute(
-            select(func.coalesce(func.sum(_windows.c.reserved_units), 0)).where(
-                *predicates
-            )
+            select(func.coalesce(func.sum(_windows.c.reserved_units), 0)).where(*predicates)
         ).scalar_one()
     )
 
@@ -955,13 +1023,19 @@ def reconcile_provider_quota_baseline(
     evidence_reference: str,
     source: str = "operator_dashboard_attestation",
     actor_user_id: int | None = None,
+    native_snapshot_includes_prior_local_activity: bool = False,
     now: datetime | None = None,
 ) -> dict[str, Any]:
     """Seed/reconcile one exact provider/account/reset-window usage baseline.
 
     The caller supplies the observed used-unit count and non-secret evidence
     reference. Dimension, unit, limit, quota group, account scope, reset, and
-    active window all come from the reviewed provider contract.
+    active window all come from the reviewed provider contract. An explicit
+    owner attestation is distinct from provider-dashboard evidence and should
+    be used only for facts the owner can attest, such as recent external use.
+    Providers with a documented cumulative account counter may explicitly
+    state that a newer native snapshot already includes prior local activity;
+    local reservations settled after that snapshot remain additive.
     """
 
     current = now or datetime.now(UTC)
@@ -975,7 +1049,11 @@ def reconcile_provider_quota_baseline(
         evidence = normalize_quota_evidence_reference(evidence_reference)
     except (TypeError, ValueError):
         raise ProviderQuotaAdmissionError("quota baseline evidence reference is invalid") from None
-    if source not in {"operator_dashboard_attestation", "provider_account_observation"}:
+    if source not in {
+        "operator_dashboard_attestation",
+        "operator_owner_attestation",
+        "provider_account_observation",
+    }:
         raise ProviderQuotaAdmissionError("quota baseline source is not supported")
 
     contract = dict(getattr(policy, "quota_contract", None) or {})
@@ -984,14 +1062,71 @@ def reconcile_provider_quota_baseline(
         for item in (contract.get("dimensions") or [])
         if isinstance(item, dict) and str(item.get("name") or "") == dimension_name
     ]
-    if len(dimensions) != 1 or contract.get("unknown_dimensions"):
+    if len(dimensions) != 1:
         raise ProviderQuotaAdmissionError("quota baseline dimension is not uniquely reviewed")
     dimension = dimensions[0]
+    unknown_dimensions = {
+        str(item or "").strip()
+        for item in (contract.get("unknown_dimensions") or [])
+        if str(item or "").strip()
+    }
+    if unknown_dimensions:
+        # A provider may publish exact limits/windows but leave several native
+        # reset times unpublished. Permit an operator usage attestation only
+        # when every such unknown maps to a dimension with its own safe rolling
+        # envelope; do not infer a vendor reset or forgive unknown quota
+        # amounts/costs.
+        from app.config import (
+            provider_quota_admission_reset,
+            provider_quota_reset_is_admission_safe,
+        )
+
+        contract_dimensions = [
+            item for item in (contract.get("dimensions") or []) if isinstance(item, dict)
+        ]
+        unresolved = set()
+        for unknown in unknown_dimensions:
+            safely_enveloped = False
+            for candidate in contract_dimensions:
+                candidate_name = str(candidate.get("name") or "").strip()
+                explicitly_resolved = unknown in {
+                    str(item or "").strip()
+                    for item in (candidate.get("safety_resolves_unknown_dimensions") or [])
+                }
+                dimension_scoped_reset = bool(
+                    candidate_name
+                    and "reset" in unknown.lower()
+                    and unknown.startswith(f"{candidate_name}_")
+                )
+                if not explicitly_resolved and not dimension_scoped_reset:
+                    continue
+                provider_reset = str(candidate.get("reset") or contract.get("reset") or "").strip()
+                admission_reset = provider_quota_admission_reset(
+                    provider_reset, candidate.get("safety_reset")
+                )
+                rolling_safety_resets = {
+                    "rolling",
+                    "rolling_30_days",
+                    "rolling_31_days",
+                }
+                safely_enveloped = (
+                    admission_reset != provider_reset
+                    and provider_quota_reset_is_admission_safe(admission_reset)
+                    and str(admission_reset).strip().lower() in rolling_safety_resets
+                )
+                if safely_enveloped:
+                    break
+            if not safely_enveloped:
+                unresolved.add(unknown)
+        if unresolved:
+            raise ProviderQuotaAdmissionError("quota baseline dimension is not uniquely reviewed")
     unit = str(dimension.get("unit") or "").strip().lower()
     if unit in {"concurrent_requests", "concurrency"}:
         raise ProviderQuotaAdmissionError("concurrency leases do not require a usage baseline")
-    if not unit or not isinstance(dimension.get("limit"), int) or not isinstance(
-        dimension.get("window_seconds"), int
+    if (
+        not unit
+        or not isinstance(dimension.get("limit"), int)
+        or not isinstance(dimension.get("window_seconds"), int)
     ):
         raise ProviderQuotaAdmissionError("quota baseline dimension contract is incomplete")
     from app.services.provider_routing import quota_group_for_dimension
@@ -1006,9 +1141,13 @@ def reconcile_provider_quota_baseline(
         raise ProviderQuotaAdmissionError("quota baseline reset semantics changed")
     if rolling:
         if current - observed_at > timedelta(seconds=int(dimension["window_seconds"])):
-            raise ProviderQuotaAdmissionError("rolling quota baseline is older than its active window")
+            raise ProviderQuotaAdmissionError(
+                "rolling quota baseline is older than its active window"
+            )
     elif observed_start != current_start:
-        raise ProviderQuotaAdmissionError("quota baseline is not for the current provider reset window")
+        raise ProviderQuotaAdmissionError(
+            "quota baseline is not for the current provider reset window"
+        )
 
     scope_kind = str(dimension.get("scope") or getattr(policy, "quota_scope", ""))
     account_scope = account_scope_for_provider(provider_name, scope_kind)
@@ -1060,10 +1199,10 @@ def reconcile_provider_quota_baseline(
                 lock_query = lock_query.with_for_update()
             connection.execute(lock_query).first()
             pending_filters = [
-                    _reservations.c.account_scope == account_scope,
-                    _reservations.c.quota_group == quota_group,
-                    _reservations.c.dimension == dimension_name,
-                    _reservations.c.state.in_(["pending", "uncertain"]),
+                _reservations.c.account_scope == account_scope,
+                _reservations.c.quota_group == quota_group,
+                _reservations.c.dimension == dimension_name,
+                _reservations.c.state.in_(["pending", "uncertain"]),
             ]
             if rolling:
                 pending_filters.append(
@@ -1089,14 +1228,24 @@ def reconcile_provider_quota_baseline(
                 )
             stored_used_units = int(used_units)
             if previous is not None:
-                if rolling and observed_utc == _utc(previous["observed_at"]):
+                previous_observed_at = _utc(previous["observed_at"])
+                if observed_utc == previous_observed_at:
                     # Replaying an equal-time snapshot cannot make usage go
-                    # backwards. A strictly newer rolling snapshot is an
-                    # authoritative provider view of the moving window and
-                    # may legitimately be lower as old calls age out.
-                    stored_used_units = max(
-                        stored_used_units, int(previous["used_units"])
-                    )
+                    # backwards. A strictly newer provider snapshot may be
+                    # authoritative for a moving window or a provider with an
+                    # exact cumulative fixed-window counter.
+                    stored_used_units = max(stored_used_units, int(previous["used_units"]))
+                elif native_snapshot_includes_prior_local_activity:
+                    # The provider's cumulative snapshot already includes all
+                    # activity before observed_utc, including our settled
+                    # reservations. Adding them again would double-count.
+                    # Settlements after observed_utc remain additive later.
+                    stored_used_units = int(used_units)
+                elif rolling:
+                    # A strictly newer rolling snapshot is an authoritative
+                    # view of the moving window and may decrease as old calls
+                    # age out.
+                    stored_used_units = int(used_units)
                 elif not rolling:
                     prior_local_debits = _settled_units_since_baseline(
                         connection,
@@ -1141,9 +1290,7 @@ def reconcile_provider_quota_baseline(
                 "rolling": bool(latest["rolling"]),
                 "observed_at": latest["observed_at"].replace(tzinfo=UTC).isoformat(),
                 "source": latest["source"],
-                "evidence_reference": _safe_stored_evidence_reference(
-                    latest["evidence_reference"]
-                ),
+                "evidence_reference": _safe_stored_evidence_reference(latest["evidence_reference"]),
                 "actor_user_id": latest["actor_user_id"],
             }
     except ProviderQuotaCoordinatorError:
@@ -1179,9 +1326,7 @@ def provider_quota_baseline_status(
         return {"required": False, "status": "not_applicable", "baseline": None}
     from app.services.provider_routing import quota_group_for_dimension
 
-    start, rolling = _window_start(
-        dimension, reset=str(contract.get("reset") or ""), now=current
-    )
+    start, rolling = _window_start(dimension, reset=str(contract.get("reset") or ""), now=current)
     spec = {
         "provider_name": provider_name,
         "account_scope": account_scope_for_provider(
@@ -1195,6 +1340,10 @@ def provider_quota_baseline_status(
         "window_seconds": int(dimension["window_seconds"]),
         "rolling": rolling,
         "limit_units": int(dimension["limit"]),
+        "baseline_mode": str(
+            dimension.get("baseline_mode") or contract.get("baseline_mode") or ""
+        ).strip(),
+        "application_usage_only": dimension.get("application_usage_only") is True,
         "now": current,
     }
     try:
@@ -1208,11 +1357,15 @@ def provider_quota_baseline_status(
                 local_settled = reserved = 0
         if row is None:
             if str(dimension.get("baseline_mode") or "").strip() == "local_zero":
-                # A local-zero baseline is permitted only for an explicitly
-                # client-owned pool (for example the Nasdaq directory safety
-                # ceiling). It is not a generic missing-baseline fallback:
-                # the contract must opt in and the reservation path persists
-                # the auditable zero before transport.
+                # A local-zero baseline is permitted only when the exact
+                # reviewed dimension opts in. It is not a generic fallback:
+                # provider contracts distinguish application-only accounting
+                # from provider-reported total usage, and reservation persists
+                # the auditable baseline before transport.
+                if dimension.get("application_usage_only") is not True:
+                    raise ProviderQuotaAdmissionError(
+                        "local-zero quota baseline is missing application-only scope"
+                    )
                 return {
                     "required": True,
                     "status": "initializable",
@@ -1232,6 +1385,54 @@ def provider_quota_baseline_status(
                     "reserved_units": 0,
                     "remaining_units": spec["limit_units"],
                 }
+            if account_scope_is_exclusive(spec["account_scope"]):
+                with engine.connect() as connection:
+                    prior = (
+                        connection.execute(
+                            select(_baselines)
+                            .where(
+                                _baselines.c.account_scope == spec["account_scope"],
+                                _baselines.c.quota_group == spec["quota_group"],
+                                _baselines.c.dimension == dimension_name,
+                                _baselines.c.window_seconds == spec["window_seconds"],
+                                _baselines.c.unit == unit,
+                                _baselines.c.reset == spec["reset"],
+                                _baselines.c.rolling.is_(True),
+                            )
+                            .order_by(_baselines.c.observed_at.desc(), _baselines.c.id.desc())
+                        )
+                        .mappings()
+                        .first()
+                    )
+                if prior is not None and _utc(prior["observed_at"]) + timedelta(
+                    seconds=spec["window_seconds"]
+                ) <= _utc(current):
+                    # The actual reservation path will atomically materialize
+                    # the zero rollover and include all coordinator-recorded
+                    # requests still inside the current window. This
+                    # read-only preflight disposition only establishes that a
+                    # reviewed historical owner baseline exists and the
+                    # explicitly exclusive account's full rolling window has
+                    # elapsed; it does not authorize transport by itself.
+                    return {
+                        "required": True,
+                        "status": "initializable",
+                        "provider": provider_name,
+                        "account_scope": spec["account_scope"],
+                        "quota_group": spec["quota_group"],
+                        "dimension": dimension_name,
+                        "unit": unit,
+                        "limit_units": spec["limit_units"],
+                        "window_started_at": start.replace(tzinfo=UTC).isoformat(),
+                        "window_seconds": spec["window_seconds"],
+                        "rolling": True,
+                        "baseline": None,
+                        "initial_baseline": "exclusive_account_reset",
+                        "effective_used_units": None,
+                        "local_settled_since_baseline_units": None,
+                        "reserved_units": None,
+                        "remaining_units": None,
+                    }
             return {
                 "required": True,
                 "status": "unknown",
@@ -1255,9 +1456,7 @@ def provider_quota_baseline_status(
             "used_units": int(row["used_units"]),
             "observed_at": row["observed_at"].replace(tzinfo=UTC).isoformat(),
             "source": row["source"],
-            "evidence_reference": _safe_stored_evidence_reference(
-                row["evidence_reference"]
-            ),
+            "evidence_reference": _safe_stored_evidence_reference(row["evidence_reference"]),
         }
         return {
             "required": True,
@@ -1275,9 +1474,7 @@ def provider_quota_baseline_status(
             "effective_used_units": effective_used,
             "local_settled_since_baseline_units": local_settled,
             "reserved_units": reserved,
-            "remaining_units": max(
-                0, int(spec["limit_units"]) - effective_used - reserved
-            ),
+            "remaining_units": max(0, int(spec["limit_units"]) - effective_used - reserved),
         }
     except ProviderQuotaCoordinatorError:
         raise
@@ -1298,16 +1495,11 @@ def _find_active_identity(connection, spec: dict[str, Any], digest: str, now: da
     ]
     if spec["rolling"]:
         predicates.append(
-            _identities.c.window_started_at
-            >= _utc(now - timedelta(seconds=spec["window_seconds"]))
+            _identities.c.window_started_at >= _utc(now - timedelta(seconds=spec["window_seconds"]))
         )
     else:
-        predicates.append(
-            _identities.c.window_started_at == spec["window_started_at"]
-        )
-    query = select(_identities).where(*predicates).order_by(
-        _identities.c.window_started_at.desc()
-    )
+        predicates.append(_identities.c.window_started_at == spec["window_started_at"])
+    query = select(_identities).where(*predicates).order_by(_identities.c.window_started_at.desc())
     if connection.dialect.name == "postgresql":
         query = query.with_for_update()
     return connection.execute(query).mappings().first()
@@ -1326,7 +1518,11 @@ def _prune_old_ledger_rows(connection, now: datetime) -> None:
     """
 
     configured_days = getattr(settings, "PROVIDER_QUOTA_LEDGER_RETENTION_DAYS", 180)
-    if isinstance(configured_days, bool) or not isinstance(configured_days, int) or configured_days < 1:
+    if (
+        isinstance(configured_days, bool)
+        or not isinstance(configured_days, int)
+        or configured_days < 1
+    ):
         raise ProviderQuotaCoordinatorError(
             "provider quota ledger retention must be a positive integer"
         )
@@ -1343,22 +1539,22 @@ def _prune_old_ledger_rows(connection, now: datetime) -> None:
         ["key"],
     )
     connection.execute(
-        update(_maintenance)
-        .where(_maintenance.c.key == "retention-v1")
-        .values(last_run_at=now)
+        update(_maintenance).where(_maintenance.c.key == "retention-v1").values(last_run_at=now)
     )
 
 
-def _release_expired_concurrency_leases(
-    connection, *, account_scope: str, now: datetime
-) -> None:
+def _release_expired_concurrency_leases(connection, *, account_scope: str, now: datetime) -> None:
     if connection.dialect.name == "postgresql":
-        query = select(_reservations).where(
-            _reservations.c.account_scope == account_scope,
-            _reservations.c.release_only.is_(True),
-            _reservations.c.state.in_(["pending", "uncertain"]),
-            _reservations.c.lease_expires_at <= now,
-        ).with_for_update()
+        query = (
+            select(_reservations)
+            .where(
+                _reservations.c.account_scope == account_scope,
+                _reservations.c.release_only.is_(True),
+                _reservations.c.state.in_(["pending", "uncertain"]),
+                _reservations.c.lease_expires_at <= now,
+            )
+            .with_for_update()
+        )
     else:
         query = select(_reservations).where(
             _reservations.c.account_scope == account_scope,
@@ -1379,7 +1575,9 @@ def _release_expired_concurrency_leases(
         connection.execute(
             update(_windows)
             .where(_windows.c.id == window["id"])
-            .values(reserved_units=max(0, int(window["reserved_units"]) - int(row["reserved_units"])))
+            .values(
+                reserved_units=max(0, int(window["reserved_units"]) - int(row["reserved_units"]))
+            )
         )
         connection.execute(
             update(_reservations)
@@ -1522,7 +1720,9 @@ def reserve_provider_quota(
                     reserved = connection.execute(active_query).scalar_one()
                     consumed = int(baselines[tuple(_window_values(spec).values())]["used_units"])
                     consumed += _settled_units_since_baseline(
-                        connection, {**spec, "now": _utc(current)}, baselines[tuple(_window_values(spec).values())]
+                        connection,
+                        {**spec, "now": _utc(current)},
+                        baselines[tuple(_window_values(spec).values())],
                     )
                 elif units > 0:
                     window = windows[tuple(_window_values(spec).values())]
@@ -1628,10 +1828,14 @@ def settle_provider_quota(
     try:
         engine = _engine_for(_engine_url())
         with _write_transaction(engine) as connection:
-            reservation_query = select(_reservations).where(
+            reservation_query = (
+                select(_reservations)
+                .where(
                     _reservations.c.reservation_id == reservation.reservation_id,
                     _reservations.c.state == "pending",
-                ).order_by(_reservations.c.id)
+                )
+                .order_by(_reservations.c.id)
+            )
             if connection.dialect.name == "postgresql":
                 reservation_query = reservation_query.with_for_update()
             rows = connection.execute(reservation_query).mappings().all()
@@ -1705,21 +1909,32 @@ def settle_provider_quota(
                         identity_query = identity_query.with_for_update()
                     identity = connection.execute(identity_query).mappings().first()
                     if identity is not None and identity["state"] == "pending":
-                        if release_identities and identity["owner_reservation_id"] == reservation.reservation_id:
-                            other_query = select(_reservations).where(
-                                _reservations.c.account_scope == row["account_scope"],
-                                _reservations.c.quota_group == row["quota_group"],
-                                _reservations.c.dimension == row["dimension"],
-                                _reservations.c.window_started_at == row["window_started_at"],
-                                _reservations.c.window_seconds == row["window_seconds"],
-                                _reservations.c.identity_digest == identity_digest,
-                                _reservations.c.reservation_id != reservation.reservation_id,
-                            ).order_by(_reservations.c.id)
+                        if (
+                            release_identities
+                            and identity["owner_reservation_id"] == reservation.reservation_id
+                        ):
+                            other_query = (
+                                select(_reservations)
+                                .where(
+                                    _reservations.c.account_scope == row["account_scope"],
+                                    _reservations.c.quota_group == row["quota_group"],
+                                    _reservations.c.dimension == row["dimension"],
+                                    _reservations.c.window_started_at == row["window_started_at"],
+                                    _reservations.c.window_seconds == row["window_seconds"],
+                                    _reservations.c.identity_digest == identity_digest,
+                                    _reservations.c.reservation_id != reservation.reservation_id,
+                                )
+                                .order_by(_reservations.c.id)
+                            )
                             if connection.dialect.name == "postgresql":
                                 other_query = other_query.with_for_update()
                             others = connection.execute(other_query).mappings().all()
                             accepted = next(
-                                (item for item in others if item["state"] in {"settled", "uncertain"}),
+                                (
+                                    item
+                                    for item in others
+                                    if item["state"] in {"settled", "uncertain"}
+                                ),
                                 None,
                             )
                             pending = next(
@@ -1731,7 +1946,9 @@ def settle_provider_quota(
                                     update(_identities)
                                     .where(_identities.c.id == identity["id"])
                                     .values(
-                                        state="uncertain" if accepted["state"] == "uncertain" else "consumed",
+                                        state="uncertain"
+                                        if accepted["state"] == "uncertain"
+                                        else "consumed",
                                         owner_reservation_id=None,
                                     )
                                 )
@@ -1750,15 +1967,18 @@ def settle_provider_quota(
                                 update(_identities)
                                 .where(_identities.c.id == identity["id"])
                                 .values(
-                                    state="uncertain" if row["dimension"] in unknown else "consumed",
+                                    state="uncertain"
+                                    if row["dimension"] in unknown
+                                    else "consumed",
                                     owner_reservation_id=None,
                                 )
                             )
     except ProviderQuotaCoordinatorError:
         raise
-    except (OSError, SQLAlchemyError, ValueError, TypeError):
+    except (OSError, SQLAlchemyError, ValueError, TypeError) as exc:
         raise ProviderQuotaCoordinatorError(
-            "provider quota coordinator settlement failed; outstanding reservation retained"
+            "provider quota coordinator settlement failed "
+            f"({type(exc).__name__}); outstanding reservation retained"
         ) from None
 
 
@@ -1788,14 +2008,24 @@ def _reservation_plan_for_live_probe(
         raise ProviderQuotaAdmissionError(
             f"provider quota is unknown for live operation {provider_name}/{operation}"
         )
+    if (
+        provider_name == "dinari"
+        and "local canary policy" in str(seed.get("quota_source") or "")
+        and operation != "discover_tokenized_assets"
+    ):
+        raise ProviderQuotaAdmissionError(
+            "local Dinari Sandbox canary permits only discover_tokenized_assets"
+        )
     if not provider_quota_reset_is_known(contract.get("reset")):
         raise ProviderQuotaAdmissionError(
             f"provider quota reset semantics are unreviewed for live operation {provider_name}/{operation}"
         )
     bootstrap = contract.get("account_usage_bootstrap")
-    if operation == "fetch_account_usage" and isinstance(bootstrap, dict) and bootstrap.get(
-        "enabled"
-    ) is True:
+    if (
+        operation == "fetch_account_usage"
+        and isinstance(bootstrap, dict)
+        and bootstrap.get("enabled") is True
+    ):
         bootstrap_policy = SimpleNamespace(
             quota_contract=contract,
             quota_scope=seed.get("quota_scope", ""),
@@ -1821,10 +2051,9 @@ def _reservation_plan_for_live_probe(
         admission_reset = provider_quota_admission_reset(
             primary_reset, dimension.get("safety_reset")
         )
-        if (
-            admission_reset != str(primary_reset or "").strip()
-            and provider_quota_reset_is_admission_safe(admission_reset)
-        ):
+        if admission_reset != str(
+            primary_reset or ""
+        ).strip() and provider_quota_reset_is_admission_safe(admission_reset):
             dimension_name = str(dimension.get("name") or "").strip()
             explicit_names = {
                 str(item or "").strip()
@@ -1833,9 +2062,7 @@ def _reservation_plan_for_live_probe(
             }
             if dimension_name:
                 explicit_names.update(
-                    item
-                    for item in unknown_dimensions
-                    if item.startswith(f"{dimension_name}_")
+                    item for item in unknown_dimensions if item.startswith(f"{dimension_name}_")
                 )
             safety_resolved_unknown.update(explicit_names & unknown_dimensions)
     unknown_dimensions -= safety_resolved_unknown
@@ -1863,13 +2090,17 @@ def _reservation_plan_for_live_probe(
         )
     profile = get_provider_usage_profile(provider_name)
     bootstrap_unknown: set[str] = set()
-    if operation == "fetch_account_usage" and isinstance(bootstrap, dict) and bootstrap.get(
-        "enabled"
-    ) is True:
+    reconciled_bootstrap_dimensions: set[str] = set()
+    if (
+        operation == "fetch_account_usage"
+        and isinstance(bootstrap, dict)
+        and bootstrap.get("enabled") is True
+    ):
         policy = SimpleNamespace(
             quota_contract=contract,
             quota_scope=seed.get("quota_scope", ""),
         )
+        reconciled_bootstrap_dimensions = account_usage_reconciled_dimensions(policy, operation)
         for item in contract.get("dimensions", []) or []:
             if not isinstance(item, dict):
                 continue
@@ -1891,14 +2122,23 @@ def _reservation_plan_for_live_probe(
             )
             if not provider_quota_reset_is_admission_safe(admission_reset):
                 # An account-usage bootstrap may explicitly exclude an
-                # unknown provider pool from charging. It still must not
-                # invent a window for that zero-cost dimension.
-                if operation == "fetch_account_usage" and isinstance(bootstrap, dict) and bootstrap.get(
-                    "enabled"
-                ) is True:
-                    bootstrap_unknown.add(str(item.get("name") or ""))
-                    continue
-                suffix = "unknown" if not provider_quota_reset_is_known(admission_reset) else "unresolved"
+                # unknown provider pool only when the native response
+                # reconciles that exact dimension. Unreported pools cannot be
+                # waived merely because this is an introspection request.
+                if (
+                    operation == "fetch_account_usage"
+                    and isinstance(bootstrap, dict)
+                    and bootstrap.get("enabled") is True
+                ):
+                    name = str(item.get("name") or "")
+                    if name in reconciled_bootstrap_dimensions:
+                        bootstrap_unknown.add(name)
+                        continue
+                suffix = (
+                    "unknown"
+                    if not provider_quota_reset_is_known(admission_reset)
+                    else "unresolved"
+                )
                 raise ProviderQuotaAdmissionError(
                     f"provider dimension reset semantics are {suffix} for live operation {provider_name}/{operation}/{item.get('name', '')}"
                 )
@@ -1909,8 +2149,16 @@ def _reservation_plan_for_live_probe(
                 dimension_name=str(item.get("name") or ""),
                 now=now,
             )
+            name = str(item.get("name") or "")
+            if status.get("status") == "initializable":
+                continue
             if status.get("status") != "verified":
-                bootstrap_unknown.add(str(item.get("name") or ""))
+                if name in reconciled_bootstrap_dimensions:
+                    bootstrap_unknown.add(name)
+                    continue
+                raise ProviderQuotaAdmissionError(
+                    f"provider account-usage probe cannot safely charge unreported quota dimension {provider_name}/{name}"
+                )
     family = operation.split(":", 1)[0].strip() or operation
     costs = profile.get("operation_costs") or contract.get("operation_costs") or {}
     cost = (
@@ -1949,13 +2197,19 @@ def _reservation_plan_for_live_probe(
             zero_cost_exclusion = True
         else:
             zero_cost_exclusion = False
-        raw_cost_map = (
-            {family: dimension_cost_overrides[name]}
-            if dimension_cost_overrides and name in dimension_cost_overrides
-            else dimension_costs.get(name)
-            if isinstance(dimension_costs, dict)
-            else None
+        explicit_dimension_override = (
+            dimension_cost_overrides is not None and name in dimension_cost_overrides
         )
+        if explicit_dimension_override:
+            override = dimension_cost_overrides[name]
+            # Zero is meaningful only when the caller names this exact
+            # dimension: the operation is reviewed as outside that independent
+            # provider pool (for example, a synchronous FINRA request versus
+            # the async-submission limiter). Represent it with the same empty
+            # map used by provider contracts for explicit zero-cost exclusions.
+            raw_cost_map = {} if override == 0 else {family: override}
+        else:
+            raw_cost_map = dimension_costs.get(name) if isinstance(dimension_costs, dict) else None
         if name in bootstrap_unknown:
             amount = 0
         elif isinstance(raw_cost_map, dict):
@@ -1990,9 +2244,7 @@ def _reservation_plan_for_live_probe(
                         "request_weight",
                     }
                     amount = (
-                        cost
-                        if not contract.get("dimension_costs_required") and rate_unit
-                        else None
+                        cost if not contract.get("dimension_costs_required") and rate_unit else None
                     )
                 elif isinstance(amount, dict):
                     # Keep the provider-specific zero-cost meaning consistent
@@ -2048,9 +2300,7 @@ def _reservation_plan_for_live_probe(
         window_start, rolling = _window_start_for_dimension(
             dimension, reset=str(contract.get("reset") or ""), now=now
         )
-        dimension_reset = str(
-            dimension.get("reset") or contract.get("reset") or ""
-        ).strip()
+        dimension_reset = str(dimension.get("reset") or contract.get("reset") or "").strip()
         if window_start is None:
             seconds = int(dimension["window_seconds"])
             if rolling:
@@ -2076,6 +2326,7 @@ def _reservation_plan_for_live_probe(
                 "baseline_mode": str(
                     dimension.get("baseline_mode") or contract.get("baseline_mode") or ""
                 ).strip(),
+                "application_usage_only": dimension.get("application_usage_only") is True,
                 "units": 1 if unit in {"concurrent_requests", "concurrency"} else amount,
                 "release_only": unit in {"concurrent_requests", "concurrency"},
                 "lease_expires_at": _utc(now + timedelta(seconds=40))
@@ -2124,9 +2375,7 @@ def reserve_live_provider_operation(
     account_scope = specs[0]["account_scope"]
     reservation_id = str(uuid4())
     try:
-        engine = _engine_for(
-            _engine_url(), require_persistent=require_persistent_coordinator
-        )
+        engine = _engine_for(_engine_url(), require_persistent=require_persistent_coordinator)
         with _write_transaction(engine) as connection:
             _prune_old_ledger_rows(connection, _utc(now))
             account_scopes = sorted({str(spec["account_scope"]) for spec in specs})
@@ -2157,9 +2406,7 @@ def reserve_live_provider_operation(
                 units = int(dimension_units.get(str(spec["dimension"]), 0))
                 identity_digest = spec.get("identity_digest")
                 if identity_digest:
-                    identity = _find_active_identity(
-                        connection, spec, identity_digest, _utc(now)
-                    )
+                    identity = _find_active_identity(connection, spec, identity_digest, _utc(now))
                     if identity is not None:
                         if spec["rolling"]:
                             spec["window_started_at"] = identity["window_started_at"]
@@ -2169,14 +2416,21 @@ def reserve_live_provider_operation(
                 _insert_ignore(
                     connection,
                     _windows,
-                    {**values, "limit_units": spec["limit_units"], "reserved_units": 0, "consumed_units": 0},
+                    {
+                        **values,
+                        "limit_units": spec["limit_units"],
+                        "reserved_units": 0,
+                        "consumed_units": 0,
+                    },
                     list(values),
                 )
                 window = _find_window(connection, spec)
                 if existing_window is None:
                     created_window_ids.add(int(window["id"]))
                 connection.execute(
-                    update(_windows).where(_windows.c.id == window["id"]).values(limit_units=spec["limit_units"])
+                    update(_windows)
+                    .where(_windows.c.id == window["id"])
+                    .values(limit_units=spec["limit_units"])
                 )
                 key = tuple(values.values())
                 windows[key] = {**window, "limit_units": spec["limit_units"]}
@@ -2256,12 +2510,22 @@ def reserve_live_provider_operation(
                             "owner_reservation_id": reservation_id,
                             "state": "pending",
                         },
-                        ["provider_name", "account_scope", "quota_group", "dimension", "window_started_at", "window_seconds", "identity_digest"],
+                        [
+                            "provider_name",
+                            "account_scope",
+                            "quota_group",
+                            "dimension",
+                            "window_started_at",
+                            "window_seconds",
+                            "identity_digest",
+                        ],
                     )
                 window = windows[tuple(_window_values(spec).values())]
                 if units > 0:
                     connection.execute(
-                        update(_windows).where(_windows.c.id == window["id"]).values(reserved_units=int(window["reserved_units"]) + units)
+                        update(_windows)
+                        .where(_windows.c.id == window["id"])
+                        .values(reserved_units=int(window["reserved_units"]) + units)
                     )
                 connection.execute(
                     insert(_reservations).values(
@@ -2296,6 +2560,7 @@ def settle_live_provider_operation(
     *,
     http_requests: int,
     response_bytes: int,
+    response_status_code: int | None = None,
 ) -> None:
     """Settle a direct live probe immediately from transport telemetry."""
 
@@ -2307,6 +2572,7 @@ def settle_live_provider_operation(
                     _reservations.c.dimension,
                     _reservations.c.unit,
                     _reservations.c.release_only,
+                    _reservations.c.operation,
                 ).where(
                     _reservations.c.reservation_id == reservation.reservation_id,
                     _reservations.c.state == "pending",
@@ -2318,9 +2584,33 @@ def settle_live_provider_operation(
         else:
             unknown = set()
             observed = {}
-            for name, unit, release_only in rows:
+            for name, unit, release_only, operation in rows:
                 normalized_unit = str(unit).lower()
                 if release_only:
+                    continue
+                if (
+                    reservation.provider_name == "eodhd"
+                    and operation == "get_instrument_profile"
+                    and response_status_code == 403
+                    and name == "calls_per_day"
+                ):
+                    # EODHD returns 403 when a valid key's plan excludes
+                    # Fundamentals. A native /user snapshot verified that
+                    # this denial did not debit the weighted daily-call pool;
+                    # its HTTP request still consumes the independent minute
+                    # request dimension below.
+                    observed[str(name)] = 0
+                    continue
+                if (
+                    reservation.provider_name == "marketstack"
+                    and name == "requests_per_month"
+                    and response_status_code is not None
+                    and 400 <= response_status_code <= 599
+                ):
+                    # Marketstack's FAQ says API errors do not debit its
+                    # monthly allowance. Keep the independent per-second
+                    # request dimension charged for the attempted HTTP call.
+                    observed[str(name)] = 0
                     continue
                 if normalized_unit in {"byte", "bytes"}:
                     observed[str(name)] = int(response_bytes)
@@ -2337,9 +2627,10 @@ def settle_live_provider_operation(
         )
     except ProviderQuotaCoordinatorError:
         raise
-    except (OSError, SQLAlchemyError, ValueError, TypeError):
+    except (OSError, SQLAlchemyError, ValueError, TypeError) as exc:
         raise ProviderQuotaCoordinatorError(
-            "provider quota coordinator settlement failed; outstanding reservation retained"
+            "provider quota coordinator settlement failed "
+            f"({type(exc).__name__}); outstanding reservation retained"
         ) from None
 
 
@@ -2364,16 +2655,12 @@ def register_live_receipt_reservation(
         reservation_id = str(UUID(str(reservation.reservation_id).strip()))
     except (TypeError, ValueError, AttributeError):
         raise ProviderQuotaCoordinatorError("live receipt reservation ID is invalid") from None
-    provider_name = _validated_live_receipt_field(
-        reservation.provider_name, name="provider", maximum=100
-    )
+    provider_name = _validated_live_receipt_provider(reservation.provider_name)
     # The operation is not part of QuotaReservation for compatibility with the
     # application-facing API. Read it from the durable reservation rows below,
     # then bind that canonical value into the receipt registry.
     normalized_run_id = _validated_live_receipt_field(run_id, name="run ID", maximum=128)
-    normalized_scope = _validated_live_receipt_field(
-        usage_scope, name="usage scope", maximum=128
-    )
+    normalized_scope = _validated_live_receipt_field(usage_scope, name="usage scope", maximum=128)
     normalized_status = str(receipt_status or "").strip()
     if normalized_status not in _LIVE_RECEIPT_STATUSES:
         raise ProviderQuotaCoordinatorError("live receipt status is invalid")
@@ -2397,10 +2684,14 @@ def register_live_receipt_reservation(
                     "live receipt reservation is not present in the durable coordinator"
                 )
             if any(str(row["provider_name"]) != provider_name for row in rows):
-                raise ProviderQuotaCoordinatorError("live receipt provider does not match reservation")
+                raise ProviderQuotaCoordinatorError(
+                    "live receipt provider does not match reservation"
+                )
             operations = {str(row["operation"]) for row in rows}
             if len(operations) != 1:
-                raise ProviderQuotaCoordinatorError("live receipt reservation operation is ambiguous")
+                raise ProviderQuotaCoordinatorError(
+                    "live receipt reservation operation is ambiguous"
+                )
             operation = next(iter(operations))
             states = {str(row["state"]) for row in rows}
             if states <= {"settled", "not_sent"}:
@@ -2415,11 +2706,13 @@ def register_live_receipt_reservation(
             else:
                 raise ProviderQuotaCoordinatorError("live receipt reservation state is invalid")
 
-            existing = connection.execute(
-                select(_live_receipts).where(
-                    _live_receipts.c.reservation_id == reservation_id
+            existing = (
+                connection.execute(
+                    select(_live_receipts).where(_live_receipts.c.reservation_id == reservation_id)
                 )
-            ).mappings().first()
+                .mappings()
+                .first()
+            )
             values = {
                 "reservation_id": reservation_id,
                 "provider_name": provider_name,
@@ -2481,22 +2774,26 @@ def reconcile_live_receipt_reservation(reservation_id: str) -> str:
     try:
         engine = _engine_for(_engine_url())
         with engine.connect() as connection:
-            receipt = connection.execute(
-                select(_live_receipts).where(
-                    _live_receipts.c.reservation_id == normalized_id
+            receipt = (
+                connection.execute(
+                    select(_live_receipts).where(_live_receipts.c.reservation_id == normalized_id)
                 )
-            ).mappings().first()
+                .mappings()
+                .first()
+            )
             if receipt is None:
                 raise ProviderQuotaCoordinatorError(
                     "live receipt is not registered in the durable coordinator"
                 )
             if receipt["reconciliation_state"] == "reconciled":
                 return "reconciled"
-            rows = connection.execute(
-                select(_reservations).where(
-                    _reservations.c.reservation_id == normalized_id
+            rows = (
+                connection.execute(
+                    select(_reservations).where(_reservations.c.reservation_id == normalized_id)
                 )
-            ).mappings().all()
+                .mappings()
+                .all()
+            )
         if not rows:
             raise ProviderQuotaCoordinatorError(
                 "registered live receipt has no durable reservation rows"
@@ -2526,11 +2823,15 @@ def reconcile_live_receipt_reservation(reservation_id: str) -> str:
                 observed_dimension_units={},
             )
         with _write_transaction(engine) as connection:
-            remaining = connection.execute(
-                select(_reservations.c.state).where(
-                    _reservations.c.reservation_id == normalized_id
+            remaining = (
+                connection.execute(
+                    select(_reservations.c.state).where(
+                        _reservations.c.reservation_id == normalized_id
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             states = {str(state) for state in remaining}
             if states & {"pending", "uncertain", "lease_expired"}:
                 raise ProviderQuotaCoordinatorError(
@@ -2565,17 +2866,19 @@ def reconcile_pending_live_receipts() -> dict[str, int]:
     try:
         engine = _engine_for(_engine_url())
         with engine.connect() as connection:
-            ids = connection.execute(
-                select(_live_receipts.c.reservation_id)
-                .where(_live_receipts.c.reconciliation_state != "reconciled")
-                .order_by(_live_receipts.c.created_at, _live_receipts.c.reservation_id)
-            ).scalars().all()
+            ids = (
+                connection.execute(
+                    select(_live_receipts.c.reservation_id)
+                    .where(_live_receipts.c.reconciliation_state != "reconciled")
+                    .order_by(_live_receipts.c.created_at, _live_receipts.c.reservation_id)
+                )
+                .scalars()
+                .all()
+            )
     except ProviderQuotaCoordinatorError:
         raise
     except (OSError, SQLAlchemyError, ValueError, TypeError):
-        raise ProviderQuotaCoordinatorError(
-            "live receipt reconciliation scan failed"
-        ) from None
+        raise ProviderQuotaCoordinatorError("live receipt reconciliation scan failed") from None
     reconciled = 0
     unresolved = 0
     for reservation_id in ids:
@@ -2611,9 +2914,7 @@ def ensure_provider_quota_coordinator(*, require_persistent_coordinator: bool = 
     """
 
     try:
-        engine = _engine_for(
-            _engine_url(), require_persistent=require_persistent_coordinator
-        )
+        engine = _engine_for(_engine_url(), require_persistent=require_persistent_coordinator)
         now = datetime.now(UTC)
         with _write_transaction(engine) as connection:
             _insert_ignore(
@@ -2701,14 +3002,10 @@ def _current_contract_limit(
                 continue
             if dimension.get("window_seconds") != window_seconds:
                 continue
-            dimension_reset = str(
-                dimension.get("reset") or contract.get("reset") or ""
-            ).strip()
+            dimension_reset = str(dimension.get("reset") or contract.get("reset") or "").strip()
             if dimension_reset != reset:
                 continue
-            scope = str(
-                dimension.get("scope") or seed.get("quota_scope") or ""
-            ).strip()
+            scope = str(dimension.get("scope") or seed.get("quota_scope") or "").strip()
             if account_scope_for_provider(name, scope) != account_scope:
                 continue
             if not any(
@@ -2758,14 +3055,18 @@ def provider_quota_coordinator_summary(
                     (scope, group, dimension, started, int(seconds))
                     for scope, group, dimension, started, seconds in matching
                 }
-            rows = connection.execute(
-                query.order_by(
-                    _windows.c.account_scope,
-                    _windows.c.quota_group,
-                    _windows.c.dimension,
-                    _windows.c.window_started_at,
+            rows = (
+                connection.execute(
+                    query.order_by(
+                        _windows.c.account_scope,
+                        _windows.c.quota_group,
+                        _windows.c.dimension,
+                        _windows.c.window_started_at,
+                    )
                 )
-            ).mappings().all()
+                .mappings()
+                .all()
+            )
             if provider_window_keys is not None:
                 rows = [
                     row
@@ -2792,39 +3093,43 @@ def provider_quota_coordinator_summary(
             for name, scope, group, dimension, started, seconds in provider_rows:
                 key = (scope, group, dimension, started, int(seconds))
                 providers_by_key.setdefault(key, set()).add(str(name))
-            latest_query = select(
-                _reservations.c.account_scope,
-                _reservations.c.quota_group,
-                _reservations.c.dimension,
-                _reservations.c.window_started_at,
-                _reservations.c.window_seconds,
-                _reservations.c.state,
-                func.count().label("count"),
-            ).where(
-                _reservations.c.state.in_(["pending", "uncertain"])
-            ).group_by(
-                _reservations.c.account_scope,
-                _reservations.c.quota_group,
-                _reservations.c.dimension,
-                _reservations.c.window_started_at,
-                _reservations.c.window_seconds,
-                _reservations.c.state,
+            latest_query = (
+                select(
+                    _reservations.c.account_scope,
+                    _reservations.c.quota_group,
+                    _reservations.c.dimension,
+                    _reservations.c.window_started_at,
+                    _reservations.c.window_seconds,
+                    _reservations.c.state,
+                    func.count().label("count"),
+                )
+                .where(_reservations.c.state.in_(["pending", "uncertain"]))
+                .group_by(
+                    _reservations.c.account_scope,
+                    _reservations.c.quota_group,
+                    _reservations.c.dimension,
+                    _reservations.c.window_started_at,
+                    _reservations.c.window_seconds,
+                    _reservations.c.state,
+                )
             )
             pending = connection.execute(latest_query).mappings().all()
-            baseline_rows = connection.execute(
-                select(_baselines)
-                .where(_baselines.c.reset != "unknown")
-                .order_by(_baselines.c.observed_at.desc(), _baselines.c.id.desc())
-                .limit(1000)
-            ).mappings().all()
+            baseline_rows = (
+                connection.execute(
+                    select(_baselines)
+                    .where(_baselines.c.reset != "unknown")
+                    .order_by(_baselines.c.observed_at.desc(), _baselines.c.id.desc())
+                    .limit(1000)
+                )
+                .mappings()
+                .all()
+            )
             receipt_query = select(
                 _live_receipts.c.reconciliation_state,
                 func.count().label("count"),
             )
             if provider_name:
-                receipt_query = receipt_query.where(
-                    _live_receipts.c.provider_name == provider_name
-                )
+                receipt_query = receipt_query.where(_live_receipts.c.provider_name == provider_name)
             receipt_rows = connection.execute(
                 receipt_query.group_by(_live_receipts.c.reconciliation_state)
             ).all()
@@ -2847,8 +3152,19 @@ def provider_quota_coordinator_summary(
         active_baselines: dict[tuple, dict[str, Any]] = {}
         for row in baseline_rows:
             reset = str(row["reset"] or "")
-            dimension = {"window_seconds": int(row["window_seconds"]), "reset": reset}
-            current_start, rolling = _window_start(dimension, reset=reset, now=current)
+            # Baseline rows keep the provider-declared reset label for audit
+            # (e.g. ``provider_defined``), while the separately persisted
+            # ``rolling`` bit records the exact application safety window that
+            # admitted them. Reconstruct that reviewed effective window here;
+            # otherwise diagnostics try to calculate an unresolved native
+            # boundary and fail even though reservation admission correctly
+            # used the provider-scoped rolling safety reset.
+            effective_reset = "rolling" if bool(row["rolling"]) else reset
+            dimension = {
+                "window_seconds": int(row["window_seconds"]),
+                "reset": effective_reset,
+            }
+            current_start, rolling = _window_start(dimension, reset=effective_reset, now=current)
             if bool(row["rolling"]) != rolling:
                 continue
             if rolling:
@@ -2868,9 +3184,7 @@ def provider_quota_coordinator_summary(
                 if provider_name not in providers_by_quota.get(key, set()):
                     continue
             existing = active_baselines.get(key)
-            if existing is not None and _utc(existing["observed_at"]) >= _utc(
-                row["observed_at"]
-            ):
+            if existing is not None and _utc(existing["observed_at"]) >= _utc(row["observed_at"]):
                 continue
             spec = {
                 "provider_name": row["source_provider_name"],
@@ -2896,9 +3210,7 @@ def provider_quota_coordinator_summary(
                 window_seconds=int(row["window_seconds"]),
                 now=current,
             )
-            local_settled, reserved = _baseline_local_accounting(
-                engine, spec, row, current
-            )
+            local_settled, reserved = _baseline_local_accounting(engine, spec, row, current)
             effective_used = int(row["used_units"]) + local_settled
             active_baselines[key] = {
                 "provider": row["source_provider_name"],
@@ -2906,9 +3218,7 @@ def provider_quota_coordinator_summary(
                 "quota_group": row["quota_group"],
                 "dimension": row["dimension"],
                 "unit": row["unit"],
-                "window_started_at": _utc(row["window_started_at"]).replace(
-                    tzinfo=UTC
-                ).isoformat(),
+                "window_started_at": _utc(row["window_started_at"]).replace(tzinfo=UTC).isoformat(),
                 "window_seconds": int(row["window_seconds"]),
                 "rolling": rolling,
                 "limit_units": current_limit,
@@ -2925,9 +3235,7 @@ def provider_quota_coordinator_summary(
                 ),
                 "observed_at": _utc(row["observed_at"]).replace(tzinfo=UTC).isoformat(),
                 "source": row["source"],
-                "evidence_reference": _safe_stored_evidence_reference(
-                    row["evidence_reference"]
-                ),
+                "evidence_reference": _safe_stored_evidence_reference(row["evidence_reference"]),
                 "actor_user_id": row["actor_user_id"],
             }
 
@@ -2990,7 +3298,11 @@ def provider_quota_coordinator_summary(
                                 row["window_started_at"],
                                 int(row["window_seconds"]),
                             ),
-                            ({str(row["provider_name"])} if row["provider_name"] != _ACCOUNT_SCOPE_BUCKET else set()),
+                            (
+                                {str(row["provider_name"])}
+                                if row["provider_name"] != _ACCOUNT_SCOPE_BUCKET
+                                else set()
+                            ),
                         )
                     ),
                     "account_scope": row["account_scope"],
@@ -3029,9 +3341,7 @@ def provider_quota_coordinator_summary(
                 }
             )
 
-        receipt_counts = {
-            str(state): int(count) for state, count in receipt_rows
-        }
+        receipt_counts = {str(state): int(count) for state, count in receipt_rows}
         return {
             "available": True,
             "source": "durable provider quota coordinator",
@@ -3043,8 +3353,7 @@ def provider_quota_coordinator_summary(
                 "reconciled": receipt_counts.get("reconciled", 0),
                 "pending": receipt_counts.get("pending", 0),
                 "uncertain": receipt_counts.get("uncertain", 0),
-                "unresolved": receipt_counts.get("pending", 0)
-                + receipt_counts.get("uncertain", 0),
+                "unresolved": receipt_counts.get("pending", 0) + receipt_counts.get("uncertain", 0),
             },
         }
     except (OSError, SQLAlchemyError, ValueError, TypeError):

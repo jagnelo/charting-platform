@@ -44,8 +44,10 @@ from app.providers.massive import (
     estimate_ohlcv_request_count as estimate_massive_ohlcv_request_count,
 )
 from app.providers.optional_market_data import (
+    estimate_fmp_ohlcv_request_count,
     estimate_marketdata_app_ohlcv_credit_count,
     estimate_marketstack_ohlcv_request_count,
+    estimate_tiingo_ohlcv_request_count,
     estimate_twelve_data_ohlcv_request_count,
 )
 from app.services.distributed_locks import (
@@ -124,7 +126,9 @@ def _provider_bulk_history_start(provider_name: str, end: datetime) -> datetime:
     if isinstance(capability_seed, dict):
         provider_seed = {**provider_seed, **capability_seed}
     quota_policy = provider_seed.get("quota_policy")
-    constraints = quota_policy.get("history_constraints") if isinstance(quota_policy, dict) else None
+    constraints = (
+        quota_policy.get("history_constraints") if isinstance(quota_policy, dict) else None
+    )
     if not isinstance(constraints, dict):
         return EPOCH_START
 
@@ -342,16 +346,14 @@ async def _do_fetch_and_store(
     coinbase_cost = estimate_coinbase_ohlcv_request_count(timeframe, coinbase_start, end)
     kraken_cost = estimate_kraken_ohlcv_request_count(timeframe, kraken_start, end)
     massive_cost = estimate_massive_ohlcv_request_count(timeframe, massive_start, end)
-    marketstack_cost = estimate_marketstack_ohlcv_request_count(
-        timeframe, marketstack_start, end
-    )
+    marketstack_cost = estimate_marketstack_ohlcv_request_count(timeframe, marketstack_start, end)
     marketdata_app_cost = estimate_marketdata_app_ohlcv_credit_count(
         timeframe, marketdata_app_start, end
     )
-    twelve_data_cost = estimate_twelve_data_ohlcv_request_count(
-        timeframe, twelve_data_start, end
-    )
+    twelve_data_cost = estimate_twelve_data_ohlcv_request_count(timeframe, twelve_data_start, end)
     ibkr_cost = estimate_ibkr_ohlcv_request_count(timeframe, ibkr_start, end)
+    tiingo_cost = estimate_tiingo_ohlcv_request_count(timeframe, history_start("tiingo"), end)
+    fmp_cost = estimate_fmp_ohlcv_request_count(timeframe, history_start("fmp"), end)
     operation_cost_overrides = {
         **({"alpaca": alpaca_cost} if alpaca_cost is not None else {}),
         **({"binance": binance_cost} if binance_cost is not None else {}),
@@ -362,13 +364,17 @@ async def _do_fetch_and_store(
         **({"marketdata_app": marketdata_app_cost} if marketdata_app_cost is not None else {}),
         **({"twelve_data": twelve_data_cost} if twelve_data_cost is not None else {}),
         **({"ibkr": ibkr_cost} if ibkr_cost is not None else {}),
+        **({"fmp": fmp_cost} if fmp_cost is not None else {}),
+        **({"tiingo": tiingo_cost} if tiingo_cost is not None else {}),
     }
     execution = await execute_provider_call(
         db,
         ProviderCapability.PRICE_HISTORY,
         f"bulk_fetch:{timeframe.value}",
         instrument_id=instrument.id,
-        usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
+        usage_identity=lambda provider_name: provider_symbol_for_instrument(
+            instrument, provider_name
+        ),
         operation_cost_overrides=operation_cost_overrides or None,
         adjusted=adjusted,
         history_start=history_start,

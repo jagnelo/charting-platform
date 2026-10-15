@@ -12,7 +12,7 @@ reconciliation instead of being merged silently.
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Iterable, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Sequence
 from datetime import UTC, date, datetime
 from typing import Any
 
@@ -153,9 +153,9 @@ async def _rotate_market_event_provider_names(
             *normalized,
         ]
     )
-    state_key = "market-events-provider-rotation:" + hashlib.sha256(
-        identity.encode("utf-8")
-    ).hexdigest()
+    state_key = (
+        "market-events-provider-rotation:" + hashlib.sha256(identity.encode("utf-8")).hexdigest()
+    )
     state = (
         await db.execute(
             select(ProviderPaginationState)
@@ -245,15 +245,18 @@ async def _fetch_cursor_paginated_market_events(
     provider_name: str,
     start: date | None,
     end: date | None,
-) -> tuple[str, list[MarketEventRecord], list[dict[str, str]], int]:
+    max_pages: int | None,
+    force_refresh: bool,
+    retry_blocked: bool,
+) -> tuple[str, dict[str, int], list[dict[str, str]], int, dict[str, Any]]:
     """Read every provider cursor page while accounting each request.
 
-    Massive exposes the IPO calendar through a cursor-paginated endpoint.  A
+    Massive exposes URL cursors and FMP exposes numeric page cursors. A
     one-page compatibility method is useful to callers, but persistence must
-    not silently discard the continuation.  Each page is routed through the
-    normal quota/health runtime, so a quota failure after page N leaves pages
-    1..N available for persistence and the failure is retained for the next
-    scheduled run.
+    not silently discard either continuation form. Each valid page's source
+    rows, request accounting, and next cursor are committed together before
+    another page is requested. A quota failure after page N therefore leaves
+    pages 1..N durably available and the failure is retained for the next run.
     """
 
     provider = get_provider(provider_name)
@@ -261,9 +264,11 @@ async def _fetch_cursor_paginated_market_events(
     if not callable(page_method):
         raise TypeError("provider does not expose cursor-paginated market events")
 
-    state_key = "market-events:" + ":".join(
-        (value.isoformat() if value is not None else "*") for value in (start, end)
-    ) + f":{provider_name.strip().lower()}"
+    state_key = (
+        "market-events:"
+        + ":".join((value.isoformat() if value is not None else "*") for value in (start, end))
+        + f":{provider_name.strip().lower()}"
+    )
     state = (
         await db.execute(
             select(ProviderPaginationState)
@@ -293,6 +298,20 @@ async def _fetch_cursor_paginated_market_events(
         )
         db.add(state)
         await db.flush()
+    elif state.status == "complete" and not force_refresh:
+        return (
+            provider_name,
+            {"events": 0, "persisted": 0, "linked": 0, "unlinked": 0},
+            [],
+            0,
+            {
+                "status": "complete",
+                "pages_fetched": 0,
+                "total_pages_fetched": int(state.pages_fetched or 0),
+                "continuation_pending": False,
+                "skipped_completed_window": True,
+            },
+        )
     elif state.status == "complete":
         # A completed daily window is eligible for a fresh snapshot; a
         # partial/failed window retains its opaque continuation for retry.
@@ -303,13 +322,39 @@ async def _fetch_cursor_paginated_market_events(
         state.last_page_count = 0
         state.last_error = None
         state.cursor_history = []
+    elif state.status == "blocked":
+        if not retry_blocked:
+            return (
+                provider_name,
+                {"events": 0, "persisted": 0, "linked": 0, "unlinked": 0},
+                [
+                    {
+                        "operation": "fetch_market_events",
+                        "error_type": "ProviderPaginationBlocked",
+                        "error": str(state.last_error or "provider pagination is blocked"),
+                        "page_cursor": state.cursor or "<blocked>",
+                    }
+                ],
+                0,
+                {
+                    "status": "blocked",
+                    "pages_fetched": 0,
+                    "total_pages_fetched": int(state.pages_fetched or 0),
+                    "continuation_pending": bool(state.cursor),
+                    "skipped_completed_window": False,
+                },
+            )
+        # A blocked cursor is durable evidence of what remains, not a terminal
+        # discard. An explicit retry lets a later adapter/source improvement
+        # resume from that point without resetting the window or losing rows.
+        state.status = "pending"
 
     cursor: str | None = state.cursor
     seen_cursors: set[str] = set(str(item) for item in (state.cursor_history or []))
-    records: list[MarketEventRecord] = []
+    counts = {"events": 0, "persisted": 0, "linked": 0, "unlinked": 0}
     failures: list[dict[str, str]] = []
     page_count = 0
-    while True:
+    while max_pages is None or page_count < max_pages:
         page_cursor = cursor
         try:
             execution = await execute_provider_call(
@@ -317,7 +362,9 @@ async def _fetch_cursor_paginated_market_events(
                 ProviderCapability.MARKET_EVENTS,
                 "fetch_market_events",
                 provider_name=provider_name,
-                invoke=lambda resolved, _provider_symbol, page_cursor=page_cursor: resolved.fetch_market_events_page(
+                invoke=lambda resolved,
+                _provider_symbol,
+                page_cursor=page_cursor: resolved.fetch_market_events_page(
                     start=start,
                     end=end,
                     cursor=page_cursor,
@@ -360,11 +407,17 @@ async def _fetch_cursor_paginated_market_events(
             next_cursor = None
             next_url = None
             complete = True
+            blocked_error = None
         elif isinstance(page, dict):
             page_events = page.get("events")
             next_url = page.get("next_url")
             next_cursor = page.get("next_cursor")
-            complete = page.get("complete") is True or not next_url
+            blocked_error = page.get("blocked_error")
+            complete = (
+                page.get("complete") is True
+                if "complete" in page or blocked_error
+                else not next_url and not next_cursor
+            )
         else:
             state.status = "failed"
             state.last_failure_at = datetime.now(UTC)
@@ -394,8 +447,58 @@ async def _fetch_cursor_paginated_market_events(
                 }
             )
             break
-        records.extend(page_events)
+        page_counts = await _persist_market_event_records(
+            db,
+            provider_name=execution.provider_name,
+            records=page_events,
+        )
+        for count_name, count in page_counts.items():
+            counts[count_name] += count
         state.last_page_count = len(page_events)
+        if blocked_error:
+            if (
+                not isinstance(blocked_error, str)
+                or not blocked_error.strip()
+                or complete
+                or next_url is not None
+            ):
+                state.status = "failed"
+                state.last_failure_at = datetime.now(UTC)
+                state.last_error = "provider returned invalid blocked-page metadata"
+                failures.append(
+                    {
+                        "operation": "fetch_market_events",
+                        "error_type": "ValueError",
+                        "error": state.last_error,
+                        "page_cursor": page_cursor or "<initial>",
+                    }
+                )
+                await db.commit()
+                break
+            state.cursor = next_cursor.strip() if isinstance(next_cursor, str) else page_cursor
+            state.status = "blocked"
+            state.last_failure_at = datetime.now(UTC)
+            state.last_error = str(blocked_error).strip()[:500]
+            metadata = state.metadata_payload if isinstance(state.metadata_payload, dict) else {}
+            state.metadata_payload = {
+                **metadata,
+                "blocked_page_number": state.page_number,
+                "blocked_page_count": len(page_events),
+                "blocked_error": state.last_error,
+            }
+            failures.append(
+                {
+                    "operation": "fetch_market_events",
+                    "error_type": "ProviderPaginationBlocked",
+                    "error": state.last_error,
+                    "page_cursor": page_cursor or "<initial>",
+                }
+            )
+            # This page has already been persisted. Do not spend quota
+            # repeatedly on an impossible range; a narrower range has its own
+            # cursor state and can continue collecting the remaining rows.
+            await db.commit()
+            break
         if complete:
             if next_url is not None or next_cursor is not None:
                 state.status = "failed"
@@ -409,36 +512,40 @@ async def _fetch_cursor_paginated_market_events(
                         "page_cursor": page_cursor or "<initial>",
                     }
                 )
+                await db.commit()
                 break
             state.cursor = None
             state.status = "complete"
             state.cursor_history = []
+            await db.commit()
             break
-        if not isinstance(next_url, str) or not next_url:
+        if next_url is not None and (not isinstance(next_url, str) or not next_url.strip()):
             state.status = "failed"
             state.last_failure_at = datetime.now(UTC)
-            state.last_error = "provider returned an incomplete page without next_url"
+            state.last_error = "provider returned an invalid next_url"
             failures.append(
                 {
                     "operation": "fetch_market_events",
                     "error_type": "ValueError",
-                    "error": "provider returned an incomplete page without next_url",
+                    "error": state.last_error,
                     "page_cursor": page_cursor or "<initial>",
                 }
             )
+            await db.commit()
             break
         if not isinstance(next_cursor, str) or not next_cursor.strip():
             state.status = "failed"
             state.last_failure_at = datetime.now(UTC)
-            state.last_error = "provider returned next_url without a validated next_cursor"
+            state.last_error = "provider returned an incomplete page without a validated cursor"
             failures.append(
                 {
                     "operation": "fetch_market_events",
                     "error_type": "ValueError",
-                    "error": "provider returned next_url without a validated next_cursor",
+                    "error": state.last_error,
                     "page_cursor": page_cursor or "<initial>",
                 }
             )
+            await db.commit()
             break
         next_cursor = next_cursor.strip()
         cursor_digest = hashlib.sha256(next_cursor.encode("utf-8")).hexdigest()
@@ -454,14 +561,28 @@ async def _fetch_cursor_paginated_market_events(
                     "page_cursor": next_cursor,
                 }
             )
+            await db.commit()
             break
         seen_cursors.add(cursor_digest)
         state.cursor_history = sorted(seen_cursors)
         cursor = next_cursor
         state.cursor = next_cursor
         state.status = "partial"
+        await db.commit()
 
-    return execution.provider_name if "execution" in locals() else provider_name, records, failures, page_count
+    return (
+        execution.provider_name if "execution" in locals() else provider_name,
+        counts,
+        failures,
+        page_count,
+        {
+            "status": state.status,
+            "pages_fetched": page_count,
+            "total_pages_fetched": int(state.pages_fetched or 0),
+            "continuation_pending": bool(state.cursor),
+            "skipped_completed_window": False,
+        },
+    )
 
 
 async def _resolve_event_targets(
@@ -483,8 +604,7 @@ async def _resolve_event_targets(
                 await db.execute(
                     select(InstrumentProviderSymbol.instrument_id).where(
                         InstrumentProviderSymbol.data_source_id == source_id,
-                        func.upper(InstrumentProviderSymbol.provider_symbol)
-                        == symbol.upper(),
+                        func.upper(InstrumentProviderSymbol.provider_symbol) == symbol.upper(),
                         InstrumentProviderSymbol.is_active.is_(True),
                     )
                 )
@@ -498,13 +618,46 @@ async def _resolve_event_targets(
     cik = _normalize_cik(_first_text(payload, _CIK_FIELDS))
     issuer_id: int | None = None
     if cik is not None:
-        issuer_rows = (
-            await db.execute(select(Issuer.id).where(Issuer.cik == cik))
-        ).all()
+        issuer_rows = (await db.execute(select(Issuer.id).where(Issuer.cik == cik))).all()
         issuer_candidates = sorted({int(row[0]) for row in issuer_rows if row[0] is not None})
         if len(issuer_candidates) == 1:
             issuer_id = issuer_candidates[0]
     return instrument_id, issuer_id
+
+
+async def _persist_market_event_records(
+    db: AsyncSession,
+    *,
+    provider_name: str,
+    records: Sequence[MarketEventRecord],
+) -> dict[str, int]:
+    """Persist each provider event with its exact source payload and link state."""
+
+    counts = {"events": 0, "persisted": 0, "linked": 0, "unlinked": 0}
+    for record in records:
+        payload = dict(record.raw_payload or {})
+        instrument_id, issuer_id = await _resolve_event_targets(
+            db,
+            provider_name=provider_name,
+            payload=payload,
+        )
+        await persist_market_event(
+            db,
+            event_key=record.event_key,
+            event_type=record.event_type,
+            source=provider_name,
+            instrument_id=instrument_id,
+            issuer_id=issuer_id,
+            event_time=record.event_time,
+            effective_date=record.effective_date,
+            source_version=record.source_version,
+            payload=payload,
+            is_provisional=record.is_provisional,
+        )
+        counts["events"] += 1
+        counts["persisted"] += 1
+        counts["linked" if instrument_id is not None or issuer_id is not None else "unlinked"] += 1
+    return counts
 
 
 async def refresh_market_events(
@@ -514,6 +667,9 @@ async def refresh_market_events(
     end: date | None = None,
     provider_names: Sequence[str] | None = None,
     max_providers: int | None = None,
+    max_pages: int | None = None,
+    force_refresh: bool = True,
+    retry_blocked: bool = False,
 ) -> dict[str, Any]:
     """Fetch and persist one bounded market-event window per provider.
 
@@ -522,6 +678,13 @@ async def refresh_market_events(
     other eligible providers continue; one provider's failure never erases
     successful observations from another source.
     """
+
+    if start is not None and end is not None and start > end:
+        raise ValueError("market-event start date must not be after end date")
+    if max_pages is not None and (
+        isinstance(max_pages, bool) or not isinstance(max_pages, int) or max_pages < 1
+    ):
+        raise ValueError("max_pages must be a positive integer or None")
 
     names = market_event_provider_names(provider_names)
     rotation_state: ProviderPaginationState | None = None
@@ -550,6 +713,7 @@ async def refresh_market_events(
         fetched_at = datetime.now(UTC)
         operation_failures: list[dict[str, Any]] = []
         resolved_provider_name = requested_name
+        pagination_summary: dict[str, Any] | None = None
         try:
             operations = _market_event_operations(
                 requested_name,
@@ -573,18 +737,29 @@ async def refresh_market_events(
             ):
                 (
                     resolved_provider_name,
-                    records,
+                    page_counts,
                     page_failures,
                     _page_count,
+                    pagination_summary,
                 ) = await _fetch_cursor_paginated_market_events(
                     db,
                     provider_name=requested_name,
                     start=start,
                     end=end,
+                    max_pages=max_pages,
+                    force_refresh=force_refresh,
+                    retry_blocked=retry_blocked,
                 )
                 if page_failures:
                     failures += len(page_failures)
                     operation_failures.extend(page_failures)
+                provider_events += page_counts["events"]
+                provider_persisted += page_counts["persisted"]
+                provider_linked += page_counts["linked"]
+                provider_unlinked += page_counts["unlinked"]
+                # Cursor-paginated rows were persisted atomically with each
+                # page's durable continuation inside the page reader.
+                continue
             else:
                 try:
                     execution = await execute_provider_call(
@@ -615,32 +790,15 @@ async def refresh_market_events(
                     )
                     continue
 
-            for record in records:
-                payload = dict(record.raw_payload or {})
-                instrument_id, issuer_id = await _resolve_event_targets(
-                    db,
-                    provider_name=resolved_provider_name,
-                    payload=payload,
-                )
-                await persist_market_event(
-                    db,
-                    event_key=record.event_key,
-                    event_type=record.event_type,
-                    source=resolved_provider_name,
-                    instrument_id=instrument_id,
-                    issuer_id=issuer_id,
-                    event_time=record.event_time,
-                    effective_date=record.effective_date,
-                    source_version=record.source_version,
-                    payload=payload,
-                    is_provisional=record.is_provisional,
-                )
-                provider_events += 1
-                provider_persisted += 1
-                if instrument_id is None and issuer_id is None:
-                    provider_unlinked += 1
-                else:
-                    provider_linked += 1
+            persisted_counts = await _persist_market_event_records(
+                db,
+                provider_name=resolved_provider_name,
+                records=records,
+            )
+            provider_events += persisted_counts["events"]
+            provider_persisted += persisted_counts["persisted"]
+            provider_linked += persisted_counts["linked"]
+            provider_unlinked += persisted_counts["unlinked"]
 
         provider_results.append(
             {
@@ -658,6 +816,7 @@ async def refresh_market_events(
                 "unlinked": provider_unlinked,
                 "fetched_at": fetched_at,
                 "failures": operation_failures,
+                "pagination": pagination_summary,
             }
         )
         total_events += provider_events
@@ -685,6 +844,7 @@ async def refresh_market_events(
         "linked": total_linked,
         "unlinked": total_unlinked,
         "failures": failures,
+        "max_pages_per_provider": max_pages,
         "reconciliation": reconciliation,
     }
 
@@ -698,6 +858,7 @@ async def refresh_edgar_ipo_pipeline(
     max_ciks: int = 50,
     max_events_per_issuer: int = 100,
     commit: bool = True,
+    after_issuer: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
 ) -> dict[str, Any]:
     """Persist EDGAR filing candidates for an explicit CIK batch.
 
@@ -769,8 +930,11 @@ async def refresh_edgar_ipo_pipeline(
                 ProviderCapability.MARKET_EVENTS,
                 "fetch_ipo_pipeline_events",
                 provider_name=provider_name,
+                provider_symbol=f"CIK:{cik}",
                 usage_identity=f"cik:{cik}",
-                invoke=lambda resolved, _provider_symbol, candidate=cik: resolved.fetch_ipo_pipeline_events(
+                invoke=lambda resolved,
+                _provider_symbol,
+                candidate=cik: resolved.fetch_ipo_pipeline_events(
                     candidate,
                     start=start,
                     end=end,
@@ -829,6 +993,8 @@ async def refresh_edgar_ipo_pipeline(
         total_persisted += events
         total_linked += linked
         total_unlinked += unlinked
+        if after_issuer is not None:
+            await after_issuer(issuer_results[-1])
 
     reconciliation = await reconcile_market_events(db, start=start, end=end)
     if commit:

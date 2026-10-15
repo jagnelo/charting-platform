@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 import time
 from datetime import UTC, date, datetime, timedelta
-from decimal import Decimal
+from decimal import ROUND_CEILING, Decimal, InvalidOperation
 from email.utils import parsedate_to_datetime
 from hashlib import sha256
 from math import ceil, isfinite
@@ -28,7 +28,11 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
 
-from app.config import settings
+from app.config import (
+    provider_operation_byte_bounds,
+    provider_required_operation_byte_bounds,
+    settings,
+)
 from app.models.instrument_event import EventTimeHint, InstrumentEventType
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.providers.base import (
@@ -50,7 +54,7 @@ from app.providers.errors import (
     raise_for_provider_error_envelope,
     redact_provider_message,
 )
-from app.providers.telemetry import observe_response
+from app.providers.telemetry import observe_response, observe_sanitized_payload
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +73,48 @@ _TF_SECONDS: dict[Timeframe, int] = {
     Timeframe.MN: 2592000,
 }
 _TWELVE_DATA_POINTS_PER_REQUEST = 5000
+_FMP_EOD_MAX_ROWS_PER_RESPONSE = 5000
+# Keep every FMP daily-history request below the documented 5,000-row ceiling
+# even if the requested date range contains a bar on every calendar day.
+_FMP_EOD_MAX_CALENDAR_DAYS_PER_REQUEST = _FMP_EOD_MAX_ROWS_PER_RESPONSE - 500
+
+
+def _tiingo_year_ranges(start: datetime, end: datetime) -> list[tuple[date, date]]:
+    """Split an exclusive datetime range into gapless, inclusive calendar years.
+
+    Tiingo EOD history accepts inclusive ``startDate``/``endDate`` values but
+    publishes no response-row or response-byte cap. Keeping each HTTP response
+    to at most one calendar year gives the app's per-response bandwidth
+    reservation a bounded, auditable input while allowing arbitrarily old
+    history to be collected over multiple requests.
+    """
+
+    bounded_start = _bounded_datetime(start)
+    bounded_end = _bounded_datetime(end)
+    if bounded_end <= bounded_start:
+        return []
+    first = bounded_start.date()
+    last = (bounded_end - timedelta(microseconds=1)).date()
+    ranges: list[tuple[date, date]] = []
+    while first <= last:
+        year_end = date(first.year, 12, 31)
+        current_end = min(last, year_end)
+        ranges.append((first, current_end))
+        first = current_end + timedelta(days=1)
+    return ranges
+
+
+def estimate_tiingo_ohlcv_request_count(
+    timeframe: Timeframe, start: datetime, end: datetime
+) -> int | None:
+    """Estimate Tiingo's exact HTTP count for its one-year EOD date chunks."""
+
+    if timeframe not in {Timeframe.D1, Timeframe.W1, Timeframe.MN}:
+        return None
+    ranges = _tiingo_year_ranges(start, end)
+    return len(ranges) if ranges else None
+
+
 _MARKETSTACK_POINTS_PER_REQUEST = 100
 _MARKETDATA_APP_CANDLES_PER_CREDIT = 1000
 _FULL_DISCOVERY_CACHE_TTL_SECONDS = 300
@@ -162,21 +208,15 @@ def _account_integer(
     if not source_present or raw in (None, ""):
         return None
     if isinstance(raw, bool):
-        raise ProviderResponseError(
-            provider_name, f"provider returned an invalid account {field}"
-        )
+        raise ProviderResponseError(provider_name, f"provider returned an invalid account {field}")
     if isinstance(raw, int):
         value = raw
     elif isinstance(raw, str) and raw.strip().lstrip("+-").isdigit():
         value = int(raw.strip())
     else:
-        raise ProviderResponseError(
-            provider_name, f"provider returned an invalid account {field}"
-        )
+        raise ProviderResponseError(provider_name, f"provider returned an invalid account {field}")
     if value < 0:
-        raise ProviderResponseError(
-            provider_name, f"provider returned an invalid account {field}"
-        )
+        raise ProviderResponseError(provider_name, f"provider returned an invalid account {field}")
     return value
 
 
@@ -395,6 +435,27 @@ def estimate_marketdata_app_option_quote_history_credit_count(
         return None
     span_days = max(1, (bounded_end.date() - bounded_start.date()).days + 1)
     return max(1, ceil(span_days / 1000))
+
+
+def estimate_fmp_ohlcv_request_count(
+    timeframe: Timeframe, start: datetime, end: datetime
+) -> int | None:
+    """Return the number of bounded FMP daily-history requests for a range.
+
+    FMP's stable EOD endpoint caps a response at 5,000 rows. The adapter
+    partitions longer ranges into 4,500-calendar-day windows, leaving a margin
+    below that cap. Returning ``None`` for unsupported/invalid ranges keeps
+    provider admission fail-closed instead of pretending one request is enough.
+    """
+
+    if timeframe is not Timeframe.D1:
+        return None
+    bounded_start = _bounded_datetime(start)
+    bounded_end = _bounded_datetime(end)
+    if bounded_end <= bounded_start:
+        return None
+    inclusive_calendar_days = (bounded_end.date() - bounded_start.date()).days + 1
+    return max(1, ceil(inclusive_calendar_days / _FMP_EOD_MAX_CALENDAR_DAYS_PER_REQUEST))
 
 
 def _number(value: Any) -> float | None:
@@ -658,7 +719,9 @@ def _parallel_stock_quote_rows(payload: Any, provider_name: str) -> list[dict[st
     """
 
     if not isinstance(payload, dict):
-        raise ProviderResponseError(provider_name, "provider returned an invalid stock-quote object")
+        raise ProviderResponseError(
+            provider_name, "provider returned an invalid stock-quote object"
+        )
     status = str(payload.get("s") or "").strip().lower()
     if status == "no_data":
         return []
@@ -669,7 +732,9 @@ def _parallel_stock_quote_rows(payload: Any, provider_name: str) -> list[dict[st
         )
     symbols = payload.get("symbol")
     if not isinstance(symbols, list):
-        raise ProviderResponseError(provider_name, "provider returned an invalid stock-quote symbol array")
+        raise ProviderResponseError(
+            provider_name, "provider returned an invalid stock-quote symbol array"
+        )
     expected_length = len(symbols)
     fields = (
         "ask",
@@ -701,7 +766,9 @@ def _parallel_stock_quote_rows(payload: Any, provider_name: str) -> list[dict[st
     for index, raw_symbol in enumerate(symbols):
         symbol = str(raw_symbol or "").strip().upper()
         if not symbol:
-            raise ProviderResponseError(provider_name, "provider returned a stock quote without a symbol")
+            raise ProviderResponseError(
+                provider_name, "provider returned a stock quote without a symbol"
+            )
         rows.append({field: values[index] for field, values in arrays.items()})
     return rows
 
@@ -892,6 +959,23 @@ class _RESTProvider:
     key_param: str = "apikey"
     key_header: str = "Authorization"
 
+    def _response_byte_bound(self, operation: str | None) -> int | None:
+        if self.name not in {"fmp", "tiingo"}:
+            return None
+        if not operation:
+            raise ProviderNotConfiguredError(
+                f"{self.name} requests require an explicit operation for response-byte admission"
+            )
+        required = provider_required_operation_byte_bounds(self.name)
+        bounds = provider_operation_byte_bounds(self.name)
+        bound = bounds.get(operation)
+        if operation not in required or bound is None:
+            raise ProviderNotConfiguredError(
+                f"{self.name}/{operation} requires a positive configured bound in "
+                f"{self.name.upper()}_OPERATION_BYTE_BOUNDS"
+            )
+        return bound
+
     def _key(self) -> str:
         return str(getattr(settings, self.key_setting, "") or "").strip()
 
@@ -932,8 +1016,18 @@ class _RESTProvider:
         params: dict[str, Any] | None = None,
         *,
         base_url: str | None = None,
+        operation: str | None = None,
+        not_found_is_empty: bool = False,
+        not_found_payload_status: str | None = None,
     ) -> Any:
-        payload, _ = self._get_with_headers(path, params, base_url=base_url)
+        payload, _ = self._get_with_headers(
+            path,
+            params,
+            base_url=base_url,
+            operation=operation,
+            not_found_is_empty=not_found_is_empty,
+            not_found_payload_status=not_found_payload_status,
+        )
         return payload
 
     def _get_with_headers(
@@ -942,7 +1036,11 @@ class _RESTProvider:
         params: dict[str, Any] | None = None,
         *,
         base_url: str | None = None,
+        operation: str | None = None,
+        follow_redirects: bool = False,
         not_found_is_empty: bool = False,
+        not_found_payload_status: str | None = None,
+        capture_response_payload: bool | None = None,
     ) -> tuple[Any, dict[str, str]]:
         """Return one documented JSON response plus safe capacity headers.
 
@@ -953,26 +1051,52 @@ class _RESTProvider:
         exposing authentication headers or changing every adapter method.
         """
 
+        response_byte_bound = self._response_byte_bound(operation)
         if self.key_setting and not self._key():
             raise ProviderNotConfiguredError(
                 f"{self.name} requires {self.key_setting}; configure it before routing"
             )
         try:
+            request_options: dict[str, Any] = {
+                "params": self._auth_params(params),
+                "headers": self._auth_headers(),
+                "timeout": 30,
+            }
+            if follow_redirects:
+                request_options["follow_redirects"] = True
             response = httpx.get(
                 f"{(base_url or self.base_url).rstrip('/')}/{path.lstrip('/')}",
-                params=self._auth_params(params),
-                headers=self._auth_headers(),
-                timeout=30,
+                **request_options,
             )
-            observe_response(response)
+            observe_response(response, capture_response_payload=capture_response_payload)
             headers = provider_response_headers(response)
             if not_found_is_empty and response.status_code == 404:
                 return None, headers
+            if response.status_code == 404 and not_found_payload_status:
+                try:
+                    not_found_payload = response.json()
+                except (TypeError, ValueError):
+                    not_found_payload = None
+                if (
+                    isinstance(not_found_payload, dict)
+                    and str(not_found_payload.get("s") or "").strip().lower()
+                    == not_found_payload_status.strip().lower()
+                ):
+                    return not_found_payload, headers
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
             _raise_http_error(self.name, exc)
         except httpx.RequestError as exc:
             raise ProviderResponseError(self.name, redact_provider_message(str(exc))) from exc
+        if response_byte_bound is not None:
+            content = getattr(response, "content", None)
+            if isinstance(content, bytes | bytearray) and len(content) > response_byte_bound:
+                raise ProviderResponseError(
+                    self.name,
+                    f"{operation} response exceeded its configured "
+                    f"{response_byte_bound}-byte bound; "
+                    "the complete response was rejected without truncation",
+                )
         try:
             payload = response.json()
         except (TypeError, ValueError) as exc:
@@ -1120,6 +1244,54 @@ class TiingoProvider(_RESTProvider):
 
     _RESAMPLE = {Timeframe.D1: "daily", Timeframe.W1: "weekly", Timeframe.MN: "monthly"}
 
+    def _fetch_ohlcv(
+        self,
+        symbol: str,
+        timeframe: Timeframe,
+        start: datetime,
+        end: datetime,
+        *,
+        adjusted: bool = True,
+        instrument_id: int | None = None,
+        data_source_id: int | None = None,
+        operation: str,
+    ) -> list[OHLCVBar]:
+        self._require_raw_history(adjusted)
+        resample = self._RESAMPLE.get(timeframe)
+        if not resample:
+            raise ProviderResponseError(
+                self.name, f"{self.name} does not support timeframe {timeframe.value}"
+            )
+        bounded_start = _bounded_datetime(start)
+        bounded_end = _bounded_datetime(end)
+        if bounded_end <= bounded_start:
+            return []
+        bars: list[OHLCVBar] = []
+        for first_date, last_date in _tiingo_year_ranges(bounded_start, bounded_end):
+            payload = self._get(
+                f"tiingo/daily/{symbol.upper()}/prices",
+                {
+                    "startDate": first_date.isoformat(),
+                    "endDate": last_date.isoformat(),
+                    "resampleFreq": resample,
+                },
+                operation=operation,
+            )
+            rows = self._strict_rows(payload, self.name)
+            bars.extend(
+                self._bar(
+                    row,
+                    timeframe,
+                    instrument_id=instrument_id,
+                    data_source_id=data_source_id,
+                )
+                for row in rows
+            )
+        return sorted(
+            [bar for bar in bars if bar and bounded_start <= bar.ts < bounded_end],
+            key=lambda bar: bar.ts,
+        )
+
     def fetch_ohlcv(
         self,
         symbol: str,
@@ -1131,36 +1303,58 @@ class TiingoProvider(_RESTProvider):
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
-        self._require_raw_history(adjusted)
-        resample = self._RESAMPLE.get(timeframe)
-        if not resample:
-            raise ProviderResponseError(
-                self.name, f"{self.name} does not support timeframe {timeframe.value}"
-            )
-        payload = self._get(
-            f"tiingo/daily/{symbol.upper()}/prices",
-            {
-                "startDate": _bounded_datetime(start).date().isoformat(),
-                "endDate": _bounded_datetime(end).date().isoformat(),
-                "resampleFreq": resample,
-            },
-        )
-        rows = self._strict_rows(payload, self.name)
-        bars = [
-            self._bar(row, timeframe, instrument_id=instrument_id, data_source_id=data_source_id)
-            for row in rows
-        ]
-        return sorted(
-            [
-                bar
-                for bar in bars
-                if bar and _bounded_datetime(start) <= bar.ts < _bounded_datetime(end)
-            ],
-            key=lambda bar: bar.ts,
+        return self._fetch_ohlcv(
+            symbol,
+            timeframe,
+            start,
+            end,
+            adjusted=adjusted,
+            instrument_id=instrument_id,
+            data_source_id=data_source_id,
+            operation="fetch_ohlcv",
         )
 
+    def fetch_latest_ohlcv(
+        self,
+        symbol: str,
+        timeframe: Timeframe,
+        limit: int,
+        *,
+        adjusted: bool = True,
+        instrument_id: int | None = None,
+        data_source_id: int | None = None,
+    ) -> list[OHLCVBar]:
+        if limit <= 0:
+            return []
+        bars = self._fetch_ohlcv(
+            symbol,
+            timeframe,
+            self.latest_window_start(timeframe, limit),
+            datetime.now(UTC),
+            adjusted=adjusted,
+            instrument_id=instrument_id,
+            data_source_id=data_source_id,
+            operation="fetch_latest_ohlcv",
+        )
+        return bars[-limit:]
+
+    def get_current_price(self, symbol: str) -> float | None:
+        bars = self._fetch_ohlcv(
+            symbol,
+            Timeframe.D1,
+            self.latest_window_start(Timeframe.D1, 1),
+            datetime.now(UTC),
+            adjusted=False,
+            operation="get_current_price",
+        )
+        return float(bars[-1].close) if bars else None
+
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
-        payload = self._get("tiingo/utilities/search", {"query": query, "limit": min(limit, 100)})
+        payload = self._get(
+            "tiingo/utilities/search",
+            {"query": query, "limit": min(limit, 100)},
+            operation="search_instruments",
+        )
         results: list[ProviderSearchResult] = []
         for row in self._strict_rows(payload, self.name):
             ticker = _required_text(row, self.name, "ticker", "ticker")
@@ -1176,7 +1370,7 @@ class TiingoProvider(_RESTProvider):
         return results[:limit]
 
     def get_instrument_profile(self, symbol: str) -> InstrumentProfile | None:
-        payload = self._get(f"tiingo/daily/{symbol.upper()}")
+        payload = self._get(f"tiingo/daily/{symbol.upper()}", operation="get_instrument_profile")
         # Tiingo's metadata endpoint returns one object, unlike its price and
         # search endpoints which return arrays. Keep this endpoint-specific
         # shape explicit rather than flattening arbitrary provider payloads.
@@ -1234,26 +1428,33 @@ class TwelveDataProvider(_RESTProvider):
             )
         return value
 
+    @staticmethod
+    def _usage_payload_integer(payload: dict[str, Any], name: str) -> int | None:
+        raw = payload.get(name)
+        if raw is None:
+            return None
+        if isinstance(raw, bool) or not isinstance(raw, int) or raw < 0:
+            raise ProviderResponseError(
+                "twelve_data", f"provider returned an invalid {name} account counter"
+            )
+        return raw
+
     def fetch_account_usage(self) -> ProviderAccountUsage | None:
         """Read Twelve Data's documented API-credit usage endpoint.
 
         Twelve Data documents ``/api_usage`` as the real-time plan/usage
-        surface and guarantees ``api-credits-used``/``api-credits-left``
-        headers on API responses. Those headers describe the current minute
-        pool; the endpoint itself costs one API credit. The official credits
-        documentation defines the separate Basic daily pool's reset at
-        midnight UTC, but this endpoint does not expose a prior daily
-        consumption counter. Daily usage is therefore not synthesized here;
-        the minute observation is still retained with its exact reset
-        boundary, and daily routing remains baseline-gated.
+        surface and documents ``api-credits-used``/``api-credits-left``
+        response headers. Its usage response also reports request counts in
+        ``current_usage``/``plan_limit`` and (for Basic) optional
+        ``daily_usage``/``plan_daily_limit`` fields. These are stored as
+        request windows, separate from the weighted minute-credit pool. The
+        documented probe cost is one API credit and one API request.
         """
 
         payload, headers = self._get_with_headers("api_usage")
         if not isinstance(payload, dict):
-            raise ProviderResponseError(
-                self.name, "provider returned an invalid API-usage object"
-            )
-        plan = payload.get("plan")
+            raise ProviderResponseError(self.name, "provider returned an invalid API-usage object")
+        plan = payload.get("plan_category", payload.get("plan"))
         if plan is not None and not isinstance(plan, str):
             raise ProviderResponseError(self.name, "provider returned an invalid account plan")
         used = self._usage_header_integer(headers, "api-credits-used")
@@ -1278,6 +1479,35 @@ class TwelveDataProvider(_RESTProvider):
             consumed=used,
             reset_at=reset_at,
         )
+        dimensions = [dimension]
+        for usage_name, limit_name, dimension_name in (
+            ("current_usage", "plan_limit", "requests_per_minute"),
+            ("daily_usage", "plan_daily_limit", "requests_per_day"),
+        ):
+            consumed = self._usage_payload_integer(payload, usage_name)
+            request_limit = self._usage_payload_integer(payload, limit_name)
+            if consumed is None and request_limit is None:
+                continue
+            remaining_requests = (
+                request_limit - consumed
+                if request_limit is not None and consumed is not None and consumed <= request_limit
+                else None
+            )
+            dimensions.append(
+                ProviderAccountUsageDimension(
+                    name=dimension_name,
+                    unit="requests",
+                    limit=request_limit,
+                    remaining=remaining_requests,
+                    consumed=consumed,
+                    reset_at=(
+                        observed_at.replace(hour=0, minute=0, second=0, microsecond=0)
+                        + timedelta(days=1)
+                        if dimension_name == "requests_per_day"
+                        else reset_at
+                    ),
+                )
+            )
         return ProviderAccountUsage(
             provider=self.name,
             observed_at=observed_at,
@@ -1287,7 +1517,7 @@ class TwelveDataProvider(_RESTProvider):
             consumed=used,
             reset_at=reset_at,
             account_plan=plan.strip() if isinstance(plan, str) and plan.strip() else None,
-            dimensions=(dimension,),
+            dimensions=tuple(dimensions),
             raw_payload=payload,
             response_headers=headers,
         )
@@ -1425,9 +1655,7 @@ class TwelveDataProvider(_RESTProvider):
         # page look like an exhausted universe.  A missing count is a
         # malformed pagination response rather than permission to guess.
         if not isinstance(payload, dict):
-            raise ProviderResponseError(
-                self.name, "provider omitted the stocks pagination count"
-            )
+            raise ProviderResponseError(self.name, "provider omitted the stocks pagination count")
         total = _strict_int(payload.get("count"), self.name, "stocks pagination count")
         if total < len(rows):
             raise ProviderResponseError(
@@ -1726,13 +1954,12 @@ class MarketDataAppProvider(_RESTProvider):
             header_keys=("x-api-ratelimit-remaining",),
             field="remaining",
         )
-        consumed = _account_integer(
-            payload,
-            headers,
-            body_keys=("creditsConsumed", "requestsConsumed"),
-            header_keys=("x-api-ratelimit-consumed",),
-            field="consumed",
-        )
+        # MarketData.app defines X-Api-Ratelimit-Consumed as the credit cost
+        # of this request, not the account's cumulative usage. The current
+        # window's cumulative use is exactly limit - remaining; keep the
+        # per-request value in response_headers/raw evidence, but never seed
+        # the account baseline from it.
+        consumed = limit - remaining if limit is not None and remaining is not None else None
         options = payload.get("x-options-data-permissions")
         if options is None:
             options = payload.get("optionsDataPermissions")
@@ -2015,7 +2242,11 @@ class MarketDataAppProvider(_RESTProvider):
                 "from": bounded_start.date().isoformat(),
                 "to": bounded_end.date().isoformat(),
             }
-        payload = self._get(f"options/quotes/{symbol.upper()}/", params)
+        payload = self._get(
+            f"options/quotes/{symbol.upper()}/",
+            params,
+            not_found_payload_status="no_data",
+        )
         rows = _parallel_option_quote_rows(payload, self.name)
         points: list[OptionQuotePointRecord] = []
         for row in rows:
@@ -2069,6 +2300,73 @@ class FinnhubProvider(_RESTProvider):
         Timeframe.MN: "M",
     }
 
+    def fetch_account_usage(self) -> ProviderAccountUsage:
+        """Bootstrap Finnhub's native per-minute counter from a quote response.
+
+        Finnhub has no separate usage endpoint. Its documented rate-limit
+        headers accompany normal responses, so use one small AAPL quote and
+        retain the exact header values. The second-level ceiling is accounted
+        for separately as an application-only shared rolling envelope; it is
+        not misrepresented as a provider-reported usage counter.
+        """
+
+        payload, headers = self._get_with_headers(
+            "quote", {"symbol": "AAPL"}, operation="fetch_account_usage"
+        )
+        if not isinstance(payload, dict) or _number(payload.get("c")) is None:
+            raise ProviderResponseError(
+                self.name, "provider returned an invalid quote for quota observation"
+            )
+        limit = _account_integer(
+            {},
+            headers,
+            body_keys=(),
+            header_keys=("x-ratelimit-limit", "ratelimit-limit"),
+            field="minute request limit",
+            provider_name=self.name,
+        )
+        remaining = _account_integer(
+            {},
+            headers,
+            body_keys=(),
+            header_keys=("x-ratelimit-remaining", "ratelimit-remaining"),
+            field="minute requests remaining",
+            provider_name=self.name,
+        )
+        if limit is None or remaining is None or limit <= 0 or remaining > limit:
+            raise ProviderResponseError(
+                self.name, "provider omitted or returned invalid minute rate-limit headers"
+            )
+        observed_at = datetime.now(UTC)
+        reset_at = _retry_at_from_headers(headers)
+        if reset_at is None:
+            # The header exposes remaining capacity but no reset anchor. A
+            # full rolling minute from this observation is the stricter local
+            # admission horizon; it is not labelled as Finnhub's reset time.
+            reset_at = observed_at + timedelta(seconds=60)
+        if reset_at <= observed_at:
+            raise ProviderResponseError(self.name, "provider returned a stale minute reset header")
+        dimension = ProviderAccountUsageDimension(
+            name="calls_per_minute",
+            unit="requests",
+            limit=limit,
+            remaining=remaining,
+            consumed=limit - remaining,
+            reset_at=reset_at,
+        )
+        return ProviderAccountUsage(
+            provider=self.name,
+            observed_at=observed_at,
+            unit="requests",
+            limit=limit,
+            remaining=remaining,
+            consumed=limit - remaining,
+            reset_at=reset_at,
+            dimensions=(dimension,),
+            raw_payload=dict(payload),
+            response_headers=headers,
+        )
+
     def fetch_ohlcv(
         self,
         symbol: str,
@@ -2108,6 +2406,19 @@ class FinnhubProvider(_RESTProvider):
             ],
             key=lambda bar: bar.ts,
         )
+
+    def get_current_price(self, symbol: str) -> float | None:
+        """Read Finnhub's native quote endpoint instead of its candle API."""
+
+        payload = self._get("quote", {"symbol": symbol.upper()})
+        if not isinstance(payload, dict):
+            raise ProviderResponseError(self.name, "provider returned an invalid quote object")
+        price = _number(payload.get("c"))
+        if price is None:
+            raise ProviderResponseError(self.name, "provider returned an invalid quote price")
+        # Finnhub uses zero for the current-price field when no quote is
+        # available for a symbol; preserve that as a no-observation result.
+        return price if price > 0 else None
 
     def get_instrument_profile(self, symbol: str) -> InstrumentProfile | None:
         row = self._get("stock/profile2", {"symbol": symbol.upper()})
@@ -2240,7 +2551,13 @@ class FinnhubProvider(_RESTProvider):
         normalized = quote_type.strip().upper()
         if normalized not in {"EQUITY", "ETF"} or offset < 0:
             return {"total": 0, "quotes": []}
-        rows = self._strict_rows(self._get("stock/symbol", {"exchange": "US"}), self.name)
+        payload, _ = self._get_with_headers(
+            "stock/symbol",
+            {"exchange": "US"},
+            operation="discover_universe_page",
+            follow_redirects=True,
+        )
+        rows = self._strict_rows(payload, self.name)
         filtered: list[dict[str, Any]] = []
         for row in rows:
             symbol = _required_text(row, self.name, "symbol", "symbol")
@@ -2258,8 +2575,12 @@ class FinnhubProvider(_RESTProvider):
                     "status": "active",
                 }
             )
-        page_size = 500
-        return {"total": len(filtered), "quotes": filtered[offset : offset + page_size]}
+        # Finnhub returns the complete US symbol directory in this one
+        # response; it does not expose a server-side offset/page token. Do not
+        # re-download that entire directory once per synthetic 500-row page.
+        # Returning the remainder lets the universe reconciler persist every
+        # row from the same response and terminate from the declared total.
+        return {"total": len(filtered), "quotes": filtered[offset:]}
 
     def supported_discovery_types(self) -> list[str]:
         return ["EQUITY", "ETF"]
@@ -2267,8 +2588,8 @@ class FinnhubProvider(_RESTProvider):
 
 class MarketstackProvider(_RESTProvider):
     name = "marketstack"
-    base_url = "https://api.marketstack.com/v1"
-    description = "Marketstack optional US EOD history"
+    base_url = "https://api.marketstack.com/v2"
+    description = "Marketstack optional US EOD history and venue-scoped ticker discovery"
     key_setting = "MARKETSTACK_API_KEY"
     key_param = "access_key"
 
@@ -2380,8 +2701,23 @@ class MarketstackProvider(_RESTProvider):
             raise ProviderNotConfiguredError(
                 "marketstack universe discovery requires MARKETSTACK_DISCOVERY_EXCHANGE"
             )
-        payload = self._get("tickers", {"exchange": exchange, "limit": 1000, "offset": offset})
-        rows = self._strict_rows(payload, self.name, "data")
+        # Marketstack documents exchange-scoped listings as
+        # /exchanges/{mic}/tickers.  Do not substitute an undocumented
+        # `exchange` query parameter on /tickers: the path is the provider's
+        # actual scope selector and keeps the selected MIC explicit.
+        payload = self._get(f"exchanges/{exchange}/tickers", {"limit": 1000, "offset": offset})
+        data = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(data, dict):
+            raise ProviderResponseError(
+                self.name,
+                "provider returned an invalid exchange tickers data object",
+            )
+        # The V2 exchange-tickers endpoint returns exchange metadata in
+        # ``data`` and the paginated ticker records in ``data.tickers``.
+        # Treating ``data`` as a list (the shape used by several other
+        # Marketstack endpoints) rejects the documented V2 response and would
+        # make live universe discovery fail before archiving any page.
+        rows = self._strict_rows(data, self.name, "tickers")
         quotes = []
         for row in rows:
             symbol = _required_text(row, self.name, "symbol", "symbol", "ticker").upper()
@@ -2392,8 +2728,8 @@ class MarketstackProvider(_RESTProvider):
                 {
                     "symbol": symbol,
                     "longName": row.get("name") or symbol,
-                    "exchange": row.get("exchange") or "",
-                    "currency": row.get("currency") or "USD",
+                    "exchange": data.get("mic") or exchange,
+                    "currency": data.get("currency") or "USD",
                     "quoteType": inferred,
                     "status": "active",
                 }
@@ -2404,9 +2740,7 @@ class MarketstackProvider(_RESTProvider):
                 self.name,
                 "provider omitted the tickers pagination total",
             )
-        total = _strict_int(
-            pagination["total"], self.name, "tickers pagination total"
-        )
+        total = _strict_int(pagination["total"], self.name, "tickers pagination total")
         page_offset = _strict_int(
             pagination.get("offset", offset), self.name, "tickers pagination offset"
         )
@@ -2435,6 +2769,11 @@ class MarketstackProvider(_RESTProvider):
             "total": total,
             "total_scope": "raw",
             "quotes": quotes,
+            # Preserve all provider fields and all asset types. The normalized
+            # quote projection above is only for reconciliation; the archive
+            # stores this complete response so name-based type classification
+            # can never discard information returned by Marketstack.
+            "raw_payload": payload,
             "next_offset": next_offset,
             "complete": next_offset is None,
         }
@@ -2662,6 +3001,34 @@ class EODHDProvider(_RESTProvider):
             key=lambda bar: bar.ts,
         )
 
+    def get_current_price(self, symbol: str) -> float | None:
+        """Read EODHD's documented delayed real-time quote snapshot."""
+
+        requested = symbol.strip().upper()
+        ticker = requested if requested.endswith(".US") else f"{requested}.US"
+        payload = self._get(
+            f"real-time/{ticker}",
+            {"fmt": "json"},
+            operation="get_current_price",
+        )
+        rows = [payload] if isinstance(payload, dict) else self._strict_rows(payload, self.name)
+        if not rows:
+            return None
+        matching = [
+            row
+            for row in rows
+            if str(row.get("code") or row.get("symbol") or "").strip().upper()
+            in {requested, ticker}
+        ]
+        if not matching:
+            raise ProviderResponseError(
+                self.name, "provider quote response omitted the requested symbol"
+            )
+        price = _number(matching[0].get("close"))
+        if price is None or price <= 0:
+            raise ProviderResponseError(self.name, "provider returned an invalid quote price")
+        return price
+
     def get_instrument_profile(self, symbol: str) -> InstrumentProfile | None:
         payload = self._get(
             f"fundamentals/{symbol.upper()}.US",
@@ -2725,6 +3092,223 @@ class FMPProvider(_RESTProvider):
     description = "Financial Modeling Prep optional history, profile, and calendar data"
     key_setting = "FMP_API_KEY"
     key_param = "apikey"
+    _EARNINGS_PAGE_SIZE = 4_000
+    _EARNINGS_MAX_RANGE_DAYS = 90
+
+    def fetch_account_usage(self) -> ProviderAccountUsage | None:
+        """Read FMP dashboard counters without persisting its credential-keyed envelope.
+
+        FMP's dashboard currently exposes a first-party internal usage endpoint,
+        not a documented public API. Keep its response parser narrow and its
+        outer API-key-indexed object out of telemetry, logs, and persistence.
+        The reset timestamps below are application safety-window anchors; the
+        endpoint does not report provider-native reset timestamps.
+        """
+
+        plan = str(getattr(settings, "FMP_REVIEWED_PLAN", "basic") or "").strip().lower()
+        plan_profiles = {
+            "basic": ("calls_per_day", 250, 86_400, 500_000_000),
+            "starter": ("calls_per_minute", 300, 60, 20_000_000_000),
+            "premium": ("calls_per_minute", 750, 60, 50_000_000_000),
+            "ultimate": ("calls_per_minute", 3_000, 60, 150_000_000_000),
+        }
+        profile = plan_profiles.get(plan)
+        if profile is None:
+            raise ProviderNotConfiguredError("FMP_REVIEWED_PLAN is unsupported")
+        call_dimension, expected_call_limit, call_window, expected_bandwidth_limit = profile
+
+        payload, headers = self._get_with_headers(
+            "statistics/my-api-usage",
+            {},
+            base_url="https://cloud.financialmodelingprep.com",
+            operation="fetch_account_usage",
+            # The dashboard response's outer object key is the API secret.
+            capture_response_payload=False,
+        )
+        key = self._key()
+        if (
+            not isinstance(payload, dict)
+            or len(payload) != 1
+            or key not in payload
+            or not isinstance(payload.get(key), dict)
+        ):
+            raise ProviderResponseError(
+                self.name, "provider returned an invalid account-usage envelope"
+            )
+        counters = payload[key]
+
+        def exact_integer(field: str) -> int:
+            value = counters.get(field)
+            if isinstance(value, bool) or not isinstance(value, int | float | str):
+                raise ProviderResponseError(
+                    self.name, "provider returned invalid account-usage counters"
+                )
+            try:
+                parsed = Decimal(str(value))
+            except (InvalidOperation, ValueError):
+                raise ProviderResponseError(
+                    self.name, "provider returned invalid account-usage counters"
+                ) from None
+            if not parsed.is_finite() or parsed != parsed.to_integral_value() or parsed < 0:
+                raise ProviderResponseError(
+                    self.name, "provider returned invalid account-usage counters"
+                )
+            return int(parsed)
+
+        def megabytes_to_conservative_bytes(field: str) -> tuple[Decimal, int]:
+            value = counters.get(field)
+            if isinstance(value, bool) or not isinstance(value, int | float | str):
+                raise ProviderResponseError(
+                    self.name, "provider returned invalid account-bandwidth counters"
+                )
+            try:
+                parsed = Decimal(str(value))
+            except (InvalidOperation, ValueError):
+                raise ProviderResponseError(
+                    self.name, "provider returned invalid account-bandwidth counters"
+                ) from None
+            if not parsed.is_finite() or parsed < 0:
+                raise ProviderResponseError(
+                    self.name, "provider returned invalid account-bandwidth counters"
+                )
+            # The dashboard labels these values MB but does not define decimal
+            # versus binary units. Convert as MiB so usage is never understated.
+            byte_count = int(
+                (parsed * Decimal(1_048_576)).to_integral_value(rounding=ROUND_CEILING)
+            )
+            return parsed, byte_count
+
+        current_calls = exact_integer("currentAPICount")
+        reported_call_limit = exact_integer("rateLimit")
+        if reported_call_limit != expected_call_limit or current_calls > reported_call_limit:
+            raise ProviderResponseError(
+                self.name, "provider account usage does not match the configured FMP plan"
+            )
+        data_usage_mb, consumed_bytes = megabytes_to_conservative_bytes("dataUsage")
+        data_limit_mb, reported_bandwidth_limit = megabytes_to_conservative_bytes("dataUsageLimit")
+        if (
+            data_limit_mb <= 0
+            or data_usage_mb > data_limit_mb
+            or data_limit_mb * Decimal(1_000_000) < expected_bandwidth_limit
+            or reported_bandwidth_limit < expected_bandwidth_limit
+        ):
+            raise ProviderResponseError(
+                self.name, "provider account bandwidth does not match the configured FMP plan"
+            )
+
+        observed_at = datetime.now(UTC)
+        call_limit = expected_call_limit
+        call_reset_at = observed_at + timedelta(seconds=call_window)
+        bandwidth_reset_at = observed_at + timedelta(days=30)
+        dimensions = (
+            ProviderAccountUsageDimension(
+                name=call_dimension,
+                unit="requests",
+                limit=call_limit,
+                remaining=call_limit - current_calls,
+                consumed=current_calls,
+                reset_at=call_reset_at,
+            ),
+            ProviderAccountUsageDimension(
+                name="bandwidth_bytes_per_30_days",
+                unit="bytes",
+                limit=reported_bandwidth_limit,
+                remaining=max(0, reported_bandwidth_limit - consumed_bytes),
+                consumed=consumed_bytes,
+                reset_at=bandwidth_reset_at,
+            ),
+        )
+        safe_payload = {
+            "configured_plan": plan,
+            "currentAPICount": current_calls,
+            "rateLimit": reported_call_limit,
+            "dataUsage": str(data_usage_mb),
+            "dataUsageLimit": str(data_limit_mb),
+            "bandwidth_unit_conversion": "MiB_to_bytes_conservative",
+        }
+        observe_sanitized_payload(safe_payload)
+        return ProviderAccountUsage(
+            provider=self.name,
+            observed_at=observed_at,
+            unit="requests",
+            limit=call_limit,
+            remaining=call_limit - current_calls,
+            consumed=current_calls,
+            reset_at=call_reset_at,
+            account_plan=plan,
+            dimensions=dimensions,
+            # Persist only validated counters. Never retain the credential-keyed
+            # outer object or arbitrary fields returned by this undocumented API.
+            raw_payload=safe_payload,
+            response_headers=headers,
+        )
+
+    def _fetch_ohlcv(
+        self,
+        symbol: str,
+        timeframe: Timeframe,
+        start: datetime,
+        end: datetime,
+        *,
+        adjusted: bool = True,
+        instrument_id: int | None = None,
+        data_source_id: int | None = None,
+        operation: str,
+    ) -> list[OHLCVBar]:
+        self._require_raw_history(adjusted)
+        if timeframe is not Timeframe.D1:
+            raise ProviderResponseError(
+                self.name, f"{self.name} does not support timeframe {timeframe.value}"
+            )
+        bounded_start = _bounded_datetime(start)
+        bounded_end = _bounded_datetime(end)
+        if bounded_end <= bounded_start:
+            return []
+
+        # FMP's stable EOD endpoint returns at most 5,000 records. A single
+        # wider request can therefore look successful while omitting older
+        # history. Partition by calendar days below that provider cap and make
+        # each HTTP request visible to the durable operation-cost reservation
+        # supplied by market_data.py.
+        first_date = bounded_start.date()
+        last_date = bounded_end.date()
+        bars: list[OHLCVBar] = []
+        while first_date <= last_date:
+            chunk_last_date = min(
+                last_date,
+                first_date + timedelta(days=_FMP_EOD_MAX_CALENDAR_DAYS_PER_REQUEST - 1),
+            )
+            payload = self._get(
+                "historical-price-eod/full",
+                {
+                    "symbol": symbol.upper(),
+                    "from": first_date.isoformat(),
+                    "to": chunk_last_date.isoformat(),
+                },
+                operation=operation,
+            )
+            rows = self._strict_rows(payload, self.name)
+            if len(rows) >= _FMP_EOD_MAX_ROWS_PER_RESPONSE:
+                raise ProviderResponseError(
+                    self.name,
+                    "historical EOD response reached the provider row cap; "
+                    "refusing potentially incomplete history",
+                )
+            bars.extend(
+                self._bar(
+                    row,
+                    timeframe,
+                    instrument_id=instrument_id,
+                    data_source_id=data_source_id,
+                )
+                for row in rows
+            )
+            first_date = chunk_last_date + timedelta(days=1)
+
+        return sorted(
+            [bar for bar in bars if bar and bounded_start <= bar.ts < bounded_end],
+            key=lambda bar: bar.ts,
+        )
 
     def fetch_ohlcv(
         self,
@@ -2737,34 +3321,67 @@ class FMPProvider(_RESTProvider):
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
-        self._require_raw_history(adjusted)
-        if timeframe is not Timeframe.D1:
-            raise ProviderResponseError(
-                self.name, f"{self.name} does not support timeframe {timeframe.value}"
-            )
-        payload = self._get(
-            "historical-price-eod/full",
-            {
-                "symbol": symbol.upper(),
-                "from": _bounded_datetime(start).date().isoformat(),
-                "to": _bounded_datetime(end).date().isoformat(),
-            },
-        )
-        bars = [
-            self._bar(row, timeframe, instrument_id=instrument_id, data_source_id=data_source_id)
-            for row in self._strict_rows(payload, self.name)
-        ]
-        return sorted(
-            [
-                bar
-                for bar in bars
-                if bar and _bounded_datetime(start) <= bar.ts < _bounded_datetime(end)
-            ],
-            key=lambda bar: bar.ts,
+        return self._fetch_ohlcv(
+            symbol,
+            timeframe,
+            start,
+            end,
+            adjusted=adjusted,
+            instrument_id=instrument_id,
+            data_source_id=data_source_id,
+            operation="fetch_ohlcv",
         )
 
+    def fetch_latest_ohlcv(
+        self,
+        symbol: str,
+        timeframe: Timeframe,
+        limit: int,
+        *,
+        adjusted: bool = True,
+        instrument_id: int | None = None,
+        data_source_id: int | None = None,
+    ) -> list[OHLCVBar]:
+        if limit <= 0:
+            return []
+        bars = self._fetch_ohlcv(
+            symbol,
+            timeframe,
+            self.latest_window_start(timeframe, limit),
+            datetime.now(UTC),
+            adjusted=adjusted,
+            instrument_id=instrument_id,
+            data_source_id=data_source_id,
+            operation="fetch_latest_ohlcv",
+        )
+        return bars[-limit:]
+
+    def get_current_price(self, symbol: str) -> float | None:
+        """Read the documented stable quote endpoint for one stock."""
+
+        rows = self._strict_rows(
+            self._get("quote", {"symbol": symbol.upper()}, operation="get_current_price"),
+            self.name,
+        )
+        if not rows:
+            return None
+        matching = [
+            row for row in rows if str(row.get("symbol") or "").strip().upper() == symbol.upper()
+        ]
+        if not matching:
+            raise ProviderResponseError(
+                self.name, "provider quote response omitted the requested symbol"
+            )
+        price = _number(matching[0].get("price"))
+        if price is None or price <= 0:
+            raise ProviderResponseError(self.name, "provider returned an invalid quote price")
+        return price
+
     def get_instrument_profile(self, symbol: str) -> InstrumentProfile | None:
-        rows = self._strict_rows(self._get("profile", {"symbol": symbol.upper()}), self.name)
+        rows = self._strict_rows(
+            self._get("profile", {"symbol": symbol.upper()}, operation="get_instrument_profile"),
+            self.name,
+        )
         row = rows[0] if rows else None
         if not row:
             return None
@@ -2794,21 +3411,78 @@ class FMPProvider(_RESTProvider):
         start: date | None = None,
         end: date | None = None,
     ) -> list[MarketEventRecord]:
-        """Normalize FMP's stable earnings-calendar rows.
+        """Read a complete one-page earnings calendar or refuse a partial one.
 
-        The stable endpoint returns one row per issuer/date and may include
-        actual and estimated EPS/revenue fields.  Those provider-specific
-        values remain in ``raw_payload`` because ``MarketEventRecord`` is the
-        market-wide event contract; instrument-level persistence can enrich
-        them later without discarding the source response.
+        Durable ingestion uses ``fetch_market_events_page`` so each HTTP page
+        is independently quota-reserved and persisted before continuation.
+        This compatibility method must never return only page zero as if it
+        were the complete calendar.
         """
 
-        params: dict[str, Any] = {}
-        if start is not None:
-            params["from"] = start.isoformat()
-        if end is not None:
-            params["to"] = end.isoformat()
-        rows = self._strict_rows(self._get("earnings-calendar", params), self.name)
+        page = self.fetch_market_events_page(start=start, end=end, cursor=None)
+        if not page["complete"]:
+            raise ProviderResponseError(
+                self.name,
+                "FMP earnings calendar has more rows; use durable market-event pagination",
+            )
+        return page["events"]
+
+    def fetch_market_events_page(
+        self,
+        *,
+        start: date | None = None,
+        end: date | None = None,
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        """Fetch one documented FMP earnings page with durable continuation.
+
+        FMP documents a maximum 90-day date range, a 4,000-record page, and a
+        zero-based ``page`` parameter. The coordinator admits each page as a
+        separate one-request operation; every page's raw response is retained
+        before this method's cursor can advance.
+        """
+
+        if start is None or end is None:
+            raise ProviderResponseError(
+                self.name,
+                "FMP earnings calendar pagination requires explicit start and end dates",
+            )
+        if start > end:
+            raise ProviderResponseError(self.name, "earnings-calendar start is after end")
+        if (end - start).days > self._EARNINGS_MAX_RANGE_DAYS:
+            raise ProviderResponseError(
+                self.name,
+                "FMP earnings-calendar range exceeds the documented 90-day maximum",
+            )
+        if cursor is None:
+            page_number = 0
+        else:
+            try:
+                page_number = int(cursor)
+            except (TypeError, ValueError) as exc:
+                raise ProviderResponseError(
+                    self.name, "invalid earnings-calendar page cursor"
+                ) from exc
+            if page_number < 0 or str(page_number) != str(cursor).strip():
+                raise ProviderResponseError(self.name, "invalid earnings-calendar page cursor")
+
+        rows = self._strict_rows(
+            self._get(
+                "earnings-calendar",
+                {
+                    "from": start.isoformat(),
+                    "to": end.isoformat(),
+                    "page": page_number,
+                },
+                operation="fetch_market_events",
+            ),
+            self.name,
+        )
+        if len(rows) > self._EARNINGS_PAGE_SIZE:
+            raise ProviderResponseError(
+                self.name,
+                "FMP earnings-calendar page exceeded its documented 4,000-record maximum",
+            )
         events: list[MarketEventRecord] = []
         for row in rows:
             event_time = _timestamp(
@@ -2833,16 +3507,27 @@ class FMPProvider(_RESTProvider):
                     raw_payload=row,
                 )
             )
-        return events
+        next_cursor = str(page_number + 1) if len(rows) == self._EARNINGS_PAGE_SIZE else None
+        return {
+            "events": events,
+            "next_cursor": next_cursor,
+            "complete": next_cursor is None,
+        }
 
     def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]:
         normalized = quote_type.strip().upper()
         if normalized not in {"EQUITY", "ETF"} or offset < 0:
             return {"total": 0, "quotes": []}
+        if not bool(getattr(settings, "FMP_STOCK_LIST_ENTITLED", False)):
+            raise ProviderNotConfiguredError(
+                "FMP stock-list discovery is disabled until this account's endpoint entitlement is confirmed"
+            )
         rows = _cached_full_discovery_rows(
             self.name,
             self._key(),
-            lambda: self._strict_rows(self._get("stock-list"), self.name),
+            lambda: self._strict_rows(
+                self._get("stock-list", operation="discover_universe_page"), self.name
+            ),
         )
         filtered = []
         for row in rows:

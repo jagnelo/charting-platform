@@ -17,9 +17,14 @@ Provision application and provider secrets separately on the target at
 as `.env.example`, but copy them through an approved password/secret manager or
 a secure operator channel. The RPi preflight checks the presence of the core
 `SECRET_KEY`, `POSTGRES_PASSWORD`, and `CORS_ORIGINS` names without printing
-values, rejects a non-PostgreSQL quota-coordinator URL, and the post-start
-transaction opens the quota coordinator from both `backend` and `worker` to
-verify that the shared ledger is readable, writable, and lockable. The
+values, and reports which optional provider credential variable names are
+present or absent without reading their values into diagnostics. That inventory
+is informational: credentials can be omitted when a provider is intentionally
+disabled, and the selected deployment policy still determines which routes are
+eligible. The preflight also rejects a non-PostgreSQL quota-coordinator URL,
+and the post-start transaction opens the quota coordinator from both
+`backend` and `worker` to verify that the shared ledger is readable, writable,
+and lockable. The
 deployment intentionally does not pull secrets from GitHub or from a developer
 worktree, and release bundles never contain them. Compose passes provider
 credentials only to `backend` and `worker`. The `research-runner` environment is
@@ -28,6 +33,20 @@ receive `PROVIDER_QUOTA_*` settings, the `PROVIDER_QUOTA_LEDGER_DATABASE_URL`,
 or the `provider_quota_ledger` volume. Keeping user-supplied research code away
 from the durable quota ledger is part of the deployment boundary, even when the
 same `app.env` contains the coordinator configuration for trusted services.
+
+FINRA ORF is the exception to ordinary immutable environment credentials:
+FINRA's token endpoint returns the next refresh token as well as the short-
+lived access token. Local Compose mounts
+`FINRA_ORF_REFRESH_TOKEN_STATE_HOST_DIR` (default
+`~/.config/charting-platform/provider-secrets/finra-orf`) read/write into only
+the trusted API and worker containers. Create that host directory with mode
+`0700` before enabling ORF; the application atomically maintains its refresh
+state file with mode `0600`. All local worktrees using the same TRAQS account
+must share that path. On RPi, the default host directory is
+`/var/lib/charting-platform/provider-secrets/finra-orf`, also shared by API
+and worker. Never put this state directory in the checkout or expose it to the
+research runner. GitHub-hosted runners are ephemeral, so this provider cannot
+be live-tested there until a persistent private token store is supplied.
 
 The durable provider-quota coordinator is separate from the observational
 `PROVIDER_LIVE_USAGE_LEDGER`. Local Compose bind-mounts the owner-managed
@@ -218,17 +237,32 @@ that the source fingerprint has not changed. Materialization creates only
 absent CIK/name `Issuer` rows; it never creates instruments/listings, changes
 existing legal names, or infers tradability or listing dates.
 
-The core market refresh and US venue/lifecycle reconciliation schedules are also
-disabled by default. After the corresponding provider entitlements, quota
-contracts, and reconciliation completeness have been reviewed, set
-`MARKET_DATA_REFRESH_SCHEDULE_ENABLED=true` and/or
-`MARKET_UNIVERSE_RECONCILIATION_ENABLED=true` together with a reviewed
-`MARKET_UNIVERSE_MISSING_CONFIRMATIONS` value. These controls are passed to
-both `backend` and `worker`, never to the research runner, and do not bypass
-provider fail-closed routing. `MARKET_DATA_REFRESH_QUEUE_BATCH_SIZE` controls
-how many durable refresh jobs the worker claims per 15-minute tick (default
-100, bounded to 1–500); tune it only alongside provider quota and worker
-latency evidence.
+The broad core OHLCV refresh schedule is disabled by default through
+`MARKET_DATA_REFRESH_SCHEDULE_ENABLED=false`. The separate US venue/lifecycle
+reconciliation schedule is enabled by default in the application settings and
+Compose configuration (`MARKET_UNIVERSE_RECONCILIATION_ENABLED=true`) and runs
+daily at 21:00 UTC; the same value is passed to the backend and worker. This
+distinction matters: the code does not automatically poll all instruments for
+prices just because it reconciles the NMS/OTC listing universe. Reconciliation
+still uses provider capability/quota admission and fails closed when an
+authoritative source cannot be safely queried. A deployment may explicitly
+disable it with `MARKET_UNIVERSE_RECONCILIATION_ENABLED=false`; verify the
+resolved value in the target Compose environment rather than assuming the
+example default is active. Keep `MARKET_UNIVERSE_MISSING_CONFIRMATIONS=3` unless
+later evidence justifies changing it; absence is counted only from complete
+snapshots. These controls are passed to both `backend` and `worker`, never to
+the research runner. Enabling the schedule does not bypass provider gates or
+authorize production deployment; branch implementation alone does not turn on
+traffic in a separately managed environment.
+Keep `MARKET_UNIVERSE_MISSING_CONFIRMATIONS=3` unless later evidence justifies
+changing it; absence is counted only from complete snapshots. These controls
+are passed to both `backend` and `worker`, never to the research runner, and do
+not bypass provider fail-closed routing. Enabling the schedule therefore does
+not force a blocked provider through its gates. The separate deployment
+authorization is still required; branch implementation alone does not turn on
+production traffic. `MARKET_DATA_REFRESH_QUEUE_BATCH_SIZE` controls how many
+durable refresh jobs the worker claims per 15-minute tick (default 100, bounded
+to 1–500); tune it only alongside provider quota and worker latency evidence.
 
 Provider availability monitoring is independently controlled with
 `PROVIDER_AVAILABILITY_MONITOR_ENABLED`,

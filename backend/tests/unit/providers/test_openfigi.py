@@ -154,6 +154,9 @@ def test_openfigi_account_usage_parses_native_window_headers(monkeypatch):
 def test_openfigi_account_usage_rejects_missing_native_window_headers(monkeypatch):
     monkeypatch.setattr(settings, "OPENFIGI_API_KEY", "")
     monkeypatch.setattr("app.providers.openfigi.httpx.Client", FakeClient)
+    # Keep the one-job mapping response valid so this test reaches the missing
+    # native rate-limit header validation rather than failing on body shape.
+    FakeClient.next_payload = [{"data": []}]
     with pytest.raises(ProviderResponseError, match="native limit/remaining/reset"):
         OpenFigiProvider().fetch_account_usage()
 

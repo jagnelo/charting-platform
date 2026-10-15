@@ -7,17 +7,22 @@ from multiprocessing import get_context
 from types import SimpleNamespace
 
 import pytest
+from sqlalchemy import delete
 from sqlalchemy.exc import OperationalError
 
 from app.config import settings
 from app.services.provider_quota_coordinator import (
     ProviderQuotaAdmissionError,
     ProviderQuotaCoordinatorError,
+    _baselines,
     _current_contract_limit,
     _engine_for,
+    _engine_url,
     _reservation_plan_for_live_probe,
     _safe_stored_evidence_reference,
+    _utc,
     _validate_engine_url,
+    _validated_live_receipt_provider,
     account_scope_for_provider,
     ensure_provider_quota_coordinator,
     provider_quota_baseline_status,
@@ -41,6 +46,187 @@ def _policy(*dimensions, reset="fixed_minute", scope="api_key"):
     )
 
 
+def test_dinari_canary_plan_is_durable_local_and_only_one_daily_catalogue_read(monkeypatch):
+    monkeypatch.setenv("DINARI_SANDBOX_CANARY_RUN", "1")
+    reset, costs, specs = _reservation_plan_for_live_probe(
+        "dinari",
+        "discover_tokenized_assets",
+        "canary-test",
+        datetime(2026, 10, 10, 12, tzinfo=UTC),
+        operation_cost_override=1,
+    )
+    assert reset == "calendar_day_utc"
+    assert costs == {"local_canary_requests_per_utc_day": 1}
+    assert len(specs) == 1
+    assert specs[0]["dimension"] == "local_canary_requests_per_utc_day"
+    assert specs[0]["window_seconds"] == 86400
+    assert specs[0]["quota_group"] == "dinari_sandbox_canary"
+    assert specs[0]["account_scope"] == "dinari:shared-public_api"
+
+
+def test_dinari_canary_plan_rejects_other_operations(monkeypatch):
+    monkeypatch.setenv("DINARI_SANDBOX_CANARY_RUN", "1")
+    with pytest.raises(
+        ProviderQuotaAdmissionError,
+        match="local Dinari Sandbox canary permits only discover_tokenized_assets",
+    ):
+        _reservation_plan_for_live_probe(
+            "dinari",
+            "get_tokenized_price",
+            "canary-test",
+            datetime(2026, 10, 10, 12, tzinfo=UTC),
+            operation_cost_override=1,
+        )
+
+
+def test_dinari_canary_daily_limit_is_shared_and_durable(tmp_path, monkeypatch):
+    monkeypatch.setenv("DINARI_SANDBOX_CANARY_RUN", "1")
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", "")
+
+    reservation = reserve_live_provider_operation(
+        "dinari",
+        "discover_tokenized_assets",
+        operation_cost_override=1,
+        require_persistent_coordinator=True,
+    )
+    assert reservation is not None
+    settle_live_provider_operation(reservation, http_requests=1, response_bytes=10)
+
+    # The next session/run shares the same durable account-window ledger and
+    # is denied before transport until the local UTC-day window resets.
+    assert (
+        reserve_live_provider_operation(
+            "dinari",
+            "discover_tokenized_assets",
+            operation_cost_override=1,
+            require_persistent_coordinator=True,
+        )
+        is None
+    )
+
+
+def test_live_settlement_reports_safe_failure_type_and_keeps_reservation(tmp_path, monkeypatch):
+    import app.services.provider_quota_coordinator as coordinator
+
+    monkeypatch.setenv("DINARI_SANDBOX_CANARY_RUN", "1")
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", "")
+    reservation = reserve_live_provider_operation(
+        "dinari",
+        "discover_tokenized_assets",
+        operation_cost_override=1,
+        require_persistent_coordinator=True,
+    )
+    assert reservation is not None
+
+    def fail_coordinator_open(*_args, **_kwargs):
+        raise OSError("sensitive coordinator details")
+
+    with monkeypatch.context() as patcher:
+        patcher.setattr(coordinator, "_engine_for", fail_coordinator_open)
+        with pytest.raises(
+            ProviderQuotaCoordinatorError,
+            match="settlement failed \\(OSError\\); outstanding reservation retained",
+        ) as error:
+            settle_live_provider_operation(reservation, http_requests=1, response_bytes=10)
+
+    assert "sensitive coordinator details" not in str(error.value)
+    window = provider_quota_coordinator_summary(provider_name="dinari")["windows"][0]
+    assert window["reserved_units"] == 1
+
+
+def test_marketstack_dashboard_baseline_is_reconciled_to_rolling_monthly_budget(
+    tmp_path, monkeypatch
+):
+    from app.config import provider_rate_limit_seed
+
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", "")
+    seed = provider_rate_limit_seed("marketstack")
+    policy = SimpleNamespace(
+        quota_scope=seed["quota_scope"],
+        quota_contract=seed["quota_contract"],
+    )
+    observed_at = datetime(2026, 10, 10, 18, 0, tzinfo=UTC)
+
+    record = reconcile_provider_quota_baseline(
+        provider_name="marketstack",
+        capability="price_history",
+        policy=policy,
+        dimension_name="requests_per_month",
+        used_units=37,
+        observed_at=observed_at,
+        evidence_reference="dashboard:marketstack:2026-10-10",
+        source="operator_dashboard_attestation",
+        now=observed_at,
+    )
+    status = provider_quota_baseline_status(
+        provider_name="marketstack",
+        capability="price_history",
+        policy=policy,
+        dimension_name="requests_per_month",
+        now=observed_at,
+    )
+
+    assert record["unit"] == "requests"
+    assert record["limit_units"] == 100
+    assert record["used_units"] == 37
+    assert record["rolling"] is True
+    assert status["status"] == "verified"
+    assert status["effective_used_units"] == 37
+    assert status["remaining_units"] == 63
+
+
+def test_tiingo_dashboard_baselines_accept_explicit_rolling_reset_safeties(tmp_path, monkeypatch):
+    from app.config import provider_rate_limit_seed
+
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", "")
+    monkeypatch.setattr(settings, "TIINGO_REVIEWED_PLAN", "custom")
+    monkeypatch.setattr(settings, "TIINGO_CUSTOM_UNIQUE_SYMBOLS_PER_MONTH", 500)
+    monkeypatch.setattr(settings, "TIINGO_CUSTOM_REQUESTS_PER_HOUR", 50)
+    monkeypatch.setattr(settings, "TIINGO_CUSTOM_REQUESTS_PER_DAY", 1_000)
+    monkeypatch.setattr(settings, "TIINGO_CUSTOM_BANDWIDTH_BYTES_PER_MONTH", 2_000_000_000)
+    monkeypatch.setattr(settings, "TIINGO_CUSTOM_QUOTA_EVIDENCE", "dashboard:tiingo:2026-10-14")
+    seed = provider_rate_limit_seed("tiingo")
+    policy = SimpleNamespace(
+        quota_scope=seed["quota_scope"],
+        quota_contract=seed["quota_contract"],
+    )
+    observed_at = datetime(2026, 10, 14, 10, 0, tzinfo=UTC)
+    expected_remaining = {
+        "unique_symbols_per_month": 500,
+        "requests_per_hour": 50,
+        "requests_per_day": 1_000,
+        "bandwidth_bytes_per_month": 2_000_000_000,
+    }
+
+    for dimension_name, remaining in expected_remaining.items():
+        reconcile_provider_quota_baseline(
+            provider_name="tiingo",
+            capability="price_history",
+            policy=policy,
+            dimension_name=dimension_name,
+            used_units=0,
+            observed_at=observed_at,
+            evidence_reference="dashboard:tiingo:2026-10-14",
+            source="operator_dashboard_attestation",
+            now=observed_at,
+        )
+        status = provider_quota_baseline_status(
+            provider_name="tiingo",
+            capability="price_history",
+            policy=policy,
+            dimension_name=dimension_name,
+            now=observed_at,
+        )
+
+        assert status["status"] == "verified"
+        assert status["effective_used_units"] == 0
+        assert status["remaining_units"] == remaining
+
+
 def _dimension(name="requests_per_minute", limit=3, unit="requests", **extra):
     return {
         "name": name,
@@ -51,6 +237,11 @@ def _dimension(name="requests_per_minute", limit=3, unit="requests", **extra):
         "source": "https://provider.example/rate-limits",
         **extra,
     }
+
+
+def test_utc_normalizes_iso_string_baseline_timestamps():
+    assert _utc("2026-10-09T08:15:00+00:00") == datetime(2026, 10, 9, 8, 15)
+    assert _utc("2026-10-09T10:15:00+02:00") == datetime(2026, 10, 9, 8, 15)
 
 
 def _reserve(policy, units, *, now, provider="fixture", operation="fetch_ohlcv", identity=None):
@@ -122,14 +313,17 @@ def _reserve_once_in_process(path: str, barrier, outcomes) -> None:
     barrier.wait(timeout=15)
     policy = _policy(_dimension(limit=1))
     try:
-        reserved = reserve_provider_quota(
-            provider_name="fixture",
-            capability="price_history",
-            operation="fetch_ohlcv",
-            policy=policy,
-            dimension_units={"requests_per_minute": 1},
-            now=datetime(2026, 9, 15, 12, 0, tzinfo=UTC),
-        ) is not None
+        reserved = (
+            reserve_provider_quota(
+                provider_name="fixture",
+                capability="price_history",
+                operation="fetch_ohlcv",
+                policy=policy,
+                dimension_units={"requests_per_minute": 1},
+                now=datetime(2026, 9, 15, 12, 0, tzinfo=UTC),
+            )
+            is not None
+        )
         outcomes.put(("ok", reserved))
     except BaseException as exc:  # pragma: no cover - subprocess error reporting
         outcomes.put(
@@ -155,12 +349,48 @@ def test_reservation_is_committed_and_shared_by_same_provider_account(tmp_path, 
     # A separate call/process sees the un-settled committed reservation.
     assert _reserve(policy, {"requests_per_minute": 1}, now=now) is not None
     assert _reserve(policy, {"requests_per_minute": 1}, now=now) is None
-
     summary = provider_quota_coordinator_summary(provider_name="fixture", now=now)
     window = summary["windows"][0]
     assert window["account_scope"] == "local-key-a"
     assert window["reserved_units"] == 2
     assert window["remaining_units"] == 0, summary
+
+
+def test_ten_gigabyte_quota_can_be_reserved_in_durable_ledger(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_ACCOUNT_SCOPES", {"fixture": "finra-test"})
+    now = datetime(2026, 10, 8, 12, 0, tzinfo=UTC)
+    policy = _policy(
+        _dimension(
+            name="bytes_per_month",
+            limit=10_000_000_000,
+            unit="bytes",
+            window_seconds=30 * 24 * 60 * 60,
+        ),
+        reset="calendar_month_utc",
+    )
+    reservation = _reserve(
+        policy,
+        {"bytes_per_month": 6_000_000_000},
+        now=now,
+        provider="fixture",
+    )
+
+    assert reservation is not None
+    settle_provider_quota(
+        reservation,
+        observed_dimension_units={"bytes_per_month": 6_000_000_000},
+        now=now,
+    )
+    status = provider_quota_baseline_status(
+        provider_name="fixture",
+        capability="price_history",
+        policy=policy,
+        dimension_name="bytes_per_month",
+        now=now,
+    )
+    assert status["status"] == "verified"
+    assert status["remaining_units"] == 4_000_000_000
 
 
 def test_unknown_current_window_baseline_blocks_until_exact_seed(tmp_path, monkeypatch):
@@ -176,14 +406,17 @@ def test_unknown_current_window_baseline_blocks_until_exact_seed(tmp_path, monke
         now=now,
     )
     assert status["status"] == "unknown"
-    assert reserve_provider_quota(
-        provider_name="fixture",
-        capability="price_history",
-        operation="fetch_ohlcv",
-        policy=policy,
-        dimension_units={"requests_per_minute": 1},
-        now=now,
-    ) is None
+    assert (
+        reserve_provider_quota(
+            provider_name="fixture",
+            capability="price_history",
+            operation="fetch_ohlcv",
+            policy=policy,
+            dimension_units={"requests_per_minute": 1},
+            now=now,
+        )
+        is None
+    )
 
     seeded = reconcile_provider_quota_baseline(
         provider_name="fixture",
@@ -210,14 +443,78 @@ def test_unknown_current_window_baseline_blocks_until_exact_seed(tmp_path, monke
         observed_dimension_units={"requests_per_minute": 1},
         now=now,
     )
-    assert reserve_provider_quota(
+    assert (
+        reserve_provider_quota(
+            provider_name="fixture",
+            capability="price_history",
+            operation="fetch_ohlcv",
+            policy=policy,
+            dimension_units={"requests_per_minute": 1},
+            now=now,
+        )
+        is None
+    )
+
+
+def test_marketstack_monthly_reset_unknown_uses_rolling_30_day_safety(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    monkeypatch.setattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_LIMIT", 100)
+    monkeypatch.setattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_RESET", "")
+    monkeypatch.setattr(settings, "MARKETSTACK_QUOTA_EVIDENCE", "")
+    from app.config import provider_rate_limit_seed
+
+    seed = provider_rate_limit_seed("marketstack")
+    now = datetime(2026, 10, 6, 16, 0, tzinfo=UTC)
+    _reset, _dimension_units, specs = _reservation_plan_for_live_probe(
+        "marketstack", "get_current_price", "AAPL", now
+    )
+
+    assert seed["quota_contract"]["reset"] == "per_dimension"
+    assert seed["quota_contract"]["unknown_dimensions"] == [
+        "monthly_cap_reset_boundary",
+        "requests_per_second_reset_boundary",
+    ]
+    assert len(specs) == 2
+    assert specs[0]["reset"] == "provider_defined"
+    assert specs[0]["rolling"] is True
+    assert specs[0]["window_seconds"] == 2_592_000
+    assert specs[1]["dimension"] == "requests_per_second"
+    assert specs[1]["limit_units"] == 5
+    assert specs[1]["reset"] == "provider_defined"
+    assert specs[1]["rolling"] is True
+    assert specs[1]["window_seconds"] == 1
+
+
+def test_owner_attestation_can_seed_exact_quota_baseline(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    policy = _policy(_dimension(limit=3))
+    observed = datetime(2026, 9, 15, 12, 0, tzinfo=UTC)
+
+    seeded = reconcile_provider_quota_baseline(
         provider_name="fixture",
         capability="price_history",
-        operation="fetch_ohlcv",
         policy=policy,
-        dimension_units={"requests_per_minute": 1},
-        now=now,
-    ) is None
+        dimension_name="requests_per_minute",
+        used_units=0,
+        observed_at=observed,
+        evidence_reference="owner:fixture:2026-09-15",
+        source="operator_owner_attestation",
+        now=observed,
+    )
+
+    assert seeded["used_units"] == 0
+    assert seeded["source"] == "operator_owner_attestation"
+    assert (
+        reserve_provider_quota(
+            provider_name="fixture",
+            capability="price_history",
+            operation="fetch_ohlcv",
+            policy=policy,
+            dimension_units={"requests_per_minute": 1},
+            now=observed,
+        )
+        is not None
+    )
 
 
 def test_explicit_local_zero_baseline_is_persisted_for_client_owned_pool(tmp_path, monkeypatch):
@@ -230,6 +527,7 @@ def test_explicit_local_zero_baseline_is_persisted_for_client_owned_pool(tmp_pat
             scope="deployment",
             quota_group="directory",
             baseline_mode="local_zero",
+            application_usage_only=True,
         ),
         reset="calendar_day_est",
         scope="deployment",
@@ -265,6 +563,7 @@ def test_explicit_local_zero_baseline_is_persisted_for_client_owned_pool(tmp_pat
     )
     assert settled["status"] == "verified"
     assert settled["baseline"]["source"] == "local_policy"
+    assert settled["baseline"]["evidence_reference"] == "application-policy:fixture:local-zero"
 
     settle_provider_quota(
         reservation,
@@ -285,6 +584,96 @@ def test_explicit_local_zero_baseline_is_persisted_for_client_owned_pool(tmp_pat
         observed_dimension_units={"directory_requests_per_market_day": 1},
         now=now,
     )
+
+
+def test_local_zero_baseline_preserves_settled_debits_already_in_active_window(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", "")
+    policy = _policy(
+        _dimension(
+            "requests_per_day",
+            limit=1,
+            window_seconds=86400,
+            scope="api_key",
+            quota_group="api_key",
+            safety_reset="rolling",
+            baseline_mode="local_zero",
+            application_usage_only=True,
+        ),
+        reset="provider_defined",
+        scope="api_key",
+    )
+    first_at = datetime(2026, 10, 14, 7, 42, tzinfo=UTC)
+    first = reserve_provider_quota(
+        provider_name="fixture",
+        capability="price_history",
+        operation="fetch_ohlcv",
+        policy=policy,
+        dimension_units={"requests_per_day": 1},
+        now=first_at,
+    )
+    assert first is not None
+    settle_provider_quota(
+        first,
+        observed_dimension_units={"requests_per_day": 1},
+        now=first_at,
+    )
+
+    # Simulate an older coordinator deployment which recorded the request but
+    # did not yet have a baseline row for this dimension.
+    engine = _engine_for(_engine_url())
+    with engine.begin() as connection:
+        connection.execute(delete(_baselines).where(_baselines.c.source_provider_name == "fixture"))
+    engine.dispose()
+
+    next_at = first_at + timedelta(seconds=30)
+    assert (
+        reserve_provider_quota(
+            provider_name="fixture",
+            capability="price_history",
+            operation="fetch_ohlcv",
+            policy=policy,
+            dimension_units={"requests_per_day": 1},
+            now=next_at,
+        )
+        is None
+    )
+    status = provider_quota_baseline_status(
+        provider_name="fixture",
+        capability="price_history",
+        policy=policy,
+        dimension_name="requests_per_day",
+        now=next_at,
+    )
+    assert status["baseline"]["used_units"] == 0
+    assert status["effective_used_units"] == 1
+    assert status["remaining_units"] == 0
+
+    # The old debit ages out at its own timestamp, even though the replacement
+    # local-zero baseline is still within its validity window.
+    aged_out_at = first_at + timedelta(seconds=86410)
+    aged_status = provider_quota_baseline_status(
+        provider_name="fixture",
+        capability="price_history",
+        policy=policy,
+        dimension_name="requests_per_day",
+        now=aged_out_at,
+    )
+    assert aged_status["baseline"]["used_units"] == 0
+    assert aged_status["effective_used_units"] == 0
+    assert aged_status["remaining_units"] == 1
+    aged_reservation = reserve_provider_quota(
+        provider_name="fixture",
+        capability="price_history",
+        operation="fetch_ohlcv",
+        policy=policy,
+        dimension_units={"requests_per_day": 1},
+        now=aged_out_at,
+    )
+    assert aged_reservation is not None
+
 
 def test_zero_cost_dimension_does_not_require_a_starting_baseline(tmp_path, monkeypatch):
     """Unmetered provider introspection may bootstrap the durable coordinator."""
@@ -312,15 +701,13 @@ def test_zero_cost_dimension_does_not_require_a_starting_baseline(tmp_path, monk
         now=now,
     )
     summary = provider_quota_coordinator_summary(provider_name="fixture", now=now)
-    assert {
-        row["dimension"]: row["consumed_units"] for row in summary["windows"]
-    } == {"concurrent_requests": 0}
+    assert {row["dimension"]: row["consumed_units"] for row in summary["windows"]} == {
+        "concurrent_requests": 0
+    }
     assert all(row["dimension"] != "credits_per_day" for row in summary["windows"])
 
 
-def test_fixed_window_baseline_never_moves_down_on_stale_or_lower_snapshot(
-    tmp_path, monkeypatch
-):
+def test_fixed_window_baseline_never_moves_down_on_stale_or_lower_snapshot(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
     policy = _policy(_dimension(limit=20))
     # Keep the stale and newer snapshots inside the same fixed-minute bucket
@@ -361,9 +748,7 @@ def test_fixed_window_baseline_never_moves_down_on_stale_or_lower_snapshot(
     assert lower["used_units"] == 8
 
 
-def test_reconciliation_preserves_settled_local_debits_beyond_lower_snapshot(
-    tmp_path, monkeypatch
-):
+def test_reconciliation_preserves_settled_local_debits_beyond_lower_snapshot(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
     policy = _policy(_dimension(limit=20))
     started = datetime(2026, 9, 15, 12, 0, 10, tzinfo=UTC)
@@ -415,6 +800,79 @@ def test_reconciliation_preserves_settled_local_debits_beyond_lower_snapshot(
     assert status["remaining_units"] == 14
 
 
+def test_exact_cumulative_native_fixed_window_snapshot_replaces_double_counted_baseline(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    policy = _policy(
+        _dimension(
+            "calls_per_day",
+            limit=20,
+            unit="calls",
+            window_seconds=86400,
+            reset="calendar_day_gmt",
+        ),
+        reset="per_dimension",
+    )
+    initial_at = datetime(2026, 10, 10, 0, 4, tzinfo=UTC)
+    newer_at = datetime(2026, 10, 10, 1, 24, tzinfo=UTC)
+    reconcile_provider_quota_baseline(
+        provider_name="eodhd",
+        capability="account_usage",
+        policy=policy,
+        dimension_name="calls_per_day",
+        used_units=15,
+        observed_at=initial_at,
+        evidence_reference="test-fixture:eodhd:previous-local-overcount",
+        source="provider_account_observation",
+        now=initial_at,
+    )
+
+    corrected = reconcile_provider_quota_baseline(
+        provider_name="eodhd",
+        capability="account_usage",
+        policy=policy,
+        dimension_name="calls_per_day",
+        used_units=5,
+        observed_at=newer_at,
+        evidence_reference="test-fixture:eodhd:newer-cumulative-snapshot",
+        source="provider_account_observation",
+        native_snapshot_includes_prior_local_activity=True,
+        now=newer_at,
+    )
+    assert corrected["used_units"] == 5
+    assert (
+        provider_quota_baseline_status(
+            provider_name="eodhd",
+            capability="account_usage",
+            policy=policy,
+            dimension_name="calls_per_day",
+            now=newer_at,
+        )["remaining_units"]
+        == 15
+    )
+
+    after_snapshot = reserve_provider_quota(
+        provider_name="eodhd",
+        capability="account_usage",
+        operation="fetch_ohlcv",
+        policy=policy,
+        dimension_units={"calls_per_day": 1},
+        now=newer_at + timedelta(seconds=1),
+    )
+    assert after_snapshot is not None
+    settle_provider_quota(after_snapshot, observed_dimension_units={"calls_per_day": 1})
+    status = provider_quota_baseline_status(
+        provider_name="eodhd",
+        capability="account_usage",
+        policy=policy,
+        dimension_name="calls_per_day",
+        now=newer_at + timedelta(seconds=2),
+    )
+    assert status["effective_used_units"] == 6
+    assert status["remaining_units"] == 14
+
+
 def test_equal_timestamp_rolling_snapshot_cannot_lower_baseline(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
     policy = _policy(_dimension("rolling_requests", limit=20), reset="rolling")
@@ -443,9 +901,7 @@ def test_equal_timestamp_rolling_snapshot_cannot_lower_baseline(tmp_path, monkey
     assert replay["used_units"] == 10
 
 
-def test_newer_rolling_snapshot_can_decrease_as_provider_usage_ages_out(
-    tmp_path, monkeypatch
-):
+def test_newer_rolling_snapshot_can_decrease_as_provider_usage_ages_out(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
     policy = _policy(
         _dimension("rolling_requests", limit=20, window_seconds=60),
@@ -489,12 +945,8 @@ def test_newer_rolling_snapshot_can_decrease_as_provider_usage_ages_out(
 def test_current_shared_bucket_limit_is_unknown_when_provider_contracts_disagree(
     monkeypatch,
 ):
-    policy_a = _policy(
-        _dimension("requests_per_minute", limit=5, quota_group="shared-account")
-    )
-    policy_b = _policy(
-        _dimension("requests_per_minute", limit=10, quota_group="shared-account")
-    )
+    policy_a = _policy(_dimension("requests_per_minute", limit=5, quota_group="shared-account"))
+    policy_b = _policy(_dimension("requests_per_minute", limit=10, quota_group="shared-account"))
     seeds = dict(settings.PROVIDER_RATE_LIMIT_SEEDS)
     for name, policy in (("fixture-a", policy_a), ("fixture-b", policy_b)):
         seeds[name] = {
@@ -526,26 +978,19 @@ def test_current_shared_bucket_limit_is_unknown_when_provider_contracts_disagree
 
 
 def test_legacy_evidence_references_are_not_returned_if_they_look_unsafe():
-    assert _safe_stored_evidence_reference(
-        "dashboard:marketdata-app:2026-10-11"
-    ) == "dashboard:marketdata-app:2026-10-11"
     assert (
-        _safe_stored_evidence_reference(
-            "dashboard:alpaca:AbCdEf0123456789"
-        )
-        is None
+        _safe_stored_evidence_reference("dashboard:marketdata-app:2026-10-11")
+        == "dashboard:marketdata-app:2026-10-11"
     )
+    assert _safe_stored_evidence_reference("dashboard:alpaca:AbCdEf0123456789") is None
+    assert _safe_stored_evidence_reference("dashboard:alpaca:access-token-example") is None
     assert (
-        _safe_stored_evidence_reference(
-            "dashboard:alpaca:access-token-example"
-        )
-        is None
+        _safe_stored_evidence_reference("application-policy:alpha_vantage:local-zero")
+        == "application-policy:alpha_vantage:local-zero"
     )
 
 
-def test_existing_private_sqlite_baseline_schema_fails_closed_after_upgrade(
-    tmp_path, monkeypatch
-):
+def test_existing_private_sqlite_baseline_schema_fails_closed_after_upgrade(tmp_path, monkeypatch):
     from sqlalchemy import create_engine, text
 
     path = tmp_path / "legacy-quota.sqlite3"
@@ -601,9 +1046,7 @@ def test_existing_private_sqlite_baseline_schema_fails_closed_after_upgrade(
     assert migrated_reset == "unknown"
 
 
-def test_rolling_baseline_expires_only_after_the_full_provider_window(
-    tmp_path, monkeypatch
-):
+def test_rolling_baseline_expires_only_after_the_full_provider_window(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_EXCLUSIVE_ACCOUNT_SCOPES", {})
     policy = _policy(_dimension("rolling_requests", limit=10), reset="rolling")
@@ -625,14 +1068,225 @@ def test_rolling_baseline_expires_only_after_the_full_provider_window(
         "policy": policy,
         "dimension_units": {"rolling_requests": 1},
     }
-    assert reserve_provider_quota(
-        **arguments,
-        now=now + timedelta(seconds=59),
-    ) is None
-    assert reserve_provider_quota(
-        **arguments,
-        now=now + timedelta(seconds=61),
-    ) is None
+    assert (
+        reserve_provider_quota(
+            **arguments,
+            now=now + timedelta(seconds=59),
+        )
+        is None
+    )
+    assert (
+        reserve_provider_quota(
+            **arguments,
+            now=now + timedelta(seconds=61),
+        )
+        is None
+    )
+
+
+def test_operator_baseline_can_use_explicit_rolling_safety_for_unknown_native_reset(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    dimension = _dimension(
+        "requests_per_day",
+        limit=25,
+        window_seconds=86400,
+        scope="api_key",
+        safety_reset="rolling",
+    )
+    policy = _policy(dimension, reset="provider_defined", scope="api_key")
+    policy.quota_contract["unknown_dimensions"] = ["requests_per_day_reset_boundary"]
+    now = datetime(2026, 10, 6, 0, 24, tzinfo=UTC)
+
+    baseline = reconcile_provider_quota_baseline(
+        provider_name="alpha_vantage",
+        capability="price_history",
+        policy=policy,
+        dimension_name="requests_per_day",
+        used_units=0,
+        observed_at=now,
+        evidence_reference="operator-note:alpha-vantage:idle-24h-2026-10-06",
+        now=now,
+    )
+
+    assert baseline["used_units"] == 0
+    reservation = reserve_provider_quota(
+        provider_name="alpha_vantage",
+        capability="price_history",
+        operation="fetch_ohlcv",
+        policy=policy,
+        dimension_units={"requests_per_day": 1},
+        now=now,
+    )
+    assert reservation is not None
+
+
+def test_coordinator_summary_uses_recorded_rolling_safety_for_provider_defined_reset(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    dimension = _dimension(
+        "requests_per_second",
+        limit=1,
+        window_seconds=1,
+        scope="api_key",
+        safety_reset="rolling",
+    )
+    policy = _policy(dimension, reset="provider_defined", scope="api_key")
+    policy.quota_contract["unknown_dimensions"] = ["requests_per_second_reset_boundary"]
+    now = datetime(2026, 10, 6, 0, 24, tzinfo=UTC)
+
+    reconcile_provider_quota_baseline(
+        provider_name="alpha_vantage",
+        capability="price_history",
+        policy=policy,
+        dimension_name="requests_per_second",
+        used_units=0,
+        observed_at=now,
+        evidence_reference="owner:alpha-vantage:2026-10-06",
+        source="operator_owner_attestation",
+        now=now,
+    )
+
+    summary = provider_quota_coordinator_summary(
+        provider_name="alpha_vantage", now=now + timedelta(milliseconds=250)
+    )
+    assert summary["baselines"]
+    assert summary["baselines"][0]["dimension"] == "requests_per_second"
+    assert summary["baselines"][0]["rolling"] is True
+
+
+def test_expired_rolling_owner_baseline_is_preflight_initializable_only_for_exclusive_scope(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    monkeypatch.setattr(
+        settings, "PROVIDER_QUOTA_EXCLUSIVE_ACCOUNT_SCOPES", {"alpha_vantage": True}
+    )
+    dimension = _dimension(
+        "requests_per_second",
+        limit=1,
+        window_seconds=1,
+        scope="api_key",
+        safety_reset="rolling",
+    )
+    policy = _policy(dimension, reset="provider_defined", scope="api_key")
+    policy.quota_contract["unknown_dimensions"] = ["requests_per_second_reset_boundary"]
+    observed_at = datetime(2026, 10, 6, 0, 24, tzinfo=UTC)
+    reconcile_provider_quota_baseline(
+        provider_name="alpha_vantage",
+        capability="price_history",
+        policy=policy,
+        dimension_name="requests_per_second",
+        used_units=0,
+        observed_at=observed_at,
+        evidence_reference="owner:alpha-vantage:2026-10-06",
+        source="operator_owner_attestation",
+        now=observed_at,
+    )
+
+    fresh_status = provider_quota_baseline_status(
+        provider_name="alpha_vantage",
+        capability="price_history",
+        policy=policy,
+        dimension_name="requests_per_second",
+        now=observed_at + timedelta(milliseconds=500),
+    )
+    assert fresh_status["status"] == "verified"
+    expired_status = provider_quota_baseline_status(
+        provider_name="alpha_vantage",
+        capability="price_history",
+        policy=policy,
+        dimension_name="requests_per_second",
+        now=observed_at + timedelta(seconds=2),
+    )
+    assert expired_status["status"] == "initializable"
+    assert expired_status["initial_baseline"] == "exclusive_account_reset"
+
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_EXCLUSIVE_ACCOUNT_SCOPES", {})
+    untrusted_status = provider_quota_baseline_status(
+        provider_name="alpha_vantage",
+        capability="price_history",
+        policy=policy,
+        dimension_name="requests_per_second",
+        now=observed_at + timedelta(seconds=2),
+    )
+    assert untrusted_status["status"] == "unknown"
+    monkeypatch.setattr(
+        settings, "PROVIDER_QUOTA_EXCLUSIVE_ACCOUNT_SCOPES", {"alpha_vantage": True}
+    )
+
+    reservation = reserve_provider_quota(
+        provider_name="alpha_vantage",
+        capability="price_history",
+        operation="fetch_ohlcv",
+        policy=policy,
+        dimension_units={"requests_per_second": 1},
+        now=observed_at + timedelta(seconds=2),
+    )
+    assert reservation is not None
+
+
+def test_operator_baseline_allows_multiple_individually_safe_rolling_resets(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    minute = _dimension(
+        "requests_per_minute",
+        limit=5,
+        window_seconds=60,
+        safety_reset="rolling",
+    )
+    day = _dimension(
+        "requests_per_day",
+        limit=25,
+        window_seconds=86400,
+        safety_reset="rolling",
+    )
+    policy = _policy(minute, day, reset="provider_defined", scope="api_key")
+    policy.quota_contract["unknown_dimensions"] = [
+        "requests_per_minute_reset_boundary",
+        "requests_per_day_reset_boundary",
+    ]
+    now = datetime(2026, 10, 6, 0, 24, tzinfo=UTC)
+
+    baseline = reconcile_provider_quota_baseline(
+        provider_name="alpha_vantage",
+        capability="price_history",
+        policy=policy,
+        dimension_name="requests_per_minute",
+        used_units=0,
+        observed_at=now,
+        evidence_reference="operator-note:alpha-vantage:idle-24h-2026-10-06",
+        now=now,
+    )
+
+    assert baseline["used_units"] == 0
+
+
+def test_operator_baseline_does_not_silence_unknown_quota_limit(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    dimension = _dimension(
+        "requests_per_day",
+        limit=25,
+        window_seconds=86400,
+        scope="api_key",
+        safety_reset="rolling",
+    )
+    policy = _policy(dimension, reset="provider_defined", scope="api_key")
+    policy.quota_contract["unknown_dimensions"] = ["requests_per_day_limit"]
+    now = datetime(2026, 10, 6, 0, 24, tzinfo=UTC)
+
+    with pytest.raises(ProviderQuotaAdmissionError, match="not uniquely reviewed"):
+        reconcile_provider_quota_baseline(
+            provider_name="alpha_vantage",
+            capability="price_history",
+            policy=policy,
+            dimension_name="requests_per_day",
+            used_units=0,
+            observed_at=now,
+            evidence_reference="operator-note:alpha-vantage:idle-24h-2026-10-06",
+            now=now,
+        )
 
 
 def test_settlement_moves_reserved_units_to_consumed_and_is_idempotent(tmp_path, monkeypatch):
@@ -643,12 +1297,8 @@ def test_settlement_moves_reserved_units_to_consumed_and_is_idempotent(tmp_path,
     reservation = _reserve(policy, {"requests_per_minute": 2}, now=now)
     assert reservation is not None
 
-    settle_provider_quota(
-        reservation, observed_dimension_units={"requests_per_minute": 1}, now=now
-    )
-    settle_provider_quota(
-        reservation, observed_dimension_units={"requests_per_minute": 1}, now=now
-    )
+    settle_provider_quota(reservation, observed_dimension_units={"requests_per_minute": 1}, now=now)
+    settle_provider_quota(reservation, observed_dimension_units={"requests_per_minute": 1}, now=now)
 
     window = provider_quota_coordinator_summary(provider_name="fixture", now=now)["windows"][0]
     assert window["reserved_units"] == 0
@@ -665,13 +1315,9 @@ def test_summary_uses_current_marketdata_app_plan_at_expiry(tmp_path, monkeypatc
     expiry = datetime(2026, 10, 11, 17, 9, tzinfo=UTC)
     policy_clock = [expiry - timedelta(seconds=1)]
     monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", expiry)
-    monkeypatch.setattr(
-        "app.config._marketdata_app_policy_now_utc", lambda: policy_clock[0]
-    )
+    monkeypatch.setattr("app.config._marketdata_app_policy_now_utc", lambda: policy_clock[0])
     seed = provider_rate_limit_seed("marketdata_app")
-    policy = SimpleNamespace(
-        quota_scope=seed["quota_scope"], quota_contract=seed["quota_contract"]
-    )
+    policy = SimpleNamespace(quota_scope=seed["quota_scope"], quota_contract=seed["quota_contract"])
     reconcile_provider_quota_baseline(
         provider_name="marketdata_app",
         capability="price_history",
@@ -692,9 +1338,7 @@ def test_summary_uses_current_marketdata_app_plan_at_expiry(tmp_path, monkeypatc
     )
     assert reservation is not None
 
-    before = provider_quota_coordinator_summary(
-        provider_name="marketdata_app", now=policy_clock[0]
-    )
+    before = provider_quota_coordinator_summary(provider_name="marketdata_app", now=policy_clock[0])
     before_baseline = next(
         row for row in before["baselines"] if row["dimension"] == "credits_per_day"
     )
@@ -707,9 +1351,7 @@ def test_summary_uses_current_marketdata_app_plan_at_expiry(tmp_path, monkeypatc
         provider_name="marketdata_app", now=policy_clock[0]
     )
     changed_baseline = next(
-        row
-        for row in plan_changed["baselines"]
-        if row["dimension"] == "credits_per_day"
+        row for row in plan_changed["baselines"] if row["dimension"] == "credits_per_day"
     )
     assert changed_baseline["limit_units"] == 100
     assert changed_baseline["remaining_units"] == 0
@@ -718,15 +1360,11 @@ def test_summary_uses_current_marketdata_app_plan_at_expiry(tmp_path, monkeypatc
     monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 10_000)
 
     policy_clock[0] = expiry
-    after = provider_quota_coordinator_summary(
-        provider_name="marketdata_app", now=expiry
-    )
+    after = provider_quota_coordinator_summary(provider_name="marketdata_app", now=expiry)
     after_baseline = next(
         row for row in after["baselines"] if row["dimension"] == "credits_per_day"
     )
-    after_window = next(
-        row for row in after["windows"] if row["dimension"] == "credits_per_day"
-    )
+    after_window = next(row for row in after["windows"] if row["dimension"] == "credits_per_day")
     assert after_baseline["limit_units"] == 100
     assert after_baseline["recorded_limit_units"] == 10_000
     assert after_baseline["remaining_units"] == 0
@@ -810,7 +1448,10 @@ def test_ambiguous_request_remains_reserved_until_provider_reset(tmp_path, monke
 def test_distinct_identity_pool_is_hashed_and_account_scoped(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_ACCOUNT_SCOPES", {"fixture": "acct-one"})
-    policy = _policy(_dimension("unique_symbols_per_month", limit=1, unit="unique_symbols"), reset="calendar_month_utc")
+    policy = _policy(
+        _dimension("unique_symbols_per_month", limit=1, unit="unique_symbols"),
+        reset="calendar_month_utc",
+    )
     now = datetime(2026, 9, 15, 12, 0, tzinfo=UTC)
 
     assert _reserve(policy, {"unique_symbols_per_month": 1}, now=now, identity="AAPL")
@@ -842,11 +1483,14 @@ def test_rolling_dimensions_use_their_own_account_scope(tmp_path, monkeypatch):
         {"requests_per_day": 1, "ip_requests_rolling": 1},
         now=now,
     )
-    assert _reserve(
-        policy,
-        {"requests_per_day": 1, "ip_requests_rolling": 1},
-        now=now + timedelta(seconds=1),
-    ) is None
+    assert (
+        _reserve(
+            policy,
+            {"requests_per_day": 1, "ip_requests_rolling": 1},
+            now=now + timedelta(seconds=1),
+        )
+        is None
+    )
 
 
 def test_shared_ip_account_pool_is_not_split_by_provider_adapter(tmp_path, monkeypatch):
@@ -859,17 +1503,67 @@ def test_shared_ip_account_pool_is_not_split_by_provider_adapter(tmp_path, monke
         "finra_otc_directory", "ip"
     )
     assert _reserve(policy, {"requests_per_minute": 1}, now=now, provider="finra")
+    assert (
+        _reserve(
+            policy,
+            {"requests_per_minute": 1},
+            now=now,
+            provider="finra_otc_directory",
+        )
+        is None
+    )
+
+    assert account_scope_for_provider("kraken", "ip") == account_scope_for_provider(
+        "kraken_xstocks", "ip"
+    )
+    assert _reserve(policy, {"requests_per_minute": 1}, now=now, provider="kraken")
+    assert (
+        _reserve(
+            policy,
+            {"requests_per_minute": 1},
+            now=now,
+            provider="kraken_xstocks",
+        )
+        is None
+    )
+
+
+def test_finra_public_credential_bandwidth_pool_is_shared_between_adapters(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    policy = _policy(
+        _dimension(
+            "download_bytes_per_calendar_month",
+            limit=10,
+            window_seconds=2678400,
+            unit="bytes",
+            scope="public_credential",
+            quota_group="public_credential",
+        ),
+        scope="public_credential",
+    )
+    now = datetime(2026, 9, 15, 12, 0, tzinfo=UTC)
+
+    assert account_scope_for_provider("finra", "public_credential") == account_scope_for_provider(
+        "finra_otc_directory", "public_credential"
+    )
     assert _reserve(
         policy,
-        {"requests_per_minute": 1},
+        {"download_bytes_per_calendar_month": 6},
         now=now,
-        provider="finra_otc_directory",
-    ) is None
+        provider="finra",
+    )
+    assert (
+        _reserve(
+            policy,
+            {"download_bytes_per_calendar_month": 5},
+            now=now,
+            provider="finra_otc_directory",
+        )
+        is None
+    )
 
 
-def test_rolling_distinct_identity_claims_count_once_for_full_active_window(
-    tmp_path, monkeypatch
-):
+def test_rolling_distinct_identity_claims_count_once_for_full_active_window(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
     policy = _policy(
         _dimension(
@@ -904,12 +1598,15 @@ def test_rolling_distinct_identity_claims_count_once_for_full_active_window(
     )
     # A different symbol is still denied until the oldest distinct claim ages
     # out of the complete 31-day rolling window.
-    assert _reserve(
-        policy,
-        {"unique_symbols_per_rolling_window": 1},
-        now=now + timedelta(seconds=2),
-        identity="MSFT",
-    ) is None
+    assert (
+        _reserve(
+            policy,
+            {"unique_symbols_per_rolling_window": 1},
+            now=now + timedelta(seconds=2),
+            identity="MSFT",
+        )
+        is None
+    )
     # The denied new rolling identity must not leave an empty quota window.
     assert len(provider_quota_coordinator_summary(now=now + timedelta(seconds=2))["windows"]) == 1
     assert _reserve(
@@ -929,17 +1626,18 @@ def test_denied_rolling_reservation_does_not_persist_an_orphan_window(tmp_path, 
     first_at = datetime(2026, 9, 15, 12, 0, tzinfo=UTC)
 
     assert _reserve(policy, {"rolling_requests": 1}, now=first_at)
-    assert _reserve(
-        policy,
-        {"rolling_requests": 1},
-        now=first_at + timedelta(seconds=1),
-    ) is None
+    assert (
+        _reserve(
+            policy,
+            {"rolling_requests": 1},
+            now=first_at + timedelta(seconds=1),
+        )
+        is None
+    )
     assert len(provider_quota_coordinator_summary(now=first_at)["windows"]) == 1
 
 
-def test_github_persistent_store_requirement_applies_only_when_requested(
-    tmp_path, monkeypatch
-):
+def test_github_persistent_store_requirement_applies_only_when_requested(tmp_path, monkeypatch):
     monkeypatch.setenv("GITHUB_ACTIONS", "true")
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", "")
@@ -976,9 +1674,7 @@ def test_github_persistent_store_requirement_applies_only_when_requested(
     # Ordinary unit coverage uses isolated SQLite even though Actions sets its
     # global environment marker; only the actual live wrapper opts into PG.
     _seed_live_test_baseline("alpha_vantage")
-    assert reserve_live_provider_operation(
-        "alpha_vantage", "fetch_earnings_calendar"
-    ) is not None
+    assert reserve_live_provider_operation("alpha_vantage", "fetch_earnings_calendar") is not None
     with pytest.raises(ProviderQuotaCoordinatorError, match="persistent PostgreSQL"):
         reserve_live_provider_operation(
             "alpha_vantage",
@@ -992,9 +1688,7 @@ def test_only_supported_coordinator_dialects_are_accepted():
         _validate_engine_url("mysql+pymysql://host/database")
 
 
-def test_private_sqlite_initialization_does_not_require_redundant_chmod(
-    tmp_path, monkeypatch
-):
+def test_private_sqlite_initialization_does_not_require_redundant_chmod(tmp_path, monkeypatch):
     """An owner-only file remains usable when the filesystem denies chmod."""
 
     path = tmp_path / "quota.sqlite3"
@@ -1077,6 +1771,56 @@ def test_settled_live_receipt_is_idempotent_and_does_not_double_count(tmp_path, 
         "uncertain": 0,
         "unresolved": 0,
     }
+
+
+def test_robinhood_tokens_provider_slug_is_valid_for_live_receipts(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    policy = _policy(_dimension(limit=5))
+    now = datetime(2026, 9, 15, 12, 0, tzinfo=UTC)
+    reservation = _reserve(policy, {"requests_per_minute": 1}, now=now, provider="robinhood_tokens")
+    assert reservation is not None
+    settle_provider_quota(reservation, observed_dimension_units={"requests_per_minute": 1}, now=now)
+
+    assert _validated_live_receipt_provider("robinhood_tokens") == "robinhood_tokens"
+    assert (
+        register_live_receipt_reservation(
+            reservation,
+            run_id="robinhood-live-run",
+            usage_scope="local:robinhood",
+            receipt_status="observed",
+            now=now,
+        )
+        == "reconciled"
+    )
+
+
+@pytest.mark.parametrize("provider", ["Robinhood", "robinhood tokens", "https://example.test"])
+def test_live_receipt_provider_must_remain_a_safe_slug(provider):
+    with pytest.raises(ProviderQuotaCoordinatorError, match="live receipt provider is invalid"):
+        _validated_live_receipt_provider(provider)
+
+
+def test_archive_failure_live_receipt_is_durably_recordable(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    policy = _policy(_dimension(limit=5))
+    now = datetime(2026, 9, 15, 12, 0, tzinfo=UTC)
+    reservation = _reserve(policy, {"requests_per_minute": 1}, now=now)
+    assert reservation is not None
+    settle_provider_quota(reservation, observed_dimension_units={"requests_per_minute": 1}, now=now)
+
+    assert (
+        register_live_receipt_reservation(
+            reservation,
+            run_id="live-archive-failure",
+            usage_scope="local:test",
+            receipt_status="archive_failure",
+            now=now,
+        )
+        == "reconciled"
+    )
+    summary = provider_quota_coordinator_summary(provider_name="fixture", now=now)
+    assert summary["live_receipts"]["total"] == 1
+    assert summary["live_receipts"]["reconciled"] == 1
 
 
 def test_pending_live_receipt_recovery_settles_original_reservation_once(tmp_path, monkeypatch):
@@ -1172,17 +1916,13 @@ def test_live_probe_settlement_uses_observed_http_and_byte_usage(tmp_path, monke
         {
             "alpha_vantage": {
                 "operation_costs": {"fetch_earnings_calendar": 3},
-                "dimension_costs": {
-                    "response_bytes_rolling": {"fetch_earnings_calendar": 1000}
-                },
+                "dimension_costs": {"response_bytes_rolling": {"fetch_earnings_calendar": 1000}},
             }
         },
     )
 
     _seed_live_test_baseline("alpha_vantage")
-    reservation = reserve_live_provider_operation(
-        "alpha_vantage", "fetch_earnings_calendar"
-    )
+    reservation = reserve_live_provider_operation("alpha_vantage", "fetch_earnings_calendar")
     assert reservation is not None
     settle_live_provider_operation(reservation, http_requests=2, response_bytes=321)
 
@@ -1221,9 +1961,14 @@ def test_eodhd_live_probe_settlement_keeps_provider_credits_separate_from_http_c
     assert pending["requests_per_minute"]["reserved_units"] == 1
     assert pending["calls_per_day"]["reserved_units"] == 10
 
-    # The free-plan Fundamentals probe receives one HTTP 403 but is charged
-    # ten EODHD credits. Transport count must not overwrite provider pricing.
-    settle_live_provider_operation(reservation, http_requests=1, response_bytes=128)
+    # A valid-key entitlement 403 consumes the minute request, but the native
+    # /user counter proved it does not consume weighted daily call credits.
+    settle_live_provider_operation(
+        reservation,
+        http_requests=1,
+        response_bytes=128,
+        response_status_code=403,
+    )
     settled = {
         row["dimension"]: row
         for row in provider_quota_coordinator_summary(provider_name="eodhd")["windows"]
@@ -1231,7 +1976,88 @@ def test_eodhd_live_probe_settlement_keeps_provider_credits_separate_from_http_c
     assert settled["requests_per_minute"]["reserved_units"] == 0
     assert settled["requests_per_minute"]["consumed_units"] == 1
     assert settled["calls_per_day"]["reserved_units"] == 0
-    assert settled["calls_per_day"]["consumed_units"] == 10
+    assert settled["calls_per_day"]["consumed_units"] == 0
+
+    paid_entitlement_reservation = reserve_live_provider_operation(
+        "eodhd", "get_instrument_profile"
+    )
+    assert paid_entitlement_reservation is not None
+    settle_live_provider_operation(
+        paid_entitlement_reservation,
+        http_requests=1,
+        response_bytes=256,
+        response_status_code=200,
+    )
+    final_windows = provider_quota_coordinator_summary(provider_name="eodhd")["windows"]
+    # Rolling windows are recorded from each reservation's own observation
+    # timestamp, so requests crossing a one-second boundary can occupy two
+    # adjacent ledger rows. The summary intentionally preserves those rows;
+    # assert the active minute's total rather than whichever row sorts last.
+    assert (
+        sum(
+            row["consumed_units"]
+            for row in final_windows
+            if row["dimension"] == "requests_per_minute"
+        )
+        == 2
+    )
+    daily_call_windows = [row for row in final_windows if row["dimension"] == "calls_per_day"]
+    assert len(daily_call_windows) == 1
+    assert daily_call_windows[0]["consumed_units"] == 10
+
+
+def test_marketstack_live_api_error_does_not_debit_monthly_allowance(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", "")
+    _seed_live_test_baseline("marketstack")
+
+    reservation = reserve_live_provider_operation(
+        "marketstack", "get_current_price", operation_cost_override=1
+    )
+    assert reservation is not None
+    settle_live_provider_operation(
+        reservation,
+        http_requests=1,
+        response_bytes=128,
+        response_status_code=403,
+    )
+
+    windows = {
+        row["dimension"]: row
+        for row in provider_quota_coordinator_summary(provider_name="marketstack")["windows"]
+    }
+    assert windows["requests_per_month"]["reserved_units"] == 0
+    assert windows["requests_per_month"]["consumed_units"] == 0
+    assert windows["requests_per_second"]["reserved_units"] == 0
+    assert windows["requests_per_second"]["consumed_units"] == 1
+
+    # Success charges the monthly unit normally, proving the exception rule
+    # does not release a legitimate debit or the separate rate-limit window.
+    successful = reserve_live_provider_operation(
+        "marketstack", "get_current_price", operation_cost_override=1
+    )
+    assert successful is not None
+    settle_live_provider_operation(
+        successful,
+        http_requests=1,
+        response_bytes=256,
+        response_status_code=200,
+    )
+    final_windows = provider_quota_coordinator_summary(provider_name="marketstack")["windows"]
+    monthly = [row for row in final_windows if row["dimension"] == "requests_per_month"]
+    # The strict 30-day safety envelope is rolling, so each reservation may
+    # occupy its own timestamped ledger row. Assert the aggregate allowance
+    # usage instead of assuming calendar-month bucket coalescing.
+    assert sum(row["consumed_units"] for row in monthly) == 1
+    assert sum(row["reserved_units"] for row in monthly) == 0
+    assert (
+        sum(
+            row["consumed_units"]
+            for row in final_windows
+            if row["dimension"] == "requests_per_second"
+        )
+        == 2
+    )
 
 
 def test_empty_dimension_cost_map_is_an_explicit_zero_cost_exclusion(monkeypatch):
@@ -1297,7 +2123,6 @@ def test_empty_dimension_cost_map_is_an_explicit_zero_cost_exclusion(monkeypatch
 
     assert dimension_units == {"requests_per_minute": 1}
     assert [spec["dimension"] for spec in specs] == ["requests_per_minute"]
-
     # A partial map is allowed to carry a provider-specific zero-cost
     # exception while ordinary operations continue to use their reviewed
     # operation cost when the contract does not require maps for every
@@ -1338,9 +2163,58 @@ def test_empty_dimension_cost_map_is_an_explicit_zero_cost_exclusion(monkeypatch
         },
     )
     with pytest.raises(ProviderQuotaAdmissionError, match="dimension cost is unreviewed"):
-        _reservation_plan_for_live_probe(
-            "fixture", "fetch_bad", "identity", datetime.now(UTC)
-        )
+        _reservation_plan_for_live_probe("fixture", "fetch_bad", "identity", datetime.now(UTC))
+
+
+def test_live_probe_explicit_zero_dimension_override_is_a_reviewed_exclusion(monkeypatch):
+    """A named zero override excludes only that independent provider pool."""
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_RATE_LIMIT_SEEDS",
+        {
+            "fixture": {
+                "quota_contract": {
+                    "reset": "rolling",
+                    "dimensions": [
+                        {
+                            "name": "sync_requests_per_minute",
+                            "limit": 10,
+                            "window_seconds": 60,
+                            "unit": "requests",
+                            "scope": "account",
+                            "quota_group": "sync",
+                        },
+                        {
+                            "name": "async_requests_per_minute",
+                            "limit": 5,
+                            "window_seconds": 60,
+                            "unit": "requests",
+                            "scope": "account",
+                            "quota_group": "async",
+                        },
+                    ],
+                },
+                "quota_scope": "account",
+            }
+        },
+    )
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_USAGE_PROFILE_SEEDS",
+        {"fixture": {"operation_costs": {"fetch_rows": 1}}},
+    )
+
+    _reset, dimension_units, specs = _reservation_plan_for_live_probe(
+        "fixture",
+        "fetch_rows",
+        None,
+        datetime.now(UTC),
+        dimension_cost_overrides={"async_requests_per_minute": 0},
+    )
+
+    assert dimension_units == {"sync_requests_per_minute": 1}
+    assert [spec["dimension"] for spec in specs] == ["sync_requests_per_minute"]
 
 
 def test_sqlite_reservations_are_atomic_across_processes(tmp_path, monkeypatch):
@@ -1377,7 +2251,7 @@ def test_sqlite_reservations_are_atomic_across_processes(tmp_path, monkeypatch):
     assert sorted(result for _, result in outcomes) == [False, True]
 
 
-def test_live_account_usage_bootstrap_excludes_only_unknown_pools(tmp_path, monkeypatch):
+def test_live_account_usage_bootstrap_excludes_only_native_reconciled_pools(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
     monkeypatch.setattr(
         settings,
@@ -1402,7 +2276,7 @@ def test_live_account_usage_bootstrap_excludes_only_unknown_pools(tmp_path, monk
                             "scope": "api_key",
                             "quota_group": "api_key",
                             "source": "unit-test provider contract",
-                            "reset": "provider_defined",
+                            "reset": "rolling",
                         },
                         {
                             "name": "credits_per_day",
@@ -1436,16 +2310,28 @@ def test_live_account_usage_bootstrap_excludes_only_unknown_pools(tmp_path, monk
         {"fixture": {"operation_costs": {"fetch_account_usage": 1}}},
     )
 
+    with pytest.raises(ProviderQuotaAdmissionError, match="cannot safely charge unreported"):
+        _reservation_plan_for_live_probe(
+            "fixture", "fetch_account_usage", "identity", datetime.now(UTC)
+        )
+
+    # Once the unreported pool is removed, the unknown daily pool can be
+    # omitted only because this fixture's native response explicitly maps it.
+    contract = settings.PROVIDER_RATE_LIMIT_SEEDS["fixture"]["quota_contract"]
+    contract["unknown_dimensions"] = []
+    contract["account_usage_bootstrap"]["allowed_unknown_dimensions"] = []
+    contract["dimensions"] = [
+        dimension
+        for dimension in contract["dimensions"]
+        if dimension["name"] != "provider_minute_pool"
+    ]
     _reset, dimension_units, specs = _reservation_plan_for_live_probe(
         "fixture", "fetch_account_usage", "identity", datetime.now(UTC)
     )
-
     assert dimension_units == {"account_usage_probe_concurrency": 1}
     assert [spec["dimension"] for spec in specs] == ["account_usage_probe_concurrency"]
 
-    settings.PROVIDER_RATE_LIMIT_SEEDS["fixture"]["quota_contract"][
-        "account_usage_bootstrap"
-    ]["reconciled_dimensions"] = []
+    contract["account_usage_bootstrap"]["reconciled_dimensions"] = []
     with pytest.raises(ProviderQuotaAdmissionError, match="bootstrap mapping"):
         _reservation_plan_for_live_probe(
             "fixture", "fetch_account_usage", "identity", datetime.now(UTC)
@@ -1495,13 +2381,16 @@ def test_live_probe_operation_cost_comes_from_provider_profile(tmp_path, monkeyp
         reset=seed["quota_contract"]["reset"],
         scope=seed["quota_scope"],
     )
-    assert _reserve(
-        policy,
-        {"requests_per_day": 3},
-        now=datetime.now(UTC),
-        provider="alpha_vantage",
-        operation="fetch_earnings_calendar",
-    ) is None
+    assert (
+        _reserve(
+            policy,
+            {"requests_per_day": 3},
+            now=datetime.now(UTC),
+            provider="alpha_vantage",
+            operation="fetch_earnings_calendar",
+        )
+        is None
+    )
     window = provider_quota_coordinator_summary(provider_name="alpha_vantage")["windows"][0]
     assert window["reserved_units"] == 3
 
@@ -1563,12 +2452,15 @@ def test_not_sent_reservation_releases_monthly_symbol_claim(tmp_path, monkeypatc
         now=now,
     )
 
-    assert _reserve(
-        policy,
-        {"unique_symbols_per_month": 1},
-        now=now,
-        identity="AAPL",
-    ) is not None
+    assert (
+        _reserve(
+            policy,
+            {"unique_symbols_per_month": 1},
+            now=now,
+            identity="AAPL",
+        )
+        is not None
+    )
 
 
 def test_retention_never_deletes_historical_quota_evidence(tmp_path, monkeypatch):

@@ -8,6 +8,7 @@ from tests.live.live_usage import (
     activate_case,
     deactivate_case,
     ensure_ledger_writable,
+    ensure_response_archive_writable,
     ensure_usage_scope_configured,
     flush_observations,
     install_httpx_quota_admission_guard,
@@ -32,6 +33,7 @@ def pytest_sessionstart(session):
         install_httpx_quota_admission_guard()
         ensure_usage_scope_configured()
         ensure_ledger_writable()
+        ensure_response_archive_writable()
         from app.services.provider_quota_coordinator import ensure_provider_quota_coordinator
 
         ensure_provider_quota_coordinator()

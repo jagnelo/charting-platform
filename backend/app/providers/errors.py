@@ -10,7 +10,7 @@ from math import isfinite
 from typing import Any
 
 _QUERY_SECRET_RE = re.compile(
-    r"(?i)([?&](?:api[_-]?(?:key|token|secret)|access[_-]?key|token|client[_-]?secret|secret(?:[_-]?key)?|authorization)=)[^&\s'\"]+"
+    r"(?i)([?&](?:api[_-]?(?:key|token|secret)|access[_-]?key|token|client[_-]?secret|secret(?:[_-]?key)?|authorization|signature|sig|awsaccesskeyid|x-amz-[a-z0-9-]+)=)[^&\s'\"]+"
 )
 _HEADER_SECRET_RE = re.compile(
     r"(?i)(\b(?:authorization|x-[a-z0-9-]*(?:key|token|secret))\s*[:=]\s*(?:bearer\s+)?)['\"]?[^\s,;]+"
@@ -60,6 +60,21 @@ _CAPACITY_HEADER_NAMES = frozenset(
         "x-ratelimit-used",
         "x-ratelimit-available",
         "x-ratelimit-expiry",
+        "x-ratelimit-limit-day",
+        "x-ratelimit-limit-month",
+        "x-ratelimit-remaining-day",
+        "x-ratelimit-remaining-month",
+        "x-ratelimit-limit-second",
+        "x-ratelimit-remaining-second",
+        "x-ratelimit-reset-second",
+        "x-ratelimit-limit-minute",
+        "x-ratelimit-remaining-minute",
+        "x-ratelimit-reset-minute",
+        "x-ratelimit-limit-hour",
+        "x-ratelimit-remaining-hour",
+        "x-ratelimit-reset-hour",
+        "x-ratelimit-reset-day",
+        "x-ratelimit-reset-month",
         "x-rate-limit-limit",
         "x-rate-limit-remaining",
         "x-rate-limit-reset",
@@ -92,8 +107,7 @@ def redact_provider_message(message: object) -> str:
         from app.config import settings
 
         configured_values = {
-            str(getattr(settings, name, "") or "").strip()
-            for name in _SECRET_SETTING_NAMES
+            str(getattr(settings, name, "") or "").strip() for name in _SECRET_SETTING_NAMES
         }
         for value in sorted(
             (value for value in configured_values if len(value) >= 4),
@@ -115,6 +129,60 @@ def bounded_redact_provider_message(message: object, *, max_length: int = 1000) 
     if max_length < 0:
         raise ValueError("max_length must be non-negative")
     return redact_provider_message(message)[:max_length]
+
+
+_SENSITIVE_RESPONSE_KEYS = frozenset(
+    {
+        "accesskey",
+        "accesstoken",
+        "apikey",
+        "auth",
+        "authorization",
+        "bearertoken",
+        "clientsecret",
+        "cookie",
+        "credential",
+        "credentials",
+        "password",
+        "privatekey",
+        "refreshtoken",
+        "secret",
+        "secretaccesskey",
+        "secretkey",
+        "sessiontoken",
+        "signature",
+        "sig",
+        "token",
+    }
+)
+
+
+def redact_provider_payload(value: Any) -> Any:
+    """Preserve provider response data while removing credential material.
+
+    In addition to API-key fields, signed download links (such as FINRA's
+    short-lived S3 result URLs) carry bearer-like credentials in their query
+    strings. Keep the URL's host/path and ordinary response fields for audit,
+    but never persist those query values in request logs or observations.
+    """
+
+    if isinstance(value, dict):
+        safe: dict[str, Any] = {}
+        for key, item in value.items():
+            # Normalize snake_case, kebab-case, and camelCase identically.
+            # OAuth responses and vendor SDK payloads do not agree on style.
+            normalized = re.sub(r"[^a-z0-9]", "", str(key).lower())
+            safe[str(key)] = (
+                "<redacted>"
+                if normalized in _SENSITIVE_RESPONSE_KEYS
+                else redact_provider_payload(item)
+            )
+        return safe
+    if isinstance(value, list | tuple):
+        return [redact_provider_payload(item) for item in value]
+    if isinstance(value, str):
+        return redact_provider_message(value)
+    return value
 
 
 class ProviderNotConfiguredError(RuntimeError):
@@ -195,6 +263,11 @@ def provider_retry_at_from_headers(
     for name in (
         "x-api-ratelimit-reset",
         "x-ratelimit-reset",
+        "x-ratelimit-reset-second",
+        "x-ratelimit-reset-minute",
+        "x-ratelimit-reset-hour",
+        "x-ratelimit-reset-day",
+        "x-ratelimit-reset-month",
         "x-rate-limit-reset",
         "ratelimit-reset",
     ):

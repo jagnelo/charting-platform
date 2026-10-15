@@ -31,19 +31,18 @@ _NATIVE_BASELINE_DIMENSIONS: dict[str, dict[str, str]] = {
     },
     # EODHD's documented /user endpoint reports the daily-call counter and
     # account limit, plus native per-key minute limit/remaining headers. A
-    # higher native minute ceiling can seed use under the stricter local
-    # 1,000/minute cap; stale daily dates remain observation-only.
+    # higher native minute ceiling can seed use under the configured local
+    # safety cap; stale daily dates remain observation-only.
     "eodhd": {
         "calls_per_day": ProviderCapability.ACCOUNT_USAGE.value,
         "requests_per_minute": ProviderCapability.ACCOUNT_USAGE.value,
     },
-    # Twelve Data's /api_usage response exposes the current minute pool via
-    # provider-native used/left headers. Reconcile only that exact reviewed
-    # dimension. The official credits documentation gives the daily pool an
-    # exact UTC-midnight reset, but no daily consumed counter is exposed, so
-    # the durable daily baseline remains required before ordinary reads.
+    # Twelve Data exposes two distinct Basic-plan pools: weighted credits per
+    # minute in response headers, and request counts per day in the /api_usage
+    # body. Reconcile each only against its matching unit.
     "twelve_data": {
         "credits_per_minute": ProviderCapability.ACCOUNT_USAGE.value,
+        "requests_per_day": ProviderCapability.ACCOUNT_USAGE.value,
     },
     # Binance's public /api/v3/time response exposes the cumulative request
     # weight for the current fixed one-minute window.  The adapter supplies
@@ -64,6 +63,33 @@ _NATIVE_BASELINE_DIMENSIONS: dict[str, dict[str, str]] = {
     # establish the current durable baseline before metered reads.
     "alpaca": {
         "market_data_requests_per_minute": ProviderCapability.ACCOUNT_USAGE.value,
+    },
+    # xStocks exposes its shared public API minute pool in response headers.
+    # The adapter uses one bounded one-row catalogue response and preserves its
+    # complete body as the usage observation; do not assume local-zero use.
+    "xstocks": {
+        "public_requests_per_minute": ProviderCapability.ACCOUNT_USAGE.value,
+    },
+    # Finnhub standard responses carry native minute limit/remaining/reset
+    # headers. Its hard per-second ceiling is application-only because no
+    # separate native second-window counter is published.
+    "finnhub": {
+        "calls_per_minute": ProviderCapability.ACCOUNT_USAGE.value,
+    },
+    "coingecko": {
+        "calls_per_month": ProviderCapability.ACCOUNT_USAGE.value,
+    },
+    "fmp": {
+        "calls_per_day": ProviderCapability.ACCOUNT_USAGE.value,
+        "calls_per_minute": ProviderCapability.ACCOUNT_USAGE.value,
+        "bandwidth_bytes_per_30_days": ProviderCapability.ACCOUNT_USAGE.value,
+    },
+    # APILayer attaches current daily/monthly quota counters to Marketstack
+    # responses. Its monthly dimension seeds the stricter rolling-30-day app
+    # envelope; the daily counter remains native telemetry until separately
+    # represented in the quota contract.
+    "marketstack": {
+        "requests_per_month": ProviderCapability.ACCOUNT_USAGE.value,
     },
 }
 
@@ -132,7 +158,9 @@ def _usage_dimensions(
     )
 
 
-def _validate_usage(usage: ProviderAccountUsage, provider_name: str) -> tuple[ProviderAccountUsageDimension, ...]:
+def _validate_usage(
+    usage: ProviderAccountUsage, provider_name: str
+) -> tuple[ProviderAccountUsageDimension, ...]:
     dimensions = _usage_dimensions(usage, provider_name)
     names: set[str] = set()
     for dimension in dimensions:
@@ -184,16 +212,52 @@ def _native_baseline_candidate(
         # keyed contract names the active dimension per six seconds, while
         # the usage adapter exposes the same native mapping counter under its
         # stable minute label for compatibility.
-        if (
-            provider_name == "openfigi"
-            and dimension_name == "mapping_requests_per_6_seconds"
-        ):
+        if provider_name == "openfigi" and dimension_name == "mapping_requests_per_6_seconds":
             capability = configured_dimensions.get("mapping_requests_per_minute")
         else:
             return None
     contract = getattr(policy, "quota_contract", None)
     if not isinstance(contract, dict):
         return None
+    unknown_dimensions = {
+        str(item or "").strip()
+        for item in (contract.get("unknown_dimensions") or [])
+        if str(item or "").strip()
+    }
+    if unknown_dimensions:
+        # Reset boundaries can remain explicitly unknown in the evidence
+        # record while a strict per-dimension application safety window makes
+        # admission safe. Mirror the quota coordinator's resolution here so a
+        # native snapshot for that exact dimension can still bootstrap it.
+        from app.config import (
+            provider_quota_admission_reset,
+            provider_quota_reset_is_admission_safe,
+        )
+
+        resolved_unknown: set[str] = set()
+        for item in contract.get("dimensions", []):
+            if not isinstance(item, dict):
+                continue
+            provider_reset = item.get("reset", contract.get("reset"))
+            admission_reset = provider_quota_admission_reset(
+                provider_reset, item.get("safety_reset")
+            )
+            if admission_reset == str(provider_reset or "").strip() or not (
+                provider_quota_reset_is_admission_safe(admission_reset)
+            ):
+                continue
+            dimension_name = str(item.get("name") or "").strip()
+            explicit = {
+                str(value or "").strip()
+                for value in (item.get("safety_resolves_unknown_dimensions") or [])
+                if str(value or "").strip()
+            }
+            if dimension_name:
+                explicit.update(
+                    value for value in unknown_dimensions if value.startswith(f"{dimension_name}_")
+                )
+            resolved_unknown.update(explicit & unknown_dimensions)
+        unknown_dimensions -= resolved_unknown
     dimensions = [
         item
         for item in contract.get("dimensions", [])
@@ -207,7 +271,7 @@ def _native_baseline_candidate(
             )
         )
     ]
-    if len(dimensions) != 1 or contract.get("unknown_dimensions"):
+    if len(dimensions) != 1 or unknown_dimensions:
         return None
     policy_dimension = dimensions[0]
     dimension_name = str(policy_dimension.get("name") or dimension_name)
@@ -215,11 +279,12 @@ def _native_baseline_candidate(
     if isinstance(limit, bool) or not isinstance(limit, int) or limit <= 0:
         return None
     if provider_name == "eodhd" and dimension_name == "requests_per_minute":
-        # EODHD documents a 1,000/minute all-plan ceiling but its response
-        # header reports the exact active per-key limit. A higher native limit
-        # is compatible with this deliberately lower app cap. Translate the
-        # observed remaining counter into consumed units without widening the
-        # policy; a lower native limit or over-cap observed use stays blocked.
+        # EODHD's detailed API-limits page documents 1,000/minute, while the
+        # Free pricing card says 20/minute and the configured key reported
+        # 1,200/1,199 in native headers. Enforce the reviewed local cap; use
+        # headers only to derive consumed units. A lower native limit,
+        # malformed counter, or observed use above the local cap remains
+        # blocked, and a higher native ceiling never widens policy.
         if (
             isinstance(dimension.limit, bool)
             or not isinstance(dimension.limit, int)
@@ -232,6 +297,67 @@ def _native_baseline_candidate(
         ):
             return None
         consumed = dimension.limit - dimension.remaining
+        if consumed > limit:
+            return None
+    elif provider_name == "marketdata_app" and dimension_name == "credits_per_day":
+        # `/user/` reports the account's active native limit, which can remain
+        # above the operator-reviewed local cap (for example, a trial counter
+        # still reports 10,000 after this installation has deliberately
+        # switched to its configured 100-credit Free Forever budget). Use the
+        # native remaining counter only to derive usage; never widen the
+        # coordinator beyond the reviewed plan limit.
+        native_limit = dimension.limit
+        if (
+            isinstance(native_limit, bool)
+            or not isinstance(native_limit, int)
+            or native_limit < limit
+            or dimension.remaining is None
+            or isinstance(dimension.remaining, bool)
+            or not isinstance(dimension.remaining, int)
+            or dimension.remaining < 0
+            or dimension.remaining > native_limit
+        ):
+            return None
+        consumed = native_limit - dimension.remaining
+        if consumed > limit:
+            return None
+    elif provider_name == "marketstack" and dimension_name == "requests_per_month":
+        # APILayer reports the active account's actual monthly cap and
+        # remaining balance in every response. A higher native tier may seed
+        # usage under the stricter configured cap, but never widens that cap;
+        # a lower tier or usage beyond the configured cap is not admitted.
+        native_limit = dimension.limit
+        if (
+            isinstance(native_limit, bool)
+            or not isinstance(native_limit, int)
+            or native_limit < limit
+            or dimension.remaining is None
+            or isinstance(dimension.remaining, bool)
+            or not isinstance(dimension.remaining, int)
+            or dimension.remaining < 0
+            or dimension.remaining > native_limit
+        ):
+            return None
+        consumed = native_limit - dimension.remaining
+        if consumed > limit:
+            return None
+    elif provider_name == "fmp" and dimension_name == "bandwidth_bytes_per_30_days":
+        # FMP's dashboard displays its bandwidth allowance in MB without
+        # defining decimal versus binary units. The adapter converts reported
+        # usage conservatively to bytes. Accept its larger native allowance
+        # only while observed usage remains within the stricter reviewed app
+        # cap; never widen routing to the dashboard's rounded-up figure.
+        native_limit = dimension.limit
+        if (
+            isinstance(native_limit, bool)
+            or not isinstance(native_limit, int)
+            or native_limit < limit
+            or isinstance(dimension.consumed, bool)
+            or not isinstance(dimension.consumed, int)
+            or dimension.consumed < 0
+        ):
+            return None
+        consumed = dimension.consumed
         if consumed > limit:
             return None
     else:
@@ -358,6 +484,10 @@ async def refresh_provider_account_usage(
                                 observed_at=baseline_observed_at,
                                 evidence_reference=evidence_reference,
                                 source="provider_account_observation",
+                                native_snapshot_includes_prior_local_activity=(
+                                    execution.provider_name == "eodhd"
+                                    and dimension_name == "calls_per_day"
+                                ),
                             )
                         )
                     except Exception as exc:  # noqa: BLE001 - preserve observation, expose redacted admission failure.

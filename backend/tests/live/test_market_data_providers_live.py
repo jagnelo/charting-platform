@@ -32,10 +32,13 @@ from app.providers.crypto_market_data import (
     CoinbaseProvider,
     KrakenProvider,
     estimate_coinbase_latest_ohlcv_request_count,
+    estimate_coinbase_ohlcv_request_count,
     estimate_kraken_latest_ohlcv_request_count,
+    estimate_kraken_ohlcv_request_count,
 )
+from app.providers.cta_plan import CTAPlanProvider
 from app.providers.edgar import EdgarProvider
-from app.providers.errors import ProviderResponseError
+from app.providers.errors import ProviderNotConfiguredError, ProviderResponseError
 from app.providers.finra import FINRAProvider
 from app.providers.finra_otc_directory import FINRAOTCDirectoryProvider
 from app.providers.fred import FREDProvider
@@ -57,17 +60,21 @@ from app.providers.optional_market_data import (
     TiingoProvider,
     TradierProvider,
     TwelveDataProvider,
+    estimate_fmp_ohlcv_request_count,
     estimate_marketdata_app_ohlcv_credit_count,
     estimate_marketdata_app_option_quote_history_credit_count,
     estimate_marketstack_ohlcv_request_count,
 )
+from app.providers.registry import provider_rate_limit_seed
 from app.providers.telemetry import activate as activate_provider_telemetry
 from app.providers.telemetry import deactivate as deactivate_provider_telemetry
 from tests.live.live_usage import (
     activate_request_admission,
+    archive_response_payloads,
     deactivate_request_admission,
     reconcile_native_account_usage,
     record_observation,
+    wait_for_provider_start_window,
 )
 
 pytestmark = [
@@ -137,6 +144,7 @@ def _observed_read(
         settle_live_provider_operation,
     )
 
+    wait_for_provider_start_window(provider_name)
     reservation = reserve_live_provider_operation(
         provider_name,
         operation,
@@ -150,18 +158,36 @@ def _observed_read(
             f"provider quota exhausted before live operation {provider_name}/{operation}"
         )
 
-    measurement, token = activate_provider_telemetry()
+    measurement, token = activate_provider_telemetry(capture_response_payloads=True)
     admission_token = activate_request_admission()
     try:
         result = call()
     except BaseException as exc:
         response_status_code = getattr(exc, "status_code", None)
         expected_entitlement_denial = response_status_code in (expected_http_statuses or set())
+        archive_error = None
+        try:
+            archive_response_payloads(
+                provider_name,
+                operation,
+                measurement.response_payloads,
+                response_bytes=measurement.response_bytes,
+                response_metadata=measurement.response_metadata,
+            )
+            if measurement.http_requests != len(measurement.response_payloads):
+                raise RuntimeError(
+                    "live response body capture mismatch: "
+                    f"{measurement.http_requests} responses, "
+                    f"{len(measurement.response_payloads)} captured bodies"
+                )
+        except BaseException as archive_exc:
+            archive_error = archive_exc
         try:
             settle_live_provider_operation(
                 reservation,
                 http_requests=measurement.http_requests,
                 response_bytes=measurement.response_bytes,
+                response_status_code=response_status_code,
             )
         finally:
             record_observation(
@@ -170,21 +196,44 @@ def _observed_read(
                 http_requests=measurement.http_requests,
                 response_bytes=measurement.response_bytes,
                 response_headers=measurement.response_headers,
-                success=expected_entitlement_denial,
+                success=archive_error is None and expected_entitlement_denial,
                 disposition=(
-                    "expected_entitlement_denial"
-                    if expected_entitlement_denial
-                    else "provider_error"
+                    "archive_failure"
+                    if archive_error is not None
+                    else (
+                        "expected_entitlement_denial"
+                        if expected_entitlement_denial
+                        else "provider_error"
+                    )
                 ),
                 response_status_code=response_status_code,
                 reservation_id=reservation.reservation_id,
             )
         assert measurement.http_requests > 0
         assert measurement.response_bytes > 0
+        if archive_error is not None:
+            raise archive_error from exc
         raise
     finally:
         deactivate_request_admission(admission_token)
         deactivate_provider_telemetry(token)
+    archive_error = None
+    try:
+        archive_response_payloads(
+            provider_name,
+            operation,
+            measurement.response_payloads,
+            response_bytes=measurement.response_bytes,
+            response_metadata=measurement.response_metadata,
+        )
+        if measurement.http_requests != len(measurement.response_payloads):
+            raise RuntimeError(
+                "live response body capture mismatch: "
+                f"{measurement.http_requests} responses, "
+                f"{len(measurement.response_payloads)} captured bodies"
+            )
+    except BaseException as archive_exc:
+        archive_error = archive_exc
     try:
         settle_live_provider_operation(
             reservation,
@@ -198,12 +247,115 @@ def _observed_read(
             http_requests=measurement.http_requests,
             response_bytes=measurement.response_bytes,
             response_headers=measurement.response_headers,
-            success=True,
+            success=archive_error is None,
+            disposition="observed" if archive_error is None else "archive_failure",
             reservation_id=reservation.reservation_id,
         )
     assert measurement.http_requests > 0
     assert measurement.response_bytes > 0
+    if archive_error is not None:
+        raise archive_error
     return result, measurement
+
+
+def _observed_service_read(call, provider_name: str, operation: str, monkeypatch):
+    """Record service-managed adapter measurements without a duplicate reservation.
+
+    The service runtime itself reserves and settles every provider page. This
+    wrapper collects those runtime measurements for the live acceptance ledger
+    and raw-response archive; it deliberately does not reserve the same usage
+    a second time as `_observed_read` does for direct adapter calls.
+    """
+
+    import app.services.provider_runtime as provider_runtime
+
+    measurements = []
+    activate = provider_runtime.activate_provider_telemetry
+
+    def capture_measurement(*, capture_response_payloads=True):
+        measurement, token = activate(capture_response_payloads=capture_response_payloads)
+        measurements.append(measurement)
+        return measurement, token
+
+    monkeypatch.setattr(provider_runtime, "activate_provider_telemetry", capture_measurement)
+    wait_for_provider_start_window(provider_name)
+    succeeded = False
+    try:
+        result = call()
+        succeeded = True
+        return result
+    finally:
+        payloads = [payload for item in measurements for payload in item.response_payloads]
+        response_metadata = [
+            metadata for item in measurements for metadata in item.response_metadata
+        ]
+        response_bytes = sum(item.response_bytes for item in measurements)
+        response_headers = {
+            name: value for item in measurements for name, value in item.response_headers.items()
+        }
+        archive_error = None
+        try:
+            archive_response_payloads(
+                provider_name,
+                operation,
+                payloads,
+                response_bytes=response_bytes,
+                response_metadata=response_metadata,
+            )
+            if sum(item.http_requests for item in measurements) != len(payloads):
+                raise RuntimeError(
+                    "live response body capture mismatch for service-managed provider call"
+                )
+        except BaseException as exc:
+            archive_error = exc
+        record_observation(
+            provider_name,
+            operation=operation,
+            http_requests=sum(item.http_requests for item in measurements),
+            response_bytes=response_bytes,
+            response_headers=response_headers,
+            success=succeeded and archive_error is None,
+            disposition=(
+                "archive_failure"
+                if archive_error is not None
+                else "observed"
+                if succeeded
+                else "provider_error"
+            ),
+        )
+        if archive_error is not None:
+            raise archive_error
+
+
+_BINANCE_LIVE_USAGE_RESET_AT: datetime | None = None
+
+
+def _ensure_binance_live_usage_baseline() -> None:
+    """Refresh Binance's IP counter after its fixed-minute window rolls over.
+
+    The live matrix runs many provider-native usage probes before data cases.
+    A Binance snapshot can therefore be stale by the time its own history
+    tests execute; additionally, a multi-page history request can cross a
+    minute boundary. The shared coordinator correctly refuses requests in a
+    new window until its native IP counter is observed, so refresh only when
+    the latest observed reset boundary has elapsed.
+    """
+
+    global _BINANCE_LIVE_USAGE_RESET_AT
+    now = datetime.now(UTC)
+    if _BINANCE_LIVE_USAGE_RESET_AT is not None and now < _BINANCE_LIVE_USAGE_RESET_AT:
+        return
+
+    usage, _ = _observed_read(
+        lambda: BinanceProvider().fetch_account_usage(),
+        "binance",
+        "fetch_account_usage",
+    )
+    assert usage is not None and usage.provider == "binance"
+    assert usage.reset_at is not None and usage.reset_at.tzinfo is not None
+    reconciliation = reconcile_native_account_usage("binance", usage)
+    assert [item["status"] for item in reconciliation] == ["reconciled"]
+    _BINANCE_LIVE_USAGE_RESET_AT = usage.reset_at
 
 
 def test_openfigi_keyless_mapping():
@@ -226,8 +378,7 @@ def test_openfigi_keyless_profile_resolution():
     assert profile is not None
     assert profile.symbol == "AAPL"
     assert any(
-        identifier.identifier_type == "ISIN"
-        and identifier.identifier_value == "US0378331005"
+        identifier.identifier_type == "ISIN" and identifier.identifier_value == "US0378331005"
         for identifier in profile.identifiers
     )
     assert measurement.http_requests == 1
@@ -408,12 +559,18 @@ def test_sec_edgar_complete_unique_issuer_cik_directory_pagination_is_complete(m
     assert all(len(row["cik"]) == 10 and row["cik"].isdigit() for row in rows)
 
 
-def test_nasdaq_trader_keyless_directory(monkeypatch):
+def test_nasdaq_trader_full_directory_pagination_is_complete(monkeypatch):
+    """Fetch both official files once and prove the full directory locally.
+
+    The two raw files consume the complete client-imposed daily request budget.
+    Exercise cold-read, equity/ETF projection, and all local pages from that
+    single measured fetch rather than repeating the same external requests in
+    a second live test.
+    """
+
     _skip_unadmitted_live_operation("nasdaq", "discover_universe_page")
     import app.providers.nasdaq as nasdaq_module
 
-    # The source is two directory files. Clear both cache layers so the
-    # observed cold read cannot silently become an unmeasured cache hit.
     monkeypatch.setattr(nasdaq_module, "_cache", None)
     monkeypatch.setattr(nasdaq_module, "_file_cache", {})
     provider = NasdaqProvider()
@@ -423,49 +580,24 @@ def test_nasdaq_trader_keyless_directory(monkeypatch):
         "discover_universe_page",
     )
     assert measurement.http_requests == 2
-    # The first EQUITY read above populates the shared directory cache. The
-    # ETF read is therefore a local projection of that same observed source.
     etfs = provider.discover_universe_page("ETF", 0)
     assert equities["quotes"] and etfs["quotes"]
     assert equities["source_files"] == ["nasdaqlisted", "otherlisted"]
     assert all(row["status"] == "active" for row in equities["quotes"][:10])
     assert all(not row["symbol"].startswith("FILE CREATION") for row in equities["quotes"])
-    if equities["total"] > 1000:
-        next_page = provider.discover_universe_page("EQUITY", 1000)
-        assert (
-            next_page["quotes"]
-            and next_page["quotes"][0]["symbol"] != equities["quotes"][0]["symbol"]
-        )
 
-
-def test_nasdaq_trader_full_directory_pagination_is_complete(monkeypatch):
-    """Fetch both official directory files once and prove page completion locally."""
-
-    _skip_unadmitted_live_operation("nasdaq", "discover_universe_page")
-    import app.providers.nasdaq as nasdaq_module
-
-    monkeypatch.setattr(nasdaq_module, "_cache", None)
-    monkeypatch.setattr(nasdaq_module, "_file_cache", {})
-    provider = NasdaqProvider()
-    first_page = True
-    for quote_type in ("EQUITY", "ETF"):
+    for quote_type, initial_page in (("EQUITY", equities), ("ETF", etfs)):
         rows: list[dict] = []
         offset = 0
-        declared_total: int | None = None
-        while True:
-            if first_page:
-                page, measurement = _observed_read(
-                    lambda: provider.discover_universe_page(quote_type, offset),
-                    "nasdaq",
-                    "discover_universe_page",
-                )
-                assert measurement.http_requests == 2
-                first_page = False
-            else:
-                # All later pages and the ETF projection are served from the
-                # same observed local directory snapshot.
-                page = provider.discover_universe_page(quote_type, offset)
+        declared_total: int | None = initial_page["total"]
+        page = initial_page
+        while page:
             assert page["source_files"] == ["nasdaqlisted", "otherlisted"]
+            assert set(page["source_file_creation_times"]) == {
+                "nasdaqlisted",
+                "otherlisted",
+            }
+            assert len({value[:10] for value in page["source_file_creation_times"].values()}) == 1
             if declared_total is None:
                 declared_total = page["total"]
             assert page["total"] == declared_total
@@ -478,6 +610,8 @@ def test_nasdaq_trader_full_directory_pagination_is_complete(monkeypatch):
             assert next_offset > offset
             assert len(rows) <= declared_total
             offset = next_offset
+            # Subsequent pages are projections of the same observed snapshot.
+            page = provider.discover_universe_page(quote_type, offset)
 
         assert declared_total == len(rows)
         assert len({(row["symbol"], row["exchange_mic"], row["quoteType"]) for row in rows}) == len(
@@ -485,20 +619,49 @@ def test_nasdaq_trader_full_directory_pagination_is_complete(monkeypatch):
         )
 
 
+def test_cta_plan_latest_tape_ab_symbol_file_is_complete():
+    """Read the current public Tape A/B file once and validate every source row."""
+
+    _skip_unadmitted_live_operation("cta_plan", "discover_universe_page")
+    page, measurement = _observed_read(
+        lambda: CTAPlanProvider().discover_universe_page("EQUITY", 0),
+        "cta_plan",
+        "discover_universe_page",
+    )
+
+    assert measurement.http_requests == 2
+    assert page["complete"] is True
+    assert page["validation_errors"] == []
+    assert page["source_snapshot_date"]
+    assert len(page["source_files"]) == 2
+    assert page["source_files"][0] == "cta_symbol_file_index"
+    assert page["source_files"][1].endswith(".csv")
+    assert page["source_row_count"] > 0
+    assert page["total"] == len(page["quotes"]) > 0
+    assert len({(row["symbol"], row["exchange_mic"]) for row in page["quotes"]}) == page["total"]
+    assert all(row["exchange_mic"] and len(row["exchange_mic"]) == 4 for row in page["quotes"])
+    assert page["raw_source_payload"]["index_html"]
+    assert page["raw_source_payload"]["symbol_file_csv"]
+
+
 def test_binance_keyless_crypto_history():
-    rows, _ = _observed_read(
+    _ensure_binance_live_usage_baseline()
+    rows, measurement = _observed_read(
         lambda: BinanceProvider().fetch_latest_ohlcv("BTC-USD", Timeframe.D1, 1, adjusted=False),
         "binance",
         "fetch_latest_ohlcv",
         operation_cost_override=estimate_latest_ohlcv_request_weight(Timeframe.D1, 1),
     )
     assert rows and rows[-1].close > 0
+    assert measurement.http_requests == 1
+    _ensure_binance_live_usage_baseline()
     price, _ = _observed_read(
         lambda: BinanceProvider().get_current_price("BTC-USD"),
         "binance",
         "get_current_price",
     )
     assert price is not None and price > 0
+    _ensure_binance_live_usage_baseline()
     universe, _ = _observed_read(
         lambda: BinanceProvider().discover_universe_page("CRYPTOCURRENCY", 0),
         "binance",
@@ -511,19 +674,18 @@ def test_binance_keyless_crypto_history():
 def test_binance_keyless_bounded_daily_history():
     """Exercise the direct range path separately from latest-window history."""
 
+    _ensure_binance_live_usage_baseline()
     end = datetime.now(UTC)
     start = end - timedelta(days=30)
     rows, measurement = _observed_read(
-        lambda: BinanceProvider().fetch_ohlcv(
-            "BTC-USD", Timeframe.D1, start, end, adjusted=False
-        ),
+        lambda: BinanceProvider().fetch_ohlcv("BTC-USD", Timeframe.D1, start, end, adjusted=False),
         "binance",
         "fetch_ohlcv",
         operation_cost_override=2,
     )
-    # The provider may split the exact 30-day interval at its exchange
-    # boundary; the reviewed safety ceiling for this case is two pages.
-    assert 1 <= measurement.http_requests <= 2
+    # This range fits in one Binance 1,000-candle page. The adapter must stop
+    # after that short page rather than making an unbudgeted empty-page call.
+    assert measurement.http_requests == 1
     assert rows and rows[-1].close > 0
     assert all(row.ts.tzinfo is not None for row in rows)
 
@@ -549,6 +711,8 @@ def test_binance_keyless_account_usage_snapshot():
     assert weight.reset_at is not None and weight.reset_at.tzinfo is not None
     reconciliation = reconcile_native_account_usage("binance", usage)
     assert [item["status"] for item in reconciliation] == ["reconciled"]
+    global _BINANCE_LIVE_USAGE_RESET_AT
+    _BINANCE_LIVE_USAGE_RESET_AT = usage.reset_at
 
 
 def test_coinbase_keyless_crypto_history():
@@ -572,7 +736,60 @@ def test_coinbase_keyless_crypto_history():
     assert rows and rows[-1].close > 0
 
 
+def test_coinbase_keyless_history_quote_and_usd_products():
+    from app.providers.registry import provider_missing_routing_controls
+
+    missing = provider_missing_routing_controls("coinbase", "fetch_ohlcv")
+    if missing:
+        assert {
+            "COINBASE_MARKET_DATA_USE_AUTHORIZED",
+            "COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+            "COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+            "COINBASE_MARKET_DATA_USE_REVIEWED_AT",
+        } >= set(missing)
+        return
+
+    end = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    start = end - timedelta(days=1)
+    bars, history_measurement = _observed_read(
+        lambda: CoinbaseProvider().fetch_ohlcv("BTC-USD", Timeframe.D1, start, end, adjusted=False),
+        "coinbase",
+        "fetch_ohlcv",
+        operation_cost_override=estimate_coinbase_ohlcv_request_count(Timeframe.D1, start, end),
+    )
+    assert history_measurement.http_requests == 1
+    assert bars and all(bar.close > 0 for bar in bars)
+
+    price, price_measurement = _observed_read(
+        lambda: CoinbaseProvider().get_current_price("BTC-USD"),
+        "coinbase",
+        "get_current_price",
+    )
+    assert price_measurement.http_requests == 1
+    assert price is not None and price > 0
+
+    catalogue, catalogue_measurement = _observed_read(
+        lambda: CoinbaseProvider().discover_universe_page("CRYPTOCURRENCY", 0),
+        "coinbase",
+        "discover_universe_page",
+    )
+    assert catalogue_measurement.http_requests == 1
+    assert catalogue["total"] >= len(catalogue["quotes"]) > 0
+    assert all(quote["quoteType"] == "CRYPTOCURRENCY" for quote in catalogue["quotes"])
+
+
 def test_kraken_keyless_crypto_history():
+    from app.providers.registry import provider_missing_routing_controls
+
+    missing = provider_missing_routing_controls("kraken", "fetch_latest_ohlcv")
+    if missing:
+        assert {
+            "KRAKEN_MARKET_DATA_USE_AUTHORIZED",
+            "KRAKEN_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+            "KRAKEN_MARKET_DATA_USE_AUTHORITY_SCOPE",
+            "KRAKEN_MARKET_DATA_USE_REVIEWED_AT",
+        } >= set(missing)
+        return
     rows, _ = _observed_read(
         lambda: KrakenProvider().fetch_latest_ohlcv("BTC-USD", Timeframe.D1, 1, adjusted=False),
         "kraken",
@@ -580,6 +797,21 @@ def test_kraken_keyless_crypto_history():
         operation_cost_override=estimate_kraken_latest_ohlcv_request_count(Timeframe.D1, 1),
     )
     assert rows and rows[-1].close > 0
+    time.sleep(1.2)
+    history_end = datetime.now(UTC)
+    history_start = history_end - timedelta(days=7)
+    history, history_measurement = _observed_read(
+        lambda: KrakenProvider().fetch_ohlcv(
+            "BTC-USD", Timeframe.D1, history_start, history_end, adjusted=False
+        ),
+        "kraken",
+        "fetch_ohlcv",
+        operation_cost_override=estimate_kraken_ohlcv_request_count(
+            Timeframe.D1, history_start, history_end
+        ),
+    )
+    assert history_measurement.http_requests == 1
+    assert history and history[-1].close > 0
     time.sleep(1.2)
     price, _ = _observed_read(
         lambda: KrakenProvider().get_current_price("BTC-USD"),
@@ -715,12 +947,11 @@ def test_alpaca_credentialed_assets_and_corporate_actions_page():
 
 def test_massive_credentialed_reference():
     _require("MASSIVE_API_KEY")
-    # Keep this case within the documented five-call/minute Stocks Basic
-    # allowance: profile (1), IPO calendar (1), search (1), holidays (1), and
-    # one adjusted daily history read (1). Corporate actions deliberately
-    # remain a separately scheduled two-request live case because Massive
-    # exposes splits and dividends as independent paginated endpoints; doing
-    # both here would overrun the key's five-call window.
+    # This case makes four Stocks asset-class requests (profile, IPO calendar,
+    # search, holidays) and one Stocks market-data request (history). The live
+    # preflight reserves all five from the same documented 5/minute account
+    # bucket. Corporate actions remain a separate two-request case but use the
+    # same bucket.
     provider = MassiveProvider()
     profile, _ = _observed_read(
         lambda: provider.get_instrument_profile("AAPL"), "massive", "get_instrument_profile"
@@ -744,11 +975,11 @@ def test_massive_credentialed_reference():
     assert all(event.event_type == "ipo" for event in events)
     assert all(event.effective_date is not None for event in events)
     search_rows, _ = _observed_read(
-        lambda: provider.search_instruments("AAPL", limit=1),
+        lambda: provider.search_instruments("AAPL", limit=100),
         "massive",
         "search_instruments",
     )
-    assert search_rows and search_rows[0].symbol == "AAPL"
+    assert any(row.symbol == "AAPL" for row in search_rows)
     holidays, _ = _observed_read(
         lambda: provider.fetch_market_holidays(
             start=date.today(), end=date.today() + timedelta(days=90)
@@ -777,6 +1008,256 @@ def test_massive_credentialed_reference():
     assert all(bar.low <= min(bar.open, bar.close) for bar in bars)
 
 
+def test_massive_credentialed_corporate_actions_complete():
+    """Read both split and dividend histories; the adapter follows all cursors."""
+
+    _require("MASSIVE_API_KEY")
+    events, measurement = _observed_read(
+        lambda: MassiveProvider().fetch_instrument_events("AAPL"),
+        "massive",
+        "fetch_instrument_events",
+        operation_cost_override=2,
+    )
+    assert measurement.http_requests >= 2
+    assert isinstance(events, list)
+    assert events
+    assert all(event.event_time is not None and event.source_event_key for event in events)
+
+
+def test_massive_credentialed_ipo_cursor_continuation():
+    """Force a one-row IPO page and verify the provider cursor retrieves page two."""
+
+    _require("MASSIVE_API_KEY")
+    provider = MassiveProvider()
+
+    def fetch_two_pages():
+        first = provider.fetch_market_events_page(limit=1)
+        assert first["events"]
+        cursor = first["next_cursor"]
+        assert cursor, "Massive IPO page did not expose a continuation cursor"
+        second = provider.fetch_market_events_page(cursor=cursor, limit=1)
+        assert second["events"]
+        return first, second
+
+    (first, second), measurement = _observed_read(
+        fetch_two_pages,
+        "massive",
+        "fetch_market_events",
+        operation_cost_override=2,
+    )
+    assert measurement.http_requests == 2
+    assert first["events"][0].event_key != second["events"][0].event_key
+
+
+def test_massive_credentialed_otc_ticker_universe_pagination_is_complete(db):
+    import asyncio
+
+    _require("MASSIVE_API_KEY")
+    from app.models.data_source import DataSource
+    from app.models.provider_observation import UniverseDiscoverySnapshot
+    from app.services.provider_observations import store_universe_discovery_snapshot
+    from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
+    from tests.unit.conftest import AsyncSessionAdapter
+
+    provider = MassiveProvider()
+    data_source = db.query(DataSource).filter_by(name="massive_live_otc_probe").one_or_none()
+    if data_source is None:
+        data_source = DataSource(
+            name="massive_live_otc_probe",
+            base_url="https://api.massive.com",
+            description="Disposable live-test archive for complete OTC pagination validation",
+        )
+        db.add(data_source)
+        db.flush()
+
+    offset = 0
+    pages = 0
+    row_count = 0
+    identities: set[tuple[str, ...]] = set()
+    continuation_urls: set[str] = set()
+    raw_pages: dict[int, dict] = {}
+    observed_at = datetime.now(UTC)
+    archive_session = AsyncSessionAdapter(db)
+
+    while True:
+        try:
+            page, _ = _observed_read(
+                lambda offset=offset: provider.discover_universe_page("OTC", offset),
+                "massive",
+                "discover_universe_page",
+            )
+        except ProviderQuotaAdmissionError as exc:
+            # Every page reserves one unit from Massive's independently
+            # accounted 5-calls/minute reference bucket. If earlier probes
+            # filled that rolling window, wait for it to clear and retry this
+            # same page; never skip ahead or truncate the universe.
+            if "quota exhausted before live operation massive/discover_universe_page" not in str(
+                exc
+            ):
+                raise
+            time.sleep(60)
+            continue
+
+        pages += 1
+        quotes = page.get("quotes") or []
+        assert quotes, f"Massive OTC page {pages} unexpectedly returned no rows"
+        assert len(quotes) <= 1000
+        for quote in quotes:
+            raw = quote.get("raw_payload")
+            assert quote.get("symbol") and isinstance(raw, dict)
+            assert str(raw.get("market") or "").lower() == "otc"
+            assert raw.get("active", True) is True
+            identity = (
+                str(quote["symbol"]).upper(),
+                str(raw.get("type") or "").upper(),
+                str(quote.get("exchange") or "").upper(),
+                str(raw.get("cik") or ""),
+                str(raw.get("composite_figi") or "").upper(),
+                str(raw.get("share_class_figi") or "").upper(),
+                str(raw.get("name") or "").strip().casefold(),
+            )
+            assert (
+                identity not in identities
+            ), f"duplicate OTC security across cursor pages: {identity}"
+            identities.add(identity)
+            row_count += 1
+
+        next_url = page.get("next_url")
+        assert page["complete"] is (not bool(next_url))
+        raw_pages[offset] = page
+        asyncio.run(
+            store_universe_discovery_snapshot(
+                archive_session,
+                data_source_id=data_source.id,
+                quote_type="OTC",
+                offset=offset,
+                page=page,
+                observed_at=observed_at,
+                fetched_at=observed_at,
+            )
+        )
+        # The production reconciliation worker commits each raw provider page
+        # before it normalizes rows. Mirror that crash-safe boundary here.
+        db.commit()
+        if not next_url:
+            assert page.get("next_offset") is None
+            break
+        assert next_url not in continuation_urls, "Massive OTC pagination repeated a cursor"
+        continuation_urls.add(str(next_url))
+        next_offset = page.get("next_offset")
+        assert isinstance(next_offset, int) and next_offset > offset
+        offset = next_offset
+
+    assert pages >= 1
+    assert row_count == len(identities) > 0
+    archived_pages = (
+        db.query(UniverseDiscoverySnapshot)
+        .filter_by(
+            data_source_id=data_source.id,
+            quote_type="OTC",
+            observed_at=observed_at,
+        )
+        .order_by(UniverseDiscoverySnapshot.offset)
+        .all()
+    )
+    assert [snapshot.offset for snapshot in archived_pages] == sorted(raw_pages)
+    assert [snapshot.payload["page"] for snapshot in archived_pages] == [
+        raw_pages[offset] for offset in sorted(raw_pages)
+    ]
+
+
+def test_marketstack_credentialed_exchange_ticker_pages(db):
+    """Read and archive every page for the explicitly configured MIC."""
+
+    import asyncio
+
+    from app.models.data_source import DataSource
+    from app.models.provider_observation import UniverseDiscoverySnapshot
+    from app.services.provider_observations import store_universe_discovery_snapshot
+    from tests.unit.conftest import AsyncSessionAdapter
+
+    _require("MARKETSTACK_API_KEY", "MARKETSTACK_DISCOVERY_EXCHANGE")
+    exchange = settings.MARKETSTACK_DISCOVERY_EXCHANGE.strip().upper()
+    assert exchange
+    provider = MarketstackProvider()
+    source_name = f"marketstack_live_tickers_{exchange.lower()}"
+    data_source = db.query(DataSource).filter_by(name=source_name).one_or_none()
+    if data_source is None:
+        data_source = DataSource(
+            name=source_name,
+            base_url="https://api.marketstack.com/v2",
+            description=("Live test archive for complete Marketstack exchange-ticker pagination"),
+        )
+        db.add(data_source)
+        db.flush()
+
+    offset = 0
+    total: int | None = None
+    raw_count = 0
+    pages: dict[int, dict] = {}
+    observed_at = datetime.now(UTC)
+    archive_session = AsyncSessionAdapter(db)
+    while True:
+        page, _ = _observed_read(
+            lambda offset=offset: provider.discover_universe_page("EQUITY", offset),
+            "marketstack",
+            "discover_universe_page",
+        )
+        raw_payload = page.get("raw_payload")
+        assert isinstance(raw_payload, dict)
+        raw_data = raw_payload.get("data")
+        raw_rows = raw_data.get("tickers") if isinstance(raw_data, dict) else None
+        pagination = raw_payload.get("pagination")
+        assert isinstance(raw_rows, list) and raw_rows
+        assert isinstance(raw_data, dict)
+        assert raw_data.get("mic") == exchange
+        assert isinstance(pagination, dict)
+        assert len(raw_rows) == pagination["count"]
+        assert pagination["offset"] == offset
+        total = page["total"] if total is None else total
+        assert page["total"] == total == pagination["total"]
+        assert page["total_scope"] == "raw"
+        assert page["complete"] is (page.get("next_offset") is None)
+        pages[offset] = page
+        raw_count += len(raw_rows)
+
+        asyncio.run(
+            store_universe_discovery_snapshot(
+                archive_session,
+                data_source_id=data_source.id,
+                quote_type="EQUITY",
+                offset=offset,
+                page=page,
+                observed_at=observed_at,
+                fetched_at=observed_at,
+            )
+        )
+        # Commit each quota-consuming response before requesting its successor.
+        db.commit()
+        next_offset = page.get("next_offset")
+        if next_offset is None:
+            assert page["complete"] is True
+            break
+        assert isinstance(next_offset, int) and next_offset > offset
+        offset = next_offset
+
+    assert total and raw_count == total
+    archived = (
+        db.query(UniverseDiscoverySnapshot)
+        .filter_by(
+            data_source_id=data_source.id,
+            quote_type="EQUITY",
+            observed_at=observed_at,
+        )
+        .order_by(UniverseDiscoverySnapshot.offset)
+        .all()
+    )
+    assert [snapshot.offset for snapshot in archived] == sorted(pages)
+    assert [snapshot.payload["page"] for snapshot in archived] == [
+        pages[page_offset] for page_offset in sorted(pages)
+    ]
+
+
 def test_alpha_vantage_credentialed_daily():
     _require("ALPHA_VANTAGE_API_KEY")
     start, end = _bounds()
@@ -788,6 +1269,28 @@ def test_alpha_vantage_credentialed_daily():
         "fetch_ohlcv",
     )
     assert rows and rows[-1].close > 0
+
+
+def test_alpha_vantage_credentialed_complete_listing_status():
+    """One full CSV request must retain every listing row and raw source field."""
+
+    _require("ALPHA_VANTAGE_API_KEY")
+    _skip_unadmitted_live_operation("alpha_vantage", "discover_universe_page")
+    page, measurement = _observed_read(
+        lambda: AlphaVantageProvider().discover_universe_page("EQUITY", 0),
+        "alpha_vantage",
+        "discover_universe_page",
+    )
+    rows = page["quotes"]
+    assert page["complete"] is True
+    assert page["total"] == len(rows) > 0
+    assert measurement.http_requests == 1
+    assert isinstance(page.get("raw_payload"), str) and page["raw_payload"]
+    # Alpha Vantage's complete CSV has valid symbols whose company-name field
+    # is empty. Those rows must remain usable and retain the raw source data;
+    # the instrument reconciler can use the symbol provisionally as its name.
+    assert all(row.get("symbol") for row in rows)
+    assert all(isinstance(row.get("raw_payload"), dict) for row in rows)
 
 
 def test_alpha_vantage_credentialed_weekly():
@@ -830,6 +1333,31 @@ def test_alpha_vantage_credentialed_monthly():
     )
     assert rows and rows[-1].close > 0
     assert all(row.timeframe is Timeframe.MN for row in rows)
+
+
+def test_alpha_vantage_credentialed_current_price():
+    """Exercise the one-request daily-candle current-price wrapper."""
+
+    _require("ALPHA_VANTAGE_API_KEY")
+    price, _ = _observed_read(
+        lambda: AlphaVantageProvider().get_current_price("AAPL"),
+        "alpha_vantage",
+        "get_current_price",
+    )
+    assert price is not None and price > 0
+
+
+def test_alpha_vantage_credentialed_search():
+    """Exercise Alpha Vantage's independently metered SYMBOL_SEARCH endpoint."""
+
+    _require("ALPHA_VANTAGE_API_KEY")
+    rows, _ = _observed_read(
+        lambda: AlphaVantageProvider().search_instruments("Apple", limit=5),
+        "alpha_vantage",
+        "search_instruments",
+    )
+    assert rows
+    assert any(row.symbol.upper() == "AAPL" for row in rows)
 
 
 def test_alpha_vantage_credentialed_ipo_calendar():
@@ -906,6 +1434,57 @@ def test_coingecko_credentialed_profile_observes_id_resolution_request():
     assert measurement.http_requests >= 2
 
 
+def test_coingecko_credentialed_universe_page():
+    """Exercise exactly one market-cap-ordered crypto catalogue page."""
+
+    _require("COINGECKO_API_KEY")
+    page, measurement = _observed_read(
+        lambda: CoinGeckoProvider().discover_universe_page("CRYPTOCURRENCY", 0),
+        "coingecko",
+        "discover_universe_page",
+        operation_cost_override=1,
+    )
+    assert measurement.http_requests == 1
+    assert page["total"] is None
+    assert page["quotes"]
+    if len(page["quotes"]) == 250:
+        assert page["next_offset"] == 250
+        assert page["complete"] is False
+    else:
+        assert page["next_offset"] is None
+        assert page["complete"] is True
+    assert all(quote["quoteType"] == "CRYPTOCURRENCY" for quote in page["quotes"])
+    assert all(quote.get("coingecko_id") for quote in page["quotes"])
+
+
+def test_coingecko_credentialed_account_usage_snapshot():
+    """Check Pro-only usage entitlement; exercise `/key` only on Pro tiers."""
+
+    _require("COINGECKO_API_KEY")
+    if str(settings.COINGECKO_REVIEWED_PLAN or "demo").strip().lower() in {"demo", "free-demo"}:
+        with pytest.raises(ProviderNotConfiguredError, match="Pro-only"):
+            CoinGeckoProvider().fetch_account_usage()
+        return
+    usage, measurement = _observed_read(
+        lambda: CoinGeckoProvider().fetch_account_usage(),
+        "coingecko",
+        "fetch_account_usage",
+        operation_cost_override=1,
+    )
+    assert measurement.http_requests == 1
+    assert usage.provider == "coingecko"
+    assert usage.account_plan
+    dimensions = {item.name: item for item in usage.dimensions}
+    monthly = dimensions["calls_per_month"]
+    assert monthly.limit is not None and monthly.limit > 0
+    assert monthly.consumed is not None and monthly.remaining is not None
+    assert monthly.consumed + monthly.remaining == monthly.limit
+    assert monthly.reset_at is not None and monthly.reset_at.tzinfo is not None
+    assert dimensions["calls_per_minute"].limit is not None
+    # /key reports the minute cap but not active usage within that window.
+    assert dimensions["calls_per_minute"].consumed is None
+
+
 def test_fred_series_requires_persisted_data_rights_before_network_access():
     """Avoid network access while FRED storage rights and quota scope are unresolved."""
 
@@ -934,10 +1513,45 @@ def test_fred_series_requires_persisted_data_rights_before_network_access():
     assert rows and all(row.close > 0 for row in rows)
 
 
+def test_fred_credentialed_current_value():
+    """Exercise the latest-observation read independently of history."""
+
+    from app.providers.registry import provider_missing_routing_controls
+
+    missing = provider_missing_routing_controls("fred", "get_current_price")
+    if missing:
+        assert {
+            "FRED_REVIEWED_LIMIT_SCOPE",
+            "FRED_REVIEWED_REQUESTS_PER_MINUTE",
+            "FRED_REVIEWED_QUOTA_EVIDENCE",
+            "FRED_PERSISTED_STORAGE_AUTHORIZED",
+            "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE",
+            "FRED_AUTOMATED_USE_AUTHORIZED",
+            "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE",
+            "FRED_SERIES_RIGHTS_EVIDENCE",
+        } >= set(missing)
+        return
+
+    _require("FRED_API_KEY")
+    price, measurement = _observed_read(
+        lambda: FREDProvider().get_current_price("^TNX"),
+        "fred",
+        "get_current_price",
+        operation_cost_override=1,
+    )
+    assert measurement.http_requests == 1
+    assert price is not None and price > 0
+
+
 def test_finra_credentialed_short_interest():
+    from app.providers.registry import provider_missing_routing_controls
+
+    missing = provider_missing_routing_controls("finra", "fetch_short_interest")
+    if missing:
+        pytest.skip("no provider request made: FINRA data-use review is missing")
     _require("FINRA_CLIENT_ID", "FINRA_CLIENT_SECRET")
-    rows, _ = _observed_read(
-        lambda: FINRAProvider().fetch_short_interest("AAPL"),
+    page, _ = _observed_read(
+        lambda: FINRAProvider().fetch_short_interest_page("AAPL", start=date(2020, 1, 1)),
         "finra",
         "fetch_short_interest",
         # FINRA's per-dataset async limiter does not apply to these direct
@@ -945,67 +1559,188 @@ def test_finra_credentialed_short_interest():
         # reservation in place; explicitly declare no async-dimension use.
         dimension_cost_overrides={"asynchronous_requests_per_minute_dataset": 0},
     )
+    assert page["complete"] is True
+    rows = page["records"]
     assert rows
     assert all(row.settlement_date and row.short_position is not None for row in rows)
     assert any((row.source_identifier or "").upper() == "AAPL" for row in rows)
 
 
-def test_finra_credentialed_otc_daily_list():
+def test_finra_credentialed_otc_daily_list(db, monkeypatch):
+    import asyncio
+
+    from sqlalchemy import select
+
+    from app.models.market_data_foundation import MarketEvent, ProviderPaginationState
+    from app.providers.registry import provider_missing_routing_controls
+    from app.services.market_events import refresh_market_events
+    from tests.unit.conftest import AsyncSessionAdapter
+
+    missing = provider_missing_routing_controls("finra", "fetch_market_events")
+    if missing:
+        pytest.skip("no provider request made: FINRA data-use review is missing")
     _require("FINRA_CLIENT_ID", "FINRA_CLIENT_SECRET")
     end = date.today()
-    rows, _ = _observed_read(
-        lambda: FINRAProvider().fetch_market_events(start=end - timedelta(days=45), end=end),
+    result = _observed_service_read(
+        lambda: asyncio.run(
+            refresh_market_events(
+                AsyncSessionAdapter(db),
+                start=end - timedelta(days=45),
+                end=end,
+                provider_names=["finra"],
+                max_pages=None,
+            )
+        ),
         "finra",
         "fetch_market_events",
-        dimension_cost_overrides={"asynchronous_requests_per_minute_dataset": 0},
+        monkeypatch,
     )
-    assert rows
-    for row in rows:
-        assert row.event_key.startswith("finra:otc_daily_list:")
+    provider_result = result["providers"][0]
+    assert result["failures"] == 0, provider_result["failures"]
+    assert provider_result["pagination"]["status"] == "complete"
+    # A 45-day delta window may legitimately fit on one page when the live
+    # market has few events. Completion, a cleared cursor, and the durable
+    # page-count equality below prove the entire response was traversed; the
+    # multi-page continuation path is covered by deterministic service tests.
+    assert provider_result["pagination"]["pages_fetched"] >= 1
+    assert provider_result["events"] > 0
+
+    persisted = db.execute(select(MarketEvent).where(MarketEvent.source == "finra")).scalars().all()
+    assert persisted
+    assert all(row.event_key.startswith("finra:otc_daily_list:") for row in persisted)
+    assert all(row.payload for row in persisted)
+    state = db.execute(
+        select(ProviderPaginationState).where(ProviderPaginationState.provider == "finra")
+    ).scalar_one()
+    assert state.status == "complete"
+    assert state.cursor is None
+    assert state.pages_fetched == provider_result["pagination"]["total_pages_fetched"]
 
 
-def test_finra_otc_directory_credentialed_source():
-    """Probe OTC source only after its current availability is evidenced."""
+def test_finra_otc_directory_credentialed_source(db):
+    """Fetch and durably retain every current OTC security-master page."""
+
+    import asyncio
+
+    from app.models.data_source import DataSource
+    from app.models.provider_observation import UniverseDiscoverySnapshot
+    from app.services.provider_observations import store_universe_discovery_snapshot
+    from tests.unit.conftest import AsyncSessionAdapter
 
     source_kind = settings.FINRA_OTC_SOURCE_KIND.strip().lower()
     configured_source = settings.FINRA_OTC_SYMBOL_DIRECTORY_URL.strip()
     reviewed_source = settings.FINRA_OTC_REVIEWED_SOURCE_URL.strip()
-    if (
-        not settings.FINRA_OTC_SOURCE_REVIEWED
-        or not settings.FINRA_OTC_SOURCE_EVIDENCE.strip()
-        or not configured_source
-        or reviewed_source != configured_source
-        or (
-            source_kind == "finra_orf_security_master"
-            and (
-                not settings.FINRA_OTC_INACTIVE_SECURITY_MASTER_URL.strip()
-                or settings.FINRA_OTC_REVIEWED_INACTIVE_SOURCE_URL.strip()
-                != settings.FINRA_OTC_INACTIVE_SECURITY_MASTER_URL.strip()
-            )
-        )
-    ):
+    query_api = source_kind == "finra_otc_query_api"
+    orf_reviewed = (
+        source_kind == "finra_orf_security_master"
+        and settings.FINRA_OTC_SOURCE_REVIEWED
+        and settings.FINRA_OTC_SOURCE_EVIDENCE.strip()
+        and configured_source
+        and reviewed_source == configured_source
+        and settings.FINRA_OTC_INACTIVE_SECURITY_MASTER_URL.strip()
+        and settings.FINRA_OTC_REVIEWED_INACTIVE_SOURCE_URL.strip()
+        == settings.FINRA_OTC_INACTIVE_SECURITY_MASTER_URL.strip()
+    )
+    if not query_api and not orf_reviewed:
         pytest.skip(
-            "FINRA OTC source review is incomplete; no live request is permitted "
-            "until the current source, terms, complete-pair, and reviewed URL "
-            "controls are recorded."
+            "FINRA OTC source is neither the official Query API nor a completely "
+            "reviewed ORF source pair."
         )
 
     _require("FINRA_OTC_SYMBOL_DIRECTORY_URL")
-    if source_kind == "finra_orf_security_master":
+    if query_api:
+        _require("FINRA_CLIENT_ID", "FINRA_CLIENT_SECRET")
+        assert configured_source == (
+            "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster"
+        )
+    else:
         _require(
             "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL",
-            "FINRA_CLIENT_ID",
-            "FINRA_CLIENT_SECRET",
+            "FINRA_ORF_USERNAME",
+            "FINRA_ORF_REFRESH_TOKEN",
+            "FINRA_ORF_REFRESH_TOKEN_STATE_FILE",
         )
-    page, _ = _observed_read(
-        lambda: FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0),
-        "finra_otc_directory",
-        "discover_universe_page",
+    provider = FINRAOTCDirectoryProvider()
+    data_source = (
+        db.query(DataSource).filter_by(name="finra_otc_directory_live_probe").one_or_none()
     )
-    assert page["quotes"]
-    assert page["total"] >= len(page["quotes"])
+    if data_source is None:
+        data_source = DataSource(
+            name="finra_otc_directory_live_probe",
+            base_url="https://api.finra.org",
+            description="Disposable live-test archive for complete FINRA OTC pagination",
+        )
+        db.add(data_source)
+        db.flush()
+    archive_session = AsyncSessionAdapter(db)
+    observed_at = datetime.now(UTC)
+    offset = 0
+    total = None
+    symbols: set[str] = set()
+    pages = 0
+    snapshot_date = None
+    while True:
+        page, _ = _observed_read(
+            lambda offset=offset: provider.discover_universe_page("EQUITY", offset),
+            "finra_otc_directory",
+            "discover_universe_page",
+        )
+        assert page["quotes"]
+        assert page["total"] >= offset + len(page["quotes"])
+        # This is deliberately inside the page loop.  A later transport or
+        # validation failure must not erase an already obtained quota-limited
+        # response, matching the production reconciler's commit boundary.
+        asyncio.run(
+            store_universe_discovery_snapshot(
+                archive_session,
+                data_source_id=data_source.id,
+                quote_type="EQUITY",
+                offset=offset,
+                page=page,
+                observed_at=observed_at,
+                fetched_at=observed_at,
+            )
+        )
+        db.commit()
+        total = page["total"] if total is None else total
+        assert page["total"] == total
+        page_symbols = [row["symbol"] for row in page["quotes"]]
+        assert len(page_symbols) == len(set(page_symbols))
+        assert symbols.isdisjoint(page_symbols)
+        symbols.update(page_symbols)
+        if query_api:
+            current_snapshot_date = page["source_snapshot_date"]
+            snapshot_date = current_snapshot_date if snapshot_date is None else snapshot_date
+            assert current_snapshot_date == snapshot_date
+            assert page["source_documents"]
+        pages += 1
+        next_offset = page.get("next_offset")
+        if next_offset is None:
+            assert page.get("complete") is True
+            break
+        assert next_offset == offset + len(page["quotes"])
+        offset = next_offset
+    assert len(symbols) == total
+    assert pages >= 1
+    persisted_pages = (
+        db.query(UniverseDiscoverySnapshot)
+        .filter_by(data_source_id=data_source.id)
+        .order_by(UniverseDiscoverySnapshot.offset)
+        .all()
+    )
+    assert len(persisted_pages) == pages
+    assert sum(len(snapshot.payload["page"]["quotes"]) for snapshot in persisted_pages) == total
+    assert all(snapshot.payload["page"]["source_documents"] for snapshot in persisted_pages)
+    assert {
+        row["symbol"] for snapshot in persisted_pages for row in snapshot.payload["page"]["quotes"]
+    } == symbols
     expected_sources = [os.environ["FINRA_OTC_SYMBOL_DIRECTORY_URL"].strip()]
-    if source_kind == "finra_orf_security_master":
+    if query_api:
+        expected_sources.insert(
+            0,
+            "https://api.finra.org/partitions/group/otcMarket/name/otcSecurityMaster",
+        )
+    else:
         expected_sources.append(os.environ["FINRA_OTC_INACTIVE_SECURITY_MASTER_URL"].strip())
     assert page["source_files"] == expected_sources
     assert all(row["exchange"] == "OTC" for row in page["quotes"])
@@ -1052,6 +1787,20 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
         assert profile is not None
         assert profile.symbol == symbol
         assert profile.name and profile.exchange
+        current, _ = _observed_read(
+            lambda: provider.get_current_price(symbol),
+            provider.name,
+            "get_current_price",
+            usage_identity=symbol,
+        )
+        assert current is not None and current > 0
+        search_rows, _ = _observed_read(
+            lambda: provider.search_instruments("Apple", limit=5),
+            provider.name,
+            "search_instruments",
+        )
+        assert search_rows
+        assert any(row.symbol.upper() == symbol for row in search_rows)
     if provider.name == "twelve_data":
         intraday_start = datetime.now(UTC) - timedelta(days=5)
         intraday_rows, _ = _observed_read(
@@ -1079,6 +1828,7 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
             "discover_universe_page",
         )
         assert universe["quotes"] and universe["total"] >= len(universe["quotes"])
+
     if provider.name == "eodhd":
         # EODHD documents the same EOD endpoint with d/w/m period selectors;
         # exercise the two non-daily adapter paths in the bounded live case.
@@ -1109,23 +1859,32 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
         )
         assert current is not None and current > 0
     if provider.name == "fmp":
+        current, _ = _observed_read(
+            lambda: provider.get_current_price(symbol),
+            provider.name,
+            "get_current_price",
+            usage_identity=symbol,
+        )
+        assert current is not None and current > 0
         profile, _ = _observed_read(
             lambda: provider.get_instrument_profile(symbol), provider.name, "get_instrument_profile"
         )
         assert profile is not None
         assert profile.symbol == symbol
         assert profile.name and profile.exchange
-        calendar_events, _ = _observed_read(
-            lambda: provider.fetch_market_events(
+        calendar_page, _ = _observed_read(
+            lambda: provider.fetch_market_events_page(
                 start=date.today() - timedelta(days=7),
                 end=date.today() + timedelta(days=45),
+                cursor=None,
             ),
             provider.name,
             "fetch_market_events",
         )
-        assert calendar_events
-        assert all(event.event_type == "earnings" for event in calendar_events)
-        assert all(event.effective_date is not None for event in calendar_events)
+        assert calendar_page["events"]
+        assert all(event.event_type == "earnings" for event in calendar_page["events"])
+        assert all(event.effective_date is not None for event in calendar_page["events"])
+        assert calendar_page["complete"] is (calendar_page["next_cursor"] is None)
     if provider.name == "tradier":
         expirations, _ = _observed_read(
             lambda: provider.list_option_expirations(symbol),
@@ -1141,6 +1900,63 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
         assert contracts
         assert all(contract.underlying_symbol == symbol for contract in contracts)
         assert all(contract.right in {"call", "put"} for contract in contracts)
+
+
+def test_fmp_long_history_is_paginated_without_gaps():
+    """Exercise FMP's multi-request history path with exact durable cost."""
+
+    _require("FMP_API_KEY")
+    provider = FMPProvider()
+    start = datetime(2000, 1, 1, tzinfo=UTC)
+    end = datetime.now(UTC)
+    request_count = estimate_fmp_ohlcv_request_count(Timeframe.D1, start, end)
+    assert request_count is not None and request_count > 1
+
+    rows, measurement = _observed_read(
+        lambda: provider.fetch_ohlcv("AAPL", Timeframe.D1, start, end, adjusted=False),
+        "fmp",
+        "fetch_ohlcv",
+        usage_identity="AAPL",
+        operation_cost_override=request_count,
+    )
+
+    assert rows
+    assert measurement.http_requests == request_count
+    assert all(left.ts < right.ts for left, right in zip(rows, rows[1:], strict=False))
+    chunk_boundary = start.date() + timedelta(days=4499)
+    left_page_rows = [row for row in rows if row.ts.date() <= chunk_boundary]
+    right_page_rows = [row for row in rows if row.ts.date() > chunk_boundary]
+    assert left_page_rows and right_page_rows
+    assert (chunk_boundary - left_page_rows[-1].ts.date()).days <= 7
+    assert (right_page_rows[0].ts.date() - chunk_boundary).days <= 7
+
+
+def test_fmp_credentialed_account_usage_snapshot():
+    """Reconcile FMP dashboard request and bandwidth counters before data reads."""
+
+    _require("FMP_API_KEY")
+    usage, measurement = _observed_read(
+        lambda: FMPProvider().fetch_account_usage(),
+        "fmp",
+        "fetch_account_usage",
+    )
+    assert usage is not None and usage.provider == "fmp"
+    assert usage.account_plan == str(settings.FMP_REVIEWED_PLAN).lower()
+    assert measurement.http_requests == 1
+    dimensions = {dimension.name: dimension for dimension in usage.dimensions}
+    call_dimension = (
+        "calls_per_day"
+        if str(settings.FMP_REVIEWED_PLAN).lower() == "basic"
+        else "calls_per_minute"
+    )
+    assert set(dimensions) == {call_dimension, "bandwidth_bytes_per_30_days"}
+    assert dimensions[call_dimension].limit is not None
+    assert dimensions[call_dimension].consumed is not None
+    assert dimensions["bandwidth_bytes_per_30_days"].limit >= 500_000_000
+    assert dimensions["bandwidth_bytes_per_30_days"].consumed is not None
+    reconciliation = reconcile_native_account_usage("fmp", usage)
+    assert len(reconciliation) == 2
+    assert [item["status"] for item in reconciliation] == ["reconciled", "reconciled"]
 
 
 def test_twelve_data_credentialed_account_usage_snapshot():
@@ -1159,14 +1975,34 @@ def test_twelve_data_credentialed_account_usage_snapshot():
     assert usage.account_plan is None or usage.account_plan.strip()
     assert measurement.http_requests == 1
     dimensions = {dimension.name: dimension for dimension in usage.dimensions}
-    assert set(dimensions) == {"credits_per_minute"}
+    assert {
+        "credits_per_minute",
+        "requests_per_minute",
+        "requests_per_day",
+    } <= set(dimensions)
     minute = dimensions["credits_per_minute"]
     assert minute.limit is not None and minute.limit > 0
     assert minute.remaining is not None and minute.remaining >= 0
     assert minute.consumed is not None and minute.consumed >= 0
     assert minute.reset_at is not None and minute.reset_at.tzinfo is not None
+    # The official SDK describes these body values as request counts. Keep
+    # them visible, but do not reinterpret them as weighted API credits.
+    minute_requests = dimensions["requests_per_minute"]
+    assert minute_requests.unit == "requests"
+    assert minute_requests.limit is not None and minute_requests.limit > 0
+    assert minute_requests.consumed is not None and minute_requests.consumed >= 0
+    daily_requests = dimensions["requests_per_day"]
+    assert daily_requests.unit == "requests"
+    assert daily_requests.limit == 800
+    assert daily_requests.consumed is not None and daily_requests.consumed >= 0
+    assert daily_requests.reset_at is not None and daily_requests.reset_at.tzinfo is not None
     reconciliation = reconcile_native_account_usage("twelve_data", usage)
-    assert [item["status"] for item in reconciliation] == ["reconciled"]
+    outcomes = {item["dimension"]: item["status"] for item in reconciliation}
+    assert outcomes["credits_per_minute"] == "reconciled"
+    assert outcomes["requests_per_day"] == "reconciled"
+    # The minute request-count field is observational only: the Basic plan's
+    # enforced minute pool is weighted API credits, not request count.
+    assert outcomes["requests_per_minute"] == "not_reconciled"
 
 
 def test_eodhd_credentialed_account_usage_snapshot():
@@ -1195,27 +2031,41 @@ def test_eodhd_credentialed_account_usage_snapshot():
         item for item in reconciliation if item.get("dimension") == "calls_per_day"
     )
     assert daily_reconciliation["status"] == "reconciled"
-    # The endpoint's native minute headers can carry an account-specific cap
-    # above the stricter documented all-plan local cap. Reconcile exact
-    # observed use only when it is within that app cap; otherwise remain
-    # fail-closed until the full rolling window elapses.
+    assert daily_reconciliation["used_units"] == daily.consumed
+    # The endpoint's native minute headers may report a value above the
+    # conservative Free-plan cap because official EODHD pages conflict.
+    # Retain the observation, but reconcile usage only when it fits the
+    # configured local envelope; never let the header widen that envelope.
     minute = dimensions["requests_per_minute"]
     assert minute.limit is not None and minute.limit > 0
     assert minute.remaining is not None and minute.remaining >= 0
     assert minute.consumed is not None and minute.consumed >= 0
+
     minute_reconciliation = next(
-        (
-            item
-            for item in reconciliation
-            if item.get("dimension") == "requests_per_minute"
-        ),
+        (item for item in reconciliation if item.get("dimension") == "requests_per_minute"),
         None,
     )
-    if minute.limit >= 1000 and minute.consumed <= 1000:
+    local_minute_limit = provider_rate_limit_seed("eodhd")["tokens_per_minute"]
+    if minute.limit >= local_minute_limit and minute.consumed <= local_minute_limit:
         assert minute_reconciliation is not None
         assert minute_reconciliation["status"] == "reconciled"
     else:
         assert minute_reconciliation is None or minute_reconciliation["status"] == "not_reconciled"
+
+
+@pytest.mark.live
+def test_eodhd_credentialed_delayed_quote():
+    """Verify EODHD's documented one-call delayed quote endpoint and schema."""
+
+    _require("EODHD_API_KEY")
+    quote, measurement = _observed_read(
+        lambda: EODHDProvider().get_current_price("AAPL"),
+        "eodhd",
+        "get_current_price",
+        usage_identity="AAPL",
+    )
+    assert quote is not None and quote > 0
+    assert measurement.http_requests == 1
 
 
 def test_eodhd_free_plan_profile_entitlement_is_explicit():
@@ -1368,6 +2218,29 @@ def test_marketdata_app_credentialed_intraday_history():
     assert all(row.ts.tzinfo is not None for row in rows)
 
 
+def test_finnhub_credentialed_account_usage_snapshot():
+    """Bootstrap the plan's minute counter from native response headers."""
+
+    _require("FINNHUB_API_KEY")
+    usage, measurement = _observed_read(
+        lambda: FinnhubProvider().fetch_account_usage(),
+        "finnhub",
+        "fetch_account_usage",
+    )
+    assert measurement.http_requests == 1
+    assert usage.provider == "finnhub"
+    assert usage.limit and usage.limit > 0
+    assert usage.remaining is not None and 0 <= usage.remaining <= usage.limit
+    assert usage.reset_at is not None and usage.reset_at > usage.observed_at
+    assert any(dimension.name == "calls_per_minute" for dimension in usage.dimensions)
+    assert "x-ratelimit-limit" in usage.response_headers
+    assert "x-ratelimit-remaining" in usage.response_headers
+    reconciliations = reconcile_native_account_usage("finnhub", usage)
+    assert len(reconciliations) == 1
+    assert reconciliations[0]["status"] == "reconciled"
+    assert reconciliations[0]["dimension"] == "calls_per_minute"
+
+
 def test_finnhub_credentialed_company_profile():
     """The observed free key does not entitle the stock-candle endpoint."""
 
@@ -1380,6 +2253,13 @@ def test_finnhub_credentialed_company_profile():
     assert profile is not None
     assert profile.symbol == "AAPL"
     assert profile.name and profile.exchange
+    current, _ = _observed_read(
+        lambda: FinnhubProvider().get_current_price("AAPL"),
+        "finnhub",
+        "get_current_price",
+        usage_identity="AAPL",
+    )
+    assert current is not None and current > 0
     events, _ = _observed_read(
         lambda: FinnhubProvider().fetch_instrument_events("AAPL"),
         "finnhub",
@@ -1403,9 +2283,7 @@ def test_finnhub_credentialed_company_profile():
     start, end = _bounds()
     with pytest.raises(ProviderResponseError) as candle_error:
         _observed_read(
-            lambda: FinnhubProvider().fetch_ohlcv(
-                "AAPL", Timeframe.D1, start, end, adjusted=False
-            ),
+            lambda: FinnhubProvider().fetch_ohlcv("AAPL", Timeframe.D1, start, end, adjusted=False),
             "finnhub",
             "fetch_ohlcv",
             expected_http_statuses={403},

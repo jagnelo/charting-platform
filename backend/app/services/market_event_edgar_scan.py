@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, date, datetime
 from typing import Any
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.market_data_foundation import (
@@ -24,6 +24,14 @@ _PROVIDER = "edgar"
 _OPERATION = "fetch_ipo_pipeline_events"
 _DIRECTORY_OPERATION = "discover_issuer_ciks_page"
 _ISSUER_MATERIALIZATION_MODES = frozenset({"disabled", "create_missing"})
+
+
+class _DirectoryCheckpointFailure(Exception):
+    """Signal that a validated issuer row could not be durably checkpointed."""
+
+    def __init__(self, response: dict[str, Any]) -> None:
+        super().__init__(str(response.get("reason") or "SEC issuer checkpoint failed"))
+        self.response = response
 
 
 def _validate_limit(value: int, name: str) -> None:
@@ -299,6 +307,250 @@ async def _materialize_directory_issuers(
     }
 
 
+async def materialize_sec_directory_issuer_report(
+    db: AsyncSession,
+    *,
+    reviewed_cycle_count: int,
+    max_candidates: int = 500,
+) -> dict[str, Any]:
+    """Create issuer-only rows from a clean persisted SEC report, without refetching it."""
+
+    if (
+        isinstance(reviewed_cycle_count, bool)
+        or not isinstance(reviewed_cycle_count, int)
+        or reviewed_cycle_count < 1
+    ):
+        raise ValueError("reviewed_cycle_count must be a positive integer")
+    _validate_limit(max_candidates, "max_candidates")
+
+    state = (
+        await db.execute(
+            select(MarketEventScanState)
+            .where(MarketEventScanState.scan_key == _DIRECTORY_SCAN_KEY)
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+    if state is None:
+        return {"status": "blocked", "reason": "no SEC directory scan is recorded"}
+
+    provenance = dict(state.provenance) if isinstance(state.provenance, dict) else {}
+    report_cycle = provenance.get("last_completed_report_cycle_number")
+    fingerprint = provenance.get("last_completed_source_fingerprint")
+    total = provenance.get("last_completed_directory_total")
+    clean_report = (
+        state.status == "complete"
+        and state.cycle_count == reviewed_cycle_count
+        and provenance.get("last_completed_cycle_number") == reviewed_cycle_count
+        and provenance.get("last_completed_cycle_clean") is True
+        and provenance.get("last_completed_materialization_mode") == "disabled"
+        and isinstance(report_cycle, int)
+        and not isinstance(report_cycle, bool)
+        and report_cycle >= 1
+        and isinstance(fingerprint, str)
+        and len(fingerprint) == 64
+        and isinstance(total, int)
+        and not isinstance(total, bool)
+        and total >= 1
+    )
+    if not clean_report:
+        return {
+            "status": "blocked",
+            "reason": "materialization requires the exact latest clean disabled-mode report",
+            "completed_cycle_count": state.cycle_count,
+            "required_reviewed_cycle_count": state.cycle_count,
+            "report_cycle_number": report_cycle,
+        }
+
+    rows = (
+        (
+            await db.execute(
+                select(SecIssuerDirectoryCandidate)
+                .where(SecIssuerDirectoryCandidate.cycle_number == report_cycle)
+                .order_by(SecIssuerDirectoryCandidate.directory_offset)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if len(rows) != total:
+        return {
+            "status": "blocked",
+            "reason": "persisted SEC candidate count does not match the directory total",
+            "report_cycle_number": report_cycle,
+            "directory_total": total,
+            "candidate_count": len(rows),
+        }
+    allowed_decisions = {
+        "would_create",
+        "created",
+        "already_exists",
+        "blocked_conflicting_names",
+        "blocked_domain_key_collision",
+        "blocked_by_page_conflict",
+    }
+    for offset, row in enumerate(rows):
+        if (
+            row.directory_offset != offset
+            or row.directory_total != total
+            or row.source_fingerprint != fingerprint
+            or row.cycle_status != "complete"
+            or row.cycle_complete is not True
+            or row.cycle_clean is not True
+            or row.cycle_failure_count != 0
+            or row.admission_decision not in allowed_decisions
+        ):
+            return {
+                "status": "blocked",
+                "reason": "persisted SEC report has incomplete, dirty, or inconsistent row evidence",
+                "report_cycle_number": report_cycle,
+                "directory_offset": offset,
+            }
+
+    pending = [row for row in rows if row.admission_decision == "would_create"]
+    if any(
+        len(str(row.cik)) != 10
+        or not str(row.cik).isdigit()
+        or not isinstance(row.conformed_name, str)
+        or not row.conformed_name.strip()
+        or len(row.conformed_name) > 300
+        or not isinstance(row.name_candidates, list)
+        or any(not isinstance(name, str) or not name.strip() for name in row.name_candidates)
+        or len(set(row.name_candidates)) != 1
+        or row.name_candidates[0].strip() != row.conformed_name.strip()
+        or not isinstance(row.tickers, list)
+        or any(not isinstance(ticker, str) or not ticker.strip() for ticker in row.tickers)
+        for row in pending
+    ):
+        return {
+            "status": "blocked",
+            "reason": "one or more would-create rows failed CIK/name/ticker validation",
+            "report_cycle_number": report_cycle,
+        }
+
+    batch = pending[:max_candidates]
+    created = 0
+    already_exists = 0
+    conflicts = 0
+    if batch:
+        ciks = [row.cik for row in batch]
+        domain_keys = [f"cik:{cik}" for cik in ciks]
+        existing_rows = (
+            (await db.execute(select(Issuer).where(Issuer.cik.in_(ciks)))).scalars().all()
+        )
+        existing_by_cik = {str(issuer.cik): issuer for issuer in existing_rows if issuer.cik}
+        domain_rows = (
+            (await db.execute(select(Issuer).where(Issuer.domain_key.in_(domain_keys))))
+            .scalars()
+            .all()
+        )
+        domain_owners = {issuer.domain_key: issuer for issuer in domain_rows}
+        new_issuers: list[tuple[SecIssuerDirectoryCandidate, Issuer]] = []
+
+        for candidate in batch:
+            existing = existing_by_cik.get(candidate.cik)
+            if existing is not None:
+                candidate.admission_decision = "already_exists"
+                candidate.decision_reason = (
+                    "CIK already matches an issuer at materialization time; legal name unchanged."
+                )
+                candidate.matched_issuer_id = existing.id
+                candidate.matched_issuer_domain_key = existing.domain_key
+                candidate.matched_issuer_legal_name = existing.legal_name
+                already_exists += 1
+                continue
+
+            domain_key = f"cik:{candidate.cik}"
+            domain_owner = domain_owners.get(domain_key)
+            if domain_owner is not None and domain_owner.cik != candidate.cik:
+                candidate.admission_decision = "blocked_domain_key_collision"
+                candidate.decision_reason = (
+                    "A different CIK owns the canonical domain key at materialization time."
+                )
+                candidate.matched_issuer_id = domain_owner.id
+                candidate.matched_issuer_domain_key = domain_owner.domain_key
+                candidate.matched_issuer_legal_name = domain_owner.legal_name
+                conflicts += 1
+                continue
+
+            issuer = Issuer(
+                domain_key=domain_key,
+                legal_name=candidate.conformed_name,
+                cik=candidate.cik,
+                country_code=None,
+                provenance={
+                    "source": _PROVIDER,
+                    "directory": "SEC company-ticker association directory",
+                    "name_source": (
+                        "SEC directory conformed company name; not independently verified"
+                    ),
+                    "observed_at": candidate.observed_at.isoformat(),
+                    "tickers": candidate.tickers,
+                    "materialization_policy": "reviewed_persisted_directory_report",
+                    "directory_report_cycle": report_cycle,
+                    "source_fingerprint": fingerprint,
+                },
+            )
+            db.add(issuer)
+            new_issuers.append((candidate, issuer))
+
+        if new_issuers:
+            await db.flush()
+            for candidate, issuer in new_issuers:
+                candidate.admission_decision = "created"
+                candidate.decision_reason = (
+                    "Created issuer-only row from the exact clean persisted SEC report; "
+                    "no instrument or listing was created."
+                )
+                candidate.matched_issuer_id = issuer.id
+                candidate.matched_issuer_domain_key = issuer.domain_key
+                candidate.matched_issuer_legal_name = issuer.legal_name
+            created = len(new_issuers)
+
+    await db.flush()
+    remaining = int(
+        (
+            await db.execute(
+                select(func.count(SecIssuerDirectoryCandidate.id)).where(
+                    SecIssuerDirectoryCandidate.cycle_number == report_cycle,
+                    SecIssuerDirectoryCandidate.admission_decision == "would_create",
+                )
+            )
+        ).scalar_one()
+    )
+    provenance.update(
+        {
+            "last_materialization_report_cycle_number": report_cycle,
+            "last_materialization_source_fingerprint": fingerprint,
+            "last_materialization_at": datetime.now(UTC).isoformat(),
+            "last_materialization_created": int(provenance.get("last_materialization_created", 0))
+            + created,
+            "last_materialization_existing": int(provenance.get("last_materialization_existing", 0))
+            + already_exists,
+            "last_materialization_conflicts": int(
+                provenance.get("last_materialization_conflicts", 0)
+            )
+            + conflicts,
+            "last_materialization_complete": remaining == 0,
+        }
+    )
+    state.provenance = {**provenance}
+    await db.commit()
+    return {
+        "status": "complete" if remaining == 0 else "partial",
+        "report_cycle_number": report_cycle,
+        "reviewed_cycle_count": reviewed_cycle_count,
+        "source_fingerprint": fingerprint,
+        "processed": len(batch),
+        "created": created,
+        "already_exists": already_exists,
+        "identity_conflicts_quarantined": conflicts,
+        "remaining_would_create": remaining,
+        "provider_http_requests": 0,
+        "instrument_rows_created": 0,
+        "listing_rows_created": 0,
+    }
+
+
 async def refresh_edgar_ipo_pipeline_for_issuer_universe(
     db: AsyncSession,
     *,
@@ -498,7 +750,11 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
         db.add(state)
         await db.flush()
 
-    provenance = state.provenance if isinstance(state.provenance, dict) else {}
+    # SQLAlchemy's JSON columns do not track in-place mutations by default.
+    # Copy the object so the later assignment marks the durable cursor/state
+    # as dirty; otherwise a worker restart replays the previous page and the
+    # duplicate-CIK guard correctly rejects it.
+    provenance = dict(state.provenance) if isinstance(state.provenance, dict) else {}
     raw_offset = provenance.get("directory_offset", 0)
     if isinstance(raw_offset, bool) or not isinstance(raw_offset, int) or raw_offset < 0:
         raise ValueError("SEC directory scan state contains an invalid directory offset")
@@ -613,6 +869,7 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
             "active_cycle_issuers_materialized": 0,
             "active_cycle_identity_conflicts": 0,
             "active_cycle_failures": 0,
+            "active_cycle_failed_ciks": [],
             "directory_offset": 0,
         }
         # Candidate reports are durable source evidence. Never prune prior
@@ -669,6 +926,107 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
             "identity_conflicts": [],
             "cycle_complete": False,
             "wrapped": wrapped,
+        }
+
+    # A failed submissions read must be retried before advancing the directory
+    # cursor again. The queue is durable in scan provenance and each request is
+    # identified by CIK in ProviderRequestLog. Retry-only invocations keep the
+    # existing page cursor untouched, so they cannot exceed the configured
+    # submissions request budget or lose a failed issuer across restarts.
+    pending_retry_ciks = provenance.get("active_cycle_failed_ciks", [])
+    if not isinstance(pending_retry_ciks, list) or any(
+        not isinstance(cik, str) or len(cik) != 10 or not cik.isdigit()
+        for cik in pending_retry_ciks
+    ):
+        raise ValueError("SEC directory scan state contains an invalid failed-CIK retry queue")
+    if pending_retry_ciks:
+        retry_ciks = pending_retry_ciks[:max_submissions_requests]
+        retry_checkpointed: list[str] = []
+
+        async def checkpoint_retry(outcome: dict[str, Any]) -> None:
+            cik = outcome.get("cik")
+            failed = outcome.get("status") == "failed"
+            currently_queued = provenance.get("active_cycle_failed_ciks", pending_retry_ciks)
+            remaining = [
+                queued for queued in currently_queued if queued != cik or (queued == cik and failed)
+            ]
+            provenance["active_cycle_failed_ciks"] = remaining
+            provenance["active_cycle_failed"] = bool(remaining) or bool(
+                provenance.get("active_cycle_identity_conflicts", 0)
+            )
+            if failed:
+                provenance["active_cycle_failures"] = (
+                    int(provenance.get("active_cycle_failures", 0)) + 1
+                )
+            provenance["last_batch_failed_ciks"] = [cik] if failed and isinstance(cik, str) else []
+            state.provenance = {**provenance}
+            state.status = "partial"
+            state.last_scanned_at = now
+            state.last_batch_count = 1
+            state.last_event_count = int(outcome.get("events", 0))
+            state.last_failure_count = int(failed)
+            state.last_error = (
+                "one or more SEC issuer pipeline reads remain queued for retry" if failed else None
+            )
+            await db.commit()
+            if isinstance(cik, str):
+                retry_checkpointed.append(cik)
+
+        retry_result = await refresh_edgar_ipo_pipeline(
+            db,
+            retry_ciks,
+            start=start,
+            end=end,
+            max_ciks=len(retry_ciks),
+            max_events_per_issuer=max_events_per_issuer,
+            commit=False,
+            after_issuer=checkpoint_retry,
+        )
+        retry_failures = {
+            item.get("cik")
+            for item in retry_result.get("issuers", [])
+            if isinstance(item, dict) and item.get("status") == "failed"
+        }
+        if retry_result.get("failures", 0) and not retry_failures:
+            # An unsupported/malformed result cannot prove which issuer was
+            # recovered. Retain every attempted CIK and fail closed.
+            retry_failures = set(retry_ciks)
+        remaining_retries = [cik for cik in pending_retry_ciks if cik in retry_failures]
+        provenance.update(
+            {
+                "active_cycle_failed_ciks": remaining_retries,
+                "active_cycle_failed": bool(remaining_retries),
+                "active_cycle_failures": int(provenance.get("active_cycle_failures", 0))
+                + (int(retry_result.get("failures", 0)) if not retry_checkpointed else 0),
+                "last_batch_failed_ciks": [cik for cik in retry_ciks if cik in retry_failures],
+                "directory_offset": offset,
+                "submissions_request_bound": max_submissions_requests,
+            }
+        )
+        state.provenance = {**provenance}
+        state.status = "partial"
+        state.last_scanned_at = now
+        state.last_batch_count = len(retry_ciks)
+        state.last_event_count = int(retry_result.get("events", 0))
+        state.last_failure_count = len(retry_failures)
+        state.last_error = (
+            "one or more SEC issuer pipeline reads remain queued for retry"
+            if remaining_retries
+            else None
+        )
+        await db.commit()
+        return {
+            **retry_result,
+            "status": state.status,
+            "scan_key": _DIRECTORY_SCAN_KEY,
+            "issuers_considered": len(retry_ciks),
+            "directory_offset": offset,
+            "submissions_request_bound": max_submissions_requests,
+            "pending_retry_ciks": remaining_retries,
+            "cycle_complete": False,
+            "cycle_failed": bool(remaining_retries),
+            "cycle_clean": None,
+            "wrapped": False,
         }
 
     try:
@@ -741,6 +1099,8 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
         await db.commit()
         return response
 
+    incremental_checkpointing = False
+    page_issuer_summaries: list[dict[str, Any]] = []
     if not ciks:
         if offset < total:
             response = await failed_response("SEC issuer directory returned a non-progressing page")
@@ -748,49 +1108,198 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
             return response
         result: dict[str, Any] = {"status": "no_events", "events": 0, "failures": 0}
     else:
-        result = await refresh_edgar_ipo_pipeline(
-            db,
-            ciks,
-            start=start,
-            end=end,
-            max_ciks=max_issuers,
-            max_events_per_issuer=max_events_per_issuer,
-            commit=False,
-        )
+        incremental_checkpointing = issuer_materialization_mode == "disabled"
+        if incremental_checkpointing:
+            provenance.update(
+                {
+                    "last_batch_event_count": 0,
+                    "last_batch_missing_issuer_candidates": 0,
+                    "last_batch_existing_issuers": 0,
+                    "last_batch_issuers_materialized": 0,
+                    "last_batch_identity_conflicts": [],
+                }
+            )
+        page_completed: list[int] = []
 
-    try:
-        issuer_summary = await _materialize_directory_issuers(
-            db,
-            rows,
-            mode=issuer_materialization_mode,
-            observed_at=now,
-            cycle_number=int(active_cycle_number),
-            directory_offset=offset,
-            directory_total=total,
-            source_fingerprint=source_fingerprint,
-        )
-    except Exception as exc:  # noqa: BLE001 - persist bounded scan failure.
-        response = await failed_response(str(exc))
-        await db.commit()
-        return response
+        async def checkpoint_directory_issuer(outcome: dict[str, Any]) -> None:
+            index = len(page_completed)
+            row = rows[index]
+            try:
+                summary = await _materialize_directory_issuers(
+                    db,
+                    [row],
+                    mode="disabled",
+                    observed_at=now,
+                    cycle_number=int(active_cycle_number),
+                    directory_offset=offset + index,
+                    directory_total=total,
+                    source_fingerprint=source_fingerprint,
+                )
+            except Exception as exc:  # noqa: BLE001 - persist bounded checkpoint failure.
+                response = await failed_response(str(exc))
+                await db.commit()
+                raise _DirectoryCheckpointFailure(response) from exc
+            page_issuer_summaries.append(summary)
+            page_completed.append(index)
+            cik = outcome.get("cik")
+            failed = outcome.get("status") == "failed"
+            retry_ciks = list(provenance.get("active_cycle_failed_ciks", []))
+            if failed and isinstance(cik, str) and cik not in retry_ciks:
+                retry_ciks.append(cik)
+            identity_conflicts = summary["identity_conflicts"]
+            provenance.update(
+                {
+                    "algorithm": "edgar_ipo_pipeline_sec_directory_v3",
+                    "directory_offset": offset + index + 1,
+                    "directory_total": total,
+                    "last_batch_ciks": ciks,
+                    "last_batch_failed_ciks": retry_ciks,
+                    "last_batch_event_count": int(provenance.get("last_batch_event_count", 0))
+                    + int(outcome.get("events", 0)),
+                    "active_source_fingerprint": source_fingerprint,
+                    "active_directory_total": total,
+                    "active_cycle_failed_ciks": retry_ciks,
+                    "active_cycle_failed": bool(retry_ciks)
+                    or bool(provenance.get("active_cycle_identity_conflicts", 0))
+                    or bool(identity_conflicts),
+                    "active_cycle_failures": int(provenance.get("active_cycle_failures", 0))
+                    + int(failed),
+                    "active_cycle_missing_issuer_candidates": int(
+                        provenance.get("active_cycle_missing_issuer_candidates", 0)
+                    )
+                    + summary["missing_issuer_candidates"],
+                    "active_cycle_existing_issuers": int(
+                        provenance.get("active_cycle_existing_issuers", 0)
+                    )
+                    + summary["existing_issuers"],
+                    "active_cycle_issuers_materialized": int(
+                        provenance.get("active_cycle_issuers_materialized", 0)
+                    )
+                    + summary["issuers_materialized"],
+                    "active_cycle_identity_conflicts": int(
+                        provenance.get("active_cycle_identity_conflicts", 0)
+                    )
+                    + len(identity_conflicts),
+                    "last_batch_missing_issuer_candidates": int(
+                        provenance.get("last_batch_missing_issuer_candidates", 0)
+                    )
+                    + summary["missing_issuer_candidates"],
+                    "last_batch_existing_issuers": int(
+                        provenance.get("last_batch_existing_issuers", 0)
+                    )
+                    + summary["existing_issuers"],
+                    "last_batch_issuers_materialized": int(
+                        provenance.get("last_batch_issuers_materialized", 0)
+                    )
+                    + summary["issuers_materialized"],
+                    "last_batch_identity_conflicts": list(
+                        provenance.get("last_batch_identity_conflicts", [])
+                    )
+                    + identity_conflicts,
+                    "window": {
+                        "start": start.isoformat() if start else None,
+                        "end": end.isoformat() if end else None,
+                    },
+                    "bounded": True,
+                    "submissions_request_bound": max_submissions_requests,
+                }
+            )
+            state.provenance = {**provenance}
+            state.cursor_issuer_id = None
+            state.scanned_count += 1
+            state.last_batch_count = index + 1
+            state.last_event_count = int(provenance["last_batch_event_count"])
+            state.last_failure_count = int(failed) + len(identity_conflicts)
+            state.last_scanned_at = now
+            state.status = "partial"
+            state.last_error = (
+                "one or more SEC issuer pipeline reads or identity checks failed"
+                if failed or identity_conflicts
+                else None
+            )
+            await db.commit()
+
+        try:
+            result = await refresh_edgar_ipo_pipeline(
+                db,
+                ciks,
+                start=start,
+                end=end,
+                max_ciks=max_issuers,
+                max_events_per_issuer=max_events_per_issuer,
+                commit=False,
+                after_issuer=checkpoint_directory_issuer if incremental_checkpointing else None,
+            )
+        except _DirectoryCheckpointFailure as exc:
+            return exc.response
+
+    if incremental_checkpointing and len(page_issuer_summaries) == len(ciks):
+        issuer_summary = {
+            "missing_issuer_candidates": sum(
+                summary["missing_issuer_candidates"] for summary in page_issuer_summaries
+            ),
+            "existing_issuers": sum(
+                summary["existing_issuers"] for summary in page_issuer_summaries
+            ),
+            "identity_conflicts": [
+                cik for summary in page_issuer_summaries for cik in summary["identity_conflicts"]
+            ],
+            "issuers_materialized": sum(
+                summary["issuers_materialized"] for summary in page_issuer_summaries
+            ),
+        }
+    else:
+        try:
+            issuer_summary = await _materialize_directory_issuers(
+                db,
+                rows,
+                mode=issuer_materialization_mode,
+                observed_at=now,
+                cycle_number=int(active_cycle_number),
+                directory_offset=offset,
+                directory_total=total,
+                source_fingerprint=source_fingerprint,
+            )
+        except Exception as exc:  # noqa: BLE001 - persist bounded scan failure.
+            response = await failed_response(str(exc))
+            await db.commit()
+            return response
     next_offset = offset + len(ciks)
     cycle_complete = next_offset >= total
     page_failures = int(result.get("failures", 0)) + len(issuer_summary["identity_conflicts"])
-    cumulative_failures = int(provenance.get("active_cycle_failures", 0)) + page_failures
-    cycle_failed = bool(provenance.get("active_cycle_failed")) or page_failures > 0
-    missing_candidates = (
-        int(provenance.get("active_cycle_missing_issuer_candidates", 0))
-        + issuer_summary["missing_issuer_candidates"]
+    failed_ciks = [
+        item["cik"]
+        for item in result.get("issuers", [])
+        if isinstance(item, dict)
+        and item.get("status") == "failed"
+        and isinstance(item.get("cik"), str)
+    ]
+    if int(result.get("failures", 0)) > len(failed_ciks):
+        # If the pipeline reports failures without a per-CIK outcome, retry the
+        # whole page rather than allow an unidentified failure to disappear.
+        failed_ciks = list(ciks)
+    existing_retry_ciks = provenance.get("active_cycle_failed_ciks", [])
+    failed_ciks = list(dict.fromkeys([*existing_retry_ciks, *failed_ciks]))
+    page_checkpointed = incremental_checkpointing and len(page_issuer_summaries) == len(ciks)
+    cumulative_failures = int(provenance.get("active_cycle_failures", 0)) + (
+        0 if page_checkpointed else page_failures
     )
-    existing_issuers = (
-        int(provenance.get("active_cycle_existing_issuers", 0)) + issuer_summary["existing_issuers"]
+    cycle_failed = (
+        bool(provenance.get("active_cycle_failed"))
+        if page_checkpointed
+        else bool(provenance.get("active_cycle_failed")) or page_failures > 0
     )
-    materialized_issuers = (
-        int(provenance.get("active_cycle_issuers_materialized", 0))
-        + issuer_summary["issuers_materialized"]
+    missing_candidates = int(provenance.get("active_cycle_missing_issuer_candidates", 0)) + (
+        0 if page_checkpointed else issuer_summary["missing_issuer_candidates"]
     )
-    identity_conflicts_count = int(provenance.get("active_cycle_identity_conflicts", 0)) + len(
-        issuer_summary["identity_conflicts"]
+    existing_issuers = int(provenance.get("active_cycle_existing_issuers", 0)) + (
+        0 if page_checkpointed else issuer_summary["existing_issuers"]
+    )
+    materialized_issuers = int(provenance.get("active_cycle_issuers_materialized", 0)) + (
+        0 if page_checkpointed else issuer_summary["issuers_materialized"]
+    )
+    identity_conflicts_count = int(provenance.get("active_cycle_identity_conflicts", 0)) + (
+        0 if page_checkpointed else len(issuer_summary["identity_conflicts"])
     )
     provenance.update(
         {
@@ -808,6 +1317,7 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
             "active_source_fingerprint": source_fingerprint,
             "active_directory_total": total,
             "active_cycle_failed": cycle_failed,
+            "active_cycle_failed_ciks": failed_ciks,
             "active_cycle_failures": cumulative_failures,
             "active_cycle_missing_issuer_candidates": missing_candidates,
             "active_cycle_existing_issuers": existing_issuers,
@@ -817,11 +1327,13 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
             "last_batch_existing_issuers": issuer_summary["existing_issuers"],
             "last_batch_issuers_materialized": issuer_summary["issuers_materialized"],
             "last_batch_identity_conflicts": issuer_summary["identity_conflicts"],
+            "last_batch_failed_ciks": failed_ciks,
         }
     )
     state.cursor_issuer_id = None
     state.cycle_count += 1 if cycle_complete else 0
-    state.scanned_count += len(ciks)
+    if not page_checkpointed:
+        state.scanned_count += len(ciks)
     state.last_batch_count = len(ciks)
     state.last_event_count = int(result.get("events", 0))
     state.last_failure_count = page_failures
@@ -860,7 +1372,7 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
                 "last_completed_identity_conflicts": identity_conflicts_count,
             }
         )
-    state.provenance = provenance
+    state.provenance = {**provenance}
     await db.commit()
     return {
         **result,

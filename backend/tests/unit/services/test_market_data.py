@@ -216,6 +216,7 @@ async def test_provider_refresh_assigns_scoped_market_series(monkeypatch):
     assert scope.adjustment_version == "alpaca-all"
     assert captured["kwargs"]["canonical"] is True
     assert captured["execute_kwargs"]["operation_cost_overrides"]["marketdata_app"] == 2
+    assert captured["execute_kwargs"]["operation_cost_overrides"]["fmp"] == 1
     assert result[0].market_series_id == 123
 
 
@@ -272,6 +273,7 @@ async def test_latest_provider_refresh_assigns_scoped_market_series(monkeypatch)
     assert scope.timeframe == "D1"
     assert captured["kwargs"]["canonical"] is True
     assert captured["execute_kwargs"]["history_start"]("alpaca") == expected_history_start
+    assert captured["execute_kwargs"]["operation_cost_overrides"]["fmp"] == 1
     assert result[0].market_series_id == 456
 
 
@@ -695,9 +697,7 @@ async def test_latest_price_refresh_uses_opt_in_redis_gate(monkeypatch):
     monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
     monkeypatch.setattr(market_data, "store_latest_price_snapshot", fake_store)
 
-    result = await market_data.get_current_price_async(
-        object(), instrument, redis=_Redis()
-    )
+    result = await market_data.get_current_price_async(object(), instrument, redis=_Redis())
 
     assert result == 234.56
     assert [call[0] for call in calls] == ["lock", "acquire", "provider", "release"]

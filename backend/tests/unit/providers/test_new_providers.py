@@ -215,13 +215,14 @@ class TestRegistryCapabilities:
         assert "instrument_search" in caps
         assert "instrument_metadata" in caps
         assert "universe_discovery" in caps
-        # CoinGecko documents /key on the Pro API host with Pro credentials.
-        # The configured Demo integration must not advertise or poll that
-        # unavailable account-usage capability.
         assert "account_usage" not in caps
-        assert "coingecko" not in app_config.settings.PROVIDER_CHAIN_SEEDS["account_usage"]
+        assert "coingecko" in app_config.settings.PROVIDER_CHAIN_SEEDS["account_usage"]
         assert "price_history" not in caps
         assert "option_chain" not in caps
+
+    def test_coingecko_pro_plan_exposes_account_usage_capability(self, monkeypatch):
+        monkeypatch.setattr(app_config.settings, "COINGECKO_REVIEWED_PLAN", "basic")
+        assert "account_usage" in list_provider_capabilities("coingecko")
 
     def test_edgar_capabilities(self):
         caps = set(list_provider_capabilities("edgar"))
@@ -1060,7 +1061,7 @@ class TestBinanceOHLCVParsing:
         mock_resp.json.return_value = fake_klines
         mock_resp.raise_for_status.return_value = None
 
-        with patch("app.providers.binance.httpx.get", return_value=mock_resp):
+        with patch("app.providers.binance.httpx.get", return_value=mock_resp) as get:
             bars = provider.fetch_ohlcv(
                 "BTC-USD",
                 Timeframe.D1,
@@ -1069,12 +1070,47 @@ class TestBinanceOHLCVParsing:
                 adjusted=False,
             )
 
+        get.assert_called_once()
         assert len(bars) == 1
         assert float(bars[0].open) == 42000.0
         assert float(bars[0].close) == 42500.0
         assert bars[0].adjustment_basis == "raw"
         assert bars[0].adjustment_version == "provider-native"
         assert bars[0].provenance["provider"] == "binance"
+
+    def test_fetch_ohlcv_continues_after_a_full_page_without_dropping_rows(self):
+        provider = BinanceProvider()
+        start = datetime(2024, 1, 1, tzinfo=UTC)
+        start_ms = int(start.timestamp() * 1000)
+        daily_ms = 86_400_000
+
+        def kline(open_ms):
+            return [open_ms, "1", "2", "1", "1.5", "10", open_ms + daily_ms - 1]
+
+        pages = [
+            [kline(start_ms + index * daily_ms) for index in range(1000)],
+            [kline(start_ms + 1000 * daily_ms)],
+        ]
+        responses = []
+        for page in pages:
+            response = MagicMock()
+            response.json.return_value = page
+            response.raise_for_status.return_value = None
+            responses.append(response)
+
+        with patch("app.providers.binance.httpx.get", side_effect=responses) as get:
+            bars = provider.fetch_ohlcv(
+                "BTC-USD",
+                Timeframe.D1,
+                start,
+                start + timedelta(days=1001),
+                adjusted=False,
+            )
+
+        assert get.call_count == 2
+        assert len(bars) == 1001
+        assert bars[0].ts == start
+        assert bars[-1].ts == start + timedelta(days=1000)
 
     def test_transport_failure_is_typed(self):
         failure = httpx.ConnectError(
@@ -1195,6 +1231,10 @@ class TestBinanceOHLCVParsing:
         start = datetime(2024, 1, 1, tzinfo=UTC)
         end = start + timedelta(days=1001)
         assert estimate_ohlcv_request_weight(Timeframe.D1, start, end) == 4
+        # Binance endTime is inclusive, so an exact 1,000-interval span can
+        # include 1,001 candle opens and needs a second page reservation.
+        assert estimate_ohlcv_request_weight(Timeframe.D1, start, start + timedelta(days=1000)) == 4
+        assert estimate_ohlcv_request_weight(Timeframe.D1, start, start + timedelta(days=30)) == 2
         assert estimate_latest_ohlcv_request_weight(Timeframe.D1, 1001) == 4
         assert estimate_latest_ohlcv_request_weight(Timeframe.M1, 1000) == 6
 
@@ -1209,6 +1249,10 @@ class TestCryptoOHLCVPagination:
             "app.providers.crypto_market_data.coinbase_market_data_use_authority_missing",
             lambda: [],
         )
+        monkeypatch.setattr(
+            "app.providers.crypto_market_data.kraken_market_data_use_authority_missing",
+            lambda: [],
+        )
 
     def test_coinbase_requires_written_authority_before_transport(self, monkeypatch):
         monkeypatch.setattr(
@@ -1218,6 +1262,16 @@ class TestCryptoOHLCVPagination:
         with patch("app.providers.crypto_market_data.httpx.get") as get:
             with pytest.raises(ProviderNotConfiguredError, match="written authority"):
                 CoinbaseProvider().get_current_price("BTC-USD")
+        get.assert_not_called()
+
+    def test_kraken_requires_written_authority_before_transport(self, monkeypatch):
+        monkeypatch.setattr(
+            "app.providers.crypto_market_data.kraken_market_data_use_authority_missing",
+            lambda: ["KRAKEN_MARKET_DATA_USE_AUTHORIZED"],
+        )
+        with patch("app.providers.crypto_market_data.httpx.get") as get:
+            with pytest.raises(ProviderNotConfiguredError, match="written authority"):
+                KrakenProvider().get_current_price("BTC-USD")
         get.assert_not_called()
 
     @pytest.mark.parametrize("provider", [CoinbaseProvider(), KrakenProvider()])
@@ -1312,39 +1366,63 @@ class TestCryptoOHLCVPagination:
         assert estimate_coinbase_ohlcv_request_count(Timeframe.M1, start, end) == 2
         assert estimate_coinbase_latest_ohlcv_request_count(Timeframe.M1, 301) == 2
 
-    def test_kraken_history_follows_provider_last_cursor(self):
+    def test_kraken_refuses_history_beyond_rest_retention_without_transport(self):
         provider = KrakenProvider()
         start = datetime(2024, 1, 1, tzinfo=UTC)
-        end = start + timedelta(minutes=721)
-        first_row = [start.timestamp(), "1", "2", "1.5", "1.75", "1.7", "10"]
-        second_ts = start + timedelta(minutes=720)
-        second_row = [second_ts.timestamp(), "2", "3", "2.5", "2.75", "2.7", "20"]
-        responses = [
-            httpx.Response(
-                200,
-                json={
-                    "result": {
-                        "XXBTZUSD": [first_row],
-                        "last": int((start + timedelta(minutes=719)).timestamp()),
-                    }
-                },
-                request=httpx.Request("GET", "https://api.kraken.com/0/public/OHLC"),
-            ),
-            httpx.Response(
-                200,
-                json={"result": {"XXBTZUSD": [second_row], "last": int(second_ts.timestamp())}},
-                request=httpx.Request("GET", "https://api.kraken.com/0/public/OHLC"),
-            ),
+        end = start + timedelta(minutes=722)
+        capped_rows = [
+            [
+                (start + timedelta(minutes=index)).timestamp(),
+                "1",
+                "2",
+                "1.5",
+                "1.75",
+                "1.7",
+                "10",
+            ]
+            for index in range(2, 722)
         ]
-        with patch("app.providers.crypto_market_data.httpx.get", side_effect=responses) as get:
-            bars = provider.fetch_ohlcv("BTC-USD", Timeframe.M1, start, end, adjusted=False)
+        response = httpx.Response(
+            200,
+            json={"result": {"XXBTZUSD": capped_rows, "last": int(end.timestamp())}},
+            request=httpx.Request("GET", "https://api.kraken.com/0/public/OHLC"),
+        )
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=response) as get:
+            with pytest.raises(ProviderResponseError, match="refusing incomplete history"):
+                provider.fetch_ohlcv("BTC-USD", Timeframe.M1, start, end, adjusted=False)
 
-        assert get.call_count == 2
-        assert [bar.ts for bar in bars] == [start, second_ts]
-        assert all(bar.adjustment_basis == "raw" for bar in bars)
-        assert all(bar.provenance["provider"] == "kraken" for bar in bars)
+        get.assert_called_once()
         assert estimate_kraken_ohlcv_request_count(Timeframe.M1, start, end) == 2
         assert estimate_kraken_latest_ohlcv_request_count(Timeframe.M1, 721) == 2
+
+    def test_kraken_recent_history_fits_one_rest_request(self):
+        provider = KrakenProvider()
+        start = datetime(2024, 1, 1, tzinfo=UTC)
+        row = [start.timestamp(), "1", "2", "1.5", "1.75", "1.7", "10"]
+        response = httpx.Response(
+            200,
+            json={
+                "result": {
+                    "XXBTZUSD": [row],
+                    "last": int((start + timedelta(minutes=719)).timestamp()),
+                }
+            },
+            request=httpx.Request("GET", "https://api.kraken.com/0/public/OHLC"),
+        )
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=response) as get:
+            bars = provider.fetch_ohlcv(
+                "BTC-USD", Timeframe.M1, start, start + timedelta(minutes=720), adjusted=False
+            )
+
+        get.assert_called_once()
+        assert [bar.ts for bar in bars] == [start]
+        assert bars[0].adjustment_basis == "raw"
+        assert bars[0].provenance["provider"] == "kraken"
+        assert (
+            estimate_kraken_ohlcv_request_count(Timeframe.M1, start, start + timedelta(minutes=720))
+            == 1
+        )
+        assert estimate_kraken_latest_ohlcv_request_count(Timeframe.M1, 720) == 1
 
     def test_coinbase_malformed_candle_rows_are_typed(self):
         start = datetime(2024, 1, 1, tzinfo=UTC)
@@ -1439,6 +1517,57 @@ class TestCryptoOHLCVPagination:
             with pytest.raises(ProviderResponseError):
                 KrakenProvider().discover_universe_page("CRYPTOCURRENCY", 0)
 
+    def test_kraken_discovery_uses_display_pair_without_erasing_internal_x(self):
+        products = {
+            "ARUSD": {
+                "base": "AR",
+                "quote": "ZUSD",
+                "altname": "ARUSD",
+                "wsname": "AR/USD",
+            },
+            "ARXUSD": {
+                "base": "ARX",
+                "quote": "ZUSD",
+                "altname": "ARXUSD",
+                "wsname": "ARX/USD",
+            },
+        }
+        for index in range(498):
+            code = f"COIN{index}"
+            products[f"{code}USD"] = {
+                "base": code,
+                "quote": "ZUSD",
+                "altname": f"{code}USD",
+                "wsname": f"{code}/USD",
+            }
+        products["LASTUSD"] = {
+            "base": "LAST",
+            "quote": "ZUSD",
+            "altname": "LASTUSD",
+            "wsname": "LAST/USD",
+        }
+        response = httpx.Response(
+            200,
+            json={"error": [], "result": products},
+            request=httpx.Request("GET", "https://api.kraken.com/0/public/AssetPairs"),
+        )
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=response):
+            provider = KrakenProvider()
+            first = provider.discover_universe_page("CRYPTOCURRENCY", 0)
+            last = provider.discover_universe_page("CRYPTOCURRENCY", 500)
+
+        assert first["total"] == 501
+        assert first["next_offset"] == 500
+        assert first["complete"] is False
+        assert [first["quotes"][index]["symbol"] for index in range(2)] == [
+            "AR-USD",
+            "ARX-USD",
+        ]
+        assert first["quotes"][1]["source_record"] == products["ARXUSD"]
+        assert last["quotes"][0]["symbol"] == "LAST-USD"
+        assert last["next_offset"] is None
+        assert last["complete"] is True
+
     def test_crypto_directory_missing_identity_is_typed(self):
         coinbase_response = httpx.Response(
             200,
@@ -1458,42 +1587,102 @@ class TestCryptoOHLCVPagination:
             with pytest.raises(ProviderResponseError, match="incomplete asset-pair identity"):
                 KrakenProvider().discover_universe_page("CRYPTOCURRENCY", 0)
 
-    def test_twelve_data_history_pages_5000_point_ranges(self):
-        provider = TwelveDataProvider()
-        start = datetime(2024, 1, 1, tzinfo=UTC)
-        end = start + timedelta(days=5001)
-        first = {
-            "values": [
-                {
-                    "datetime": start.isoformat(),
-                    "open": "1",
-                    "high": "2",
-                    "low": "1",
-                    "close": "1.5",
-                    "volume": "10",
-                }
-            ]
-        }
-        second_ts = start + timedelta(days=5000)
-        second = {
-            "values": [
-                {
-                    "datetime": second_ts.isoformat(),
-                    "open": "2",
-                    "high": "3",
-                    "low": "2",
-                    "close": "2.5",
-                    "volume": "20",
-                }
-            ]
-        }
-        with patch.object(provider, "_get", side_effect=[first, second]) as get:
-            bars = provider.fetch_ohlcv("AAPL", Timeframe.D1, start, end, adjusted=False)
 
-        assert get.call_count == 2
-        assert [bar.ts for bar in bars] == [start, second_ts]
-        assert estimate_twelve_data_ohlcv_request_count(Timeframe.D1, start, end) == 2
-        assert estimate_twelve_data_latest_ohlcv_request_count(Timeframe.D1, 5001) == 2
+def test_twelve_data_history_pages_5000_point_ranges():
+    provider = TwelveDataProvider()
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    end = start + timedelta(days=5001)
+    first = {
+        "values": [
+            {
+                "datetime": start.isoformat(),
+                "open": "1",
+                "high": "2",
+                "low": "1",
+                "close": "1.5",
+                "volume": "10",
+            }
+        ]
+    }
+    second_ts = start + timedelta(days=5000)
+    second = {
+        "values": [
+            {
+                "datetime": second_ts.isoformat(),
+                "open": "2",
+                "high": "3",
+                "low": "2",
+                "close": "2.5",
+                "volume": "20",
+            }
+        ]
+    }
+    with patch.object(provider, "_get", side_effect=[first, second]) as get:
+        bars = provider.fetch_ohlcv("AAPL", Timeframe.D1, start, end, adjusted=False)
+
+    assert get.call_count == 2
+    assert [bar.ts for bar in bars] == [start, second_ts]
+    assert estimate_twelve_data_ohlcv_request_count(Timeframe.D1, start, end) == 2
+    assert estimate_twelve_data_latest_ohlcv_request_count(Timeframe.D1, 5001) == 2
+
+
+class TestTwelveDataAccountUsage:
+    def test_twelve_data_usage_preserves_request_and_credit_pools_separately(self):
+        provider = TwelveDataProvider()
+        payload = {
+            "timestamp": "2026-10-04 12:00:00",
+            "current_usage": 3,
+            "plan_limit": 8,
+            "daily_usage": 37,
+            "plan_daily_limit": 800,
+            "plan_category": "Basic",
+        }
+        headers = {"api-credits-used": "4", "api-credits-left": "4"}
+        with patch.object(provider, "_get_with_headers", return_value=(payload, headers)):
+            usage = provider.fetch_account_usage()
+
+        assert usage is not None
+        assert usage.account_plan == "Basic"
+        dimensions = {dimension.name: dimension for dimension in usage.dimensions}
+        assert set(dimensions) == {
+            "credits_per_minute",
+            "requests_per_minute",
+            "requests_per_day",
+        }
+        assert dimensions["credits_per_minute"].unit == "credits"
+        assert dimensions["credits_per_minute"].limit == 8
+        assert dimensions["credits_per_minute"].consumed == 4
+        assert dimensions["requests_per_minute"].unit == "requests"
+        assert dimensions["requests_per_minute"].limit == 8
+        assert dimensions["requests_per_minute"].consumed == 3
+        assert dimensions["requests_per_day"].unit == "requests"
+        assert dimensions["requests_per_day"].limit == 800
+        assert dimensions["requests_per_day"].consumed == 37
+        daily_reset = dimensions["requests_per_day"].reset_at
+        assert daily_reset is not None and daily_reset.tzinfo is UTC
+        assert daily_reset == usage.observed_at.replace(
+            hour=0, minute=0, second=0, microsecond=0
+        ) + timedelta(days=1)
+
+    def test_twelve_data_usage_does_not_infer_optional_daily_request_pool(self):
+        provider = TwelveDataProvider()
+        payload = {"current_usage": 2, "plan_limit": 8}
+        headers = {"api-credits-used": "2", "api-credits-left": "6"}
+        with patch.object(provider, "_get_with_headers", return_value=(payload, headers)):
+            usage = provider.fetch_account_usage()
+
+        assert usage is not None
+        dimensions = {dimension.name for dimension in usage.dimensions}
+        assert "requests_per_minute" in dimensions
+        assert "requests_per_day" not in dimensions
+
+    def test_twelve_data_usage_rejects_boolean_request_counters(self):
+        provider = TwelveDataProvider()
+        payload = {"current_usage": True, "plan_limit": 8}
+        headers = {"api-credits-used": "1", "api-credits-left": "7"}
+        with patch.object(provider, "_get_with_headers", return_value=(payload, headers)):
+            with pytest.raises(ProviderResponseError, match="invalid current_usage"):
+                provider.fetch_account_usage()
 
 
 # ── FRED series map ───────────────────────────────────────────────────────────
@@ -1905,12 +2094,83 @@ class TestMassiveReferenceProvider:
         assert result[0].exchange == "XNAS"
         assert page["quotes"][0]["instrument_type"] == "CS"
         assert page["next_url"] == "https://api.massive.com/v3/reference/tickers?cursor=abc"
+        assert page["next_cursor"] == "abc"
         assert page["total"] is None and page["complete"] is False
         assert next_page["quotes"] == []
         assert next_page["total"] is None and next_page["complete"] is True
         assert get.call_count == 3
         assert get.call_args_list[1].kwargs["params"].get("cursor") is None
         assert get.call_args_list[2].kwargs["params"]["cursor"] == "abc"
+
+    def test_massive_universe_discovery_accepts_persisted_cursor(self):
+        response = MagicMock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = {"results": []}
+        with (
+            patch("app.providers.massive.settings") as mock_settings,
+            patch("app.providers.massive.httpx.get", return_value=response) as get,
+        ):
+            mock_settings.MASSIVE_API_KEY = "key"
+            mock_settings.MARKETDATA_API_KEY = ""
+            provider = MassiveProvider()
+            page = provider.discover_universe_page("EQUITY", 5_000, cursor="persisted-cursor")
+
+        assert page["complete"] is True
+        assert get.call_args.kwargs["params"]["cursor"] == "persisted-cursor"
+
+    def test_massive_otc_discovery_uses_separate_complete_cursor_and_preserves_raw_rows(self):
+        stock_response = MagicMock()
+        stock_response.raise_for_status.return_value = None
+        stock_response.json.return_value = {
+            "results": [{"ticker": "AAPL", "name": "Apple Inc.", "type": "CS"}],
+            "next_url": "https://api.massive.com/v3/reference/tickers?cursor=stocks-next",
+        }
+        otc_row = {
+            "active": True,
+            "composite_figi": "BBG000000001",
+            "locale": "us",
+            "market": "otc",
+            "name": "Example OTC Corp.",
+            "primary_exchange": "OTCM",
+            "ticker": "EXOTC",
+            "type": "CS",
+        }
+        otc_response = MagicMock()
+        otc_response.raise_for_status.return_value = None
+        otc_payload = {
+            "results": [otc_row],
+            "next_url": "https://api.massive.com/v3/reference/tickers?cursor=otc-next",
+        }
+        otc_response.json.return_value = otc_payload
+        otc_terminal_response = MagicMock()
+        otc_terminal_response.raise_for_status.return_value = None
+        otc_terminal_response.json.return_value = {"results": []}
+        with (
+            patch("app.providers.massive.settings") as mock_settings,
+            patch(
+                "app.providers.massive.httpx.get",
+                side_effect=[stock_response, otc_response, otc_terminal_response],
+            ) as get,
+        ):
+            mock_settings.MASSIVE_API_KEY = "key"
+            mock_settings.MARKETDATA_API_KEY = ""
+            provider = MassiveProvider()
+            stock_page = provider.discover_universe_page("EQUITY", 0)
+            otc_page = provider.discover_universe_page("OTC", 0)
+            otc_next_page = provider.discover_universe_page("OTC", 1000)
+
+        assert provider.supported_discovery_types() == ["EQUITY", "OTC"]
+        assert stock_page["complete"] is False
+        assert otc_page["quotes"][0]["symbol"] == "EXOTC"
+        assert otc_page["quotes"][0]["raw_payload"] == otc_row
+        assert otc_page["raw_payload"] == otc_payload
+        assert otc_page["complete"] is False
+        assert otc_next_page["quotes"] == []
+        assert otc_next_page["complete"] is True
+        assert get.call_args_list[0].kwargs["params"]["market"] == "stocks"
+        assert get.call_args_list[1].kwargs["params"]["market"] == "otc"
+        assert get.call_args_list[2].kwargs["params"]["market"] == "otc"
+        assert get.call_args_list[2].kwargs["params"]["cursor"] == "otc-next"
 
     def test_ticker_overview_normalizes_identifiers_listing_and_lifecycle(self):
         response = MagicMock()
@@ -2301,7 +2561,11 @@ class TestAlphaVantageProvider:
         assert [bar.close for bar in bars] == [99.0, 102.0]
         assert all(bar.timeframe is timeframe for bar in bars)
         assert all(bar.provenance["endpoint"] == function for bar in bars)
-        assert get.call_args.kwargs["params"] == {"function": function, "apikey": "key", "symbol": "AAPL"}
+        assert get.call_args.kwargs["params"] == {
+            "function": function,
+            "apikey": "key",
+            "symbol": "AAPL",
+        }
 
     @pytest.mark.parametrize("timeframe", [Timeframe.W1, Timeframe.MN])
     def test_non_daily_history_rejects_adjusted_surface(self, timeframe):
@@ -2344,9 +2608,7 @@ class TestAlphaVantageProvider:
         response = MagicMock()
         response.json.return_value = {
             "Time Series (Daily)": {
-                (datetime(2024, 1, 1, tzinfo=UTC) + timedelta(days=offset))
-                .date()
-                .isoformat(): {
+                (datetime(2024, 1, 1, tzinfo=UTC) + timedelta(days=offset)).date().isoformat(): {
                     "1. open": "101",
                     "2. high": "103",
                     "3. low": "100",
@@ -2395,12 +2657,40 @@ class TestAlphaVantageProvider:
         start = AlphaVantageProvider().latest_window_start(timeframe, 1)
         assert datetime.now(UTC) - start >= timedelta(days=minimum_days - 1)
 
-    def test_listing_status_becomes_paginated_universe_evidence(self):
+    def test_listing_status_preserves_the_complete_universe_and_asset_types(self):
         response = MagicMock()
         response.text = (
             "symbol,name,exchange,assetType,ipoDate,delistingDate,status\n"
             "AAPL,Apple Inc.,NASDAQ,Common Stock,1980-12-12,,Active\n"
             "MSFT,Microsoft Corp.,NASDAQ,Common Stock,1986-03-13,,Active\n"
+            "SPY,SPDR S&P 500 ETF,NYSE ARCA,ETF,1993-01-22,,Active\n"
+        )
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpha_vantage.settings") as mock_settings,
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response) as get,
+        ):
+            mock_settings.ALPHA_VANTAGE_API_KEY = "key"
+            page = AlphaVantageProvider().discover_universe_page("EQUITY", 0)
+        assert page["total"] == 3
+        assert page["complete"] is True
+        assert [row["symbol"] for row in page["quotes"]] == ["AAPL", "MSFT", "SPY"]
+        assert [row["instrument_type"] for row in page["quotes"]] == [
+            "EQUITY",
+            "EQUITY",
+            "ETF",
+        ]
+        assert page["quotes"][0]["status"] == "active"
+        assert page["quotes"][2]["raw_payload"]["assetType"] == "ETF"
+        assert "symbol,name,exchange,assetType" in page["raw_payload"]
+        get.assert_called_once()
+
+    def test_listing_status_retains_incomplete_rows_for_snapshot_before_rejection(self):
+        response = MagicMock()
+        response.text = (
+            "symbol,name,exchange,assetType,ipoDate,delistingDate,status\n"
+            "AAPL,Apple Inc.,NASDAQ,Common Stock,1980-12-12,,Active\n"
+            ",Unresolved Listing,OTC,Common Stock,,,\n"
         )
         response.raise_for_status.return_value = None
         with (
@@ -2408,10 +2698,48 @@ class TestAlphaVantageProvider:
             patch("app.providers.alpha_vantage.httpx.get", return_value=response),
         ):
             mock_settings.ALPHA_VANTAGE_API_KEY = "key"
-            page = AlphaVantageProvider().discover_universe_page("EQUITY", 1)
+            page = AlphaVantageProvider().discover_universe_page("EQUITY", 0)
+
+        assert page["complete"] is False
+        assert page["validation_errors"] == [
+            "Alpha Vantage returned a listing row without a symbol"
+        ]
         assert page["total"] == 2
-        assert page["quotes"][0]["symbol"] == "MSFT"
-        assert page["quotes"][0]["status"] == "active"
+        assert len(page["quotes"]) == 2
+        assert page["quotes"][1]["symbol"] == ""
+        assert page["raw_payload"] == response.text
+
+    def test_listing_status_allows_missing_names_when_symbol_is_present(self):
+        response = MagicMock()
+        response.text = (
+            "symbol,name,exchange,assetType,ipoDate,delistingDate,status\n"
+            "AAPL,Apple Inc.,NASDAQ,Stock,1980-12-12,,Active\n"
+            "ABCD,,NYSE,Stock,2024-01-02,,Active\n"
+        )
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpha_vantage.settings") as mock_settings,
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response),
+        ):
+            mock_settings.ALPHA_VANTAGE_API_KEY = "key"
+            page = AlphaVantageProvider().discover_universe_page("EQUITY", 0)
+
+        assert page["complete"] is True
+        assert page["validation_errors"] == []
+        assert page["total"] == 2
+        assert page["quotes"][1]["symbol"] == "ABCD"
+        assert page["quotes"][1]["name"] == ""
+        assert page["quotes"][1]["raw_payload"]["name"] == ""
+
+    def test_listing_status_rejects_a_second_page_without_spending_a_request(self):
+        with (
+            patch("app.providers.alpha_vantage.settings") as mock_settings,
+            patch("app.providers.alpha_vantage.httpx.get") as get,
+        ):
+            mock_settings.ALPHA_VANTAGE_API_KEY = "key"
+            with pytest.raises(ProviderResponseError, match="full CSV in one response"):
+                AlphaVantageProvider().discover_universe_page("EQUITY", 1000)
+        get.assert_not_called()
 
     def test_ipo_calendar_becomes_bounded_market_events(self):
         response = MagicMock()
@@ -2765,7 +3093,13 @@ class TestCryptoProviderErrorEnvelopes:
         response.status_code = 200
         response.json.return_value = {"error": ["EQuery:Unknown asset pair"]}
         response.raise_for_status.return_value = None
-        with patch("app.providers.crypto_market_data.httpx.get", return_value=response):
+        with (
+            patch(
+                "app.providers.crypto_market_data.kraken_market_data_use_authority_missing",
+                return_value=[],
+            ),
+            patch("app.providers.crypto_market_data.httpx.get", return_value=response),
+        ):
             with pytest.raises(ProviderResponseError) as exc_info:
                 KrakenProvider().get_current_price("BTC-USD")
         assert exc_info.value.provider_name == "kraken"
@@ -2774,13 +3108,14 @@ class TestCryptoProviderErrorEnvelopes:
 class TestFREDOHLCVParsing:
     @staticmethod
     def _authorize_fred_fixture_use(configured):
+        configured.FRED_APPLICATION_USER_SCOPE = "owner_personal_only"
+        configured.FRED_APPLICATION_USER_SCOPE_EVIDENCE = "unit test fixture"
         configured.FRED_PERSISTED_STORAGE_AUTHORIZED = True
         configured.FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE = "unit test fixture"
         configured.FRED_AUTOMATED_USE_AUTHORIZED = True
         configured.FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE = "unit test fixture"
         configured.FRED_SERIES_RIGHTS_EVIDENCE = {
-            series_id: "unit test fixture"
-            for series_id in app_config.FRED_MAPPED_SERIES_IDS
+            series_id: "unit test fixture" for series_id in app_config.FRED_MAPPED_SERIES_IDS
         }
 
     def test_scalar_observation_becomes_ohlc_bar(self):
@@ -2813,6 +3148,24 @@ class TestFREDOHLCVParsing:
         assert float(bars[0].open) == float(bars[0].close) == 4.52
         assert float(bars[0].high) == float(bars[0].low) == 4.52
         assert bars[0].volume is None
+
+    def test_history_rejects_shared_application_key_before_transport(self):
+        provider = FREDProvider()
+        with (
+            patch("app.providers.fred.settings") as configured,
+            patch("app.providers.fred.httpx.get") as get,
+        ):
+            configured.FRED_API_KEY = "key"
+            self._authorize_fred_fixture_use(configured)
+            configured.FRED_APPLICATION_USER_SCOPE = "shared_application_key"
+            with pytest.raises(ProviderNotConfiguredError, match="FRED_APPLICATION_USER_SCOPE"):
+                provider.fetch_ohlcv(
+                    "^TNX",
+                    Timeframe.D1,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 1, 10, tzinfo=UTC),
+                )
+        get.assert_not_called()
 
     def test_history_requires_exact_series_rights_before_transport(self):
         provider = FREDProvider()
@@ -2995,6 +3348,16 @@ class TestFREDOHLCVParsing:
 # ── CoinGecko ─────────────────────────────────────────────────────────────────
 
 
+def _authorize_coingecko_test_settings(configured):
+    configured.COINGECKO_MARKET_DATA_USE_AUTHORIZED = True
+    configured.COINGECKO_MARKET_DATA_USE_AUTHORITY_REFERENCE = "fixture-only written authority"
+    configured.COINGECKO_MARKET_DATA_USE_AUTHORITY_SCOPE = (
+        "written_api_use_archive_audience_attribution_and_retention_after_termination"
+    )
+    configured.COINGECKO_MARKET_DATA_USE_REVIEWED_AT = datetime.now(UTC) - timedelta(minutes=1)
+    configured.COINGECKO_MARKET_DATA_USE_EXPIRES_AT = None
+
+
 class TestCoinGeckoCredentialWarning:
     def test_missing_key_is_explicit(self, caplog):
         provider = CoinGeckoProvider()
@@ -3014,8 +3377,97 @@ class TestCoinGeckoCredentialWarning:
         provider = CoinGeckoProvider()
         with patch("app.providers.coingecko.settings") as mock_settings:
             mock_settings.COINGECKO_API_KEY = "demo-key-123"
+            _authorize_coingecko_test_settings(mock_settings)
             headers = provider._headers()
         assert headers == {"x-cg-demo-api-key": "demo-key-123"}
+
+    def test_missing_persistent_data_authority_blocks_before_network_access(self):
+        provider = CoinGeckoProvider()
+        with (
+            patch("app.providers.coingecko.settings") as configured,
+            patch("app.providers.coingecko.httpx.get") as get,
+        ):
+            configured.COINGECKO_API_KEY = "demo-key-123"
+            with pytest.raises(ProviderNotConfiguredError, match="not authorized"):
+                provider.search_instruments("bitcoin", limit=1)
+        get.assert_not_called()
+
+    def test_account_usage_maps_provider_monthly_counters_and_calendar_reset(self, monkeypatch):
+        provider = CoinGeckoProvider()
+        monkeypatch.setattr(app_config.settings, "COINGECKO_REVIEWED_PLAN", "basic")
+        payload = {
+            "plan": "Basic",
+            "rate_limit_request_per_minute": 100,
+            "monthly_call_credit": 10000,
+            "current_total_monthly_calls": 321,
+            "current_remaining_monthly_calls": 9679,
+            "api_key_rate_limit_request_per_minute": 100,
+            "api_key_monthly_call_credit": 10000,
+            "api_key_current_total_monthly_calls": 29,
+        }
+        with patch.object(provider, "_get", return_value=payload) as get:
+            usage = provider.fetch_account_usage()
+        get.assert_called_once_with("/key")
+        assert usage.provider == "coingecko"
+        assert usage.account_plan == "Basic"
+        dimensions = {item.name: item for item in usage.dimensions}
+        assert dimensions["calls_per_month"].limit == 10000
+        assert dimensions["calls_per_month"].consumed == 29
+        assert dimensions["calls_per_month"].remaining == 9971
+        assert dimensions["calls_per_month"].reset_at == datetime(
+            usage.observed_at.year + (usage.observed_at.month == 12),
+            1 if usage.observed_at.month == 12 else usage.observed_at.month + 1,
+            1,
+            tzinfo=UTC,
+        )
+        assert dimensions["calls_per_minute"].limit == 100
+        assert dimensions["calls_per_minute"].remaining is None
+        assert dimensions["calls_per_minute"].consumed is None
+
+    def test_account_usage_rejects_inconsistent_provider_counters(self, monkeypatch):
+        provider = CoinGeckoProvider()
+        monkeypatch.setattr(app_config.settings, "COINGECKO_REVIEWED_PLAN", "basic")
+        with patch.object(
+            provider,
+            "_get",
+            return_value={
+                "plan": "Basic",
+                "rate_limit_request_per_minute": 100,
+                "monthly_call_credit": 10000,
+                "current_total_monthly_calls": 321,
+                "current_remaining_monthly_calls": 9678,
+                "api_key_rate_limit_request_per_minute": 100,
+                "api_key_monthly_call_credit": 10000,
+                "api_key_current_total_monthly_calls": 10001,
+            },
+        ):
+            with pytest.raises(ProviderResponseError, match="inconsistent API-key counters"):
+                provider.fetch_account_usage()
+
+    def test_account_usage_requires_key_specific_counters(self, monkeypatch):
+        provider = CoinGeckoProvider()
+        monkeypatch.setattr(app_config.settings, "COINGECKO_REVIEWED_PLAN", "basic")
+        with patch.object(
+            provider,
+            "_get",
+            return_value={
+                "plan": "Basic",
+                "rate_limit_request_per_minute": 100,
+                "monthly_call_credit": 10000,
+                "current_total_monthly_calls": 321,
+                "current_remaining_monthly_calls": 9679,
+            },
+        ):
+            with pytest.raises(ProviderResponseError, match="api_key_monthly_call_credit"):
+                provider.fetch_account_usage()
+
+    def test_demo_account_usage_is_rejected_before_network_access(self, monkeypatch):
+        provider = CoinGeckoProvider()
+        monkeypatch.setattr(app_config.settings, "COINGECKO_REVIEWED_PLAN", "demo")
+        with patch.object(provider, "_get") as get:
+            with pytest.raises(ProviderNotConfiguredError, match="Pro-only"):
+                provider.fetch_account_usage()
+        get.assert_not_called()
 
     def test_profile_uses_ranked_symbol_search_before_metadata_fetch(self):
         provider = CoinGeckoProvider()
@@ -3052,6 +3504,7 @@ class TestCoinGeckoCredentialWarning:
             ) as get,
         ):
             configured.COINGECKO_API_KEY = "demo-key-123"
+            _authorize_coingecko_test_settings(configured)
             profile = provider.get_instrument_profile("BTC-USD")
 
         assert profile is not None
@@ -3062,6 +3515,59 @@ class TestCoinGeckoCredentialWarning:
         provider = CoinGeckoProvider()
         result = provider.discover_universe_page("EQUITY", 0)
         assert result == {"total": 0, "quotes": []}
+
+    def test_discovery_retains_native_identity_and_full_market_row(self):
+        provider = CoinGeckoProvider()
+        source_row = {
+            "id": "example-token",
+            "symbol": "ext",
+            "name": "Example Token",
+            "market_cap": 1234,
+            "fully_diluted_valuation": 2345,
+            "platforms": {"ethereum": "0xabc"},
+        }
+        response = MagicMock(status_code=200)
+        response.json.return_value = [source_row]
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.coingecko.settings") as configured,
+            patch("app.providers.coingecko.httpx.get", return_value=response),
+        ):
+            configured.COINGECKO_API_KEY = "demo-key-123"
+            _authorize_coingecko_test_settings(configured)
+            page = provider.discover_universe_page("CRYPTOCURRENCY", 0)
+
+        assert page["quotes"][0]["coingecko_id"] == "example-token"
+        assert page["quotes"][0]["raw_payload"] == source_row
+        assert page["quotes"][0]["symbol"] == "EXT-USD"
+        assert page["complete"] is True
+        assert page["next_offset"] is None
+
+    def test_discovery_continues_past_a_full_page_without_inventing_total(self):
+        provider = CoinGeckoProvider()
+        source_rows = [
+            {
+                "id": f"coin-{index}",
+                "symbol": f"c{index}",
+                "name": f"Coin {index}",
+            }
+            for index in range(250)
+        ]
+        response = MagicMock(status_code=200)
+        response.json.return_value = source_rows
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.coingecko.settings") as configured,
+            patch("app.providers.coingecko.httpx.get", return_value=response),
+        ):
+            configured.COINGECKO_API_KEY = "demo-key-123"
+            _authorize_coingecko_test_settings(configured)
+            page = provider.discover_universe_page("CRYPTOCURRENCY", 0)
+
+        assert page["total"] is None
+        assert page["next_offset"] == 250
+        assert page["complete"] is False
+        assert page["quotes"][-1]["raw_payload"] == source_rows[-1]
 
     def test_supported_discovery_types(self):
         assert CoinGeckoProvider().supported_discovery_types() == ["CRYPTOCURRENCY"]
@@ -3076,6 +3582,7 @@ class TestCoinGeckoCredentialWarning:
             patch("app.providers.coingecko.httpx.get", side_effect=failure),
         ):
             configured.COINGECKO_API_KEY = "demo-key-123"
+            _authorize_coingecko_test_settings(configured)
             with pytest.raises(ProviderResponseError) as exc_info:
                 CoinGeckoProvider().search_instruments("BTC")
         assert exc_info.value.provider_name == "coingecko"
@@ -3097,6 +3604,7 @@ class TestCoinGeckoCredentialWarning:
             patch("app.providers.coingecko.httpx.get", return_value=response),
         ):
             configured.COINGECKO_API_KEY = "demo-key-123"
+            _authorize_coingecko_test_settings(configured)
             with pytest.raises(ProviderResponseError, match="CoinGecko"):
                 CoinGeckoProvider().search_instruments("BTC")
 
@@ -3110,6 +3618,7 @@ class TestCoinGeckoCredentialWarning:
             patch("app.providers.coingecko.httpx.get", return_value=response),
         ):
             configured.COINGECKO_API_KEY = "demo-key-123"
+            _authorize_coingecko_test_settings(configured)
             with pytest.raises(ProviderResponseError, match="CoinGecko"):
                 CoinGeckoProvider().discover_universe_page("CRYPTOCURRENCY", 0)
 
@@ -3123,6 +3632,7 @@ class TestCoinGeckoCredentialWarning:
             patch("app.providers.coingecko.httpx.get", return_value=response),
         ):
             configured.COINGECKO_API_KEY = "demo-key-123"
+            _authorize_coingecko_test_settings(configured)
             with pytest.raises(ProviderResponseError) as exc_info:
                 CoinGeckoProvider().search_instruments("BTC")
         assert exc_info.value.provider_name == "coingecko"
@@ -3137,6 +3647,7 @@ class TestCoinGeckoCredentialWarning:
             patch("app.providers.coingecko.httpx.get", return_value=response),
         ):
             configured.COINGECKO_API_KEY = "demo-key-123"
+            _authorize_coingecko_test_settings(configured)
             with pytest.raises(ProviderResponseError) as exc_info:
                 CoinGeckoProvider().search_instruments("BTC")
         assert exc_info.value.provider_name == "coingecko"
@@ -3195,7 +3706,52 @@ class TestEdgarTickerMap:
             ("AMCX", "NYSE American", 1018724),
             ("BRK-B", "NYSE", 66740),
         ]
+        assert page["offset"] == 0
+        assert page["limit"] == 250
+        assert page["complete"] is True
+        assert page["next_offset"] is None
+        assert page["quotes"][0]["source_record"] == {
+            "cik": 320193,
+            "name": "Apple Inc.",
+            "ticker": "AAPL",
+            "exchange": "Nasdaq",
+        }
+        assert len(page["source_fingerprint"]) == 64
         assert EdgarProvider().discover_universe_page("ETF", 0) == {"total": 0, "quotes": []}
+
+    def test_sec_exchange_directory_emits_explicit_page_continuation(self):
+        import app.providers.edgar as edgar_module
+
+        edgar_module._exchange_directory = [
+            {
+                "ticker": f"TICK{index}",
+                "name": f"Company {index}",
+                "exchange": "NYSE",
+                "cik": index + 1,
+                "source_record": {"ticker": f"TICK{index}", "source_field": index},
+            }
+            for index in range(300)
+        ]
+        edgar_module._exchange_directory_fingerprint = "a" * 64
+        with (
+            patch("app.providers.edgar.EdgarProvider._ensure_exchange_directory"),
+            patch("app.providers.edgar.EdgarProvider._headers", return_value={}),
+        ):
+            provider = EdgarProvider()
+            first = provider.discover_universe_page("EQUITY", 0)
+            second = provider.discover_universe_page("EQUITY", 250)
+
+        assert first["total"] == 300
+        assert len(first["quotes"]) == 250
+        assert first["next_offset"] == 250
+        assert first["complete"] is False
+        assert first["quotes"][0]["source_record"] == {
+            "ticker": "TICK0",
+            "source_field": 0,
+        }
+        assert len(second["quotes"]) == 50
+        assert second["next_offset"] is None
+        assert second["complete"] is True
 
     def test_sec_exchange_directory_accepts_object_rows_and_pages(self):
         import app.providers.edgar as edgar_module
@@ -3215,7 +3771,41 @@ class TestEdgarTickerMap:
 
         assert first["total"] == 2
         assert first["quotes"][0]["symbol"] == "ONE"
-        assert EdgarProvider().discover_universe_page("EQUITY", 250) == {"total": 2, "quotes": []}
+        assert first["next_offset"] is None
+        assert first["complete"] is True
+        empty_page = EdgarProvider().discover_universe_page("EQUITY", 250)
+        assert empty_page["total"] == 2
+        assert empty_page["offset"] == 250
+        assert empty_page["limit"] == 250
+        assert empty_page["quotes"] == []
+        assert empty_page["source_fingerprint"] == first["source_fingerprint"]
+
+    def test_sec_exchange_directory_fingerprint_changes_with_source_snapshot(self):
+        import app.providers.edgar as edgar_module
+
+        edgar_module._exchange_directory = []
+        edgar_module._exchange_directory_ts = 0.0
+        first_response = MagicMock()
+        first_response.json.return_value = {
+            "fields": ["cik", "name", "ticker", "exchange"],
+            "data": [[1, "One Corp", "ONE", "NYSE"]],
+        }
+        first_response.raise_for_status.return_value = None
+        with patch("app.providers.edgar.httpx.get", return_value=first_response):
+            first = EdgarProvider().discover_universe_page("EQUITY", 0)
+
+        edgar_module._exchange_directory = []
+        edgar_module._exchange_directory_ts = 0.0
+        second_response = MagicMock()
+        second_response.json.return_value = {
+            "fields": ["cik", "name", "ticker", "exchange"],
+            "data": [[2, "Two Corp", "TWO", "Nasdaq"]],
+        }
+        second_response.raise_for_status.return_value = None
+        with patch("app.providers.edgar.httpx.get", return_value=second_response):
+            second = EdgarProvider().discover_universe_page("EQUITY", 0)
+
+        assert first["source_fingerprint"] != second["source_fingerprint"]
 
     def test_sec_exchange_directory_marks_distinct_issuers_with_same_ticker_ambiguous(self):
         import app.providers.edgar as edgar_module

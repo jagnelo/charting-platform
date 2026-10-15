@@ -29,7 +29,7 @@
   test-uplot-contract \
   test-visual-policy \
   test-compose-contract \
-  test-migration-compatibility test-research-runner-probes test-live-provider-probes test-live-provider-candidate \
+  test-migration-compatibility test-research-runner-probes test-live-provider-probes provider-live-preflight test-live-provider-candidate \
   branch-tests \
   validate-integration validate-focused-integration branch-validate \
   worktree-create worktree-list worktree-status worktree-overview worktree-close worktree-archive worktree-archive-pre-staging worktree-archive-subsumed worktree-archive-operational-tail worktree-cleanup-report worktree-cleanup-reconcile worktree-cleanup integrate integrate-set staging-bootstrap staging-status promote-staging \
@@ -151,17 +151,18 @@ test-backend: test-unit test-int
 # Full backend coverage gate: combine the no-container unit suite with the
 # Docker-backed integration suite so coverage reflects the API/runtime paths
 # that are intentionally exercised only against PostgreSQL/Redis.
+# execute_job unit tests run inside this already-loaded pytest process, so its
+# per-job RLIMIT_AS also caps the test harness and imported scientific libraries.
+# Keep the test-only process ceiling at 1 GiB and unit shards small enough to
+# limit collected pytest state under that ceiling; the dedicated runtime
+# container retains its own 768 MiB cgroup bound and 512 MiB per-job setting.
 test-backend-coverage:
 	@echo "▶  Combined backend unit + integration coverage (Docker required)..."
 	@$(MAKE) agent-docker-ready
 	@set -e; \
 	status=0; \
 	trap 'status=$$?; $(MAKE) agent-resource-cleanup || true; exit $$status' EXIT INT TERM; \
-	($(RUNTIME_ENV) cd backend && $(BACKEND_ENV) uv run pytest tests/unit tests/integration \
-	  --override-ini addopts= \
-	  --cov=app --cov-report=term-missing --cov-report=html:coverage_html \
-	  --cov-report=xml:coverage-combined.xml --cov-fail-under=75 \
-	  --no-header -q)
+	($(RUNTIME_ENV) cd backend && $(BACKEND_ENV) RESEARCH_MAX_MEMORY_BYTES=1073741824 uv run python ../scripts/backend_coverage.py --shard-size 50)
 
 test-fe:
 	@echo "▶  Frontend unit tests (Vitest)..."
@@ -206,6 +207,10 @@ test-live-provider-probes:
 	@echo "▶  Risk-based reviewed live provider probes..."
 	$(WORKFLOW_PYTHON) scripts/run-live-provider-probes.py
 
+provider-live-preflight:
+	@echo "▶  Provider admission preflight only (no provider requests)..."
+	$(WORKFLOW_PYTHON) scripts/run-live-provider-probes.py --preflight-only
+
 test-live-provider-candidate:
 	@echo "▶  Full staged-candidate live provider acceptance matrix..."
 	$(WORKFLOW_PYTHON) scripts/run-live-provider-probes.py --allow-staged-candidate
@@ -237,7 +242,9 @@ test-stack-up:
 	status=0; \
 	trap 'status=$$?; if test "$$status" -ne 0; then $(MAKE) test-stack-down || true; fi; exit $$status' EXIT INT TERM; \
 	if docker buildx version >/dev/null 2>&1; then \
-	  $(RUNTIME_ENV) docker buildx inspect $$WORKTREE_BUILDER >/dev/null 2>&1 || $(RUNTIME_ENV) docker buildx create --name $$WORKTREE_BUILDER --use; \
+	  if ! { $(RUNTIME_ENV) docker buildx inspect $$WORKTREE_BUILDER >/dev/null 2>&1; }; then \
+	    $(RUNTIME_ENV) docker buildx create --name $$WORKTREE_BUILDER --use; \
+	  fi; \
 	  $(RUNTIME_ENV) docker compose -p $$STACK_COMPOSE_PROJECT build --builder $$WORKTREE_BUILDER; \
 	else \
 	  echo "Docker Buildx CLI plugin is unavailable; using Docker Compose's default builder."; \
@@ -254,13 +261,15 @@ test: test-unit test-int test-fe
 	@echo ""
 	@echo "✅  All tests passed. Run 'make test-e2e' for E2E browser tests."
 
+# The deterministic browser/visual suite needs local price bars. Keep the
+# seeded mode overridable by callers, but use it by default for this full gate.
 test-platform:
 	@echo "▶  Full platform validation (backend + frontend + headless E2E)..."
 	@set -e; \
 	trap 'status=$$?; $(MAKE) test-stack-down || true; $(MAKE) agent-resource-cleanup || true; exit $$status' EXIT; \
 	$(MAKE) test; \
-	$(MAKE) test-stack-up; \
-	$(MAKE) test-e2e
+	E2E_SEED_MARKET_DATA=$${E2E_SEED_MARKET_DATA:-true} $(MAKE) test-stack-up; \
+	E2E_SEED_MARKET_DATA=$${E2E_SEED_MARKET_DATA:-true} $(MAKE) test-e2e
 
 test-all: test-platform
 
@@ -447,7 +456,7 @@ validate-integration:
 	trap 'status=$$?; if test "$$status" -ne 0; then printf "::error title=Integration gate failed::stage=%s exit=%s\n" "$$stage" "$$status" >&2; fi' EXIT; \
 	stage=git-diff; printf '▶ integration gate stage: %s\n' "$$stage"; git diff --check; \
 	stage=workstream; printf '▶ integration gate stage: %s\n' "$$stage"; $(MAKE) branch-validate; \
-	stage=backend-dependencies; printf '▶ integration gate stage: %s\n' "$$stage"; (cd backend && uv lock --check && uv sync --frozen --dev && uv export --locked --format requirements-txt --output-file /tmp/charting-requirements.lock && sed '1,2d' requirements.txt > /tmp/charting-requirements.current && sed '1,2d' /tmp/charting-requirements.lock > /tmp/charting-requirements.generated && cmp -s /tmp/charting-requirements.generated /tmp/charting-requirements.current); \
+	stage=backend-dependencies; printf '▶ integration gate stage: %s\n' "$$stage"; (tmpdir=$$(mktemp -d "$${TMPDIR:-/tmp}/charting-requirements.XXXXXX"); trap 'rm -rf -- "$$tmpdir"' EXIT; cd backend && uv lock --check && uv sync --frozen --dev && uv export --locked --format requirements-txt --output-file "$$tmpdir/requirements.lock" && sed '1,2d' requirements.txt > "$$tmpdir/requirements.current" && sed '1,2d' "$$tmpdir/requirements.lock" > "$$tmpdir/requirements.generated" && cmp -s "$$tmpdir/requirements.generated" "$$tmpdir/requirements.current"); \
 	stage=migration-head; printf '▶ integration gate stage: %s\n' "$$stage"; (heads=$$(cd backend && uv run alembic heads | awk '/\(head\)/ { count += 1 } END { print count + 0 }'); test "$$heads" = 1); \
 	stage=migration-compatibility; printf '▶ integration gate stage: %s\n' "$$stage"; $(MAKE) test-migration-compatibility; \
 	stage=frontend-dependencies; printf '▶ integration gate stage: %s\n' "$$stage"; (cd frontend && npm ci); \

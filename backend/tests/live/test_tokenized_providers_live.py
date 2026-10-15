@@ -8,6 +8,7 @@ from uuid import UUID
 
 import pytest
 
+from app.providers.base import ProviderAccountUsage
 from app.providers.errors import ProviderRateLimitError
 from app.providers.telemetry import activate as activate_provider_telemetry
 from app.providers.telemetry import deactivate as deactivate_provider_telemetry
@@ -22,7 +23,9 @@ from app.providers.tokenized import (
 )
 from tests.live.live_usage import (
     activate_request_admission,
+    archive_response_payloads,
     deactivate_request_admission,
+    reconcile_native_account_usage,
     record_observation,
 )
 
@@ -60,10 +63,10 @@ def _observed_read(
 ):
     """Admit a direct tokenized-provider read before outbound HTTP.
 
-    All normal providers use the durable quota coordinator. Dinari Sandbox is
-    deliberately different: it is never application-routable, and its
-    unpublished Sandbox allowance can only be exercised through the runner's
-    explicit, operator-capped canary mode.
+    All providers, including Dinari Sandbox canaries, use the durable quota
+    coordinator and private response archive. Dinari is still never
+    application-routable; its explicit per-process request cap is an
+    additional backstop, not quota accounting.
     """
 
     from app.services.provider_quota_coordinator import (
@@ -73,36 +76,56 @@ def _observed_read(
     )
 
     canary = provider_name == "dinari" and os.getenv("DINARI_SANDBOX_CANARY_RUN") == "1"
-    reservation = None
-    if not canary:
-        reservation = reserve_live_provider_operation(
-            provider_name,
-            operation,
-            usage_identity=usage_identity,
-            operation_cost_override=operation_cost_override,
-            dimension_cost_overrides=dimension_cost_overrides,
-            require_persistent_coordinator=True,
+    if canary and (
+        operation != "discover_tokenized_assets" or operation_cost_override not in (None, 1)
+    ):
+        raise RuntimeError(
+            "Dinari Sandbox canary permits only one discovery request with a local cost of one"
         )
-        if reservation is None:
-            raise ProviderQuotaAdmissionError(
-                f"provider quota exhausted before live operation {provider_name}/{operation}"
-            )
+    reservation = reserve_live_provider_operation(
+        provider_name,
+        operation,
+        usage_identity=usage_identity,
+        operation_cost_override=(1 if canary else operation_cost_override),
+        dimension_cost_overrides=dimension_cost_overrides,
+        require_persistent_coordinator=True,
+    )
+    if reservation is None:
+        raise ProviderQuotaAdmissionError(
+            f"provider quota exhausted before live operation {provider_name}/{operation}"
+        )
 
-    measurement, token = activate_provider_telemetry()
+    measurement, token = activate_provider_telemetry(capture_response_payloads=True)
     admission_token = activate_request_admission()
     try:
         result = call()
-    except BaseException:
+    except BaseException as original_exc:
         # A rejected request is still useful live evidence: the provider
         # response must have crossed the adapter and been observed before the
         # caller decides whether a bounded retry is allowed.
+        archive_error = None
         try:
-            if reservation is not None:
-                settle_live_provider_operation(
-                    reservation,
-                    http_requests=measurement.http_requests,
-                    response_bytes=measurement.response_bytes,
+            archive_response_payloads(
+                provider_name,
+                operation,
+                measurement.response_payloads,
+                response_bytes=measurement.response_bytes,
+                response_metadata=measurement.response_metadata,
+            )
+            if measurement.http_requests != len(measurement.response_payloads):
+                raise RuntimeError(
+                    "live response body capture mismatch: "
+                    f"{measurement.http_requests} responses, "
+                    f"{len(measurement.response_payloads)} captured bodies"
                 )
+        except BaseException as archive_exc:
+            archive_error = archive_exc
+        try:
+            settle_live_provider_operation(
+                reservation,
+                http_requests=measurement.http_requests,
+                response_bytes=measurement.response_bytes,
+            )
         finally:
             record_observation(
                 provider_name,
@@ -111,7 +134,8 @@ def _observed_read(
                 response_bytes=measurement.response_bytes,
                 response_headers=measurement.response_headers,
                 success=False,
-                reservation_id=reservation.reservation_id if reservation else None,
+                disposition="archive_failure" if archive_error is not None else "provider_error",
+                reservation_id=reservation.reservation_id,
             )
         # A canary cap can deliberately reject before transport, so zero
         # measured requests is an honest local-admission outcome. Normal
@@ -119,17 +143,35 @@ def _observed_read(
         if not canary:
             assert measurement.http_requests > 0
             assert measurement.response_bytes > 0
+        if archive_error is not None:
+            raise archive_error from original_exc
         raise
     finally:
         deactivate_request_admission(admission_token)
         deactivate_provider_telemetry(token)
+    archive_error = None
     try:
-        if reservation is not None:
-            settle_live_provider_operation(
-                reservation,
-                http_requests=measurement.http_requests,
-                response_bytes=measurement.response_bytes,
+        archive_response_payloads(
+            provider_name,
+            operation,
+            measurement.response_payloads,
+            response_bytes=measurement.response_bytes,
+            response_metadata=measurement.response_metadata,
+        )
+        if measurement.http_requests != len(measurement.response_payloads):
+            raise RuntimeError(
+                "live response body capture mismatch: "
+                f"{measurement.http_requests} responses, "
+                f"{len(measurement.response_payloads)} captured bodies"
             )
+    except BaseException as archive_exc:
+        archive_error = archive_exc
+    try:
+        settle_live_provider_operation(
+            reservation,
+            http_requests=measurement.http_requests,
+            response_bytes=measurement.response_bytes,
+        )
     finally:
         record_observation(
             provider_name,
@@ -137,11 +179,14 @@ def _observed_read(
             http_requests=measurement.http_requests,
             response_bytes=measurement.response_bytes,
             response_headers=measurement.response_headers,
-            success=True,
-            reservation_id=reservation.reservation_id if reservation else None,
+            success=archive_error is None,
+            disposition="observed" if archive_error is None else "archive_failure",
+            reservation_id=reservation.reservation_id,
         )
     assert measurement.http_requests > 0
     assert measurement.response_bytes > 0
+    if archive_error is not None:
+        raise archive_error
     return result, measurement
 
 
@@ -179,6 +224,28 @@ def test_xstocks_public_asset_and_price():
         assert trading.get("currentPeriod") == "closed"
     else:
         _assert_asset(priced, require_quote=True)
+
+
+def test_xstocks_account_usage_snapshot():
+    usage, measurement = _observed_read(
+        lambda: XStocksProvider().fetch_account_usage(),
+        "xstocks",
+        "fetch_account_usage",
+    )
+    assert isinstance(usage, ProviderAccountUsage)
+    assert measurement.http_requests == 1
+    assert usage.raw_payload.get("nodes") is not None
+    assert {"x-ratelimit-limit", "x-ratelimit-remaining", "x-ratelimit-reset"} <= set(
+        usage.response_headers
+    )
+    dimension = next(item for item in usage.dimensions if item.name == "public_requests_per_minute")
+    assert dimension.limit > 0
+    assert dimension.remaining is not None
+    assert dimension.reset_at is not None
+    reconciliation = reconcile_native_account_usage("xstocks", usage)
+    assert len(reconciliation) == 1
+    assert reconciliation[0]["status"] == "reconciled"
+    assert reconciliation[0]["dimension"] == "public_requests_per_minute"
 
 
 def test_xstocks_public_corporate_actions():
@@ -355,12 +422,23 @@ def test_gate_public_tradfi_asset_and_orderbook():
 
 
 def test_kraken_public_xstocks_asset_and_ticker():
+    from app.providers.registry import provider_missing_routing_controls
+
+    missing = provider_missing_routing_controls("kraken_xstocks", "discover_tokenized_assets")
+    if missing:
+        assert {
+            "KRAKEN_MARKET_DATA_USE_AUTHORIZED",
+            "KRAKEN_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+            "KRAKEN_MARKET_DATA_USE_AUTHORITY_SCOPE",
+            "KRAKEN_MARKET_DATA_USE_REVIEWED_AT",
+        } >= set(missing)
+        return
     provider = KrakenXStocksProvider()
     # Kraken's public Spot API quota is shared with the generic Kraken
     # provider by egress IP and is documented at one request/second. The
-    # acceptance runner executes those two provider cases in one process, so
-    # leave a full bucket between the cold reads rather than relying on test
-    # ordering or silently under-accounting the shared scope.
+    # acceptance runner executes this provider's reads in one process. Kraken's
+    # public safe frequency is one request/second, so pace each distinct read
+    # instead of relying on test ordering or bursting the shared IP scope.
     time.sleep(1.2)
     rows, measurement = _observed_read(
         lambda: provider.discover_tokenized_assets(page=0, page_size=1),
@@ -369,11 +447,15 @@ def test_kraken_public_xstocks_asset_and_ticker():
     )
     assert measurement.response_bytes > 0
     # Kraken currently publishes no pair whose provider-native metadata marks
-    # it as xStocks.  A successful empty catalogue is valid live evidence and
-    # must not be turned into a fabricated stock-token mapping.
+    # it as xStocks. An empty catalogue is a meaningful discovery observation,
+    # but it does not prove that asset lookup or pricing works. Return from the
+    # case rather than skipping it: the runner can retain the successful
+    # discovery request and separately report the two unexercised operations
+    # as missing acceptance evidence.
     if not rows:
         return
     _assert_asset(rows[0])
+    time.sleep(1.2)
     resolved, resolved_measurement = _observed_read(
         lambda: provider.get_tokenized_asset(rows[0].symbol),
         "kraken_xstocks",
@@ -381,12 +463,13 @@ def test_kraken_public_xstocks_asset_and_ticker():
     )
     assert resolved_measurement.http_requests == 1
     _assert_asset(resolved)
+    time.sleep(1.2)
     priced, quote_measurement = _observed_read(
         lambda: provider.get_tokenized_price(rows[0].symbol),
         "kraken_xstocks",
         "get_tokenized_price",
     )
-    assert quote_measurement.http_requests >= 2
+    assert quote_measurement.http_requests == 1
     _assert_asset(priced, require_quote=True)
 
 
@@ -396,6 +479,21 @@ def test_dinari_credentialed_stock_metadata_price_quote_history_and_news():
     # The supplied key is Sandbox-only. Assert the credentialed canary cannot
     # be redirected to the production API by environment configuration.
     assert provider._base_url() == "https://api-enterprise.sandbox.dinari.com/api/v2"
+    if os.getenv("DINARI_SANDBOX_CANARY_RUN") == "1":
+        # The canary verifies credentials and one documented read only. Its
+        # single request is archived privately; this proves neither an
+        # ongoing provider quota nor the rest of the Dinari data surface.
+        rows, canary_measurement = _observed_read(
+            lambda: provider.discover_tokenized_assets(page=0, page_size=1),
+            "dinari",
+            "discover_tokenized_assets",
+            operation_cost_override=1,
+        )
+        assert canary_measurement.http_requests == 1
+        assert rows
+        _assert_asset(rows[0])
+        UUID(rows[0].asset_id)
+        return
     rows, measurement = _observed_read(
         lambda: provider.discover_tokenized_assets(page=0, page_size=1),
         "dinari",

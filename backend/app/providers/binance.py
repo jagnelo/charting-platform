@@ -129,12 +129,18 @@ class BinanceProvider:
                 status_code=status_code,
             ) from exc
         except httpx.RequestError as exc:
-            raise ProviderResponseError(self.name, "Binance account-usage transport failure") from exc
+            raise ProviderResponseError(
+                self.name, "Binance account-usage transport failure"
+            ) from exc
         except (TypeError, ValueError, KeyError) as exc:
-            raise ProviderResponseError(self.name, "Binance returned invalid account-usage JSON") from exc
+            raise ProviderResponseError(
+                self.name, "Binance returned invalid account-usage JSON"
+            ) from exc
 
         if not isinstance(payload, dict) or not isinstance(payload.get("serverTime"), int):
-            raise ProviderResponseError(self.name, "Binance returned an invalid server-time payload")
+            raise ProviderResponseError(
+                self.name, "Binance returned an invalid server-time payload"
+            )
         headers = {
             str(key).lower(): str(value)
             for key, value in provider_response_headers(response).items()
@@ -147,7 +153,9 @@ class BinanceProvider:
                 "Binance omitted the native X-MBX-USED-WEIGHT-1M counter",
             ) from exc
         if used < 0 or used > 6000:
-            raise ProviderResponseError(self.name, "Binance returned an invalid request-weight counter")
+            raise ProviderResponseError(
+                self.name, "Binance returned an invalid request-weight counter"
+            )
 
         observed_at = datetime.now(UTC)
         reset_at = observed_at.replace(second=0, microsecond=0) + timedelta(minutes=1)
@@ -302,6 +310,13 @@ class BinanceProvider:
             previous_last_open_ms = last_open_ms
             start_ms = last_open_ms + 1
 
+            # Binance fills each response up to ``limit`` whenever another
+            # page exists. A short page is complete for this requested range;
+            # querying once more would waste request weight (often returning
+            # an empty page when the current candle has not opened yet).
+            if len(klines) < _KLINES_LIMIT:
+                break
+
         return bars
 
     def fetch_latest_ohlcv(
@@ -412,7 +427,13 @@ def estimate_ohlcv_request_weight(
     seconds = _TF_SECONDS.get(timeframe)
     if seconds is None or end <= start:
         return None
-    candles = max(1, int((end - start).total_seconds() + seconds - 1) // seconds)
+    # Binance treats both startTime and endTime as inclusive. Add one candle
+    # beyond the ceiling of the span so an end exactly on a candle boundary
+    # cannot cause an under-reserved extra page.
+    candles = max(
+        1,
+        int((end - start).total_seconds() + seconds - 1) // seconds + 1,
+    )
     requests = (candles + _KLINES_LIMIT - 1) // _KLINES_LIMIT
     return requests * _KLINES_WEIGHT
 

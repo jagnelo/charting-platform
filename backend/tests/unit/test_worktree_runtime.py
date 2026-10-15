@@ -122,8 +122,9 @@ def test_shared_env_never_replaces_existing_file_or_other_link(tmp_path, monkeyp
     monkeypatch.setattr(runtime, "root", lambda: checkout)
 
     (checkout / ".env").write_text("LOCAL=keep\n")
-    with pytest.raises(SystemExit, match="refusing to replace existing env file"):
-        runtime.install_shared_env_links()
+    assert runtime.install_shared_env_links() == source.resolve()
+    assert (checkout / ".env").read_text() == "LOCAL=keep\n"
+    assert (checkout / "backend" / ".env.dev").resolve() == source.resolve()
 
     (checkout / ".env").unlink()
     elsewhere = tmp_path / "elsewhere.env"

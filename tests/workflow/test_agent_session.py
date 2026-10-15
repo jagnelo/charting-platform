@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import re
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -199,7 +200,9 @@ def test_provider_live_evidence_requires_full_matrix_and_metadata_only_tail(
                 "failed_cases": 0,
                 "skipped_cases": 0,
                 "dirty_source_paths": [],
-                "approved_deferrals": {"tradier": "Deferred by user; keep non-routable."},
+                "approved_deferrals": {
+                    "tradier": "Deferred by user; keep non-routable."
+                },
             }
         )
         + "\n"
@@ -212,11 +215,14 @@ def test_provider_live_evidence_requires_full_matrix_and_metadata_only_tail(
     monkeypatch.setattr(
         module,
         "git",
-        lambda *args, **kwargs: "ops/workstreams/feat-market-data-provider-platform/validation.jsonl",
+        lambda *args,
+        **kwargs: "ops/workstreams/feat-market-data-provider-platform/validation.jsonl",
     )
     assert module.provider_live_evidence_current(stream, "b" * 40, tmp_path)
 
-    monkeypatch.setattr(module, "git", lambda *args, **kwargs: "backend/app/providers/alpaca.py")
+    monkeypatch.setattr(
+        module, "git", lambda *args, **kwargs: "backend/app/providers/alpaca.py"
+    )
     assert not module.provider_live_evidence_current(stream, "b" * 40, tmp_path)
 
 
@@ -234,7 +240,34 @@ def test_provider_live_policy_covers_adapter_and_runtime_configuration_paths() -
     assert module.external_service_path("backend/app/tasks/market_data_refresh.py")
     assert module.external_service_path("docs/data-providers.md")
     assert module.external_service_path(".env.example")
+    assert module.external_service_path(
+        "backend/app/services/provider_quota_coordinator.py"
+    )
+    assert module.external_service_path("backend/app/services/market_events.py")
+    assert module.external_service_path("backend/app/services/short_interest.py")
+    assert module.external_service_path("backend/app/routers/market_data_admin.py")
     assert not module.external_service_path("frontend/src/views/Workstation.vue")
+
+
+def test_all_provider_calling_services_require_full_live_acceptance() -> None:
+    session = importlib.util.spec_from_file_location(
+        "agent_session_provider_service_paths",
+        Path(__file__).parents[2] / "scripts" / "agent-session.py",
+    )
+    assert session and session.loader
+    module = importlib.util.module_from_spec(session)
+    session.loader.exec_module(module)
+
+    root = Path(__file__).parents[2]
+    services = root / "backend" / "app" / "services"
+    call_pattern = re.compile(r"\b(?:execute_provider_call|get_provider)\s*\(")
+    uncovered = [
+        path.relative_to(root).as_posix()
+        for path in services.glob("*.py")
+        if call_pattern.search(path.read_text())
+        and not module.external_service_path(path.relative_to(root).as_posix())
+    ]
+    assert uncovered == []
 
 
 def test_external_service_acceptance_requires_precommit_candidate_live_matrix() -> None:

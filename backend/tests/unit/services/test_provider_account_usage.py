@@ -53,7 +53,253 @@ def test_binance_native_weight_snapshot_is_an_exact_baseline_candidate():
     )
 
 
-def test_eodhd_native_minute_headers_reconcile_under_the_documented_local_cap():
+@pytest.mark.parametrize(
+    ("remaining", "expected_used"),
+    [(10_000, 0), (9_985, 15)],
+)
+def test_marketdata_app_native_trial_counter_seeds_only_reviewed_free_cap(remaining, expected_used):
+    observed_at = datetime.now(UTC)
+    execution = SimpleNamespace(
+        provider_name="marketdata_app",
+        policy=SimpleNamespace(
+            quota_contract={
+                "dimensions": [
+                    {
+                        "name": "credits_per_day",
+                        "limit": 100,
+                        "window_seconds": 86_400,
+                        "unit": "credits",
+                        "scope": "api_key",
+                        "quota_group": "account",
+                        "reset": "09:30 America/New_York",
+                    }
+                ],
+                "reset": "per_dimension",
+            }
+        ),
+    )
+    candidate = provider_account_usage._native_baseline_candidate(
+        execution,
+        ProviderAccountUsageDimension(
+            name="credits_per_day",
+            unit="credits",
+            limit=10_000,
+            remaining=remaining,
+            consumed=None,
+            reset_at=observed_at + timedelta(hours=2),
+        ),
+        observed_at,
+    )
+    assert candidate is not None
+    assert candidate[:3] == ("credits_per_day", "account_usage", expected_used)
+
+
+def test_marketdata_app_native_usage_above_reviewed_daily_cap_is_not_admitted():
+    observed_at = datetime.now(UTC)
+    execution = SimpleNamespace(
+        provider_name="marketdata_app",
+        policy=SimpleNamespace(
+            quota_contract={
+                "dimensions": [
+                    {
+                        "name": "credits_per_day",
+                        "limit": 100,
+                        "window_seconds": 86_400,
+                        "unit": "credits",
+                        "scope": "api_key",
+                        "quota_group": "account",
+                    }
+                ],
+                "reset": "per_dimension",
+            }
+        ),
+    )
+    over_cap = ProviderAccountUsageDimension(
+        name="credits_per_day",
+        unit="credits",
+        limit=10_000,
+        remaining=9_899,
+        consumed=101,
+        reset_at=observed_at + timedelta(hours=2),
+    )
+    assert (
+        provider_account_usage._native_baseline_candidate(execution, over_cap, observed_at) is None
+    )
+
+
+def test_xstocks_native_public_minute_headers_seed_only_the_reviewed_pool():
+    observed_at = datetime.now(UTC)
+    execution = SimpleNamespace(
+        provider_name="xstocks",
+        policy=SimpleNamespace(
+            quota_contract={
+                "dimensions": [
+                    {
+                        "name": "public_requests_per_minute",
+                        "limit": 1000,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "public_api",
+                        "quota_group": "public_api",
+                        "reset": "rolling",
+                    }
+                ],
+                "reset": "rolling",
+            }
+        ),
+    )
+    native_snapshot = ProviderAccountUsageDimension(
+        name="public_requests_per_minute",
+        unit="requests",
+        limit=1000,
+        remaining=876,
+        consumed=124,
+        reset_at=observed_at + timedelta(seconds=45),
+    )
+
+    candidate = provider_account_usage._native_baseline_candidate(
+        execution, native_snapshot, observed_at
+    )
+    assert candidate is not None
+    assert candidate[:3] == ("public_requests_per_minute", "account_usage", 124)
+
+
+def test_coingecko_native_monthly_credit_snapshot_is_an_exact_baseline_candidate():
+    observed_at = datetime(2026, 10, 8, 12, 0, tzinfo=UTC)
+    reset_at = datetime(2026, 11, 1, 0, 0, tzinfo=UTC)
+    execution = SimpleNamespace(
+        provider_name="coingecko",
+        policy=SimpleNamespace(
+            quota_contract={
+                "dimensions": [
+                    {
+                        "name": "calls_per_month",
+                        "limit": 10000,
+                        "window_seconds": 2678400,
+                        "unit": "credits",
+                        "scope": "demo_api_key",
+                        "quota_group": "demo_api_key",
+                        "reset": "calendar_month_utc",
+                    }
+                ],
+                "reset": "per_dimension",
+            }
+        ),
+    )
+    candidate = provider_account_usage._native_baseline_candidate(
+        execution,
+        ProviderAccountUsageDimension(
+            name="calls_per_month",
+            unit="credits",
+            limit=10000,
+            remaining=9679,
+            consumed=321,
+            reset_at=reset_at,
+        ),
+        observed_at,
+    )
+    assert candidate is not None
+    assert candidate[:3] == ("calls_per_month", "account_usage", 321)
+    # The coordinator anchors the reserved baseline at observation time;
+    # `reset_at` validated the provider's current window but remains evidence
+    # in the persisted observation, not the baseline start time.
+    assert candidate[3] == observed_at
+
+
+def test_fmp_native_daily_calls_reconcile_exact_plan_usage():
+    observed_at = datetime(2026, 10, 9, 12, 0, tzinfo=UTC)
+    execution = SimpleNamespace(
+        provider_name="fmp",
+        policy=SimpleNamespace(
+            quota_contract={
+                "dimensions": [
+                    {
+                        "name": "calls_per_day",
+                        "limit": 250,
+                        "window_seconds": 86400,
+                        "unit": "requests",
+                        "scope": "api_key",
+                        "quota_group": "api_key",
+                        "reset": "provider_defined",
+                        "safety_reset": "rolling",
+                    }
+                ],
+                "reset": "provider_defined",
+            }
+        ),
+    )
+    candidate = provider_account_usage._native_baseline_candidate(
+        execution,
+        ProviderAccountUsageDimension(
+            name="calls_per_day",
+            unit="requests",
+            limit=250,
+            remaining=243,
+            consumed=7,
+            reset_at=observed_at + timedelta(days=1),
+        ),
+        observed_at,
+    )
+    assert candidate is not None
+    assert candidate[:3] == ("calls_per_day", "account_usage", 7)
+
+
+def test_fmp_native_bandwidth_cap_never_widens_local_quota():
+    observed_at = datetime(2026, 10, 9, 12, 0, tzinfo=UTC)
+    execution = SimpleNamespace(
+        provider_name="fmp",
+        policy=SimpleNamespace(
+            quota_contract={
+                "dimensions": [
+                    {
+                        "name": "bandwidth_bytes_per_30_days",
+                        "limit": 500_000_000,
+                        "window_seconds": 2_592_000,
+                        "unit": "bytes",
+                        "scope": "api_key",
+                        "quota_group": "api_key",
+                        "reset": "rolling_30_days",
+                    }
+                ],
+                "reset": "per_dimension",
+            }
+        ),
+    )
+    native_limit = 512 * 1_048_576
+    observed_dimension = ProviderAccountUsageDimension(
+        name="bandwidth_bytes_per_30_days",
+        unit="bytes",
+        limit=native_limit,
+        remaining=native_limit - 125_000_000,
+        consumed=125_000_000,
+        reset_at=observed_at + timedelta(days=30),
+    )
+    candidate = provider_account_usage._native_baseline_candidate(
+        execution, observed_dimension, observed_at
+    )
+    assert candidate is not None
+    assert candidate[:3] == (
+        "bandwidth_bytes_per_30_days",
+        "account_usage",
+        125_000_000,
+    )
+    over_cap_dimension = ProviderAccountUsageDimension(
+        name="bandwidth_bytes_per_30_days",
+        unit="bytes",
+        limit=native_limit,
+        remaining=0,
+        consumed=500_000_001,
+        reset_at=observed_at + timedelta(days=30),
+    )
+    assert (
+        provider_account_usage._native_baseline_candidate(
+            execution, over_cap_dimension, observed_at
+        )
+        is None
+    )
+
+
+def test_eodhd_native_minute_headers_reconcile_only_within_the_configured_local_cap():
     observed_at = datetime(2026, 9, 25, 3, 30, 29, tzinfo=UTC)
     execution = SimpleNamespace(
         provider_name="eodhd",
@@ -88,6 +334,71 @@ def test_eodhd_native_minute_headers_reconcile_under_the_documented_local_cap():
     )
     assert candidate is not None
     assert candidate[:3] == ("requests_per_minute", "account_usage", 1)
+
+    over_local_cap = provider_account_usage._native_baseline_candidate(
+        execution,
+        ProviderAccountUsageDimension(
+            name="requests_per_minute",
+            unit="requests",
+            limit=1200,
+            remaining=199,
+            consumed=1001,
+            reset_at=observed_at + timedelta(seconds=60),
+        ),
+        observed_at,
+    )
+    assert over_local_cap is None
+
+
+def test_marketstack_native_monthly_header_never_widens_reviewed_cap():
+    observed_at = datetime(2026, 10, 10, 12, 0, tzinfo=UTC)
+    execution = SimpleNamespace(
+        provider_name="marketstack",
+        policy=SimpleNamespace(
+            quota_contract={
+                "dimensions": [
+                    {
+                        "name": "requests_per_month",
+                        "limit": 100,
+                        "window_seconds": 2_592_000,
+                        "unit": "requests",
+                        "scope": "api_key",
+                        "quota_group": "api_key",
+                        "reset": "provider_defined",
+                        "safety_reset": "rolling_30_days",
+                        "safety_resolves_unknown_dimensions": ["monthly_cap_reset_boundary"],
+                    }
+                ],
+                "reset": "per_dimension",
+                "unknown_dimensions": ["monthly_cap_reset_boundary"],
+            }
+        ),
+    )
+    native_snapshot = ProviderAccountUsageDimension(
+        name="requests_per_month",
+        unit="requests",
+        limit=1000,
+        remaining=970,
+        consumed=30,
+        reset_at=observed_at + timedelta(days=30),
+    )
+    candidate = provider_account_usage._native_baseline_candidate(
+        execution, native_snapshot, observed_at
+    )
+    assert candidate is not None
+    assert candidate[:3] == ("requests_per_month", "account_usage", 30)
+
+    over_cap = ProviderAccountUsageDimension(
+        name="requests_per_month",
+        unit="requests",
+        limit=1000,
+        remaining=899,
+        consumed=101,
+        reset_at=observed_at + timedelta(days=30),
+    )
+    assert (
+        provider_account_usage._native_baseline_candidate(execution, over_cap, observed_at) is None
+    )
 
 
 def test_alpaca_native_snapshot_accepts_documented_second_precision_skew():
@@ -349,11 +660,19 @@ async def test_named_provider_usage_dimensions_persist_as_separate_rows(db, monk
                     reset_at=observed_at.replace(second=0) + timedelta(minutes=1),
                 ),
                 ProviderAccountUsageDimension(
-                    name="credits_per_day",
-                    unit="credits",
+                    name="requests_per_minute",
+                    unit="requests",
+                    limit=8,
+                    remaining=5,
+                    consumed=3,
+                    reset_at=None,
+                ),
+                ProviderAccountUsageDimension(
+                    name="requests_per_day",
+                    unit="requests",
                     limit=800,
-                    remaining=None,
-                    consumed=None,
+                    remaining=763,
+                    consumed=37,
                     reset_at=None,
                 ),
             ),
@@ -376,14 +695,23 @@ async def test_named_provider_usage_dimensions_persist_as_separate_rows(db, monk
     assert result["status"] == "refreshed"
     assert {item["dimension"] for item in result["observations"]} == {
         "credits_per_minute",
-        "credits_per_day",
+        "requests_per_minute",
+        "requests_per_day",
     }
-    rows = db.execute(
-        select(ProviderAccountUsageObservation).where(
-            ProviderAccountUsageObservation.data_source_id == source.id
+    rows = (
+        db.execute(
+            select(ProviderAccountUsageObservation).where(
+                ProviderAccountUsageObservation.data_source_id == source.id
+            )
         )
-    ).scalars().all()
-    assert {row.dimension for row in rows} == {"credits_per_minute", "credits_per_day"}
+        .scalars()
+        .all()
+    )
+    assert {row.dimension for row in rows} == {
+        "credits_per_minute",
+        "requests_per_minute",
+        "requests_per_day",
+    }
     assert {row.account_plan for row in rows} == {"Basic"}
 
 
@@ -430,11 +758,19 @@ async def test_twelve_data_native_minute_usage_reconciles_exact_coordinator_base
                     reset_at=reset_at,
                 ),
                 ProviderAccountUsageDimension(
-                    name="credits_per_day",
-                    unit="credits",
+                    name="requests_per_minute",
+                    unit="requests",
+                    limit=8,
+                    remaining=5,
+                    consumed=3,
+                    reset_at=None,
+                ),
+                ProviderAccountUsageDimension(
+                    name="requests_per_day",
+                    unit="requests",
                     limit=800,
-                    remaining=None,
-                    consumed=None,
+                    remaining=763,
+                    consumed=37,
                     reset_at=None,
                 ),
             ),
@@ -459,11 +795,14 @@ async def test_twelve_data_native_minute_usage_reconciles_exact_coordinator_base
         AsyncSessionAdapter(db), provider_name="twelve_data"
     )
 
+    assert len(result["baseline_reconciliations"]) == 1
     assert result["baseline_reconciliations"][0]["dimension"] == "credits_per_minute"
     assert result["baseline_reconciliations"][0]["used_units"] == 3
-    assert result["baseline_reconciliations"][0]["source"] == (
-        "provider_account_observation"
-    )
+    assert result["baseline_reconciliations"][0]["source"] == ("provider_account_observation")
+    assert {item["dimension"] for item in result["observations"]} >= {
+        "requests_per_minute",
+        "requests_per_day",
+    }
 
 
 @pytest.mark.asyncio
@@ -545,13 +884,11 @@ async def test_eodhd_native_daily_usage_reconciles_exact_coordinator_baseline(
 
     assert result["baseline_reconciliations"][0]["dimension"] == "calls_per_day"
     assert result["baseline_reconciliations"][0]["used_units"] == 7
-    assert result["baseline_reconciliations"][0]["source"] == (
-        "provider_account_observation"
-    )
+    assert result["baseline_reconciliations"][0]["source"] == ("provider_account_observation")
 
 
 @pytest.mark.asyncio
-async def test_native_usage_does_not_seed_baseline_when_limit_does_not_match_reviewed_contract(
+async def test_marketdata_app_native_larger_counter_seeds_only_reviewed_budget(
     db, monkeypatch, tmp_path
 ):
     source = DataSource(name="marketdata_app", base_url="https://api.marketdata.app/v1")
@@ -606,8 +943,26 @@ async def test_native_usage_does_not_seed_baseline_when_limit_does_not_match_rev
         AsyncSessionAdapter(db), provider_name="marketdata_app"
     )
 
-    assert "baseline_reconciliations" not in result
+    assert result["baseline_reconciliations"][0]["dimension"] == "credits_per_day"
+    assert result["baseline_reconciliations"][0]["used_units"] == 25
     assert result["observations"][0]["consumed"] == 25
+
+
+def test_fmp_daily_usage_display_uses_documented_fixed_est_reset_boundary():
+    from app.services.provider_usage import _window_end_for_reset
+
+    winter_start = datetime(2026, 1, 15, 20, tzinfo=UTC)
+    summer_start = datetime(2026, 7, 15, 19, tzinfo=UTC)
+    assert _window_end_for_reset(
+        winter_start,
+        window_seconds=86_400,
+        reset="15:00 UTC-05:00",
+    ) == datetime(2026, 1, 16, 20, tzinfo=UTC)
+    assert _window_end_for_reset(
+        summer_start,
+        window_seconds=86_400,
+        reset="15:00 UTC-05:00",
+    ) == datetime(2026, 7, 16, 20, tzinfo=UTC)
 
 
 @pytest.mark.asyncio

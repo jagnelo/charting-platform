@@ -17,6 +17,7 @@ from app.models.market_data_foundation import (
     MarketUniverseLifecycleObservationSnapshot,
     MarketUniverseReconciliationRun,
 )
+from app.models.provider_observation import UniverseDiscoverySnapshot
 from app.services.exchange_catalog import ensure_exchange, upsert_instrument_listing
 from app.services.instrument_mastering import register_provider_symbol
 from app.services.market_universe import (
@@ -27,6 +28,143 @@ from app.services.market_universe import (
     reconcile_us_universe,
 )
 from tests.unit.conftest import AsyncSessionAdapter
+
+
+@pytest.mark.asyncio
+async def test_combined_nms_and_otc_reconciliation_keeps_both_complete_source_snapshots(
+    db, monkeypatch
+):
+    """A single configured reconciliation cycle must complete and retain NMS and OTC evidence."""
+
+    from app.services import market_universe
+
+    sources = {
+        "nasdaq": DataSource(name="nasdaq", base_url="https://nasdaq.example.test"),
+        "finra_otc_directory": DataSource(
+            name="finra_otc_directory", base_url="https://finra.example.test"
+        ),
+    }
+    db.add_all(sources.values())
+    db.flush()
+    resolved = [
+        SimpleNamespace(provider_name=name, data_source=source) for name, source in sources.items()
+    ]
+    providers = {
+        "nasdaq": SimpleNamespace(supported_discovery_types=lambda: ["EQUITY"]),
+        "finra_otc_directory": SimpleNamespace(supported_discovery_types=lambda: ["EQUITY"]),
+    }
+    pages = {
+        "nasdaq": {
+            "total": 1,
+            "quotes": [{"symbol": "NMSX", "name": "NMS Example", "exchange": "XNAS"}],
+            "source_files": ["nasdaqlisted", "otherlisted"],
+            "source_file_creation_times": {
+                "nasdaqlisted": "2026-10-09T21:31:00",
+                "otherlisted": "2026-10-09T21:31:00",
+            },
+        },
+        "finra_otc_directory": {
+            "total": 1,
+            "quotes": [{"symbol": "OTCX", "name": "OTC Example", "exchange": "OTC"}],
+            "source_snapshot_date": "2026-10-09",
+        },
+    }
+
+    async def resolve_fixture(*_args, **kwargs):
+        assert kwargs["operation"] == "reconcile_universe_page"
+        return resolved
+
+    async def execute_fixture(_db, _capability, operation, *, provider_name, invoke, **_kwargs):
+        result = invoke(providers[provider_name], None)
+        assert operation.endswith(":0")
+        return SimpleNamespace(result=result, data_source=sources[provider_name])
+
+    for name, page in pages.items():
+        providers[name].discover_universe_page = lambda _quote_type, _offset, p=page: p
+
+    monkeypatch.setattr(market_universe, "resolve_provider_chain", resolve_fixture)
+    monkeypatch.setattr(market_universe, "get_discovery_provider", lambda name: providers[name])
+    monkeypatch.setattr(market_universe, "execute_provider_call", execute_fixture)
+
+    result = await reconcile_us_universe(AsyncSessionAdapter(db), quote_types=["EQUITY"])
+
+    runs = (
+        db.query(MarketUniverseReconciliationRun).order_by(MarketUniverseReconciliationRun.id).all()
+    )
+    snapshots = db.query(UniverseDiscoverySnapshot).order_by(UniverseDiscoverySnapshot.id).all()
+    assert result["status"] == "complete"
+    assert result["providers"] == ["finra_otc_directory", "nasdaq"]
+    assert [(run.provenance["provider"], run.status) for run in runs] == [
+        ("nasdaq", "complete"),
+        ("finra_otc_directory", "complete"),
+    ]
+    assert [snapshot.data_source.name for snapshot in snapshots] == [
+        "nasdaq",
+        "finra_otc_directory",
+    ]
+    assert snapshots[0].payload["page"] == pages["nasdaq"]
+    assert snapshots[1].payload["page"] == pages["finra_otc_directory"]
+    assert runs[0].provenance["absence_scope"] is None
+    assert runs[1].provenance["absence_scope"] == "US_OTC"
+
+
+@pytest.mark.asyncio
+async def test_cta_reconciliation_preserves_case_distinct_symbols(db, monkeypatch):
+    """CTA-native symbol spelling is retained through listing and alias writes."""
+
+    from app.services import market_universe
+
+    source = DataSource(name="cta_plan", base_url="https://cta.example.test")
+    db.add(source)
+    db.flush()
+    rows = [
+        {"symbol": "TpC", "exchange": "XNYS", "quoteType": "EQUITY"},
+        {"symbol": "TPC", "exchange": "XNYS", "quoteType": "EQUITY"},
+    ]
+    page = {
+        "total": 2,
+        "quotes": rows,
+        "complete": True,
+        "source_snapshot_date": "2026-10-12",
+        "raw_source_payload": {"symbol_file_csv": "retained source"},
+    }
+    provider = SimpleNamespace(
+        supported_discovery_types=lambda: ["EQUITY"],
+        discover_universe_page=lambda _quote_type, _offset: page,
+    )
+    resolved = [SimpleNamespace(provider_name="cta_plan", data_source=source)]
+
+    async def resolve_fixture(*_args, **_kwargs):
+        return resolved
+
+    async def execute_fixture(_db, _capability, operation, *, invoke, **_kwargs):
+        assert operation.endswith(":0")
+        return SimpleNamespace(result=invoke(provider, None), data_source=source)
+
+    monkeypatch.setattr(market_universe, "resolve_provider_chain", resolve_fixture)
+    monkeypatch.setattr(market_universe, "get_discovery_provider", lambda _name: provider)
+    monkeypatch.setattr(market_universe, "execute_provider_call", execute_fixture)
+
+    result = await reconcile_us_universe(AsyncSessionAdapter(db), quote_types=["EQUITY"])
+
+    listings = (
+        db.query(InstrumentListing)
+        .filter(InstrumentListing.source == "cta_plan")
+        .order_by(InstrumentListing.ticker)
+        .all()
+    )
+    aliases = (
+        db.query(InstrumentProviderSymbol)
+        .filter(InstrumentProviderSymbol.data_source_id == source.id)
+        .order_by(InstrumentProviderSymbol.provider_symbol)
+        .all()
+    )
+    snapshot = db.query(UniverseDiscoverySnapshot).filter_by(data_source_id=source.id).one()
+
+    assert result["status"] == "complete"
+    assert [listing.ticker for listing in listings] == ["TPC", "TpC"]
+    assert [alias.provider_symbol for alias in aliases] == ["TPC", "TpC"]
+    assert snapshot.payload["page"]["raw_source_payload"] == {"symbol_file_csv": "retained source"}
 
 
 def _make_authoritative_nasdaq_run(
@@ -43,7 +181,36 @@ def _make_authoritative_nasdaq_run(
             "quote_type": quote_type,
             "snapshot_complete": status == "complete",
             "source_files": ["nasdaqlisted", "otherlisted"],
+            "source_snapshot_date": observed_at.date().isoformat(),
+            "source_file_creation_times": {
+                "nasdaqlisted": f"{observed_at.date().isoformat()}T17:00:00",
+                "otherlisted": f"{observed_at.date().isoformat()}T17:01:00",
+            },
             "absence_scope": "US_NMS",
+        },
+    )
+    db.add(run)
+    db.flush()
+    return run
+
+
+def _make_authoritative_otc_run(db, source, *, observed_at, snapshot_date, status="complete"):
+    run = MarketUniverseReconciliationRun(
+        data_source_id=source.id,
+        quote_type="EQUITY",
+        observed_at=observed_at,
+        finished_at=observed_at,
+        status=status,
+        provenance={
+            "provider": "finra_otc_directory",
+            "quote_type": "EQUITY",
+            "snapshot_complete": status == "complete",
+            "source_files": [
+                "https://api.finra.org/partitions/group/otcMarket/name/otcSecurityMaster",
+                "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster",
+            ],
+            "absence_scope": "US_OTC",
+            "source_snapshot_date": snapshot_date,
         },
     )
     db.add(run)
@@ -98,7 +265,9 @@ async def test_lifecycle_observation_retains_each_provider_payload(db, instrumen
 
 
 @pytest.mark.asyncio
-async def test_missing_listing_counts_distinct_completed_sessions_and_reactivates(db, instrument):
+async def test_nasdaq_only_misses_do_not_retire_listing_before_composite_nms_snapshot(
+    db, instrument
+):
     source = DataSource(name="nasdaq", base_url="https://example.test")
     db.add(source)
     db.flush()
@@ -166,11 +335,11 @@ async def test_missing_listing_counts_distinct_completed_sessions_and_reactivate
         )
 
     row = db.query(MarketUniverseLifecycleObservation).one()
-    assert row.present is False
-    assert row.lifecycle_status == "missing"
-    assert row.consecutive_missing == 3
-    assert listing.is_active is False
-    assert instrument.is_active is False
+    assert row.present is True
+    assert row.lifecycle_status == "active"
+    assert row.consecutive_missing == 0
+    assert listing.is_active is True
+    assert instrument.is_active is True
 
     supplemental_source = DataSource(name="massive", base_url="https://example.test")
     db.add(supplemental_source)
@@ -199,8 +368,8 @@ async def test_missing_listing_counts_distinct_completed_sessions_and_reactivate
         quote_type="EQUITY",
         observed_at=supplemental_run.observed_at,
     )
-    assert listing.is_active is False
-    assert instrument.is_active is False
+    assert listing.is_active is True
+    assert instrument.is_active is True
 
     reappearance_at = datetime(2026, 9, 10, 21, tzinfo=UTC)
     reappearance_run = _make_authoritative_nasdaq_run(db, source, observed_at=reappearance_at)
@@ -227,6 +396,76 @@ async def test_missing_listing_counts_distinct_completed_sessions_and_reactivate
     assert listing.is_active is True
     assert instrument.is_active is True
     assert instrument.identity_status == "provisional"
+
+
+@pytest.mark.asyncio
+async def test_otc_missing_counts_distinct_complete_snapshot_dates(db, instrument, monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "finra_otc_query_api")
+    source = DataSource(name="finra_otc_directory", base_url="https://api.finra.org")
+    db.add(source)
+    db.flush()
+    session = AsyncSessionAdapter(db)
+    exchange = await ensure_exchange(session, "OTC")
+    listing = InstrumentListing(
+        instrument_id=instrument.id,
+        exchange_id=exchange.id,
+        ticker=instrument.symbol,
+        is_primary=True,
+        is_active=True,
+    )
+    db.add(listing)
+    db.flush()
+    initial_at = datetime(2026, 9, 3, 21, tzinfo=UTC)
+    initial_run = _make_authoritative_otc_run(
+        db,
+        source,
+        observed_at=initial_at,
+        snapshot_date="2026-09-03",
+    )
+    await _upsert_observation(
+        session,
+        data_source_id=source.id,
+        run_id=initial_run.id,
+        symbol=instrument.symbol,
+        exchange_mic="OTC",
+        quote_type="EQUITY",
+        instrument_id=instrument.id,
+        listing_id=listing.id,
+        payload={"symbol": instrument.symbol, "status": "active"},
+        observed_at=initial_at,
+    )
+
+    for observed_at, snapshot_date in (
+        (datetime(2026, 9, 4, 21, tzinfo=UTC), "2026-09-04"),
+        # Re-running the same provider snapshot must not count twice.
+        (datetime(2026, 9, 5, 21, tzinfo=UTC), "2026-09-04"),
+        (datetime(2026, 9, 8, 21, tzinfo=UTC), "2026-09-08"),
+        (datetime(2026, 9, 9, 21, tzinfo=UTC), "2026-09-09"),
+    ):
+        run = _make_authoritative_otc_run(
+            db,
+            source,
+            observed_at=observed_at,
+            snapshot_date=snapshot_date,
+        )
+        await _mark_missing(
+            session,
+            run=run,
+            provider_name="finra_otc_directory",
+            quote_type="EQUITY",
+            active_keys=set(),
+            observed_at=observed_at,
+            missing_confirmations=3,
+        )
+
+    observation = db.query(MarketUniverseLifecycleObservation).one()
+    assert observation.consecutive_missing == 3
+    assert observation.lifecycle_status == "missing"
+    assert observation.present is False
+    assert listing.is_active is False
+    assert instrument.is_active is False
 
 
 @pytest.mark.asyncio
@@ -504,6 +743,101 @@ async def test_reconciliation_quarantines_ticker_venue_collision_with_stable_own
 
 
 @pytest.mark.asyncio
+async def test_reconciliation_reuses_exact_provider_binding_when_ticker_candidates_collide(
+    db, instrument, instrument_b
+):
+    """A provider's existing scoped alias avoids a duplicate-key crash."""
+
+    source = DataSource(name="finra_otc_directory", base_url="https://example.test")
+    db.add(source)
+    db.flush()
+    instrument.symbol = "AAGH"
+    await register_provider_symbol(
+        AsyncSessionAdapter(db),
+        instrument,
+        "finra_otc_directory",
+        "AAGH",
+        provider_exchange_code="OTC",
+        provider_instrument_type="EQUITY",
+    )
+    await upsert_instrument_listing(
+        AsyncSessionAdapter(db), instrument_b, "AAGH", exchange_code="OTC", is_primary=True
+    )
+    run = MarketUniverseReconciliationRun(
+        data_source_id=source.id,
+        quote_type="EQUITY",
+        observed_at=datetime(2026, 10, 14, tzinfo=UTC),
+    )
+    db.add(run)
+    db.flush()
+
+    await _reconcile_rows(
+        AsyncSessionAdapter(db),
+        run=run,
+        provider_name="finra_otc_directory",
+        rows=[{"symbol": "AAGH", "exchange": "OTC", "status": "active"}],
+        quote_type="EQUITY",
+        observed_at=run.observed_at,
+    )
+
+    bindings = (
+        db.query(InstrumentProviderSymbol)
+        .filter(
+            InstrumentProviderSymbol.data_source_id == source.id,
+            InstrumentProviderSymbol.provider_symbol == "AAGH",
+            InstrumentProviderSymbol.provider_exchange_code == "OTC",
+        )
+        .all()
+    )
+    observation = db.query(MarketUniverseLifecycleObservation).filter_by(run_id=run.id).one()
+    assert run.observed_count == 1
+    assert run.quarantined_count == 0
+    assert len(bindings) == 1
+    assert bindings[0].instrument_id == instrument.id
+    assert observation.instrument_id == instrument.id
+
+
+@pytest.mark.asyncio
+async def test_reconciliation_quarantines_unbound_ambiguous_ticker_venue(
+    db, instrument, instrument_b
+):
+    """Without a source alias or stable key, ambiguous tickers are retained for review."""
+
+    source = DataSource(name="finra_otc_directory", base_url="https://example.test")
+    db.add(source)
+    db.flush()
+    instrument.symbol = "AAGH"
+    await upsert_instrument_listing(
+        AsyncSessionAdapter(db), instrument, "AAGH", exchange_code="OTC", is_primary=True
+    )
+    await upsert_instrument_listing(
+        AsyncSessionAdapter(db), instrument_b, "AAGH", exchange_code="OTC", is_primary=True
+    )
+    run = MarketUniverseReconciliationRun(
+        data_source_id=source.id,
+        quote_type="EQUITY",
+        observed_at=datetime(2026, 10, 14, tzinfo=UTC),
+    )
+    db.add(run)
+    db.flush()
+
+    await _reconcile_rows(
+        AsyncSessionAdapter(db),
+        run=run,
+        provider_name="finra_otc_directory",
+        rows=[{"symbol": "AAGH", "exchange": "OTC", "status": "active"}],
+        quote_type="EQUITY",
+        observed_at=run.observed_at,
+    )
+
+    assert run.observed_count == 0
+    assert run.quarantined_count == 1
+    assert db.query(InstrumentListing).filter(InstrumentListing.ticker == "AAGH").count() == 2
+    assert db.query(InstrumentProviderSymbol).filter_by(data_source_id=source.id).count() == 0
+    assert db.query(InstrumentReconciliationIssueObservation).count() == 1
+
+
+@pytest.mark.asyncio
 async def test_cik_only_discovery_links_issuer_but_quarantines_security_identity(db, instrument):
     source = DataSource(name="edgar", base_url="https://example.test")
     db.add(source)
@@ -582,6 +916,95 @@ async def test_universe_reconciliation_rejects_page_without_completion_evidence(
     assert result["runs"][0]["status"] == "failed"
     run = db.query(MarketUniverseReconciliationRun).one()
     assert "completion evidence" in (run.error or "")
+
+
+@pytest.mark.asyncio
+async def test_massive_universe_scan_resumes_from_persisted_cursor_without_refetching_pages(
+    db, monkeypatch
+):
+    from app.services import market_universe
+    from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
+
+    source = DataSource(name="massive", base_url="https://api.massive.com")
+    db.add(source)
+    db.flush()
+    resolved = SimpleNamespace(provider_name="massive", data_source=source)
+    provider_calls = []
+    reconciled_rows = []
+    quota_denied = [False]
+
+    class MassiveDiscoveryFixture:
+        def supported_discovery_types(self):
+            return ["EQUITY"]
+
+        def discover_universe_page(self, quote_type, offset, *, cursor=None):
+            provider_calls.append((quote_type, offset, cursor))
+            if offset == 0:
+                return {
+                    "total": None,
+                    "quotes": [{"symbol": "FIRST", "name": "First", "exchange": "XNAS"}],
+                    "next_url": "https://api.massive.com/v3/reference/tickers?cursor=page-two",
+                    "next_offset": 1_000,
+                    "complete": False,
+                }
+            return {
+                "total": None,
+                "quotes": [{"symbol": "SECOND", "name": "Second", "exchange": "XNAS"}],
+                "next_url": None,
+                "next_cursor": None,
+                "next_offset": None,
+                "complete": True,
+            }
+
+    provider = MassiveDiscoveryFixture()
+
+    async def resolve_fixture(*_args, **_kwargs):
+        return [resolved]
+
+    async def execute_fixture(
+        _db,
+        _capability,
+        operation,
+        *,
+        provider_name,
+        invoke,
+        **_kwargs,
+    ):
+        offset = int(operation.rsplit(":", 1)[1])
+        if offset == 1_000 and not quota_denied[0]:
+            quota_denied[0] = True
+            raise ProviderQuotaAdmissionError(
+                "durable provider quota admission denied for "
+                "universe_discovery/reconcile_universe_page:EQUITY:1000: massive"
+            )
+        page = invoke(provider, None)
+        return SimpleNamespace(result=page, data_source=source)
+
+    async def capture_rows(_db, *, run, rows, **_kwargs):
+        reconciled_rows.extend(rows)
+        run.expected_count = len(rows)
+        run.observed_count = len(rows)
+        return set()
+
+    monkeypatch.setattr(market_universe, "resolve_provider_chain", resolve_fixture)
+    monkeypatch.setattr(market_universe, "get_discovery_provider", lambda _name: provider)
+    monkeypatch.setattr(market_universe, "execute_provider_call", execute_fixture)
+    monkeypatch.setattr(market_universe, "_reconcile_rows", capture_rows)
+
+    session = AsyncSessionAdapter(db)
+    first = await reconcile_us_universe(session, provider_name="massive")
+    assert first["runs"][0]["status"] == "deferred"
+    assert provider_calls == [("EQUITY", 0, None)]
+
+    second = await reconcile_us_universe(session, provider_name="massive")
+    assert second["runs"][0]["status"] == "complete"
+    assert provider_calls == [("EQUITY", 0, None), ("EQUITY", 1_000, "page-two")]
+    assert [row["symbol"] for row in reconciled_rows] == ["FIRST", "SECOND"]
+    run = db.query(MarketUniverseReconciliationRun).one()
+    assert run.status == "complete"
+    assert run.provenance["continuation_count"] == 1
+    assert run.provenance["snapshot_consistency"] == "resumed_provider_cursor_across_invocations"
+    assert db.query(UniverseDiscoverySnapshot).count() == 2
 
 
 @pytest.mark.asyncio
@@ -676,9 +1099,19 @@ async def test_nasdaq_reconciliation_reports_and_rejects_unknown_venue(db, monke
     assert run.status == "failed"
     assert "unknown/unsupported venues" in (run.error or "")
     assert run.provenance["venue_coverage"] == {
-        "expected_mics": ["ARCX", "BATS", "IEXG", "XASE", "XNAS", "XNYS"],
+        "expected_mics": ["ARCX", "BATS", "IEXG", "TXSE", "XASE", "XBOS", "XCHI", "XNAS", "XNYS"],
         "observed_mics": [],
-        "missing_expected_mics": ["ARCX", "BATS", "IEXG", "XASE", "XNAS", "XNYS"],
+        "missing_expected_mics": [
+            "ARCX",
+            "BATS",
+            "IEXG",
+            "TXSE",
+            "XASE",
+            "XBOS",
+            "XCHI",
+            "XNAS",
+            "XNYS",
+        ],
         "row_counts": {},
         "unknown_mics": ["NOT_A_MIC"],
     }
@@ -800,7 +1233,9 @@ async def test_incomplete_or_non_authoritative_sources_do_not_count_absence(
 
 
 @pytest.mark.asyncio
-async def test_nms_snapshot_absence_does_not_touch_otc_venue_rows(db, instrument, instrument_b):
+async def test_incomplete_nms_source_does_not_count_absence_for_any_listing(
+    db, instrument, instrument_b
+):
     source = DataSource(name="nasdaq", base_url="https://example.test")
     db.add(source)
     db.flush()
@@ -869,12 +1304,12 @@ async def test_nms_snapshot_absence_does_not_touch_otc_venue_rows(db, instrument
         missing_confirmations=3,
     )
 
-    assert nms_observation.present is False
-    assert nms_observation.consecutive_missing == 1
+    assert nms_observation.present is True
+    assert nms_observation.consecutive_missing == 0
     assert otc_observation.present is True
     assert otc_observation.consecutive_missing == 0
     assert otc_listing.is_active is True
-    assert run.missing_count == 1
+    assert run.missing_count == 0
 
 
 @pytest.mark.asyncio
@@ -922,9 +1357,7 @@ async def test_provider_symbol_binding_retains_lifecycle_timestamps_and_retires_
 
 
 @pytest.mark.asyncio
-async def test_complete_nms_absence_retires_matching_provider_symbol_binding(
-    db, instrument
-):
+async def test_nasdaq_only_absence_does_not_retire_provider_symbol_binding(db, instrument):
     source = DataSource(name="nasdaq", base_url="https://example.test")
     db.add(source)
     db.flush()
@@ -977,21 +1410,32 @@ async def test_complete_nms_absence_retires_matching_provider_symbol_binding(
         missing_confirmations=3,
     )
 
-    assert binding.is_active is False
-    assert binding.retired_at.replace(tzinfo=None) == observed_at.replace(tzinfo=None)
-    assert listing.is_active is False
+    assert binding.is_active is True
+    assert binding.retired_at is None
+    assert listing.is_active is True
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("source_files", "expected_scope", "expected_missing"),
+    ("source_files", "creation_times", "expected_scope", "expected_missing"),
     [
-        (["nasdaqlisted", "otherlisted"], "US_NMS", 1),
-        (["nasdaqlisted"], None, 0),
+        (
+            ["nasdaqlisted", "otherlisted"],
+            {"nasdaqlisted": "2026-09-16T17:00:00", "otherlisted": "2026-09-16T17:01:00"},
+            None,
+            0,
+        ),
+        (
+            ["nasdaqlisted", "otherlisted"],
+            {"nasdaqlisted": "2026-09-15T17:00:00", "otherlisted": "2026-09-15T17:01:00"},
+            None,
+            0,
+        ),
+        (["nasdaqlisted"], {}, None, 0),
     ],
 )
-async def test_nasdaq_reconciliation_requires_both_official_files_for_absence(
-    db, instrument, monkeypatch, source_files, expected_scope, expected_missing
+async def test_nasdaq_reconciliation_does_not_authorize_whole_nms_absence(
+    db, instrument, monkeypatch, source_files, creation_times, expected_scope, expected_missing
 ):
     from app.services import market_universe
 
@@ -1043,6 +1487,7 @@ async def test_nasdaq_reconciliation_requires_both_official_files_for_absence(
                 "quotes": [{"symbol": "ZZZ", "exchange": "XNAS", "quoteType": "EQUITY"}],
                 "complete": True,
                 "source_files": source_files,
+                "source_file_creation_times": creation_times,
             },
             data_source=source,
         )
@@ -1066,9 +1511,28 @@ async def test_nasdaq_reconciliation_requires_both_official_files_for_absence(
     assert observation.consecutive_missing == expected_missing
     if expected_scope == "US_NMS":
         assert run.provenance["venue_coverage"] == {
-            "expected_mics": ["ARCX", "BATS", "IEXG", "XASE", "XNAS", "XNYS"],
+            "expected_mics": [
+                "ARCX",
+                "BATS",
+                "IEXG",
+                "TXSE",
+                "XASE",
+                "XBOS",
+                "XCHI",
+                "XNAS",
+                "XNYS",
+            ],
             "observed_mics": ["XNAS"],
-            "missing_expected_mics": ["ARCX", "BATS", "IEXG", "XASE", "XNYS"],
+            "missing_expected_mics": [
+                "ARCX",
+                "BATS",
+                "IEXG",
+                "TXSE",
+                "XASE",
+                "XBOS",
+                "XCHI",
+                "XNYS",
+            ],
             "row_counts": {"XNAS": 1},
             "unknown_mics": [],
         }
@@ -1110,7 +1574,48 @@ async def test_universe_reconciliation_redacts_run_error(db, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_universe_reconciliation_defers_quota_denial_without_calling_it_a_provider_failure(
+    db, monkeypatch
+):
+    from app.services import market_universe
+    from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
+
+    source = DataSource(name="fixture-quota-denied", base_url="https://example.test")
+    db.add(source)
+    db.flush()
+    resolved = SimpleNamespace(provider_name=source.name, data_source=source)
+
+    class _DiscoveryProvider:
+        def supported_discovery_types(self):
+            return ["EQUITY"]
+
+    async def resolve_fixture(*_args, **_kwargs):
+        return [resolved]
+
+    async def denied_page(*_args, **_kwargs):
+        raise ProviderQuotaAdmissionError("durable provider quota admission denied")
+
+    monkeypatch.setattr(market_universe, "resolve_provider_chain", resolve_fixture)
+    monkeypatch.setattr(
+        market_universe, "get_discovery_provider", lambda _name: _DiscoveryProvider()
+    )
+    monkeypatch.setattr(market_universe, "execute_provider_call", denied_page)
+
+    result = await reconcile_us_universe(
+        AsyncSessionAdapter(db), provider_name="fixture-quota-denied"
+    )
+
+    run = db.query(MarketUniverseReconciliationRun).one()
+    assert result["status"] == "deferred"
+    assert result["runs"][0]["status"] == "deferred"
+    assert run.status == "deferred"
+    assert run.observed_count == 0
+    assert "quota admission denied" in (run.error or "")
+
+
+@pytest.mark.asyncio
 async def test_universe_reconciliation_follows_cursor_until_explicit_completion(db, monkeypatch):
+    from app.models.provider_observation import UniverseDiscoverySnapshot
     from app.services import market_universe
 
     source = DataSource(name="fixture-cursor", base_url="https://example.test")
@@ -1129,11 +1634,19 @@ async def test_universe_reconciliation_follows_cursor_until_explicit_completion(
         page = (
             {
                 "quotes": [{"symbol": "AAPL", "exchange": "XNAS"}],
+                "raw_payload": {"results": ["first-page"]},
+                "source_documents": {
+                    "https://provider.example/security-master": "complete original source body"
+                },
                 "next_offset": 1,
                 "next_url": "cursor",
             }
             if ":0" in args[2]
-            else {"quotes": [{"symbol": "MSFT", "exchange": "XNAS"}], "complete": True}
+            else {
+                "quotes": [{"symbol": "MSFT", "exchange": "XNAS"}],
+                "raw_payload": {"results": ["second-page"]},
+                "complete": True,
+            }
         )
         return SimpleNamespace(result=page, data_source=source)
 
@@ -1143,6 +1656,19 @@ async def test_universe_reconciliation_follows_cursor_until_explicit_completion(
     assert result["status"] == "complete"
     assert result["runs"][0]["observed"] == 2
     assert result["runs"][0]["expected"] == 2
+    snapshots = (
+        db.query(UniverseDiscoverySnapshot)
+        .filter_by(data_source_id=source.id, quote_type="EQUITY")
+        .order_by(UniverseDiscoverySnapshot.offset)
+        .all()
+    )
+    assert [snapshot.payload["page"]["raw_payload"] for snapshot in snapshots] == [
+        {"results": ["first-page"]},
+        {"results": ["second-page"]},
+    ]
+    assert snapshots[0].payload["page"]["source_documents"] == {
+        "https://provider.example/security-master": "complete original source body"
+    }
 
 
 @pytest.mark.asyncio

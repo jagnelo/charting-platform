@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import csv
 import io
+import re
 import time
+from datetime import datetime
 from typing import Any
 
 import httpx
@@ -20,10 +22,12 @@ from app.providers.telemetry import observe_response
 
 _BASE = "https://www.nasdaqtrader.com/dynamic/SymDir"
 _FILES = {"nasdaqlisted": f"{_BASE}/nasdaqlisted.txt", "otherlisted": f"{_BASE}/otherlisted.txt"}
-_PAGE_SIZE = 1000
 _CACHE_TTL_SECONDS = 900
+_CREATION_TIME_PATTERN = re.compile(
+    r"File Creation Time:\s*(\d{2})(\d{2})(\d{4})(\d{2}):(\d{2})\|*"
+)
 _cache: tuple[float, list[dict[str, Any]]] | None = None
-_file_cache: dict[str, tuple[list[dict[str, Any]], dict[str, str]]] = {}
+_file_cache: dict[str, tuple[list[dict[str, Any]], dict[str, str], str]] = {}
 
 
 class NasdaqProvider:
@@ -35,13 +39,25 @@ class NasdaqProvider:
         normalized = quote_type.strip().upper()
         if normalized not in {"EQUITY", "ETF"} or offset < 0:
             return {"total": 0, "quotes": []}
+        # Nasdaq publishes two complete files, not a paginated API. One
+        # reconciliation call downloads/validates both files (two HTTP
+        # requests) and must retain the entire filtered snapshot. Splitting
+        # this in-memory list into 1,000-row pseudo-pages caused the quota
+        # coordinator to reserve the two-request cost repeatedly, so the
+        # snapshot could never finish under the correct two-request budget.
+        # The reconciliation worker starts every source at offset zero; a
+        # non-zero offset is a terminal compatibility response, never a
+        # separate provider request.
         rows = [row for row in _directory_rows() if row["quoteType"] == normalized]
-        page = rows[offset : offset + _PAGE_SIZE]
+        page = rows if offset == 0 else []
         return {
             "total": len(rows),
             "quotes": page,
-            "next_offset": offset + _PAGE_SIZE if offset + _PAGE_SIZE < len(rows) else None,
+            "complete": True,
             "source_files": list(_FILES),
+            "source_file_creation_times": {
+                source_name: _file_cache[source_name][2] for source_name in _FILES
+            },
         }
 
     def supported_discovery_types(self) -> list[str]:
@@ -85,6 +101,7 @@ def _directory_rows() -> list[dict[str, Any]]:
             raise
         try:
             parsed = _parse_file(source_name, response.text)
+            creation_time = _parse_creation_time(source_name, response.text)
         except (TypeError, ValueError, csv.Error) as exc:
             raise ProviderResponseError(
                 "nasdaq", f"malformed {source_name} directory response: {exc}"
@@ -95,7 +112,7 @@ def _directory_rows() -> list[dict[str, Any]]:
             for key, value in response.headers.items()
             if str(key).lower() in {"etag", "last-modified"}
         }
-        _file_cache[source_name] = (parsed, response_headers)
+        _file_cache[source_name] = (parsed, response_headers, creation_time)
     _cache = (now, rows)
     return list(rows)
 
@@ -112,14 +129,15 @@ def _parse_file(source_name: str, text: str) -> list[dict[str, Any]]:
         # are accepted; the security name is the minimum identity field and
         # exchange is optional evidence on such mirrors.
         required_columns = {"ACT Symbol", "Security Name"}
-        valid_header = (
-            {"Security Name"}.issubset(fieldnames)
-            and ("ACT Symbol" in fieldnames or "Symbol" in fieldnames)
+        valid_header = {"Security Name"}.issubset(fieldnames) and (
+            "ACT Symbol" in fieldnames or "Symbol" in fieldnames
         )
     if not reader.fieldnames or not valid_header:
-        raise ValueError(
-            f"missing required columns for {source_name}: {sorted(required_columns)}"
-        )
+        raise ValueError(f"missing required columns for {source_name}: {sorted(required_columns)}")
+    _parse_creation_time(source_name, text)
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if any(line.startswith("File Creation Time:") for line in lines[:-1]):
+        raise ValueError(f"non-terminal file creation time marker in {source_name}")
     parsed: list[dict[str, Any]] = []
     for row in reader:
         first_value = next(iter(row.values()), "") if row else ""
@@ -151,9 +169,21 @@ def _parse_file(source_name: str, text: str) -> list[dict[str, Any]]:
             symbol = str(row.get("ACT Symbol") or row.get("Symbol") or "").strip().upper()
             name = str(row.get("Security Name") or "").strip()
             code = str(row.get("Exchange") or "").strip().upper()
-            exchange = {"A": "XASE", "N": "XNYS", "P": "ARCX", "Z": "BATS", "V": "IEXG"}.get(
-                code, code or None
-            )
+            # Nasdaq Trader began publishing ``F`` for Texas Stock Exchange
+            # listings. TXSE confirms F as its SIP participant ID and TXSE as
+            # its MIC; do not preserve F as if it were itself a MIC.
+            exchange = {
+                "A": "XASE",
+                # SIP participant IDs map to listing MICs, not directly to
+                # MICs. B and M are the newly added Texas listing venues.
+                "B": "XBOS",
+                "N": "XNYS",
+                "P": "ARCX",
+                "Z": "BATS",
+                "V": "IEXG",
+                "F": "TXSE",
+                "M": "XCHI",
+            }.get(code, code or None)
             is_etf = str(row.get("ETF") or "N").upper() == "Y"
             financial_status = ""
             active = str(row.get("Test Issue") or "N").upper() != "Y"
@@ -178,3 +208,20 @@ def _parse_file(source_name: str, text: str) -> list[dict[str, Any]]:
             }
         )
     return parsed
+
+
+def _parse_creation_time(source_name: str, text: str) -> str:
+    """Validate and return Nasdaq's terminal file-generation timestamp."""
+
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if not lines:
+        raise ValueError(f"empty {source_name} directory response")
+    creation_match = _CREATION_TIME_PATTERN.fullmatch(lines[-1])
+    if creation_match is None:
+        raise ValueError(f"missing or invalid terminal file creation time for {source_name}")
+    try:
+        month, day, year, hour, minute = creation_match.groups()
+        created_at = datetime.strptime(f"{month}{day}{year}{hour}:{minute}", "%m%d%Y%H:%M")
+    except ValueError as exc:
+        raise ValueError(f"invalid file creation time for {source_name}") from exc
+    return created_at.isoformat()

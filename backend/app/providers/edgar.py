@@ -58,6 +58,7 @@ _ticker_map: dict[str, dict] = {}
 _ticker_map_ts: float = 0.0
 _exchange_directory: list[dict] = []
 _exchange_directory_ts: float = 0.0
+_exchange_directory_fingerprint: str = ""
 _profile_cache: dict[str, tuple[float, InstrumentProfile | None]] = {}
 
 
@@ -142,11 +143,23 @@ class EdgarProvider:
                 "quoteType": "EQUITY",
                 "sec_cik": row.get("cik"),
                 "identity_ambiguity": row.get("identity_ambiguity"),
+                "source_record": row.get("source_record"),
             }
             for row in rows
             if row.get("ticker")
         ]
-        return {"total": len(_exchange_directory), "quotes": quotes}
+        next_offset = offset + len(quotes)
+        if next_offset >= len(_exchange_directory):
+            next_offset = None
+        return {
+            "total": len(_exchange_directory),
+            "offset": offset,
+            "limit": page_size,
+            "next_offset": next_offset,
+            "complete": next_offset is None,
+            "source_fingerprint": _exchange_directory_fingerprint,
+            "quotes": quotes,
+        }
 
     def discover_issuer_ciks_page(self, offset: int, *, limit: int = 250) -> dict[str, Any]:
         """Page SEC's ticker-association directory by unique CIK.
@@ -819,7 +832,7 @@ def _ensure_ticker_map(headers: dict) -> None:
 
 def _ensure_exchange_directory(headers: dict) -> None:
     """Load and normalise the SEC's public ticker/exchange directory once daily."""
-    global _exchange_directory, _exchange_directory_ts
+    global _exchange_directory, _exchange_directory_ts, _exchange_directory_fingerprint
     now = time.monotonic()
     if _exchange_directory and (now - _exchange_directory_ts) < _TICKER_CACHE_TTL:
         return
@@ -881,7 +894,15 @@ def _ensure_exchange_directory(headers: dict) -> None:
                 cik = int(cik_raw) if cik_raw not in (None, "") else None
             except (TypeError, ValueError):
                 cik = None
-            directory.append({"ticker": ticker, "name": name, "exchange": exchange, "cik": cik})
+            directory.append(
+                {
+                    "ticker": ticker,
+                    "name": name,
+                    "exchange": exchange,
+                    "cik": cik,
+                    "source_record": dict(row),
+                }
+            )
         by_ticker: dict[str, list[dict]] = {}
         for row in directory:
             by_ticker.setdefault(row["ticker"], []).append(row)
@@ -900,8 +921,16 @@ def _ensure_exchange_directory(headers: dict) -> None:
             for row in ticker_rows:
                 row["identity_ambiguity"] = candidates
         directory.sort(key=lambda item: (item["ticker"], item["exchange"], item["name"]))
+        canonical_source = json.dumps(
+            directory,
+            ensure_ascii=True,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        source_fingerprint = hashlib.sha256(canonical_source).hexdigest()
         _exchange_directory = directory
         _exchange_directory_ts = now
+        _exchange_directory_fingerprint = source_fingerprint
         logger.info("edgar: loaded %d ticker/exchange listings", len(directory))
     except httpx.HTTPStatusError:
         raise

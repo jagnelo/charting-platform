@@ -226,6 +226,12 @@ async def test_bulk_fetch_attaches_provider_series_before_persisting(monkeypatch
     assert calls["rows"] == [bar]
     assert bar.market_series_id == 123
     assert calls["execute_kwargs"]["operation_cost_overrides"]["marketdata_app"] >= 1
+    fmp_start = calls["execute_kwargs"]["history_start"]("fmp")
+    assert calls["execute_kwargs"]["operation_cost_overrides"]["fmp"] == (
+        bulk_fetch.estimate_fmp_ohlcv_request_count(
+            Timeframe.D1, fmp_start, bulk_fetch.datetime(2024, 1, 1, tzinfo=bulk_fetch.UTC)
+        )
+    )
     assert calls["execute_kwargs"]["history_start"]("massive") == bulk_fetch.datetime(
         2022, 1, 1, tzinfo=bulk_fetch.UTC
     )

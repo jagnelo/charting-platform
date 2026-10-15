@@ -89,3 +89,6 @@ logs/
 .ai/master-degraded.json
 .ai/staging-degraded.json
 ci-retry-decision.json
+
+# Playwright CLI snapshots/logs are local diagnostic artifacts, not source.
+.playwright-cli/

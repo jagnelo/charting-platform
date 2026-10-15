@@ -5,7 +5,7 @@ import pytest
 
 from app.models.instrument_sync_run import InstrumentSyncRun
 from app.services import instrument_sync
-from app.services.instrument_sync import _listing_evidence, sync_instruments
+from app.services.instrument_sync import _listing_evidence, _seed_quote_type, sync_instruments
 from tests.unit.conftest import AsyncSessionAdapter
 
 
@@ -41,6 +41,19 @@ def test_listing_evidence_does_not_create_empty_lifecycle_claims():
         )
         is None
     )
+
+
+@pytest.mark.parametrize(
+    ("row", "fallback", "expected"),
+    [
+        ({"instrument_type": "ETF"}, "EQUITY", "ETF"),
+        ({"instrument_type": "Common Stock"}, "ETF", "EQUITY"),
+        ({"instrument_type": "unrecognized provider label"}, "EQUITY", "EQUITY"),
+        ({}, "CRYPTOCURRENCY", "CRYPTOCURRENCY"),
+    ],
+)
+def test_seed_uses_recognized_row_type_without_losing_provider_fallback(row, fallback, expected):
+    assert _seed_quote_type(row, fallback) == expected
 
 
 @pytest.mark.asyncio

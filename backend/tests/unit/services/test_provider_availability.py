@@ -308,7 +308,7 @@ def test_notification_policy_covers_first_failure_cooldown_and_recovery(monkeypa
 
 
 @pytest.mark.asyncio
-async def test_availability_skips_finra_otc_until_source_controls_are_reviewed(db, monkeypatch):
+async def test_availability_query_api_skips_finra_otc_when_credentials_are_missing(db, monkeypatch):
     from app.models.data_source import DataSource
     from app.models.provider_runtime import ProviderPolicy
 
@@ -334,6 +334,10 @@ async def test_availability_skips_finra_otc_until_source_controls_are_reviewed(d
         "FINRA_OTC_SYMBOL_DIRECTORY_URL",
         "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster",
     )
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "finra_otc_query_api")
+    monkeypatch.setattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 86400)
+    monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "")
+    monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "")
     monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_REVIEWED", False)
     monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_EVIDENCE", "")
     calls = []
@@ -355,15 +359,13 @@ async def test_availability_skips_finra_otc_until_source_controls_are_reviewed(d
         calls.append((provider_name, capability, request))
         return {"rows": []}
 
-    await run_availability_probes(
-        AsyncSessionFacade(), "daily_core", probe=probe
-    )
+    await run_availability_probes(AsyncSessionFacade(), "daily_core", probe=probe)
 
     from app.models.provider_runtime import ProviderAvailabilityObservation
 
     observation = db.query(ProviderAvailabilityObservation).one()
     assert calls == []
-    assert observation.classification == "routing_control_exclusion"
+    assert observation.classification == "not_configured"
     assert observation.success is False
-    assert "FINRA_OTC_SOURCE_REVIEWED" in observation.error_message
+    assert observation.error_message is None
     assert observation.consecutive_failures == 0

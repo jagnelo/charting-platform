@@ -6,6 +6,7 @@ import httpx
 import pytest
 
 from app.config import settings
+from app.providers.base import ProviderAccountUsage
 from app.providers.errors import (
     ProviderNotConfiguredError,
     ProviderRateLimitError,
@@ -71,6 +72,27 @@ def _authenticated_tokenized_provider_settings(monkeypatch):
         datetime.now(UTC) - timedelta(minutes=1),
     )
     monkeypatch.setattr(settings, "BYBIT_XSTOCKS_MARKET_DATA_USE_EXPIRES_AT", None)
+    monkeypatch.setattr(
+        settings, "BYBIT_XSTOCKS_MARKET_DATA_USE_USER_JURISDICTION_AUTHORIZED", True
+    )
+    monkeypatch.setattr(
+        settings,
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_USER_JURISDICTION_EVIDENCE",
+        "unit-test:eligible-user-jurisdiction",
+    )
+    monkeypatch.setattr(settings, "KRAKEN_MARKET_DATA_USE_AUTHORIZED", True)
+    monkeypatch.setattr(
+        settings, "KRAKEN_MARKET_DATA_USE_AUTHORITY_REFERENCE", "unit-test:kraken-terms"
+    )
+    monkeypatch.setattr(
+        settings,
+        "KRAKEN_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "single_user_personal_automated_internal_persistent_archive_nonredistributed",
+    )
+    monkeypatch.setattr(
+        settings, "KRAKEN_MARKET_DATA_USE_REVIEWED_AT", datetime.now(UTC) - timedelta(minutes=1)
+    )
+    monkeypatch.setattr(settings, "KRAKEN_MARKET_DATA_USE_EXPIRES_AT", None)
     monkeypatch.setattr(
         settings, "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED", True
     )
@@ -212,6 +234,74 @@ def test_only_history_capable_tokenized_adapter_exposes_historical_capability():
         "kraken_xstocks",
     ):
         assert "tokenized_historical_prices" not in list_provider_capabilities(provider)
+
+
+def test_xstocks_exposes_provider_native_account_usage_capability():
+    assert "account_usage" in list_provider_capabilities("xstocks")
+
+
+def test_xstocks_account_usage_snapshot_preserves_native_headers_and_full_payload():
+    reset_epoch = int((datetime.now(UTC) + timedelta(seconds=45)).timestamp())
+    payload = {"nodes": [{"id": "x-aapl", "symbol": "AAPLx"}], "totalCount": 1}
+    response = httpx.Response(
+        200,
+        headers={
+            "X-RateLimit-Limit": "1000",
+            "X-RateLimit-Remaining": "876",
+            "X-RateLimit-Reset": str(reset_epoch),
+        },
+        json=payload,
+        request=httpx.Request("GET", "https://api.xstocks.fi/api/v2/public/assets"),
+    )
+    with patch("app.providers.tokenized.httpx.get", return_value=response) as get:
+        usage = XStocksProvider().fetch_account_usage()
+
+    get.assert_called_once()
+    assert get.call_args.kwargs["params"] == {"page": 0, "pageSize": 1}
+    assert isinstance(usage, ProviderAccountUsage)
+    assert usage.provider == "xstocks"
+    assert usage.account_plan == "public_rate_limit_headers"
+    assert usage.raw_payload == payload
+    assert usage.response_headers == {
+        "x-ratelimit-limit": "1000",
+        "x-ratelimit-remaining": "876",
+        "x-ratelimit-reset": str(reset_epoch),
+    }
+    dimension = usage.dimensions[0]
+    assert (dimension.name, dimension.unit) == ("public_requests_per_minute", "requests")
+    assert (dimension.limit, dimension.remaining, dimension.consumed) == (1000, 876, 124)
+    assert dimension.reset_at == datetime.fromtimestamp(reset_epoch, tz=UTC)
+
+
+def test_xstocks_account_usage_snapshot_fails_closed_without_complete_headers():
+    response = httpx.Response(
+        200,
+        headers={"X-RateLimit-Limit": "1000", "X-RateLimit-Remaining": "876"},
+        json={"nodes": []},
+        request=httpx.Request("GET", "https://api.xstocks.fi/api/v2/public/assets"),
+    )
+    with (
+        patch("app.providers.tokenized.httpx.get", return_value=response),
+        pytest.raises(ProviderResponseError, match="native limit/remaining/reset headers"),
+    ):
+        XStocksProvider().fetch_account_usage()
+
+
+def test_xstocks_account_usage_snapshot_accepts_iso8601_reset_header():
+    reset_value = "2027-01-02T03:04:05.006Z"
+    response = httpx.Response(
+        200,
+        headers={
+            "X-RateLimit-Limit": "1000",
+            "X-RateLimit-Remaining": "999",
+            "X-RateLimit-Reset": reset_value,
+        },
+        json={"nodes": []},
+        request=httpx.Request("GET", "https://api.xstocks.fi/api/v2/public/assets"),
+    )
+    with patch("app.providers.tokenized.httpx.get", return_value=response):
+        usage = XStocksProvider().fetch_account_usage()
+    assert usage.dimensions[0].reset_at == datetime(2027, 1, 2, 3, 4, 5, 6000, tzinfo=UTC)
 
 
 def test_gate_and_kraken_records_keep_provider_symbols_distinct_from_underlyings():
@@ -371,6 +461,96 @@ def test_tokenized_http_success_error_envelopes_do_not_create_synthetic_records(
             else:
                 BybitXStocksProvider().get_tokenized_price("AAPLx")
     assert exc_info.value.provider_name in {"kraken_xstocks", "bybit_xstocks"}
+
+
+def test_kraken_xstocks_requires_written_authority_before_transport(monkeypatch):
+    monkeypatch.setattr(
+        "app.providers.tokenized.kraken_market_data_use_authority_missing",
+        lambda: ["KRAKEN_MARKET_DATA_USE_AUTHORIZED"],
+    )
+    with patch("app.providers.tokenized.httpx.get") as get:
+        with pytest.raises(ProviderNotConfiguredError, match="written authority"):
+            KrakenXStocksProvider().discover_tokenized_assets(page=0, page_size=1)
+    get.assert_not_called()
+
+
+def test_kraken_xstocks_discovery_recognizes_documented_suffix_marker():
+    response = _response(
+        {
+            "error": [],
+            "result": {
+                "AAPLSPVUSD": {
+                    "wsname": "AAPLx/USD",
+                    "altname": "AAPLxUSD",
+                    "base": "AAPLx",
+                    "quote": "ZUSD",
+                    "status": "online",
+                },
+                "AAPLxUSD": {
+                    "wsname": "AAPLx/USD",
+                    "altname": "AAPLxUSD",
+                    "base": "AAPLx",
+                    "quote": "ZUSD",
+                    "status": "online",
+                },
+                "BOXUSD": {
+                    "wsname": "BOX/USD",
+                    "altname": "BOXUSD",
+                    "base": "BOX",
+                    "quote": "USD",
+                },
+                "FOOXUSD": {
+                    "wsname": "FOOX/USD",
+                    "altname": "FOOXUSD",
+                    "base": "FOOX",
+                    "quote": "USD",
+                },
+            },
+        }
+    )
+    with patch("app.providers.tokenized.httpx.get", return_value=response) as get:
+        assets = KrakenXStocksProvider().discover_tokenized_assets(page=0, page_size=10)
+
+    get.assert_called_once()
+    assert get.call_args.kwargs["params"] == {"aclass_base": "tokenized_asset"}
+    assert [asset.symbol for asset in assets] == ["AAPLxUSD"]
+    assert assets[0].underlying_symbol == "AAPL"
+    assert assets[0].currency == "USD"
+    assert assets[0].raw_payload["instrument"]["provider_pair_keys"] == [
+        "AAPLSPVUSD",
+        "AAPLxUSD",
+    ]
+
+
+def test_kraken_xstocks_price_reads_ticker_once_and_derives_pair_identity():
+    response = _response(
+        {
+            "error": [],
+            "result": {
+                "AAPLxUSD": {
+                    "c": ["202.50", "1.25"],
+                    "b": ["202.40", "5.0"],
+                    "a": ["202.60", "4.0"],
+                }
+            },
+        }
+    )
+    with patch("app.providers.tokenized.httpx.get", return_value=response) as get:
+        price = KrakenXStocksProvider().get_tokenized_price("AAPLxUSD")
+
+    get.assert_called_once()
+    assert get.call_args.args[0] == "https://api.kraken.com/0/public/Ticker"
+    assert get.call_args.kwargs["params"] == {
+        "pair": "AAPLxUSD",
+        "asset_class": "tokenized_asset",
+    }
+    assert price is not None
+    assert price.symbol == "AAPLxUSD"
+    assert price.underlying_symbol == "AAPL"
+    assert price.currency == "USD"
+    assert price.price == Decimal("202.50")
+    assert price.bid == Decimal("202.40")
+    assert price.ask == Decimal("202.60")
 
 
 def test_bybit_success_retcode_and_retmsg_are_not_error_envelope():
@@ -619,9 +799,7 @@ def test_dinari_defaults_to_documented_sandbox_host(monkeypatch):
         "https://user:password@api-enterprise.sandbox.dinari.com/api/v2",
     ],
 )
-def test_dinari_rejects_non_sandbox_or_ambiguous_base_urls_before_http(
-    monkeypatch, base_url
-):
+def test_dinari_rejects_non_sandbox_or_ambiguous_base_urls_before_http(monkeypatch, base_url):
     monkeypatch.setattr(settings, "DINARI_API_BASE_URL", base_url)
     with patch("app.providers.tokenized.httpx.get") as get:
         with pytest.raises(ProviderNotConfiguredError, match="sandbox-canary-only"):
@@ -1257,7 +1435,9 @@ def test_dinari_sandbox_transient_500_uses_bounded_provider_specific_retry(monke
     stock = _dinari_stock()
     failed = httpx.Response(
         500,
-        request=httpx.Request("GET", "https://api-enterprise.sandbox.dinari.com/api/v2/market_data/stocks/"),
+        request=httpx.Request(
+            "GET", "https://api-enterprise.sandbox.dinari.com/api/v2/market_data/stocks/"
+        ),
     )
     recovered = _response({"data": [stock], "pagination_metadata": {"next": None}})
     with patch("app.providers.tokenized.httpx.get", side_effect=[failed, recovered]) as get:
@@ -1266,12 +1446,32 @@ def test_dinari_sandbox_transient_500_uses_bounded_provider_specific_retry(monke
     assert get.call_count == 2
 
 
+def test_dinari_sandbox_canary_does_not_retry_and_spend_extra_requests(monkeypatch):
+    monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "id-secret")
+    monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "secret-value")
+    monkeypatch.setenv("DINARI_SANDBOX_CANARY_RUN", "1")
+    response = httpx.Response(
+        500,
+        request=httpx.Request(
+            "GET", "https://api-enterprise.sandbox.dinari.com/api/v2/market_data/stocks/"
+        ),
+    )
+    with patch("app.providers.tokenized.httpx.get", return_value=response) as get:
+        with pytest.raises(ProviderResponseError) as exc_info:
+            DinariTokenProvider().discover_tokenized_assets(page=0, page_size=1)
+    assert exc_info.value.provider_name == "dinari"
+    assert exc_info.value.status_code == 500
+    assert get.call_count == 1
+
+
 def test_dinari_sandbox_persistent_500_remains_typed_after_retry_bound(monkeypatch):
     monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "id-secret")
     monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "secret-value")
     response = httpx.Response(
         500,
-        request=httpx.Request("GET", "https://api-enterprise.sandbox.dinari.com/api/v2/market_data/stocks/"),
+        request=httpx.Request(
+            "GET", "https://api-enterprise.sandbox.dinari.com/api/v2/market_data/stocks/"
+        ),
     )
     with patch("app.providers.tokenized.httpx.get", return_value=response) as get:
         with pytest.raises(ProviderResponseError) as exc_info:

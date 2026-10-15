@@ -22,6 +22,7 @@ from app.models.provider_runtime import ProviderCapability, ProviderPolicy
 from app.providers.registry import (
     ensure_data_source,
     get_provider_usage_profile,
+    provider_missing_routing_controls,
     supported_provider_names,
 )
 from app.services.provider_routing import (
@@ -93,19 +94,24 @@ def test_registered_providers_are_explicitly_quota_reviewed_or_intentionally_unk
             assert int(dimension["window_seconds"]) > 0, (provider_name, dimension)
 
 
-def test_published_bandwidth_pools_use_conservative_decimal_byte_ceilings():
+def test_published_bandwidth_pools_use_conservative_decimal_byte_ceilings(monkeypatch):
+    monkeypatch.setattr(settings, "TIINGO_REVIEWED_PLAN", "starter")
     assert (
         provider_rate_limit_seed("finra")["quota_contract"]["dimensions"][2]["limit"]
         == 10_000_000_000
     )
+    tiingo_contract = provider_rate_limit_seed("tiingo")["quota_contract"]
     assert (
-        provider_rate_limit_seed("tiingo")["quota_contract"]["untracked_constraints"][0]["limit"]
+        next(item for item in tiingo_contract["dimensions"] if item["unit"] == "bytes")["limit"]
         == 1_000_000_000
     )
-    assert (
-        provider_rate_limit_seed("fmp")["quota_contract"]["untracked_constraints"][0]["limit"]
-        == 500_000_000
+    fmp_contract = provider_rate_limit_seed("fmp")["quota_contract"]
+    fmp_bytes = next(
+        item
+        for item in fmp_contract["dimensions"] + fmp_contract["untracked_constraints"]
+        if item.get("unit") == "bytes"
     )
+    assert fmp_bytes["limit"] == 500_000_000
     for provider_name in ("finra", "tiingo", "fmp"):
         contract = provider_rate_limit_seed(provider_name)["quota_contract"]
         dimensions = contract.get("dimensions", []) + contract.get("untracked_constraints", [])
@@ -116,22 +122,84 @@ def test_published_bandwidth_pools_use_conservative_decimal_byte_ceilings():
         )
 
 
+@pytest.mark.parametrize(
+    ("plan", "call_dimension", "call_limit", "call_window", "bandwidth_limit"),
+    [
+        ("basic", "calls_per_day", 250, 86_400, 500_000_000),
+        ("starter", "calls_per_minute", 300, 60, 20_000_000_000),
+        ("premium", "calls_per_minute", 750, 60, 50_000_000_000),
+        ("ultimate", "calls_per_minute", 3_000, 60, 150_000_000_000),
+    ],
+)
+def test_fmp_quota_contract_uses_the_selected_published_plan(
+    monkeypatch, plan, call_dimension, call_limit, call_window, bandwidth_limit
+):
+    monkeypatch.setattr(settings, "FMP_REVIEWED_PLAN", plan)
+    monkeypatch.setattr(settings, "FMP_OPERATION_BYTE_BOUNDS", {})
+    contract = provider_rate_limit_seed("fmp")["quota_contract"]
+    calls = [
+        item
+        for item in contract["dimensions"]
+        if item["name"] in {"calls_per_day", "calls_per_minute"}
+    ]
+    assert contract["account_usage_bootstrap"]["reconciled_dimensions"] == [
+        call_dimension,
+        "bandwidth_bytes_per_30_days",
+    ]
+    expected_reset = "provider_defined"
+    assert calls == [
+        {
+            "name": call_dimension,
+            "limit": call_limit,
+            "window_seconds": call_window,
+            "unit": "requests",
+            "scope": "api_key",
+            "quota_group": "api_key",
+            "source": (
+                "https://site.financialmodelingprep.com/pricing-plans; "
+                "https://site.financialmodelingprep.com/faqs"
+            ),
+            "reset": expected_reset,
+            "safety_reset": "rolling",
+        }
+    ]
+    bandwidth = next(
+        item
+        for item in contract["untracked_constraints"]
+        if item["name"] == "bandwidth_bytes_per_30_days"
+    )
+    assert bandwidth["limit"] == bandwidth_limit
+    assert bandwidth["window_seconds"] == 30 * 24 * 60 * 60
+    assert bandwidth["reset"] == "rolling_30_days"
+
+
 def test_xstocks_and_bybit_public_quota_contracts_are_explicit_and_provider_scoped():
     xstocks = provider_rate_limit_seed("xstocks")["quota_contract"]
     assert (xstocks.get("unknown_dimensions") or []) == []
-    assert xstocks["dimensions"] == [
-        {
-            "name": "public_requests_per_minute",
-            "limit": 1000,
-            "window_seconds": 60,
-            "unit": "requests",
-            "scope": "public_api",
-            "quota_group": "public_api",
-            "source": "https://docs.xstocks.fi/apis/openapi",
-            "evidence": "The public assets and corporate-actions endpoints returned the same X-RateLimit-Limit/Remaining/Reset window (limit 1000) during bounded live validation on 2026-09-14.",
-            "verified_at": "2026-09-14",
-        }
-    ]
+    public_dimension = next(
+        item for item in xstocks["dimensions"] if item["name"] == "public_requests_per_minute"
+    )
+    assert public_dimension == {
+        "name": "public_requests_per_minute",
+        "limit": 1000,
+        "window_seconds": 60,
+        "unit": "requests",
+        "scope": "public_api",
+        "quota_group": "public_api",
+        "source": "https://docs.xstocks.fi/apis/openapi",
+        "evidence": "The public assets and corporate-actions endpoints returned the same X-RateLimit-Limit/Remaining/Reset window (limit 1000) during bounded live validation on 2026-09-14.",
+        "verified_at": "2026-09-14",
+    }
+    assert any(
+        item["name"] == "account_usage_probe_concurrency"
+        and item["applies_to_operations"] == ["fetch_account_usage"]
+        for item in xstocks["dimensions"]
+    )
+    assert xstocks["account_usage_bootstrap"] == {
+        "enabled": True,
+        "source": "application_policy:provider_native_baseline_bootstrap",
+        "reconciled_dimensions": ["public_requests_per_minute"],
+    }
     assert xstocks["reset"] == "rolling"
 
     bybit = provider_rate_limit_seed("bybit_xstocks")["quota_contract"]
@@ -140,14 +208,20 @@ def test_xstocks_and_bybit_public_quota_contracts_are_explicit_and_provider_scop
     assert bybit["dimensions"][0]["limit"] == 600
     assert bybit["dimensions"][0]["window_seconds"] == 5
     assert bybit["dimensions"][0]["scope"] == "ip"
+    assert bybit["dimensions"][0]["baseline_mode"] == "local_zero"
+    assert bybit["dimensions"][0]["application_usage_only"] is True
     assert bybit.get("provider_headers_required") is not True
 
 
 def test_provider_seeds_do_not_reintroduce_generic_limiter_defaults():
     """Production seeds must not silently resurrect the retired fallback policy."""
 
+    provider_specific_cooldowns = {"edgar": 600, "massive": 60}
     for provider_name, seed in settings.PROVIDER_RATE_LIMIT_SEEDS.items():
-        assert "cooldown_seconds" not in seed, provider_name
+        if provider_name in provider_specific_cooldowns:
+            assert seed.get("cooldown_seconds") == provider_specific_cooldowns[provider_name]
+        else:
+            assert "cooldown_seconds" not in seed, provider_name
         assert "max_concurrency" not in seed, provider_name
 
     # Coinbase's burst is an explicitly documented provider-native exception,
@@ -162,11 +236,7 @@ def test_provider_seeds_do_not_reintroduce_generic_limiter_defaults():
 def test_every_native_usage_bootstrap_seed_maps_finite_provider_pools():
     for provider_name, seed in settings.PROVIDER_RATE_LIMIT_SEEDS.items():
         contract = seed.get("quota_contract")
-        bootstrap = (
-            contract.get("account_usage_bootstrap")
-            if isinstance(contract, dict)
-            else None
-        )
+        bootstrap = contract.get("account_usage_bootstrap") if isinstance(contract, dict) else None
         if not isinstance(bootstrap, dict) or bootstrap.get("enabled") is not True:
             continue
         policy = SimpleNamespace(
@@ -176,7 +246,12 @@ def test_every_native_usage_bootstrap_seed_maps_finite_provider_pools():
         assert account_usage_reconciled_dimensions(policy), provider_name
 
 
-def test_alpaca_native_minute_pool_uses_rolling_safety_envelope():
+def test_alpaca_native_minute_pool_uses_rolling_safety_envelope(monkeypatch):
+    # Provider-specific local account overrides must not make this default
+    # contract test depend on the developer's private environment file.
+    monkeypatch.setattr(settings, "MASSIVE_REVIEWED_RESET", "")
+    monkeypatch.setattr(settings, "MASSIVE_QUOTA_EVIDENCE", "")
+
     alpaca = provider_rate_limit_seed("alpaca")["quota_contract"]
     assert alpaca["dimensions"][0]["limit"] == 200
     assert alpaca["reset"] == "rolling"
@@ -192,10 +267,13 @@ def test_alpaca_native_minute_pool_uses_rolling_safety_envelope():
         quota_source="Alpaca market data API documentation",
         quota_contract=alpaca,
     )
-    assert "quota_contract.dimensions[0].reset.unresolved" not in quota_contract_missing_dimensions(policy)
+    assert "quota_contract.dimensions[0].reset.unresolved" not in quota_contract_missing_dimensions(
+        policy
+    )
 
     massive = provider_rate_limit_seed("massive")["quota_contract"]
     assert massive["dimensions"][0]["limit"] == 5
+    assert provider_rate_limit_seed("massive")["cooldown_seconds"] == 60
     assert massive["reset"] == "provider_defined"
     assert massive["unknown_dimensions"] == ["requests_per_minute_reset_boundary"]
 
@@ -203,24 +281,50 @@ def test_alpaca_native_minute_pool_uses_rolling_safety_envelope():
     assert edgar["dimensions"][0]["limit"] == 10
     assert edgar["reset"] == "provider_defined"
     assert edgar["unknown_dimensions"] == ["requests_per_second_reset_boundary"]
+    assert provider_rate_limit_seed("edgar")["cooldown_seconds"] == 600
 
     alpha = provider_rate_limit_seed("alpha_vantage")["quota_contract"]
-    assert alpha["dimensions"][0]["limit"] == 25
+    assert [item["limit"] for item in alpha["dimensions"]] == [1, 5, 25]
+    alpha_minute = next(
+        item for item in alpha["dimensions"] if item["name"] == "requests_per_minute"
+    )
+    alpha_second = next(
+        item for item in alpha["dimensions"] if item["name"] == "requests_per_second"
+    )
+    alpha_day = next(item for item in alpha["dimensions"] if item["name"] == "requests_per_day")
+    assert "current-key live capacity response" in alpha_minute["source"]
+    assert "alphavantage.co/stock-price-tracker" not in alpha_minute["source"]
+    for dimension in (alpha_second, alpha_minute, alpha_day):
+        assert dimension["baseline_mode"] == "local_zero"
+        assert dimension["application_usage_only"] is True
     assert alpha["reset"] == "provider_defined"
-    assert alpha["unknown_dimensions"] == ["requests_per_day_reset_boundary"]
+    assert alpha["unknown_dimensions"] == [
+        "requests_per_second_reset_boundary",
+        "requests_per_minute_reset_boundary",
+        "requests_per_day_reset_boundary",
+    ]
 
     for provider_name, dimension_name in (
         ("massive", "requests_per_minute"),
         ("edgar", "requests_per_second"),
+        ("alpha_vantage", "requests_per_second"),
+        ("alpha_vantage", "requests_per_minute"),
         ("alpha_vantage", "requests_per_day"),
     ):
         contract = provider_rate_limit_seed(provider_name)["quota_contract"]
         dimension = next(item for item in contract["dimensions"] if item["name"] == dimension_name)
-        assert dimension.get("reset") is None
+        expected_reset = (
+            "provider_defined"
+            if provider_name == "alpha_vantage"
+            and dimension_name in {"requests_per_second", "requests_per_minute"}
+            else None
+        )
+        assert dimension.get("reset") == expected_reset
         assert dimension["safety_reset"] == "rolling"
-        assert provider_quota_admission_reset(
-            dimension.get("reset"), dimension["safety_reset"]
-        ) == "rolling"
+        assert (
+            provider_quota_admission_reset(dimension.get("reset"), dimension["safety_reset"])
+            == "rolling"
+        )
         policy = ProviderPolicy(
             data_source_id=1,
             capability=ProviderCapability.PRICE_HISTORY,
@@ -235,7 +339,8 @@ def test_alpaca_native_minute_pool_uses_rolling_safety_envelope():
     assert all(item["safety_reset"] == "rolling" for item in finnhub["dimensions"])
 
 
-def test_provider_quota_admission_reset_never_invents_a_boundary():
+def test_provider_quota_admission_reset_never_invents_a_boundary(monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK", False)
     assert provider_quota_admission_reset("provider_defined", "") == "provider_defined"
     assert provider_quota_admission_reset("provider_defined", "not-a-reset") == "provider_defined"
     assert provider_quota_admission_reset("rolling", "fixed_minute") == "rolling"
@@ -257,13 +362,57 @@ def test_massive_reviewed_reset_promotes_only_explicit_evidence(monkeypatch):
     contract = provider_rate_limit_seed("massive")["quota_contract"]
     assert contract["reset"] == "rolling"
     assert contract["unknown_dimensions"] == []
-    assert contract["dimensions"][0]["reset"] == "rolling"
+    assert all(dimension["reset"] == "rolling" for dimension in contract["dimensions"])
 
     monkeypatch.setattr(settings, "MASSIVE_REVIEWED_RESET", "fixed_minute")
     monkeypatch.setattr(settings, "MASSIVE_QUOTA_EVIDENCE", "")
     contract = provider_rate_limit_seed("massive")["quota_contract"]
     assert contract["reset"] == "provider_defined"
     assert contract["unknown_dimensions"] == ["requests_per_minute_reset_boundary"]
+
+
+def test_massive_stock_and_reference_operations_share_asset_class_quota(monkeypatch):
+    seed = provider_rate_limit_seed("massive")
+    dimensions = seed["quota_contract"]["dimensions"]
+    assert [dimension["name"] for dimension in dimensions] == ["requests_per_minute"]
+    assert dimensions[0]["quota_group"] == "stocks"
+    assert dimensions[0]["scope"] == "account"
+    assert dimensions[0]["limit"] == 5
+    assert dimensions[0]["baseline_mode"] == "local_zero"
+    assert dimensions[0]["application_usage_only"] is True
+    assert dimensions[0]["safety_reset"] == "rolling"
+    assert dimensions[0]["applies_to_operations"] == [
+        "search_instruments",
+        "discover_universe_page",
+        "reconcile_universe_page",
+        "get_instrument_profile",
+        "fetch_ohlcv",
+        "fetch_latest_ohlcv",
+        "fetch_instrument_events",
+        "fetch_market_events",
+        "fetch_market_events_page",
+        "fetch_market_holidays",
+    ]
+
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_scope=seed["quota_scope"],
+        quota_source=seed["quota_source"],
+        quota_contract=seed["quota_contract"],
+    )
+    source = DataSource(
+        name="massive", config={"usage_tracking": get_provider_usage_profile("massive")}
+    )
+    assert _dimension_costs_for_operation(
+        policy, source, "reconcile_universe_page:A:0", default_units=1
+    ) == {"requests_per_minute": 1}
+    assert _dimension_costs_for_operation(
+        policy, source, "fetch_instrument_events", default_units=2
+    ) == {"requests_per_minute": 2}
+    assert _dimension_costs_for_operation(
+        policy, source, "fetch_market_holidays", default_units=1
+    ) == {"requests_per_minute": 1}
 
 
 def test_edgar_reviewed_reset_promotes_only_explicit_evidence(monkeypatch):
@@ -303,17 +452,30 @@ def test_alpha_vantage_reviewed_reset_promotes_only_explicit_evidence(monkeypatc
     monkeypatch.setattr(settings, "ALPHA_VANTAGE_QUOTA_EVIDENCE", "operator review")
     contract = provider_rate_limit_seed("alpha_vantage")["quota_contract"]
     assert contract["reset"] == "calendar_day_utc"
-    assert contract["unknown_dimensions"] == []
-    assert contract["dimensions"][0]["reset"] == "calendar_day_utc"
+    assert contract["unknown_dimensions"] == [
+        "requests_per_second_reset_boundary",
+        "requests_per_minute_reset_boundary",
+    ]
+    second = next(item for item in contract["dimensions"] if item["name"] == "requests_per_second")
+    minute = next(item for item in contract["dimensions"] if item["name"] == "requests_per_minute")
+    daily = next(item for item in contract["dimensions"] if item["name"] == "requests_per_day")
+    assert second["reset"] == "provider_defined"
+    assert minute["reset"] == "provider_defined"
+    assert daily["reset"] == "calendar_day_utc"
 
     monkeypatch.setattr(settings, "ALPHA_VANTAGE_REVIEWED_RESET", "rolling")
     monkeypatch.setattr(settings, "ALPHA_VANTAGE_QUOTA_EVIDENCE", "")
     contract = provider_rate_limit_seed("alpha_vantage")["quota_contract"]
     assert contract["reset"] == "provider_defined"
-    assert contract["unknown_dimensions"] == ["requests_per_day_reset_boundary"]
+    assert contract["unknown_dimensions"] == [
+        "requests_per_second_reset_boundary",
+        "requests_per_minute_reset_boundary",
+        "requests_per_day_reset_boundary",
+    ]
 
 
 def test_fred_reset_requires_independent_current_evidence(monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK", False)
     monkeypatch.setattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "api_key")
     monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 120)
     monkeypatch.setattr(settings, "FRED_REVIEWED_QUOTA_EVIDENCE", "provider-confirmed scope")
@@ -335,6 +497,7 @@ def test_fred_reset_requires_independent_current_evidence(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_seed_records_fred_v1_numeric_limit_without_applying_v2(db, monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK", False)
     monkeypatch.setattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "")
     monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 0)
     monkeypatch.setattr(settings, "FRED_REVIEWED_QUOTA_EVIDENCE", "")
@@ -364,6 +527,8 @@ async def test_seed_records_fred_v1_numeric_limit_without_applying_v2(db, monkey
             "scope": "provider_defined",
             "source": "https://fred.stlouisfed.org/docs/api/fred/errors.html",
             "reset": "provider_defined",
+            "baseline_mode": "local_zero",
+            "application_usage_only": True,
         }
     ]
     assert {
@@ -389,11 +554,16 @@ async def test_seed_records_fred_v1_numeric_limit_without_applying_v2(db, monkey
 async def test_reviewed_fred_controls_promote_only_the_explicit_conservative_contract(
     db, monkeypatch
 ):
+    monkeypatch.setattr(settings, "PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK", False)
     monkeypatch.setattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "api_key")
     monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 120)
     monkeypatch.setattr(settings, "FRED_REVIEWED_QUOTA_EVIDENCE", "provider-confirmed scope")
     monkeypatch.setattr(settings, "FRED_REVIEWED_RESET", "rolling")
     monkeypatch.setattr(settings, "FRED_RESET_EVIDENCE", "current provider/account review")
+    monkeypatch.setattr(settings, "FRED_APPLICATION_USER_SCOPE", "owner_personal_only")
+    monkeypatch.setattr(
+        settings, "FRED_APPLICATION_USER_SCOPE_EVIDENCE", "single owner personal deployment"
+    )
     monkeypatch.setattr(settings, "FRED_PERSISTED_STORAGE_AUTHORIZED", True)
     monkeypatch.setattr(
         settings,
@@ -430,7 +600,21 @@ async def test_reviewed_fred_controls_promote_only_the_explicit_conservative_con
 
 
 @pytest.mark.asyncio
-async def test_seeded_tiingo_and_fmp_bandwidth_pools_remain_non_routable(db):
+async def test_tiingo_and_fmp_seeded_byte_budgets_are_routable(db, monkeypatch):
+    monkeypatch.setattr(
+        settings,
+        "FMP_OPERATION_BYTE_BOUNDS",
+        {
+            "fetch_ohlcv": 1_048_576,
+            "fetch_latest_ohlcv": 1_048_576,
+            "get_current_price": 65_536,
+            "bulk_fetch": 1_048_576,
+            "get_instrument_profile": 262_144,
+            "fetch_market_events": 8_388_608,
+            "discover_universe_page": 33_554_432,
+            "fetch_account_usage": 65_536,
+        },
+    )
     async_db = AsyncSessionAdapter(db)
     await seed_provider_runtime(async_db)
 
@@ -442,12 +626,20 @@ async def test_seeded_tiingo_and_fmp_bandwidth_pools_remain_non_routable(db):
                 ProviderPolicy.capability == ProviderCapability.PRICE_HISTORY,
             )
         ).scalar_one()
-        assert not policy_has_known_quota(policy)
-        assert policy.quota_verified_at is None
-        assert any(
-            item.startswith("quota_contract.untracked_constraints.bandwidth_bytes")
-            for item in quota_contract_missing_dimensions(policy)
-        )
+        if provider_name == "tiingo":
+            assert policy_has_known_quota(policy)
+            assert policy.quota_verified_at is not None
+            assert not any(
+                item.startswith("quota_contract.untracked_constraints.bandwidth_bytes")
+                for item in quota_contract_missing_dimensions(policy)
+            )
+        else:
+            assert policy_has_known_quota(policy)
+            assert policy.quota_verified_at is not None
+            assert not any(
+                item.startswith("quota_contract.untracked_constraints.bandwidth_bytes")
+                for item in quota_contract_missing_dimensions(policy)
+            )
 
 
 @pytest.mark.asyncio
@@ -562,29 +754,41 @@ def test_unresolved_provider_reset_cannot_be_converted_to_a_local_window():
         )
 
 
-def test_fmp_daily_reset_uses_three_pm_eastern_boundary_across_the_day():
+def test_fmp_documented_daily_reset_uses_fixed_est_boundary_across_the_day():
     dimension = {
         "name": "calls_per_day",
         "limit": 250,
         "window_seconds": 86400,
         "unit": "requests",
         "source": "FMP official FAQ",
-        "reset": "15:00 America/New_York",
+        "reset": "15:00 UTC-05:00",
     }
     before_reset, rolling_before = _window_start_for_dimension(
         dimension,
-        reset="15:00 America/New_York",
+        reset="15:00 UTC-05:00",
         now=datetime(2026, 1, 15, 19, 30, tzinfo=UTC),
     )
     after_reset, rolling_after = _window_start_for_dimension(
         dimension,
-        reset="15:00 America/New_York",
+        reset="15:00 UTC-05:00",
         now=datetime(2026, 1, 15, 20, 30, tzinfo=UTC),
     )
     assert before_reset == datetime(2026, 1, 14, 20, tzinfo=UTC)
     assert after_reset == datetime(2026, 1, 15, 20, tzinfo=UTC)
     assert rolling_before is False
     assert rolling_after is False
+    summer_before, _ = _window_start_for_dimension(
+        dimension,
+        reset="15:00 UTC-05:00",
+        now=datetime(2026, 7, 15, 19, 30, tzinfo=UTC),
+    )
+    summer_after, _ = _window_start_for_dimension(
+        dimension,
+        reset="15:00 UTC-05:00",
+        now=datetime(2026, 7, 15, 20, 30, tzinfo=UTC),
+    )
+    assert summer_before == datetime(2026, 7, 14, 20, tzinfo=UTC)
+    assert summer_after == datetime(2026, 7, 15, 20, tzinfo=UTC)
 
 
 def test_per_dimension_without_dimension_reset_is_not_a_window():
@@ -604,6 +808,7 @@ def test_per_dimension_without_dimension_reset_is_not_a_window():
 
 
 def test_tiingo_byte_pool_uses_provider_scoped_reset_safety_envelopes(monkeypatch):
+    monkeypatch.setattr(settings, "TIINGO_REVIEWED_PLAN", "starter")
     bounds = {
         "fetch_ohlcv": 1_000_000,
         "fetch_latest_ohlcv": 1_000_000,
@@ -624,16 +829,20 @@ def test_tiingo_byte_pool_uses_provider_scoped_reset_safety_envelopes(monkeypatc
         "unique_symbols_reset_anchor",
         "requests_per_hour_reset_boundary_model",
     ]
-    assert next(
-        item
-        for item in safety_contract["dimensions"]
-        if item["name"] == "unique_symbols_per_month"
-    )["safety_reset"] == "rolling_31_days"
-    assert next(
-        item
-        for item in safety_contract["dimensions"]
-        if item["name"] == "requests_per_hour"
-    )["safety_reset"] == "rolling"
+    assert (
+        next(
+            item
+            for item in safety_contract["dimensions"]
+            if item["name"] == "unique_symbols_per_month"
+        )["safety_reset"]
+        == "rolling_31_days"
+    )
+    assert (
+        next(item for item in safety_contract["dimensions"] if item["name"] == "requests_per_hour")[
+            "safety_reset"
+        ]
+        == "rolling"
+    )
     assert safety_seed["_byte_reservation_bounds"] == bounds
 
     monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", {"fetch_ohlcv": 1_000_000})
@@ -689,7 +898,56 @@ def test_tiingo_byte_pool_uses_provider_scoped_reset_safety_envelopes(monkeypatc
     assert seed["quota_contract"].get("untracked_constraints")
 
 
-def test_fmp_byte_pool_uses_documented_trailing_window_and_daily_reset(monkeypatch):
+@pytest.mark.parametrize(
+    ("plan", "expected"),
+    [
+        ("starter", (500, 50, 1_000, 1_000_000_000)),
+        ("power", (110_237, 10_000, 100_000, 40_000_000_000)),
+    ],
+)
+def test_tiingo_published_plan_limits_are_configuration_driven(monkeypatch, plan, expected):
+    monkeypatch.setattr(settings, "TIINGO_REVIEWED_PLAN", plan)
+    seed = provider_rate_limit_seed("tiingo")
+    contract = seed["quota_contract"]
+    dimensions = {item["name"]: item for item in contract["dimensions"]}
+    bandwidth = next(
+        item
+        for item in contract["dimensions"] + contract["untracked_constraints"]
+        if item["name"] == "bandwidth_bytes_per_month"
+    )
+    assert dimensions["unique_symbols_per_month"]["limit"] == expected[0]
+    assert dimensions["requests_per_hour"]["limit"] == expected[1]
+    assert dimensions["requests_per_day"]["limit"] == expected[2]
+    assert bandwidth["limit"] == expected[3]
+    assert contract["account_plan"] == plan
+
+
+def test_tiingo_custom_plan_requires_all_exact_limits_and_evidence(monkeypatch):
+    monkeypatch.setattr(settings, "TIINGO_REVIEWED_PLAN", "custom")
+    monkeypatch.setattr(settings, "TIINGO_CUSTOM_UNIQUE_SYMBOLS_PER_MONTH", 0)
+    monkeypatch.setattr(settings, "TIINGO_CUSTOM_REQUESTS_PER_HOUR", 0)
+    monkeypatch.setattr(settings, "TIINGO_CUSTOM_REQUESTS_PER_DAY", 0)
+    monkeypatch.setattr(settings, "TIINGO_CUSTOM_BANDWIDTH_BYTES_PER_MONTH", 0)
+    monkeypatch.setattr(settings, "TIINGO_CUSTOM_QUOTA_EVIDENCE", "")
+    blocked = provider_rate_limit_seed("tiingo")["quota_contract"]
+    assert blocked["dimensions"] == []
+    assert blocked["unknown_dimensions"] == ["custom_account_quota_values_or_evidence"]
+
+    monkeypatch.setattr(settings, "TIINGO_CUSTOM_UNIQUE_SYMBOLS_PER_MONTH", 2_000)
+    monkeypatch.setattr(settings, "TIINGO_CUSTOM_REQUESTS_PER_HOUR", 500)
+    monkeypatch.setattr(settings, "TIINGO_CUSTOM_REQUESTS_PER_DAY", 10_000)
+    monkeypatch.setattr(settings, "TIINGO_CUSTOM_BANDWIDTH_BYTES_PER_MONTH", 5_000_000_000)
+    monkeypatch.setattr(settings, "TIINGO_CUSTOM_QUOTA_EVIDENCE", "account plan readout")
+    configured = provider_rate_limit_seed("tiingo")["quota_contract"]
+    dimensions = {item["name"]: item for item in configured["dimensions"]}
+    assert dimensions["unique_symbols_per_month"]["limit"] == 2_000
+    assert dimensions["requests_per_hour"]["limit"] == 500
+    assert dimensions["requests_per_day"]["limit"] == 10_000
+    assert dimensions["bandwidth_bytes_per_month"]["limit"] == 5_000_000_000
+    assert configured["plan_evidence"] == "account plan readout"
+
+
+def test_fmp_byte_pool_uses_rolling_call_safety_and_trailing_bandwidth(monkeypatch):
     bounds = {
         "fetch_ohlcv": 1_000_000,
         "fetch_latest_ohlcv": 1_000_000,
@@ -698,30 +956,76 @@ def test_fmp_byte_pool_uses_documented_trailing_window_and_daily_reset(monkeypat
         "get_instrument_profile": 100_000,
         "fetch_market_events": 100_000,
         "discover_universe_page": 100_000,
+        "fetch_account_usage": 65_536,
     }
     monkeypatch.setattr(settings, "FMP_OPERATION_BYTE_BOUNDS", bounds)
     monkeypatch.setattr(settings, "FMP_REVIEWED_DAILY_RESET", "")
     monkeypatch.setattr(settings, "FMP_REVIEWED_BANDWIDTH_RESET", "")
-    monkeypatch.setattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "")
+    monkeypatch.setattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "current plan evidence")
     monkeypatch.setattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "current plan evidence")
-    blocked = provider_rate_limit_seed("fmp")
-    assert blocked["quota_contract"]["untracked_constraints"]
+    promoted = provider_rate_limit_seed("fmp")
+    contract = promoted["quota_contract"]
+    assert contract["untracked_constraints"] == []
+    assert contract["unknown_dimensions"] == []
+    daily = next(item for item in contract["dimensions"] if item["name"] == "calls_per_day")
+    assert daily["reset"] == "provider_defined"
+    assert daily["safety_reset"] == "rolling"
+    bandwidth = next(
+        item for item in contract["dimensions"] if item["name"] == "bandwidth_bytes_per_30_days"
+    )
+    assert bandwidth["reset"] == "rolling_30_days"
+    assert contract["account_usage_bootstrap"]["enabled"] is True
+    assert set(contract["account_usage_bootstrap"]["reconciled_dimensions"]) == {
+        "calls_per_day",
+        "bandwidth_bytes_per_30_days",
+    }
+    concurrency = next(
+        item for item in contract["dimensions"] if item["name"] == "account_usage_probe_concurrency"
+    )
+    assert concurrency["applies_to_operations"] == ["fetch_account_usage"]
+    assert promoted["_byte_reservation_bounds"] == bounds
+
+    profile = get_provider_usage_profile("fmp")
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_scope=promoted["quota_scope"],
+        quota_source=promoted["quota_source"],
+        quota_contract=contract,
+    )
+    source = DataSource(name="fmp", config={"usage_tracking": profile})
+    assert profile["operation_costs"]["fetch_account_usage"] == 1
+    assert (
+        profile["dimension_costs"]["bandwidth_bytes_per_30_days"]["fetch_account_usage"] == 65_536
+    )
+    assert (
+        _dimension_costs_for_operation(policy, source, "fetch_ohlcv:D1", default_units=3)[
+            "bandwidth_bytes_per_30_days"
+        ]
+        == 3_000_000
+    )
 
     monkeypatch.setattr(settings, "FMP_REVIEWED_DAILY_RESET", "calendar_day_utc")
-    monkeypatch.setattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "current account evidence")
+    monkeypatch.setattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "current plan/account evidence")
     promoted = provider_rate_limit_seed("fmp")
     contract = promoted["quota_contract"]
     assert contract["untracked_constraints"] == []
     assert contract["unknown_dimensions"] == []
     daily = next(item for item in contract["dimensions"] if item["name"] == "calls_per_day")
     assert daily["reset"] == "calendar_day_utc"
+    assert "safety_reset" not in daily
     assert contract["reset"] == "calendar_day_utc"
     assert promoted["_byte_reservation_bounds"] == bounds
 
     monkeypatch.setattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "")
-    blocked = provider_rate_limit_seed("fmp")["quota_contract"]
-    assert blocked["untracked_constraints"]
-    assert blocked["unknown_dimensions"] == ["daily_reset_source_conflict"]
+    documented = provider_rate_limit_seed("fmp")["quota_contract"]
+    assert documented["untracked_constraints"] == []
+    assert documented["unknown_dimensions"] == []
+    assert any(
+        item["name"] == "bandwidth_bytes_per_30_days"
+        and "financialmodelingprep.com/developer/docs/pricing" in item["source"]
+        for item in documented["dimensions"]
+    )
 
     monkeypatch.setattr(settings, "FMP_REVIEWED_DAILY_RESET", "calendar_day_utc")
     monkeypatch.setattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "current account evidence")
@@ -731,33 +1035,70 @@ def test_fmp_byte_pool_uses_documented_trailing_window_and_daily_reset(monkeypat
     assert contract["unknown_dimensions"] == []
     assert contract["untracked_constraints"] == []
     assert contract["reset"] == "calendar_day_utc"
-    assert next(item for item in contract["dimensions"] if item["name"] == "calls_per_day")["reset"] == "calendar_day_utc"
-    assert next(item for item in contract["dimensions"] if item["name"] == "bandwidth_bytes_per_30_days")["reset"] == "rolling_30_days"
+    assert (
+        next(item for item in contract["dimensions"] if item["name"] == "calls_per_day")["reset"]
+        == "calendar_day_utc"
+    )
+    assert (
+        next(
+            item for item in contract["dimensions"] if item["name"] == "bandwidth_bytes_per_30_days"
+        )["reset"]
+        == "rolling_30_days"
+    )
     assert promoted["_byte_reservation_bounds"] == bounds
 
     monkeypatch.setattr(settings, "FMP_REVIEWED_BANDWIDTH_RESET", "not-a-reset")
-    assert "bandwidth_bytes_per_30_days" in provider_rate_limit_seed("fmp")["quota_contract"]["untracked_constraints"][0]["name"]
+    assert (
+        "bandwidth_bytes_per_30_days"
+        in provider_rate_limit_seed("fmp")["quota_contract"]["untracked_constraints"][0]["name"]
+    )
 
 
-def test_marketstack_monthly_limit_and_reset_require_account_review(monkeypatch):
+def test_marketstack_free_plan_uses_conservative_rolling_window(monkeypatch):
     monkeypatch.setattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_LIMIT", 0)
     monkeypatch.setattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_RESET", "")
     monkeypatch.setattr(settings, "MARKETSTACK_QUOTA_EVIDENCE", "")
-    blocked = provider_rate_limit_seed("marketstack")["quota_contract"]
-    assert blocked["unknown_dimensions"] == [
-        "published_monthly_limit_conflict",
+    free = provider_rate_limit_seed("marketstack")["quota_contract"]
+    assert free["unknown_dimensions"] == [
         "monthly_cap_reset_boundary",
+        "requests_per_second_reset_boundary",
     ]
+    assert free["dimensions"][0]["limit"] == 100
+    assert free["dimensions"][0]["safety_reset"] == "rolling_30_days"
+    assert free["dimensions"][0]["safety_resolves_unknown_dimensions"] == [
+        "monthly_cap_reset_boundary"
+    ]
+    per_second = next(item for item in free["dimensions"] if item["name"] == "requests_per_second")
+    assert per_second["limit"] == 5
+    assert per_second["window_seconds"] == 1
+    assert per_second["safety_reset"] == "rolling"
+    assert free["source_conflicts"][0]["claim"] == "1,000 requests per month"
 
     monkeypatch.setattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_LIMIT", 10_000)
-    monkeypatch.setattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_RESET", "calendar_month_utc")
     monkeypatch.setattr(settings, "MARKETSTACK_QUOTA_EVIDENCE", "current paid-plan review")
     promoted = provider_rate_limit_seed("marketstack")["quota_contract"]
-    assert promoted["unknown_dimensions"] == []
-    assert promoted["reset"] == "calendar_month_utc"
-    dimension = next(item for item in promoted["dimensions"] if item["name"] == "requests_per_month")
+    assert promoted["unknown_dimensions"] == [
+        "monthly_cap_reset_boundary",
+        "requests_per_second_reset_boundary",
+    ]
+    assert promoted["reset"] == "per_dimension"
+    dimension = next(
+        item for item in promoted["dimensions"] if item["name"] == "requests_per_month"
+    )
     assert dimension["limit"] == 10_000
-    assert dimension["reset"] == "calendar_month_utc"
+    assert dimension["safety_reset"] == "rolling_30_days"
+
+    monkeypatch.setattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_RESET", "calendar_month_utc")
+    native_reset = provider_rate_limit_seed("marketstack")["quota_contract"]
+    assert native_reset["unknown_dimensions"] == ["requests_per_second_reset_boundary"]
+    assert native_reset["reset"] == "per_dimension"
+    assert native_reset["dimensions"][0]["reset"] == "calendar_month_utc"
+    assert (
+        next(item for item in native_reset["dimensions"] if item["name"] == "requests_per_second")[
+            "reset"
+        ]
+        == "provider_defined"
+    )
 
 
 def test_finra_async_download_requires_positive_bound_for_monthly_reservation(monkeypatch):
@@ -795,6 +1136,7 @@ def test_finra_async_boolean_bound_does_not_promote_bandwidth_profile(monkeypatc
 
 
 def test_fred_quota_review_alone_does_not_authorize_persisted_usage(monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK", False)
     monkeypatch.setattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "api_key")
     monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 60)
     monkeypatch.setattr(settings, "FRED_REVIEWED_QUOTA_EVIDENCE", "provider-confirmed scope")
@@ -809,7 +1151,15 @@ def test_fred_quota_review_alone_does_not_authorize_persisted_usage(monkeypatch)
 def test_finra_authenticated_dataset_usage_covers_cold_oauth_token_request():
     profile = get_provider_usage_profile("finra")
     assert profile["operation_costs"]["fetch_short_interest"] == 2
-    assert profile["operation_costs"]["fetch_market_events"] == 2
+    assert profile["operation_costs"]["fetch_market_events"] == 3
+    assert (
+        profile["dimension_costs"]["download_bytes_per_calendar_month"]["fetch_short_interest"]
+        == 3_000_000
+    )
+    assert (
+        profile["dimension_costs"]["download_bytes_per_calendar_month"]["fetch_market_events"]
+        == 6_000_000
+    )
 
 
 def test_edgar_metadata_and_events_cover_cold_ticker_directory_lookup():
@@ -1077,6 +1427,44 @@ def test_ip_ban_status_is_typed_as_provider_capacity_failure():
     assert isinstance(typed, ProviderRateLimitError)
     assert typed.status_code == 418
     assert typed.scope == "ip"
+
+
+@pytest.mark.parametrize(
+    "status_code,body",
+    [
+        (429, b"Too Many Requests"),
+        (403, b"Request Rate Threshold Exceeded"),
+    ],
+)
+def test_edgar_rate_blocks_without_retry_after_hold_scope_for_ten_minutes(status_code, body):
+    response = httpx.Response(
+        status_code,
+        content=body,
+        request=httpx.Request("GET", "https://www.sec.gov/files/company_tickers.json"),
+    )
+    exc = httpx.HTTPStatusError(
+        f"{status_code} SEC response", request=response.request, response=response
+    )
+
+    before = datetime.now(UTC) + timedelta(minutes=9, seconds=59)
+    typed = provider_rate_limit_error("edgar", exc, scope="ip")
+    after = datetime.now(UTC) + timedelta(minutes=10, seconds=1)
+
+    assert isinstance(typed, ProviderRateLimitError)
+    assert typed.status_code == status_code
+    assert typed.scope == "ip"
+    assert typed.retry_at is not None
+    assert before <= typed.retry_at <= after
+
+
+def test_non_rate_edgar_forbidden_response_is_not_misclassified():
+    response = httpx.Response(
+        403,
+        content=b"Forbidden",
+        request=httpx.Request("GET", "https://www.sec.gov/files/company_tickers.json"),
+    )
+    exc = httpx.HTTPStatusError("403 Forbidden", request=response.request, response=response)
+    assert provider_rate_limit_error("edgar", exc, scope="ip") is None
 
 
 def test_existing_typed_capacity_error_is_preserved_for_durable_event_recording():
@@ -1454,19 +1842,25 @@ def test_binance_only_admits_operations_with_exact_documented_weights():
     assert not provider_contract_operation_cost_known(policy, source, "fetch_ohlcv:1d")
 
 
-def test_marketstack_and_ibkr_use_provider_specific_pacing_contracts():
+def test_marketstack_and_ibkr_use_provider_specific_pacing_contracts(monkeypatch):
     marketstack = settings.PROVIDER_RATE_LIMIT_SEEDS["marketstack"]["quota_contract"]
     assert marketstack["dimensions"][0]["limit"] == 100
     assert marketstack["dimensions"][0]["window_seconds"] == 2_592_000
-    assert marketstack["reset"] == "provider_defined"
+    assert marketstack["reset"] == "per_dimension"
     assert marketstack["unknown_dimensions"] == [
-        "published_monthly_limit_conflict",
         "monthly_cap_reset_boundary",
+        "requests_per_second_reset_boundary",
     ]
+    assert marketstack["dimensions"][0]["safety_reset"] == "rolling_30_days"
+    assert marketstack["dimensions"][1]["name"] == "requests_per_second"
+    assert marketstack["dimensions"][1]["limit"] == 5
+    assert marketstack["dimensions"][1]["window_seconds"] == 1
+    assert marketstack["dimensions"][1]["safety_reset"] == "rolling"
     assert marketstack["source_conflicts"][0] == {
         "source": "https://marketstack.com/faq",
         "claim": "1,000 requests per month",
         "conflicts_with": "https://marketstack.com/pricing",
+        "resolution": "enforce the lower Free-plan ceiling of 100 requests per 30 rolling days",
     }
     assert marketstack["usage_semantics"] == {
         "multi_symbol_request": "one_request_per_symbol",
@@ -1478,10 +1872,25 @@ def test_marketstack_and_ibkr_use_provider_specific_pacing_contracts():
         "source": "https://marketstack.com/faq",
     }
 
+    # Per-symbol billing evidence does not establish exchange-wide page cost.
+    # Discovery remains fail-closed until an operation-specific source exists.
+    source = DataSource(name="marketstack")
+    source.config = {"usage_tracking": get_provider_usage_profile("marketstack")}
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.UNIVERSE_DISCOVERY,
+        quota_contract=marketstack,
+    )
+    assert not provider_contract_operation_cost_known(policy, source, "discover_universe_page")
+    monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_MAX_PAGE_COST", 1)
+    monkeypatch.setattr(
+        settings, "MARKETSTACK_DISCOVERY_COST_EVIDENCE", "reviewed page billing evidence"
+    )
+    source.config = {"usage_tracking": get_provider_usage_profile("marketstack")}
+    assert provider_contract_operation_cost_known(policy, source, "discover_universe_page")
+
     ibkr = settings.PROVIDER_RATE_LIMIT_SEEDS["ibkr"]["quota_contract"]
-    assert {
-        dimension["name"]: dimension["limit"] for dimension in ibkr["dimensions"]
-    } == {
+    assert {dimension["name"]: dimension["limit"] for dimension in ibkr["dimensions"]} == {
         "global_requests_per_second": 10,
         "historical_requests_per_minute": 50,
     }
@@ -1495,6 +1904,22 @@ def test_marketstack_and_ibkr_use_provider_specific_pacing_contracts():
     assert usage["operation_costs"]["get_current_price"] == 2
     assert usage["dimension_costs"]["historical_requests_per_minute"]["get_current_price"] == {}
     assert "historical_requests_concurrent" not in usage["dimension_costs"]
+
+
+def test_edgar_rate_contract_uses_current_official_fair_access_source():
+    seed = settings.PROVIDER_RATE_LIMIT_SEEDS["edgar"]
+    contract = seed["quota_contract"]
+    dimension = contract["dimensions"][0]
+
+    assert dimension["name"] == "requests_per_second"
+    assert dimension["limit"] == 10
+    assert dimension["window_seconds"] == 1
+    assert dimension["scope"] == "ip"
+    assert dimension["source"] == "https://www.sec.gov/about/privacy-information"
+    assert dimension["safety_reset"] == "rolling"
+    assert dimension["baseline_mode"] == "local_zero"
+    assert dimension["application_usage_only"] is True
+    assert seed["cooldown_seconds"] == 600
 
 
 def test_nasdaq_directory_uses_a_client_imposed_daily_ceiling_not_a_vendor_quota():
@@ -1516,13 +1941,10 @@ def test_openfigi_switches_between_exact_anonymous_and_keyed_contracts(monkeypat
     assert anonymous_dimension["window_seconds"] == 60
     assert anonymous_dimension["scope"] == "ip"
     assert anonymous["tokens_per_minute"] == 25
-    assert anonymous["quota_contract"]["endpoint_constraints"]["mapping"][
-        "max_jobs_per_request"
-    ] == 5
     assert (
-        anonymous["quota_contract"]["dimensions"][1]["name"]
-        == "account_usage_probe_concurrency"
+        anonymous["quota_contract"]["endpoint_constraints"]["mapping"]["max_jobs_per_request"] == 5
     )
+    assert anonymous["quota_contract"]["dimensions"][1]["name"] == "account_usage_probe_concurrency"
     assert anonymous["quota_contract"]["account_usage_bootstrap"]["enabled"] is True
 
     monkeypatch.setattr(settings, "OPENFIGI_API_KEY", "reviewed-key")
@@ -1533,13 +1955,8 @@ def test_openfigi_switches_between_exact_anonymous_and_keyed_contracts(monkeypat
     assert keyed_dimension["window_seconds"] == 6
     assert keyed_dimension["scope"] == "api_key"
     assert "tokens_per_minute" not in keyed
-    assert keyed["quota_contract"]["endpoint_constraints"]["mapping"][
-        "max_jobs_per_request"
-    ] == 100
-    assert (
-        keyed["quota_contract"]["dimensions"][1]["name"]
-        == "account_usage_probe_concurrency"
-    )
+    assert keyed["quota_contract"]["endpoint_constraints"]["mapping"]["max_jobs_per_request"] == 100
+    assert keyed["quota_contract"]["dimensions"][1]["name"] == "account_usage_probe_concurrency"
 
 
 def test_marketdata_app_records_documented_daily_credit_and_concurrency_limits():
@@ -1555,11 +1972,19 @@ def test_marketdata_app_records_documented_daily_credit_and_concurrency_limits()
 
     profile = get_provider_usage_profile("marketdata_app")
     assert profile["operation_costs"]["fetch_account_usage"] == 1
-    # /user/ is an account-introspection read: it must be admitted and
-    # tracked, but the native x-api-ratelimit-consumed counter proves that it
-    # does not spend the daily credit pool. The concurrent-request dimension
-    # remains reserved normally because it is not excluded here.
-    assert profile["dimension_costs"]["credits_per_day"]["fetch_account_usage"] == {}
+    assert contract["account_usage_bootstrap"] == {
+        "enabled": True,
+        "source": (
+            "https://www.marketdata.app/docs/api/rate-limiting/ and "
+            "https://www.marketdata.app/docs/sdk/go/utilities/user/; "
+            "successful /user/ response reports its own credit usage"
+        ),
+        "reconciled_dimensions": ["credits_per_day"],
+        "allowed_unknown_dimensions": [],
+    }
+    # A successful /user/ response consumes at least one daily credit and
+    # reports the post-request account balance. Its first call may bootstrap
+    # only the exact daily pool it observes; later calls reserve one credit.
 
     policy = ProviderPolicy(
         data_source_id=1,
@@ -1572,17 +1997,17 @@ def test_marketdata_app_records_documented_daily_credit_and_concurrency_limits()
     assert provider_contract_operation_cost_known(policy, source, "fetch_account_usage")
     assert _dimension_costs_for_operation(
         policy, source, "fetch_account_usage", default_units=1
-    ) == {"credits_per_day": 0, "concurrent_requests": 1}
+    ) == {"credits_per_day": 1, "concurrent_requests": 1}
 
 
-def test_twelve_data_account_usage_uses_one_reviewed_credit_per_native_snapshot():
+def test_twelve_data_account_usage_charges_native_minute_and_daily_windows():
     profile = get_provider_usage_profile("twelve_data")
     assert profile["operation_costs"]["fetch_account_usage"] == 1
     seed = provider_rate_limit_seed("twelve_data")
     dimensions = seed["quota_contract"]["dimensions"]
     assert [item["name"] for item in dimensions] == [
         "credits_per_minute",
-        "credits_per_day",
+        "requests_per_day",
         "account_usage_probe_concurrency",
     ]
     policy = ProviderPolicy(
@@ -1598,12 +2023,15 @@ def test_twelve_data_account_usage_uses_one_reviewed_credit_per_native_snapshot(
         policy, source, "fetch_account_usage", default_units=1
     ) == {
         "credits_per_minute": 1,
-        "credits_per_day": 1,
+        "requests_per_day": 1,
         "account_usage_probe_concurrency": 1,
     }
-    assert _dimension_costs_for_operation(
-        policy, source, "fetch_ohlcv", default_units=1
-    )["account_usage_probe_concurrency"] == 0
+    assert (
+        _dimension_costs_for_operation(policy, source, "fetch_ohlcv", default_units=1)[
+            "account_usage_probe_concurrency"
+        ]
+        == 0
+    )
 
 
 def test_account_and_ip_scoped_provider_contracts_declare_cross_capability_groups():
@@ -1867,12 +2295,18 @@ def test_json_seed_environment_sentinel_bypasses_eager_settings_decode(monkeypat
     monkeypatch.setenv("PROVIDER_RATE_LIMIT_SEEDS", "__CODE_DEFAULT__")
     monkeypatch.setenv("PROVIDER_FRESHNESS_SEEDS", "__CODE_DEFAULT__")
     monkeypatch.setenv("PROVIDER_USAGE_PROFILE_SEEDS", "__CODE_DEFAULT__")
+    monkeypatch.setenv("TIINGO_OPERATION_BYTE_BOUNDS", "__CODE_DEFAULT__")
+    monkeypatch.setenv("FMP_OPERATION_BYTE_BOUNDS", "__CODE_DEFAULT__")
+    monkeypatch.setenv("DINARI_SANDBOX_QUOTA_PROFILE", "__CODE_DEFAULT__")
 
     parsed = Settings(_env_file=None)
 
     assert "alpaca" in parsed.PROVIDER_RATE_LIMIT_SEEDS
     assert parsed.PROVIDER_FRESHNESS_SEEDS == {}
     assert "massive" in parsed.PROVIDER_USAGE_PROFILE_SEEDS
+    assert "fetch_ohlcv" in parsed.TIINGO_OPERATION_BYTE_BOUNDS
+    assert "fetch_ohlcv" in parsed.FMP_OPERATION_BYTE_BOUNDS
+    assert parsed.DINARI_SANDBOX_QUOTA_PROFILE == {}
 
     monkeypatch.setenv("PROVIDER_RATE_LIMIT_SEEDS", "{}")
     explicit_empty = Settings(_env_file=None)
@@ -2255,10 +2689,16 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
 
     coingecko = settings.PROVIDER_RATE_LIMIT_SEEDS["coingecko"]["quota_contract"]
     assert [item["reset"] for item in coingecko["dimensions"]] == [
+        "provider_defined",
         "rolling",
         "calendar_month_utc",
     ]
-    assert "unknown_dimensions" not in coingecko
+    assert coingecko["dimensions"][0]["safety_reset"] == "rolling"
+    assert coingecko["dimensions"][0]["baseline_mode"] == "local_zero"
+    assert coingecko["dimensions"][0]["application_usage_only"] is True
+    assert coingecko["dimensions"][2]["baseline_mode"] == "local_zero"
+    assert coingecko["dimensions"][2]["application_usage_only"] is True
+    assert coingecko["unknown_dimensions"] == ["calls_per_minute_reset_boundary"]
 
     twelve = settings.PROVIDER_RATE_LIMIT_SEEDS["twelve_data"]["quota_contract"]
     assert [item["reset"] for item in twelve["dimensions"]] == [
@@ -2266,11 +2706,12 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
         "calendar_day_utc",
         "rolling",
     ]
-    assert twelve["dimensions"][1]["source"] == (
-        "https://support.twelvedata.com/en/articles/5615854-credits"
-    )
+    assert twelve["dimensions"][1]["name"] == "requests_per_day"
+    assert twelve["dimensions"][1]["unit"] == "requests"
+    assert twelve["dimensions"][1]["source"] == "https://twelvedata.com/pricing"
     assert twelve["account_usage_bootstrap"]["reconciled_dimensions"] == [
-        "credits_per_minute"
+        "credits_per_minute",
+        "requests_per_day",
     ]
 
     eodhd = settings.PROVIDER_RATE_LIMIT_SEEDS["eodhd"]["quota_contract"]
@@ -2287,17 +2728,30 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
     ]
     assert eodhd["dimensions"][0]["source"] == "https://eodhd.com/financial-apis/api-limits"
     assert eodhd["dimensions"][1]["source"] == "https://eodhd.com/financial-apis/api-limits"
-    assert (
-        eodhd["dimensions"][0]["limit_basis"]
-        == "documented all-plan request ceiling"
+    assert eodhd["dimensions"][0]["limit_basis"] == (
+        "published API-limits request ceiling; key-specific native limit is observation-only unless reviewed"
     )
     assert eodhd["unknown_dimensions"] == []
     assert eodhd["account_usage_bootstrap"]["allowed_unknown_dimensions"] == []
     assert eodhd["account_usage_bootstrap"]["reconciled_dimensions"] == [
         "requests_per_minute",
-        "calls_per_day"
+        "calls_per_day",
     ]
-    assert "source_conflicts" not in eodhd
+    assert eodhd["source_conflicts"] == [
+        {
+            "dimension": "requests_per_minute",
+            "source": "https://eodhd.com/pricing",
+            "claim": "Free plan allows 20 requests per minute",
+            "conflicting_source": "https://eodhd.com/financial-apis/api-limits",
+            "conflicting_claim": "1,000 requests per minute on every plan",
+            "observed_key_header": {
+                "observed_at": "2026-10-14T16:27:48Z",
+                "limit": 1200,
+                "remaining": 1199,
+            },
+            "resolution": "Use the detailed API-limits page's 1,000/minute default. The configured key returned 1,200/1,199 native headers; preserve them as key-specific evidence and apply 1,200 only through the explicit reviewed account override, never dynamic widening.",
+        }
+    ]
     assert settings.PROVIDER_RATE_LIMIT_SEEDS["eodhd"]["tokens_per_minute"] == 1000
     assert eodhd["operation_costs_required"] is True
     assert (
@@ -2308,9 +2762,7 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
     assert eodhd_costs["requests_per_minute"]["get_instrument_profile"] == 1
     assert eodhd_costs["calls_per_day"]["get_instrument_profile"] == 10
     assert (
-        settings.PROVIDER_USAGE_PROFILE_SEEDS["eodhd"]["operation_costs"][
-            "fetch_account_usage"
-        ]
+        settings.PROVIDER_USAGE_PROFILE_SEEDS["eodhd"]["operation_costs"]["fetch_account_usage"]
         == 1
     )
     assert eodhd_costs["requests_per_minute"]["fetch_account_usage"] == 1
@@ -2340,8 +2792,17 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
             "scope": "ip",
             "quota_group": "ip",
             "source": "https://www.gate.com/docs/developers/apiv4/en/",
+            "baseline_mode": "local_zero",
+            "application_usage_only": True,
         }
     ]
+
+    kraken_xstocks = settings.PROVIDER_RATE_LIMIT_SEEDS["kraken_xstocks"]["quota_contract"]
+    kraken_xstocks_dimension = kraken_xstocks["dimensions"][0]
+    assert kraken_xstocks_dimension["name"] == "public_requests_per_second"
+    assert kraken_xstocks_dimension["limit"] == 1
+    assert kraken_xstocks_dimension["baseline_mode"] == "local_zero"
+    assert kraken_xstocks_dimension["application_usage_only"] is True
 
 
 def test_tokenized_quote_usage_profiles_charge_asset_and_quote_requests():
@@ -2355,25 +2816,34 @@ def test_tokenized_quote_usage_profiles_charge_asset_and_quote_requests():
         "ondo_global_markets",
     ):
         profile = get_provider_usage_profile(provider_name)
-        assert profile["operation_costs"]["discover_tokenized_assets"] == 1
-        assert profile["operation_costs"]["get_tokenized_asset"] == 1
-        expected_price_cost = 4 if provider_name == "robinhood_tokens" else 2
+        dinari_retry_multiplier = 3 if provider_name == "dinari" else 1
+        assert profile["operation_costs"]["discover_tokenized_assets"] == dinari_retry_multiplier
+        assert profile["operation_costs"]["get_tokenized_asset"] == dinari_retry_multiplier
+        expected_price_cost = (
+            6
+            if provider_name == "dinari"
+            else 4
+            if provider_name == "robinhood_tokens"
+            else 1
+            if provider_name == "kraken_xstocks"
+            else 2
+        )
         assert profile["operation_costs"]["get_tokenized_price"] == expected_price_cost
         if provider_name == "dinari":
-            assert profile["operation_costs"]["get_tokenized_quote"] == 2
+            assert profile["operation_costs"]["get_tokenized_quote"] == 6
 
 
 def test_tokenized_history_operations_charge_the_metadata_resolution_and_data_read():
     assert settings.PROVIDER_USAGE_PROFILE_SEEDS["dinari"]["operation_costs"] == {
-        "discover_tokenized_assets": 1,
-        "get_tokenized_asset": 1,
-        "get_tokenized_price": 2,
-        "get_tokenized_quote": 2,
-        "fetch_tokenized_historical_prices": 2,
-        "fetch_tokenized_news": 2,
-        "fetch_tokenized_dividends": 2,
-        "fetch_tokenized_splits": 2,
-        "fetch_tokenized_corporate_actions": 3,
+        "discover_tokenized_assets": 3,
+        "get_tokenized_asset": 3,
+        "get_tokenized_price": 6,
+        "get_tokenized_quote": 6,
+        "fetch_tokenized_historical_prices": 6,
+        "fetch_tokenized_news": 6,
+        "fetch_tokenized_dividends": 6,
+        "fetch_tokenized_splits": 6,
+        "fetch_tokenized_corporate_actions": 9,
     }
     assert settings.PROVIDER_USAGE_PROFILE_SEEDS["ondo_global_markets"]["operation_costs"] == {
         "discover_tokenized_assets": 1,
@@ -2390,7 +2860,9 @@ def test_coingecko_profile_usage_profile_covers_id_resolution_and_metadata():
     assert profile["operation_costs"] == {
         "search_instruments": 1,
         "discover_universe_page": 1,
+        "reconcile_universe_page": 1,
         "get_instrument_profile": 2,
+        "fetch_account_usage": 1,
     }
 
 
@@ -2404,10 +2876,24 @@ def test_alpha_vantage_profile_covers_each_single_query_operation():
         "bulk_fetch": 1,
         "fetch_rfr_ohlcv": 1,
         "discover_universe_page": 1,
+        "reconcile_universe_page": 1,
         "fetch_market_events": 1,
         "fetch_earnings_calendar": 1,
         "fetch_instrument_events": 1,
     }
+
+
+def test_alpha_vantage_daily_limit_uses_durable_application_usage_baseline():
+    seed = provider_rate_limit_seed("alpha_vantage")
+    daily = next(
+        item for item in seed["quota_contract"]["dimensions"] if item["name"] == "requests_per_day"
+    )
+
+    assert daily["limit"] == 25
+    assert daily["window_seconds"] == 86_400
+    assert daily["safety_reset"] == "rolling"
+    assert daily["baseline_mode"] == "local_zero"
+    assert daily["application_usage_only"] is True
 
 
 def test_optional_latest_price_profiles_charge_the_actual_quote_operation():
@@ -2415,6 +2901,52 @@ def test_optional_latest_price_profiles_charge_the_actual_quote_operation():
         assert (
             get_provider_usage_profile(provider_name)["operation_costs"]["get_current_price"] == 1
         )
+
+
+def test_marketstack_discovery_cost_requires_provider_specific_evidence(monkeypatch):
+    monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_MAX_PAGE_COST", 0)
+    monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_COST_EVIDENCE", "")
+    profile = get_provider_usage_profile("marketstack")
+    assert "discover_universe_page" not in profile["operation_costs"]
+
+    monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_MAX_PAGE_COST", 1000)
+    monkeypatch.setattr(
+        settings,
+        "MARKETSTACK_DISCOVERY_COST_EVIDENCE",
+        "provider ticket confirming maximum ticker-page billing",
+    )
+    profile = get_provider_usage_profile("marketstack")
+    assert profile["operation_costs"]["discover_universe_page"] == 1000
+
+
+@pytest.mark.asyncio
+async def test_marketstack_existing_source_drops_legacy_guessed_discovery_cost(db, monkeypatch):
+    source = DataSource(
+        name="marketstack",
+        config={
+            "usage_tracking": {
+                "operation_costs": {
+                    "discover_universe_page": 1,
+                    "get_current_price": 1,
+                }
+            }
+        },
+    )
+    db.add(source)
+    db.flush()
+    monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_MAX_PAGE_COST", 0)
+    monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_COST_EVIDENCE", "")
+
+    await ensure_data_source(AsyncSessionAdapter(db), "marketstack")
+
+    operation_costs = source.config["usage_tracking"]["operation_costs"]
+    assert "discover_universe_page" not in operation_costs
+    assert operation_costs["get_current_price"] == 1
+
+    monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_MAX_PAGE_COST", 1000)
+    monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_COST_EVIDENCE", "reviewed source")
+    await ensure_data_source(AsyncSessionAdapter(db), "marketstack")
+    assert source.config["usage_tracking"]["operation_costs"]["discover_universe_page"] == 1000
 
 
 def test_fmp_profile_charges_market_event_calendar_operation():
@@ -2442,18 +2974,22 @@ def test_deep_history_profiles_charge_the_bulk_fetch_operation():
             assert profile["operation_costs"]["bulk_fetch"] == 1
 
 
-def test_single_request_provider_profiles_are_explicit():
+def test_single_request_provider_profiles_are_explicit(monkeypatch):
+    monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_MAX_PAGE_COST", 0)
+    monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_COST_EVIDENCE", "")
     expected = {
         "alpaca": {
             "get_current_price": 1,
             "fetch_rfr_ohlcv": 1,
             "discover_universe_page": 1,
+            "reconcile_universe_page": 1,
             "get_instrument_profile": 1,
             "fetch_account_usage": 1,
         },
         "massive": {
             "search_instruments": 1,
             "discover_universe_page": 1,
+            "reconcile_universe_page": 1,
             "get_instrument_profile": 1,
             "fetch_instrument_events": 2,
             "fetch_market_events": 1,
@@ -2471,9 +3007,19 @@ def test_single_request_provider_profiles_are_explicit():
             "resolve_instrument_profile": 1,
             "fetch_account_usage": 1,
         },
-        "coinbase": {"get_current_price": 1, "discover_universe_page": 1},
-        "kraken": {"get_current_price": 1, "discover_universe_page": 1},
-        "marketstack": {"discover_universe_page": 1, "get_current_price": 1},
+        "coinbase": {
+            "fetch_ohlcv": 1,
+            "fetch_latest_ohlcv": 1,
+            "get_current_price": 1,
+            "discover_universe_page": 1,
+            "reconcile_universe_page": 1,
+        },
+        "kraken": {
+            "get_current_price": 1,
+            "discover_universe_page": 1,
+            "reconcile_universe_page": 1,
+        },
+        "marketstack": {"get_current_price": 1},
         "tradier": {
             "fetch_ohlcv": 1,
             "fetch_latest_ohlcv": 1,
@@ -2486,6 +3032,42 @@ def test_single_request_provider_profiles_are_explicit():
     }
     for provider_name, operation_costs in expected.items():
         assert get_provider_usage_profile(provider_name)["operation_costs"] == operation_costs
+
+
+def test_fred_owner_terms_decision_uses_published_limit_and_local_rolling_cap(monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK", True)
+
+    seed = provider_rate_limit_seed("fred")
+    contract = seed["quota_contract"]
+    dimension = next(
+        item for item in contract["dimensions"] if item["name"] == "requests_per_minute"
+    )
+
+    assert dimension["limit"] == 120
+    assert dimension["scope"] == "api_key"
+    assert dimension["reset"] == "provider_defined"
+    assert dimension["safety_reset"] == "rolling"
+    assert dimension["baseline_mode"] == "local_zero"
+    assert dimension["application_usage_only"] is True
+    assert (
+        provider_quota_admission_reset(dimension["reset"], dimension["safety_reset"]) == "rolling"
+    )
+    assert provider_quota_reset_is_admission_safe(
+        provider_quota_admission_reset(dimension["reset"], dimension["safety_reset"])
+    )
+    assert contract["unknown_dimensions"] == []
+    assert contract["provider_enforcement_scope"] == "unpublished"
+    assert contract["provider_reset_boundary"] == "unpublished"
+    assert "provider_adjustable_limits" in contract["unresolved_provider_facts"]
+    assert "rolling 60-second cap" in contract["application_admission_policy"]
+
+    missing = provider_missing_routing_controls("fred", "fetch_ohlcv")
+    assert not missing
+
+    monkeypatch.setattr(settings, "PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK", False)
+    default_seed = provider_rate_limit_seed("fred")
+    assert default_seed["quota_contract"]["unknown_dimensions"]
+    assert "FRED_REVIEWED_LIMIT_SCOPE" in provider_missing_routing_controls("fred", "fetch_ohlcv")
 
 
 def test_twelve_data_cumulative_credit_headers_update_only_matching_minute_window():
@@ -2951,16 +3533,18 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     assert finra_bytes["limit"] == 10_000_000_000
     assert finra_bytes["reset"] == "provider_defined"
     assert finra_bytes["safety_reset"] == "rolling_31_days"
-    assert "download_bytes_month_reset_boundary" in finra["unknown_dimensions"]
+    assert "download_bytes_per_calendar_month_reset_boundary" in finra["unknown_dimensions"]
     assert finra["reset"] == "provider_defined"
     assert finra["dimension_costs_required"] is True
-    assert finra_otc["dimensions"] == []
-    assert {
-        "orf_product_entitlement_and_mfa",
-        "file_download_quota_and_reset",
-        "data_use_terms",
-        "redistribution_rights",
-    } <= set(finra_otc["unknown_dimensions"])
+    finra_otc_requests = next(
+        item for item in finra_otc["dimensions"] if item["unit"] == "requests"
+    )
+    finra_otc_bytes = next(item for item in finra_otc["dimensions"] if item["unit"] == "bytes")
+    assert finra_otc_requests["limit"] == 1200
+    assert finra_otc_requests["quota_group"] == "ip"
+    assert finra_otc_bytes["limit"] == 10_000_000_000
+    assert finra_otc_bytes["quota_group"] == "public_credential"
+    assert finra_otc["dimension_costs_required"] is True
     assert tiingo["dimensions"][0]["name"] == "unique_symbols_per_month"
     assert tiingo["dimensions"][0]["limit"] == 500
     assert tiingo["dimensions"][0]["reset"] == "provider_defined"
@@ -2972,8 +3556,9 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     assert tiingo["untracked_constraints"][0]["reset"] == "calendar_month_est"
     assert tiingo["untracked_constraints"][0]["limit"] == 1_000_000_000
     assert fmp["dimensions"][0]["limit"] == 250
-    assert fmp["dimensions"][0]["reset"] == "15:00 America/New_York"
-    assert fmp["unknown_dimensions"] == ["daily_reset_source_conflict"]
+    assert fmp["dimensions"][0]["reset"] == "provider_defined"
+    assert fmp["unknown_dimensions"] == []
+    assert fmp["dimensions"][0]["safety_reset"] == "rolling"
     assert fmp["untracked_constraints"][0]["limit"] == 500_000_000
     assert fmp["untracked_constraints"][0]["window_seconds"] == 2_592_000
     assert (
@@ -2994,10 +3579,7 @@ def test_finnhub_reviewed_reset_boundaries_promote_each_dimension_only_with_evid
     contract = provider_rate_limit_seed("finnhub")["quota_contract"]
     assert contract["reset"] == "per_dimension"
     assert contract["unknown_dimensions"] == []
-    assert {
-        dimension["name"]: dimension["reset"]
-        for dimension in contract["dimensions"]
-    } == {
+    assert {dimension["name"]: dimension["reset"] for dimension in contract["dimensions"]} == {
         "calls_per_minute": "fixed_minute",
         "hard_calls_per_second": "rolling",
     }
@@ -3013,6 +3595,16 @@ def test_finnhub_rate_windows_require_explicit_operation_costs_for_each_dimensio
     profile = get_provider_usage_profile("finnhub")
 
     assert contract["dimension_costs_required"] is True
+    assert contract["account_usage_bootstrap"] == {
+        "enabled": True,
+        "reconciled_dimensions": ["calls_per_minute"],
+    }
+    second_window = next(
+        item for item in contract["dimensions"] if item["name"] == "hard_calls_per_second"
+    )
+    assert second_window["limit"] == 30
+    assert second_window["baseline_mode"] == "local_zero"
+    assert second_window["application_usage_only"] is True
     assert set(profile["dimension_costs"]) == {
         "calls_per_minute",
         "hard_calls_per_second",
@@ -3020,6 +3612,7 @@ def test_finnhub_rate_windows_require_explicit_operation_costs_for_each_dimensio
     for operation, cost in profile["operation_costs"].items():
         assert profile["dimension_costs"]["calls_per_minute"][operation] == cost
         assert profile["dimension_costs"]["hard_calls_per_second"][operation] == cost
+    assert profile["operation_costs"]["fetch_account_usage"] == 1
 
     policy = ProviderPolicy(
         data_source_id=1,
@@ -3034,6 +3627,7 @@ def test_finnhub_rate_windows_require_explicit_operation_costs_for_each_dimensio
         "calls_per_minute": 1,
         "hard_calls_per_second": 1,
     }
+
 
 @pytest.mark.asyncio
 async def test_existing_finnhub_data_source_receives_new_dimension_cost_maps(db):
@@ -3061,9 +3655,12 @@ def test_compound_directory_usage_is_not_undercharged_or_guessed():
     assert nasdaq_profile["operation_costs"]["reconcile_universe_page"] == 2
 
     finra_seed = settings.PROVIDER_RATE_LIMIT_SEEDS["finra_otc_directory"]
-    assert finra_seed["quota_contract"]["operation_costs_required"] is True
+    assert finra_seed["quota_contract"]["dimension_costs_required"] is True
     finra_profile = get_provider_usage_profile("finra_otc_directory")
-    assert finra_profile["operation_costs"] == {}
+    assert finra_profile["operation_costs"] == {
+        "discover_universe_page": 2,
+        "reconcile_universe_page": 2,
+    }
     source = DataSource(
         name="finra_otc_directory",
         config={"usage_tracking": finra_profile},
@@ -3073,7 +3670,7 @@ def test_compound_directory_usage_is_not_undercharged_or_guessed():
         capability=ProviderCapability.UNIVERSE_DISCOVERY,
         quota_contract=finra_seed["quota_contract"],
     )
-    assert not provider_contract_operation_cost_known(
+    assert provider_contract_operation_cost_known(
         policy,
         source,
         "discover_universe_page",
@@ -3105,6 +3702,52 @@ def test_finra_otc_reviewed_operation_costs_are_explicitly_admitted(monkeypatch)
     assert provider_contract_operation_costs_configured(policy, source)
 
 
+def test_universe_reconciliation_reuses_reviewed_discovery_page_cost(monkeypatch):
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_USAGE_PROFILE_SEEDS",
+        {
+            "finnhub": {
+                "operation_costs": {
+                    "discover_universe_page": 3,
+                    "reconcile_universe_page": 7,
+                },
+                "dimension_costs": {
+                    "calls_per_minute": {"discover_universe_page": 3},
+                    "bytes_per_day": {
+                        "discover_universe_page": 4096,
+                        "reconcile_universe_page": 8192,
+                    },
+                },
+            }
+        },
+    )
+
+    profile = get_provider_usage_profile("finnhub")
+
+    # Preserve a provider's explicit reconciliation-specific override.
+    assert profile["operation_costs"]["reconcile_universe_page"] == 7
+    # Otherwise mirror the exact reviewed one-page discovery charge.
+    assert profile["dimension_costs"]["calls_per_minute"]["reconcile_universe_page"] == 3
+    # Keep explicit provider-specific dimension pricing where supplied.
+    assert profile["dimension_costs"]["bytes_per_day"]["reconcile_universe_page"] == 8192
+
+
+def test_universe_reconciliation_does_not_guess_missing_discovery_cost():
+    profile = get_provider_usage_profile("marketstack")
+
+    assert "discover_universe_page" not in profile["operation_costs"]
+    assert "reconcile_universe_page" not in profile["operation_costs"]
+
+
+def test_fmp_reconciliation_keeps_stock_list_entitlement_guard(monkeypatch):
+    monkeypatch.setattr(settings, "FMP_STOCK_LIST_ENTITLED", False)
+
+    missing = provider_missing_routing_controls("fmp", "reconcile_universe_page:US:0")
+
+    assert "FMP_STOCK_LIST_ENTITLED" in missing
+
+
 def test_coinbase_public_token_bucket_matches_documented_burst():
     seed = settings.PROVIDER_RATE_LIMIT_SEEDS["coinbase"]
     assert seed["tokens_per_minute"] == 600
@@ -3113,6 +3756,35 @@ def test_coinbase_public_token_bucket_matches_documented_burst():
     assert dimension["limit"] == 10
     assert dimension["window_seconds"] == 1
     assert dimension["scope"] == "ip"
+    assert dimension["source"] == "https://docs.cdp.coinbase.com/exchange/rest-api/rate-limits"
+    assert seed["quota_contract"]["reset"] == "rolling"
+    assert dimension["baseline_mode"] == "local_zero"
+    assert dimension["application_usage_only"] is True
+
+
+def test_kraken_public_ip_quota_tracks_application_usage_only():
+    dimension = settings.PROVIDER_RATE_LIMIT_SEEDS["kraken"]["quota_contract"]["dimensions"][0]
+
+    assert dimension["name"] == "public_requests_per_second"
+    assert dimension["limit"] == 1
+    assert dimension["window_seconds"] == 1
+    assert dimension["scope"] == "ip"
+    assert dimension["limit_basis"] == "provider_recommended_safe_frequency"
+    assert dimension["baseline_mode"] == "local_zero"
+    assert dimension["application_usage_only"] is True
+
+
+def test_robinhood_public_ip_quota_tracks_application_usage_only():
+    dimension = settings.PROVIDER_RATE_LIMIT_SEEDS["robinhood_tokens"]["quota_contract"][
+        "dimensions"
+    ][0]
+
+    assert dimension["name"] == "public_requests_per_second"
+    assert dimension["limit"] == 60
+    assert dimension["window_seconds"] == 1
+    assert dimension["scope"] == "ip"
+    assert dimension["baseline_mode"] == "local_zero"
+    assert dimension["application_usage_only"] is True
 
 
 def test_finra_synchronous_budget_uses_documented_byte_reservation():
@@ -3294,3 +3966,26 @@ def test_dynamic_operation_cost_readiness_is_exposed_separately():
         },
     )
     assert not provider_contract_operation_costs_configured(policy, source)
+
+
+def test_dinari_canary_policy_is_local_and_does_not_claim_provider_quota(monkeypatch):
+    monkeypatch.setenv("DINARI_SANDBOX_CANARY_RUN", "1")
+    monkeypatch.setattr(settings, "DINARI_SANDBOX_QUOTA_PROFILE", {})
+
+    seed = provider_rate_limit_seed("dinari")
+    contract = seed["quota_contract"]
+    dimension = contract["dimensions"][0]
+
+    assert seed["quota_scope"] == "local_dinari_sandbox_canary"
+    assert "not a Dinari provider quota" in seed["quota_source"]
+    assert contract["reset"] == "calendar_day_utc"
+    assert contract.get("unknown_dimensions") is None
+    assert dimension["name"] == "local_canary_requests_per_utc_day"
+    assert dimension["limit"] == 1
+    assert dimension["baseline_mode"] == "local_zero"
+    assert dimension["application_usage_only"] is True
+    assert dimension["applies_to_operations"] == ["discover_tokenized_assets"]
+
+    monkeypatch.delenv("DINARI_SANDBOX_CANARY_RUN")
+    regular_seed = provider_rate_limit_seed("dinari")
+    assert "commercial data entitlements" in regular_seed["quota_contract"]["unknown_dimensions"][0]
