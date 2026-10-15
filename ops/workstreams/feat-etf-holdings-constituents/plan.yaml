@@ -1314,24 +1314,23 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  The exact common repair baseline82d881e76be8de538abb6ec5c454d96afe0ee56a is
-  released and merged into this feature worktree; this is not product-checkpoint
-  acceptance. Reconcile the actual merge against the preserved feature source,
-  focusing on the workspace snapshot-save acknowledgement/trailing generation,
-  populated-comparison chart geometry, and ETF's stronger adjacent-chart visual
-  readiness assertions. Bounded validation on the merged source is 74/74
-  workspace-store unit tests, frontend type-check, and diff-check. Keep all
-  screenshots, thresholds, diagnostics, popup-close checks, structural conflict
-  recovery, workspace identity guards, and newer-local-state protections.
-  Do not start a local browser/Docker/full profile while Provider owns the first
-  heavy validation slot. Coordinate that slot, then run the unchanged required
-  full_stack_browser profile and exact-source CI before checkpoint review.
-  Continue bounded ETF identity/asset-kind and consumer-contract work without
-  implementing the shared ETF_HOLDINGS bridge until Provider publishes an
-  accepted, tested contract. Conditional paid=false defaults are not sufficient
-  evidence: unknown paid/cost/quota and unsafe operations must deny before every
-  real issuer page, retry, redirect, or SEC fallback; do not create a duplicate
-  aggregate ledger. Preserve futures/cash identities and all original roadmap
-  criteria, budget ceiling, and post-integration observation gate. No staging
-  edits, sibling changes, paid/trial activation, deployment, data cleanup, or
-  product-scope reduction.
+  The exact synchronized green common repair baseline82d881e76be8de538abb6ec5c454d96afe0ee56a
+  has been merged into this clean ETF branch as second parent of bff2d390e;
+  that repair release is not product-checkpoint acceptance. The merged
+  snapshot-save behavior, chart geometry, and ETF's stronger visual readiness
+  assertions have bounded passing tests recorded in handoff.md. Explicit
+  future/futures holdings now fail closed in the equity-only resolver; focused
+  resolver tests passed21/21, with unknown and equity-collision tickers
+  remaining unresolved rather than synthetic equities. Continue branch-owned
+  identity/asset-kind and consumer-contract preparation. The actual
+  ETF_HOLDINGS bridge remains gated on an accepted, tested Provider producer
+  contract, especially shared cost/free-only admission and denial before every
+  real request, page, retry, redirect, alternate client, or SEC fallback. Do
+  not guess costs or quotas or create an ETF-only ledger. Provider owns the
+  first heavy local validation slot: do not start the competing Docker/browser
+  full profile until coordinated release and a fresh capacity check; then run
+  the unchanged full_stack_browser profile and exact-source CI before checkpoint
+  review. Preserve all fourteen original criteria, issuer truthfulness, the
+  monthly ceiling, futures/cash lineage, and post-integration observation gate.
+  No staging edits, sibling changes, paid/trial activation, deployment, data
+  cleanup, or product-scope reduction.
