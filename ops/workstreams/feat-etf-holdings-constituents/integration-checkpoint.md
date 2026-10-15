@@ -63,6 +63,38 @@ health/admission/raw-artifact lineage. Before that source exists, only tests of
 ETF's persisted consumer outcomes and documented test obligations are valid;
 mocking a proposed provider API is not shared-runtime evidence.
 
+## ETF-owned Study Lab screenshot readiness repair
+
+The adjacent-chart readiness repair is already implemented on this ETF branch
+in `frontend/tests/e2e/tc2000_visual.spec.ts`, source commit
+`b01f59bf156e7a43efe3d9a7897a648ca97f0b16`. It calls the existing
+`waitForShellReady` helper before navigating to Study Lab, then requires a
+rendered `.chart-tool .uplot` and absence of `.chart-tool .tool-state` before the
+sandbox-error screenshot. The existing screenshot files, visual assertions,
+and `maxDiffPixelRatio: 0.005` remain unchanged. The branch-owned focused matrix
+passed 12/12 comparisons across all four display projects, three repetitions
+each, with retries disabled (`.ai/validation/etf-sandbox-visual-focused-20261015.log`).
+
+The current released common repair `82d881e76be8de538abb6ec5c454d96afe0ee56a`
+is already merged through ETF commit `bff2d390eaf128d54a5bb588298a3b528c9a6785`.
+Its canonical CI run `38805309009` is reported green with all 104 visual cases
+passing and no browser retries/flakes; this is common-repair evidence, not ETF
+checkpoint acceptance. A coordinator cross-check additionally reports that
+both unchanged 1080p Study Lab gap screenshots passed 3/3 using the
+read-only-DejaVu secure-localhost fixture. The matching fixture artifacts are
+not present in this ETF worktree, so retain that result as coordinator-reported
+evidence rather than an independently collected ETF receipt.
+
+The most recent complete ETF-owned local profile in this worktree is the
+historical `8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85` run: exit 0, backend 1938,
+frontend 948, functional 154 passed / 106 declared skips, and visual 104/104
+passed; exact-source CI `38788420409` was green. This predates the released
+common repair merge and later ETF identity regression commits, so it does not
+validate current HEAD. The corresponding 260-case browser process is terminal;
+no replay process is currently visible in this worktree. The required combined
+`full_stack_browser` profile and current exact-source CI remain pending after
+Provider's reserved first heavy-validation slot and accepted producer contract.
+
 - Preparation baseline: `f2670b0bbde8bb680173d847a43734f7391745f7`.
 - Previously validated implementation: `5854dd2fc70e7424280782c3a61df5f6ed5b04c6`.
   Their diff contains only four operational files; application and test source

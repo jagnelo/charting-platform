@@ -11174,3 +11174,35 @@ central-first current-source reconciliation context, not the ETF product
 checkpoint. The current blocker remains the unreleased Provider producer
 contract and first heavy-validation slot; the next scoped work must continue
 from the clean published boundary and preserve the full ETF roadmap.
+
+### Study Lab readiness and released-repair evidence reconciliation — 2026-10-15 22:34Z
+
+The concrete ETF-owned screenshot-readiness fix is already in this branch at
+`b01f59bf156e7a43efe3d9a7897a648ca97f0b16`. The sandbox-error Study Lab capture
+waits for shell readiness, a rendered adjacent chart, and absence of its loading
+gap state. No screenshot, assertion, or 0.5% tolerance was changed. Its focused
+matrix passed 12/12 comparisons (four display projects × three repetitions,
+retries disabled) in
+`.ai/validation/etf-sandbox-visual-focused-20261015.log`. The coordinator also
+reported the two unchanged 1080p Study Lab gap screenshots passing 3/3 with the
+read-only-DejaVu secure-localhost fixture; those artifacts are not independently
+present in this worktree and are not relabelled as a local receipt.
+
+The exact common-repair release `82d881e76be8de538abb6ec5c454d96afe0ee56a`
+is already the second parent of ETF merge `bff2d390eaf128d54a5bb588298a3b528c9a6785`.
+Its canonical CI run `38805309009` is reported green, including 104 visual
+passes with no retries/flakes. The last complete ETF local profile is the
+older `8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85` run (exit 0; 1938 backend,
+948 frontend, 154 functional passed / 106 declared skips, 104 visual passed;
+CI `38788420409` green). It predates the `82d881e` merge and subsequent ETF
+identity regression changes, so it is historical evidence only. The earlier
+260-case process is terminal and no browser/profile process is currently live
+in this checkout. Do not start a competing full profile: Provider retains the
+first heavy-validation slot. Current combined ETF profile and exact-source CI
+remain required; no product acceptance is implied.
+
+The required session-start runtime readiness attempt also timed out after 180
+seconds because this execution could not access `/var/run/docker.sock`
+(`permission denied`). That proves the required Docker/browser profile could
+not be started from this session; it does not establish whether Docker Desktop
+itself is stopped. No second profile or competing browser was launched.

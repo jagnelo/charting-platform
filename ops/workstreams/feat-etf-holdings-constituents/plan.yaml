@@ -49,17 +49,26 @@ integration_checkpoint:
     promotion, deployment or trial activation.
   acceptance_authorization: pending
   latest_resume_reconciliation:
-    recorded_at: "2026-10-15T22:24:00Z"
-    branch_head: 159d1df48c8a242d6ace076e9accbfc901b1552d
+    recorded_at: "2026-10-15T22:31:00Z"
+    branch_head: 9da9b30de5e49169ff5ec81983f2f7f0a6dce486
     common_repair_staging_sha: 82d881e76be8de538abb6ec5c454d96afe0ee56a
     common_repair_etf_merge_sha: bff2d390eaf128d54a5bb588298a3b528c9a6785
+    common_repair_ci_run: 38805309009
     provider_checkpoint: unreleased
-    exact_head_ci: no_statuses_returned_for_159d1df48c8a242d6ace076e9accbfc901b1552d
+    coordinator_receipt_as_of: "2026-10-15T21:42:48Z; provider:null; accepted_product_checkpoint:null"
+    exact_head_ci: not_checked_for_9da9b30de5e49169ff5ec81983f2f7f0a6dce486
+    visual_readiness_source: b01f59bf156e7a43efe3d9a7897a648ca97f0b16
+    visual_readiness_focus: 12_pass_all_four_display_projects_x3_retries0
+    coordinator_visual_replay: "reported: both unmodified 1080 Study gap screenshots 3/3 with readonly DejaVu secure-localhost fixture; no matching artifact found in this worktree"
+    prior_full_profile: "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85; terminal exit 0; 1938 backend, 948 frontend, 154 functional plus 106 declared skips, 104 visual; historical, predates merged 82d881e and later ETF identity tests"
+    docker_runtime_check: "agent-session-start waited 180s; Docker API access denied at /var/run/docker.sock; daemon state not inferred"
     local_full_profile: required_but_not_run_on_current_source; coordinated_after_provider_first_slot
     next_action: >-
-      Consume only a reviewed green Provider producer checkpoint; then merge its
-      exact synchronized staging SHA into this same clean ETF branch and
-      implement/test the actual ETF_HOLDINGS bridge without guessing interfaces.
+      Keep the visual-readiness repair and all screenshot assertions/oracles
+      unchanged. After Provider's reviewed green producer checkpoint and its
+      reserved heavy-validation slot, merge that exact synchronized staging SHA
+      into this same branch, implement/test the real ETF_HOLDINGS bridge, then
+      run the combined full profile and exact-source CI.
   disposition_semantics: Target scope of the named checkpoint; these dispositions are not current completion claims. EICP1-EICP7 require fresh evidence before review.
   source_baseline: f2670b0bbde8bb680173d847a43734f7391745f7
   implementation_evidence_baseline: 5854dd2fc70e7424280782c3a61df5f6ed5b04c6
@@ -161,10 +170,10 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: Central-first ETF resume and current-source evidence reconciliation
-    state: completed_resume_reconciliation_provider_contract_pending
-    baseline: 159d1df48c8a242d6ace076e9accbfc901b1552d
-    intent: Re-read central coordination and checkpoint rules, reconcile the released staging merge and prior green evidence with current ETF source, and refresh ETF-owned resume records while preserving the full original roadmap and Provider-owned shared governance boundary.
+    name: Reconcile Study Lab readiness evidence after common repair release
+    state: completed_readiness_evidence_reconciliation_provider_slot_pending
+    baseline: 9da9b30de5e49169ff5ec81983f2f7f0a6dce486
+    intent: Record the already-published ETF-owned Study Lab readiness repair and its exact evidence, distinguish prior-source full-profile results from current post-82 source, and refresh the branch-owned resume state without changing tests, screenshots, assertions, Provider interfaces, or the full roadmap.
     owned_paths:
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md
