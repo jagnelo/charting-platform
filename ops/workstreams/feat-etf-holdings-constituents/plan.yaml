@@ -1318,14 +1318,21 @@ next_action: >-
   evidence without duplicating coordinator-owned visual runs. The historical
   staging5267f11a run38773602828 had103 visual passes plus one recovered flaky
   1080p screenshot and is not clean acceptance; its 38785967367 follow-up was
-  cancelled. Current repair merge82d881e7 run38805309009 has ordinary E2E151
-  passed/109 expected skips without retries, but Exhaustive job116667534144
-  remains active and no baseline is released. The coordinator's separate full
-  260-case no-retry replay has one readiness race under review. The adjacent-
+  cancelled. Current repair merge82d881e7 run38805309009 is terminal success:
+  ordinary E2E151 passed/109 expected skips, exhaustive backend1647,
+  frontend927, functional154/106 expected skips, and visual104 passed. However,
+  exhaustive logs show two agent-resource-cleanup failures because CI runs at
+  the repository root while the cleanup guard expects the staging worktree;
+  final test-stack-down reports Error2. The job wrapper still says success, but
+  no coordinator baseline release/receipt is recorded. The coordinator's
+  separate full260-case no-retry replay was last reported with one readiness
+  race under review. The adjacent-
   chart test-only repair is already published and validated in this branch; do
   not duplicate the coordinator-owned pointer geometry or MarketMap repairs.
   Continue independent ETF issuer-source and consumer-contract preparation.
-  Await Provider checkpoint/cost-contract acceptance under the approved 20
+  Await coordinator audit/resolution of the staging CI cleanup mismatch and
+  publication of its canonical clean receipt. Also await Provider
+  checkpoint/cost-contract acceptance under the approved 20
   EUR/USD-equivalent monthly ceiling (or tested non-bypassable free-only
   boundary) and explicit green-baseline release. Until release, update only
   branch-owned evidence; do not import Provider or merge staging. After release

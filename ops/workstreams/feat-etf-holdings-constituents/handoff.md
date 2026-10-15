@@ -206,6 +206,27 @@ Evidence references are retained in `provider-audit.yaml` and
 [MINT product page](https://www.pimco.com/us/en/investments/etf/pimco-enhanced-short-maturity-active-exchange-traded-fund/usetf-usd),
 and [BOND product page](https://www.pimco.com/us/en/investments/etf/pimco-active-bond-exchange-traded-fund/usetf-usd).
 
+### Staging CI terminal audit — 2026-10-15 21:38Z
+
+GitHub run `38805309009` for staging `82d881e76be8de538abb6ec5c454d96afe0ee56a`
+is now terminal success across its required jobs. Regular E2E job `116667534043`
+reports 151 passed/109 expected skips; its no-retry/no-flake result was
+independently audited by the coordinator. Exhaustive job `116667534144` reports
+the full gate's 1,647 backend tests passed (86 warnings), 927 frontend tests,
+154 functional E2E passed/106 expected skips, and 104 visual checks passed.
+
+Do not equate the successful job conclusion with a clean teardown/release: the
+exact exhaustive log twice records `scripts/agent-session.py cleanup` rejected
+with `assigned worktree mismatch: expected
+/home/runner/work/charting-platform/charting-platform/.ai/worktrees/staging,
+found /home/runner/work/charting-platform/charting-platform`; the final
+`test-stack-down` make target reports Error 2. The job wrapper nevertheless
+concluded success. This requires coordinator audit of the actual cleanup
+semantics and canonical guard receipt; it is not an ETF-owned failure and this
+branch has made no staging edit. The coordinator's durable status still says
+no product checkpoint is accepted and no combined baseline is released. Do not
+merge staging or claim integration acceptance based on this run alone.
+
 The separate staging repair is published as pointer-geometry commit
 `8b4e6853`; its test-only MarketMap refresh-synchronization follow-up
 `543a7817` is clean/pushed and its current CI is `38785967367`. Those are

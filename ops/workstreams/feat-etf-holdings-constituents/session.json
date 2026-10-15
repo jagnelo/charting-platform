@@ -42,13 +42,12 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "current_blocker_latest": "As of2026-10-15T21:35Z, current staging repair merge82d881e76be8de538abb6ec5c454d96afe0ee56a run38805309009 has E2E151 passed/109 expected skips and no retries per coordinator audit, but Exhaustive job116667534144 is still in progress; no baseline is released. Historical run38773602828 on5267f11a had103 visual passes plus one recovered flaky1080p screenshot (16,142 pixels), so its success badge was not clean acceptance; follow-up38785967367 Playwright was cancelled. Coordinator's separate full260-case no-retry replay was last reported active with one readiness race, and no corresponding process is visible in this checkout's process namespace; do not duplicate it. ETF's adjacent-chart fixb01f59bf is published, test-only, focused12/12 retries0, full-local104/104 zero flakes/normal exit0, exact-source CI38788420409 green; screenshots, assertions and0.5% tolerance unchanged. Provider branch source1ab6f798 has exact CI38798881420 green but live refresh is incomplete and shared free-only/cost admission contract remains unresolved. ETF made a new official PIMCO page-only review: MINT/BOND AUM US$18.292B/US$8.536B as of2026-09-30, with prices through2026-10-14; no full artifact exposed and both remain unavailable. Shared identity, entitlement, quota, aggregate cost, health and combined-runtime consumer integration remain open. No staging write, sibling edit, feature import or staging merge is authorized.",
+  "current_blocker_latest": "As of2026-10-15T21:39Z, staging run38805309009 on82d881e76be8de538abb6ec5c454d96afe0ee56a is terminal success: ordinary E2E151/109 expected skips; exhaustive backend1647, frontend927, functional154/106 expected skips, visual104. Exact exhaustive logs also show two agent-session cleanup guard failures from repository-root versus assigned-staging-worktree mismatch and final test-stack-down Error2; no canonical clean receipt or product baseline release is recorded. Historical5267f11a run38773602828 had103 visuals plus one recovered flaky1080p screenshot (16,142 pixels), not clean acceptance. Coordinator-owned replay is still reported active with one readiness race under review; do not duplicate it. ETF visual sourceb01f59bf156e7a43efe3d9a7897a648ca97f0b16 is published and test-only, with focused12/12 no-retry, full-local104/104 zero flakes/normal exit0, exact-source CI38788420409 green; screenshots/assertions/0.5% tolerance unchanged. PIMCO MINT/BOND page-only evidence is refreshed, but no complete artifact was exposed and both remain unavailable. Provider shared-cost boundary and combined-runtime consumer integration remain open. No staging write, sibling edit, feature import or staging merge is authorized.",
   "dirty_paths": [
-    "docs/etf-provider-universe.md",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json"
+    "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -85,14 +84,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "079a9d51ab80f9b7777fad009567bf8142a848cf",
+  "head": "77f3789941dafce45fc611966ad0c05d85a5351e",
   "implementation_sha": "b01f59bf156e7a43efe3d9a7897a648ca97f0b16",
-  "last_checkpoint": "2026-10-15T21:35:00Z",
+  "last_checkpoint": "2026-10-15T21:39:00Z",
   "last_human_progress_update": "2026-10-06T18:53:15.533458+00:00",
-  "latest_checkpoint": "Last application/test code boundary8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85 passed unchanged local full profile:1938 backend/81.24%,948 frontend,154 functional,104 visual,zero flakes,normal exit0; exact-source CI38788420409 is green. ETF code diff from this tested boundary to current HEAD079a9d51 is empty; new local modifications in this turn are documentation/audit only. Adjacent chart fixb01f59bf passes focused12/12 retries0; screenshot, assertions and0.5% tolerance unchanged. Current staging82d881e7 run38805309009 E2E151/109 success, no retries, but Exhaustive job116667534144 remains active and coordinator has not released a baseline. Provider source1ab6f798 CI38798881420 is green but live refresh/checkpoint and shared cost boundary remain incomplete. PIMCO MINT/BOND official page metadata refreshed; neither yields a proven complete artifact, so availability is unchanged. A prior local14-consumer-test diagnostic stalled inside Starlette TestClient and ended without an assertion; hosted branch check passed14/14. Shared runtime consumer integration remains open.",
+  "latest_checkpoint": "Last application/test code boundary8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85 passed unchanged local full profile:1938 backend/81.24%,948 frontend,154 functional,104 visual,zero flakes,normal exit0; exact-source CI38788420409 is green. ETF code diff from the tested boundary through current implementation is empty; current worktree edits are operational evidence only. Adjacent chart fixb01f59bf156e7a43efe3d9a7897a648ca97f0b16 is limited to tc2000_visual.spec.ts and passed focused12/12 retries0, unchanged full-local104/104 zero flakes/normal exit0, and exact CI38788420409; screenshots/assertions/0.5% tolerance remain unchanged. Staging38805309009 test jobs report1647 backend,927 frontend,154 functional/106 expected skips,104 visual, and regular151/109; exhaustive cleanup has two assigned-worktree guard failures and test-stack-down Error2, so no canonical clean receipt/release. Coordinator's separate replay remains active with one readiness race under review; do not duplicate. PIMCO MINT/BOND page-only evidence refreshed without a complete artifact. Provider shared-cost contract and combined-runtime consumer integration remain open.",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Finish and validate the current branch-owned PIMCO evidence refresh, then continue independent issuer/source review and transport/consumer contract preparation without guessing a Provider interface. Monitor exact staging Exhaustive job116667534144 and the coordinator's actual replay receipt; do not duplicate browser or heavy gates. Await released green staging plus accepted Provider shared admission contract before implementing ETF_HOLDINGS against actual interfaces. Preserve all full-roadmap criteria and branch boundaries; no staging write/merge, sibling edit, deployment, paid activation, trial or scope reduction.",
-  "plan_hash": "f7f6cbdcd54646f5930c0440feabbe6852c116bfcb5afa7821930197a6e87dd6",
+  "next_action": "Publish and verify the owned branch-local staging terminal audit; preserve the already published adjacent-chart readiness repair/evidence in handoff.md. Do not start competing browser/full gates. Await coordinator resolution of its replay and clean staging receipt, released green baseline, and accepted Provider shared admission contract before implementing ETF_HOLDINGS against real interfaces. Continue independent ETF issuer/source and consumer-contract preparation without guessing. Preserve all full-roadmap criteria; no staging write/merge, sibling edit, deployment, paid activation, trial or scope reduction.",
+  "plan_hash": "b4e953a5bb92fca4de8546a944abed369c7efb2ab403116bc8bed4e43868fba8",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -110,12 +109,12 @@
     ],
     "total": 7,
     "current_phase": "transport_surface_mapped_waiting_for_released_provider_staging",
-    "current_blocker": "Current staging82d881e7 run38805309009 E2E151/109 is clean, but Exhaustive job116667534144 remains active and no product baseline is released. Historical staging5267f11a run38773602828 had103 visual passes plus one recovered flaky screenshot. The coordinator's no-retry full260 replay was last reported active with one race, but no corresponding process is visible from this checkout; do not duplicate it. ETF visual repair and exact green evidence are preserved. Provider CI is green for source1ab6f798, but live refresh and shared free-only/cost boundary acceptance remain open. PIMCO current page-only evidence was refreshed without route/API calls; MINT/BOND remain unavailable. No feature import or staging merge before coordinator release.",
-    "next_action": "Record and validate the PIMCO page-only evidence refresh, continue independent ETF issuer audit and shared-runtime contract preparation, and monitor exact staging/Provider receipts. Implement the actual ETF bridge only after the coordinator releases green staging with the accepted producer contract. Preserve all roadmap criteria; no staging merge or duplicate browser replay.",
-    "updated_at": "2026-10-15T21:35:00Z"
+    "current_blocker": "Staging38805309009 is terminal success on tests (1647 backend,927 frontend,154 functional/106 expected skips,104 visual; regular E2E151/109), but exhaustive logs expose two assigned-worktree cleanup guard failures and final test-stack-down Error2, so no clean canonical receipt/release exists. Coordinator's full260 no-retry replay remains active with one readiness race under review; do not duplicate. The published ETF visual fix b01f59bf has focused12/12 and full-local104/104 no-flake evidence and exact-source CI green. Provider shared free-only/cost contract and combined-runtime integration remain open. No feature import or staging merge before release.",
+    "next_action": "Publish/verify the owned staging terminal audit, retain the adjacent-chart source/evidence in durable handoff, and continue independent ETF issuer/contract preparation without guessing interfaces. Await coordinator replay and cleanup resolution, released green staging and accepted Provider contract before implementing the shared ETF bridge. Preserve all roadmap criteria; no staging merge or duplicate browser replay.",
+    "updated_at": "2026-10-15T21:39:00Z"
   },
-  "remote": "079a9d51ab80f9b7777fad009567bf8142a848cf",
-  "remote_sha": "079a9d51ab80f9b7777fad009567bf8142a848cf",
+  "remote": "77f3789941dafce45fc611966ad0c05d85a5351e",
+  "remote_sha": "77f3789941dafce45fc611966ad0c05d85a5351e",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
