@@ -24,21 +24,28 @@
     "volume_count": 0,
     "worktree_id": "fix-chart-template-pointer-interaction-1ffadfb89a"
   },
+  "docker_ready": {
+    "ready": true,
+    "started_desktop": false,
+    "wait_seconds": 0
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance fix/chart-template-pointer-interaction: Human approved the coordinator proposal to open a narrowly scoped chart-template pointer repair and stated: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Scope: repair physical desktop overlap between populated comparison chips and Plots; preserve no-comparison default and passing narrow layout; validate with ordinary pointer actions, required full profile and exact CI; coordinator owns technical closure and staging integration. No other feature worktree writes, Help oracle changes, provider calls, deployment or data cleanup.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_objective": "Advance fix/chart-template-pointer-interaction: Repair chart-template comparison/Plots hit-target overlap on desktop, preserve the no-comparison default and passing narrow layout, and publish a validated clean checkpoint for delegated coordinator review. No feature imports, Help reference changes, provider requests, deployment or retained-data cleanup.. Acceptance criteria: PTR1: Desktop save/remove/restore with a populated RSP percentage permits ordinary Plots and Remove RSP clicks while both controls exist; no force/trial-only proof or blank-percentage shortcut.; PTR2: No-comparison default geometry remains unchanged; populated and multiple/long comparison chips cannot cover Plots or Templates, and menus retain ordinary close/focus behavior.; PTR3: The 390x800 narrow viewport and on-screen chart retain independent comparison/Plots targets and usable menu bounds; comparison input/add controls remain interactive.; PTR4: Frontend unit tests, type check/build and required isolated application browser/regression validation pass with unchanged oracles/tolerances; exact-source branch CI and subsequent staging gate remain required.; PTR5: Publish clean committed/pushed source and precise review/closure evidence under delegated technical-fix authorization; preserve all sibling code/data and leave Help policy, provider activation, deployment and broader feature acceptance untouched.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-10-15T17:51:52.461631+00:00",
   "goal_request": {
-    "objective": "Advance fix/chart-template-pointer-interaction: Human approved the coordinator proposal to open a narrowly scoped chart-template pointer repair and stated: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Scope: repair physical desktop overlap between populated comparison chips and Plots; preserve no-comparison default and passing narrow layout; validate with ordinary pointer actions, required full profile and exact CI; coordinator owns technical closure and staging integration. No other feature worktree writes, Help oracle changes, provider calls, deployment or data cleanup.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+    "objective": "Advance fix/chart-template-pointer-interaction: Repair chart-template comparison/Plots hit-target overlap on desktop, preserve the no-comparison default and passing narrow layout, and publish a validated clean checkpoint for delegated coordinator review. No feature imports, Help reference changes, provider requests, deployment or retained-data cleanup.. Acceptance criteria: PTR1: Desktop save/remove/restore with a populated RSP percentage permits ordinary Plots and Remove RSP clicks while both controls exist; no force/trial-only proof or blank-percentage shortcut.; PTR2: No-comparison default geometry remains unchanged; populated and multiple/long comparison chips cannot cover Plots or Templates, and menus retain ordinary close/focus behavior.; PTR3: The 390x800 narrow viewport and on-screen chart retain independent comparison/Plots targets and usable menu bounds; comparison input/add controls remain interactive.; PTR4: Frontend unit tests, type check/build and required isolated application browser/regression validation pass with unchanged oracles/tolerances; exact-source branch CI and subsequent staging gate remain required.; PTR5: Publish clean committed/pushed source and precise review/closure evidence under delegated technical-fix authorization; preserve all sibling code/data and leave Help policy, provider activation, deployment and broader feature acceptance untouched.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "planning_required",
-  "goal_state": "planning_required",
+  "goal_state": "active",
+  "goal_unavailable_reason": null,
   "head": "936074d3679b0b76687dd0d39231417c56eecda6",
-  "implementation_sha": "5267f11a491795d85ee35b56cabbe550394f3823",
+  "implementation_sha": "02f6e76295ebc2e95cf92bcb333b140cefe7560d",
   "local_validation_profile": "pending_agent_assessment",
-  "next_action": "run make agent-session-start",
+  "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
-  "plan_hash": "f8f32bbd8cdadff1b50b2c19c84c4def7b2868b39d8a1f9e6be5e32e50e1304b",
+  "plan_hash": "ba9bd0a388467ae3739e3a50e4b335dd0282af8aeb91a7a429e29c76b55d57f1",
   "planning_required": true,
-  "planning_state": "draft",
+  "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
     "completed": [],
@@ -47,7 +54,7 @@
     "total": 0
   },
   "remote": "936074d3679b0b76687dd0d39231417c56eecda6",
-  "remote_sha": null,
+  "remote_sha": "02f6e76295ebc2e95cf92bcb333b140cefe7560d",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

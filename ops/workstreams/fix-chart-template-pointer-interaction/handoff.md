@@ -6,7 +6,7 @@ Created from `staging` at `5267f11a491795d85ee35b56cabbe550394f3823`.
 
 - Recorded at: 2026-10-15T17:44:28.775011+00:00
 - Request: Human approved the coordinator proposal to open a narrowly scoped chart-template pointer repair and stated: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Scope: repair physical desktop overlap between populated comparison chips and Plots; preserve no-comparison default and passing narrow layout; validate with ordinary pointer actions, required full profile and exact CI; coordinator owns technical closure and staging integration. No other feature worktree writes, Help oracle changes, provider calls, deployment or data cleanup.
-- Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
+- Closure record: pending validation; human already delegated technical closure for this narrow repair. Deployment remains unauthorized.
 - Planning state: ready; PTR1-PTR5 and full_stack_browser retain all required validation. Delegated technical closure will be recorded after validation; deployment remains unauthorized.
 
 ## Active changeset: pointer-repair-plan
@@ -36,6 +36,12 @@ delete test accounts or touch other feature stacks. The single TC test account
 reported in its retained DB is not this repair's cleanup target. The Help-only
 interim reference-policy question is still pending and is a separate issue.
 
-Next: validate/publish this plan, then open the product-geometry context from a
-clean synchronized boundary. Use only this worktree's assigned resources for
-application validation and preserve exact before/after evidence.
+Planning closure: the committed planning receipt was synchronized, the guarded
+`plan-ready` check passed, and the already-created session-local goal was recorded
+active. The helper initially rejected the receipt's missing `command` field;
+that field was corrected in its own committed planning receipt. No product code
+was edited during planning. This checkpoint owns only the workstream metadata;
+publish its session state, verify clean matching HEAD/origin, then open the
+product-geometry context. Use only assigned resources and preserve exact
+before/after evidence. The session-local goal uses the concise plan goal without
+a token budget; the helper's expanded goal request is guidance, not a replacement.
