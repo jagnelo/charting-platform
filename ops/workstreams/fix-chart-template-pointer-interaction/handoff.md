@@ -6,8 +6,66 @@ Created from `staging` at `5267f11a491795d85ee35b56cabbe550394f3823`.
 
 - Recorded at: 2026-10-15T17:44:28.775011+00:00
 - Request: Human approved the coordinator proposal to open a narrowly scoped chart-template pointer repair and stated: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Scope: repair physical desktop overlap between populated comparison chips and Plots; preserve no-comparison default and passing narrow layout; validate with ordinary pointer actions, required full profile and exact CI; coordinator owns technical closure and staging integration. No other feature worktree writes, Help oracle changes, provider calls, deployment or data cleanup.
-- Closure record: pending validation; human already delegated technical closure for this narrow repair. Deployment remains unauthorized.
-- Planning state: ready; PTR1-PTR5 and full_stack_browser retain all required validation. Delegated technical closure will be recorded after validation; deployment remains unauthorized.
+- Closure record: coordinator exercised the recorded delegated technical-fix review/closure after the complete clean validation below. No feature checkpoint, promotion or deployment is accepted.
+- Planning state: ready; PTR1-PTR5 validated. Final metadata CI and exact staging exhaustive gate remain mandatory before delivery through green staging.
+
+## Technical closure and coordinator handoff
+
+Validated exact clean pushed source:
+`ad30231df085c1168ed51b2567e33586b7612853`. Entire isolated pinned no-retry
+profile completed normally:258 passed,2 expected opt-in live skips,0 failures,
+0 retries/flakes in33.3m. All104 original screenshot assertions pass unchanged.
+The last-run marker is passed with failedTests[]; results copied intact to
+`/tmp/chart-pointer-repair-evidence-20261015/ad302-complete-green-results`.
+Earlier red/interrupted runs remain explicitly red; none was relabelled green.
+927-unit/type-build and repeated10/10 pointer/persistence +8/8 popup evidence
+are published separately in this journal. Exact source CI38796755658 is terminal
+success; independent E2E log audit shows151 passed/109 skipped and no retries
+or flaky recovery. The local run actually exercises the104 screenshots skipped
+in the ordinary feature CI job; staging exhaustive validation is still required.
+
+Independent scoped review confirms only two frontend source files, existing
+regression tests and own workstream records changed. No migrations/dependencies,
+provider configuration, image references, masks or tolerances changed. Genuine
+conflict recovery, newer revisions and selected-workspace identity are covered
+by negative regressions. All30 workstreams and whole-branch diff checks pass.
+Owned backend's last300 lines:0 traceback,0 ERROR/CRITICAL,0 HTTP5xx; each browser
+flow retained critical diagnostics. Served final app was index-C0soaeCM.js.
+
+The human's exact technical-fix delegation is recorded in plan closure fields;
+this coordinator accepts only the delivered technical repair scope under that
+authority. Broader four-feature checkpoints, local Help reference adoption,
+paid/live provider activation, deployment and operational trial remain separate.
+There is no human signoff request for this individual validated fix.
+
+Resource targets resolved before cleanup: six repair-owned services and four
+generated fixture volumes (postgres_data,redis_data,research_jobs,research_results)
+under exact project charting-stack-fix-chart-template-pointer-interaction-1ffadfb8.
+These contained only this disposable seeded acceptance dataset, not retained
+user or feature data. Cleanup completed normally:6 own containers and4 own
+images removed; independent audits find no own containers, volumes or network.
+Final owned resource accounting reports0containers/0volumes/0knownbytes,
+complete accounting, no unknowns or retained resources. Fixtures are rebuildable.
+The original TC project was independently checked before and after: all six
+assigned services remain running/healthy and all four original volumes intact.
+
+Implementation-to-coordinator handoff used the helper's explicit interrupted
+finish path with this precise next action. Normal finish's current-HEAD committed
+ledger requirement would demand a self-referential metadata hash; do not make
+hash loops or weaken evidence. This is a role handoff of completed validated
+implementation, not a failed/incomplete product claim. The helper released the
+exclusive writer and cleaned only this repair's attributable resources; absence
+of the exact claim file is independently verified.
+Final operational publication paths belong solely to this closure record:
+ops/workstreams/fix-chart-template-pointer-interaction/plan.yaml,
+ops/workstreams/fix-chart-template-pointer-interaction/handoff.md,
+ops/workstreams/fix-chart-template-pointer-interaction/validation.jsonl,
+ops/workstreams/fix-chart-template-pointer-interaction/session.json.
+Publish the complete closure/handoff record in one scoped commit after cleanup,
+verify clean matching HEAD/origin, then await exact final-source CI before the
+coordinator invokes guarded make integrate from persistent staging. No further
+repair source writes are planned. No source freeze/product baseline is released
+until those final gates actually pass.
 
 ## Published changeset: pointer-popup-close-teardown
 
