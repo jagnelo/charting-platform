@@ -34,12 +34,23 @@ environments. A product patch that merely switches the global font to satisfy
 one baseline would break the other. This finding narrows the historical vague
 geometry/oracle blocker; it is not permission to regenerate either baseline.
 
-Canonical full matrix is running in a separate labelled, automatically removed
+Canonical full matrix completed93passed/11failed in21.9m, terminal exit1.
+It ran in a separate labelled, automatically removed
 browser container `tc2000-checkpoint-visual-matrix`, tool process handle 11617.
 Artifacts: `/tmp/tc-checkpoint-pinned/full`. Temporary current-source Vite is
-handle2397, port15190, using assigned backend28008. Poll before restart; the
-first full-matrix case had an auth-navigation timeout, while subsequent cases
-continue. Retain that execution failure separately from screenshot differences.
+handle2397, port15190, using assigned backend28008; Vite is now stopped.
+Failures: four Help screenshots, four stale floating-fixture freshness
+assertions, default login-navigation timeout, drag-target ERR_NETWORK_CHANGED
+diagnostics and Study-running workstation visibility timeout.
+
+Fresh isolated fixture initialized from current source subsequently passes all
+16 four-profile replays of floating/default/drag-target/Study-running cases
+(2.8m), including unchanged screenshots and browser diagnostics. Artifacts:
+/tmp/tc-checkpoint-pinned/fresh-focused-matrix. This proves a safe fixture
+initialization path and clears those focused categories, not the earlier full
+matrix result. Four Help font-baseline failures remain unresolved. Original
+assigned stack and its data are preserved; temporary fixture cleanup is scoped
+to tc2000-checkpoint-fresh-9d78e1 only.
 
 Coordinator action: review this reproducible environment discrepancy alongside
 the missing V25 reference states and narrow chart-template repair proposal.

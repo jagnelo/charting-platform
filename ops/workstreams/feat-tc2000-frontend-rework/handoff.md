@@ -19040,3 +19040,42 @@ checkpoints remain unaccepted. No source freezes. Workflow staging advanced to
 so TCP3 remains gated. Strategy owns collision repairs; TC preserves its own
 existing migration IDs. No sibling writes are authorized.
 
+Fresh isolated runtime is now healthy (six services, four new volumes),
+project tc2000-checkpoint-fresh-9d78e1. Current production build passed520modules
+in14.14s. Browser must use host network with private frontend172.22.0.5;
+internal bridge does not publish28388, and an internal-browser attempt blocked
+the existing OneSignal CDN. Ordinary host-network browser passed unchanged
+floating Current-row/screenshot/diagnostics case1/1 in14.4s. Freshness failure
+is now explained and corrected through fixture initialization, not product or
+assertion changes. Current focused four-profile replay is process25374,
+container tc2000-checkpoint-fresh-browser, artifacts
+/tmp/tc-checkpoint-pinned/fresh-focused-matrix. Poll before restarting.
+Do not clean the fresh project until this live browser ends. Exact cleanup
+must use only its documented Compose project; assigned originals stay intact.
+
+Current dirty documentation context paths:
+ops/workstreams/feat-tc2000-frontend-rework/checkpoint-runtime-validation.md,
+ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl,
+ops/workstreams/feat-tc2000-frontend-rework/handoff.md and
+ops/workstreams/feat-tc2000-frontend-rework/session.json.
+
+## Fresh-fixture replay terminal result
+
+Process25374 ended successfully:16/16 in2.8m. All four profiles pass
+floating/default/drag-target/Study-running state, freshness, screenshots and
+browser diagnostics. This resolves focused fixture/transport categories; the
+full canonical matrix remains93/104 with four Help screenshot mismatches
+requiring reference/environment reconciliation. No snapshot/policy changed.
+Temporary project-only cleanup process96342 completed successfully. No fresh
+fixture containers or volumes remain. Original six services/four volumes were
+verified intact; all browser/Vite handles are terminal.
+Retain artifacts in /tmp/tc-checkpoint-pinned/fresh-focused-matrix and full.
+No browser/Vite processes remain active. Coordinator has acknowledged the
+narrow repair proposal and owns its independent topic delivery. Pending next
+work is Help baseline policy reconciliation, exact candidate CI evidence, and
+green Provider+ETF staged contracts before consumer integration. Preserve all
+roadmap criteria; do not infer checkpoint readiness from the focused pass.
+
+Also touched in this context:
+ops/workstreams/feat-tc2000-frontend-rework/visual-environment-diagnosis.md.
+
