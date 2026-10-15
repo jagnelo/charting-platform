@@ -1,7 +1,7 @@
 from datetime import UTC, date, datetime
 from decimal import Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -735,11 +735,23 @@ async def _load_etf_snapshot(
     if snapshot_id is not None:
         stmt = stmt.where(ETFHoldingsSnapshot.id == snapshot_id)
     elif snapshot_date is not None:
-        stmt = stmt.where(ETFHoldingsSnapshot.composition_date <= snapshot_date)
+        # A correction may describe an older composition while only becoming
+        # known later. Match the ETF point-in-time readers: preserve legacy
+        # snapshots without a known_at value, but never leak a dated correction
+        # into an analysis before it was known.
+        date_end = datetime.combine(snapshot_date, datetime.max.time(), tzinfo=UTC)
+        stmt = stmt.where(
+            ETFHoldingsSnapshot.composition_date <= snapshot_date,
+            or_(
+                ETFHoldingsSnapshot.known_at.is_(None),
+                ETFHoldingsSnapshot.known_at <= date_end,
+            ),
+        )
     snapshot = (
         await db.execute(
             stmt.order_by(
                 ETFHoldingsSnapshot.composition_date.desc(),
+                ETFHoldingsSnapshot.known_at.desc().nullslast(),
                 ETFHoldingsSnapshot.id.desc(),
             ).limit(1)
         )

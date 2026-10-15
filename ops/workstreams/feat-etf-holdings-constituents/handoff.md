@@ -9947,3 +9947,99 @@ provider-platform work reaching staging with `ETF_HOLDINGS`, and AC14 is the
 post-integration/deployment 30-day shadow observation. Those are external
 gates, not current branch-local failures. No staging, other worktree, or
 deployment was changed.
+
+### Central-first integration checkpoint adoption — 2026-10-15
+
+Active context: **central-first ETF checkpoint adoption and consumer contract
+preparation**. The human resumed the existing thread goal with checkpoint
+`etf-holdings-integration-1`, following the coordinator's 2026-10-15 direction.
+Read the coordinator's `feature-integration-coordination.md`, checkpoint section
+of `agent-orchestration.md`, and `provider-integration-checkpoint.md` first;
+those documents remain read-only in the staging checkout. The complete original
+objective and all fourteen criteria are preserved under `roadmap_goal` and
+`roadmap_acceptance_criteria`, with an exhaustive disposition per criterion.
+New checkpoint criteria EICP1-EICP7 start unverified; no old completion marks
+carry over. Checkpoint acceptance/closure stays pending, profile remains
+`full_stack_browser`, and no token budget is set.
+
+Baseline source is clean synchronized `f2670b0bbde8bb680173d847a43734f7391745f7`;
+its only changes after validated implementation `5854dd2f` are four operational
+files. October 7 full local/hosted green results are historical evidence for
+that unchanged implementation, with provider skips explicitly unverified.
+They cannot validate a future staged Provider bridge. Resumed existing writer
+claim `bb0f68af-76ab-45c0-83f1-52d805be699f` through UV-managed session status,
+without replacing it; resource inspection reports no ETF containers/volumes.
+The ordinary preflight encountered read-only UV-cache/allocation registry
+boundaries; isolated `/tmp/uv-cache-etf` plus the normal elevated preflight
+resolved them. The status helper rewrites the ETF session snapshot.
+
+Owned paths for this context: the ETF plan, handoff, session, validation journal,
+new `integration-checkpoint.md`, new consumer regression module
+`backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py`, and
+`backend/app/services/baskets.py`. Initial source inspection found that
+`_load_etf_snapshot` filters historical baskets by composition date but not
+knowledge time; a later correction could leak into an earlier analysis. Add a
+failing persisted-consumer regression, then align the date path with existing
+ETF knowledge-time semantics. Prepare success/denial/stale/historical consumer
+tests and an exact bridge contract map before any staged runtime wiring.
+
+Provider is not in the current staging ancestry. The coordinator staging tip
+`089672e8ba86a02ff6dd26535cbfbd0d698f71c2` is a local documentation advance;
+`origin/staging` is still `8b885a2f` in locally available refs. Do not merge it
+without synchronization and exact green CI. Provider source ref `65a467b43`
+adds quota/availability controls, while neither inspected runtime has
+`ETF_HOLDINGS` or a located aggregate monthly-budget contract. ETF owns the
+capability bridge, registry/transport integration, consumer tests and enum
+migration after central release. Generic governance remains Provider-owned;
+no guessed quota, whole-fetch request-cost assumption, or duplicate runtime is
+acceptable. Independent consumer preparation proceeds now. After Provider is
+integrated and exact staging CI is green, merge it only into this clean unfrozen
+source, reconcile and validate the actual runtime, then publish the human review
+checkpoint. After all four integrations and coordinator source release, merge
+the common green staging baseline here and continue every original roadmap
+requirement, including the later separately authorized 30-day observation.
+
+Independent consumer work reproduced a real knowledge-time regression: the
+historical basket selected snapshot ID 2 (a correction learned two days after
+the requested analysis date) instead of ID 1, which was known at that time.
+The unchanged initial host-context test run returned 10 passes and that one
+failure. `baskets._load_etf_snapshot` now constrains date-selected knowledge to
+the requested UTC day and orders same-composition versions by knowledge time
+before insertion ID, matching existing ETF point-in-time readers. Legacy
+snapshots with null knowledge time retain the established compatibility path;
+explicit snapshot selection remains inspectable. New tests cover current,
+typed denied-refresh/degraded, no-data/unavailable, successful-health-but-stale,
+raw/snapshot retention, cross-profile snapshot rejection, knowledge-time
+corrections, the end-of-day boundary and insertion-order independence. They
+exercise actual persisted consumers; shared runtime admission remains untested
+until the staged dependency is available.
+
+The first ordinary-sandbox TestClient run stalled before returning a case;
+read-only process inspection confirmed its exact ETF pytest process. SIGINT
+did not return it, so only that process was terminated. The same unchanged tests
+ran in host context and promptly exposed the real historical-selection bug;
+this was not an issuer/network request failure. After the fix, 114 focused
+consumer/visibility/capability tests passed. The subsequent added insertion-order
+regression and whole backend unit suite are being validated. All 611 adapter
+tests, Ruff, formatting, workstream validation and diff checks pass. Original
+goal and fourteen criteria compare equal to the baseline plan; all fourteen
+dispositions occur exactly once. EICP1 is complete (1/7); remaining criteria
+retain the staged-runtime and final validation requirements.
+
+A current authenticated GitHub read confirms published staging is still
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`; the coordinator's October 15 docs
+are local. No synchronized green Provider integration has been released. The
+next dependency is that central staging release, not full Provider completion
+or a 30-day trial. The branch contract map records the additional shared budget
+interface gap and the per-request quota issue for multi-fetch issuer adapters.
+
+Preparation validation is now complete: all 1,536 backend unit tests passed
+(34 existing dependency warnings), including all fourteen new consumer cases
+and 611 adapter invariants. Ruff, formatting, all 30 workstream records and
+diff checks pass. The full required Docker/browser profile remains open for
+the combined staged runtime. A fresh read-only host inventory found active
+Provider and TC2000 stacks plus unrelated Testcontainers, with 2.5 GiB available
+RAM; none was modified and no competing ETF full stack was started. Publish
+this coherent preparation context now, then inspect its exact-source CI and
+wait for the coordinator's green Provider staging release before the bridge
+merge/reconciliation. The goal remains active; checkpoint review is not ready.
