@@ -39,8 +39,10 @@ current_blocker: >-
   delivery of its independent chart-template pointer repair through green
   staging; do not duplicate that fix or sync TC source before publication.
   Provider/ETF staging synchronization and exact TCP4 full integration remain
-  open. Preserve assigned runtime, data, and listener 15190; publish the clean
-  pushed checkpoint after recording exact-source validation evidence.
+  open. The reviewed source and exact-source evidence are committed and pushed;
+  do not treat the checkpoint's GitHub Actions run as green until its terminal
+  conclusion is verified against the full current SHA. Preserve assigned
+  runtime, data, and listener 15190.
 
   Checkpoint adoption 2026-10-15: the populated-comparison pointer check found
   a remaining default-wide geometry defect in the current TC source despite the

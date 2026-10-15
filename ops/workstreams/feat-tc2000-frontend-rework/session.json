@@ -36,7 +36,6 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
     "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
@@ -113,7 +112,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "d0add5588612339203073b21015028ad4ffeb106",
+  "head": "c65ab4c0d008800cc3a20e3907be8aca9d87a52b",
   "implementation_sha": "d0add5588612339203073b21015028ad4ffeb106",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -126,7 +125,7 @@
   "last_human_progress_update": "2026-10-15T21:06:35.748679+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Inspect exact-tip Actions after publishing the Help reference evidence; continue the full branch roadmap while awaiting coordinator and Provider/ETF staging gates.",
-  "plan_hash": "3e134461d7bdefb59b2e41a182f0e2a9abf89b1457a3384e8a51ff669f3073ce",
+  "plan_hash": "d2df99c134952a9f8db86e5d0ba7d49e979e7bcdaa74da57d2a1e2560bf0c420",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -158,7 +157,7 @@
     "remote_tracking_sha": "d0add5588612339203073b21015028ad4ffeb106",
     "status": "pushed"
   },
-  "remote": "d0add5588612339203073b21015028ad4ffeb106",
+  "remote": "c65ab4c0d008800cc3a20e3907be8aca9d87a52b",
   "remote_sha": "d0add5588612339203073b21015028ad4ffeb106",
   "remote_synchronized": true,
   "retained_docker_resources": [],
