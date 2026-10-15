@@ -85,6 +85,56 @@ ceiling, or prove a shared non-bypassable free-only checkpoint boundary. The
 ETF-side contract and outstanding independent producer/consumer tests are
 specified in `shared-cost-admission.md`.
 
+### Live CI and consumer-test refresh — 2026-10-15 21:21Z
+
+Read the coordinator's durable receipt at21:17Z and polled exact jobs. Staging
+tip `82d881e76be8de538abb6ec5c454d96afe0ee56a` run `38805309009` has regular
+Playwright job `116667534043` terminal success:151 passed/109 declared skips,
+zero retries/flakes; its `Exhaustive Integration Gate` job `116667534144` is
+still running. This does not release staging. The earlier follow-up run
+`38785967367` has a cancelled Playwright job and is not a passing substitute.
+Provider source `1afb89658d1d84e801069e1f19d7ee4f985c7e1e` run `38804214507`
+still has Playwright active; no Provider checkpoint or released baseline is
+recorded.
+
+ETF's current docs-tip run `38805354206` has frontend, backend, and
+branch-declared jobs green while its Playwright job remains active. Its exact
+branch-declared job log confirms the persisted consumer module passed all14
+tests in7.98s. A local-only invocation of that 14-test module stalled on its
+first capability request inside Starlette `TestClient`; the bounded diagnostic
+run was interrupted without a test assertion or completed result. This local
+attempt is neither a pass nor a reproduced product failure; do not launch a
+duplicate while exact-source CI remains active. No source code changed.
+
+The coordinator's 260-case no-retry visual replay remains reported active with
+one readiness race under review. The 21:17Z coordinator receipt confirms
+staging's exhaustive job is live but does not establish a terminal result for
+that separately reported replay. Keep the visual fix ownership split unchanged:
+ETF owns the published adjacent-chart readiness test only, while staging owns
+pointer geometry. No staging/source refs or sibling worktrees were changed.
+
+### Exact CI completion refresh — 2026-10-15 21:26Z
+
+The exact published ETF docs-tip CI `38805354206` has now completed green:
+frontend, backend, and branch-declared jobs succeeded, and its Playwright job
+`116668129996` reports151 passed/109 declared skips. The branch-declared log
+confirms the persisted consumer tests passed14/14 in7.98s. This CI is for
+remote tip `ecf92e234310eddeda023ec29f17d1ce7d6c4be9`; the current local plan
+and handoff edits are docs-only and not covered by that run. The bounded local
+repeat of the 14-test module remained blocked in Starlette `TestClient` on its
+first capability request and was interrupted without an assertion result.
+
+Provider exact-source CI `38804214507` is also terminal green across its
+declared jobs. That removes CI execution as its current gate, but does not
+constitute Provider checkpoint acceptance: the coordinator's latest receipt
+still requires the shared cost admission/free-only contract review and explicit
+baseline release. Staging `38805309009` has its regular Playwright job green
+(151 passed/109 skips), while `Exhaustive Integration Gate` job
+`116667534144` remains active. No common staging baseline has been released;
+the separately reported coordinator-owned 260-case no-retry replay/readiness
+review remains pending terminal evidence. No source code, staging ref, or
+sibling checkout changed here.
+
 ### Coordinator visual-readiness cross-check — 2026-10-15
 
 Ownership remains deliberately split: the ETF branch owns only the adjacent
@@ -146,6 +196,35 @@ The coordinator has requested the exact ETF readiness source and evidence in
 this durable handoff. The test-only source and prior green ETF evidence are
 available above, while cross-fixture stable readiness remains pending the
 coordinator's terminal full replay.
+
+### Coordinator follow-up — visual readiness ownership and evidence — 2026-10-15 21:30Z
+
+The coordinator's latest cross-check confirms the adjacent-chart readiness
+repair remains ETF-owned and is already published; no additional code change is
+needed in this checkout. Exact minimal source is commit
+`b01f59bf156e7a43efe9d3a7897a648ca97f0b16`, limited to
+`frontend/tests/e2e/tc2000_visual.spec.ts`: use the existing
+`waitForShellReady(page)` helper before Study navigation, then require visible
+`.chart-tool .uplot` and zero `.chart-tool .tool-state` before the existing
+sandbox-error screenshot. The screenshot, `0.5%` tolerance and all existing
+assertions remain intact. ETF-owned evidence is 12/12 focused comparisons
+(four display configurations x three repetitions, retries disabled), 104/104
+visual cases in the unchanged full local profile with zero flakes and normal
+exit 0, and exact-source CI `38788420409` green for code boundary
+`8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85`.
+
+The current coordinator report says staging tip `5267f11a` run `38773602828`
+had 103 visual passes and one recovered flaky 1080p screenshot (16,142 pixels);
+the green job badge is not clean acceptance. Pointer geometry commit
+`8b4e6853` and test-only MarketMap refresh synchronization follow-up
+`543a7817` are coordinator-owned and must not be duplicated or modified here.
+The coordinator's separate own-bridge/DejaVu fixture passed its F8s handoff
+and both unmodified 1080p Study-gap screenshots 3/3 in49.3 seconds, but its
+full 260-case no-retry replay is still active with one readiness race under
+review. Those are coordinator-reported results, not additional ETF test runs.
+Keep that independent replay pending until its terminal report names the case,
+attempt count and result; no staging release or combined feature acceptance is
+implied. No staging ref or sibling worktree was changed.
 
 The remaining ETF checkpoint work is therefore concrete: wait for the
 coordinator to audit green, no-flake staging and release the accepted Provider
