@@ -10997,3 +10997,66 @@ statuses and no associated PR workflow runs; therefore exact-source hosted CI
 is pending, not passing. This focused repair does not satisfy the deferred
 combined `full_stack_browser` profile or the still-unaccepted Provider shared
 cost/admission contract, and is not an ETF checkpoint acceptance.
+
+### Issuer security fallback classification audit — 2026-10-15 22:08Z
+
+A targeted audit of adapter-emitted holding_type literals found one real
+unknown-classification sentinel: an issuer parser defaults missing
+securityTypeName to the string "security", while retaining row_type="security".
+That label is not evidence that the constituent is equity. An exploratory
+temporary expansion of the no-match, existing-equity-collision, and persisted-
+snapshot matrices passed the focused suites 152/152. I then removed those test
+edits because the active changeset for this continuation owns ETF workstream
+records only. The current published source still has the prior 149-test focused
+matrix; it does not have the explicit literal security-sentinel regression.
+
+The sentinel shares the same unresolved branch as the already tested unknown
+holding type, so current behavior remains fail-closed, but exact parser-value
+coverage should be added when the implementation changeset is reopened. No
+typed security/fixed-income/fund/derivative support is claimed. The full
+combined profile remains deferred to the coordinated Provider slot; the actual
+Provider contract and ETF_HOLDINGS bridge remain pending.
+
+### Current shared-runtime and release reconciliation — 2026-10-15 22:12Z
+
+Read the current staging coordination/checkpoint guidance and coordinator
+receipt. The common repair release `82d881e76be8de538abb6ec5c454d96afe0ee56a`
+is already an ancestor of this ETF branch; staging run `38805309009` is
+terminal green, including Exhaustive Integration Gate job `116667534144`.
+This is a shared repair baseline only. The coordinator receipt still records no
+Provider product checkpoint (`provider: null`) and no accepted product
+checkpoint. Provider hosted run `38804214507` is terminal green on its
+declared jobs, but that is not producer-contract review, the Provider local
+heavy-gate result, or a staging release. Provider retains first heavy local
+validation priority; this branch did not start Docker/browser full validation.
+
+ETF run `38805354206` is terminal green for backend, frontend, branch-declared
+tests and regular Playwright on the older docs source
+`ecf92e234310eddeda023ec29f17d1ce7d6c4be9`; Exhaustive Integration Gate was
+skipped. The previously successful local full profile exited zero on source
+`8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85`, before the common repair merge and
+current resolver changes. It is not evidence for current merged source. GitHub
+combined-status queries for current implementation `faffd6f75b40e4dbcf506c9c042d906d1aaa0327`
+and current branch tip `13fd50a789b1c09e11a74ef178cb505521c38f4c` returned no
+statuses; exact-source CI for the current implementation remains missing.
+
+The actual ETF-tree Provider runtime boundary and unchanged transport blobs are
+now pinned in `integration-checkpoint.md`. The 149 focused resolver/capability
+tests and prior 14-case persisted-consumer tests remain evidence for their exact
+scopes only; they do not exercise a staged Provider bridge. A temporary
+security-sentinel test matrix reached 152 passes, but those edits were removed
+to honor the active documentation-only changeset and are not source evidence.
+
+Canonical session status verified the existing writer `bb0f68af-76ab-45c0-83f1-52d805be699f`
+on this branch; no new writer or takeover was created. `make agent-context`
+initially could not open the repository-wide runtime allocation lock under the
+sandbox, then the same standard preflight succeeded via the narrow elevated
+path. The UV-managed commands used `/tmp/etf-codex-uv-cache`; the first default
+UV cache attempt was denied by the read-only home cache. These access limits do
+not block work in the assigned ETF checkout, but should be retained as workflow
+environment notes rather than mistaken for product failures.
+
+Next: wait for coordinator evidence that the actual Provider producer contract
+and first heavy validation slot are released, then reconcile against that exact
+green staging source. Keep full `full_stack_browser` and current-source CI open;
+no product checkpoint is accepted.

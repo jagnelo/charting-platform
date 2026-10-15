@@ -1323,11 +1323,17 @@ next_action: >-
   equity-only resolver; fixed_income, option, derivative, fund, crypto,
   commodity, other, and unknown types remain unresolved instead of attaching
   to an equity by ticker or creating a synthetic stock. The focused resolver
-  and capability tests passed149/149, including persisted holdings lineage,
-  unknown and equity-collision tickers. The 14-case persisted-consumer module passed locally in
+  and capability tests pass149/149, including persisted holdings lineage,
+  unknown and equity-collision tickers. An exploratory security-sentinel test
+  passed in a temporary152-case matrix but was removed because the active
+  changeset owns documentation only; add the explicit sentinel regression when
+  code scope reopens. The 14-case persisted-consumer module passed locally in
   host context; its first TestClient request stalls only in the restricted
-  sandbox and is not an application failure. Continue branch-owned
-  identity/asset-kind and consumer-contract preparation. The actual
+  sandbox and is not an application failure. Current ETF-tree inspection found
+  no ETF_HOLDINGS capability or durable request reservation, and the existing
+  dispatcher is synchronous while holdings adapters are async. Continue the
+  branch-owned producer/consumer contract inventory; do not code against a
+  guessed interface. The actual
   ETF_HOLDINGS bridge remains gated on an accepted, tested Provider producer
   contract, especially shared cost/free-only admission and denial before every
   real request, page, retry, redirect, alternate client, or SEC fallback. Do

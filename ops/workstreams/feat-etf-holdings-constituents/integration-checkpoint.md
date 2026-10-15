@@ -9,6 +9,57 @@ checkpoint does not close the full ETF roadmap.
 
 ## Source and evidence reconciliation
 
+### ETF-tree Provider runtime snapshot — 2026-10-15, source HEAD 13fd50a
+
+This snapshot is from the actual ETF worktree after the released common repair
+merge, not from the unmerged Provider feature branch. It is an interface audit,
+not acceptance of a Provider checkpoint. On this tree:
+
+- `backend/app/models/provider_runtime.py` defines nine `ProviderCapability`
+  values and no `ETF_HOLDINGS` member. `ProviderEntitlement.is_free` defaults
+  true; a default value is not reviewed ETF permission.
+- `resolve_provider_chain` in `backend/app/services/provider_runtime.py`
+  selects enabled policy rows joined to free entitlements, then excludes an
+  expired review, disallowed environment, open circuit, missing provider or
+  explicitly unsupported capability. An unknown per-instrument support status
+  is not excluded by this function. The eligibility query does not itself
+  validate publisher terms, account scope, operation cost, or an aggregate
+  subscription commitment.
+- `execute_provider_call` writes a `ProviderRequestLog`, records provider health,
+  and invokes a synchronous callback using `run_in_executor`. It does not call a
+  durable per-request quota reservation/settlement API. `_get_bucket` is a
+  process-local token bucket. `_usage_cost_for_operation` falls back to one
+  request for a missing or malformed cost and clamps non-positive values to one;
+  it is usage telemetry, not proof of the actual publisher quota or money cost.
+- The current ETF tree contains no `reserve_provider_quota_async`,
+  `settle_provider_quota_async`, `cost_cents`, or aggregate recurring-subscription
+  admission implementation under `backend/app`. This is bounded to the actual
+  checked-out tree; it does not claim those APIs cannot exist in a later accepted
+  Provider source.
+- ETF adapter methods are async and open their own HTTP clients. Passing an async
+  adapter method as the existing synchronous `invoke` callback would return an
+  unawaited coroutine inside the executor and cannot prove successful fetch or
+  request-level admission. A bridge needs the accepted producer's compatible
+  async/transport contract, not just a top-level wrapper around adapter output.
+
+The exact current tree is `13fd50a789b1c09e11a74ef178cb505521c38f4c`. The
+adapter, refresh, and EDGAR source blobs equal their previously inventoried
+blobs (`508c7458…`, `a235ffbe…`, and `63ac7778…` respectively), so the lexical
+transport inventory below remains current despite later resolver and workstream
+changes. The common repair release is already an ancestor; it did not include a
+Provider product checkpoint. Do not use these current-tree primitives to infer
+that the Provider contract is accepted or sufficient.
+
+The bridge's first implementation review must therefore reconcile, from the
+green staged producer, (1) exact capability and migration values, (2) a
+non-bypassable entitlement/environment decision for each issuer operation, (3)
+reviewed request units and recurring-cost admission, (4) durable reservation
+and settlement identifiers for each actual outbound attempt, (5) an awaited
+async invocation path or equivalent proven transport boundary, and (6) linked
+health/admission/raw-artifact lineage. Before that source exists, only tests of
+ETF's persisted consumer outcomes and documented test obligations are valid;
+mocking a proposed provider API is not shared-runtime evidence.
+
 - Preparation baseline: `f2670b0bbde8bb680173d847a43734f7391745f7`.
 - Previously validated implementation: `5854dd2fc70e7424280782c3a61df5f6ed5b04c6`.
   Their diff contains only four operational files; application and test source
