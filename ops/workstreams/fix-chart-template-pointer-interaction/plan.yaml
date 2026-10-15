@@ -1,0 +1,34 @@
+schema: 4
+branch: fix/chart-template-pointer-interaction
+base_sha: 5267f11a491795d85ee35b56cabbe550394f3823
+parent_branch: staging
+parent_sha: 5267f11a491795d85ee35b56cabbe550394f3823
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "Human approved the coordinator proposal to open a narrowly scoped chart-template pointer repair and stated: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Scope: repair physical desktop overlap between populated comparison chips and Plots; preserve no-comparison default and passing narrow layout; validate with ordinary pointer actions, required full profile and exact CI; coordinator owns technical closure and staging integration. No other feature worktree writes, Help oracle changes, provider calls, deployment or data cleanup."
+planning_state: draft
+human_closure_authorization: pending
+closure_summary: pending
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: pending_agent_assessment
+local_validation_reason: pending agent assessment from changed paths and runtime impact
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "Human approved the coordinator proposal to open a narrowly scoped chart-template pointer repair and stated: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Scope: repair physical desktop overlap between populated comparison chips and Plots; preserve no-comparison default and passing narrow layout; validate with ordinary pointer actions, required full profile and exact CI; coordinator owns technical closure and staging integration. No other feature worktree writes, Help oracle changes, provider calls, deployment or data cleanup."
+scope: []
+owned_paths: []
+dependencies: []
+acceptance_criteria: []
+branch_tests: []
+branch_tests_reason: pending agent assessment
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: authorized
+remaining_gaps: []
+progress:
+  completed: []
+  total: 0
+  current_phase: plan
+  current_blocker: none
+  next_action: complete the branch-owned plan before creating a goal
