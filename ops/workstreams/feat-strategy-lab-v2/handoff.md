@@ -14512,3 +14512,16 @@ migration history. Neither transition nor dropping/reinitializing data is
 implemented. Existing databases are safely held for review by this source.
 Actual combined consumers continue to wait for accepted green Provider/ETF/TC
 staging. Preserve the existing claim and the complete roadmap.
+
+Migration repair context closed at
+47ea7ba917b48efd545a4dbbb0a8cbb3af6af3eb: scoped staged-path review, 28 focused
+passes, unchanged DDL/AST and unique-ID audit, commit and push all complete;
+HEAD equalled origin with a clean tree. Final session receipt owns
+`ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
+`ops/workstreams/feat-strategy-lab-v2/handoff.md` and
+`ops/workstreams/feat-strategy-lab-v2/session.json` only. Next action is coordinator
+review of this repair and the compatibility matrix. Do not migrate any identified
+legacy Strategy/mixed database without its reviewed recovery decision; do not
+perform dependent consumer reconciliation until the accepted green baseline is
+released. Current full application/CI and PostgreSQL migration acceptance remain
+unproven. No checkpoint acceptance is recorded.

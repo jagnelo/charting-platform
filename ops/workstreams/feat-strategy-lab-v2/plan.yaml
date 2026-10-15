@@ -6,7 +6,8 @@ integration_checkpoint:
   id: strategy-lab-v2-integration-1
   active_changeset:
     name: strategy-migration-collision-compatibility
-    status: validated
+    status: synchronized
+    source_commit: 47ea7ba917b48efd545a4dbbb0a8cbb3af6af3eb
     intent: Uniquely namespace Strategy revisions and stop ambiguous applied histories before schema/version mutation; retain old/new mapping and require reviewed recovery for existing legacy Strategy databases.
     owned_paths:
       - backend/alembic/env.py
