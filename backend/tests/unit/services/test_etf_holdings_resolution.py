@@ -484,6 +484,7 @@ async def test_resolver_does_not_bind_future_ticker_to_existing_equity(db):
         "commodity",
         "other",
         "unclassified",
+        "security",
     ],
 )
 async def test_resolver_keeps_non_equity_rows_out_of_equity_ticker_matching(
@@ -533,6 +534,7 @@ async def test_resolver_keeps_non_equity_rows_out_of_equity_ticker_matching(
         "commodity",
         "other",
         "unclassified",
+        "security",
     ],
 )
 async def test_resolver_does_not_bind_non_equity_ticker_to_existing_equity(
@@ -582,6 +584,7 @@ async def test_resolver_does_not_bind_non_equity_ticker_to_existing_equity(
         "commodity",
         "other",
         "unclassified",
+        "security",
     ],
 )
 async def test_ingest_persists_non_equity_holding_as_unresolved_without_equity_identity(
