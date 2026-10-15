@@ -19012,3 +19012,11 @@ fixture initialization route, preserving existing assigned data. Poll handle
 11617 to completion first and retain its actual outcomes; no full pass is
 claimed. This is independent of the pointer fix and mixed-font baseline issue.
 
+Fresh-fixture route is now prepared and Compose-config validated; see
+checkpoint-runtime-validation.md and /tmp/tc2000-checkpoint-fresh.override.yml.
+No services started. Cached backend dependency hashes match current source.
+After matrix11617 completes, build frontend serially and initialize only exact
+project tc2000-checkpoint-fresh-9d78e1 using the documented invocation. Verify
+fresh floating-row acceptance first. Cleanup is explicit project-only; never
+invoke generic worktree-label cleanup against the preserved assigned stack.
+
