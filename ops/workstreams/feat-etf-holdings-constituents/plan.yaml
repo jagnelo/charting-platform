@@ -56,7 +56,9 @@ integration_checkpoint:
   issuer_repair_sha: ea7572ab63985c9bc520befb377001a44c3a4d5b
   issuer_repair_ci_run: 38778817487
   issuer_repair_live_result: '529 passed, 16 classified external skips, 1 transient BGIG ReadError; unchanged BGIG replay passed. Five repaired routes passed. Transport classifier fix published as 76a8341eba65b82ffcab88ac80aaa0585b20c846. Hosted backend 1559 unit plus 379 integration, frontend and Playwright 151 passed/109 skipped all passed. Local full profile still running.'
-  current_local_profile_log: .ai/validation/etf-full-profile-ea7572ab-single-thread-20261015.log
+  prior_local_profile_log: .ai/validation/etf-full-profile-ea7572ab-single-thread-20261015.log
+  interrupted_local_profile_log: .ai/validation/etf-final-browser-repairs-full-profile-20261015.log
+  current_local_profile_log: .ai/validation/etf-durable-final-profile-20261015.log
   preparation_ci_result: Backend and frontend passed; hosted Playwright 151 passed and 109 skipped; branch live matrix 522 passed, 19 classified skips, 5 failures across four issuer routes. Follow-up repairs are required.
   coordination_document: /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md
   contract_document: ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md
@@ -286,42 +288,10 @@ progress:
   completed:
     - EICP1
   total: 7
-current_phase: browser_repairs_published_final_full_validation_pending
+current_phase: local_repairs_full_gate_green_provider_staging_dependency
 current_blocker: >-
-  The five failures from CI 38771431871 are repaired in the current source
-  delta. Final bounded replay passes all five without skips; the full backend
-  unit suite passes 1557, including 21 new issuer regressions; static checks
-  pass. Source ea7572ab is pushed and CI 38778817487 is terminal; backend,
-  frontend and Playwright passed; only a transient BGIG ReadError failed the
-  live sweep, and its unchanged replay passed. Precise transport classification
-  is published as 76a8341e with parser failures still hard. The first full local gate stopped at the existing
-  research-runner wall/CPU-limit race (both one second). A controlled retry
-  with single-thread numerical libraries and unchanged tests/limits exited0,
-  but recovered flakes prevent stable final acceptance.
-  That retry has passed 1938 backend and 948 frontend tests and runtime probes,
-  and its functional subprocess finished 153 passed, 106 skipped, 1 flaky.
-  F8n-cross-window-links failed its first cleanup click after successful
-  symbol/timeframe assertions; its configured retry passed. The isolated
-  same-file close-event helper fix is now applied after functional subprocess
-  exit. The separate visual run finished 103 passed and 1 recovered flaky;
-  a sandbox screenshot captured the adjacent chart loading. Gate exit0 is
-  not stable acceptance. The popup repair is published as 086950cc after
-  twelve focused passes with retries disabled. Visual readiness is separately
-  published as b01f59bf after twelve comparisons across four display projects,
-  also with retries disabled and no baseline/tolerance changes. Final complete
-  full-profile and exact-source CI validation remain required.
-  The shared cost contract is published as eac06ac4; it is preparation, not
-  proof of shared-runtime admission or acceptance of a budget scope reduction.
-  The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Provider
-  has not been released through synchronized green staging. Prepare
-  independent ETF contract evidence and consumer tests now; runtime bridge
-  acceptance requires that central release and actual combined execution.
-  October 7 green results describe unchanged implementation 5854dd2f and are
-  retained historical evidence, not acceptance of the future shared bridge.
-  The independent knowledge-time basket fix and fourteen new persisted-consumer
-  tests pass the complete 1536-test backend unit suite; all 611 adapter
-  invariants and static/workstream checks pass. Full combined runtime/browser
-  validation and exact-source hosted CI remain required before review.
+  The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). All repaired branch-local gates now pass: normal full integration exit0 with1938 backend,948 frontend,154 functional,104 visual and zero browser flakes; sourceCI38788420409 green. Remaining dependency is the accepted Provider product checkpoint on synchronized green staging, not a failing ETF test. Actual shared identity/entitlement/quota/aggregate monthly-budget/health bridge and combined runtime acceptance remain open. Native CI27 skips stay unverified; ten host replays pass unchanged and DFTT stays unavailable.
+
 remaining_gaps:
   - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the documented native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, TrimTabs/Abacus FCF, Anydrus/NDOW, M.D. Sass/SASS, Amplius/AAAA, Argent/AMID-ABIG-ALIL, VistaShares/RTOO-AIS-AMMO-QUSA-OMAH-ACKY-DRKY, Baillie Gifford/BGGG-BGIA-BGEG-BGUS, and Arin/ATTR, current code and provider-universe documentation report 496/422/74 and future counts must remain derived."
   - "The 140 starting fallback providers have a baseline ledger snapshot; all verified native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, TrimTabs/Abacus FCF, Anydrus/NDOW, M.D. Sass/SASS, Amplius/AAAA, Argent/AMID-ABIG-ALIL, VistaShares/RTOO-AIS-AMMO-QUSA-OMAH-ACKY-DRKY, and Arin/ATTR are recorded explicitly. The ledger has zero queued records, and the 17 legacy entries were refreshed with dated issuer-specific route, identity, or access evidence on 2026-09-03. The current code-derived status split is recorded in the latest synchronized implementation checkpoint below; the ledger preserves more specific evidence-backed classifications."
@@ -1309,17 +1279,4 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Verify the clean synchronized visual receipt, then run the unchanged final
-  full profile and exact-source CI for b01f59bf plus this operational receipt.
-  The prior gate20560 exited0 but recovered two flakes; popup cleanup086950cc
-  and visual readinessb01f59bf now each pass twelve no-retry focused cases.
-  Retain the final source SHA/process handle and log at
-  .ai/validation/etf-final-browser-repairs-full-profile-20261015.log.
-  Preserve the CPU/wall timing evidence, all limits/thresholds and cleanup scope.
-  After Provider reaches synchronized green
-  staging and this source is unfrozen, merge staging here and implement/test
-  the real governance bridge, run the required full profile and exact-source
-  CI, and publish etf-holdings-integration-1 for human review. Preserve the
-  complete roadmap and later 30-day observation. After all four checkpoints
-  and coordinator source release, merge their common green staging baseline
-  into this same feature branch, validate and continue the original roadmap.
+  Publish this four-file operational receipt; verify clean matching branch hashes and exact enclosing CI using the ignored final verification receipt, without self-referential hash loops. Resume actual Provider bridge only after accepted Provider checkpoint is released on synchronized green staging and ETF source is unfrozen; import staging in this worktree, implement additive capability and real shared governance/consumer acceptance, then rerun full profile and exact-source CI. Preserve all original roadmap criteria and later observation gate; no other-worktree edits, integration, deployment, paid activation or trial.

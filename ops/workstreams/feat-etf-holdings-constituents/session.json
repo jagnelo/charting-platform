@@ -42,7 +42,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "current_blocker_latest": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). Four issuer repairs and both isolated browser fixes are published; each browser repair has12 no-retry focused passes. Final full local profile and exact-source CI remain pending. Shared identity/entitlement/quota/budget/health bridge still requires centrally released synchronized green Provider staging; no feature completion is claimed.",
+  "current_blocker_latest": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). All repaired branch-local gates now pass: normal full integration exit0 with1938 backend,948 frontend,154 functional,104 visual and zero browser flakes; sourceCI38788420409 green. Remaining dependency is the accepted Provider product checkpoint on synchronized green staging, not a failing ETF test. Actual shared identity/entitlement/quota/aggregate monthly-budget/health bridge and combined runtime acceptance remain open. Native CI27 skips stay unverified; ten host replays pass unchanged and DFTT stays unavailable.",
   "dirty_paths": [
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
@@ -84,13 +84,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "b01f59bf156e7a43efe3d9a7897a648ca97f0b16",
+  "head": "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85",
   "implementation_sha": "b01f59bf156e7a43efe3d9a7897a648ca97f0b16",
-  "last_checkpoint": "2026-10-15T18:46:12Z",
+  "last_checkpoint": "2026-10-15T20:26:00Z",
   "last_human_progress_update": "2026-10-06T18:53:15.533458+00:00",
-  "latest_checkpoint": "Visual readiness b01f59bf committed/pushed with matching local/origin after12 no-retry screenshot comparisons across all4 display configurations. Popup086950cc also has12 no-retry focused passes. No production/baseline/tolerance change. Final complete local profile and exact-source hosted CI remain required; prior flakes are historical, not waived. Enclosing receipt hash verified externally. Provider shared-runtime integration remains open.",
+  "latest_checkpoint": "Normal durable full integration completed with actual ETF_DURABLE_GATE_EXIT=0 after scoped cleanup:1938 backend,948 frontend,154 functional,104 visual;no browser retries/flakes. Coverage81.24% exceeds unchanged75% floor. Exact source8e84e7a CI38788420409 is fully green. Original interrupted outer143 is retained as historical, not reclassified. Feature checkpoint still awaits actual staged Provider integration.",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "After clean synchronized receipt verification, run normal full validate-integration with existing numerical thread bounds and unchanged guards/thresholds; retain exact source/process/log. Monitor final published CI without cancelling it through metadata pushes. Fix actual failures; do not mark shared bridge or full roadmap complete.",
+  "next_action": "Publish this four-file operational receipt; verify clean matching branch hashes and exact enclosing CI using the ignored final verification receipt, without self-referential hash loops. Resume actual Provider bridge only after accepted Provider checkpoint is released on synchronized green staging and ETF source is unfrozen; import staging in this worktree, implement additive capability and real shared governance/consumer acceptance, then rerun full profile and exact-source CI. Preserve all original roadmap criteria and later observation gate; no other-worktree edits, integration, deployment, paid activation or trial.",
   "plan_hash": "b67dc0e45547a515be81a9859fd69478438025844ffb989c6a1144ba5829505f",
   "planning_required": false,
   "planning_state": "ready",
@@ -108,13 +108,13 @@
       "EICP1"
     ],
     "total": 7,
-    "current_phase": "browser_repairs_published_final_full_validation_pending",
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). Four issuer repairs and both isolated browser fixes are published; each browser repair has12 no-retry focused passes. Final full local profile and exact-source CI remain pending. Shared identity/entitlement/quota/budget/health bridge still requires centrally released synchronized green Provider staging; no feature completion is claimed.",
-    "next_action": "After clean synchronized receipt verification, run normal full validate-integration with existing numerical thread bounds and unchanged guards/thresholds; retain exact source/process/log. Monitor final published CI without cancelling it through metadata pushes. Fix actual failures; do not mark shared bridge or full roadmap complete.",
-    "updated_at": "2026-10-15T18:46:12Z"
+    "current_phase": "local_repairs_full_gate_green_provider_staging_dependency",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). All repaired branch-local gates now pass: normal full integration exit0 with1938 backend,948 frontend,154 functional,104 visual and zero browser flakes; sourceCI38788420409 green. Remaining dependency is the accepted Provider product checkpoint on synchronized green staging, not a failing ETF test. Actual shared identity/entitlement/quota/aggregate monthly-budget/health bridge and combined runtime acceptance remain open. Native CI27 skips stay unverified; ten host replays pass unchanged and DFTT stays unavailable.",
+    "next_action": "Publish this four-file operational receipt; verify clean matching branch hashes and exact enclosing CI using the ignored final verification receipt, without self-referential hash loops. Resume actual Provider bridge only after accepted Provider checkpoint is released on synchronized green staging and ETF source is unfrozen; import staging in this worktree, implement additive capability and real shared governance/consumer acceptance, then rerun full profile and exact-source CI. Preserve all original roadmap criteria and later observation gate; no other-worktree edits, integration, deployment, paid activation or trial.",
+    "updated_at": "2026-10-15T20:26:00Z"
   },
-  "remote": "b01f59bf156e7a43efe3d9a7897a648ca97f0b16",
-  "remote_sha": "b01f59bf156e7a43efe3d9a7897a648ca97f0b16",
+  "remote": "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85",
+  "remote_sha": "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
@@ -257,14 +257,17 @@
     "dispositions_document": "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "preparation_baseline": "f2670b0bbde8bb680173d847a43734f7391745f7",
     "preparation_sha": "d1040b41b99b3ece8e25e777ef51a300393c7429",
-    "current_published_sha": "b01f59bf156e7a43efe3d9a7897a648ca97f0b16",
+    "current_published_sha": "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85",
     "current_published_ci": {
-      "id": 38783637301,
-      "source_sha": "bcfff382f1b64ac42455c375e6ff502590869f85",
+      "id": 38788420409,
+      "url": "https://github.com/jagnelo/charting-platform/actions/runs/38788420409",
+      "source_sha": "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85",
       "status": "completed",
       "conclusion": "success",
-      "live": "521 passed,25 unverified skips",
-      "scope": "Prior source, not final popup/visual repair acceptance; latest repair CI to be observed after both isolated contexts."
+      "backend": "success",
+      "frontend": "success",
+      "branch_tests": "success:611 adapter,14 consumer,23 route,9 default contracts;opt-in519 passed27 unverified skips",
+      "playwright": "success:151 passed109 skipped,zero retries/flakes reported"
     },
     "ci": {
       "id": 38771431871,
@@ -296,25 +299,77 @@
       "frontend": "success",
       "branch_tests": "failure:529 passed,16 classified skips,1 BGIG ReadError; unchanged isolated BGIG replay passed; precise typed transport classifier follow-up is tested and pushed as 76a8341eba65b82ffcab88ac80aaa0585b20c846",
       "playwright": "success:151 passed,109 skipped"
+    },
+    "prior_green_ci": {
+      "id": 38783637301,
+      "source_sha": "bcfff382f1b64ac42455c375e6ff502590869f85",
+      "status": "completed",
+      "conclusion": "success",
+      "live": "521 passed,25 unverified skips",
+      "scope": "Prior source, not final popup/visual repair acceptance; latest repair CI to be observed after both isolated contexts."
     }
   },
   "active_changeset": {
-    "name": "sandbox visual chart-readiness race",
-    "state": "source_committed_pushed_focused_pass_receipt_enclosing_commit_verified_externally",
-    "baseline": "a98b11b2033c509041873e64606ab78a039894fd",
-    "intent": "Use existing shell readiness and positive adjacent-chart rendered state before the sandbox screenshot; preserve all diagnostics, baselines and tolerances.",
+    "name": "final browser repairs validation follow-up",
+    "state": "validated_operational_receipt_ready_to_publish",
+    "baseline": "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85",
+    "intent": "Publish completed normal full gate and exact-source CI evidence; preserve actual staged Provider dependency and all original requirements.",
     "owned_paths": [
-      "frontend/tests/e2e/tc2000_visual.spec.ts",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
-    ],
-    "evidence_directory": ".ai/validation/etf-visual-loading-failure-20261015/",
-    "implementation_sha": "b01f59bf156e7a43efe3d9a7897a648ca97f0b16",
-    "focused_result": "12 passed,4 display projects x3 repetitions,retries0,1.7 minutes"
+    ]
   },
   "local_profile_execution": {
+    "source_sha": "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85",
+    "status": "completed_exit0_after_normal_scoped_cleanup",
+    "unit": "etf-holdings-final-gate-20261015-1934.service",
+    "invocation_id": "fd329b3a584c4e7ab4baa6c6d292b1bc",
+    "initial_pid": 371308,
+    "log": ".ai/validation/etf-durable-final-profile-20261015.log",
+    "runner": ".ai/validation/run-durable-final-profile-20261015.sh",
+    "success_marker": "ETF_DURABLE_GATE_EXIT=0",
+    "environment": {
+      "OPENBLAS_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1",
+      "NUMEXPR_NUM_THREADS": "1",
+      "PYTEST_ADDOPTS": "-vv"
+    },
+    "scope": "Same normal full gate;exact source and unchanged tested paths checked;only4 operational records may change;no duplicate ETF browser/gate was live at start.",
+    "exit_code": 0,
+    "result": {
+      "backend_passed": 1938,
+      "frontend_passed": 948,
+      "functional_passed": 154,
+      "functional_skipped": 106,
+      "visual_passed": 104,
+      "browser_flaky": 0,
+      "coverage_percent": 81.24,
+      "coverage_floor_percent": 75
+    },
+    "cleanup": {
+      "images_removed": 4,
+      "retained_volumes": [],
+      "host_wide_prune": false
+    }
+  },
+  "browser_repair_validation": {
+    "stack_process_handle": 97969,
+    "stack_log": ".ai/validation/etf-browser-races-stack-20261015.log",
+    "status": "completed_and_ETF_regenerable_resources_cleaned_by_normal_full_gate",
+    "popup_process_handle": 66871,
+    "popup_result": "12 passed with retries0 in1.4 minutes",
+    "popup_log": ".ai/validation/etf-popup-focused-20261015.log",
+    "visual": {
+      "process_handle": 78968,
+      "result": "12 passed,all4 display configurations x3,retries0,1.7 minutes",
+      "log": ".ai/validation/etf-sandbox-visual-focused-20261015.log",
+      "artifacts": ".ai/validation/etf-sandbox-visual-focused-results-20261015/"
+    }
+  },
+  "prior_local_profile_execution": {
     "source_sha": "ea7572ab63985c9bc520befb377001a44c3a4d5b",
     "status": "completed_exit0_with_two_recovered_flakes_not_stable_final_acceptance",
     "process_handle": 20560,
@@ -346,18 +401,52 @@
     },
     "exit_code": 0
   },
-  "browser_repair_validation": {
-    "stack_process_handle": 97969,
-    "stack_log": ".ai/validation/etf-browser-races-stack-20261015.log",
-    "status": "healthy_ETF_only_seeded_stack_retained_for_separate_visual_repair",
-    "popup_process_handle": 66871,
-    "popup_result": "12 passed with retries0 in1.4 minutes",
-    "popup_log": ".ai/validation/etf-popup-focused-20261015.log",
-    "visual": {
-      "process_handle": 78968,
-      "result": "12 passed,all4 display configurations x3,retries0,1.7 minutes",
-      "log": ".ai/validation/etf-sandbox-visual-focused-20261015.log",
-      "artifacts": ".ai/validation/etf-sandbox-visual-focused-results-20261015/"
+  "structural_skip_diagnostics": {
+    "source_sha": "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85",
+    "host_live": "10 native cases passed unchanged,zero skips,24.15 seconds:Return Stacked8,OneAscentOALC,NightviewNITE",
+    "responses": ".ai/validation/structural-live-replay-20261015.log",
+    "encoding": "actual gzip correctly decoded;Brotli hypothesis disproved;no dependency change",
+    "DFTT": "1 unverified skip;issuer403/503;SEC mismatched-series rejected;no current/native guarantee",
+    "DFTT_responses": ".ai/validation/structural-donoghue-native-replay-20261015.log",
+    "ci_skip_evidence": ".ai/validation/etf-final-live-matrix-38788420409.log",
+    "limitations": "Host successes do not retroactively change the27 CI skips;CI response-body root cause not proved."
+  },
+  "interrupted_local_profile_execution": {
+    "source_sha": "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85",
+    "status": "outer_SIGTERM_exit143_after_all_test_reports_passed;normal_cleanup_receipt_missing",
+    "process_handle": 36922,
+    "log": ".ai/validation/etf-final-browser-repairs-full-profile-20261015.log",
+    "environment": {
+      "OPENBLAS_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1",
+      "NUMEXPR_NUM_THREADS": "1",
+      "PYTEST_ADDOPTS": "-vv"
+    },
+    "scope": "Final application/test tree unchanged after clean synchronized source boundary; only four operational records may update during validation.",
+    "results": {
+      "backend": "1938 passed,81.24percent coverage,417.55 seconds",
+      "frontend": "948 passed,109 files",
+      "lint_migrations_frontend_build_compose_provider_probes": "passed",
+      "stack": "healthy",
+      "functional": "154 passed106 skipped,zero retries/flakes,16.5 minutes",
+      "visual": "starting104-case final matrix",
+      "research_runner_probes": "passed"
+    },
+    "exit_code": 143,
+    "visual_report": {
+      "archive": ".ai/validation/etf-final-visual-report-20261015.zip",
+      "total": 104,
+      "expected": 104,
+      "unexpected": 0,
+      "flaky": 0,
+      "skipped": 0,
+      "errors": []
     }
+  },
+  "final_operational_receipt_verification": {
+    "path": ".ai/validation/etf-final-operational-receipt-verification-20261015.json",
+    "validated_source_sha": "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85",
+    "convention": "Recorded SHA is prior validated source; verify enclosing operational commit and its CI after publication externally, not through recursive metadata commits."
   }
 }

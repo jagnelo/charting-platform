@@ -1,5 +1,44 @@
 # feat/etf-holdings-constituents
 
+## Current continuation state — 2026-10-15
+
+Read this section and the latest dated entries before interpreting the older
+"current" headings below. Those entries are historical receipts, not today's
+blockers. Work only in this branch's assigned worktree, preserving writer
+claim `bb0f68af-76ab-45c0-83f1-52d805be699f` and the existing active goal.
+
+The independent issuer and browser fixes are published. Last clean source
+boundary: `8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85`. Exact-source hosted
+[CI38788420409](https://github.com/jagnelo/charting-platform/actions/runs/38788420409)
+is green. All actual local test stages also passed:1938 backend,948 frontend,
+154 functional and104 visual, with zero browser retries/flakes after the fixes.
+The complete104-pass report is retained in
+`.ai/validation/etf-final-visual-report-20261015.zip`; no screenshot baseline
+or tolerance was changed. Do not resurrect the older three-image failure.
+
+The normal full gate has completed with actual exit zero after scoped
+cleanup: `ETF_DURABLE_GATE_EXIT=0` in
+`.ai/validation/etf-durable-final-profile-20261015.log`. All1938 backend,
+948 frontend,154 functional and104 visual tests pass with zero browser
+flakes; coverage81.24% exceeds the unchanged75% floor. Four ETF images were
+removed; no retained volumes or host-wide prune. The earlier tool-owned
+SIGTERM is historical, not an accepted passing exit. Do not rerun a completed
+gate or poll its dead process. Publish these four records and externally
+verify the enclosing operational commit/CI as described below.
+
+The feature/checkpoint is not complete or integration-authorized. Actual
+Provider identity, entitlement, quota, monthly-budget and health reconciliation
+still requires its accepted green staging release. The original goal and all
+fourteen criteria remain in `plan.yaml`; the concrete interfaces and acceptance
+matrix are in `integration-checkpoint.md` and `shared-cost-admission.md`.
+Registry496/422/74 and15 Tier-0/156 Tier-1 outcomes remain accounted for.
+Native handler counts are not current-usability guarantees. The27 CI live
+skips remain unverified there; ten native cases passed unchanged on this host,
+and DFTT remains explicitly unavailable rather than accepting another fund.
+Do not activate paid sources, a deployment or the later observation trial.
+
+## Historical evidence and dated implementation entries
+
 ## Controlled CI-equivalent visual comparison — 2026-10-07
 
 Docker became available again with approximately 4 GiB host memory available.
@@ -10403,3 +10442,120 @@ Use `.ai/validation/etf-final-browser-repairs-full-profile-20261015.log` and
 retain the exact process handle/source SHA. No further metadata push should
 cancel that useful source run until it is terminal. Shared Provider integration
 and the original monthly-budget/observation requirements remain open.
+
+### Live final validation follow-up
+
+The visual source and separate receipt are synchronized; clean HEAD/origin
+both `8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85`, with clean diff-check before
+starting the normal full gate. Its authoritative process is `36922`, log
+`.ai/validation/etf-final-browser-repairs-full-profile-20261015.log`.
+It uses the previously recorded four single-thread numerical settings and
+verbose pytest identities, not different tests, guards, retries or thresholds.
+This follow-up owns only the four workstream records while preserving the
+tested application/test tree. Poll the existing process/log and exact source CI;
+do not start a duplicate heavy gate or push metadata over useful live CI.
+Keep the goal active and checkpoint unaccepted while combined Provider runtime
+evidence is missing. This is not a source freeze or integration/deploy request.
+
+Final-run progress: all1938 backend tests pass again with81.24% coverage
+(417.55 seconds), and all948 frontend tests/109 files pass. Lint, migration
+checks, frontend build, Compose contract and provider probes passed; scoped
+stack image build is progressing. Exact-source hosted CI38788420409 has
+backend/frontend green and branch-live/Playwright running. No final local
+browser/visual result is claimed yet. Continue process36922, not a new run.
+
+Final-source hosted CI38788420409 is terminal and green: backend/frontend,
+branch checks and Playwright151 passed/109 skipped; full opt-in live matrix
+519 passed/27 explicit unverified skips (769.23 seconds). Exact skip reasons
+are retained at `.ai/validation/etf-final-live-matrix-38788420409.log`.
+Do not call every skipped route a proved outage or accepted current support.
+
+Bounded read-only classification of the structural skips found no reproduced
+parser break in the three investigated publishers: all ten existing native
+cases pass unchanged on this host (eight Return Stacked funds, OALC and NITE;
+24.15 seconds, zero skips). Actual application headers/parsers correctly
+receive/decode gzip; a possible Brotli hypothesis was disproved, so no codec
+dependency or speculative parser relaxation was added. Retained RSST data has
+36 rows dated2026-10-15, and issuer pages still declare the expected routes.
+These host receipts do not retroactively turn CI skips into passing CI cases
+or prove what the CI servers returned. All fetched public bodies are retained
+in `.ai/validation/structural-live-replay-20261015.log` and the bounded HTTP
+encoding diagnostic JSONL; no tested application/test source changed.
+
+A separate single DFTT replay remains unverified: the exact issuer download
+returned403 then503 through the existing bounded transports. Its SEC fallback
+rejected unrelated Toews series and found no parseable matching legacy rows;
+it did not silently return another fund or make quarterly evidence current.
+The complete public responses/denial are retained in
+`.ai/validation/structural-donoghue-native-replay-20261015.log` (one skipped,
+545 deselected,13.24 seconds). Do not retry that source again in this pass,
+guess another identity, or claim a native/fallback guarantee. This is evidence
+classification, not a new source or governance runtime. Local full browser
+validation36922 is still authoritative and progressing without a retry so far.
+
+Concrete staged-identity acceptance input: the retained fresh RSST CSV includes
+futures contracts, cash and a cash-management fund alongside an equity ETF.
+Use those retained rows when reconciling actual Provider canonical asset kinds
+and constituent bindings; a ticker-like string must not synthesize an equity
+identity for a future. This is part of the still-open shared identity bridge,
+not proof that the current raw native fetch establishes every constituent's
+canonical identity or current-analysis eligibility.
+
+### Recovered visual proof and durable full-gate completion
+
+The tool-owned parent process36922 reported SIGTERM/exit143 after the final
+visual case. Do not label that outer command a successful full-gate exit.
+The actual saved Playwright report was written at19:31:08Z and proves all104
+cases expected, zero unexpected, zero flaky, zero skipped, errors[]. The
+passed last-run marker agrees. The complete report payload is retained in
+`.ai/validation/etf-final-visual-report-20261015.zip`. Thus both repaired
+browser paths passed the complete matrices without retries; no test failure
+is being hidden. Kernel checks in the exact post19:25Z interruption window
+show no OOM/kill entries. The earlier cgroup OOM events are the intentional
+resource probes, not evidence for this termination. Its sender/root cause is
+not proved; a command/session-lifetime interruption is a hypothesis only.
+
+All former ETF gate/browser processes were checked absent; only other owners'
+browser processes and our healthy stack remained. To obtain an unambiguous
+normal full-gate exit and cleanup receipt, one transient user job now runs the
+unchanged `make validate-integration`: unit
+`etf-holdings-final-gate-20261015-1934.service`, invocation
+`fd329b3a584c4e7ab4baa6c6d292b1bc`, initial PID371308. This does not install or
+enable a startup service or alter another worktree. Exact source8e84e7a and
+unchanged tested paths are checked before execution. Log:
+`.ai/validation/etf-durable-final-profile-20261015.log`; runner:
+`.ai/validation/run-durable-final-profile-20261015.sh`. It records the actual
+`ETF_DURABLE_GATE_EXIT=<code>` after normal cleanup, independent of a terminal
+session's lifetime. Poll this unit/log, not the dead36922 handle, and do not
+start a competing gate. Preserve all tests, single-thread numerical bounds,
+real resource guards, retries and thresholds. Source CI38788420409 remains
+green; the four operational files remain the only intentionally dirty paths.
+
+### Terminal normal full-gate receipt — 2026-10-15
+
+The durable unchanged normal `make validate-integration` finished all stages,
+normal scoped cleanup and actual exit0. Source remains
+`8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85`:1938 backend passed in415.30s,
+coverage81.24% (floor75% unchanged),948 frontend,154 functional passed/106
+intentional skips in16.2m,104 visual passed in13.6m; zero browser retries or
+flakes. Normal migration, build, runtime/resource probes and cleanup passed.
+Cleanup removed four ETF images, retained no volumes and did not prune the
+host. No screenshot baseline, threshold, runtime limit or source path changed.
+
+Exact-source hosted CI38788420409 is terminal green. Its native matrix is
+519 passed/27 explicitly unverified skips; host replays do not rewrite that
+receipt. The unavailable DFTT route remains fail-closed. Current remote staging
+is still5267f11a491795d85ee35b56cabbe550394f3823; coordinator status has no accepted
+product checkpoints and no released combined baseline. The actual shared
+Provider bridge remains the dependency; this is not full feature completion,
+checkpoint acceptance, a source freeze, closure or integration authority.
+
+Publish only the four owned records. This receipt records the already
+validated source, not its own enclosing commit hash. After publication retain
+the actual enclosing local/remote SHA, tested-tree equivalence and exact-head
+CI in ignored
+`.ai/validation/etf-final-operational-receipt-verification-20261015.json`.
+Do not generate a recursive operational commit just to record its own hash.
+Continue after the real Provider checkpoint is released on green staging;
+preserve the original fourteen criteria and monthly-cost ceiling. No human
+app-testing action is needed for this local repair checkpoint.
