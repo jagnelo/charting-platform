@@ -10986,3 +10986,14 @@ Validation: `test_etf_holdings_resolution.py` and
 passed 14/14 in host context. Full profile, actual Provider runtime, and exact-
 source CI are still required; Provider remains first in the coordinated heavy
 validation order.
+
+Publication: implementation commit `faffd6f75b40e4dbcf506c9c042d906d1aaa0327`
+and its source/tests are pushed to `origin/feat/etf-holdings-constituents`.
+Workstream source pins and validation receipt were committed and pushed at
+`c6ffd67cdf0af20d213d38cffbe44763fa43e27f`. The released common repair baseline
+`82d881e76be8de538abb6ec5c454d96afe0ee56a` is an ancestor of this branch. A
+read-only GitHub check for the exact implementation commit returned no combined
+statuses and no associated PR workflow runs; therefore exact-source hosted CI
+is pending, not passing. This focused repair does not satisfy the deferred
+combined `full_stack_browser` profile or the still-unaccepted Provider shared
+cost/admission contract, and is not an ETF checkpoint acceptance.
