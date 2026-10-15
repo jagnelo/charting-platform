@@ -1,5 +1,6 @@
 {
-  "acceptance_criteria": [
+  "integration_checkpoint": {"id": "tc2000-workstation-integration-1", "acceptance": "pending", "coordinator_guidance": "/home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md", "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"},
+  "roadmap_acceptance_criteria": [
     {
       "id": "AC1",
       "text": "The TC-only ownership boundary is executable: future touched paths are in the scoped allowlist or documented shared exceptions, and provider/ETF-owned paths fail validation."

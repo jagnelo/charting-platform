@@ -18947,7 +18947,18 @@ The full goal and exact AC1-AC9 text are preserved as roadmap_goal and
 roadmap_acceptance_criteria; TCP1-TCP5 are new checkpoint requirements with
 no inherited complete markers. Human checkpoint acceptance remains pending.
 
-Current work: diagnose F9c-template-comparison (Remove RSP intercepted by
+Current result: F9c-template-comparison passed 1/1, adjacent F9c/toolbar
+flows passed 7/7, and strengthened comparison regression passed 1/1 with
+pointer actionability checked for both Remove RSP and Plots after restore.
+Provider's current comparison wrapper is z-index12 below Plots13; TC's
+historical repair uses comparison14 and a pointer-transparent wrapper.
+Coordinator proposal is chart-template-repair-proposal.md in this workstream;
+it identifies the minimal three CSS declarations already working here.
+The coordinator must arrange independent repair acceptance/delivery so Provider
+does not wait for the full TC feature. Current next action is investigate
+protected visuals against current source and refresh session checkpoint state.
+
+Initial work: diagnose F9c-template-comparison (Remove RSP intercepted by
 Plots on the Provider branch). TC already carries historical layering repair
 8db6c9ac60; verify current browser behavior before introducing another fix.
 Current-source Vite uses 15190 against assigned backend 28008. The existing

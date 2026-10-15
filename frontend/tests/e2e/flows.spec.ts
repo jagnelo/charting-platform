@@ -309,6 +309,10 @@ test.describe('Chart', () => {
     await expect(saved).toBeVisible({ timeout: 15_000 })
     await saved.click()
     await expect(chart.locator('.chart-tool__compare-chip').filter({ hasText: 'RSP' })).toHaveCount(1, { timeout: 15_000 })
+    // Restoring comparisons must leave both toolbar actions pointer-accessible.
+    // Visibility alone missed the overlapping Plots/comparison stacking defect.
+    await chart.getByRole('button', { name: 'Remove RSP' }).click({ trial: true })
+    await chart.getByRole('button', { name: 'Chart plot library', exact: true }).click({ trial: true })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
