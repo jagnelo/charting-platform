@@ -537,14 +537,9 @@ branch_tests:
   - "UV_CACHE_DIR=/tmp/tc2000-uv-cache uv run --project backend python scripts/validate-tc2000-scope.py"
   - "UV_CACHE_DIR=/tmp/tc2000-uv-cache uv run --project backend python scripts/validate-tc2000-scope.py --self-test"
   - "cd frontend && npm run type-check"
-  - "cd frontend && npm run test:coverage"
   - "cd frontend && npm run build"
-  - "cd frontend && npx playwright install --with-deps chromium"
-  - "cd frontend && npx playwright test tests/e2e/flows.spec.ts --project=chromium"
-  - "cd frontend && npx playwright test tests/e2e/tc2000_visual.spec.ts --project=visual-1080p-100 --project=visual-1080p-125 --project=visual-1440p-100 --project=visual-1440p-125"
   - "uv run --project backend python scripts/validate-workstream.py ops/workstreams/feat-tc2000-frontend-rework/plan.yaml"
-  - "make validate-integration"
-branch_tests_reason: "The scope guard protects the branch boundary; focused/full frontend, TC analysis and Study/Strategy tests, authenticated browser flows, all four visual projects, staged consumer-contract checks, and the exhaustive integration gate run as their phases become ready. The declared gate omits INTEGRATION_BRANCH so it does not recursively invoke this branch-test list."
+branch_tests_reason: "The branch-declared job is intentionally stack-free: it runs TC scope/self-tests, frontend type-check/build, and workstream validation. Backend unit/integration tests, frontend Vitest coverage, and all authenticated flows plus the four visual projects run in their dedicated CI jobs, with Playwright's stack started and health-checked there. The exhaustive cleanup-sensitive integration gate is a separate TCP4 requirement and must use its approved isolated runtime; do not invoke it recursively from branch-tests or against the assigned stack."
 live_test_impact: "Authenticated workstation evidence may be required. Upstream live provider/ETF evidence remains owner-supplied; TC uses bounded consumer probes only and never exposes or invents credentials."
 migration_impact: "No generic provider or ETF schema/migration work is owned here. Add TC-specific schema only when necessary for workstation or Study/Strategy behavior, with migration and rollback evidence."
 deployment_impact: "No deployment or environment promotion is authorized in this feature session; record deployment impact only as a final review handoff."
@@ -552,17 +547,20 @@ status: in_progress
 progress:
   completed: []
   total: 5
-  current_phase: TCP1_POINTER_GEOMETRY_COORDINATION
+  current_phase: TCP1_COORDINATOR_REPAIR_PENDING_AND_TCP2_CROSS_ENVIRONMENT_VISUAL_DIAGNOSIS
   next_action: >-
     Do not mark TCP1 complete: the populated default-wide browser check proves
     Plots remains physically covered by Remove RSP. The coordinator owns the
     independent geometry repair; verify its accepted delivery only through
-    synchronized green staging. Meanwhile continue TC-owned visual/runtime
-    diagnosis: the focused fresh-fixture Help replay confirms four protected
-    mismatches persist after freshness is canonical. Preserve all snapshots and
-    the 0.5% oracle. Consume only synchronized green Provider+ETF staging for
-    TCP3, then reconcile consumers and complete validation/review. Preserve the
-    full roadmap. Historical next action: Continue TC-owned R1/R5/R6 implementation and trace the Help screenshot
+    synchronized green staging. Exact-source CI 38789597760 for de3a6210 is
+    terminal: backend, frontend unit, and dedicated stack-backed E2E jobs passed;
+    branch-declared tests failed because they launched authenticated flows
+    without a stack. Its four Help visual profiles passed on the hosted runner,
+    unlike the retained pinned-Noble fresh-fixture replay; this does not provide
+    V25 visual authority. Branch tests now reflect the stack-free job. Continue
+    TC-owned visual diagnosis without changing snapshots or the 0.5% oracle. Consume only
+    synchronized green Provider+ETF staging for TCP3, then reconcile consumers
+    and complete validation/review. Preserve the full roadmap. Historical next action: Continue TC-owned R1/R5/R6 implementation and trace the Help screenshot
     layout-state mismatch. Ctrl+M now opens explicit list membership actions,
     and Shift/Ctrl divider drag now evenly resizes the selected side with
     persisted Golden Layout proportions. Shift+N now opens Notes for the active
@@ -574,11 +572,16 @@ progress:
   current_blocker: >-
     TCP1 verified and coordinator narrow repair proposal published. TCP2's
     Help-only fresh-fixture replay passes content/freshness assertions but fails
-    unchanged screenshots in all four profiles by55,010-65,625 pixels. The V25
-    Help state is required_missing, the registered controlled media pack is
-    unavailable at its manifest path in this runtime, and the tracked platform
-    screenshots have incompatible font/content baselines. No snapshot/policy
-    changed; visual authority needs human review. The canonical full matrix
+    unchanged screenshots in all four pinned-Noble profiles by55,010-65,625
+    pixels. On exact source de3a6210, GitHub's stack-backed E2E run passed all
+    four Help profiles on its hosted runner, demonstrating environment
+    sensitivity but not V25 visual authority. The V25
+    Help state is required_missing. The ignored local controlled media pack is
+    present (230 images across 26 source groups) but contains no keyboard-help
+    article or in-app Help dialog capture; its manifest path is stale in this
+    Linux checkout. The tracked platform screenshots have incompatible
+    font/content baselines. No snapshot/policy changed; visual authority needs
+    human review. The canonical full matrix
     ended93passed/11failed; the four focused runtime categories later passed
     16/16. The full matrix has not been rerun, so exact-tip aggregate validation
     remains open. TCP3 awaits synchronized green Provider+ETF staging. TCP4 full

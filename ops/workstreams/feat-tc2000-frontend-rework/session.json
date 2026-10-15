@@ -35,7 +35,13 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl",
+    "ops/workstreams/feat-tc2000-frontend-rework/visual-environment-diagnosis.md"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -49,7 +55,7 @@
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
     ],
-    "known_bytes": 728961534,
+    "known_bytes": 729361844,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
@@ -60,7 +66,7 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 725893630,
+    "volume_bytes": 726293940,
     "volume_count": 4,
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
@@ -108,8 +114,8 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "cb3c0c6558d7008ae3a657d59bc6e24705f86880",
-  "implementation_sha": "9523851f1fe730da644e2e9f35f955eeef47c105",
+  "head": "de3a6210de7e3b9919b6762715f0962e50d92dee",
+  "implementation_sha": "de3a6210de7e3b9919b6762715f0962e50d92dee",
   "integration_checkpoint": {
     "acceptance": "pending",
     "coordinator_guidance": "/home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md",
@@ -117,11 +123,11 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-15T17:09:56.319845+00:00",
-  "last_human_progress_update": "2026-10-15T17:37:27.658894+00:00",
+  "last_checkpoint": "2026-10-15T19:07:50+00:00",
+  "last_human_progress_update": "2026-10-15T19:32:28.278694+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "2749970565da03ea5944a7501eaefcf13cb7fc8a1c8ce80d7ccb770d27b39124",
+  "plan_hash": "7d8f17a730570a99bbb489cb3d6eae0e402a2193196aa6cbbd961fc01148a01f",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -133,28 +139,28 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "Populated current-source 1920x1080 click confirms Plots is intercepted by the Remove RSP chip; coordinator owns the separate narrow geometry repair. Four protected Help visual mismatches and Provider+ETF green staging remain open.",
-    "current_phase": "TCP1_POINTER_GEOMETRY_COORDINATION",
-    "next_action": "Do not duplicate the coordinator repair. Continue TC-owned visual/runtime diagnosis without changing references; after its delivery reaches synchronized green staging, reconcile TCP1 and proceed with Provider+ETF consumer integration only from that baseline.",
+    "current_blocker": "Exact-source CI 38789597760 on de3a6210 is terminal but overall failed: the stack-free Branch-declared Tests launched authenticated flows against absent localhost:28080 (187 setup ECONNREFUSED failures); backend, frontend-unit, and dedicated stack-backed E2E passed, with all four Help visual profiles passing on the hosted runner. The pinned-Noble fresh-fixture Help replay still fails the unchanged oracle and the V25 Help reference remains required_missing. TCP1 repair remains coordinator-owned; TCP3 still awaits synchronized green Provider+ETF staging; full TCP4 integration remains open.",
+    "current_phase": "TCP1_COORDINATOR_REPAIR_PENDING_AND_TCP2_CROSS_ENVIRONMENT_VISUAL_DIAGNOSIS",
+    "next_action": "The stack-free branch test plan is reconciled and its direct local runner passes. Validate the final workstream, commit the coherent run receipt and test-topology correction, then run guarded plan-ready and checkpoint synchronization and push the new exact source. Inspect the ensuing exact-SHA Actions job conclusions. Continue owned fresh-fixture/runtime diagnosis without changing snapshots or assigned data; keep TCP1, TCP3 and the separate TCP4 gate open.",
     "total": 5,
-    "updated_at": "2026-10-15T17:37:27.658873+00:00"
+    "updated_at": "2026-10-15T19:32:28.278675+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "0a68236240444fb3fdf438d1d778ec906a5c601f",
+    "current_local_head": "de3a6210de7e3b9919b6762715f0962e50d92dee",
     "current_pending_range": null,
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
-    "last_attempted_local_head": "0a68236240444fb3fdf438d1d778ec906a5c601f",
-    "last_attempted_range": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
+    "last_attempted_local_head": "de3a6210de7e3b9919b6762715f0962e50d92dee",
+    "last_attempted_range": "c9e75356c9cb3e9d3f01ed829f4bcee566781499..de3a6210de7e3b9919b6762715f0962e50d92dee",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "0a68236240444fb3fdf438d1d778ec906a5c601f",
+    "remote_tracking_sha": "de3a6210de7e3b9919b6762715f0962e50d92dee",
     "status": "pushed"
   },
-  "remote": "cb3c0c6558d7008ae3a657d59bc6e24705f86880",
-  "remote_sha": "9523851f1fe730da644e2e9f35f955eeef47c105",
+  "remote": "de3a6210de7e3b9919b6762715f0962e50d92dee",
+  "remote_sha": "de3a6210de7e3b9919b6762715f0962e50d92dee",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "roadmap_acceptance_criteria": [

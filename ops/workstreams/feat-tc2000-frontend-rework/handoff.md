@@ -19203,3 +19203,49 @@ Provider/ETF unreleased; TCP3 remains dependent on synchronized green staging.
 Also touched in this context:
 ops/workstreams/feat-tc2000-frontend-rework/visual-environment-diagnosis.md.
 
+## 2026-10-15 — Controlled reference-pack location and scope corrected
+
+The 230-image/26-source-group pack is present in this Linux worktree at
+`.ai/runtime/tc2000-v25-reference-pack/` and is ignored by Git. Its local board
+validator confirms all 230 image links resolve. The index has no
+hotkeys/keyboard-shortcuts source group or in-app Help-dialog capture; the one
+official Version 25 product-page image is a perspective laptop mockup. The
+manifest's `/private/tmp/...` path is stale here, but the underlying
+`keyboard_help` state remains uncovered. This corrects the earlier handoff
+statement that the pack was unavailable, without changing the human decision
+needed: a permission-cleared V25 Help-dialog capture or explicit approval of a
+local-only interim disposition. Existing snapshots and the 0.5% oracle remain
+untouched.
+
+## 2026-10-15 — Exact-source Actions run closed; branch test topology reconciled
+
+The public Actions runs endpoint now lists run `38789597760` as the branch's
+latest run, and its full head SHA matches this worktree:
+`de3a6210de7e3b9919b6762715f0962e50d92dee`. The overall run concluded failure,
+not green. Backend unit/integration and frontend unit jobs passed.
+`Branch-declared Tests` failed because its stack-free job attempted the
+authenticated `flows.spec.ts` suite: all 187 cases failed in setup at
+`127.0.0.1:28080` with `ECONNREFUSED`; the job does not start an app stack. The
+independent E2E job starts and health-checks the stack and passed: 187 passed,
+110 skipped, and two flaky cases recovered on retry. It executed the four
+keyboard-help visual profiles, which passed in the hosted runner environment.
+The Exhaustive Integration Gate was skipped on this feature branch. Run details
+and job conclusions were read from the Actions API; empty commit-status
+responses were not used as evidence.
+
+The branch-declared list now matches its stack-free CI contract: TC scope guard
+and self-test, frontend type-check/build, and workstream validation. Backend
+unit/integration, frontend Vitest coverage, authenticated flows, and visual
+profiles remain exercised by their dedicated jobs. The exhaustive integration
+gate remains a separate TCP4 requirement and must use the approved isolated
+runtime; it is neither removed from roadmap acceptance nor safe to invoke
+against the assigned live stack. This topology correction does not change
+product source or visual oracles.
+
+The CI-hosted Help visual pass contrasts with the retained pinned-Noble
+fresh-fixture replay, which fails all four unchanged screenshot comparisons by
+55,010–65,625 pixels. This establishes rendering-environment sensitivity in
+addition to the documented content/layout divergence; it does not establish
+which appearance matches V25. The reference state remains `required_missing`,
+so do not refresh snapshots or claim V25 visual acceptance.
+

@@ -83,23 +83,30 @@ changed. Artifacts are retained under
 
 The reference manifest still marks `application-shell-default/keyboard_help`
 as `required_missing`; its official Version 25 hotkeys source confirms
-behavior but provides no deterministic visual capture. The manifest registers
-230 images at `/private/tmp/tc2000-v25-reference-pack`, but that controlled
-storage path is absent in this Linux runtime, so its images could not be
-inspected here. Consequently the checked-in platform screenshots cannot be
-treated as evidence of the intended V25 Help appearance: the tracked default
-and Help images already differ in 1,205 pixels in the invariant top-left brand
-region, while the pinned Noble capture matches the default image there and the
-host capture matches the Help image there.
+behavior but provides no deterministic visual capture. The controlled media
+pack is present in this worktree at
+`.ai/runtime/tc2000-v25-reference-pack/` (ignored by Git): its index contains
+230 images across 26 source groups. Inspection confirms that it contains no
+hotkeys/keyboard-shortcuts source group or in-app keyboard Help dialog capture;
+the sole official Version 25 product-page image is a perspective-composited
+laptop mockup, not a deterministic workstation capture. The manifest's
+`/private/tmp/tc2000-v25-reference-pack` path is stale for this Linux checkout,
+but correcting that path would not supply the missing state. Consequently the
+checked-in platform screenshots cannot be treated as evidence of the intended
+V25 Help appearance: the tracked default and Help images already differ in
+1,205 pixels in the invariant top-left brand region, while the pinned Noble
+capture matches the default image there and the host capture matches the Help
+image there.
 
 The unresolved human decision is limited to the visual authority for this
 required-missing Help state: provide/mount a permission-cleared, provenance-
-verifiable V25 Help capture for review, or review and explicitly accept a
-deterministic local-only interim baseline disposition. Until that decision is
-made, preserve the current snapshots and `0.5%` oracle; do not claim Help visual
-acceptance. This does not block independent TC work, but TCP2 cannot close on
-the current evidence. The full roadmap and downstream Provider/ETF staging
-dependency remain open.
+verifiable V25 Help-dialog capture for review, or review and explicitly accept a
+deterministic local-only interim baseline disposition. The local media pack is
+useful for its represented states but is not a substitute for that uncovered
+state. Until a decision is made, preserve the current snapshots and `0.5%`
+oracle; do not claim Help visual acceptance. This does not block independent TC
+work, but TCP2 cannot close on current evidence. The full roadmap and downstream
+Provider/ETF staging dependency remain open.
 
 ## 2026-10-15 — Pinned-image font fallback check
 
@@ -130,3 +137,16 @@ retained artifacts are diagnostic only; no screenshot, layout fixture, mask,
 threshold, or product CSS was changed. Because the tracked image set already
 mixes render environments and there is still no authority-grade V25 Help
 capture, this comparison cannot determine which layout/content is intended.
+
+## 2026-10-15 — Exact-source hosted CI comparison
+
+On source `de3a6210de7e3b9919b6762715f0962e50d92dee`, the GitHub Actions
+stack-backed Playwright job completed successfully. Its run log enumerates all
+four `application shell keyboard help state` profiles, and the job concluded
+success with no visual failures. In contrast, the retained pinned-Noble
+fresh-fixture replay failed those four protected comparisons at 55,010 / 56,397
+/ 63,934 / 65,625 pixels. The exact-source hosted pass establishes that the
+checked-in local oracle is satisfiable in that hosted browser environment; it
+does not establish V25 visual authority, nor explain the geometry/content/font
+differences in the retained local capture. Keep the missing V25 reference and
+the 0.5% oracle unchanged.
