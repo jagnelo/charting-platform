@@ -1,20 +1,65 @@
 {
-  "schema": 2,
+  "acceptance_criteria": [],
+  "active_session_id": "4f5ba990-9325-4502-b830-8f1c5ea4572b",
   "branch": "fix/chart-template-pointer-interaction",
-  "parent_branch": "staging",
-  "implementation_sha": "5267f11a491795d85ee35b56cabbe550394f3823",
-  "remote_sha": null,
-  "active_session_id": null,
-  "previous_session_ids": [],
-  "goal_state": "not_started",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-chart-template-pointer-interaction-1ffadfb8",
+      "charting-stack-fix-chart-template-pointer-interaction-1ffadfb8"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-chart-template-pointer-interaction-1ffadfb89a"
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/chart-template-pointer-interaction: Human approved the coordinator proposal to open a narrowly scoped chart-template pointer repair and stated: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Scope: repair physical desktop overlap between populated comparison chips and Plots; preserve no-comparison default and passing narrow layout; validate with ordinary pointer actions, required full profile and exact CI; coordinator owns technical closure and staging integration. No other feature worktree writes, Help oracle changes, provider calls, deployment or data cleanup.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/chart-template-pointer-interaction: Human approved the coordinator proposal to open a narrowly scoped chart-template pointer repair and stated: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Scope: repair physical desktop overlap between populated comparison chips and Plots; preserve no-comparison default and passing narrow layout; validate with ordinary pointer actions, required full profile and exact CI; coordinator owns technical closure and staging integration. No other feature worktree writes, Help oracle changes, provider calls, deployment or data cleanup.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "936074d3679b0b76687dd0d39231417c56eecda6",
+  "implementation_sha": "5267f11a491795d85ee35b56cabbe550394f3823",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "f8f32bbd8cdadff1b50b2c19c84c4def7b2868b39d8a1f9e6be5e32e50e1304b",
+  "planning_required": true,
   "planning_state": "draft",
+  "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "total": 0,
+    "current_blocker": "none",
     "current_phase": "plan",
-    "current_blocker": "none"
+    "total": 0
   },
-  "next_action": "run make agent-session-start",
-  "retained_docker_resources": []
+  "remote": "936074d3679b0b76687dd0d39231417c56eecda6",
+  "remote_sha": null,
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "4f5ba990-9325-4502-b830-8f1c5ea4572b",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-chart-template-pointer-interaction/ops/workstreams/fix-chart-template-pointer-interaction",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-chart-template-pointer-interaction/ops/workstreams/fix-chart-template-pointer-interaction/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-chart-template-pointer-interaction/ops/workstreams/fix-chart-template-pointer-interaction/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-chart-template-pointer-interaction/ops/workstreams/fix-chart-template-pointer-interaction/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-chart-template-pointer-interaction/ops/workstreams/fix-chart-template-pointer-interaction/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-chart-template-pointer-interaction",
+  "worktree_id": "fix-chart-template-pointer-interaction-1ffadfb89a"
 }

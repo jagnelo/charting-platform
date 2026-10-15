@@ -5,30 +5,52 @@ parent_branch: staging
 parent_sha: 5267f11a491795d85ee35b56cabbe550394f3823
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Human approved the coordinator proposal to open a narrowly scoped chart-template pointer repair and stated: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Scope: repair physical desktop overlap between populated comparison chips and Plots; preserve no-comparison default and passing narrow layout; validate with ordinary pointer actions, required full profile and exact CI; coordinator owns technical closure and staging integration. No other feature worktree writes, Help oracle changes, provider calls, deployment or data cleanup."
-planning_state: draft
+planning_state: ready
 human_closure_authorization: pending
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: full_stack_browser
+local_validation_reason: Responsive chart-toolbar geometry must be validated in a real seeded application, including populated comparison values, restored templates and adjacent controls.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
-goal: "Human approved the coordinator proposal to open a narrowly scoped chart-template pointer repair and stated: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Scope: repair physical desktop overlap between populated comparison chips and Plots; preserve no-comparison default and passing narrow layout; validate with ordinary pointer actions, required full profile and exact CI; coordinator owns technical closure and staging integration. No other feature worktree writes, Help oracle changes, provider calls, deployment or data cleanup."
-scope: []
-owned_paths: []
-dependencies: []
-acceptance_criteria: []
+goal: "Repair chart-template comparison/Plots hit-target overlap on desktop, preserve the no-comparison default and passing narrow layout, and publish a validated clean checkpoint for delegated coordinator review. No feature imports, Help reference changes, provider requests, deployment or retained-data cleanup."
+scope:
+  - Physically separate populated comparison chips from the Plots trigger without relying on z-index reversal.
+  - Preserve the no-comparison default geometry and the existing narrow viewport two-row toolbar.
+  - Validate restored templates, real percentage labels, independent ordinary pointer actions and adjacent toolbar behavior on an isolated seeded application.
+owned_paths:
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - ops/workstreams/fix-chart-template-pointer-interaction/
+dependencies:
+  - Synchronized staging 5267f11a491795d85ee35b56cabbe550394f3823; exact CI run 38773602828 has passed all required jobs including Exhaustive Integration Gate.
+  - Read-only TC real-app cross-check at 389069a32682f97c51c0a6dd5cca99be3bb23c2a, published in evidence checkpoint 6051b078e9c0decd8e8a77e2cd52eb648b1355ef.
+acceptance_criteria:
+  - id: PTR1
+    text: Desktop save/remove/restore with a populated RSP percentage permits ordinary Plots and Remove RSP clicks while both controls exist; no force/trial-only proof or blank-percentage shortcut.
+  - id: PTR2
+    text: No-comparison default geometry remains unchanged; populated and multiple/long comparison chips cannot cover Plots or Templates, and menus retain ordinary close/focus behavior.
+  - id: PTR3
+    text: The 390x800 narrow viewport and on-screen chart retain independent comparison/Plots targets and usable menu bounds; comparison input/add controls remain interactive.
+  - id: PTR4
+    text: Frontend unit tests, type check/build and required isolated application browser/regression validation pass with unchanged oracles/tolerances; exact-source branch CI and subsequent staging gate remain required.
+  - id: PTR5
+    text: Publish clean committed/pushed source and precise review/closure evidence under delegated technical-fix authorization; preserve all sibling code/data and leave Help policy, provider activation, deployment and broader feature acceptance untouched.
 branch_tests: []
-branch_tests_reason: pending agent assessment
+branch_tests_reason: Existing chart-template/comparison frontend unit tests, F9c and adjacent browser flows, complete frontend suite and normal full integration CI cover this narrow repair; no additional standalone branch command is needed.
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: authorized
+status: in_progress
+active_changeset_context:
+  name: pointer-repair-plan
+  intent: Record the exact desktop geometry defect, guarded source boundary and acceptance before product edits.
+  owned_paths:
+    - ops/workstreams/fix-chart-template-pointer-interaction/
 remaining_gaps: []
 progress:
   completed: []
-  total: 0
-  current_phase: plan
+  total: 5
+  current_phase: plan_and_before_evidence
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: Validate and publish this plan, then reproduce on the repair source and implement only the responsive geometry change.
