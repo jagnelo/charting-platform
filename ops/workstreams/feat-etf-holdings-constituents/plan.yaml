@@ -149,21 +149,16 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: issuer route drift repair
-    state: in_progress
-    baseline: c20da8a99b4daec5db8d4144b5e76a4baaa41f93
-    intent: Repair the four issuer routes responsible for five actual live CI failures, with bounded retained public evidence and strict regression coverage.
+    name: ETF shared-runtime transport surface inventory
+    state: completed_documentation_context_provider_contract_pending
+    baseline: 8e7e17b3e5744c39f65fdbde915c0a20b295eb4e
+    intent: Record the current ETF-tree Provider runtime boundary and consumer requirements without guessing the Provider API or creating an ETF governance ledger; preserve the exact shared-cost, identity, retention, and validation gates until a reviewed green producer contract is released.
     owned_paths:
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md
       - ops/workstreams/feat-etf-holdings-constituents/session.json
       - ops/workstreams/feat-etf-holdings-constituents/validation.jsonl
       - ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md
-      - backend/app/services/etf_holdings_adapters.py
-      - backend/tests/unit/services/test_etf_holdings_adapters.py
-      - backend/tests/unit/services/test_etf_holdings_issuer_route_drift.py
-      - backend/tests/live/test_etf_holdings_live_providers.py
-      - docs/etf-provider-universe.md
 scope:
   - "Keep branch-owned ETF workstream and provider-universe documentation code-derived; the current reconciled baseline is 496 registered, 422 native/live-backed, and 74 fallback-only providers after the evidence-backed Arin/ATTR route promotion."
   - "Create and maintain a branch-owned exhaustive provider audit ledger covering all 140 current fallback-only adapter keys, with deterministic prioritization, source evidence, attempt dates, route disposition, and next action."

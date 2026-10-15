@@ -11060,3 +11060,29 @@ Next: wait for coordinator evidence that the actual Provider producer contract
 and first heavy validation slot are released, then reconcile against that exact
 green staging source. Keep full `full_stack_browser` and current-source CI open;
 no product checkpoint is accepted.
+
+### Current release and changeset-closure reconciliation — 2026-10-15 22:17Z
+
+The current coordinator release instructs ETF to consume exact synchronized
+green staging `82d881e76be8de538abb6ec5c454d96afe0ee56a`. This exact staging
+commit is already an ancestor of the assigned ETF branch: merge commit
+`bff2d390eaf128d54a5bb588298a3b528c9a6785` has first parent
+`cdaec8376c135208d6d695c84cbdc92bcc435c80` and second parent
+`82d881e76be8de538abb6ec5c454d96afe0ee56a`. No duplicate merge is needed or
+created. The release is only the common repair baseline; it is not ETF product
+acceptance.
+
+Closed the completed documentation-only context `ETF shared-runtime transport
+surface inventory`, owning this plan, handoff, integration checkpoint, session
+record, and validation journal. Its source inventory and ETF consumer contract
+are recorded above and in `integration-checkpoint.md` and
+`shared-cost-admission.md`; unknown-cost/quota deny rules, canonical
+non-equity identity handling, historical retention, and the no-duplicate-ledger
+boundary remain intact. `plan.yaml` previously mislabeled an old issuer-route
+repair as active; the plan and session now agree on the closed inventory
+context. Provider producer contract/release and its first heavy validation
+slot remain external prerequisites. ETF_HOLDINGS implementation, the combined
+full-stack browser gate, exact-source CI, and human review remain outstanding;
+no product checkpoint is accepted. Next action is to resume bridge preparation
+only against a reviewed Provider producer contract, respecting Provider's
+validation slot and the complete ETF roadmap.

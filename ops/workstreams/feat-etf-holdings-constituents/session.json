@@ -40,7 +40,7 @@
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "state": "transport_inventory_documented_pending_green_provider_contract"
+    "state": "completed_documentation_context_provider_contract_pending"
   },
   "active_session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
   "branch": "feat/etf-holdings-constituents",
@@ -94,7 +94,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "13fd50a789b1c09e11a74ef178cb505521c38f4c",
+  "head": "772ad58eae25c09309c9eb172f231332b0b13837",
   "implementation_sha": "faffd6f75b40e4dbcf506c9c042d906d1aaa0327",
   "integration_checkpoint": {
     "acceptance_authorization": "pending",
@@ -228,7 +228,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "next_action": "Wait for coordinator release of a reviewed green Provider producer contract and its first heavy local validation slot. Then re-read exact staged source, update the consumer matrix, reconcile identity/entitlement/quota/cost/health and async transport semantics, implement ETF_HOLDINGS with real request-level admission/retention tests, and run the unchanged full_stack_browser profile plus exact-source CI after fresh capacity coordination. Preserve the full fourteen-criterion roadmap and post-integration observation gate. Do not guess APIs/costs, duplicate the ledger, merge sibling work, activate paid/trial routes, deploy, or clean retained data.",
-  "plan_hash": "74a11936e6a4eca18c61184423e821474f6d4674a894bc327ee8a6ca68bd8e08",
+  "plan_hash": "f514a0ba5aeaa443ee6eb6802018ac5773059daa9d112b05370e6e7147fa1f5c",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -285,7 +285,7 @@
     "total": 7,
     "updated_at": "2026-10-15T22:12:26.620180+00:00"
   },
-  "remote": "13fd50a789b1c09e11a74ef178cb505521c38f4c",
+  "remote": "772ad58eae25c09309c9eb172f231332b0b13837",
   "remote_sha": "faffd6f75b40e4dbcf506c9c042d906d1aaa0327",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
