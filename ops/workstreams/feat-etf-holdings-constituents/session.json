@@ -42,10 +42,8 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "current_blocker_latest": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). Four issuer repairs are synchronized as ea7572ab; source CI backend/frontend/Playwright passed. Live sweep 529 passed,16 skips,1 transient BGIG ReadError; unchanged BGIG replay passed. Precise classifier fix is synchronized as 76a8341e with hard parser/identity negatives. Local full profile20560 passed1938 backend and948 frontend tests and reached runtime probes; final browser/visual result pending. Shared runtime still awaits Provider in synchronized green staging; current staging advance is workflow-only.",
+  "current_blocker_latest": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). Issuer repairs ea7572ab and precise transport classifier76a8341e are published. Documentation eac06ac4 defines the shared cost-admission contract without claiming runtime implementation. Local full profile20560 passed1938 backend/948 frontend tests and resource probes but has a terminal F8n-cross-window-links cleanup failure after successful propagation assertions; the suite is still running. Retain its artifacts and fix the direct close-event race in a separate clean context. Provider shared runtime still awaits synchronized green staging.",
   "dirty_paths": [
-    "ops/workstreams/feat-etf-holdings-constituents/shared-cost-admission.md",
-    "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
@@ -86,13 +84,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "76a8341eba65b82ffcab88ac80aaa0585b20c846",
+  "head": "eac06ac4dc879c305616892deeb2d2d4c6846d07",
   "implementation_sha": "76a8341eba65b82ffcab88ac80aaa0585b20c846",
-  "last_checkpoint": "2026-10-15T18:02:26Z",
+  "last_checkpoint": "2026-10-15T18:12:00Z",
   "last_human_progress_update": "2026-10-06T18:53:15.533458+00:00",
-  "latest_checkpoint": "2026-10-15: Four issuer repairs published as ea7572ab; hosted 1559 unit,379 integration,frontend and Playwright 151 passed/109 skipped passed. Live 529 passed/16 skips/1 interrupted BGIG response; unchanged isolated BGIG replay passed. Precise test-only transport classification is committed/pushed as 76a8341eba65b82ffcab88ac80aaa0585b20c846 with matching local/origin; malformed artifact/identity failures remain hard. Local full profile 20560 passed 1938 backend and948 frontend tests and has reached healthy-stack resource probes, still running. Current application source equals ea7572ab. The enclosing operational receipt hash is verified externally. Provider shared-runtime staging release remains pending.",
+  "latest_checkpoint": "Shared cost-admission consumer contract committed/pushed as eac06ac4dc879c305616892deeb2d2d4c6846d07; six staged files reviewed, workstream30 and diff-check pass, clean synchronized boundary verified. No application changes. Intermediate f532 CI is superseded by publication because a newly observed browser cleanup failure requires another test repair. Existing local run20560 remains authoritative and is progressing. No final profile or checkpoint acceptance.",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Finish local full-profile process 20560 and monitor the next published exact-source CI; preserve actual failures, typed transport skips as unverified, unchanged strict parser assertions, and all resource guards. Complete this validation follow-up context cleanly before independent cost-contract preparation or the centrally released Provider bridge.",
+  "next_action": "Finish receipt publication and verify clean synchronization; preserve the terminal local functional result, then use the existing closePopupWhenOpen helper for the observed cleanup race and validate adjacent cases plus the unchanged full profile. Do not edit tests while the authoritative local suite is still running.",
   "plan_hash": "b67dc0e45547a515be81a9859fd69478438025844ffb989c6a1144ba5829505f",
   "planning_required": false,
   "planning_state": "ready",
@@ -110,13 +108,13 @@
       "EICP1"
     ],
     "total": 7,
-    "current_phase": "issuer_repairs_pushed_CI_and_local_full_profile_running",
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). Four issuer repairs are synchronized as ea7572ab; source CI backend/frontend/Playwright passed. Live sweep 529 passed,16 skips,1 transient BGIG ReadError; unchanged BGIG replay passed. Precise classifier fix is synchronized as 76a8341e with hard parser/identity negatives. Local full profile20560 passed1938 backend and948 frontend tests and reached runtime probes; final browser/visual result pending. Shared runtime still awaits Provider in synchronized green staging; current staging advance is workflow-only.",
-    "next_action": "Finish local full-profile process 20560 and monitor the next published exact-source CI; close this validation follow-up context cleanly before independent cost-contract preparation or the centrally released Provider bridge.",
-    "updated_at": "2026-10-15T18:02:26Z"
+    "current_phase": "cost_contract_published_local_browser_cleanup_failure_diagnosed",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). Issuer repairs ea7572ab and precise transport classifier76a8341e are published. Documentation eac06ac4 defines the shared cost-admission contract without claiming runtime implementation. Local full profile20560 passed1938 backend/948 frontend tests and resource probes but has a terminal F8n-cross-window-links cleanup failure after successful propagation assertions; the suite is still running. Retain its artifacts and fix the direct close-event race in a separate clean context. Provider shared runtime still awaits synchronized green staging.",
+    "next_action": "Finish receipt publication and verify clean synchronization; preserve the terminal local functional result, then use the existing closePopupWhenOpen helper for the observed cleanup race and validate adjacent cases plus the unchanged full profile. Do not edit tests while the authoritative local suite is still running.",
+    "updated_at": "2026-10-15T18:12:00Z"
   },
-  "remote": "76a8341eba65b82ffcab88ac80aaa0585b20c846",
-  "remote_sha": "76a8341eba65b82ffcab88ac80aaa0585b20c846",
+  "remote": "eac06ac4dc879c305616892deeb2d2d4c6846d07",
+  "remote_sha": "eac06ac4dc879c305616892deeb2d2d4c6846d07",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
@@ -259,11 +257,11 @@
     "dispositions_document": "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "preparation_baseline": "f2670b0bbde8bb680173d847a43734f7391745f7",
     "preparation_sha": "d1040b41b99b3ece8e25e777ef51a300393c7429",
-    "current_published_sha": "f532914d873c4e0f397e3b697bcc1d6f79562cd0",
+    "current_published_sha": "eac06ac4dc879c305616892deeb2d2d4c6846d07",
     "current_published_ci": {
       "id": 38782444991,
       "url": "https://github.com/jagnelo/charting-platform/actions/runs/38782444991",
-      "status": "in_progress",
+      "status": "superseded_by_documentation_publication_further_browser_repair_required",
       "application_source_sha": "ea7572ab63985c9bc520befb377001a44c3a4d5b"
     },
     "ci": {
@@ -300,7 +298,7 @@
   },
   "active_changeset": {
     "name": "shared cost-admission consumer contract",
-    "state": "in_progress_documentation_only",
+    "state": "implementation_committed_pushed_operational_receipt_in_progress",
     "baseline": "f532914d873c4e0f397e3b697bcc1d6f79562cd0",
     "intent": "Pin existing shared cost interfaces and explicit producer/consumer acceptance cases without a duplicate runtime, paid activation, or an implicit waiver of the original aggregate monthly ceiling. Continue observing existing broader validation.",
     "owned_paths": [
@@ -311,7 +309,8 @@
       "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md",
       "ops/workstreams/feat-etf-holdings-constituents/shared-cost-admission.md"
     ],
-    "evidence_directory": ".ai/validation/issuer-drift-2026-10-15/"
+    "evidence_directory": ".ai/validation/issuer-drift-2026-10-15/",
+    "implementation_sha": "eac06ac4dc879c305616892deeb2d2d4c6846d07"
   },
   "local_profile_execution": {
     "source_sha": "ea7572ab63985c9bc520befb377001a44c3a4d5b",

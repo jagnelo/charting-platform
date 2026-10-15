@@ -286,7 +286,7 @@ progress:
   completed:
     - EICP1
   total: 7
-current_phase: issuer_repairs_pushed_CI_and_local_full_profile_running
+current_phase: cost_contract_published_local_browser_cleanup_failure_diagnosed
 current_blocker: >-
   The five failures from CI 38771431871 are repaired in the current source
   delta. Final bounded replay passes all five without skips; the full backend
@@ -298,6 +298,12 @@ current_blocker: >-
   research-runner wall/CPU-limit race (both one second). A controlled retry
   with single-thread numerical libraries and unchanged tests/limits is live;
   no passing full-profile result is claimed yet.
+  That retry has passed 1938 backend and 948 frontend tests and runtime probes,
+  but its F8n-cross-window-links case fails at a direct popup close click after
+  successful symbol/timeframe assertions. Preserve the still-running suite;
+  then apply the existing same-file close-event helper in a separate context.
+  The shared cost contract is published as eac06ac4; it is preparation, not
+  proof of shared-runtime admission or acceptance of a budget scope reduction.
   The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Provider
   has not been released through synchronized green staging. Prepare
   independent ETF contract evidence and consumer tests now; runtime bridge

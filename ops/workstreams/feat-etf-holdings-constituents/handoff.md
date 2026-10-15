@@ -10275,3 +10275,14 @@ context cleanly, then repair the observed cleanup path in a separate context
 after the authoritative local run terminates. Because a further source repair
 is now required, the intermediate hosted run is not the final review candidate;
 publishing this completed context must not become a reason to delay the fix.
+
+Shared cost-admission preparation is now committed/pushed as
+`eac06ac4dc879c305616892deeb2d2d4c6846d07`; all six staged paths were reviewed,
+workstream validation passed 30 records, diff-check passed, and clean matching
+HEAD/origin hashes were verified. This four-file receipt records that prior
+source hash, with its own enclosing hash verified externally. Intermediate
+hosted run 38782444991 is superseded by documentation publication; it was not
+green acceptance and the new local cleanup failure already requires a later
+test-source repair. The old local run20560 continues unchanged. One permitted
+next action after this receipt is synchronized: finish observing that run,
+then repair/revalidate the close-event cleanup in a separate owned context.
