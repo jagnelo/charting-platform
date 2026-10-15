@@ -55,8 +55,13 @@ current_blocker: >-
   Tests, Branch-declared Tests, and E2E Tests (Playwright) passed; Exhaustive
   Integration Gate was skipped on the feature branch. This exact tree includes
   Help commits be6b125/6fb51f1 and the workstream reconciliation. Preserve
-  assigned runtime/data/listener 15190 and wait for coordinator green staging
-  before source synchronization.
+  assigned runtime/data/listener 15190. The coordinator repair has since reached
+  green staging as bc32034e/82d881e7; consume it only through the authorized
+  dependency-first staging sequence, not as a direct feature import. Latest
+  exact branch run 38820691427 for 5fcae958786ea0a1fc922a7800d2ce12d12ddb37
+  had 188 passed, 110 skipped, and one retry-passing F9c comparison flake, so
+  clean all-source CI remains open. Hosted visual cases were not opted in; the
+  Help visual evidence is the separate local one-keyboard/four-profile pass.
   Provider/ETF synchronization and exact TCP4 full integration remain open.
 
   Checkpoint adoption 2026-10-15: the populated-comparison pointer check found
@@ -616,16 +621,20 @@ progress:
     integration gate open. Defer upstream consumption/reconciliation until both
     dependencies reach staging. Stop at ready_for_human_review.
   current_blocker: >-
-    Coordinator-owned TCP1 pointer repair delivery awaits synchronized green
-    staging. Provider/ETF green-staging synchronization and the exact full
-    integration gate remain incomplete. The Help local-only staging reference
-    is reviewed and adopted at unchanged thresholds; official V25 Help visual
-    parity remains required_missing and unfinished. Exact Actions run
-    38812796211 on 36bad277052247a4f68af8d1e259c3cf403f787a completed
-    successfully: Backend, Frontend Unit, Branch-declared, and E2E passed;
-    Exhaustive Integration Gate skipped. This source includes the reviewed Help
-    commits and workstream updates. Continue only with the full roadmap; no
-    staging integration or feature completion is implied.
+    Coordinator-owned pointer/save repair bc32034e is green in staging, but TC
+    must consume it through the authorized dependency-first staging sequence;
+    do not duplicate or direct-import it. Provider/ETF green-staging
+    synchronization and the exact full integration gate remain incomplete. The
+    human-approved local Help product reference is tracked and validated at
+    unchanged thresholds; official V25 Help visual parity remains
+    required_missing and unfinished. Local focused Help checks passed one
+    keyboard/accessibility test and four visual profiles; hosted CI must not be
+    counted for those visuals because it skipped all 104 visual cases. Exact
+    Actions run 38820691427 on 5fcae958786ea0a1fc922a7800d2ce12d12ddb37 had
+    Backend, Frontend Unit, and Branch-declared jobs succeed, but E2E had 188
+    passed, 110 skipped, and one retry-passing F9c flake; clean all-source CI
+    remains open. Continue only with the full roadmap; no staging integration or
+    feature completion is implied.
 historical_implementation_records:
   - "Added TC2000's documented HLC Bars style to the frontend chart contract and settings, drawing the existing OHLCV high-low range with a close tick and omitting the open tick. Ctrl+B now cycles HLC, OHLC, Candles, Line in that order. The focused renderer/workstation tests passed 45/45; the full serial frontend suite passed 130 files / 1,225 tests; vue-tsc/Vite build passed; authenticated F8k-direct-chart-style passed 1/1 across all four styles. The protected Help screenshot test failed against its unchanged baseline with 50,941 pixels / 3.0% difference (0.5% threshold); no visual baseline/policy was changed."
   - "Authenticated follow-up browser evidence supersedes the earlier unauthenticated CLI attempt: a unique account in the assigned TC stack was used to activate the chart, press `/`, and confirm the plot library reopened with its `Filter indicators` search focused. No account was created outside the branch stack; no other worktree changed. The account remains a test artifact in the assigned stack. The Help visual oracle was not rerun after this shortcut, and its protected baseline remains unchanged."

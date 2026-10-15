@@ -19542,3 +19542,25 @@ and structural-local-change recovery guards, avoid a redundant generation
 counter, retain negative revision/flush coverage, and repeat date-pointer
 persistence without retries. No TC-owned repair was made here.
 
+Latest exact-tip CI audit for `5fcae958786ea0a1fc922a7800d2ce12d12ddb37`:
+run `38820691427` had Backend, Frontend Unit, and Branch-declared jobs succeed,
+with Exhaustive Integration Gate skipped as expected on this feature branch.
+The E2E job concluded with 188 passed, 110 skipped, and one retry-passing
+`F9c-template-comparison` flake (`flows.spec.ts:289`), so this is not clean
+all-source acceptance. Hosted E2E did not opt into board visual parity; all 104
+visual cases were skipped. Do not count that run as Help visual evidence. The
+Help evidence is the separate isolated seeded run above: one keyboard/access
+test plus four opted-in local Help screenshot profiles passed at the original
+0.005 threshold. The four reviewed Linux Help PNGs and manifest policy are
+tracked in this branch as the human-approved local product reference; official
+V25 parity remains required-missing and unfinished.
+
+The populated RSP application cross-check is already satisfied in retained
+coordinator-reviewed evidence; do not repeat it or duplicate `bc32034e`. The
+common repair is now in green staging, but the dependency-first Provider/ETF
+staging sequence remains in progress. Reconcile save semantics with TC's
+existing persistence and structural-recovery behavior only when that source
+reaches TC through the authorized sequence, then rerun date-pointer persistence
+without retries and complete clean exact-source CI. No TC source, test
+expectation, screenshot threshold, or visual policy changed in this audit.
+
