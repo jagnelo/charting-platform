@@ -88,7 +88,6 @@ def test_dinari_canary_daily_limit_is_shared_and_durable(tmp_path, monkeypatch):
         "dinari",
         "discover_tokenized_assets",
         operation_cost_override=1,
-        require_persistent_coordinator=True,
     )
     assert reservation is not None
     settle_live_provider_operation(reservation, http_requests=1, response_bytes=10)
@@ -100,7 +99,6 @@ def test_dinari_canary_daily_limit_is_shared_and_durable(tmp_path, monkeypatch):
             "dinari",
             "discover_tokenized_assets",
             operation_cost_override=1,
-            require_persistent_coordinator=True,
         )
         is None
     )
@@ -116,7 +114,6 @@ def test_live_settlement_reports_safe_failure_type_and_keeps_reservation(tmp_pat
         "dinari",
         "discover_tokenized_assets",
         operation_cost_override=1,
-        require_persistent_coordinator=True,
     )
     assert reservation is not None
 

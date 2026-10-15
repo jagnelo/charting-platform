@@ -3062,6 +3062,9 @@ def test_github_live_quota_preflight_rejects_ephemeral_sqlite(monkeypatch):
 
 def test_quota_preflight_preserves_safe_coordinator_diagnostic(monkeypatch):
     runner = _runner_module()
+    # This case exercises the coordinator's redacted diagnostic path. The
+    # distinct GitHub-only PostgreSQL guard is covered below.
+    monkeypatch.setenv("GITHUB_ACTIONS", "false")
     from app.services.provider_quota_coordinator import ProviderQuotaCoordinatorError
 
     def fail(*, require_persistent_coordinator=False):
