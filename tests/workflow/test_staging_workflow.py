@@ -137,6 +137,81 @@ def test_github_gate_waits_for_asynchronous_push_run_registration() -> None:
     assert "time.sleep(CI_DISCOVERY_DELAY_SECONDS)" in github_body
 
 
+@pytest.mark.parametrize(
+    ("location", "branch", "dirty", "master_synced", "staging_synced", "failure"),
+    [
+        ("staging", "staging", False, True, True, None),
+        ("staging", "staging", True, True, True, "operator checkout is dirty"),
+        ("staging", "staging", False, False, True, "master is not synchronized"),
+        ("staging", "staging", False, True, False, "staging is not synchronized"),
+        (
+            "feature",
+            "feat/example",
+            False,
+            True,
+            True,
+            "persistent staging coordinator",
+        ),
+        ("feature", "staging", False, True, True, "persistent staging coordinator"),
+        ("feature", "master", False, True, True, "persistent staging coordinator"),
+        ("root", "master", True, True, True, "operator checkout is dirty"),
+        ("root", "master", False, True, True, None),
+    ],
+)
+def test_worktree_bootstrap_accepts_only_the_exact_clean_coordinator(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    location: str,
+    branch: str,
+    dirty: bool,
+    master_synced: bool,
+    staging_synced: bool,
+    failure: str | None,
+) -> None:
+    helper = load_script("worktree")
+    common = tmp_path / "repo"
+    staging = common / ".ai" / "worktrees" / "staging"
+    current = {
+        "root": common,
+        "staging": staging,
+        "feature": common / ".ai" / "worktrees" / "feat-example",
+    }[location]
+    monkeypatch.setattr(helper, "repo_root", lambda: current)
+    monkeypatch.setattr(helper, "common_root", lambda: common)
+    monkeypatch.setattr(helper, "branch_path", lambda name: staging)
+    monkeypatch.setattr(helper, "git_succeeds", lambda *args: True)
+
+    def fake_git(*args: str, **kwargs: object) -> str:
+        cwd = kwargs.get("cwd", current)
+        assert cwd in {current, staging}
+        if location == "staging":
+            assert cwd != common
+        if args == ("branch", "--show-current"):
+            return branch
+        if args == ("status", "--porcelain"):
+            return " M unrelated.txt" if dirty else ""
+        if args == ("diff", "--check") or args[0] == "fetch":
+            return ""
+        if args == ("rev-parse", "--verify", "origin/master"):
+            return "a" * 40
+        if args == ("rev-parse", "master") or (
+            cwd == common and args == ("rev-parse", "HEAD")
+        ):
+            return ("a" if master_synced else "b") * 40
+        if args == ("rev-parse", "origin/staging"):
+            return "c" * 40
+        if cwd == staging and args == ("rev-parse", "HEAD"):
+            return ("c" if staging_synced else "d") * 40
+        raise AssertionError(f"unexpected Git operation: {args}")
+
+    monkeypatch.setattr(helper, "git", fake_git)
+    if failure:
+        with pytest.raises(SystemExit, match=failure):
+            helper.ensure_operator_ready()
+    else:
+        helper.ensure_operator_ready()
+
+
 def test_staging_bootstrap_refuses_degraded_master(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

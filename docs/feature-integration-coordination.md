@@ -19,11 +19,38 @@ remains a separately authorized post-integration operational gate.
 The coordinator's working copy is
 `/home/m920q/charting-platform/.ai/worktrees/staging`. Until published, feature
 sessions read this local document without modifying or pulling that checkout.
-The 2026-10-15 documentation checkpoint is still a local staging advance; its
-publication must pass exact staging CI before any subsequent product integration.
+The workflow checkpoint is published at staging
+`98f0b888817c461fa00e6e310c5b378b0c4c512f`; its exact staging CI must pass
+before any subsequent product integration. This is not a product baseline.
 Live coordinator decisions, the queue and source freezes are recorded in
 `ops/feature-integration-status.yaml` in that same checkout. Source owners should
 read it at coherent checkpoints when an upstream dependency is still pending.
+
+The current cross-branch migration, cost-governance and browser-repair tasks are
+in [the reconciliation handoff](feature-integration-reconciliation.md). Strategy
+has independent migration work available before the combined baseline arrives.
+
+### Subsequent human authorization: close validated technical repairs
+
+Later on 2026-10-15, in response to the coordinator's explicit request to open
+the narrow chart-template pointer repair, the human stated:
+
+> Yes I approve, and you do not need my acceptance to close it off, it's a waste
+> of time for me to individually verify each individual fix in all the 4 parallel
+> development branches - do this yourself, with care, I just want to get to the
+> merged-into-staging state to finally try this out
+
+This explicitly activates the narrow repair topic and authorizes the coordinator
+to review and close validated technical fixes needed for these four integrations
+without asking for per-fix signoff. Record this exact decision in the applicable
+closure record together with the delivered scope, exact source and evidence.
+It does not mark an unfinished feature checkpoint ready, weaken a required gate,
+approve an unreviewed product-scope reduction, discard data, authorize deployment
+or activate providers/the operational trial. The coordinator owns technical
+review and staging mechanics; ask the human only when a material product choice
+or another action beyond this authorization is actually required. Earlier
+references below to obtaining human acceptance per technical repair are
+superseded by this recorded authorization, not by an invented acceptance.
 
 ## Order of action
 
@@ -42,7 +69,7 @@ read it at coherent checkpoints when an upstream dependency is still pending.
 3. **Review and integrate Provider first.** Resolve required shared-gate failures
    through a suitable source owner or a separately authorized narrow repair.
    Present ICP1-ICP7 evidence and proposed operation deferrals to the human.
-   After acceptance, freeze the exact clean pushed source and use the guarded
+   After the required checkpoint closure, freeze the exact clean pushed source and use the guarded
    staging integration command. Wait for exact staging CI.
 4. **Reconcile and integrate ETF, then TC2000, then Strategy Lab v2.** For each,
    its owning agent merges the latest synchronized green staging into its own
