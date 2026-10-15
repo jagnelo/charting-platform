@@ -53,6 +53,10 @@ integration_checkpoint:
   implementation_evidence_baseline: 5854dd2fc70e7424280782c3a61df5f6ed5b04c6
   preparation_sha: d1040b41b99b3ece8e25e777ef51a300393c7429
   preparation_ci_run: 38771431871
+  issuer_repair_sha: ea7572ab63985c9bc520befb377001a44c3a4d5b
+  issuer_repair_ci_run: 38778817487
+  issuer_repair_live_result: '529 passed, 16 classified external skips, 1 transient BGIG ReadError; unchanged BGIG replay passed. Five repaired routes passed. Transport classifier fix published as 76a8341eba65b82ffcab88ac80aaa0585b20c846. Hosted backend 1559 unit plus 379 integration, frontend and Playwright 151 passed/109 skipped all passed. Local full profile still running.'
+  current_local_profile_log: .ai/validation/etf-full-profile-ea7572ab-single-thread-20261015.log
   preparation_ci_result: Backend and frontend passed; hosted Playwright 151 passed and 109 skipped; branch live matrix 522 passed, 19 classified skips, 5 failures across four issuer routes. Follow-up repairs are required.
   coordination_document: /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md
   contract_document: ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md
@@ -280,12 +284,18 @@ progress:
   completed:
     - EICP1
   total: 7
-current_phase: issuer_route_repairs_locally_verified_publish
+current_phase: issuer_repairs_pushed_CI_and_local_full_profile_running
 current_blocker: >-
   The five failures from CI 38771431871 are repaired in the current source
   delta. Final bounded replay passes all five without skips; the full backend
   unit suite passes 1557, including 21 new issuer regressions; static checks
-  pass. Commit/push and verify the repaired exact-source full live matrix/CI.
+  pass. Source ea7572ab is pushed and CI 38778817487 is terminal; backend,
+  frontend and Playwright passed; only a transient BGIG ReadError failed the
+  live sweep, and its unchanged replay passed. Precise transport classification
+  is published as 76a8341e with parser failures still hard. The first full local gate stopped at the existing
+  research-runner wall/CPU-limit race (both one second). A controlled retry
+  with single-thread numerical libraries and unchanged tests/limits is live;
+  no passing full-profile result is claimed yet.
   The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Provider
   has not been released through synchronized green staging. Prepare
   independent ETF contract evidence and consumer tests now; runtime bridge
@@ -1283,9 +1293,11 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Commit/push the verified issuer repair context (1557 backend unit tests,
-  21 new route regressions, final five-case live replay all pass), then monitor
-  the repaired exact-source branch CI/full live matrix and fix any new failures.
+  Poll local full-profile process 20560 (retained log above) and the next
+  published exact-source CI; fix any actual new failures. Keep the
+  local research-runner CPU/wall timeout race explicit and retain all limits,
+  tests, coverage thresholds and cleanup boundaries. Publish the operational
+  receipts coherent and avoid cancelling useful live CI with metadata pushes.
   After Provider reaches synchronized green
   staging and this source is unfrozen, merge staging here and implement/test
   the real governance bridge, run the required full profile and exact-source

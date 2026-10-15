@@ -42,13 +42,8 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "current_blocker_latest": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496 registered / 422 native / 74 fallback). All five observed issuer failures are repaired: final targeted live replay 5/5 passed without skips; complete backend unit suite 1557/1557, including 21 new route regressions, passes. New repaired-source full live matrix and exact-source CI are pending publication. The shared host has an active TC2000 browser crosscheck and stacks, so no competing heavy local ETF profile was started. Actual shared-runtime reconciliation still requires centrally released synchronized green Provider staging.",
+  "current_blocker_latest": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). Four issuer repairs are synchronized as ea7572ab; source CI backend/frontend/Playwright passed. Live sweep 529 passed,16 skips,1 transient BGIG ReadError; unchanged BGIG replay passed. Precise classifier fix is synchronized as 76a8341e with hard parser/identity negatives. Local full profile20560 passed1938 backend and948 frontend tests and reached runtime probes; final browser/visual result pending. Shared runtime still awaits Provider in synchronized green staging; current staging advance is workflow-only.",
   "dirty_paths": [
-    "backend/app/services/etf_holdings_adapters.py",
-    "backend/tests/live/test_etf_holdings_live_providers.py",
-    "backend/tests/unit/services/test_etf_holdings_adapters.py",
-    "backend/tests/unit/services/test_etf_holdings_issuer_route_drift.py",
-    "docs/etf-provider-universe.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
@@ -89,13 +84,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "c20da8a99b4daec5db8d4144b5e76a4baaa41f93",
-  "implementation_sha": "d1040b41b99b3ece8e25e777ef51a300393c7429",
-  "last_checkpoint": "2026-10-15T17:34:47Z",
+  "head": "76a8341eba65b82ffcab88ac80aaa0585b20c846",
+  "implementation_sha": "76a8341eba65b82ffcab88ac80aaa0585b20c846",
+  "last_checkpoint": "2026-10-15T18:02:26Z",
   "last_human_progress_update": "2026-10-06T18:53:15.533458+00:00",
-  "latest_checkpoint": "2026-10-15: Four issuer route redesigns repaired with retained raw evidence. Full backend suite 1557 passed; 21 new strict redesign regressions passed after final parser/cadence metadata updates; final bounded five-case live replay passed all five without skips. Retained rows/date: Baron 23, Global X 104, Wedbush 30, Pictet 156, all 2026-10-14. Native/fallback counts unchanged, no activation. Publish and verify repaired-source CI/full matrix next. Required local/combined full profile and actual Provider runtime bridge remain open. Final focused route suite now passes 23 cases, including two legacy percent-unit regressions; default live contracts pass 9 with 537 opt-in skips.",
+  "latest_checkpoint": "2026-10-15: Four issuer repairs published as ea7572ab; hosted 1559 unit,379 integration,frontend and Playwright 151 passed/109 skipped passed. Live 529 passed/16 skips/1 interrupted BGIG response; unchanged isolated BGIG replay passed. Precise test-only transport classification is committed/pushed as 76a8341eba65b82ffcab88ac80aaa0585b20c846 with matching local/origin; malformed artifact/identity failures remain hard. Local full profile 20560 passed 1938 backend and948 frontend tests and has reached healthy-stack resource probes, still running. Current application source equals ea7572ab. The enclosing operational receipt hash is verified externally. Provider shared-runtime staging release remains pending.",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Commit/push the nine-file issuer route repair context, verify clean synchronization, then monitor its exact-source CI/full opt-in live matrix and repair any new failures. Preserve Global X reuse-review evidence without enabling routing. Reconcile the actual shared runtime after central green Provider staging release.",
+  "next_action": "Finish local full-profile process 20560 and monitor the next published exact-source CI; preserve actual failures, typed transport skips as unverified, unchanged strict parser assertions, and all resource guards. Complete this validation follow-up context cleanly before independent cost-contract preparation or the centrally released Provider bridge.",
   "plan_hash": "b67dc0e45547a515be81a9859fd69478438025844ffb989c6a1144ba5829505f",
   "planning_required": false,
   "planning_state": "ready",
@@ -113,13 +108,13 @@
       "EICP1"
     ],
     "total": 7,
-    "current_phase": "issuer_route_repairs_locally_verified_publish",
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496 registered / 422 native / 74 fallback). All five observed issuer failures are repaired: final targeted live replay 5/5 passed without skips; complete backend unit suite 1557/1557, including 21 new route regressions, passes. New repaired-source full live matrix and exact-source CI are pending publication. The shared host has an active TC2000 browser crosscheck and stacks, so no competing heavy local ETF profile was started. Actual shared-runtime reconciliation still requires centrally released synchronized green Provider staging.",
-    "next_action": "Commit/push the nine-file issuer route repair context, verify clean synchronization, then monitor its exact-source CI/full opt-in live matrix and repair any new failures. Preserve Global X reuse-review evidence without enabling routing. Reconcile the actual shared runtime after central green Provider staging release.",
-    "updated_at": "2026-10-15T17:34:47Z"
+    "current_phase": "issuer_repairs_pushed_CI_and_local_full_profile_running",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). Four issuer repairs are synchronized as ea7572ab; source CI backend/frontend/Playwright passed. Live sweep 529 passed,16 skips,1 transient BGIG ReadError; unchanged BGIG replay passed. Precise classifier fix is synchronized as 76a8341e with hard parser/identity negatives. Local full profile20560 passed1938 backend and948 frontend tests and reached runtime probes; final browser/visual result pending. Shared runtime still awaits Provider in synchronized green staging; current staging advance is workflow-only.",
+    "next_action": "Finish local full-profile process 20560 and monitor the next published exact-source CI; close this validation follow-up context cleanly before independent cost-contract preparation or the centrally released Provider bridge.",
+    "updated_at": "2026-10-15T18:02:26Z"
   },
-  "remote": "c20da8a99b4daec5db8d4144b5e76a4baaa41f93",
-  "remote_sha": "c20da8a99b4daec5db8d4144b5e76a4baaa41f93",
+  "remote": "76a8341eba65b82ffcab88ac80aaa0585b20c846",
+  "remote_sha": "76a8341eba65b82ffcab88ac80aaa0585b20c846",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
@@ -281,11 +276,22 @@
           "pictet/PQUS"
         ]
       }
+    },
+    "issuer_repair_sha": "ea7572ab63985c9bc520befb377001a44c3a4d5b",
+    "issuer_repair_ci": {
+      "id": 38778817487,
+      "url": "https://github.com/jagnelo/charting-platform/actions/runs/38778817487",
+      "source_sha": "ea7572ab63985c9bc520befb377001a44c3a4d5b",
+      "status": "completed",
+      "backend": "success",
+      "frontend": "success",
+      "branch_tests": "failure:529 passed,16 classified skips,1 BGIG ReadError; unchanged isolated BGIG replay passed; precise typed transport classifier follow-up is tested and pushed as 76a8341eba65b82ffcab88ac80aaa0585b20c846",
+      "playwright": "success:151 passed,109 skipped"
     }
   },
   "active_changeset": {
     "name": "issuer route drift repair",
-    "state": "in_progress",
+    "state": "implementation_pushed_validation_running",
     "baseline": "c20da8a99b4daec5db8d4144b5e76a4baaa41f93",
     "intent": "Repair the four issuer routes responsible for five genuine live CI failures using retained public artifacts and strict regression tests.",
     "owned_paths": [
@@ -301,5 +307,23 @@
       "backend/tests/unit/services/test_etf_holdings_issuer_route_drift.py"
     ],
     "evidence_directory": ".ai/validation/issuer-drift-2026-10-15/"
+  },
+  "local_profile_execution": {
+    "source_sha": "ea7572ab63985c9bc520befb377001a44c3a4d5b",
+    "status": "running",
+    "process_handle": 20560,
+    "log": ".ai/validation/etf-full-profile-ea7572ab-single-thread-20261015.log",
+    "prior_attempt": {
+      "process_handle": 83524,
+      "result": "exit_152_backend_coverage_research_runner_equal_CPU_wall_timeout_race",
+      "log": ".ai/validation/etf-full-profile-ea7572ab-20261015.log"
+    },
+    "environment": {
+      "OPENBLAS_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1",
+      "NUMEXPR_NUM_THREADS": "1",
+      "PYTEST_ADDOPTS": "-vv"
+    }
   }
 }

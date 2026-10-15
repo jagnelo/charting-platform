@@ -10150,3 +10150,86 @@ signs both preserve the correct weight scale. Default live contracts also pass
 (9 passed / 537 opt-in skips). These two extra test cases do not change product
 source from the complete 1,557-case backend unit pass recorded above. No new
 full local Docker/browser result is claimed.
+
+Issuer repair source is now committed/pushed as
+`ea7572ab63985c9bc520befb377001a44c3a4d5b`, with the exact nine staged paths
+reviewed and clean matching local/origin hashes. Exact-source hosted run
+`38778817487` is live: backend and frontend passed; branch tests/full live
+matrix and Playwright are running. Preserve this exact run on resume.
+
+Host capacity improved to 3.8 GiB available after the active TC browser
+crosscheck ended, so the normal full local gate was started. It terminated
+with exit 152 at backend coverage and cleaned only ETF resources. All 1,394
+preceding tests emitted passes; collection order proves the next test is
+`test_runner_enforces_wall_time_limit_and_restores_signal`. That unchanged
+test sets both wall and CPU budgets to one second around an infinite loop;
+the CPU signal can preempt the expected wall-time diagnostic. Default caller
+CPU limits are unlimited and kernel logs show no OOM. The unchanged focused
+test with coverage and chained SIGXCPU diagnostics passes alone. This is
+research-runner test-harness/resource-timing evidence, not an ETF assertion
+failure, and not a reason to edit a sibling or weaken a limit.
+
+A diagnostic full-profile retry is currently live as process handle `20560`,
+using `OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
+NUMEXPR_NUM_THREADS=1 PYTEST_ADDOPTS=-vv`; every test, real CPU/wall guard and
+coverage threshold is retained. Log:
+`.ai/validation/etf-full-profile-ea7572ab-single-thread-20261015.log`.
+The first log, focused signal diagnostic and collection order are retained
+beside it. Poll that live process/log and the hosted source run; no final full
+profile pass is claimed. Current four operational files are an intentionally
+unfinished receipt until these validations terminate.
+
+Central coordination was reread at this coherent checkpoint. Published staging
+is now `5267f11a491795d85ee35b56cabbe550394f3823`, with workflow-only CI
+`38773602828` still in progress at inspection; Provider is not staged and no
+combined product baseline/source freeze is released. Read the coordinator's
+`docs/feature-integration-reconciliation.md` and
+`ops/feature-integration-status.yaml` at later coherent checkpoints. Its
+technical-fix closure delegation belongs to the coordinator; the ETF checkpoint
+itself remains unaccepted and incomplete.
+
+The central cost-governance handoff specifically asks for an existing contract
+or a tested free-only boundary before adding a new subsystem. Read-only review
+of Provider source finds `ProviderQuotaWindow.cost_cents` and
+`provider_routing.settle_workload_lease(cost_cents=0)`, which record settlement
+cost but do not establish aggregate recurring-subscription admission. The
+reviewed-entitlement paid-routing switch defaults false; current tests prove
+unreviewed plans stay excluded even when it is true. That is not yet evidence
+for a hard free-only or aggregate 20-unit monthly boundary. Preserve this
+distinction and jointly specify the consumer contract through the central
+handoff; do not treat an unlocated interface as proof of absence or build an
+ETF-only money ledger.
+
+The repaired-source hosted live sweep has terminated: 529 passed, 16 classified
+external skips and one failure. All five repaired routes passed. The failure
+was an empty `httpx.ReadError` while reading the Bahl & Gaynor BGIG product
+page, not an artifact/identity/schema failure. An unchanged isolated BGIG replay
+passed (1 passed / 545 deselected, 4.07 seconds). The existing live transport
+classifier handled empty ConnectError but omitted this specific interrupted
+response-stream exception. The current context now also owns the precise
+test-only ReadError classification and its positive/negative regressions;
+malformed JSON and empty/schema/identity ValueError remain hard failures.
+Default contracts pass (9 passed / 537 opt-in skips); Ruff/format pass. A
+classified transport skip remains unverified, never current-provider support.
+No application source has changed since ea7572ab. The hosted Playwright job
+and local full profile remain live; do not cancel or restart them merely to
+publish this receipt. The four workstream records plus this live test module
+are intentionally dirty within the same validation follow-up context.
+
+The hosted run `38778817487` is now terminal: backend 1,559 unit plus 379
+integration tests passed, frontend passed, and Playwright passed 151 with
+109 declared skips. The sole live failure is the transport event described
+above. The precise classifier regression is committed/pushed separately as
+`76a8341eba65b82ffcab88ac80aaa0585b20c846`; local and origin hashes match.
+The staged review contained only the live-test module. Application source
+remains exactly ea7572ab, not a new issuer behavior change. This four-file
+operational checkpoint records that verified prior implementation hash; the
+enclosing receipt's final hash is verified externally, not chased in itself.
+The local full profile has passed 1,938 backend tests, 948 frontend tests,
+lint, migrations, build, Compose contract and provider probes, and reached
+healthy-stack startup. Process 20560 remains authoritative. No final local
+browser/visual pass is claimed. Fresh read-only inventory shows a separately
+owned chart-template repair stack/build started during our existing run;
+it is not modified. Resource contention is observed, not assigned as an
+unproven failure cause. Next action remains finishing this validation context,
+not declaring checkpoint acceptance or editing another worktree.
