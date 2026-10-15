@@ -534,8 +534,8 @@ roadmap_acceptance_criteria:
   - id: AC9
     text: "The branch stops at ready_for_human_review with clean, synchronized TC-owned workstream records and no direct branch merge, deployment, or mutation of another worktree."
 branch_tests:
-  - "UV_CACHE_DIR=/private/tmp/tc2000-uv-cache uv run --project backend python scripts/validate-tc2000-scope.py"
-  - "UV_CACHE_DIR=/private/tmp/tc2000-uv-cache uv run --project backend python scripts/validate-tc2000-scope.py --self-test"
+  - "UV_CACHE_DIR=/tmp/tc2000-uv-cache uv run --project backend python scripts/validate-tc2000-scope.py"
+  - "UV_CACHE_DIR=/tmp/tc2000-uv-cache uv run --project backend python scripts/validate-tc2000-scope.py --self-test"
   - "cd frontend && npm run type-check"
   - "cd frontend && npm run test:coverage"
   - "cd frontend && npm run build"

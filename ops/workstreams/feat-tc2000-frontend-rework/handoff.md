@@ -1,5 +1,36 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-15 — Actions run audit and Linux cache-path repair
+
+Inspected the actual jobs for workflow run `38774051065`, whose full head SHA
+is `9523851f1fe730da644e2e9f35f955eeef47c105`. The run is terminal and is not
+green: Branch-declared Tests failed at its first command because the workstream
+set `UV_CACHE_DIR=/private/tmp/tc2000-uv-cache`, which does not exist on the
+Ubuntu runner (permission denied). Frontend Unit Tests passed; Backend Tests,
+E2E Tests (Playwright), and Exhaustive Integration Gate were cancelled. The
+local checkout is now `bbaeaf17c78f41a348eb8c46059c3f882997d253`, so that run
+does not validate the current tip. Replaced the two scope-check cache paths in
+`plan.yaml` with Linux/macOS-portable `/tmp/tc2000-uv-cache`; both checks pass
+locally, including all six scope-guard self-tests. This source correction needs
+a new exact-tip Actions run before its CI result can be reported. The separate
+fresh-fixture Help mismatch remains as documented below; no browser oracle,
+snapshot, mask, tolerance, assigned data, or sibling runtime was changed.
+
+The subsequent exact-tip run `38779462417` for
+`bbaeaf17c78f41a348eb8c46059c3f882997d253` is terminal and also not green:
+backend unit/integration and frontend unit jobs passed; Branch-declared Tests
+failed on the same `/private/tmp` cache path; Playwright ended 186 passed, 110
+skipped, 2 failed, 1 flaky. The two failures were F9c-template-comparison (the
+already documented pointer overlap, left to the coordinator's geometry repair)
+and F8s-market-map-watchlist. The retained F8s failure snapshot labels “Study
+universe source” as a `combobox` with value `explicit:1`, while the test
+incorrectly searched for a `textbox`; its locator now uses the actual
+accessible role and retains the same explicit-ID assertion. F8w Market Gauge
+recovered on retry and is recorded as flaky, not clean. The Exhaustive
+Integration Gate was skipped. Both scope checks pass locally after switching
+the branch plan's cache directory to `/tmp`; a corrected exact-tip Actions run
+is still required.
+
 ## 2026-10-15 — Populated-comparison pointer cross-check
 
 Replayed the saved-template comparison flow against current TC frontend source

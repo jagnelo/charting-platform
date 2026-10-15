@@ -5021,7 +5021,7 @@ test.describe('TC2000 workstation', () => {
     await studyMapWindow.getByRole('button', { name: 'Open selected members in Study Lab' }).click()
     const studyLab = page.locator('.study-lab-tool:visible').last()
     await expect(studyLab).toBeVisible({ timeout: 15_000 })
-    await expect(studyLab.getByRole('textbox', { name: 'Study universe source' })).toHaveValue(/^explicit:\d+$/)
+    await expect(studyLab.getByRole('combobox', { name: 'Study universe source' })).toHaveValue(/^explicit:\d+$/)
     await expect(studyLab.getByRole('status', { name: 'Study source lineage' })).toContainText('Parent source watchlist:7')
 
     // Derived combo watchlists are another locked source kind, not a separate map

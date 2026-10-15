@@ -115,3 +115,18 @@ font configuration, or assigned data was changed. This supports the mixed
 environment diagnosis but does not explain all Help pixel differences: the
 current Help rows/content and placement still diverge, and the authoritative
 V25 Help capture remains missing.
+
+## 2026-10-15 — Read-only visual review of retained fresh-fixture captures
+
+Inspected the retained 1920x1080 expected/actual PNG pair from the four-profile
+fresh-fixture replay. The mismatch is structural as well as typographic: the
+Help popover is anchored at a different horizontal position, the workstation's
+main vertical pane divisions differ, and the displayed shortcut rows diverge
+(the checked-in image shows Shift+L/Shift+F/Shift+N in its visible lower rows,
+while the current capture shows Shift+F/Ctrl+M and continues with different
+content). This confirms the pixel delta is not explained by the earlier font
+fallback difference alone, nor by the now-reset freshness label. These
+retained artifacts are diagnostic only; no screenshot, layout fixture, mask,
+threshold, or product CSS was changed. Because the tracked image set already
+mixes render environments and there is still no authority-grade V25 Help
+capture, this comparison cannot determine which layout/content is intended.
