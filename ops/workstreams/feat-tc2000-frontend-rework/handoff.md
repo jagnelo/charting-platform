@@ -1,5 +1,38 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-15 — Populated-comparison pointer cross-check
+
+Replayed the saved-template comparison flow against current TC frontend source
+in an isolated seeded Compose project (`tc2000-pointer-fresh-20261015`), without
+seeding or rewriting the retained assigned dataset. The browser used a
+loopback-only proxy so the fixture had a secure localhost origin. RSP rendered
+`+23.50%`; the template was saved, RSP removed, and the template restored before
+checking hit targets.
+
+At 1920x1080 in the default US Top Down workspace, the comparison chip occupies
+`x=1013..1104, y=107.5..122.5`; Plots occupies `x=1061..1103.6,
+y=107.5..125.5`. The Plots center resolves to the Remove RSP chip. A normal
+Playwright click on Plots times out with `Remove RSP ... subtree intercepts
+pointer events`; no force or trial-only action was used. A normal Remove RSP
+click succeeds. This exposes a desktop geometry hole that the earlier seven
+adjacent flow results and dual-control trial actionability did not cover; it
+matches the coordinator's independent geometry-repair scope.
+
+At 390x800 in TC Classic, the chart is on-screen at 365px wide; the chip is at
+`x=143,y=107.5` and Plots at `x=45,y=129.5`, with each center resolving to its
+own control. With RSP still at `+23.50%`, normal Plots click opened its
+300x228 menu, and normal close plus Remove RSP click both succeeded. No product
+source, reference image, visual oracle, tolerance, or skip changed. The
+assigned six-service/four-volume stack was left running; exact-project cleanup
+removed the isolated six containers, four generated volumes and its network.
+The temporary browser container and loopback proxy were also stopped. A
+post-cleanup audit found the assigned six services and four original volumes
+intact; the pre-existing port-15190 process was left untouched. During initial setup, one uniquely
+named test account (`tc_pointer_crosscheck_20261015`) was created in the assigned
+database before the stale comparison percentage was noticed; it has not been
+deleted. A separate test account and generated fixture data are confined to
+the isolated project.
+
 ## 2026-10-06 — Dependency refs refreshed and paired Shift+N browser replay
 
 Read-only GitHub ref discovery succeeded. Staging is

@@ -20,9 +20,14 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  Checkpoint adoption 2026-10-15: existing TC pointer repair verified with
-  seven adjacent browser flows and strengthened dual-action hit testing;
-  coordinator proposal published. Host Help passes 4/4, but canonical Noble
+  Checkpoint adoption 2026-10-15: the populated-comparison pointer check found
+  a remaining default-wide geometry defect in the current TC source despite the
+  earlier seven adjacent browser flows: after saving/restoring RSP at +23.50%,
+  Plots center hit-testing resolves to Remove RSP and a normal click is
+  intercepted. Remove RSP itself works normally. At 390x800 in TC Classic,
+  controls occupy separate rows and both normal clicks work. The coordinator
+  owns the independent narrow geometry repair; TC has not duplicated it. See
+  handoff and validation evidence. Host Help passes 4/4, but canonical Noble
   probe passes default and fails Help by 55,032 pixels. Invariant brand-region
   comparison proves mixed font environments in tracked default/Help baselines.
   See visual-environment-diagnosis.md. Canonical 104-case visual run completed
@@ -544,17 +549,19 @@ migration_impact: "No generic provider or ETF schema/migration work is owned her
 deployment_impact: "No deployment or environment promotion is authorized in this feature session; record deployment impact only as a final review handoff."
 status: in_progress
 progress:
-  completed: [TCP1]
+  completed: []
   total: 5
-  current_phase: TCP2_HELP_REFERENCE_RECONCILIATION
+  current_phase: TCP1_POINTER_GEOMETRY_COORDINATION
   next_action: >-
-    TCP1 is complete. TCP2's focused fresh-fixture Help replay confirms the four
-    protected visual mismatches persist after freshness is canonical. Preserve
-    all snapshots and the 0.5% oracle while the required-missing Help visual
-    authority is reviewed. Continue independent TC-owned work where evidence is
-    sufficient; consume only synchronized green Provider+ETF staging for TCP3,
-    then reconcile consumers and complete validation/review. Preserve the full
-    roadmap. Historical next action: Continue TC-owned R1/R5/R6 implementation and trace the Help screenshot
+    Do not mark TCP1 complete: the populated default-wide browser check proves
+    Plots remains physically covered by Remove RSP. The coordinator owns the
+    independent geometry repair; verify its accepted delivery only through
+    synchronized green staging. Meanwhile continue TC-owned visual/runtime
+    diagnosis: the focused fresh-fixture Help replay confirms four protected
+    mismatches persist after freshness is canonical. Preserve all snapshots and
+    the 0.5% oracle. Consume only synchronized green Provider+ETF staging for
+    TCP3, then reconcile consumers and complete validation/review. Preserve the
+    full roadmap. Historical next action: Continue TC-owned R1/R5/R6 implementation and trace the Help screenshot
     layout-state mismatch. Ctrl+M now opens explicit list membership actions,
     and Shift/Ctrl divider drag now evenly resizes the selected side with
     persisted Golden Layout proportions. Shift+N now opens Notes for the active
