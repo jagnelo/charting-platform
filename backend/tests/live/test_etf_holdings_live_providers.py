@@ -1,3 +1,4 @@
+import json
 import os
 import re
 from datetime import date, timedelta
@@ -491,6 +492,7 @@ def _is_external_live_access_failure(exc: Exception) -> bool:
         exc,
         httpx.TimeoutException
         | httpx.ConnectError
+        | httpx.ReadError
         | requests.exceptions.Timeout
         | requests.exceptions.ConnectionError,
     ):
@@ -571,11 +573,20 @@ def _live_route_skip_reason(exc: Exception, *, adapter_key: str, symbol: str) ->
 
 
 def test_live_route_skip_reason_identifies_empty_exception():
-    exc = httpx.ConnectError("")
-
-    assert _is_external_live_access_failure(exc)
-    reason = _live_route_skip_reason(exc, adapter_key="sample_issuer", symbol="TEST")
-    assert reason == "sample_issuer/TEST: ConnectError: no exception message"
+    # A dropped response stream can carry no message, just like a failed
+    # connection. Keep the typed transport cause and route attribution rather
+    # than confusing it with an empty/malformed holdings artifact.
+    for error_type in (httpx.ConnectError, httpx.ReadError):
+        exc = error_type("")
+        assert _is_external_live_access_failure(exc)
+        reason = _live_route_skip_reason(exc, adapter_key="sample_issuer", symbol="TEST")
+        assert reason == f"sample_issuer/TEST: {error_type.__name__}: no exception message"
+    for exc in (
+        ValueError(""),
+        ValueError("Holdings artifact has an invalid schema or fund identity."),
+        json.JSONDecodeError("Invalid holdings JSON", "invalid", 0),
+    ):
+        assert not _is_external_live_access_failure(exc)
 
 
 def test_live_route_skip_reason_identifies_timeout_provider_and_symbol():
