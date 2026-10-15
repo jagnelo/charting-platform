@@ -14525,3 +14525,32 @@ legacy Strategy/mixed database without its reviewed recovery decision; do not
 perform dependent consumer reconciliation until the accepted green baseline is
 released. Current full application/CI and PostgreSQL migration acceptance remain
 unproven. No checkpoint acceptance is recorded.
+
+## 2026-10-15 — coordinator evidence refresh
+
+The independent migration repair is now published at source HEAD
+`67b04f4412be9124a6a1559d3dfc7f383ddd4963` (origin synchronized). The actual
+Strategy migration/code repair is commit
+`47ea7ba917b48efd545a4dbbb0a8cbb3af6af3eb`; the later commit records its
+operational handoff and exact review pointers. Regression evidence remains 28
+focused migration/startup/schema tests passing in 1.69s, Ruff/format/focused
+MyPy and workstream checks passing, unchanged AST bodies for all eight original
+migrations, and no `slv2_0001`–`slv2_0008` collisions in the read-only sibling
+migration scan. The PostgreSQL admission test was collected but not executed;
+no live database was inventoried or changed, and no Docker gate was run.
+
+Coordinator receipt `/home/m920q/charting-platform/.ai/staging-attempts/four-feature-coordination-2026-10-15.json`
+at 17:00Z reports workflow staging SHA
+`5267f11a491795d85ee35b56cabbe550394f3823`, exact CI run `38773602828`
+pending, no source freezes, no accepted product checkpoints, and no released
+combined product baseline. This is not Strategy checkpoint acceptance. The
+remaining dependency is the coordinator's review plus accepted Provider → ETF
+→ TC2000 staging and synchronized green CI; only then can this source perform
+the actual shared consumer reconciliation and full combined profile.
+
+No per-fix human verification is requested. The coordinator owns technical
+review and guarded staging integration. A legacy/mixed database still needs a
+specific source/schema/version inventory and backup before anyone can decide
+whether to authorize a schema-verified metadata transition or retain its
+isolated history; this source performs neither automatically. Preserve writer
+claim `35f63909-6dea-4459-9682-dc8eecc9c720` and the complete product roadmap.

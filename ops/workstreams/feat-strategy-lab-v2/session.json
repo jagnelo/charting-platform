@@ -34,31 +34,10 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [
-    "ps/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
-    "ops/workstreams/feat-strategy-lab-v2/session.json"
-  ],
+  "dirty_paths": [],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-strategy-lab-v2-7794d9e5",
-      "charting-stack-feat-strategy-lab-v2-7794d9e5"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_ready": {
     "ready": true,
@@ -74,10 +53,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "47ea7ba917b48efd545a4dbbb0a8cbb3af6af3eb",
+  "head": "67b04f4412be9124a6a1559d3dfc7f383ddd4963",
   "implementation_sha": "9c1e2fa1f056dcd69bc5ad89111d0aceba58e7ab",
   "last_checkpoint": "2026-10-15T17:01:32.993923+00:00",
-  "last_human_progress_update": "2026-10-15T16:59:36.779748+00:00",
+  "last_human_progress_update": "2026-10-15T17:04:38.357633+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -106,13 +85,13 @@
       "SLICP1",
       "SLICP2"
     ],
-    "current_blocker": "Combined consumers await green Provider/ETF/TC staging; existing legacy/mixed DB transition requires reviewed per-database inventory and decision.",
-    "current_phase": "integration-1-migration-collision-repair",
-    "next_action": "Publish unique Strategy revisions and read-only admission; retain legacy recovery and combined PostgreSQL/application validation as open.",
+    "current_blocker": "Coordinator receipt 2026-10-15T17:00Z shows staging CI 38773602828 pending, no accepted Provider/ETF/TC checkpoints and no combined baseline released.",
+    "current_phase": "integration-1-awaiting-central-baseline",
+    "next_action": "Coordinator reviews the published migration repair; after Provider, ETF and TC2000 are accepted and integrated into synchronized green staging and this source is confirmed unfrozen, reconcile actual consumers and run the combined validation profile.",
     "total": 5,
-    "updated_at": "2026-10-15T16:59:36.779719+00:00"
+    "updated_at": "2026-10-15T17:04:38.357609+00:00"
   },
-  "remote": "47ea7ba917b48efd545a4dbbb0a8cbb3af6af3eb",
+  "remote": "67b04f4412be9124a6a1559d3dfc7f383ddd4963",
   "remote_sha": "9c1e2fa1f056dcd69bc5ad89111d0aceba58e7ab",
   "remote_synchronized": true,
   "retained_docker_resources": [],

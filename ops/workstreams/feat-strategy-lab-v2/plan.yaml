@@ -7,7 +7,7 @@ integration_checkpoint:
   active_changeset:
     name: strategy-migration-collision-compatibility
     status: synchronized
-    source_commit: 47ea7ba917b48efd545a4dbbb0a8cbb3af6af3eb
+    source_commit: 67b04f4412be9124a6a1559d3dfc7f383ddd4963
     intent: Uniquely namespace Strategy revisions and stop ambiguous applied histories before schema/version mutation; retain old/new mapping and require reviewed recovery for existing legacy Strategy databases.
     owned_paths:
       - backend/alembic/env.py
@@ -210,8 +210,10 @@ progress:
   completed: [SLICP1, SLICP2]
   total: 5
   current_phase: integration-1-awaiting-central-baseline
-  current_blocker: Coordinator status dated 2026-10-15T16:35:47Z lists no accepted product checkpoints and no source freezes; Provider, ETF and TC2000 remain in preparation. Required combined baseline is unavailable.
-  next_action: Read staging/ops/feature-integration-status.yaml on resume; after the coordinator releases synchronized green staging containing all three accepted upstream checkpoints and confirms this source unfrozen, merge it here and implement the documented consumer reconciliation.
+  current_blocker: >-
+    Coordinator live receipt at 2026-10-15T17:00Z identifies staging 5267f11a491795d85ee35b56cabbe550394f3823 with exact CI run 38773602828 pending, no accepted product checkpoints, and no source freezes. Provider, ETF and TC2000 remain in preparation; the released combined consumer baseline is unavailable.
+  next_action: >-
+    Coordinator reviews the published Strategy migration repair and regression evidence. Continue dependent consumer reconciliation only after Provider, ETF and TC2000 are accepted and integrated into synchronized green staging, and this exact source is confirmed unfrozen.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
