@@ -42,9 +42,12 @@ current_blocker: >-
   open. Exact Actions run 38807716776 for SHA
   9705b1bec39026f1ea611fbee75b220ba3bab0f0 failed its branch-declared job
   because the authorized shared manifest path lacked an explicit scope
-  exception. The narrow exception is now documented; rerun the guard and verify
-  the next exact-tip Actions run. Preserve assigned runtime, data, and listener
-  15190.
+  exception. The narrow exception is now documented. Corrected exact source
+  76f0ba6e8424017567ec791f51337d95fcfafd06 passed all five branch-declared
+  local steps, 26 visual-policy assertions, and git diff --check. Its Actions
+  run 38808403263 was pending with no jobs visible at the latest read; do not
+  infer green, and recheck this exact SHA. Preserve assigned runtime, data, and
+  listener 15190.
 
   Checkpoint adoption 2026-10-15: the populated-comparison pointer check found
   a remaining default-wide geometry defect in the current TC source despite the
@@ -584,9 +587,9 @@ progress:
   total: 5
   current_phase: TCP2_HELP_REFERENCE_PREPARED;_TCP1_COORDINATOR_STAGING_WAIT
   next_action: >-
-    Run the TC scope guard and six self-tests with the newly documented narrow
-    shared-manifest exception, plus workstream and visual-policy validators.
-    Publish the correction and inspect Actions on its exact resulting SHA.
+    Inspect Actions run 38808403263 for exact SHA
+    76f0ba6e8424017567ec791f51337d95fcfafd06 until a terminal conclusion is
+    available; preserve the corrected local declared-suite pass receipt.
     Keep official V25 Help parity required_missing. Do not duplicate the
     coordinator-owned pointer repair or synchronize TC source until green
     staging. Continue the full roadmap and preserve the integration gate and

@@ -123,7 +123,7 @@
   },
   "interrupted": false,
   "last_checkpoint": "2026-10-15T19:07:50+00:00",
-  "last_human_progress_update": "2026-10-15T21:14:41.451212+00:00",
+  "last_human_progress_update": "2026-10-15T21:16:08.422202+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Inspect exact-tip Actions after publishing the Help reference evidence; continue the full branch roadmap while awaiting coordinator and Provider/ETF staging gates.",
   "plan_hash": "cfbe16cae28b5ef202b3ed777dcc49884a75ebb34a95ec0dc7167b87747b8502",
@@ -138,11 +138,11 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "Exact Actions run 38807716776 for 9705b1bec39026f1ea611fbee75b220ba3bab0f0 failed only at the TC scope guard because the explicitly authorized shared Help manifest path was undeclared. A narrow path exception is now added and local branch-declared checks pass; the corrected exact-tip Actions run remains to be verified. TCP1, TCP3, TCP4, and official V25 visual parity remain open.",
-    "current_phase": "TCP2_LOCAL_HELP_REFERENCE_PREPARED; TCP2_SCOPE_GUARD_CORRECTION; TCP1_COORDINATOR_STAGING_WAIT",
-    "next_action": "Commit and push the narrow scope exception and failure receipt, then verify the new exact-tip Actions run and its jobs. Do not duplicate pointer repair or synchronize TC source before green staging.",
+    "current_blocker": "none",
+    "current_phase": "TCP2_HELP_REFERENCE_PREPARED_TCP1_COORDINATOR_STAGING_WAIT",
+    "next_action": "Recheck GitHub Actions run 38808403263 for exact SHA 76f0ba6e8424017567ec791f51337d95fcfafd06; record terminal evidence. Do not duplicate coordinator pointer repair or synchronize TC source before green staging.",
     "total": 5,
-    "updated_at": "2026-10-15T21:14:41.451194+00:00"
+    "updated_at": "2026-10-15T21:16:08.422182+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",

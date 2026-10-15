@@ -19435,3 +19435,14 @@ scope guard; rerun its self-tests and declared branch suite, then inspect the
 next Actions run against its full exact SHA. The failed 9705b1 run remains a
 failed historical run and must not be described as green.
 
+The path-specific exception was committed and pushed in
+`76f0ba6e8424017567ec791f51337d95fcfafd06`. Against that exact source, the
+branch-declared local runner passed all five steps (scope guard across 165
+changed paths, six scope self-tests, frontend type-check, production build,
+and workstream validation); the visual-policy validator passed 26 assertions
+with existing thresholds, and `git diff --check` passed. Exact Actions run
+`38808403263` identifies that full SHA but was pending with no jobs visible at
+the latest read. The local pass does not substitute for remote CI; recheck the
+exact run and record its terminal evidence before calling this checkpoint
+green.
+
