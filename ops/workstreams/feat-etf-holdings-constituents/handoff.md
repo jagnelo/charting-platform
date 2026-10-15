@@ -11217,3 +11217,38 @@ common-repair merge without consuming Docker or browser capacity. It is narrow
 focused evidence only; it does not replace the required combined
 `full_stack_browser`, live issuer dispositions, Provider bridge contract, or
 exact-source CI.
+
+### Conditional checkpoint-acceptance delegation — 2026-10-15 22:55Z
+
+The human answered the coordinator's exact question: “May I accept and merge
+the four development checkpoints into staging once their required cross-feature
+contracts and full tests pass, using verified free operations only and leaving
+quota-held, unreviewed, paid/trial and unsafe operations explicitly disabled,
+preserving full roadmaps/no deployment/paid activation/operational trial?” with:
+“Yes—approve that initial scope and handle checkpoint acceptance.” The durable
+authority is recorded in
+`.ai/staging-attempts/four-feature-coordination-2026-10-15.json` under
+`checkpoint_acceptance_delegation_question`.
+
+This delegates conditional technical checkpoint acceptance to the central
+coordinator after review of each exact eligible source. It removes the need for
+another human signoff per fix/checkpoint only inside that approved boundary. It
+does not accept this ETF source, waive cross-feature contracts or the required
+full local and exact-source CI tests, authorize this feature worker to integrate
+into staging, or authorize deployment, `master` promotion, paid/trial
+activation, an operational trial, unsafe transport, or retained-data cleanup.
+The ETF full roadmap remains open. The exact green common repair at
+`82d881e76be8de538abb6ec5c454d96afe0ee56a` is already reconciled into this
+branch; it is not a combined feature baseline.
+
+The same coordinator receipt still lists no accepted product checkpoint and
+describes Provider's free-only producer boundary as unverified: the observed
+Provider source is not frozen/accepted, seven quota-held providers remain
+uncalled, and the account-usage exception and producer/consumer contract review
+remain open. Consequently the actual shared Provider bridge is not yet an
+implementable/validated ETF change. Preserve the current fail-closed behavior;
+do not invent request costs/FX or build an ETF-only governance ledger. Provider
+owns the first heavy local validation slot. Once its exact synchronized green
+product checkpoint is accepted/released, continue the ETF bridge in this same
+worktree, then complete the combined full local profile and exact-source CI and
+submit exact-source evidence for central review.

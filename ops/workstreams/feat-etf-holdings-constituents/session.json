@@ -371,6 +371,14 @@
   "schema": 2,
   "session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
   "state": "in_progress",
+  "checkpoint_acceptance_delegation": {
+    "recorded_at": "2026-10-15T22:55:31Z",
+    "coordinator_owns_conditional_acceptance": true,
+    "human_answer": "Yes—approve that initial scope and handle checkpoint acceptance",
+    "conditions": "Exact-source technical review; required cross-feature contracts; full local and exact-source CI tests; verified free operations only; quota-held, unreviewed, paid/trial and unsafe operations remain disabled.",
+    "not_authorized": "This does not accept ETF source, waive validation, authorize feature-worker staging integration, deployment/master promotion, paid/trial activation, operational trial, unsafe transport, or retained-data cleanup. Full roadmap remains open.",
+    "provider_product_checkpoint": "unaccepted; actual ETF_HOLDINGS bridge remains gated"
+  },
   "structural_skip_diagnostics": {
     "DFTT": "1 unverified skip;issuer403/503;SEC mismatched-series rejected;no current/native guarantee",
     "DFTT_responses": ".ai/validation/structural-donoghue-native-replay-20261015.log",
