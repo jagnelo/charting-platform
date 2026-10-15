@@ -40,7 +40,7 @@
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
       "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md"
     ],
-    "state": "in_progress"
+    "state": "completed_resume_reconciliation_provider_contract_pending"
   },
   "active_session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
   "branch": "feat/etf-holdings-constituents",
@@ -94,7 +94,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "159d1df48c8a242d6ace076e9accbfc901b1552d",
+  "head": "57cdf7df8689c5653c231d065057f81adeb5a17b",
   "implementation_sha": "dd9b7a08ce79303638c3951dd937270e97bbff33",
   "integration_checkpoint": {
     "acceptance_authorization": "pending",
@@ -189,9 +189,9 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-15T22:24:00Z",
+  "last_checkpoint": "2026-10-15T22:28:00Z",
   "last_human_progress_update": "2026-10-15T22:12:26.620198+00:00",
-  "latest_checkpoint": "2026-10-15 22:24Z: Re-read current central coordination, accepted-checkpoint policy and Provider checkpoint direction before the ETF workstream. Current ETF HEAD159d1df is clean/synchronized; exact common repair staging82d881e is already merged as second parent of bff2d390e. Latest coordinator receipt21:42Z still has no Provider product checkpoint or accepted product checkpoint; Provider retains the first heavy validation slot by the current direction. Current runtime source remains the 13fd50a inventory; diff to159d1df is only the three security-sentinel test additions committed at dd9b7a08. Current GitHub combined status lookup returned no statuses. Focused resolver52/52, Ruff and workstream31 passed. Prior full profile at8e84e7a is not current-source evidence; persisted consumer tests exercise stored outcomes, not Provider transport/admission. Current branch has no ETF_HOLDINGS capability, durable shared per-request reservation/settlement, aggregate recurring-cost contract or awaited async adapter dispatch. Preserve all original ACs and EICP criteria. Do not guess the shared producer contract or start full_stack_browser until Provider's first slot is released. Human acceptance, product integration, promotion/deployment, paid/trial activation and retained-data cleanup remain unauthorized.",
+  "latest_checkpoint": "2026-10-15 22:28Z: Central-first ETF resume and source reconciliation are committed/pushed as57cdf7df8689c5653c231d065057f81adeb5a17b. Repeated verification shows local HEAD equals origin/feat/etf-holdings-constituents at that SHA (0/0 ahead/behind, clean worktree). The existing common repair merge bff2d390 has exact staging82d881e as second parent; no duplicate merge. Latest coordinator receipt21:42Z still records provider_product_checkpoint:null and no accepted product checkpoint; the current direction reserves Provider's first heavy validation slot. Exact ETF HEAD159d1df had no combined CI statuses. Current code delta since the 13fd50a runtime snapshot is only the three security-sentinel tests at dd9b7a08; their resolver suite passed52/52, Ruff and workstream31 passed. Historical full profile at8e84e7a does not validate current source; persisted consumer tests prove stored outcomes, not shared transport/admission. Current ETF tree still has no ETF_HOLDINGS capability, durable shared request reservation/settlement, aggregate recurring-cost admission, or awaited async adapter path. Preserve the full roadmap and EICP1-EICP7; do not guess the Provider contract or start full_stack_browser before its slot is released. Human checkpoint acceptance, product integration, promotion/deployment, paid/trial activation and retained-data cleanup remain unauthorized.",
   "local_profile_execution": {
     "cleanup": {
       "host_wide_prune": false,
@@ -227,8 +227,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Complete and publish the central-first current-source resume reconciliation. Then continue independent ETF checkpoint preparation without guessing Provider interfaces; once a reviewed green Provider checkpoint and exact synchronized staging release are available, reconcile that exact source, implement/test ETF_HOLDINGS against the real shared runtime, and run the required full_stack_browser plus exact-source CI after Provider's first slot. Preserve the full roadmap; do not merge sibling branches or activate paid/trial routes, deploy, or clean retained data.",
-  "plan_hash": "2587f0053fae6968adbd7c1d3625f598e13d3c9b7d5f7363f8c05acf9c70752e",
+  "next_action": "Resume independent ETF checkpoint preparation without guessing Provider interfaces. Once a reviewed green Provider checkpoint and exact synchronized staging SHA are available, reconcile that exact source in this same branch, implement/test ETF_HOLDINGS against the real shared runtime, and run the required full_stack_browser plus exact-source CI after Provider's first slot. Preserve the full roadmap; do not wait for the full Provider feature or 30-day trial, merge sibling branches, activate paid/trial routes, deploy, or clean retained data.",
+  "plan_hash": "d2cf412031510b756e71df14f4967afded18217507fca14ff4923e4a3499b5cd",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -281,11 +281,11 @@
     ],
     "current_blocker": "The actual ETF tree has no ETF_HOLDINGS capability, durable per-request shared reservation/settlement, aggregate recurring-cost admission, or awaited async adapter dispatch. Latest coordinator receipt still has provider_product_checkpoint:null; current direction reserves Provider's first heavy validation slot. Do not guess an interface, run the competing full profile, or claim acceptance.",
     "current_phase": "provider_contract_pending",
-    "next_action": "Finish/publish the current-source resume reconciliation, then continue independent checkpoint preparation. When a reviewed green Provider producer contract and exact synchronized staging SHA are released, reconcile that source in this same branch, implement/test the real ETF_HOLDINGS bridge and transport-level negative paths, and coordinate full_stack_browser plus exact-source CI after Provider's first slot. Preserve the entire ETF roadmap.",
+    "next_action": "Continue independent checkpoint preparation without guessing Provider interfaces. When a reviewed green Provider producer contract and exact synchronized staging SHA are released, reconcile that source in this same branch, implement/test the real ETF_HOLDINGS bridge and transport-level negative paths, and coordinate full_stack_browser plus exact-source CI after Provider's first slot. Preserve the entire ETF roadmap.",
     "total": 7,
-    "updated_at": "2026-10-15T22:24:00.000000+00:00"
+    "updated_at": "2026-10-15T22:28:00.000000+00:00"
   },
-  "remote": "159d1df48c8a242d6ace076e9accbfc901b1552d",
+  "remote": "57cdf7df8689c5653c231d065057f81adeb5a17b",
   "remote_sha": "faffd6f75b40e4dbcf506c9c042d906d1aaa0327",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [

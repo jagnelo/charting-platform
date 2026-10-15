@@ -11160,3 +11160,17 @@ branch, implement the actual bridge, and run the required combined profile and
 exact-source CI. No product checkpoint acceptance, staging write, sibling edit,
 promotion, deployment, paid/trial activation, or retained-data cleanup is
 implied by this resume record.
+
+### Resume-reconciliation context closure — 2026-10-15 22:28Z
+
+The documentation-only reconciliation was committed as
+`57cdf7df8689c5653c231d065057f81adeb5a17b` and pushed to
+`origin/feat/etf-holdings-constituents`. After push, one immediate tracking-ref
+read transiently showed a different SHA; a subsequent ancestry/count check and
+repeated ref/status check both showed local HEAD and origin equal to
+`57cdf7df8689c5653c231d065057f81adeb5a17b`, zero ahead/behind, and a clean
+worktree. No ref repair or force update was performed. This closes the
+central-first current-source reconciliation context, not the ETF product
+checkpoint. The current blocker remains the unreleased Provider producer
+contract and first heavy-validation slot; the next scoped work must continue
+from the clean published boundary and preserve the full ETF roadmap.

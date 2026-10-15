@@ -162,7 +162,7 @@ integration_checkpoint:
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
     name: Central-first ETF resume and current-source evidence reconciliation
-    state: in_progress
+    state: completed_resume_reconciliation_provider_contract_pending
     baseline: 159d1df48c8a242d6ace076e9accbfc901b1552d
     intent: Re-read central coordination and checkpoint rules, reconcile the released staging merge and prior green evidence with current ETF source, and refresh ETF-owned resume records while preserving the full original roadmap and Provider-owned shared governance boundary.
     owned_paths:
