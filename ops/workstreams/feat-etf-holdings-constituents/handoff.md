@@ -10925,3 +10925,10 @@ evidence. Provider still owns the first heavy local validation slot; retain
 the existing full profile and exact-source CI as required. The future row is
 preserved in holdings lineage as unresolved, not silently classified current
 or supported.
+
+Implementation commit `d7c4bf97cafdb73719f38e187d79c1230043fcfb` is published
+to `origin/feat/etf-holdings-constituents`; local and remote refs matched after
+push. GitHub's combined-status lookup returned no statuses for that exact SHA
+at the time checked, so hosted exact-source CI is not yet evidenced. The
+required full-stack browser profile remains deferred to Provider's heavy-gate
+slot and a fresh capacity check.
