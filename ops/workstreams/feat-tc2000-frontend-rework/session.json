@@ -36,11 +36,7 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
-    "ops/workstreams/feat-tc2000-frontend-rework/checkpoint-runtime-validation.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl",
-    "ops/workstreams/feat-tc2000-frontend-rework/visual-environment-diagnosis.md"
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
   ],
   "docker": {
     "accounting_complete": true,
@@ -55,7 +51,7 @@
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
     ],
-    "known_bytes": 728761534,
+    "known_bytes": 728961534,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
@@ -66,7 +62,7 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 725693630,
+    "volume_bytes": 725893630,
     "volume_count": 4,
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
@@ -114,7 +110,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "9523851f1fe730da644e2e9f35f955eeef47c105",
+  "head": "13ecdb229d80008f5c57ea8881db39da6f619c0d",
   "implementation_sha": "9523851f1fe730da644e2e9f35f955eeef47c105",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -124,10 +120,10 @@
   },
   "interrupted": false,
   "last_checkpoint": "2026-10-15T17:09:56.319845+00:00",
-  "last_human_progress_update": "2026-10-15T17:09:53.929313+00:00",
+  "last_human_progress_update": "2026-10-15T17:37:27.658894+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "f40311fe52742de9de6d438264867359e54151201e19094cfa5146eb3d8d52c3",
+  "plan_hash": "2749970565da03ea5944a7501eaefcf13cb7fc8a1c8ce80d7ccb770d27b39124",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -138,14 +134,12 @@
     "e7ed8602-bc49-4daa-be2c-7cc01bf37f6b"
   ],
   "progress": {
-    "completed": [
-      "TCP1"
-    ],
-    "current_blocker": "Fresh-fixture four-profile replay16/16 passes; Help four protected snapshots and staged consumer contracts remain open",
-    "current_phase": "TCP2_HELP_BASELINE_RECONCILIATION",
-    "next_action": "Review proven mixed-font Help baseline discrepancy with coordinator; obtain exact CI evidence; consume provider and ETF only from released green staging",
+    "completed": [],
+    "current_blocker": "Populated current-source 1920x1080 click confirms Plots is intercepted by the Remove RSP chip; coordinator owns the separate narrow geometry repair. Four protected Help visual mismatches and Provider+ETF green staging remain open.",
+    "current_phase": "TCP1_POINTER_GEOMETRY_COORDINATION",
+    "next_action": "Do not duplicate the coordinator repair. Continue TC-owned visual/runtime diagnosis without changing references; after its delivery reaches synchronized green staging, reconcile TCP1 and proceed with Provider+ETF consumer integration only from that baseline.",
     "total": 5,
-    "updated_at": "2026-10-15T17:09:53.929294+00:00"
+    "updated_at": "2026-10-15T17:37:27.658873+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
@@ -161,7 +155,7 @@
     "remote_tracking_sha": "0a68236240444fb3fdf438d1d778ec906a5c601f",
     "status": "pushed"
   },
-  "remote": "9523851f1fe730da644e2e9f35f955eeef47c105",
+  "remote": "13ecdb229d80008f5c57ea8881db39da6f619c0d",
   "remote_sha": "9523851f1fe730da644e2e9f35f955eeef47c105",
   "remote_synchronized": true,
   "retained_docker_resources": [],
