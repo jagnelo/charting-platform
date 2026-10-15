@@ -18958,6 +18958,14 @@ The coordinator must arrange independent repair acceptance/delivery so Provider
 does not wait for the full TC feature. Current next action is investigate
 protected visuals against current source and refresh session checkpoint state.
 
+Current-source Linux Help matrix subsequently passed 4/4 in 40.0s against
+tracked, unchanged screenshots with the original 0.5% threshold. The historical
+Help mismatch is not reproduced on this source/runtime. Full 104-case visual
+matrix is running via Playwright process handle 61554, current-source Vite
+handle 2397 (port15190), artifacts /tmp/tc-checkpoint-visual-full. Poll these
+handles before restarting anything. No Docker resources were rebuilt.
+Latest scope guard accepts 162 paths; all 30 workstream records validate.
+
 Initial work: diagnose F9c-template-comparison (Remove RSP intercepted by
 Plots on the Provider branch). TC already carries historical layering repair
 8db6c9ac60; verify current browser behavior before introducing another fix.

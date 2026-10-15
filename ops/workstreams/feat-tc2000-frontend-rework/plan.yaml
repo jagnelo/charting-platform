@@ -20,6 +20,12 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Checkpoint adoption 2026-10-15: existing TC pointer repair verified with
+  seven adjacent browser flows and strengthened dual-action hit testing;
+  coordinator proposal published. Current-source Linux Help profiles pass 4/4
+  against tracked baselines. Full 104-case current-source visual run is active.
+  Provider+ETF synchronized green staging is required for TCP3 reconciliation.
+  The following paragraphs are historical evidence, not current gate status.
   The long workstation keyboard-help reference is now exposed as a labelled,
   keyboard-focusable non-modal dialog instead of an ARIA menu containing mostly
   static text. PageDown/PageUp scroll the focused dialog, Tab reaches Close,
@@ -536,7 +542,7 @@ status: in_progress
 progress:
   completed: []
   total: 5
-  current_phase: TCP1_CHART_TEMPLATE_POINTER_DIAGNOSIS
+  current_phase: TCP2_FULL_VISUAL_MATRIX
   next_action: >-
     Prepare TCP1-TCP5 under coordinator checkpoint policy; first diagnose
     chart-template pointer interception and propose any narrow staging repair.
