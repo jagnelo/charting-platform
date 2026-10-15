@@ -28,7 +28,7 @@ owned_paths:
   - frontend/tests/e2e/tc2000_visual.spec.ts
   - ops/workstreams/fix-chart-template-pointer-interaction/
 dependencies:
-  - Synchronized staging 5267f11a491795d85ee35b56cabbe550394f3823; exact CI run 38773602828 has passed all required jobs including Exhaustive Integration Gate.
+  - Synchronized staging 5267f11a491795d85ee35b56cabbe550394f3823; exact CI run 38773602828 has success job conclusions, but terminal logs expose one retried visual flake, not clean product acceptance.
   - Read-only TC real-app cross-check at 389069a32682f97c51c0a6dd5cca99be3bb23c2a, published in evidence checkpoint 6051b078e9c0decd8e8a77e2cd52eb648b1355ef.
 acceptance_criteria:
   - id: PTR1
@@ -59,4 +59,4 @@ progress:
   total: 5
   current_phase: full_regression_harness_reconciliation
   current_blocker: none
-  next_action: Validate and publish the deterministic Study visual fixtures across all four profiles, then complete no-retry full validation; no original red, interrupted or flaky run is acceptance.
+  next_action: Visual fixture checkpoint b011b0e is published and focused 8/8 passes; retain the active full run, diagnose its workspace-conflict remount without weakening tests, and complete clean no-retry validation before technical review.

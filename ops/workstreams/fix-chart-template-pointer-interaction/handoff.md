@@ -36,12 +36,29 @@ captured command-end times (the18:48 focused-reset row was written before
 the18:46:30 session progress receipt). Treat command transcripts, durations,
 commit/source and CI timestamps as authoritative; no future execution is
 claimed by those manual labels. This correction preserves the append-only log.
-\n+Focused validation of both visual fixture repairs now passes8/8 across all
+
+Focused validation of both visual fixture repairs now passes8/8 across all
 four protected profiles in1.0m with retries disabled. No application source,
 image reference, mask, tolerance or original assertion was removed/changed.
 Own workstream validation and diff-check pass. Publish this independently
 reviewed context, then run the entire260case matrix on the resulting clean
 source. The original failures and interrupted runs remain non-acceptance.
+
+Visual-fixture context closure: scoped staged review contained only the existing
+visual spec and this workstream. Commit `b011b0e458d2e512719328f3ec2aee8715ad1db1`
+is pushed; clean HEAD and origin matched at 19:08 UTC and diff-check passed.
+Focused evidence is 8/8, zero retries, unchanged screenshots and tolerance.
+The complete isolated 260-case replay remains active (process 8142), but is
+already RED: F8s-market-map-watchlist again loses the selected-member action.
+Its retained trace shows a real workspace snapshot 409/reconciliation remount
+after tile selection, not just the preceding map refresh. The earlier focused
+pass does not establish full stability. Keep the run intact for its remaining
+functional and visual evidence. No full-profile or integration acceptance.
+Next permitted action after this operational closure is a read-only diagnosis
+of the exact persistence/remount race; do not weaken the selected-source
+handoff assertion or silently expand into workspace persistence product code.
+The Help policy approval remains queued for the TC owner and does not authorize
+Help edits in this repair. Official V25 parity remains unfinished roadmap work.
 
 ## Published changeset: pointer-transform-reset-observer
 
