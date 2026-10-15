@@ -18936,3 +18936,30 @@ TC-only dependency-audit namespace: staging `8b885a2f`, provider-platform
 tip is an ancestor of staging. Consumer integration and shared-path
 reconciliation remain correctly deferred. No sibling worktree or staging ref
 was checked out or mutated.
+## 2026-10-15 — tc2000-workstation-integration-1 adoption
+
+Read the coordinator's local feature-integration-coordination document,
+checkpoint policy, and provider-integration-checkpoint contract. UV preflight
+confirmed implementation role, existing writer claim
+40277689-45a1-4b10-b129-2435358ad9d2, synchronized source 440a3b586,
+and six assigned services/four volumes. No accepted TC freeze was identified.
+The full goal and exact AC1-AC9 text are preserved as roadmap_goal and
+roadmap_acceptance_criteria; TCP1-TCP5 are new checkpoint requirements with
+no inherited complete markers. Human checkpoint acceptance remains pending.
+
+Current work: diagnose F9c-template-comparison (Remove RSP intercepted by
+Plots on the Provider branch). TC already carries historical layering repair
+8db6c9ac60; verify current browser behavior before introducing another fix.
+Current-source Vite uses 15190 against assigned backend 28008. The existing
+regression is running; no Docker service or volume was replaced. Required
+next action is capture the result, isolate remaining geometry issues, and
+publish a narrow coordinator-readable repair proposal so Provider does not
+wait for the full TC branch. Only the coordinator delivers that repair to staging.
+
+Provider+ETF consumption requires synchronized green staging and an unfrozen
+clean TC source. No direct feature import is authorized. After four green
+checkpoints and coordinator freeze release, merge common green staging into
+this same branch and continue the complete V25 roadmap. Visual policy and
+missing-reference requirements remain in force. The earlier metadata-only
+checkpoint loop is historical; do not chase self-referential commit hashes.
+

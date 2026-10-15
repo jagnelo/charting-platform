@@ -269,7 +269,33 @@ goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 previous_branch: feat/tc2000-frontend-rework (old master-based history, fully merged into staging)
 previous_tip: 8a9c26a872ce02e69817b119885a0dfe0aedcb0d
-goal: "Deliver the frontend-led TC2000 V25-inspired workstation by consuming the market-data-provider-platform and ETF-holdings-constituents contracts, retaining TC-owned Study/Strategy capabilities, reconciling upstream overlaps after staging promotion, and stopping at ready_for_human_review."
+roadmap_goal: "Deliver the frontend-led TC2000 V25-inspired workstation by consuming the market-data-provider-platform and ETF-holdings-constituents contracts, retaining TC-owned Study/Strategy capabilities, reconciling upstream overlaps after staging promotion, and stopping at ready_for_human_review."
+goal: "Prepare tc2000-workstation-integration-1: repair independent chart-template pointer interception and functional/visual blockers; consume synchronized green Provider+ETF staging, reconcile real consumer contracts, validate the combined workstation and publish a clean checkpoint for human review."
+integration_checkpoint:
+  id: tc2000-workstation-integration-1
+  planning_authorization: "Human resumed the saved checkpoint objective on 2026-10-15, directing this existing session to read coordinator guidance, fix independent chart-template and functional/visual defects, then consume green Provider+ETF staging and prepare review."
+  acceptance: pending
+  coordinator_guidance: /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md
+  downstream_consumers: [human-workstation-testing, strategy-lab-v2]
+  required_contracts: [provider-coverage-preflight, etf-provenance-freshness, immutable-code-study-outputs, chart-template-interactions]
+  source_freeze: "No accepted/frozen TC source identified at adoption; recheck coordinator receipt before source advances or staging merge."
+  continuation: "After all four checkpoints pass staging CI and coordinator releases source freeze, merge common synchronized green staging into this same branch, validate and continue roadmap_goal."
+  original_criteria_disposition:
+    AC1: {status: partial, owner: TC, delivered: scope guard, remainder: revalidate checkpoint paths, continuation_test: scope guard and ownership ledger}
+    AC2: {status: partial, owner: TC, delivered: existing read consumers, remainder: staged provider contract reconciliation, continuation_test: real preflight and coverage success/unavailable tests}
+    AC3: {status: partial, owner: TC, delivered: existing lineage views, remainder: staged ETF contract reconciliation, continuation_test: current/stale/unavailable analytic exclusion tests}
+    AC4: {status: partial, owner: TC, delivered: existing top-down workstation, remainder: complete persisted-input workflows and full V25 roadmap, continuation_test: authenticated top-down and analytics flows}
+    AC5: {status: partial, owner: TC, delivered: existing immutable Study and promotion paths, remainder: combined consumer compatibility and wider roadmap, continuation_test: immutable output and negative capability tests}
+    AC6: {status: partial, owner: TC, delivered: mapped interactions, remainder: pointer defect and unresolved visual/reference states, continuation_test: functional and protected visual matrix with original policy}
+    AC7: {status: partial, owner: TC, delivered: historical resilience and accessibility evidence, remainder: exact candidate combined validation and broader evidence, continuation_test: required full-stack browser and security/performance checks}
+    AC8: {status: deferred, owner: TC-after-coordinator, reason: requires green Provider and ETF staging, remainder: line-level reconciliation and exact-source validation, continuation_test: green staging receipt plus shared-path dispositions and full gate}
+    AC9: {status: partial, owner: TC, delivered: preserved source and exclusive worktree, remainder: clean pushed checkpoint review and later full-roadmap review, continuation_test: clean synchronized source and review receipt}
+acceptance_criteria:
+  - {id: TCP1, text: "Diagnose and fix chart-template pointer interception with browser regression evidence and a coordinator-readable narrow repair proposal."}
+  - {id: TCP2, text: "Resolve required functional/visual failures without weakening reference policy; document missing reference evidence and proposed checkpoint limitations for human review."}
+  - {id: TCP3, text: "After Provider and ETF reach synchronized green staging, merge that staging into this clean unfrozen source and reconcile all shared paths and actual provider coverage/preflight and ETF lineage/freshness consumers."}
+  - {id: TCP4, text: "Validate usable combined workstation and immutable Study consumers, success and unavailable paths, with the required full integration/browser profile and exact-source branch CI."}
+  - {id: TCP5, text: "Publish a clean pushed checkpoint and complete roadmap dispositions at ready_for_human_review; retain pending human acceptance and coordinator-only staging integration/freeze release."}
 scope:
   - "R0: make TC ownership, upstream dependencies, shared-path exceptions, scope guard, and the preserved historical gate receipt durable in this workstream."
   - "R1: independently advance the TC workstation UI and behavior against the pinned V25 reference and existing acceptance evidence while upstream provider/ETF work proceeds."
@@ -473,7 +499,7 @@ upstream_consumer_contracts:
       - displayable_last_known permits labelled last-known display only, never current analysis.
       - Preserve source tier, provider, composition/published/freshness dates, completeness, identity, and failure/audit metadata.
       - Do not implement adapters, provider probes, refresh routes/workers, or constituent resolution in TC.
-acceptance_criteria:
+roadmap_acceptance_criteria:
   - id: AC1
     text: "The TC-only ownership boundary is executable: future touched paths are in the scoped allowlist or documented shared exceptions, and provider/ETF-owned paths fail validation."
   - id: AC2
@@ -508,11 +534,15 @@ migration_impact: "No generic provider or ETF schema/migration work is owned her
 deployment_impact: "No deployment or environment promotion is authorized in this feature session; record deployment impact only as a final review handoff."
 status: in_progress
 progress:
-  completed: [AC1]
-  total: 9
-  current_phase: R1_V25_REMAINING_SHORTCUTS_AND_EXACT_VISUAL_REVIEW
+  completed: []
+  total: 5
+  current_phase: TCP1_CHART_TEMPLATE_POINTER_DIAGNOSIS
   next_action: >-
-    Continue TC-owned R1/R5/R6 implementation and trace the Help screenshot
+    Prepare TCP1-TCP5 under coordinator checkpoint policy; first diagnose
+    chart-template pointer interception and propose any narrow staging repair.
+    Then consume only synchronized green Provider+ETF staging and reconcile
+    actual consumer contracts before full validation and human review.
+    Preserve the complete roadmap. Historical next action: Continue TC-owned R1/R5/R6 implementation and trace the Help screenshot
     layout-state mismatch. Ctrl+M now opens explicit list membership actions,
     and Shift/Ctrl divider drag now evenly resizes the selected side with
     persisted Golden Layout proportions. Shift+N now opens Notes for the active
