@@ -108,7 +108,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "5447094bae1c80e0f1e4f74a0ddf9d2846bb57cb",
+  "head": "cb3c0c6558d7008ae3a657d59bc6e24705f86880",
   "implementation_sha": "9523851f1fe730da644e2e9f35f955eeef47c105",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -153,7 +153,7 @@
     "remote_tracking_sha": "0a68236240444fb3fdf438d1d778ec906a5c601f",
     "status": "pushed"
   },
-  "remote": "5447094bae1c80e0f1e4f74a0ddf9d2846bb57cb",
+  "remote": "cb3c0c6558d7008ae3a657d59bc6e24705f86880",
   "remote_sha": "9523851f1fe730da644e2e9f35f955eeef47c105",
   "remote_synchronized": true,
   "retained_docker_resources": [],
