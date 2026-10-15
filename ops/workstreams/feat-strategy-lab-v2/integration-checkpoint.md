@@ -30,6 +30,13 @@ execution model or account model. This checks the Strategy-owned consumer
 boundary only. Provider entitlement/quota revocation must still be verified
 through the real staged host resolver and API error mapping.
 
+The router plus actual `CapabilityPreflightService` now have ASGI tests for
+coverage and engine resolver outages after a prior successful request: HTTP 500,
+typed `internal_error`, `retryable: true`, request ID in the error body, no
+success payload or private resolver detail in the HTTP response. Coverage
+revocation returns a typed unsupported summary with execution/ranking/publication
+disabled. These tests supply host callbacks, not unstaged provider implementations.
+
 ## Evidence reconciliation
 
 The later validation journal supersedes the old session instruction to implement

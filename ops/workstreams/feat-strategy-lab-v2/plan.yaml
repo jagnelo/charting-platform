@@ -5,11 +5,11 @@ goal: Prepare strategy-lab-v2-integration-1 for human review, preserving the com
 integration_checkpoint:
   id: strategy-lab-v2-integration-1
   active_changeset:
-    name: capability-consumer-revocation-and-outage-evidence
+    name: capability-consumer-api-outage-evidence
     status: validated
-    intent: Prove a formerly successful preflight cannot mask revoked coverage, resolver failure or unsupported engine scope on a later request.
+    intent: Verify the actual API and preflight service expose revoked evidence and upstream outages without authorizing execution or leaking resolver details.
     owned_paths:
-      - backend/app/strategy_lab_v2/tests/test_capability_preparation.py
+      - backend/app/strategy_lab_v2/tests/test_capability_consumer_api.py
       - ops/workstreams/feat-strategy-lab-v2/
   planning_authorization: Prepare strategy-lab-v2-integration-1 in feat/strategy-lab-v2 and its existing
     worktree. Adopt the central-first Strategy resume task in your own plan/handoff/session, preserving

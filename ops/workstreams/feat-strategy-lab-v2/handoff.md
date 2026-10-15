@@ -14414,3 +14414,21 @@ checks pass. Product source is unchanged; actual upstream resolver and API error
 mapping remain part of staged reconciliation. Existing claim is preserved.
 Next: commit/push this test evidence, then obtain the coordinator's released
 green baseline before dependent implementation. Checkpoint remains 2/5.
+
+The preceding capability evidence was committed/pushed at 7880c797398090ee767dc259a12aa7dcfd9758a8;
+HEAD and origin matched with a clean tree. Current context is
+capability-consumer-api-outage-evidence, owning
+`backend/app/strategy_lab_v2/tests/test_capability_consumer_api.py` and this
+workstream. Exercise the actual router plus preflight service through ASGI:
+resolver failure must produce a typed retryable error and revoked coverage must
+become explicitly unsupported. This is independent host-boundary evidence;
+real provider policy wiring still waits for accepted green staging.
+
+This context adds three router-plus-service ASGI tests. Upstream callback
+timeouts after a prior success produce typed retryable HTTP 500 errors with
+request identity and no private detail in the response; revoked coverage
+produces an unsupported summary rather than a cached authorization. The focused
+new/service/router regression slice passes 72 tests in 4.42s; Ruff, format,
+focused MyPy and diff checks pass. No product code or shared path changed.
+Next permitted dependent action still requires the coordinator's synchronized
+green staging receipt containing all three accepted upstream integrations.
