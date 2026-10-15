@@ -571,13 +571,12 @@ progress:
   total: 5
   current_phase: TCP2_HELP_REFERENCE_PREPARED;_TCP1_COORDINATOR_STAGING_WAIT
   next_action: >-
-    Record and commit the reviewed Help layout/test/reference update with its
-    exact focused evidence, then synchronize the plan/session and publish a
-    clean pushed checkpoint. Keep official V25 Help parity required_missing.
-    Do not duplicate the coordinator-owned pointer repair or synchronize TC
-    source until it is delivered through green staging. Continue the full branch
+    Publish the exact-source validation and handoff update, then inspect the
+    branch Actions run for the resulting pushed SHA. Keep official V25 Help
+    parity required_missing. Do not duplicate the coordinator-owned pointer
+    repair or synchronize TC source until green staging. Continue the full
     roadmap, consume Provider+ETF only after synchronized green staging, and
-    preserve the exact external gates and assigned runtime/data.
+    preserve the exact integration gate and assigned runtime/data.
     Historical next action: Continue TC-owned R1/R5/R6 implementation and trace the Help screenshot
     layout-state mismatch. Ctrl+M now opens explicit list membership actions,
     and Shift/Ctrl divider drag now evenly resizes the selected side with

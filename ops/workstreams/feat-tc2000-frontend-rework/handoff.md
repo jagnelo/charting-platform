@@ -19405,7 +19405,15 @@ local-only Help reference for this staging checkpoint only. The manifest keeps
 `keyboard_help.state` and `review.status` at `required_missing`; the interim
 oracle now names these screenshots and functional/layout requirements while
 explicitly disclaiming official V25 authority. Official V25 visual parity
-remains unfinished roadmap work. No source synchronization from staging or
-duplicate pointer fix is included; coordinator delivery of the independent
-pointer repair through green staging remains the TCP1 gate.
+remains unfinished roadmap work. The exact temporary Compose project was
+removed after evidence capture; post-cleanup inventory confirmed only the six
+assigned TC services and their four data volumes remain, and listener 15190 is
+still present. No source synchronization from staging or duplicate pointer fix
+is included; coordinator delivery of the independent pointer repair through
+green staging remains the TCP1 gate.
+
+The validated implementation is committed and pushed as
+`d0add5588612339203073b21015028ad4ffeb106`; its exact-source receipt is in
+`validation.jsonl`. This follow-up operational commit publishes the completed
+evidence and handoff. The local Help slice does not close the wider branch goal.
 
