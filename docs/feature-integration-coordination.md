@@ -21,6 +21,9 @@ The coordinator's working copy is
 sessions read this local document without modifying or pulling that checkout.
 The 2026-10-15 documentation checkpoint is still a local staging advance; its
 publication must pass exact staging CI before any subsequent product integration.
+Live coordinator decisions, the queue and source freezes are recorded in
+`ops/feature-integration-status.yaml` in that same checkout. Source owners should
+read it at coherent checkpoints when an upstream dependency is still pending.
 
 ## Order of action
 
@@ -165,3 +168,8 @@ does not update stale branch progress automatically. Read current evidence and
 record the new checkpoint before implementing. The existing conversation and
 worktree context are retained. If upstream reconciliation is genuinely blocked,
 report the exact next coordinator dependency rather than claiming completion.
+
+The provider goal was shortened after the human still saw a cropped old label.
+Saved API state was independently verified, but a separate App Server connection
+does not prove that an already-open extension view refreshed. Preserve running
+turns and distinguish saved-goal verification from visible UI verification.

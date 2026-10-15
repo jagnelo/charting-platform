@@ -1,0 +1,81 @@
+schema: 1
+updated_at: '2026-10-15T16:35:47Z'
+coordinator: this central session in the persistent staging worktree
+human_authorization: >-
+  Start coordinating the four-feature staging integration. Repair the
+  market-data session goal; the human resumed the other three sessions.
+integration_order:
+  - feat/market-data-provider-platform
+  - feat/etf-holdings-constituents
+  - feat/tc2000-frontend-rework
+  - feat/strategy-lab-v2
+source_freezes: []
+accepted_product_checkpoints: []
+baseline:
+  remote_staging: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
+  remote_master: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
+  baseline_ci_run: 33627738401
+  baseline_ci_result: success
+  staging_degraded: false
+  master_degraded: false
+  local_workflow_publication: pending exact staging CI
+coordinator_actions:
+  - >-
+    Replace the provider goal with a short readable checkpoint objective through
+    the extension-bundled Codex API. Read back independently; paused state and
+    usage retained. The already-open UI card still shows the previous objective
+    according to the human; saved-state verification is not UI verification.
+  - >-
+    Repair the staging helper's root-only caller guard. Permit only the clean
+    persistent staging coordinator, verify local master against origin/master,
+    and retain exact source, closure, staging, CI and degraded-state guards.
+    Preserve all unrelated root-checkout edits.
+  - Publish the authorized workflow changes and validate the exact staging SHA.
+  - >-
+    Keep source owners on their assigned worktrees. Request a separately
+    deliverable chart-template interaction repair if the TC owner confirms it
+    is needed for the provider gate; do not import the whole TC branch early.
+  - >-
+    Review source checkpoints in order and present concrete acceptance evidence
+    before each product integration. Do not freeze or merge unfinished sources.
+features:
+  provider:
+    branch: feat/market-data-provider-platform
+    checkpoint: provider-platform-integration-1
+    state: owner implementing and validating checkpoint
+    evidence: >-
+      Latest durable source record has 20/27 matching provider live manifests
+      with 56 cases passing. Seven manifests are held. The latest recorded
+      full browser run has one chart-template click failure. A backend rerun
+      was active in the owner's latest handoff; do not start another local
+      heavy gate from this coordinator.
+    next: >-
+      Owner finishes candidate validation and operation-level unavailable/deferred
+      dispositions and publishes a clean review checkpoint. Deployment-secret
+      provisioning and the 30-day operational trial remain later gates; the
+      checkpoint must still test local secret boundaries and needed consumers.
+  etf:
+    branch: feat/etf-holdings-constituents
+    checkpoint: etf-holdings-integration-1
+    state: owner resumed; preparing checkpoint
+    next: >-
+      Prepare holdings/provider interface evidence now. After provider staging
+      CI is green, merge that staging into the source and validate the ETF-owned
+      holdings bridge against the shared runtime before review.
+  tc2000:
+    branch: feat/tc2000-frontend-rework
+    checkpoint: tc2000-workstation-integration-1
+    state: owner resumed; independent repair work
+    next: >-
+      Diagnose the chart-template pointer interception and remaining browser/visual
+      blockers now. Report a minimal independently testable repair for the shared
+      gate if needed. Consume provider and ETF only from green staging, then
+      reconcile real consumer behavior and produce the workstation checkpoint.
+  strategy:
+    branch: feat/strategy-lab-v2
+    checkpoint: strategy-lab-v2-integration-1
+    state: owner resumed; preparing consumer contract evidence
+    next: >-
+      Reconcile old session fields with the later RC6/backend evidence. Prepare
+      independent API/migration/worker tests now; consume the three upstream
+      staged contracts, reconcile and validate before checkpoint review.

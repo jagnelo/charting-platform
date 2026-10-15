@@ -6,6 +6,14 @@
   "method": "thread/goal/get, thread/goal/set, thread/goal/get; no thread resume or turn start; existing status and token budget preserved",
   "verification": "All four objectives updated and verified through thread/goal/get on a fresh App Server connection; states, null budgets, token totals, and time totals preserved; no turn started or resumed.",
   "verified_at_epoch": 1792080464,
+  "provider_readability_revision": {
+    "updated_at_epoch": 1792082037,
+    "objective": "Prepare the market-data integration checkpoint to unblock ETF, TC2000 and Strategy Lab. Validate shared provider contracts and preserve all unfinished roadmap work. Follow /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md. Stop at human review; the central coordinator owns staging merges.",
+    "sha256": "2a03a6425affbc4ea0f23b879f0f8dddd7d1b8e506b15f3954e746793f210342",
+    "api_binary": "VS Code bundled codex-cli 0.162.0-alpha.17.2",
+    "state": "paused; ongoing agent work not interrupted",
+    "verification": "Saved goal independently read back through a fresh App Server connection. Human still sees old text in the already-open UI card; live UI refresh has not been verified. Do not claim visible-label repair or reload the running extension without authorization."
+  },
   "verified_objectives": {
     "provider": {"checkpoint": "provider-platform-integration-1", "sha256": "3c2c5cb106df7401bafb60adabf101ddd08409f92fcdc56e2774b15b2a6d0293", "status": "paused"},
     "etf": {"checkpoint": "etf-holdings-integration-1", "sha256": "64ba0d7df93667fecee403694ba58a8e1adb912753bb0c4cf51633a19f092160", "status": "blocked"},
