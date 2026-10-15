@@ -407,6 +407,71 @@ async def test_resolver_can_skip_optional_provider_enrichment_for_bounded_ingest
 
 
 @pytest.mark.asyncio
+async def test_resolver_does_not_materialize_future_ticker_as_equity(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")
+
+    def unexpected_provider_call():
+        raise AssertionError("future rows must not be resolved through equity providers")
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_identifier_providers", unexpected_provider_call
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_metadata_provider", unexpected_provider_call
+    )
+
+    instrument, confidence, note = await _resolve_or_create_constituent(
+        async_db,
+        CanonicalHoldingRow(
+            symbol="ESU6",
+            name="E-mini S&P 500 Sep 2026",
+            currency="USD",
+            holding_type="future",
+            row_type="security",
+        ),
+        source_provider="issuer-test",
+    )
+
+    assert instrument is None
+    assert confidence is None
+    assert "Future holding retained without constituent resolution" in note
+    assert db.execute(select(Instrument)).scalars().all() == []
+
+
+@pytest.mark.asyncio
+async def test_resolver_does_not_bind_future_ticker_to_existing_equity(db):
+    async_db = AsyncSessionAdapter(db)
+    equity_type_id = await ensure_instrument_type(async_db, "Equity", "Stock")
+    existing_equity = Instrument(
+        instrument_type_id=equity_type_id,
+        symbol="ESU6",
+        name="Example Equity",
+        currency="USD",
+        is_active=True,
+    )
+    db.add(existing_equity)
+    db.flush()
+
+    instrument, confidence, note = await _resolve_or_create_constituent(
+        async_db,
+        CanonicalHoldingRow(
+            symbol="ESU6",
+            name="E-mini S&P 500 Sep 2026",
+            currency="USD",
+            holding_type="future",
+            row_type="security",
+        ),
+        source_provider="issuer-test",
+    )
+
+    assert instrument is None
+    assert confidence is None
+    assert "equity-only identity matching is unsafe" in note
+    assert db.execute(select(Instrument)).scalars().all() == [existing_equity]
+
+
+@pytest.mark.asyncio
 async def test_resolver_collapses_duplicate_symbol_variants_via_stable_identifiers(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")

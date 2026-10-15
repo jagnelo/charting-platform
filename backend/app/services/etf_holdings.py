@@ -841,6 +841,19 @@ async def _resolve_or_create_constituent(
     if row.row_type != "security" or row.holding_type in {"cash", "currency", "collateral"}:
         return None, None, None
 
+    # ETF rows explicitly identified as futures are not equity constituents.
+    # This resolver only materializes Equity/Stock instruments and the generic
+    # symbol lookup below can otherwise bind a futures contract (for example,
+    # ESU6) to an unrelated equity or create a synthetic equity identity.
+    # Until ETF holdings have a typed future-resolution contract, preserve the
+    # reported row as unresolved rather than guessing from its ticker.
+    if str(row.holding_type or "").strip().lower() in {"future", "futures"}:
+        return (
+            None,
+            None,
+            "Future holding retained without constituent resolution; equity-only identity matching is unsafe.",
+        )
+
     for identifier_type, value in [
         ("isin", row.isin),
         ("cusip", row.cusip),

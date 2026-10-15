@@ -10898,3 +10898,30 @@ with prior ETF head `cdaec8376c135208d6d695c84cbdc92bcc435c80` as first parent a
 released staging `82d881e76be8de538abb6ec5c454d96afe0ee56a` as second parent.
 It was pushed to `origin/feat/etf-holdings-constituents`. The merge tree has
 not yet passed the required complete local profile or exact-source feature CI.
+
+### Explicit future rows fail closed in equity-only constituent resolution — 2026-10-15
+
+The coordinator reiterated that future-like tickers must not become synthetic
+equity identities. Source inspection confirmed `_resolve_or_create_constituent`
+previously sent every non-cash security row through equity ticker lookup,
+provider enrichment, and fallback `Equity/Stock` materialization, regardless
+of an explicit `holding_type="future"`. That could bind a contract ticker to
+an unrelated stock already using the same symbol or create a false stock
+identity.
+
+Added a narrow fail-closed boundary for explicit `future`/`futures` rows. Until
+ETF has a typed futures-resolution contract, these reported holdings remain
+unresolved and are not sent through equity identity lookup/enrichment or
+materialization. No future identity model or symbol heuristic was invented.
+Added regression coverage for both an otherwise-unknown `ESU6` row and a
+future-like `ESU6` collision with an existing equity instrument; both remain
+unresolved and no equity is created or attached. The test also proves provider
+enrichment is not called for the future row.
+
+Focused validation: `backend/tests/unit/services/test_etf_holdings_resolution.py`
+passed 21/21. `git diff --check` passed. This is bounded preparation and not
+full-profile, combined-runtime, Provider-contract, or checkpoint acceptance
+evidence. Provider still owns the first heavy local validation slot; retain
+the existing full profile and exact-source CI as required. The future row is
+preserved in holdings lineage as unresolved, not silently classified current
+or supported.
