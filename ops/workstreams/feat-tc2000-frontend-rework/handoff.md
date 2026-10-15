@@ -19529,3 +19529,16 @@ skipped as expected on the feature branch. This closes that coherent CI context
 only; TCP1 still awaits coordinator repair through green staging, Provider/ETF
 staging synchronization and TCP4 full integration remain open.
 
+Coordinator audit follow-up: exact CI run `38799367031` on source
+`87b9e3ab77d5356408b25b73b086a8fc7f062400` had 188 passed, 110 skipped, and
+one retry-passing flaky E2E (`tc2000_date_pointer.spec.ts:42`). On reload, the
+test expected date-pointer mode `off` but observed `on_with_values`; the retry
+passed. This is not clean acceptance and remains evidence of a persistence
+race. Do not weaken the observer or expectation. The coordinator reports shared
+repair `bc32034e` addresses superseded-save revision acknowledgement and trailing
+saves; do not duplicate or import it until exact green staging is released.
+Then reconcile its semantics with TC's existing `snapshotPersistingGeneration`
+and structural-local-change recovery guards, avoid a redundant generation
+counter, retain negative revision/flush coverage, and repeat date-pointer
+persistence without retries. No TC-owned repair was made here.
+
