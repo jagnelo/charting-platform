@@ -8,22 +8,22 @@ _MIGRATION_PATH = (
     Path(__file__).parents[3]
     / "alembic"
     / "versions"
-    / "ff0a1b2c3d4e_add_strategy_lab_v2_storage.py"
+    / "slv2_0001_add_strategy_lab_v2_storage.py"
 )
 _PAYLOAD_MIGRATION_PATH = _MIGRATION_PATH.with_name(
-    "ff1a2b3c4d5e_add_strategy_lab_v2_dispatch_payloads.py"
+    "slv2_0002_add_strategy_lab_v2_dispatch_payloads.py"
 )
 _RECOVERY_MIGRATION_PATH = _MIGRATION_PATH.with_name(
-    "ff3a4b5c6d7e_add_strategy_lab_v2_worker_recoveries.py"
+    "slv2_0004_add_strategy_lab_v2_worker_recoveries.py"
 )
 _SEARCH_RETRY_MIGRATION_PATH = _MIGRATION_PATH.with_name(
-    "ff4a5b6c7d8e_allow_search_candidate_attempt_retries.py"
+    "slv2_0005_allow_search_candidate_attempt_retries.py"
 )
 _FORWARD_LIFECYCLE_MIGRATION_PATH = _MIGRATION_PATH.with_name(
-    "ff5a6b7c8d9e_strategy_lab_forward_lifecycle_idempotency.py"
+    "slv2_0006_strategy_lab_forward_lifecycle_idempotency.py"
 )
 _FORWARD_DISPATCH_CONTEXT_MIGRATION_PATH = _MIGRATION_PATH.with_name(
-    "ff6a7b8c9d0e_bind_forward_dispatch_checkpoint.py"
+    "slv2_0007_bind_forward_dispatch_checkpoint.py"
 )
 
 
@@ -97,7 +97,7 @@ def test_additive_migration_covers_all_v2_adapter_tables_without_legacy_tables()
     migration = _migration()
     tables = tuple(name for name, _ in migration._DDL)
 
-    assert migration.revision == "ff0a1b2c3d4e"
+    assert migration.revision == "slv2_0001"
     assert len(tables) == 43
     assert len(set(tables)) == len(tables)
     assert "strategy_definition" not in tables
@@ -118,8 +118,8 @@ def test_additive_migration_covers_all_v2_adapter_tables_without_legacy_tables()
 def test_dispatch_payload_migration_is_additive_and_follows_storage() -> None:
     migration = _payload_migration()
 
-    assert migration.revision == "ff1a2b3c4d5e"
-    assert migration.down_revision == "ff0a1b2c3d4e"
+    assert migration.revision == "slv2_0002"
+    assert migration.down_revision == "slv2_0001"
     constants = tuple(str(constant) for constant in migration.upgrade.__code__.co_consts)
     assert any("CREATE TABLE strategy_lab_v2_dispatch_payloads" in value for value in constants)
     down_constants = tuple(str(constant) for constant in migration.downgrade.__code__.co_consts)
@@ -129,8 +129,8 @@ def test_dispatch_payload_migration_is_additive_and_follows_storage() -> None:
 def test_worker_recovery_migration_is_additive_and_follows_settlement_receipts() -> None:
     migration = _recovery_migration()
 
-    assert migration.revision == "ff3a4b5c6d7e"
-    assert migration.down_revision == "ff2a3b4c5d6e"
+    assert migration.revision == "slv2_0004"
+    assert migration.down_revision == "slv2_0003"
     upgrade_constants = tuple(str(value) for value in migration.upgrade.__code__.co_consts)
     assert any(
         "CREATE TABLE strategy_lab_v2_worker_recoveries" in value for value in upgrade_constants
@@ -146,8 +146,8 @@ def test_worker_recovery_migration_is_additive_and_follows_settlement_receipts()
 def test_search_retry_migration_allows_attempt_lineage_per_candidate() -> None:
     migration = _search_retry_migration()
 
-    assert migration.revision == "ff4a5b6c7d8e"
-    assert migration.down_revision == "ff3a4b5c6d7e"
+    assert migration.revision == "slv2_0005"
+    assert migration.down_revision == "slv2_0004"
     upgrade_constants = tuple(str(value) for value in migration.upgrade.__code__.co_consts)
     assert any("pg_get_constraintdef" in value for value in upgrade_constants)
     assert any(
@@ -164,8 +164,8 @@ def test_search_retry_migration_allows_attempt_lineage_per_candidate() -> None:
 def test_forward_lifecycle_idempotency_migration_is_additive_and_receipt_scoped() -> None:
     migration = _forward_lifecycle_migration()
 
-    assert migration.revision == "ff5a6b7c8d9e"
-    assert migration.down_revision == "ff4a5b6c7d8e"
+    assert migration.revision == "slv2_0006"
+    assert migration.down_revision == "slv2_0005"
     upgrade_constants = tuple(str(value) for value in migration.upgrade.__code__.co_consts)
     assert any(
         "CREATE TABLE strategy_lab_v2_forward_lifecycle_requests" in value
@@ -182,8 +182,8 @@ def test_forward_lifecycle_idempotency_migration_is_additive_and_receipt_scoped(
 def test_forward_dispatch_migration_binds_admission_checkpoint_and_warmup() -> None:
     migration = _forward_dispatch_context_migration()
 
-    assert migration.revision == "ff6a7b8c9d0e"
-    assert migration.down_revision == "ff5a6b7c8d9e"
+    assert migration.revision == "slv2_0007"
+    assert migration.down_revision == "slv2_0006"
     upgrade_constants = tuple(str(value) for value in migration.upgrade.__code__.co_consts)
     assert any("pre_event_checkpoint_fingerprint TEXT NULL" in value for value in upgrade_constants)
     assert any("warmup_receipt_fingerprint TEXT NULL" in value for value in upgrade_constants)

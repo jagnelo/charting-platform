@@ -4,8 +4,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision = "ff4a5b6c7d8e"
-down_revision: str | None = "ff3a4b5c6d7e"
+revision = "slv2_0005"
+down_revision: str | None = "slv2_0004"
 branch_labels = None
 depends_on = None
 

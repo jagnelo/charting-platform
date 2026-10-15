@@ -74,3 +74,13 @@ this checkpoint preparation.
 The central coordinator alone integrates into staging. After all four integrations
 are green and source freeze is released, merge the common green staging into this
 same branch, validate affected contracts and continue the complete roadmap.
+
+## Independent migration collision repair
+
+The 2026-10-15 explicit coordinator task permits the narrow shared migration/env
+repair before upstream integration. Strategy IDs are uniquely namespaced, with
+a read-only applied-history gate and preserved upstream IDs. See
+`migration-compatibility.md`: source graph collisions are removed, while existing
+legacy Strategy/mixed database upgrade paths remain held for a reviewed,
+database-specific transition. This is not full PostgreSQL or combined-source
+migration acceptance and does not complete SLICP3/SLICP4.

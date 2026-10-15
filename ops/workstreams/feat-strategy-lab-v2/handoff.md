@@ -14468,3 +14468,47 @@ The repository helper treats plan status `blocked` as terminal and refuses
 session updates under it; keep the feature lifecycle `in_progress` with the
 precise blocker in progress/session fields. The execution goal is blocked
 pending the external baseline, with neither feature closure nor acceptance.
+
+## 2026-10-15 — authorized migration collision repair
+
+Human coordination explicitly authorizes auditing/repairing Strategy-owned
+Alembic collisions now, including shared migration/env paths for this exact
+task. Previous context is synchronized at b85a4b9cb6a1bde93605f8f91c53add466782834.
+Current context owns the Strategy migration chain, read-only compatibility guard,
+focused migration tests and this workstream. Preserve upstream migrations,
+existing data and writer claim 35f63909-6dea-4459-9682-dc8eecc9c720. No stamp,
+database reset, schema/data deletion, sibling write or heavy Docker gate.
+
+Four IDs collide with different upstream operations; version rows alone cannot
+identify applied DDL. Unique source IDs require an early online compatibility
+guard and a reviewed legacy database transition. Combined consumer validation
+continues to wait for accepted green Provider/ETF/TC staging.
+
+Repair outcome: all eight Strategy revisions now use slv2_0001–slv2_0008,
+retaining parent fe4f5a6b7c8d and unchanged upgrade/downgrade bodies and DDL
+(AST comparison against the prior committed source passed). The eighth legacy
+descendant ff7a8b9c0d1e was included so a database at the actual former head
+cannot bypass compatibility admission. No new ID collides with the read-only
+Provider/ETF/TC migration scans.
+
+Alembic env performs read-only compatibility admission before DDL/version
+bookkeeping. Legacy Strategy/mixed histories refuse upgrade, preserving rows;
+upstream IDs are admitted only with their installed owner script, distinguishing
+schema columns and no Strategy tables. No alias/stamp/version update is used.
+See migration-compatibility.md for the old/new map, database matrix and the
+remaining per-database decision. No live database inventory or upgrade occurred.
+
+Validation: 28 focused compatibility/startup/schema tests passed in 1.69s,
+including real Alembic/SQLite early-refusal and normal-commit regressions. Ruff,
+format, focused MyPy, workstream validation and diff checks passed. The updated
+PostgreSQL dispatch migration integration collects successfully; it was not run.
+No Docker gate competed with the other source owners. PostgreSQL and full
+combined application/CI validation remain explicitly open.
+
+Required human decision is conditional on an identified legacy/mixed database:
+authorize a narrowly specified schema-verified metadata transition after source,
+schema/version provenance and backup inventory, or retain its isolated old
+migration history. Neither transition nor dropping/reinitializing data is
+implemented. Existing databases are safely held for review by this source.
+Actual combined consumers continue to wait for accepted green Provider/ETF/TC
+staging. Preserve the existing claim and the complete roadmap.

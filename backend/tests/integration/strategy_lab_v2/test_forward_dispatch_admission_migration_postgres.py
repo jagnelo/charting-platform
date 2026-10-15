@@ -14,7 +14,7 @@ _MIGRATION_PATH = (
     Path(__file__).parents[3]
     / "alembic"
     / "versions"
-    / "ff6a7b8c9d0e_bind_forward_dispatch_checkpoint.py"
+    / "slv2_0007_bind_forward_dispatch_checkpoint.py"
 )
 
 
