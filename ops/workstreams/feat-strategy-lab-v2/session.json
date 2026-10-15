@@ -35,8 +35,11 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "ps/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/session.json"
+    "ackend/app/strategy_lab_v2/tests/test_capability_preparation.py",
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/integration-checkpoint.md",
+    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -73,14 +76,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "9c1e2fa1f056dcd69bc5ad89111d0aceba58e7ab",
+  "head": "906588ccb3cb5a21a27cd4623c85d1741bedc23f",
   "implementation_sha": "9c1e2fa1f056dcd69bc5ad89111d0aceba58e7ab",
   "last_checkpoint": "2026-10-15T16:36:00.952575+00:00",
   "last_human_progress_update": "2026-10-15T16:34:39.355196+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
-  "plan_hash": "271606498842791df70d851dc65aab9d144c2c118a1be54f87f369ef499502a4",
+  "plan_hash": "dcff86beac8b198e28fdbe8d7306b8bd15a10b6b4d27029ade64d7235ef4533b",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -111,7 +114,7 @@
     "total": 5,
     "updated_at": "2026-10-15T16:34:39.355175+00:00"
   },
-  "remote": "9c1e2fa1f056dcd69bc5ad89111d0aceba58e7ab",
+  "remote": "906588ccb3cb5a21a27cd4623c85d1741bedc23f",
   "remote_sha": "9c1e2fa1f056dcd69bc5ad89111d0aceba58e7ab",
   "remote_synchronized": true,
   "retained_docker_resources": [],

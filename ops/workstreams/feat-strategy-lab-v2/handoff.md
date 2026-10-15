@@ -14394,3 +14394,23 @@ dependent action requires the coordinator's synchronized green staged-contract
 receipt and verification that this source is unfrozen. Until then retain the
 full roadmap and prepared consumer evidence. No branch-owned Docker resources
 remain according to the elevated session preflight.
+
+## 2026-10-15 — capability consumer revocation and outage evidence
+
+Active changeset: capability-consumer-revocation-and-outage-evidence, owning
+`backend/app/strategy_lab_v2/tests/test_capability_preparation.py` and this
+workstream's records. Prepare consumer tests for evidence revoked after a
+successful preflight, upstream resolver outages and unsupported engine scopes.
+Use existing injected host contracts; do not introduce upstream implementation
+or weaken admission on failure. Staging still points to coordinator workflow
+commit 089672e8, without the released combined Provider/ETF/TC baseline.
+
+Added six consumer cases to the existing capability preparation tests: coverage
+revocation preserves the old receipt but rejects the next identical request;
+coverage and engine outages cannot reuse earlier success; three engine-scope
+dimensions reject despite rigorous data. The capability preparation/execution/
+summary slice passed 19 tests in 0.37s. Ruff, format check, focused MyPy and diff
+checks pass. Product source is unchanged; actual upstream resolver and API error
+mapping remain part of staged reconciliation. Existing claim is preserved.
+Next: commit/push this test evidence, then obtain the coordinator's released
+green baseline before dependent implementation. Checkpoint remains 2/5.

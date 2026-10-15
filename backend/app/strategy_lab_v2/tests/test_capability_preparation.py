@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Any
 
@@ -249,3 +250,120 @@ async def test_explicit_degradation_is_preserved_but_never_ranking_eligible() ->
             "only regular-session evidence is available",
         ),
     )
+
+
+@pytest.mark.asyncio
+async def test_revoked_host_coverage_cannot_reuse_a_previous_rigorous_preflight() -> None:
+    evidence_available = True
+    observed_owners: list[str] = []
+
+    async def resolve_cells(**kwargs: Any) -> tuple[CapabilityCell, ...]:
+        observed_owners.append(kwargs["principal"])
+        return (_cell(),) if evidence_available else ()
+
+    async def resolve_binding(**_kwargs: Any) -> ExecutionCapabilityBinding:
+        return _binding()
+
+    service = CapabilityPreflightService(
+        capability_cells=resolve_cells, execution_binding=resolve_binding
+    )
+    payload = _payload()
+    call: dict[str, Any] = dict(
+        principal="owner-1",
+        request_id="coverage-request",
+        idempotency_key="coverage-key",
+        payload=payload,
+        payload_digest=content_digest(payload),
+    )
+    accepted = await service(**call)
+    assert accepted.executable and accepted.can_publish_authoritative_results
+
+    evidence_available = False
+    rejected = await service(**call)
+
+    assert observed_owners == ["owner-1", "owner-1"]
+    assert rejected.decision is CapabilitySummaryDecision.UNSUPPORTED
+    assert rejected.data_gaps == ("US.AAPL:instrument_coverage",)
+    assert not rejected.executable
+    assert not rejected.ranking_eligible
+    assert not rejected.can_publish_authoritative_results
+    assert rejected.report_fingerprint != accepted.report_fingerprint
+    # The earlier immutable receipt stays intact rather than being overwritten.
+    assert accepted.executable and accepted.can_publish_authoritative_results
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failed_resolver", ["coverage", "engine"])
+async def test_host_resolver_outage_cannot_fall_back_to_previous_success(
+    failed_resolver: str,
+) -> None:
+    outage = False
+    calls: list[str] = []
+
+    async def resolve_cells(**_kwargs: Any) -> tuple[CapabilityCell, ...]:
+        calls.append("coverage")
+        if outage and failed_resolver == "coverage":
+            raise LookupError("coverage evidence unavailable")
+        return (_cell(),)
+
+    async def resolve_binding(**_kwargs: Any) -> ExecutionCapabilityBinding:
+        calls.append("engine")
+        if outage and failed_resolver == "engine":
+            raise LookupError("engine evidence unavailable")
+        return _binding()
+
+    service = CapabilityPreflightService(
+        capability_cells=resolve_cells, execution_binding=resolve_binding
+    )
+    payload = _payload()
+    call: dict[str, Any] = dict(
+        principal="owner-1",
+        request_id="outage-request",
+        idempotency_key="outage-key",
+        payload=payload,
+        payload_digest=content_digest(payload),
+    )
+    assert (await service(**call)).can_publish_authoritative_results
+    calls.clear()
+    outage = True
+
+    with pytest.raises(LookupError, match="evidence unavailable"):
+        await service(**call)
+    assert calls == (["coverage"] if failed_resolver == "coverage" else ["coverage", "engine"])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "field,unsupported",
+    [
+        ("product_classes", frozenset({ProductClass.CRYPTO})),
+        ("execution_models", frozenset({"other-execution-model"})),
+        ("account_models", frozenset({"other-account-model"})),
+    ],
+)
+async def test_rigorous_data_cannot_authorize_an_unsupported_engine_scope(
+    field: str, unsupported: frozenset[Any]
+) -> None:
+    async def resolve_cells(**_kwargs: Any) -> tuple[CapabilityCell, ...]:
+        return (_cell(),)
+
+    async def resolve_binding(**_kwargs: Any) -> ExecutionCapabilityBinding:
+        changes: dict[str, Any] = {field: unsupported}
+        return replace(_binding(), **changes)
+
+    payload = _payload()
+    summary = await CapabilityPreflightService(
+        capability_cells=resolve_cells, execution_binding=resolve_binding
+    )(
+        principal="owner-1",
+        request_id="scope-request",
+        idempotency_key="scope-key",
+        payload=payload,
+        payload_digest=content_digest(payload),
+    )
+
+    assert not summary.data_gaps
+    assert summary.decision is CapabilitySummaryDecision.UNSUPPORTED
+    assert not summary.executable
+    assert not summary.ranking_eligible
+    assert not summary.can_publish_authoritative_results

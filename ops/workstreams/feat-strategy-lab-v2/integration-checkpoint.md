@@ -22,6 +22,14 @@ These are consumer-side contracts and independent tests, not proof of the future
 combined adapters. Required consumer behavior remains open until tested against
 the actual staged implementations. No provider, ETF or TC code is imported here.
 
+The capability service also has repeated-request evidence: after an earlier
+rigorous result, removed host coverage rejects a later identical request;
+coverage/engine resolver outages propagate failure without reusing prior success;
+and rigorous data cannot authorize an engine lacking the requested product,
+execution model or account model. This checks the Strategy-owned consumer
+boundary only. Provider entitlement/quota revocation must still be verified
+through the real staged host resolver and API error mapping.
+
 ## Evidence reconciliation
 
 The later validation journal supersedes the old session instruction to implement
