@@ -35,10 +35,7 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "dirty_paths": [
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -53,7 +50,7 @@
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
     ],
-    "known_bytes": 728738632,
+    "known_bytes": 729046824,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
@@ -64,7 +61,7 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 724593480,
+    "volume_bytes": 724893480,
     "volume_count": 4,
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
@@ -112,7 +109,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "a056f12cd0d5a06cedbb39e5fe4567be46d57889",
+  "head": "f8be8b0123dbcab2a3e356eda0b3fb63fca3fca9",
   "implementation_sha": "a056f12cd0d5a06cedbb39e5fe4567be46d57889",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -121,7 +118,7 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-15T16:43:01.951269+00:00",
+  "last_checkpoint": "2026-10-15T16:49:53.310732+00:00",
   "last_human_progress_update": "2026-10-15T16:43:00.050694+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
@@ -159,7 +156,7 @@
     "remote_tracking_sha": "0a68236240444fb3fdf438d1d778ec906a5c601f",
     "status": "pushed"
   },
-  "remote": "a056f12cd0d5a06cedbb39e5fe4567be46d57889",
+  "remote": "f8be8b0123dbcab2a3e356eda0b3fb63fca3fca9",
   "remote_sha": "a056f12cd0d5a06cedbb39e5fe4567be46d57889",
   "remote_synchronized": true,
   "retained_docker_resources": [],
