@@ -10034,7 +10034,9 @@ async def test_baron_adapter_discovers_latest_holdings_csv(monkeypatch):
 
     result = await adapter.fetch_latest(symbol="RONB", identifiers={})
 
-    assert FakeAsyncClient.requested[0][0] == "https://www.baroncapitalgroup.com/"
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://www.baroncapitalgroup.com/product-detail/baron-first-principles-etf-ronb"
+    )
     assert FakeAsyncClient.requested[1][0] == (
         "https://live-baron-capital-cms.pantheonsite.io/sites/default/files/"
         "etf-downloads/RONB-HOLDINGS-20260625-0.csv"
@@ -22980,7 +22982,7 @@ async def test_thor_adapter_parses_current_embedded_holdings_page(monkeypatch):
 async def test_pictet_adapter_uses_public_fund_allocation_api(monkeypatch):
     adapter = get_holdings_adapter("pictet")
     assert adapter is not None
-    product_page_url = "https://etf.am.pictet.com/pqus/"
+    product_page_url = "https://am.pictet.com/us/en/advisors/pqus"
     payload = {
         "clientCode": "PQUS",
         "allocations": [
@@ -23082,7 +23084,7 @@ async def test_pictet_adapter_reports_aws_waf_challenge_as_temporary_access_bloc
             ),
             content_type="text/html",
             status_code=202,
-            url="https://etf.am.pictet.com/pqus/",
+            url="https://am.pictet.com/us/en/advisors/pqus",
         ),
         FakeResponse(
             text=json.dumps(payload),
@@ -23781,7 +23783,7 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     assert type(wedbush).__name__ == "WedbushHoldingsAdapter"
     assert (
         wedbush.resolve_source_url(symbol="TGLR")
-        == "https://wedbushfunds.com/latest-sod-holdings-tglr/"
+        == "https://wedbushfunds.com/assets/feeds/feeds.php?fund=TGLR"
     )
 
     sei = get_holdings_adapter("sei")

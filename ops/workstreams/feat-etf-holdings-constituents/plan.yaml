@@ -141,17 +141,21 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: central-first ETF checkpoint adoption and consumer contract preparation
-    state: preparation_source_pushed_with_explicit_CI_failures_recorded_for_followup
-    intent: Preserve the complete roadmap, reconcile October 7 evidence with current source, and prepare concrete bridge/consumer coverage before staged dependency wiring.
+    name: issuer route drift repair
+    state: in_progress
+    baseline: c20da8a99b4daec5db8d4144b5e76a4baaa41f93
+    intent: Repair the four issuer routes responsible for five actual live CI failures, with bounded retained public evidence and strict regression coverage.
     owned_paths:
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md
       - ops/workstreams/feat-etf-holdings-constituents/session.json
       - ops/workstreams/feat-etf-holdings-constituents/validation.jsonl
       - ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md
-      - backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py
-      - backend/app/services/baskets.py
+      - backend/app/services/etf_holdings_adapters.py
+      - backend/tests/unit/services/test_etf_holdings_adapters.py
+      - backend/tests/unit/services/test_etf_holdings_issuer_route_drift.py
+      - backend/tests/live/test_etf_holdings_live_providers.py
+      - docs/etf-provider-universe.md
 scope:
   - "Keep branch-owned ETF workstream and provider-universe documentation code-derived; the current reconciled baseline is 496 registered, 422 native/live-backed, and 74 fallback-only providers after the evidence-backed Arin/ATTR route promotion."
   - "Create and maintain a branch-owned exhaustive provider audit ledger covering all 140 current fallback-only adapter keys, with deterministic prioritization, source evidence, attempt dates, route disposition, and next action."
@@ -177,6 +181,7 @@ owned_paths:
   - backend/app/services/etf_holdings_capability.py
   - backend/app/services/baskets.py
   - backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py
+  - backend/tests/unit/services/test_etf_holdings_issuer_route_drift.py
   - backend/app/models/etf_holdings.py
   - backend/app/models/provider_runtime.py
   - backend/app/routers/etf_holdings.py
@@ -258,6 +263,7 @@ acceptance_criteria:
 branch_tests:
   - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_adapters.py -q --no-cov"
   - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py -q --no-cov"
+  - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_issuer_route_drift.py -q --no-cov"
   - "uv run --project backend pytest backend/tests/live/test_etf_holdings_live_providers.py -q --no-cov"
   - "RUN_LIVE_ETF_HOLDINGS_TESTS=1 uv run --project backend pytest backend/tests/live/test_etf_holdings_live_providers.py -q -rs --no-cov"
   - "uv run --project backend ruff check backend/app/services/etf_holdings_adapters.py backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/live/test_etf_holdings_live_providers.py"
@@ -274,12 +280,12 @@ progress:
   completed:
     - EICP1
   total: 7
-current_phase: preparation_receipt_then_issuer_route_repair
+current_phase: issuer_route_repairs_locally_verified_publish
 current_blocker: >-
-  Exact-source CI 38771431871 now exposes five live failures across four
-  independent issuer routes: Baron/RONB, Global X and Mirae/QYLD,
-  Wedbush/TGLR, Pictet/PQUS. Record the preparation receipt and repair those
-  source/parser/identity problems next; none is being reclassified as an outage.
+  The five failures from CI 38771431871 are repaired in the current source
+  delta. Final bounded replay passes all five without skips; the full backend
+  unit suite passes 1557, including 21 new issuer regressions; static checks
+  pass. Commit/push and verify the repaired exact-source full live matrix/CI.
   The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Provider
   has not been released through synchronized green staging. Prepare
   independent ETF contract evidence and consumer tests now; runtime bridge
@@ -1277,10 +1283,9 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Publish the preparation receipt for source d1040b41b and terminal CI run
-  38771431871, then diagnose/repair Baron/RONB, Global X and Mirae/QYLD,
-  Wedbush/TGLR and Pictet/PQUS using bounded retained issuer evidence and
-  deterministic regressions. Revalidate the changed routes and exact source.
+  Commit/push the verified issuer repair context (1557 backend unit tests,
+  21 new route regressions, final five-case live replay all pass), then monitor
+  the repaired exact-source branch CI/full live matrix and fix any new failures.
   After Provider reaches synchronized green
   staging and this source is unfrozen, merge staging here and implement/test
   the real governance bridge, run the required full profile and exact-source

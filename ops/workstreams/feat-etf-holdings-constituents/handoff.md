@@ -10078,3 +10078,75 @@ That context owns the ETF adapter/parser and deterministic/live regression
 files plus its own workstream updates; preserve registry truthfulness and raw
 issuer evidence. Provider staging release remains required for later shared
 runtime wiring, but does not prevent these repairs now.
+
+The four-file preparation receipt is committed/pushed as
+`c20da8a99b4daec5db8d4144b5e76a4baaa41f93`; the tree was clean and HEAD/origin
+matched before selecting the next context. Active context is now **issuer route
+drift repair**, baseline `c20da8a9`, owning ETF adapter/parser code, its unit/live
+regressions, provider-universe documentation if support truth changes, and this
+branch's operational/contract records. Preserve the original roadmap and
+EICP1-EICP7. First action: capture bounded current first-party responses for
+Baron RONB, Global X/Mirae QYLD, Wedbush TGLR and Pictet PQUS, retain the bodies
+locally, and diagnose identity/schema/download drift before implementation.
+
+Retained public responses are under this worktree's ignored
+`.ai/validation/issuer-drift-2026-10-15/` (raw bodies and headers). Findings:
+Baron's index is stale, while its linked RONB product page declares a working
+October 14 download under `/api/product/media/csv/` with media query parameters;
+the CSV now begins with a `Daily Holdings` preamble before its header. Global X
+has moved QYLD to a Next application: the complete `All Holdings` structured
+payload and holdings-specific date are embedded in the page; the old dated
+asset link is gone. Its public download action returns the same complete CSV
+using a renamed `Net Assets (%)` column. Prefer the explicit complete structured
+payload over coupling the adapter to a rotating server-action ID. Wedbush's
+new product script declares `/assets/feeds/feeds.php?fund=TGLR`; it returns an
+identity-bound dated JSON feed with thirty holdings, while the old CSV URL is
+gone. Pictet's official canonical PQUS page links a new fund-detail route;
+the old host and the fund-detail path currently return CloudFront 403 from
+this host, so retain that access evidence and keep investigating the CI's
+separate HTTP-200 identity failure rather than hiding it as an outage.
+
+Global X's downloaded CSV also contains an explicit reuse restriction. Retain
+that terms evidence and require the later shared entitlement review before
+enabling that source for platform redistribution/derivative uses. A successful
+parser/live retrieval is not permission to enable routing or paid activation.
+No entitlement or runtime activation has been changed in this context.
+
+All four route repairs are implemented. Baron prioritizes the product page's
+current media href, preserves its parameters, rejects unexpected media
+responses, skips the CSV preamble/footer and cross-checks reported/file dates;
+parser version is explicitly `baron-csv-v2`. Global X/Mirae decode only the
+requested fund's complete structured payload, with strict ticker/filename/date,
+column/numeric and complete-weight validation; stale CSV links cannot override
+that current declaration. Raw page/payload and reuse-review evidence remain
+retained. Wedbush uses its exact identity-bound public feed, validates complete
+weights/rows and final fund URL, retains explicit issuer CSV compatibility, and
+preserves CUSIP versus SEDOL rather than mislabelling the money-market row.
+Pictet migrates only the exact legacy PQUS route to its verified canonical
+page, retaining strict fund identity on the unchanged public allocation API.
+Repaired daily routes now declare their freshness cadence explicitly and
+changed schema parsers have distinct versions.
+
+Validation: all 1,557 backend unit tests pass (34 existing dependency warnings),
+including 21 new issuer-redesign regressions. The final bounded live replay
+passes all five formerly failing cases without skips in 8.34 seconds; a prior
+post-repair replay also passed all five. Retained-artifact replays confirm
+23 Baron, 104 Global X, 30 Wedbush and 156 Pictet rows dated 2026-10-14.
+Ruff/format/diff checks pass. Native/fallback counts remain 496/422/74; no
+fallback promotion, paid activation or other-worktree edit occurred. Publish
+this nine-file repair context and verify new exact-source CI/full live evidence.
+
+The required local full profile is still open. A fresh host inspection found
+an active TC2000 browser crosscheck (Chrome processes consuming CPU) plus its
+fresh six-service stack, the older TC stack, and Provider resources, with only
+2.7 GiB available RAM. No competing heavy ETF Docker/browser gate was launched
+and none of those resources was altered. The actual combined shared-runtime
+profile also still requires the coordinator's green Provider staging release;
+the goal remains active and the checkpoint remains unready for human review.
+
+Final focused coverage is now 23 issuer-route tests, including two additional
+regressions proving Global X legacy numeric percent points and explicit percent
+signs both preserve the correct weight scale. Default live contracts also pass
+(9 passed / 537 opt-in skips). These two extra test cases do not change product
+source from the complete 1,557-case backend unit pass recorded above. No new
+full local Docker/browser result is claimed.

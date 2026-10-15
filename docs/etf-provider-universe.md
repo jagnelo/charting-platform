@@ -5,6 +5,45 @@ adviser, and white-label publisher identity level because holdings artifacts are
 usually published by product sites, not by a single normalized legal-issuer
 field.
 
+## First-party route drift repairs — 2026-10-15
+
+Exact-source CI run `38771431871` found five live failures across four publisher
+routes: Baron/RONB, Global X and Mirae/QYLD, Wedbush/TGLR and Pictet/PQUS.
+The failures were retained as failures rather than reclassified as outages.
+Provider counts remain 496 registered / 422 native / 74 fallback-only; native
+route implementation and dated live evidence do not establish current usability
+or entitlement for every symbol.
+
+- Baron now uses the linked RONB product page's exact current media-download
+  href, including required parameters, before stale CMS/index links. Its CSV
+  preamble and dated footer are parsed without creating a bogus holding; the
+  declared filename and reported date must agree. The retained artifact has
+  23 rows dated 2026-10-14.
+- Global X and Mirae now read the fund-bound complete `All Holdings` structured
+  payload in the current product page. This avoids a rotating Next download
+  action and retains full raw source data, explicit fund/date/filename/column
+  checks, cash/derivative mapping and portfolio completeness. The retained QYLD
+  artifact contains 104 rows dated 2026-10-14. Explicit legacy CSVs remain
+  supported. Its download carries reuse restrictions: shared entitlement review
+  is required before routing activation, redistribution or derivative uses;
+  parser success alone is not an entitlement. No routing activation occurred.
+- Wedbush's public per-symbol feed replaces the retired SOD CSV URL, while
+  explicit issuer CSV compatibility remains. It validates ticker, date, row
+  schema, finite values and complete portfolio weight, and preserves CUSIP
+  versus SEDOL identity. The retained TGLR feed contains 30 rows dated
+  2026-10-14.
+- Pictet's exact legacy PQUS route migrates to its verified canonical PQUS page;
+  sibling-fund URLs are never rewritten into a requested fund. The existing
+  public allocation API still requires exact `clientCode` and complete
+  fund-holdings data. The retained PQUS response has 156 rows dated 2026-10-14.
+
+The bounded replay of all five previously failing live cases passed (five
+passes, no skips). Deterministic redesign regressions cover current routes and
+negative identity/schema/completeness cases. The complete new-source live
+matrix, exact-source hosted CI and required combined full profile remain open.
+Raw public responses/headers are retained in the ETF worktree's ignored
+`.ai/validation/issuer-drift-2026-10-15/` evidence directory.
+
 ## Hedgeye first-party artifact route repair — 2026-10-05
 
 Exact-SHA branch matrix run `37343409378` on `69dc6d34b462a5ac15766caf61377b815949eee0`

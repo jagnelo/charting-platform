@@ -2891,13 +2891,13 @@ async def test_live_ishares_family_legs_support_historical_as_of_snapshots(symbo
             "global_x",
             "QYLD",
             {},
-            "global_x_fund_page_declared_holdings_csv",
+            "global_x_fund_page_complete_holdings_payload",
         ),
         (
             "mirae_asset",
             "QYLD",
             {},
-            "global_x_fund_page_declared_holdings_csv",
+            "global_x_fund_page_complete_holdings_payload",
         ),
     ],
 )
@@ -3825,14 +3825,15 @@ async def test_live_thor_product_page_scoped_holdings_api():
 @pytest.mark.asyncio
 @pytest.mark.slow
 @_covers_live_provider("wedbush")
-async def test_live_wedbush_symbol_holdings_csv():
+async def test_live_wedbush_public_symbol_holdings_feed():
     adapter = get_holdings_adapter("wedbush")
     assert adapter is not None
 
     result = await adapter.fetch_latest(symbol="TGLR")
 
     _assert_live_holdings_result(result, adapter_key="wedbush", min_rows=20)
-    assert result.legal_metadata["route_resolution"] == "wedbush_symbol_holdings_csv"
+    assert result.legal_metadata["route_resolution"] == "wedbush_public_symbol_holdings_feed"
+    assert result.legal_metadata["source_format"] == "json"
     assert result.legal_metadata["composition_date"]
 
 

@@ -42,8 +42,13 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "current_blocker_latest": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). Five live CI failures across four issuer routes are actionable now: Baron RONB, Global X/Mirae QYLD, Wedbush TGLR, Pictet PQUS. Backend/frontend/Playwright CI passed. Provider staging release still gates actual shared runtime integration, but does not block these repairs.",
+  "current_blocker_latest": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496 registered / 422 native / 74 fallback). All five observed issuer failures are repaired: final targeted live replay 5/5 passed without skips; complete backend unit suite 1557/1557, including 21 new route regressions, passes. New repaired-source full live matrix and exact-source CI are pending publication. The shared host has an active TC2000 browser crosscheck and stacks, so no competing heavy local ETF profile was started. Actual shared-runtime reconciliation still requires centrally released synchronized green Provider staging.",
   "dirty_paths": [
+    "backend/app/services/etf_holdings_adapters.py",
+    "backend/tests/live/test_etf_holdings_live_providers.py",
+    "backend/tests/unit/services/test_etf_holdings_adapters.py",
+    "backend/tests/unit/services/test_etf_holdings_issuer_route_drift.py",
+    "docs/etf-provider-universe.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
@@ -84,13 +89,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "d1040b41b99b3ece8e25e777ef51a300393c7429",
+  "head": "c20da8a99b4daec5db8d4144b5e76a4baaa41f93",
   "implementation_sha": "d1040b41b99b3ece8e25e777ef51a300393c7429",
-  "last_checkpoint": "2026-10-15T17:06:34Z",
+  "last_checkpoint": "2026-10-15T17:34:47Z",
   "last_human_progress_update": "2026-10-06T18:53:15.533458+00:00",
-  "latest_checkpoint": "2026-10-15: Preparation source d1040b41b is clean/pushed; exact CI 38771431871 passed backend (1536 unit/379 integration), frontend and Playwright (151 passed/109 skipped), but branch live tests failed 5 cases (522 passed/19 classified skips). Four issuer routes need independent repair now: Baron RONB, Global X/Mirae QYLD, Wedbush TGLR, Pictet PQUS. Old green route evidence is superseded for these symbols. Publish the four-file operational receipt, then repair these routes with retained issuer evidence and deterministic/live checks. Shared-runtime checkpoint remains open for the later central green Provider staging release.",
+  "latest_checkpoint": "2026-10-15: Four issuer route redesigns repaired with retained raw evidence. Full backend suite 1557 passed; 21 new strict redesign regressions passed after final parser/cadence metadata updates; final bounded five-case live replay passed all five without skips. Retained rows/date: Baron 23, Global X 104, Wedbush 30, Pictet 156, all 2026-10-14. Native/fallback counts unchanged, no activation. Publish and verify repaired-source CI/full matrix next. Required local/combined full profile and actual Provider runtime bridge remain open. Final focused route suite now passes 23 cases, including two legacy percent-unit regressions; default live contracts pass 9 with 537 opt-in skips.",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Commit/push the four-file operational receipt for d1040b41b and terminal CI run 38771431871, verify synchronization, then open issuer route drift repair with bounded retained evidence and regression tests for the four failing routes.",
+  "next_action": "Commit/push the nine-file issuer route repair context, verify clean synchronization, then monitor its exact-source CI/full opt-in live matrix and repair any new failures. Preserve Global X reuse-review evidence without enabling routing. Reconcile the actual shared runtime after central green Provider staging release.",
   "plan_hash": "b67dc0e45547a515be81a9859fd69478438025844ffb989c6a1144ba5829505f",
   "planning_required": false,
   "planning_state": "ready",
@@ -108,13 +113,13 @@
       "EICP1"
     ],
     "total": 7,
-    "current_phase": "preparation_receipt_then_issuer_route_repair",
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). Five live CI failures across four issuer routes are actionable now: Baron RONB, Global X/Mirae QYLD, Wedbush TGLR, Pictet PQUS. Backend/frontend/Playwright CI passed. Provider staging release still gates actual shared runtime integration, but does not block these repairs.",
-    "next_action": "Commit/push the four-file operational receipt for d1040b41b and terminal CI run 38771431871, verify synchronization, then open issuer route drift repair with bounded retained evidence and regression tests for the four failing routes.",
-    "updated_at": "2026-10-15T17:06:34Z"
+    "current_phase": "issuer_route_repairs_locally_verified_publish",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496 registered / 422 native / 74 fallback). All five observed issuer failures are repaired: final targeted live replay 5/5 passed without skips; complete backend unit suite 1557/1557, including 21 new route regressions, passes. New repaired-source full live matrix and exact-source CI are pending publication. The shared host has an active TC2000 browser crosscheck and stacks, so no competing heavy local ETF profile was started. Actual shared-runtime reconciliation still requires centrally released synchronized green Provider staging.",
+    "next_action": "Commit/push the nine-file issuer route repair context, verify clean synchronization, then monitor its exact-source CI/full opt-in live matrix and repair any new failures. Preserve Global X reuse-review evidence without enabling routing. Reconcile the actual shared runtime after central green Provider staging release.",
+    "updated_at": "2026-10-15T17:34:47Z"
   },
-  "remote": "d1040b41b99b3ece8e25e777ef51a300393c7429",
-  "remote_sha": "d1040b41b99b3ece8e25e777ef51a300393c7429",
+  "remote": "c20da8a99b4daec5db8d4144b5e76a4baaa41f93",
+  "remote_sha": "c20da8a99b4daec5db8d4144b5e76a4baaa41f93",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
@@ -279,17 +284,22 @@
     }
   },
   "active_changeset": {
-    "name": "central-first ETF checkpoint adoption and consumer contract preparation",
-    "intent": "Preserve the complete roadmap, reconcile October 7 evidence with current source, and prepare concrete bridge/consumer coverage before staged dependency wiring.",
+    "name": "issuer route drift repair",
+    "state": "in_progress",
+    "baseline": "c20da8a99b4daec5db8d4144b5e76a4baaa41f93",
+    "intent": "Repair the four issuer routes responsible for five genuine live CI failures using retained public artifacts and strict regression tests.",
     "owned_paths": [
+      "backend/app/services/etf_holdings_adapters.py",
+      "backend/tests/unit/services/test_etf_holdings_adapters.py",
+      "backend/tests/live/test_etf_holdings_live_providers.py",
+      "docs/etf-provider-universe.md",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
       "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md",
-      "backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py",
-      "backend/app/services/baskets.py"
+      "backend/tests/unit/services/test_etf_holdings_issuer_route_drift.py"
     ],
-    "state": "preparation_source_pushed_with_explicit_CI_failures_recorded_for_followup"
+    "evidence_directory": ".ai/validation/issuer-drift-2026-10-15/"
   }
 }

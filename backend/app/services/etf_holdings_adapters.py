@@ -5143,6 +5143,15 @@ class GlobalXHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 follow_redirects=True,
             )
             product_page.raise_for_status()
+            if "downloadFullHoldingsLabel" in product_page.text or not any(
+                match.group("symbol").upper() == normalized_symbol
+                for match in self._HOLDINGS_URL_PATTERN.finditer(product_page.text)
+            ):
+                return self._from_complete_product_payload(
+                    product_page.text,
+                    symbol=normalized_symbol,
+                    product_page_url=str(product_page.url),
+                )
             holdings_url = self._holdings_url_from_page(
                 product_page.text,
                 symbol=normalized_symbol,
@@ -5176,6 +5185,125 @@ class GlobalXHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "product_page_url": str(product_page.url),
                 "snapshot_provenance": "global_x_native_dated_holdings_csv",
                 **({"composition_date": composition_date.isoformat()} if composition_date else {}),
+            },
+        )
+
+    def _from_complete_product_payload(
+        self, page_text: str, *, symbol: str, product_page_url: str
+    ) -> HoldingsFetchResult:
+        """Read only the fund-bound All Holdings payload, never the top-ten table.
+
+        The issuer's Next page serializes the same complete rows used by its
+        download action. Decode JSON data without evaluating page JavaScript or
+        binding the route to a server-action ID that rotates on deployment.
+        """
+        decoder = json.JSONDecoder()
+        chunks: list[str] = []
+        for match in re.finditer(r"self\.__next_f\.push\(", page_text):
+            try:
+                frame, _ = decoder.raw_decode(page_text[match.end() :])
+            except ValueError:
+                continue
+            if isinstance(frame, list) and len(frame) == 2 and isinstance(frame[1], str):
+                chunks.append(frame[1])
+        candidates: list[dict[str, Any]] = []
+        for line in "".join(chunks).splitlines():
+            frame_id, _, value = line.partition(":")
+            if not re.fullmatch(r"[0-9a-f]+", frame_id) or not value.startswith(("[", "{")):
+                continue
+            try:
+                stack = [json.loads(value)]
+            except ValueError:
+                continue
+            while stack:
+                node = stack.pop()
+                if isinstance(node, dict):
+                    if node.get("downloadFullHoldingsLabel") and "holdings" in node:
+                        candidates.append(node)
+                    stack.extend(v for v in node.values() if isinstance(v, dict | list))
+                elif isinstance(node, list):
+                    stack.extend(v for v in node if isinstance(v, dict | list))
+        matches = [p for p in candidates if p.get("ticker") == symbol]
+        if len(matches) != 1:
+            raise ValueError(f"Global X has no unambiguous complete holdings payload for {symbol}.")
+        payload = matches[0]
+        composition_date = _parse_issuer_date(payload.get("asOfDate"))
+        file_match = re.fullmatch(
+            rf"{re.escape(symbol)}-holdings-([A-Za-z]{{3}}-\d{{1,2}}-\d{{4}})\.csv",
+            str(payload.get("fileName") or ""),
+        )
+        if composition_date is None or file_match is None:
+            raise ValueError("Global X complete holdings payload has no fund-bound dated filename.")
+        if datetime.strptime(file_match.group(1), "%b-%d-%Y").date() != composition_date:
+            raise ValueError("Global X complete holdings date and download filename disagree.")
+        required = {"netAssets", "ticker", "name", "sedol", "marketPrice", "shares", "marketValue"}
+        columns = payload.get("columns")
+        if not isinstance(columns, list) or not required.issubset(
+            {column.get("key") for column in columns if isinstance(column, dict)}
+        ):
+            raise ValueError("Global X complete holdings payload schema is incomplete.")
+        holdings = payload.get("holdings")
+        if not isinstance(holdings, list) or not holdings:
+            raise ValueError("Global X complete holdings payload has no rows.")
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw in enumerate(holdings, 1):
+            if not isinstance(raw, dict) or not required.issubset(raw) or not _clean(raw["name"]):
+                raise ValueError("Global X complete holdings payload contains a malformed row.")
+            values = {key: _decimal(raw[key]) for key in ("netAssets", "shares", "marketValue")}
+            if any(value is None or not value.is_finite() for value in values.values()):
+                raise ValueError(
+                    "Global X complete holdings payload contains invalid numeric data."
+                )
+            weight = values["netAssets"]
+            if "%" not in str(raw["netAssets"]):
+                weight /= Decimal("100")
+            source_ticker = _clean(raw["ticker"])
+            row_type, holding_type = self._classify_row(
+                name=f"{raw['name']} {raw.get('securityType') or ''}", source_ticker=source_ticker
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=self._tradable_symbol(source_ticker) if row_type == "security" else None,
+                    name=_clean(raw["name"]),
+                    sedol=_clean(raw["sedol"]) if row_type == "security" else None,
+                    weight=weight,
+                    shares=values["shares"],
+                    market_value=values["marketValue"],
+                    currency="USD",
+                    row_type=row_type,
+                    holding_type=holding_type,
+                    source_row_id=f"{symbol}:{index}",
+                    extra_data={
+                        "source_ticker": source_ticker,
+                        "security_type": raw.get("securityType"),
+                    },
+                )
+            )
+        if (
+            not Decimal("0.98")
+            <= sum((row.weight for row in rows), Decimal("0"))
+            <= Decimal("1.02")
+        ):
+            raise ValueError("Global X complete holdings payload has incomplete portfolio weight.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=page_text,
+            raw_json=payload,
+            source_url=product_page_url,
+            source_identifier=symbol,
+            legal_metadata={
+                "source_access": "global_x_fund_page_complete_holdings_payload",
+                "source_provider": "global_x",
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "parser_version": f"{self.adapter_key}-complete-payload-v1",
+                "expected_cadence": "daily",
+                "route_resolution": "global_x_fund_page_complete_holdings_payload",
+                "composition_date": composition_date.isoformat(),
+                "product_page_url": product_page_url,
+                "declared_row_count": len(rows),
+                "entitlement_review_required": True,
+                "terms_note": "Issuer download includes reuse restrictions; review shared entitlement before routing activation.",
             },
         )
 
@@ -5228,7 +5356,11 @@ class GlobalXHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     symbol=cls._tradable_symbol(source_ticker) if row_type == "security" else None,
                     name=name,
                     sedol=_clean(raw.get("SEDOL")) if row_type == "security" else None,
-                    weight=_decimal_percent_points(raw.get("% of Net Assets")),
+                    weight=(
+                        _decimal(raw.get("% of Net Assets"))
+                        if "%" in str(raw.get("% of Net Assets"))
+                        else _decimal_percent_points(raw.get("% of Net Assets"))
+                    ),
                     shares=_decimal(raw.get("Shares Held")),
                     market_value=_decimal(raw.get("Market Value ($)")),
                     currency="USD",
@@ -23480,9 +23612,9 @@ class ToewsHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 
 class WedbushHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """Fetch Wedbush ETF current holdings through its public per-fund CSV route."""
+    """Fetch the issuer's complete per-fund feed; retain explicit CSV compatibility."""
 
-    holdings_url_template = "https://wedbushfunds.com/latest-sod-holdings-{symbol_lower}/"
+    holdings_url_template = "https://wedbushfunds.com/assets/feeds/feeds.php?fund={symbol}"
 
     def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
         del name
@@ -23497,9 +23629,9 @@ class WedbushHoldingsAdapter(IssuerCsvHoldingsAdapter):
             confidence=Decimal("0.9000"),
             status="ready" if source_url else "needs_issuer_route",
             reason=(
-                "Wedbush publishes this ETF's complete current holdings CSV."
+                "Wedbush publishes this ETF's complete current holdings feed."
                 if source_url
-                else "Wedbush needs an ETF symbol to resolve its public holdings CSV."
+                else "Wedbush needs an ETF symbol to resolve its public holdings feed."
             ),
             source_url=source_url,
             issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id")
@@ -23516,11 +23648,19 @@ class WedbushHoldingsAdapter(IssuerCsvHoldingsAdapter):
         identifiers: dict[str, str] | None = None,
     ) -> str | None:
         del identifiers
-        if source_url and "wedbushfunds.com" in source_url.lower():
-            return source_url.strip()
-        resolved_symbol = (issuer_product_id or symbol).strip().lower()
+        if source_url:
+            parsed = urlparse(source_url.strip())
+            if parsed.scheme != "https" or parsed.hostname not in {
+                "wedbushfunds.com",
+                "www.wedbushfunds.com",
+            }:
+                raise ValueError("Wedbush holdings must use an issuer-owned HTTPS source.")
+            if parsed.path.rstrip("/") != f"/latest-sod-holdings-{symbol.strip().lower()}":
+                return source_url.strip()
+        resolved_symbol = (issuer_product_id or symbol).strip().upper()
         return (
-            self.holdings_url_template.format(symbol_lower=resolved_symbol)
+            "https://wedbushfunds.com/assets/feeds/feeds.php?"
+            + urlencode({"fund": resolved_symbol})
             if resolved_symbol
             else None
         )
@@ -23546,32 +23686,109 @@ class WedbushHoldingsAdapter(IssuerCsvHoldingsAdapter):
             response = await client.get(
                 holdings_url,
                 headers={
-                    **_holdings_request_headers(accept="text/csv,application/octet-stream,*/*"),
-                    "Referer": f"https://wedbushfunds.com/funds/{normalized_symbol.lower()}/",
+                    **_holdings_request_headers(accept="application/json,text/csv,*/*"),
+                    "Referer": f"https://wedbushfunds.com/{normalized_symbol}",
                 },
                 follow_redirects=True,
             )
         response.raise_for_status()
-        rows, composition_date = self._parse_holdings_csv(response.text, symbol=normalized_symbol)
+        feed = urlparse(holdings_url).path == "/assets/feeds/feeds.php"
+        if feed and (
+            _url_host(str(response.url)) not in {"wedbushfunds.com", "www.wedbushfunds.com"}
+            or urlparse(str(response.url)).path != "/assets/feeds/feeds.php"
+            or parse_qs(urlparse(str(response.url)).query).get("fund") != [normalized_symbol]
+        ):
+            raise ValueError(
+                "Wedbush holdings feed redirected outside the requested issuer/fund route."
+            )
+        payload = response.json() if feed else None
+        rows, composition_date = (
+            self._parse_holdings_feed(payload, symbol=normalized_symbol)
+            if feed
+            else self._parse_holdings_csv(response.text, symbol=normalized_symbol)
+        )
         if not rows:
             raise ValueError(f"Wedbush holdings CSV returned no rows for {normalized_symbol}.")
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
-            raw_json={"source_format": "issuer_symbol_holdings_csv", "row_count": len(rows)},
+            raw_json=payload
+            if feed
+            else {"source_format": "issuer_symbol_holdings_csv", "row_count": len(rows)},
             source_url=str(response.url),
             source_identifier=issuer_product_id or normalized_symbol,
             legal_metadata={
                 "source_access": self.config.source_access,
                 "source_provider": self.source_provider,
                 "adapter_key": self.adapter_key,
-                "source_format": "csv",
-                "route_resolution": "wedbush_symbol_holdings_csv",
+                "source_format": "json" if feed else "csv",
+                "route_resolution": "wedbush_public_symbol_holdings_feed"
+                if feed
+                else "wedbush_symbol_holdings_csv",
+                "parser_version": "wedbush-complete-feed-v1" if feed else "wedbush-csv-v1",
+                "expected_cadence": "daily",
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "terms_note": self.config.terms_note,
             },
         )
+
+    @staticmethod
+    def _parse_holdings_feed(
+        payload: Any, *, symbol: str
+    ) -> tuple[list[CanonicalHoldingRow], date]:
+        if not isinstance(payload, dict) or payload.get("ticker") != symbol:
+            raise ValueError(
+                f"Wedbush holdings feed identity did not match requested ETF {symbol}."
+            )
+        holdings = payload.get("holdings")
+        if not isinstance(holdings, dict):
+            raise ValueError("Wedbush holdings feed has no complete portfolio.")
+        composition_date = _parse_issuer_date(holdings.get("asof"))
+        source_rows = holdings.get("rows")
+        if composition_date is None or not isinstance(source_rows, list) or not source_rows:
+            raise ValueError("Wedbush holdings feed has no dated complete rows.")
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw in enumerate(source_rows, 1):
+            if not isinstance(raw, list) or len(raw) != 6 or not _clean(raw[1]):
+                raise ValueError("Wedbush holdings feed contains a malformed portfolio row.")
+            shares, market_value, weight = (_decimal(raw[i]) for i in (3, 4, 5))
+            if any(v is None or not v.is_finite() for v in (shares, market_value, weight)):
+                raise ValueError("Wedbush holdings feed contains invalid numeric data.")
+            cash_like = "cash" in str(raw[1]).lower() or str(raw[0]).upper() == "CASH"
+            source_security_identifier = _clean(raw[2])
+            fund_like = any(
+                marker in str(raw[1]).upper() for marker in (" ETF", " FUND", "CSH MGMT")
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=_clean(raw[0]) if not cash_like else None,
+                    name=_clean(raw[1]),
+                    cusip=source_security_identifier
+                    if not cash_like and _looks_like_cusip(source_security_identifier)
+                    else None,
+                    sedol=source_security_identifier
+                    if not cash_like and _looks_like_sedol(source_security_identifier)
+                    else None,
+                    shares=shares,
+                    market_value=market_value,
+                    weight=weight / Decimal("100"),
+                    currency="USD",
+                    holding_type="cash" if cash_like else "fund" if fund_like else "equity",
+                    row_type="cash" if cash_like else "security",
+                    source_row_id=f"{symbol}:{index}",
+                    extra_data={"source_security_identifier": source_security_identifier},
+                )
+            )
+        if (
+            not Decimal("0.98")
+            <= sum((row.weight for row in rows), Decimal("0"))
+            <= Decimal("1.02")
+        ):
+            raise ValueError(
+                "Wedbush holdings feed portfolio weights indicate incomplete holdings."
+            )
+        return rows, composition_date
 
     @staticmethod
     def _parse_holdings_csv(
@@ -45729,6 +45946,9 @@ class MotleyFoolHoldingsAdapter(InnovatorHoldingsAdapter):
 
 class BaronHoldingsAdapter(IssuerCsvHoldingsAdapter):
     product_index_url = "https://www.baroncapitalgroup.com/"
+    product_pages = {
+        "RONB": "https://www.baroncapitalgroup.com/product-detail/baron-first-principles-etf-ronb"
+    }
 
     async def fetch_latest(
         self,
@@ -45739,7 +45959,9 @@ class BaronHoldingsAdapter(IssuerCsvHoldingsAdapter):
         identifiers: dict[str, str] | None = None,
     ) -> HoldingsFetchResult:
         normalized_symbol = symbol.strip().upper()
-        page_or_csv_url = source_url or self.product_index_url
+        page_or_csv_url = (
+            source_url or self.product_pages.get(normalized_symbol) or self.product_index_url
+        )
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             if self._is_csv_url(page_or_csv_url):
                 holdings_url = page_or_csv_url
@@ -45760,6 +45982,16 @@ class BaronHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if not rows:
             raise ValueError(f"Baron holdings CSV did not expose rows for {symbol}.")
         composition_date = self._composition_date_from_url(holdings_url)
+        for row in csv.reader(StringIO(response_text)):
+            if row and row[0].strip().lower() == "as of date":
+                reported_date = _parse_issuer_date(row[1] if len(row) > 1 else None)
+                if reported_date is None or (
+                    composition_date is not None and reported_date != composition_date
+                ):
+                    raise ValueError(
+                        "Baron holdings filename and reported composition date disagree."
+                    )
+                composition_date = reported_date
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response_text,
@@ -45772,6 +46004,8 @@ class BaronHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "adapter_key": self.adapter_key,
                 "source_format": "csv",
                 "route_resolution": "issuer_product_page_linked_holdings_csv",
+                "parser_version": "baron-csv-v2",
+                "expected_cadence": "daily",
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "terms_note": self.config.terms_note,
@@ -45825,6 +46059,17 @@ class BaronHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 follow_redirects=True,
             )
             response.raise_for_status()
+            if urlparse(source_url).path.startswith("/api/product/media/csv/"):
+                if (
+                    _url_host(str(response.url))
+                    not in {"www.baroncapitalgroup.com", "baroncapitalgroup.com"}
+                    or urlparse(str(response.url)).path != urlparse(source_url).path
+                    or "html" in response.headers.get("content-type", "").lower()
+                ):
+                    raise ValueError(
+                        "Baron holdings media response is not the declared issuer CSV."
+                    )
+                return str(response.url), response.text
             return source_url, response.text
         except httpx.HTTPStatusError as exc:
             if exc.response.status_code == 404:
@@ -45930,6 +46175,29 @@ class BaronHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
     @staticmethod
     def _discover_holdings_url(raw_html: str, *, symbol: str, base_url: str) -> str | None:
+        # Current product pages publish a media endpoint with required query
+        # parameters. The embedded CMS/index link can point at a stale file;
+        # prefer the actual fund-bound Download Daily Holdings anchor.
+        media_links: list[tuple[date, str]] = []
+        for href in re.findall(r"href=[\"']([^\"']+)[\"']", raw_html, re.IGNORECASE):
+            url = urljoin(base_url, html.unescape(href))
+            parsed = urlparse(url)
+            match = re.fullmatch(
+                rf"/api/product/media/csv/{re.escape(symbol)}-HOLDINGS-(\d{{8}})-0\.csv",
+                parsed.path,
+                flags=re.IGNORECASE,
+            )
+            if (
+                parsed.scheme != "https"
+                or parsed.hostname not in {"www.baroncapitalgroup.com", "baroncapitalgroup.com"}
+                or match is None
+            ):
+                continue
+            day = BaronHoldingsAdapter._parse_compact_yyyymmdd(match.group(1))
+            if day is not None and parse_qs(parsed.query).get("product_type") == ["etf-downloads"]:
+                media_links.append((day, url))
+        if media_links:
+            return max(media_links)[1]
         candidates: list[tuple[date, str]] = []
         for pattern in (
             re.compile(
@@ -45969,9 +46237,21 @@ class BaronHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
     @staticmethod
     def _parse_baron_csv(raw_csv: str) -> list[CanonicalHoldingRow]:
-        reader = csv.DictReader(StringIO(raw_csv.strip()))
+        table = list(csv.reader(StringIO(raw_csv.lstrip("\ufeff").strip())))
+        required = {"Holding", "Ticker", "Weight (%)", "Market Value ($)", "Quantity"}
+        header_index = next((i for i, row in enumerate(table[:20]) if required.issubset(row)), None)
+        if header_index is None:
+            raise ValueError("Baron holdings CSV did not expose its complete holdings schema.")
+        header = table[header_index]
         rows: list[CanonicalHoldingRow] = []
-        for index, item in enumerate(reader, start=1):
+        for index, row in enumerate(table[header_index + 1 :], start=1):
+            if row and row[0].strip().lower() == "as of date":
+                continue
+            if not any(cell.strip() for cell in row):
+                continue
+            if len(row) != len(header):
+                raise ValueError("Baron holdings CSV contains a malformed portfolio row.")
+            item = dict(zip(header, row, strict=True))
             symbol = _clean(item.get("Ticker"))
             name = _clean(item.get("Holding"))
             if not symbol and not name:
@@ -45980,7 +46260,10 @@ class BaronHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "CASH",
                 "USD",
                 "US DOLLAR",
-            } or "CASH" in (name or "").strip().upper()
+            } or any(
+                marker in (name or "").strip().upper()
+                for marker in ("CASH", "OTHER ASSETS AND LIABILITIES")
+            )
             rows.append(
                 CanonicalHoldingRow(
                     symbol=None if cash_like else symbol,
@@ -65404,6 +65687,7 @@ class PictetHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Read Pictet ETF portfolios from its public Kurtosys fund allocation API."""
 
     product_page_template = "https://etf.am.pictet.com/{symbol_lower}/"
+    canonical_product_pages = {"PQUS": "https://am.pictet.com/us/en/advisors/pqus"}
     holdings_api_url = "https://api-eu.kurtosys.app/fund/getEntity"
     # This is Pictet's public front-end client token, exposed to every visitor of
     # the ETF pages. It is not an account credential; the live test catches an
@@ -65422,7 +65706,8 @@ class PictetHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "Pictet publishes complete current ETF holdings through its public "
                 "fund-allocation API."
             ),
-            source_url=self.product_page_template.format(symbol_lower=normalized_symbol.lower()),
+            source_url=self.canonical_product_pages.get(normalized_symbol)
+            or self.product_page_template.format(symbol_lower=normalized_symbol.lower()),
             issuer_product_id=normalized_symbol or None,
         )
 
@@ -65438,10 +65723,18 @@ class PictetHoldingsAdapter(IssuerCsvHoldingsAdapter):
         normalized_symbol = symbol.strip().upper()
         if not normalized_symbol:
             raise ValueError("Pictet requires an ETF symbol.")
-        product_page_url = source_url or self.product_page_template.format(
-            symbol_lower=normalized_symbol.lower()
+        product_page_url = (
+            source_url
+            or self.canonical_product_pages.get(normalized_symbol)
+            or self.product_page_template.format(symbol_lower=normalized_symbol.lower())
         )
-        if _url_host(product_page_url) != "etf.am.pictet.com":
+        if (
+            _url_host(product_page_url) == "etf.am.pictet.com"
+            and urlparse(product_page_url).path.strip("/").lower() == normalized_symbol.lower()
+            and normalized_symbol in self.canonical_product_pages
+        ):
+            product_page_url = self.canonical_product_pages[normalized_symbol]
+        if _url_host(product_page_url) not in {"etf.am.pictet.com", "am.pictet.com"}:
             raise ValueError("Pictet holdings must use a Pictet ETF product page.")
 
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
@@ -65490,6 +65783,7 @@ class PictetHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "adapter_key": self.adapter_key,
                 "source_format": "json",
                 "route_resolution": "pictet_public_kurtosys_fund_allocations",
+                "expected_cadence": "daily",
                 "product_page_url": str(page_response.url),
                 "holdings_allocation_code": self.holdings_allocation_code,
                 "product_page_access": (
@@ -67186,7 +67480,10 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         adapter_key="pictet",
         source_provider="pictet",
         source_access="issuer_public_kurtosys_complete_fund_allocations_api",
-        product_page_templates=("https://etf.am.pictet.com/{symbol_lower}/",),
+        product_page_templates=(
+            "https://am.pictet.com/us/en/advisors/{symbol_lower}",
+            "https://etf.am.pictet.com/{symbol_lower}/",
+        ),
         live_tested_default_route=True,
         terms_note="Pictet's public ETF fund-allocation API may be subject to issuer terms.",
     ),
@@ -67327,10 +67624,10 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
     "wedbush": IssuerCsvAdapterConfig(
         adapter_key="wedbush",
         source_provider="wedbush",
-        source_access="issuer_public_symbol_holdings_csv",
-        url_templates=("https://wedbushfunds.com/latest-sod-holdings-{symbol_lower}/",),
+        source_access="issuer_public_complete_holdings_json_feed",
+        url_templates=("https://wedbushfunds.com/assets/feeds/feeds.php?fund={symbol}",),
         live_tested_default_route=True,
-        terms_note="Wedbush Funds public ETF holdings CSV files may be subject to issuer terms.",
+        terms_note="Wedbush Funds public ETF holdings feeds and retained legacy CSV files may be subject to issuer terms.",
     ),
     "shelton": IssuerCsvAdapterConfig(
         adapter_key="shelton",
@@ -68183,17 +68480,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         source_provider="global_x",
         product_page_templates=("https://www.globalxetfs.com/funds/{symbol_lower}/",),
         live_tested_default_route=True,
-        terms_note="Global X public product pages and holdings files may be subject to issuer terms.",
+        terms_note="Global X public complete holdings payloads/downloads carry reuse restrictions; shared entitlement review is required before platform routing activation.",
     ),
     "mirae_asset": IssuerCsvAdapterConfig(
         adapter_key="mirae_asset",
         source_provider="mirae_asset",
-        source_access="issuer_public_global_x_product_page_holdings_file",
+        source_access="issuer_public_global_x_complete_holdings_payload_or_file",
         product_page_templates=("https://www.globalxetfs.com/funds/{symbol_lower}/",),
         live_tested_default_route=True,
         terms_note=(
             "Mirae Asset Global Investments' US ETF range is published through the "
-            "Global X public product pages and holdings files."
+            "Global X public product pages and holdings files; shared entitlement review is required for their reuse restrictions before platform routing activation."
         ),
     ),
     "columbia_threadneedle": IssuerCsvAdapterConfig(
