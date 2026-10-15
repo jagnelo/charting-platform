@@ -19397,8 +19397,8 @@ from this source after those checks and visually reviewed at 1920x1080 100% and
 125%, and 2560x1440 100% and 125%; visible labels and descriptions are separate
 and readable, and the dialog's remaining rows are reachable through scrolling.
 The test stack used a pinned Playwright 1.62.1 Chromium container because the
-host sandbox denied Chromium launch. The exact temporary Compose project is
-being cleaned up after final evidence checks; assigned runtime is preserved.
+host sandbox denied Chromium launch. The exact temporary Compose project was
+removed after evidence capture; assigned runtime is preserved.
 
 Per the human's explicit approval, these four images are a deterministic
 local-only Help reference for this staging checkpoint only. The manifest keeps
@@ -19416,4 +19416,22 @@ The validated implementation is committed and pushed as
 `d0add5588612339203073b21015028ad4ffeb106`; its exact-source receipt is in
 `validation.jsonl`. This follow-up operational commit publishes the completed
 evidence and handoff. The local Help slice does not close the wider branch goal.
+
+## 2026-10-15 — Exact-tip scope-guard correction
+
+GitHub run `38807716776` inspected the pushed SHA
+`9705b1bec39026f1ea611fbee75b220ba3bab0f0`. Its Branch-declared Tests job
+failed before product tests because the TC ownership guard rejected
+`tests/visual/references/tc2000-v25/manifest.yaml`. The human explicitly
+authorized the local-only Help reference update, but the shared path had not
+yet been entered in this branch's `shared_path_exceptions`.
+
+The plan now records a narrow exception permitting TC to change only the
+keyboard_help interim oracle and its four Linux local Help baselines under that
+authorization. Official keyboard_help state/review stays `required_missing`,
+all thresholds and other manifest states are preserved, and staging
+reconciliation remains coordinator-owned. This is not an attempt to bypass the
+scope guard; rerun its self-tests and declared branch suite, then inspect the
+next Actions run against its full exact SHA. The failed 9705b1 run remains a
+failed historical run and must not be described as green.
 

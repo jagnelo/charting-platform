@@ -39,10 +39,12 @@ current_blocker: >-
   delivery of its independent chart-template pointer repair through green
   staging; do not duplicate that fix or sync TC source before publication.
   Provider/ETF staging synchronization and exact TCP4 full integration remain
-  open. The reviewed source and exact-source evidence are committed and pushed;
-  do not treat the checkpoint's GitHub Actions run as green until its terminal
-  conclusion is verified against the full current SHA. Preserve assigned
-  runtime, data, and listener 15190.
+  open. Exact Actions run 38807716776 for SHA
+  9705b1bec39026f1ea611fbee75b220ba3bab0f0 failed its branch-declared job
+  because the authorized shared manifest path lacked an explicit scope
+  exception. The narrow exception is now documented; rerun the guard and verify
+  the next exact-tip Actions run. Preserve assigned runtime, data, and listener
+  15190.
 
   Checkpoint adoption 2026-10-15: the populated-comparison pointer check found
   a remaining default-wide geometry defect in the current TC source despite the
@@ -512,6 +514,15 @@ shared_path_exceptions:
   - path: frontend/tests/unit/components/test_market_map_tool.test.ts
     owners: [TC, etf-holdings-constituents]
     reason: TC workstation consumer tests only.
+  - path: tests/visual/references/tc2000-v25/manifest.yaml
+    owners: [TC, staging-coordinator]
+    reason: >-
+      TC may update only keyboard_help interim_oracle and its four local Help
+      baselines under the human's 2026-10-15 authorization. Preserve
+      keyboard_help state/review as required_missing, all official V25 evidence
+      gaps, every other manifest state, and unchanged thresholds. This is a
+      local staging reference, not V25 approval; coordinator reconciles the
+      shared manifest during integration.
 dependencies:
   - "feat/market-data-provider-platform (provider-neutral identifiers/listings, OHLCV, capability/entitlement/health, evaluator preflight, coverage state, and durable refresh handoff); dependency is not yet in staging."
   - "feat/etf-holdings-constituents (ETF holdings capability, audit, and source lineage); currently waits on provider-platform staging integration."
@@ -573,12 +584,13 @@ progress:
   total: 5
   current_phase: TCP2_HELP_REFERENCE_PREPARED;_TCP1_COORDINATOR_STAGING_WAIT
   next_action: >-
-    Publish the exact-source validation and handoff update, then inspect the
-    branch Actions run for the resulting pushed SHA. Keep official V25 Help
-    parity required_missing. Do not duplicate the coordinator-owned pointer
-    repair or synchronize TC source until green staging. Continue the full
-    roadmap, consume Provider+ETF only after synchronized green staging, and
-    preserve the exact integration gate and assigned runtime/data.
+    Run the TC scope guard and six self-tests with the newly documented narrow
+    shared-manifest exception, plus workstream and visual-policy validators.
+    Publish the correction and inspect Actions on its exact resulting SHA.
+    Keep official V25 Help parity required_missing. Do not duplicate the
+    coordinator-owned pointer repair or synchronize TC source until green
+    staging. Continue the full roadmap and preserve the integration gate and
+    assigned runtime/data.
     Historical next action: Continue TC-owned R1/R5/R6 implementation and trace the Help screenshot
     layout-state mismatch. Ctrl+M now opens explicit list membership actions,
     and Shift/Ctrl divider drag now evenly resizes the selected side with
