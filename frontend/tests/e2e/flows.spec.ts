@@ -1843,9 +1843,9 @@ test.describe('TC2000 workstation', () => {
     await page.getByRole('combobox', { name: 'Linked timeframe' }).selectOption('W1')
     await expect(popupTool.locator('.tool-window__timeframe')).toHaveValue('W1', { timeout: 15_000 })
 
-    const closed = popup.waitForEvent('close')
-    await popup.locator('button[title="Close"]').click()
-    await closed
+    // Linking assertions above must succeed while the popup is live. Cleanup
+    // can race with its browser close event, as in the adjacent crosshair test.
+    await closePopupWhenOpen(popup)
     await expect.poll(() => context.pages().length).toBe(1)
     await browserDiagnostics.expectNoCriticalIssues()
   })
