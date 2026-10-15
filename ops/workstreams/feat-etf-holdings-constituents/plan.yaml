@@ -1314,29 +1314,24 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Preserve the source-derived transport inventory and current no-retry visual
-  evidence without duplicating coordinator-owned visual runs. The historical
-  staging5267f11a run38773602828 had103 visual passes plus one recovered flaky
-  1080p screenshot and is not clean acceptance; its 38785967367 follow-up was
-  cancelled. Current repair merge82d881e7 run38805309009 is terminal success:
-  ordinary E2E151 passed/109 expected skips, exhaustive backend1647,
-  frontend927, functional154/106 expected skips, and visual104 passed. However,
-  exhaustive logs show two agent-resource-cleanup failures because CI runs at
-  the repository root while the cleanup guard expects the staging worktree;
-  final test-stack-down reports Error2. The job wrapper still says success, but
-  no coordinator baseline release/receipt is recorded. The coordinator's
-  separate full260-case no-retry replay was last reported with one readiness
-  race under review. The adjacent-
-  chart test-only repair is already published and validated in this branch; do
-  not duplicate the coordinator-owned pointer geometry or MarketMap repairs.
-  Continue independent ETF issuer-source and consumer-contract preparation.
-  Await coordinator audit/resolution of the staging CI cleanup mismatch and
-  publication of its canonical clean receipt. Also await Provider
-  checkpoint/cost-contract acceptance under the approved 20
-  EUR/USD-equivalent monthly ceiling (or tested non-bypassable free-only
-  boundary) and explicit green-baseline release. Until release, update only
-  branch-owned evidence; do not import Provider or merge staging. After release
-  reconcile the actual producer contract, implement ETF shared-runtime consumer
-  tests here, then run the required full profile and exact-source CI. Preserve
-  full roadmap and observation gate; no sibling edits, deployment, paid
-  activation, trial, or scope reduction.
+  The exact common repair baseline82d881e76be8de538abb6ec5c454d96afe0ee56a is
+  released and merged into this feature worktree; this is not product-checkpoint
+  acceptance. Reconcile the actual merge against the preserved feature source,
+  focusing on the workspace snapshot-save acknowledgement/trailing generation,
+  populated-comparison chart geometry, and ETF's stronger adjacent-chart visual
+  readiness assertions. Bounded validation on the merged source is 74/74
+  workspace-store unit tests, frontend type-check, and diff-check. Keep all
+  screenshots, thresholds, diagnostics, popup-close checks, structural conflict
+  recovery, workspace identity guards, and newer-local-state protections.
+  Do not start a local browser/Docker/full profile while Provider owns the first
+  heavy validation slot. Coordinate that slot, then run the unchanged required
+  full_stack_browser profile and exact-source CI before checkpoint review.
+  Continue bounded ETF identity/asset-kind and consumer-contract work without
+  implementing the shared ETF_HOLDINGS bridge until Provider publishes an
+  accepted, tested contract. Conditional paid=false defaults are not sufficient
+  evidence: unknown paid/cost/quota and unsafe operations must deny before every
+  real issuer page, retry, redirect, or SEC fallback; do not create a duplicate
+  aggregate ledger. Preserve futures/cash identities and all original roadmap
+  criteria, budget ceiling, and post-integration observation gate. No staging
+  edits, sibling changes, paid/trial activation, deployment, data cleanup, or
+  product-scope reduction.

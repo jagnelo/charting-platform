@@ -10840,3 +10840,55 @@ Do not generate a recursive operational commit just to record its own hash.
 Continue after the real Provider checkpoint is released on green staging;
 preserve the original fourteen criteria and monthly-cost ceiling. No human
 app-testing action is needed for this local repair checkpoint.
+
+### Common repair baseline reconciliation — 2026-10-15 21:40Z
+
+The coordinator released exact synchronized green staging
+`82d881e76be8de538abb6ec5c454d96afe0ee56a` as the common repair baseline only.
+Canonical receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/20261015T213902Z-82d881e76be8.json`;
+the exact CI run is `38805309009`, attempt 1. The coordinator audited normal
+integration exit 0 and ordinary `151 passed/109 expected skips`, plus exhaustive
+`1647 backend`, `927 frontend`, `154 functional/106 expected skips`, and
+`104 actual visuals`, with zero browser retries/flakes. This supersedes the
+earlier branch-local interpretation of the hosted cleanup logs; no staging
+ref or files were changed from this feature worktree.
+
+Merged that exact released SHA into this same clean, unfrozen ETF branch. The
+only content conflicts were `WorkstationToolContent.vue` plot/compare geometry
+and `tc2000_visual.spec.ts` popup/readiness text. The geometry resolution keeps
+the released populated-comparison/Plots hit-target separation. The E2E
+resolution keeps the ETF's stronger sandbox screenshot preconditions: existing
+shell-ready helper, a visibly rendered adjacent `.uplot`, no chart loading/error
+state, settled shell refresh, and the expected empty research-results state.
+The screenshot baseline, tolerance, diagnostics, and assertions were not
+weakened. The popup close guard still rethrows unless the popup actually closed.
+
+The released workspace-store save behavior is reconciled with ETF's existing
+structural conflict recovery rather than replacing it. The single save
+generation counter tracks the in-flight write; an accepted superseded save
+acknowledges its returned revision/baseline only when workspace identity and
+base revision still match, retaining newer local fields. The in-flight promise
+path flushes edits whose debounce expires during an earlier write. Existing
+disjoint-window structural merge and local recovery-copy protections remain.
+New release tests cover the accepted revision on the next write, trailing save,
+workspace switch, newer local revision, and edits arriving during a conflict
+retry.
+
+Bounded ETF-local checks on the merged tree: workspace-store unit file `74/74`
+passed; `npm run type-check` passed; `git diff --check` passed. No browser,
+Docker, or full profile was started because Provider owns the first heavy local
+validation slot. Previous ETF `1938 backend/948 frontend/154 functional/104
+visual` normal-exit evidence remains valid only for its earlier exact source,
+not this merged tree. Coordinate and run the unchanged required full profile
+after the Provider slot, then require exact-source branch CI before checkpoint
+review.
+
+The shared Provider contract is still not accepted. In particular, conditional
+default-false configuration alone does not prove that unsafe `paid=true` is
+rejected for every caller. Keep paid/trial, unknown quota/cost, and unsafe
+operations disabled before issuer-page, retry, redirect, or SEC-fallback
+transport; do not invent an ETF-only aggregate ledger. Continue bounded
+ETF-owned identity/futures/cash and consumer-contract preparation until the
+Provider owner supplies a reviewed, tested contract. This common repair merge
+is not ETF product-checkpoint acceptance or release authority.

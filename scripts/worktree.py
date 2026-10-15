@@ -49,16 +49,22 @@ def common_root() -> Path:
 
 
 def ensure_operator_ready(*, allow_degraded: bool = False) -> None:
-    if git("branch", "--show-current") != "master":
+    root = repo_root()
+    common = common_root()
+    branch = git("branch", "--show-current")
+    coordinator = (
+        root == common / ".ai" / "worktrees" / "staging" and branch == "staging"
+    )
+    if not coordinator and not (root == common and branch == "master"):
         raise SystemExit(
-            "worktree creation must run from the clean root master checkout"
+            "worktree creation must run from the clean root master or persistent staging coordinator checkout"
         )
     if git("status", "--porcelain"):
         raise SystemExit(
-            "master is dirty; commit or otherwise account for changes first"
+            "operator checkout is dirty; commit or otherwise account for changes first"
         )
     if git("diff", "--check"):
-        raise SystemExit("master has whitespace errors")
+        raise SystemExit("operator checkout has whitespace errors")
     git(
         "fetch",
         "origin",
@@ -69,7 +75,10 @@ def ensure_operator_ready(*, allow_degraded: bool = False) -> None:
         raise SystemExit(
             "origin/master is unavailable; fetch before creating a worktree"
         )
-    if git("rev-parse", "HEAD") != remote:
+    # A coordinator checks the master ref without touching unrelated edits in
+    # the root control checkout. Its own staging source still has to be clean
+    # and synchronized below; feature/impostor paths never qualify.
+    if git("rev-parse", "master" if coordinator else "HEAD") != remote:
         raise SystemExit("master is not synchronized with origin/master")
     if not git_succeeds("rev-parse", "--verify", "refs/heads/staging"):
         raise SystemExit(
