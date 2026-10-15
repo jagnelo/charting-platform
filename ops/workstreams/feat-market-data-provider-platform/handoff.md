@@ -25192,4 +25192,38 @@ exact candidate receipts remain separate gates.
   source change for exact-commit hosted CI; do not dispatch provider-live from
   this feature branch or spend quota. The normal feature-branch live suite
   remains manual-dispatch-only and ref-guarded.
+
+## 2026-10-15 exact-source CI and admission refresh
+
+- Exact published SHA `1ab6f79868a736535143ad8a50a649a3afacd36b` passed GitHub
+  run `38798881420`: Backend Tests, Frontend Unit Tests, Branch-declared Tests,
+  and E2E Playwright all succeeded. Branch-declared migration validation
+  covered 50 changed migration files, confirmed fresh-install/existing-database
+  quota schema/data equivalence, and returned previous-release `/health 200`.
+  Playwright ran 260 cases: 151 passed, 109 skipped. Exhaustive Integration
+  Gate was skipped for this feature-branch push by its explicit condition.
+- A fresh `make provider-live-preflight` on the same source, run with authorized
+  read access to the existing owner-private quota coordinator, made zero
+  provider HTTP requests. Durable quota admission is ready; 20/27 providers
+  are eligible and seven are held for current provider-specific reasons
+  (Alpha Vantage, CTA Plan, EODHD, Nasdaq headroom; Dinari Sandbox contract;
+  Marketstack headroom/discovery contract; Tiingo hourly baseline). No live
+  provider workflow was dispatched and no provider quota was spent.
+- The first sandbox-constrained preflight could not access the existing private
+  ledger directory and stopped before transport. Re-running the same
+  read-only preflight with scoped filesystem access to that existing ledger
+  resolved the environment restriction; no quota file was replaced, reset, or
+  written with provider usage. Both outcomes remain in the append-only journal.
+- Exact records are in
+  `ops/workstreams/feat-market-data-provider-platform/validation.jsonl` and
+  `ops/workstreams/feat-market-data-provider-platform/session.json`; the
+  current provider admission snapshot is also in
+  `docs/provider-live-validation.md`. These files, plus this handoff, comprise
+  the separate operational checkpoint for this changeset.
+- This clears the feature-branch GitHub CI portion and publishes current-source
+  admission diagnostics. The provider-live matrix remains unverified on this
+  exact source; the seven held manifests remain uncalled. Continue by reviewing
+  current admission and exact-source receipt rules before any transport, while
+  preserving the pending checkpoint, downstream consumer, ownership, and
+  coordinator gates.
 *** End of File

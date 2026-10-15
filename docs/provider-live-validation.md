@@ -1,5 +1,29 @@
 # Provider live-validation matrix
 
+## Current source/admission snapshot — 2026-10-15 20:38 UTC
+
+This snapshot supersedes the older source/admission section immediately below.
+The exact published source is `1ab6f79868a736535143ad8a50a649a3afacd36b`.
+A fresh `make provider-live-preflight` completed admission analysis with the
+owner-private durable quota ledger accessible; it made zero provider HTTP
+requests and admitted 20 of 27 manifests. Seven remain held: Alpha Vantage,
+CTA Plan, EODHD, and Nasdaq lack current headroom for their full daily
+reservations; Dinari lacks an account-reviewed Sandbox quota/reset/cost map;
+Marketstack lacks the monthly headroom for its two-call reservation and has
+unresolved discovery cost/MIC; Tiingo lacks current hourly usage baselines.
+No held provider was called. This is current admission evidence, not provider
+live acceptance. The private ledger was accessed only to read current durable
+quota state; no reservation or usage was spent by the preflight.
+
+The same exact source passed GitHub CI run
+`38798881420`: backend and frontend unit jobs, branch-declared migration
+compatibility, and Playwright E2E. The migration check covered all 50 changed
+files, confirmed fresh-install/existing-database provider-quota schema/data
+equivalence, and previous-release `/health 200`. Playwright reported 151 passed
+and 109 skipped (260 total). Exhaustive Integration Gate was skipped by the
+feature-branch workflow condition. Credentialed provider live validation was
+not run.
+
 ## Current source and provider admission — 2026-10-15 18:45 UTC
 
 The Provider worktree is dirty at branch HEAD
