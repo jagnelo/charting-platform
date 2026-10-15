@@ -85,6 +85,44 @@ ceiling, or prove a shared non-bypassable free-only checkpoint boundary. The
 ETF-side contract and outstanding independent producer/consumer tests are
 specified in `shared-cost-admission.md`.
 
+### Coordinator visual-readiness cross-check — 2026-10-15
+
+Ownership remains deliberately split: the ETF branch owns only the adjacent
+chart readiness assertion in
+`frontend/tests/e2e/tc2000_visual.spec.ts`; it does not own or repeat staging's
+pointer-geometry repair. The test-only readiness change is already published
+as `b01f59bf156e7a43efe9d3a7897a648ca97f0b16`. It waits for the existing shell
+readiness before Study navigation and then requires a rendered adjacent chart,
+no chart gap state, and the settled refresh label before taking the existing
+sandbox-error screenshot. No screenshot, threshold, or assertion was weakened
+or changed. The isolated replay passed all12 comparisons (four display
+projects x three repetitions, retries disabled); the unchanged ETF full local
+profile later passed all104 visual comparisons with zero flakes and actual
+normal-gate exit0 at code boundary `8e84e7a`.
+
+The coordinator reports an additional, independent fixture replay: raw Noble
+lacked DejaVu and host Chromium encountered `ERR_NETWORK_CHANGED`; using its
+own secure-localhost bridge and read-only DejaVu fixture passed the F8s handoff
+and both unmodified 1080p Study gap screenshots 3/3 in49.3 seconds. Actual
+populated RSP (+23.50%) desktop/narrow ordinary actions passed, as did923 unit
+tests and the build. These are coordinator-reported results, not re-run or
+independently collected in this ETF checkout. The coordinator's full260-case
+replay with retries disabled is still active, and it reports one remaining
+readiness race under review. Treat that replay as pending until its terminal
+report identifies the case, attempts and result; do not infer a green result
+from these focused screenshots or the job badge. No duplicate visual run was
+started here while that replay is active.
+
+The separate staging repair is published as pointer-geometry commit
+`8b4e6853`; its test-only MarketMap refresh-synchronization follow-up
+`543a7817` is clean/pushed and its current CI is `38785967367`. Those are
+coordinator-owned refs and evidence: this branch must not change staging refs,
+duplicate the repair, or infer staging release/ETF acceptance from that CI.
+The coordinator has requested the exact ETF readiness source and evidence in
+this durable handoff. The test-only source and prior green ETF evidence are
+available above, while cross-fixture stable readiness remains pending the
+coordinator's terminal full replay.
+
 The remaining ETF checkpoint work is therefore concrete: wait for the
 coordinator to audit green, no-flake staging and release the accepted Provider
 baseline; then merge only that released staging SHA into this clean, unfrozen
