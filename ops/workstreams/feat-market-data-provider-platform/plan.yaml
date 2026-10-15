@@ -4,7 +4,8 @@ base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
 parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 dependency_authorization: "not applicable: independent staging-based topic"
-human_intent_authorization: "Implement the approved US-first multi-provider market-data platform and the approved corrective plan: complete provider-specific contracts and usage accounting; dynamically use every eligible free provider within its exact entitlement/quota; complete NMS/OTC reconciliation and lifecycle handling; isolate local, staging, master, and production credentials; and require exhaustive provider live validation. Backend/data only; do not modify frontend or ETF constituent provider adapters. The 30-day shadow run is explicitly deferred until it is the final separately planned gate before closure/integration."
+human_intent_authorization: "Implement the approved US-first multi-provider market-data platform and the approved corrective plan: complete provider-specific contracts and usage accounting; dynamically use every eligible free provider within its exact entitlement/quota; complete NMS/OTC reconciliation and lifecycle handling; isolate local, staging, master, and production credentials; and require exhaustive provider live validation. Backend/data only; do not modify frontend or ETF constituent provider adapters."
+integration_checkpoint_authorization: "Human direction received 2026-10-15 to incorporate the provider-platform-integration-1 checkpoint documented by staging commit e4d10ce0d7abc0056befca06831539fb36287043. Prepare the checkpoint for human review while preserving the full roadmap. This authorizes checkpoint planning and implementation only; checkpoint acceptance, merge, deployment, provider activation, and the 30-day operational trial remain separately unauthorized."
 planning_state: ready
 human_closure_authorization: pending
 closure_summary: pending
@@ -14,8 +15,9 @@ local_validation_profile: full_stack_browser
 local_validation_reason: backend application, database migrations, provider adapters, Redis-backed runtime controls, worker scheduling, and Compose secret boundaries require the complete stack gate even though no frontend product files are in scope.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
-goal: "Implement the approved US-first multi-provider market-data platform plan: canonical FIGI-based identity and issuer model; exchange/session calendars; market-series scoped raw/canonical OHLCV with local rollups and adjustments; provider capability/entitlement/quota routing; US universe/lifecycle, events, SEC fundamentals, FINRA short interest, current options with local high-fidelity Greeks, optional futures and crypto providers; backend admin/diagnostic APIs; and disabled 30-day shadow monitoring. Backend/data only; do not modify frontend or ETF constituent provider work."
-scope:
+roadmap_goal: "Implement the approved US-first multi-provider market-data platform plan: canonical FIGI-based identity and issuer model; exchange/session calendars; market-series scoped raw/canonical OHLCV with local rollups and adjustments; provider capability/entitlement/quota routing; US universe/lifecycle, events, SEC fundamentals, FINRA short interest, current options with local high-fidelity Greeks, optional futures and crypto providers; backend admin/diagnostic APIs; and disabled 30-day shadow monitoring. Backend/data only; do not modify frontend or ETF constituent provider work."
+goal: "Prepare provider-platform-integration-1: a validated backend/data foundation that downstream ETF holdings, TC2000, and Strategy Lab v2 work can consume through explicit identity, series, provider capability/entitlement/quota/health, coverage, and unavailable-operation contracts. Preserve every original market-data requirement as a roadmap item; do not claim full feature completion. Stop at ready_for_human_review; no merge, deployment, provider activation, or 30-day trial is authorized."
+roadmap_scope:
   - canonical FIGI-domain identity, issuer/legal-entity separation, effective-dated listings and provider symbols, and unresolved-identity quarantine
   - market-series scoped OHLCV observations and canonical bars with session, feed, adjustment, local aggregation, and coverage provenance
   - versioned exchange sessions, holidays, early closes, timezone projections, and exchange-aware freshness
@@ -24,6 +26,14 @@ scope:
   - QuantLib-backed calculated option Greeks with explicit model/input provenance and existing Black-Scholes fallback
   - backend-only coverage, provider-admin, identity-quarantine, market-session, and shadow-report APIs; symbol compatibility aliases remain additive
   - automated shadow-mode reporting and post-deployment activation evidence, with the actual 30-day run postponed to the final separately authorized phase; no frontend or ETF constituent adapter implementation
+scope:
+  - establish and test stable security, issuer, listing, and provider-symbol contracts with provenance, history, explicit unresolved identities, and legacy compatibility
+  - establish and test shared provider capability, entitlement, quota/usage, health, and routing contracts; unknown or exhausted operations remain non-routable
+  - establish and test canonical series, exchange-session, coverage, refresh, and missing-data contracts usable by the downstream consumers
+  - provide exact-source live evidence for checkpoint-enabled provider operations and tested unavailable/disabled responses for excluded operations
+  - prove additive migrations, application startup, defaults, secret boundaries, current callers, and the normal full validation profile remain compatible
+  - document consumer contract locations, success/unavailable examples, ownership boundaries, and remaining wiring/tests for ETF holdings, TC2000, and Strategy Lab v2
+  - prepare a reviewable checkpoint closure summary and disposition every original criterion without removing the full roadmap
 owned_paths:
   - Makefile
   - .env.example
@@ -62,7 +72,7 @@ dependencies:
   - feat/etf-holdings-constituents owns ETF constituent provider adapters; this branch consumes compatible canonical identities only
   - feat/etf-holdings-constituents is active in parallel and may overlap on ETF identity/discovery evidence; reconcile contracts at integration without changing its adapter ownership
   - configured provider credentials and terms are explicit; unavailable or quota-unknown providers remain visible but non-routable and do not block unrelated providers; account-wide usage outside the shared application database is only trusted when a provider-native cumulative usage observation is reconciled
-acceptance_criteria:
+roadmap_acceptance_criteria:
   - id: AC-IDENTITY
     text: New and reconciled US-listed securities use stable FIGI-domain keys where applicable, issuer identity is separate from security identity, effective-dated listing/provider-symbol history is retained, and unresolved candidates are quarantined without silent merges.
   - id: AC-SERIES
@@ -109,6 +119,377 @@ acceptance_criteria:
     text: Dinari Sandbox may run only through a separately capped canary; every returned response payload is retained in the owner-private redacted response archive, while Sandbox observations never enter canonical production data, usage, alert, or analytics tables. Dinari production routing remains disabled under the approved free-only budget.
   - id: AC-SHADOW-FINAL-PHASE
     text: The 30-day deployed shadow run remains disabled and is not part of the current implementation phase; after every other controllable acceptance gate is complete, it will be planned and authorized as the final gate before human closure and staging integration.
+acceptance_criteria:
+  - id: ICP1
+    text: Stable security, issuer, listing, and provider-symbol contracts preserve identity, provenance, and history; missing or ambiguous identities stay explicit and never silently merge.
+  - id: ICP2
+    text: Shared capability, entitlement, quota/usage, health, and routing contracts are usable by consumers and reject unknown or exhausted quotas, with durable cross-session and concurrent-worker accounting tested.
+  - id: ICP3
+    text: Canonical market series, calendars, coverage, refresh jobs, and missing-data behavior are usable by consumers, with provenance, freshness, gaps, lease recovery, and no provider calls hidden in analytic evaluation loops tested.
+  - id: ICP4
+    text: Every checkpoint-enabled provider operation has bounded exact-source live evidence; every excluded operation has explicit, tested unavailable/disabled behavior and an operation-level status. Historical receipts or quota waits do not count as current success; any failing required operation must be fixed or proposed for explicit human-approved deferral.
+  - id: ICP5
+    text: Additive migrations, application startup, secret boundaries, defaults, and existing callers remain compatible under migration, full-stack, and branch CI validation; required configuration is explicit and missing deployment credentials are not represented as deployment readiness.
+  - id: ICP6
+    text: ETF holdings, TC2000, and Strategy Lab v2 each have a concrete contract map, success and unavailable examples, ownership boundaries, and remaining wiring/tests; no required consumer capability is silently deferred.
+  - id: ICP7
+    text: The checkpoint is reviewable from a clean, pushed exact source with the normal validation profile and exact-source evidence, a disposition for every original criterion, and a closure summary for later human acceptance; full-roadmap completion remains open.
+integration_checkpoint:
+  id: provider-platform-integration-1
+  planning_authorization: "Human instruction on 2026-10-15 to consume the staging coordinator's checkpoint policy and prioritize the integration checkpoint while preserving the full roadmap. Source policy: staging commit e4d10ce0d7abc0056befca06831539fb36287043."
+  acceptance_state: pending_human_review
+  human_closure_authorization: pending
+  deferral_authorization_state: pending_human_checkpoint_acceptance
+  deferral_rule: "Every deferred or excluded operation below is a proposal for this checkpoint, not an accepted waiver. Keep it non-routable and its unavailable behavior tested until the human accepts the checkpoint disposition."
+  merge_authorized: false
+  deployment_authorized: false
+  provider_activation_authorized: false
+  operational_trial_authorized: false
+  operational_trial_timing: "After integration on a separately authorized combined test deployment; this checkpoint does not start the trial. Retain the 30-day duration, daily/final reports, 99% eligible D1 coverage target, discrepancy analysis, and zero silent identity/quota violations as roadmap acceptance gates."
+  latest_evidence_snapshot: >-
+    At 2026-10-15 15:43Z, exact-candidate live manifests for staged tree
+    60b5d49f3799659f82bda2cc04eea6609bfc0cd9 (parent
+    65a467b43d7830b0875d9c3ad538e47a06d4a6db) passed for 20/27 providers:
+    56/56 cases, zero failed operations, and 129 HTTP requests. The offline
+    receipt verifier confirmed all 20 match this exact candidate and made zero
+    provider requests. A fresh no-transport preflight admitted those same 20
+    and quarantined seven: Alpha Vantage (daily headroom below its 9-request
+    reservation), CTA Plan and Nasdaq (two daily directory requests unavailable
+    for each), EODHD (daily headroom below its 16-call reservation), Tiingo
+    (hourly usage baseline unknown), Dinari (Sandbox quota/reset/operation-cost
+    profile missing), and Marketstack (monthly headroom below two requests and
+    discovery page cost/MIC unresolved). None of these seven was called. The
+    MarketData.app trial has expired; effective quota is Free Forever at 100
+    credits/day, and its exact-candidate 7-case manifest passed with the
+    provider-native account counter including the /user/ credit.
+
+    The 18:45:55Z no-transport preflight on the current tracked source
+    `65a467b43d7830b0875d9c3ad538e47a06d4a6db` again found the durable quota
+    coordinator ready, zero global blockers, 20 eligible providers, and the
+    same seven provider-specific holds; it sent zero provider HTTP requests.
+    Tiingo's last owner-dashboard baseline is 2026-10-14 18:27Z. A read-only
+    Playwright visit on 2026-10-15 redirected to Tiingo's login-required page;
+    no credentials were entered and no API request was made, so its rolling
+    hourly baseline remains unknown.
+
+    The 2026-10-15 shared monthly recurring-subscription budget audit found no
+    aggregate cost-admission API/model in the Provider runtime. Existing
+    resolver and status contracts provide conditional free-only routing:
+    `ALLOW_PAID_PROVIDER_ROUTING=false` (the checkpoint default) excludes a
+    reviewed paid entitlement; setting it true can admit a reviewed plan, but
+    is not aggregate cost admission or paid-activation authorization. The
+    17:26Z focused receipt tested the resolver with the reviewed paid fixture
+    under both toggle values. No separate cost subsystem is added. The approved
+    20 EUR/USD-equivalent aggregate ceiling remains unimplemented and
+    Provider-owned ICP2 work; ETF retains ICP6 responsibility for its consumer
+    bridge and actual request/page/retry accounting. Do not infer FX or cost,
+    and do not activate paid plans without separate authorization.
+    Exact-final-source and consumer evidence remain required.
+
+    Migration compatibility was rerun at 18:22Z against the then-current dirty
+    candidate. The origin/master gate
+    passed all 50 changed migration files, comparing fresh install with an
+    existing database upgrade; it confirmed equivalent quota schema/data,
+    cleared unverified legacy 2/60/15/30 values, nullable quotas without
+    guessed defaults, and previous-release `/health 200`. The later cost-gate
+    correction did not touch migration files. This is dirty-candidate evidence,
+    not a clean immutable source receipt; rerun or source-bind after remaining
+    source changes are settled.
+
+    Full backend coverage passed 2,771 unit plus 395 Docker integration tests
+    at 82% on candidate tree `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60`
+    (source HEAD `65a467b...`). The later live candidate tree
+    `60b5d49f3799659f82bda2cc04eea6609bfc0cd9` differs in five files, with the
+    only implementation/test change being MarketData.app `/user/` accounting:
+    the documented successful response consumes one credit and can bootstrap
+    that exact native counter once. Its changed quota-contract test passed
+    1/1 (134 deselected) and Ruff passed; the full backend gate remains to rerun
+    on the final clean source. Migration equivalence was separately rerun at
+    18:22Z against a dirty candidate and must be source-bound after final edits.
+
+    The Provider-branch full browser run remains red: 260 tests, 148 passed,
+    109 skipped, and three failures (chart-template pointer interception; an
+    intermittent `ERR_NETWORK_CHANGED`; and a Strategy benchmark-family
+    request assertion). Separately, authorized repair source
+    `543a7817a9bd24a8543066dd96c9472b45e98cd8` passed frontend units, backend
+    including Testcontainers, and branch tests, but CI run `38785967367` had
+    its pinned 260-case Playwright job cancelled at case 94/260 around 10
+    minutes, with no assertion failure before cancellation; Exhaustive
+    Integration Gate was skipped. The repair owner has since started a new
+    local full-verification matrix in `chart-pointer-repair-full-verified`;
+    its log advanced to 75/260 at 18:58Z. ETF Compose remains active. Provider
+    must not start overlapping heavy validation. This repair evidence does not
+    replace final exact-source Provider browser acceptance. No
+    frontend files were changed. Branch CI, clean exact-source publication,
+    deployment secret stores, downstream reconciliation, and the full roadmap
+    remain open. No merge, deployment, provider activation, or operational
+    trial is authorized.
+  downstream_consumers:
+    - feat/etf-holdings-constituents
+    - feat/tc2000-frontend-rework
+    - feat/strategy-lab-v2
+  consumer_contract_map:
+    - consumer: feat/etf-holdings-constituents
+      consumes: "Canonical identity/listing resolution; provider capabilities, entitlements, quota coordinator, health, and explicit availability; ETF_HOLDINGS remains the downstream-owned adapter/bridge."
+      provider_contract_locations:
+        - backend/app/routers/instruments.py
+        - backend/app/routers/providers.py
+        - backend/app/services/provider_routing.py
+        - backend/app/services/provider_quota_coordinator.py
+        - backend/app/models/market_data_foundation.py
+      ownership_boundary: "This branch owns shared identity/provider governance only; do not edit the ETF branch or implement its adapter bridge here."
+      evidence_required: "Integration/API tests for identity and provider capability/entitlement/quota/health, including successful and unavailable examples; verify the default-false toggle excludes reviewed paid plans in resolver/status and live preflight. ETF later verifies bridge admission and actual request/page/retry accounting against green staging."
+      cost_admission_boundary: "No shared aggregate monthly recurring-subscription cost API exists. The checkpoint uses existing conditional free-only routing: ALLOW_PAID_PROVIDER_ROUTING=false excludes reviewed paid plans; true permits routing only for separately reviewed plans and is not aggregate cost admission or paid-activation authorization. The 17:26Z resolver regression exercised both toggle states. Preserve the approved 20 EUR/USD-equivalent aggregate ceiling as Provider-owned ICP2 work; ETF owns ICP6 validation of its bridge and actual request/page/retry accounting. Do not invent FX conversion or add an ETF-only ledger."
+    - consumer: feat/tc2000-frontend-rework
+      consumes: "Canonical instrument identity, local OHLCV series, coverage/preflight, freshness, and explicit missing/unavailable status; no provider request occurs inside evaluation."
+      provider_contract_locations:
+        - backend/app/routers/instruments.py
+        - backend/app/routers/ohlcv.py
+        - backend/app/routers/coverage.py
+        - backend/app/schemas/ohlcv.py
+        - backend/app/schemas/coverage.py
+      ownership_boundary: "Provider branch supplies backend contracts; TC2000 owns its frontend and downstream reconciliation. This checkpoint makes no frontend changes."
+      evidence_required: "API/worker tests for series provenance, coverage/freshness, missing data, and disabled provider behavior; TC2000 agent later verifies its calls against green staging."
+    - consumer: feat/strategy-lab-v2
+      consumes: "Canonical identity, series and coverage/freshness plus provider availability; analytical evaluation uses persisted/local data and cannot trigger hidden provider calls."
+      provider_contract_locations:
+        - backend/app/routers/instruments.py
+        - backend/app/routers/ohlcv.py
+        - backend/app/routers/coverage.py
+        - backend/app/routers/providers.py
+        - backend/app/services/market_data.py
+      ownership_boundary: "Provider branch owns these shared backend contracts; Strategy Lab v2 owns its engine/API wiring and reconciles after provider and ETF staging integrations."
+      evidence_required: "Backend API/worker tests and a consumer contract map with success/unavailable fixtures; Strategy Lab v2 agent later validates against green staging."
+  consumer_contract_examples:
+    series_success:
+      endpoint: "GET /ohlcv/{symbol}/{timeframe}?local_only=true"
+      response_shape:
+        - ts: "2026-10-14T20:00:00Z"
+          open: 100.0
+          high: 105.0
+          low: 99.0
+          close: 104.0
+          volume: 12345.0
+          vwap: 102.5
+          is_adjusted: true
+    coverage_with_missing_data:
+      endpoint: "GET /coverage/instruments/{symbol}/ohlcv?timeframe=D1&start=...&end=..."
+      response_shape:
+        instrument_id: 42
+        symbol: EXAMPLE
+        timeframe: D1
+        adjusted: true
+        mode: historical
+        status: partial
+        requested_start: "2026-01-01T00:00:00Z"
+        requested_end: "2026-01-10T00:00:00Z"
+        covered_start: "2026-01-01T00:00:00Z"
+        covered_end: "2026-01-10T00:00:00Z"
+        bar_count: 3
+        missing_slices:
+          - start: "2026-01-05T00:00:00Z"
+            end: "2026-01-09T00:00:00Z"
+        explanation: "Local bars leave one or more bounded range slices unavailable."
+        provenance: canonical_local_database
+    unresolved_identity:
+      canonical_only_request: "GET /instruments/{symbol}?canonical_only=true"
+      not_found_response_shape:
+        detail: "Instrument 'EXAMPLE' is not in the canonical security master"
+      admin_review_endpoint: "GET /market-data/identity/quarantine"
+      admin_review_item_shape:
+        id: 1
+        status: pending
+        provider: example_provider
+        provider_symbol: EXAMPLE
+        exchange_mic: XNAS
+        proposed_domain_key: null
+        reason: "identity candidate is ambiguous"
+        candidate_payload: {}
+        instrument_id: null
+        created_at: "2026-10-15T14:00:00Z"
+    no_provider_selected:
+      admin_diagnostic_endpoint: "GET /market-data/routing/decisions?request_key=..."
+      response_shape:
+        - id: 1
+          request_key: "example-request"
+          capability: price_history
+          instrument_id: 42
+          selected_data_source_id: null
+          candidates:
+            - provider: example_provider
+              score: "1"
+          rejected:
+            example_provider: quota_unknown
+          workload_key: "example-workload"
+          created_at: "2026-10-15T14:00:00Z"
+      note: "A null selection is unavailable, never permission to guess another identity or bypass quota. Routing-decision and identity-quarantine endpoints are admin diagnostics; consumers use local series/coverage and internal provider-routing contracts."
+  checkpoint_validation:
+    - id: ICP1
+      evidence: "Add/verify fixture and PostgreSQL tests for identity mapping/conflicts, symbol changes, unresolved identity, provenance/history, and legacy compatibility."
+      tests:
+        - backend/tests/unit/providers/test_openfigi.py
+        - backend/tests/unit/services/test_instrument_sync_metadata.py
+        - backend/tests/integration/test_market_universe_reconciliation.py
+    - id: ICP2
+      evidence: "Add/verify restart and concurrent-worker accounting across request, credit, byte, and symbol dimensions; unknown and exhausted quota rejection; verify reviewed paid entitlements are excluded from resolver/status/live preflight with ALLOW_PAID_PROVIDER_ROUTING=false. Record that true is a routing opt-in, not cost admission or paid-activation authorization; preserve the 20 EUR/USD-equivalent aggregate ceiling as Provider-owned ICP2 work and ETF consumer remainder under ICP6."
+      tests:
+        - backend/tests/unit/services/test_provider_quota_coordinator.py
+        - backend/tests/unit/services/test_provider_quota_contract.py
+        - backend/tests/unit/services/test_provider_routing.py
+        - backend/tests/unit/services/test_provider_runtime.py
+    - id: ICP3
+      evidence: "Add/verify series provenance, calendar/freshness, exact gap handling, scheduler/lease recovery, missing-data response, and no-provider-call evaluation behavior."
+      tests:
+        - backend/tests/unit/services/test_market_data.py
+        - backend/tests/unit/services/test_exchange_catalog.py
+        - backend/tests/unit/workers/test_arq_worker.py
+        - backend/tests/integration/api/test_market_data_admin.py
+    - id: ICP4
+      evidence: "Run the manifest-driven live suite for checkpoint-enabled operations only after provider-specific preflight admits exact reservations; verify exact-source receipts and explicit disabled/unavailable cases for exclusions."
+      tests:
+        - backend/tests/live/test_market_data_providers_live.py
+        - backend/tests/live/test_tokenized_providers_live.py
+        - backend/tests/unit/test_live_provider_runner.py
+    - id: ICP5
+      evidence: "Run all changed migrations against the declared base, the Docker-backed full-stack profile, secret-wiring tests, and exact-source branch CI; report deployment stores separately without implying they are verified."
+      commands:
+        - make test-backend-coverage
+        - INTEGRATION_BASE_SHA=origin/master make test-migration-compatibility
+        - make branch-validate
+      tests:
+        - backend/tests/unit/test_provider_secret_wiring.py
+        - tests/deployment/test_rpi_contract.py
+    - id: ICP6
+      evidence: "Provide each consumer a contract map, example success and unavailable payloads, ownership boundary, and consumer-owned reconciliation/test list; explicitly record the free-only checkpoint admission boundary and Provider-owned aggregate cost gap; run backend contract tests here and defer downstream-owned wiring to each branch."
+      tests:
+        - backend/tests/integration/api/test_market_data_admin.py
+        - backend/tests/integration/api/test_strategy_lab.py
+        - backend/tests/unit/routers/test_providers_router.py
+    - id: ICP7
+      evidence: "Prepare a closure summary with exact source SHA, clean pushed branch, full local profile and branch CI, exact-source live receipts, every original criterion disposition, and all roadmap gaps. Keep human acceptance pending."
+      commands:
+        - make branch-validate
+        - git diff --check
+  original_criterion_disposition:
+    - id: AC-IDENTITY
+      status: partially_delivered
+      disposition: "Identity/listing/provider-symbol foundations and quarantine are implemented, but complete cross-provider mapping and checkpoint contract evidence remain to verify."
+      owner: "feat/market-data-provider-platform"
+      continuation_acceptance_test: "Exact-source fixture/PostgreSQL tests cover mapping conflicts, ticker changes, provenance/history, unresolved identity, and legacy compatibility; unresolved mappings remain quarantined."
+    - id: AC-SERIES
+      status: partially_delivered
+      disposition: "Canonical series and compatibility reads exist; consumer-level provenance, coverage, and unavailable behavior must be verified for this checkpoint."
+      owner: "feat/market-data-provider-platform"
+      continuation_acceptance_test: "API/database tests prove scoped series identity, provenance, compatibility mapping, and explicit missing/stale coverage."
+    - id: AC-CALENDAR
+      status: partially_delivered
+      disposition: "Session/calendar foundations exist; full venue and operational freshness behavior are not yet accepted."
+      owner: "feat/market-data-provider-platform"
+      continuation_acceptance_test: "Calendar tests cover sessions, holidays, early closes, timezone projections, and freshness for supported venues."
+    - id: AC-ROUTING
+      status: partially_delivered
+      disposition: "Capability routing and durable quota controls exist. The integration checkpoint is free-only by default (ALLOW_PAID_PROVIDER_ROUTING=false), while the existing explicit toggle can admit separately reviewed paid plans; neither the toggle nor entitlement is aggregate cost admission or paid-activation authorization. No shared aggregate recurring-subscription cost API or enforcement of the approved 20 EUR/USD-equivalent ceiling exists. Provider owns that ICP2 work; ETF owns ICP6 consumer-bridge and actual-operation accounting evidence. Other provider-specific dimensions, account baselines, and consumer examples remain open."
+      owner: "feat/market-data-provider-platform"
+      continuation_acceptance_test: "Concurrent/restart tests cover provider-specific quota dimensions and reject unknown/exhausted operations before transport."
+    - id: AC-REFRESH
+      status: partially_delivered
+      disposition: "Refresh/worker mechanisms exist; full-universe coverage and target update-frequency proof are outside this integration checkpoint."
+      owner: "feat/market-data-provider-platform continuation"
+      continuation_acceptance_test: "Worker tests prove scheduling, local rollups, exact gap repair, coalescing, lease recovery, retry, and no provider calls inside evaluation loops; operational coverage is measured in the later trial."
+    - id: AC-DATA
+      status: partially_delivered
+      disposition: "Many provider/data paths exist, but full provider roster and all-source coverage are not complete; only evidenced operations are enabled at checkpoint."
+      owner: "feat/market-data-provider-platform continuation"
+      continuation_acceptance_test: "Provider-by-capability contract audit and exact-source live matrix pass, or each excluded operation has tested unavailable behavior and an explicitly accepted deferral."
+    - id: AC-OPTIONS
+      status: deferred
+      disposition: "Options are not required to unblock the named downstream consumers. Preserve their existing backend code, migrations, defaults, and compatibility tests; do not claim options live acceptance at this checkpoint."
+      approval_state: pending_human_checkpoint_acceptance
+      owner: "feat/market-data-provider-platform continuation"
+      continuation_acceptance_test: "Option chain/quote live tests, retained provenance, QuantLib and fallback numerical tests pass before options are marked enabled/accepted."
+    - id: AC-OPS
+      status: partially_delivered
+      disposition: "Backend diagnostics exist; checkpoint requires consumers' specific status/coverage/quota contracts and operational discrepancy reporting remains open."
+      owner: "feat/market-data-provider-platform"
+      continuation_acceptance_test: "Admin/API tests expose capability, entitlement, quota, health, routing, coverage, identity quarantine, queue, and explicit unavailable states without frontend changes."
+    - id: AC-SHADOW
+      status: deferred
+      disposition: "The 30-day live operational trial is moved after staging integration to a separately authorized combined test deployment; routing activation and trial start remain unauthorized."
+      owner: "feature owner plus deployment operator, after provider/ETF contracts are integrated"
+      continuation_acceptance_test: "Run the full 30 days with daily/final reports, at least 99% eligible core-session D1 coverage before the next regular session, discrepancy analysis, and zero silent identity/quota violations."
+    - id: AC-COMPAT
+      status: partially_delivered
+      disposition: "Compatibility paths are retained; checkpoint must prove existing callers work while provider/yfinance fallback stays explicit and non-default."
+      owner: "feat/market-data-provider-platform"
+      continuation_acceptance_test: "Regression tests verify legacy symbol/OHLCV calls and explicit compatibility behavior with yfinance absent from default routing."
+    - id: AC-TEST
+      status: partially_delivered
+      disposition: "A prior full Docker backend gate passed, but exact-source checkpoint tests, branch CI, and all required provider receipts still need current evidence."
+      owner: "feat/market-data-provider-platform"
+      continuation_acceptance_test: "Run the normal full-stack/browser profile, migration compatibility, exact-source branch CI, and all enabled-provider live manifests with no unreported skip."
+    - id: AC-QUOTA-SAFETY
+      status: partially_delivered
+      disposition: "Generic guessed defaults were removed and unknown limits fail closed; several providers still have missing current usage baselines or exact operation contracts."
+      owner: "feat/market-data-provider-platform"
+      continuation_acceptance_test: "Provider-specific contract tests and fresh preflight prove exact unit/window/reset/cost admission; unknown or exhausted operations never reach transport."
+    - id: AC-RATE-FAILURE
+      status: partially_delivered
+      disposition: "Reset-aware capacity handling and persistent holds have regression coverage; remaining provider header/reset variants require source-specific verification."
+      owner: "feat/market-data-provider-platform continuation"
+      continuation_acceptance_test: "Provider-specific 429/418/reset fixtures prove scoped durable holds, typed capacity events, and no retry storm or unsafe fallback."
+    - id: AC-LIVE-EVIDENCE
+      status: partially_delivered
+      disposition: "The matching source candidate has 22/27 provider manifests, while the latest no-network preflight admitted 19/27. Neither result is full live acceptance; missing current evidence and all proposed operation deferrals remain visible and unaccepted."
+      owner: "feat/market-data-provider-platform"
+      continuation_acceptance_test: "Exact-source receipt verifier plus live manifest proves every enabled checkpoint operation; a temporary quota wait or historical receipt is not success."
+    - id: AC-SECRET-DISTRIBUTION
+      status: partially_delivered
+      disposition: "Local secret wiring is verified; GitHub environment and RPi/deployment secret stores remain unverified and must be called out separately from code readiness."
+      owner: "feat/market-data-provider-platform for code; environment owner for secret provisioning/inspection"
+      continuation_acceptance_test: "Secret-boundary tests pass, branch CI is green, and each environment's required names/configuration and verification status are documented without copying local values."
+    - id: AC-PROVIDER-CONTRACT-AUDIT
+      status: partially_delivered
+      disposition: "Provider-specific contracts are recorded, but Dinari, MarketData.app, Marketstack, and some quota/cost/reset/account baselines still lack complete current evidence."
+      owner: "feat/market-data-provider-platform"
+      continuation_acceptance_test: "Every registered operation has a source-backed versioned unit/window/reset/shared-pool/cost/pagination/response/history/venue contract and exact current evidence or is explicitly disabled."
+    - id: AC-DURABLE-DATA-RIGHTS
+      status: delivered
+      disposition: "The owner has granted blanket permission for private durable storage; do not ask again. Provider entitlements and explicit external restrictions remain separate facts, not missing owner consent."
+      owner: "feat/market-data-provider-platform"
+      continuation_acceptance_test: "Provider capability records continue to report provider-specific entitlements accurately and all queried payloads remain durably retained under the approved private setup."
+    - id: AC-DURABLE-CROSS-SESSION-USAGE
+      status: partially_delivered
+      disposition: "A shared local durable quota coordinator and response receipts exist; CI/deployment shared stores and complete account-native baselines remain unverified."
+      owner: "feat/market-data-provider-platform for implementation; environment owner for external stores"
+      continuation_acceptance_test: "Restart/concurrency tests and environment-specific ledger checks prove one account scope cannot overspend across workers, sessions, worktrees, CI, or deployment."
+    - id: AC-UNIVERSE-COMPLETE
+      status: partially_delivered
+      disposition: "CTA, Nasdaq, FINRA OTC, and SEC paths are implemented and source rows are retained; complete multi-venue reconciliation, live freshness, lifecycle confidence, and repeated complete snapshots remain open."
+      owner: "feat/market-data-provider-platform continuation"
+      continuation_acceptance_test: "Same-session complete official source runs prove venue mapping, all-row/page retention, cursor completion, ticker changes, and three distinct complete-day deactivation evidence; partial runs never count absence."
+    - id: AC-SEC-PRELISTING-POLICY
+      status: partially_delivered
+      disposition: "SEC scan/materialization controls exist; checkpoint must verify exact report reviewability, no-refetch materialization, retry cursors, and ambiguous-candidate quarantine."
+      owner: "feat/market-data-provider-platform"
+      continuation_acceptance_test: "Database tests prove disabled scan staging, exact-report bounded materialization without refetch, atomic per-CIK cursor commits, retries, and quarantine."
+    - id: AC-INTEGRATION-WORKFLOW
+      status: partially_delivered
+      disposition: "Provider workflow validation has implementation and tests; checkpoint must confirm exact-source branch CI enforces the full declaration/evidence contract."
+      owner: "feat/market-data-provider-platform"
+      continuation_acceptance_test: "Workflow tests reject changed provider integrations without provider/capability declaration, contract evidence, fixture/live tests, secret scope, usage impact, and explicit disposition."
+    - id: AC-DINARI-SANDBOX-ISOLATION
+      status: deferred
+      disposition: "Dinari's provider-specific Sandbox quota/reset/cost profile is unresolved and the checkpoint can proceed without tokenized securities only if Dinari stays explicitly non-routable, response retention/isolation behavior remains tested, and the human accepts the deferral."
+      approval_state: pending_human_checkpoint_acceptance
+      owner: "feat/market-data-provider-platform continuation"
+      continuation_acceptance_test: "A separately capped Sandbox canary runs only after exact account-specific quota admission; all responses are retained privately and Sandbox observations cannot enter canonical, usage, alert, or analytics tables."
+    - id: AC-SHADOW-FINAL-PHASE
+      status: deferred
+      disposition: "The original before-integration placement is superseded by the authorized checkpoint policy; preserve the full 30-day trial and all outcomes, but run it only after green staging integration on a separately authorized combined test deployment."
+      timing_authorization: accepted_by_checkpoint_policy
+      trial_start_authorization: pending_separate_authorization
+      owner: "feature owner plus deployment operator after integration"
+      continuation_acceptance_test: "A separately authorized full 30-day run satisfies AC-SHADOW; no trial begins as part of checkpoint preparation or acceptance."
 branch_tests:
   - backend unit and provider fixture suites for identity, routing, calendars, coverage, events, adjustments, options, and anomaly handling
   - backend migration compatibility and PostgreSQL/Redis integration tests
@@ -184,22 +565,49 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
-    Current live-acceptance checkpoint, 2026-10-15 07:32Z: the frozen staged
-    candidate tree `2af5d4c9b4055e9c389f4cd4568726fb226707ce` still has 21/27
-    successful provider manifests. The six outstanding are Alpha Vantage,
-    CTA Plan, Dinari, EODHD's free-plan profile-entitlement case, Marketstack
-    exchange-directory pagination, and Nasdaq. No provider request was made
-    during the 07:21Z exact-candidate receipt audit. Alpha Vantage's reviewed
-    nine-request reservation is held until its rolling daily window resets at
-    2026-10-15 07:42:39Z; then rerun the complete manifest. EODHD's full
-    16-credit manifest, CTA/Nasdaq's two-request safety caps, and the Dinari
-    one-request sandbox canary remain scheduled after their 2026-10-16 reset.
-    Marketstack is held after 25 successful XNAS pages and an explicit HTTP
-    429 monthly-limit response; the owner's 12/100 dashboard snapshot predates
-    that run. A read-only browser attempt at 07:27Z reached the account login
-    page in an isolated profile and could not inspect the post-run balance.
-    Do not retry Marketstack until the balance/reset is reconciled and its
-    directory-page billing unit is known. Runtime audit found that a provider
+    Checkpoint status refreshed 2026-10-15 15:15Z: the staging coordinator's
+    provider-platform-integration-1 policy is adopted for preparation only;
+    the original 23-criterion roadmap remains preserved. Exact candidate tree
+    `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60` has 19/27 verified provider
+    manifests (49 cases, 120 requests, 55,634,767 response bytes); the verifier
+    reports eight missing manifests and made zero provider requests. The fresh
+    no-transport preflight admits 19 and quarantines eight; do not call them
+    until their individual quota, usage-baseline, or safety-contract gates are
+    resolved. Backend and migration gates passed, but the browser profile has
+    one UI failure. Direct workstream validation passed for 30 records after
+    these updates. The `make branch-validate` wrapper also exited successfully
+    but emitted nonfatal runtime-bootstrap warnings because this sandbox could
+    not prepare the user's private quota-ledger directory; three optional
+    `sed` reads then received an empty runtime path. Exact provider status, the
+    UI failure, external CI and deployment secret stores, downstream
+    reconciliation, and human acceptance of proposed checkpoint deferrals
+    remain distinct open items. No merge,
+    deployment, provider activation, or shadow trial is authorized.
+  - >-
+    Current live-acceptance checkpoint, 2026-10-15 08:54Z: frozen staged
+    candidate tree `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60` has 22/27
+    successful provider manifests. The five outstanding are CTA Plan, Dinari,
+    EODHD, Marketstack, and Nasdaq. Tiingo's owner-refreshed quota dashboard
+    was reconciled at 08:52:58Z (50/50 hourly, 992/1,000 daily, 2/2 GB monthly)
+    and its exact-candidate full manifest then passed 1/1 case with four calls.
+    CTA Plan and Nasdaq's client safety caps reset at 2026-10-16 04:00Z;
+    EODHD's 08:59Z native usage-only observation showed 18/20 daily calls used
+    and 1/1,200 minute requests used, leaving only two daily calls versus the
+    16-call full-manifest reservation; its daily credits reset at 2026-10-16
+    00:00Z. The usage-only case passed but was not an exact-candidate receipt.
+    Dinari's Sandbox is free
+    for evaluation, but official docs do not publish request quotas; its
+    one-request/day canary has already been used today and the full live suite
+    remains quarantined pending a documented or account-reviewed quota profile
+    and operation-cost map. Marketstack remains held after its earlier monthly
+    limit response: the 12/100 account snapshot predates that run, and vendor
+    documentation does not establish whether exchange-directory pages consume
+    requests per call or per returned ticker. Do not retry directory pagination
+    until the balance/reset and billing unit are reconciled. A 09:00Z
+    no-transport recheck confirms CTA Plan and Nasdaq each lack the two units
+    required by their full manifests, Marketstack's directory operation is
+    non-routable, and Dinari's local daily canary cap is spent. Runtime audit
+    found that a provider
     429 with no reset header and no configured cooldown was recorded but did
     not leave an enforceable hold. The candidate now opens a persistent
     circuit across the exact quota scope when reset evidence exists, and
@@ -208,7 +616,10 @@ remaining_gaps:
     Both paths are covered by tests; exact-candidate full-matrix validation is
     still required. GitHub environment
     secret presence and RPi deployment secrets remain externally unverified;
-    the local secret-wiring tests only prove workflow references.
+    the local secret-wiring tests only prove workflow references. This host's
+    local credential file is confirmed mode 0600 in a mode 0700 parent, shared
+    by the worktree's ignored `.env` and `backend/.env.dev` symlinks, and is not
+    Git-tracked; local worktree reuse does not satisfy CI or deployment stores.
   - >-
     US equity-listing venue completeness remains open. CTA Plan's anonymous
     daily Tape A/B file is now implemented as an independent provider: its
@@ -2521,7 +2932,7 @@ remaining_gaps:
     https://docs.ondo.finance/legal/terms-of-service,
     https://legal.yahoo.com/us/en/yahoo/terms/otos/index.html.
 progress:
-  completed:
+  history:
     - >-
       2026-10-09 provider-specific continuation: CoinGecko Demo's Pro-only
       `/key` usage endpoint is explicitly unavailable, not retried; the Demo
@@ -5160,9 +5571,57 @@ progress:
       Docker-backed backend gate then passed `2,551/2,551` at `81.79%` line
       coverage; Compose/RPi/E2E contracts passed and all `45` workflow tests
       passed. Exact receipts are appended in `validation.jsonl`.
-  total: 23
-  current_phase: exact-candidate validation and external provider admission closure
+    - >-
+      2026-10-15 14:16Z checkpoint validation: the full Docker-backed backend
+      gate passed on the current source candidate (2,771 unit plus 395
+      integration tests, 3,166 total, 82% combined coverage). The first normal
+      sandbox attempt stopped before tests because Docker socket access was
+      denied; the same gate passed with local Docker access, and testcontainers
+      were cleaned up. No provider HTTP requests were made. This proves the
+      backend regression slice of ICP5 only; migration compatibility, browser
+      profile, branch CI, exact-current provider manifests, consumer negative
+      paths, secret stores, deferral acceptance, and checkpoint closure remain
+      open.
+    - >-
+      2026-10-15 15:09Z checkpoint continuation: migration compatibility passed
+      against `origin/master` (50 changed migrations; previous-release schema
+      `fe4f5a6b7c8d` to candidate `65a467b43d7830b0875d9c3ad538e47a06d4a6db`).
+      Exact staged provider tree `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60`
+      has fresh slice receipts for 19/27 providers (49/49 cases, 120 calls,
+      55,634,767 response bytes; no failed operations). No-network receipt
+      verification confirmed the exact tree and identified eight missing
+      manifests. Fresh preflight admitted 19 and held Alpha Vantage, CTA Plan,
+      Dinari, EODHD, MarketData.app, Marketstack, Nasdaq, and Tiingo; no
+      requests were made to those eight. The full browser run completed 153
+      passed, 106 skipped, and one failed: the chart-template comparison test
+      timed out because an overlay intercepted its “Remove RSP” click. No
+      frontend file was changed. Direct workstream validation passed for 30
+      records. `make branch-validate` exited successfully but emitted nonfatal
+      runtime-bootstrap warnings because the sandbox could not prepare the
+      user's private quota-ledger directory; three optional `sed` reads then
+      received an empty runtime path. The full browser profile, provider
+      evidence, external CI/deployment stores, human checkpoint acceptance,
+      and complete roadmap remain open.
+  completed: []
+  total: 7
+  current_phase: integration-checkpoint-contract-and-evidence
   current_blocker: >-
+    Checkpoint preparation is authorized but acceptance is pending. The
+    consumer contract examples, 2,771-unit/395-integration backend gate, and
+    50-migration compatibility gate are recorded. Exact candidate receipts
+    verify 19/27 providers; the eight missing manifests are quarantined by the
+    fresh no-transport preflight and were not called. The full browser profile
+    has one overlay-intercepted UI timeout (153 passed, 106 skipped). Direct
+    workstream validation passed for 30 records. `make branch-validate` also
+    exited successfully but emitted nonfatal runtime-bootstrap warnings because
+    this sandbox could not prepare the user's private quota-ledger directory;
+    its three subsequent optional `sed` reads received an empty runtime path.
+    Tested unavailable behavior for all proposed exclusions, remaining consumer contract checks,
+    external CI/deployment secret-store verification, and human acceptance of
+    proposed deferrals remain open. A clean pushed-source closure summary is
+    also required. No merge, deployment, provider activation, or operational
+    trial is authorized.
+  previous_goal_blocker: >-
     Continued local implementation is not blocked by an owner decision. The
     prior staged candidate is `32dafe227755d7a890bfeb4d96ffc53542af7ba7`; its
     exact-tree receipts are stale after a temporary-path gate fix and mechanical
@@ -6430,7 +6889,7 @@ progress:
       and Docker integration `386/386`. No identity-selection behavior or ETF
       adapter ownership changed; unresolved provider and owner-controlled gates
       remain fail-closed.
-  next_action: >-
+  previous_goal_next_action: >-
     Continue from the 2026-10-14 15:44Z evidence. The full backend gate passed
     2,765 unit tests plus 392 Docker integration tests at 82% combined coverage;
     the focused quota suite passed 64 tests and Ruff passed on the changed
@@ -6838,3 +7297,13 @@ current_gate_checkpoint: >-
   attempt exposed unconditional fallback parsing; the isolated stack then
   built and became healthy. Provider-live acceptance and other listed gates
   remain incomplete.
+  next_action: >-
+    Continue the authorized provider-platform-integration-1 checkpoint in this
+    worktree. Keep the staged source candidate frozen while the contract plan
+    and workstream records are updated. Then verify every ICP test/evidence
+    item against current source, strengthen any missing consumer contract or
+    negative-path test, refresh provider admission without spending unknown or
+    exhausted quota, and obtain exact-source evidence for checkpoint-enabled
+    operations. Preserve all original criterion dispositions and the 30-day
+    post-integration trial. Stop at ready_for_human_review; do not merge,
+    deploy, activate routing, start the trial, or modify sibling worktrees.

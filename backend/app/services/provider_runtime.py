@@ -1827,9 +1827,7 @@ async def _apply_provider_capacity_hold(
     """
 
     scope = str(error.scope or policy.quota_scope or "").strip()
-    policies_query = select(ProviderPolicy).where(
-        ProviderPolicy.data_source_id == data_source_id
-    )
+    policies_query = select(ProviderPolicy).where(ProviderPolicy.data_source_id == data_source_id)
     if scope:
         policies_query = policies_query.where(ProviderPolicy.quota_scope == scope)
     policies = list((await db.execute(policies_query)).scalars().all())
@@ -1844,13 +1842,17 @@ async def _apply_provider_capacity_hold(
 
     affected_capabilities = [item.capability for item in policies]
     health_rows = (
-        await db.execute(
-            select(ProviderHealthState).where(
-                ProviderHealthState.data_source_id == data_source_id,
-                ProviderHealthState.capability.in_(affected_capabilities),
+        (
+            await db.execute(
+                select(ProviderHealthState).where(
+                    ProviderHealthState.data_source_id == data_source_id,
+                    ProviderHealthState.capability.in_(affected_capabilities),
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     for health in health_rows:
         if health.circuit_open_until is None or health.circuit_open_until < error.retry_at:
             health.circuit_open_until = error.retry_at
@@ -2241,12 +2243,8 @@ async def resolve_provider_chain(
             )
             if not history_allowed:
                 continue
-        # ``ALLOW_PAID_PROVIDER_ROUTING`` only controls whether a *reviewed*
-        # paid plan may participate.  It must never turn an unreviewed
-        # descriptor (the default for optional adapters) into a usable route.
-        # Keep this guard in the resolver rather than relying only on the
-        # ``is_free`` query predicate so a broad paid-routing switch cannot
-        # bypass the operator entitlement review boundary.
+        # The paid-routing setting only allows a separately reviewed plan to
+        # participate. It is not an aggregate recurring-cost budget.
         configured_plan = str(entitlement.configured_plan or "").strip().lower()
         account_usage_probe = (
             capability == ProviderCapability.ACCOUNT_USAGE and operation == "fetch_account_usage"

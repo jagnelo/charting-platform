@@ -88,17 +88,135 @@ def free_port() -> int:
         return int(sock.getsockname()[1])
 
 
-def migration_env(port: int) -> dict[str, str]:
+def migration_env(port: int, database: str = "chartingdb") -> dict[str, str]:
     env = os.environ.copy()
     env.update(
         {
-            "DATABASE_URL_SYNC": f"postgresql+psycopg2://postgres:postgres@127.0.0.1:{port}/chartingdb",
-            "DATABASE_URL": f"postgresql+asyncpg://postgres:postgres@127.0.0.1:{port}/chartingdb",
+            "DATABASE_URL_SYNC": f"postgresql+psycopg2://postgres:postgres@127.0.0.1:{port}/{database}",
+            "DATABASE_URL": f"postgresql+asyncpg://postgres:postgres@127.0.0.1:{port}/{database}",
             "SECRET_KEY": "migration-gate-only",
             "APP_ENV": "test",
         }
     )
     return env
+
+
+def postgres_scalar(database: str, query: str) -> str:
+    return run(
+        [
+            "docker",
+            "exec",
+            os.environ["MIGRATION_CONTAINER"],
+            "psql",
+            "-U",
+            "postgres",
+            "-d",
+            database,
+            "-qAtc",
+            query,
+        ]
+    ).stdout.strip()
+
+
+def provider_quota_schema(database: str) -> str:
+    return postgres_scalar(
+        database,
+        """
+        SELECT table_name || '.' || column_name || '|' || data_type || '|' || is_nullable
+               || '|' || COALESCE(column_default, '<none>')
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND ((table_name = 'provider_policy' AND column_name IN (
+                   'max_concurrency', 'tokens_per_minute', 'burst_capacity',
+                   'cooldown_seconds', 'quota_contract', 'quota_scope',
+                   'quota_source', 'quota_verified_at'))
+            OR (table_name = 'provider_quota_window' AND column_name = 'dimension'))
+        ORDER BY table_name, column_name
+        """,
+    )
+
+
+def seed_legacy_quota_fixture() -> None:
+    source_id = postgres_scalar(
+        "chartingdb",
+        "INSERT INTO data_source (name, is_active) "
+        "VALUES ('migration-compatibility-provider-limit-fixture', true) "
+        "RETURNING id",
+    )
+    if not source_id.isdigit():
+        raise SystemExit("could not create existing-database provider quota fixture")
+    run(
+        [
+            "docker",
+            "exec",
+            os.environ["MIGRATION_CONTAINER"],
+            "psql",
+            "-U",
+            "postgres",
+            "-d",
+            "chartingdb",
+            "-v",
+            "ON_ERROR_STOP=1",
+            "-c",
+            "INSERT INTO provider_policy "
+            "(data_source_id, capability, max_concurrency, tokens_per_minute, "
+            "burst_capacity, cooldown_seconds) VALUES "
+            f"({source_id}, 'PRICE_HISTORY', 2, 60, 15, 30)",
+        ]
+    )
+
+
+def seed_fresh_quota_fixture() -> None:
+    source_id = postgres_scalar(
+        "chartingfresh",
+        "INSERT INTO data_source (name, is_active) "
+        "VALUES ('migration-compatibility-provider-limit-fixture', true) "
+        "RETURNING id",
+    )
+    if not source_id.isdigit():
+        raise SystemExit("could not create fresh-install provider quota fixture")
+    run(
+        [
+            "docker",
+            "exec",
+            os.environ["MIGRATION_CONTAINER"],
+            "psql",
+            "-U",
+            "postgres",
+            "-d",
+            "chartingfresh",
+            "-v",
+            "ON_ERROR_STOP=1",
+            "-c",
+            "INSERT INTO provider_policy (data_source_id, capability) "
+            f"VALUES ({source_id}, 'PRICE_HISTORY')",
+        ]
+    )
+
+
+def assert_provider_quota_equivalence() -> None:
+    existing = provider_quota_schema("chartingdb")
+    fresh = provider_quota_schema("chartingfresh")
+    if not existing or existing != fresh:
+        raise SystemExit(
+            "provider quota schema differs between fresh install and existing-database upgrade"
+        )
+    for database in ("chartingdb", "chartingfresh"):
+        remaining = postgres_scalar(
+            database,
+            "SELECT count(*) FROM provider_policy p JOIN data_source d "
+            "ON d.id = p.data_source_id "
+            "WHERE d.name = 'migration-compatibility-provider-limit-fixture' "
+            "AND p.capability = 'PRICE_HISTORY' "
+            "AND p.max_concurrency IS NULL AND p.tokens_per_minute IS NULL "
+            "AND p.burst_capacity IS NULL AND p.cooldown_seconds IS NULL "
+            "AND p.quota_contract IS NULL AND p.quota_source IS NULL",
+        )
+        if remaining != "1":
+            raise SystemExit(
+                f"{database} did not preserve fail-closed provider quota state: {remaining} rows"
+            )
+    print("provider quota schema/data equivalence: fresh and existing paths passed")
 
 
 def old_head(worktree: Path) -> str:
@@ -209,8 +327,16 @@ def main() -> int:
         old_env = migration_env(port)
         run([str(ALEMBIC), "upgrade", "head"], cwd=previous / "backend", env=old_env)
         print(f"previous-release schema: {old_head(previous)}")
+        seed_legacy_quota_fixture()
         run([str(ALEMBIC), "upgrade", "head"], cwd=BACKEND, env=env)
         print(f"checked-out schema: {git('rev-parse', 'HEAD')}")
+        run(
+            ["docker", "exec", container, "createdb", "-U", "postgres", "chartingfresh"]
+        )
+        fresh_env = migration_env(port, "chartingfresh")
+        run([str(ALEMBIC), "upgrade", "head"], cwd=BACKEND, env=fresh_env)
+        seed_fresh_quota_fixture()
+        assert_provider_quota_equivalence()
         smoke_previous_app(previous, port)
         print(
             f"migration compatibility: passed ({len(migrations)} changed migration file(s))"

@@ -144,7 +144,10 @@ LIVE_PROVIDER_CASES = {
     "cta_plan": (
         # The full raw Tape A/B source is exactly one live case: directory
         # index plus the newest published daily file (two admitted requests).
-        ("test_market_data_providers_live.py", "test_cta_plan_latest_tape_ab_symbol_file_is_complete"),
+        (
+            "test_market_data_providers_live.py",
+            "test_cta_plan_latest_tape_ab_symbol_file_is_complete",
+        ),
     ),
     "binance": (
         ("test_market_data_providers_live.py", "test_binance_keyless_crypto_history"),
@@ -474,7 +477,9 @@ LIVE_CASE_OPERATIONS = {
         },
     },
     "cta_plan": {
-        "test_cta_plan_latest_tape_ab_symbol_file_is_complete": {"discover_universe_page"},
+        "test_cta_plan_latest_tape_ab_symbol_file_is_complete": {
+            "discover_universe_page"
+        },
     },
     "binance": {
         "test_binance_keyless_crypto_history": {

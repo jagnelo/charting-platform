@@ -48,6 +48,7 @@ from app.services.provider_runtime import (
     _get_bucket,
     _get_semaphore,
     execute_provider_call,
+    list_provider_status,
     policy_allows_account_usage_bootstrap,
     provider_runtime_quota_admission_active,
     quota_contract_missing_dimensions,
@@ -1426,6 +1427,70 @@ async def test_marketdata_app_entitlement_and_quota_follow_explicit_reviewed_pla
     assert policy.quota_contract["dimensions"][0]["limit"] == 10000
     assert policy.quota_contract["dimensions"][0]["account_plan"] == "starter"
     assert entitlement.is_free is False
+
+
+@pytest.mark.asyncio
+async def test_free_only_checkpoint_boundary_rejects_reviewed_paid_provider(db, monkeypatch):
+    """The checkpoint is free-only while paid routing remains disabled."""
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "starter")
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 10_000)
+    monkeypatch.setattr(settings, "MARKETDATA_APP_API_KEY", "unit-test-key")
+    monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", False)
+    monkeypatch.setattr(
+        "app.services.provider_runtime.provider_missing_routing_controls",
+        lambda *_args, **_kwargs: [],
+    )
+    await seed_provider_runtime(async_db)
+
+    source = db.execute(select(DataSource).where(DataSource.name == "marketdata_app")).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == source.id,
+            ProviderEntitlement.capability == ProviderCapability.LATEST_PRICE,
+        )
+    ).scalar_one()
+    entitlement.configured_plan = "reviewed-checkpoint-paid-fixture"
+    entitlement.is_free = False
+    entitlement.authentication_required = True
+    entitlement.live_probe_status = "passed"
+
+    # The default checkpoint is free-only, despite a reviewed plan, positive
+    # quota, configured credentials, and successful live-probe evidence.
+    denied_chain = await resolve_provider_chain(
+        async_db,
+        ProviderCapability.LATEST_PRICE,
+        operation="get_current_price",
+        operation_cost_overrides={"marketdata_app": 1},
+    )
+    assert all(item.provider_name != "marketdata_app" for item in denied_chain)
+
+    paid_status = next(
+        row
+        for row in await list_provider_status(async_db)
+        if row["provider"] == "marketdata_app"
+        and row["capability"] == ProviderCapability.LATEST_PRICE.value
+    )
+    assert paid_status["entitlement_state"] == "reviewed"
+    assert paid_status["routing_eligible"] is False
+
+    # The existing privileged toggle controls the reviewed paid plan only;
+    # it is not evidence of aggregate monthly subscription-cost admission.
+    monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", True)
+    allowed_chain = await resolve_provider_chain(
+        async_db,
+        ProviderCapability.LATEST_PRICE,
+        operation="get_current_price",
+        operation_cost_overrides={"marketdata_app": 1},
+    )
+    assert any(item.provider_name == "marketdata_app" for item in allowed_chain)
+    paid_status = next(
+        row
+        for row in await list_provider_status(async_db)
+        if row["provider"] == "marketdata_app"
+        and row["capability"] == ProviderCapability.LATEST_PRICE.value
+    )
+    assert paid_status["routing_eligible"] is True
 
 
 @pytest.mark.asyncio

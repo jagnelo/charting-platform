@@ -1345,8 +1345,12 @@
 - [x] Recheck the runtime boundary: the active trial uses the 10,000-credit
       pool, and at/after expiry the provider-specific entitlement and durable
       quota contract fall back to Free Forever/100 credits/day. A future paid
-      plan remains an explicit plan/limit configuration change and still needs
-      the separate paid-routing control. Focused quota/registry/coordinator
+      plan remains an explicit plan/limit configuration change and is
+      non-routable by default. `ALLOW_PAID_PROVIDER_ROUTING=true` can include a
+      separately reviewed plan, but is not aggregate cost admission or
+      authorization to activate paid service. The approved shared ceiling
+      remains Provider ICP2 work, with ETF consumer validation under ICP6.
+      Focused quota/registry/coordinator
       coverage passes `163/163`; a fresh backend unit replay passes
       `2,346/2,346` with 37 warnings; workstream validation and diff checks
       pass.

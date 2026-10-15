@@ -1,5 +1,188 @@
 # feat/market-data-provider-platform
 
+## 2026-10-15 08:54Z Tiingo baseline refresh and exact-candidate live validation
+
+- The owner refreshed the Tiingo dashboard: hourly requests 50/50 remaining,
+  daily requests 992/1,000 remaining, and monthly bandwidth 2/2 GB remaining.
+  At 08:52:58Z, those observations were reconciled into the private shared
+  quota ledger as 0 hourly requests, 8 daily requests, and 0 dashboard-reported
+  monthly bytes used. The ledger preserved 3,262 bytes already recorded for
+  this monthly window rather than erasing local use.
+- Tiingo no-transport preflight was clear. Its exact-candidate live manifest
+  then passed 1/1 case on candidate tree
+  `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60` (parent
+  `65a467b43d7830b0875d9c3ad538e47a06d4a6db`): four HTTP calls across OHLCV,
+  current price, profile, and search; 3,262 response bytes; zero failures or
+  skips. Response payloads and quota accounting remain in private archives.
+- Offline receipt verification confirms 22/27 full provider manifests for
+  this candidate. Remaining exact-candidate receipts are CTA Plan, Dinari,
+  EODHD, Marketstack, and Nasdaq. No source or frontend file changed.
+- A focused EODHD `fetch_account_usage` preflight cleared and its live
+  account-usage-only test passed 1/1. This ran against the working checkout,
+  not as a staged-candidate receipt (`not_current_source`), so it does not
+  satisfy EODHD's full manifest. The native account snapshot reconciled at
+  08:59:00Z to 18/20 calls used today and 1/1,200 minute requests used; only
+  two daily calls remain, below the 16-call full-manifest reservation. Keep
+  EODHD's full live manifest held until the next UTC daily reset.
+- A fresh no-transport preflight at 09:00Z confirms no other missing manifest
+  is safe to run now: CTA Plan and Nasdaq each lack the two daily units their
+  full manifests reserve; Marketstack's directory operation remains
+  non-routable because request cost, allowance/reset, and MIC are unresolved;
+  Dinari's one-canary-per-UTC-day local budget is already consumed. These
+  checks made zero provider requests. Continue on the same frozen candidate;
+  recheck after the published local reset times rather than weakening caps.
+- Official Marketstack source review at 09:03Z confirms the 100-call Free plan
+  and 10,000-call Basic plan on its [pricing page](https://marketstack.com/pricing/).
+  Its [FAQ](https://marketstack.com/faq) is internally inconsistent: one
+  sentence says 1,000 monthly calls, while the next says Free is for at most
+  100; use the lower 100 limit, consistent with pricing and the configured
+  account plan. The FAQ defines multi-symbol ticker-specific lookups as one
+  monthly unit per input symbol, but neither it nor the [v2 OpenAPI
+  contract](https://api.swaggerhub.com/apis/apilayer-863/MarketstackAPIv2/2.0.0/swagger.json)
+  states whether `/exchanges/{mic}/tickers` pagination is billed per page or
+  per returned row. Therefore directory page cost remains unreviewed, and no
+  request was made.
+- Local secret-store audit confirms `/home/m920q/.config/charting-platform/app.env`
+  is a mode-0600 file in a mode-0700 directory, and this worktree's ignored
+  `.env` and `backend/.env.dev` both resolve to that shared file. The file is
+  not Git-tracked. New worktrees on this same host inherit local configuration
+  through the runtime helper; this does not provision GitHub Actions or RPi
+  secrets, which remain unverified and separate by design.
+
+## 2026-10-15 04:34Z archived NMS replay and Postgres fingerprint repair
+
+- Replayed the already-archived live CTA/Nasdaq files into this worktree's
+  isolated Postgres database through `reconcile_us_universe`, with provider
+  transport replaced by a hard no-network stub. No provider calls were made.
+  All three scopes completed in one cycle for source date 2026-10-14: CTA
+  Equity 7,631/7,631, Nasdaq Equity 7,480 observed plus one ambiguous
+  ticker/venue identity quarantined (7,481 expected), and Nasdaq ETF
+  5,769/5,769. Their runs form a complete NMS union; each persisted raw page
+  contains both original Nasdaq source-file bodies, and CTA contains its
+  index and symbol-file body.
+- The first replay attempt surfaced a real PostgreSQL bug: an unresolved
+  identity's descriptive fingerprint exceeded the `varchar(80)` field. Its
+  raw snapshot remained stored, the failed run remains auditable, and no
+  listing row was discarded. `_quarantine_candidate` now uses a stable
+  SHA-256 identity fingerprint while preserving the full reason/source row in
+  the issue payload and immutable observation. This required no schema change.
+- The corrected no-network replay completed. The Postgres-specific integration
+  module passes 5/5, including a regression that repeats the same long-reason
+  issue and verifies one idempotent issue plus two retained observations. The
+  full backend coverage gate is currently running on the modified source;
+  results are not yet claimed. This adds the second distinct complete NMS
+  source date (Oct 13 and Oct 14); same-source-date replay is not counted as a
+  new lifecycle absence confirmation.
+
+## 2026-10-15 04:16Z dashboard reconciliation and exact-candidate continuation
+
+- The owner supplied current account-dashboard readings: Tiingo 50/50 hourly
+  requests, 1,000/1,000 daily requests, and 2/2 GB bandwidth; Marketstack
+  12/100 monthly API calls. These counters were reconciled into the shared
+  private quota coordinator at 04:15:40Z and 04:16:32Z respectively. For
+  Tiingo, the enforced hourly and daily usage baselines are zero at the
+  observation time; the live tests below are counted after those baselines.
+  Marketstack has 88/100 remaining under the current rolling-30-day safety
+  contract. Its `/exchanges/{mic}/tickers` discovery stays held because the
+  page cost and the MIC to query are not yet verified/configured.
+- Current first-party Tiingo pricing documentation continues to state a 1 GB
+  Free-plan monthly bandwidth limit, while the owner dashboard shows 2/2 GB
+  remaining. The implementation retains the stricter 1 GB safety ceiling;
+  the dashboard figure is recorded as conflicting account evidence, not used
+  to enlarge the configured allowance. Source: https://www.tiingo.com/pricing.
+- The complete Tiingo exact-candidate live manifest passed on staged candidate
+  tree `22b4f3ff9a93dfed8dd3c0ddd31982f66fae2077`: 1/1 manifest case, four
+  HTTP calls (OHLCV, price, profile, search), 3,262 response bytes, zero
+  failures/skips. The live receipt was retained in the owner-private receipt
+  file and the provider response archive. The two fresh account dashboard
+  reconciliations are stored in the shared private coordinator, not Git.
+- A current no-transport preflight confirms Tiingo routable and Marketstack's
+  ordinary price-data capability routable; only Marketstack discovery remains
+  blocked on unknown page cost and exchange MIC. Exact-candidate offline
+  verification now confirms 25/27 full provider manifests. The only missing
+  coverage is Alpha Vantage (rolling 24-hour headroom), Dinari (Sandbox
+  quota/reset and endpoint-cost profile), and Marketstack's venue-ticker page
+  manifest. No source or frontend files changed in this continuation.
+- Docker is installed and running. The full backend gate used the Docker-backed
+  Postgres/Redis integration stack; Node/npm were not needed for tests. Node
+  was only considered for an optional browser-based dashboard inspection and
+  was not installed because the owner supplied the dashboard counters directly.
+
+## 2026-10-15 02:53Z targeted usage and operational follow-up
+
+- Current exact-candidate Marketstack history/profile check passed its one-case
+  slice: 1/1 case and 2 HTTP requests (one OHLCV, one current-price). The live
+  source was the staged tree `22b4f3ff9a93dfed8dd3c0ddd31982f66fae2077`.
+  The private coordinator now accounts for 61/100 monthly units: the 12-call
+  dashboard observation at 19:06Z Oct 14, 45 later ticker-list page requests,
+  and 8 OHLCV plus 8 current-price requests, with 39 remaining. This is a
+  conservative local count; `/tickers` pagination remains held because the
+  vendor's billing text covers ticker-specific lookups but does not state the
+  charge for paginated directory pages. The bounded data calls are separately
+  admitted and passed.
+- EODHD's documented `/api/user` usage-only probe passed. Its response reported
+  6/20 daily API calls used and exposed native `X-RateLimit-Limit/Remaining`
+  values of 1200/1199; the official Free plan page says 20 requests/minute,
+  while the general limits page gives 1,000/minute for plans by default. The
+  local limiter remains capped at the stricter Free-plan 20/minute value and
+  uses the native headers only as an observed usage baseline. The account API
+  says the daily pool resets at midnight GMT and the usage endpoint costs zero
+  daily calls. One separately admitted delayed-quote case then passed (1/1
+  case, one request), leaving the local daily count at 7/20 and 13 available.
+  The 16-call EODHD manifest remains held until the next UTC daily reset.
+- The previous scheduled reconciliation is not a complete current roster.
+  Read-only database audit shows CTA Plan's latest complete Equity roster is
+  run 67 at 07:24Z Oct 14 (7,630 rows); EDGAR run 72 completed 10,451 rows at
+  21:00Z; Nasdaq's Oct 14 21:05Z Equity and ETF runs (74/75) were quota-deferred;
+  Massive OTC run 73 was quota-deferred; Alpaca Equity/Crypto runs (70/71) were
+  quota-deferred. FINRA OTC archive replay run 78 is complete for the 18,019-row
+  Oct 14 source snapshot. The worker's daily reconciliation cron is enabled,
+  but its latest run's per-provider quota failures mean it did not produce a
+  complete US listing universe.
+- The live-test harness durably appends redacted provider response bodies to
+  the owner-private response archive outside Git; aggregate quotas/bytes remain
+  in the shared usage ledger. No response payloads or credentials were added
+  to the repository.
+- Full current-candidate live acceptance remains incomplete: 21/27 full
+  provider manifests passed (57 cases, 143 requests); the additional two-case
+  slices above do not replace the six outstanding full manifests. No new
+  provider request was made by the offline receipt verifier or database audit.
+
+## 2026-10-15 02:43Z exact-candidate live slices
+
+- Ran the complete manifest for each of the 21 providers admitted by the fresh
+  provider-specific quota preflight, one provider at a time, against the same
+  staged candidate tree `22b4f3ff9a93dfed8dd3c0ddd31982f66fae2077` (parent
+  commit `65a467b43d7830b0875d9c3ad538e47a06d4a6db`). All 21 provider slices
+  passed: 57/57 live cases, 143 measured HTTP requests, zero failed or skipped
+  cases. The Massive slice included full pagination/corporate-action tests and
+  passed 4/4; it took several minutes because the provider-specific pacing
+  limiter was active.
+- The offline receipt verifier confirms those 21 successful redacted receipts
+  belong to the identical frozen candidate. Full candidate acceptance is still
+  false because six required providers have no successful receipts: Alpha
+  Vantage, CTA Plan, Dinari, EODHD, Marketstack, and Nasdaq. The verifier sent
+  zero requests. Detailed receipts are kept in the owner-local file
+  `/tmp/market-data-provider-platform-candidate-20261015.jsonl`; the aggregate
+  result is recorded here because that temporary file is not durable.
+- Tried the separately authorized one-request Dinari Sandbox canary. The shared
+  local one-request-per-UTC-day cap was already consumed, so the runner blocked
+  before transport; this attempt made zero Dinari requests. This is a local
+  canary limit, not a claim about Dinari's undocumented native quota.
+- Fresh all-provider preflight still holds the remaining six for distinct
+  reasons: Alpha Vantage's nine-request full manifest exceeds current daily
+  headroom; CTA Plan and Nasdaq's two-file daily budgets are reserved for the
+  scheduled whole-universe reconciliation; EODHD has only 14 of 20 daily calls
+  available against a 16-call manifest until its UTC reset; Dinari's Sandbox
+  daily canary is spent and its ordinary reset/operation-cost contract is not
+  published; Marketstack's 100/month allowance has only conservative local
+  headroom and the `/tickers` page cost/MIC for complete venue discovery remain
+  unconfirmed. Do not call held providers or relax their admission guards.
+- The 30-day shadow phase, GitHub CI secret verification, deployment secret
+  verification, and final current-state provider/universe/operational audit
+  remain acceptance requirements; the passing per-provider slices do not mean
+  the feature goal is complete or ready for human review.
+
 ## 2026-10-15 exact-candidate continuation (account usage follow-up)
 
 - The owner reports Tiingo has its full allowance available: 50/50 hourly
@@ -23462,5 +23645,1534 @@ exact candidate receipts remain separate gates.
   six remained held (Alpha Vantage, CTA Plan, Dinari, EODHD, Marketstack, and
   Nasdaq). No provider HTTP request was made; this is an incomplete preflight,
   not a live pass or exact-candidate acceptance receipt. The earlier per-file
-  preflight records from before this tree must not substitute for this result.
+ preflight records from before this tree must not substitute for this result.
+
+## 2026-10-15 03:00Z exact-candidate receipt and quota follow-up
+
+- The exact-candidate verifier for tree `22b4f3ff9a93dfed8dd3c0ddd31982f66fae2077` (parent `65a467b43d7830b0875d9c3ad538e47a06d4a6db`) still reports 21/27 complete provider manifests. The six incomplete manifests are Alpha Vantage, CTA Plan, Dinari, EODHD, Marketstack, and Nasdaq; partial focused cases do not count as a provider-manifest pass.
+- EODHD's current-candidate account-usage snapshot, delayed-quote check, and Free-plan Fundamentals entitlement check each passed. The entitlement check confirmed the expected 403 and is zero daily credits; `/api/user` is documented as zero daily credits. The EODHD small-read slice was preflight-blocked before transport, and a full-manifest attempt was blocked before transport because it needs 16 daily credits while only 13 remain. Do not spend the remainder on partial cases; retry the complete manifest after midnight GMT, with the native rolling-minute snapshot and dependent tests in the same run.
+- Rechecked Marketstack's first-party FAQ, pricing, and endpoint status pages. Its FAQ says a lookup for one specified ticker costs one monthly request per ticker and API errors are not charged; its pricing page says Free is 100 requests/month. The FAQ itself inconsistently says 1,000/month in one answer and 100/month in a later answer; the pricing page and owner's dashboard's 12/100 support 100 as the operative cap. None of the reviewed official pages states whether a paginated `/tickerslist` bulk-directory page is charged per page, per returned ticker, or differently. Keep venue-wide discovery held and retain the conservative local 61/100 estimate (39 remaining); do not infer a cheaper page cost. Marketstack states that its US exchange data is sourced from Tiingo, so do not count it as independent upstream data-source diversity. The owner's 12/100 dashboard reading does not reconcile the locally observed requests and does not resolve page billing.
+- The follow-up preflight failure made zero EODHD provider requests. The latest exact-candidate receipt verifier remains false; no source implementation or provider manifest should be described as fully accepted yet.
+
+## 2026-10-15 03:05Z Dinari Sandbox quota evidence review
+
+- Searched Dinari's official Quickstart, Partner Fees, Stock Data, Environment, and API reference documentation for numerical Sandbox request limits, reset windows, request-cost weights, or documented rate-limit headers. The docs confirm free Sandbox access and describe stock listing, quotes, historical prices, and news, but the reviewed material publishes no numeric Sandbox quota or operation-cost schedule. Do not apply the 2024 commercial-license 1,000,000-call/30-day figure to this Sandbox API key.
+- The already-retained 2026-10-15 00:54:52Z canary response metadata has an empty response-header set; it provides no native quota/reset counters. This does not resolve Dinari's native limit. The existing one-request-per-UTC-day constraint is explicitly our local safety cap, not a Dinari allowance.
+- The source live test currently has a complete multi-operation Dinari manifest, but the canary policy restricts live use to one catalogue request and the candidate verifier does not count that canary as a complete provider acceptance receipt. Retain the distinction: connectivity is demonstrated on an older candidate, the current candidate has no valid Dinari receipt, and the full Sandbox suite remains incomplete. Do not call other Dinari endpoints or widen the local cap without source-backed quota evidence.
+- Official documentation checked: `https://docs.dinari.com/docs/quickstart`, `https://docs.dinari.com/docs/fees`, `https://docs.dinari.com/docs/stock-data`, and `https://docs.dinari.com/reference/environments`.
+
+## 2026-10-15 03:12Z owner-provided quota refresh
+
+- The owner reports Tiingo currently has 50/50 hourly requests remaining, 1,000/1,000 daily requests remaining, and 2 GB/2 GB bandwidth remaining. The private `app.env` already uses Tiingo's reviewed custom profile with these plan caps (500 distinct symbols/month, 50/hour, 1,000/day, 2,000,000,000 bytes/month); no credential was read or changed. The distinct-symbol current balance was not included in this update, so continue using the existing local 1/500 usage observation rather than assuming zero used.
+- The owner reports Marketstack dashboard use of 12/100 monthly calls (88 remaining). This conflicts with the private live ledger's 61 conservatively accounted request units, including a 45-request paginated directory run. The provider's monthly billing treatment for that directory operation remains unverified. Keep Marketstack directory/history live calls held until the response is reconciled; do not rewrite the usage baseline or treat either counter as authoritative for those 45 pages without proof.
+- This is an owner-reported dashboard observation recorded at 2026-10-15 03:12Z, not an API usage response. No provider request was sent to obtain it.
+
+## 2026-10-15 03:18Z Tiingo quota admission and receipt follow-up
+
+- The durable cross-session quota coordinator had no active Tiingo hourly baseline, even though a prior exact-candidate Tiingo manifest receipt existed. I recorded owner-reported plan limits and conservatively retained local observed usage: 4/50 hourly requests, 39/1,000 requests in the active provider day, and 1/500 distinct symbols. The baseline evidence reference is `owner:tiingo:2026-10-15`; it contains no secret. The 2 GB bandwidth cap remains configured from the owner's earlier plan report, with 2 GB reported remaining.
+- After that baseline, the complete bounded Tiingo manifest passed again on staged candidate `22b4f3ff9a93dfed8dd3c0ddd31982f66fae2077`: one live test covering EOD history, current price, instrument profile, and search; 4 HTTP requests, 3,262 response bytes, zero failures/skips. The receipt is in the owner-private candidate file. This run was redundant because Tiingo already had a successful exact-candidate receipt; four calls were spent without increasing the verified-provider count. Preserve the extra receipt for audit and avoid rerunning Tiingo unless source/candidate changes or an evidence gap requires it.
+- Combined exact-candidate verification remains 21/27. The six remaining incomplete manifests are Alpha Vantage, CTA Plan, Dinari, EODHD, Marketstack, and Nasdaq. EODHD still lacks the small-read manifest case; Marketstack still lacks full exchange ticker-page acceptance. The other four have no current successful manifest receipt.
+- Current outstanding account discrepancy: the owner reports Marketstack at 12/100 used (88 remaining), while the conservative local request ledger accounts for 61 units, including a 45-request directory traversal. Do not make additional Marketstack directory calls or overwrite the baseline until the distinction between dashboard-billed units and local HTTP attempts is resolved. The current dashboard balance is enough for the documented monthly cap but does not by itself establish the cost of a page returning many tickers.
+
+## 2026-10-15 03:28Z Marketstack baseline and Dinari SDK semantics
+
+- Reconciled the newer owner-reported Marketstack dashboard balance into the durable quota coordinator: 12/100 used, 88 remaining, observation time 2026-10-15 03:12:33Z. The earlier dashboard baseline was 12/100 at 2026-10-14 19:06Z; the local ledger had accumulated 49 conservative request-units since then. The newer owner dashboard is now the active account-usage baseline; all 49 local attempts remain preserved in the audit log but are not asserted to be provider-billed usage. This does not resolve the cost of `/exchanges/{MIC}/tickers` directory pages, so keep that discovery operation held until MIC and worst-case page cost are configured from evidence.
+- Reviewed Dinari's official Python SDK README. It documents two default retries for connection errors, 408, 409, 429, and server errors, with short exponential backoff; it also exposes raw response headers. It does not publish a numeric Sandbox quota, reset window, or retry delay. The current adapter retries only up to two Sandbox HTTP 500s, does not retry 429 automatically, preserves `Retry-After`, and includes the maximum three attempts in local operation-cost bounds. This clarifies retry/cost behavior but is not evidence of Dinari's provider quota; Dinari remains non-routable pending a complete Sandbox profile.
+- No provider requests were made for either the quota reconciliation or the SDK research. Sources: https://github.com/dinaricrypto/dinari-api-sdk-python and the Dinari docs listed above.
+
+## 2026-10-15 04:08Z full backend gate and exact-candidate live progress
+
+- The repository Docker readiness check passed. The complete combined backend
+  gate then passed all 2,769 unit tests and 393 Docker/PostgreSQL/Redis
+  integration tests; combined coverage was 82% (threshold 75%). The isolated
+  test-container cleanup trap completed successfully. This run made no
+  external market-data requests.
+- The daily no-transport preflight after the America/New_York midnight
+  boundary admitted CTA Plan and Nasdaq. Their complete current-candidate
+  manifests each passed on tree
+  `22b4f3ff9a93dfed8dd3c0ddd31982f66fae2077`: CTA 1/1 case, 2 requests,
+  400,096 bytes; Nasdaq 1/1 case, 2 requests, 891,796 bytes. Both official
+  source responses were retained by the live harness and quota ledger.
+- EODHD's current-candidate account-usage snapshot passed (1 request, 304
+  bytes); its fresh native minute header then admitted the one previously
+  missing small-read case, which passed (5 requests, 7,605,129 bytes). The
+  EODHD cases together now satisfy its full manifest on this exact tree.
+- The offline exact-candidate verifier confirms 24/27 complete provider
+  manifests, zero requests during verification. Only Alpha Vantage (no
+  eligible daily headroom, including for one current-price call), Dinari
+  Sandbox (no account-reviewed quota/reset and worst-case operation-cost
+  profile), and Marketstack directory pagination remain incomplete. A fresh
+  Marketstack owner dashboard observation is 12/100; first-party docs explain
+  per-symbol lookup charges and document `/exchanges/{MIC}/tickers` pagination,
+  but do not specify what that directory page costs. Keep that operation held;
+  do not infer a one-call page cost or alter the reported baseline.
+- Tiingo's first-party general docs confirm daily requests reset at midnight
+  Eastern time and monthly bandwidth resets on the first at midnight Eastern
+  time. Its existing exact-candidate manifest is already verified, but the
+  fresh post-reset all-provider preflight quarantined Tiingo because the daily
+  usage baseline is no longer active. Do not treat the old 03:12Z dashboard
+  reading as a current post-reset balance; reconcile against the exact reset
+  and all shared account activity before any further Tiingo live call.
+- No provider source, config, or frontend code changed in this continuation.
+  The fresh full-matrix preflight remains incomplete and no integration,
+  deployment, or closure was performed.
+
+## 2026-10-15 05:02Z full backend gate after archived NMS replay fix
+
+- The same full backend coverage run completed successfully: all 2,769 unit
+  tests across 56 shards and all 394 Docker/PostgreSQL/Redis integration tests
+  passed. Combined coverage was 82%, above the configured 75% threshold.
+  The scoped Testcontainers cleanup completed; no provider HTTP requests were
+  made. Non-fatal third-party deprecation warnings remain.
+- This run includes the current Postgres-safe reconciliation fingerprint
+  change and regression test. It validates local backend behavior, not live
+  provider acceptance. Exact-candidate provider receipts must be refreshed
+  after the source tree is staged/frozen; earlier receipts do not cover this
+  changed tree.
+- No frontend code, provider credentials, deployment, or other worktree was
+  changed. Overall provider acceptance, full dated universe/lifecycle proof,
+  cross-provider identity reconciliation, secret-store verification, and the
+  separately authorized shadow phase remain open.
+
+## 2026-10-15 05:05Z legacy quarantine issue compatibility
+
+- Added a short-fingerprint compatibility lookup so pre-upgrade unresolved
+  identity issues are reused instead of duplicated when the new SHA-256 key is
+  introduced. Long reasons still use a bounded digest while the full reason
+  and provider evidence remain persisted.
+- Focused PostgreSQL integration module passed 6/6 tests, including both the
+  long-reason Postgres-width regression and reuse of a preexisting readable
+  fingerprint. The initial sandboxed attempt could not reach the Docker
+  socket; rerunning the same module with authorized Docker access passed.
+- `make branch-validate` passed all 30 workstream records. Its first attempt
+  used the default read-only UV cache and emitted a cache-permission warning;
+  rerunning with the worktree-specific `/tmp` UV cache completed cleanly.
+- These edits postdate the full backend gate above, so the full gate and exact
+  provider-candidate receipts must be refreshed after the source tree is
+  frozen. No provider HTTP calls were made.
+
+## 2026-10-15 05:32Z refreshed full backend gate
+
+- The full gate was rerun after the legacy-fingerprint compatibility change:
+  2,769/2,769 unit tests across 56 shards and 395/395 Docker/PostgreSQL/Redis
+  integration tests passed. Combined coverage remained 82% against the 75%
+  threshold. The focused Postgres module, Ruff check/format, workstream
+  validation, and `git diff --check` also passed. Only third-party deprecation
+  warnings were reported.
+- Testcontainers cleanup completed for this worktree; no host-wide prune,
+  provider API calls, or frontend edits occurred. This validates backend
+  behavior but does not satisfy live-provider, dated-universe, secret-store,
+  deployment, or shadow acceptance.
+- Next: freeze the current source candidate and run its no-network live
+  preflight/receipt audit before spending any provider quota.
+
+## 2026-10-15 05:43Z current-candidate live slices: Alpaca and Massive
+
+- Exact candidate is parent `65a467b43d7830b0875d9c3ad538e47a06d4a6db`, tree
+  `2af5d4c9b4055e9c389f4cd4568726fb226707ce`. The staged-candidate verifier
+  found no receipts for this tree before these runs; old-tree receipts remain
+  non-current.
+- Alpaca full manifest passed 7/7 cases with 8 HTTP requests (history, latest
+  price, profile, assets/corporate actions, and account usage).
+- Massive full manifest passed 4/4 cases with 28 HTTP requests, including
+  19-page complete OTC ticker pagination (4,366,017 bytes for OTC pages;
+  4,836,142 bytes total). Pagination completed without duplicate identities,
+  skipped pages, or failures. The run took about 8m24s under the explicit
+  five-requests/minute safety envelope.
+- Both receipts confirm the staged source candidate did not change and are
+  stored outside the repository in the owner-private candidate receipt file.
+  This is 2/27 complete provider manifests, not full live acceptance. No
+  frontend, deployment, or integration action occurred.
+
+## 2026-10-15 05:54Z current-candidate live manifest checkpoint
+
+- The exact staged tree `2af5d4c9b4055e9c389f4cd4568726fb226707ce` now has
+  successful complete provider manifests for 20/27 required providers:
+  Alpaca, Binance, Bybit xStocks, Coinbase, CoinGecko, SEC EDGAR, Finnhub,
+  FINRA, FINRA OTC Directory, FMP, FRED, Gate TradFi, Kraken, Kraken xStocks,
+  MarketData.app, Massive, OpenFIGI, Robinhood tokens, Twelve Data, and xStocks.
+- Across those exact-tree receipts: 56/56 live test cases passed, 139 HTTP
+  requests, and 55,629,575 response bytes. The receipt verifier confirms those
+  20 provider manifests against this candidate and makes zero provider
+  requests. Candidate remained unchanged. Receipts are in the owner-private
+  file `/tmp/market-data-provider-platform-candidate-20261015.jsonl`; they are
+  not persisted in Git or presented as full acceptance.
+- The seven required manifests still missing are Alpha Vantage (daily quota
+  headroom), CTA Plan and Nasdaq (two-request market-day local safety caps),
+  Dinari Sandbox (no key-applicable published quota/reset/cost contract),
+  EODHD (daily headroom for its 16-call manifest), Marketstack directory
+  pagination (MIC/page billing unresolved), and Tiingo (hourly usage baseline
+  missing). Do not bypass those holds. The receipt archive records provider
+  entitlement outcomes: free Finnhub stock candles and FMP stable-stock-list
+  access were denied as expected; unbounded response-priced MarketData.app
+  option history remained no-request.
+- No provider/frontend/deployment source changed during these live tests. The
+  dated-universe, cross-provider identity, CI/deployment secret-store, and
+  shadow acceptance gates remain open.
+
+## 2026-10-15 06:01Z refreshed Tiingo and Marketstack account evidence
+
+- Owner dashboard report received at approximately 05:56Z: Tiingo showed
+  50/50 hourly requests, 1,000/1,000 daily requests, and 2 GB/2 GB monthly
+  bandwidth remaining; Marketstack showed 12/100 monthly requests used. These
+  are account observations, not generalized provider guarantees.
+- Reconciled those counters into the private shared quota ledger as dashboard
+  snapshots. Tiingo's test process used an explicit account profile of 500
+  distinct symbols/month (published Starter allowance), 50 requests/hour,
+  1,000/day, and 2,000,000,000 decimal bandwidth bytes/month (dashboard
+  allowance). That profile was supplied only to this test process; the
+  persistent local app.env was not changed. A durable runtime needs those same
+  non-secret Tiingo profile settings configured there before deployment.
+- Against exact staged tree `2af5d4c9b4055e9c389f4cd4568726fb226707ce`,
+  Tiingo's complete manifest passed 1/1 test case, making 4 HTTP calls and
+  receiving 3,262 bytes. Marketstack's bounded single-symbol history/current
+  price case passed 1/1, making 2 calls and receiving 2,316 bytes. No
+  Marketstack universe-discovery page was requested.
+- Receipt verification now accepts 21/27 full provider manifests. After the
+  two live runs, the shared ledger reports Tiingo 4/50 hourly and 4/1,000
+  daily requests plus 3,262/2,000,000,000 bandwidth bytes; Marketstack is
+  14/100 monthly requests (the reported 12 plus these two verified calls).
+  The full Marketstack directory-pagination manifest still lacks a known MIC
+  and safe maximum page charge, so it remains held. Full live acceptance is
+  incomplete; six providers remain missing/held: Alpha Vantage, CTA Plan,
+  Dinari, EODHD, Marketstack directory discovery, and Nasdaq.
+- Candidate receipt file remains owner-private at
+  `/tmp/market-data-provider-platform-candidate-20261015.jsonl`. No provider
+  source, frontend, deployment, or other worktree was changed.
+
+## 2026-10-15 06:06Z EODHD native quota bootstrap and bounded data read
+
+- Primary documentation research closed EODHD's usage-endpoint and rate-limit
+  questions: `/api/user` costs zero daily API-call credits; free is 20 daily
+  calls resetting midnight GMT; the API-limits page documents 1,000 requests
+  per minute and says successful responses include live remaining headers.
+  The separately checked pricing page conflicts on the minute ceiling, so this
+  account continues to honor the existing reviewed 1,200/minute native-key
+  override where proven, while retaining the conservative configured contract
+  and never widening from headers. Sources: EODHD [API Limits](https://eodhd.com/financial-apis/api-limits)
+  and [User API](https://eodhd.com/financial-apis/user-api).
+- Exact candidate account-usage case passed 1/1 (1 HTTP request, 305 bytes)
+  and reconciled provider-reported usage plus native minute headers. The bounded
+  EODHD data case then passed 1/1 (5 requests, 7,602,971 bytes): daily, weekly,
+  and monthly history; latest price; and the exchange symbol list. No test
+  failed and all responses were retained in the private live evidence archive.
+- The durable ledger now reports 17/20 daily API-call credits used (12 from
+  the current account snapshot plus 5 local calls), leaving 3 until the UTC
+  reset on 2026-10-16. Its minute window reports 6/1,200, including 1 usage
+  request and 5 data requests. The 16-call EODHD full manifest therefore
+  remains safely held until the next daily window; the native usage endpoint
+  removed the earlier unknown-minute-baseline blocker.
+- The candidate tree is unchanged. EODHD has current exact-tree account and
+  bounded-data case receipts, but its full provider manifest is still missing.
+  Other open provider manifests/operations remain unchanged; no source,
+  frontend, deployment, or remote worktree was changed.
+
+## 2026-10-15 06:10Z EODHD final daily-window slice and Dinari canary check
+
+- Refreshed EODHD's zero-daily-credit native usage endpoint and immediately
+  ran its one-call delayed quote case; both passed against the exact candidate.
+  The cross-session ledger now records 18/20 daily calls used, 2 remaining;
+  the only missing EODHD manifest case is the explicit free-plan profile
+  entitlement check (10-call worst-case), so it must be rerun with the full
+  manifest after the 2026-10-16 00:00Z daily reset. EODHD's complete manifest
+  is budgeted at 16 daily credits and fits the 20-call cap after that reset.
+- Candidate verification still confirms 21/27 complete providers. It now
+  names only that final EODHD case, Alpha Vantage, CTA Plan, Dinari,
+  Marketstack ticker-directory pagination, and Nasdaq as missing. The
+  Marketstack one-symbol read is evidence only; no bulk page was requested.
+- A no-network Dinari canary preflight, using the already-authorized
+  one-request non-persisting test scope, found the shared one-canary-per-UTC-day
+  local cap already exhausted. It sent zero provider requests. Recheck after
+  2026-10-16 00:00Z; this remains an application safety cap, not an assertion
+  about Dinari's unpublished Sandbox quota.
+- No code, frontend, secret, deployment, or remote worktree changed.
+
+## 2026-10-15 06:25Z SEC directory report review
+
+- Read-only inspection of this feature worktree's own PostgreSQL container
+  found completed disabled-mode SEC directory report cycles 3 and 4. Each has
+  all 8,028 distinct CIK rows, one source fingerprint, complete/clean status,
+  and zero failures. The latest report (cycle 4) classifies all 8,028 rows as
+  `already_exists`; every row links to a distinct issuer ID/domain key, with
+  zero missing issuers, identity conflicts, or quarantined rows.
+- Durable scan state says cycle 3's reviewed report materialized 8,028 missing
+  CIK/name Issuer records from the retained source payloads, with zero
+  conflicts; cycle 4 then verified the full directory cleanly against those
+  records. No new issuer or instrument writes were made in this review.
+- This closes the first SEC issuer-directory dry-review/materialization gate
+  for the current source snapshot only. SEC's issuer/ticker association file
+  is not a complete US security/venue roster; NMS/OTC reconciliation remains
+  governed by its separate source gates. Automatic scanning remains disabled
+  by default (`EDGAR` directory scan off, per-invocation submissions bound 0)
+  and was not enabled here.
+- The container query made zero provider requests. Separately, the Alpha
+  Vantage no-network preflight remains blocked until its documented
+  rolling daily reset; the current exact-candidate live manifest still lacks
+  six provider slices (recorded in `validation.jsonl`).
+
+## 2026-10-15 06:40Z NMS retained-response and runtime provenance audit
+
+- Read-only queries against this worktree's PostgreSQL container confirmed
+  that the latest CTA/Nasdaq discovery snapshots retain complete source-body
+  strings alongside normalized rows: CTA index/CSV bodies (about 50 KB/359 KB)
+  and both Nasdaq directory bodies (about 361 KB/558 KB). The repeated
+  snapshots have identical hashes and the same provider source-file dates;
+  this proves archival presence, not that the 2026-10-15 observations came
+  from new HTTP calls.
+- No `ProviderRequestLog` rows exist for Nasdaq or CTA in that database, even
+  though the completed universe runs reference those snapshots. Therefore
+  those database runs cannot prove current request counts, response headers,
+  or quota settlement; do not count them as exact-candidate live acceptance.
+- The running worktree worker's `market_universe.py` differs from this
+  checkout; `provider_runtime.py` and `nasdaq.py` match. Its provider refresh
+  feature flags are all disabled. Do not rely on that long-running worker for
+  current-candidate runtime evidence until it is rebuilt/replaced through the
+  assigned validation workflow.
+- A no-network focused preflight at 06:39Z found the CTA and Nasdaq local
+  two-request market-day budgets already spent. Their next safe reset is
+  2026-10-16 04:00Z (midnight US Eastern for this date); no provider request
+  was made. Re-run each full manifest against the staged candidate then.
+- Alpha Vantage remains scheduled after its 07:42Z rolling reset. The current
+  exact-candidate live matrix remains incomplete; no source or database rows
+  were modified by this audit.
+
+## 2026-10-15 06:47Z shared Tiingo configuration verification
+
+- The current worktree's `.env` and `backend/.env.dev` resolve to the shared
+  `~/.config/charting-platform/app.env`; both paths are git-ignored and are
+  not tracked. A read-only settings check printed no credentials and confirmed
+  the effective Tiingo profile is `custom`: 500 distinct symbols/month,
+  50 requests/hour, 1,000 requests/day, and 2,000,000,000 bandwidth bytes per
+  calendar month. Required byte reservation bounds and custom quota evidence
+  are configured. This confirms the profile is persisted across worktrees
+  through the shared env file, not just injected into a single test process.
+- The owner's dashboard snapshot (05:56Z) showed all 50 hourly requests,
+  1,000 daily requests, and 2 GB monthly bandwidth remaining; the successful
+  exact-candidate probe since then settled 4 requests and 3,262 bytes in the
+  durable shared ledger. No key or secret was read to output or changed.
+- Current official Tiingo pricing lists the free Starter plan with 1 GB/month,
+  while the owner's account dashboard reports 2 GB for this key. The runtime
+  therefore keeps the account-specific 2 GB value as an explicit custom
+  override rather than silently replacing it with the generic plan value.
+
+## 2026-10-15 06:49Z EODHD entitlement-case admission audit
+
+- Re-checked the exact staged source candidate (`2af5d4c9b4055e9c389f4cd4568726fb226707ce`): 21 of 27 provider manifests have successful current-tree receipts; the six remaining cases are Alpha Vantage, CTA Plan, Dinari, EODHD free-plan profile entitlement, Marketstack directory pagination, and Nasdaq. The verifier made zero provider requests.
+- Ran the focused EODHD entitlement case in no-network preflight mode. It was correctly stopped before transport: the account ledger showed fewer daily credits than the case's 10-credit profile lookup cost, and the rolling request baseline was not currently admitted. No quota was spent.
+- First-party EODHD API-limits documentation says the free plan has 20 daily API-call credits resetting at midnight GMT, a profile/fundamentals request costs 10 credits, the usage endpoint costs zero daily credits, and requests are separately rate-limited per minute. The endpoint documentation lists 1,000 requests/minute, while the provider's pricing card has conflicting wording; a key-specific native response had previously advertised 1,200/1,199. Preserve these as distinct limit evidence rather than silently merging them. The one-case preflight cannot use the full-manifest account-usage bootstrap, but the full-manifest no-network preflight reports its combined cost exactly: 16 daily credits. It has no request/minute-baseline blocker because the native usage snapshot is ordered first and reconciles that dimension.
+- Next EODHD retry is after 2026-10-16 00:00Z, when the documented daily credits reset. Re-run the complete 16-credit EODHD manifest so the usage snapshot and all required cases are validated together; do not spend the remaining two credits on the 10-credit case.
+- The owner’s latest dashboard figures match the previously recorded Tiingo plan snapshot (50/50 hourly, 1,000/1,000 daily, 2 GB/2 GB monthly) and Marketstack 12/100 monthly requests. Preserve the discrepancy between Marketstack’s dashboard counter and the historical local request-attempt ledger; it still does not establish the billing cost of bulk directory pages.
+- A subsequent full-manifest EODHD no-network preflight confirmed the safe complete suite requires 16 daily credits and can bootstrap the rolling-minute baseline using its account-usage case. Current remaining daily allowance is only 2/20, so no HTTP request was made and the retry remains scheduled for 2026-10-16 00:00Z.
+- First-party source checks for the unresolved cases: [EODHD API limits](https://eodhd.com/financial-apis/api-limits), [Alpha Vantage support/usage limits](https://www.alphavantage.co/support/), [Dinari environment reference](https://docs.dinari.com/reference/environments), and [Marketstack API request FAQ](https://marketstack.com/faq). Dinari’s published docs confirm the Sandbox base URL and stock-data endpoints but the targeted official-doc search found no published request/quota contract; Marketstack’s FAQ explains ticker-specific request units but not exchange-directory page billing. Do not infer either missing contract from HTTP success alone.
+- The complete staged-candidate Marketstack XNAS pagination test was then attempted with a conservative one-unit-per-page local reservation. It archived 25 successful pages (1,916,451 response bytes) and stopped on page 26 with HTTP 429. The owner-private archive preserves all 26 responses; the aggregate ledger records 26 HTTP requests and one failed operation. The archived provider error is explicit: “Your monthly usage limit has been reached. Please upgrade your Subscription Plan.” Thus the failure is monthly exhaustion, not request pacing. The earlier dashboard snapshot (12/100 before this run) and historical 45-page local attempt count do not establish current remaining provider credits or future directory-page billing; the assumption of one unit/page was insufficiently evidenced. No retry is safe until the provider’s account balance/reset is reconciled. The 25 successful responses are preserved and must be resumed from their archived pagination evidence rather than fetched again where possible.
+- A second no-network preflight after that provider response still found the configured one-unit/page local ledger admission clear. This proves the 429 was not caused by our local limiter reaching its reviewed cap; either the owner dashboard snapshot was stale, other shared-key traffic was not in the local ledger, or the provider charged the directory operation differently. The exact post-run account balance is unknown until the owner rechecks the dashboard. The test is held; no further Marketstack HTTP request is admitted.
+- At 07:10Z, the no-network Alpha Vantage case preflight reported only that full-manifest daily headroom was below its reviewed 9-request reservation; transport was not attempted. Its next safe rolling-window reset remains 2026-10-15 07:42:39Z, after which rerun the complete Alpha Vantage manifest.
+- The local CI-secret wiring regression suite passes 33/33. That verifies workflow variable/secret references and safeguards only; it does not prove the actual GitHub `provider-live-staging`/`provider-live-master` environment secret values or presence. The connected GitHub reader explicitly does not support the sensitive Actions-secrets API. No deployment or remote secret store was changed; actual CI/deployment secret-store verification remains separate from this local result.
+- At 07:27Z, opened the Marketstack dashboard URL with the locally cached Playwright Chromium using an isolated profile and no API calls. It redirected to the Marketstack login page, so this environment has no authenticated dashboard session and cannot independently confirm post-429 usage. Do not retry the API until a fresh dashboard balance/reset is available; the previous 12/100 reading predates the 25 successful directory pages and the provider's explicit monthly-limit error.
+- At 07:34Z, fixed a provider-runtime quota-safety defect discovered during the Marketstack 429 review. Capacity errors with an authoritative reset now open persistent health circuits across every capability sharing the provider quota scope. A capacity error without a trustworthy reset now disables policies in that same scope until an administrator explicitly re-enables them after reconciling external usage; no generic cooldown is invented. Regression coverage proves both scope-wide behavior and isolation of unrelated pools. `tests/unit/services/test_provider_runtime.py` passes 67/67 and Ruff passes for the edited runtime/test files. This source change invalidates prior exact-candidate receipts and requires a fresh full manifest matrix before acceptance.
+- The newly staged exact candidate is tree `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60`, parent `65a467b43d7830b0875d9c3ad538e47a06d4a6db`; it includes the runtime fix, its tests, the plan checkpoint, and updated quota-safety documentation. The no-network verifier on prior tree `eb435f873b1c5ebb1d28f2d4f42e158d35f94276` confirmed prior receipts no longer matched. Alpha Vantage was then rerun after its documented local-window reset; its result is recorded below. All other provider evidence must likewise be refreshed on this exact tree after safe provider-specific admission.
+- After the 07:42:39Z reset, the complete Alpha Vantage live manifest passed on exact candidate tree `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60`: 9/9 cases, 9 HTTP requests, 1,828,750 response bytes, zero failures/skips, exit code 0. The usage receipt was appended to the private candidate receipt file and its redacted summary was appended to `validation.jsonl`; the no-network candidate verifier now recognizes Alpha Vantage as current-tree evidence, leaving 1/27 providers covered. This is not full acceptance. Other providers still require their exact candidate manifests after safe provider-specific admission. The Marketstack post-429 dashboard reading is still needed.
+
+## 2026-10-15 08:47Z full backend gate and exact-candidate status
+
+- Re-ran the branch-declared full backend gate with the assigned UV runtime and Docker daemon access. It collected and passed 2,771 unit tests across 56 bounded shards plus 395 Docker/PostgreSQL/Redis integration tests; combined coverage was 82.36% (minimum 75%). The declared migration-compatibility check also passed. The branch test command exited 0 with no provider HTTP requests.
+- The Make target's scoped Docker cleanup completed. A post-run resource check found zero worktree containers, test-container sessions, or volumes; no host-wide cleanup was performed. `make branch-validate` validated all 30 workstream records using an isolated UV cache under `/tmp`.
+- Reverified the current staged candidate without network access: source parent `65a467b43d7830b0875d9c3ad538e47a06d4a6db`, candidate tree `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60`; 21/27 required provider manifests pass. The six remaining are CTA Plan, Dinari, EODHD, Marketstack directory pagination, Nasdaq, and Tiingo. Exact verifier made zero provider requests. This supersedes earlier counts in the historical entries above.
+- Tiingo local configuration already records the user-reported custom 50/hour, 1,000/day, 2 GB/month account profile and required byte bounds. The user's full-quota dashboard snapshot was observed at 07:07Z; its hourly observation is now older than Tiingo's enforced rolling one-hour safety window. The coordinator correctly rejected a stale baseline before writing any rows. No Tiingo request was made. A fresh current dashboard snapshot is needed before its full manifest can be admitted; the request asks only for remaining quota amounts, not credentials.
+- The user's Marketstack reading of 12/100 predates the subsequent HTTP 429 monthly-limit response and 25 successful directory pages. Current Marketstack balance and page billing remain unknown, so no more Marketstack traffic is admitted until the refreshed dashboard evidence is reconciled. CTA/Nasdaq full manifests remain scheduled after their 2026-10-16 04:00Z local directory reset; EODHD remains scheduled after its 2026-10-16 00:00Z daily-credit reset.
+- The full backend gate and local branch-record validation are green; provider live acceptance remains incomplete and this branch is not ready for human review or integration.
+
+## 2026-10-15 OOM investigation evidence
+
+- The user supplied findings from a separate Codex investigation: a prior session reportedly read and split the entire 5.2 GB provider-response archive, then JSON-decoded every record to retrieve a few EODHD quota counters. The investigation considers this the leading explanation for the large Python memory/swap use; it could not conclusively map the operation to OOM PID 835945 because the OOM log lacked the command line. Treat this as credible but externally reported evidence, not a proven PID attribution.
+- Operational safeguard: do not call `read_text()`, `splitlines()`, or parse all records when querying this archive. Read counters from the structured quota ledger; if archive evidence is required, stream records and filter before decoding/retaining them, or inspect only a strictly bounded tail. Keep one query process at a time and retain its process handle until completion.
+- The current process snapshot after this report showed no high-memory Python process. This OOM finding does not invalidate the completed Docker backend gate or alter provider-live receipt status.
+- The read-only Marketstack dashboard check reached the login page without an authenticated session. No login was attempted and no Marketstack API call was made; the post-429 dashboard quota remains unverified.
+*** End of File
+
+## 2026-10-15 09:33Z exact-candidate live acceptance refresh
+
+- The full zero-provider-request preflight was rerun with authorized access to the owner-private durable quota ledger. It admitted 22 provider manifests and held exactly five before transport: CTA Plan and Nasdaq (their local two-file daily caps are spent), EODHD (2/20 daily calls remain versus a 16-call manifest reservation), Dinari (Sandbox quota/reset and operation-cost profile unverified), and Marketstack (exchange-directory page cost, MIC, and current post-429 usage/reset unresolved). The sandbox-only attempt had reported the ledger read-only; retrying through the authorized host route accessed the shared ledger correctly. No temporary quota ledger was used.
+- Against candidate tree `a2c0cbee849e79f899795bbd284b4eead7dc4116` with parent `65a467b43d7830b0875d9c3ad538e47a06d4a6db`, the 22 admitted full manifests all passed: 66/66 cases, 152 HTTP requests, 57,482,406 response bytes, zero failures and zero skips. Providers: Alpaca, Alpha Vantage, Binance, Bybit xStocks, Coinbase, CoinGecko, SEC EDGAR, Finnhub, FINRA, FINRA OTC Directory, FMP, FRED, Gate TradFi, Kraken, Kraken xStocks, MarketData.app, Massive, OpenFIGI, Robinhood Tokens, Tiingo, Twelve Data, and xStocks. The exact-candidate receipts are private at `/tmp/market-data-provider-platform-live-20261015.aKkoNl.jsonl`; no credentials were put in Git or output. Massive's full corporate-action and OTC-universe pagination cases completed under its reviewed five-requests/minute envelope.
+- A zero-network exact-candidate receipt audit verifies those 22 complete manifests on the same candidate. Overall provider acceptance is therefore 22/27, not complete; the five holds above remain unresolved. Their earlier provider receipts were not reused because acceptance-plan changes made the old candidate ineligible.
+- The provider run did not read or parse the large response archive. Quota decisions came from the structured SQLite coordinator; provider test outputs and receipts were kept bounded and private.
+- The Docker backend gate remains the previously recorded 2,771 unit plus 395 integration tests at 82.36% coverage. This provider run changed no application source; only append-only operational handoff/validation and routine session progress fields were updated so the tested candidate remains eligible for these receipts.
+
+## Dinari quota-contract research (2026-10-15)
+
+- Dinari's published [API License with SLA](https://assets.dinari.com/forms/Dinari_API_License_w_SLA_20240611.pdf), dated 2024-06-11, states a maximum of 1,000,000 API calls per rolling 30-day period. The current [Quickstart](https://docs.dinari.com/docs/quickstart) explicitly supports generating a Sandbox key and using it against Dinari's API. The license's “any Dinari API” scope suggests the 1,000,000-call ceiling applies, but neither source explicitly confirms how this legacy license maps to this specific Sandbox account/key.
+- Current public documentation does not publish a separate Sandbox requests/second or burst ceiling, an API usage endpoint, or an account-specific reset/remaining counter. Do not claim an exact short-window vendor rate or account remaining balance from the general license. The durable local ledger contains six successful Dinari Sandbox canary requests across Oct 10–15; those are platform-observed calls, not an account-wide vendor usage snapshot.
+- The existing one-read-per-UTC-day ceiling is an explicit local canary safety rule, not a Dinari quota. Today's slot was already used at 00:54Z; the next permitted canary is after 2026-10-16 00:00Z. The exact-candidate Dinari canary remains unverified. No Dinari request was made during this research.
+
+## 2026-10-15 09:47Z Dinari canary preflight
+
+- A fresh zero-request canary preflight found the required Dinari credentials and explicit canary controls present. The only blocker was the existing local one-request-per-UTC-day reservation, already spent today; no provider traffic was attempted. The canary policy itself is routable for one read-only connectivity check after the 2026-10-16 00:00Z reset. This does not make ordinary Sandbox operations or production routing routable.
+
+## 2026-10-15 09:52Z OOM root-cause refinement
+
+- The owner supplied a more specific report from a separate Codex analysis: the unsafe whole-file archive query ran at about 19:56 yesterday, and a second equivalent query was launched roughly 40 seconds later. The first process handle was lost because its command initially returned no output; a later step switched to an 8 MB tail. Both full-file attempts used `read_text().splitlines()` and decoded every provider record before filtering for a few EODHD quota counters. This is now the leading concrete explanation for the large Python RAM/swap use; the earlier attribution to coverage tests was premature and is withdrawn.
+- The separate analysis still cannot map the query to kernel OOM PID 835945 because that log has no command line. Preserve that distinction: likely cause identified, exact PID attribution not proven.
+- Read-only `stat` measured the private response archive at 5,668,408,450 bytes (about 5.28 GiB); the separate provider-usage JSONL is 6,277,420 bytes. The current process snapshot has no active high-memory Python process. The production quota reader streams its separate usage ledger; response bodies are only appended to the private archive. Do not query quota counters by loading the response archive.
+- Exact-candidate verification at tree `e4b3d60cf4e7e382a33622d287830043da1217b7` still verifies 22/27 full provider manifests and made zero provider requests. The five missing manifests and their quota/account blockers are unchanged; this OOM investigation does not alter live acceptance.
+
+## 2026-10-15 10:08Z refreshed Tiingo candidate validation
+
+- The user's response to the explicit dashboard refresh request reported the full 50/50 hourly allowance, 992/1,000 daily requests remaining, and 2/2 GB bandwidth remaining. Recorded this as an owner-reported dashboard attestation at 10:06Z in the shared private quota coordinator. Its accounting preserves settled local use after the prior dashboard reading: immediately after the test, the coordinator reported 4/50 requests in the current rolling hour, 20/1,000 daily requests used, 1/500 distinct symbols used, and 13,048/2,000,000,000 bandwidth bytes used. These values include prior local app activity and the new four-request test; no credentials were printed.
+- A zero-network Tiingo preflight then cleared against the shared durable ledger. The exact staged-candidate Tiingo manifest passed 1/1 test cases, exercising `search_instruments`, `get_instrument_profile`, `get_current_price`, and `fetch_ohlcv` with four HTTP requests and 3,262 response bytes. The response and quota usage were retained privately. Candidate parent/tree: `65a467b43d7830b0875d9c3ad538e47a06d4a6db` / `e4b3d60cf4e7e382a33622d287830043da1217b7`.
+- The offline receipt verifier still confirms 22/27 complete provider manifests. Only CTA Plan, Dinari, EODHD, Marketstack directory pagination, and Nasdaq lack a successful full-manifest receipt on this candidate. The verifier sent zero requests. This does not change the overall live-acceptance status.
+- Revisited the OOM report using its concrete evidence: two unsafe full-archive parse attempts were launched around 40 seconds apart, with the earlier process handle lost after empty output; later inspection was limited to an 8 MB tail. The query pattern remains the leading explanation, while the OOM PID mapping remains unproven. No provider-response archive was read during this turn; quota accounting came from the structured ledger and the latest owner dashboard attestation.
+
+## 2026-10-15 10:21Z current quota, Marketstack, and runtime audit
+
+- Alpha Vantage's fresh no-network preflight was blocked before transport. The shared coordinator has a local-zero baseline of 0 and 25 settled `requests_per_day` units inside its rolling 24-hour safety window, leaving 0/25 headroom. These are durable platform-accounted calls across local sessions/worktrees, not evidence that another user used the key. The exact candidate already has Alpha Vantage's successful full-manifest receipt, so no retry is needed. If a future candidate change requires rerunning its 9-request manifest and no more Alpha Vantage calls occur, the ninth-oldest unit expires at 2026-10-16 07:43:16.280676Z; always recheck admission first.
+- Re-ran the offline exact-candidate verifier: 22/27 provider manifests are still verified on parent/tree `65a467b43d7830b0875d9c3ad538e47a06d4a6db` / `e4b3d60cf4e7e382a33622d287830043da1217b7`; only CTA Plan, Dinari, EODHD, Marketstack directory pagination, and Nasdaq are missing. Verification made zero provider requests.
+- First-party Marketstack material still establishes monthly request quotas and per-ticker request consumption for specific-ticker lookups, while the documented exchange/ticker APIs are paginated. It does not explicitly say whether an exchange-wide directory page costs one request or a per-result-symbol amount. The post-429 dashboard remains unverified; the Playwright CLI reports no existing browser session, no login was attempted, and no API call was made. Keep directory pagination quarantined.
+- Rechecked the running local worker without restarting it: it has been up 9 hours; its `market_universe.py` hash differs from this checkout, while `arq_worker.py` matches. Universe reconciliation is enabled, but provider-usage refresh, market-events refresh, SEC universe scanning, and scheduled market-data refresh are disabled in that container. Do not use this worker as current-checkout evidence or change it as part of this branch-only task.
+- The current host has no GitHub CLI, `.ai/deploy/rpi.env`, `.ai/deploy` directory, or RPi SSH alias. CI workflow wiring is locally testable, but actual GitHub environment secrets and a remote RPi secret store cannot be verified from this checkout. No remote secret store was accessed or modified, and no secret values were printed.
+
+## 2026-10-15 10:28Z refreshed missing-provider admission
+
+- Ran preflight-only for CTA Plan, Dinari, EODHD, Marketstack, and Nasdaq. It stopped before transport and recorded zero provider HTTP requests. CTA Plan and Nasdaq still lack local daily-window headroom for their full two-request manifests; EODHD has less than the 16 units required; Dinari's full manifest remains quarantined because its Sandbox quota/reset profile and operation costs are not reviewed; Marketstack directory pagination remains quarantined because its per-page cost and exchange/MIC configuration are unresolved.
+- Ran Dinari's separate one-request Sandbox-canary preflight. The canary policy is eligible, but its local one-request-per-UTC-day allowance is already used today. No request was sent; earliest retry is after 2026-10-16 00:00Z, subject to a fresh preflight.
+- First-party Dinari research confirms the dashboard supports generating Sandbox credentials and that the public 2024 API License states a maximum of 1,000,000 calls per rolling 30-day period. The current docs do not establish that this older generic license ceiling is the applicable quota for this Sandbox key, nor do they publish a short-window limit or an account usage baseline. Keep the full Dinari manifest blocked rather than promote that ceiling to a confirmed account entitlement. Sources: https://docs.dinari.com/docs/quickstart and https://assets.dinari.com/forms/Dinari_API_License_w_SLA_20240611.pdf.
+- This turn did not open the provider-response archive; the independent Python-process check found no running `python3` process. The whole-file parse remains the leading OOM explanation, with exact PID attribution unproven.
+- `git diff --check`, the staged diff check, and `make branch-validate INTEGRATION_BRANCH=feat/market-data-provider-platform` passed; the validator accepted all 30 workstream records. These checks made no provider HTTP requests.
+- Safely searched the separate 6.28 MB provider-usage ledger by provider/run, not the multi-gigabyte response archive. It shows a Marketstack directory run on 2026-10-14 with 45 successful HTTP requests, followed on 2026-10-15 by 26 requests: 25 observed responses and one HTTP 429 (1,916,451 response bytes). The `X-Rate-Limit-Remaining: 0` header also appears on successful Marketstack reads, so it does not establish which quota was exhausted or the monthly balance/reset. The owner's earlier 12/100 dashboard snapshot predates the 2026-10-15 07:04Z 429; do not use it as current headroom. No further directory request is safe until a fresh account balance and an evidenced page-cost bound are available.
+
+## 2026-10-15 10:40Z Marketstack 429 cause confirmed from bounded archive scan
+
+- To identify the exact 429 cause, scanned the private response archive sequentially with a 16 MiB per-record parsing cap; filtered raw lines for the Marketstack directory operation before JSON decoding and retained only status/error metadata. This read the 5.67 GB file without loading it or retaining unrelated provider records; 103 over-cap records were skipped and no file was modified.
+- The 2026-10-15 07:04 Marketstack directory error record reports HTTP 429, code `usage_limit_reached`, and says the monthly usage limit was reached. Its separate second-rate headers report a five-request limit with four still remaining, confirming this was monthly allowance exhaustion rather than the documented five-requests-per-second ceiling. The unrelated `X-Rate-Limit-Remaining: 0` header is not a usable monthly counter because it also appeared on successful Marketstack calls.
+- The account's 12/100 dashboard snapshot predates the 07:04Z 429 and cannot establish current or post-reset headroom. The exact monthly charge for each exchange-directory page remains undocumented; keep Marketstack directory pagination quarantined until its monthly allowance has reset or is explicitly upgraded, a fresh balance is confirmed, and page cost has a defensible bound. No provider request was made during this scan.
+- Read-only CI secret-store follow-up found no `GH_TOKEN`, `GITHUB_TOKEN`, or `GITHUB_PAT` in the process environment. The available GitHub connector is GET-only for approved resources and explicitly excludes secrets APIs; it therefore cannot verify configured Actions secret names/presence. `gh` is not installed and the RPi deployment secret file/SSH target remains absent. No token or secret value was read.
+- Added a durable archive-inspection safety rule to `docs/provider-live-validation.md`: use the usage ledgers first, stream/filter before decoding, cap per-record memory, retain the process handle, and report partial scans. Staged/unstaged diff checks and branch validation passed with all 30 workstream records; no provider calls were made.
+
+## 2026-10-15 10:46Z validation and OOM safety follow-up
+
+- Re-ran staged and unstaged `git diff --check`; both passed. The workstream validator accepted all 30 records and exited successfully. Its initial sandboxed invocation also emitted a warning while Makefile startup attempted to prepare the existing owner-only shared quota-ledger directory; retrying the non-network validation with access to that exact directory succeeded cleanly. No temporary ledger was substituted and no provider request was made.
+- The process snapshot showed no active `python3` process. The separate Codex analysis makes whole-file archive parsing the concrete leading OOM explanation, but the available OOM log still does not prove that PID 835945 was one of those commands. The archive safety rule is now present in the durable provider validation guide; no further archive scan was needed.
+- The candidate remains at 22/27 complete provider manifests. This check does not clear the existing provider quota, account-contract, GitHub secret-store, or deployment secret-store gates.
+
+## 2026-10-15 10:48Z exact-candidate receipt hygiene
+
+- The current staged candidate tree is `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60`. The private candidate receipt archive contains 22 complete manifest receipts bound directly to this tree; an offline count found 22 matching entries in `/tmp/market-data-provider-platform-candidate-20261015.jsonl`. The exact verifier had initially stopped before receipt evaluation because an unstaged edit to `docs/provider-live-validation.md` was outside the permitted workstream-only edit set.
+- Removed that newly added, unstaged documentation section to restore the frozen candidate bytes; no staged content or existing user data was altered. The archive-inspection safety rule remains recorded in this handoff: read quota ledgers first; otherwise stream with a strict record cap, filter before decoding, retain only target records, keep the process handle, and report partial scans. A canonical documentation update must wait until it can be included in a candidate that receives its required exact-source validation.
+- No provider HTTP requests were made while resolving this local candidate-hygiene issue.
+
+## 2026-10-15 10:53Z refreshed exact-candidate and provider-contract audit
+
+- The offline verifier now accepts 22 complete provider manifests directly on staged candidate tree `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60`, with zero provider requests. It reports exactly five incomplete providers: CTA Plan, Dinari, EODHD, Marketstack directory pagination, and Nasdaq. The current candidate receipt file is outside Git at `/tmp/market-data-provider-platform-candidate-20261015.jsonl`.
+- A fresh all-provider no-transport preflight evaluated 27 providers, admitted 21, quarantined six, and sent zero provider HTTP requests. Alpha Vantage is quarantined for a new nine-call reservation although its exact-candidate manifest is already passed; CTA Plan and Nasdaq lack two-call daily headroom; EODHD lacks 16-call daily headroom; Dinari lacks an account-reviewed Sandbox quota profile and operation-cost map; Marketstack directory discovery lacks an evidenced page cost, configured MIC, and current monthly balance/reset. Existing passes were not rerun.
+- Official Marketstack FAQ/Contact/plan material says a lookup for one specific ticker consumes one monthly request, a request with multiple ticker symbols consumes per symbol, and API errors do not count. It does not specify the charge for exchange-directory pagination; public pages also contain conflicting Free-plan totals (100 versus 1,000), while the owner's account dashboard previously showed 100 and predates the 429. No monthly usage API or current reset evidence was found. Keep discovery quarantined; do not test a page with unknown cost or enable overages. Sources: https://marketstack.com/faq, https://marketstack.com/contact, https://marketstack.com/pricing/.
+- Official Dinari material confirms Sandbox keys and free Sandbox evaluation, and the 2024 API License states a maximum of 1,000,000 calls per rolling 30-day period. The current public docs do not specify an account-specific Sandbox quota, a short-window rate/burst, or a usage endpoint; that generic ceiling is not treated as proof of this key's usable budget. The separate one-read-per-UTC-day canary remains the only admitted Dinari path, and the next run is after 2026-10-16 00:00Z subject to fresh preflight. Sources: https://docs.dinari.com/docs/quickstart, https://docs.dinari.com/docs/fees, https://assets.dinari.com/forms/Dinari_API_License_w_SLA_20240611.pdf.
+- Attempted the no-API-call Marketstack dashboard check through Playwright using a temporary browser cache. The dashboard URL redirected to the login page; no authenticated session was present, no login was attempted, and no Marketstack API endpoint was contacted. The browser was closed afterward. The earlier 12/100 dashboard snapshot remains stale after the confirmed monthly-limit 429; current usage and reset date still require a fresh owner-dashboard observation.
+
+## 2026-10-15 11:06Z OOM report and branch-record revalidation
+
+- The owner's separate-session analysis identifies a concrete, leading OOM cause: two Python queries about 40 seconds apart each loaded/split the full 5.67 GB provider-response JSONL and decoded every row before selecting a few EODHD counters. This explains the potential tens-of-GB memory amplification; the kernel record still lacks command-line evidence, so PID 835945 attribution remains unproven. The earlier coverage-test attribution is withdrawn.
+- A narrow read-only audit found no maintained production reader that loads the provider-response archive wholesale. The live runner writes the archive; the unit-test full-file read is over a small temporary fixture. The candidate-receipt verifier reads a different receipt file. No active Python/pytest process appeared in the process snapshot; this turn did not read the archive or contact providers.
+- `make branch-validate INTEGRATION_BRANCH=feat/market-data-provider-platform` passed cleanly with all 30 workstream records after granting the startup guard access to the existing owner-private quota directory. Staged and unstaged diff checks passed. No source files changed, so the exact candidate remains tree `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60`.
+- The archive-inspection safeguard remains in this branch handoff. The canonical validation guide does not yet contain that new rule; add it to the next frozen candidate and include it in exact-source validation rather than silently changing the receipt-bound candidate.
+
+## 2026-10-15 11:08Z exact-candidate and quota recheck
+
+- The no-network exact-candidate verifier rechecked tree `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60`: 22/27 full manifests still pass, with exactly five missing: CTA Plan, Dinari, EODHD, Marketstack discovery, and Nasdaq. It sent zero provider requests.
+- The fresh durable-coordinator preflight at 11:08:25Z evaluated all 27 providers, admitted 20, quarantined seven, and sent zero provider requests. The five missing suites remain held by specific quota/account-contract conditions; Alpha Vantage also lacks headroom for a redundant nine-call rerun. Tiingo is additionally quarantined for new calls because its earlier 50/50 hourly dashboard baseline was observed at 08:52:58Z and its one-hour safety window has expired. Its exact-candidate receipt remains valid, so no Tiingo request is currently needed.
+- Read-only baseline inspection confirms Tiingo's account-plan contract is loaded as the reviewed custom profile (500 distinct symbols/month, 50 requests/hour, 1,000 requests/day, 2,000,000,000 bandwidth bytes/month); the current hourly baseline alone is unknown. Daily and bandwidth counters remain represented in the persistent coordinator. Do not reuse the expired hourly snapshot for another call.
+- Targeted searches of Dinari's official docs found Sandbox environment/keyless stock-listing instructions and the older API License's generic 1,000,000-call rolling-30-day ceiling, but no published numeric short-window rate limit, account-specific Sandbox quota, or usage counter. The generic ceiling is not proof of this Sandbox key's budget; retain the full-suite hold. Sources: https://docs.dinari.com/reference/environments, https://docs.dinari.com/docs/quickstart, https://assets.dinari.com/forms/Dinari_API_License_w_SLA_20240611.pdf.
+- No source code or provider data was changed. All remaining exact-candidate gaps and the OOM safety note remain branch-recorded; the canonical archive-inspection guide update is deferred until a final candidate can receive matching exact-source live validation.
+
+## 2026-10-15 11:19Z current provider-gate and OOM follow-up
+
+- The owner's latest independent OOM report matches the already recorded leading explanation: the ~5.2 GB archive was loaded and split twice about 40 seconds apart, every JSON row was decoded before filtering, the first process handle was lost after empty output, and a later read was limited to the last 8 MB. This strengthens the causal explanation; PID 835945 is still not conclusively tied to either command. No archive read or memory-heavy scan was performed in this turn.
+- The exact-candidate verifier confirms 22/27 full provider manifests on tree `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60`, zero provider requests; missing suites remain CTA Plan, Dinari, EODHD, Marketstack discovery, and Nasdaq. The fresh 11:18Z no-HTTP preflight evaluated 27 providers, admitted 20, and quarantined seven (Alpha Vantage, CTA Plan, Dinari, EODHD, Marketstack, Nasdaq, Tiingo).
+- Attempted only the one-request Dinari Sandbox candidate canary with an ephemeral authority reference and transport cap of exactly one. It was rejected before transport because the local one-request-per-UTC-day safety allowance had already been consumed at 00:54Z. Zero Dinari HTTP requests were sent; the next eligible attempt is after 2026-10-16 00:00Z, subject to fresh preflight. The provider's own quota remains unknown, so this does not admit recurring or full-manifest Dinari traffic.
+- The source candidate remains unchanged. Current blockers and reset times are unchanged; no secrets were read or printed, no provider data was persisted, and no remote secret store or deployment target was touched.
+
+## 2026-10-15 11:24Z EODHD account-usage case
+
+- The no-transport account-usage preflight for EODHD cleared. The exact-candidate case `test_eodhd_credentialed_account_usage_snapshot` then passed `1/1`, with one HTTP request and 305 response bytes, bound to candidate tree `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60`. The live test archived its captured body through the existing private response-archive helper and recorded one usage-ledger row; no credential material was emitted.
+- This proves the EODHD native usage endpoint works on the candidate; it is only a case slice, not the full provider manifest. A fresh no-network EODHD preflight still blocks that manifest because its reviewed 16-credit reservation exceeds current daily headroom. Do not retry its data endpoints before the documented daily reset and fresh admission.
+- The attempted candidate account-usage-only CLI combination was rejected before transport; using the exact manifest-case selector exercised the same one usage test successfully. No other provider request or source change occurred.
+
+## 2026-10-15 11:27Z EODHD remaining-case admission audit
+
+- Ran no-HTTP admission checks for each of EODHD's three remaining candidate cases. Delayed quote was held because its per-minute usage baseline is unknown; the free-plan profile case was held by that unknown minute baseline and insufficient headroom for its 10 daily units; the small market-data case was held by unknown minute baselines and insufficient headroom for its 5 daily units. No case made a provider request.
+- The exact-candidate verifier now recognizes the successful account-usage slice and names those three missing cases, but still accepts only 22/27 complete provider manifests. Do not try to evade the combined reservation by splitting the daily workload: the full-manifest bootstrap is the path that can reconcile the minute baseline, and it still needs its documented 16 daily credits after reset.
+- No source change, credential output, or provider data request occurred during this case-level audit.
+
+## 2026-10-15 11:28Z Marketstack and GitHub access audit
+
+- Rechecked current official Marketstack material. It defines one request unit for looking up one specific ticker and says a request containing multiple ticker symbols consumes one unit per symbol; it still does not define the billing unit for an exchange-wide ticker-directory page. The Free-plan totals also conflict between published pages (100 versus 1,000), while the account-specific dashboard snapshot predates the explicit monthly-limit 429. Keep directory discovery quarantined; no Marketstack request was sent. Sources: https://marketstack.com/faq, https://marketstack.com/contact, https://marketstack.com/pricing/.
+- The local origin ownership predicate matches the requested `jagnelo` repository. Read-only `git ls-remote` succeeded and returned remote branch head `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, matching the saved remote SHA; no push or ref change occurred. The connected GitHub repository listing returned no results for this owner, and its fetch tool does not support Actions-secret endpoints. Therefore CI secret presence remains unknown, not proven missing. No deployment target/secret store is configured in this worktree.
+
+## 2026-10-15 11:33Z admission and universe-scheduler recheck
+
+- Fresh full no-HTTP preflight at 11:30Z again evaluated 27 providers, admitted 20, quarantined seven, and made zero provider requests. EODHD still lacks headroom for its 16-credit manifest; the other six holds are unchanged.
+- The code and Compose examples set `MARKET_UNIVERSE_RECONCILIATION_ENABLED=true`; the worker schedules the daily listing/lifecycle reconciliation at 21:00 UTC. This job reconciles the security universe and is distinct from broad OHLCV price polling. The three focused worker/schedule tests passed under the UV-managed Python 3.12 runtime. This proves branch wiring, not the resolved setting in a deployed target, which remains unverified.
+- No source code, provider data, credentials, deployment configuration, or remote refs changed in this check.
+
+## 2026-10-15 11:38Z exact-candidate verification and OOM-safe follow-up
+
+- Re-ran the no-provider-request exact-candidate verifier against tree `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60` (parent `65a467b43d7830b0875d9c3ad538e47a06d4a6db`). It confirms 22/27 complete provider manifests; the missing manifests remain CTA Plan, Dinari, EODHD, Marketstack discovery, and Nasdaq. Verifier sent zero provider requests.
+- The user's separate OOM analysis remains the leading explanation: loading/splitting a ~5.2 GB JSONL archive and decoding every record twice could amplify memory into tens of GB. The kernel OOM record still cannot map PID 835945 to those commands. This verification did not open or scan the provider-response archive.
+- `make branch-validate INTEGRATION_BRANCH=feat-market-data-provider-platform` exited 0 and validated 30 workstream records using a temporary UV cache. Staged/unstaged `git diff --check` and session JSON parsing also passed. The launcher printed a non-fatal warning that it could not prepare the owner-private quota directory in the restricted shell; no provider call or quota-ledger mutation followed.
+- No product/source changes, remote ref changes, credential output, or provider requests occurred.
+
+## 2026-10-15 11:38Z fresh no-network quota preflight
+
+- The preflight evaluated all 27 providers, found 20 eligible and seven quarantined, and sent zero provider requests. It exited as blocked-before-transport, as intended for this no-network gate: Alpha Vantage and CTA Plan/Nasdaq lack headroom for their reserved suites; EODHD lacks headroom for 16 credits; Dinari's complete Sandbox quota/reset/cost contract is still unresolved; Marketstack discovery's page cost, venue MIC, and current monthly allowance/reset remain unresolved; Tiingo's hourly usage baseline is unknown.
+- Fresh review of Dinari's official API License confirms a published maximum of 1,000,000 API calls per rolling 30-day period, with no rollover. That template does not establish the current Sandbox key's account-specific entitlement, any short-window throttle, or usage headers/baseline; the Quickstart only documents how to create and use a Sandbox key. Keep the full Dinari profile quarantined rather than treating the generic contract cap as the key's complete rate policy. Sources: https://assets.dinari.com/forms/Dinari_API_License_w_SLA_20240611.pdf; https://docs.dinari.com/docs/quickstart.
+- MarketData.app is not among the blockers: the preflight confirms the configured 30-day trial has expired, so the provider now uses its Free Forever allowance of 100 credits/day.
+- No source changes or provider requests occurred.
+
+## 2026-10-15 11:43Z Dinari safety and resource recheck
+
+- The focused offline Dinari slice passed 45 tests (337 deselected) across tokenized-provider behavior, registry/routing controls, quota contracts, and the live-runner canary gate. It made zero provider requests and changed no source.
+- The current host snapshot showed 4.6 GiB memory available and 2.6 GiB swap in use; no Python process appeared among the top five RSS processes. This is a current snapshot only and cannot establish which process caused the earlier OOM. No provider-response archive was read.
+- Dinari remains quarantined for full-suite acceptance: the retained canary metadata had no response headers, and the published generic 30-day API ceiling still does not establish the Sandbox key's complete quota/reset profile.
+
+## 2026-10-15 11:46Z Marketstack rate and billing recheck
+
+- Current Marketstack pricing and contact pages both advertise the Free plan as 100 requests/month; the FAQ also contains stale/conflicting 1,000-request wording. The FAQ says looking up one specific ticker costs one request, five explicitly requested symbols cost five, and API errors are not billed, but it does not explain how exchange-wide directory pagination is metered.
+- The vendor-hosted API reference specifies five requests per second. The source already applies a shared rolling 5-requests/second safety envelope; no code adjustment was needed.
+- The account-specific remaining quota/reset boundary and the per-page cost of directory discovery remain unverified. The user's earlier 12/100 dashboard snapshot is not a current baseline, and the known monthly-limit 429 is not a reset timestamp. No Marketstack request was sent.
+- Sources: https://marketstack.com/pricing/; https://marketstack.com/contact; https://marketstack.com/faq; https://marketstack-wp.apilayer.green/documentation/.
+
+## 2026-10-15 11:51Z OOM mechanism review and archive-safety audit
+
+- The user supplied a concrete explanation from a separate Codex analysis: at about 19:56 on Oct 14, a Python query materialized a roughly 5.2 GB provider-response JSONL archive with `read_text().splitlines()`, then decoded every row into Python objects before filtering to a few EODHD quota records. A second whole-archive query was launched about 40 seconds later; its running-process handle was lost after an empty output. Text, line, and object allocations could amplify this to tens of GB and plausibly explain the memory spike. The kernel OOM record still does not preserve a command line, so PID 835945 cannot be conclusively attributed to either query. The earlier attribution to coverage tests was premature.
+- Kept the response archive unopened. A source-only audit found the provider-usage JSONL path iterates one row at a time; no current provider-source path was found that reads the multi-GB response archive wholesale. Separate candidate-receipt/validation-manifest helpers do use whole-file JSONL reads, but those are not the provider-response archive; they are potential bounded-streaming hardening targets and must not be conflated with the reported OOM operation.
+- The current process snapshot showed no Python process among the top RSS processes. This establishes only that no large Python process was visible at this check, not which historic process caused the OOM.
+- No provider traffic, archive reads, source edits, deployment/remote changes, or credential output occurred.
+
+## 2026-10-15 11:56Z fresh quota preflight and Tiingo ledger reconciliation audit
+
+- The first preflight ran under the restricted shell and stopped before provider transport because the shared quota coordinator appeared read-only. Retrying with access to the existing durable coordinator evaluated all 27 providers, admitted 20, quarantined seven, and sent zero provider requests. No temporary ledger was substituted.
+- Current provider-specific holds: Alpha Vantage needs 9 daily units; CTA Plan and Nasdaq each need 2 daily directory units; EODHD needs 16 daily calls; Dinari still lacks an account-reviewed Sandbox quota/reset and worst-case operation-cost profile; Marketstack full-universe discovery still lacks verified page cost, account allowance/reset, and MIC; Tiingo's active hourly usage baseline is unknown. The provider preflight is intentionally non-passing and did not attempt transport.
+- Read-only status from the shared Tiingo coordinator shows 500 unique symbols per rolling 31 days (1 used, 499 remaining); 50 requests/hour with a rolling safety envelope (baseline unknown); 1,000 requests/day resetting at midnight US Eastern (16 at the last dashboard observation at 10:06:50Z plus 4 settled local requests, conservatively 20 used / 980 remaining); and 2,000,000,000 bytes/month (9,786 observed at 10:06:50Z plus 3,262 local bytes, 13,048 used / 1,999,986,952 remaining). The current user-provided dashboard statement of 992 daily requests remaining conflicts with this coordinator view and has no timestamp; requested a fresh dashboard snapshot before any Tiingo transport. No provider call was made in this turn.
+- The configured Tiingo profile is `custom`, with the account-specific 2 GB bandwidth value from prior owner evidence; public Tiingo Starter pricing lists 1 GB, so the custom override must remain supported by account evidence rather than be silently replaced by the public default. Official source: https://www.tiingo.com/pricing.
+- The host browser dependency remains absent. Docker is available, but no Playwright/browser image is cached; browser-based dashboard access also requires an authenticated account session, which is not available in this worktree. No browser image was pulled and no account credentials were requested.
+- No product/source change, provider traffic, response archive read, remote/deployment mutation, or secret output occurred.
+
+## 2026-10-15 11:58Z exact candidate and workstream validation
+
+- Exact-candidate receipt verification against parent `65a467b43d7830b0875d9c3ad538e47a06d4a6db` and tree `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60` confirms 22/27 providers. Missing: CTA Plan, Dinari, EODHD (three specific manifest cases), Marketstack discovery, and Nasdaq. The verifier sent zero provider requests and read only the 645,702-byte candidate-receipt file; it did not access the multi-gigabyte response archive.
+- `make branch-validate INTEGRATION_BRANCH=feat-market-data-provider-platform` initially failed because UV selected a read-only default cache, then because two newly recorded validation entries lacked required `command` fields. Rerunning with `UV_CACHE_DIR=/tmp/uv-cache-marketdata` after repairing those entries passed and validated 30 workstream records. It still emits non-fatal warnings about preparing the owner-private quota directory and shell `sed` paths in the restricted context.
+- Source candidate remains unchanged; no provider traffic or remote/deployment mutation occurred.
+
+## 2026-10-15 12:08Z containerized browser and secret-store wiring audit
+
+- Supersedes the 11:56 browser status: downloaded the official pinned `mcr.microsoft.com/playwright:v1.64.0-noble` image and verified bundled Chromium via the matching Playwright 1.64 CLI in a Docker container capped at 1.5 GiB RAM. No Node/npm or browser package was installed on the host and no repository file was changed for this.
+- The browser screenshot of `https://marketstack.com/login` shows an email/password login form. No API key or password was entered and no Marketstack data endpoint was called. Therefore live Marketstack usage/reset still requires an authenticated dashboard observation; the earlier 12/100 count and monthly-limit 429 remain insufficient to admit a data request.
+- The local `/home/m920q/.config/charting-platform/app.env` exists with mode `0600`; this worktree's ignored `.env` and `backend/.env.dev` symlink to that same file, and `.gitignore` excludes both links. `scripts/worktree-runtime.py` uses this host path by default for each allocated worktree, so branches on this machine can reuse the local secrets without Git-tracking them. Only variable names were inspected; no secret values were printed.
+- The live GitHub workflow is manually dispatched and guarded to run only on `staging` or `master`; it uses environment-scoped provider keys and requires `PROVIDER_QUOTA_LEDGER_DATABASE_URL` for cross-run durable accounting. The connected GitHub tools expose no Actions secret-list/read operation, so presence/values cannot be verified from this feature worktree. Do not bypass the protected-branch guard or mutate staging.
+- The RPi deployment expects a separate target-owned `/opt/charting-platform/shared/app.env` with mode `0600`; the developer-machine file does not automatically propagate to GitHub or a deployment. Remote target/secret-store verification remains unproven in this worktree.
+- No provider request, provider-response archive read, CI dispatch, deployment mutation, credential output, or source-tree change occurred.
+
+## 2026-10-15 12:11Z quota-window scheduling from the durable coordinator
+
+- Read-only quota status (no provider API traffic) confirms EODHD's daily allowance is currently 18/20 used, leaving only 2 calls; the missing exact-source manifest needs 16. The active EODHD per-minute baseline is unknown. Its daily window starts at 00:00Z, so the next safe full-suite attempt is after the 2026-10-16 00:00Z reset and fresh admission.
+- CTA Plan and Nasdaq each have their complete client-imposed 2-request directory budget used (2/2) in the active window opened 2026-10-15 04:00Z. Their next 2-file suite is not eligible until the next window, 2026-10-16 04:00Z, and fresh admission confirms it.
+- These are quota-window waits, not missing credentials or additional human decisions. The previous EODHD/CTA/Nasdaq preflight holds remain intact. No provider-response archive was opened and no provider request/source edit occurred.
+
+## 2026-10-15 12:16Z Tiingo dashboard reconciliation and current preflight
+
+- The owner refreshed Tiingo's usage dashboard: all reported pools were full except requests/day, with 992 of 1,000 remaining. Interpreted only the requested, explicitly reported request pools: 50/50 requests/hour and 992/1,000 requests/day. The owner-reported snapshot was reconciled at `2026-10-15T12:15:49Z` into the existing durable coordinator as 0 hourly requests and 8 daily requests used. The daily snapshot supersedes an older dashboard baseline and includes prior account activity; new local settlements after this timestamp remain additive.
+- Preserved the independently observed unique-symbol usage (1/500) and exact local bandwidth accounting (13,048/2,000,000,000 bytes); the rounded “2 GB remaining” report was not used to erase byte-level usage.
+- The 12:16Z no-network preflight evaluated all 27 providers, admitted 21, quarantined six (Alpha Vantage, CTA Plan, Dinari, EODHD, Marketstack discovery, Nasdaq), and made zero provider requests. Tiingo is now admitted. Its exact-candidate manifest receipt already passes, so no duplicate Tiingo calls were spent.
+- The exact-candidate verifier still confirms 22/27 complete manifests on tree `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60`, with zero provider requests. Remaining missing manifests: CTA Plan, Dinari, EODHD (delayed quote, profile entitlement, and small read), Marketstack discovery, and Nasdaq. Quota-window waits remain for CTA Plan/Nasdaq (after 2026-10-16 04:00Z) and EODHD (after 2026-10-16 00:00Z plus fresh per-minute admission); Dinari's account-specific Sandbox contract and Marketstack's bulk-page billing/venue baseline remain unresolved.
+- The owner's independent OOM investigation remains the leading explanation for the previous multi-gigabyte memory spike: two Python commands about 40 seconds apart materialized and decoded the full provider-response JSONL archive before filtering. PID 835945 is still not proven to be either command because the OOM record lacks command-line data. This turn did not open that archive; quota reads used the structured usage ledger and durable quota coordinator.
+- No source files, provider data, GitHub secrets, deployment targets, or remote refs were changed. No provider requests were sent.
+
+## 2026-10-15 12:21Z EODHD quota-source reconciliation and Marketstack/Dinari contract research
+
+- Re-read EODHD's current first-party [API Limits page](https://eodhd.com/financial-apis/api-limits). It distinguishes HTTP requests/minute from daily API-call credits; says the Free plan has 20 API calls/day, reset at midnight GMT, and API `/api/user` usage reads cost zero daily calls. It also says successful responses return `X-RateLimit-Limit` and `X-RateLimit-Remaining` for the limit applied to the key, and 429 responses include `Retry-After`. The same page is internally inconsistent on minute limits: its table says Free is 20 requests/minute, while its prose says 1,000 requests/minute on every plan.
+- The owner-private structured usage ledger was streamed line-by-line (6,280,706 bytes; mode 0600); only the last 12 EODHD usage rows and allow-listed minute headers were retained for output. Those observations repeatedly report `X-RateLimit-Limit: 1200`, including the latest saved row at 11:24Z. This is key-specific provider response evidence, not proof of the current minute's remaining count. The existing explicit local 1,200/min override remains the configured key-specific limit with rolling app-side protection; do not infer/widen from an unreviewed response. The old 1,000-versus-20 source conflict is preserved, and the next admitted EODHD matrix will obtain fresh header evidence through its already-required zero-daily-cost account-usage case before data cases.
+- Official Dinari docs reconfirm the Sandbox base URL, creation/use of Sandbox keys, and that the stock listing can be used as a credential check without an Entity, KYC, or funding. `Get Stocks` documents page/page_size/next cursors (page size up to 100). The reviewed public docs still publish no Sandbox request quota, short-window limit, usage endpoint, or endpoint-weight map; the generic API License ceiling is not treated as the key's complete plan. Full Dinari manifest remains quarantined.
+- Marketstack's first-party FAQ states that data lookup for one named ticker consumes one monthly request and multiple named tickers are charged per symbol; pricing/contact pages confirm the Free allowance is 100/month, while one FAQ paragraph still says 1,000. No first-party source located in this review specifies the charge for paginated `/tickerslist` universe pages. Do not infer per-page or per-row cost; discovery remains held to avoid an unknown large debit/overage.
+- Sources reviewed: https://eodhd.com/financial-apis/api-limits; https://eodhd.com/financial-apis/user-api; https://docs.dinari.com/docs/quickstart; https://docs.dinari.com/reference/getstocks; https://marketstack.com/faq; https://marketstack.com/pricing/; https://marketstack.com/contact.
+- No provider HTTP calls, response-archive reads, source-tree edits, or deployment/remote mutations occurred during this research.
+
+## 2026-10-15 12:24Z Dinari replacement-key configuration check
+
+- A no-network local configuration check confirms the supplied replacement Dinari key ID matches the ignored host-local `app.env`, the corresponding secret is present, and the configured base URL host is `api-enterprise.sandbox.dinari.com`. Only comparison/boolean results and the non-secret host name were printed; no credential value was displayed. The credential file remains outside Git.
+- `DINARI_SANDBOX_QUOTA_PROFILE` is absent, so the full Dinari manifest remains quarantined. The separate app-side one-catalogue-request-per-UTC-day canary slot was already consumed at 00:54Z today. Rotating a key does not reset this shared local test budget; no Dinari request was made. Recheck admission after 2026-10-16 00:00Z, run only the single replacement-key connectivity canary if admitted, and keep ordinary Dinari routing/full-manifest testing disabled until its Sandbox quota/reset/operation-cost profile is established.
+
+## 2026-10-15 12:28Z OOM finding and current quota admission
+
+- The owner's independent process analysis provides the strongest explanation for the earlier OOM: a Python command loaded and split the approximately 5.2 GB provider-response JSONL archive, decoded every provider row before filtering for a few EODHD values, and a second whole-archive query started about 40 seconds later. The first process handle had been lost after empty output; the later query switched to an 8 MB tail. This allocation pattern can plausibly expand to tens of GB. The OOM log still does not prove PID 835945 was either query. The archive remains unopened; no bulk archive read is part of provider validation.
+- A current process check found PID 835945 absent from this execution namespace and no Python process in its short process listing. This is not historical PID attribution.
+- A restricted-shell no-network preflight correctly stopped because it could not write the existing shared quota ledger; it made zero provider requests and did not substitute a temporary ledger. Retrying through the host-authorized path against the configured owner-private SQLite coordinator succeeded. The preflight health/reconciliation write did not reset quota state and transport remained disabled.
+- The successful preflight evaluated 27 providers, admitted 21, quarantined six, and sent zero provider requests. Holds: Alpha Vantage lacks its nine-call daily reservation; CTA Plan and Nasdaq each lack two directory requests until the 2026-10-16 04:00Z window; EODHD lacks the 16-call daily manifest reservation until after its 2026-10-16 00:00Z reset and fresh minute admission; Dinari lacks a reviewed Sandbox reset/quota/operation-cost profile; Marketstack discovery lacks evidenced page cost, monthly account allowance/reset, and MIC. Exact candidate remains frozen at `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60`, with 22/27 complete manifests.
+- No provider-response archive read, provider HTTP request, source-tree change, credential output, deployment change, or remote mutation occurred.
+
+## 2026-10-15 12:32Z Dinari and Marketstack quota-source follow-up
+
+- Rechecked the current first-party Dinari reference and API License. The June 2024 license states a maximum of 1,000,000 API calls per rolling 30-day period for the Licensee, but the live public reference does not say whether/how this applies to this Sandbox key, expose a usage endpoint or rate-limit headers, or document per-operation costs. Keep the Sandbox profile unreviewed until the one-request replacement-key canary is admitted after the local daily reset and the returned headers/error behavior are inspected; do not treat the old generic license maximum as a verified Sandbox account baseline.
+- Current Marketstack pricing lists Free Forever at 100 requests/month and Basic at 10,000/month for $9.99; the FAQ's plan text conflicts, with one answer saying 1,000/month and another saying 100/month. The owner's previous dashboard reading (12/100) agrees with pricing, but was not refreshed in this turn. The FAQ says a lookup for a specific ticker consumes a request and multi-symbol lookups are charged per ticker; neither it nor the public `/tickerslist` reference specifies whether directory pages are billed per page or per returned ticker. Keep full-universe discovery quarantined and do not spend a request to infer a potentially large charge.
+- Official references reviewed: https://docs.dinari.com/reference/environments; https://docs.dinari.com/docs/quickstart; https://assets.dinari.com/forms/Dinari_API_License_w_SLA_20240611.pdf; https://marketstack.com/pricing/; https://marketstack.com/faq; https://docs.apilayer.com/marketstack/docs/api-documentation.
+- No provider request, source-tree change, response-archive read, credential output, or deployment/remote mutation occurred.
+
+## 2026-10-15 12:34Z Dinari cross-session usage-ledger evidence
+
+- Confirmed the configured `provider-live-usage.jsonl` is a separate 6,280,706-byte structured usage ledger, not the multi-gigabyte response archive. Read it only through the existing streaming aggregate reader; it contains 3,523 rows and was not materialized as a full text/list.
+- The ledger records 203 Dinari HTTP requests across 21 app test runs in the last 30 days, six runs/six requests in the last seven days, and one run/one request in the last 24 hours; the latest app-recorded Dinari observation is `2026-10-15T00:54:52Z`. These are this platform's recorded calls across sessions, not an external account-usage snapshot and not proof of the provider's remaining allowance.
+- This evidence confirms cross-session app-side usage is persisted and makes the upcoming one-request canary visible in the rolling history. It does not establish calls made outside this platform, Dinari's Sandbox-specific limit, or native reset/rate headers; keep `DINARI_SANDBOX_QUOTA_PROFILE` unconfigured until the replacement-key canary and provider-specific evidence are reviewed.
+- No provider HTTP request, provider-response archive read, source edit, credential output, or remote/deployment mutation occurred.
+
+## 2026-10-15 12:36Z CI and RPi secret-store access recheck
+
+- The local `gh` executable is absent, so there is no authenticated GitHub CLI path in this worktree. The connected GitHub tool set has workflow-run and repository readers but no Actions-secret/environment-secret listing or reading capability. No secret values were accessed.
+- The target-specific `.ai/deploy/rpi.env` file is absent. The developer host's private `app.env` is not evidence of an RPi deployment secret store; without target configuration, this worktree cannot identify or inspect a remote target. No target connection or secret read/write was attempted.
+- These remain verification dependencies, not product-code failures. Do not probe or mutate GitHub environments, staging, or a deployment target to work around the missing access/configuration.
+
+## 2026-10-15 12:42Z Marketstack dashboard-to-ledger reconciliation
+
+- The 101 Marketstack HTTP-request total in the 30-day provider-usage ledger is not a current monthly-credit count: it spans multiple usage windows, and HTTP requests are not interchangeable with billed units. The durable quota coordinator contains the owner's 12/100 dashboard attestation at `2026-10-15T05:59:08Z`; since then it records 27 settled monthly units, zero pending/uncertain units, and 61/100 estimated remaining as of `2026-10-15T12:40:45Z`.
+- The separate app usage ledger contains 28 Marketstack HTTP requests after that dashboard baseline: 26 for `discover_universe_page`, one each for `fetch_ohlcv` and `get_current_price`, with one failed operation. The 27-unit settlement is consistent with Marketstack's statement that API errors are not billed, but the ledger alone does not prove that the failed operation is exactly the non-billable request or expose provider-native usage after the baseline.
+- This reconciles the apparent 101-versus-12 discrepancy without treating either as a fresh native account snapshot. The account's exact reset boundary and `/tickerslist` page billing rule remain unknown; keep new directory traffic quarantined. No request was sent during this reconciliation and no response archive was read.
+
+## 2026-10-15 12:48Z response-archive safety audit after reported OOM
+
+- Reconfirmed the separate-session report is the leading OOM explanation: `read_text().splitlines()` over the roughly 5.2 GiB response JSONL followed by JSON-decoding every provider row before selecting a few EODHD counters can retain several large representations at once; a second process launched about 40 seconds later could multiply the peak. The historical OOM record still lacks command-line evidence, so PID 835945 attribution is not proven.
+- Audited maintained repository paths without opening the private archive: `backend/tests/live/live_usage.py` validates, appends and fsyncs archive records but has no archive reader; the only `archive.read_text().splitlines()` match is a unit test reading its own two-record `tmp_path` fixture. The structured quota ledger has a separate streaming reader. The reported bulk parse was not found in maintained provider code.
+- Current process/resource snapshot in this execution namespace showed no active Python process, 4.6 GiB available memory and 2.3 GiB swap in use; this is a current snapshot, not evidence identifying the historical OOM process. No response-archive read, provider request, source edit, credential output, or remote/deployment mutation occurred.
+- One exploratory search against the validation JSONL matched a very wide single-line record and produced an oversized, tool-truncated result. It did not touch the response archive or provider data. Further journal inspection is restricted to field-selected output and capped lines.
+
+## 2026-10-15 12:56Z Playwright runtime and Marketstack dashboard check
+
+- The Playwright skill's wrapper requires Node/npm only for browser automation; backend/application test gates remain Docker-based. `nvm` was already installed under the user account but not loaded by the initial shell. Loaded it, installed Node `24.19.0` through nvm, and selected it as the default; existing non-nvm Node files were left untouched. The nvm initialization lines were already present in `.bashrc`.
+- Downloaded the Playwright CLI package and Chromium/FFmpeg/headless shell into temporary caches under `/tmp`. The CLI's default Chrome channel was absent; its `chrome` installer stopped when dependency setup required interactive `sudo`, and no system packages were installed. Selecting `--browser=chromium` worked, so no system-wide browser install was needed.
+- A read-only visit to `https://marketstack.com/dashboard` redirected to `https://marketstack.com/login`; the text snapshot showed email/password fields and a CAPTCHA requirement. No login was attempted, no password was used or requested, and no Marketstack data API/key request occurred. The browser was closed. The two snapshots/logs generated by this check were removed; pre-existing Playwright artifacts were left untouched.
+- One quiet CLI help invocation was started with a bounded wait, but the wrapper emitted only stdout rather than the full execution result, so I did not retain its session identifier and cannot establish whether that invocation exited at the first wait boundary. It was a local CLI help command (no archive or provider operation); the subsequent browser open/snapshot/close were all polled to completion. Future commands must retain and poll the full result/session handle even when stdout is empty.
+
+## 2026-10-15 12:59Z Marketstack public endpoint documentation review
+
+- Reviewed the current APILayer Marketstack v2 reference in the browser without credentials or an API request. Its navigation explicitly lists “Stock Exchanges” and “Stock Exchange by MIC”; an `ExchangeMicTickersResponse` schema exists, but the visible endpoint list does not clearly document the exchange-ticker listing operation used by the adapter. The route, pagination contract and billed unit per page therefore remain unverified from public docs.
+- The official FAQ says one lookup for one ticker consumes one monthly request, multi-symbol requests are charged per symbol, and API errors are not counted; the same FAQ contradicts itself by saying both 1,000/month and that usage below 100/month fits Free. Pricing states 100/month. This confirms why we retain the conservative 100-request rolling safety envelope, but it does not establish a page's cost or account reset boundary. Sources: https://marketstack.com/faq, https://marketstack.com/pricing/, https://docs.apilayer.com/marketstack/docs/marketstack-api-v2-v-2-0-0.
+- The first full endpoint-page snapshot was oversized and tool-truncated; later checks used text search. No provider data was read. Keep `MARKETSTACK_DISCOVERY_MAX_PAGE_COST` unresolved and discovery quarantined until a provider-published cost contract or a controlled, dashboard-reconciled account observation establishes the route and per-page billing.
+- No Marketstack data request, credential use, source edit, remote/deployment change, or response-archive read occurred.
+
+## 2026-10-15 13:09Z correction: Marketstack exchange-ticker endpoint docs
+
+- Correction to the 12:59Z note: the current official Marketstack v2 reference does document the exchange-ticker listing endpoint under Tickers (`GET Tickers for an Exchange`, route `/v2/exchanges/{MIC}/tickers`). Its pagination contract documents `limit` default 100 / maximum 1,000 and `offset` default 0; the response exposes pagination metadata and ticker data. The adapter's route and 1,000-row page request align with that documented contract. Official reference: https://docs.apilayer.com/marketstack/docs/marketstack-api-v2-v-2-0-0.
+- Therefore, the endpoint and page shape are no longer unresolved. What remains unknown is the provider-billed unit cost for each discovery page, the current account allowance/reset boundary, and the exact MIC scope to use for the intended universe. Keep discovery quarantined until those quota/account facts and required venue coverage are established; do not probe by spending an unbounded number of calls.
+- The user's separate-session OOM analysis remains the strongest explanation for the historic memory spike: twice materializing and decoding the ~5.2 GB provider-response archive before filtering can amplify memory to tens of GB. The OOM record still does not identify PID 835945's command line, so the exact PID-to-query link remains unproven. This agent has not opened the archive; the repository source audit found no maintained provider-code path that bulk-reads it.
+- No provider request, response-archive read, source-code change, credential output, remote change, or deployment action occurred during this correction.
+
+## 2026-10-15 13:13Z separate FINRA async-result memory risk
+
+- This is not evidence about the historical OOM. A focused source/caller audit found `FINRAProvider.download_async_result` is not called by production application code, and its default `FINRA_ASYNC_MAX_RESULT_BYTES=0` keeps the operation fail-closed/non-routable.
+- If a positive bound is configured, the current implementation retains yielded chunks in a list, joins them into a second full body, then Base64-encodes the full body for live-response evidence. A large configured bound can therefore multiply peak memory. Do not enable/rout this optional async bulk-result path until it can stream to durable storage/evidence without whole-body copies and its quota-byte accounting is validated. Normal synchronous, per-instrument FINRA short-interest ingestion is a separate path.
+- This finding does not change the historical OOM attribution: the user's reported whole-archive parse remains the leading cause, while PID 835945 remains unlinked to a specific command. No provider request or source change was made while identifying this separate risk.
+
+## 2026-10-15 13:16Z Alpha Vantage public quota-source recheck
+
+- Alpha Vantage's current official Support FAQ states 25 API requests/day for the free service: https://www.alphavantage.co/support/.
+- That public page does not specify the daily reset anchor/timezone or whether the limit is a calendar-day or rolling window. The current-key live capacity response already retained from 2026-10-06 indicated 5 requests/minute and recommended 1 request/second; those are account-response evidence, not claims from the public FAQ. No new Alpha Vantage request was made.
+- The provider contract in `backend/app/config.py` correctly keeps the 25/day vendor limit separate from a conservative rolling-24-hour application envelope and leaves the native reset boundary unknown. No code change is justified by this source recheck; admission should continue to use durable coordinator headroom, not an assumed midnight reset.
+
+## 2026-10-15 13:19Z Alpha Vantage open-source allowance opportunity
+
+- The same official Support FAQ also says Alpha Vantage offers unlimited API requests to verified open-source or educational projects, in contrast to the normal 25/day free allowance: https://www.alphavantage.co/support/.
+- The public page does not describe verification criteria or an automatic entitlement. This public repository may be a candidate, but that is not proof that this account/key qualifies. Keep the current 25/day provider contract and rolling safety ledger unchanged unless Alpha Vantage confirms the project/key entitlement and its exact scope in writing or through account evidence. This is an optional quota-expansion path, not an acceptance blocker for the documented free plan; no provider request or vendor contact was made.
+
+## 2026-10-15 13:22Z exact-current candidate receipt recheck
+
+- The normal sandbox invocation could not create `.git/index.lock` for `git write-tree` because shared Git metadata is read-only in this execution context. Retried the verifier with narrowly elevated local Git-metadata access; it created only the staged tree fingerprint and did not change the index or make provider requests.
+- Exact staged candidate is parent `65a467b43d7830b0875d9c3ad538e47a06d4a6db`, tree `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60`. The verifier independently confirms 22/27 required provider receipts and zero provider HTTP requests.
+- Five missing receipts are precisely: CTA Plan (no receipt for this candidate tree), Dinari (no successful receipt), EODHD (three missing manifest cases: delayed quote, free-plan profile entitlement, small read), Marketstack (no receipt for this candidate tree), and Nasdaq (no receipt for this candidate tree). This receipt verifier result is an expected incomplete gate, not a source/test failure; keep the candidate frozen and obtain only currently admitted provider evidence.
+
+## 2026-10-15 13:24Z Marketstack quota dashboard update
+
+- The owner reported that the Marketstack dashboard is now at 100% of its 100 monthly requests used, with zero requests remaining. No exact provider reset date/time accompanied the report. Treat this as the current account snapshot; it supersedes the prior 12/100 dashboard snapshot and the local 61/100 remaining estimate.
+- Reconciled the report into the owner-private durable quota coordinator as a 100-unit `requests_per_month` dashboard attestation at `2026-10-15T13:24:30Z`. The coordinator now reports 100/100 used, zero remaining, and no local pending reservations. No credential or provider API call was used for reconciliation.
+- A focused no-network live preflight at `2026-10-15T13:25Z` sent zero provider requests. Separate checks confirm `fetch_ohlcv` and `get_current_price` are blocked because monthly headroom is zero; `discover_universe_page` remains blocked because its provider-billed page cost is unreviewed. Do not use Marketstack until a later dashboard observation shows available quota or the owner changes the plan. Do not infer the native reset time.
+- This blocks Marketstack's live receipts and Marketstack-only runtime reads, not unrelated providers or the rest of this implementation goal. The exact candidate remains frozen at tree `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60` pending its broader 22/27 provider receipt gate.
+
+## 2026-10-15 13:31Z migration gate and staging-checkpoint direction
+
+- The planned migration-compatibility gate passed against `origin/master` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`: previous-release schema `fe4f5a6b7c8d`, checked-out application schema `65a467b43d7830b0875d9c3ad538e47a06d4a6db`, and all 50 changed migration files validated. The first sandbox attempt was denied local socket creation; the same gate passed with the narrow local validation access. No provider requests were made.
+- The owner shared a parallel discussion favoring the quickest path to a human-usable integrated build. Its proposed sequence is Provider → ETF holdings → TC2000 → Strategy Lab v2, with the 30-day shadow moved to the integrated test deployment and a branch-local checkpoint that preserves the full remaining roadmap.
+- Current durable state does not yet authorize that change: this branch's `AC-SHADOW-FINAL-PHASE` places the separately approved shadow before closure/integration, and the canonical workflow only permits staging integration after explicit human closure. Keep the current acceptance intact for now; do not mark this branch ready, edit shared workflow policy, or move the shadow gate on the strength of a quoted prior recommendation alone. A checkpoint can be prepared as a proposal, but adopting it requires explicit owner direction and, if tooling rejects partial closure, a separately authorized workflow-maintenance task.
+- Until that decision, continue the existing provider-live acceptance path and independent local gates. The latest full backend gate remains the 2,769-unit / 395-integration pass; the exact staged provider candidate remains 22/27 complete.
+
+## 2026-10-15 13:34Z full live-admission refresh
+
+- Refreshed the complete 27-provider no-network preflight after reconciling Marketstack usage. The sandbox-visible ledger was read-only; the same command succeeded through the narrow elevated local-ledger path. No provider HTTP was sent.
+- Current admission is 19 eligible / 8 quarantined. Holds are: Alpha Vantage (9 daily requests needed), CTA Plan (2 daily directory calls), Dinari (unreviewed Sandbox quota/reset/cost contract), EODHD (16 daily calls), MarketData.app (daily credit baseline unknown), Marketstack (zero monthly headroom plus unresolved directory-page cost/MIC), Nasdaq (2 daily directory calls), and Tiingo (hourly request baseline unknown). Details and zero-request receipt are in `validation.jsonl`.
+- Marketstack's ordinary history and current-price live operations are both denied by the zero-credit baseline; directory discovery is independently denied for unreviewed per-page cost. This does not prevent admitted providers from being used when the exact candidate needs new evidence, but all 22 current candidate receipts already match and the five missing provider manifests remain unavailable for the reasons above.
+- Migration compatibility additionally passed at 13:31Z; branch workstream validation, JSON parsing, and staged/unstaged whitespace checks pass. No source code or provider configuration changed during this turn.
+
+## 2026-10-15 13:38Z provider-led integration checkpoint adopted for preparation
+
+- The owner directed this session to consume the staging coordinator's
+  `provider-platform-integration-1` policy. I read the staging plan and its
+  accepted-checkpoint workflow section at staging commit
+  `e4d10ce0d7abc0056befca06831539fb36287043`; staging remains untouched.
+- The current `plan.yaml` now sets the bounded checkpoint as the workstream's
+  review objective and current seven acceptance criteria (ICP1-ICP7). The full
+  original goal, all 23 original acceptance criteria, prior scope, and
+  chronological progress entries remain under `roadmap_goal`,
+  `roadmap_acceptance_criteria`, `roadmap_scope`, and `progress.history`.
+  `integration_checkpoint.original_criterion_disposition` records each
+  original criterion, owner, reason, and continuation test. No previous
+  completion marker was transferred to the checkpoint.
+- The checkpoint contract map identifies shared identity, provider runtime,
+  quota, series, coverage, and admin API surfaces for ETF holdings, TC2000, and
+  Strategy Lab v2, while preserving each downstream branch's ownership. This
+  branch still makes no frontend changes and does not implement the ETF-owned
+  holdings bridge.
+- The 30-day operational trial remains a full roadmap gate, but is now timed
+  after green staging integration on a separately authorized combined test
+  deployment. Planning or accepting this development checkpoint does not start
+  the trial, enable routing, authorize merge, or authorize deployment.
+- Existing evidence is not reclassified: the staged candidate is still 22/27
+  provider manifests; the latest no-network preflight admitted 19/27 and held
+  eight. Marketstack has 0/100 dashboard-reported monthly requests remaining;
+  its reset date is unknown. Current exact-source live evidence, quota waits,
+  deployment secret stores, downstream reconciliation, and other full-roadmap
+  gates remain open unless a checkpoint operation is explicitly tested or
+  deferred for later human acceptance.
+- Next: verify/implement the ICP1-ICP7 evidence against current source, add
+  concrete success and unavailable contract examples, rerun the normal full
+  validation profile and current-source live suite where safely admitted, then
+  prepare a clean pushed review summary. Stop at `ready_for_human_review`;
+  human checkpoint acceptance and coordinator integration remain separate.
+- A normal `agent-session-progress` update could not acquire the shared session
+  claim lock because `.ai/session-claims/.lock` is read-only in this execution
+  sandbox. The session record's plan/objective and acceptance list were refreshed
+  with the supported status command; its checkpoint-specific progress fields
+  are updated directly in the branch-owned `session.json`. No claim file or
+  sibling worktree was changed.
+
+## 2026-10-15 14:16Z exact-candidate backend gate
+
+- The exact current backend working tree passed `make test-backend-coverage`:
+  2,771 unit tests plus 395 Docker integration tests (3,166 total), 82% combined
+  coverage. The initial sandbox attempt stopped before tests because Docker
+  socket access was denied; the identical command passed with local Docker
+  access. The runner used 50-test unit shards and temporary testcontainers;
+  post-run inspection confirmed no temporary test containers remained.
+- The tested source was branch HEAD `65a467b43d7830b0875d9c3ad538e47a06d4a6db`
+  plus the current staged candidate tree
+  `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60`; workstream-only checkpoint edits
+  were unstaged and did not alter backend code. No provider HTTP requests were
+  made. The result is recorded in `validation.jsonl`.
+- This closes the current-source full-backend regression portion of ICP5, not
+  migration compatibility, branch CI, provider live acceptance, deployment
+  secret-store verification, or the full checkpoint. The five missing provider
+  manifests and explicit operation dispositions remain outstanding.
+
+## 2026-10-15 15:09Z checkpoint continuation
+
+- Adopted staging coordinator policy commit `e4d10ce0d7abc0056befca06831539fb36287043`
+  for checkpoint preparation only. The complete original provider-platform
+  roadmap remains recorded and open; this is not full-feature completion or
+  authorization to merge, deploy, activate providers, or start the 30-day trial.
+- Exact staged candidate tree `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60`
+  passed 19 provider slices (49/49 manifest cases, zero failed operations,
+  120 HTTP requests, 55,634,767 response bytes). The receipt verifier matched
+  the exact tree without network access and reported eight missing providers.
+  Receipt file: `/tmp/md-provider-platform-icp1-20261015T1449Z.jsonl` (outside
+  Git; response bodies are retained by the private live-test archive).
+- A fresh no-transport preflight admitted the same 19 and quarantined Alpha
+  Vantage (daily headroom below the 9-unit manifest reservation), CTA Plan
+  (2 daily directory units unavailable), Dinari (Sandbox quota/reset/cost
+  contract incomplete), EODHD (daily headroom below the 16-call reservation),
+  MarketData.app (current daily-usage baseline unknown), Marketstack (reported
+  monthly quota exhausted; reset and discovery cost/MIC unresolved), Nasdaq
+  (2 daily directory units unavailable), and Tiingo (current hourly usage
+  baseline unknown). None of these eight received a request.
+- Backend coverage remains green at 2,771 unit plus 395 Docker integration
+  tests, 82% combined coverage. Migration compatibility passed for 50 changed
+  migrations against `origin/master`. Direct workstream validation passed for
+  30 records. `make branch-validate` also exited successfully, but its
+  Makefile runtime bootstrap emitted nonfatal warnings because the sandbox
+  could not prepare the user's private quota-ledger directory; three optional
+  `sed` reads then received an empty runtime path. The full browser profile
+  produced 153 passed, 106 skipped, and one failure:
+  `Chart F9c-template-comparison — chart templates restore their comparison
+  set` timed out when a “Plots 0” overlay intercepted the “Remove RSP” click.
+  No frontend files were changed; that remains outside this branch's approval.
+- Still open: green browser profile; live receipts or explicit, reviewable
+  dispositions for the eight quarantined manifests; any required consumer
+  unavailable-path evidence; external GitHub/deployment secret-store checks;
+  clean pushed exact-source closure summary; and human acceptance of proposed
+  checkpoint deferrals. Downstream branch reconciliation and the complete
+  market-data roadmap remain future gates.
+## 2026-10-15 16:02Z checkpoint continuation and current-source provider evidence
+
+- Consumed the parallel Codex discussion. The agreed Provider → ETF holdings →
+  TC2000 → Strategy Lab v2 integration order and distinction between a bounded
+  accepted checkpoint and full feature completion are already captured in
+  `provider-platform-integration-1`. The full provider roadmap remains open;
+  only the staging coordinator integrates, the 30-day trial remains after a
+  separately authorized combined staging test deployment, and no merge,
+  deployment, provider activation, or trial is authorized here.
+- Candidate tree `60b5d49f3799659f82bda2cc04eea6609bfc0cd9` (parent
+  `65a467b43d7830b0875d9c3ad538e47a06d4a6db`) now has exact-source live
+  receipts for 20/27 manifests: 56/56 cases passed, 129 HTTP requests, zero
+  failed cases. The offline verifier matched all 20 receipts to this exact tree
+  and sent zero provider requests. Receipt summary is in
+  `validation.jsonl`; the local redacted receipt file is
+  `/tmp/md-provider-platform-icp1-candidate60b5.jsonl`.
+- A fresh no-transport preflight quarantines seven manifests: Alpha Vantage
+  (daily headroom below the 9-request test reservation), CTA Plan and Nasdaq
+  (two daily directory requests unavailable for each), EODHD (daily headroom
+  below its 16-call reservation), Tiingo (hourly baseline unknown), Dinari
+  (Sandbox quota/reset/operation-cost profile incomplete), and Marketstack
+  (monthly headroom below two requests plus unresolved discovery page cost/MIC).
+  No quarantined provider was called. MarketData.app trial is expired and the
+  provider integration is configured to use the Free Forever 100-credit/day
+  pool; `/user/` is charged as one credit and the exact-candidate manifest
+  passed.
+- The extension's thread-scoped Codex Goal itself still has its prior objective:
+  the available agent goal controls can read it or change status, but cannot
+  edit its objective in place. I corrected the branch-owned `session.json`
+  objective so it no longer concatenates/truncates the acceptance list. The
+  user must replace the visible objective through the VS Code goal UI if the
+  extension exposes that edit control; the repository record is not a claim
+  that the UI goal changed.
+- Backend coverage on the exact candidate remains in progress. The first
+  `make test-backend-coverage` invocation's terminal handle was lost, so a
+  second invocation was mistakenly started. Two testcontainers stacks were
+  observed; I interrupted only the later, tracked invocation (exit 130), and
+  its ephemeral containers were cleaned up. One older testcontainers stack
+  remains for the original run; do not start another backend gate while it is
+  active. At the latest check, the coverage database was updating, 3.5 GiB RAM
+  was available, and swap use was unchanged. Capture the original run's final
+  result from its cleanup/artifacts if possible; if not, rerun once with a
+  retained terminal handle after the original stack exits.
+- No frontend files were touched. The previous browser failure remains open and
+  requires exact-candidate browser revalidation; if its frontend-owned failure
+  reproduces, report it without changing frontend code.
+
+## 2026-10-15 17:26Z — Central reconciliation follow-up
+
+- Read staging's `docs/feature-integration-reconciliation.md` and
+  `ops/feature-integration-status.yaml`. Central CI remains in progress, no
+  product checkpoints are accepted/frozen, and integration order remains
+  Provider → ETF → TC2000 → Strategy Lab v2. Strategy owns its
+  `ff5a6b7c8d9e` collision repair; Provider's `make_provider_limits_explicit`
+  definition is preserved. No frontend changes, provider calls, sibling
+  worktree edits, or staging integration were made for this follow-up.
+- The ETF contract map is correct that no shared aggregate recurring-cost
+  admission API was located. Provider currently has no model/API that sums
+  active subscription costs or handles approved currency equivalence; the
+  20 EUR/USD-equivalent ceiling is therefore not implemented and no rate or
+  price was invented. For the integration checkpoint only, the demonstrated
+  safe boundary is strictly free-only: `ALLOW_PAID_PROVIDER_ROUTING=false`
+  (default in settings and compose) excludes every non-free entitlement,
+  including reviewed paid plans. The new focused resolver regression test
+  proves the same reviewed paid MarketData.app fixture is admitted when the
+  switch is explicitly true and rejected when false (1 passed). With the
+  checkpoint setting kept false, paid-provider routes are blocked; changing
+  that setting would bypass this boundary, so paid routing/configuration
+  remains separately unauthorized. This is not an aggregate cost ledger.
+  Provider owns the future shared ICP2
+  cost contract and its budget/configuration policy. ETF owns ICP6 validation
+  that its bridge uses only admitted routes and reserves actual requests,
+  pages, retries, and redirects. The gap remains open; no required behavior
+  is silently waived.
+- Extended the migration compatibility gate to run both a fresh current-head
+  install and an origin/master existing-database upgrade. The existing path
+  seeds legacy 2/60/15/30 values with no quota source before applying the
+  changed inherited `b6c7d8e9f0a1` plus additive
+  `ff5a6b7c8d9e_make_provider_limits_explicit`; the migration clears those
+  unverified values. Both paths have equivalent quota schema, nullable quota
+  values/no guessed defaults, and the previous-release application still
+  reports `/health 200`. Exact run:
+  `UV_CACHE_DIR=/tmp/market-data-uv-cache rtk uv run --project backend python scripts/validate-migration-compatibility.py --base-sha origin/master`
+  — passed 50 changed migration files, fresh/existing schema and data
+  equivalence, and previous-release smoke check. A first attempt was blocked
+  before Docker by sandbox localhost-socket denial; the authorized disposable
+  Docker retry passed after fixing SQL command-tag parsing in the validation
+  helper.
+- Checkpoint remains not ready: full browser matrix was red (260 tests: 148
+  passed, 109 skipped, 3 failures; all three passed in focused reruns but the
+  full-run failure remains unresolved), exact live evidence remains 20/27
+  manifests with seven held, branch CI and pushed clean-source evidence are
+  outstanding, and the provider aggregate cost contract remains open for any
+  future paid routing. Existing broad backend coverage evidence is from the
+  prior candidate and is not claimed as exact-current evidence after these
+  helper/test edits. Human checkpoint acceptance remains pending.
+
+## 2026-10-15 17:31Z — Coordinator authorization and exact current status
+
+- Read staging `docs/feature-integration-coordination.md` and its current
+  execution receipt at
+  `/home/m920q/charting-platform/.ai/staging-attempts/four-feature-coordination-2026-10-15.json`.
+  The human authorized the coordinator to technically review and close
+  validated technical repairs without per-fix signoff, including the narrow
+  chart-template pointer repair. This removes per-fix human review as a blocker;
+  it does not waive validation or checkpoint acceptance, permit Provider to
+  edit frontend code, authorize product-scope reductions, source freeze,
+  provider activation, the trial, or deployment. No per-fix human approval is
+  being requested from this Provider session.
+- The current central workflow-only staging source is
+  `5267f11a491795d85ee35b56cabbe550394f3823`; CI run `38773602828` is still
+  `in_progress`. Frontend Unit Tests, Backend Tests, and E2E Tests (Playwright)
+  are green; the Exhaustive Integration Gate remains in progress. There are no
+  product source freezes, accepted product checkpoints, or released combined
+  baseline. This workflow commit is not Provider acceptance or a product
+  baseline. The coordinator's chart repair is authorized but not yet created
+  in the receipt; its actual application validation remains a central repair
+  task. Provider makes no frontend edit and does not duplicate that work.
+- Provider-owned shared-contract results from the preceding coherent run are
+  now explicit: the checkpoint's free-only boundary test passed 1/1, and the
+  PostgreSQL migration-compatibility gate passed all 50 changed migrations,
+  proving fresh-install/existing-upgrade schema equivalence, clearing
+  unverified legacy quota values rather than guessing, and previous-release
+  `/health` 200. Exact command and details are recorded in the immediately
+  preceding 17:26Z entry and `validation.jsonl`; these do not create an
+  aggregate subscription-cost API or fulfill the future 20 EUR/USD-equivalent
+  cost ceiling.
+- Existing Provider live evidence remains 20/27 manifests (56/56 cases, 129
+  requests); seven remain held by provider-specific quota/baseline/cost gates,
+  as classified in the 16:02Z entry. No provider requests were made for the
+  coordination follow-up. No fresh exact-source live receipt is claimed.
+- Remaining Provider checkpoint work: resolve or explicitly disposition each
+  held operation without losing queried data; complete current-source browser
+  validation after central repair is available; finish required full
+  integration/branch CI on the exact clean source; reconcile required secret
+  stores and consumer contract evidence; then publish a clean pushed exact
+  source review checkpoint. The working tree is still dirty and no source is
+  frozen, so no commit/push or integration is being claimed. The entire
+  provider roadmap remains open beyond this bounded checkpoint.
+
+## 2026-10-15 17:34Z — refreshed provider admission, no transport
+
+- Re-ran the complete 27-provider `--preflight-only` gate. The sandbox attempt
+  correctly stopped because the owner-managed durable quota ledger was
+  read-only; it sent zero provider requests. The same command through the
+  authorized local-ledger route completed the account-wide quota admission
+  check, also with zero provider requests. Its exact redacted receipt is the
+  last `provider_live_preflight` row in `validation.jsonl` at
+  `2026-10-15T17:34:46.488696Z`; this is not live-provider acceptance and was
+  captured against dirty source HEAD `65a467b43d7830b0875d9c3ad538e47a06d4a6db`.
+- Current complete-manifest admission: 20 eligible, seven quarantined. Exact
+  holds: Alpha Vantage (nine-request daily reservation exceeds active shared
+  headroom); CTA Plan (two daily directory units unavailable); EODHD (16-call
+  daily reservation exceeds active headroom); Nasdaq (two daily directory
+  units unavailable); Tiingo (hourly baseline unknown for four operations);
+  Dinari Sandbox (account-reviewed quota/reset and worst-case operation-cost
+  map missing, including reset semantics for nine routine operations); and
+  Marketstack (monthly request headroom below two, with discovery MIC, reset,
+  and per-page cost unresolved). No held operation was called.
+- The routing-safety inventory also identifies FINRA async result-byte use as
+  non-routable pending a positive reviewed byte bound. This is separate from
+  the 27-manifest count. The current `docs/provider-live-validation.md` now
+  distinguishes these operation dispositions from historical live receipts.
+- Central staging remains at source
+  `5267f11a491795d85ee35b56cabbe550394f3823`, CI `38773602828` in progress,
+  with no accepted checkpoint or source freeze. The central chart-template
+  repair is authorized, but its own receipt still says it has not been created;
+  this Provider session continues to leave frontend work to that owner.
+- Confirmed FINRA's additional non-manifest operation disposition with the
+  focused tests for the routing safety preflight, unbounded adapter rejection,
+  and quota admission: 3 passed. No guessed byte ceiling was added; async
+  result downloads remain fail-closed until a positive reviewed bound is
+  configured. The current source's prior complete backend gate and the focused
+  regression are complementary evidence; the latter does not replace the full
+  current-source integration/browser profile.
+- Reviewed current official Dinari and Marketstack references without sending
+  provider requests. Dinari's environment reference and Quickstart document the
+  Sandbox host and stock-list connectivity call but do not publish a Sandbox
+  numeric quota/reset or operation-cost map. Marketstack's pricing/FAQ confirms
+  100 Free requests/month and per-symbol request consumption, but does not
+  establish the account's monthly reset anchor or the billing cost of its
+  exchange-wide paginated directory. These findings support keeping Dinari's
+  normal operations and Marketstack discovery non-routable; they do not replace
+  account evidence. Links and exact distinctions are recorded in
+  `docs/provider-live-validation.md`.
+
+## 2026-10-15 17:38Z — CI and record-validation refresh
+
+- Queried GitHub directly for central workflow run `38773602828` on commit
+  `5267f11a491795d85ee35b56cabbe550394f3823`. Frontend Unit Tests, Backend
+  Tests, and E2E Tests (Playwright) are completed successfully;
+  Branch-declared Tests is skipped because this is a protected workflow-only
+  branch; Exhaustive Integration Gate remains `in_progress`. The combined
+  commit status has no completed status contexts. This confirms the local
+  coordinator receipt; it does not release a product baseline.
+- After the refreshed operation inventory and FINRA tests, branch workstream
+  validation passed (`1` record), the session JSON and validation JSONL parsed,
+  `git diff --check` passed for the changed records/docs, and the session's
+  `plan_hash` still matches `plan.yaml`. No provider requests were made.
+- The branch remains dirty and seven commits ahead of its configured upstream
+  (`origin/feat/market-data-provider-platform` at
+  `88132e9145a08d1c935a0111b3dba0fbd88bdff1`). No commit, push, freeze, or
+  integration is claimed. The exact-source branch CI,
+  browser acceptance, outstanding operation evidence, deployment/secret-store
+  checks, and consumer evidence remain open.
+
+## 2026-10-15 17:44Z — central integration gate green
+
+- Fresh GitHub Actions inspection for workflow run `38773602828`, commit
+  `5267f11a491795d85ee35b56cabbe550394f3823`, now reports the Exhaustive
+  Integration Gate `success`. Frontend Unit Tests, Backend Tests, and E2E Tests
+  (Playwright) also succeeded; Branch-declared Tests was skipped as expected
+  for the protected workflow-only source. The combined commit-status API has
+  no status contexts; the Actions job result is the authoritative green gate.
+- The local coordinator execution receipt has not caught up: it still says
+  `updated_at: 2026-10-15T17:39:33Z`, `staging_ci_state: in_progress`,
+  `repair.created: false`, and no source freezes or accepted product
+  checkpoints. The receipt's stated prerequisite for creating the authorized
+  repair—exact synchronized green staging—is now satisfied according to
+  GitHub. Coordinator should refresh its receipt and start the already
+  authorized repair workflow. Provider does not create that worktree or modify
+  staging/frontend.
+- This green run validates workflow-only staging commit
+  `5267f11a491795d85ee35b56cabbe550394f3823`; it is not a released product
+  baseline, Provider acceptance, or source freeze. Provider's own tree remains
+  dirty at `65a467b43d7830b0875d9c3ad538e47a06d4a6db`, seven commits ahead of
+  `origin/feat/market-data-provider-platform` (`88132e9145a08d1c935a0111b3dba0fbd88bdff1`).
+  No provider requests, commits, pushes, or integrations were made for this
+  status refresh.
+- Provider's own blockers remain: three full-browser failures await the
+  coordinator's application-validated pointer repair; seven provider manifests
+  are quota/baseline/profile held; FINRA async result downloads stay disabled
+  until an approved byte bound exists; exact-source branch CI, consumer
+  evidence, and deployment/secret-store checks remain outstanding.
+
+## 2026-10-15 17:46Z — secret-boundary evidence and deployment distinction
+
+- Focused source-contract tests passed `3/3`: local/RPi Compose passes provider
+  secrets only to trusted backend/worker processes, the RPi helper's secret
+  inventory matches the provider manifest while printing names only, and the
+  GitHub live workflow is branch/environment scoped and maps each declared
+  provider secret and safety setting. No secret values were read or printed.
+- The successful 17:34Z local preflight had `missing_environment_names: []`,
+  but its durable quota ledger made the first sandbox attempt fail; only the
+  authorized ledger route completed quota admission. These results verify the
+  local environment and repository wiring, not the actual presence of
+  credentials in GitHub's protected environments or an RPi/production secret
+  store.
+- Per ICP5 in the staging checkpoint contract, secret-boundary/configuration
+  behavior and explicit requirements are checkpoint evidence; this branch is
+  not claiming deployment readiness. Actual target secret-store presence and
+  deployment smoke remain on the full roadmap and are not a reason to block
+  this development checkpoint absent a deployment request. No deployment or
+  live-provider calls were made.
+- Post-update source check: the shared coordinator receipt has now advanced to
+  `updated_at: 2026-10-15T17:43:52Z` and records `staging_ci_state: success`.
+  `repair.created` is still false, while `repair.next` still says to wait for
+  green staging. That next-step text is stale relative to the same receipt's
+  successful CI state; the authorized repair remains centrally owned and was
+  not created from this worktree.
+
+## 2026-10-15 17:50Z — coordinator direction and Tiingo quota hold
+
+- The owner recorded further direction in the staging coordination document:
+  the independent chart-template repair is authorized and centrally owned;
+  the coordinator may technically close validated fixes without requesting
+  per-fix human signoff. This does not accept an unfinished Provider checkpoint,
+  waive validation, permit source-scope reduction, sibling writes, data loss,
+  provider/trial activation, or deployment. Provider continues to own only its
+  branch checkpoint and reports evidence here; it does not create or edit the
+  coordinator's repair worktree.
+- Central CI evidence remains GitHub workflow run `38773602828` on staging
+  source `5267f11a491795d85ee35b56cabbe550394f3823`: the Exhaustive
+  Integration Gate and the Frontend Unit, Backend, and E2E jobs succeeded;
+  the workflow-only Branch-declared Tests job was skipped as expected. The
+  shared receipt last updated at `17:43:52Z` still records `repair.created:
+  false` and a stale wait-for-green next step. Thus the coordinator's
+  prerequisite is satisfied and the authorized repair's execution/application
+  validation is the exact central follow-up; this is not a human decision
+  request and not Provider checkpoint acceptance.
+- Tiingo's official general documentation describes independent hourly
+  requests, daily requests resetting at midnight Eastern, and monthly
+  bandwidth resetting on the first at midnight Eastern. Its account-usage
+  reference is a logged-in account page, not a documented API response with
+  machine-readable counters. The prior bounded check redirected to the web
+  account path and did not produce a usable counter; the prior authenticated
+  request received a Cloudflare 403 explicitly marked not to retry. No repeat
+  probe or market-data request was made. The last operator dashboard
+  attestation was reconciled at `2026-10-15T12:15:49Z` (50/50 hourly and
+  992/1,000 daily before locally observed settlements); that hourly baseline
+  has expired under the configured one-hour safety envelope. Keep all four
+  Tiingo operations quarantined until a fresh hourly dashboard observation is
+  supplied or a safe, documented native usage mechanism is established. This
+  is a provider-specific quota admission hold, not an unknown account plan or
+  a reason to spend quota speculatively.
+- Exact current Provider blockers remain: a later full browser matrix is
+  recorded as 3 failures / 260 tests (148 passed, 109 skipped), although the
+  three focused reruns passed. The structured branch receipt did not retain
+  those three test names, so they are not all attributed to the chart-pointer
+  issue. The earlier structured run on candidate tree
+  `457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60` retained the concrete
+  `F9c-template-comparison` pointer-interception failure (153 passed, 106
+  skipped, 1 failed). After the coordinator publishes application-validated
+  repair evidence, rerun the complete profile on the final exact source and
+  classify every remaining failure from its test report. Seven provider manifests remain
+  quarantined by the current shared-ledger preflight; FINRA async result
+  downloads remain fail-closed without a positive byte bound. Branch CI,
+  consumer evidence, and clean pushed-source review remain outstanding. No
+  provider request, code activation, commit, push, source freeze, or integration
+  occurred during this status update.
+
+## 2026-10-15 17:56Z — heavy validation serialization
+
+- Attempted the exact-current `make test-backend-coverage` gate. The ordinary
+  sandbox stopped before tests because it cannot access the Docker socket; the
+  authorized local-Docker retry began and was retained under its process
+  handle. A subsequent read-only process inspection found that a central full
+  integration-gate shell had already been running before this retry and
+  includes its own backend-coverage stage. To avoid concurrent duplicate heavy
+  validation, I interrupted only the local gate I had started (`exit 130`);
+  it produced no acceptance result. A follow-up process/container check found
+  no remaining local backend pytest process, while the central integration
+  gate and its BuildKit builder remained active. No containers were stopped or
+  modified. Do not launch another backend coverage run until the central gate
+  completes or its coordinator reports the exact result. This is a validation
+  serialization hold, not a test failure.
+
+## 2026-10-15 17:57Z — central repair worktree created
+
+- Re-read the shared central receipt after the prior checkpoint. Staging CI
+  remains `success` for run `38773602828`; `repair.created` is now `true` for
+  `fix/chart-template-pointer-interaction`, so the authorized independent
+  repair is underway. The receipt's `updated_at` still says `17:43:52Z`, and
+  it has not yet recorded a repair source SHA, tree SHA, or commit. Its current
+  next action is to implement the scoped geometry repair in that assigned
+  worktree, verify the real seeded application, then perform delegated closure
+  and guarded staging integration. Provider will not access or modify that
+  worktree. This supersedes the earlier observation that the repair had not
+  been created.
+- Provider's browser gate remains red until central application-validation
+  evidence is published and the final exact-source full profile is rerun.
+  The prior structured receipt names the Plots/Remove RSP pointer issue; the
+  later three-failure report did not preserve its case names, so the other two
+  failures remain unclassified. The central repair is not assumed to fix them.
+
+## 2026-10-15 18:03Z — FINRA async result retention path
+
+- Read FINRA's current official Query API documentation (no FINRA API request
+  made). It documents a 100,000-record maximum per asynchronous request, no
+  async response byte ceiling, and a signed result link expiring two hours
+  after the completed status response or 24 hours after result creation,
+  whichever comes first. The offset maximum is 500,000, so collection beyond
+  that requires documented dataset filters/traunching rather than unbounded
+  offset paging. Source: https://developer.finra.org/docs.
+- Repository inspection confirms `FINRAProvider.download_async_result` is
+  currently behind a positive `FINRA_ASYNC_MAX_RESULT_BYTES` guard, keeps
+  chunks in a Python list, joins them into one `bytes` object, and archives a
+  base64 copy in the live-test telemetry. No application service calls this
+  download method today; matches are adapter/runtime tests only. Enabling it
+  with an arbitrary bound would risk rejecting a valid large result and the
+  existing buffering/archive path is not suitable for multi-gigabyte bodies.
+- Exact future work to enable this operation without data loss: persist the
+  original query/filter/page state and job status; reserve the documented
+  monthly byte pool before reading each result; inspect `Content-Length` and
+  reserve that amount before body transfer when available; stream every byte
+  directly to durable file/object storage with hashes and resumable offsets
+  rather than retaining an entire result in memory; settle quota to measured
+  bytes; and restart expired results from the saved query, preserving every
+  prior response. No truncation, silent partial success, or implicit skip is
+  acceptable. Keep async result download non-routable until this end-to-end
+  path is implemented and tested. This is a concrete Provider-owned roadmap
+  item, not a request for human quota-policy selection.
+
+## 2026-10-15 18:04Z — Dinari plan and Sandbox contract refresh
+
+- Rechecked Dinari's official docs without calling the API. The documented
+  Sandbox host and read-only stock-list smoke remain supported; official docs
+  still provide no numeric Sandbox quota, reset boundary, or operation-cost
+  table, so normal Sandbox operations remain quarantined until the account
+  contract is established. The Partner Fees page states API access is billed
+  monthly starting at $2,000/month and Sandbox is free during evaluation/build.
+  Therefore Sandbox supports isolated integration testing only; production
+  Dinari is not an admitted free/cheap provider and remains disabled without a
+  separately authorized paid entitlement. No new Dinari request was made.
+- Sources: https://docs.dinari.com/reference/environments,
+  https://docs.dinari.com/docs/quickstart,
+  https://docs.dinari.com/docs/fees.
+
+## 2026-10-15 18:05Z — active integration-run ownership clarified
+
+- Read-only process inspection confirms the still-live full integration-gate
+  shell is rooted in
+  `/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents`
+  (PID 4131053, parent `make`, elapsed about 17 minutes at observation). Its
+  command includes backend coverage, provider probes, full-stack E2E, and the
+  visual profile; the assigned Provider checkout has no active backend pytest
+  process. The chart-template repair stack is also healthy and active. Do not
+  duplicate any of those heavy gates or inspect/edit the ETF worktree. This
+  corrects the earlier shorthand “central gate”: the execution is owned from
+  the ETF worktree even though it is part of the central multi-feature
+  coordination work.
+- The shared staging receipt remains `staging_ci_state: success` and
+  `repair.created: true`; it still lacks repair source/commit/application
+  validation and retains the `17:43:52Z` update timestamp. No source freeze or
+  accepted product checkpoint is recorded. Provider will wait for its own
+  current gate/repair evidence rather than treating process presence as a pass.
+- The latest Provider browser disposition also identifies three failures in
+  the 260-case full run: `F9c-template-comparison` pointer interception,
+  intermittent `ERR_NETWORK_CHANGED`, and a Strategy benchmark-family
+  assertion. All passed in focused reruns, but the full run remains red. Only
+  the first is in the coordinator's repair scope; the other two must still be
+  classified/resolved by a fresh full run.
+
+## 2026-10-15 18:08Z — integration process re-poll
+
+- A prior single-PID poll transiently returned no row; rechecking the same PID
+  and process table confirmed PID `4131053` remains alive (about 20 minutes at
+  this poll) with Docker/npm/browser toolchain processes. The separately owned
+  chart-template repair Compose stack remains healthy. The shared receipt still
+  has no repair source/commit or gate result. No Provider test or provider API
+  request was started; keep the no-overlap validation hold until that live
+  integration run exits and its result is available.
+
+## 2026-10-15 18:11Z — central validation state rechecked
+
+- The central receipt has advanced to `updated_at: 18:10Z`. It now records the
+  authorized pointer-repair source SHA
+  `8b4e68538f2e0cc476434e0767b97f6d1954e808`, exact-source CI run
+  `38783125647` as `in_progress`, and the unchanged 260-case browser run as
+  in progress. The repair's ordinary populated desktop/narrow application
+  check and 923 frontend unit tests/build are reported complete, but the
+  required full matrix and source CI are not complete.
+- A read-only Docker inspection confirms the repair browser and repair app
+  containers are up and healthy, and the ETF-owned integration stack's
+  backend/frontend/worker services are up and healthy. The prior ETF shell PID
+  and repair browser PID are not visible in this session's host process table;
+  Docker service presence is evidence that the stacks remain active, not that
+  their pending test runs passed. GitHub CLI is not installed here, so the
+  central receipt remains the only available exact run-status observation.
+- No Provider test, provider HTTP request, or sibling-worktree access was
+  started. Keep the heavy validation hold until the owners publish terminal
+  results; then validate this exact Provider candidate without duplicating any
+  still-running gate. The delegated technical-closure authority remains with
+  the coordinator and requires validation; it does not waive ICP acceptance.
+*** End of File
+## 2026-10-15 18:14Z — GitHub repair CI jobs rechecked
+
+- Read-only GitHub Actions job status for repair run `38783125647` confirms:
+  frontend unit tests passed; branch-declared tests passed; backend unit tests
+  passed; the backend Testcontainers integration step is still `in_progress`.
+  Thus the central CI run is not terminal/green yet. No new CI run was started.
+- Workflow-only staging run `38773602828` has completed successfully, including
+  Backend Tests, E2E Tests, and Exhaustive Integration Gate. Its
+  `Branch-declared Tests` job was skipped because that run validates workflow
+  staging, not a feature source; it is not product release or checkpoint
+  acceptance evidence.
+- Existing Docker stacks remain the active validation owners. Provider will
+  not launch an overlapping full integration/browser gate until both the
+  repair CI and central full-stack test owners report terminal results.
+
+## 2026-10-15 18:24Z — Shared-cost checkpoint boundary hardened
+
+- The earlier default-false paid-routing setting was not a hard boundary: a
+  reviewed paid entitlement could be admitted if an operator set the legacy
+  toggle true. Closed that bypass in Provider-owned runtime code. A shared
+  `provider_entitlement_cost_admitted` guard now admits only explicitly free
+  entitlements, for both provider-chain resolution and the admin status
+  `routing_eligible` result; the toggle cannot override it. Live-suite
+  preflight also reports paid MarketData.app plans non-routable. Free trial
+  entitlements retain their existing explicitly-free classification; expired
+  MarketData.app trial quota remains Free Forever. No provider calls were made.
+- Focused regression coverage constructs a reviewed paid MarketData.app
+  entitlement with configured credentials, positive quota, successful live
+  probe, and `ALLOW_PAID_PROVIDER_ROUTING=true`; both resolver and status API
+  deny routing. The independent live-preflight test verifies the same
+  non-routable disposition. Both tests passed (`2/2`), Ruff check/format passed,
+  diff checks passed, and the Provider workstream validator passed. No live
+  traffic or browser tests were started for this change.
+- The approved aggregate monthly recurring-subscription ceiling
+  (20 EUR/USD-equivalent) remains unimplemented: no existing shared cost
+  aggregation/admission interface was found, no FX conversion was invented,
+  and no ETF-only ledger was added. Provider retains ownership of shared ICP2
+  cost admission before any paid routing can be enabled. ETF retains ICP6
+  responsibility to consume only admitted routes and reserve actual provider
+  operation costs. This checkpoint is hard free-only and does not waive that
+  remaining shared consumer contract.
+- Re-ran `scripts/validate-migration-compatibility.py --base-sha origin/master`
+  on the current dirty worktree after obtaining localhost-socket permission.
+  It passed all 50 changed migration files, fresh-install/existing-database
+  quota schema/data equivalence, clearing unverified legacy quota values,
+  and previous-release `/health 200`. This is evidence for the current dirty
+  candidate, not a clean immutable source receipt; rerun or source-bind it
+  after the final source is settled.
+- Rechecked GitHub repair run `38783125647`: Frontend Unit Tests, Backend
+  Tests (including Testcontainers integration), and Branch-declared Tests
+  completed successfully. The unchanged pinned 260-case Playwright job is
+  still `in_progress`; Exhaustive Integration Gate is skipped on this repair
+  run. It is not a green staging/product checkpoint and does not replace the
+  Provider exact-source browser/integration acceptance. No frontend files,
+  sibling worktrees, or staging were changed.
+- The session checkpoint helper currently rejects a checkpoint because the
+  workstream plan changed since the prior session boundary; its prescribed
+  `plan-ready` transition requires the plan to be committed and local/remote
+  branch heads synchronized. The candidate remains broadly dirty and its full
+  acceptance is not complete, so no premature source commit/push was made.
+  Continue the active workstream; produce the clean synchronized review
+  checkpoint only after required gates and exact-source evidence are ready.
+
+## 2026-10-15 18:30Z — Cost-boundary correction after precise review
+
+- The human's review of the 17:26Z evidence supersedes the unnecessary
+  hard-gating change from the prior turn. Restored the existing behavior:
+  `ALLOW_PAID_PROVIDER_ROUTING=false` keeps the checkpoint free-only in the
+  resolver/status; `true` can route a separately reviewed paid entitlement.
+  That toggle is not aggregate monthly cost admission and is not authority to
+  activate a paid plan. Paid activation remains unauthorized. No new cost
+  subsystem or ETF-specific ledger was added, and no provider requests were
+  made.
+- The provider regression is named
+  `test_free_only_checkpoint_boundary_rejects_reviewed_paid_provider`; it
+  verifies the default-false denial and the reviewed-plan opt-in path in the
+  resolver and status. Focused Provider runtime plus live-preflight tests
+  passed `2/2` after restoring conditional semantics; Ruff check/format passed.
+  This validates local source behavior without replaying external provider
+  operations.
+- Read ETF's owner-authored `shared-cost-admission.md` and
+  `integration-checkpoint.md` (read-only). Its consumer matrix distinguishes
+  quota settlement from recurring subscription admission and says real
+  bridge/runtime tests remain pending green staging; required cases cover
+  no-transport denial, paid/free routing, unknown cost, aggregate boundary,
+  retries/pages, and preserving prior holdings. ETF retains those ICP6
+  consumer tests/remainder; Provider retains the explicit 20 EUR/USD-equivalent
+  aggregate contract under ICP2. No sibling source was modified. Final
+  accepted-source and consumer behavior still require exact-source/staging
+  evidence; the full cost contract remains open.
+
+## 2026-10-15 18:31Z — Repair workflow terminal status
+
+- Rechecked GitHub run `38783125647` for chart-repair SHA
+  `8b4e68538f2e0cc476434e0767b97f6d1954e808`. The overall run is terminal
+  `cancelled` (GitHub updated it at 18:30:28Z): Frontend Unit Tests, Backend
+  Tests including Testcontainers integration, and Branch-declared Tests
+  succeeded; the pinned Playwright job was cancelled; Exhaustive Integration
+  Gate was skipped. No cancellation reason is inferred and no rerun was
+  started. This does not satisfy browser acceptance or authorize a Provider
+  full browser run while ETF's own heavy validation remains active.
+
+## 2026-10-15 18:32Z — Local heavy-gate overlap confirmed
+
+- Read-only Docker process inspection confirms the cancelled GitHub Playwright
+  job is distinct from local work still running in
+  `chart-pointer-repair-browser-20261015`; Playwright worker/browser processes
+  are active there. The ETF backend Compose service is also still running.
+  No Provider browser/full-integration suite was started and no container was
+  stopped or cleaned up. The GitHub cancellation does not mean the local
+  coordinator-owned repair matrix has completed.
+- Its latest read-only log snapshot had reached test 208/260 (TC2000 visual
+  cases) with Playwright still running. Continue to treat it as an active
+  coordinator-owned gate; no Provider gate overlaps it.
+
+## 2026-10-15 18:34Z — Repair matrix failure and follow-up CI
+
+- The repair workstream's newer 18:29Z record identifies the local full
+  260-case run as red at `F8s-market-map-watchlist`: an ordinary Study Lab
+  publication click detached. That is a separate failure from the toolbar
+  geometry; coordinator evidence points to an existing refresh-completion
+  synchronization issue and proposes only a narrow test-source follow-up.
+  The old browser container and recorded process are now absent; do not infer
+  a pass from cleanup.
+- The follow-up source `543a7817a9bd24a8543066dd96c9472b45e98cd8` changes only
+  synchronization assertions in that existing test. Its GitHub run
+  `38785967367` has frontend and branch-declared jobs passed while backend
+  Testcontainers integration is still running. It is not yet a green repair
+  source. ETF Compose services are still up. Provider will not change frontend
+  code or start overlapping browser/integration gates.
+
+## 2026-10-15 18:37Z — Repair follow-up CI advanced
+
+- Read-only GitHub status for run `38785967367` now shows Frontend Unit Tests,
+  Backend Tests (including Testcontainers integration), and Branch-declared
+  Tests all completed successfully. The E2E Playwright job has started; the
+  Exhaustive Integration Gate remains skipped. This is not yet terminal green
+  or Provider exact-source browser acceptance. ETF Compose services remain
+  running, so no overlapping Provider heavy gate was started.
+
+## 2026-10-15 18:45Z — Persistent quota preflight and Dinari documentation audit
+
+- A sandboxed no-transport preflight at 18:41Z could not open the configured
+  durable quota ledger because its path is outside this worktree's writable
+  sandbox. The same preflight was rerun through the permitted host execution
+  path at 18:42Z: the durable quota coordinator was ready, there were no global
+  blockers, 20 providers were admitted, seven were held by provider-specific
+  quota/profile/cost evidence, and zero provider HTTP requests were sent. This
+  is not a provider live-acceptance result. The durable ledger is not broken.
+- Read Dinari's current public API documentation and quickstart for the sandbox
+  environment and searched the official docs for published rate-limit, quota,
+  and 429 policies. The public documentation confirms the sandbox base URL and
+  supported-data endpoints but does not establish account-specific rate
+  limits, reset periods, or per-operation quota costs. Therefore no quota
+  values are inferred or added: Dinari remains quarantined pending a complete
+  sandbox quota profile and operation-cost map. References checked:
+  `https://docs.dinari.com/reference/environments`,
+  `https://docs.dinari.com/docs/quickstart`, and
+  `https://docs.dinari.com/docs/stock-data`. No Dinari request was made.
+- Marketstack's official FAQ confirms that historical/market-data lookups are
+  charged per ticker even when several symbols are included in one call:
+  `https://marketstack.com/faq`. That does not document the worst-case charge
+  for the venue-wide discovery-page operation, so its unit cost remains
+  unresolved; the exhausted 100/100 monthly key was not called.
+- Repair CI `38785967367` was polled again: frontend unit, backend including
+  Testcontainers, and branch-declared tests are green; Playwright remains in
+  progress and Exhaustive Integration Gate is skipped. No duplicate browser or
+  provider integration run was started.
+
+## 2026-10-15 18:47Z — Repair browser job cancelled before completion
+
+- The exact coordinator-owned CI run `38785967367` is now terminal: its
+  Playwright job was cancelled after starting the 260-case suite and reaching
+  case 94/260. The job log ends with GitHub's operation-cancelled signal; no
+  browser assertion failure is shown before cancellation. Frontend unit,
+  backend/Testcontainers, and branch-declared jobs succeeded, but this is not
+  a green browser result; Exhaustive Integration Gate was skipped. The browser
+  result is inconclusive and remains with the coordinator/repair owner. Provider
+  did not launch a duplicate run or touch frontend code.
+- A read-only host check after that cancellation confirms ETF's full pytest
+  process is still active and its ETF Compose stack remains up; the independent
+  chart-repair stack is also running. Provider therefore continues to defer its
+  own memory-heavy full test profile until the shared host gates release those
+  resources. No container was stopped or cleaned up.
+
+## 2026-10-15 18:50Z — MarketData.app usage-contract delta verified
+
+- Compared the last full backend gate candidate tree (`457d8e5...`) with the
+  later live candidate tree (`60b5d49...`). The intervening implementation/test
+  delta is limited to MarketData.app `/user/` accounting: its documented
+  successful usage response consumes one daily credit and can bootstrap that
+  exact native counter once; subsequent account reads reserve one credit.
+- Ran the changed contract test
+  `tests/unit/services/test_provider_quota_contract.py::test_marketdata_app_records_documented_daily_credit_and_concurrency_limits`:
+  1 passed, 134 deselected. Ruff passed for `app/config.py` and that test file.
+  No provider HTTP requests were made. This focused result supplements, but
+  does not replace, the earlier 3,166-test full backend gate or exact final-source
+  validation.
+
+## 2026-10-15 18:53Z — Tiingo account baseline remains unavailable
+
+- Attempted a read-only dashboard visit using the cached Firefox runtime (the
+  system Chrome channel is absent). Tiingo redirected to its login-required
+  page. No account credentials were entered, no API endpoint was called, and
+  the temporary browser session was closed.
+- The last durable owner-dashboard reconciliation in the workstream is
+  2026-10-14T18:27Z. It cannot establish current rolling-hour usage on
+  2026-10-15. Tiingo's four request-consuming operations remain quarantined
+  until a fresh dashboard baseline is available or a separately safe native
+  usage read can be admitted. No quota was spent.
+- Follow-up host inspection at 18:54Z found the coordinator's replacement
+  repair matrix actively running in `chart-pointer-repair-full-verified`; its
+  log had advanced to 36/260 with Playwright workers alive. ETF's Compose stack
+  remains up. Provider will continue to defer its own full local profile until
+  these shared heavy gates are terminal.
+- A further read-only poll at 18:56Z confirms the same matrix is still active
+  and has advanced to 53/260. No Provider test or provider request was started.
+
+## 2026-10-15 18:57Z — Roadmap disposition and consumer-map audit
+
+- Parsed the branch plan against the full original acceptance list: all 23 of
+  23 original criteria have exactly one disposition, none are missing or extra,
+  and every disposition has both an owner and a continuation acceptance test.
+  The statuses are 1 delivered, 18 partially delivered, and 4 proposed deferred;
+  checkpoint disposition/closure remains pending human acceptance.
+- Verified the three downstream consumer maps are present, all 10 referenced
+  backend contract paths exist, and the plan contains success, unavailable,
+  partial coverage, and unresolved-identity examples. This checks the map's
+  references, not the consumers' eventual behavior against green staging.
+- The coordinator repair log advanced to 64/260 on the latest poll; that matrix
+  remains live. Provider still has not started an overlapping full gate.
+- A read-only poll at 18:58Z shows the same matrix at 75/260 and still active.
+  No Provider test or provider request was started.
+
+## 2026-10-15 19:02Z — published in-progress source checkpoint
+
+- Published commit `2970b7947f99b715f744ac0ea0c3a4dbba141624` to
+  `origin/feat/market-data-provider-platform` under the `jagnelo` repository.
+  Its tree is exactly the previously live-tested candidate
+  `60b5d49f3799659f82bda2cc04eea6609bfc0cd9`; this publishes only the staged
+  snapshot and preserves later unstaged edits in this worktree.
+- That source has 20/27 provider manifests and 56/56 cases passed, with 129
+  provider HTTP requests during the recorded run. Seven manifests remain
+  quarantined in that receipt; the post-run verifier/preflight made zero
+  additional provider requests. This is not exhaustive live acceptance.
+- Push CI run `38790549190` started on the exact commit. Backend and frontend
+  jobs were starting at the first check; branch-declared tests depend on the
+  backend job. Await this hosted run before interpreting the checkpoint as
+  validated. No merge, source freeze, provider activation, deployment, or
+  staging acceptance is authorized.
+- The same push also created provider-live workflow run `38790547321`, which
+  ended as failure with no jobs returned. It yielded no provider test result
+  and no evidence of a provider HTTP request. The committed workflow's
+  provider job is restricted to staging/master; investigate this workflow
+  event/result separately without replaying provider calls.
+- Coordinator pointer CI `38788964190` remains independent and in progress.
+  Provider did not start a duplicate local heavy gate or modify frontend work.
+
+## 2026-10-15 19:10Z — current admission and hosted-CI correction
+
+- With the owner-private quota ledger accessible, a fresh
+  `make provider-live-preflight` reconciled the durable coordinator and
+  evaluated all 27 providers without provider HTTP. The coordinator was ready;
+  20 providers were eligible and seven remain quarantined: Alpha Vantage,
+  CTA Plan, Dinari, EODHD, Marketstack, Nasdaq, and Tiingo. Reasons are
+  provider-specific headroom for Alpha Vantage/CTA/EODHD/Nasdaq, Dinari's
+  unreviewed Sandbox quota/reset/cost profile, Marketstack's exhausted monthly
+  headroom plus unresolved directory page cost/MIC, and Tiingo's missing
+  current hourly baseline. The exact no-transport receipt is in
+  `validation.jsonl`; this is not live acceptance.
+- Hosted CI on checkpoint `2970b7947f99b715f744ac0ea0c3a4dbba141624` failed
+  its unit step: 2,768 passed and three failed. Two Dinari unit tests requested
+  GitHub-only persistent-PostgreSQL semantics while using isolated SQLite;
+  the third diagnostic test did not isolate itself from the CI environment
+  guard. Removed the inappropriate persistent flag from the local-ledger
+  tests and made the diagnostic test explicitly non-GitHub; the separate test
+  that rejects SQLite for actual GitHub live probes remains unchanged.
+- The three failed tests now pass locally; Ruff and current workstream
+  validation pass. Test-only repair commit
+  `113a94cf0c3f9dbbef739da126a0cbacba5b08ad` was pushed. Hosted CI run
+  `38791669336` is in progress; the earlier CI failure remains historical
+  until this exact run completes.
+- These two test files were committed separately. The 15-file provider/docs
+  follow-up remains uncommitted and intact. The active coordinator browser
+  matrix and ETF stack remain running; no duplicate local heavy gate or
+  provider request was started.
+
+## 2026-10-15 19:39Z — follow-up candidate validation and publication decision
+
+- The exact hosted run `38791669336` for commit `113a94cf0c3f9dbbef739da126a0cbacba5b08ad`
+  reports Backend Tests, Frontend Unit Tests, and Branch-declared Tests green;
+  its E2E Playwright job is still running. The branch-declared log says the
+  migration compatibility gate passed 50 changed migration files, but that
+  invocation predates the local follow-up enhancement that compares quota
+  schema/data for fresh install and existing-database upgrade.
+- The local follow-up is a coherent 15-file provider checkpoint changeset:
+  documents the free-only checkpoint and the still-unimplemented shared
+  aggregate 20 EUR/USD-equivalent subscription ceiling; adds a focused
+  reviewed-paid-provider resolver/status test; strengthens migration
+  compatibility to compare fail-closed quota state on fresh and upgrade paths;
+  refreshes provider live admission/disposition records; and leaves the branch
+  `in_progress`. It contains no frontend files or credentials.
+- Focused validation on this exact dirty source passed: the free-only boundary
+  and MarketData.app trial-expiry tests (`2 passed`), Ruff, Python syntax
+  compilation for the migration checker, `validate-workstream.py`, and
+  `git diff --check`. The expanded fresh-vs-upgrade Docker migration check was
+  already run at 18:24Z on a dirty worktree and recorded as passing in
+  `validation.jsonl`; it is not an immutable clean-source receipt. This
+  follow-up requires a fresh exact-source hosted Branch-declared run for its
+  final record.
+- Current no-transport quota admission remains 20 eligible / 7 quarantined,
+  zero provider HTTP requests. The prior 20/27 live evidence belongs to source
+  tree `60b5d49f3799659f82bda2cc04eea6609bfc0cd9` and is not relabelled as
+  exact-source acceptance. No data or quota holds were discarded or reset.
+- Decision: publish the coherent follow-up as an in-progress candidate so
+  hosted backend and branch-declared CI can exercise the exact source while
+  coordinator pointer staging remains pending. This may supersede the older
+  source's still-running E2E job; E2E must pass on the new exact commit before
+  review readiness. This publication is not provider acceptance, source freeze,
+  merge readiness, provider activation, or permission to import frontend code.
+- Remaining explicit gates: exact-source hosted CI including E2E and the
+  enhanced migration check; complete exact-source live evidence for admitted
+  operations without replaying quota-blocked calls; seven provider-specific
+  live holds; FINRA async byte-accounting operation safety; final consumer
+  evidence/ownership reconciliation; reviewed checkpoint dispositions and
+  human acceptance; deployment/CI/RPi secret-store verification; and the full
+  roadmap. The central coordinator retains pointer/browser work and guarded
+  staging integration.
 *** End of File

@@ -221,8 +221,9 @@ class Settings(BaseSettings):
     # but must not be appended automatically to new workstation capability
     # chains. This keeps the default platform path free-source/API-first.
     ENABLE_LEGACY_YFINANCE_FALLBACK: bool = False
-    # Paid adapters may be configured and audited without entering normal
-    # routing.  An explicit deployment setting is required to opt them in.
+    # A reviewed paid entitlement participates only when explicitly enabled.
+    # This opt-in is not an aggregate recurring-subscription cost budget; paid
+    # activation still requires separate authorization and cost governance.
     ALLOW_PAID_PROVIDER_ROUTING: bool = False
     # Deployment-wide emergency switch. Provider descriptors and usage remain
     # visible when off, but no provider adapter may be selected for a call.
@@ -2365,8 +2366,8 @@ class Settings(BaseSettings):
                 "instrument_metadata": {
                     # Free Starter does not include Fundamental API access.
                     # An unreviewed capability stays blocked even if the
-                    # global paid-routing switch is enabled; a future paid
-                    # subscription must be explicitly operator-reviewed.
+                    # legacy paid-routing switch is enabled; a reviewed plan
+                    # and explicit switch are both required.
                     "configured_plan": "unreviewed",
                     "is_free": False,
                     "usage_terms": (

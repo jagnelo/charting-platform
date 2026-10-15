@@ -214,9 +214,11 @@ Useful provider envs:
   routable when replacing it. `__CODE_DEFAULT__` keeps the reviewed in-code map;
   an explicit `{}` deliberately removes routable provider policies. A provider
   plan change must update its complete quota contract and separately reviewed
-  entitlement; set `ALLOW_PAID_PROVIDER_ROUTING=true` only for an approved paid
-  plan. This allows production quota updates through that environment's config
-  without embedding account limits as immutable code assumptions.
+  entitlement. `ALLOW_PAID_PROVIDER_ROUTING=true` admits a separately reviewed
+  paid entitlement at the routing layer; keep it `false` for this checkpoint.
+  It is not aggregate recurring-cost admission or authorization to activate a
+  paid plan. The approved 20 EUR/USD-equivalent shared ceiling remains Provider
+  work before paid activation can be proposed.
 - `PROVIDER_FRESHNESS_SEEDS`: JSON object keyed by capability, for example `{"price_history":300,"instrument_events":86400}`.
 - `PROVIDER_USAGE_PROFILE_SEEDS`: JSON object keyed by provider for reviewed
   operation costs and provider-native usage dimensions. `__CODE_DEFAULT__`

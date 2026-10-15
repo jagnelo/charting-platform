@@ -1,6 +1,120 @@
 # Provider live-validation matrix
 
-## Current worktree acceptance — 2026-10-13 11:23 UTC
+## Current source and provider admission — 2026-10-15 18:45 UTC
+
+The Provider worktree is dirty at branch HEAD
+`65a467b43d7830b0875d9c3ad538e47a06d4a6db`; it is not yet a clean pushed
+checkpoint. The latest no-transport preflight at `2026-10-15T18:45:55Z`
+evaluated all 27 provider manifests, admitted 20, quarantined seven, and sent
+zero provider requests. It confirmed the owner-managed durable quota
+coordinator is ready with no global blockers; the seven holds below are
+provider-specific. The earlier sandbox-only ledger permission failure was
+resolved by using the authorized local-ledger path. This is current admission
+evidence, not a live-provider pass or exact-source provider receipt.
+
+The seven quarantined manifests and exact admission reasons are:
+
+- Alpha Vantage: its nine-request daily reservation exceeds current shared
+  headroom.
+- CTA Plan and Nasdaq: each requires two daily directory requests, beyond the
+  remaining client-side daily allowance.
+- EODHD: its 16-request daily reservation exceeds current shared headroom.
+- Dinari Sandbox: account-reviewed quota/reset semantics and the complete
+  worst-case operation-cost map are missing; nine normal Sandbox operations
+  remain unverified for reset behavior.
+- Marketstack: the two-call monthly reservation lacks headroom; directory
+  discovery remains non-routable until its venue/MIC, reset, and per-page cost
+  are established.
+- Tiingo: the active hourly usage baseline is unknown for OHLCV, current price,
+  instrument profile, and search. Its last durable dashboard baseline is
+  `2026-10-14T18:27Z`; a read-only dashboard attempt redirected to login, and
+  no credentials or provider API request were used.
+
+The routing safety preflight separately reports FINRA async result-byte use as
+non-routable until the download/accounting path can admit and retain a complete
+result safely. A static maximum response size is not a provider-published
+payload limit: FINRA documents async responses as having no maximum payload
+size, while capping each asynchronous request at 100,000 records. Its signed
+result link expires two hours after the completed status response or 24 hours
+after result creation, whichever comes first. Thus the present positive bound
+is a local stop-before-download guard, not a reason to truncate and accept a
+partial dataset. A durable enabling path must retain the original query and
+page/filter state, stream results to persistent storage without buffering an
+entire result in memory, account observed bytes against the durable monthly
+pool, and restart an expired job from its saved query rather than silently
+dropping rows. The current fail-closed disposition is covered by focused
+routing, adapter, and quota tests (3 passed on 2026-10-15); no FINRA async
+result was downloaded during this review. See [FINRA Query API large-dataset
+and async documentation](https://developer.finra.org/docs). This operation is
+separate from the 27-manifest count. Tradier, IBKR, and Ondo remain explicit
+user deferrals. These operation-level states are not silently treated as
+provider success. Existing 20/27 live receipts belong to a prior exact
+candidate tree and are not promoted to this dirty source. No provider request
+was made during the current preflight.
+
+### Provider documentation checks — 2026-10-15
+
+Dinari's official [environment reference](https://docs.dinari.com/reference/environments)
+identifies separate Sandbox and Live base URLs. Its [Quickstart](https://docs.dinari.com/docs/quickstart)
+says that listing supported stocks is a read-only connectivity check that needs
+no Entity, KYC, or funding. The reviewed official pages do not publish a numeric
+Sandbox request quota, reset boundary, or operation-cost table; searches of the
+official docs for rate-limit and `X-RateLimit` guidance produced no matching
+documentation. This cannot establish that no server-side limit exists, so the
+account-specific Sandbox profile and normal operations remain quarantined; no
+extra request was made to infer limits from headers.
+
+Dinari's [Partner Fees page](https://docs.dinari.com/docs/fees) separately
+states that API access is billed monthly and starts at $2,000/month, while
+Sandbox access is free during evaluation/build. Thus the current Sandbox
+integration can support isolated contract testing only; no production/live
+Dinari routing is admitted under this workstream's free-only boundary or
+without a separately authorized paid entitlement.
+
+Marketstack's official [pricing page](https://marketstack.com/pricing/) and
+[FAQ](https://marketstack.com/faq) publish 100 Free-plan requests per month and
+state that each stock ticker looked up consumes one unit (five symbols consume
+five). The FAQ does not specify the exact monthly reset anchor. The official
+[API Playground documentation](https://docs.apilayer.com/marketstack/docs/playground)
+shows `GET /v2/tickers?search=...` and `GET /v2/exchanges`, but the reviewed
+public material does not state how an exchange-wide paginated ticker directory
+is billed per page or per returned ticker. The existing rolling-30-day safety
+window and discovery quarantine therefore remain; no directory request was
+made. The provider's monthly allowance is known, while this account's exact
+reset anchor and the directory operation's cost are not.
+
+The owner reports the Marketstack account's 100/100 monthly request pool is
+fully consumed. Its FAQ confirms per-ticker billing for data lookups, but does
+not settle the exchange-wide discovery-page charge. No further Marketstack
+request is admissible or was attempted.
+
+### Current exact-candidate and backend evidence
+
+At 15:43Z, the unchanged staged candidate tree
+`60b5d49f3799659f82bda2cc04eea6609bfc0cd9` (parent source HEAD
+`65a467b43d7830b0875d9c3ad538e47a06d4a6db`) passed 20/27 admitted provider
+manifests: 56/56 cases, zero failures, and 129 provider HTTP requests. The
+offline verifier matched all 20 receipts to that exact tree; seven manifests
+were quarantined before transport. This is partial live acceptance, not a
+current clean-source matrix.
+
+The full backend gate before that live candidate passed 3,166 tests (2,771
+unit and 395 PostgreSQL/Redis integration) at 82% coverage on candidate tree
+`457d8e5dd35cf6c09a2d03b6e92cf4d673bf3b60`. The later candidate differs in
+five files; the only implementation/test change is MarketData.app `/user/`
+accounting, plus documentation. Its focused regression passed 1/1 (134
+deselected) with Ruff clean. The full backend gate still needs to pass on the
+final clean exact source. Migration equivalence passed 50 changed files on a
+dirty candidate and must be rerun or source-bound after final edits.
+
+Repair CI run `38785967367` ended with its 260-case Playwright job cancelled
+at case 94/260; no assertion failure appeared before cancellation, and the
+Exhaustive Integration Gate was skipped. Its repair owner has since started a
+replacement local full matrix; the log reached 75/260 at 18:58Z. This is still
+active and not a pass. Provider has not started an overlapping full gate or
+changed frontend files.
+
+## Historical candidate acceptance — 2026-10-13 11:23 UTC (superseded)
 
 The exact staged candidate tree
 `3166d70a39c500d63ecc37aeeac9ce50dd66f6ad` passed all manifests admitted by
@@ -225,11 +339,28 @@ publishes 500 unique symbols/month, 50 requests/hour, 1,000 requests/day, and
 1 GB monthly bandwidth. Its general docs state hourly reset each hour, daily
 reset at midnight Eastern, and monthly bandwidth reset on the first at
 midnight Eastern; the unique-symbol reset anchor and exact hourly bucket model
-remain unspecified. The integration already has those plan limits and the
-documented reset rules. The active account-usage baseline is still unknown:
-the official docs point to `/account/usage`, but prior bounded verification
-redirected that API-host URL to a web account path that returned 404. No usage
-endpoint is currently admitted for Tiingo in the live manifest.
+remain unspecified. The configured account uses the separately owner-reported
+custom profile (500 unique symbols/month, 50 requests/hour, 1,000 requests/day,
+2 GB bandwidth/month), not an assumption that the public Starter bandwidth
+limit applies.
+
+The current account-usage baseline is incomplete. The owner-reported dashboard
+snapshot reconciled at `2026-10-15T12:15:49Z` recorded 50/50 hourly requests and
+992/1,000 daily requests remaining; local app settlements after that snapshot
+are retained in the durable ledger. Its hourly observation has expired under
+the application's one-hour safety envelope, so OHLCV, current price, profile,
+and search remain quarantined. Tiingo's documentation links `/account/usage`
+as an account webpage, not a documented machine-readable quota API. Previous
+bounded checks did not return usable counters (redirect/404 and a separate
+Cloudflare 403); do not retry the account URL or spend market-data quota to
+manufacture a baseline. A fresh operator dashboard observation or a verified
+native counter contract is required before those calls can be admitted. No
+Tiingo provider request was made during this refresh.
+
+Sources: [Tiingo API documentation](https://www.tiingo.com/documentation/),
+[Tiingo pricing](https://www.tiingo.com/account/billing/pricing), and
+[Tiingo API introduction](https://www.tiingo.com/blog/presenting-tiingo-api/)
+(the latter points to the account-usage webpage but is not a usage API spec).
 
 Marketstack documentation research narrows its discovery question but does
 not yet safely settle the cost of `/exchanges/{mic}/tickers` pages. Official
@@ -1599,7 +1730,9 @@ requires a separate durable dashboard/native baseline),
 100; a different account plan requires `MARKETSTACK_QUOTA_EVIDENCE`), optional
 `MARKETSTACK_REVIEWED_MONTHLY_RESET` (blank enforces rolling 30 days; a
 provider-reviewed native boundary also requires quota evidence), and
-`ALLOW_PAID_PROVIDER_ROUTING` (default `false`),
+`ALLOW_PAID_PROVIDER_ROUTING` (defaults false; true permits only separately
+reviewed paid plans at the routing layer and does not satisfy aggregate cost
+admission or authorize paid activation),
 and `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` in the same environment's
 configuration variables. The SEC directory controls
 `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED`,
