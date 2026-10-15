@@ -35,9 +35,7 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "dirty_paths": [
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -110,7 +108,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "13ecdb229d80008f5c57ea8881db39da6f619c0d",
+  "head": "5447094bae1c80e0f1e4f74a0ddf9d2846bb57cb",
   "implementation_sha": "9523851f1fe730da644e2e9f35f955eeef47c105",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -155,7 +153,7 @@
     "remote_tracking_sha": "0a68236240444fb3fdf438d1d778ec906a5c601f",
     "status": "pushed"
   },
-  "remote": "13ecdb229d80008f5c57ea8881db39da6f619c0d",
+  "remote": "5447094bae1c80e0f1e4f74a0ddf9d2846bb57cb",
   "remote_sha": "9523851f1fe730da644e2e9f35f955eeef47c105",
   "remote_synchronized": true,
   "retained_docker_resources": [],
