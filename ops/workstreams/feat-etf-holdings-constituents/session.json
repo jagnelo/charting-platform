@@ -42,8 +42,13 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "current_blocker_latest": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for (496 registered / 422 native / 74 fallback). Independent ETF consumer preparation is locally validated (1536 backend units pass). Published staging remains 8b885a2f; Provider has not been centrally integrated/released with exact green staging CI. Actual shared governance bridge, budget interface reconciliation and final combined full_stack_browser evidence remain required. Parallel Provider/TC2000 stacks are active on the shared host; no competing full ETF stack was launched.",
-  "dirty_paths": [],
+  "current_blocker_latest": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). Five live CI failures across four issuer routes are actionable now: Baron RONB, Global X/Mirae QYLD, Wedbush TGLR, Pictet PQUS. Backend/frontend/Playwright CI passed. Provider staging release still gates actual shared runtime integration, but does not block these repairs.",
+  "dirty_paths": [
+    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
+    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -79,13 +84,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "f2670b0bbde8bb680173d847a43734f7391745f7",
-  "implementation_sha": "5854dd2fc70e7424280782c3a61df5f6ed5b04c6",
-  "last_checkpoint": "2026-10-15T16:42:51Z",
+  "head": "d1040b41b99b3ece8e25e777ef51a300393c7429",
+  "implementation_sha": "d1040b41b99b3ece8e25e777ef51a300393c7429",
+  "last_checkpoint": "2026-10-15T17:06:34Z",
   "last_human_progress_update": "2026-10-06T18:53:15.533458+00:00",
-  "latest_checkpoint": "2026-10-15: Central-first ETF checkpoint adopted with the full original goal and all fourteen criteria preserved verbatim, exhaustive dispositions and seven fresh EICP criteria. Fourteen actual persisted-consumer tests now cover current/denied/degraded/stale/unavailable/historical lineage and retention; a reproduced historical lookahead defect is fixed by filtering known_at and ordering knowledge time before insertion ID. Full backend unit suite 1536/1536 passes, including 611 adapter invariants; Ruff/format and all 30 workstream records pass. These verify the preparation delta only. Actual ETF_HOLDINGS shared-runtime wiring and full combined profile remain pending Provider's synchronized green staging release.",
+  "latest_checkpoint": "2026-10-15: Preparation source d1040b41b is clean/pushed; exact CI 38771431871 passed backend (1536 unit/379 integration), frontend and Playwright (151 passed/109 skipped), but branch live tests failed 5 cases (522 passed/19 classified skips). Four issuer routes need independent repair now: Baron RONB, Global X/Mirae QYLD, Wedbush TGLR, Pictet PQUS. Old green route evidence is superseded for these symbols. Publish the four-file operational receipt, then repair these routes with retained issuer evidence and deterministic/live checks. Shared-runtime checkpoint remains open for the later central green Provider staging release.",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Commit and push this coherent preparation context, verify exact-source CI, then reconcile the shared bridge after the coordinator releases synchronized green Provider staging. Preserve all original roadmap requirements; no trial or full Provider completion wait is required.",
+  "next_action": "Commit/push the four-file operational receipt for d1040b41b and terminal CI run 38771431871, verify synchronization, then open issuer route drift repair with bounded retained evidence and regression tests for the four failing routes.",
   "plan_hash": "b67dc0e45547a515be81a9859fd69478438025844ffb989c6a1144ba5829505f",
   "planning_required": false,
   "planning_state": "ready",
@@ -103,13 +108,13 @@
       "EICP1"
     ],
     "total": 7,
-    "current_phase": "checkpoint_preparation_validated_commit_and_push",
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for (496 registered / 422 native / 74 fallback). Independent ETF consumer preparation is locally validated (1536 backend units pass). Published staging remains 8b885a2f; Provider has not been centrally integrated/released with exact green staging CI. Actual shared governance bridge, budget interface reconciliation and final combined full_stack_browser evidence remain required. Parallel Provider/TC2000 stacks are active on the shared host; no competing full ETF stack was launched.",
-    "next_action": "Commit and push this coherent preparation context, verify exact-source CI, then reconcile the shared bridge after the coordinator releases synchronized green Provider staging. Preserve all original roadmap requirements; no trial or full Provider completion wait is required.",
-    "updated_at": "2026-10-15T16:42:51Z"
+    "current_phase": "preparation_receipt_then_issuer_route_repair",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). Five live CI failures across four issuer routes are actionable now: Baron RONB, Global X/Mirae QYLD, Wedbush TGLR, Pictet PQUS. Backend/frontend/Playwright CI passed. Provider staging release still gates actual shared runtime integration, but does not block these repairs.",
+    "next_action": "Commit/push the four-file operational receipt for d1040b41b and terminal CI run 38771431871, verify synchronization, then open issuer route drift repair with bounded retained evidence and regression tests for the four failing routes.",
+    "updated_at": "2026-10-15T17:06:34Z"
   },
-  "remote": "f2670b0bbde8bb680173d847a43734f7391745f7",
-  "remote_sha": "5854dd2fc70e7424280782c3a61df5f6ed5b04c6",
+  "remote": "d1040b41b99b3ece8e25e777ef51a300393c7429",
+  "remote_sha": "d1040b41b99b3ece8e25e777ef51a300393c7429",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
@@ -250,7 +255,28 @@
     "acceptance_authorization": "pending",
     "contract_document": "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md",
     "dispositions_document": "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "preparation_baseline": "f2670b0bbde8bb680173d847a43734f7391745f7"
+    "preparation_baseline": "f2670b0bbde8bb680173d847a43734f7391745f7",
+    "preparation_sha": "d1040b41b99b3ece8e25e777ef51a300393c7429",
+    "ci": {
+      "id": 38771431871,
+      "url": "https://github.com/jagnelo/charting-platform/actions/runs/38771431871",
+      "source_sha": "d1040b41b99b3ece8e25e777ef51a300393c7429",
+      "status": "completed",
+      "conclusion": "failure",
+      "results": {
+        "backend": "success:1536 unit,379 integration",
+        "frontend": "success",
+        "playwright": "success:151 passed,109 skipped",
+        "branch_live": "failure:522 passed,19 skipped,5 failed",
+        "failed_routes": [
+          "baron/RONB",
+          "global_x/QYLD",
+          "mirae_asset/QYLD",
+          "wedbush/TGLR",
+          "pictet/PQUS"
+        ]
+      }
+    }
   },
   "active_changeset": {
     "name": "central-first ETF checkpoint adoption and consumer contract preparation",
@@ -263,6 +289,7 @@
       "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md",
       "backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py",
       "backend/app/services/baskets.py"
-    ]
+    ],
+    "state": "preparation_source_pushed_with_explicit_CI_failures_recorded_for_followup"
   }
 }

@@ -51,6 +51,9 @@ integration_checkpoint:
   disposition_semantics: Target scope of the named checkpoint; these dispositions are not current completion claims. EICP1-EICP7 require fresh evidence before review.
   source_baseline: f2670b0bbde8bb680173d847a43734f7391745f7
   implementation_evidence_baseline: 5854dd2fc70e7424280782c3a61df5f6ed5b04c6
+  preparation_sha: d1040b41b99b3ece8e25e777ef51a300393c7429
+  preparation_ci_run: 38771431871
+  preparation_ci_result: Backend and frontend passed; hosted Playwright 151 passed and 109 skipped; branch live matrix 522 passed, 19 classified skips, 5 failures across four issuer routes. Follow-up repairs are required.
   coordination_document: /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md
   contract_document: ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md
   downstream_consumers:
@@ -139,6 +142,7 @@ integration_checkpoint:
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
     name: central-first ETF checkpoint adoption and consumer contract preparation
+    state: preparation_source_pushed_with_explicit_CI_failures_recorded_for_followup
     intent: Preserve the complete roadmap, reconcile October 7 evidence with current source, and prepare concrete bridge/consumer coverage before staged dependency wiring.
     owned_paths:
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
@@ -270,8 +274,12 @@ progress:
   completed:
     - EICP1
   total: 7
-current_phase: checkpoint_preparation_validated_commit_and_push
+current_phase: preparation_receipt_then_issuer_route_repair
 current_blocker: >-
+  Exact-source CI 38771431871 now exposes five live failures across four
+  independent issuer routes: Baron/RONB, Global X and Mirae/QYLD,
+  Wedbush/TGLR, Pictet/PQUS. Record the preparation receipt and repair those
+  source/parser/identity problems next; none is being reclassified as an outage.
   The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Provider
   has not been released through synchronized green staging. Prepare
   independent ETF contract evidence and consumer tests now; runtime bridge
@@ -1269,9 +1277,11 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Complete the central-first ETF checkpoint adoption, concrete shared-runtime
-  bridge contract map and independent lineage consumer tests; publish that
-  coherent preparation context. After Provider reaches synchronized green
+  Publish the preparation receipt for source d1040b41b and terminal CI run
+  38771431871, then diagnose/repair Baron/RONB, Global X and Mirae/QYLD,
+  Wedbush/TGLR and Pictet/PQUS using bounded retained issuer evidence and
+  deterministic regressions. Revalidate the changed routes and exact source.
+  After Provider reaches synchronized green
   staging and this source is unfrozen, merge staging here and implement/test
   the real governance bridge, run the required full profile and exact-source
   CI, and publish etf-holdings-integration-1 for human review. Preserve the

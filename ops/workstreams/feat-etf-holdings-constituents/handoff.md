@@ -10043,3 +10043,38 @@ RAM; none was modified and no competing ETF full stack was started. Publish
 this coherent preparation context now, then inspect its exact-source CI and
 wait for the coordinator's green Provider staging release before the bridge
 merge/reconciliation. The goal remains active; checkpoint review is not ready.
+
+Preparation implementation committed/pushed as
+`d1040b41b99b3ece8e25e777ef51a300393c7429`; the exact seven staged paths were
+reviewed and local/origin hashes matched with a clean worktree. Hosted run
+`38771431871` is confirmed live for this SHA. Frontend passed; backend
+unit/coverage passed and database integration is running; branch-declared tests
+are running. Resume by polling this exact handle, not launching a replacement.
+Only the four operational files are now dirty while recording this receipt.
+The workflow cancels prior runs on every push, so publish this operational
+record after the source run terminates. No further application edits are pending
+unless CI exposes a defect. After that receipt, the next product action requires
+the coordinator's synchronized green Provider staging release.
+
+Exact-source run `38771431871` has terminated. Backend passed (1,536 unit tests,
+379 database integration tests; required coverage passed), frontend passed,
+and hosted Playwright passed (151 passes / 109 explicit skips). The branch
+matrix failed: 522 passes, 19 classified skips, and five failures across four
+issuer routes. Baron RONB returned a CSV without expected rows; Global X and
+Mirae QYLD product pages no longer exposed the expected CSV pattern; Wedbush
+TGLR's hardcoded URL returned 404; Pictet PQUS product identity validation
+failed. These are actionable source/parser/identity failures, not accepted
+outage skips. Old green route evidence is superseded for these symbols.
+
+Closure receipt for preparation context: seven implementation paths reviewed;
+local unit/static/workstream evidence above; source committed and synchronized
+as `d1040b41b99b3ece8e25e777ef51a300393c7429`, matching origin with a clean
+tree before these four operational-file updates. Product source is unchanged
+in this operational record. Full checkpoint remains in progress (1/7);
+no review/closure/integration authorization is inferred from passing jobs.
+Publish this four-file receipt as its own commit and verify synchronization,
+then open the named **issuer route drift repair** context for the four routes.
+That context owns the ETF adapter/parser and deterministic/live regression
+files plus its own workstream updates; preserve registry truthfulness and raw
+issuer evidence. Provider staging release remains required for later shared
+runtime wiring, but does not prevent these repairs now.
