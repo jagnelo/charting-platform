@@ -10932,3 +10932,17 @@ push. GitHub's combined-status lookup returned no statuses for that exact SHA
 at the time checked, so hosted exact-source CI is not yet evidenced. The
 required full-stack browser profile remains deferred to Provider's heavy-gate
 slot and a fresh capacity check.
+
+### Persisted unresolved-future lineage regression — 2026-10-15
+
+Added an ingestion-path test in addition to the resolver-level identity tests.
+It feeds a future row through `ingest_holdings_snapshot` and verifies that the
+snapshot retains the reported `ESU6` symbol and `future` type, counts the row
+as unresolved, leaves `constituent_instrument_id` null, and creates no
+instrument under that ticker. Provider identity lookups are forbidden by the
+test. The complete focused resolution file now passes **22/22** with
+`pytest --no-cov`; Ruff and `git diff --check` pass. An initial single-file
+pytest invocation showed 22 passing tests but returned nonzero on the
+repository-wide coverage floor; rerunning with `--no-cov` isolated the focused
+test result, without weakening the required full profile. This test does not
+establish future-instrument support or the shared Provider bridge.

@@ -472,6 +472,68 @@ async def test_resolver_does_not_bind_future_ticker_to_existing_equity(db):
 
 
 @pytest.mark.asyncio
+async def test_ingest_persists_future_holding_as_unresolved_without_equity_identity(
+    db, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")
+
+    def unexpected_provider_call():
+        raise AssertionError("future holdings must not invoke equity identity providers")
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_identifier_providers", unexpected_provider_call
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_metadata_provider", unexpected_provider_call
+    )
+
+    etf_instrument = await ensure_lightweight_etf_instrument(
+        async_db,
+        symbol="FUTETF",
+        name="Futures Strategy ETF",
+    )
+    snapshot = await ingest_holdings_snapshot(
+        async_db,
+        etf_instrument=etf_instrument,
+        rows=[
+            CanonicalHoldingRow(
+                symbol="ESU6",
+                name="E-mini S&P 500 Sep 2026",
+                weight=Decimal("1"),
+                currency="USD",
+                holding_type="future",
+                row_type="security",
+            )
+        ],
+        composition_date=date(2026, 9, 30),
+        provenance="issuer_current_holdings",
+        source_provider="issuer-test",
+        source_quality="verified_fixture",
+        completeness_status="complete",
+    )
+    db.flush()
+
+    holdings = db.execute(
+        select(ETFHolding).where(ETFHolding.snapshot_id == snapshot.id)
+    ).scalars().all()
+    assert len(holdings) == 1
+    assert holdings[0].reported_symbol == "ESU6"
+    assert holdings[0].holding_type == "future"
+    assert holdings[0].row_type == "security"
+    assert holdings[0].is_resolved is False
+    assert holdings[0].constituent_instrument_id is None
+    assert snapshot.row_count == 1
+    assert snapshot.resolved_count == 0
+    assert snapshot.unresolved_count == 1
+    assert (
+        db.execute(select(Instrument).where(Instrument.symbol == "ESU6"))
+        .scalar_one_or_none()
+        is None
+    )
+
+
+@pytest.mark.asyncio
 async def test_resolver_collapses_duplicate_symbol_variants_via_stable_identifiers(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")
