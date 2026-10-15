@@ -233,3 +233,24 @@ The two suites must run against the same staged runtime for checkpoint
 acceptance. None of these new shared-contract tests is claimed implemented or
 passing by this documentation update; no tests were run for this documentation
 only change.
+
+### Common repair baseline consumed — 2026-10-15 21:40Z
+
+The exact synchronized common repair baseline `82d881e76be8de538abb6ec5c454d96afe0ee56a`
+is merged into the ETF branch. This release repairs shared workstation behavior;
+it does not contain an accepted Provider product checkpoint or the
+`ETF_HOLDINGS` producer contract. Provider owns the first heavy local validation
+slot, and the actual ETF adapter/capability/async transport bridge remains gated
+on Provider's reviewed green product contract. The complete admission matrix
+above remains required and unchanged.
+
+The coordinator's current semantic boundary remains: a general routing flag
+whose default is false is not proof that every caller rejects unsafe
+`paid=true`. Before any real page request, retry, redirect, or SEC fallback, an
+unknown/paid cost, quota, entitlement, account, or terms decision must fail
+closed at the shared admission boundary. ETF must not add a second ledger or
+infer that omitted cost is zero. Previously retained ETF identity and mixed
+asset-kind evidence (including futures and cash rows) remains required when
+mapping shared canonical identities; ticker-like strings must never synthesize
+equity identities. Neither this baseline merge nor bounded unit/type checks
+constitutes EICP3/ETF product acceptance.

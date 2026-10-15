@@ -10892,3 +10892,9 @@ transport; do not invent an ETF-only aggregate ledger. Continue bounded
 ETF-owned identity/futures/cash and consumer-contract preparation until the
 Provider owner supplies a reviewed, tested contract. This common repair merge
 is not ETF product-checkpoint acceptance or release authority.
+
+The exact ETF merge commit is `bff2d390eaf128d54a5bb588298a3b528c9a6785`,
+with prior ETF head `cdaec8376c135208d6d695c84cbdc92bcc435c80` as first parent and
+released staging `82d881e76be8de538abb6ec5c454d96afe0ee56a` as second parent.
+It was pushed to `origin/feat/etf-holdings-constituents`. The merge tree has
+not yet passed the required complete local profile or exact-source feature CI.
