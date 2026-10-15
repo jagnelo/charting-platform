@@ -14336,3 +14336,50 @@ The exact-tip combined backend unit/integration/Strategy Lab coverage gate also
 completed successfully, generating `coverage-combined.xml` at 83.35% line
 coverage against the required 75% threshold. Docker readiness and owned-resource
 cleanup completed through the repository workflow.
+
+## 2026-10-15 — strategy-lab-v2-integration-1 adoption
+
+Active context: checkpoint planning and independent consumer evidence. Owned
+paths are this workstream's plan, integration-checkpoint.md, handoff, session
+and validation journal. No product code or sibling worktree changes are needed
+for this preparation slice. Existing writer claim
+35f63909-6dea-4459-9682-dc8eecc9c720 is preserved and resumed via session status;
+start correctly refused to replace that claim. The sandbox-only initial start
+also recorded Docker socket denial; elevated session status confirmed Docker
+availability and no owned containers/volumes. No claim takeover occurred.
+
+Read the coordinator's central-first direction, checkpoint contract and provider
+checkpoint from staging. Current integration baseline is not released: local
+staging is a workflow documentation commit, not evidence of the three accepted
+green upstream integrations. No staging merge is authorized by that observation.
+
+Plan now targets five integration criteria while preserving the exact original
+goal and all 18 original criterion IDs/texts in roadmap fields. Exhaustive
+dispositions retain outstanding scope. Validation confirmed exact preservation
+against source 30d7493787838d3ff0fe0eccf08c441c684bfae0. Older implementation
+progress is archived, not copied into checkpoint completion. Later RC6 native
+PostgreSQL/Redis recovery, package/backend, API and migration receipts supersede
+the stale session OOS implementation task; none is relabelled as combined staging
+acceptance. Exact-pinned scope-qualified RC conformance remains valid.
+
+Independent consumer/negative-path slice passed 57 tests in 3.22s, covering
+missing/injected capability evidence, invalid acquisition identities/times,
+coverage attestations, frozen bytes, owner/component bindings, Compose isolation
+and migration failure redaction. Workstream validation and diff checks pass.
+The contract map distinguishes existing fixture tests from required real
+Provider/ETF/CodeVersion/Study consumer wiring. No current holdings fallback,
+latest-code alias or guessed canonical identity is accepted as historical input.
+
+Next: finish independent API/entrypoint evidence and publish this preparation
+record. Then consume only the coordinator's exact synchronized green staging
+receipt after Provider → ETF → TC2000 and source-unfreeze verification. Merge
+into this clean feature branch, reconcile actual contracts and pass the full
+application profile and exact-source CI before human checkpoint review. Closure
+authorization remains pending. The complete roadmap continues after the four
+integrations and coordinator source release; no broker, deployment or trial
+activation is authorized.
+
+API/router and backtest/forward entrypoint evidence also passed: 71 tests in
+5.15s. Independent preparation is 2/5 checkpoint criteria; staged reconciliation,
+full combined validation and review publication remain open. These 128 focused
+passes do not replace the final full application profile.
