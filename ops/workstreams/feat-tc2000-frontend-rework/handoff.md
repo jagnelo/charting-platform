@@ -18958,13 +18958,30 @@ The coordinator must arrange independent repair acceptance/delivery so Provider
 does not wait for the full TC feature. Current next action is investigate
 protected visuals against current source and refresh session checkpoint state.
 
-Current-source Linux Help matrix subsequently passed 4/4 in 40.0s against
+Host current-source Linux Help matrix subsequently passed 4/4 in 40.0s against
 tracked, unchanged screenshots with the original 0.5% threshold. The historical
 Help mismatch is not reproduced on this source/runtime. Full 104-case visual
 matrix is running via Playwright process handle 61554, current-source Vite
 handle 2397 (port15190), artifacts /tmp/tc-checkpoint-visual-full. Poll these
 handles before restarting anything. No Docker resources were rebuilt.
 Latest scope guard accepts 162 paths; all 30 workstream records validate.
+
+That host matrix handle61554 was deliberately interrupted (exit130) after four
+text-heavy screenshot failures. It is superseded for environment diagnosis by
+the exact pinned Noble image probe: default passes, Help fails55,032 pixels.
+Brand-region RGB comparison establishes incompatible font environments in
+tracked default/Help snapshots (1,205 differing pixels; Noble matches default,
+host matches Help, each zero pixels in that region). See
+visual-environment-diagnosis.md. No baseline/policy changes were made.
+
+TCP1 is verified within TC and its narrow coordinator proposal is published;
+Provider/staging repair delivery remains coordinator-owned. Canonical full
+104-case matrix is now handle11617, container tc2000-checkpoint-visual-matrix,
+artifacts /tmp/tc-checkpoint-pinned/full, Vite still handle2397. Poll this live
+handle before starting another matrix; first case auth-navigation timeout is
+retained separately. Do not mark TCP2/TCP4 green until required evidence passes.
+Fresh remote refs: staging8b885a2f, provider88132e91, ETFf2670b0b; TCP3 still
+requires coordinated green staging, not direct feature imports.
 
 Initial work: diagnose F9c-template-comparison (Remove RSP intercepted by
 Plots on the Provider branch). TC already carries historical layering repair
