@@ -25333,4 +25333,57 @@ exact candidate receipts remain separate gates.
   evidence, not an immutable `4077f07` receipt. This packet is not yet a clean,
   accepted checkpoint. No target secret stores, sibling branches, staging,
   provider APIs, or frontend files were changed.
+
+## 2026-10-15 21:58Z — account-usage bootstrap free-only hardening
+
+- Fixed the unreviewed-plan account-usage resolver bypass. An unreviewed plan
+  is no longer sufficient: the exact `fetch_account_usage` operation must have
+  a provider-contract declaration for zero billing, first-party evidence, a
+  reconciled billable dimension, and an explicit empty operation cost in the
+  per-dimension usage profile. The runtime continues to charge other applicable
+  dimensions normally.
+- The only current positive exception is EODHD `/api/user`. Its official [API
+  limits documentation](https://eodhd.com/financial-apis/api-limits) lists the
+  Usage endpoint at zero daily API-call credits. The code contract explicitly
+  excludes `fetch_account_usage` from `calls_per_day` while reserving one
+  `requests_per_minute` unit. This observation route does not admit EODHD
+  market-data capabilities. MarketData.app `/user/` costs one credit, so an
+  unreviewed plan is denied before transport.
+- Added execution-level zero-call regressions for reviewed-paid, unreviewed,
+  and trial account-usage plans under both `ALLOW_PAID_PROVIDER_ROUTING`
+  states and with both known and bootstrap-unknown quota contracts. The EODHD
+  positive path is stubbed and tested under both toggle states; the test also
+  verifies the zero daily-credit mapping, one request/minute cost, exact
+  operation scope, and rejection when that mapping is absent.
+- Provider-runtime unit suite passed 70/70 after formatting, including paid,
+  unreviewed, unknown-plan and trial execution negatives under both paid-toggle
+  states and known/bootstrap-unknown quota states, plus the stubbed EODHD
+  positive. Ruff check/format and workstream validation passed. The attempted
+  full Docker backend gate was interrupted during pytest startup after a long
+  silence; it is not a pass and must be rerun for full backend acceptance. No
+  provider HTTP, external quota, or ledger reset occurred. No commit/push yet;
+  current source CI/live acceptance remains open.
+
+## 2026-10-15 22:37Z — full backend validation and released staging baseline
+
+- The current dirty Provider candidate passed `rtk env
+  UV_CACHE_DIR=/tmp/provider-checkpoint-uv-cache make
+  test-backend-coverage`: 2,774 unit tests in 56 shards, 395 Docker-backed
+  PostgreSQL/Redis integration tests, and 82% combined coverage. The scoped
+  Testcontainers session was handled by the repository cleanup helper; no
+  provider HTTP or quota use. The earlier silent attempts were caused by using
+  a shell-prefixed environment variable instead of `rtk env`, which left the
+  Makefile's worktree runtime env path empty; corrected command completed.
+- Exact green common-repair staging `82d881e76be8de538abb6ec5c454d96afe0ee56a`
+  is released per `.ai/staging-attempts/20261015T213902Z-82d881e76be8.json`
+  and CI run `38805309009`. This is a common repair baseline only, not feature
+  acceptance. It is not yet in this branch's ancestry. The coordinator's
+  consolidated checkpoint acceptance/delegation question remains unanswered;
+  no acceptance is inferred.
+- Next sequence: commit/push the coherent Provider-owned account-usage fix and
+  packet first; merge only the exact released staging SHA into this same
+  unfrozen branch; reconcile inherited common frontend repair without adding
+  Provider frontend work; then run the full declared profile and exact-source
+  CI. Do not run provider-live transport to refresh the 20/27, 136-request
+  receipt bound to `1afb896`; maintain all held-quota dispositions.
 *** End of File

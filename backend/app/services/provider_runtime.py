@@ -1781,6 +1781,79 @@ def policy_allows_account_usage_bootstrap(policy: ProviderPolicy, operation: str
     return finite and concurrency
 
 
+def policy_allows_unreviewed_account_usage_checkpoint(
+    policy: ProviderPolicy,
+    data_source: DataSource,
+    operation: str | None,
+) -> bool:
+    """Allow an unreviewed plan only for a reviewed, exactly zero-credit probe.
+
+    This does not waive request/rate quota or bootstrap validation. The
+    provider contract must name the exact operation and billable dimension,
+    cite first-party evidence, and explicitly exclude that operation from the
+    dimension cost map. Other dimensions (for example requests/minute) remain
+    charged through the normal coordinator.
+    """
+
+    if operation != "fetch_account_usage":
+        return False
+    contract = dict(policy.quota_contract or {})
+    bootstrap = contract.get("account_usage_bootstrap")
+    if not isinstance(bootstrap, dict) or not policy_allows_account_usage_bootstrap(
+        policy, operation
+    ):
+        return False
+    exception = bootstrap.get("checkpoint_unreviewed_zero_billing")
+    if not isinstance(exception, dict):
+        return False
+    if exception.get("operation") != operation:
+        return False
+    zero_cost = exception.get("cost")
+    if isinstance(zero_cost, bool) or not isinstance(zero_cost, int) or zero_cost != 0:
+        return False
+    source = str(exception.get("source") or "").strip()
+    evidence = str(exception.get("evidence") or "").strip()
+    if not source.startswith("https://") or not evidence:
+        return False
+    dimension_name = str(exception.get("dimension") or "").strip()
+    if not dimension_name or dimension_name not in account_usage_reconciled_dimensions(
+        policy, operation
+    ):
+        return False
+    billing_dimension = next(
+        (
+            dimension
+            for dimension in quota_dimensions(policy)
+            if str(dimension.get("name") or "").strip() == dimension_name
+            and _dimension_applies_to_operation(dimension, operation)
+        ),
+        None,
+    )
+    if billing_dimension is None or str(billing_dimension.get("unit") or "").lower() not in {
+        "call",
+        "calls",
+        "api_call",
+        "api_calls",
+        "credit",
+        "credits",
+        "api_credit",
+        "api_credits",
+    }:
+        return False
+    dimension_costs = _usage_tracking_config(data_source).get("dimension_costs") or {}
+    operation_costs = (
+        dimension_costs.get(dimension_name) if isinstance(dimension_costs, dict) else None
+    )
+    # An explicit empty operation map is the only supported zero-cost
+    # representation. Missing entries and numeric zero are not interpreted as
+    # free because provider cost contracts otherwise require positive costs.
+    return (
+        isinstance(operation_costs, dict)
+        and operation in operation_costs
+        and operation_costs[operation] == {}
+    )
+
+
 def _retry_at_from_headers(headers: Any, *, now: datetime | None = None) -> datetime | None:
     """Parse standard retry/reset headers without inventing a provider delay."""
 
@@ -2267,7 +2340,11 @@ async def resolve_provider_chain(
             capability == ProviderCapability.ACCOUNT_USAGE and operation == "fetch_account_usage"
         )
         configured_plan = str(entitlement.configured_plan or "").strip().lower()
-        unreviewed_usage_bootstrap = account_usage_probe and configured_plan == "unreviewed"
+        unreviewed_usage_bootstrap = (
+            account_usage_probe
+            and configured_plan == "unreviewed"
+            and policy_allows_unreviewed_account_usage_checkpoint(policy, data_source, operation)
+        )
         if (
             not unreviewed_usage_bootstrap
             and not provider_entitlement_admission(entitlement)["allowed"]

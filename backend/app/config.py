@@ -1348,6 +1348,16 @@ class Settings(BaseSettings):
                         "calls_per_day",
                     ],
                     "allowed_unknown_dimensions": [],
+                    "checkpoint_unreviewed_zero_billing": {
+                        "operation": "fetch_account_usage",
+                        "dimension": "calls_per_day",
+                        "cost": 0,
+                        "source": "https://eodhd.com/financial-apis/api-limits",
+                        "evidence": (
+                            "The Usage endpoint /api/user costs zero daily API-call credits; "
+                            "the separate requests_per_minute dimension still charges one HTTP request."
+                        ),
+                    },
                 },
                 "source_conflicts": [
                     {

@@ -50,6 +50,7 @@ from app.services.provider_runtime import (
     execute_provider_call,
     list_provider_status,
     policy_allows_account_usage_bootstrap,
+    policy_allows_unreviewed_account_usage_checkpoint,
     provider_entitlement_admission,
     provider_runtime_quota_admission_active,
     quota_contract_missing_dimensions,
@@ -1595,7 +1596,9 @@ async def test_marketdata_trial_expiry_reseeds_entitlement_and_quota_to_free_for
 
 
 @pytest.mark.asyncio
-async def test_marketdata_app_account_usage_can_be_polled_before_plan_review(db, monkeypatch):
+async def test_marketdata_app_account_usage_before_plan_review_is_not_checkpoint_free(
+    db, monkeypatch
+):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr(settings, "MARKETDATA_APP_API_KEY", "configured-key")
     monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "")
@@ -1610,7 +1613,7 @@ async def test_marketdata_app_account_usage_can_be_polled_before_plan_review(db,
         ProviderCapability.ACCOUNT_USAGE,
         operation="fetch_account_usage",
     )
-    assert any(item.provider_name == "marketdata_app" for item in account_usage_chain)
+    assert all(item.provider_name != "marketdata_app" for item in account_usage_chain)
 
     price_chain = await resolve_provider_chain(
         async_db,
@@ -1619,6 +1622,172 @@ async def test_marketdata_app_account_usage_can_be_polled_before_plan_review(db,
         operation_cost_overrides={"marketdata_app": 1},
     )
     assert all(item.provider_name != "marketdata_app" for item in price_chain)
+
+
+@pytest.mark.asyncio
+async def test_checkpoint_blocks_paid_unknown_and_trial_usage_probes_before_transport(
+    db, monkeypatch
+):
+    """Unreviewed account probes cannot escape free-only admission or quotas."""
+
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    monkeypatch.setattr(settings, "MARKETDATA_APP_API_KEY", "configured-key")
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "")
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 0)
+    monkeypatch.setattr(
+        "app.services.provider_runtime.provider_missing_routing_controls",
+        lambda *_args, **_kwargs: [],
+    )
+    await seed_provider_runtime(async_db)
+
+    source = db.execute(select(DataSource).where(DataSource.name == "marketdata_app")).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == source.id,
+            ProviderEntitlement.capability == ProviderCapability.ACCOUNT_USAGE,
+        )
+    ).scalar_one()
+    policy = db.execute(
+        select(ProviderPolicy).where(
+            ProviderPolicy.data_source_id == source.id,
+            ProviderPolicy.capability == ProviderCapability.ACCOUNT_USAGE,
+        )
+    ).scalar_one()
+    base_contract = deepcopy(policy.quota_contract)
+    transport_calls = []
+
+    for allow_paid in (False, True):
+        monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", allow_paid)
+        for plan, is_free in (
+            ("reviewed-paid-fixture", False),
+            ("unreviewed", False),
+            ("unknown-plan", False),
+            ("starter_trial", True),
+        ):
+            entitlement.configured_plan = plan
+            entitlement.is_free = is_free
+            for quota_state in ("known", "bootstrap_unknown"):
+                contract = deepcopy(base_contract)
+                if quota_state == "bootstrap_unknown":
+                    unknown = "provider_reset_boundary_unknown"
+                    contract["unknown_dimensions"] = [unknown]
+                    contract["account_usage_bootstrap"]["allowed_unknown_dimensions"] = [unknown]
+                    assert policy_allows_account_usage_bootstrap(
+                        ProviderPolicy(
+                            data_source_id=source.id,
+                            capability=ProviderCapability.ACCOUNT_USAGE,
+                            quota_contract=contract,
+                            quota_scope=policy.quota_scope,
+                        ),
+                        "fetch_account_usage",
+                    )
+                policy.quota_contract = contract
+                db.flush()
+
+                chain = await resolve_provider_chain(
+                    async_db,
+                    ProviderCapability.ACCOUNT_USAGE,
+                    operation="fetch_account_usage",
+                )
+                assert all(item.provider_name != "marketdata_app" for item in chain), (
+                    plan,
+                    allow_paid,
+                    quota_state,
+                )
+                with pytest.raises(RuntimeError, match="No enabled providers available"):
+                    await execute_provider_call(
+                        async_db,
+                        ProviderCapability.ACCOUNT_USAGE,
+                        "fetch_account_usage",
+                        provider_name="marketdata_app",
+                        invoke=lambda *_args: transport_calls.append("called"),
+                    )
+                assert transport_calls == []
+
+
+@pytest.mark.asyncio
+async def test_eodhd_reviewed_zero_credit_usage_probe_remains_available_unreviewed(
+    db, monkeypatch, tmp_path
+):
+    """Only EODHD's documented zero-credit usage read gets the narrow exception."""
+
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    monkeypatch.setattr(settings, "EODHD_API_KEY", "configured-key")
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_PATH",
+        str(tmp_path / "eodhd-zero-credit-bootstrap.sqlite3"),
+    )
+    await seed_provider_runtime(async_db)
+
+    source = db.execute(select(DataSource).where(DataSource.name == "eodhd")).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == source.id,
+            ProviderEntitlement.capability == ProviderCapability.ACCOUNT_USAGE,
+        )
+    ).scalar_one()
+    policy = db.execute(
+        select(ProviderPolicy).where(
+            ProviderPolicy.data_source_id == source.id,
+            ProviderPolicy.capability == ProviderCapability.ACCOUNT_USAGE,
+        )
+    ).scalar_one()
+    entitlement.configured_plan = "unreviewed"
+    entitlement.is_free = False
+    usage_dimension_costs = source.config["usage_tracking"]["dimension_costs"]
+    assert usage_dimension_costs["calls_per_day"]["fetch_account_usage"] == {}
+    assert usage_dimension_costs["requests_per_minute"]["fetch_account_usage"] == 1
+    assert policy_allows_unreviewed_account_usage_checkpoint(policy, source, "fetch_account_usage")
+    assert not policy_allows_unreviewed_account_usage_checkpoint(
+        policy, source, "get_current_price"
+    )
+    saved_config = deepcopy(source.config)
+    no_zero_cost_proof = deepcopy(saved_config)
+    no_zero_cost_proof["usage_tracking"]["dimension_costs"]["calls_per_day"].pop(
+        "fetch_account_usage"
+    )
+    source.config = no_zero_cost_proof
+    assert not policy_allows_unreviewed_account_usage_checkpoint(
+        policy, source, "fetch_account_usage"
+    )
+    source.config = saved_config
+    assert policy_allows_unreviewed_account_usage_checkpoint(policy, source, "fetch_account_usage")
+
+    observed_at = datetime.now(UTC).replace(microsecond=0)
+    probe_calls = []
+    for allow_paid in (False, True):
+        monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", allow_paid)
+        chain = await resolve_provider_chain(
+            async_db,
+            ProviderCapability.ACCOUNT_USAGE,
+            operation="fetch_account_usage",
+        )
+        assert any(item.provider_name == "eodhd" for item in chain)
+        result = await execute_provider_call(
+            async_db,
+            ProviderCapability.ACCOUNT_USAGE,
+            "fetch_account_usage",
+            provider_name="eodhd",
+            invoke=lambda *_args: probe_calls.append("called")
+            or ProviderAccountUsage(
+                provider="eodhd",
+                observed_at=observed_at,
+                unit="calls",
+                limit=20,
+                remaining=14,
+                consumed=6,
+                reset_at=observed_at + timedelta(days=1),
+                account_plan="free",
+            ),
+            response_items=lambda value: 1 if value is not None else 0,
+            treat_empty_as_failure=True,
+        )
+        assert result.provider_name == "eodhd"
+
+    assert probe_calls == ["called", "called"]
 
 
 @pytest.mark.asyncio
@@ -1658,8 +1827,10 @@ async def test_marketdata_app_and_twelve_data_persistent_routes_require_written_
 
 
 @pytest.mark.asyncio
-async def test_marketdata_app_account_usage_bootstraps_fresh_durable_coordinator(db, monkeypatch):
-    """The free account snapshot must not require an invented credit baseline."""
+async def test_marketdata_app_account_usage_requires_review_before_credit_bearing_probe(
+    db, monkeypatch
+):
+    """The one-credit /user/ call cannot bootstrap an unreviewed plan."""
 
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr(settings, "MARKETDATA_APP_API_KEY", "configured-key")
@@ -1668,30 +1839,25 @@ async def test_marketdata_app_account_usage_bootstraps_fresh_durable_coordinator
     monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", None)
 
     await seed_provider_runtime(async_db)
-    observed_at = datetime.now(UTC).replace(microsecond=0)
 
-    result = await execute_provider_call(
+    account_usage_chain = await resolve_provider_chain(
         async_db,
         ProviderCapability.ACCOUNT_USAGE,
-        "fetch_account_usage",
-        provider_name="marketdata_app",
-        invoke=lambda _provider, _symbol: ProviderAccountUsage(
-            provider="marketdata_app",
-            observed_at=observed_at,
-            unit="credits",
-            limit=100,
-            remaining=100,
-            consumed=0,
-            reset_at=observed_at + timedelta(days=1),
-        ),
-        response_items=lambda value: 1 if value is not None else 0,
-        treat_empty_as_failure=True,
+        operation="fetch_account_usage",
     )
-
-    assert result.provider_name == "marketdata_app"
-    summary = provider_quota_coordinator_summary(provider_name="marketdata_app")
-    assert all(row["dimension"] != "credits_per_day" for row in summary["windows"])
-    assert any(row["dimension"] == "concurrent_requests" for row in summary["windows"])
+    assert all(item.provider_name != "marketdata_app" for item in account_usage_chain)
+    probe_calls = []
+    with pytest.raises(RuntimeError, match="No enabled providers available"):
+        await execute_provider_call(
+            async_db,
+            ProviderCapability.ACCOUNT_USAGE,
+            "fetch_account_usage",
+            provider_name="marketdata_app",
+            invoke=lambda *_args: probe_calls.append("called"),
+            response_items=lambda value: 1 if value is not None else 0,
+            treat_empty_as_failure=True,
+        )
+    assert probe_calls == []
 
 
 @pytest.mark.asyncio
