@@ -18999,3 +18999,16 @@ this same branch and continue the complete V25 roadmap. Visual policy and
 missing-reference requirements remain in force. The earlier metadata-only
 checkpoint loop is historical; do not chase self-referential commit hashes.
 
+## Active browser matrix — continuation receipt
+
+Canonical matrix handle11617 remains active. A further functional setup issue
+is now isolated: floating-window assertions require every fixture row to show
+Current, but the retained assigned stack reports Stale cached. Current
+backend/app/services/e2e_seed.py sets stale_after to seed-time plus one day.
+The reused stack is older than that fixture contract; do not weaken freshness
+or change assertions. No fixture data was rewritten during the matrix. Next
+validation must use a fresh isolated TC test fixture or another approved
+fixture initialization route, preserving existing assigned data. Poll handle
+11617 to completion first and retain its actual outcomes; no full pass is
+claimed. This is independent of the pointer fix and mixed-font baseline issue.
+
