@@ -2400,7 +2400,7 @@ onBeforeUnmount(() => {
 .workstation__help-popover header { display: flex; justify-content: space-between; align-items: center; padding: 3px 4px 5px; border-bottom: 1px solid #29343b; font-size: 11px; }
 .workstation__help-popover header button { border: 0; color: #aebbc4; background: transparent; cursor: pointer; font: 13px/1 "Segoe UI",Arial,sans-serif; padding: 0 2px; }
 .workstation__help-popover dl { display: grid; gap: 3px; margin: 5px 0; }
-.workstation__help-popover dl div { display: grid; grid-template-columns: 82px minmax(0,1fr); gap: 7px; padding: 2px 3px; }
+.workstation__help-popover dl div { display: grid; grid-template-columns: 96px minmax(0,1fr); gap: 7px; padding: 2px 3px; }
 .workstation__help-popover dt { color: #e4f1f7; font-weight: 700; }
 .workstation__help-popover dd { margin: 0; color: #aebbc4; }
 .workstation__help-popover > small { display: block; padding: 4px 3px 2px; border-top: 1px solid #29343b; color: #81909a; line-height: 1.35; }

@@ -393,6 +393,30 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(helpDialog).toContainText('Backspace')
     await expect(helpDialog).toContainText(/Over a chart: change timeframe; over a WatchList: move through symbols/i)
     await expect(helpDialog).toContainText('Shortcuts are inactive while a text, numeric, code, or search editor owns focus.')
+    const helpLayout = await helpDialog.evaluate(dialog => {
+      const dialogBounds = dialog.getBoundingClientRect()
+      const rows = Array.from(dialog.querySelectorAll('dl > div'))
+      const overlaps: string[] = []
+      const clipped: string[] = []
+      for (const row of rows) {
+        const key = row.querySelector('dt')
+        const description = row.querySelector('dd')
+        if (!key || !description) continue
+        const keyText = document.createRange()
+        keyText.selectNodeContents(key)
+        const keyBounds = keyText.getBoundingClientRect()
+        const descriptionBounds = description.getBoundingClientRect()
+        if (keyBounds.right > descriptionBounds.left) overlaps.push(key.textContent?.trim() ?? '')
+        if (keyBounds.left < dialogBounds.left || keyBounds.right > dialogBounds.right
+          || descriptionBounds.left < dialogBounds.left || descriptionBounds.right > dialogBounds.right) {
+          clipped.push(key.textContent?.trim() ?? '')
+        }
+      }
+      return { rowCount: rows.length, overlaps, clipped }
+    })
+    expect(helpLayout.rowCount).toBeGreaterThan(0)
+    expect(helpLayout.overlaps, 'shortcut key labels must remain separate from descriptions').toEqual([])
+    expect(helpLayout.clipped, 'shortcut text must remain within the Help dialog width').toEqual([])
     await expect(page).toHaveScreenshot('application-shell-help-open.png', {
       animations: 'disabled',
       caret: 'hide',

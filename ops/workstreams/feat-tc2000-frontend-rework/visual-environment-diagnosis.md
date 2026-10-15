@@ -150,3 +150,71 @@ checked-in local oracle is satisfiable in that hosted browser environment; it
 does not establish V25 visual authority, nor explain the geometry/content/font
 differences in the retained local capture. Keep the missing V25 reference and
 the 0.5% oracle unchanged.
+
+## 2026-10-15 — Human-approved local-only Help reference adopted
+
+The human approved the reviewed fresh-fixture Help captures as a local-only
+interim reference. Reviewed all four Linux profiles (1920x1080 at 100% and
+125%; 2560x1440 at 100% and 125%). The shortcut text visible in the popover is
+legible at each scale. The dialog extends below the viewport, so a static image
+does not expose every row; retain the existing keyboard/scroll functional
+checks as part of acceptance.
+
+Adopted the exact retained `*-actual.png` files from
+`/tmp/tc-checkpoint-pinned/fresh-help/results/` into only the four Linux
+`application-shell-help-open` snapshots. The four Darwin snapshots are
+unchanged. This local reference is not derived from or asserted to match TC2000
+V25 and is not a product-parity claim. The official V25 `keyboard_help` visual
+reference remains `required_missing`; obtaining and reconciling authoritative
+V25 visual evidence remains unfinished roadmap work.
+
+No test behavior, content assertion, visual mask, snapshot tolerance, or skip
+changed: the screenshot assertion still uses `maxDiffPixelRatio: 0.005`. The
+existing `F9e-shell-menus-keyboard` flow still requires the Help dialog to take
+focus, proves its scroll height exceeds its client height, checks PageDown and
+PageUp change and restore `scrollTop`, verifies Tab reaches Close, and verifies
+Escape restores focus to the Help trigger. Its source is unchanged. Exact-tip
+hosted Playwright evidence is being awaited before this local checkpoint is
+reported as verified; the currently running run does not include these local
+snapshot bytes. Preserve the captures under the local ignored runtime/artifact
+area if this worktree is discarded; the `/tmp` artifacts are not a durable
+repository source.
+
+### Focused adoption verification
+
+The required build passed (`vue-tsc` plus Vite, 520 modules). In the isolated
+fresh seeded fixture, `F9e-shell-menus-keyboard` passed 1/1, including dialog
+focus, PageDown/PageUp scroll movement and reset, Tab-to-Close, and Escape
+focus restoration. The first combined invocation omitted the visual suite's
+opt-in flag and skipped its four visual cases; it is not counted as visual
+evidence. The corrected invocation used `RUN_BOARD_VISUAL_PARITY=1` and
+`E2E_SEED_MARKET_DATA=true`; all four adopted Linux Help screenshot profiles
+passed in 32.6s with the unchanged content assertions and 0.5% tolerance.
+
+GitHub run `38799367031` completed success for exact full SHA
+`87b9e3ab77d5356408b25b73b086a8fc7f062400`: backend, frontend-unit,
+branch-declared, and stack-backed E2E jobs passed; Exhaustive Integration Gate
+was skipped for this feature branch. That run predates the four local snapshot
+changes and therefore does not validate those PNGs. The focused local run does.
+The disposable six-service fixture, four volumes, and network were removed by
+exact project name; post-cleanup inspection confirmed the assigned TC stack's
+six services and four volumes remain. Official V25 visual parity remains open.
+
+## 2026-10-15 — Repaired Help layout and reviewed interim captures
+
+The actual Help row layout now uses a 96px key column with a 7px gap. This
+resolves the measured `Shift+wheel` text/description collision and gives the
+longest labels additional separation. The unchanged four-profile visual test
+now also checks every rendered key text range against its description and
+asserts that both stay within the Help dialog's horizontal bounds.
+
+In isolated seeded project `tc2000-help-interim-20261016`, the focused keyboard
+flow passed 1/1 and all four Linux Help visual profiles passed 4/4 using pinned
+Playwright 1.62.1 Chromium. The same screenshot tolerance remains 0.5%. The
+four captures were rederived only after the geometry assertions passed and
+reviewed at both resolutions and both scale settings; shortcut labels and
+descriptions are readable and separate, with remaining rows accessible by
+PageDown/PageUp. The assigned service stack/data and listener 15190 were
+preserved. Official V25 `keyboard_help` remains `required_missing`; these
+human-authorized captures are an interim local-only staging reference, not
+official V25 evidence.

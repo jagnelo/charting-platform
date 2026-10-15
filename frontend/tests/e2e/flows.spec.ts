@@ -903,6 +903,25 @@ test.describe('Chart', () => {
     await expect.poll(() => helpDialog.evaluate(element => element.scrollTop)).toBeGreaterThan(0)
     await helpDialog.press('PageUp')
     await expect.poll(() => helpDialog.evaluate(element => element.scrollTop)).toBe(0)
+    let bottomMetrics = await helpDialog.evaluate(element => ({
+      atBottom: element.scrollTop === element.scrollHeight - element.clientHeight,
+      lastRowVisible: false,
+    }))
+    for (let page = 0; page < 10 && !bottomMetrics.atBottom; page += 1) {
+      await helpDialog.press('PageDown')
+      bottomMetrics = await helpDialog.evaluate(element => {
+        const bounds = element.getBoundingClientRect()
+        const lastRow = element.querySelector('dl > div:last-child')?.getBoundingClientRect()
+        return {
+          atBottom: element.scrollTop === element.scrollHeight - element.clientHeight,
+          lastRowVisible: !!lastRow && lastRow.top >= bounds.top && lastRow.bottom <= bounds.bottom,
+        }
+      })
+    }
+    expect(bottomMetrics.atBottom).toBe(true)
+    expect(bottomMetrics.lastRowVisible).toBe(true)
+    await helpDialog.press('Home')
+    await expect.poll(() => helpDialog.evaluate(element => element.scrollTop)).toBe(0)
     await page.keyboard.press('Tab')
     await expect(helpDialog.getByRole('button', { name: 'Close keyboard shortcuts' })).toBeFocused()
     await page.keyboard.press('Escape')

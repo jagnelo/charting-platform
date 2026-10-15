@@ -1,5 +1,63 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-15 — Actual Help usability and text-box inspection
+
+Used the current-source TC frontend already running at `127.0.0.1:15190`,
+Chromium at 1920x1080, and a temporary browser container. The Help popover is
+286px wide with an 82px key column, a 7px grid gap, and a 179px description
+column. Its scroll viewport is 318px high for 1393px of content. The dialog
+exposes all 27 shortcut rows in the accessibility tree.
+
+Measured each rendered `dt` text range against its paired description box.
+`Ctrl+Space` ends at x=413.05 and its description begins at x=418, leaving a
+4.95 CSS-pixel gap; it does not overlap at this viewport, though the spacing is
+tight. `Backspace` leaves 5.38px. The longest problematic label is
+`Shift+wheel`: its text range ends at x=418.36 while the description begins at
+x=418, a 0.36 CSS-pixel range intersection; the temporary screenshot visibly
+renders `Shift+wheelPan chart history` without separation. The other longest
+labels inspected, including `Shift+drag divider` and `Ctrl+wheel`, have
+positive text-to-description gaps. Do not accept this as fully usable until
+layout is corrected and rechecked.
+
+Keyboard PageDown reached the actual bottom (`scrollTop=1075`, the maximum),
+where the final Escape row was visible inside the popover; focus remained on
+the dialog. PageUp returned to `scrollTop=0`. Tab focused Close keyboard
+shortcuts; Escape closed the dialog and returned focus to Help. Clicking Close
+keyboard shortcuts also closed the dialog, restored Help focus, and set
+`aria-expanded=false`. No baseline, screenshot, tolerance, font, source, or
+test assertion changed. The human decision on the local-only interim Help
+reference policy remains pending; official V25 parity remains roadmap debt.
+
+## 2026-10-15 — Current-source populated-comparison pointer verification
+
+Rechecked the actual current TC frontend source at commit
+`87b9e3ab77d5356408b25b73b086a8fc7f062400`, served by Vite on port 15191
+against the assigned backend on port 28008. The older assigned nginx frontend
+container dates from October 5 and was not used as current-source evidence. In
+the app, the comparison rendered `RSP +23.50%` before any pointer checks.
+
+At 1920x1080, an ordinary Playwright click on Plots timed out after 5 seconds;
+the diagnostic identified the populated Remove RSP chip as intercepting the
+pointer. An ordinary click on Remove RSP succeeded while the chip was present.
+This confirms the desktop overlap remains in the current app and is not fixed by
+the existing comparison z-index/pointer-events declarations. No forced click,
+trial-only action, changed assertion, or visual-oracle change was used.
+
+At 390x800 with the numeric chip present, ordinary clicks on Plots and then
+Remove RSP both succeeded; Plots opened its menu. With the chip removed, Plots
+also opened normally at that narrow viewport, confirming the no-comparison
+behavior and narrow layout remained usable in this check. The test account's
+chart was restored to no comparison. Temporary Chromium and the Vite process
+started for this check were stopped; the assigned six-service stack and its
+four volumes were left intact. A uniquely named test account
+`tc_pointer_actual_20261015` remains in the assigned database; no existing
+account or retained market-data rows were modified. The pre-existing listener
+on port 15190 was left untouched.
+
+The coordinator-owned physical geometry repair remains the blocker for desktop
+populated-chip actionability. No source, CSS, Playwright assertion, screenshot,
+mask, tolerance, or skip was changed here.
+
 ## 2026-10-15 — Actions run audit and Linux cache-path repair
 
 Inspected the actual jobs for workflow run `38774051065`, whose full head SHA
@@ -19263,4 +19321,91 @@ branch, so this is not full TCP4 integration acceptance. The latest exact-source
 run is green, while the V25 Help reference decision, coordinator-owned TCP1
 repair delivery, upstream TCP3 dependencies, and separate TCP4 gate remain
 open. No UI source, screenshot, mask, threshold, skip, or oracle policy changed.
+
+## 2026-10-15 — Local Help reference decision and adoption
+
+Human direction approved a reviewed local-only Help reference, with the
+explicit requirement to check readability and keyboard/scroll access, retain
+the existing functional checks and screenshot tolerance, and leave official
+V25 parity unfinished. I reviewed the retained fresh-fixture captures for all
+four Linux viewport profiles. The visible shortcut rows are legible; the dialog
+continues below the viewport, with the existing keyboard flow verifying focus,
+PageDown/PageUp scrolling, Tab to Close, and Escape focus restoration.
+
+The exact four Linux `application-shell-help-open` snapshots were copied from
+their retained fresh-fixture `*-actual.png` captures into this worktree. No
+Darwin snapshot changed. `tc2000_visual.spec.ts` still asserts the same content
+and `maxDiffPixelRatio: 0.005`; no mask, skip, or functional assertion changed.
+These four modified snapshot files are local-only and intentionally are not
+included in published CI/source. They are not official V25 imagery and do not
+close V25 visual parity. The official reference state remains
+`required_missing` and remains on the roadmap.
+
+Exact-source CI run `38799367031` is for full SHA
+`87b9e3ab77d5356408b25b73b086a8fc7f062400`; backend, frontend-unit, and
+branch-declared jobs passed. Its stack-backed Playwright job was still in
+progress at this handoff update; it does not include the uncommitted local
+snapshot bytes. Do not call it terminal or use it to claim that the adopted
+local images passed their pixel comparisons. The feature branch's exhaustive
+staging gate is skipped by design and remains a separate TCP4 gate.
+
+Focused local verification then completed against a separately seeded isolated
+fixture: production build passed; `F9e-shell-menus-keyboard` passed 1/1; and
+the four Help visual projects passed 4/4 with `RUN_BOARD_VISUAL_PARITY=1` and
+`E2E_SEED_MARKET_DATA=true`, using the local Linux screenshots and unchanged
+0.5% tolerance. The first visual invocation omitted the required opt-in and
+skipped those cases; it is not counted as validation. Exact-project cleanup
+removed only the disposable fixture's six containers, four generated volumes,
+and network. Post-cleanup inventory confirmed the assigned TC stack's six
+services and four volumes remain intact.
+
+The exact-source Actions run `38799367031` subsequently completed successfully
+on full SHA `87b9e3ab77d5356408b25b73b086a8fc7f062400`. Backend, frontend unit,
+branch-declared, and stack-backed E2E jobs passed; the Exhaustive Integration
+Gate was skipped on the feature branch. Because this run predates the local PNG
+changes, it validates the earlier CI snapshot set, not the local-only captures.
+The focused local run is the evidence for the adopted captures. This completes
+the interim Help-reference decision only; official V25 parity, full TCP4
+integration acceptance, synchronized Provider/ETF staging, and remaining
+workstation roadmap criteria stay open.
+
+## 2026-10-15 — Repaired and re-reviewed local-only Help reference
+
+This entry supersedes the earlier 2026-10-15 note that the Ctrl+Space spacing
+was merely tight and that the Help reference was already accepted. A fresh
+1920x1080 DOM/text-range measurement had found `Shift+wheel` intruding 0.36 CSS
+pixels into its description. The Help key column is now 96px (up from 82px),
+leaving a visible gap for the longest labels while preserving the popover's
+width. An automated check now measures every key label against its description
+and enforces dialog-width bounds at each visual profile.
+
+Validation used uniquely scoped project `tc2000-help-interim-20261016`, with
+fresh seeded test data and ports 25441/28009/28089. The assigned services,
+retained data, and pre-existing listener 15190 were not used or altered. The
+focused keyboard flow passed 1/1: repeated ordinary PageDown reaches the actual
+bottom, the last shortcut row is fully visible, PageUp returns to the top, Tab
+reaches Close, Escape restores Help-trigger focus, and the existing Help content
+and editor-focus checks remain intact. An initial added `End`-key assertion
+failed because this dialog does not implement End-to-bottom; it was replaced
+with repeated PageDown, matching the existing supported interaction, and the
+corrected flow passed. No checks were weakened.
+
+All four visual profiles passed 4/4 with the unchanged 0.5% pixel threshold and
+existing content checks. In each profile there were zero key/description
+overlaps and zero horizontal clipping. The exact Linux captures were rederived
+from this source after those checks and visually reviewed at 1920x1080 100% and
+125%, and 2560x1440 100% and 125%; visible labels and descriptions are separate
+and readable, and the dialog's remaining rows are reachable through scrolling.
+The test stack used a pinned Playwright 1.62.1 Chromium container because the
+host sandbox denied Chromium launch. The exact temporary Compose project is
+being cleaned up after final evidence checks; assigned runtime is preserved.
+
+Per the human's explicit approval, these four images are a deterministic
+local-only Help reference for this staging checkpoint only. The manifest keeps
+`keyboard_help.state` and `review.status` at `required_missing`; the interim
+oracle now names these screenshots and functional/layout requirements while
+explicitly disclaiming official V25 authority. Official V25 visual parity
+remains unfinished roadmap work. No source synchronization from staging or
+duplicate pointer fix is included; coordinator delivery of the independent
+pointer repair through green staging remains the TCP1 gate.
 

@@ -19,7 +19,29 @@ human_closure_authorization: pending
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
+human_interim_help_reference_authorization: >-
+  On 2026-10-15 the human answered, "Yes—use a reviewed local-only reference,"
+  to the explicit question authorizing review and adoption of a deterministic
+  local-only Help-screen reference for the staging checkpoint. Scope is limited
+  to this interim local reference; official TC2000 V25 visual parity remains
+  unfinished roadmap work, and existing functional checks and screenshot
+  tolerance remain unchanged. Adoption is conditional on reviewing readable
+  key/description separation, all-row scrolling and keyboard access, and
+  unclipped/non-overlapping content at all four visual profiles after any
+  source repair.
 current_blocker: >-
+  2026-10-15 Help interim reference prepared after correcting the measured
+  Shift+wheel collision. Focused keyboard flow passed 1/1 and all four seeded
+  Linux Help visual profiles passed 4/4 with zero detected label/description
+  overlap or horizontal clipping; exact local captures were rederived and
+  visually reviewed. The 0.5% threshold and official V25 keyboard_help
+  required_missing state remain unchanged. TCP1 is still blocked on coordinator
+  delivery of its independent chart-template pointer repair through green
+  staging; do not duplicate that fix or sync TC source before publication.
+  Provider/ETF staging synchronization and exact TCP4 full integration remain
+  open. Preserve assigned runtime, data, and listener 15190; publish the clean
+  pushed checkpoint after recording exact-source validation evidence.
+
   Checkpoint adoption 2026-10-15: the populated-comparison pointer check found
   a remaining default-wide geometry defect in the current TC source despite the
   earlier seven adjacent browser flows: after saving/restoring RSP at +23.50%,
@@ -301,13 +323,13 @@ integration_checkpoint:
     AC3: {status: partial, owner: TC, delivered: existing lineage views, remainder: staged ETF contract reconciliation, continuation_test: current/stale/unavailable analytic exclusion tests}
     AC4: {status: partial, owner: TC, delivered: existing top-down workstation, remainder: complete persisted-input workflows and full V25 roadmap, continuation_test: authenticated top-down and analytics flows}
     AC5: {status: partial, owner: TC, delivered: existing immutable Study and promotion paths, remainder: combined consumer compatibility and wider roadmap, continuation_test: immutable output and negative capability tests}
-    AC6: {status: partial, owner: TC, delivered: mapped interactions, remainder: pointer defect and unresolved visual/reference states, continuation_test: functional and protected visual matrix with original policy}
+    AC6: {status: partial, owner: TC, delivered: mapped interactions, remainder: coordinator-delivered pointer repair acceptance and unresolved V25 visual/reference states, continuation_test: synced green staging plus functional and protected visual matrix with original policy}
     AC7: {status: partial, owner: TC, delivered: historical resilience and accessibility evidence, remainder: exact candidate combined validation and broader evidence, continuation_test: required full-stack browser and security/performance checks}
     AC8: {status: deferred, owner: TC-after-coordinator, reason: requires green Provider and ETF staging, remainder: line-level reconciliation and exact-source validation, continuation_test: green staging receipt plus shared-path dispositions and full gate}
     AC9: {status: partial, owner: TC, delivered: preserved source and exclusive worktree, remainder: clean pushed checkpoint review and later full-roadmap review, continuation_test: clean synchronized source and review receipt}
 acceptance_criteria:
-  - {id: TCP1, text: "Diagnose and fix chart-template pointer interception with browser regression evidence and a coordinator-readable narrow repair proposal."}
-  - {id: TCP2, text: "Resolve required functional/visual failures without weakening reference policy; document missing reference evidence and proposed checkpoint limitations for human review."}
+  - {id: TCP1, text: "Accept and verify the coordinator-owned chart-template pointer repair only after green staging delivery; do not duplicate its fix in TC."}
+  - {id: TCP2, text: "Resolve TC-owned functional/visual failures without weakening checks; review and adopt only the human-authorized local Help reference after all four profiles pass, while keeping official V25 Help parity as unfinished roadmap work."}
   - {id: TCP3, text: "After Provider and ETF reach synchronized green staging, merge that staging into this clean unfrozen source and reconcile all shared paths and actual provider coverage/preflight and ETF lineage/freshness consumers."}
   - {id: TCP4, text: "Validate usable combined workstation and immutable Study consumers, success and unavailable paths, with the required full integration/browser profile and exact-source branch CI."}
   - {id: TCP5, text: "Publish a clean pushed checkpoint and complete roadmap dispositions at ready_for_human_review; retain pending human acceptance and coordinator-only staging integration/freeze release."}
@@ -547,20 +569,16 @@ status: in_progress
 progress:
   completed: []
   total: 5
-  current_phase: TCP1_COORDINATOR_REPAIR_PENDING_AND_TCP2_CROSS_ENVIRONMENT_VISUAL_DIAGNOSIS
+  current_phase: TCP2_HELP_REFERENCE_PREPARED;_TCP1_COORDINATOR_STAGING_WAIT
   next_action: >-
-    Do not mark TCP1 complete: the populated default-wide browser check proves
-    Plots remains physically covered by Remove RSP. The coordinator owns the
-    independent geometry repair; verify its accepted delivery only through
-    synchronized green staging. Exact-source CI 38794814317 for 3ed8a41e is
-    terminal and green: backend, frontend unit, corrected stack-free branch
-    tests, and stack-backed E2E all passed; the exhaustive gate was skipped as
-    expected on a feature branch. Its four Help visual profiles passed on the
-    hosted runner, unlike the retained pinned-Noble fresh-fixture replay; this
-    does not provide V25 visual authority. Continue TC-owned visual diagnosis
-    without changing snapshots or the 0.5% oracle. Consume only
-    synchronized green Provider+ETF staging for TCP3, then reconcile consumers
-    and complete validation/review. Preserve the full roadmap. Historical next action: Continue TC-owned R1/R5/R6 implementation and trace the Help screenshot
+    Record and commit the reviewed Help layout/test/reference update with its
+    exact focused evidence, then synchronize the plan/session and publish a
+    clean pushed checkpoint. Keep official V25 Help parity required_missing.
+    Do not duplicate the coordinator-owned pointer repair or synchronize TC
+    source until it is delivered through green staging. Continue the full branch
+    roadmap, consume Provider+ETF only after synchronized green staging, and
+    preserve the exact external gates and assigned runtime/data.
+    Historical next action: Continue TC-owned R1/R5/R6 implementation and trace the Help screenshot
     layout-state mismatch. Ctrl+M now opens explicit list membership actions,
     and Shift/Ctrl divider drag now evenly resizes the selected side with
     persisted Golden Layout proportions. Shift+N now opens Notes for the active
@@ -570,23 +588,11 @@ progress:
     integration gate open. Defer upstream consumption/reconciliation until both
     dependencies reach staging. Stop at ready_for_human_review.
   current_blocker: >-
-    TCP1 verified and coordinator narrow repair proposal published. TCP2's
-    Help-only fresh-fixture replay passes content/freshness assertions but fails
-    unchanged screenshots in all four pinned-Noble profiles by55,010-65,625
-    pixels. Exact-source feature CI 38794814317 on 3ed8a41e passed, including
-    all four Help profiles on the hosted runner. This clears the branch-CI
-    topology failure and demonstrates environment sensitivity, but not V25
-    visual authority. The V25
-    Help state is required_missing. The ignored local controlled media pack is
-    present (230 images across 26 source groups) but contains no keyboard-help
-    article or in-app Help dialog capture; its manifest path is stale in this
-    Linux checkout. The tracked platform screenshots have incompatible
-    font/content baselines. No snapshot/policy changed; visual authority needs
-    human review. The canonical full matrix
-    ended93passed/11failed; the four focused runtime categories later passed
-    16/16. The full matrix has not been rerun, so exact-tip aggregate validation
-    remains open. TCP3 awaits synchronized green Provider+ETF staging. TCP4 full
-    combined validation and TCP5 human checkpoint review remain incomplete.
+    Coordinator-owned TCP1 pointer repair delivery awaits synchronized green
+    staging. Provider/ETF green-staging synchronization and the exact full
+    integration gate remain incomplete. The Help local-only staging reference
+    is prepared and reviewed; official V25 Help visual parity remains
+    required_missing and unfinished.
 historical_implementation_records:
   - "Added TC2000's documented HLC Bars style to the frontend chart contract and settings, drawing the existing OHLCV high-low range with a close tick and omitting the open tick. Ctrl+B now cycles HLC, OHLC, Candles, Line in that order. The focused renderer/workstation tests passed 45/45; the full serial frontend suite passed 130 files / 1,225 tests; vue-tsc/Vite build passed; authenticated F8k-direct-chart-style passed 1/1 across all four styles. The protected Help screenshot test failed against its unchanged baseline with 50,941 pixels / 3.0% difference (0.5% threshold); no visual baseline/policy was changed."
   - "Authenticated follow-up browser evidence supersedes the earlier unauthenticated CLI attempt: a unique account in the assigned TC stack was used to activate the chart, press `/`, and confirm the plot library reopened with its `Filter indicators` search focused. No account was created outside the branch stack; no other worktree changed. The account remains a test artifact in the assigned stack. The Help visual oracle was not rerun after this shortcut, and its protected baseline remains unchanged."
