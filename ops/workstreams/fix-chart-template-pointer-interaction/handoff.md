@@ -9,7 +9,19 @@ Created from `staging` at `5267f11a491795d85ee35b56cabbe550394f3823`.
 - Closure record: pending validation; human already delegated technical closure for this narrow repair. Deployment remains unauthorized.
 - Planning state: ready; PTR1-PTR5 and full_stack_browser retain all required validation. Delegated technical closure will be recorded after validation; deployment remains unauthorized.
 
-## Active changeset: pointer-popup-close-teardown
+## Published changeset: pointer-popup-close-teardown
+
+Source/test checkpoint `0f03b18fd912a37005d0b143716f63ae1ca7477b` is
+committed, pushed and externally verified clean with matching origin. Scoped
+staging contained only the existing visual spec and own workstream records;
+8/8 repeated all-profile focused checks passed without retries. Committed-plan
+preflight passed and the existing goal remains active. This separate operational
+receipt is the last publication before the complete no-retry260-case replay.
+Verify the enclosing source hash externally; do not record its own hash inside
+itself. No further test/application changes are planned during that replay.
+The previous RED full run stays RED. Required exact-source CI, cleanup,
+technical review/closure and staging integration are still open; no feature
+checkpoint has been accepted or frozen.
 
 Clean matching HEAD/origin `2129a1fed` verified before this context; diff-check
 passes. The save-path product/regression context and its separate operational
