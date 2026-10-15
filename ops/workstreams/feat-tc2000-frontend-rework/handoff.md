@@ -19020,3 +19020,23 @@ project tc2000-checkpoint-fresh-9d78e1 using the documented invocation. Verify
 fresh floating-row acceptance first. Cleanup is explicit project-only; never
 invoke generic worktree-label cleanup against the preserved assigned stack.
 
+## Canonical matrix terminal receipt and fresh-fixture startup context
+
+Process11617 finished exit1: 93 passed/11 failed in21.9m across104 cases.
+Four failures are Help screenshots; four are floating-row Current assertions
+against stale fixture data; the remaining three are default login-navigation,
+drag-target browser diagnostics and Study-running workstation visibility.
+Vite2397 stopped; browser container auto-removed. Preserve all artifacts in
+/tmp/tc-checkpoint-pinned/full. Current frontend production build is handle54488;
+poll it before starting any other heavy job. Next initialize the already
+validated isolated fixture and replay floating-window freshness first.
+
+Coordinator reconciliation handoff read at16:55Z status:
+docs/feature-integration-reconciliation.md in staging now acknowledges our
+narrow pointer proposal and assigns independent repair delivery to coordinator.
+Technical repair closure is delegated to coordinator; wider unfinished feature
+checkpoints remain unaccepted. No source freezes. Workflow staging advanced to
+98f0b888 with exact CI pending; it contains no Provider/ETF product delivery,
+so TCP3 remains gated. Strategy owns collision repairs; TC preserves its own
+existing migration IDs. No sibling writes are authorized.
+

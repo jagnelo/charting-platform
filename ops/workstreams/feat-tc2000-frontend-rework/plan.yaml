@@ -25,7 +25,9 @@ current_blocker: >-
   coordinator proposal published. Host Help passes 4/4, but canonical Noble
   probe passes default and fails Help by 55,032 pixels. Invariant brand-region
   comparison proves mixed font environments in tracked default/Help baselines.
-  See visual-environment-diagnosis.md. Canonical 104-case visual run is active.
+  See visual-environment-diagnosis.md. Canonical 104-case visual run completed
+  93 passed/11 failed: four Help, four expired floating fixtures, three
+  navigation/transport failures. Fresh isolated fixture validation follows.
   Provider+ETF synchronized green staging is required for TCP3 reconciliation.
   The following paragraphs are historical evidence, not current gate status.
   The long workstation keyboard-help reference is now exposed as a labelled,
@@ -544,7 +546,7 @@ status: in_progress
 progress:
   completed: [TCP1]
   total: 5
-  current_phase: TCP2_FULL_VISUAL_MATRIX
+  current_phase: TCP2_FRESH_FIXTURE_VALIDATION
   next_action: >-
     Prepare TCP1-TCP5 under coordinator checkpoint policy; first diagnose
     chart-template pointer interception and propose any narrow staging repair.
@@ -562,8 +564,9 @@ progress:
   current_blocker: >-
     TCP1 verified and coordinator narrow repair proposal published. TCP2 has
     proven mixed font environments in tracked screenshots; Noble default passes
-    and Help fails55,032 pixels. Canonical full visual matrix process11617 is
-    active. TCP3 awaits synchronized green Provider+ETF staging. TCP4 full
+    and Help fails55,032 pixels. Canonical full visual matrix process11617
+    ended93passed/11failed. Fresh fixture prepared. TCP3 awaits synchronized
+    green Provider+ETF staging. TCP4 full
     combined validation and TCP5 human checkpoint review remain incomplete.
 historical_implementation_records:
   - "Added TC2000's documented HLC Bars style to the frontend chart contract and settings, drawing the existing OHLCV high-low range with a close tick and omitting the open tick. Ctrl+B now cycles HLC, OHLC, Candles, Line in that order. The focused renderer/workstation tests passed 45/45; the full serial frontend suite passed 130 files / 1,225 tests; vue-tsc/Vite build passed; authenticated F8k-direct-chart-style passed 1/1 across all four styles. The protected Help screenshot test failed against its unchanged baseline with 50,941 pixels / 3.0% difference (0.5% threshold); no visual baseline/policy was changed."
