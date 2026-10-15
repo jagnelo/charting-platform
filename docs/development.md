@@ -153,6 +153,15 @@ agent records `human_closure_authorization`, changes the workstream status to
 `ready_for_integration`, completes the PR-equivalent `closure_summary`, and runs `make integrate`.
 Deployment remains a separate explicit human request.
 
+A human may instead authorize a named integration checkpoint before the wider
+feature roadmap is finished. Its owning agent preserves every original
+requirement, defines the current checkpoint and explicit continuation work, and
+keeps the normal validation gates. Human acceptance closes that checkpoint only,
+using the existing closure fields and integration queue. The staging coordinator
+integrates accepted checkpoints in dependency order; feature agents reconcile
+and repair their own sources. See the [checkpoint contract](agent-orchestration.md#accepted-integration-checkpoints-and-continued-feature-development)
+and the [provider-led integration plan](provider-integration-checkpoint.md).
+
 `make worktree-overview` is the human-facing inventory: it reports branch goal/status,
 ahead/behind counts, dirty state, local size, and the exact reason a worktree is or is
 not removable. `worktree-archive` is intentionally explicit and only accepts a clean,

@@ -1,0 +1,148 @@
+{
+  "acceptance_criteria": [
+    {
+      "id": "PTR1",
+      "text": "Desktop save/remove/restore with a populated RSP percentage permits ordinary Plots and Remove RSP clicks while both controls exist; no force/trial-only proof or blank-percentage shortcut."
+    },
+    {
+      "id": "PTR2",
+      "text": "No-comparison default geometry remains unchanged; populated and multiple/long comparison chips cannot cover Plots or Templates, and menus retain ordinary close/focus behavior."
+    },
+    {
+      "id": "PTR3",
+      "text": "The 390x800 narrow viewport and on-screen chart retain independent comparison/Plots targets and usable menu bounds; comparison input/add controls remain interactive."
+    },
+    {
+      "id": "PTR4",
+      "text": "Frontend unit tests, type check/build and required isolated application browser/regression validation pass with unchanged oracles/tolerances; exact-source branch CI and subsequent staging gate remain required."
+    },
+    {
+      "id": "PTR5",
+      "text": "Publish clean committed/pushed source and precise review/closure evidence under delegated technical-fix authorization; preserve all sibling code/data and leave Help policy, provider activation, deployment and broader feature acceptance untouched."
+    }
+  ],
+  "active_session_id": null,
+  "branch": "fix/chart-template-pointer-interaction",
+  "claim": {
+    "branch": "fix/chart-template-pointer-interaction",
+    "host": "m920q",
+    "session_id": "4f5ba990-9325-4502-b830-8f1c5ea4572b",
+    "started_at": "2026-10-15T17:44:41.610406+00:00",
+    "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-chart-template-pointer-interaction",
+    "worktree_id": "fix-chart-template-pointer-interaction-1ffadfb89a"
+  },
+  "dirty_paths": [
+    "ops/workstreams/fix-chart-template-pointer-interaction/handoff.md",
+    "ops/workstreams/fix-chart-template-pointer-interaction/plan.yaml",
+    "ops/workstreams/fix-chart-template-pointer-interaction/session.json",
+    "ops/workstreams/fix-chart-template-pointer-interaction/validation.jsonl"
+  ],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-chart-template-pointer-interaction-1ffadfb8",
+      "charting-stack-fix-chart-template-pointer-interaction-1ffadfb8"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-chart-template-pointer-interaction-1ffadfb89a"
+  },
+  "docker_before_cleanup": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": 1241000000,
+    "container_count": 6,
+    "containers": [
+      "charting-stack-fix-chart-template-pointer-interaction-1ffadfb8-frontend-1",
+      "charting-stack-fix-chart-template-pointer-interaction-1ffadfb8-worker-1",
+      "charting-stack-fix-chart-template-pointer-interaction-1ffadfb8-backend-1",
+      "charting-stack-fix-chart-template-pointer-interaction-1ffadfb8-postgres-1",
+      "charting-stack-fix-chart-template-pointer-interaction-1ffadfb8-redis-1",
+      "charting-stack-fix-chart-template-pointer-interaction-1ffadfb8-research-runner-1"
+    ],
+    "known_bytes": 1456046150,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-chart-template-pointer-interaction-1ffadfb8",
+      "charting-stack-fix-chart-template-pointer-interaction-1ffadfb8"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 205006854,
+    "volume_count": 4,
+    "worktree_id": "fix-chart-template-pointer-interaction-1ffadfb89a"
+  },
+  "docker_ready": {
+    "ready": true,
+    "started_desktop": false,
+    "wait_seconds": 0
+  },
+  "finished": true,
+  "finished_at": "2026-10-15T20:23:21.969351+00:00",
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/chart-template-pointer-interaction: Repair chart-template comparison/Plots hit-target overlap on desktop, preserve the no-comparison default and passing narrow layout, and publish a validated clean checkpoint for delegated coordinator review. No feature imports, Help reference changes, provider requests, deployment or retained-data cleanup.. Acceptance criteria: PTR1: Desktop save/remove/restore with a populated RSP percentage permits ordinary Plots and Remove RSP clicks while both controls exist; no force/trial-only proof or blank-percentage shortcut.; PTR2: No-comparison default geometry remains unchanged; populated and multiple/long comparison chips cannot cover Plots or Templates, and menus retain ordinary close/focus behavior.; PTR3: The 390x800 narrow viewport and on-screen chart retain independent comparison/Plots targets and usable menu bounds; comparison input/add controls remain interactive.; PTR4: Frontend unit tests, type check/build and required isolated application browser/regression validation pass with unchanged oracles/tolerances; exact-source branch CI and subsequent staging gate remain required.; PTR5: Publish clean committed/pushed source and precise review/closure evidence under delegated technical-fix authorization; preserve all sibling code/data and leave Help policy, provider activation, deployment and broader feature acceptance untouched.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-10-15T19:46:45.645330+00:00",
+  "goal_request": {
+    "objective": "Advance fix/chart-template-pointer-interaction: Repair chart-template comparison/Plots hit-target overlap on desktop, preserve the no-comparison default and passing narrow layout, and publish a validated clean checkpoint for delegated coordinator review. No feature imports, Help reference changes, provider requests, deployment or retained-data cleanup.. Acceptance criteria: PTR1: Desktop save/remove/restore with a populated RSP percentage permits ordinary Plots and Remove RSP clicks while both controls exist; no force/trial-only proof or blank-percentage shortcut.; PTR2: No-comparison default geometry remains unchanged; populated and multiple/long comparison chips cannot cover Plots or Templates, and menus retain ordinary close/focus behavior.; PTR3: The 390x800 narrow viewport and on-screen chart retain independent comparison/Plots targets and usable menu bounds; comparison input/add controls remain interactive.; PTR4: Frontend unit tests, type check/build and required isolated application browser/regression validation pass with unchanged oracles/tolerances; exact-source branch CI and subsequent staging gate remain required.; PTR5: Publish clean committed/pushed source and precise review/closure evidence under delegated technical-fix authorization; preserve all sibling code/data and leave Help policy, provider activation, deployment and broader feature acceptance untouched.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "ready",
+  "goal_state": "active",
+  "goal_unavailable_reason": null,
+  "head": "ad30231df085c1168ed51b2567e33586b7612853",
+  "implementation_sha": "ad30231df085c1168ed51b2567e33586b7612853",
+  "interrupted": true,
+  "last_checkpoint": "2026-10-15T19:41:57.997743+00:00",
+  "last_human_progress_update": "2026-10-15T20:23:08.779511+00:00",
+  "local_validation_profile": "full_stack_browser",
+  "next_action": "Validated technical implementation complete; hand off exclusively to authorized staging coordinator. Publish final closure metadata cleanly, require exact source CI, then guarded make integrate and exact staging Exhaustive Integration Gate. No further repair implementation, feature acceptance, promotion or deployment.",
+  "parent_branch": "staging",
+  "plan_hash": "222d60ed4764b0a93e4190d83f9a8f70d04ceda7fa63173247b0813cc74b269f",
+  "planning_required": false,
+  "planning_state": "ready",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [
+      "PTR1",
+      "PTR2",
+      "PTR3",
+      "PTR4",
+      "PTR5"
+    ],
+    "current_blocker": "none",
+    "current_phase": "validated_technical_handoff",
+    "next_action": "Completed validated implementation handed to authorized coordinator: scoped disposable cleanup, publish closure metadata, require exact final-source CI, then guarded persistent staging integration and exhaustive gate. No feature/promotion/deployment acceptance.",
+    "total": 5,
+    "updated_at": "2026-10-15T20:23:08.779492+00:00"
+  },
+  "remote": "ad30231df085c1168ed51b2567e33586b7612853",
+  "remote_sha": "ad30231df085c1168ed51b2567e33586b7612853",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "4f5ba990-9325-4502-b830-8f1c5ea4572b",
+  "state": "interrupted",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-chart-template-pointer-interaction/ops/workstreams/fix-chart-template-pointer-interaction",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-chart-template-pointer-interaction/ops/workstreams/fix-chart-template-pointer-interaction/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-chart-template-pointer-interaction/ops/workstreams/fix-chart-template-pointer-interaction/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-chart-template-pointer-interaction/ops/workstreams/fix-chart-template-pointer-interaction/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-chart-template-pointer-interaction/ops/workstreams/fix-chart-template-pointer-interaction/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-chart-template-pointer-interaction",
+  "worktree_id": "fix-chart-template-pointer-interaction-1ffadfb89a"
+}

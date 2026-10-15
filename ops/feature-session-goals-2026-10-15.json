@@ -1,0 +1,57 @@
+{
+  "recorded_at": "2026-10-15T16:05:14Z",
+  "purpose": "Preserve prior feature-session goal accounting before the human-requested integration-checkpoint objective update through the supported Codex App Server API.",
+  "human_direction": "Update underlying docs, goals and guidance so existing feature sessions can resume branch-owned reconciliation, with this central session owning cross-feature analysis, sequencing and staging integration.",
+  "coordination_plan": "docs/feature-integration-coordination.md",
+  "method": "thread/goal/get, thread/goal/set, thread/goal/get; no thread resume or turn start; existing status and token budget preserved",
+  "verification": "All four objectives updated and verified through thread/goal/get on a fresh App Server connection; states, null budgets, token totals, and time totals preserved; no turn started or resumed.",
+  "verified_at_epoch": 1792080464,
+  "provider_readability_revision": {
+    "updated_at_epoch": 1792082037,
+    "objective": "Prepare the market-data integration checkpoint to unblock ETF, TC2000 and Strategy Lab. Validate shared provider contracts and preserve all unfinished roadmap work. Follow /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md. Stop at human review; the central coordinator owns staging merges.",
+    "sha256": "2a03a6425affbc4ea0f23b879f0f8dddd7d1b8e506b15f3954e746793f210342",
+    "api_binary": "VS Code bundled codex-cli 0.162.0-alpha.17.2",
+    "state": "paused; ongoing agent work not interrupted",
+    "verification": "Saved goal independently read back through a fresh App Server connection. Human still sees old text in the already-open UI card; live UI refresh has not been verified. Do not claim visible-label repair or reload the running extension without authorization."
+  },
+  "verified_objectives": {
+    "provider": {"checkpoint": "provider-platform-integration-1", "sha256": "3c2c5cb106df7401bafb60adabf101ddd08409f92fcdc56e2774b15b2a6d0293", "status": "paused"},
+    "etf": {"checkpoint": "etf-holdings-integration-1", "sha256": "64ba0d7df93667fecee403694ba58a8e1adb912753bb0c4cf51633a19f092160", "status": "blocked"},
+    "tc2000": {"checkpoint": "tc2000-workstation-integration-1", "sha256": "e909ec953ddd26f13da83429e35eb53fe7a7a8b4bc947d10235c3dbef52e96f9", "status": "blocked"},
+    "strategy": {"checkpoint": "strategy-lab-v2-integration-1", "sha256": "8751e30ab0e2a87cac4e56d48a9e835b0dd57cddffe37a10d07a7b9abc30164b", "status": "blocked"}
+  },
+  "original_goals": {
+    "provider": {
+      "thread_id": "01a06924-ece6-7332-b416-84a0e335bac1",
+      "objective": "Advance feat/market-data-provider-platform: Implement the approved US-first multi-provider market-data platform plan:...",
+      "status": "paused",
+      "token_budget": null,
+      "tokens_used": 186541457,
+      "time_used_seconds": 945452
+    },
+    "etf": {
+      "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
+      "objective": "Make ETF constituent availability truthful, cost-governed, resilient, and observable per symbol; integrate ETF holdings with the shared provider platform after it reaches staging; remediate the full fallback inventory in relevance order; and deliver tested monitoring and user-visible degradation behavior without silently treating SEC, stale, partial, or unverified data as current support.",
+      "status": "blocked",
+      "token_budget": null,
+      "tokens_used": 66719481,
+      "time_used_seconds": 437015
+    },
+    "tc2000": {
+      "thread_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
+      "objective": "Complete the TC2000 frontend rework in feat/tc2000-frontend-rework within its frontend-led scope: advance the V25-inspired workstation UX and TC-owned Python/DSL/Study/Strategy capabilities; consume feat/market-data-provider-platform and feat/etf-holdings-constituents only after both reach staging; reconcile shared paths semantically and run exact-tip validation; stop at ready_for_human_review without direct branch integration, promotion, deployment, or mutation of another worktree.",
+      "status": "blocked",
+      "token_budget": null,
+      "tokens_used": 92850101,
+      "time_used_seconds": 468653
+    },
+    "strategy": {
+      "thread_id": "01a0a4ae-c3eb-7bf0-b3f3-ecc833f2c00b",
+      "objective": "Advance feat/strategy-lab-v2: Implement the production-grade, local-first Strategy Lab v2 backend for reproducible portfolio backtesting, walk-forward and search experiments, and persistent broker-free shadow testing. Keep the strategy SDK engine-neutral, use Nautilus as the only authoritative simulator after stable v2 conformance, and respect provider-platform, ETF, and TC2000 workstream ownership.",
+      "status": "blocked",
+      "token_budget": null,
+      "tokens_used": 115854789,
+      "time_used_seconds": 485677
+    }
+  }
+}

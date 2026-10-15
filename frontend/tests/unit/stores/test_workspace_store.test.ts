@@ -670,7 +670,7 @@ describe('workspace store layout tabs', () => {
     }
     apiPut.mockImplementationOnce(() => oldResponse.promise).mockImplementation(async (_path, payload) => ({
       ...store.workspace,
-      revision: 5,
+      revision: 6,
       tabs: payload.tabs,
     }))
 
@@ -681,7 +681,112 @@ describe('workspace store layout tabs', () => {
     oldResponse.resolve({ ...store.workspace, revision: 5, tabs: [{ ...store.workspace.tabs[0], windows: [{ ...store.workspace.tabs[0].windows[0], configuration: { expression: '=SPY/RSP' } }] }] })
 
     await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(2), { timeout: 1_500 })
+    expect(apiPut.mock.calls[1][1]).toEqual(expect.objectContaining({ base_revision: 5 }))
     expect(store.workspace.tabs[0].windows[0].configuration.expression).toBe('=NVDA/XLK')
+    expect(store.workspace.revision).toBe(6)
+  })
+
+  it('flushes newer edits when their debounce expires during an earlier save', async () => {
+    const response = deferred<any>()
+    const store = useWorkspaceStore()
+    const original = {
+      id: 10, user_id: 3, name: 'Personal', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{ id: 20, stable_key: 'personal', name: 'Personal', position: 0, active_window_key: 'chart', layout_config: {}, windows: [
+        { id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 0 },
+      ] }],
+    }
+    store.workspace = structuredClone(original)
+    apiPut.mockImplementationOnce(() => response.promise)
+      .mockImplementation(async (_path, payload) => ({ ...original, ...payload, revision: 6 }))
+    const saving = store.saveSnapshot()
+    store.workspace.tabs[0].windows[0].configuration = { symbol: 'NVDA' }
+    store.scheduleSnapshot()
+    // Deliberately let the real 350ms debounce join the still-pending write.
+    // No further mutation will arrive to rescue a dropped trailing save.
+    await new Promise(resolve => setTimeout(resolve, 400))
+    response.resolve({ ...original, revision: 5 })
+    await saving
+
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(2), { timeout: 1_500 })
+    expect(apiPut.mock.calls[1][1]).toEqual(expect.objectContaining({ base_revision: 5 }))
+    expect(store.workspace.tabs[0].windows[0].configuration.symbol).toBe('NVDA')
+    expect(store.workspace.revision).toBe(6)
+  })
+
+  it('does not replace a switched workspace with an earlier save acknowledgement', async () => {
+    const response = deferred<any>()
+    const store = useWorkspaceStore()
+    const original = {
+      id: 10, user_id: 3, name: 'First', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {}, tabs: [],
+    }
+    store.workspace = original
+    apiPut.mockImplementationOnce(() => response.promise)
+    const saving = store.saveSnapshot()
+    store.workspace = { ...original, id: 11, name: 'Second', revision: 9 }
+
+    response.resolve({ ...original, revision: 5 })
+    await saving
+
+    expect(store.workspace).toEqual(expect.objectContaining({ id: 11, name: 'Second', revision: 9 }))
+    expect(apiPost).not.toHaveBeenCalled()
+  })
+
+  it('does not roll back an already newer revision when acknowledging a superseded save', async () => {
+    const response = deferred<any>()
+    const store = useWorkspaceStore()
+    const original = {
+      id: 10, user_id: 3, name: 'Personal', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {}, tabs: [],
+    }
+    store.workspace = { ...original }
+    apiPut.mockImplementationOnce(() => response.promise)
+      .mockImplementation(async (_path, payload) => ({ ...original, ...payload, revision: 8 }))
+    const saving = store.saveSnapshot()
+    store.workspace.revision = 7
+    store.workspace.name = 'Newer local state'
+    store.scheduleSnapshot()
+
+    response.resolve({ ...original, revision: 5 })
+    await saving
+
+    expect(store.workspace.revision).toBe(7)
+    expect(store.workspace.name).toBe('Newer local state')
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(2), { timeout: 1_500 })
+    expect(apiPut.mock.calls[1][1]).toEqual(expect.objectContaining({ base_revision: 7, name: 'Newer local state' }))
+  })
+
+  it('acknowledges a conflict retry without replacing edits made during that retry', async () => {
+    const retryResponse = deferred<any>()
+    const store = useWorkspaceStore()
+    const baseline = {
+      id: 10, user_id: 3, name: 'Personal', is_default: false, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{ id: 20, stable_key: 'personal', name: 'Personal', position: 0, active_window_key: 'chart', layout_config: {}, windows: [
+        { id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 0 },
+      ] }],
+    }
+    const remote = structuredClone(baseline)
+    remote.revision = 5
+    apiGet.mockResolvedValueOnce(baseline).mockResolvedValueOnce(remote)
+    await store.loadDefault()
+    store.workspace!.tabs[0].windows[0].configuration = { symbol: 'QQQ' }
+    apiPut.mockRejectedValueOnce(new Error('API PUT /workspaces/10/snapshot → 409: conflict'))
+      .mockImplementationOnce(() => retryResponse.promise)
+      .mockImplementation(async (_path, payload) => ({ ...baseline, ...payload, revision: 7 }))
+    const saving = store.saveSnapshot()
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(2))
+    store.workspace!.tabs[0].windows[0].configuration = { symbol: 'NVDA' }
+    store.scheduleSnapshot()
+    const accepted = structuredClone(remote)
+    accepted.revision = 6
+    accepted.tabs[0].windows[0].configuration = { symbol: 'QQQ' }
+    retryResponse.resolve(accepted)
+    await saving
+
+    expect(store.workspace?.revision).toBe(6)
+    expect(store.workspace?.tabs[0].windows[0].configuration.symbol).toBe('NVDA')
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(3), { timeout: 1_500 })
+    expect(apiPut.mock.calls[2][1]).toEqual(expect.objectContaining({ base_revision: 6 }))
+    expect(store.workspace?.revision).toBe(7)
+    expect(apiPost).not.toHaveBeenCalled()
   })
 
   it('does not recover away a newly opened tool when an older snapshot conflicts', async () => {

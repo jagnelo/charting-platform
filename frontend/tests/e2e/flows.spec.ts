@@ -212,13 +212,34 @@ test.describe('Chart', () => {
     await expect(boxSize).toHaveValue('5')
     await expect(reversal).toHaveValue('2')
 
-    const resetRequest = page.waitForRequest(request => request.url().includes('/ohlcv/SPY/D1/transformed') && request.url().includes('bar_type=point_figure') && !request.url().includes('box_size=') && !request.url().includes('reversal='))
-    // Clearing box size blurs it when the reversal field is edited, so install
-    // the observer before the first clear rather than after that change fires.
+    const resetSaved = page.waitForResponse(response => {
+      const request = response.request()
+      if (!response.ok() || request.method() !== 'PUT' || !new URL(request.url()).pathname.endsWith('/snapshot')) return false
+      const snapshot = request.postDataJSON() as { tabs?: { windows?: { instance_key?: string; configuration?: Record<string, unknown> }[] }[] }
+      return snapshot.tabs?.some(tab => tab.windows?.some(window =>
+        window.instance_key === 'primary-chart'
+        && window.configuration?.bar_type === 'point_figure'
+        && !('box_size' in window.configuration)
+        && !('reversal' in window.configuration),
+      )) ?? false
+    })
+    // Resetting can reuse the initial point-and-figure response from the
+    // five-second request cache. Prove the cleared configuration is persisted,
+    // then reload to verify its real server parameters with an empty client cache.
     await boxSize.fill('')
     await reversal.fill('')
     await reversal.press('Tab')
+    await expect(boxSize).toHaveValue('')
+    await expect(reversal).toHaveValue('')
+    await resetSaved
+    const resetRequest = page.waitForRequest(request => request.url().includes('/ohlcv/SPY/D1/transformed') && request.url().includes('bar_type=point_figure') && !request.url().includes('box_size=') && !request.url().includes('reversal='))
+    await page.reload()
     await resetRequest
+    await settings.click()
+    await expect(rendering).toHaveValue('point_figure')
+    await expect(boxSize).toHaveValue('')
+    await expect(reversal).toHaveValue('')
+    await expect(chart.locator('.uplot')).toBeVisible({ timeout: 15_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -255,6 +276,7 @@ test.describe('Chart', () => {
   })
 
   test('F9c-template-comparison — chart templates restore their comparison set', async ({ page, browserDiagnostics }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 })
     await page.goto('/chart/SPY')
     const chart = page.locator('.chart-tool').filter({ has: page.getByTitle('Chart templates') }).first()
     await expect(chart).toBeVisible({ timeout: 15_000 })
@@ -272,11 +294,23 @@ test.describe('Chart', () => {
     expect(savePayload.payload?.configuration?.comparison_symbols).toEqual(['RSP'])
     const saved = menu.locator('.chart-template__apply').filter({ hasText: templateName })
     await expect(saved).toBeVisible({ timeout: 15_000 })
+    await menu.getByRole('button', { name: 'Close chart templates' }).click()
+    const comparisonChip = chart.locator('.chart-tool__compare-chip').filter({ hasText: 'RSP' })
+    // A pending em-dash is narrower than the real comparison label and can
+    // conceal the desktop hit-target regression. Exercise both ordinary
+    // controls while the populated chip and Plots trigger coexist.
+    await expect(comparisonChip).toContainText(/[+-]\d+\.\d{2}%/, { timeout: 15_000 })
+    await chart.getByRole('button', { name: 'Chart plot library' }).click()
+    const plotsMenu = chart.locator('.chart-plots__menu:visible')
+    await expect(plotsMenu).toBeVisible()
+    await plotsMenu.getByRole('button', { name: 'Close chart plot library' }).click()
     await chart.getByTitle('Remove RSP').click()
     await expect(chart.getByTitle('Remove RSP')).toHaveCount(0)
+    await chart.getByTitle('Chart templates').click()
     await expect(saved).toBeVisible({ timeout: 15_000 })
     await saved.click()
-    await expect(chart.locator('.chart-tool__compare-chip').filter({ hasText: 'RSP' })).toHaveCount(1, { timeout: 15_000 })
+    await expect(comparisonChip).toHaveCount(1, { timeout: 15_000 })
+    await expect(comparisonChip).toContainText(/[+-]\d+\.\d{2}%/, { timeout: 15_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -3493,10 +3527,34 @@ test.describe('TC2000 workstation', () => {
     await page.getByRole('menuitem', { name: 'Market Map' }).click()
     const studyMapWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.market-map-tool') }).last()
     await expect(studyMapWindow).toBeVisible({ timeout: 15_000 })
+    const studyMapKey = await studyMapWindow.getAttribute('data-window-key')
+    expect(studyMapKey).toBeTruthy()
+    // A rendered response can precede the workspace's revisioned save. Do
+    // not select transient component-local members until this source itself
+    // has been accepted by persistence; losing it must fail this assertion.
+    const studySourceSaved = page.waitForResponse(async response => {
+      if (response.request().method() !== 'PUT' || response.status() !== 200
+        || !/\/workspaces\/\d+\/snapshot$/.test(new URL(response.url()).pathname)) return false
+      const workspace = await response.json() as { tabs?: { windows?: { instance_key?: string; tool_type?: string; configuration?: { source_id?: string } }[] }[] }
+      return workspace.tabs?.some(tab => tab.windows?.some(tool =>
+        tool.instance_key === studyMapKey && tool.tool_type === 'market_map'
+        && tool.configuration?.source_id === 'watchlist:7')) ?? false
+    })
     await studyMapWindow.getByRole('combobox', { name: 'Market Map universe' }).selectOption('watchlist:7')
-    await studyMapWindow.getByRole('button', { name: 'Refresh', exact: true }).click()
+    // Existing tiles can belong to the preceding refresh. Wait for this
+    // request and terminal render before selecting a member for publication;
+    // a late refresh otherwise replaces the selected tile/action mid-click.
+    const watchlistRequestCount = requestedSources.length
+    const studyMapRefresh = studyMapWindow.getByRole('button', { name: 'Refresh', exact: true })
+    await studyMapRefresh.click()
+    await expect.poll(() => requestedSources.length, { timeout: 15_000 }).toBeGreaterThan(watchlistRequestCount)
+    await expect(studyMapRefresh).toBeEnabled()
+    await expect(studyMapWindow.locator('.market-map-tool')).toHaveAttribute('aria-busy', 'false')
+    await studySourceSaved
+    await expect(studyMapWindow.getByRole('combobox', { name: 'Market Map universe' })).toHaveValue('watchlist:7')
     await expect(studyMapWindow.locator('.market-map-tool__tile')).toHaveCount(2)
     await studyMapWindow.locator('.market-map-tool__tile').first().click()
+    await expect(studyMapWindow.locator('.market-map-tool__tile').first()).toHaveClass(/market-map-tool__tile--selected/)
     await studyMapWindow.getByRole('button', { name: 'Open selected members in Study Lab' }).click()
     const studyLab = page.locator('.study-lab-tool:visible').last()
     await expect(studyLab).toBeVisible({ timeout: 15_000 })

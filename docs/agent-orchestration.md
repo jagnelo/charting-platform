@@ -133,6 +133,9 @@ or an opportunity noticed during other work.
   the helper verifies that the changed paths qualify.
 - Green validation means `ready_for_human_review`; it is never implicit merge,
   close, or deployment permission. Preserve the branch for feedback iterations.
+- A human-authorized integration checkpoint may close a defined, useful branch
+  scope while the wider feature roadmap remains open. Follow the checkpoint
+  contract below; preparing a checkpoint does not authorize its acceptance or merge.
 - Only after an explicit human statement such as “close this topic” may an
   agent record the exact closure instruction in `human_closure_authorization`,
   set `status: ready_for_integration`, and write `closure_summary` with the
@@ -152,6 +155,87 @@ without a recorded request and rejects integration unless the recorded closure
 authorization, validation decision, and status are present. It cannot prove who
 typed prose, so an agent must quote or faithfully record the human instruction
 and never invent it.
+
+### Accepted integration checkpoints and continued feature development
+
+Full feature completion and acceptance of a useful integration checkpoint are
+distinct decisions. When the human explicitly authorizes a checkpoint, the
+implementation agent may target that bounded scope for review while preserving
+the complete feature roadmap. This is not permission to invent a smaller goal
+or defer a failing requirement without recording and reviewing the disposition.
+
+The checkpoint uses the existing lifecycle and tooling. `human_closure_authorization`
+records the human's later acceptance of the named checkpoint, `closure_summary`
+closes only that checkpoint, and `status: ready_for_integration` retains its
+existing meaning. The wider roadmap must not be labelled complete. No new status,
+merge bypass, weakened validation tier, or automatic closure authorization is
+introduced. Until the human accepts the delivered checkpoint, closure stays
+`pending` and the implementation goal stops at `ready_for_human_review`.
+
+Before implementation targets the checkpoint, its owning session must:
+
+1. Preserve the full original objective and every acceptance criterion, including
+   its ID and text, under `roadmap_goal` and `roadmap_acceptance_criteria` in its
+   branch-owned plan. Preserve the existing history and validation evidence.
+2. Record `integration_checkpoint` with an ID, the exact human direction,
+   downstream consumers, required contracts, and a disposition for every original
+   criterion: delivered in the checkpoint, partially delivered with an explicit
+   remainder, or deferred with a reason, owner, and continuation acceptance test.
+3. Set the current `goal` and `acceptance_criteria` to the authorized checkpoint,
+   keep `progress.total` consistent, and re-evaluate completed IDs against the new
+   criteria. Keep both planning authorization and later checkpoint acceptance
+   distinct. Never copy a complete marker from a broader or older goal.
+4. Require a usable, tested contract for downstream consumers. Unfinished
+   operations must be explicitly unavailable or disabled, preserve persisted
+   data and compatibility, and be covered by negative-path tests. A consumer
+   must not silently use a stub, guessed identity, stale evidence, or fallback
+   labelled as complete. Required tests for enabled behavior remain mandatory.
+5. Retain the normal local validation profile and exact-source branch CI for
+   all changes entering staging. Red, flaky, inconclusive, and missing required
+   results do not become green because the roadmap is split. Document which
+   unavailable operations are outside the accepted checkpoint; that disposition
+   needs human acceptance, not merely a skip in the live suite.
+6. Prepare a closure summary naming the delivered contracts, tested source,
+   migrations, defaults, consumer limitations, and every outstanding roadmap
+   item. It must retain `integration_capture: exact branch HEAD`. Only after
+   explicit human checkpoint acceptance may the coordinator integrate it.
+
+One staging coordinator owns the merge queue. Feature agents own preparation
+and source-branch repair. Integrate dependency providers first; after each
+green staging result, dependent agents reconcile against that result before
+their own review and integration. A named batch is permitted only when all its
+sources are accepted and compatible without unimplemented dependency wiring.
+
+After a green integration, retain the exact source SHA and checkpoint receipt
+as the audit record. Under the human's 2026-10-15 direction, these four existing
+feature sessions may continue their original authorized roadmap in the same
+branches/worktrees: the coordinator first releases the frozen source, then the
+owning agent merges current synchronized green staging into its own clean source,
+reconciles behavior, validates, and resumes development. It must retain each
+checkpoint's history and never rewrite the accepted source. A later integration
+requires a new checkpoint acceptance and exact-source validation. A separately
+bootstrapped continuation branch is optional when explicitly chosen by the human;
+it is not required to resume these existing sessions. Never advance a frozen
+source or infer authorization for additional product scope. Promotion to master
+and deployment remain separate human decisions.
+
+The human-authorized 2026-10-15 direction for the provider, ETF, TC2000, and
+Strategy Lab v2 workstreams is recorded in
+[`docs/provider-integration-checkpoint.md`](provider-integration-checkpoint.md).
+It supersedes their earlier full-feature-before-integration planning assumption,
+including the provider trial's placement, but does not accept any branch or
+authorize a merge. Each owning session incorporates it into its own plan and
+session-local goal; another writer must not edit that session's claimed files.
+
+The central-first coordination plan and the four session resume instructions are
+in [`docs/feature-integration-coordination.md`](feature-integration-coordination.md).
+The coordinator owns combined-contract analysis, sequencing, source freezes,
+staging merges, and combined validation. Source agents own product reconciliation
+and repair in their claimed worktrees. Read-only central analysis does not confer
+write ownership of those worktrees. Session goal objectives may be updated through
+the supported Codex App Server goal API at the human's request; retain a before
+receipt and verify accounting because replacement semantics may vary by version. Do not
+change its paused/blocked/active state or start turns merely to install guidance.
 
 ### Scoped standing automation authorization
 
