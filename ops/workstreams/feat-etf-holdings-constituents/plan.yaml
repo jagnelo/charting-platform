@@ -1315,19 +1315,21 @@ roadmap_validation_history: >-
 
 next_action: >-
   Preserve the source-derived transport inventory and current no-retry visual
-  evidence without duplicating the coordinator's active full replay. Await
-  coordinator audit of staging tip5267f11a's run38773602828 (103 visual passes
-  and one recovered flaky 1080p screenshot; not clean acceptance) and its
-  follow-up run38785967367, plus the active full260-case no-retry replay with
-  one readiness race under review. The adjacent-chart test-only repair is
-  already published and validated in this branch; do not duplicate the
-  coordinator-owned pointer geometry or MarketMap synchronization repairs.
-  Also await Provider checkpoint/cost-contract acceptance under the approved
-  20 EUR/USD-equivalent monthly ceiling (or tested non-bypassable free-only
-  boundary) and explicit green-baseline release. Validated repairs may be
-  technically closed by the coordinator without per-fix human signoff. Until
-  release, update only branch-owned evidence; do not import Provider or merge
-  staging. After release reconcile the actual producer contract, implement ETF
-  shared-runtime consumer tests here, then run the required full profile and
-  exact-source CI. Preserve full roadmap and observation gate; no sibling edits,
-  deployment, paid activation, trial, or scope reduction.
+  evidence without duplicating coordinator-owned visual runs. The historical
+  staging5267f11a run38773602828 had103 visual passes plus one recovered flaky
+  1080p screenshot and is not clean acceptance; its 38785967367 follow-up was
+  cancelled. Current repair merge82d881e7 run38805309009 has ordinary E2E151
+  passed/109 expected skips without retries, but Exhaustive job116667534144
+  remains active and no baseline is released. The coordinator's separate full
+  260-case no-retry replay has one readiness race under review. The adjacent-
+  chart test-only repair is already published and validated in this branch; do
+  not duplicate the coordinator-owned pointer geometry or MarketMap repairs.
+  Continue independent ETF issuer-source and consumer-contract preparation.
+  Await Provider checkpoint/cost-contract acceptance under the approved 20
+  EUR/USD-equivalent monthly ceiling (or tested non-bypassable free-only
+  boundary) and explicit green-baseline release. Until release, update only
+  branch-owned evidence; do not import Provider or merge staging. After release
+  reconcile the actual producer contract, implement ETF shared-runtime consumer
+  tests here, then run the required full profile and exact-source CI. Preserve
+  full roadmap and observation gate; no sibling edits, deployment, paid
+  activation, trial, or scope reduction.

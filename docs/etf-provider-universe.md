@@ -2848,6 +2848,30 @@ and `https://www.pimco.com/us/en/documents/59144abed4eff08608a1795abb7f24995835f
 `web:pimco-mint-official-factsheet-2026-03-31`, and
 `web:pimco-bond-official-factsheet-2026-03-31`.
 
+## PIMCO MINT/BOND official suite refresh — 2026-10-15
+
+The current official PIMCO ETF suite continues to list both high-relevance
+funds. It reports MINT total net assets of US$18.292B and BOND US$8.536B, both
+as of 2026-09-30, with NAV and market prices displayed through 2026-10-14.
+The suite text and linked product-page text review provide product/AUM/price
+metadata but no complete current holdings table or downloadable holdings
+artifact. The linked pages rendered as a location/account/contact shell in this
+text review; because the pages may be JavaScript-driven, this observation does
+not establish that all holdings are sign-in gated or that an API is absent.
+
+Both symbols therefore remain `unavailable` with
+`no_complete_executable_public_artifact`. The official factsheet last reviewed
+for daily-disclosure policy remains dated 2026-03-31, and the prior anonymous
+fund-detail HTTP 401 is historical: this page-only refresh did not retry it or
+any issuer API. No adapter route or current-data claim was promoted.
+
+Evidence refs: `web:pimco-etf-suite-current-2026-10-15`,
+`web:pimco-mint-product-page-current-2026-10-15`, and
+`web:pimco-bond-product-page-current-2026-10-15`.
+Official sources: [PIMCO ETF suite](https://www.pimco.com/us/en/investment-strategies/etfs),
+[MINT product page](https://www.pimco.com/us/en/investments/etf/pimco-enhanced-short-maturity-active-exchange-traded-fund/usetf-usd),
+[BOND product page](https://www.pimco.com/us/en/investments/etf/pimco-active-bond-exchange-traded-fund/usetf-usd).
+
 ## Current audit checkpoint — ETFMG symbols reconciled to Amplify — 2026-10-02
 
 Amplify's current AIEQ, AWAY, BDRY, and BWET pages identify the four active

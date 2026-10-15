@@ -187,6 +187,25 @@ securities and U.S. Treasury futures; retain the mixed asset identity question
 for the shared constituent bridge rather than resolving every ticker as
 equity.
 
+### Tier-0 PIMCO official-page refresh — 2026-10-15 21:34Z
+
+The official PIMCO ETF suite currently lists MINT and BOND and reports total net
+assets of US$18.292B and US$8.536B, respectively, as of 2026-09-30. Their NAV
+and market-price values are displayed through 2026-10-14. The current suite text
+and linked product-page text review expose product/AUM/price metadata, not a
+complete current holdings table or downloadable holdings artifact. The linked
+text render showed a location/account/contact shell; because the page may be
+JavaScript-driven, this does not prove that all holdings are sign-in gated or
+that no API exists. Keep both symbols `unavailable` under
+`no_complete_executable_public_artifact`. The latest daily-disclosure factsheet
+reviewed remains dated 2026-03-31; the prior anonymous HTTP 401 is historical
+and was not retried. No adapter/API request or route promotion occurred.
+
+Evidence references are retained in `provider-audit.yaml` and
+`docs/etf-provider-universe.md`: [PIMCO ETF suite](https://www.pimco.com/us/en/investment-strategies/etfs),
+[MINT product page](https://www.pimco.com/us/en/investments/etf/pimco-enhanced-short-maturity-active-exchange-traded-fund/usetf-usd),
+and [BOND product page](https://www.pimco.com/us/en/investments/etf/pimco-active-bond-exchange-traded-fund/usetf-usd).
+
 The separate staging repair is published as pointer-geometry commit
 `8b4e6853`; its test-only MarketMap refresh-synchronization follow-up
 `543a7817` is clean/pushed and its current CI is `38785967367`. Those are

@@ -42,13 +42,13 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "current_blocker_latest": "As of2026-10-15T21:30Z, coordinator reports staging tip5267f11a CI38773602828 with103 visual passes and one recovered flaky1080p screenshot (16,142 pixels), so the success badge is not clean acceptance. Pointer-geometry commit8b4e6853 and MarketMap refresh-sync follow-up543a7817 are coordinator-owned; its full260-case no-retry replay is active with one readiness race under review. The ETF-owned adjacent-chart readiness fix remains the minimal published test-only commitb01f59bf156e7a43efe9d3a7897a648ca97f0b16, validated by focused12/12 no-retry, full-local104/104 with zero flakes/normal exit0, and exact-source CI38788420409; no screenshot,0.5% tolerance or assertion was weakened. Provider exact-source CI38804214507 is terminal green but shared cost-admission/free-only contract review and Provider checkpoint acceptance remain unresolved. Staging release and combined baseline are not authorized. Shared identity, entitlement, quota, aggregate cost, health and combined-runtime consumer integration remain open. No staging write, sibling edit, feature import or staging merge is authorized.",
+  "current_blocker_latest": "As of2026-10-15T21:35Z, current staging repair merge82d881e76be8de538abb6ec5c454d96afe0ee56a run38805309009 has E2E151 passed/109 expected skips and no retries per coordinator audit, but Exhaustive job116667534144 is still in progress; no baseline is released. Historical run38773602828 on5267f11a had103 visual passes plus one recovered flaky1080p screenshot (16,142 pixels), so its success badge was not clean acceptance; follow-up38785967367 Playwright was cancelled. Coordinator's separate full260-case no-retry replay was last reported active with one readiness race, and no corresponding process is visible in this checkout's process namespace; do not duplicate it. ETF's adjacent-chart fixb01f59bf is published, test-only, focused12/12 retries0, full-local104/104 zero flakes/normal exit0, exact-source CI38788420409 green; screenshots, assertions and0.5% tolerance unchanged. Provider branch source1ab6f798 has exact CI38798881420 green but live refresh is incomplete and shared free-only/cost admission contract remains unresolved. ETF made a new official PIMCO page-only review: MINT/BOND AUM US$18.292B/US$8.536B as of2026-09-30, with prices through2026-10-14; no full artifact exposed and both remain unavailable. Shared identity, entitlement, quota, aggregate cost, health and combined-runtime consumer integration remain open. No staging write, sibling edit, feature import or staging merge is authorized.",
   "dirty_paths": [
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
+    "docs/etf-provider-universe.md",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
+    "ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml",
+    "ops/workstreams/feat-etf-holdings-constituents/session.json"
   ],
   "docker": {
     "accounting_complete": true,
@@ -85,14 +85,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "8e7e17b3e5744c39f65fdbde915c0a20b295eb4e",
+  "head": "079a9d51ab80f9b7777fad009567bf8142a848cf",
   "implementation_sha": "b01f59bf156e7a43efe3d9a7897a648ca97f0b16",
-  "last_checkpoint": "2026-10-15T21:30:00Z",
+  "last_checkpoint": "2026-10-15T21:35:00Z",
   "last_human_progress_update": "2026-10-06T18:53:15.533458+00:00",
-  "latest_checkpoint": "Last application/test code boundary8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85 passed the unchanged local full profile:1938 backend,81.24% coverage;948 frontend;154 functional;104 visual;zero flakes;actual exit0. Exact code CI38788420409 is green. Adjacent-chart test-only commitb01f59bf156e7a43efe9d3a7897a648ca97f0b16 passes focused12/12 no-retry and is covered by that full profile and exact-source CI; all screenshots,0.5% tolerance and assertions remain intact. Coordinator reports staging5267f11a CI38773602828 as103 visual passes plus one recovered flaky1080p screenshot; follow-up CI38785967367 covers its own pointer/MarketMap fixes, not ETF. The coordinator's own full260-case no-retry replay remains active with one readiness race. Provider CI38804214507 is terminal green but Provider checkpoint/cost contract is not accepted. The local14-test diagnostic stalled inside Starlette TestClient and was interrupted without an assertion result. Shared-runtime bridge and combined consumer tests remain open; no staging baseline is released.",
+  "latest_checkpoint": "Last application/test code boundary8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85 passed unchanged local full profile:1938 backend/81.24%,948 frontend,154 functional,104 visual,zero flakes,normal exit0; exact-source CI38788420409 is green. ETF code diff from this tested boundary to current HEAD079a9d51 is empty; new local modifications in this turn are documentation/audit only. Adjacent chart fixb01f59bf passes focused12/12 retries0; screenshot, assertions and0.5% tolerance unchanged. Current staging82d881e7 run38805309009 E2E151/109 success, no retries, but Exhaustive job116667534144 remains active and coordinator has not released a baseline. Provider source1ab6f798 CI38798881420 is green but live refresh/checkpoint and shared cost boundary remain incomplete. PIMCO MINT/BOND official page metadata refreshed; neither yields a proven complete artifact, so availability is unchanged. A prior local14-consumer-test diagnostic stalled inside Starlette TestClient and ended without an assertion; hosted branch check passed14/14. Shared runtime consumer integration remains open.",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Preserve branch-owned evidence and do not duplicate the coordinator's active no-retry visual replay or its pointer/MarketMap fixes. Await its terminal result, clean staging acceptance and explicit Provider checkpoint/cost-contract release. Only then reconcile the actual producer contract, implement the ETF_HOLDINGS bridge and shared-runtime consumer tests, and run the required full profile and exact-source CI. Preserve the full roadmap; no staging write/merge, sibling edit, deployment, paid activation, trial or scope reduction.",
-  "plan_hash": "f06917d07debf9fbf08b4725035568df959e31b3eb4dcdd72bffdb19c390c879",
+  "next_action": "Finish and validate the current branch-owned PIMCO evidence refresh, then continue independent issuer/source review and transport/consumer contract preparation without guessing a Provider interface. Monitor exact staging Exhaustive job116667534144 and the coordinator's actual replay receipt; do not duplicate browser or heavy gates. Await released green staging plus accepted Provider shared admission contract before implementing ETF_HOLDINGS against actual interfaces. Preserve all full-roadmap criteria and branch boundaries; no staging write/merge, sibling edit, deployment, paid activation, trial or scope reduction.",
+  "plan_hash": "f7f6cbdcd54646f5930c0440feabbe6852c116bfcb5afa7821930197a6e87dd6",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -110,13 +110,13 @@
     ],
     "total": 7,
     "current_phase": "transport_surface_mapped_waiting_for_released_provider_staging",
-    "current_blocker": "Coordinator reports staging5267f11a CI38773602828 had103 visual passes plus one recovered flaky1080p screenshot; success badge is not clean acceptance. Its separate follow-up CI38785967367 covers pointer geometry and MarketMap refresh synchronization, owned elsewhere; the full260-case no-retry replay remains active with one readiness race. ETF's minimal adjacent-chart fixb01f59bf is published and has focused12/12 no-retry, local full-profile104/104 zero flake/normal exit0, and exact-source CI38788420409 evidence; no screenshot/tolerance/assertion changed. Provider exact CI38804214507 is green but Provider checkpoint/cost review remains open; no baseline release. No feature import or staging merge before coordinator release; no duplicate browser run or competing heavy gate.",
-    "next_action": "Preserve and share the exact ETF source/evidence from the durable handoff. Await terminal coordinator replay, clean staging acceptance and Provider shared cost-contract release. Then implement/test the real shared runtime bridge and validate the full profile. Preserve all roadmap criteria; no staging merge or duplicate browser replay.",
-    "updated_at": "2026-10-15T21:30:00Z"
+    "current_blocker": "Current staging82d881e7 run38805309009 E2E151/109 is clean, but Exhaustive job116667534144 remains active and no product baseline is released. Historical staging5267f11a run38773602828 had103 visual passes plus one recovered flaky screenshot. The coordinator's no-retry full260 replay was last reported active with one race, but no corresponding process is visible from this checkout; do not duplicate it. ETF visual repair and exact green evidence are preserved. Provider CI is green for source1ab6f798, but live refresh and shared free-only/cost boundary acceptance remain open. PIMCO current page-only evidence was refreshed without route/API calls; MINT/BOND remain unavailable. No feature import or staging merge before coordinator release.",
+    "next_action": "Record and validate the PIMCO page-only evidence refresh, continue independent ETF issuer audit and shared-runtime contract preparation, and monitor exact staging/Provider receipts. Implement the actual ETF bridge only after the coordinator releases green staging with the accepted producer contract. Preserve all roadmap criteria; no staging merge or duplicate browser replay.",
+    "updated_at": "2026-10-15T21:35:00Z"
   },
-  "remote": "ecf92e234310eddeda023ec29f17d1ce7d6c4be9",
-  "remote_sha": "ecf92e234310eddeda023ec29f17d1ce7d6c4be9",
-  "remote_synchronized": false,
+  "remote": "079a9d51ab80f9b7777fad009567bf8142a848cf",
+  "remote_sha": "079a9d51ab80f9b7777fad009567bf8142a848cf",
+  "remote_synchronized": true,
   "schema": 2,
   "session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
   "state": "in_progress",
