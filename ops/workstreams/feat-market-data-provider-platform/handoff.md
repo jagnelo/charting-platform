@@ -25302,4 +25302,35 @@ exact candidate receipts remain separate gates.
   source has not received exact-source hosted branch CI or browser validation;
   human checkpoint acceptance, source freeze, staging merge, deployment, paid
   activation, and the operational trial remain unapproved.
+
+## 2026-10-15 21:47Z — checkpoint gate boundaries clarified
+
+- Updated `checkpoint-review-packet.md` and `plan.yaml` to reflect the human's
+  checkpoint minimums. ICP1 requires tested stable identity, provenance/history,
+  quarantine and legacy compatibility plus honest mapping-gap reporting; a
+  fresh complete NMS/OTC/SEC universe is retained as roadmap work. ICP5
+  requires local secret/config boundary evidence and exact-source branch
+  validation; GitHub/RPi/deployment secret stores are target onboarding, not
+  pre-integration gates. ICP6 requires producer success/unavailable evidence
+  and named downstream owners/remainders; sibling wiring follows green Provider
+  staging.
+- The free-only consumer mismatch is closed in pushed code commit `4077f07`:
+  `PROVIDER_FREE_ONLY_CHECKPOINT=true` denies reviewed paid routing regardless
+  of `ALLOW_PAID_PROVIDER_ROUTING`; trials and unreviewed plans are denied.
+  The 20 EUR/USD-equivalent aggregate recurring budget remains a separate
+  Provider roadmap contract, not a checkpoint prerequisite. ETF retains its
+  downstream bridge and per-operation accounting ownership.
+- Live evidence is unchanged and source-bound: receipt
+  `186ab98a-6971-4a3f-affd-d0a2d8286106` remains on `1afb896`, 20/27 manifests,
+  56 cases, 136 requests, 55,732,001 bytes, `incomplete_preflight`. No repeat
+  provider calls or receipt rebinding occurred. Any excluded operation shown
+  to be required for checkpoint acceptance needs a concrete human disposition;
+  quota holds are not silently converted to permanent accepted deferrals.
+- Current hosted CI for `4077f07` has no status evidence in this checkout. Local
+  Docker backend suite passed 2,772 unit + 395 integration tests before the
+  final unreviewed-plan predicate hardening; the final behavior has a focused
+  regression pass. Migration equivalence evidence is historical dirty-candidate
+  evidence, not an immutable `4077f07` receipt. This packet is not yet a clean,
+  accepted checkpoint. No target secret stores, sibling branches, staging,
+  provider APIs, or frontend files were changed.
 *** End of File

@@ -121,7 +121,7 @@ roadmap_acceptance_criteria:
     text: The 30-day deployed shadow run remains disabled and is not part of the current implementation phase; after every other controllable acceptance gate is complete, it will be planned and authorized as the final gate before human closure and staging integration.
 acceptance_criteria:
   - id: ICP1
-    text: Stable security, issuer, listing, and provider-symbol contracts preserve identity, provenance, and history; missing or ambiguous identities stay explicit and never silently merge.
+    text: Checkpoint minimum is tested stable security, issuer, listing, and provider-symbol identity with provenance/history retention, explicit ambiguity quarantine, and legacy symbol/API compatibility; report known mapping gaps. A fresh complete NMS/OTC/SEC universe reconciliation and full venue mapping are full-roadmap work, not pre-integration ICP1 gates.
   - id: ICP2
     text: Shared capability, entitlement, quota/usage, health, and routing contracts are usable by consumers and reject unknown or exhausted quotas, with durable cross-session and concurrent-worker accounting tested.
   - id: ICP3
@@ -129,9 +129,9 @@ acceptance_criteria:
   - id: ICP4
     text: Every checkpoint-enabled provider operation has bounded exact-source live evidence; every excluded operation has explicit, tested unavailable/disabled behavior and an operation-level status. Historical receipts or quota waits do not count as current success; any failing required operation must be fixed or proposed for explicit human-approved deferral.
   - id: ICP5
-    text: Additive migrations, application startup, secret boundaries, defaults, and existing callers remain compatible under migration, full-stack, and branch CI validation; required configuration is explicit and missing deployment credentials are not represented as deployment readiness.
+    text: Checkpoint minimum is additive migration/fresh-install and existing-database equivalence, startup/default/caller compatibility, tested local secret/config boundaries, and exact-source branch CI. GitHub, RPi, and deployment secret-store verification is required before using those targets, not before Provider integration; no deployment readiness is implied.
   - id: ICP6
-    text: ETF holdings, TC2000, and Strategy Lab v2 each have a concrete contract map, success and unavailable examples, ownership boundaries, and remaining wiring/tests; no required consumer capability is silently deferred.
+    text: Checkpoint minimum is a concrete Provider producer-contract map with tested success/unavailable behavior and a named downstream wiring/test owner for ETF holdings, TC2000, and Strategy Lab v2. Actual sibling wiring/reconciliation and consumer-specific validation occur after Provider is green in staging and remain owned by those branches; no capability is represented as available without producer evidence.
   - id: ICP7
     text: The checkpoint is reviewable from a clean, pushed exact source with the normal validation profile and exact-source evidence, a disposition for every original criterion, and a closure summary for later human acceptance; full-roadmap completion remains open.
 integration_checkpoint:
@@ -140,7 +140,8 @@ integration_checkpoint:
   acceptance_state: pending_human_review
   human_closure_authorization: pending
   deferral_authorization_state: pending_human_checkpoint_acceptance
-  deferral_rule: "Every deferred or excluded operation below is a proposal for this checkpoint, not an accepted waiver. Keep it non-routable and its unavailable behavior tested until the human accepts the checkpoint disposition."
+  deferral_rule: "Keep deferred or excluded operations non-routable with tested unavailable behavior. If an operation is required for checkpoint acceptance but excluded, record its exact operation-level reason and obtain a concrete human disposition; do not treat temporary quota holds as accepted permanent deferrals."
+  checkpoint_scope_boundary: "ICP1 requires tested stable identity/provenance/history/quarantine and legacy compatibility plus honest mapping-gap reporting, not a fresh complete NMS/OTC/SEC universe. ICP5 requires tested local secret/config boundaries and exact-source branch validation, not GitHub/RPi/deployment secret-store onboarding. ICP6 requires producer success/unavailable evidence and named downstream owners/remainders, not sibling implementation before Provider green staging. Full-universe reconciliation, target secret stores, and downstream adapter/UI wiring remain roadmap or post-integration work. Preserve source-bound provider-live evidence exactly; current retained 20/27 receipt is incomplete and is not rebound to later commits."
   merge_authorized: false
   deployment_authorized: false
   provider_activation_authorized: false
@@ -327,7 +328,7 @@ integration_checkpoint:
       note: "A null selection is unavailable, never permission to guess another identity or bypass quota. Routing-decision and identity-quarantine endpoints are admin diagnostics; consumers use local series/coverage and internal provider-routing contracts."
   checkpoint_validation:
     - id: ICP1
-      evidence: "Add/verify fixture and PostgreSQL tests for identity mapping/conflicts, symbol changes, unresolved identity, provenance/history, and legacy compatibility."
+      evidence: "Checkpoint minimum: fixture/PostgreSQL tests for stable identity, identity conflicts/quarantine, provenance/history, and legacy compatibility; report known mapping gaps. Full fresh NMS/OTC/SEC reconciliation and venue completeness are roadmap work, not an ICP1 pre-integration gate."
       tests:
         - backend/tests/unit/providers/test_openfigi.py
         - backend/tests/unit/services/test_instrument_sync_metadata.py
@@ -362,7 +363,7 @@ integration_checkpoint:
         - backend/tests/unit/test_provider_secret_wiring.py
         - tests/deployment/test_rpi_contract.py
     - id: ICP6
-      evidence: "Provide each consumer a contract map, example success and unavailable payloads, ownership boundary, and consumer-owned reconciliation/test list; explicitly record the free-only checkpoint admission boundary and Provider-owned aggregate cost gap; run backend contract tests here and defer downstream-owned wiring to each branch."
+      evidence: "Provide each consumer a contract map, producer-tested success and unavailable behavior, ownership boundary, and consumer-owned reconciliation/test list; explicitly record the hard free-only checkpoint route restriction and Provider-owned aggregate-cost roadmap gap; run backend contract tests here and defer actual downstream wiring/reconciliation to each branch after Provider is green in staging."
       tests:
         - backend/tests/integration/api/test_market_data_admin.py
         - backend/tests/integration/api/test_strategy_lab.py
@@ -390,7 +391,7 @@ integration_checkpoint:
       continuation_acceptance_test: "Calendar tests cover sessions, holidays, early closes, timezone projections, and freshness for supported venues."
     - id: AC-ROUTING
       status: partially_delivered
-      disposition: "Capability routing and durable quota controls exist. The integration checkpoint is free-only by default (ALLOW_PAID_PROVIDER_ROUTING=false), while the existing explicit toggle can admit separately reviewed paid plans; neither the toggle nor entitlement is aggregate cost admission or paid-activation authorization. No shared aggregate recurring-subscription cost API or enforcement of the approved 20 EUR/USD-equivalent ceiling exists. Provider owns that ICP2 work; ETF owns ICP6 consumer-bridge and actual-operation accounting evidence. Other provider-specific dimensions, account baselines, and consumer examples remain open."
+      disposition: "Capability routing and durable quota controls exist. During the integration checkpoint, PROVIDER_FREE_ONLY_CHECKPOINT=true is a hard shared constraint: reviewed paid routes are denied regardless of ALLOW_PAID_PROVIDER_ROUTING, and trials/unreviewed plans are denied. Turning checkpoint mode off restores the full-roadmap reviewed-paid opt-in path; neither mode is aggregate cost admission or paid-activation authorization. No shared aggregate recurring-subscription cost API or enforcement of the approved 20 EUR/USD-equivalent ceiling exists. Provider owns that ICP2 roadmap work; ETF owns ICP6 consumer-bridge and actual-operation accounting evidence. Other provider-specific dimensions, account baselines, and consumer examples remain open."
       owner: "feat/market-data-provider-platform"
       continuation_acceptance_test: "Concurrent/restart tests cover provider-specific quota dimensions and reject unknown/exhausted operations before transport."
     - id: AC-REFRESH
