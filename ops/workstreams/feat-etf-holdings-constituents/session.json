@@ -42,10 +42,11 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "current_blocker_latest": "The coordinator's chart-template repair was merged into staging tip82d881e76be8de538abb6ec5c454d96afe0ee56a; exact CI38805309009 is in progress. Prior staging CI38773602828 had one visual flake that passed on retry and is not accepted as clean no-flake evidence. Provider source1afb89658d1d84e801069e1f19d7ee4f985c7e1e CI38804214507 is in progress, with no accepted Provider product checkpoint or released staging baseline. The coordinator has authority to technically close validated repairs without per-fix human signoff. ETF's consumer contract and independent tests are in shared-cost-admission.md. Current ETF exact-head CI38805354206 is in progress; app/test source is unchanged since the locally and hosted-validated code boundary8e84e7a. Coordinator separately reports full260 no-retry visual replay active with secure-localhost/DejaVu fixture and one readiness race still under review; focused screenshot evidence passed but is not terminal acceptance. No duplicate local visual replay, staging repair, feature import or staging merge; no competing heavy gate. Actual shared identity/entitlement/quota/aggregate-cost/health bridge and combined-runtime tests remain open.",
+  "current_blocker_latest": "The coordinator's chart-template repair was merged into staging tip82d881e76be8de538abb6ec5c454d96afe0ee56a; exact CI38805309009 is in progress. Prior staging CI38773602828 had one visual flake that passed on retry and is not accepted as clean no-flake evidence. Provider source1afb89658d1d84e801069e1f19d7ee4f985c7e1e CI38804214507 is in progress, with no accepted Provider product checkpoint or released staging baseline. The coordinator has authority to technically close validated repairs without per-fix human signoff. ETF's consumer contract and independent tests are in shared-cost-admission.md. Current ETF exact-head CI38805354206 is in progress; app/test source is unchanged since the locally and hosted-validated code boundary8e84e7a. Coordinator separately reports full260 no-retry visual replay active with secure-localhost/DejaVu fixture and one readiness race still under review; focused screenshot evidence passed but is not terminal acceptance. The ETF transport inventory and per-attempt no-transport test implications are recorded in integration-checkpoint.md. Default-sandbox Docker status denied socket access, but escalated read-only docker info succeeded with server29.1.3, so daemon outage is not established and full gate access may use approved escalation. No duplicate local visual replay, staging repair, feature import or staging merge; no competing heavy gate. Actual shared identity/entitlement/quota/aggregate-cost/health bridge and combined-runtime tests remain open.",
   "dirty_paths": [
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
     "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
   ],
@@ -84,11 +85,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "ecf92e234310eddeda023ec29f17d1ce7d6c4be9",
+  "head": "8e7e17b3e5744c39f65fdbde915c0a20b295eb4e",
   "implementation_sha": "b01f59bf156e7a43efe3d9a7897a648ca97f0b16",
-  "last_checkpoint": "2026-10-15T20:54:25Z",
+  "last_checkpoint": "2026-10-15T21:04:16Z",
   "last_human_progress_update": "2026-10-06T18:53:15.533458+00:00",
-  "latest_checkpoint": "Last application/test code boundary8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85 passed the unchanged local full profile:1938 backend tests,81.24% coverage vs75% floor;948 frontend;154 functional (106 declared skips);104 visual;zero browser flakes;actual exit0 after scoped cleanup. Exact source CI38788420409 is green; operational checkpoint6e2c984 CI38802019316 is green; current docs-only ETF tip ecf92e234310eddeda023ec29f17d1ce7d6c4be9 exact CI38805354206 is in progress. The isolated visual readiness change is test-only in tc2000_visual.spec.ts at source commitb01f59bf;12 comparisons across4 projects x3 repetitions passed with retries0, and the later full local visual suite passed104/104. Coordinator reports its separate secure-localhost/read-only-DejaVu focused F8s and two unmodified1080p screenshot checks3/3 in49.3s, with populated RSP desktop/narrow ordinary actions,923 unit tests and build passing. Its full260 no-retry replay remains active with one readiness race under review; these coordinator-reported focused results are not terminal acceptance. Only ETF-owned workstream records are changed locally; no duplicate visual replay, pointer repair, product tests or full gate started. Current staging and Provider runs remain in progress with no product baseline released; coordinator may close validated technical fixes without per-fix human signoff.",
+  "latest_checkpoint": "Last application/test code boundary8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85 passed the unchanged local full profile:1938 backend tests,81.24% coverage vs75% floor;948 frontend;154 functional (106 declared skips);104 visual;zero browser flakes;actual exit0 after scoped cleanup. Exact source CI38788420409 is green; operational checkpoint6e2c984 CI38802019316 is green; current published code-free ETF tip ecf92e234310eddeda023ec29f17d1ce7d6c4be9 exact CI38805354206 is in progress. The isolated visual readiness change is test-only in tc2000_visual.spec.ts at source commitb01f59bf;12 comparisons across4 projects x3 repetitions passed with retries0, and the later full local visual suite passed104/104. Coordinator reports its separate secure-localhost/read-only-DejaVu focused F8s and two unmodified1080p screenshot checks3/3 in49.3s, with populated RSP desktop/narrow ordinary actions,923 unit tests and build passing. Its full260 no-retry replay remains active with one readiness race under review; these coordinator-reported focused results are not terminal acceptance. Read-only current-source transport inventory at8e84e7a is recorded in integration-checkpoint.md:339 explicit AsyncClient contexts in adapters,462 adapter client.get and22 client.post expressions, requests fallbacks/direct calls and one curl subprocess, plus direct refresh/EDGAR clients. This is preparation only; no shared API guessed and no source/tests changed. Current staging/Provider runs remain in progress with no product baseline released; coordinator may close validated technical fixes without per-fix human signoff.",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Await coordinator audit of staging CI38805309009 and Provider CI38804214507/checkpoint, requiring clean no-flake exhaustive/Playwright evidence, aggregate recurring-cost admission under the approved20 EUR/USD-equivalent monthly ceiling or a tested non-bypassable free-only boundary, and explicit green-baseline release. Coordinator can close validated technical repairs without per-fix human signoff. Until release, update only ETF-owned evidence; do not import Provider or merge staging. After release reconcile the actual producer contract, implement ETF shared-runtime bridge and independent consumer tests, then run the required full profile and exact-source CI. Preserve the full roadmap; no sibling edits, deployment, paid activation, trial or scope reduction.",
   "plan_hash": "b67dc0e45547a515be81a9859fd69478438025844ffb989c6a1144ba5829505f",
@@ -108,14 +109,14 @@
       "EICP1"
     ],
     "total": 7,
-    "current_phase": "coordinator_staging_repair_audit_and_provider_checkpoint_pending",
-    "current_blocker": "Staging82d881e76be8de538abb6ec5c454d96afe0ee56a CI38805309009 and Provider1afb89658d1d84e801069e1f19d7ee4f985c7e1e CI38804214507 are both in progress; no accepted Provider product checkpoint/released staging baseline. Earlier run38773602828 had one visual flake that passed on retry and is not clean no-flake evidence. Coordinator may close validated repairs without per-fix signoff. ETF current docs-only exact-head CI38805354206 is in progress; source code remains at validated boundary8e84e7a. No imports, merges, or competing heavy gates before coordinator release.",
-    "next_action": "Await coordinator audit/release of green no-flake staging plus Provider checkpoint and approved aggregate-cost boundary; then reconcile actual producer contract and implement/test ETF shared-runtime consumption. Preserve all original criteria and branch boundaries.",
-    "updated_at": "2026-10-15T20:59:22Z"
+    "current_phase": "transport_surface_mapped_waiting_for_released_provider_staging",
+    "current_blocker": "Staging82d881e76be8de538abb6ec5c454d96afe0ee56a CI38805309009 and Provider1afb89658d1d84e801069e1f19d7ee4f985c7e1e CI38804214507 remain in progress; no accepted Provider product checkpoint/released staging baseline. Earlier run38773602828 had one visual flake that passed on retry and is not clean no-flake evidence. Coordinator may close validated repairs without per-fix signoff. Its independent full260 no-retry visual replay is reported active with one readiness race under review; no duplicate run started here. ETF current docs-only exact-head CI38805354206 is in progress; source code remains at validated boundary8e84e7a. Source-derived ETF transport inventory is recorded in integration-checkpoint.md. No imports, merges or competing heavy gates before coordinator release.",
+    "next_action": "Await coordinator audit/release of green no-flake staging plus Provider checkpoint and approved aggregate-cost boundary; then reconcile actual producer contract and implement/test ETF shared-runtime consumption. Preserve all original criteria and branch boundaries. Do not duplicate the active coordinator visual replay.",
+    "updated_at": "2026-10-15T21:04:16Z"
   },
   "remote": "ecf92e234310eddeda023ec29f17d1ce7d6c4be9",
   "remote_sha": "ecf92e234310eddeda023ec29f17d1ce7d6c4be9",
-  "remote_synchronized": true,
+  "remote_synchronized": false,
   "schema": 2,
   "session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
   "state": "in_progress",
@@ -310,13 +311,14 @@
     }
   },
   "active_changeset": {
-    "name": "current coordinator and branch checkpoint evidence",
-    "state": "coordinator_checkpoint_evidence_updated_waiting_for_provider_release",
-    "baseline": "ecf92e234310eddeda023ec29f17d1ce7d6c4be9",
-    "intent": "Reconcile exact current coordinator, staging, Provider and ETF CI evidence in ETF-owned workstream records; preserve validated code boundary and wait for released green Provider staging.",
+    "name": "ETF shared-runtime transport surface inventory",
+    "state": "transport_inventory_recorded_pending_commit_and_green_provider_contract",
+    "baseline": "8e7e17b3e5744c39f65fdbde915c0a20b295eb4e",
+    "intent": "Derive the eventual ETF shared admission/test surface from current source without guessing the Provider API or creating an ETF governance ledger; update ETF-owned checkpoint records and wait for a coordinator-released green producer contract.",
     "owned_paths": [
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+      "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ]

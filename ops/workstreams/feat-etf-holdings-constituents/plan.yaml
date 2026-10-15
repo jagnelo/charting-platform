@@ -288,7 +288,7 @@ progress:
   completed:
     - EICP1
   total: 7
-current_phase: coordinator_staging_repair_audit_and_provider_checkpoint_pending
+current_phase: transport_surface_mapped_waiting_for_released_provider_staging
 current_blocker: >-
   The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74).
   Workflow commit 5267f11a491795d85ee35b56cabbe550394f3823 was followed by the
@@ -302,6 +302,15 @@ current_blocker: >-
   shared-cost-admission.md. No feature import or staging merge before
   coordinator release; do not start competing heavy gates. Shared identity,
   entitlement, quota, aggregate-cost and health integration remain open.
+  The ETF source-derived outbound transport inventory and corresponding
+  per-attempt no-transport test requirement are now recorded in
+  integration-checkpoint.md. The coordinator's independent 260-case no-retry
+  chart replay is reported active with one readiness race under review; its
+  focused fixture passes are not terminal acceptance, and ETF has not started a
+  duplicate browser run. Default sandbox Docker status probing returned a
+  socket permission denial; a separately approved read-only Docker info check
+  succeeded at server29.1.3, so this is an execution-permission distinction,
+  not evidence that the host daemon is down. No local full gate was started.
 
 remaining_gaps:
   - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the documented native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, TrimTabs/Abacus FCF, Anydrus/NDOW, M.D. Sass/SASS, Amplius/AAAA, Argent/AMID-ABIG-ALIL, VistaShares/RTOO-AIS-AMMO-QUSA-OMAH-ACKY-DRKY, Baillie Gifford/BGGG-BGIA-BGEG-BGUS, and Arin/ATTR, current code and provider-universe documentation report 496/422/74 and future counts must remain derived."
@@ -1290,7 +1299,9 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Await coordinator audit of current staging CI38805309009 and Provider
+  Preserve the source-derived transport inventory and current no-retry visual
+  evidence without duplicating the coordinator's active full replay. Await
+  coordinator audit of current staging CI38805309009 and Provider
   checkpoint/CI38804214507, including a clean no-flake exhaustive/Playwright
   result, accepted aggregate subscription-cost admission under the approved
   20 EUR/USD-equivalent monthly ceiling (or tested non-bypassable free-only

@@ -59,6 +59,28 @@ token bucket, entitlement table, recurring-budget ledger, health scheduler, or
 quota coordinator. The following wiring is required once Provider is present
 in synchronized green staging; it is not implemented by this preparation note.
 
+### Current outbound transport inventory
+
+Read-only source scan at validated application/test code SHA
+`8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85` confirms that the eventual shared
+admission bridge cannot be verified at only the top-level refresh function:
+
+| ETF source | Literal source inventory | Integration implication |
+| --- | --- | --- |
+| `backend/app/services/etf_holdings_adapters.py` | 339 `async with httpx.AsyncClient` constructions; 462 `client.get` and 22 `client.post` expressions; 88 callable `requests.get` references, eight direct `requests.get(...)` expressions and three `requests.post` references; one `subprocess.run` curl transport path. | Issuer adapters independently open clients; some use multi-request product-page/token/data flows, pagination, retry, or HTTP-client fallbacks. Intercepting only the adapter result or one outer fetch cannot prove each outbound attempt was admitted or settled. Preserve exact publisher/product identity through each request. |
+| `backend/app/services/etf_holdings_refresh.py` | Three direct async-client GET flows: issuer-feed discovery, SEC fund-ticker discovery, and single-profile SEC identifier enrichment. | Discovery/enrichment traffic is distinct from holdings refresh and must not become an ungoverned path. Decide explicitly which operations are required and how their actual costs/quota are represented. |
+| `backend/app/services/etf_holdings_edgar.py` | Two async-client contexts and three `client.get` expressions across SEC submission/archive discovery and filing-document ingestion. | SEC reconstruction is an outbound fallback/backfill path, not proof of issuer-current support; it still requires the agreed shared admission/no-bypass behavior when invoked. |
+
+These are lexical counts, not request totals or a claim that every listed call is
+reachable for every route. Redirects can add network attempts inside a client,
+and `requests`/curl fallbacks are additional transports. The final integration
+must derive a reviewed, executable route-to-operation inventory from the
+accepted Provider API, then add transport-level tests that count every actual
+request and prove denied next attempts never leave the process. Unknown cost,
+quota, async invocation semantics, or admission identifiers remain unresolved;
+this inventory does not invent them. It is a current-source preparation result,
+not shared-runtime acceptance.
+
 1. Merge only the centrally released green staging SHA into the clean unfrozen
    ETF source. Record starting source/staging hashes, exact staging CI, source
    freeze/release state and conflict decisions. Do not import Provider directly.

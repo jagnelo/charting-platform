@@ -95,10 +95,15 @@ as `b01f59bf156e7a43efe9d3a7897a648ca97f0b16`. It waits for the existing shell
 readiness before Study navigation and then requires a rendered adjacent chart,
 no chart gap state, and the settled refresh label before taking the existing
 sandbox-error screenshot. No screenshot, threshold, or assertion was weakened
-or changed. The isolated replay passed all12 comparisons (four display
-projects x three repetitions, retries disabled); the unchanged ETF full local
-profile later passed all104 visual comparisons with zero flakes and actual
-normal-gate exit0 at code boundary `8e84e7a`.
+or changed. The source diff is limited to this one test: it replaces two shell
+visibility checks with `waitForShellReady(page)` and adds positive `.uplot`
+visibility plus zero `.tool-state` assertions before the unchanged screenshot
+at the existing `0.5%` pixel threshold. The isolated replay passed all 12
+comparisons (four display projects x three repetitions, retries disabled); the
+unchanged ETF full local profile later passed all 104 visual comparisons with
+zero flakes and actual normal-gate exit 0 at code boundary
+`8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85`; exact-source CI run
+`38788420409` also passed for that validated code boundary.
 
 The coordinator reports an additional, independent fixture replay: raw Noble
 lacked DejaVu and host Chromium encountered `ERR_NETWORK_CHANGED`; using its
@@ -132,6 +137,25 @@ combined runtime. Before that release, no feature-to-feature import or staging
 merge can establish the real contract. The coordinator can close the already
 validated technical repairs without asking for separate human signoff; the
 ETF integration checkpoint itself remains pending.
+
+Current ETF source review at validated code SHA
+`8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85` also mapped the outbound transport
+surface in `integration-checkpoint.md`: 339 explicit `httpx.AsyncClient`
+contexts, 462 adapter `client.get` and22 `client.post` expressions, sync
+`requests` fallbacks/direct calls, one curl subprocess, three ETF refresh
+discovery/enrichment clients, and SEC/EDGAR submission/archive/document clients.
+The counts are lexical inventories, not live request totals. They make the
+remaining test requirement concrete: after the accepted Provider contract is
+available, exercise every reachable transport branch with an intercepted
+request counter and prove denial stops the next request before it leaves the
+process. No generic wrapper, guessed API, provider cost, or ETF-only ledger was
+introduced while the producer contract and green staging release remain open.
+The UV-managed session status probe reported Docker socket permission denied in
+the default sandbox, but an approved read-only `docker info` check reached the
+daemon and returned server version29.1.3. The host daemon is therefore not
+shown down; any later local full-stack gate must use an approved Docker-access
+route. No local browser/full gate was started while the coordinator's no-retry
+260-case replay remains active.
 
 ### Central reconciliation contract response — 2026-10-15
 
