@@ -860,8 +860,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(failedRun) })
     })
     await page.goto('/chart')
-    await expect(page.locator('.workstation')).toBeVisible()
-    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+    await waitForShellReady(page)
     await page.getByRole('button', { name: 'Study', exact: true }).click()
     const study = page.locator('.study-lab-tool')
     await expect(study).toBeVisible({ timeout: 10_000 })
@@ -880,6 +879,11 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await warnings.locator('summary').click()
     await expect(warnings).toContainText('run was terminated')
     await expect(study).toContainText('Rerun snapshot')
+    // Study navigation mounts a new adjacent chart. The shell's Refresh label
+    // alone can settle before that chart's OHLCV request and first render.
+    // Require positive rendered content as well as absence of its gap state.
+    await expect(page.locator('.chart-tool .uplot')).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('.chart-tool .tool-state')).toHaveCount(0, { timeout: 15_000 })
     await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 15_000 })
     await expect(page.getByRole('region', { name: 'Study Lab research results' })).toContainText('No persisted studies yet.')
     await expect(page).toHaveScreenshot('study-lab-sandbox-error-gap.png', {
