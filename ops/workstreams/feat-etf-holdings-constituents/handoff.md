@@ -118,6 +118,25 @@ report identifies the case, attempts and result; do not infer a green result
 from these focused screenshots or the job badge. No duplicate visual run was
 started here while that replay is active.
 
+### Tier-0 issuer-page freshness check — 2026-10-15
+
+An official-page-only review refreshed the visible-source evidence for the
+high-relevance WisdomTree symbols DXJ and NTSX. Both issuer pages now report
+portfolio data as of October 14, 2026. The visible tables still show only ten
+named holdings plus `Remaining Portfolio` (69.83% for DXJ and 58.51% for NTSX),
+so neither page's initial table establishes a complete constituent artifact.
+The pages expose a `View all holdings` control, but this text review did not
+resolve its destination or verify a downloadable complete file. Keep both
+symbols degraded; this is not a native-route pass and does not refresh the
+older bounded adapter response. No issuer API or adapter request was made.
+
+Sources: [WisdomTree DXJ page](https://www.wisdomtree.com/us/products/equity/dxj)
+and [WisdomTree NTSX page](https://www.wisdomtree.com/us/products/capital-efficient/ntsx).
+NTSX's issuer description also states that the portfolio includes U.S. equity
+securities and U.S. Treasury futures; retain the mixed asset identity question
+for the shared constituent bridge rather than resolving every ticker as
+equity.
+
 The separate staging repair is published as pointer-geometry commit
 `8b4e6853`; its test-only MarketMap refresh-synchronization follow-up
 `543a7817` is clean/pushed and its current CI is `38785967367`. Those are
