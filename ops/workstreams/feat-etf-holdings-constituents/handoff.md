@@ -7,44 +7,93 @@ Read this section and the latest dated entries before interpreting the older
 blockers. Work only in this branch's assigned worktree, preserving writer
 claim `bb0f68af-76ab-45c0-83f1-52d805be699f` and the existing active goal.
 
-The independent issuer and browser fixes are published. Last clean source
+The independent issuer and browser fixes are published. Last validated code
 boundary: `8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85`. Exact-source hosted
 [CI38788420409](https://github.com/jagnelo/charting-platform/actions/runs/38788420409)
-is green. All actual local test stages also passed:1938 backend,948 frontend,
+is green. The unchanged normal local full gate passed:1938 backend,948 frontend,
 154 functional and104 visual, with zero browser retries/flakes after the fixes.
 The complete104-pass report is retained in
 `.ai/validation/etf-final-visual-report-20261015.zip`; no screenshot baseline
 or tolerance was changed. Do not resurrect the older three-image failure.
 
-The normal full gate has completed with actual exit zero after scoped
+The normal full gate completed with actual exit zero after scoped
 cleanup: `ETF_DURABLE_GATE_EXIT=0` in
 `.ai/validation/etf-durable-final-profile-20261015.log`. All1938 backend,
 948 frontend,154 functional and104 visual tests pass with zero browser
 flakes; coverage81.24% exceeds the unchanged75% floor. Four ETF images were
 removed; no retained volumes or host-wide prune. The earlier tool-owned
 SIGTERM is historical, not an accepted passing exit. Do not rerun a completed
-gate or poll its dead process. Publish these four records and externally
+gate or poll its dead process. Publish these branch-owned evidence records and externally
 verify the enclosing operational commit/CI as described below.
 
-The feature/checkpoint is not complete or integration-authorized. The central
-reconciliation confirms staging workflow commit
-`98f0b888817c461fa00e6e310c5b378b0c4c512f` is published while exhaustive and
-Playwright CI runs; no Provider product baseline is released. Provider has
-been asked to close the shared aggregate subscription-cost admission gap or
-prove a tested free-only checkpoint boundary. Exact ETF allow/deny semantics,
-zero-transport behavior and remaining producer/consumer test ownership are
-recorded in `shared-cost-admission.md`. Actual Provider identity, entitlement,
-quota, monthly-budget and health reconciliation still requires its accepted
-green staging release. The original goal and all
-fourteen criteria remain in `plan.yaml`; the concrete interfaces and acceptance
-matrix are in `integration-checkpoint.md` and `shared-cost-admission.md`.
-Registry496/422/74 and15 Tier-0/156 Tier-1 outcomes remain accounted for.
-Native handler counts are not current-usability guarantees. The27 CI live
-skips remain unverified there; ten native cases passed unchanged on this host,
-and DFTT remains explicitly unavailable rather than accepting another fund.
-Do not activate paid sources, a deployment or the later observation trial.
+The complete current coordinator and branch evidence is recorded below. The
+feature/checkpoint remains incomplete and has no integration authorization.
+The original goal, all fourteen criteria, 496/422/74 inventory and 15 Tier-0 /
+156 Tier-1 dispositions remain preserved. The27 hosted live skips remain
+unverified; ten host replays do not convert them into CI passes, and DFTT stays
+unavailable. Paid activation, deployment and the later observation trial remain
+outside this checkpoint.
 
-## Historical evidence and dated implementation entries
+## Current coordination status and historical evidence
+
+### Current coordinator report and exact branch evidence — 2026-10-15
+
+The coordinator's current published report is
+`.ai/staging-attempts/four-feature-coordination-2026-10-15.json`; it was
+refreshed at20:51:57Z. Its paired
+`docs/feature-integration-reconciliation.md` and
+`docs/feature-integration-coordination.md` record the human's authority for the
+coordinator to review and close technically validated repairs without asking
+for per-fix human signoff. The coordinator owns technical closure and the
+guarded staging integration. This authority does not accept an unfinished
+feature checkpoint or waive its tests, cost ceiling, data retention, or other
+product requirements.
+
+Before this evidence update, the ETF branch tip was clean and synchronized at
+`ecf92e234310eddeda023ec29f17d1ce7d6c4be9`. Its diff from the validated code
+boundary `8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85` contains only five
+ETF-owned workstream documentation/receipt files; application and test source
+are unchanged. The full local profile on8e84e7a passed1938 backend tests
+(81.24% coverage against the unchanged75% floor),948 frontend tests,154
+functional browser cases (106 declared skips), and104 visual comparisons, with
+zero browser flakes and normal scoped cleanup. Exact-source CI38788420409 is
+green. The prior operational receipt at6e2c984 has terminal green CI38802019316.
+Current exact-head CI38805354206 for ecf92e2 is in progress. No local product
+tests or full gate were started for the documentation follow-up; the durable
+workstream validator passed all30 records.
+
+The published workflow-only staging tip98f0b888 was followed by the
+coordinator's guarded chart-template repair merge. The actual remote staging
+tip is now `82d881e76be8de538abb6ec5c454d96afe0ee56a`, and CI38805309009 is
+in progress. Coordinator log review found that the earlier staging run on
+`5267f11a` (CI38773602828) had103 visual passes and one structured-result
+1080p/100% flake that passed on retry. The coordinator explicitly does not
+accept that retry as clean no-flake evidence. The new run on82d881e7 must
+finish and receive its own exhaustive/Playwright log audit. No Provider/ETF/
+TC2000/Strategy product checkpoint or combined baseline has been released.
+The chart-template repair source alone is frozen after delegated technical
+closure; ETF source is not frozen.
+
+Current published Provider source is
+`1afb89658d1d84e801069e1f19d7ee4f985c7e1e`; its exact-source CI38804214507 is
+in progress. The provider owner has not supplied an accepted product checkpoint
+or the shared aggregate subscription-cost contract. Provider's prior
+default-false paid-routing behavior is not a sufficient free-only boundary when
+another caller can enable paid routing. The producer must still deliver the
+shared aggregate admission under the approved20 EUR/USD-equivalent monthly
+ceiling, or prove a shared non-bypassable free-only checkpoint boundary. The
+ETF-side contract and outstanding independent producer/consumer tests are
+specified in `shared-cost-admission.md`.
+
+The remaining ETF checkpoint work is therefore concrete: wait for the
+coordinator to audit green, no-flake staging and release the accepted Provider
+baseline; then merge only that released staging SHA into this clean, unfrozen
+ETF branch, implement the actual shared identity/entitlement/quota/cost/health
+bridge and `ETF_HOLDINGS` migration, and run its consumer tests against the
+combined runtime. Before that release, no feature-to-feature import or staging
+merge can establish the real contract. The coordinator can close the already
+validated technical repairs without asking for separate human signoff; the
+ETF integration checkpoint itself remains pending.
 
 ### Central reconciliation contract response — 2026-10-15
 

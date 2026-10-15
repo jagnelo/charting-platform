@@ -288,18 +288,20 @@ progress:
   completed:
     - EICP1
   total: 7
-current_phase: shared_cost_contract_recorded_provider_release_pending
+current_phase: coordinator_staging_repair_audit_and_provider_checkpoint_pending
 current_blocker: >-
   The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74).
-  Central reconciliation identifies staging workflow commit
-  98f0b888817c461fa00e6e310c5b378b0c4c512f; its exhaustive/Playwright CI was
-  still running and no Provider product baseline is released. Provider has
-  been asked to resolve shared aggregate subscription-cost admission or prove
-  a tested free-only checkpoint boundary. ETF's exact consumer contract and
-  independent tests are recorded in shared-cost-admission.md. No feature
-  import, staging merge, or competing local full gate is appropriate before
-  coordinator release. Prior ETF source gates remain green; shared identity,
-  entitlement, quota, budget and health integration remain unimplemented.
+  Workflow commit 5267f11a491795d85ee35b56cabbe550394f3823 was followed by the
+  coordinator's chart-template repair merge. Current staging is
+  82d881e76be8de538abb6ec5c454d96afe0ee56a and CI38805309009 is in progress.
+  Earlier CI38773602828 had one visual flake that passed on retry and is not
+  accepted as clean. Provider source 1afb89658d1d84e801069e1f19d7ee4f985c7e1e
+  CI38804214507 is also in progress; no product checkpoint or baseline is
+  released. The coordinator may technically close validated repairs without
+  per-fix human signoff. ETF's consumer contract and independent tests are in
+  shared-cost-admission.md. No feature import or staging merge before
+  coordinator release; do not start competing heavy gates. Shared identity,
+  entitlement, quota, aggregate-cost and health integration remain open.
 
 remaining_gaps:
   - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the documented native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, TrimTabs/Abacus FCF, Anydrus/NDOW, M.D. Sass/SASS, Amplius/AAAA, Argent/AMID-ABIG-ALIL, VistaShares/RTOO-AIS-AMMO-QUSA-OMAH-ACKY-DRKY, Baillie Gifford/BGGG-BGIA-BGEG-BGUS, and Arin/ATTR, current code and provider-universe documentation report 496/422/74 and future counts must remain derived."
@@ -1288,11 +1290,14 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Await coordinator confirmation that Provider has delivered and staging has
-  released the real aggregate-cost contract or its tested, non-bypassable
-  free-only checkpoint, with staging CI green. Until then preserve this branch's
-  clean source boundary and do not import Provider or merge staging. After
-  release, reconcile the actual producer API, implement ETF consumer contract
-  tests and the shared runtime bridge here, then run the required full profile
-  and exact-source CI. Preserve original criteria, monthly ceiling and
-  observation gate; no sibling edits, deployment, paid activation or trial.
+  Await coordinator audit of current staging CI38805309009 and Provider
+  checkpoint/CI38804214507, including a clean no-flake exhaustive/Playwright
+  result, accepted aggregate subscription-cost admission under the approved
+  20 EUR/USD-equivalent monthly ceiling (or tested non-bypassable free-only
+  boundary), and explicit green-baseline release. Validated repairs may be
+  technically closed by the coordinator without per-fix human signoff. Until
+  release, update only branch-owned evidence; do not import Provider or merge
+  staging. After release reconcile the actual producer contract, implement ETF
+  shared-runtime consumer tests here, then run the required full profile and
+  exact-source CI. Preserve full roadmap and observation gate; no sibling edits,
+  deployment, paid activation, trial, or scope reduction.
