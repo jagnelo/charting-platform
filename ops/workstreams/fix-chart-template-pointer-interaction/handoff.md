@@ -9,7 +9,45 @@ Created from `staging` at `5267f11a491795d85ee35b56cabbe550394f3823`.
 - Closure record: pending validation; human already delegated technical closure for this narrow repair. Deployment remains unauthorized.
 - Planning state: ready; PTR1-PTR5 and full_stack_browser retain all required validation. Delegated technical closure will be recorded after validation; deployment remains unauthorized.
 
-## Active changeset: pointer-toolbar-geometry
+## Active changeset: pointer-validation-harness-reconciliation
+
+Context boundary: clean matching HEAD/origin
+`8b4e68538f2e0cc476434e0767b97f6d1954e808`; diff-check passed. The geometry
+changeset owns WorkstationToolContent.vue and this workstream, was reviewed,
+committed and pushed, with 923 units, build and focused application checks
+passing. It is published, not integration-ready: full regression below is red.
+Next permitted action is the required regression-test synchronization repair,
+not another product feature. This context owns frontend/tests/e2e/flows.spec.ts
+and this workstream; all application source stays fixed.
+
+Full pinned run84402 completed its functional portion with one observed failure,
+F8s-market-map-watchlist at flows.spec.ts:3500: the ordinary Study Lab handoff
+button became invisible/detached. Evidence is copied intact to
+`/tmp/chart-pointer-repair-evidence-20261015/market-map-full-run-failure`.
+The screenshot has no comparison; the new conditional geometry is inactive.
+TC's existing durable history describes the same detached-button failure and
+refresh-completion synchronization repair at product157f41c. Read-only review
+of its current test confirms request-count, terminal-refresh and selected-state
+assertions before publication. Port only that synchronization idea using this
+baseline's existing roles/classes; do not import TC product/UI/role changes.
+Retain all original source-lineage, explicit-ID, browser diagnostics and
+ordinary-click assertions. No increased timeout, forced action, skip or oracle
+change is allowed. The current worker has advanced to the unchanged
+tc2000_visual.spec.ts matrix; changing the finished functional spec does not
+change that active module or the served application. Original run remains red;
+after visual completion replay the focused case and complete final functional
+suite on the new committed source before closure.
+
+Synthetic long-label stress also passed ordinary controls at desktop/390px with
+two long labels, extreme percentage strings and Plots12345. Fixture/evidence:
+`/tmp/chart-pointer-diagnostic/stress.html` and its output/playwright directory.
+This supplements, not replaces, real application evidence; no market data was
+fabricated in the application. Own stress browser/server15993 closed. Own6.174GB
+generated builder cache was removed after builds; own seeded stack is retained
+only until this validation concludes. Original TC6services/4volumes were
+independently enumerated and remain intact.
+
+## Published changeset: pointer-toolbar-geometry
 
 Boundary verified clean and synchronized at `58075cefa5b90338f3ca95d78151ca7761a47751`.
 This context owns WorkstationToolContent.vue and this workstream. Implement

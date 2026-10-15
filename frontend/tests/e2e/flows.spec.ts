@@ -3494,9 +3494,18 @@ test.describe('TC2000 workstation', () => {
     const studyMapWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.market-map-tool') }).last()
     await expect(studyMapWindow).toBeVisible({ timeout: 15_000 })
     await studyMapWindow.getByRole('combobox', { name: 'Market Map universe' }).selectOption('watchlist:7')
-    await studyMapWindow.getByRole('button', { name: 'Refresh', exact: true }).click()
+    // Existing tiles can belong to the preceding refresh. Wait for this
+    // request and terminal render before selecting a member for publication;
+    // a late refresh otherwise replaces the selected tile/action mid-click.
+    const watchlistRequestCount = requestedSources.length
+    const studyMapRefresh = studyMapWindow.getByRole('button', { name: 'Refresh', exact: true })
+    await studyMapRefresh.click()
+    await expect.poll(() => requestedSources.length, { timeout: 15_000 }).toBeGreaterThan(watchlistRequestCount)
+    await expect(studyMapRefresh).toBeEnabled()
+    await expect(studyMapWindow.locator('.market-map-tool')).toHaveAttribute('aria-busy', 'false')
     await expect(studyMapWindow.locator('.market-map-tool__tile')).toHaveCount(2)
     await studyMapWindow.locator('.market-map-tool__tile').first().click()
+    await expect(studyMapWindow.locator('.market-map-tool__tile').first()).toHaveClass(/market-map-tool__tile--selected/)
     await studyMapWindow.getByRole('button', { name: 'Open selected members in Study Lab' }).click()
     const studyLab = page.locator('.study-lab-tool:visible').last()
     await expect(studyLab).toBeVisible({ timeout: 15_000 })
