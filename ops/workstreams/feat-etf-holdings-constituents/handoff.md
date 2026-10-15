@@ -10359,3 +10359,47 @@ The healthy ETF-only seeded stack is retained for the separate visual-readiness
 repair. Next action after clean synchronized receipt verification: open that
 isolated context, add real chart readiness, replay all four configurations
 without retries, then run the unchanged final full gate and source CI.
+
+### Active context: sandbox visual chart-readiness race
+
+Popup source `086950cc` and receipt
+`a98b11b2033c509041873e64606ab78a039894fd` are committed/pushed. The new-context
+boundary is clean, diff-check passes, and HEAD/origin match that receipt.
+This context owns only `frontend/tests/e2e/tc2000_visual.spec.ts` and the four
+workstream records. Restore the missing existing shell-readiness helper before
+Study navigation, then require the adjacent chart's positive rendered state
+and no loading/error state before the sandbox screenshot. Keep its actual
+sandbox diagnostics, empty results panel, original PNGs and 0.5% oracle intact.
+The existing healthy ETF-only stack is available; no other browser is running
+against this account/database. First verify all four projects three times
+with retries disabled, then publish this isolated source and receipt and run
+the final unchanged full profile and exact-source hosted CI.
+
+The visual fix is applied only in the sandbox-error case: it now calls the
+existing shell-readiness helper before Study navigation and positively waits
+for `.chart-tool .uplot` plus no chart gap state before the existing final
+shell/results checks and screenshot. The twelve focused comparisons (four
+projects, three repetitions, retries0) are running as process78968; log
+`.ai/validation/etf-sandbox-visual-focused-20261015.log`, separate artifacts
+under `.ai/validation/etf-sandbox-visual-focused-results-20261015/`.
+The visual-policy validator still reports 26 assertions and the unchanged
+0.5%/1px/DeltaE2000 2 thresholds. Its first Make wrapper observation hit the
+sandbox's read-only shared allocation lock while the direct policy check
+passed; the exact normal target then passed through the approved host boundary.
+Workstream validation passes 30 records. No policy or allocation edit was made.
+
+Visual readiness context closure: all twelve focused comparisons passed with
+retries0 in 1.7 minutes, covering all four display configurations three times.
+Source-only commit `b01f59bf156e7a43efe3d9a7897a648ca97f0b16` is pushed and
+local/origin hashes match. Its staged review contained only the visual spec;
+no screenshot PNG or production source changed. This separate four-file
+operational receipt records that validated prior implementation hash; its
+enclosing receipt hash is externally verified. Both observed browser races
+now have twelve no-retry focused passes each, but the final complete profile
+and exact-source CI remain required. The clean-boundary next action is the
+normal `make validate-integration` with the recorded numerical thread bounds,
+all tests/real resource guards and coverage/visual thresholds unchanged.
+Use `.ai/validation/etf-final-browser-repairs-full-profile-20261015.log` and
+retain the exact process handle/source SHA. No further metadata push should
+cancel that useful source run until it is terminal. Shared Provider integration
+and the original monthly-budget/observation requirements remain open.

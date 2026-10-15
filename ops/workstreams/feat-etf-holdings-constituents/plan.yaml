@@ -286,7 +286,7 @@ progress:
   completed:
     - EICP1
   total: 7
-current_phase: popup_cleanup_published_visual_readiness_repair_next
+current_phase: browser_repairs_published_final_full_validation_pending
 current_blocker: >-
   The five failures from CI 38771431871 are repaired in the current source
   delta. Final bounded replay passes all five without skips; the full backend
@@ -306,9 +306,10 @@ current_blocker: >-
   exit. The separate visual run finished 103 passed and 1 recovered flaky;
   a sandbox screenshot captured the adjacent chart loading. Gate exit0 is
   not stable acceptance. The popup repair is published as 086950cc after
-  twelve focused passes with retries disabled. Close its operational receipt
-  before the separate visual-readiness repair. Focused visual verification
-  and final full-profile/source CI validation remain required.
+  twelve focused passes with retries disabled. Visual readiness is separately
+  published as b01f59bf after twelve comparisons across four display projects,
+  also with retries disabled and no baseline/tolerance changes. Final complete
+  full-profile and exact-source CI validation remain required.
   The shared cost contract is published as eac06ac4; it is preparation, not
   proof of shared-runtime admission or acceptance of a budget scope reduction.
   The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Provider
@@ -1308,12 +1309,12 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Verify the clean synchronized popup receipt, then open the isolated visual
-  readiness repair. The prior gate20560 exited0 but recovered two flakes;
-  popup cleanup now passes twelve repetitions with retries disabled and is
-  published as 086950cc. Add the missing shell/adjacent-chart readiness in
-  the sandbox screenshot test, verify all four display configurations without
-  retries, then run the unchanged final full profile and exact-source CI.
+  Verify the clean synchronized visual receipt, then run the unchanged final
+  full profile and exact-source CI for b01f59bf plus this operational receipt.
+  The prior gate20560 exited0 but recovered two flakes; popup cleanup086950cc
+  and visual readinessb01f59bf now each pass twelve no-retry focused cases.
+  Retain the final source SHA/process handle and log at
+  .ai/validation/etf-final-browser-repairs-full-profile-20261015.log.
   Preserve the CPU/wall timing evidence, all limits/thresholds and cleanup scope.
   After Provider reaches synchronized green
   staging and this source is unfrozen, merge staging here and implement/test

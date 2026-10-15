@@ -42,7 +42,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "current_blocker_latest": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). Four issuer repairs and popup cleanup are published; popup focused12 cases pass with retries0. A visual first-attempt capture saw the adjacent chart loading; missing readiness is diagnosed and remains a separate repair. Prior full profile exited0 with two recovered flakes, not stable final acceptance. Provider shared runtime awaits synchronized green staging.",
+  "current_blocker_latest": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). Four issuer repairs and both isolated browser fixes are published; each browser repair has12 no-retry focused passes. Final full local profile and exact-source CI remain pending. Shared identity/entitlement/quota/budget/health bridge still requires centrally released synchronized green Provider staging; no feature completion is claimed.",
   "dirty_paths": [
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
@@ -84,13 +84,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "086950cc90112b8cf2a786cb04e8471dd6bce9da",
-  "implementation_sha": "086950cc90112b8cf2a786cb04e8471dd6bce9da",
-  "last_checkpoint": "2026-10-15T18:41:32Z",
+  "head": "b01f59bf156e7a43efe3d9a7897a648ca97f0b16",
+  "implementation_sha": "b01f59bf156e7a43efe3d9a7897a648ca97f0b16",
+  "last_checkpoint": "2026-10-15T18:46:12Z",
   "last_human_progress_update": "2026-10-06T18:53:15.533458+00:00",
-  "latest_checkpoint": "Popup cleanup fix086950cc committed/pushed with matching local/origin after12 focused pinned-browser passes with retries disabled. Prior gate exited0 with two recovered flakes and is not stable final acceptance. Healthy seeded ETF stack retained for separate visual readiness repair. Enclosing operational receipt hash is verified externally. Original shared-runtime/observation requirements remain open.",
+  "latest_checkpoint": "Visual readiness b01f59bf committed/pushed with matching local/origin after12 no-retry screenshot comparisons across all4 display configurations. Popup086950cc also has12 no-retry focused passes. No production/baseline/tolerance change. Final complete local profile and exact-source hosted CI remain required; prior flakes are historical, not waived. Enclosing receipt hash verified externally. Provider shared-runtime integration remains open.",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "After clean synchronized receipt verification, open isolated sandbox visual-readiness repair, use existing shell helper plus positive adjacent-chart readiness, validate all4 configurations with retries0 and final unchanged full profile/exact-source CI. No baseline/tolerance change or shared-runtime completion claim.",
+  "next_action": "After clean synchronized receipt verification, run normal full validate-integration with existing numerical thread bounds and unchanged guards/thresholds; retain exact source/process/log. Monitor final published CI without cancelling it through metadata pushes. Fix actual failures; do not mark shared bridge or full roadmap complete.",
   "plan_hash": "b67dc0e45547a515be81a9859fd69478438025844ffb989c6a1144ba5829505f",
   "planning_required": false,
   "planning_state": "ready",
@@ -108,13 +108,13 @@
       "EICP1"
     ],
     "total": 7,
-    "current_phase": "popup_cleanup_published_visual_readiness_repair_next",
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). Four issuer repairs and popup cleanup are published; popup focused12 cases pass with retries0. A visual first-attempt capture saw the adjacent chart loading; missing readiness is diagnosed and remains a separate repair. Prior full profile exited0 with two recovered flakes, not stable final acceptance. Provider shared runtime awaits synchronized green staging.",
-    "next_action": "After clean synchronized receipt verification, open isolated sandbox visual-readiness repair, use existing shell helper plus positive adjacent-chart readiness, validate all4 configurations with retries0 and final unchanged full profile/exact-source CI. No baseline/tolerance change or shared-runtime completion claim.",
-    "updated_at": "2026-10-15T18:41:32Z"
+    "current_phase": "browser_repairs_published_final_full_validation_pending",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). Four issuer repairs and both isolated browser fixes are published; each browser repair has12 no-retry focused passes. Final full local profile and exact-source CI remain pending. Shared identity/entitlement/quota/budget/health bridge still requires centrally released synchronized green Provider staging; no feature completion is claimed.",
+    "next_action": "After clean synchronized receipt verification, run normal full validate-integration with existing numerical thread bounds and unchanged guards/thresholds; retain exact source/process/log. Monitor final published CI without cancelling it through metadata pushes. Fix actual failures; do not mark shared bridge or full roadmap complete.",
+    "updated_at": "2026-10-15T18:46:12Z"
   },
-  "remote": "086950cc90112b8cf2a786cb04e8471dd6bce9da",
-  "remote_sha": "086950cc90112b8cf2a786cb04e8471dd6bce9da",
+  "remote": "b01f59bf156e7a43efe3d9a7897a648ca97f0b16",
+  "remote_sha": "b01f59bf156e7a43efe3d9a7897a648ca97f0b16",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
@@ -257,7 +257,7 @@
     "dispositions_document": "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "preparation_baseline": "f2670b0bbde8bb680173d847a43734f7391745f7",
     "preparation_sha": "d1040b41b99b3ece8e25e777ef51a300393c7429",
-    "current_published_sha": "086950cc90112b8cf2a786cb04e8471dd6bce9da",
+    "current_published_sha": "b01f59bf156e7a43efe3d9a7897a648ca97f0b16",
     "current_published_ci": {
       "id": 38783637301,
       "source_sha": "bcfff382f1b64ac42455c375e6ff502590869f85",
@@ -299,20 +299,20 @@
     }
   },
   "active_changeset": {
-    "name": "linked-popout cleanup race",
+    "name": "sandbox visual chart-readiness race",
     "state": "source_committed_pushed_focused_pass_receipt_enclosing_commit_verified_externally",
-    "baseline": "bcfff382f1b64ac42455c375e6ff502590869f85",
-    "intent": "Use existing closePopupWhenOpen for observed cleanup click/close race, preserving propagation and critical diagnostics assertions and the full gate.",
+    "baseline": "a98b11b2033c509041873e64606ab78a039894fd",
+    "intent": "Use existing shell readiness and positive adjacent-chart rendered state before the sandbox screenshot; preserve all diagnostics, baselines and tolerances.",
     "owned_paths": [
-      "frontend/tests/e2e/flows.spec.ts",
+      "frontend/tests/e2e/tc2000_visual.spec.ts",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "evidence_directory": ".ai/validation/etf-popout-close-failure-20261015/",
-    "implementation_sha": "086950cc90112b8cf2a786cb04e8471dd6bce9da",
-    "focused_result": "12 passed,4 cases x3 repetitions,retries0,1.4 minutes"
+    "evidence_directory": ".ai/validation/etf-visual-loading-failure-20261015/",
+    "implementation_sha": "b01f59bf156e7a43efe3d9a7897a648ca97f0b16",
+    "focused_result": "12 passed,4 display projects x3 repetitions,retries0,1.7 minutes"
   },
   "local_profile_execution": {
     "source_sha": "ea7572ab63985c9bc520befb377001a44c3a4d5b",
@@ -352,6 +352,12 @@
     "status": "healthy_ETF_only_seeded_stack_retained_for_separate_visual_repair",
     "popup_process_handle": 66871,
     "popup_result": "12 passed with retries0 in1.4 minutes",
-    "popup_log": ".ai/validation/etf-popup-focused-20261015.log"
+    "popup_log": ".ai/validation/etf-popup-focused-20261015.log",
+    "visual": {
+      "process_handle": 78968,
+      "result": "12 passed,all4 display configurations x3,retries0,1.7 minutes",
+      "log": ".ai/validation/etf-sandbox-visual-focused-20261015.log",
+      "artifacts": ".ai/validation/etf-sandbox-visual-focused-results-20261015/"
+    }
   }
 }
