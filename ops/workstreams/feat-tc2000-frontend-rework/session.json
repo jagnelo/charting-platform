@@ -107,7 +107,7 @@
   "finished_at": null,
   "goal_budget_policy": "unbounded_unless_human_authorized",
   "goal_objective": "Advance feat/tc2000-frontend-rework: Prepare tc2000-workstation-integration-1: repair independent chart-template pointer interception and functional/visual blockers; consume synchronized green Provider+ETF staging, reconcile real consumer contracts, validate the combined workstation and publish a clean checkpoint for human review.. Acceptance criteria: TCP1: Diagnose and fix chart-template pointer interception with browser regression evidence and a coordinator-readable narrow repair proposal.; TCP2: Resolve required functional/visual failures without weakening reference policy; document missing reference evidence and proposed checkpoint limitations for human review.; TCP3: After Provider and ETF reach synchronized green staging, merge that staging into this clean unfrozen source and reconcile all shared paths and actual provider coverage/preflight and ETF lineage/freshness consumers.; TCP4: Validate usable combined workstation and immutable Study consumers, success and unavailable paths, with the required full integration/browser profile and exact-source branch CI.; TCP5: Publish a clean pushed checkpoint and complete roadmap dispositions at ready_for_human_review; retain pending human acceptance and coordinator-only staging integration/freeze release.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_recorded_at": "2026-10-15T17:04:32.805096+00:00",
+  "goal_recorded_at": "2026-10-15T19:33:30.794634+00:00",
   "goal_request": {
     "objective": "Advance feat/tc2000-frontend-rework: Prepare tc2000-workstation-integration-1: repair independent chart-template pointer interception and functional/visual blockers; consume synchronized green Provider+ETF staging, reconcile real consumer contracts, validate the combined workstation and publish a clean checkpoint for human review.. Acceptance criteria: TCP1: Diagnose and fix chart-template pointer interception with browser regression evidence and a coordinator-readable narrow repair proposal.; TCP2: Resolve required functional/visual failures without weakening reference policy; document missing reference evidence and proposed checkpoint limitations for human review.; TCP3: After Provider and ETF reach synchronized green staging, merge that staging into this clean unfrozen source and reconcile all shared paths and actual provider coverage/preflight and ETF lineage/freshness consumers.; TCP4: Validate usable combined workstation and immutable Study consumers, success and unavailable paths, with the required full integration/browser profile and exact-source branch CI.; TCP5: Publish a clean pushed checkpoint and complete roadmap dispositions at ready_for_human_review; retain pending human acceptance and coordinator-only staging integration/freeze release.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
@@ -115,7 +115,7 @@
   "goal_state": "active",
   "goal_unavailable_reason": null,
   "head": "de3a6210de7e3b9919b6762715f0962e50d92dee",
-  "implementation_sha": "de3a6210de7e3b9919b6762715f0962e50d92dee",
+  "implementation_sha": "3ed8a41e5e3d0b3415f99efa161f22c9b738157a",
   "integration_checkpoint": {
     "acceptance": "pending",
     "coordinator_guidance": "/home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md",
@@ -124,10 +124,10 @@
   },
   "interrupted": false,
   "last_checkpoint": "2026-10-15T19:07:50+00:00",
-  "last_human_progress_update": "2026-10-15T19:32:28.278694+00:00",
+  "last_human_progress_update": "2026-10-15T20:06:56.972432+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "7d8f17a730570a99bbb489cb3d6eae0e402a2193196aa6cbbd961fc01148a01f",
+  "plan_hash": "a4dfb74f6595ec5fdbf1b136262d1d5df015648d74cc36d87559f0bffaf8e242",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -139,11 +139,11 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "Exact-source CI 38789597760 on de3a6210 is terminal but overall failed: the stack-free Branch-declared Tests launched authenticated flows against absent localhost:28080 (187 setup ECONNREFUSED failures); backend, frontend-unit, and dedicated stack-backed E2E passed, with all four Help visual profiles passing on the hosted runner. The pinned-Noble fresh-fixture Help replay still fails the unchanged oracle and the V25 Help reference remains required_missing. TCP1 repair remains coordinator-owned; TCP3 still awaits synchronized green Provider+ETF staging; full TCP4 integration remains open.",
+    "current_blocker": "Exact-source CI 38794814317 on 3ed8a41e passed all applicable feature jobs: backend, frontend-unit, corrected branch-declared checks, and hosted stack-backed E2E; four Help visual profiles passed on that runner. The local pinned-Noble fresh-fixture Help replay still fails the unchanged 0.5% oracle, and the V25 Help image remains required_missing. TCP1 repair delivery remains coordinator-owned; TCP3 awaits synchronized green Provider+ETF staging; the separate TCP4 full integration gate remains open.",
     "current_phase": "TCP1_COORDINATOR_REPAIR_PENDING_AND_TCP2_CROSS_ENVIRONMENT_VISUAL_DIAGNOSIS",
-    "next_action": "The stack-free branch test plan is reconciled and its direct local runner passes. Validate the final workstream, commit the coherent run receipt and test-topology correction, then run guarded plan-ready and checkpoint synchronization and push the new exact source. Inspect the ensuing exact-SHA Actions job conclusions. Continue owned fresh-fixture/runtime diagnosis without changing snapshots or assigned data; keep TCP1, TCP3 and the separate TCP4 gate open.",
+    "next_action": "Record the green exact-source CI receipt and the remaining cross-environment visual uncertainty in the TC plan/handoff/session. Commit and push this coherent checkpoint, then inspect the new exact-SHA Actions run. Continue independent TC-owned runtime/visual diagnosis without altering screenshots, tolerances, masks, skips, or assigned data; keep TCP1, TCP3, and TCP4 open.",
     "total": 5,
-    "updated_at": "2026-10-15T19:32:28.278675+00:00"
+    "updated_at": "2026-10-15T20:06:56.972411+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
@@ -160,7 +160,7 @@
     "status": "pushed"
   },
   "remote": "de3a6210de7e3b9919b6762715f0962e50d92dee",
-  "remote_sha": "de3a6210de7e3b9919b6762715f0962e50d92dee",
+  "remote_sha": "3ed8a41e5e3d0b3415f99efa161f22c9b738157a",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "roadmap_acceptance_criteria": [

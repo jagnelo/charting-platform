@@ -19249,3 +19249,18 @@ addition to the documented content/layout divergence; it does not establish
 which appearance matches V25. The reference state remains `required_missing`,
 so do not refresh snapshots or claim V25 visual acceptance.
 
+## 2026-10-15 — Corrected exact-source branch CI passed
+
+After the branch-declared test list was aligned with the workflow's stack-free
+job, run `38794814317` completed successfully on exact full SHA
+`3ed8a41e5e3d0b3415f99efa161f22c9b738157a`. Backend unit/integration,
+frontend unit, branch-declared, and dedicated stack-backed E2E jobs all passed.
+The branch-declared suite passed scope checks, type-check, build, and workstream
+validation. E2E reported 188 passed, 110 skipped, and one flaky case recovered
+on retry; all four Help visual profiles were included and passed on the hosted
+runner. The Exhaustive Integration Gate remained skipped for this feature
+branch, so this is not full TCP4 integration acceptance. The latest exact-source
+run is green, while the V25 Help reference decision, coordinator-owned TCP1
+repair delivery, upstream TCP3 dependencies, and separate TCP4 gate remain
+open. No UI source, screenshot, mask, threshold, skip, or oracle policy changed.
+
