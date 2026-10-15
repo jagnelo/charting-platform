@@ -539,6 +539,7 @@ branch_tests:
   - "cd frontend && npm run type-check"
   - "cd frontend && npm run test:coverage"
   - "cd frontend && npm run build"
+  - "cd frontend && npx playwright install --with-deps chromium"
   - "cd frontend && npx playwright test tests/e2e/flows.spec.ts --project=chromium"
   - "cd frontend && npx playwright test tests/e2e/tc2000_visual.spec.ts --project=visual-1080p-100 --project=visual-1080p-125 --project=visual-1440p-100 --project=visual-1440p-125"
   - "uv run --project backend python scripts/validate-workstream.py ops/workstreams/feat-tc2000-frontend-rework/plan.yaml"

@@ -31,6 +31,23 @@ Integration Gate was skipped. Both scope checks pass locally after switching
 the branch plan's cache directory to `/tmp`; a corrected exact-tip Actions run
 is still required.
 
+## 2026-10-15 — Corrected-tip run: browser provisioning follow-up
+
+Run `38784819976` matches the full source SHA
+`c9e75356c9cb3e9d3f01ed829f4bcee566781499` and is terminal, not green. Backend
+unit/integration and Frontend Unit Tests passed. Branch-declared Tests failed
+at its first Playwright command because that job had no installed Chromium
+headless shell (`browserType.launch: Executable doesn't exist at
+.../chromium_headless_shell-1234/...`); its 187 test attempts could not launch
+the browser. The separate E2E job installs Chromium on its own runner and
+passed 188, skipped 110, with one flaky F9c-template-comparison retry; the
+Exhaustive Integration Gate was skipped because this is a feature-branch run.
+Added `npx playwright install --with-deps chromium` directly before the
+branch-declared browser commands, matching the dedicated E2E job's setup. This
+provisioning fix is local and awaits a new exact-tip run. F9c remains owned by
+the coordinator's independent geometry repair; the Help visual/reference gate
+is unchanged.
+
 ## 2026-10-15 — Populated-comparison pointer cross-check
 
 Replayed the saved-template comparison flow against current TC frontend source
