@@ -33,6 +33,18 @@ database before the stale comparison percentage was noticed; it has not been
 deleted. A separate test account and generated fixture data are confined to
 the isolated project.
 
+## 2026-10-15 — Help font fallback diagnosis
+
+Compared fontconfig resolution read-only. Host resolves Arial to Nimbus Sans
+and Segoe UI to DejaVu Sans; pinned Playwright 1.62.1 Noble resolves Arial to
+Liberation Sans and Segoe UI/sans-serif to WenQuanYi Zen Hei. A read-only mount
+of host font and fontconfig directories exposes Nimbus/DejaVu files but does
+not make the pinned image resolve Arial to Nimbus, so this is not a verified
+normalization route. No screenshot, application CSS, baseline, threshold, or
+assigned data changed. The Help content/placement mismatch and absent
+authoritative V25 Help capture remain unresolved; details are in
+`visual-environment-diagnosis.md`.
+
 ## 2026-10-06 — Dependency refs refreshed and paired Shift+N browser replay
 
 Read-only GitHub ref discovery succeeded. Staging is

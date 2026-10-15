@@ -100,3 +100,18 @@ made, preserve the current snapshots and `0.5%` oracle; do not claim Help visual
 acceptance. This does not block independent TC work, but TCP2 cannot close on
 the current evidence. The full roadmap and downstream Provider/ETF staging
 dependency remain open.
+
+## 2026-10-15 — Pinned-image font fallback check
+
+A read-only fontconfig comparison adds a concrete environment difference:
+the host resolves Arial to Nimbus Sans and Segoe UI to DejaVu Sans. The pinned
+Playwright 1.62.1 Noble image resolves Arial to Liberation Sans and Segoe UI
+(and its generic sans-serif fallback) to WenQuanYi Zen Hei. A diagnostic run
+with the host `/usr/share/fonts` and `/etc/fonts` mounted read-only exposed the
+host DejaVu and Nimbus font files to the image, but still did not resolve Arial
+to Nimbus Sans; that is not a demonstrated screenshot-normalization route.
+No screenshot was captured in this experiment, and no oracle, app CSS, system
+font configuration, or assigned data was changed. This supports the mixed
+environment diagnosis but does not explain all Help pixel differences: the
+current Help rows/content and placement still diverge, and the authoritative
+V25 Help capture remains missing.
