@@ -1833,13 +1833,18 @@ invalid expiry fails closed. While a configured trial is active, the runtime
 reserves its documented daily pool. At or after expiry, it automatically
 changes the effective entitlement and quota to Free Forever/100 credits per
 day, without requiring a deployment-time plan edit. A later paid upgrade is
-configured by changing the plan/limit pair; it is non-routable by default and
-also requires `ALLOW_PAID_PROVIDER_ROUTING=true` for a separately reviewed
-plan. That switch is only a routing opt-in, not aggregate cost admission or
-authorization to activate paid service. The approved 20 EUR/USD-equivalent
-shared cost contract remains Provider-owned ICP2 work before paid activation
-can be proposed. Plan/limit configuration remains provider-specific and may be
-set separately for local development, protected CI, and production.
+configured by changing the plan/limit pair. The shared
+`PROVIDER_FREE_ONLY_CHECKPOINT` gate defaults true and denies every paid plan
+and every trial plan for all callers, even when
+`ALLOW_PAID_PROVIDER_ROUTING=true`. This checkpoint gate is independent of the
+full-roadmap paid-routing opt-in. Setting it false deliberately leaves
+checkpoint mode; only then can `ALLOW_PAID_PROVIDER_ROUTING=true` admit a
+reviewed paid plan. Unknown/unreviewed plans and trials remain denied in both
+modes. Neither setting implements aggregate cost admission or authorizes paid
+activation. The approved 20 EUR/USD-equivalent shared cost contract remains
+Provider-owned ICP2 work before paid activation can be proposed. Plan/limit
+configuration remains provider-specific and may be set separately for local
+development, protected CI, and production.
 Quant/Prime plans use a different per-minute contract and remain outside this
 daily-plan gate until their dimensions are modeled explicitly.
 
@@ -2444,11 +2449,15 @@ maps with `PROVIDER_RATE_LIMIT_SEEDS` (complete quota contracts) and
 must include every provider policy that should stay routable; `{}` intentionally
 removes these policies and is not a safe way to change just one provider. When a
 provider plan changes, update its complete limit/window/reset/scope contract and
-its entitlement separately. `ALLOW_PAID_PROVIDER_ROUTING` is a routing opt-in
-for reviewed plans, not aggregate recurring-subscription cost admission or
-paid-activation authorization. The approved 20 EUR/USD-equivalent monthly
-ceiling is not implemented; Provider owns that shared ICP2 work and ETF owns
-ICP6 consumer validation. This lets each production, CI, RPi, or local
+its entitlement separately. `PROVIDER_FREE_ONLY_CHECKPOINT` defaults true and
+is the shared hard free-only routing boundary for the integration checkpoint;
+it denies paid and trial entitlements for all callers. Outside that mode,
+`ALLOW_PAID_PROVIDER_ROUTING` remains the full-roadmap opt-in for reviewed paid
+plans, not aggregate recurring-subscription cost admission or paid-activation
+authorization. Unknown and trial plans are always denied. The approved
+20 EUR/USD-equivalent monthly ceiling is not implemented; Provider owns that
+shared ICP2 work and ETF owns ICP6 consumer validation. This lets each
+production, CI, RPi, or local
 environment reflect its own account tier without credentials or account-
 specific quota values entering Git.
 Runtime/admin policy changes are stored in the application database and must

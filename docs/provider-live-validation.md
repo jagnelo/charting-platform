@@ -1754,9 +1754,11 @@ requires a separate durable dashboard/native baseline),
 100; a different account plan requires `MARKETSTACK_QUOTA_EVIDENCE`), optional
 `MARKETSTACK_REVIEWED_MONTHLY_RESET` (blank enforces rolling 30 days; a
 provider-reviewed native boundary also requires quota evidence), and
+`PROVIDER_FREE_ONLY_CHECKPOINT` (defaults true; denies paid and trial plans to
+all callers during the integration checkpoint),
 `ALLOW_PAID_PROVIDER_ROUTING` (defaults false; true permits only separately
-reviewed paid plans at the routing layer and does not satisfy aggregate cost
-admission or authorize paid activation),
+reviewed paid plans only after checkpoint mode is deliberately disabled; it
+does not satisfy aggregate cost admission or authorize paid activation),
 and `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` in the same environment's
 configuration variables. The SEC directory controls
 `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED`,

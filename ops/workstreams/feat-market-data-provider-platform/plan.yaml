@@ -174,12 +174,14 @@ integration_checkpoint:
 
     The 2026-10-15 shared monthly recurring-subscription budget audit found no
     aggregate cost-admission API/model in the Provider runtime. Existing
-    resolver and status contracts provide conditional free-only routing:
-    `ALLOW_PAID_PROVIDER_ROUTING=false` (the checkpoint default) excludes a
-    reviewed paid entitlement; setting it true can admit a reviewed plan, but
-    is not aggregate cost admission or paid-activation authorization. The
-    17:26Z focused receipt tested the resolver with the reviewed paid fixture
-    under both toggle values. No separate cost subsystem is added. The approved
+    resolver and status contracts now apply `PROVIDER_FREE_ONLY_CHECKPOINT=true`
+    as a shared hard free-only route constraint, independent of
+    `ALLOW_PAID_PROVIDER_ROUTING`. Reviewed paid plans, trials, and unreviewed
+    plans are denied before transport; the exact decision is exposed by
+    `provider_entitlement_admission` and provider status. Disabling checkpoint
+    mode deliberately restores full-roadmap semantics: the reviewed paid plan
+    is admitted only when `ALLOW_PAID_PROVIDER_ROUTING=true`. This is not
+    aggregate cost admission or paid-activation authorization. The approved
     20 EUR/USD-equivalent aggregate ceiling remains unimplemented and
     Provider-owned ICP2 work; ETF retains ICP6 responsibility for its consumer
     bridge and actual request/page/retry accounting. Do not infer FX or cost,
@@ -238,8 +240,8 @@ integration_checkpoint:
         - backend/app/services/provider_quota_coordinator.py
         - backend/app/models/market_data_foundation.py
       ownership_boundary: "This branch owns shared identity/provider governance only; do not edit the ETF branch or implement its adapter bridge here."
-      evidence_required: "Integration/API tests for identity and provider capability/entitlement/quota/health, including successful and unavailable examples; verify the default-false toggle excludes reviewed paid plans in resolver/status and live preflight. ETF later verifies bridge admission and actual request/page/retry accounting against green staging."
-      cost_admission_boundary: "No shared aggregate monthly recurring-subscription cost API exists. The checkpoint uses existing conditional free-only routing: ALLOW_PAID_PROVIDER_ROUTING=false excludes reviewed paid plans; true permits routing only for separately reviewed plans and is not aggregate cost admission or paid-activation authorization. The 17:26Z resolver regression exercised both toggle states. Preserve the approved 20 EUR/USD-equivalent aggregate ceiling as Provider-owned ICP2 work; ETF owns ICP6 validation of its bridge and actual request/page/retry accounting. Do not invent FX conversion or add an ETF-only ledger."
+      evidence_required: "Integration/API tests for identity and provider capability/entitlement/quota/health, including successful and unavailable examples; verify PROVIDER_FREE_ONLY_CHECKPOINT denies paid plans regardless of ALLOW_PAID_PROVIDER_ROUTING, and trial/unreviewed plans deny before transport. ETF later verifies bridge admission and actual request/page/retry accounting against green staging."
+      cost_admission_boundary: "No shared aggregate monthly recurring-subscription cost API exists. PROVIDER_FREE_ONLY_CHECKPOINT=true is a hard shared route-admission constraint that denies reviewed paid plans regardless of ALLOW_PAID_PROVIDER_ROUTING and denies trials/unreviewed plans; execute_provider_call and list_provider_status use the same provider_entitlement_admission decision. Disabling checkpoint mode restores the full-roadmap ALLOW_PAID_PROVIDER_ROUTING opt-in. This is not aggregate cost admission or paid-activation authorization. Provider owns the approved 20 EUR/USD-equivalent aggregate ceiling as ICP2 work; ETF owns ICP6 adapter wiring and actual request/page/retry accounting after green Provider staging. Do not invent FX conversion or add an ETF-only ledger."
     - consumer: feat/tc2000-frontend-rework
       consumes: "Canonical instrument identity, local OHLCV series, coverage/preflight, freshness, and explicit missing/unavailable status; no provider request occurs inside evaluation."
       provider_contract_locations:

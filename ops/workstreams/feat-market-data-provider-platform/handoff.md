@@ -25226,4 +25226,80 @@ exact candidate receipts remain separate gates.
   current admission and exact-source receipt rules before any transport, while
   preserving the pending checkpoint, downstream consumer, ownership, and
   coordinator gates.
+
+## 2026-10-15 21:02Z — ICP1–ICP7 review packet prepared
+
+- Added `checkpoint-review-packet.md` as a branch-owned, concise checkpoint
+  review artifact. It distinguishes the exact `1afb896` live receipt from
+  ancestor evidence, records all seven held operation groups and safe-disabled
+  dispositions, lists tested consumer success/unavailable paths, and keeps the
+  paid=false conditional boundary separate from the unimplemented aggregate
+  subscription ceiling. All 23 original criterion dispositions remain in
+  `plan.yaml`; no roadmap item was removed.
+- Current dirty work-in-progress paths are
+  `ops/workstreams/feat-market-data-provider-platform/checkpoint-review-packet.md`,
+  `ops/workstreams/feat-market-data-provider-platform/handoff.md`, and
+  `ops/workstreams/feat-market-data-provider-platform/validation.jsonl`.
+- Exact-source live evidence is 20/27 manifests, 56 passed cases, 136 requests,
+  and 55,732,001 response bytes. The harness checks captured response count,
+  fails on archive errors, and fsyncs redacted response writes to the private
+  archive. The receipt does not report a per-run archive row count; no
+  multi-gigabyte archive scan was performed, so independent archive-wide
+  reconciliation is not claimed.
+- Exact CI `38804214507` for `1afb896` has Backend Tests and Branch-declared
+  Tests green; E2E Playwright remains in progress. Earlier green CI
+  `38798881420` is for ancestor `1ab6f798`, not this current source.
+- Consumer evidence includes Strategy Lab success and partial-coverage API
+  tests plus ETF API unavailable/missing-coverage tests in this checkout.
+  These do not prove final downstream branch reconciliation: TC2000 has no
+  consumer-specific test here, and ETF bridge request/page/retry accounting
+  remains ETF-owned. Paid aggregate cost admission, external secret-store
+  verification, current complete NMS/OTC/SEC refresh, seven held manifests,
+  FINRA async byte-safe operation, coordinator green staging, and human
+  acceptance remain open.
+- Packet creation did not call providers, spend quota, read the response
+  archive, modify frontend files, or change a sibling/staging worktree. Local
+  `git diff --check` and validation of all 30 workstream records passed using
+  an isolated UV cache. Worktree remains dirty; no checkpoint commit/push or
+  staging merge is claimed.
+- The supported `agent-session-checkpoint` helper was attempted but could not
+  acquire the shared `.ai/session-claims/.lock` because that common path is
+  read-only in this session. It did not write `session.json`; this is recorded
+  as a tooling boundary, not a product/provider acceptance gate.
+
+## 2026-10-15 21:09Z — shared free-only checkpoint route constraint
+
+- Addressed the ETF producer/consumer mismatch in Provider-owned code. Added
+  `PROVIDER_FREE_ONLY_CHECKPOINT=true` as an explicit shared routing boundary.
+  When enabled, a reviewed paid plan is denied even if
+  `ALLOW_PAID_PROVIDER_ROUTING=true`; temporary trials and unreviewed plans are
+  also denied. Existing account-usage bootstrap remains a narrow separate
+  operation and does not admit market-data routes. Turning checkpoint mode off
+  deliberately restores full-roadmap behavior, where reviewed paid routing
+  still requires `ALLOW_PAID_PROVIDER_ROUTING=true`.
+- Shared callable for ETF to consume after green Provider staging:
+  `app.services.provider_runtime.provider_entitlement_admission(entitlement)`.
+  It returns `allowed`, `reason_code`, `configured_plan`, `is_free`,
+  `checkpoint_free_only`, and `basis`. `list_provider_status()` includes the
+  same decision under `entitlement_admission`; `execute_provider_call()` uses
+  resolver admission before calling its injected provider transport. Reason
+  codes are `reviewed_free_plan`, `checkpoint_free_only`,
+  `trial_cost_not_admissible`, `entitlement_unreviewed`,
+  `paid_routing_disabled`, and `reviewed_paid_opt_in`.
+- The regression checks paid entitlement with the paid-routing flag both false
+  and true under checkpoint mode, verifies the callback is never invoked,
+  verifies explicit full-roadmap opt-in after leaving checkpoint mode, and
+  denies trial/unreviewed plan decisions. Full provider-runtime unit file:
+  68 passed; final focused regression: 1 passed; full Docker-backed backend
+  gate passed 2,772 unit + 395 integration tests (3,167 total, 82% combined
+  coverage); Ruff and diff checks passed.
+  No provider HTTP, external quota, Docker container, sibling worktree, or
+  frontend was touched.
+- This is plan-routing eligibility only; it does not implement the shared
+  20 EUR/USD-equivalent aggregate recurring-cost ceiling. ETF owns adapter
+  wiring, actual request/page/retry accounting, and consumer-level no-transport
+  tests after green Provider staging. The working tree is dirty and this
+  source has not received exact-source hosted branch CI or browser validation;
+  human checkpoint acceptance, source freeze, staging merge, deployment, paid
+  activation, and the operational trial remain unapproved.
 *** End of File

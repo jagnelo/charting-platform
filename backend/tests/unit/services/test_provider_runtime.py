@@ -50,6 +50,7 @@ from app.services.provider_runtime import (
     execute_provider_call,
     list_provider_status,
     policy_allows_account_usage_bootstrap,
+    provider_entitlement_admission,
     provider_runtime_quota_admission_active,
     quota_contract_missing_dimensions,
     resolve_provider_chain,
@@ -1431,8 +1432,9 @@ async def test_marketdata_app_entitlement_and_quota_follow_explicit_reviewed_pla
 
 @pytest.mark.asyncio
 async def test_free_only_checkpoint_boundary_rejects_reviewed_paid_provider(db, monkeypatch):
-    """The checkpoint is free-only while paid routing remains disabled."""
+    """Checkpoint admission overrides the paid flag and denies trials/unknown plans."""
     async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
     monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "starter")
     monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 10_000)
     monkeypatch.setattr(settings, "MARKETDATA_APP_API_KEY", "unit-test-key")
@@ -1474,9 +1476,47 @@ async def test_free_only_checkpoint_boundary_rejects_reviewed_paid_provider(db, 
     assert paid_status["entitlement_state"] == "reviewed"
     assert paid_status["routing_eligible"] is False
 
-    # The existing privileged toggle controls the reviewed paid plan only;
-    # it is not evidence of aggregate monthly subscription-cost admission.
+    # A shared free-only checkpoint is not bypassed by the full-roadmap flag.
+    # Exercise execution too: the injected transport must never be reached.
+    transport_calls = []
+    for allow_paid in (False, True):
+        monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", allow_paid)
+        decision = provider_entitlement_admission(entitlement)
+        assert decision["allowed"] is False
+        assert decision["reason_code"] == "checkpoint_free_only"
+        denied_chain = await resolve_provider_chain(
+            async_db,
+            ProviderCapability.LATEST_PRICE,
+            operation="get_current_price",
+            operation_cost_overrides={"marketdata_app": 1},
+        )
+        assert all(item.provider_name != "marketdata_app" for item in denied_chain)
+        with pytest.raises(RuntimeError, match="No enabled providers available"):
+            await execute_provider_call(
+                async_db,
+                ProviderCapability.LATEST_PRICE,
+                "get_current_price",
+                provider_name="marketdata_app",
+                operation_cost_overrides={"marketdata_app": 1},
+                invoke=lambda *_args: transport_calls.append("called"),
+            )
+        paid_status = next(
+            row
+            for row in await list_provider_status(async_db)
+            if row["provider"] == "marketdata_app"
+            and row["capability"] == ProviderCapability.LATEST_PRICE.value
+        )
+        assert paid_status["routing_eligible"] is False
+        assert paid_status["entitlement_admission"]["reason_code"] == "checkpoint_free_only"
+    assert transport_calls == []
+
+    # Leaving checkpoint mode deliberately restores full-roadmap opt-in
+    # semantics, without implying aggregate subscription-cost admission.
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", False)
+    monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", False)
+    assert provider_entitlement_admission(entitlement)["reason_code"] == "paid_routing_disabled"
     monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", True)
+    assert provider_entitlement_admission(entitlement)["reason_code"] == "reviewed_paid_opt_in"
     allowed_chain = await resolve_provider_chain(
         async_db,
         ProviderCapability.LATEST_PRICE,
@@ -1484,13 +1524,17 @@ async def test_free_only_checkpoint_boundary_rejects_reviewed_paid_provider(db, 
         operation_cost_overrides={"marketdata_app": 1},
     )
     assert any(item.provider_name == "marketdata_app" for item in allowed_chain)
-    paid_status = next(
-        row
-        for row in await list_provider_status(async_db)
-        if row["provider"] == "marketdata_app"
-        and row["capability"] == ProviderCapability.LATEST_PRICE.value
-    )
-    assert paid_status["routing_eligible"] is True
+
+    # Unknown and temporary trial plan evidence is never zero-cost admission,
+    # even after deliberately leaving checkpoint mode and enabling paid plans.
+    for plan, reason in (
+        ("unreviewed-cost-profile", "entitlement_unreviewed"),
+        ("starter_trial", "trial_cost_not_admissible"),
+    ):
+        entitlement.configured_plan = plan
+        entitlement.is_free = True
+        assert provider_entitlement_admission(entitlement)["reason_code"] == reason
+    assert transport_calls == []
 
 
 @pytest.mark.asyncio

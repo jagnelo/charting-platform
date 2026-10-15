@@ -302,6 +302,48 @@ class ProviderExecutionResult:
     response_payloads: tuple[Any, ...] = ()
 
 
+def provider_entitlement_admission(
+    entitlement: ProviderEntitlement,
+    *,
+    checkpoint_free_only: bool | None = None,
+    allow_paid: bool | None = None,
+) -> dict[str, Any]:
+    """Return the shared, transport-independent plan admission decision.
+
+    The checkpoint accepts only explicitly reviewed free plans. Temporary
+    trials are denied even when represented as free because their post-trial
+    cost is not a durable zero-cost entitlement. Outside checkpoint mode,
+    reviewed paid plans retain the separate full-roadmap opt-in.
+    """
+
+    free_only = (
+        settings.PROVIDER_FREE_ONLY_CHECKPOINT
+        if checkpoint_free_only is None
+        else checkpoint_free_only
+    )
+    paid_enabled = settings.ALLOW_PAID_PROVIDER_ROUTING if allow_paid is None else allow_paid
+    plan = str(entitlement.configured_plan or "").strip().lower()
+    is_free = entitlement.is_free is True
+    if not plan or "unreviewed" in plan:
+        allowed, reason = False, "entitlement_unreviewed"
+    elif "trial" in plan:
+        allowed, reason = False, "trial_cost_not_admissible"
+    elif free_only and not is_free:
+        allowed, reason = False, "checkpoint_free_only"
+    elif not is_free and not paid_enabled:
+        allowed, reason = False, "paid_routing_disabled"
+    else:
+        allowed, reason = True, "reviewed_free_plan" if is_free else "reviewed_paid_opt_in"
+    return {
+        "allowed": allowed,
+        "reason_code": reason,
+        "configured_plan": plan or None,
+        "is_free": is_free,
+        "checkpoint_free_only": free_only,
+        "basis": "reviewed_provider_entitlement",
+    }
+
+
 class ProviderNoDataError(LookupError):
     """Raised when providers resolve successfully but none return usable data."""
 
@@ -2221,6 +2263,16 @@ async def resolve_provider_chain(
     resolved: list[ResolvedProvider] = []
     current_environment = settings.APP_ENV.strip().lower()
     for policy, health, data_source, entitlement in rows:
+        account_usage_probe = (
+            capability == ProviderCapability.ACCOUNT_USAGE and operation == "fetch_account_usage"
+        )
+        configured_plan = str(entitlement.configured_plan or "").strip().lower()
+        unreviewed_usage_bootstrap = account_usage_probe and configured_plan == "unreviewed"
+        if (
+            not unreviewed_usage_bootstrap
+            and not provider_entitlement_admission(entitlement)["allowed"]
+        ):
+            continue
         if data_source.name == "dinari":
             # This credential is Sandbox-only. Sandbox records are live-canary
             # evidence, never application routing candidates; do not let a
@@ -2243,12 +2295,8 @@ async def resolve_provider_chain(
             )
             if not history_allowed:
                 continue
-        # The paid-routing setting only allows a separately reviewed plan to
-        # participate. It is not an aggregate recurring-cost budget.
-        configured_plan = str(entitlement.configured_plan or "").strip().lower()
-        account_usage_probe = (
-            capability == ProviderCapability.ACCOUNT_USAGE and operation == "fetch_account_usage"
-        )
+        # This check is also enforced above for all runtime callers. Keep the
+        # plan review check here for the account-usage bootstrap path.
         if (not configured_plan or configured_plan == "unreviewed") and not account_usage_probe:
             continue
         if (
@@ -2990,6 +3038,7 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
                     if str(entitlement.configured_plan or "").strip().lower() != "unreviewed"
                     else "unreviewed"
                 ),
+                "entitlement_admission": provider_entitlement_admission(entitlement),
                 "live_probe_status": entitlement.live_probe_status,
                 "routing_eligible": bool(
                     policy.is_enabled
@@ -2999,7 +3048,7 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
                     and str(entitlement.configured_plan or "").strip().lower() != "unreviewed"
                     and str(entitlement.live_probe_status or "not_run").strip().lower()
                     in _POSITIVE_LIVE_PROBE_STATUSES
-                    and (entitlement.is_free or settings.ALLOW_PAID_PROVIDER_ROUTING)
+                    and provider_entitlement_admission(entitlement)["allowed"]
                     and provider_contract_operation_costs_configured(policy, data_source)
                 ),
                 "freshness_seconds": policy.freshness_seconds,

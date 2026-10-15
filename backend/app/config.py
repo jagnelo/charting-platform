@@ -221,6 +221,11 @@ class Settings(BaseSettings):
     # but must not be appended automatically to new workstation capability
     # chains. This keeps the default platform path free-source/API-first.
     ENABLE_LEGACY_YFINANCE_FALLBACK: bool = False
+    # Shared integration-checkpoint boundary: provider calls are restricted to
+    # reviewed, non-trial free plans even if the full-roadmap paid-routing
+    # switch is enabled. Set false only when intentionally leaving the
+    # checkpoint mode; paid plans still require ALLOW_PAID_PROVIDER_ROUTING.
+    PROVIDER_FREE_ONLY_CHECKPOINT: bool = True
     # A reviewed paid entitlement participates only when explicitly enabled.
     # This opt-in is not an aggregate recurring-subscription cost budget; paid
     # activation still requires separate authorization and cost governance.
