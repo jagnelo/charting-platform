@@ -9,7 +9,22 @@ Created from `staging` at `5267f11a491795d85ee35b56cabbe550394f3823`.
 - Closure record: pending validation; human already delegated technical closure for this narrow repair. Deployment remains unauthorized.
 - Planning state: ready; PTR1-PTR5 and full_stack_browser retain all required validation. Delegated technical closure will be recorded after validation; deployment remains unauthorized.
 
-## Active changeset: pointer-persisted-regression-boundaries
+## Published changeset: pointer-persisted-regression-boundaries
+
+Closure receipt: scoped staged paths were reviewed in full; source and regression
+changes are committed/pushed at `580ab73c698cb0896b463a36f9b01ccd1410fae2`.
+HEAD/origin matched and the tree was clean after push. Focused validation is
+927 units, final Docker type/build, and10/10 repeated browser cases, zero retries.
+Committed-plan preflight and active-goal checkpoint succeeded. Scoped accounting
+is complete: six own services/four disposable volumes,1.43GB attributable usage,
+no unknown resources; preserve the stack for the required complete replay.
+This separate operational receipt records that source checkpoint, not its own
+self-referential hash. Verify the enclosing commit externally after push.
+The one permitted next implementation action after that clean synchronized
+boundary is the existing visual popup-close teardown correction, owning only
+frontend/tests/e2e/tc2000_visual.spec.ts and this workstream. It must retain the
+unchanged screenshot and source-tool restoration/critical-diagnostics assertions.
+Full-profile, exact CI, technical acceptance and staging integration remain open.
 
 Boundary verified clean/synchronized at
 `bdc3938069884c22e7f52edaf48eb32ccef1848a`; diff-check passes. The prior
