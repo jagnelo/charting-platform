@@ -396,7 +396,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     const helpLayout = await helpDialog.evaluate(dialog => {
       const dialogBounds = dialog.getBoundingClientRect()
       const rows = Array.from(dialog.querySelectorAll('dl > div'))
-      const overlaps: string[] = []
+      const unreadableGaps: string[] = []
       const clipped: string[] = []
       for (const row of rows) {
         const key = row.querySelector('dt')
@@ -406,16 +406,20 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
         keyText.selectNodeContents(key)
         const keyBounds = keyText.getBoundingClientRect()
         const descriptionBounds = description.getBoundingClientRect()
-        if (keyBounds.right > descriptionBounds.left) overlaps.push(key.textContent?.trim() ?? '')
+        const descriptionText = document.createRange()
+        descriptionText.selectNodeContents(description)
+        const descriptionLines = Array.from(descriptionText.getClientRects())
+        if (keyBounds.right + 8 > descriptionBounds.left) unreadableGaps.push(key.textContent?.trim() ?? '')
         if (keyBounds.left < dialogBounds.left || keyBounds.right > dialogBounds.right
-          || descriptionBounds.left < dialogBounds.left || descriptionBounds.right > dialogBounds.right) {
+          || descriptionBounds.left < dialogBounds.left || descriptionBounds.right > dialogBounds.right
+          || descriptionLines.some(line => line.left < dialogBounds.left || line.right > dialogBounds.right)) {
           clipped.push(key.textContent?.trim() ?? '')
         }
       }
-      return { rowCount: rows.length, overlaps, clipped }
+      return { rowCount: rows.length, unreadableGaps, clipped }
     })
     expect(helpLayout.rowCount).toBeGreaterThan(0)
-    expect(helpLayout.overlaps, 'shortcut key labels must remain separate from descriptions').toEqual([])
+    expect(helpLayout.unreadableGaps, 'shortcut key labels must leave at least 8 CSS pixels before descriptions').toEqual([])
     expect(helpLayout.clipped, 'shortcut text must remain within the Help dialog width').toEqual([])
     await expect(page).toHaveScreenshot('application-shell-help-open.png', {
       animations: 'disabled',

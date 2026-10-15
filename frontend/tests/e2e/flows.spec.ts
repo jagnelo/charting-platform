@@ -901,6 +901,13 @@ test.describe('Chart', () => {
     expect(scrollMetrics.scrollHeight).toBeGreaterThan(scrollMetrics.clientHeight)
     await helpDialog.press('PageDown')
     await expect.poll(() => helpDialog.evaluate(element => element.scrollTop)).toBeGreaterThan(0)
+    let previousScrollTop = -1
+    await expect.poll(async () => {
+      const scrollTop = await helpDialog.evaluate(element => element.scrollTop)
+      const settled = scrollTop === previousScrollTop
+      previousScrollTop = scrollTop
+      return settled
+    }).toBe(true)
     await helpDialog.press('PageUp')
     await expect.poll(() => helpDialog.evaluate(element => element.scrollTop)).toBe(0)
     let bottomMetrics = await helpDialog.evaluate(element => ({

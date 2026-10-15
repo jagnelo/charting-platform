@@ -123,7 +123,7 @@
   },
   "interrupted": false,
   "last_checkpoint": "2026-10-15T19:07:50+00:00",
-  "last_human_progress_update": "2026-10-15T21:16:08.422202+00:00",
+  "last_human_progress_update": "2026-10-15T21:46:29.497877+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Inspect exact-tip Actions after publishing the Help reference evidence; continue the full branch roadmap while awaiting coordinator and Provider/ETF staging gates.",
   "plan_hash": "cfbe16cae28b5ef202b3ed777dcc49884a75ebb34a95ec0dc7167b87747b8502",
@@ -138,11 +138,11 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "none",
-    "current_phase": "TCP2_HELP_REFERENCE_PREPARED_TCP1_COORDINATOR_STAGING_WAIT",
-    "next_action": "Recheck GitHub Actions run 38808403263 for exact SHA 76f0ba6e8424017567ec791f51337d95fcfafd06; record terminal evidence. Do not duplicate coordinator pointer repair or synchronize TC source before green staging.",
+    "current_blocker": "Coordinator TCP1 pointer repair awaits synchronized green staging; Provider/ETF synchronization and exact TCP4 full integration remain open; prior published-tip Actions E2E is still running.",
+    "current_phase": "TCP2_HELP_LAYOUT_REPAIRED_AND_REVIEWED",
+    "next_action": "Focused Help flow, four visual profiles, Vitest, build, branch-declared checks, visual-policy validation, and diff check are locally green. Commit the Help context, then push after Actions run 38808585497 reaches terminal status; record exact-source evidence. Do not sync TC source before coordinator green staging.",
     "total": 5,
-    "updated_at": "2026-10-15T21:16:08.422182+00:00"
+    "updated_at": "2026-10-15T21:46:29.497857+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",

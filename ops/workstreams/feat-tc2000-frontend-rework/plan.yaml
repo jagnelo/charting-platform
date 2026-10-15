@@ -30,24 +30,32 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  2026-10-15 Help interim reference prepared after correcting the measured
-  Shift+wheel collision. Focused keyboard flow passed 1/1 and all four seeded
-  Linux Help visual profiles passed 4/4 with zero detected label/description
-  overlap or horizontal clipping; exact local captures were rederived and
-  visually reviewed. The 0.5% threshold and official V25 keyboard_help
-  required_missing state remain unchanged. TCP1 is still blocked on coordinator
-  delivery of its independent chart-template pointer repair through green
-  staging; do not duplicate that fix or sync TC source before publication.
-  Provider/ETF staging synchronization and exact TCP4 full integration remain
-  open. Exact Actions run 38807716776 for SHA
-  9705b1bec39026f1ea611fbee75b220ba3bab0f0 failed its branch-declared job
-  because the authorized shared manifest path lacked an explicit scope
-  exception. The narrow exception is now documented. Corrected exact source
-  76f0ba6e8424017567ec791f51337d95fcfafd06 passed all five branch-declared
-  local steps, 26 visual-policy assertions, and git diff --check. Its Actions
-  run 38808403263 was pending with no jobs visible at the latest read; do not
-  infer green, and recheck this exact SHA. Preserve assigned runtime, data, and
-  listener 15190.
+  2026-10-15 coordinator review at 19:13Z reaffirmed the explicit human
+  decision, "Yes—use a reviewed local-only reference"; no further human choice
+  is pending. The coordinator's crowded-gap screenshot was timestamped
+  2026-10-15 18:15:28+0100, before the 22:04+0100 commit that first widened the
+  Help key column to 96px, so it was not evidence of the then-current source.
+  A fresh current-source fixture review still warranted more separation; the
+  TC-owned column is now 112px, and the per-row browser guard requires at least
+  8 CSS pixels plus verifies rendered description-line bounds. The exact
+  four-profile screenshots were visually reviewed and only the four Linux Help
+  references were rederived; normal screenshot checks passed 4/4 at the
+  unchanged 0.5% tolerance. `F9e-shell-menus-keyboard` passed 1/1 with the
+  existing PageDown/PageUp/Home, last-row reachability, Close-tab, Escape, and
+  trigger-focus assertions intact. Official V25 Help remains
+  `required_missing` and unfinished roadmap work.
+
+  The first rerun exposed a race from issuing PageUp before PageDown had
+  settled, and Home was not explicit on the scrollable Help dialog. A
+  settle-wait was added without changing the PageUp assertion, and Help now
+  implements Home-to-top directly; the unchanged flow then passed. Frontend
+  Vitest passed (exit 0), and the pinned production build/type check passed.
+  Exact Actions run 38808585497 is still in progress for its published SHA
+  bb070a4541cde95e66f26f007d5e4c7c52fba38f; its frontend unit and
+  branch-declared jobs passed, but backend tests have not completed. Do not
+  infer green. Preserve assigned runtime/data/listener 15190 and wait for the
+  coordinator's green staging pointer repair before source synchronization.
+  Provider/ETF synchronization and exact TCP4 full integration remain open.
 
   Checkpoint adoption 2026-10-15: the populated-comparison pointer check found
   a remaining default-wide geometry defect in the current TC source despite the
@@ -585,11 +593,13 @@ status: in_progress
 progress:
   completed: []
   total: 5
-  current_phase: TCP2_HELP_REFERENCE_PREPARED;_TCP1_COORDINATOR_STAGING_WAIT
+  current_phase: TCP2_HELP_READABILITY_REVIEWED;_TCP1_COORDINATOR_STAGING_WAIT
   next_action: >-
-    Inspect Actions run 38808403263 for exact SHA
-    76f0ba6e8424017567ec791f51337d95fcfafd06 until a terminal conclusion is
-    available; preserve the corrected local declared-suite pass receipt.
+    Finish the Help readability changeset with branch-declared validation,
+    exact-source documentation, and a clean pushed checkpoint. Check Actions
+    run 38808585497 for its terminal result. Do not duplicate pointer repair or
+    synchronize TC source before green staging; continue TCP3/TCP4 roadmap and
+    preserve assigned runtime/data/listener 15190.
     Keep official V25 Help parity required_missing. Do not duplicate the
     coordinator-owned pointer repair or synchronize TC source until green
     staging. Continue the full roadmap and preserve the integration gate and
@@ -607,8 +617,10 @@ progress:
     Coordinator-owned TCP1 pointer repair delivery awaits synchronized green
     staging. Provider/ETF green-staging synchronization and the exact full
     integration gate remain incomplete. The Help local-only staging reference
-    is prepared and reviewed; official V25 Help visual parity remains
-    required_missing and unfinished.
+    is reviewed and adopted at unchanged thresholds; official V25 Help visual
+    parity remains required_missing and unfinished. The existing GitHub Actions
+    run on the latest published documentation SHA remains in progress; do not
+    treat local checks as remote CI completion.
 historical_implementation_records:
   - "Added TC2000's documented HLC Bars style to the frontend chart contract and settings, drawing the existing OHLCV high-low range with a close tick and omitting the open tick. Ctrl+B now cycles HLC, OHLC, Candles, Line in that order. The focused renderer/workstation tests passed 45/45; the full serial frontend suite passed 130 files / 1,225 tests; vue-tsc/Vite build passed; authenticated F8k-direct-chart-style passed 1/1 across all four styles. The protected Help screenshot test failed against its unchanged baseline with 50,941 pixels / 3.0% difference (0.5% threshold); no visual baseline/policy was changed."
   - "Authenticated follow-up browser evidence supersedes the earlier unauthenticated CLI attempt: a unique account in the assigned TC stack was used to activate the chart, press `/`, and confirm the plot library reopened with its `Filter indicators` search focused. No account was created outside the branch stack; no other worktree changed. The account remains a test artifact in the assigned stack. The Help visual oracle was not rerun after this shortcut, and its protected baseline remains unchanged."

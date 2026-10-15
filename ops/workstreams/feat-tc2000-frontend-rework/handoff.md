@@ -19446,3 +19446,68 @@ the latest read. The local pass does not substitute for remote CI; recheck the
 exact run and record its terminal evidence before calling this checkpoint
 green.
 
+## 2026-10-15 — Coordinator Help-readability follow-up
+
+The coordinator confirmed at 19:13Z that the human's explicit approval,
+"Yes—use a reviewed local-only reference," is final; no additional policy
+choice is pending. The coordinator-provided fresh Help capture was timestamped
+2026-10-15 18:15:28+0100, before commit
+`d0add5588612339203073b21015028ad4ffeb106` at 22:04+0100, which first widened
+the Help key column from 82px to 96px. It therefore did not reflect the 96px
+source, but the coordinator's concern warranted measuring the current layout.
+
+Owned paths in this continuation are `frontend/src/views/WorkstationView.vue`,
+`frontend/tests/e2e/flows.spec.ts`,
+`frontend/tests/e2e/tc2000_visual.spec.ts`, and only the four Linux Help PNGs
+under `frontend/tests/e2e/tc2000_visual.spec.ts-snapshots/`. No pointer,
+provider, ETF, or other visual states were touched. The Help key column is now
+112px. The Help visual test enforces at least 8 CSS pixels between every key
+label and its description, checks the rendered description line bounds against
+the dialog, and retains the existing all-row/content checks. Help now handles
+Home by returning the focused scroll dialog to its top. The existing PageDown,
+PageUp-to-top, repeated PageDown-to-bottom/last-row-visible, Tab-to-Close,
+Escape-dismissal, trigger-focus restoration, and editor-dismissal assertions
+remain; a scroll-settle wait prevents PageUp from racing an in-flight
+PageDown, without changing the assertion.
+
+I captured and visually reviewed all four current-source profiles (1920x1080
+at 100% and 125%, and 2560x1440 at 100% and 125%) before adoption. Ctrl+Space
+has clear visible separation; long keys/descriptions wrap without overlap or
+horizontal clipping. Only those four Linux Help references were rederived;
+Darwin and all unrelated screenshot states remain untouched. The normal
+four-profile visual run passed 4/4 after adoption at the unchanged 0.5%
+threshold. The authenticated `F9e-shell-menus-keyboard` flow passed 1/1 with all
+rows reachable, Home/PageUp return-to-top, Close reachable by Tab, and Escape
+restoring Help focus. Full frontend Vitest passed (exit 0), and the pinned
+Noble frontend build/type-check passed (520 modules). Browser diagnostics had
+no critical findings; recent filtered backend logs contained no
+ERROR/CRITICAL/traceback entries.
+
+The first post-layout keyboard replay exposed two real test-path issues:
+PageUp could be sent before PageDown settled, and native Home did not reliably
+scroll the Help dialog to top. The scroll-settle synchronization and explicit
+Help Home handling fixed these while keeping the pre-existing assertions
+intact. The four current screenshots are now the human-approved deterministic
+local staging references at unchanged thresholds. The manifest still keeps
+`keyboard_help.state` and `review.status` as `required_missing`, and explicitly
+states these are not official V25 visual evidence or parity approval; V25 Help
+parity remains unfinished roadmap work.
+
+Validation used the unique seeded project `tc2000-help-adopt-20261015` on
+ports 25441/28009/28089. Its four test-owned containers, four volumes, network,
+and two generated app images were removed by exact project/image name after
+validation. All six assigned TC containers and their retained data remained
+running/healthy. The prior local preview listener 15190 was found absent during
+post-cleanup verification; no kernel OOM record was found, and the assigned
+stack remained healthy. The branch's Vite preview was restored on 15190 against
+the assigned backend on 28008 and verified HTTP 200. No assigned Compose
+service or volume was restarted or removed.
+
+Latest published Actions run `38808585497` remains in progress for exact SHA
+`bb070a4541cde95e66f26f007d5e4c7c52fba38f`; Frontend Unit Tests and
+Branch-declared Tests passed, while Backend Tests were still running at the
+last read. Do not call this remote run green. TCP1 coordinator pointer delivery
+through green staging, Provider/ETF staging synchronization, and TCP4 full
+integration remain open. Do not duplicate the pointer fix, synchronize TC from
+staging, or claim full branch completion.
+
