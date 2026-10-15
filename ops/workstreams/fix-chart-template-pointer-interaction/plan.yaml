@@ -20,10 +20,15 @@ scope:
   - Preserve the no-comparison default geometry and the existing narrow viewport two-row toolbar.
   - Validate restored templates, real percentage labels, independent ordinary pointer actions and adjacent toolbar behavior on an isolated seeded application.
   - Reconcile the observed pre-existing Market Map browser-test refresh race using terminal request/render/selection assertions; retain all existing product assertions and ordinary clicks.
+  - Require the reopened Market Map source to be successfully persisted before selecting and publishing its members; a lost configuration must fail rather than be hidden by a retry.
+  - Repair the causally blocking snapshot acknowledgement and dropped trailing-save race exposed by that stronger assertion, under the recorded human delegation for validated technical fixes needed by the four integrations; preserve newer local edits and genuine cross-workspace/conflict safeguards.
+  - Strengthen the existing template comparison regression with populated percentage and ordinary Plots open/close checks while its comparison chip remains present.
   - Make the existing transform-reset browser observer respect legitimate client cache reuse while retaining a real parameter-free server request assertion after persisted-state reload.
   - Pin the existing Study sandbox-error visual fixture's adjacent loading surfaces and explicitly await structured-result chart readiness; preserve every reference and screenshot tolerance.
 owned_paths:
   - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/stores/workspace.ts
+  - frontend/tests/unit/stores/test_workspace_store.test.ts
   - frontend/tests/e2e/flows.spec.ts
   - frontend/tests/e2e/tc2000_visual.spec.ts
   - ops/workstreams/fix-chart-template-pointer-interaction/
@@ -48,15 +53,17 @@ migration_impact: none
 deployment_impact: none
 status: in_progress
 active_changeset_context:
-  name: pointer-visual-state-fixture
-  intent: Establish the loaded or loading adjacent states already depicted by the existing Study screenshots, with stronger state assertions and unchanged pixel oracles.
+  name: pointer-persisted-regression-boundaries
+  intent: Preserve newer edits while acknowledging an earlier accepted workspace revision, prove real source persistence before Market Map publication, and permanently cover populated comparison pointer actions.
   owned_paths:
-    - frontend/tests/e2e/tc2000_visual.spec.ts
+    - frontend/src/stores/workspace.ts
+    - frontend/tests/unit/stores/test_workspace_store.test.ts
+    - frontend/tests/e2e/flows.spec.ts
     - ops/workstreams/fix-chart-template-pointer-interaction/
 remaining_gaps: []
 progress:
   completed: [PTR1, PTR2, PTR3]
   total: 5
-  current_phase: full_regression_harness_reconciliation
+  current_phase: publishing_save_path_repair
   current_blocker: none
-  next_action: Visual fixture checkpoint b011b0e is published and focused 8/8 passes; retain the active full run, diagnose its workspace-conflict remount without weakening tests, and complete clean no-retry validation before technical review.
+  next_action: Publish the separately reviewed save-path repair with927 unit passes, final Docker type/build and10 no-retry browser passes; synchronize its operational closure, then fix the isolated popup-close test race and complete the required full profile/exact CI.

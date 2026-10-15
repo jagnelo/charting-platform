@@ -9,7 +9,105 @@ Created from `staging` at `5267f11a491795d85ee35b56cabbe550394f3823`.
 - Closure record: pending validation; human already delegated technical closure for this narrow repair. Deployment remains unauthorized.
 - Planning state: ready; PTR1-PTR5 and full_stack_browser retain all required validation. Delegated technical closure will be recorded after validation; deployment remains unauthorized.
 
-## Active changeset: pointer-visual-state-fixture
+## Active changeset: pointer-persisted-regression-boundaries
+
+Boundary verified clean/synchronized at
+`bdc3938069884c22e7f52edaf48eb32ccef1848a`; diff-check passes. The prior
+visual-fixture context and its operational closure are committed and pushed.
+This context initially owned existing flows.spec.ts and this workstream;
+the causal source-repair extension and exact final ownership are recorded below.
+At that boundary the full replay had finished flows.spec.ts; keep its later modules unchanged and
+do not start a second browser against its fixture. Its full result remains
+bound to the original b011b0e test source, not the upcoming stronger assertions.
+
+Trace establishes that a successful map response is insufficient: a workspace
+save may still reconcile older persisted source configuration and remount the
+component. Require a successful real snapshot response containing watchlist:7
+before selecting and publishing. If the source is actually lost, that stronger
+assertion must fail; do not reselect/retry the publication action or mock saves.
+Also preserve PTR1 as a regression in the existing template flow: wait for a
+real populated RSP percentage, ordinarily open/close Plots while RSP remains,
+then remove and restore the same saved comparison. The initial test-only
+approach exposed the source defect recorded below. No reference/tolerance
+change, force/trial click, browser sleep or relaxed timeout is permitted.
+
+The original b011 full replay is now terminal RED: 255 passed, 2 skipped,
+3 failed in35.2m. One functional Market Map persistence failure and two
+popup-close teardown failures (1080p100/1440p100); every pixel comparison
+passed. Full artifacts preserved intact at
+`/tmp/chart-pointer-repair-evidence-20261015/b011-complete-red-results`.
+The first strengthened two-case validation ran five repetitions each with zero
+retries (process87188), using the same pinned isolated browser/font/proxy setup.
+The first Docker launch was sandbox-denied before start; the normal narrow
+elevated retry launched successfully. No sibling resource was touched.
+
+The stronger source-persistence assertion is RED on repeated execution: it
+does not conceal an actual lost update. Inspection shows saveSnapshot ignores
+an accepted older-generation response entirely, leaving its server revision
+unacknowledged. A subsequent save uses that obsolete revision and invokes
+conflict reconciliation/remount, which can drop the new map's configuration.
+The existing unit test protects newer field values but never checks the next
+base_revision, so its fake server accepted a request the real server rejects.
+
+This same causal validation context now explicitly owns workspace.ts and its
+existing unit spec as well as flows.spec.ts and own ops. The human's recorded
+instruction to handle validated technical fixes needed for all four branches
+without per-fix signoff authorizes this narrowly necessary save-path repair;
+it does not authorize unrelated feature scope, cross-worktree writes, waived
+conflict safeguards or product checkpoint acceptance. First demonstrate the
+missing revision assertion fails, then preserve the acknowledged revision and
+baseline without replacing newer local fields or another selected workspace.
+Keep the stronger browser persistence assertion. This is a real source repair,
+not a claim that adding a wait cured the product defect. Full validation and
+exact CI must be rerun on the resulting source before review/integration.
+
+The original ten-case repeated browser check finished 6 passed/4 failed in5.4m:
+all five populated pointer/template repetitions pass; four Market Map source
+persistence repetitions fail. Artifacts are preserved at
+`/tmp/chart-pointer-repair-evidence-20261015/persistence-assertion-before-source-fix`.
+The unit regression proves the next base_revision was4 instead of acknowledged5.
+Initial acknowledgement correction passes all73 store tests and type/build.
+A further unit regression now proves a second part of the same race: when the
+350ms timer joins a pending older-generation save, comparing against the
+waiter's generation drops the trailing write. Track the generation of the
+actual in-flight save, not the later waiter. Its unit currently fails with
+one PUT instead of two. Keep both red proofs; no passing complete profile.
+An initial frontend image was built from the acknowledgement-only source but
+has not replaced the running container. Rebuild after the trailing-save repair
+and verify the served bundle before the next browser proof. The in-progress
+full unit run loaded the earlier73-test store module; do not claim it covers
+the subsequently added74th regression or the upcoming final source correction.
+
+Final focused result: both source corrections pass all74 workspace-store tests,
+and the final complete frontend suite passes927/927 across108 files in119.13s.
+The two new failure proofs fail before their respective source correction:
+base_revision4 instead of5, and one PUT instead of the required trailing second
+PUT. The first unit command's conflicting worker bounds were a pre-execution
+runner error; explicitly setting both min/max workers to1 corrected that setup.
+Negative tests retain switched-workspace identity, an already newer revision,
+and edits made during a real conflict retry. Existing genuine conflict/recovery
+tests pass unchanged. Final Docker build runs vue-tsc and Vite successfully;
+force-recreated only this repair's frontend and verified served
+`index-C0soaeCM.js` (not the earlier acknowledgement-only image).
+Repeated final browser proof passes10/10 in1.9m, zero retries, against that fresh
+seeded app: five populated1920x1080 pointer/template cases and five successfully
+persisted Market Map → Study Lab source handoffs. Every original assertion and
+critical browser diagnostic remains. No provider request or sibling write.
+
+Current reviewed paths are frontend/src/stores/workspace.ts,
+frontend/tests/unit/stores/test_workspace_store.test.ts,
+frontend/tests/e2e/flows.spec.ts and only this workstream's four records:
+ops/workstreams/fix-chart-template-pointer-interaction/plan.yaml,
+ops/workstreams/fix-chart-template-pointer-interaction/handoff.md,
+ops/workstreams/fix-chart-template-pointer-interaction/session.json,
+ops/workstreams/fix-chart-template-pointer-interaction/validation.jsonl.
+Publish this coherent causal save-path context before another implementation
+context. Then synchronize its operational closure; only after the clean matching
+boundary may the existing visual popup-close teardown test be corrected.
+No complete final-source browser profile, exact CI, closure or integration is
+claimed yet. The six own services/four disposable volumes remain for that run.
+
+## Published changeset: pointer-visual-state-fixture
 
 Boundary: clean matching HEAD/origin67abfc8752d5c0f7297d044dcec3d9afadc2df0f;
 diff-check passed. Cache-aware transform context owns flows.spec.ts + own ops,
