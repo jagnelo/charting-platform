@@ -9,6 +9,27 @@ Created from `staging` at `5267f11a491795d85ee35b56cabbe550394f3823`.
 - Closure record: pending validation; human already delegated technical closure for this narrow repair. Deployment remains unauthorized.
 - Planning state: ready; PTR1-PTR5 and full_stack_browser retain all required validation. Delegated technical closure will be recorded after validation; deployment remains unauthorized.
 
+## Active changeset: pointer-popup-close-teardown
+
+Clean matching HEAD/origin `2129a1fed` verified before this context; diff-check
+passes. The save-path product/regression context and its separate operational
+closure are both committed and pushed. This context owns only
+frontend/tests/e2e/tc2000_visual.spec.ts and this workstream. The existing full
+run's1080p100/1440p100 screenshot assertions passed, then ordinary Close caused
+the expected popup page destruction to reject click completion. ETF's separately
+published minimal test correction handles this exact teardown and retains source
+restoration/diagnostics. Apply only that closed-page guard; any error while the
+popup remains open must still throw. All pixel references/tolerances, ordinary
+clicks, actual close event and source-tool assertions stay unchanged. Validate
+all four profiles with zero retries before publication and full replay.
+
+Focused result:8/8 pass in1.7m (two repetitions per original profile), zero
+retries. The unchanged floating screenshot, actual close event, source-tool
+restoration and critical browser diagnostics all pass. Reviewed diff is only
+the expected closed-popup click rejection guard plus own ops; any still-open
+popup error remains fatal. Publish this minimal context before the complete
+260-case no-retry replay; the final application bundle remains index-C0soaeCM.js.
+
 ## Published changeset: pointer-persisted-regression-boundaries
 
 Closure receipt: scoped staged paths were reviewed in full; source and regression

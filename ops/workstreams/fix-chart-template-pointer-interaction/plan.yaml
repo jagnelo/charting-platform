@@ -25,6 +25,7 @@ scope:
   - Strengthen the existing template comparison regression with populated percentage and ordinary Plots open/close checks while its comparison chip remains present.
   - Make the existing transform-reset browser observer respect legitimate client cache reuse while retaining a real parameter-free server request assertion after persisted-state reload.
   - Pin the existing Study sandbox-error visual fixture's adjacent loading surfaces and explicitly await structured-result chart readiness; preserve every reference and screenshot tolerance.
+  - Correct the existing floating-state visual test's expected popup self-destruction handling while preserving its ordinary Close action, screenshot, source-tool restoration and critical diagnostics.
 owned_paths:
   - frontend/src/components/workstation/WorkstationToolContent.vue
   - frontend/src/stores/workspace.ts
@@ -53,17 +54,15 @@ migration_impact: none
 deployment_impact: none
 status: in_progress
 active_changeset_context:
-  name: pointer-persisted-regression-boundaries
-  intent: Preserve newer edits while acknowledging an earlier accepted workspace revision, prove real source persistence before Market Map publication, and permanently cover populated comparison pointer actions.
+  name: pointer-popup-close-teardown
+  intent: Tolerate only the expected closed-popup click teardown while retaining screenshot, actual page-close, source restoration and critical diagnostics assertions.
   owned_paths:
-    - frontend/src/stores/workspace.ts
-    - frontend/tests/unit/stores/test_workspace_store.test.ts
-    - frontend/tests/e2e/flows.spec.ts
+    - frontend/tests/e2e/tc2000_visual.spec.ts
     - ops/workstreams/fix-chart-template-pointer-interaction/
 remaining_gaps: []
 progress:
   completed: [PTR1, PTR2, PTR3]
   total: 5
-  current_phase: publishing_save_path_repair
+  current_phase: popup_close_regression_validation
   current_blocker: none
-  next_action: Publish the separately reviewed save-path repair with927 unit passes, final Docker type/build and10 no-retry browser passes; synchronize its operational closure, then fix the isolated popup-close test race and complete the required full profile/exact CI.
+  next_action: Validate the unchanged floating-state screenshot and source restoration across all four profiles without retries, publish the minimal test correction, then complete the required entire browser matrix and exact CI before technical review.

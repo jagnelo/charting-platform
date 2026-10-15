@@ -327,7 +327,13 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     })
     if (!popup.isClosed()) {
       const closed = popup.waitForEvent('close')
-      await popoutTool.locator('button[title="Close"]').click()
+      try {
+        await popoutTool.locator('button[title="Close"]').click()
+      } catch (error) {
+        // The ordinary Close action destroys this page before Chromium may
+        // acknowledge click completion. A still-open popup is a real failure.
+        if (!popup.isClosed()) throw error
+      }
       await closed
     }
     await expect(sourceTool).toBeVisible()
