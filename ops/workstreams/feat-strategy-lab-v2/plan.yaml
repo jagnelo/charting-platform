@@ -7,7 +7,7 @@ integration_checkpoint:
   active_changeset:
     name: strategy-common-repair-baseline-reconciliation
     status: in_progress
-    source_commit: bda8cb11dde9995846ab9b942aae50a5ec34b3db
+    source_commit: 1fca3ec0b0f14d8e4f33ab25b0ce209847bd22de
     intent: Reconcile the released common repair baseline into this same branch, preserve exact chart workspace semantics and Strategy migration safety, and make the standard backend coverage run include the existing Strategy v2 unit suite without lowering its threshold.
     owned_paths:
       - backend/alembic/env.py
@@ -48,7 +48,34 @@ integration_checkpoint:
     consumer/negative-path evidence independently now. The human accepts checkpoints and the central
     coordinator alone integrates into staging.
   coordination_source: /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md
-  checkpoint_acceptance: pending
+  checkpoint_acceptance: pending_coordinator_technical_review_of_exact_eligible_source
+  checkpoint_acceptance_delegation:
+    recorded_at: 2026-10-15T22:55Z
+    exact_question: >-
+      May I accept and merge the four development checkpoints into staging once
+      their required cross-feature contracts and full tests pass, using verified
+      free operations only and leaving quota-held, unreviewed, paid/trial and
+      unsafe operations explicitly disabled, preserving full roadmaps/no
+      deployment/paid activation/operational trial?
+    exact_answer: >-
+      Yes—approve that initial scope and handle checkpoint acceptance. This
+      coordinator now owns conditional technical checkpoint acceptance; no
+      further per-fix/per-checkpoint human signoff is needed INSIDE that scope.
+    authority: Coordinator may conditionally accept exact feature checkpoints only after required cross-feature contracts and full tests pass, within the approved free-only and explicitly disabled-operation boundary.
+    boundary: >-
+      This is not current Strategy source acceptance, a waiver of required
+      contracts or full local and exact-source CI, permission for this feature
+      owner to self-integrate or deploy, paid/trial activation, operational
+      trial, unsafe-operation enablement, or data cleanup. The coordinator must
+      review and accept an exact eligible source, then direct owned closure,
+      clean push/freeze, and canonical staging merge. Preserve the full roadmap.
+    source: /home/m920q/charting-platform/.ai/staging-attempts/four-feature-coordination-2026-10-15.json#checkpoint_acceptance_delegation_question
+  exact_source_ci:
+    sha: 1fca3ec0b0f14d8e4f33ab25b0ce209847bd22de
+    run_id: 38812646577
+    conclusion: success
+    evidence: Branch-declared, frontend unit, backend unit/integration and Playwright jobs passed; Exhaustive Integration Gate skipped.
+    scope_limit: Hosted exact-source CI only; does not satisfy required local full_stack_browser profile or post-Provider/ETF/TC combined consumer validation.
   downstream_consumers:
   - Combined workstation and future Strategy Lab frontend
   - Local AI experiment agents
@@ -225,11 +252,11 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2]
   total: 5
-  current_phase: integration-1-common-repair-reconciled-awaiting-product-baseline
+  current_phase: integration-1-common-repair-hosted-ci-green-awaiting-product-baseline
   current_blocker: >-
-    The released 82d881e76be8de538abb6ec5c454d96afe0ee56a baseline contains only the common chart-template repair and workflow/docs. Provider, ETF and TC2000 product checkpoints remain unaccepted and unintegrated, so actual shared consumer wiring and PostgreSQL combined-upgrade acceptance remain unavailable. The legacy/mixed-history guard remains fail-closed; no retained database requiring a transition has been identified.
+    Exact-source hosted CI 38812646577 is green on 1fca3ec0b0f14d8e4f33ab25b0ce209847bd22de, but the required local full_stack_browser profile and actual combined consumer/PostgreSQL gates remain open. The released 82d881e76be8de538abb6ec5c454d96afe0ee56a baseline contains only the common repair. Provider, ETF and TC2000 product checkpoints remain unaccepted and unintegrated, so actual shared consumer wiring is not yet available. The legacy/mixed-history guard remains fail-closed; no retained database requiring a transition has been identified.
   next_action: >-
-    Validate and publish the common-baseline reconciliation plus the backend coverage test-path repair. Continue actual consumer reconciliation only after Provider, ETF and TC2000 are accepted and integrated into synchronized green staging, and this exact source is confirmed unfrozen.
+    Preserve the Provider-first heavy local validation slot. Continue actual consumer reconciliation and run the required local full profile only after accepted Provider, ETF and TC2000 product checkpoints are released in synchronized green staging and this exact source is confirmed unfrozen; then prepare the exact eligible source for coordinator review under the delegated conditional-acceptance authority.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging

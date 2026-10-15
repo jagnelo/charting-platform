@@ -14589,3 +14589,33 @@ The actual Strategy consumer reconciliation still depends on released accepted
 Provider → ETF → TC2000 product checkpoints in synchronized green staging. Do
 not import sibling code directly, activate brokers/capital, or call this
 checkpoint accepted. The full roadmap and existing writer claim remain intact.
+
+## 2026-10-15 — exact CI and conditional acceptance authority
+
+Human approval at 22:55Z answered this exact question: “May I accept and merge
+the four development checkpoints into staging once their required cross-feature
+contracts and full tests pass, using verified free operations only and leaving
+quota-held, unreviewed, paid/trial and unsafe operations explicitly disabled,
+preserving full roadmaps/no deployment/paid activation/operational trial?” The
+answer was: “Yes—approve that initial scope and handle checkpoint acceptance.
+This coordinator now owns conditional technical checkpoint acceptance; no
+further per-fix/per-checkpoint human signoff is needed INSIDE that scope.”
+
+This delegation is conditional on required cross-feature contracts and full
+tests passing, within verified free-only operations and the stated disabled
+operation boundary. It does not accept this Strategy source, waive full local
+and exact-source CI, authorize this owner to self-integrate or deploy, activate
+paid/trial/operational trial or unsafe operations, or permit data cleanup. The
+coordinator must review and accept an exact eligible source, then direct owned
+closure, clean push/freeze and canonical staging merge. The full roadmap stays
+open. Durable authority source:
+`/home/m920q/charting-platform/.ai/staging-attempts/four-feature-coordination-2026-10-15.json#checkpoint_acceptance_delegation_question`.
+
+Exact current source `1fca3ec0b0f14d8e4f33ab25b0ce209847bd22de` passed hosted CI
+run `38812646577`: Branch-declared tests, frontend unit, backend unit and
+integration, and Playwright all passed. Exhaustive Integration Gate was
+skipped. This does not satisfy the required local `full_stack_browser` profile
+or actual post-Provider/ETF/TC consumer and combined PostgreSQL validation.
+Provider retains the first heavy local validation slot; do not launch the
+competing full local gate. The released common-repair baseline remains distinct
+from any accepted product baseline.
