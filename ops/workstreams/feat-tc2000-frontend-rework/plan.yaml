@@ -546,13 +546,15 @@ status: in_progress
 progress:
   completed: [TCP1]
   total: 5
-  current_phase: TCP2_FRESH_FIXTURE_VALIDATION
+  current_phase: TCP2_HELP_REFERENCE_RECONCILIATION
   next_action: >-
-    Prepare TCP1-TCP5 under coordinator checkpoint policy; first diagnose
-    chart-template pointer interception and propose any narrow staging repair.
-    Then consume only synchronized green Provider+ETF staging and reconcile
-    actual consumer contracts before full validation and human review.
-    Preserve the complete roadmap. Historical next action: Continue TC-owned R1/R5/R6 implementation and trace the Help screenshot
+    TCP1 is complete. TCP2's focused fresh-fixture Help replay confirms the four
+    protected visual mismatches persist after freshness is canonical. Preserve
+    all snapshots and the 0.5% oracle while the required-missing Help visual
+    authority is reviewed. Continue independent TC-owned work where evidence is
+    sufficient; consume only synchronized green Provider+ETF staging for TCP3,
+    then reconcile consumers and complete validation/review. Preserve the full
+    roadmap. Historical next action: Continue TC-owned R1/R5/R6 implementation and trace the Help screenshot
     layout-state mismatch. Ctrl+M now opens explicit list membership actions,
     and Shift/Ctrl divider drag now evenly resizes the selected side with
     persisted Golden Layout proportions. Shift+N now opens Notes for the active
@@ -562,11 +564,16 @@ progress:
     integration gate open. Defer upstream consumption/reconciliation until both
     dependencies reach staging. Stop at ready_for_human_review.
   current_blocker: >-
-    TCP1 verified and coordinator narrow repair proposal published. TCP2 has
-    proven mixed font environments in tracked screenshots; Noble default passes
-    and Help fails55,032 pixels. Canonical full visual matrix process11617
-    ended93passed/11failed. Fresh fixture prepared. TCP3 awaits synchronized
-    green Provider+ETF staging. TCP4 full
+    TCP1 verified and coordinator narrow repair proposal published. TCP2's
+    Help-only fresh-fixture replay passes content/freshness assertions but fails
+    unchanged screenshots in all four profiles by55,010-65,625 pixels. The V25
+    Help state is required_missing, the registered controlled media pack is
+    unavailable at its manifest path in this runtime, and the tracked platform
+    screenshots have incompatible font/content baselines. No snapshot/policy
+    changed; visual authority needs human review. The canonical full matrix
+    ended93passed/11failed; the four focused runtime categories later passed
+    16/16. The full matrix has not been rerun, so exact-tip aggregate validation
+    remains open. TCP3 awaits synchronized green Provider+ETF staging. TCP4 full
     combined validation and TCP5 human checkpoint review remain incomplete.
 historical_implementation_records:
   - "Added TC2000's documented HLC Bars style to the frontend chart contract and settings, drawing the existing OHLCV high-low range with a close tick and omitting the open tick. Ctrl+B now cycles HLC, OHLC, Candles, Line in that order. The focused renderer/workstation tests passed 45/45; the full serial frontend suite passed 130 files / 1,225 tests; vue-tsc/Vite build passed; authenticated F8k-direct-chart-style passed 1/1 across all four styles. The protected Help screenshot test failed against its unchanged baseline with 50,941 pixels / 3.0% difference (0.5% threshold); no visual baseline/policy was changed."

@@ -19076,6 +19076,37 @@ work is Help baseline policy reconciliation, exact candidate CI evidence, and
 green Provider+ETF staged contracts before consumer integration. Preserve all
 roadmap criteria; do not infer checkpoint readiness from the focused pass.
 
+## 2026-10-15 — Fresh-fixture Help-only visual replay
+
+Rebuilt the current frontend (`npm run build`, 520 modules, 12.94s) and
+initialized the documented isolated E2E fixture under its own Compose project
+`tc2000-checkpoint-fresh-help-20261015`. The pinned Playwright 1.62.1 Noble
+browser ran only the existing Help visual test in the four required profiles.
+All four actual screenshots now show `Current · canonical`, matching the
+expected freshness state, but the unchanged screenshot oracle still fails:
+55,010 / 56,397 / 63,934 / 65,625 differing pixels respectively. Thus stale
+data was a confound in the earlier full matrix, not the cause of the remaining
+Help mismatch. Full actual/diff/expected artifacts are retained at
+`/tmp/tc-checkpoint-pinned/fresh-help/results`; test process handle72033 is
+terminal with exit1.
+
+No screenshot, mask, tolerance, skip, or product code changed. The manifest
+marks `keyboard_help` `required_missing`; its official V25 hotkeys entry is
+behavior-only. The manifest's declared 230-image controlled pack path
+`/private/tmp/tc2000-v25-reference-pack` is absent in this Linux runtime, so
+the pack itself cannot be checked for a Help image here. Existing tracked Help
+and default baselines differ by1,205 pixels in the invariant brand region,
+confirming their rendering environments are inconsistent. The visual
+authority choice therefore needs review: a permission-cleared/provenance-
+verifiable V25 Help capture, or an explicit human-reviewed local-only interim
+baseline disposition. Keep this as an open TCP2 blocker until resolved.
+
+Cleanup process38681 completed successfully for only that temporary project:
+all six containers, four generated volumes, and its network were removed.
+Original assigned TC containers/volumes were not targeted. The coordinator's
+latest read showed no source freeze, no accepted product checkpoint, and
+Provider/ETF unreleased; TCP3 remains dependent on synchronized green staging.
+
 Also touched in this context:
 ops/workstreams/feat-tc2000-frontend-rework/visual-environment-diagnosis.md.
 

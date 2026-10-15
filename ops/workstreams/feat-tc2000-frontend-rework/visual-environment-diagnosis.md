@@ -57,3 +57,46 @@ the missing V25 reference states and narrow chart-template repair proposal.
 Any baseline repair must follow the existing reference/acceptance policy and
 receive the appropriate review; no policy waiver is proposed. Combined
 Provider/ETF consumer acceptance remains gated on their green staging delivery.
+
+## 2026-10-15 — Fresh-fixture Help replay isolates the remaining mismatch
+
+To separate the stale retained-fixture state from font/content differences, the
+existing Help visual assertion was run by itself in all four protected browser
+profiles against a newly seeded, isolated fixture. The current `Current ·
+canonical` freshness state now matches the expected capture. The unchanged
+pixel oracle still fails all four profiles:
+
+| Profile | Differing pixels | Ratio |
+| --- | ---: | ---: |
+| 1920x1080 at 100% | 55,010 | 2.7% |
+| 1920x1080 at 125% | 56,397 | 2.8% |
+| 2560x1440 at 100% | 63,934 | 1.7% |
+| 2560x1440 at 125% | 65,625 | 1.8% |
+
+The popover still renders the currently implemented shortcut list and clipping
+at its existing size. This differs from the checked-in Help screenshots in
+content, text wrapping/metrics and other shell pixels. The earlier stale
+freshness mismatch is therefore removed, but it was not the cause of the
+remaining visual failure. No screenshot, threshold, mask or test assertion was
+changed. Artifacts are retained under
+`/tmp/tc-checkpoint-pinned/fresh-help/results`.
+
+The reference manifest still marks `application-shell-default/keyboard_help`
+as `required_missing`; its official Version 25 hotkeys source confirms
+behavior but provides no deterministic visual capture. The manifest registers
+230 images at `/private/tmp/tc2000-v25-reference-pack`, but that controlled
+storage path is absent in this Linux runtime, so its images could not be
+inspected here. Consequently the checked-in platform screenshots cannot be
+treated as evidence of the intended V25 Help appearance: the tracked default
+and Help images already differ in 1,205 pixels in the invariant top-left brand
+region, while the pinned Noble capture matches the default image there and the
+host capture matches the Help image there.
+
+The unresolved human decision is limited to the visual authority for this
+required-missing Help state: provide/mount a permission-cleared, provenance-
+verifiable V25 Help capture for review, or review and explicitly accept a
+deterministic local-only interim baseline disposition. Until that decision is
+made, preserve the current snapshots and `0.5%` oracle; do not claim Help visual
+acceptance. This does not block independent TC work, but TCP2 cannot close on
+the current evidence. The full roadmap and downstream Provider/ETF staging
+dependency remain open.
