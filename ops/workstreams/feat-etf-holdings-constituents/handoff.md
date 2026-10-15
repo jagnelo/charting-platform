@@ -11095,3 +11095,22 @@ separate staging merge remains `bff2d390eaf128d54a5bb588298a3b528c9a6785`
 with exact released staging `82d881e76be8de538abb6ec5c454d96afe0ee56a` as
 its second parent. These publication/ancestry checks do not substitute for the
 ETF combined validation profile or Provider producer-contract acceptance.
+
+### ETF security-sentinel identity regression — 2026-10-15 22:21Z
+
+The prior documentation context was synchronized at
+`7f343faa2236cb1e8e266b1024842f55df3564a9`. This test-only context added the
+literal `security` (the issuer parser's fallback when `securityTypeName` is
+absent) to the existing no-match materialization, existing-equity collision,
+and persisted-snapshot parameter matrices in
+`backend/tests/unit/services/test_etf_holdings_resolution.py`. The resolution
+module passed52/52 with `--no-cov`, Ruff passed, workstream validation passed
+all31 records, and `git diff --check` passed. No source behavior changed. The
+focused implementation commit is now
+`dd9b7a08ce79303638c3951dd937270e97bbff33`, pushed to the assigned feature
+branch. Exact-source CI and the combined full-stack browser profile have not
+been run for this commit; the latter remains coordinated behind Provider's
+first heavy validation slot. This small regression is not ETF checkpoint
+acceptance. Next: resume the full bridge only after a reviewed green Provider
+contract/release; preserve all cost/quota denials, canonical identity, retention
+semantics, and the original roadmap.

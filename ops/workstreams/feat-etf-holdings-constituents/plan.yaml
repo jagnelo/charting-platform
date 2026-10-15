@@ -149,16 +149,16 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: ETF shared-runtime transport surface inventory
-    state: completed_documentation_context_provider_contract_pending
-    baseline: 8e7e17b3e5744c39f65fdbde915c0a20b295eb4e
-    intent: Record the current ETF-tree Provider runtime boundary and consumer requirements without guessing the Provider API or creating an ETF governance ledger; preserve the exact shared-cost, identity, retention, and validation gates until a reviewed green producer contract is released.
+    name: ETF security-sentinel identity regression
+    state: completed_focused_regression_provider_contract_pending
+    baseline: 7f343faa2236cb1e8e266b1024842f55df3564a9
+    intent: Add exact parser-default holding_type security coverage to the existing unresolved-row, existing-equity-collision, and persisted-snapshot regressions; do not change source behavior unless a focused test demonstrates a defect.
     owned_paths:
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md
       - ops/workstreams/feat-etf-holdings-constituents/session.json
       - ops/workstreams/feat-etf-holdings-constituents/validation.jsonl
-      - ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md
+      - backend/tests/unit/services/test_etf_holdings_resolution.py
 scope:
   - "Keep branch-owned ETF workstream and provider-universe documentation code-derived; the current reconciled baseline is 496 registered, 422 native/live-backed, and 74 fallback-only providers after the evidence-backed Arin/ATTR route promotion."
   - "Create and maintain a branch-owned exhaustive provider audit ledger covering all 140 current fallback-only adapter keys, with deterministic prioritization, source evidence, attempt dates, route disposition, and next action."
@@ -1309,7 +1309,7 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  The exact synchronized green common repair baseline82d881e76be8de538abb6ec5c454d96afe0ee56a
+  The bounded security-sentinel identity regression is complete: the exact parser-default "security" holding type is covered in the no-match, equity-collision, and persisted-snapshot matrices; the focused resolution module passed52/52 with coverage disabled, Ruff and workstream validation passed. Resume ETF_HOLDINGS work only against a reviewed green Provider producer contract and coordinated first heavy-validation release. The exact synchronized green common repair baseline82d881e76be8de538abb6ec5c454d96afe0ee56a
   has been merged into this clean ETF branch as second parent of bff2d390e;
   that repair release is not product-checkpoint acceptance. The merged
   snapshot-save behavior, chart geometry, and ETF's stronger visual readiness
@@ -1319,10 +1319,9 @@ next_action: >-
   commodity, other, and unknown types remain unresolved instead of attaching
   to an equity by ticker or creating a synthetic stock. The focused resolver
   and capability tests pass149/149, including persisted holdings lineage,
-  unknown and equity-collision tickers. An exploratory security-sentinel test
-  passed in a temporary152-case matrix but was removed because the active
-  changeset owns documentation only; add the explicit sentinel regression when
-  code scope reopens. The 14-case persisted-consumer module passed locally in
+  unknown and equity-collision tickers. The parser-default security-sentinel
+  regression now passes through all three identity and persistence matrices;
+  the full resolution module passes52/52. The 14-case persisted-consumer module passed locally in
   host context; its first TestClient request stalls only in the restricted
   sandbox and is not an application failure. Current ETF-tree inspection found
   no ETF_HOLDINGS capability or durable request reservation, and the existing

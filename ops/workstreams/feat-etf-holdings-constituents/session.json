@@ -30,17 +30,17 @@
     }
   ],
   "active_changeset": {
-    "baseline": "8e7e17b3e5744c39f65fdbde915c0a20b295eb4e",
-    "intent": "Derive the eventual ETF shared admission/test surface from current source without guessing the Provider API or creating an ETF governance ledger; update ETF-owned checkpoint records and wait for a coordinator-released green producer contract.",
-    "name": "ETF shared-runtime transport surface inventory",
+    "baseline": "7f343faa2236cb1e8e266b1024842f55df3564a9",
+    "intent": "Add exact parser-default holding_type security coverage to the existing unresolved-row, existing-equity-collision, and persisted-snapshot regressions; do not change source behavior unless a focused test demonstrates a defect.",
+    "name": "ETF security-sentinel identity regression",
     "owned_paths": [
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-      "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
-      "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+      "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
+      "backend/tests/unit/services/test_etf_holdings_resolution.py"
     ],
-    "state": "completed_documentation_context_provider_contract_pending"
+    "state": "completed_focused_regression_provider_contract_pending"
   },
   "active_session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
   "branch": "feat/etf-holdings-constituents",
@@ -94,7 +94,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "0179fab27df155d431bc33bb58a6310515f8db46",
+  "head": "dd9b7a08ce79303638c3951dd937270e97bbff33",
   "implementation_sha": "faffd6f75b40e4dbcf506c9c042d906d1aaa0327",
   "integration_checkpoint": {
     "acceptance_authorization": "pending",
@@ -227,8 +227,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Wait for coordinator release of a reviewed green Provider producer contract and its first heavy local validation slot. Then re-read exact staged source, update the consumer matrix, reconcile identity/entitlement/quota/cost/health and async transport semantics, implement ETF_HOLDINGS with real request-level admission/retention tests, and run the unchanged full_stack_browser profile plus exact-source CI after fresh capacity coordination. Preserve the full fourteen-criterion roadmap and post-integration observation gate. Do not guess APIs/costs, duplicate the ledger, merge sibling work, activate paid/trial routes, deploy, or clean retained data.",
-  "plan_hash": "f514a0ba5aeaa443ee6eb6802018ac5773059daa9d112b05370e6e7147fa1f5c",
+  "next_action": "Resume Provider-contract-gated ETF_HOLDINGS work only against a reviewed green producer contract and coordinated full_stack_browser slot. The bounded security-sentinel identity regression is published and passes 52/52 focused tests; preserve the full roadmap and post-integration observation gate. Do not guess APIs/costs, duplicate the ledger, merge sibling work, activate paid/trial routes, deploy, or clean retained data.",
+  "plan_hash": "4ed044c9bd5f63c6355a3456f3e0ccbd3e6344a44546f70006f13774e820413a",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -285,7 +285,7 @@
     "total": 7,
     "updated_at": "2026-10-15T22:12:26.620180+00:00"
   },
-  "remote": "0179fab27df155d431bc33bb58a6310515f8db46",
+  "remote": "dd9b7a08ce79303638c3951dd937270e97bbff33",
   "remote_sha": "faffd6f75b40e4dbcf506c9c042d906d1aaa0327",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
