@@ -21055,3 +21055,31 @@ Provider/ETF consumer reconciliation, TCP4 combined profile, TCP5 review, and
 official V25 parity remain open; there is no whole-TC acceptance or staging
 integration authorization in this result.
 
+## 2026-10-16 — TCP2 Help reference review and next action
+
+Read the coordinator's approved-reference disposition and rechecked the
+current source records, four tracked Linux Help PNGs, Help layout, visual
+assertions, and keyboard flow without launching a browser or test profile.
+The four PNG Git blobs still match the coordinator-reviewed artifacts exactly;
+read-only inspection across 1080p/100, 1080p/125, 1440p/100, and 1440p/125
+shows shortcut labels/descriptions readable and separated. The source retains
+the 112px key column and 7px grid gap; unchanged checks require at least 8 CSS
+pixels between key text and description and reject horizontal clipping. The
+existing F9e evidence preserves focus, PageDown/PageUp, bottom and last-row
+visibility, Home, Tab-to-Close, Escape, and trigger-focus recovery. Its local
+keyboard pass (1/1) and four Help screenshot passes (4/4) remain valid evidence
+for this narrow subgate at the original 0.005 tolerance; no screenshot, oracle,
+assertion, or source was changed in this review.
+
+This does not close TCP2's full opted-in 104-case visual matrix. Provider run
+38978777973 currently owns the heavy validation slot. The next independent
+TCP2 action is to execute that full matrix on exact current source in the
+approved deterministic browser/font environment after the slot is released,
+without refreshing references or changing thresholds. The approved interim
+local Help reference is not official V25 evidence: keep manifest state/review
+`required_missing` and official V25 parity as roadmap work. Do not merge the
+released staging repair baseline `79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b`
+into TC until Provider and then ETF have green product staging baselines. TCP3
+consumer reconciliation, TCP4 combined validation, TCP5 checkpoint review,
+and the broader roadmap remain open.
+

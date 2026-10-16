@@ -30,27 +30,27 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Exact Actions run38958541029 on source2e38b9749e73c0b9bdc6d76b94732379db105f23
-  is terminal red: 188 E2E passed,110 skipped, and two retry-passing flakes under
-  failOnFlaky. F8r-python-library-narrow's failure snapshot still had the tool
-  menu open with no Python Library window; the available evidence does not
-  establish whether app hydration or test readiness caused the missed first
-  opening. F14-context-keyboard failed with the chart still reporting Loading
-  SPY and no uPlot canvas, while the drawing-only test did not control its local
-  OHLC response. Candidate test setup now waits for an observable live dock
-  before F8r and supplies deterministic local OHLC rows for F14. Existing
-  UI assertions,15-second limits, retry policy, and visual thresholds are
-  unchanged. Candidate commit f06c6788a4b87dc9fb2aaec246a6c07d0b911963 was
-  pushed and exact Actions run38964648067 attempt1 concluded SUCCESS for that
-  full SHA. Backend, Frontend Unit, Branch-declared, and Playwright E2E passed;
-  E2E reported190 passed/110 skipped in19.9m with zero retries, flakes, or
-  failures. F8r ran at case135/300 and F14 at case178/300. Exhaustive Integration
-  Gate was skipped by feature-branch policy; skipped cases include screenshot
-  projects and do not constitute the104-case visual matrix. This closes only
-  these two functional flake observations, not the TC checkpoint. TCP2 full
-  visual, TCP3 Provider/ETF consumers, TCP4 combined profile, TCP5 review, and
-  official V25 parity remain open; the coordinator owns staging-derived
-  remediation/integration, and this worktree does not merge staging or siblings.
+  The latest product-source CI is exact run38964648067 for f06c6788a4b87dc9fb2aaec246a6c07d0b911963:
+  all required feature jobs passed and E2E reported190 passed/110 skipped with
+  zero retries, flakes, or failures. The current tip1e2474708e5f816c6e6956a82bb58bcb4c0e1e02
+  adds only durable records; the hosted visual projects were skipped and do not
+  constitute the full104-case matrix. TCP2 Help-reference authority/readability
+  is closed narrowly: the approved local Linux references still match the four
+  coordinator-reviewed blobs; current Help source retains its112px key column,
+  7px grid gap, and functional minimum8px text-range separation/clipping checks.
+  Existing exact-source evidence records the Help keyboard/scroll flow1/1 and
+  four Help profiles4/4 under the unchanged0.005 tolerance. This turn visually
+  rechecked the four unchanged blobs and source/test contract without starting
+  a browser. Provider run38978777973 still owns the heavy validation slot, so
+  the next TCP2 action is to run the complete opted-in104 visual matrix on an
+  exact current source in the approved deterministic browser/font environment
+  once that slot is released; do not refresh any reference or weaken an oracle.
+  Keep `keyboard_help` and its review `required_missing`: official V25 Help
+  parity remains unfinished roadmap work. Do not merge the released staging
+  repair baseline79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b into TC until
+  Provider and then ETF have green product staging baselines. TCP3 consumer
+  reconciliation, TCP4 combined validation, TCP5 checkpoint review, and full
+  official V25 parity remain open; no whole-TC acceptance is implied.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
