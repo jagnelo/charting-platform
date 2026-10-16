@@ -46,13 +46,33 @@
   not accept this candidate, waive red gates, or authorize this worktree to
   integrate. No deployment, paid/trial activation, source freeze, or data
   cleanup is authorized.
-- Next: finish/publish the review packet, run durable no-transport quota
-  admission on the clean published candidate, then run only operations admitted
-  by reviewed-free policy and safe exact quota. Publish exact enabled and
-  disabled/held operation dispositions, push, and verify exact-source hosted
+- Exact-source no-transport preflight on commit
+  `f614621778521743e5cc8bdce29a61501025ef08` completed at 04:48:53Z against
+  the shared durable quota coordinator: 27 providers evaluated, 23 eligible,
+  four quarantined, zero provider HTTP requests, coordinator ready. Quarantined
+  providers are Alpha Vantage (daily headroom below its nine-request
+  reservation), Dinari (unreviewed Sandbox account quota/reset/per-operation
+  cost), Marketstack (monthly headroom below two OHLCV requests plus unresolved
+  directory MIC/page/cost), and Tiingo (daily and hourly baselines unknown).
+  CTA Plan and Nasdaq are currently admitted; do not carry their older quota
+  holds forward. The full-matrix preflight returned blocked only because Dinari
+  and Marketstack have selected-capability safety blockers; the runner's
+  provider-filter mode supports testing only the 23 independently admitted
+  providers. No safety check is bypassed for selected work. This is still only
+  an admission result, not live evidence.
+- A second no-transport preflight at 04:51:14Z selected exactly the 23 above;
+  required credentials were present, selected-provider admission was clear,
+  and it made zero provider requests. This establishes that full-manifest
+  testing can proceed for the 23 without calling the four quarantined
+  providers. It is not a live result. The selected provider names and both
+  source-bound preflight records are in the packet and validation journal.
+- Next: stage the final candidate workstream state, run complete manifests only
+  for those 23 admitted providers, and preserve all returned payloads and quota
+  accounting. Verify candidate receipts and publish exact enabled-operation
+  successes plus every held/disabled operation. Push and confirm exact-source
   CI. Coordinate the strict visual mismatch with its UI owner without changing
-  frontend files here. Keep the original full roadmap open; do not rebind the
-  historical 20/27 receipt.
+  frontend files here. Keep the full roadmap open and do not rebind historical
+  20/27 evidence.
 
 ## 2026-10-15 08:54Z Tiingo baseline refresh and exact-candidate live validation
 
@@ -25604,3 +25624,45 @@ exact candidate receipts remain separate gates.
   feature integration, paid/trial activation, deployment, or data cleanup are
   authorized by this checkpoint.
 *** End of File
+## 2026-10-16 05:10Z — exact staged live receipts and full browser disposition
+
+- The 23 providers admitted by fresh no-transport preflight were run as
+  separate complete manifests against staged candidate tree
+  `592261aaef97a9ba2d3b3d6c818720eadd630abc` (parent
+  `f614621778521743e5cc8bdce29a61501025ef08`). Every slice reports the staged
+  candidate unchanged. Combined result: 62/62 cases passed, 151 HTTP requests,
+  and 64,552,569 measured response bytes. Detailed redacted receipts are held
+  outside Git at
+  `/tmp/provider-live-candidate-592261aaef97a9ba2d3b3d6c818720eadd630abc.jsonl`.
+- Offline receipt verification made zero provider requests, verified all 23
+  admitted providers against that exact tree, and returned incomplete with
+  `live_acceptance=false` because four providers were held: Alpha Vantage (daily
+  headroom below 9-request reservation), Dinari (no reviewed Sandbox quota,
+  reset and operation-cost profile), Marketstack (monthly headroom below the
+  two-request OHLCV reservation; discovery MIC/page/cost unresolved), Tiingo
+  (daily/hourly usage baselines unknown). None of these four was queried.
+  Do not rebind the historical 20/27 receipt or the 23 receipts to any later
+  tree.
+- Explicit live exceptions are not successes: CoinGecko `/key` is Pro-only;
+  Finnhub free stock candles returned 403; FMP Basic stock-list returned 402;
+  unbounded response-priced MarketData.app option history was verified as
+  zero-request disabled; FINRA generic async submit/poll/download operations
+  have no admitted dataset consumer; Bybit xStocks deployment egress remains
+  intentionally no-request pending separate evidence. Massive completed all
+  19 OTC directory pages, preserving raw pages before cursor advancement.
+- Full functional Playwright matrix: 154 passed, 106 expected skips, 0 failed,
+  0 retries across 260 cases. Strict visual matrix: 101/104 passed; 3 Study Lab
+  screenshots remain red (~1.0% difference vs 0.5%). The host E2E wrapper had
+  stopped before assertions because existing ignored report directories were
+  unwritable; the same suite ran in the version-matched Playwright container.
+  Provider files/snapshots were not changed. Docker artifacts and volumes were
+  preserved; no provider quota ledger or response archive was reset/cleaned.
+- Push CI for `f614621778521743e5cc8bdce29a61501025ef08` is run
+  `38853327766`; it was in progress at 05:10Z. The refreshed packet/plan,
+  inventory and receipts now change documentation source, so commit and push
+  this coherent handoff update, then verify new exact-source CI. The strict
+  visual issue stays with its frontend owner. Coordinator remains the sole
+  checkpoint-acceptance/staging integration owner under the recorded 22:55Z
+  conditional delegation. No paid/trial activation, deployment, branch
+  integration, human reapproval, data cleanup, or extra provider call is
+  authorized or needed here. Full roadmap remains open.

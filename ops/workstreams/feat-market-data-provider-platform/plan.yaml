@@ -307,6 +307,62 @@ integration_checkpoint:
     Exact-source hosted CI and a fresh durable no-transport/live operation
     disposition for this candidate remain outstanding. This update adds no
     provider requests and does not rebind the historical 20/27 live receipt.
+
+    At 2026-10-16 04:48:53Z, durable no-transport preflight on exact HEAD
+    `f614621778521743e5cc8bdce29a61501025ef08` found 23 providers individually
+    eligible, four quarantined (Alpha Vantage, Dinari, Marketstack, Tiingo),
+    the durable quota coordinator ready, and zero provider HTTP requests. The
+    full-matrix preflight remained blocked only by two provider-local safety
+    dispositions (Dinari Sandbox reviewed quota/reset/cost profile and
+    Marketstack directory MIC/page/cost). Provider-filter mode can test only
+    the 23 individually admitted manifests; no safety or quota check is
+    bypassed for selected operations. Exact receipt source and case results
+    remain outstanding. This preflight did not refresh any provider account
+    via transport and does not convert the historical 20/27 receipt.
+
+    At 2026-10-16 04:51:14Z, a second no-transport preflight explicitly
+    selected those 23 independently admitted provider manifests. All required
+    credentials were present, selected-provider admission was clear, and zero
+    provider requests were made. This confirms the unselected Dinari and
+    Marketstack safety blockers do not prevent a safe run of the other 23; it
+    is not itself a live result. The ordered selection is recorded in the
+    checkpoint packet and validation.jsonl. Next live execution must use this
+    exact selection only, with durable reservation and per-operation receipts.
+
+    Update 2026-10-16 05:10Z: all 23 independently admitted manifests ran
+    one provider at a time against exact staged candidate tree
+    `592261aaef97a9ba2d3b3d6c818720eadd630abc` (parent
+    `f614621778521743e5cc8bdce29a61501025ef08`). Every slice reported
+    `candidate_unchanged=true`: 62/62 cases passed, 151 provider HTTP requests
+    and 64,552,569 measured response bytes. Massive took 503.69s and passed the
+    full reference/corporate-action/IPO suite plus all 19 OTC directory pages;
+    raw pages were persisted before cursor advance. The offline receipt
+    verifier made zero provider requests, verified those 23 providers against
+    this tree, and correctly returned `complete=false`, `live_acceptance=false`
+    with Alpha Vantage, Dinari, Marketstack and Tiingo missing. Those four
+    remain held and were not queried. Redacted per-provider receipts remain
+    outside Git at
+    `/tmp/provider-live-candidate-592261aaef97a9ba2d3b3d6c818720eadd630abc.jsonl`;
+    never rebind them to a later tree. Tested unavailable operations include
+    CoinGecko `/key` (Pro-only), Finnhub free stock candles (403), FMP Basic
+    stock-list (402), unbounded response-priced MarketData.app option history
+    (zero HTTP requests), FINRA generic async transport (no admitted dataset
+    consumer), and restricted Bybit xStocks deployment egress (no-request
+    policy). These are not successful data capabilities.
+
+    The configured 260-case browser matrix passed its functional stage with
+    154 passed, 106 expected skips, zero failures and zero retries. The
+    separate strict 104-case visual parity stage remains red: 101 passed and
+    three Study Lab comparisons failed at about 1.0% against the 0.5%
+    threshold. The host wrapper also stopped before E2E assertions due to
+    ignored report-directory permissions; the same browser matrix ran in the
+    version-matched Playwright container. No frontend files or snapshots
+    changed. Exact-source push CI for `f614621...` is run `38853327766`; it was
+    in progress at 05:10Z. The final packet commit needs its own exact-source
+    CI. Conditional coordinator acceptance remains delegated but has not
+    occurred. No staging integration, paid/trial activation, deployment, quota
+    ledger reset, or response-artifact cleanup occurred. Full roadmap work
+    remains open.
   downstream_consumers:
     - feat/etf-holdings-constituents
     - feat/tc2000-frontend-rework
@@ -5713,9 +5769,13 @@ progress:
     parity stage has three Study Lab snapshot differences at about 1.0% against
     the 0.5% limit. No frontend files changed. Exact-source hosted CI and fresh
     current-source provider admission/live evidence remain open. Keep
-    quota-held providers excluded. The conditional acceptance delegation is
-    active, but it does not accept this source or waive these gates. No merge,
-    deployment, provider activation, trial, or data cleanup is authorized.
+    quota-held providers excluded. The 04:48:53Z durable no-transport
+    preflight on `f614621` admitted 23 complete provider manifests and held
+    Alpha Vantage, Dinari, Marketstack, and Tiingo; no HTTP was sent. Current
+    source-bound live receipts for the 23 and exact-source hosted CI remain
+    open. The conditional acceptance delegation is active, but does not accept
+    this source or waive these gates. No merge, deployment, provider
+    activation, trial, or data cleanup is authorized.
   previous_goal_blocker: >-
     Continued local implementation is not blocked by an owner decision. The
     prior staged candidate is `32dafe227755d7a890bfeb4d96ffc53542af7ba7`; its
