@@ -5,30 +5,65 @@ parent_branch: staging
 parent_sha: e0cb269afc8460bdc814c93ec71c640f01b2b31f
 dependency_authorization: "Human authorized the four-feature staging checkpoint and delegated technical acceptance: Yes I approve, and you do not need my acceptance to close it off; do this yourself, with care. Use a narrow branch based directly on exact degraded staging, preserve all tests and gates, and do not deploy, activate paid behavior, run a trial, or promote master."
 human_intent_authorization: "Repair the exact degraded staging failure at e0cb269afc8460bdc814c93ec71c640f01b2b31f by transplanting only TC2000 fix 957216a1bbb0727dc7f5f26f644d84df911e5522 for preserving explicitly selected occurrence timestamps during chart hydration, then validate and guarded-integrate this narrow repair under the active four-feature staging goal; no deployment, paid activation, operational trial, or master promotion."
-planning_state: draft
-human_closure_authorization: pending
+planning_state: ready
+human_closure_authorization: >-
+  The human activated central four-feature staging integration and delegated
+  technical acceptance of necessary repairs: "Yes I approve, and you do not
+  need my acceptance to close it off, it's a waste of time for me to
+  individually verify each individual fix in all the 4 parallel development
+  branches - do this yourself, with care, I just want to get to the
+  merged-into-staging state to finally try this out". This repair is limited to
+  fixing the exact stale-linked-timestamp E2E failure on degraded staging; it
+  does not accept or close the full TC2000 feature roadmap.
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: full_stack_browser
+local_validation_reason: >-
+  This frontend store/view/chart fix addresses an end-to-end timestamp race.
+  Preserve the required full-stack/browser tier. The originating TC commit has
+  exact green CI; this repair must receive its own exact-source CI and the
+  resulting staging SHA must pass the Exhaustive Integration Gate. The local
+  runner cannot currently provision a fresh UV environment because DNS lookup
+  for Python package artifacts fails, so no local browser pass is claimed.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 goal: "Repair the exact degraded staging failure at e0cb269afc8460bdc814c93ec71c640f01b2b31f by transplanting only TC2000 fix 957216a1bbb0727dc7f5f26f644d84df911e5522 for preserving explicitly selected occurrence timestamps during chart hydration, then validate and guarded-integrate this narrow repair under the active four-feature staging goal; no deployment, paid activation, operational trial, or master promotion."
-scope: []
-owned_paths: []
-dependencies: []
-acceptance_criteria: []
-branch_tests: []
-branch_tests_reason: pending agent assessment
+scope:
+  - Transplant only TC2000 fix commit 957216a1bbb0727dc7f5f26f644d84df911e5522 onto exact degraded staging e0cb269afc8460bdc814c93ec71c640f01b2b31f.
+  - Prevent stale chart cursor publication from replacing an explicit occurrence timestamp while the selected symbol's data and chart hydrate.
+  - Preserve the full TC2000 feature roadmap and all normal cursor, chart, integration, and visual checks.
+owned_paths:
+  - frontend/src/components/chart/UPlotChart.vue
+  - frontend/src/stores/workspace.ts
+  - frontend/src/views/WorkstationView.vue
+  - frontend/tests/unit/stores/test_workspace_store.test.ts
+dependencies:
+  - TC2000 fix commit 957216a1bbb0727dc7f5f26f644d84df911e5522 passed exact-source CI run 38954608461.
+  - Persistent staging is degraded only at exact synchronized SHA e0cb269afc8460bdc814c93ec71c640f01b2b31f under marker .ai/staging-degraded.json; its E2E failure is recorded by run 38947572686.
+acceptance_criteria:
+  - id: OCCURRENCE1
+    text: Repair branch remains based directly on the exact degraded staging SHA and contains only the reviewed timestamp fix plus its own workstream record.
+  - id: OCCURRENCE2
+    text: Regression coverage proves explicit historical occurrence intent is protected from stale cursor publications during hydration, superseding selections remain authoritative, and normal chart cursor publication resumes after the hold clears.
+  - id: OCCURRENCE3
+    text: Exact repair branch CI is fully successful without flaky tests; the guarded remediation merge preserves the exact degraded base and the exact resulting staging SHA passes Exhaustive Integration Gate before the marker is cleared.
+branch_tests:
+  - Exact-source CI: Frontend Unit Tests, Backend Tests, Branch-declared Tests, and E2E Tests (Playwright), including TC2000 workstation F8s-breadth-family-ratio.
+branch_tests_reason: >-
+  The exact owner-branch run is green, but the repair branch has a different
+  base and must prove the same source diff there; the exact staging exhaustive
+  gate remains required after guarded integration.
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
 status: authorized
-remaining_gaps: []
+remaining_gaps:
+  - Transplant and inspect the exact four-file fix on the degraded staging base.
+  - Pass exact repair-branch CI, then guarded-integrate and pass exact staging Exhaustive Integration Gate.
 progress:
   completed: []
-  total: 0
-  current_phase: plan
+  total: 3
+  current_phase: narrow_fix_transplant
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: transplant only the approved TC fix, inspect its exact diff against degraded staging, then validate the repair branch

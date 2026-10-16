@@ -1,20 +1,65 @@
 {
-  "schema": 2,
+  "acceptance_criteria": [],
+  "active_session_id": "fbbdcd40-d65d-4462-80ba-774945e93ced",
   "branch": "fix/tc-occurrence-date-hydration",
-  "parent_branch": "staging",
-  "implementation_sha": "e0cb269afc8460bdc814c93ec71c640f01b2b31f",
-  "remote_sha": null,
-  "active_session_id": null,
-  "previous_session_ids": [],
-  "goal_state": "not_started",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-tc-occurrence-date-hydration-5fe4d495",
+      "charting-stack-fix-tc-occurrence-date-hydration-5fe4d495"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-tc-occurrence-date-hydration-5fe4d495a2"
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/tc-occurrence-date-hydration: Repair the exact degraded staging failure at e0cb269afc8460bdc814c93ec71c640f01b2b31f by transplanting only TC2000 fix 957216a1bbb0727dc7f5f26f644d84df911e5522 for preserving explicitly selected occurrence timestamps during chart hydration, then validate and guarded-integrate this narrow repair under the active four-feature staging goal; no deployment, paid activation, operational trial, or master promotion.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/tc-occurrence-date-hydration: Repair the exact degraded staging failure at e0cb269afc8460bdc814c93ec71c640f01b2b31f by transplanting only TC2000 fix 957216a1bbb0727dc7f5f26f644d84df911e5522 for preserving explicitly selected occurrence timestamps during chart hydration, then validate and guarded-integrate this narrow repair under the active four-feature staging goal; no deployment, paid activation, operational trial, or master promotion.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "891111fe1488150817faf78ab58989fdf77adb20",
+  "implementation_sha": "e0cb269afc8460bdc814c93ec71c640f01b2b31f",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "2bdd4d2206affcd250204bbd17e812fff84a199e227a5677f0c03cb3ba93a2e9",
+  "planning_required": true,
   "planning_state": "draft",
+  "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "total": 0,
+    "current_blocker": "none",
     "current_phase": "plan",
-    "current_blocker": "none"
+    "total": 0
   },
-  "next_action": "run make agent-session-start",
-  "retained_docker_resources": []
+  "remote": "891111fe1488150817faf78ab58989fdf77adb20",
+  "remote_sha": null,
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "fbbdcd40-d65d-4462-80ba-774945e93ced",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-tc-occurrence-date-hydration/ops/workstreams/fix-tc-occurrence-date-hydration",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-tc-occurrence-date-hydration/ops/workstreams/fix-tc-occurrence-date-hydration/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-tc-occurrence-date-hydration/ops/workstreams/fix-tc-occurrence-date-hydration/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-tc-occurrence-date-hydration/ops/workstreams/fix-tc-occurrence-date-hydration/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-tc-occurrence-date-hydration/ops/workstreams/fix-tc-occurrence-date-hydration/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-tc-occurrence-date-hydration",
+  "worktree_id": "fix-tc-occurrence-date-hydration-5fe4d495a2"
 }
