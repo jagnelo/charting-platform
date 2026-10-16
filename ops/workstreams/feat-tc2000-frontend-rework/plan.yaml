@@ -79,9 +79,12 @@ current_blocker: >-
   Branch-declared, Frontend Unit, and Backend jobs succeeded, but E2E job
   116753105088 failed with 188 passed, 110 skipped, and one non-retry-passing
   F8s-market-map-watchlist failure; the feature-branch Exhaustive Integration
-  Gate was skipped. This is not clean acceptance or full-gate evidence. Source
-  review and isolated no-retry browser evidence below identify and correct its
-  obsolete Refresh locator; exact-source CI must still verify the change.
+  Gate was skipped. That run was not clean acceptance or full-gate evidence.
+  Its correction is now verified by exact-head Actions run 38835330075 for
+  7f33b07dfc7ffa57d5285e04981448732e3eb727: backend, branch-declared, frontend
+  unit, and E2E jobs succeeded; E2E reports 189 passed/110 skipped and the
+  exhaustive gate was skipped. This verifies the targeted test fix but does not
+  prove screenshot acceptance or the full combined checkpoint.
   Retry-free populated-comparison/template and date-pointer persistence browser
   replays passed after the common repair merge and are closed as focused evidence.
   Provider/ETF product synchronization, the full exact-source/combined TCP4
@@ -691,9 +694,14 @@ progress:
     exposed the obsolete locator; that is the diagnosis, not a retry pass. The
     initial narrow F9c setup tried to reopen the template menu and failed to
     locate its item; the final narrow check populates RSP through the comparison
-    control and tests both ordinary actions. Exact-source CI must still rerun;
-    full local/combined gates remain pending and Provider has priority for the
-    next full local validation slot.
+    control and tests both ordinary actions. Exact-head Actions run 38835330075
+    for source commit 7f33b07dfc7ffa57d5285e04981448732e3eb727 is terminal
+    success: Backend Tests, Branch-declared Tests, Frontend Unit Tests, and E2E
+    Tests succeeded; E2E reports 189 passed/110 skipped (299 total). The
+    ordinary workflow command did not opt in to visual parity; those skips are
+    not visual acceptance, and Exhaustive Integration Gate was skipped. Full
+    local/combined gates remain pending; Provider has priority for the next
+    full local validation slot.
     Before TCP4, the exact-source full local/combined opted-in visual matrix must execute in
     a documented deterministic browser/font environment; the Help-only local
     run is not a substitute. Provider/ETF product integration and TCP3/TCP4

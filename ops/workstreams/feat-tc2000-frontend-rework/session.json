@@ -91,7 +91,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "59bbb968feefd2ba9c74638dcfa6863d5533186c",
+  "head": "7f33b07dfc7ffa57d5285e04981448732e3eb727",
   "implementation_sha": "d0add5588612339203073b21015028ad4ffeb106",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -100,11 +100,11 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-16T01:28:01+00:00",
+  "last_checkpoint": "2026-10-16T02:01:21+00:00",
   "last_human_progress_update": "2026-10-15T23:33:12+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Common green staging 82d881e7 is reconciled through merge d4274a9 in current source 59bbb968; retain original pre-merge history and the four conflict-resolution audit. Current Help remains 112px key column / 7px CSS gap with the existing 8px measured text-separation guard; reviewed reference blobs and official V25 required_missing status are unchanged. Exact-head Actions 38831565334 is terminal: Branch-declared, Frontend Unit and Backend succeeded, but E2E 116753105088 failed (188 passed, 110 skipped, one F8s-market-map-watchlist Refresh timeout); Exhaustive skipped. The F8s failure was a stale exact accessible-name locator ('Refresh' versus 'Refresh Market Map'); corrected selector and separate auto-refresh/manual-click assertions passed in two fresh-account no-retry runs. Populated comparison Plots/Remove actions passed at desktop and 390x800 in F9c without retries. Focused MarketMapTool Vitest passed 58/58. Push this validated test/workstream context for exact-source CI, then continue full local/combined and opted-in visual matrix when Provider releases capacity. Continue Provider/ETF consumer reconciliation only after their green product baselines; preserve official V25 Help parity debt.",
-  "plan_hash": "5a1836f036ff829eaf5ac3eea260b0d2aac854b5b889db2e5cdef35cafe04094",
+  "next_action": "Common green staging 82d881e7 is reconciled through merge d4274a9 in current source 7f33b07d; retain original pre-merge history and four conflict-resolution audit. Current Help remains 112px key column / 7px CSS gap with existing 8px measured-separation guard; reviewed reference blobs and official V25 required_missing status are unchanged. F8s stale exact accessible-name locator is fixed; two fresh-account no-retry F8s runs and populated desktop/390x800 F9c Plots/Remove flows passed. Exact-head Actions 38835330075 for 7f33b07d is terminal success: Backend, Branch-declared, Frontend Unit, and E2E succeeded; E2E 189 passed/110 skipped; Exhaustive skipped. Hosted visual parity was not opted in. Continue with full local/combined and opted-in visual matrix as Provider capacity allows, then reconcile Provider/ETF consumers only after green product baselines. Preserve official V25 Help parity debt.",
+  "plan_hash": "6d58da4cd2230fb8b813b819997e9c0d72c8989792c333d7e81be3b1b66fc5cd",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -116,28 +116,28 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "Coordinator-audited exact ancestor run 38827799889 (head 3963da11, E2E job 116741553254) ended 188 passed, 110 skipped, 1 retry-passing F9c-template-comparison flake; it is not clean acceptance and hosted visuals were skipped. Current source 59bbb968 includes released green staging 82d881e7 via actual merge d4274a9; original pre-merge baseline/history and four conflict resolutions remain documented. Current Help is 112px column / 7px gap with existing 8px measured-separation guard, accepted reference blobs unchanged. Exact-head Actions 38831565334 is terminal: Branch-declared, Frontend Unit and Backend succeeded; E2E 116753105088 failed with 188 passed, 110 skipped, one F8s-market-map-watchlist Refresh timeout; Exhaustive skipped. Confirmed cause is an obsolete locator ('Refresh' rather than accessible name 'Refresh Market Map'), not a product defect or loading race. Corrected test passed in two fresh-account no-retry runs; populated comparison Plots/Remove ordinary clicks passed at desktop and 390x800. Exact-source CI and full exact-source local/combined validation and opted-in 104-profile visual matrix remain open. Provider/ETF consumer integration, TCP3/TCP4, and clean all-source checkpoint remain open; official V25 Help remains required_missing.",
-    "current_phase": "TCP1_FOCUSED_BROWSER_CHECKS_PASS_EXACT_CI_PENDING;TCP2_HELP_REFERENCE_REVIEWED_NARROW_ONLY_FULL_MATRIX_PENDING;TCP3_UPSTREAM_WAIT",
-    "next_action": "Commit and push the validated TC test/workstream context to obtain exact-source CI. After that, coordinate for full exact-source local/combined validation and deterministic opted-in 104-profile visual matrix. Continue Provider/ETF consumer integration only after their green product baselines; preserve assigned runtime and official V25 Help parity debt.",
+    "current_blocker": "Coordinator-audited exact ancestor run 38827799889 and predecessor exact-head run 38831565334 had flakes/failure as documented, with hosted visuals skipped. Current source commit 7f33b07d contains released green staging 82d881e7 via actual merge d4274a9; original pre-merge history and four conflict resolutions are preserved. Current Help is 112px column / 7px gap with existing 8px measured-separation guard; accepted references unchanged. The F8s failure was a stale accessible-name locator ('Refresh' versus 'Refresh Market Map'); corrected E2E test passed twice locally without retries, and populated comparison Plots/Remove passed at desktop and 390x800. Exact-head Actions 38835330075 for 7f33b07dfc7ffa57d5285e04981448732e3eb727 is terminal success across Backend, Branch-declared, Frontend Unit, and E2E (189 passed, 110 skipped); Exhaustive skipped and hosted visual parity was not opted in. Full local/combined validation and deterministic opted-in 104-profile visual matrix remain open. Provider/ETF consumer integration, TCP3/TCP4, and clean all-source checkpoint remain open; official V25 Help remains required_missing.",
+    "current_phase": "TCP1_FOCUSED_BROWSER_AND_EXACT_CI_PASS;TCP2_HELP_REFERENCE_REVIEWED_NARROW_ONLY_FULL_MATRIX_PENDING;TCP3_UPSTREAM_WAIT",
+    "next_action": "Coordinate the next full local/combined validation slot with Provider, then execute the deterministic opted-in 104-profile visual matrix without changing references/tolerances. Continue Provider/ETF consumer reconciliation only after their green product baselines; preserve assigned runtime and official V25 Help parity debt.",
     "total": 5,
-    "updated_at": "2026-10-16T01:28:01+00:00"
+    "updated_at": "2026-10-16T02:01:21+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "59bbb968feefd2ba9c74638dcfa6863d5533186c",
+    "current_local_head": "7f33b07dfc7ffa57d5285e04981448732e3eb727",
     "current_pending_range": null,
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
-    "last_attempted_local_head": "59bbb968feefd2ba9c74638dcfa6863d5533186c",
-    "last_attempted_range": "87b9e3ab77d5356408b25b73b086a8fc7f062400..d0add5588612339203073b21015028ad4ffeb106",
+    "last_attempted_local_head": "7f33b07dfc7ffa57d5285e04981448732e3eb727",
+    "last_attempted_range": "59bbb968feefd2ba9c74638dcfa6863d5533186c..7f33b07dfc7ffa57d5285e04981448732e3eb727",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "59bbb968feefd2ba9c74638dcfa6863d5533186c",
+    "remote_tracking_sha": "7f33b07dfc7ffa57d5285e04981448732e3eb727",
     "status": "pushed"
   },
-  "remote": "59bbb968feefd2ba9c74638dcfa6863d5533186c",
-  "remote_sha": "59bbb968feefd2ba9c74638dcfa6863d5533186c",
+  "remote": "7f33b07dfc7ffa57d5285e04981448732e3eb727",
+  "remote_sha": "7f33b07dfc7ffa57d5285e04981448732e3eb727",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "roadmap_acceptance_criteria": [

@@ -19827,3 +19827,22 @@ the bounded local defect diagnosis only. Exact-source branch CI, full local and
 combined validation, the 104-profile opted-in visual matrix, and Provider/ETF
 consumer reconciliation remain outstanding; do not claim the checkpoint ready.
 
+## 2026-10-16 — Exact-source CI for Market Map and comparison flow repair
+
+Exact GitHub Actions run `38835330075` matches pushed HEAD
+`7f33b07dfc7ffa57d5285e04981448732e3eb727` and is terminal `success`. Backend
+Tests, Branch-declared Tests, Frontend Unit Tests, and E2E Tests (Playwright)
+all concluded successfully; Exhaustive Integration Gate was skipped on this
+feature branch. The exact E2E job `116765465161` ran the standard command
+`cd frontend && npx playwright test`, with no visual-parity opt-in, and reports
+`189 passed, 110 skipped` (299 total) in 20.1 minutes. F9c-template-comparison
+appears at `[15/299]` and F8s-market-map-watchlist at `[142/299]`; both completed
+as part of the passing job, with no flaky/retry result in the summary. The
+110 skips do not constitute screenshot or 104-profile visual acceptance.
+
+This proves the exact committed regression/test change has a green ordinary
+branch workflow and the new selector is accepted by hosted Playwright. It does
+not close full TCP2, the deterministic opted-in 104-profile visual matrix,
+Provider/ETF consumer reconciliation, the combined local/Exhaustive gate, or
+the human review checkpoint. Preserve official V25 Help as required-missing.
+
