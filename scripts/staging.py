@@ -41,7 +41,8 @@ CI_DISCOVERY_ATTEMPTS = 12
 CI_DISCOVERY_DELAY_SECONDS = 5.0
 CI_RETRY_DISCOVERY_ATTEMPTS = 36
 CI_RETRY_DISCOVERY_DELAY_SECONDS = 5.0
-CI_API_WATCH_ATTEMPTS = 720
+CI_API_WATCH_ATTEMPTS = 30
+CI_API_POLL_SECONDS = 120.0
 
 
 def run(
@@ -248,18 +249,32 @@ def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, objec
         try:
             with urllib.request.urlopen(request, timeout=20) as response:
                 return json.loads(response.read())
-        except (
-            urllib.error.HTTPError,
-            urllib.error.URLError,
-            json.JSONDecodeError,
-        ) as exc:
+        except urllib.error.HTTPError as exc:
+            if (
+                exc.code in {403, 429}
+                and exc.headers.get("X-RateLimit-Remaining") == "0"
+            ):
+                reset = exc.headers.get("X-RateLimit-Reset", "unknown")
+                raise RuntimeError(
+                    f"GitHub read-only API rate limit exhausted; reset epoch {reset}; "
+                    "CI evidence is unavailable, not a test failure or success"
+                ) from exc
             raise RuntimeError(
-                "GitHub read-only API fallback failed; authenticate gh for a private repository"
+                "GitHub read-only API request denied; check repository access"
             ) from exc
+        except (urllib.error.URLError, json.JSONDecodeError) as exc:
+            raise RuntimeError("GitHub read-only API evidence is unavailable") from exc
 
     def api_run(run_id: str) -> dict[str, object]:
         payload = api_json(f"repos/{repository}/actions/runs/{run_id}")
-        jobs = api_json(f"repos/{repository}/actions/runs/{run_id}/jobs?per_page=100")
+        # The public API has a small shared anonymous allowance. Job details
+        # are acceptance evidence only once the run is terminal; fetching both
+        # endpoints every five seconds exhausts that allowance before CI ends.
+        jobs = (
+            api_json(f"repos/{repository}/actions/runs/{run_id}/jobs?per_page=100")
+            if payload.get("status") == "completed"
+            else {}
+        )
         return {
             "databaseId": payload.get("id"),
             "headSha": payload.get("head_sha"),
@@ -366,7 +381,7 @@ def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, objec
                 selected.update(refresh())
                 if selected.get("status") == "completed":
                     break
-                time.sleep(CI_RETRY_DISCOVERY_DELAY_SECONDS)
+                time.sleep(CI_API_POLL_SECONDS)
     else:
         selected.update(refresh())
     ci_attempts: dict[int, dict[str, object]] = {
@@ -402,7 +417,7 @@ def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, objec
                         selected.update(refresh())
                         if selected.get("status") == "completed":
                             break
-                        time.sleep(CI_RETRY_DISCOVERY_DELAY_SECONDS)
+                        time.sleep(CI_API_POLL_SECONDS)
             ci_attempts[latest_attempt] = {
                 "attempt": latest_attempt,
                 "url": selected.get("url"),
@@ -624,6 +639,80 @@ def integrate(branches: list[str], *, remediate: bool) -> None:
             raise
 
 
+def reconcile(commit: str) -> None:
+    """Finish an interrupted watch, never a new merge or synthetic CI receipt."""
+    commit = full_sha(commit, "COMMIT")
+    if ROOT != STAGING_PATH:
+        raise SystemExit(
+            "run reconciliation from the exact persistent staging checkout"
+        )
+    root_master_ready()
+    with integration_lock():
+        if not DEGRADED.exists():
+            raise SystemExit("no interrupted staging attempt is recorded")
+        try:
+            marker = json.loads(DEGRADED.read_text())
+        except (OSError, ValueError) as exc:
+            raise SystemExit("invalid staging attempt marker") from exc
+        if not isinstance(marker, dict) or marker.get("staging_sha") != commit:
+            raise SystemExit("COMMIT must match the recorded staging attempt")
+        if ensure_staging(remediate=True) != commit:
+            raise SystemExit("COMMIT must match exact synchronized current staging")
+        start = full_sha(str(marker.get("starting_staging_sha", "")), "START")
+        sources = marker.get("sources")
+        if not isinstance(sources, list) or not sources:
+            raise SystemExit("recorded staging attempt has no frozen sources")
+        ancestors = [start]
+        names: set[str] = set()
+        for source in sources:
+            if not isinstance(source, dict):
+                raise SystemExit("invalid frozen source record")
+            name = source.get("branch")
+            if (
+                not isinstance(name, str)
+                or not name.startswith(PREFIXES)
+                or name in names
+            ):
+                raise SystemExit("invalid or duplicate frozen source branch")
+            names.add(name)
+            ancestors.append(full_sha(str(source.get("sha", "")), "SOURCE"))
+        for ancestor in ancestors:
+            if run(
+                "git",
+                "merge-base",
+                "--is-ancestor",
+                ancestor,
+                commit,
+                cwd=STAGING_PATH,
+                check=False,
+            ).returncode:
+                raise SystemExit(
+                    "recorded source/start is not in current staging ancestry"
+                )
+        # Exactly the same mandatory hosted gate as normal integration. Pending,
+        # unavailable, red or non-exhaustive evidence cannot release the marker.
+        ci = github_run("staging", commit, exhaustive=True)
+        fetch_branch("staging", cwd=STAGING_PATH)
+        if synchronized(STAGING_PATH, "staging") != commit:
+            raise SystemExit("staging advanced during CI reconciliation")
+        if json.loads(DEGRADED.read_text()) != marker:
+            raise SystemExit("staging attempt marker changed during reconciliation")
+        record_attempt(
+            {
+                "state": "green",
+                "created_at": timestamp(),
+                "starting_staging_sha": start,
+                "staging_sha": commit,
+                "sources": sources,
+                "github_run": ci.get("url"),
+                "reconciled_interrupted_watch": True,
+                "previous_watch_failure": marker.get("reason"),
+            }
+        )
+        DEGRADED.unlink()
+        print(f"staging is green at {commit}; interrupted watch reconciled")
+
+
 def promote(commit: str, confirm: str) -> None:
     commit = full_sha(commit, "COMMIT")
     if full_sha(confirm, "CONFIRM") != commit:
@@ -727,6 +816,8 @@ def main() -> int:
     p = sub.add_parser("promote")
     p.add_argument("--commit", required=True)
     p.add_argument("--confirm", required=True)
+    p = sub.add_parser("reconcile")
+    p.add_argument("--commit", required=True)
     sub.add_parser("status")
     args = parser.parse_args()
     if args.command == "bootstrap":
@@ -735,6 +826,8 @@ def main() -> int:
         integrate(args.branches, remediate=args.remediate)
     elif args.command == "promote":
         promote(args.commit, args.confirm)
+    elif args.command == "reconcile":
+        reconcile(args.commit)
     else:
         status()
     return 0
