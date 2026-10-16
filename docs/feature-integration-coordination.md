@@ -2,7 +2,7 @@
 
 ## Authorized direction
 
-Recorded 2026-10-15. The human wants the existing Provider, ETF, TC2000, and
+Recorded 2026-10-15; guidance refreshed 2026-10-16. The human wants the existing Provider, ETF, TC2000, and
 Strategy Lab v2 work integrated into staging, reconciled and tested together,
 then the same feature sessions/branches updated from green staging so development
 can continue with the formerly missing parallel features. The human requested
@@ -12,19 +12,36 @@ and asked that the central session choose the merge/reconciliation sequence.
 This authorizes preparation and coordination, same-source staging reconciliation
 by each owning feature agent, and continued work within each existing roadmap.
 It does not assert that a branch is ready, accept an unreviewed checkpoint,
-waive tests, authorize promotion/deployment, or transfer writer claims. Preserve
-the later human acceptance of each concrete integration checkpoint. The trial
+waive tests, authorize promotion/deployment, or transfer writer claims. Apply
+the later conditional checkpoint-acceptance delegation recorded below. The trial
 remains a separately authorized post-integration operational gate.
 
 The coordinator's working copy is
 `/home/m920q/charting-platform/.ai/worktrees/staging`. Until published, feature
 sessions read this local document without modifying or pulling that checkout.
-The workflow checkpoint is published at staging
-`98f0b888817c461fa00e6e310c5b378b0c4c512f`; its exact staging CI must pass
-before any subsequent product integration. This is not a product baseline.
-Live coordinator decisions, the queue and source freezes are recorded in
-`ops/feature-integration-status.yaml` in that same checkout. Source owners should
-read it at coherent checkpoints when an upstream dependency is still pending.
+The last verified synchronized green staging baseline is
+`82d881e76be8de538abb6ec5c454d96afe0ee56a`, exact successful run `38805309009`.
+It contains the independently delivered common chart repair, not the four
+accepted product checkpoints. Recheck current refs and exact receipts before
+integration; this paragraph is a publication snapshot, not a live CI poll.
+
+`ops/feature-integration-status.yaml` is the versioned coordinator snapshot.
+Frequently changing execution decisions, queue observations and source freezes
+are in the common repository root's ignored operational records:
+
+- `.ai/staging-attempts/four-feature-coordination-2026-10-15.json`
+- `.ai/staging-attempts/provider-checkpoint-review-20261016.md`
+- `.ai/staging-attempts/tc-help-reference-coordinator-review-20261016.md`
+
+Resolve these paths from the common repository root, **not** from a feature or
+staging checkout's own `.ai` directory. On this host that root is
+`/home/m920q/charting-platform`; derive it from the common Git directory when
+using another checkout. These host-local records are not shipped product files
+or substitutes for committed owner workstreams and exact green integration
+receipts. Missing or stale operational evidence is unverified, not acceptance.
+At coherent checkpoints, owners read the latest applicable coordinator review
+before freezing another candidate; a queued message alone does not prove it was
+consumed. Preserve old receipts without rebinding them to later source.
 
 The current cross-branch migration, cost-governance and browser-repair tasks are
 in [the reconciliation handoff](feature-integration-reconciliation.md). Strategy
@@ -52,6 +69,47 @@ or another action beyond this authorization is actually required. Earlier
 references below to obtaining human acceptance per technical repair are
 superseded by this recorded authorization, not by an invented acceptance.
 
+### Later conditional acceptance of the four development checkpoints
+
+The coordinator asked:
+
+> May I accept and merge the four development checkpoints into staging once
+> their required cross-feature contracts and full tests pass, using verified
+> free operations only and leaving quota-held, unreviewed, paid/trial and unsafe
+> operations explicitly disabled? This preserves the complete feature roadmaps
+> and does not authorize deployment, paid activation, or the operational trial.
+
+The human answered: **“Yes—approve that initial scope and handle checkpoint acceptance”.**
+
+The coordinator may therefore review and accept each delivered checkpoint
+within that exact scope, record the decision and evidence, and perform the
+guarded sequential staging integration without another per-fix or per-feature
+human signoff. This is conditional authority, not present acceptance of any
+unfinished source. Source owners still stop for coordinator review and do not
+self-integrate. Record the exact delegation and its exercised, validated scope
+in the owner's closure record before `ready_for_integration`; retain the
+canonical `integration_capture: exact branch HEAD` and all source/CI guards.
+Only a material choice beyond this delegation requires another human decision.
+
+The human also approved **“Yes—use a reviewed local-only reference”** for the
+Help screen. Its reference-authority question is resolved narrowly: retain
+readability and keyboard/scroll checks, the original screenshot tolerance and
+the unfinished official V25 parity roadmap. This does not make the complete
+104-case visual gate pass, provide an official V25 Help capture, or accept TC's
+combined checkpoint. Do not repeatedly ask the human to approve the same
+reference-policy decision.
+
+### Use the released coordinator helpers
+
+The released helpers in the clean persistent staging checkout already support
+both normal guarded worktree creation and guarded integration from that exact
+coordinator role, while preserving unrelated dirty root-checkout edits. Use
+those published helpers there; the older root checkout's helper can reject a
+dirty `master` without establishing that the current coordinator route is
+blocked. This route still checks synchronized refs, health, source ownership,
+closure and CI. It does not authorize a direct Git bypass, an unapproved
+dependent parent, feature writes to staging, or changes to the dirty root.
+
 ## Order of action
 
 1. **Central analysis first.** Read the four current source/workstream records,
@@ -68,13 +126,15 @@ superseded by this recorded authorization, not by an invented acceptance.
    writes from feature agents.
 3. **Review and integrate Provider first.** Resolve required shared-gate failures
    through a suitable source owner or a separately authorized narrow repair.
-   Present ICP1-ICP7 evidence and proposed operation deferrals to the human.
+   Review ICP1-ICP7 evidence and operation dispositions under the recorded
+   conditional delegation; ask the human only for a decision outside it.
    After the required checkpoint closure, freeze the exact clean pushed source and use the guarded
    staging integration command. Wait for exact staging CI.
 4. **Reconcile and integrate ETF, then TC2000, then Strategy Lab v2.** For each,
    its owning agent merges the latest synchronized green staging into its own
    clean unfrozen source, resolves combined behavior, implements missing consumer
-   wiring, and validates. Human acceptance precedes the coordinator's next merge.
+   wiring, and validates. Recorded conditional coordinator acceptance within
+   the human-approved scope precedes the next merge.
    A green independent test suite does not substitute for this reconciliation.
 5. **Validate the joint result.** Require exact staging exhaustive CI and actual
    combined-contract acceptance for the delivered scopes: provider selection and
@@ -117,9 +177,19 @@ disabled/deferred, quota-held, or failed with exact current-source evidence.
 Finish required tests and a clean pushed review receipt; preserve queried data,
 pagination, and the private shared quota ledger. Keep unsupported operations
 non-routable. Do not mistake temporary quota waits for proof or silently omit a
-capability needed by consumers. The chart-template click failure recorded by the
-latest browser run needs a centrally coordinated owner repair; do not rewrite
-frontend code from this backend-only session. Stop at human checkpoint review.
+capability needed by consumers. Preserve the common chart repair delivered
+through green staging; do not rewrite product frontend code from this
+backend-only session. Stop at delegated coordinator checkpoint review.
+
+Read the current reconciliation and coordinator review instead of treating
+historical defects as still open. The
+Provider owner may correct a genuinely observer-only test harness in a recorded
+own context, preserving ordinary input and all behavioral assertions; this does
+not permit unmerged TC imports or backend-topic product UI changes. Source
+owners stop for the delegated coordinator review, not repeated human per-fix
+signoff. Batch known remaining owned corrections before a final validation
+freeze; retain interrupted/superseded runs honestly and do not repeatedly spend
+quota merely to refresh timestamps.
 
 ### ETF — `feat/etf-holdings-constituents`
 
@@ -136,9 +206,9 @@ work. Do not wait for the entire provider feature or its 30-day trial.
 
 ### TC2000 — `feat/tc2000-frontend-rework`
 
-Prepare `tc2000-workstation-integration-1`. Diagnose the independent chart-template
-pointer-interception failure and remaining functional/visual differences now,
-without waiting for upstream contracts. Distinguish product defects, stale
+Prepare `tc2000-workstation-integration-1`. Preserve the delivered chart-template
+pointer repair and address current functional/visual differences without
+waiting for upstream contracts. Distinguish product defects, stale
 oracles, missing reference evidence, and execution problems. Preserve the visual
 policy; a fix inside this broad branch does not reach the provider branch until
 the coordinator delivers an independently accepted repair to staging if needed.
@@ -146,7 +216,9 @@ Propose that narrow repair to the coordinator rather than importing TC into the
 provider branch. After Provider and ETF are green in staging, merge staging into
 this source, reconcile ownership intersections and actual capability/coverage/
 lineage consumers, and validate a usable combined workstation. Preserve the full
-V25 roadmap and unresolved reference contracts. Stop at human checkpoint review.
+V25 roadmap and unresolved reference contracts. The reviewed local-only Help
+decision is resolved; full visual acceptance remains separately required.
+Stop at delegated coordinator checkpoint review.
 
 ### Strategy — `feat/strategy-lab-v2`
 
@@ -160,7 +232,7 @@ source, reconcile canonical identity/series/coverage, point-in-time holdings,
 immutable CodeVersion/Study lineage, routers, migrations, and Compose workers,
 then run the required combined profile. Preserve engine-neutral contracts and
 the complete roadmap; no broker connection or real-capital execution. Stop at
-human checkpoint review.
+delegated coordinator checkpoint review.
 
 ## Coordinator handoff and source-freeze protocol
 
@@ -179,6 +251,13 @@ Keep old source receipts and full goals as history. The staged build becomes a
 development baseline; production qualification is a separate decision.
 
 ## Saved Codex goals and extension resume
+
+The following save/usage observations are the historical October15 audit, not
+new evidence that an extension view refreshed. The human subsequently pasted
+the Provider objective into its owning session and confirmed it was progressing.
+Do not repeat goal-label work or restart the extension instead of advancing the
+checkpoint. Recheck current evidence in the owning session; goals remain
+execution aids, and the durable branch workstream remains authoritative.
 
 The four feature goals point to these resume tasks and their owning workstream.
 They are updated through `thread/goal/set` and read back through `thread/goal/get`,
