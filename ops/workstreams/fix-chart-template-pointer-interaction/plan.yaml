@@ -55,7 +55,7 @@ local_validation_profile: full_stack_browser
 local_validation_reason: The existing repair line is preserved; the new delta must prove cold-mount Add Tool readiness and deterministic F8s fixture fallback, then run the complete declared repair-branch profile without retries or real endpoint traffic.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
-goal: "Continue the coordinator-owned workstation repair line with only the TC cold-mount EasyScan readiness and deterministic F8s benchmark-fixture fallback proven necessary for Provider's full profile. Preserve the already released chart-template and workspace repairs, all identity assertions and visual tolerances. Do not integrate the full TC feature or alter Provider data, quotas, Help references, deployment, or retained datasets."
+goal: "Continue the coordinator-owned workstation repair line with the TC cold-mount EasyScan readiness and deterministic F8s benchmark-fixture fallback proven necessary for Provider's full profile, plus the full-profile F8j one-shot-conflict fixture defect exposed by exact CI. Preserve the already released chart-template and workspace repairs, all product and identity assertions, and visual tolerances. Do not integrate the full TC feature or alter Provider data, quotas, Help references, deployment, or retained datasets."
 scope:
   - Physically separate populated comparison chips from the Plots trigger without relying on z-index reversal.
   - Preserve the no-comparison default geometry and the existing narrow viewport two-row toolbar.
@@ -96,6 +96,8 @@ acceptance_criteria:
     text: On cold /chart navigation, an ordinary Add Tool command waits for the actual WorkstationView mount lifecycle boundary and opens the requested tool; unmount resolves the wait and cancels the command without a timeout or forced interaction.
   - id: PTR7
     text: The F8s family-matrix root request falls through the later broad route to the earlier deterministic us-benchmarks fixture, proves that fixture was hit, preserves all eight identity/source assertions, and makes no real endpoint request.
+  - id: PTR8
+    text: The full-profile F8j conflict fixture keeps the simulated 409 active across superseded snapshot retries, proves the conflict and recovery-copy creation occurred, and retains both user-visible recovery assertions without changing product conflict behavior.
 branch_tests: []
 branch_tests_reason: Existing chart-template/comparison frontend unit tests, F9c and adjacent browser flows, complete frontend suite and normal full integration CI cover this narrow repair; no additional standalone branch command is needed.
 live_test_impact: none
@@ -104,17 +106,17 @@ deployment_impact: none
 status: in_progress
 active_changeset_context:
   name: provider-profile-f9e-f8s-repair
-  intent: Carry only the TC cold-mount Add Tool readiness fix and deterministic F8s fixture-fallback/assertion fix needed to unblock Provider's required browser profile; keep the full TC feature and its workstream records out of this repair.
+  intent: Carry the TC cold-mount Add Tool readiness fix and deterministic F8s fixture-fallback/assertion fix needed to unblock Provider's required browser profile, plus the F8j test-fixture correction required after exact full-profile CI exposed a one-shot simulated-conflict race; keep the full TC feature and its workstream records out of this repair.
   owned_paths:
     - frontend/src/views/WorkstationView.vue
     - frontend/tests/e2e/flows.spec.ts
     - ops/workstreams/fix-chart-template-pointer-interaction/
 remaining_gaps:
-  - Exact-source required CI for this repair branch, including F9e/F8s no-retry evidence.
+  - Exact-source required CI rerun for this repair branch, including F9e, F8s and F8j no-retry evidence.
   - Guarded merge into persistent staging and a green Exhaustive Integration Gate on the exact resulting staging SHA.
 progress:
   completed: [PTR1, PTR2, PTR3]
-  total: 7
-  current_phase: provider_browser_repair_added
-  current_blocker: Exact-source repair-branch CI and the Provider full browser-profile rerun after synchronized green staging remain pending.
-  next_action: Run exact repair-branch CI and audit F9e/F8s with no retries or real endpoint traffic. Then record the delegated technical closure, integrate only through the persistent staging worktree, and await the exact exhaustive gate before asking Provider to rerun its full profile. No feature-checkpoint acceptance, promotion or deployment.
+  total: 8
+  current_phase: provider_browser_repair_added;_F8j_one-shot_conflict_fixture_flake_reproduced_and_corrected
+  current_blocker: Exact-source repair-branch CI rerun after the F8j test-fixture correction remains pending; Provider's full browser-profile rerun follows synchronized green staging.
+  next_action: Commit and publish the F8j fixture correction, run exact repair-branch CI, and audit F9e/F8s/F8j for zero retries/flakes and no real endpoint traffic. Then record delegated technical closure, integrate only through persistent staging, and await the exact exhaustive gate before asking Provider to rerun its full profile. No feature-checkpoint acceptance, promotion or deployment.

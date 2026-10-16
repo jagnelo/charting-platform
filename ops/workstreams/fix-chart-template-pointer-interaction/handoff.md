@@ -437,3 +437,32 @@ and wait for its exact exhaustive green receipt. After release, Provider may
 rerun its own full 260-case profile against synchronized green staging. This
 does not accept the TC feature checkpoint or alter Provider's quota/operation
 holds, and it authorizes no deployment, paid activation, trial, or cleanup.
+
+## 2026-10-16 — exact-CI F8j conflict-fixture flake and correction
+
+Exact branch CI run `38936986127` for source
+`878a0acf5c00135a56b6e51dee04245356beeced` passed Branch-declared, Backend,
+and Frontend Unit jobs, and executed the 260-case Playwright profile. F9e
+EasyScan readiness and F8s family-matrix fallback passed. The profile had 150
+passes, 109 expected skips, and one retry-passing F8j conflict-flow flake; the
+no-retry repair gate therefore remains red. The failure was the recovery-copy
+assertion timing out with the normal `Current · canonical` footer.
+
+The cause is test-fixture behavior: it disabled its simulated 409 after the
+first Notes snapshot. If that request is superseded by a newer local workspace
+generation while in flight, `saveSnapshot` correctly defers recovery and
+schedules another save. The one-shot fixture then let that retry succeed, so
+the recovery path was never exercised. The test fixture now keeps returning
+409 only for the newly added Notes window until the recovery-copy POST occurs,
+then stops injecting conflicts. It asserts that both the conflict and recovery
+copy occurred and retains both original user-visible recovery assertions. No
+product conflict behavior or assertion was weakened. Playwright collection of
+the focused F8j case and `git diff --check` pass locally; no local browser or
+Docker stack was launched because this host cannot access Docker.
+
+Next: publish this test-only correction and require a fresh exact-source full
+branch run with no retries or flakes. If green, record delegated technical
+closure, use only the guarded persistent-staging merge, and require the exact
+staging Exhaustive Integration Gate before releasing Provider's held 260-case
+profile. No provider request, quota spend, staging mutation, or dataset cleanup
+occurred in this correction step.
