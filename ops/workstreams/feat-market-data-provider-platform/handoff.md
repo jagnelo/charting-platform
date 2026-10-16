@@ -1,5 +1,29 @@
 # feat/market-data-provider-platform
 
+## 2026-10-16 12:45Z — exact merged-source packet pushed
+
+- The coordinator-released common repair `0145b65992b8692ce69f82f804f83f6c8e551fea`
+  is merged into Provider at `ca86eaf147f391829fb9f060b43633b1bb8b79b2`.
+  Provider receipt commits `8372735` and `081fd6d` are pushed; the latter is
+  the exact current branch tip and the worktree is clean.
+- On merge source `ca86eaf`, bounded checks passed: research runner 106/106
+  with numerical threads capped to one; staging workflow 64/64; inherited
+  popup/flaky-policy frontend units 10/10; Provider live-runner units 144/144;
+  workstream validation 34 records; and `git diff --check`. No provider HTTP
+  or quota was used. The uncapped research-runner attempt ended in statsmodels
+  OLS without pytest summary (cause unknown); the full unchanged file passed
+  with thread caps.
+- Exact pushed-tip GitHub CI `38902425042` was pending when observed at
+  12:42Z. CI `38901742165` targets the preceding `8372735` and cannot qualify
+  `081fd6d`. Next: inspect exact CI; then run a no-transport durable quota
+  preflight and validate only safe, admitted operations. Preserve all held
+  calls and usage data.
+- ICP2 aggregate recurring-cost admission and ICP6 downstream consumer bridge
+  remain explicit work. The full local profile and current-source live evidence
+  are not yet complete. Provider has not received checkpoint acceptance; the
+  full roadmap remains open. No paid/trial activation, deployment, promotion,
+  cleanup, or staging integration was performed by this feature owner.
+
 ## 2026-10-16 12:40Z — released staging reconciled; bounded merged-source checks
 
 - After the receipt packet commit `837273587f865111ef5b7834571d86b4a8791bda`

@@ -1,5 +1,38 @@
 # Provider integration checkpoint review packet
 
+## Superseding current-source status — 2026-10-16 12:45Z
+
+This section supersedes earlier “current” summaries below; older entries are
+historical receipts and remain source-bound. The explicitly released common
+staging repair `0145b65992b8692ce69f82f804f83f6c8e551fea` was merged into this
+Provider branch as `ca86eaf147f391829fb9f060b43633b1bb8b79b2`. The five-file
+Provider receipt packet was committed as `837273587f865111ef5b7834571d86b4a8791bda`;
+the exact merge and its bounded-check record were then committed and pushed as
+`081fd6dff82cc27862a6a86d8c59ff0fcb25aefe`. The worktree is clean and the
+local branch matches `origin/feat/market-data-provider-platform`.
+
+Bounded tests on merge source `ca86eaf` passed: research runner 106/106 with
+numerical-library threads capped at one, staging workflow 64/64, inherited
+popup/flaky-policy frontend units 10/10, Provider live-runner unit tests
+144/144, and all 34 workstream records. `git diff --check` passed. These are
+not the required full local profile or current-source live acceptance. No
+provider HTTP requests or quota spend occurred. The uncapped research-runner
+attempt terminated during statsmodels OLS without a pytest summary; cause is
+unknown. The unchanged full test file passed with thread caps and no assertion,
+test, or product behavior was weakened.
+
+Exact-source GitHub CI run
+[`38902425042`](https://github.com/jagnelo/charting-platform/actions/runs/38902425042)
+for pushed source `081fd6d` was pending at 12:42Z. Prior CI `38901742165` is
+bound to `8372735`, not this tip. After CI, run a no-transport durable quota
+preflight and inspect only operations currently admitted with safe headroom;
+do not refresh or replay held calls. Continue ICP2 aggregate cost-governance
+and ICP6 consumer contract evidence. Full local profile, admitted current-tip
+live evidence, complete producer/consumer packet, and coordinator's conditional
+technical acceptance remain open. No paid/trial activation, deployment,
+promotion, cleanup, or feature acceptance is authorized or implied. The full
+roadmap remains intact.
+
 ## Current source state and latest evidence — 2026-10-16
 
 The coordinator's initial closure run [`38892600336`](https://github.com/jagnelo/charting-platform/actions/runs/38892600336)

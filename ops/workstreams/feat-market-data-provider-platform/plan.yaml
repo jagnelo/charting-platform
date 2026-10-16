@@ -1,4 +1,11 @@
 schema: 4
+# Current operational status as of 2026-10-16 12:45Z: released staging
+# 0145b65992b8692ce69f82f804f83f6c8e551fea is merged at ca86eaf; owner packet
+# commit 081fd6d is pushed and the worktree is clean. Exact-tip CI 38902425042
+# was pending at last observation. Bounded merged-source tests and 34-record
+# workstream validation passed. Full local profile, safe current-source live
+# evidence, ICP2 aggregate-cost work, ICP6 consumer contract, and checkpoint
+# acceptance remain open. No quota was spent; held operations stay disabled.
 branch: feat/market-data-provider-platform
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
