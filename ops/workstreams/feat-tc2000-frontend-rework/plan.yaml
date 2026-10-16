@@ -4,7 +4,7 @@ base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 82d881e76be8de538abb6ec5c454d96afe0ee56a
 latest_staging_parent_sha: 82d881e76be8de538abb6ec5c454d96afe0ee56a
-latest_staging_merge_sha: 82d881e76be8de538abb6ec5c454d96afe0ee56a
+latest_staging_merge_sha: d4274a9fa3119c212a9aaf2c0006c20d921812e8
 dependency_authorization: "Human-approved consumer dependency on feat/market-data-provider-platform and feat/etf-holdings-constituents; consume only after their work reaches staging."
 human_intent_authorization: >-
   The human approved implementation of the TC2000 V25-inspired workstation roadmap
@@ -30,18 +30,26 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  2026-10-15 coordinator review at 19:13Z reaffirmed the explicit human
-  decision, "Yes—use a reviewed local-only reference"; no further human choice
-  is pending. The coordinator's crowded-gap screenshot was timestamped
-  2026-10-15 18:15:28+0100, before the 22:04+0100 commit that first widened the
-  Help key column to 96px, so it was not evidence of the then-current source.
-  The current TC-owned Help column is 96px with a 7px gap; the per-row browser
-  guard verifies separation and rendered-description bounds. Four current
-  Linux references were reviewed and the keyboard flow passed with
-  PageDown/PageUp/Home, last-row reachability, Close-tab, Escape, and trigger
-  focus. Focused Help screenshots passed 4/4 at unchanged 0.5% tolerance.
-  Hosted CI did not execute these visual tests. Official V25 Help remains
-  `required_missing` and unfinished roadmap work.
+  The Help local-reference authority/review portion is closed narrowly. On
+  2026-10-16 the coordinator independently reviewed the exact four current
+  Linux references from source 5fcae9587 / Help source be6b12500 and confirmed
+  readable, separated shortcut labels/descriptions. Exact reviewed Git blobs:
+  1080p/100 ecc86d4226b89b97c3c6043e6ba25ffe7865465d; 1080p/125
+  b3d648884881cc5c31d9ad63af9855aaa49851a2; 1440p/100
+  49499c97efaa1577ea8633d9f51076fdea2b3513; 1440p/125
+  8693333f2993a5034c865b46a1f9fb88dc64fc72. The owner receipt records the
+  actual opted-in keyboard/accessibility 1/1 and Help screenshot 4/4 passes;
+  source inspection confirms the current 112px Help key column and 7px CSS
+  grid gap; the unchanged functional guard requires at least 8 CSS pixels of
+  measured text-range separation between every key label and description.
+  Historical 96px sizing is retained only as the earlier intermediate state
+  in handoff history, not as the current layout. Bounds checks, keyboard scroll
+  coverage, and the unchanged 0.005 tolerance with no masks remain intact. Do
+  not ask to reopen this reference decision or recapture these
+  files. This closes only Help reference authority/review, not all TCP2
+  functional/layout acceptance, the full 104-case visual matrix, or the TC
+  product checkpoint. Keep `keyboard_help.state` and `review.status` at
+  `required_missing`; official V25 Help parity remains unfinished roadmap work.
 
   The first rerun exposed a race from issuing PageUp before PageDown had
   settled, and Home was not explicit on the scrollable Help dialog. A
@@ -55,24 +63,39 @@ current_blocker: >-
   Help commits be6b125/6fb51f1 and the workstream reconciliation. Preserve
   assigned runtime/data/listener 15190. The exact released common repair source
   `82d881e76be8de538abb6ec5c454d96afe0ee56a` is now merged into this branch
-  after release authorization; pointer geometry and shared snapshot persistence
-  were reconciled semantically. Latest
+  after release authorization by merge `d4274a9fa3119c212a9aaf2c0006c20d921812e8`;
+  coordinator review verified four conflict paths were resolved and Help
+  source/oracles were unchanged. The scope guard baseline is this actual merge
+  SHA while original `base_sha` and pre-merge audit history remain preserved;
+  this records the imported accepted repair and its four resolutions, not a
+  blanket full-feature scope waiver. Pointer geometry and shared snapshot
+  persistence were reconciled semantically. Latest
   exact branch run 38824304286 for f1eef21b791659babdcd83a32151b2b6810f21a8
   had 186 passed, 110 skipped, and three retry-passing flakes (F9c comparison,
   date-pointer reload, F8w EasyScan-to-Market-Gauge), so clean all-source CI
   remains open. Hosted visual cases were not opted in; the Help visual evidence
   is the separate local one-keyboard/four-profile pass.
-  Provider/ETF product synchronization, exact TCP4 full integration, and a
-  retry-free populated-comparison/date-pointer browser replay remain open.
+  Exact-current-HEAD Actions run 38831565334 for 59bbb968 is terminal: the
+  Branch-declared, Frontend Unit, and Backend jobs succeeded, but E2E job
+  116753105088 failed with 188 passed, 110 skipped, and one non-retry-passing
+  F8s-market-map-watchlist failure; the feature-branch Exhaustive Integration
+  Gate was skipped. This is not clean acceptance or full-gate evidence. Source
+  review and isolated no-retry browser evidence below identify and correct its
+  obsolete Refresh locator; exact-source CI must still verify the change.
+  Retry-free populated-comparison/template and date-pointer persistence browser
+  replays passed after the common repair merge and are closed as focused evidence.
+  Provider/ETF product synchronization, the full exact-source/combined TCP4
+  profile, and the exact-source full opted-in visual matrix remain open.
 
-  Checkpoint adoption 2026-10-15: the populated-comparison pointer check found
-  a remaining default-wide geometry defect in the current TC source despite the
+  Historical pre-repair checkpoint evidence (2026-10-15): the populated-
+  comparison pointer check found a default-wide geometry defect in TC before
   earlier seven adjacent browser flows: after saving/restoring RSP at +23.50%,
   Plots center hit-testing resolves to Remove RSP and a normal click is
   intercepted. Remove RSP itself works normally. At 390x800 in TC Classic,
   controls occupy separate rows and both normal clicks work. The coordinator
-  owns the independent narrow geometry repair; TC has not duplicated it. See
-  handoff and validation evidence. Host Help passes 4/4, but canonical Noble
+  then owned the independent narrow geometry repair; TC did not duplicate it.
+  That repair was later released in green staging and merged above. See handoff
+  and validation evidence. Host Help passes 4/4, but canonical Noble
   probe passes default and fails Help by 55,032 pixels. Invariant brand-region
   comparison proves mixed font environments in tracked default/Help baselines.
   See visual-environment-diagnosis.md. Canonical 104-case visual run completed
@@ -548,6 +571,12 @@ dependencies:
   - "Consume both dependencies only after their changes reach staging; do not modify their worktrees or duplicate their adapters, provider routing, credentials, ingestion, or refresh workers."
   - "Strategy Lab is intentionally not an upstream dependency for this branch; preserve TC's existing Python/DSL/Study/Strategy engine."
 scope_guard_baseline_sha: d4274a9fa3119c212a9aaf2c0006c20d921812e8
+human_checkpoint_acceptance_authorization:
+  recorded_at: "2026-10-15T22:55:31Z"
+  question: "May I accept and merge the four development checkpoints into staging once their required cross-feature contracts and full tests pass, using verified free operations only and leaving quota-held, unreviewed, paid/trial and unsafe operations explicitly disabled? This preserves the complete feature roadmaps and does not authorize deployment, paid activation, or the operational trial."
+  human_answer: "Yes—approve that initial scope and handle checkpoint acceptance"
+  scope: "The coordinator owns conditional technical acceptance/merge only after required cross-feature contracts and full local plus exact-source CI tests pass."
+  boundaries: "This is not acceptance of current TC source, does not waive any gate, and does not authorize self-integration, deployment/master promotion, paid activation, operational trial, unsafe/quota-held/unreviewed operations, or data cleanup. Full roadmaps remain open; no per-fix/per-checkpoint signoff is needed within the approved scope."
 dependency_order:
   - feat/market-data-provider-platform -> staging
   - feat/etf-holdings-constituents -> staging (after provider-platform)
@@ -601,15 +630,24 @@ status: in_progress
 progress:
   completed: []
   total: 5
-  current_phase: TCP1_RECONCILED_BROWSER_CHECK_PENDING;_TCP2_HELP_REVIEWED;_TCP3_UPSTREAM_WAIT
+  current_phase: TCP1_FOCUSED_BROWSER_CHECKS_PASS_EXACT_CI_PENDING;_TCP2_HELP_REFERENCE_REVIEWED_NARROW_ONLY_FULL_MATRIX_PENDING;_TCP3_UPSTREAM_WAIT
   next_action: >-
-    TCP1 source 82d881e76be8de538abb6ec5c454d96afe0ee56a is merged and
-    semantically reconciled. After Provider heavy-gate coordination releases
-    browser capacity, repeat ordinary populated comparison Plots/Remove/template
-    interaction and date-pointer reload persistence without retries. Before
-    TCP4, execute the exact-source full local/combined opted-in visual matrix in
-    a documented deterministic browser/font environment. Preserve assigned
-    runtime/data/listener 15190 and keep official V25 Help parity unfinished.
+    TCP1 source 82d881e76be8de538abb6ec5c454d96afe0ee56a is already an ancestor
+    through merge d4274a9fa3119c212a9aaf2c0006c20d921812e8; no second merge is
+    needed. Focused local Chromium checks passed without retries: populated RSP
+    chip ordinary Plots open/close and Remove before and after template restore;
+    date-pointer cycled through all modes and persisted off through a successful
+    snapshot PUT and page reload. Prior exact-source Actions run 38827799889
+    on ancestor 3963da11 terminated with 188 passed, 110 skipped, and one
+    retry-passing F9c template-comparison flake (E2E job 116741553254; first
+    ordinary Plots click intercepted by Remove RSP); it is not clean
+    acceptance. Its skipped hosted visuals are not screenshot evidence.
+    Current HEAD 59bbb968 already contains merge d4274a9 with exact green
+    common repair 82d881e7 as second parent. Exact-current-source full local/CI
+    validation remains open. Before TCP4, execute the exact-source full
+    local/combined opted-in visual matrix in a documented deterministic
+    browser/font environment. Preserve assigned runtime/data/listener 15190
+    and keep official V25 Help parity unfinished.
     Keep official V25 Help parity required_missing. Do not duplicate the
     coordinator-owned pointer repair. Remaining TC work includes R1/R5/R6 and
     V25 Favorites, custom-date sorting, and Tag Column gaps. Provider/ETF
@@ -628,13 +666,35 @@ progress:
   current_blocker: >-
     TCP1 source 82d881e76be8de538abb6ec5c454d96afe0ee56a was merged by
     TC merge commit d4274a9fa3119c212a9aaf2c0006c20d921812e8 and
-    reconciled; focused workspace-store tests passed 79/79 and frontend build
-    passed after type-check. The runtime allocator preflight could not write its
-    global allocations.lock in this restricted environment. The ordinary
-    populated comparison/template and date-pointer reload browser replay remains
-    required without retries; Provider owns the current heavy validation slot,
-    so defer browser gates until coordinated capacity is available. Before TCP4,
-    the exact-source full local/combined opted-in visual matrix must execute in
+    reconciled; four conflict paths were resolved without changing Help source
+    or oracles. The source uses one snapshot-save generation with both the TC
+    structural-local-change conflict recovery and the common repair's accepted
+    superseded-revision/baseline acknowledgement, trailing-save flush, and
+    selected-workspace guard. Focused workspace-store tests passed 79/79 and
+    frontend build passed after type-check. The retry-free populated
+    comparison/template and date-pointer reload browser replays passed after
+    merge. Exact-head run 38831565334 is terminal with successful
+    Branch-declared, Frontend Unit, and Backend jobs, but E2E failed: 188 passed,
+    110 skipped, one F8s-market-map-watchlist failure (Refresh action timed out
+    in the last visible Market Map tool); Exhaustive was skipped. The runtime
+    allocator preflight could not write its global allocations.lock in this
+    restricted environment. Provider owns the current heavy validation slot.
+    The terminal F8s failure was caused by a stale exact accessible-name
+    locator: the button is named `Refresh Market Map`, not its visible text
+    `Refresh`. The test now uses the correct semantic name, waits for the
+    universe-change automatic request to settle, then verifies a separate
+    ordinary manual click. Two fresh-account no-retry F8s browser runs passed
+    (2/2); populated desktop and 390x800 Plots/Remove ordinary-click checks
+    passed in the F9c flow (1/1). The focused MarketMapTool Vitest passed 58/58.
+    A first browser attempt using a reserved `.test` email failed at account
+    setup; it was not a product run. An intermediate F8s replay reached and
+    exposed the obsolete locator; that is the diagnosis, not a retry pass. The
+    initial narrow F9c setup tried to reopen the template menu and failed to
+    locate its item; the final narrow check populates RSP through the comparison
+    control and tests both ordinary actions. Exact-source CI must still rerun;
+    full local/combined gates remain pending and Provider has priority for the
+    next full local validation slot.
+    Before TCP4, the exact-source full local/combined opted-in visual matrix must execute in
     a documented deterministic browser/font environment; the Help-only local
     run is not a substitute. Provider/ETF product integration and TCP3/TCP4
     remain incomplete. The

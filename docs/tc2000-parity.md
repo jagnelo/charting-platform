@@ -1,5 +1,41 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-10-16 — Official semantics for remaining WatchList shortcuts
+
+Rechecked the primary TC2000 references for the three open interactions:
+[Hot Keys & Keyboard Shortcuts](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts),
+[My Favorites](https://help.tc2000.com/m/69401/l/325485-how-to-copy-a-symbol-to-the-my-favorites-watchlist),
+[Custom Date Sort](https://help.tc2000.com/m/69401/l/324107-how-to-use-custom-date-sort),
+and [Tag Columns](https://help.tc2000.com/m/125751/l/1874621-how-to-create-a-tag-column-in-a-watchlist).
+This supersedes the unresolved destination assumptions in the 2026-10-06 gap
+audit; it does not claim implementation.
+
+- `Shift+V` targets the fixed **My Favorites** Quick List, not an arbitrary
+  personal WatchList. The reference describes adding/removing the chart's
+  symbol and copying one or multiple selected WatchList symbols; its chart star
+  adds and deselecting that star removes. This is distinct from `Shift+F`
+  Flagged Items and must not be implemented by aliasing `WatchlistItem.flagged`.
+  The current app still lacks a dedicated persisted My Favorites collection.
+- `Shift+T` opens **Custom Date Sort**. Its range comes from a chart drag or a
+  selected trendline, then the user chooses percent change, performance versus
+  sub-industry, or performance versus industry, and sorts into a new window or
+  adds the result column to an existing WatchList. It is not a date-valued
+  header sort. TC must consume verified persisted history/classification from
+  the upstream data contracts; it must not add its own provider fetch path.
+- An added **Tag Column** identifies a specific personal WatchList and displays
+  which current-list symbols belong to that target. The hotkey reference says
+  Alt+click adds/removes a symbol from a Tag Column. Together, the references
+  establish the selected column's personal-list target; implementation should
+  mutate only that target list's membership and persist the column/target,
+  rather than infer a list from the active WatchList or treat it as a global
+  tag namespace.
+
+These references resolve product intent, not the implementation contract for
+Favorites persistence or Tag Column storage. Those remain TC-owned tasks. The
+Custom Date Sort consumer also depends on the staged provider history/coverage
+and classification contracts. No shortcut code, screenshot reference,
+threshold, mask, skip, or acceptance policy changed in this audit.
+
 ## 2026-10-06 — Ctrl+M explicit personal-list membership flow
 
 Ctrl+M on a focused WatchList opens the existing explicit membership actions

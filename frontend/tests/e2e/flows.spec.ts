@@ -350,6 +350,19 @@ test.describe('Chart', () => {
     await plotsMenu.getByRole('button', { name: 'Close chart plot library' }).click()
     await chart.getByRole('button', { name: 'Remove RSP' }).click()
     await expect(chart.getByRole('button', { name: 'Remove RSP' })).toHaveCount(0)
+
+    // Repeat the populated-chip ordinary-action check at the narrow profile;
+    // the compact layout may reflow controls but must preserve both actions.
+    await page.setViewportSize({ width: 390, height: 800 })
+    await chart.getByRole('textbox', { name: 'Comparison symbol', exact: true }).fill('RSP')
+    await chart.getByRole('button', { name: 'Add comparison' }).click()
+    await expect(comparisonChip).toContainText(/[+-]\d+\.\d{2}%/, { timeout: 15_000 })
+    await chart.getByRole('button', { name: 'Chart plot library', exact: true }).click()
+    const narrowPlotsMenu = chart.locator('.chart-plots__menu:visible')
+    await expect(narrowPlotsMenu).toBeVisible()
+    await narrowPlotsMenu.getByRole('button', { name: 'Close chart plot library' }).click()
+    await chart.getByRole('button', { name: 'Remove RSP' }).click()
+    await expect(chart.getByRole('button', { name: 'Remove RSP' })).toHaveCount(0)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -5084,16 +5097,27 @@ test.describe('TC2000 workstation', () => {
         tool.instance_key === studyMapKey && tool.tool_type === 'market_map'
         && tool.configuration?.source_id === 'watchlist:7')) ?? false
     })
+    // Changing the universe starts an automatic map refresh. Wait for that
+    // request and its terminal render before issuing the separate explicit
+    // Refresh action. Use the control's current accessible name, which differs
+    // from its visible text and is asserted by the component markup.
+    const beforeUniverseChange = requestedSources.length
     await studyMapWindow.getByRole('combobox', { name: 'Market Map universe' }).selectOption('watchlist:7')
-    // Existing tiles can belong to the preceding refresh. Wait for this
-    // request and terminal render before selecting a member for publication;
-    // a late refresh otherwise replaces the selected tile/action mid-click.
-    const watchlistRequestCount = requestedSources.length
-    const studyMapRefresh = studyMapWindow.getByRole('button', { name: 'Refresh', exact: true })
-    await studyMapRefresh.click()
-    await expect.poll(() => requestedSources.length, { timeout: 15_000 }).toBeGreaterThan(watchlistRequestCount)
+    const studyMapRefresh = studyMapWindow.getByRole('button', { name: 'Refresh Market Map', exact: true })
+    await expect.poll(() => requestedSources.length, { timeout: 15_000 }).toBeGreaterThan(beforeUniverseChange)
     await expect(studyMapRefresh).toBeEnabled()
     await expect(studyMapWindow.locator('.market-map-tool')).toHaveAttribute('aria-busy', 'false')
+    await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('watchlist:7')
+
+    // Existing tiles can belong to the preceding refresh. Confirm the
+    // explicit action issues its own request and reaches a terminal render
+    // before selecting a member for publication.
+    const beforeManualRefresh = requestedSources.length
+    await studyMapRefresh.click()
+    await expect.poll(() => requestedSources.length, { timeout: 15_000 }).toBeGreaterThan(beforeManualRefresh)
+    await expect(studyMapRefresh).toBeEnabled()
+    await expect(studyMapWindow.locator('.market-map-tool')).toHaveAttribute('aria-busy', 'false')
+    await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('watchlist:7')
     await studySourceSaved
     await expect(studyMapWindow.getByRole('combobox', { name: 'Market Map universe' })).toHaveValue('watchlist:7')
     await expect(studyMapWindow.locator('.market-map-tool__tile')).toHaveCount(2)

@@ -19635,3 +19635,195 @@ local one-keyboard/four-Help-profile evidence remains valid but is not TCP4's
 full matrix. Official V25 Help is still `required_missing`. Provider/ETF product
 consumption and the full TCP3/TCP4 roadmap remain open.
 
+## 2026-10-16 — Conditional checkpoint-acceptance delegation recorded
+
+The exact human question was: “May I accept and merge the four development
+checkpoints into staging once their required cross-feature contracts and full
+tests pass, using verified free operations only and leaving quota-held,
+unreviewed, paid/trial and unsafe operations explicitly disabled? This preserves
+the complete feature roadmaps and does not authorize deployment, paid
+activation, or the operational trial.” The recorded answer was: “Yes—approve
+that initial scope and handle checkpoint acceptance” (2026-10-15T22:55:31Z).
+
+Within that scope, the coordinator owns conditional technical checkpoint
+acceptance after required cross-feature contracts and full local plus
+exact-source CI validation. No per-fix/per-checkpoint human signoff is needed
+inside the approved scope. This is not acceptance of this TC source, does not
+waive validation, or authorize TC self-integration, deployment/master promotion,
+paid activation, an operational trial, unsafe/quota-held/unreviewed operations,
+or data cleanup. Full feature roadmaps remain open. The common repair baseline
+`82d881e76be8de538abb6ec5c454d96afe0ee56a` is reconciled into this branch by
+`d4274a9fa3119c212a9aaf2c0006c20d921812e8`; it is not a combined feature
+baseline or product acceptance. Provider/ETF consumer integration still awaits
+their actual green product baselines. Help's approved local-only references
+remain distinct from official V25 parity, which is still required roadmap work.
+
+## 2026-10-16 — Focused retry-free browser checks
+
+The current coordinator receipt and canonical staging receipt confirm that
+`82d881e76be8de538abb6ec5c454d96afe0ee56a` is the released green common repair.
+Git ancestry confirms it is already included in this TC branch by
+`d4274a9fa3119c212a9aaf2c0006c20d921812e8`; no duplicate merge was attempted.
+The current feature-branch CI run is on `59bbb968feefd2ba9c74638dcfa6863d5533186c`,
+which already contains that merge, so it was not cancelled as superseded.
+Branch-declared, frontend-unit and backend jobs passed; E2E remained in progress
+and the exhaustive integration gate was skipped at the time of this receipt.
+
+Using the real assigned preview on port 15190 and local Chromium for Testing
+156.0.8078.4, a uniquely named isolated E2E account exercised the populated
+comparison path once without retries or forced clicks. RSP rendered as
+`+23.50%`; ordinary Plots open/close succeeded, then ordinary Remove succeeded.
+A saved line template restored the populated comparison; ordinary Plots
+open/close and Remove again succeeded with the restored chip present. In the
+same isolated workspace, date-pointer began at `on_with_values`, cycled through
+`off`, `on`, `on_with_values`, then `off`; the matching workspace snapshot PUT
+returned HTTP 200 and reload restored `off`. No existing account/workspace was
+reset or removed. One unique test user and its template/workspace remain as
+retained validation data. The preview was not restarted, and no assigned
+services/data were cleaned up.
+
+This is focused TCP1 browser evidence only, not full E2E/combined CI or TCP4
+visual-matrix evidence. Hosted CI may still expose independent failures; do not
+count retries as clean acceptance. Exact-source full opted-in visual matrix,
+Provider/ETF product-baseline consumer integration, and full combined local plus
+exact-source CI remain required. The Human's conditional coordinator
+checkpoint-acceptance delegation and all of its scope limits are recorded
+above; neither these local checks nor the common repair merge accept the TC
+product checkpoint.
+
+## 2026-10-16 — Coordinator confirms interim Help reference review
+
+Read the current coordinator review at
+`/home/m920q/charting-platform/.ai/staging-attempts/tc-help-reference-coordinator-review-20261016.md`.
+The coordinator independently reviewed all four current Linux Help PNGs from
+source `5fcae958786ea0a1fc922a7800d2ce12d12ddb37` (Help source
+`be6b12500b7abfc306154dcb1053e6dae9e9d5a4`) and confirms visible separation and
+readability of shortcut keys and descriptions. The exact reviewed Git blob IDs
+are:
+
+- 1080p/100: `ecc86d4226b89b97c3c6043e6ba25ffe7865465d`
+- 1080p/125: `b3d648884881cc5c31d9ad63af9855aaa49851a2`
+- 1440p/100: `49499c97efaa1577ea8633d9f51076fdea2b3513`
+- 1440p/125: `8693333f2993a5034c865b46a1f9fb88dc64fc72`
+
+This worktree contains exactly those four blobs; the reviewed source is an
+ancestor of the current branch. Source inspection confirms the 112px Help key
+column, readable row separation and text-bound assertions, keyboard scrolling
+and focus/dismissal checks. The owner receipt
+`tc2000_help_coordinator_readability_followup_exact_source` for be6b125 records
+the actual opted-in keyboard/accessibility test (1/1) plus the four screenshot
+profiles (4/4), with unchanged 0.005 pixel-ratio tolerance and no masks. No
+recapture is needed. This closes only the local-reference authority/review
+portion; it does not close full TCP2, the 104-profile visual matrix, or product
+checkpoint acceptance. Keep Help `state`/`review.status` `required_missing` and
+official V25 parity as unfinished roadmap work. Hosted CI's skipped visuals
+are not additional screenshot evidence.
+
+## 2026-10-16 — Reconciled-source ancestry and terminal CI flake audit
+
+The coordinator's current handoff identifies exact TC source
+`3963da11c14cc04ae269090e1c04050ed25f731b` and Actions run `38827799889` as
+terminal. The coordinator's independent audit of E2E job `116741553254` found
+188 passed, 110 skipped, and one retry-passing flaky test over 21.0 minutes:
+F9c-template-comparison at `flows.spec.ts:289`, where the first ordinary Plots
+click was intercepted by the Remove RSP area and the retry passed. This is not
+clean acceptance. The feature-branch Exhaustive Integration Gate was skipped;
+do not treat the badge or retry as a no-flake pass. The hosted run's visual
+skips are not screenshot evidence.
+
+This terminal run is an ancestor of current branch HEAD
+`59bbb968feefd2ba9c74638dcfa6863d5533186c`; it predates the released common
+repair merge `d4274a9fa3119c212a9aaf2c0006c20d921812e8`, which has exact green
+staging `82d881e76be8de538abb6ec5c454d96afe0ee56a` as its second parent. Thus
+the requested own-source reconciliation is already present; do not create a
+duplicate merge. The focused post-merge ordinary-click/template and
+date-pointer persistence checks above are retry-free evidence, but do not
+replace the required full local and exact-current-source CI gates. Provider
+retains the heavy validation slot; preserve full TCP2/TCP3/TCP4 requirements,
+the reviewed local-only Help references, and official V25 parity as open
+roadmap work.
+
+## 2026-10-16 — Exact-head CI terminal result and current Help geometry correction
+
+Exact-head Actions run `38831565334` for `59bbb968feefd2ba9c74638dcfa6863d5533186c`
+is terminal, not still running. Branch-declared, Frontend Unit, and Backend
+jobs succeeded; E2E job `116753105088` failed with 188 passed, 110 skipped, and
+one `F8s-market-map-watchlist` failure. Its ordinary Refresh click timed out
+waiting for the last visible Market Map tool's Refresh button; this is a
+non-retry-passing failure, so this run is not clean acceptance. The feature
+branch's Exhaustive Integration Gate was skipped. Hosted visual skips remain
+non-evidence for screenshot acceptance. Diagnose the actual Market Map failure
+without changing assertions or retry policy; Provider retains the heavy
+validation slot.
+
+The current source/accepted references are confirmed at Help key-column width
+112px and grid gap 7px, with the existing unchanged minimum 8 CSS-pixel
+measured key-to-description text separation guard. Earlier 96px sizing is a
+historical intermediate state only. Staging parent SHA is
+`82d881e76be8de538abb6ec5c454d96afe0ee56a`; actual TC merge SHA is
+`d4274a9fa3119c212a9aaf2c0006c20d921812e8`. Preserve the original pre-merge
+baseline/history, the four conflict resolutions, and unchanged Help source and
+oracles. The merge records accepted shared-repair reconciliation only; it is
+not a blanket full-feature scope waiver.
+
+## 2026-10-16 — F8s Market Map timeout sequencing diagnosis
+
+Inspected the exact failing F8s path and current `MarketMapTool.vue`. Selecting
+a different universe triggers the `sourceId` watcher, which calls `run()` and
+sets `loading=true`; the primary Refresh button is disabled until that request
+finishes. The test selected `watchlist:7` and immediately clicked Refresh, then
+captured the request count after the selection. That ordering can click during
+the automatic refresh, matching the hosted locator-actionability timeout. The
+test now snapshots the count before selection, waits for the automatic source
+request and terminal `aria-busy=false`/enabled state, verifies its source, then
+performs a separate ordinary manual Refresh click and verifies that second
+request and terminal render. No wait duration, retry policy, force-click, or
+product behavior was changed.
+
+Focused `MarketMapTool` Vitest passed 58/58; Playwright test discovery lists
+the single F8s case. The browser replay was not launched because the current
+coordinator receipt assigns Provider the heavy integration/browser validation
+slot. Thus this is a source-backed diagnosis and focused unit evidence, not yet
+proof that the hosted E2E failure is resolved; the unchanged test must pass on
+this source without retry when coordinated capacity is available. The canonical
+session preflight was attempted: UV cache isolation worked, but it could not
+write the global `.ai/runtime/allocations.lock` under this restricted filesystem
+and then rejected the dirty checkout as a new-session bootstrap boundary.
+Read-only session status independently confirmed the existing TC writer claim
+and exact synchronized HEAD, so no takeover/new claim was attempted.
+
+## 2026-10-16 — Bounded no-retry F8s and populated comparison verification
+
+The coordinator's bounded TC slot authorized focused E2E repetitions while
+Provider's full validation remained remote. Verified the assigned runtime
+read-only: Vite at `127.0.0.1:15190` runs from this exact worktree; the assigned
+backend is healthy and reports seeded market data enabled; all six TC services
+remain present. No services were restarted or cleaned up.
+
+Two fresh-account `F8s-market-map-watchlist` Chromium runs passed with
+`--retries=0` (13.7s and 13.1s). The hosted timeout was a stale locator: the
+button's visible text is `Refresh` but its explicit accessible name is
+`Refresh Market Map`. The test now uses that actual name and waits for the
+universe-change automatic refresh to settle before its separate ordinary
+manual Refresh click; each run verifies a new request, the selected source,
+and terminal rendering. The first `.test` email attempt was rejected before
+account creation; a later run with a valid test email reached the stale locator
+and failed there. That observed failure directly confirmed the name mismatch.
+
+Extended the populated comparison E2E flow to test the same Plots and Remove
+actions at `1920x1080` and `390x800`. The no-retry F9c run passed `1/1` (9.2s):
+at both sizes the RSP chip contained a numeric percentage, and ordinary clicks
+opened/closed Plots and removed the chip. At the narrow size, RSP is populated
+through the existing comparison input so this check tests pointer geometry,
+not a second chart-template menu-open path. An initial narrow template-menu
+locator attempt failed before the narrow action checks and was removed from
+the final flow. No product geometry, screenshot oracle, tolerance, retry, or
+force-click changed.
+
+Focused `MarketMapTool` Vitest passed `58/58`; Playwright lists the F8s test.
+The test accounts created for these isolated runs and their persisted workspace
+test state remain in the assigned database; they were not deleted. This closes
+the bounded local defect diagnosis only. Exact-source branch CI, full local and
+combined validation, the 104-profile opted-in visual matrix, and Provider/ETF
+consumer reconciliation remain outstanding; do not claim the checkpoint ready.
+

@@ -36,38 +36,16 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
+    "docs/tc2000-parity.md",
+    "frontend/tests/e2e/flows.spec.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
     "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 6,
-    "containers": [
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-frontend-1",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-worker-1",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-backend-1",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-postgres-1",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
-    ],
-    "known_bytes": 730162144,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 727094240,
-    "volume_count": 4,
-    "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -113,7 +91,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "9705b1bec39026f1ea611fbee75b220ba3bab0f0",
+  "head": "59bbb968feefd2ba9c74638dcfa6863d5533186c",
   "implementation_sha": "d0add5588612339203073b21015028ad4ffeb106",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -122,11 +100,11 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-16T21:46:00+00:00",
+  "last_checkpoint": "2026-10-16T01:28:01+00:00",
   "last_human_progress_update": "2026-10-15T23:33:12+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "After Provider releases heavy browser capacity, run no-retry populated comparison and date-pointer persistence checks, execute the exact-source deterministic full opted-in visual matrix, then obtain clean exact-source CI; continue Provider/ETF consumer integration without weakening oracles and preserve official V25 Help parity debt.",
-  "plan_hash": "1bd9eb1ee292c780cbe9da3283b9b554acb24e5ee98823431b8ae3e3205a8e07",
+  "next_action": "Common green staging 82d881e7 is reconciled through merge d4274a9 in current source 59bbb968; retain original pre-merge history and the four conflict-resolution audit. Current Help remains 112px key column / 7px CSS gap with the existing 8px measured text-separation guard; reviewed reference blobs and official V25 required_missing status are unchanged. Exact-head Actions 38831565334 is terminal: Branch-declared, Frontend Unit and Backend succeeded, but E2E 116753105088 failed (188 passed, 110 skipped, one F8s-market-map-watchlist Refresh timeout); Exhaustive skipped. The F8s failure was a stale exact accessible-name locator ('Refresh' versus 'Refresh Market Map'); corrected selector and separate auto-refresh/manual-click assertions passed in two fresh-account no-retry runs. Populated comparison Plots/Remove actions passed at desktop and 390x800 in F9c without retries. Focused MarketMapTool Vitest passed 58/58. Push this validated test/workstream context for exact-source CI, then continue full local/combined and opted-in visual matrix when Provider releases capacity. Continue Provider/ETF consumer reconciliation only after their green product baselines; preserve official V25 Help parity debt.",
+  "plan_hash": "5a1836f036ff829eaf5ac3eea260b0d2aac854b5b889db2e5cdef35cafe04094",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -138,28 +116,28 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "TCP1 common repair 82d881e76be8de538abb6ec5c454d96afe0ee56a merged by d4274a9fa3119c212a9aaf2c0006c20d921812e8; focused store tests 79/79 and production type-check/build pass. Retry-free populated comparison and date-pointer browser checks plus exact-source opted-in visual matrix remain pending coordinated browser capacity. Provider/ETF consumer integration, TCP3/TCP4, and clean exact-source CI remain open.",
-    "current_phase": "TCP1_RECONCILED_BROWSER_CHECK_PENDING;TCP2_HELP_REVIEWED;TCP3_UPSTREAM_WAIT",
-    "next_action": "Coordinate with Provider heavy-gate owner; then run no-retry populated comparison Plots/Remove/template and date-pointer persistence checks, exact-source deterministic full opted-in visual matrix, and normal exact-source CI. Preserve assigned runtime and official V25 Help parity debt.",
+    "current_blocker": "Coordinator-audited exact ancestor run 38827799889 (head 3963da11, E2E job 116741553254) ended 188 passed, 110 skipped, 1 retry-passing F9c-template-comparison flake; it is not clean acceptance and hosted visuals were skipped. Current source 59bbb968 includes released green staging 82d881e7 via actual merge d4274a9; original pre-merge baseline/history and four conflict resolutions remain documented. Current Help is 112px column / 7px gap with existing 8px measured-separation guard, accepted reference blobs unchanged. Exact-head Actions 38831565334 is terminal: Branch-declared, Frontend Unit and Backend succeeded; E2E 116753105088 failed with 188 passed, 110 skipped, one F8s-market-map-watchlist Refresh timeout; Exhaustive skipped. Confirmed cause is an obsolete locator ('Refresh' rather than accessible name 'Refresh Market Map'), not a product defect or loading race. Corrected test passed in two fresh-account no-retry runs; populated comparison Plots/Remove ordinary clicks passed at desktop and 390x800. Exact-source CI and full exact-source local/combined validation and opted-in 104-profile visual matrix remain open. Provider/ETF consumer integration, TCP3/TCP4, and clean all-source checkpoint remain open; official V25 Help remains required_missing.",
+    "current_phase": "TCP1_FOCUSED_BROWSER_CHECKS_PASS_EXACT_CI_PENDING;TCP2_HELP_REFERENCE_REVIEWED_NARROW_ONLY_FULL_MATRIX_PENDING;TCP3_UPSTREAM_WAIT",
+    "next_action": "Commit and push the validated TC test/workstream context to obtain exact-source CI. After that, coordinate for full exact-source local/combined validation and deterministic opted-in 104-profile visual matrix. Continue Provider/ETF consumer integration only after their green product baselines; preserve assigned runtime and official V25 Help parity debt.",
     "total": 5,
-    "updated_at": "2026-10-15T22:40:00+00:00"
+    "updated_at": "2026-10-16T01:28:01+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "d0add5588612339203073b21015028ad4ffeb106",
+    "current_local_head": "59bbb968feefd2ba9c74638dcfa6863d5533186c",
     "current_pending_range": null,
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
-    "last_attempted_local_head": "d0add5588612339203073b21015028ad4ffeb106",
+    "last_attempted_local_head": "59bbb968feefd2ba9c74638dcfa6863d5533186c",
     "last_attempted_range": "87b9e3ab77d5356408b25b73b086a8fc7f062400..d0add5588612339203073b21015028ad4ffeb106",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "d0add5588612339203073b21015028ad4ffeb106",
+    "remote_tracking_sha": "59bbb968feefd2ba9c74638dcfa6863d5533186c",
     "status": "pushed"
   },
-  "remote": "9705b1bec39026f1ea611fbee75b220ba3bab0f0",
-  "remote_sha": "d0add5588612339203073b21015028ad4ffeb106",
+  "remote": "59bbb968feefd2ba9c74638dcfa6863d5533186c",
+  "remote_sha": "59bbb968feefd2ba9c74638dcfa6863d5533186c",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "roadmap_acceptance_criteria": [
