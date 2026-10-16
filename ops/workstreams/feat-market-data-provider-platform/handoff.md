@@ -42,7 +42,7 @@
   refresh receipts, held quotas/data remain untouched, and the provider branch
   must not self-integrate.
 
-## 2026-10-16 09:35Z — hosted CI diagnostic compatibility follow-up
+## 2026-10-16 10:14Z — exact-source CI terminal result
 
 - The first coherent candidate was committed/pushed as
   `d9104b369b421e80aa41281386bcdd275ae9a1d2`; exact CI run
@@ -54,10 +54,13 @@
   unnecessarily expanded. This was not an admission behavior failure.
 - Restored the established diagnostic text without changing admission behavior.
   The affected regression plus the full runner test file pass 145/145; Ruff,
-  formatting, `git diff --check`, and workstream validation pass. One tiny
-  uncommitted follow-up remains; publish it and obtain exact-source CI before
-  treating hosted CI as green. No local full profile is being repeated while
-  the coordinator uses the released heavy slot.
+  formatting, `git diff --check`, and workstream validation pass. Follow-up
+  candidate `91164b355bf95da326063ce19caa33ed26003960` is pushed and exact CI
+  `38881637606` completed successfully for backend, frontend-unit,
+  branch-declared and standard E2E; Exhaustive skipped under the normal
+  feature-push condition. The failed earlier CI `38880394731` remains recorded
+  as a diagnostic compatibility assertion only. Do not repeat the heavy local
+  profile until the coordinator publishes repaired green common staging.
 
 ## 2026-10-16 — unknown/unreviewed entitlement evidence correction
 

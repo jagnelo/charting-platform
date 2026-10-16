@@ -3073,6 +3073,19 @@ remaining_gaps:
 progress:
   history:
     - >-
+      2026-10-16 10:14Z exact CI terminal result: after restoring the prior
+      MarketData.app diagnostic wording, candidate
+      91164b355bf95da326063ce19caa33ed26003960 passed exact CI38881637606;
+      backend, frontend-unit, branch-declared and standard Playwright E2E
+      succeeded, while Exhaustive was skipped under the normal feature-push
+      condition. The previous exact CI38880394731 remains honestly recorded
+      with 2,813 passed/one exact-string compatibility assertion failed. The
+      145 targeted runner/diagnostic tests and static/workstream checks pass.
+      This does not clear the seeded functional matrix's real F8j cleanup
+      failure or substitute for the final frozen-source full profile. Wait for
+      coordinator's repaired green common staging release before another heavy
+      local run.
+    - >-
       2026-10-16 09:35Z hosted CI exposed one compatibility assertion after
       the current-plan preflight refactor. Exact CI38880394731 on commit
       d9104b369b421e80aa41281386bcdd275ae9a1d2 reported Frontend Unit Tests

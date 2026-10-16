@@ -2,18 +2,17 @@
 
 ## Current source state and latest evidence — 2026-10-16 09:35Z
 
-The in-progress runner candidate was committed/pushed as
-`d9104b369b421e80aa41281386bcdd275ae9a1d2`. Its exact CI run
-[`38880394731`](https://github.com/jagnelo/charting-platform/actions/runs/38880394731)
-completed with frontend-unit success and backend failure; backend reported
-2,813 passed plus one failure. The only failure was an existing exact-string
-assertion for the MarketData.app non-routable diagnostic; the admission result
-itself was correct. The established diagnostic text has been restored without
-changing behavior, and the failing assertion plus full live-runner unit file
-now pass 145/145. Ruff/format/diff and branch workstream validation pass. That
-small compatibility follow-up is not yet committed/pushed or host-validated.
-The CI's branch-declared, E2E and Exhaustive jobs skipped by normal feature-push
-conditions. No additional heavy local profile is running.
+The runner candidate first published as `d9104b369b421e80aa41281386bcdd275ae9a1d2`
+had one exact-string compatibility assertion fail in CI `38880394731` (2,813
+passed, 1 failed); backend admission behavior itself was correct. Restoring the
+established diagnostic text produced pushed candidate
+`91164b355bf95da326063ce19caa33ed26003960`, whose exact CI
+[`38881637606`](https://github.com/jagnelo/charting-platform/actions/runs/38881637606)
+completed successfully: backend, frontend-unit, branch-declared and standard
+E2E jobs passed; Exhaustive skipped by the normal feature-push condition. The
+affected regression plus the complete runner file also pass 145/145, and
+Ruff/format/diff/workstream validation pass. This is code/CI evidence, not the
+final checkpoint gate. No additional heavy local profile is running.
 
 The shared staging baseline `5768bec4...` remains on QUALITY HOLD: its
 Exhaustive test retried and then passed the F8j popup-close cleanup case. The
