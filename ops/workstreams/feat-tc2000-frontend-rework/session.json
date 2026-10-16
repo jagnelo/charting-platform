@@ -2,7 +2,7 @@
   "acceptance_criteria": [
     {
       "id": "TCP1",
-      "text": "TCP1 COMPLETE and coordinator-accepted as narrow technical repair/reconciliation only: exact green staging delivery 82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009, merged into TC by d4274a9fa3119c212a9aaf2c0006c20d921812e8, implementation checkpoint 7f33b07dfc7ffa57d5285e04981448732e3eb727 verified by exact attempt-1 CI run 38835330075. This does not accept the whole TC checkpoint, close TCP2-TCP5, or authorize TC staging integration."
+      "text": "COMPLETE (narrow coordinator technical acceptance only): green staging 82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009 merged by d4274a9fa3119c212a9aaf2c0006c20d921812e8; implementation 7f33b07dfc7ffa57d5285e04981448732e3eb727 verified by exact attempt-1 CI 38835330075. This is not whole-checkpoint acceptance or staging-integration authority."
     },
     {
       "id": "TCP2",
@@ -36,11 +36,7 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
-    "frontend/tests/e2e/flows.spec.ts",
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+    "frontend/tests/e2e/flows.spec.ts"
   ],
   "docker": {
     "available": false,
@@ -82,7 +78,7 @@
   "finished": false,
   "finished_at": null,
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance feat/tc2000-frontend-rework: Prepare tc2000-workstation-integration-1: repair independent chart-template pointer interception and functional/visual blockers; consume synchronized green Provider+ETF staging, reconcile real consumer contracts, validate the combined workstation and publish a clean checkpoint for human review.. Acceptance criteria: TCP1: Accept and verify the coordinator-owned chart-template pointer repair only after green staging delivery; do not duplicate its fix in TC.; TCP2: Resolve TC-owned functional/visual failures without weakening checks; review and adopt only the human-authorized local Help reference after all four profiles pass, while keeping official V25 Help parity as unfinished roadmap work.; TCP3: After Provider and ETF reach synchronized green staging, merge that staging into this clean unfrozen source and reconcile all shared paths and actual provider coverage/preflight and ETF lineage/freshness consumers.; TCP4: Validate usable combined workstation and immutable Study consumers, success and unavailable paths, with the required full integration/browser profile and exact-source branch CI.; TCP5: Publish a clean pushed checkpoint and complete roadmap dispositions at ready_for_human_review; retain pending human acceptance and coordinator-only staging integration/freeze release.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_objective": "Advance feat/tc2000-frontend-rework: Prepare tc2000-workstation-integration-1: repair independent chart-template pointer interception and functional/visual blockers; consume synchronized green Provider+ETF staging, reconcile real consumer contracts, validate the combined workstation and publish a clean checkpoint for human review.. Acceptance criteria: TCP1: COMPLETE (narrow coordinator technical acceptance only): green staging 82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009 merged by d4274a9fa3119c212a9aaf2c0006c20d921812e8; implementation 7f33b07dfc7ffa57d5285e04981448732e3eb727 verified by exact attempt-1 CI 38835330075. This is not whole-checkpoint acceptance or staging-integration authority.; TCP2: Resolve TC-owned functional/visual failures without weakening checks; review and adopt only the human-authorized local Help reference after all four profiles pass, while keeping official V25 Help parity as unfinished roadmap work.; TCP3: After Provider and ETF reach synchronized green staging, merge that staging into this clean unfrozen source and reconcile all shared paths and actual provider coverage/preflight and ETF lineage/freshness consumers.; TCP4: Validate usable combined workstation and immutable Study consumers, success and unavailable paths, with the required full integration/browser profile and exact-source branch CI.; TCP5: Publish a clean pushed checkpoint and complete roadmap dispositions at ready_for_human_review; retain pending human acceptance and coordinator-only staging integration/freeze release.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
   "goal_recorded_at": "2026-10-15T20:07:26.302468+00:00",
   "goal_request": {
     "objective": "Advance feat/tc2000-frontend-rework: Prepare tc2000-workstation-integration-1: repair independent chart-template pointer interception and functional/visual blockers; consume synchronized green Provider+ETF staging, reconcile real consumer contracts, validate the combined workstation and publish a clean checkpoint for human review.. Acceptance criteria: TCP1: Diagnose and fix chart-template pointer interception with browser regression evidence and a coordinator-readable narrow repair proposal.; TCP2: Resolve required functional/visual failures without weakening reference policy; document missing reference evidence and proposed checkpoint limitations for human review.; TCP3: After Provider and ETF reach synchronized green staging, merge that staging into this clean unfrozen source and reconcile all shared paths and actual provider coverage/preflight and ETF lineage/freshness consumers.; TCP4: Validate usable combined workstation and immutable Study consumers, success and unavailable paths, with the required full integration/browser profile and exact-source branch CI.; TCP5: Publish a clean pushed checkpoint and complete roadmap dispositions at ready_for_human_review; retain pending human acceptance and coordinator-only staging integration/freeze release.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
@@ -90,7 +86,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "a60e2304e0b4d8c052ce4a2f0157a48066bc5c39",
+  "head": "256d680ec8ffeddd345c74b7f442cbee6846af65",
   "implementation_sha": "d0add5588612339203073b21015028ad4ffeb106",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -102,8 +98,8 @@
   "last_checkpoint": "2026-10-16T02:01:21+00:00",
   "last_human_progress_update": "2026-10-15T23:33:12+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Correct the append-only workstream journal and handoff with audited browser provenance. Prior focused F8s/F9c runs used existing Vite 127.0.0.1:15190 proxying to assigned TC backend 127.0.0.1:28008, not isolated Compose; five test-account rows remain privately inventoried in ignored .ai/runtime and must not be deleted. A current F8s sequencing delta is unvalidated beyond Playwright collection. No TC-owned browser/build process remains; Docker state refresh is unavailable due socket permission denial. Release the bounded slot to Provider. Schedule a new bounded browser run for the current delta only with coordinator/resource alignment and no further targeted data mutation. Continue full local/combined and opted-in 104-profile visual matrix as capacity allows; Provider/ETF consumers follow their green product baselines. Preserve V25 Help parity debt.",
-  "plan_hash": "6d58da4cd2230fb8b813b819997e9c0d72c8989792c333d7e81be3b1b66fc5cd",
+  "next_action": "TCP1 is narrowly accepted by the coordinator, not the whole checkpoint. Exact accepted chain: green staging82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009, TC merge d4274a9fa3119c212a9aaf2c0006c20d921812e8, implementation7f33b07dfc7ffa57d5285e04981448732e3eb727/exact attempt-1 CI38835330075 (E2E116765465161:189 passed,110 expected skips,zero retry/flake/failure). Restored journal row, provenance correction, and TCP1 acceptance are committed/pushed at256d680e. Exact CI38839922705 for256d680ec8ffeddd345c74b7f442cbee6846af65 is queued; do not claim green. Existing current F8s source-transition delta only has test collection 1/1; no browser/data mutation this continuation. Preserve assigned Vite15190, backend28008 and five account rows without cleanup. Use disposable CI/isolated runtime for browser proof, coordinated with Provider's full-local priority. TCP2 full104 visual, TCP3 Provider/ETF consumers, TCP4 combined profile, TCP5 closure and full V25 roadmap remain open; no TC staging integration.",
+  "plan_hash": "dadb5cdce505577c5210e12ad0421b4f1f7159d4708a554281788489baa49890",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -114,12 +110,12 @@
     "e7ed8602-bc49-4daa-be2c-7cc01bf37f6b"
   ],
   "progress": {
-    "completed": [],
-    "current_blocker": "Source checkpoint 7f33b07d contains released green staging 82d881e7 via merge d4274a9; Help 112px/7px geometry and accepted references unchanged. Exact CI 38835330075 passed ordinary E2E (189 passed, 110 skipped); hosted visuals were not opted in and Exhaustive was skipped. Provenance correction: prior focused F8s/F9c tests used existing Vite 127.0.0.1:15190 proxying to assigned TC backend 127.0.0.1:28008, not isolated Compose; five test accounts remain in assigned DB and are privately inventoried, not deleted. Browser mocks covered source/list/Market Map/snapshot calls; auth/account creation/workspace persistence used assigned backend. No TC-owned browser/build remains; Docker status refresh denied by socket permissions. Current F8s source-transition delta has collection-only evidence and remains browser-unvalidated. Do not claim isolated fixture or joint acceptance. Full local/combined validation, opted-in 104-profile visual matrix, Provider/ETF consumer integration, TCP3/TCP4, and clean all-source checkpoint remain open; official V25 Help remains required_missing.",
+    "completed": ["TCP1"],
+    "current_blocker": "TCP1 narrow technical pointer repair/reconciliation is coordinator-accepted: staging82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009 -> TC merge d4274a9fa3119c212a9aaf2c0006c20d921812e8 -> implementation7f33b07dfc7ffa57d5285e04981448732e3eb727 exact attempt-1 CI38835330075, E2E116765465161 189 passed/110 expected skips/zero retries, flakes or failures. This is NOT whole checkpoint acceptance or TC staging permission. Journal restoration and acceptance are pushed in256d680e; run38839922705 for exact256d680ec8ffeddd345c74b7f442cbee6846af65 is QUEUED, not green; prior a60 run38838322914 is still in progress. Current F8s sequencing delta collected 1/1 but not browser executed; no data mutation in this continuation. Prior F8s/F9c browser evidence used existing Vite15190 proxying to assigned backend28008, not isolated Compose; five test accounts remain privately inventoried and unchanged. Do not touch assigned runtime/data/15190. Full TCP2 opted-in104 visual matrix at unchanged0.005, TCP3 actual Provider/ETF contracts after green staging, TCP4 combined profile, TCP5 closure and complete V25 roadmap remain open; official V25 Help remains required_missing.",
     "current_phase": "TCP1_NARROW_TECHNICAL_REPAIR_ACCEPTED;TCP2_HELP_REFERENCE_REVIEWED_NARROW_ONLY_FULL_MATRIX_PENDING;TCP3_PROVIDER_ETF_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_CLOSURE_OPEN",
-    "next_action": "Release bounded TC slot to Provider now. Coordinate a later focused no-retry browser replay of the current F8s delta before full local/combined and opted-in visual gates; no more data mutation until that run is explicitly scoped. Reconcile Provider/ETF consumers only after their green product baselines.",
+    "next_action": "With the existing bounded TC browser slot released and Provider retaining full-local priority, commit the current test-only F8s sequencing correction with explicit collection-only evidence; allow isolated exact-source CI to execute it rather than mutating assigned local data. Continue independent TC-owned V25 roadmap work only where it does not duplicate Provider/ETF ownership. Run full local/combined and unchanged opted-in104 visual gates when coordinated capacity and the required upstream green consumer baselines permit.",
     "total": 5,
-    "updated_at": "2026-10-16T02:35:00+00:00"
+    "updated_at": "2026-10-16T03:00:00+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
@@ -135,7 +131,7 @@
     "remote_tracking_sha": "7f33b07dfc7ffa57d5285e04981448732e3eb727",
     "status": "pushed"
   },
-  "remote": "a60e2304e0b4d8c052ce4a2f0157a48066bc5c39",
+  "remote": "256d680ec8ffeddd345c74b7f442cbee6846af65",
   "remote_sha": "a60e2304e0b4d8c052ce4a2f0157a48066bc5c39",
   "remote_synchronized": true,
   "retained_docker_resources": [],

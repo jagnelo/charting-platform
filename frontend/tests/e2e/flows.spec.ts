@@ -5097,13 +5097,21 @@ test.describe('TC2000 workstation', () => {
         tool.instance_key === studyMapKey && tool.tool_type === 'market_map'
         && tool.configuration?.source_id === 'watchlist:7')) ?? false
     })
-    // Changing the universe starts an automatic map refresh. Wait for that
-    // request and its terminal render before issuing the separate explicit
-    // Refresh action. Use the control's current accessible name, which differs
-    // from its visible text and is asserted by the component markup.
-    const beforeUniverseChange = requestedSources.length
-    await studyMapWindow.getByRole('combobox', { name: 'Market Map universe' }).selectOption('watchlist:7')
+    // A source change starts an automatic map refresh. Make the preceding
+    // state explicit so the request-count assertion cannot mistake selecting
+    // an already-current value for a new request.
+    const studyUniverse = studyMapWindow.getByRole('combobox', { name: 'Market Map universe' })
     const studyMapRefresh = studyMapWindow.getByRole('button', { name: 'Refresh Market Map', exact: true })
+    if (await studyUniverse.inputValue() === 'watchlist:7') {
+      const beforeDistinctSourceChange = requestedSources.length
+      await studyUniverse.selectOption('market-group:us-benchmarks')
+      await expect.poll(() => requestedSources.length, { timeout: 15_000 }).toBeGreaterThan(beforeDistinctSourceChange)
+      await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('market-group:us-benchmarks')
+      await expect(studyMapRefresh).toBeEnabled()
+      await expect(studyMapWindow.locator('.market-map-tool')).toHaveAttribute('aria-busy', 'false')
+    }
+    const beforeUniverseChange = requestedSources.length
+    await studyUniverse.selectOption('watchlist:7')
     await expect.poll(() => requestedSources.length, { timeout: 15_000 }).toBeGreaterThan(beforeUniverseChange)
     await expect(studyMapRefresh).toBeEnabled()
     await expect(studyMapWindow.locator('.market-map-tool')).toHaveAttribute('aria-busy', 'false')

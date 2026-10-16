@@ -19868,6 +19868,35 @@ roadmap dispositions remain open. The conditional delegated acceptance scope,
 full remaining roadmap, no-staging-write boundary, and retained-account
 provenance remain in force.
 
+## 2026-10-16 — Resume after TCP1 acceptance
+
+Re-read the coordinator guidance and checkpoint contract on resume, then
+verified the branch-owned source and workstream. The branch is at
+`256d680ec8ffeddd345c74b7f442cbee6846af65` and synchronized with origin. The
+TCP1 acceptance above remains narrow; no TC staging integration is authorized.
+The original journal row deleted by the `59bbb968..7f33b07d` range was restored
+verbatim and the corrected provenance plus coordinator acceptance were
+appended and pushed in `256d680e`.
+
+Current exact-source workflow run `38839922705` matches `256d680e` but is only
+queued. Earlier run `38838322914` for metadata-only `a60e2304` was still in
+progress on the latest read. Neither is called green. The current uncommitted
+F8s change checks the selected universe and makes a distinct source transition
+before asserting an automatic refresh only when the selected value is already
+`watchlist:7`; `npx playwright test --list --grep F8s-market-map-watchlist
+--reporter=list` collected the test once. No browser run or targeted data
+mutation occurred in this continuation. The five prior assigned-database test
+accounts and assigned port 15190/backend remain unchanged; no cleanup was done.
+
+Provider retains full local validation priority. The next bounded proof for
+this E2E sequence should run in disposable CI/isolated infrastructure rather
+than mutate the assigned test database. Continue independent TC-owned V25 work
+where its semantics are documented, while preserving full TCP2 visual parity,
+Provider/ETF consumer reconciliation after their green staging releases, the
+combined TCP4 profile, and TCP5 closure as open gates. Official V25 Help remains
+`required_missing`; do not alter the 0.005 visual threshold or local Help
+references.
+
 ## 2026-10-16 — Focused browser provenance correction
 
 Correction to the prior section titled “Bounded no-retry F8s and populated
@@ -19899,4 +19928,13 @@ for their tested source, but are not proof of this new delta or of an isolated
 fixture/full joint acceptance. No further targeted account/data mutation is
 authorized by this evidence correction. The bounded TC browser/build slot is
 released; Provider retains full local validation priority.
+
+The F8s regression guard is intentionally a test-only change: when the universe
+is already `watchlist:7`, it switches to `market-group:us-benchmarks`, waits for
+that real request and terminal state, then changes to `watchlist:7` and waits
+for the new request. When the current value differs, it goes directly to
+`watchlist:7`. The production accessible name remains `Refresh Market Map`,
+and the existing ordinary-click, terminal-state, persistence, selection, and
+render assertions are unchanged. Do not replay it on the assigned persistent
+database; next evidence should come from a fresh isolated CI stack.
 
