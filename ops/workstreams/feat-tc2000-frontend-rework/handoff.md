@@ -19564,3 +19564,16 @@ reaches TC through the authorized sequence, then rerun date-pointer persistence
 without retries and complete clean exact-source CI. No TC source, test
 expectation, screenshot threshold, or visual policy changed in this audit.
 
+Follow-up exact pushed-tip run `38824304286` matched
+`f1eef21b791659babdcd83a32151b2b6810f21a8`. Backend, Frontend Unit, and
+Branch-declared checks succeeded; the feature-branch Exhaustive Integration
+Gate was skipped. E2E concluded 186 passed, 110 skipped, and 3 retry-passing
+flakes: F9c comparison restoration (`flows.spec.ts:289`), date-pointer reload
+(`tc2000_date_pointer.spec.ts:42`), and F8w EasyScan-to-Market-Gauge
+(`flows.spec.ts:6482`). The hosted command did not enable
+`RUN_BOARD_VISUAL_PARITY`, so none of its visual results count as screenshot
+evidence. This confirms the current source is still not clean all-source
+acceptance; preserve every expectation and retry result unchanged. The local
+one-accessibility-plus-four-Help-profile run and tracked four-PNG local product
+reference remain valid, with official V25 parity still open.
+
