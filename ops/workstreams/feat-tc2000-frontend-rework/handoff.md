@@ -20995,3 +20995,40 @@ combined-profile validation, TCP5 checkpoint review, and official V25 parity
 remain outstanding. Existing Help local-reference authority and the original
 0.005 visual tolerance are unchanged.
 
+## 2026-10-16 — F8r/F14 retry-only E2E failures
+
+Exact run `38958541029` matches source
+`2e38b9749e73c0b9bdc6d76b94732379db105f23`. Backend, Frontend Unit and
+Branch-declared jobs succeeded; E2E is terminal red with 188 passed, 110
+skipped, and two retry-passing failures. The feature Exhaustive Integration
+Gate was skipped. Preserve this historical red result and do not count either
+retry as a pass.
+
+Playwright error contexts show F8r's failure snapshot retained the
+`Workstation tools` menu and did not contain the Python Library window. The
+nearby EasyScan setup establishes both the workspace layout host and a visible
+dock window before Add Tool. F8r lacked that explicit live-dock precondition;
+the candidate adds those observable readiness checks, without a sleep or
+changed timeout. The failure context alone does not establish a production
+tool-opening defect.
+
+F14's failure snapshot shows the chart still reporting `Loading SPY…` with no
+uPlot renderer at the existing 15-second assertion; the test only intercepts
+drawings and did not control its seeded local OHLC response. The successful
+retry trace shows the same local OHLC route returning quickly and the drawing
+flow working. Since F14 covers drawing/keyboard behavior rather than market
+data loading, the candidate supplies a deterministic local SPY/D1 OHLC fixture
+for this test. It retains the same visible-plot, ordinary drawing action,
+persisted POST, context-menu keyboard and focus assertions. This isolates the
+test oracle from unrelated backend data-load timing; it does not claim an
+underlying chart-data product defect or acceptance of chart loading behavior.
+
+Candidate changes are limited to `frontend/tests/e2e/flows.spec.ts`; app code,
+assertions, existing 15-second limits, retry/flaky policy, visual references,
+and screenshot thresholds are unchanged. Stack-free checks passed: Vue/TS
+type-check; Playwright collection found exactly these two tests; TC scope guard
+and its six fail-closed self-tests; workstream validator; and `git diff
+--check`. No browser or app profile was started because Provider retains the
+heavy local slot. Exact-source full CI remains required after publication; the
+candidate is not validated until the terminal full branch run is audited.
+

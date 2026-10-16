@@ -30,19 +30,23 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  The narrow occurrence-date hydration repair is isolated in fix-only commit
-  957216a1bbb0727dc7f5f26f644d84df911e5522. Exact Actions run38954608461
-  attempt1 matches that full SHA and concluded SUCCESS: Backend, Frontend Unit,
-  Branch-declared, and Playwright E2E all succeeded; Exhaustive Integration
-  Gate was skipped by feature-branch policy. E2E logged190 passed/110 skipped
-  in20.4m; F8s-breadth-family-ratio ran at case147/300, and the complete log
-  contains no Playwright test retry, flake, or failure. The skips include visual
-  tests and are not screenshot evidence. This validates the isolated TC source
-  fix, not its transplant to degraded staging SHA e0cb269afc8460bdc814c93ec71c640f01b2b31f
-  or the broader TC checkpoint. The coordinator owns that remediation
-  transplant/integration; this worktree did not merge staging or integrate.
-  Preserve the wider roadmap: TCP2 full visual, TCP3 Provider/ETF consumers,
-  TCP4 combined profile, TCP5 review, and official V25 parity remain open.
+  Exact Actions run38958541029 on source2e38b9749e73c0b9bdc6d76b94732379db105f23
+  is terminal red: 188 E2E passed,110 skipped, and two retry-passing flakes under
+  failOnFlaky. F8r-python-library-narrow's failure snapshot still had the tool
+  menu open with no Python Library window; the available evidence does not
+  establish whether app hydration or test readiness caused the missed first
+  opening. F14-context-keyboard failed with the chart still reporting Loading
+  SPY and no uPlot canvas, while the drawing-only test did not control its local
+  OHLC response. Candidate test setup now waits for an observable live dock
+  before F8r and supplies deterministic local OHLC rows for F14. Existing
+  UI assertions,15-second limits, retry policy, and visual thresholds are
+  unchanged. Stack-free type-check, targeted collection, TC scope validation and
+  workstream validation pass; exact-source full CI is pending candidate
+  publication. The earlier exact source run38954608461 on957216a1bbb0727dc7f5f26f644d84df911e5522
+  was clean, but neither run closes broader acceptance. TCP2 full visual, TCP3
+  Provider/ETF consumers, TCP4 combined profile, TCP5 review, and official V25
+  parity remain open; the coordinator owns any staging-derived remediation and
+  integration, and this worktree does not merge staging or sibling branches.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-

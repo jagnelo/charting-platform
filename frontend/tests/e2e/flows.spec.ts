@@ -4839,6 +4839,11 @@ test.describe('TC2000 workstation', () => {
   test('F8r-python-library-narrow — Python Library creation controls remain contained in a narrow desktop dock', async ({ page, browserDiagnostics }) => {
     await page.setViewportSize({ width: 390, height: 800 })
     await page.goto('/chart/SPY')
+    // The shell is visible before Golden Layout has restored a live dock tab.
+    // Establish the same mounted-window precondition as the neighboring
+    // EasyScan flow before exercising Add-tool on a cold route navigation.
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('.tool-window:visible').first()).toBeVisible({ timeout: 15_000 })
     await page.getByRole('button', { name: 'Add tool' }).click()
     await page.getByRole('menuitem', { name: 'Python Library', exact: true }).click()
     const libraryWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.code-library-tool') }).last()
@@ -6999,6 +7004,27 @@ test.describe('Drawing tools', () => {
   })
 
   test('F14-context-keyboard — selected drawing actions expose a scoped menu', async ({ page, browserDiagnostics }) => {
+    // This flow covers drawing interactions, not backend market-data latency.
+    // Give uPlot deterministic local OHLC rows so a delayed seeded-store read
+    // cannot leave the chart shell in its loading state before the keyboard
+    // contract is exercised.
+    const chartBars = Array.from({ length: 80 }, (_, index) => {
+      const close = 500 + index * 0.25
+      return {
+        ts: new Date(Date.UTC(2025, 0, index + 1)).toISOString(),
+        open: close - 0.2,
+        high: close + 1,
+        low: close - 1,
+        close,
+        volume: 1_000_000 + index * 1_000,
+        is_adjusted: true,
+      }
+    })
+    await page.route(/\/api\/v1\/ohlcv\/local\/SPY\/D1(?:\?.*)?$/, route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(chartBars),
+    }))
     const drawing = {
       id: 901,
       instrument_id: 1,
