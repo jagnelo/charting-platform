@@ -3073,6 +3073,29 @@ remaining_gaps:
 progress:
   history:
     - >-
+      2026-10-16 07:12Z current-source checkpoint update: exact candidate
+      `0111cc698ad8c03220b60725bdc2df68195d96e8` is clean/pushed and exact
+      feature CI `38857046752` passed all required jobs; the Exhaustive
+      Integration Gate is skipped on feature pushes. Local backend passed
+      2,796 unit + 395 PostgreSQL/Redis integration tests at 82%, with the
+      other non-browser profile stages green. The functional browser matrix
+      passed 151/260 (109 expected skips, no failures/retries); strict pinned
+      visual passed 101/104 with three Study Lab visual mismatches, so the full
+      profile is still red and this source is not yet ready for coordinator
+      acceptance. Standard E2E wrapper stopped before assertions due existing
+      Docker-owned report-directory EACCES; equivalent functional tests ran
+      with output in `/tmp`. First cleanup removed four fresh test volumes and
+      four scoped test images (not persistent application/provider data); a
+      second isolated stack was stopped without `-v` and its four new volumes
+      were preserved. Provider egress was denied and no provider HTTP calls or
+      quota spend occurred. Existing live receipts remain bound to their exact
+      historical trees. Human's 22:55Z delegated conditional acceptance
+      remains in force; coordinator accepts only after required contracts and
+      full tests pass. Next: coordinate frontend-owned visual mismatch repair,
+      rerun declared full profile and exact-source CI, refresh this packet and
+      operation inventory, then submit exact source to coordinator. Do not
+      self-integrate, deploy, activate paid/trial operations, or reset ledgers.
+    - >-
       2026-10-09 provider-specific continuation: CoinGecko Demo's Pro-only
       `/key` usage endpoint is explicitly unavailable, not retried; the Demo
       manifest passed search/profile/universe `3/3` (4 requests, 258,391
@@ -7513,15 +7536,13 @@ current_gate_checkpoint: >-
       acceptance; the cross-window UI failure remains with its frontend owner,
       and source-bound live evidence/CI status remain to be reconciled.
   next_action: >-
-    Finish the FMP/Tiingo stale-plan fail-closed correction, exact-source local
-    validation, the declared full-stack/browser gate and exact-source CI. Keep
-    live receipts bound to their original source; refresh only operations
+    Coordinate repair of the three frontend-owned strict Study Lab visual
+    mismatches without editing frontend or sibling-owned files. Then rerun the
+    declared full local profile and exact-source CI, refresh the ICP1-7 packet
+    and enabled-versus-disabled operation inventory, and submit exact evidence
+    to the central coordinator for delegated conditional checkpoint acceptance.
+    Keep provider receipts bound to original source; refresh only operations
     admitted by reviewed-free contracts and current durable quota evidence.
-    Publish the explicit enabled-versus-held operation inventory and clean
-    ICP1-7 packet. The active TC visual run currently owns shared browser
-    capacity; do not launch a competing heavy gate. The known strict Study Lab
-    visual mismatch is frontend-owned and this branch must not change frontend.
-    The central coordinator owns delegated conditional checkpoint acceptance
-    and staging integration; this branch must not self-integrate. Preserve the
-    complete roadmap and all queried data. No deployment, paid/trial activation
-    or operational trial is authorized.
+    Preserve the complete roadmap and all queried data. The coordinator owns
+    acceptance and staging integration; this branch must not self-integrate.
+    No deployment, paid/trial activation, operational trial or ledger reset.

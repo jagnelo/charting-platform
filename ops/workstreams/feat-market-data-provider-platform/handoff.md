@@ -1,5 +1,49 @@
 # feat/market-data-provider-platform
 
+## 2026-10-16 07:12Z — current candidate and checkpoint disposition
+
+- Exact candidate `0111cc698ad8c03220b60725bdc2df68195d96e8` is clean and
+  pushed. Exact-source CI `38857046752` passed backend, frontend unit,
+  branch-declared, and E2E jobs; the Exhaustive Integration Gate was skipped
+  for a feature-branch push. The released common-repair baseline
+  `82d881e76be8de538abb6ec5c454d96afe0ee56a` is already in ancestry.
+- Full local profile passed backend (2,796 unit + 395 PostgreSQL/Redis
+  integration, 82% combined coverage), dependency/lock, migration-head,
+  lint/type, frontend-unit/build, Compose, research-runner and isolated stack
+  health. Migration compatibility correctly skipped because no migrations
+  changed. Standard E2E wrapper stopped before assertions at EACCES in
+  Docker-owned report directories. Equivalent functional matrix on this source
+  completed 151 passed, 109 expected skips, zero failures/retries. Pinned
+  visual matrix completed 101/104; the three Study Lab visual mismatches remain
+  red at about 1.0% against the 0.5% threshold. Thus this candidate is not yet
+  ready for conditional coordinator acceptance.
+- During the first standard-profile cleanup, `docker compose down -v` removed
+  four newly created branch-scoped test volumes and four project-scoped test
+  images. It did not target persistent application volumes, provider quota
+  ledgers, response archives, or external-provider data. We disclosed this
+  accurately; recreated a second isolated stack and stopped it without `-v`,
+  preserving its four fresh test volumes. Browser artifacts remain under
+  `/tmp/provider-playwright-0111cc` and
+  `/tmp/provider-visual-pinned.EV7ZKJ/results-seeded`. Provider egress was
+  denied; no provider HTTP request/quota spend occurred.
+- Historical provider receipts remain tied to their recorded source trees;
+  no stale receipt was rebound. Keep Alpha Vantage, Dinari, Marketstack and
+  Tiingo under their exact quota/profile holds, and preserve the distinct
+  operation-level zero-billing EODHD bootstrap contract without treating it as
+  a reviewed subscription plan. No deployment, paid/trial activation, trial,
+  or ledger reset is authorized.
+- Human's 22:55Z answer was “Yes—approve that initial scope and handle
+  checkpoint acceptance.” It delegates conditional technical acceptance to
+  the coordinator once required contracts and full tests pass; it does not
+  accept this source, waive the red visual gate, or authorize this branch to
+  self-integrate. No additional human signoff is needed within the approved
+  verified-free scope.
+- Next: coordinate the three frontend-owned visual mismatches with their
+  owner, preserve all branch boundaries, then rerun the declared full profile
+  and exact-source CI on a repaired candidate. Keep the ICP1-7 packet and
+  enabled-versus-disabled operation inventory source-bound and current. Submit
+  exact evidence to the coordinator; do not self-integrate.
+
 ## 2026-10-16 05:39Z — FMP/Tiingo retained-plan correction and checkpoint gates
 
 - Current source adds two protections for existing FMP/Tiingo entitlement rows:
