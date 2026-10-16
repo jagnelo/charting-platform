@@ -30,17 +30,16 @@
     }
   ],
   "active_changeset": {
-    "baseline": "e0af9ddc1310a27009d380bdb4b825d959cc0431",
-    "intent": "Map current ETF native/fallback request families to the actual identity, publisher, account and operation context available, and separate reviewed retained source facts from unknown terms/quota/storage rights and application safety caps.",
-    "name": "Publish offline transport-family and binding inventory",
+    "baseline": "1033c2db1e9dff3aa1fd3122d0678e2fe9dedf69",
+    "intent": "Record terminal exact-source live-route results and prevent routine branch pushes from repeating external issuer traffic while preserving all opt-in live coverage.",
+    "name": "Make ETF live issuer validation explicitly opt-in in branch CI",
     "owned_paths": [
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
-      "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
-      "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md"
+      "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "state": "offline_mapping_recorded_provider_release_pending"
+    "state": "exact_CI38911867173_terminal_red; two_live_issuer_results_inconclusive; explicit_live_matrix_moved_out_of_automatic_branch_tests; default_no_network_gate_and_validator_passed; safe_policy_receipt_push_ready"
   },
   "active_session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
   "branch": "feat/etf-holdings-constituents",
@@ -69,8 +68,13 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "current_blocker_latest": "2026-10-16 13:33Z: Corrected both exact CI38906199763 causes in ETF source/workstream from existing evidence: restored the 15 Tier-0 / 156 Tier-1 narrative invariant in progress.current_blocker and aligned MINT/BOND runtime audit dates/details/refs with existing 2026-10-15 PIMCO page-only records while preserving the October 5 HTTP 401 as historical. Targeted invariants and full 611-test adapter module pass; route-drift 23 pass; default live contracts 9 pass/537 opt-in skipped without network; frontend type-check, 17 UI tests, build, Ruff and workstream validator pass. The separately declared checkpoint-consumer module stalls on its first TestClient capability GET; bounded 30-second rerun emitted an AnyIO blocking-portal stack and no test result. Do not claim the full branch suite green. Provider handle 84370 owns the heavy slot; no live calls, quota spend or full profile. Push the correction and require fresh exact-source CI; staging 0145 remains common repair only and Provider product checkpoint remains unaccepted.",
-  "dirty_paths": [],
+  "current_blocker_latest": "2026-10-16 14:29Z: Exact CI38911867173 completed RED on source 1033c2db1e9dff3aa1fd3122d0678e2fe9dedf69; two issuer ticker assertions remain unresolved/inconclusive, without response bodies/artifacts. Removed only the explicit RUN_LIVE_ETF_HOLDINGS_TESTS=1 invocation from automatically executed branch_tests; retained it under deferred_live_checks, preserving all test/assertion code and the default live-test module. Resolved push-triggered branch command list contains nine commands and no live-enabled invocation; no workflow file references the explicit live invocation/test module. Default live module with opt-in unset passed 9 non-network tests and skipped 537 probes; no HTTP. Workstream validator passed 34 records and git diff check passed. Safe to commit/push this policy and durable receipt; exact CI required after publication. No staging/product acceptance.",
+  "dirty_paths": [
+    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
+    "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+  ],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -95,7 +99,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "c58cfeafdba77ee22b89caec9ec7d3057657c6f3",
+  "head": "1033c2db1e9dff3aa1fd3122d0678e2fe9dedf69",
   "implementation_sha": "dd9b7a08ce79303638c3951dd937270e97bbff33",
   "integration_checkpoint": {
     "acceptance_authorization": "pending",
@@ -122,16 +126,16 @@
     "contract_document": "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md",
     "current_published_ci": {
       "backend": "success",
-      "branch_tests": "success",
-      "conclusion": "success",
+      "branch_tests": "failure:525 passed,19 skipped,2 live failures (MSMR missing QQQ; Militia missing GOOG) after 14m45s",
+      "conclusion": "failure",
       "frontend": "success",
-      "id": 38805354206,
-      "playwright": "success:151 passed/109 declared skips; regular E2E only",
-      "source_sha": "ecf92e234310eddeda023ec29f17d1ce7d6c4be9",
+      "id": 38911867173,
+      "playwright": "success:151 passed,109 skipped; Exhaustive Integration Gate skipped by feature-branch design",
+      "source_sha": "1033c2db1e9dff3aa1fd3122d0678e2fe9dedf69",
       "status": "completed",
-      "url": "https://github.com/jagnelo/charting-platform/actions/runs/38805354206"
+      "url": "https://github.com/jagnelo/charting-platform/actions/runs/38911867173"
     },
-    "current_published_sha": "ecf92e234310eddeda023ec29f17d1ce7d6c4be9",
+    "current_published_sha": "1033c2db1e9dff3aa1fd3122d0678e2fe9dedf69",
     "dispositions_document": "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "id": "etf-holdings-integration-1",
     "issuer_repair_ci": {
@@ -190,9 +194,9 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-15T22:36:00Z",
+  "last_checkpoint": "2026-10-16T14:29:33Z",
   "last_human_progress_update": "2026-10-15T22:12:26.620198+00:00",
-  "latest_checkpoint": "2026-10-16 13:33Z: Restored the required 15 Tier-0 and 156 Tier-1 phrase in progress.current_blocker and synchronized MINT/BOND runtime date, page facts and evidence refs with the retained Oct 15 PIMCO page-only audit/YAML, preserving all prior refs and the historical Oct 5 HTTP 401 without repeating it. Targeted parity/narrative tests 2 passed; adapter module 611 passed; issuer-route drift 23 passed; default non-network live contracts 9 passed/537 skipped; Ruff/workstream validation and frontend type-check/17 ETF UI tests/build passed. Consumer checkpoint module still hangs at TestClient GET; bounded timeout 30 sec with AnyIO portal stack/no result. No live matrix, issuer request, quota spend or full profile. Fresh exact-source CI required.",
+  "latest_checkpoint": "2026-10-16 14:29Z: Exact CI38911867173 completed RED on 1033c2db1e9dff3aa1fd3122d0678e2fe9dedf69, with two unresolved live ticker failures and no retained response bodies/artifacts. The explicit live-enabled command has been removed from automatically executed branch_tests and retained under deferred_live_checks; normal live test command and all test/assertion code remain. Resolved command list has nine commands and no live-enabled invocation; workflows do not call the matrix directly. Default live module passed 9 non-network tests and skipped 537 probes with opt-in unset; validator passed 34 records and diff check passed. No HTTP. The policy/receipt change is safe to publish, then exact CI is required. No product acceptance.",
   "local_profile_execution": {
     "cleanup": {
       "host_wide_prune": false,
@@ -228,7 +232,7 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the coherent correction on only feat/etf-holdings-constituents and require fresh exact-source CI. The narrative invariant and MINT/BOND runtime/YAML parity are repaired; targeted tests and 611 adapter cases pass. The branch-declared consumer module still stalls at its first TestClient capability GET (bounded 30s with AnyIO portal stack/no result), and the live-enabled matrix was not run because this repair authorizes no issuer HTTP or quota spend. Provider profile handle 84370 owns heavy-validation priority; do not run the full profile. After resolving/closing the current exact CI correction, continue only bounded independent ETF prep; the actual shared ETF_HOLDINGS bridge waits for accepted green Provider product staging. Preserve full roadmap and later observation gate; keep paid/trial/unsafe operations disabled and do not alter staging/sibling worktrees.",
+  "next_action": "Commit and push the verified plan/receipt change on feat/etf-holdings-constituents, then monitor exact-source CI. The resolved branch list contains no live-enabled invocation, workflow files do not call the live suite directly, and the default live module passed 9/no-network and skipped 537. Do not change test assertions or remove coverage. Keep MSMR/QQQ and Militia/GOOG unresolved/quarantined: no response body/row evidence was retained and deterministic fixtures do not prove current live page contents. Resolve only from an exact retained response or later bounded authorized official-page capture with approved retention and complete access/final-URL/identity/table/parser-row comparison; stop on challenges without retry. No extra issuer/SEC/provider HTTP, quota spend, vendor contact, weakening/skipping/relabeling failures, paid/trial activation, staging integration, or deployment. Preserve earlier local consumer no-result and hosted 14/14 pass; await accepted green Provider staging before the shared ETF_HOLDINGS bridge and preserve the full roadmap.",
   "plan_hash": "87ac043208a61455e66bd4e3fb8e781f83e3942afbe247f1192a59c51efd3a08",
   "planning_required": false,
   "planning_state": "ready",
@@ -280,14 +284,14 @@
     "completed": [
       "EICP1"
     ],
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). The actual ETF tree has no ETF_HOLDINGS capability, durable per-request shared reservation/settlement, aggregate recurring-cost admission, or awaited async adapter dispatch. Latest coordinator receipt still has provider_product_checkpoint:null; current direction reserves Provider's first heavy validation slot. Do not guess an interface, run the competing full profile, or claim acceptance.",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74). The actual ETF tree has no ETF_HOLDINGS capability, durable per-request shared reservation/settlement, aggregate recurring-cost admission, or awaited async adapter dispatch. Exact CI38911867173 for published 1033c2db1e9dff3aa1fd3122d0678e2fe9dedf69 is terminal RED: frontend/backend passed, Branch-declared live sweep 525 passed/19 skipped/2 failed (MSMR missing QQQ; Militia missing GOOG), E2E passed 151/109 skipped and Exhaustive was skipped. No CI response bodies/artifacts; static review cannot establish parser defect or live source content, so both routes remain unresolved/quarantined. No retries or additional issuer/provider requests. The hosted checkpoint consumer tests passed 14/14 on the prior source; preserve the earlier local no-result. Unknown/quota-held/paid/trial/unsafe operations stay disabled.",
     "current_phase": "provider_contract_pending",
-    "next_action": "Push the current ETF-owned CI correction and obtain fresh exact-source CI. Keep the consumer TestClient hang explicit and the opt-in issuer matrix unrun; do not label the branch-declared suite fully passed. Then continue bounded independent prep while Provider handle 84370 owns the heavy slot. When the actual accepted green Provider product checkpoint reaches staging, reconcile it here and test the real ETF_HOLDINGS bridge against that runtime. Preserve the full roadmap and all cost/data safety boundaries.",
+    "next_action": "Commit/push the policy/receipt change now that command resolution proved no push-triggered live matrix and the default live module passed 9/537 (all network probes skipped); workstream validation passed 34 records. Then monitor exact-source CI. Keep MSMR and Militia unresolved/quarantined; no parser defect is proven and no current issuer response was retained. Resolve only from exact retained response evidence or a later bounded, authorized capture with complete source/parser comparison; do not rerun or retry the live suite, issue provider HTTP, or spend quota. Preserve prior hosted consumer 14/14 and local no-result. No checkpoint acceptance or staging integration; await accepted green Provider release before the shared ETF_HOLDINGS bridge.",
     "total": 7,
-    "updated_at": "2026-10-16T13:33:00.000000+00:00"
+    "updated_at": "2026-10-16T14:29:33.000000+00:00"
   },
-  "remote": "c58cfeafdba77ee22b89caec9ec7d3057657c6f3",
-  "remote_sha": "c58cfeafdba77ee22b89caec9ec7d3057657c6f3",
+  "remote": "1033c2db1e9dff3aa1fd3122d0678e2fe9dedf69",
+  "remote_sha": "1033c2db1e9dff3aa1fd3122d0678e2fe9dedf69",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

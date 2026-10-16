@@ -372,14 +372,17 @@ branch_tests:
   - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py -q --no-cov"
   - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_issuer_route_drift.py -q --no-cov"
   - "uv run --project backend pytest backend/tests/live/test_etf_holdings_live_providers.py -q --no-cov"
-  - "RUN_LIVE_ETF_HOLDINGS_TESTS=1 uv run --project backend pytest backend/tests/live/test_etf_holdings_live_providers.py -q -rs --no-cov"
   - "uv run --project backend ruff check backend/app/services/etf_holdings_adapters.py backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/live/test_etf_holdings_live_providers.py"
   - "uv run --project backend python scripts/validate-workstream.py ops/workstreams/feat-etf-holdings-constituents"
   - "npm --prefix frontend run type-check"
   - "npm --prefix frontend test -- --run tests/unit/components/test_etf_holdings_panel.test.ts tests/unit/views/test_etf_holdings_view.test.ts"
   - "npm --prefix frontend run build"
-branch_tests_reason: "Provider adapters require deterministic parser/registry contracts, opt-in real-route probes, static analysis, durable workstream validation, and the repository-selected Docker integration gate."
-live_test_impact: "Live calls are opt-in, bounded, rate-conscious, and restricted to reviewed public/free or already-entitled provider routes. Live failures must distinguish route drift, issuer blocking, entitlement, network, parser, and source-data failures."
+branch_tests_reason: "Automatically executed branch tests are limited to deterministic/no-network backend and frontend contracts, static analysis, and durable workstream validation. External ETF issuer probes are excluded and remain available only through the explicit deferred opt-in below."
+deferred_live_checks:
+  - command: "RUN_LIVE_ETF_HOLDINGS_TESTS=1 uv run --project backend pytest backend/tests/live/test_etf_holdings_live_providers.py -q -rs --no-cov"
+    purpose: "Explicit, manually authorized issuer-route/source validation; never part of push-triggered branch CI."
+    execution_policy: "Do not run during routine branch validation. Run only after current access/terms/quota review, rate-conscious authorization, and confirmation that retained evidence is required and permitted. Stop on any access challenge or 403/429; do not retry."
+live_test_impact: "Issuer calls are explicitly opt-in and excluded from automatically executed branch_tests; the command is retained under deferred_live_checks. Any authorized live check must be bounded, rate-conscious, and restricted to reviewed public/free or already-entitled routes. Live failures must distinguish route drift, issuer blocking, entitlement, network, parser, and source-data failures."
 migration_impact: "Additive ETF capability/freshness/schema-observation state and the ETF_HOLDINGS shared-capability seed; preserve existing snapshots and compatibility reads."
 deployment_impact: "New disabled-by-default ETF canary configuration, shared provider-platform capability/entitlement/budget integration, and post-deployment 30-day shadow evidence; no paid activation or deployment in this session."
 status: in_progress
@@ -1427,18 +1430,31 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Push the coherent correction on this ETF branch and require fresh exact-source
-  CI after the two targeted invariants and 611-test adapter module passed. The
-  23-case route-drift suite, default no-network live contracts (9 passed / 537
-  opt-in skipped), Ruff, workstream validator, frontend type-check, 17 ETF UI
-  unit tests and frontend production build also passed. The declared consumer
-  module remains unresolved: it timed out at 30 seconds on its first TestClient
-  capability request and emitted a stack in the AnyIO blocking portal; do not
-  call the branch-declared suite fully green. Its live-enabled matrix was
-  intentionally omitted because this ledger/narrative correction authorizes no
-  issuer HTTP or quota spend. Provider profile handle 84370 retains the heavy
-  slot; no full profile or staging integration. Preserve unknown/quota-held/
-  paid/trial/unsafe operations as disabled, and wait for exact fresh CI.
+  Exact push CI38911867173 for ETF SHA
+  1033c2db1e9dff3aa1fd3122d0678e2fe9dedf69 is terminal RED: frontend/backend
+  passed; Branch-declared live matrix 525 passed, 19 skipped, 2 failed (MSMR
+  missing QQQ; Militia missing GOOG); Playwright passed 151/109 skipped; the
+  feature-branch Exhaustive gate was skipped. Static code and deterministic
+  fixtures do not prove a live parser defect or what current page data was
+  served. No run artifacts or live response bodies/rows were retained. Keep both
+  issuer routes unresolved/quarantined; do not weaken, skip, or relabel failures.
+  The safe evidence needed for any fix is an exact retained CI response or a
+  later bounded coordinator-authorized official-page capture, retained under
+  approved policy and compared by final URL, page identity, complete table
+  headers/body and parser row output; stop on challenge, with no retry. The
+  branch push workflow issue is now being corrected by removing only the live
+  command from automatically executed branch_tests and retaining it as an
+  explicit deferred_live_checks opt-in. Before pushing, verify that the resolved
+  workflow command list contains no live-enabled invocation and that the default
+  live-test command skips network probes. Then publish the durable receipt and
+  policy correction and require exact-source CI. No issuer/provider HTTP or
+  quota spend is allowed during verification or publication. No re-run/retry of
+  the live matrix, vendor contact,
+  paid/trial/unknown route activation, data cleanup, staging write, or deploy.
+  Preserve the earlier hosted consumer 14/14 pass and local TestClient no-result.
+  Provider keeps heavy-validation priority. No checkpoint acceptance; preserve
+  the full roadmap and wait for accepted green Provider staging before shared
+  ETF_HOLDINGS implementation.
   Exact common green staging baseline 0145b65992b8692ce69f82f804f83f6c8e551fea
   is now reconciled into this branch. The conflict in shared Playwright flows
   was resolved by using the released popup cleanup helper, keeping the
