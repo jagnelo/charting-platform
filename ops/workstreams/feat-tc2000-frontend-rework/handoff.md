@@ -20146,3 +20146,18 @@ containers, volumes, and network. This is exact-source functional E2E evidence
 for `43e2c0275`, not full visual parity, combined TCP4 validation, or whole-TC
 checkpoint acceptance.
 
+The follow-up marker correction was pushed as
+`d9e1187fb379c00db3c3e65dc78c99e495e7bfc8`. Exact workflow run `38849132666`
+(attempt1) matches that full SHA and concluded SUCCESS. Frontend Unit Tests,
+Branch-declared Tests, Backend Tests and E2E Tests (Playwright) all succeeded;
+the feature-branch Exhaustive Integration Gate was skipped. E2E job
+`116808526067` reports 189 passed, 110 skipped, zero retries/flakes/failures in
+20.0 minutes. F9e, F8m, F8n and F8r appeared in the ordinary first-attempt test
+sequence. The 110 skips include the visual cases: this does not claim the
+104-profile screenshot matrix, combined TCP4 validation, or full checkpoint
+acceptance. Hosted CI created and removed only its isolated
+`charting-platform-ci` stack. The earlier missing F8r body element has not been
+reproduced in this run; the `data-tool-key` fix repairs the broken intended
+activation guard, but no claim is made that it was the sole cause of that
+flake. The preceding 43e exact-source run was also clean for the observer fixes.
+

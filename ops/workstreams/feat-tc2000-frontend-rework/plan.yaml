@@ -72,15 +72,16 @@ current_blocker: >-
   creation from visible activation and inner component-body mount. Source
   inspection found WorkstationView.openTool waits for [data-tool-key=<instance>]
   before activating the created dock tab, but ToolWindow emitted only
-  data-window-key. The current uncommitted product correction emits the
-  instance key under both attributes and adds a ToolWindow unit assertion.
-  This repairs a demonstrably dead readiness/activation lookup but is not yet
-  proven as the direct cause of the missing F8r element. Focused component unit
-  test passed11/11; exact source CI for preceding commit43e2c0275 completed
-  successfully with189 passed/110 skipped/zero retries, and F8r passed first
-  attempt there. That run does not include the marker correction. Do not use the
-  assigned persistent database for fixtures; the marker still needs exact-source
-  CI and isolated-app validation.
+  data-window-key. The source fix is pushed as d9e1187fb: ToolWindow emits the
+  instance key under both attributes and a unit assertion covers it. Exact
+  run38849132666 matches full head d9e1187fb379c00db3c3e65dc78c99e495e7bfc8
+  and all required jobs concluded success. Isolated Playwright logged189
+  passed/110 skipped/zero retries; F9e, F8m, F8n and F8r passed first attempt.
+  This confirms clean functional E2E for this code, but does not prove the
+  marker was the sole cause of F8r's earlier missing element. The110 skips
+  include visuals; no screenshot matrix acceptance is claimed. The focused
+  marker unit test passed11/11. Do not use the assigned persistent database
+  for fixtures.
   TCP1 remains narrowly accepted; TCP2-TCP5 and full official V25 parity remain
   open. Hosted visual cases in the cited run were skipped, not passes.
 
