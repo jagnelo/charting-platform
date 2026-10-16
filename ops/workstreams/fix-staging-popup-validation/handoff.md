@@ -369,3 +369,16 @@ Branch-declared jobs have completed success. The separately observed source
 probe identified no drag-generated watchlist persistence request after either
 real drag. The full-profile failure remains real and blocks POP4/acceptance;
 104visuals have not run. No merge or product checkpoint acceptance.
+
+Focused F8u reproduction at10:38 against the same unchanged frontend/app source,
+fresh seeded account/database and isolated Noble/RODejaVu runtime passed1/1 in
+7.1s, retries0. This is contradictory evidence: the prior failure is not yet
+reproduced as a deterministic defect, and one focused pass cannot clear a failed
+full260 run. Trace shows both prior ordinary drag attempts ran pointer move/down
+and move/up against the watchlist region; no chart-column persistence request
+followed. No source file changed. Driver is explicitly labeled focused mode;
+its phase summary was corrected so a focused pass cannot be reported as a
+full-functional/104visual pass. Its normal teardown removed only the exact new
+fixture's containers/networks/four volumes/four generated images; standard
+resource inventory is empty. Next action is a fresh complete browser and
+104visual profile on unchanged source, retries0, with both receipts retained.
