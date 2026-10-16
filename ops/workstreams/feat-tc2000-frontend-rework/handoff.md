@@ -20683,3 +20683,53 @@ accepted criterion; TCP2 full functional/visual, Provider/ETF consumer staging,
 combined validation, TCP5 coordinator review, and official V25 parity remain
 open. No staging/sibling writes or assigned runtime/data changes occurred.
 
+## 2026-10-16 — F8m exact-source CI terminal result
+
+The exact pushed source `abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476` completed
+Actions run `38873419736`, attempt 1. Frontend Unit, Backend, Branch-declared,
+and E2E jobs succeeded. The E2E log reports 190 passed and 110 skipped in
+20.5 minutes, with no Playwright retry, flaky, or failed test; F8m's scoped
+ordinary Grey-option flow passed in the hosted mounted application. The
+feature-branch Exhaustive Integration Gate was skipped by policy. The 110
+skips include hosted screenshot cases, so no pixel pass is inferred. This
+closes the exact-source functional CI check for the observer correction only;
+TCP2's complete local profile and normalized 104-case visual matrix remain
+open, as do Provider/ETF consumer reconciliation, the combined profile, review,
+and official V25 parity. No local browser run, source change, sibling/staging
+write, reference/tolerance change, or assigned runtime/data mutation occurred.
+
+Coordinator's current staging note is `5768bec4ae12fb06ecc37f06cf656387751eadaa`
+/ CI `38873519119`: normal E2E 151 passed/109 skipped with zero retries, while
+the exhaustive run is still pending. This is not a released product baseline;
+Provider is separately correcting its MD/Tiingo live-runner admission logic.
+Do not import unmerged sibling work or start a competing local browser run.
+
+## 2026-10-16 — Staging 5768 exhaustive run terminal audit
+
+The same staging source `5768bec4ae12fb06ecc37f06cf656387751eadaa` and Actions
+run `38873519119` are now terminal. Ordinary E2E job `116885123380` reports
+151 passed/109 skipped with no retries. Exhaustive job `116885123343` concluded
+success and ran backend coverage (`1647` passed, `80.73%` combined), frontend
+unit tests (`927` passed), authenticated functional E2E (`153` passed plus one
+retry-passing F8j popup-close flake), and the full four-project visual matrix
+(`104/104` passed). This is evidence for staging SHA `5768`, not current TC
+source `abea0c0`; the coordinator has not released it as a product baseline.
+
+The exhaustive log's F8j first attempt failed while an ordinary popup Close
+click raced with the popup page closing; retry passed. Current TC source already
+uses `closePopupWhenOpen` and its exact-source E2E run passed F8j first attempt,
+so no duplicate TC correction is justified. The same exhaustive log reports
+`agent-resource-cleanup` refusing an assigned-worktree mismatch (expected the
+staging worktree path, found the repository root) before the job continued.
+This workflow/runtime issue is not a TC product change. Do not repair it from
+this feature branch or infer resource cleanup beyond the recorded workflow.
+
+Coordinator's operational receipt still predates this terminal poll and has not
+recorded a release. No staging/source/sibling write, local browser run, visual
+oracle change, or assigned runtime/data mutation occurred. Provider retains the
+MD/Tiingo live-runner admission correction; do not duplicate it. Keep TCP2's
+exact-source full visual gate, TCP3 synchronized Provider/ETF consumers, TCP4
+combined validation, TCP5 review, and official V25 parity open. The downstream
+reconciliation map has been read; use its semantic points only at an actual
+released baseline boundary.
+
