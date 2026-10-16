@@ -1054,6 +1054,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const wildcardSymbol = ref<LinkEvent>({ symbol: 'SPY', group: 'blue', sourceWindowKey: 'workstation' })
   const linkedTimestamp = ref<string | null>(null)
   const linkedTimestamps = ref<Partial<Record<LinkGroup, string | null>>>({})
+  // An explicit historical selection wins over cursor publications from a
+  // chart that is still rebuilding for the newly selected symbol. The owner
+  // releases this intent after its data hydration and final cursor publish.
+  const explicitLinkedTimestamps = ref<Partial<Record<LinkGroup, string>>>({})
   const wildcardTimestamp = ref<string | null>(null)
   const linkedTimeframe = ref('D1')
   const linkedTimeframes = ref<Partial<Record<LinkGroup, string>>>({ blue: 'D1' })
@@ -1277,10 +1281,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   function applySharedTimestamp(event: LinkEvent) {
-    if (event.group === 'grey' || !event.timestamp) return
+    if (event.group === 'grey' || !event.timestamp) return false
+    const explicitTimestamp = explicitLinkedTimestamps.value[event.group]
+    if (explicitTimestamp && event.timestamp !== explicitTimestamp) return false
     linkedTimestamps.value = { ...linkedTimestamps.value, [event.group]: event.timestamp }
     wildcardTimestamp.value = event.timestamp
     if (event.group === 'blue') linkedTimestamp.value = event.timestamp
+    return true
   }
 
   function applySharedTimeframe(timeframe: string, group: LinkGroup) {
@@ -1469,6 +1476,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   function publishSymbol(event: LinkEvent) {
     if (event.group === 'grey') return
+    const explicitTimestamps = { ...explicitLinkedTimestamps.value }
+    if (event.timestamp) explicitTimestamps[event.group] = event.timestamp
+    else delete explicitTimestamps[event.group]
+    explicitLinkedTimestamps.value = explicitTimestamps
     if (event.sourceWindowKey === 'workstation') {
       latestWorkstationSymbol.value = event.symbol
       latestWorkstationInstrumentId.value = typeof event.instrumentId === 'number' ? event.instrumentId : null
@@ -1558,13 +1569,24 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const event: LinkEvent & { type: 'cursor' } = {
       symbol: symbolForLinkGroup(group), timestamp, group, sourceWindowKey, type: 'cursor',
     }
-    applySharedTimestamp(event)
+    if (!applySharedTimestamp(event)) return
     channel?.postMessage(event)
     try {
       localStorage.setItem(CHANNEL_NAME + ':cursor', JSON.stringify(event))
     } catch {
       // BroadcastChannel remains the primary same-origin transport when storage is unavailable.
     }
+  }
+
+  function clearExplicitLinkedTimestamp(timestamp: string, group: LinkGroup = 'blue') {
+    if (!timestamp || explicitLinkedTimestamps.value[group] !== timestamp) return
+    const explicitTimestamps = { ...explicitLinkedTimestamps.value }
+    delete explicitTimestamps[group]
+    explicitLinkedTimestamps.value = explicitTimestamps
+  }
+
+  function hasExplicitLinkedTimestamp(group: LinkGroup) {
+    return Boolean(explicitLinkedTimestamps.value[group])
   }
 
   function publishTimeframe(timeframe: string, group: LinkGroup = 'blue', sourceWindowKey = 'workstation') {
@@ -3512,6 +3534,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     applyActiveLayout,
     openTool,
     setActiveWindow,
+    clearExplicitLinkedTimestamp,
+    hasExplicitLinkedTimestamp,
     updateToolLinkGroup,
     updateToolStyle,
     updateToolTimeframe,

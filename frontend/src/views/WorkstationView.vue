@@ -1040,18 +1040,21 @@ async function selectSymbol(raw: string, timestamp?: string, allowNavigationFall
   // Update linked ratio state at publish time. Data hydration can take much
   // longer than the user's next click and must not delay the visible target.
   updateAutoRatioExpression(symbol, comparisonETF)
-  await loadSymbolData(symbol, comparisonETF, false)
-  if (generation !== symbolSelectionGeneration) return
-  if (timestamp) {
-    // A historical occurrence is an explicit user intent. The chart renderer
-    // may rebuild asynchronously after bars arrive and publish its initial
-    // cursor in the meantime; republish the requested point after two paint
-    // turns so that late renderer setup cannot replace it with the latest bar.
-    await nextTick()
-    await new Promise<void>(resolve => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())))
-    if (generation === symbolSelectionGeneration) {
-      workspaceStore.publishTimestamp(timestamp, 'blue', 'workstation')
+  try {
+    await loadSymbolData(symbol, comparisonETF, false)
+    if (generation !== symbolSelectionGeneration) return
+    if (timestamp) {
+      // The store holds this explicit intent against stale cursor publications
+      // while the chart is rebuilding. Republish after the bars and renderer
+      // have settled, then release the hold so normal chart navigation resumes.
+      await nextTick()
+      await new Promise<void>(resolve => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())))
+      if (generation === symbolSelectionGeneration) {
+        workspaceStore.publishTimestamp(timestamp, 'blue', 'workstation')
+      }
     }
+  } finally {
+    if (timestamp) workspaceStore.clearExplicitLinkedTimestamp(timestamp, 'blue')
   }
 }
 

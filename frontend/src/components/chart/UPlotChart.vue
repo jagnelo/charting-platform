@@ -920,6 +920,13 @@ let suppressNextMouseDown = false
 // released; keep that late callback from replacing the explicit occurrence
 // until the user actually moves the pointer over this chart.
 let linkedCursorProgrammatic = Boolean(props.linkedTimestamp)
+watch(
+  () => workspaceStore.hasExplicitLinkedTimestamp(props.workspaceLinkGroup),
+  hasExplicitTimestamp => {
+    if (hasExplicitTimestamp) linkedCursorProgrammatic = true
+  },
+  { flush: 'sync' },
+)
 
 interface ViewSnapshot {
   xMin?: number
