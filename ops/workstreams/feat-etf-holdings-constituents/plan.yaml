@@ -245,11 +245,19 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: Reconcile exact green common staging baseline into ETF
-    state: staging_0145b659_reconciled;provider_product_checkpoint_pending
-    baseline: 8eccbdf522c0cf29e9ebcbc0e65a8e02c39c1044
-    intent: Consume only the exact released common cleanup/resource/flaky-test baseline 0145b65992b8692ce69f82f804f83f6c8e551fea into the assigned ETF branch, preserving existing tests and assertions; retain Provider's generic governance ownership and wait for its actual accepted product checkpoint before consumer wiring.
+    name: Reconcile current PIMCO audit evidence and repair narrative parity
+    state: fix_validated_except_stalled_consumer_suite;fresh_exact_ci_required
+    baseline: 5c8f517cab4140695e113749426ff9b0f3570f8b
+    intent: >-
+      Resolve exact CI38906199763 failures from durable evidence: restore the
+      current 15 Tier-0 / 156 Tier-1 inventory phrase in session progress, align
+      MINT and BOND runtime audit dates/details/references with the existing
+      2026-10-15 page-only evidence already retained in the YAML ledger and
+      provider-universe narrative, preserve older route history, then run
+      focused and non-live branch checks and request fresh exact-source CI.
     owned_paths:
+      - backend/app/services/etf_holdings_capability.py
+      - ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md
       - ops/workstreams/feat-etf-holdings-constituents/session.json
@@ -381,6 +389,20 @@ progress:
   total: 7
 current_phase: transport_surface_mapped_waiting_for_released_provider_staging
 current_blocker: >-
+  Corrected the two failures from exact CI38906199763 on 5c8f517: restored the
+  required 15 Tier-0 and 156 Tier-1 phrase in session progress.current_blocker
+  and aligned runtime MINT/BOND audit dates, facts and evidence refs with the
+  existing 2026-10-15 page-only evidence already present in the YAML ledger and
+  provider-universe document. Preserved the Oct 5 HTTP 401 as historical; no
+  provider HTTP request or quota spend was made. The full adapter suite (611),
+  route-drift suite (23), default no-network live contracts (9 passed / 537
+  opt-in skipped), frontend checks, Ruff and workstream validation pass. The
+  separately declared consumer module reproducibly stalls in TestClient at the
+  first capability GET; a 30-second bounded run collected a stack trace and
+  ended without a test result. Do not represent that suite as passing. Provider
+  owns heavy profile handle 84370; do not run full profile or live matrix. Push
+  this coherent correction and obtain fresh exact-source CI; no staging
+  acceptance is implied.
   The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74).
   Workflow commit 5267f11a491795d85ee35b56cabbe550394f3823 was followed by the
   coordinator's chart-template repair merge. Current staging is
@@ -1405,6 +1427,18 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
+  Push the coherent correction on this ETF branch and require fresh exact-source
+  CI after the two targeted invariants and 611-test adapter module passed. The
+  23-case route-drift suite, default no-network live contracts (9 passed / 537
+  opt-in skipped), Ruff, workstream validator, frontend type-check, 17 ETF UI
+  unit tests and frontend production build also passed. The declared consumer
+  module remains unresolved: it timed out at 30 seconds on its first TestClient
+  capability request and emitted a stack in the AnyIO blocking portal; do not
+  call the branch-declared suite fully green. Its live-enabled matrix was
+  intentionally omitted because this ledger/narrative correction authorizes no
+  issuer HTTP or quota spend. Provider profile handle 84370 retains the heavy
+  slot; no full profile or staging integration. Preserve unknown/quota-held/
+  paid/trial/unsafe operations as disabled, and wait for exact fresh CI.
   Exact common green staging baseline 0145b65992b8692ce69f82f804f83f6c8e551fea
   is now reconciled into this branch. The conflict in shared Playwright flows
   was resolved by using the released popup cleanup helper, keeping the

@@ -30,6 +30,42 @@ operations remain disabled; retain the full roadmap and cached/historical/PIT
 network-free semantics. No other worktree or persistent staging ref was
 modified.
 
+## Exact CI38906199763 audit/narrative correction — 2026-10-16 13:29Z
+
+The coordinator reports exact CI for `5c8f517cab4140695e113749426ff9b0f3570f8b`
+terminal RED with two failures in `test_etf_holdings_adapters.py`. Source and
+retained records show the narrative invariant is correct: its current assertion
+requires `15 Tier-0 and 156 Tier-1` in `session.json`'s
+`progress.current_blocker`, which had omitted that phrase even though the plan
+and handoff retain it. Restore the phrase in the session narrative; do not
+weaken the assertion.
+
+The MINT/BOND discrepancy is source drift, not a reason to change a valid
+investigation date or erase history. The YAML symbol ledger and
+`docs/etf-provider-universe.md` already carry the 2026-10-15 first-party PIMCO
+suite/product-page review and evidence refs: MINT AUM US$18.292B and BOND
+US$8.536B as of 2026-09-30; NAV/market prices through 2026-10-14; no complete
+holdings artifact in the page text review. The runtime audits still stop at
+2026-10-05 and old product facts, so align the runtime date/details and append
+the existing Oct 15 refs while retaining every prior evidence ref. The
+anonymous fund-detail HTTP 401 on Oct 5 remains historical and must not be
+repeated for this repair. Both products remain unavailable; no provider route,
+paid/trial operation or quota state changes.
+
+Focused audit-parity/narrative tests passed 2/2, and the complete deterministic
+adapter module passed 611/611. Issuer-route drift passed 23/23; default
+non-network live contracts passed 9 with 537 opt-in cases skipped. Ruff,
+workstream validation, JSON/JSONL parsing, frontend type-check, 17 ETF UI unit
+tests, and frontend production build passed. The branch-declared consumer
+module remains unresolved: it stalls at the first capability GET in
+Starlette/AnyIO's blocking portal. A bounded 30-second retry emitted a stack
+trace at that request and ended without a test result. This is not reported as
+a pass. The branch-declared `RUN_LIVE_ETF_HOLDINGS_TESTS=1` matrix was
+intentionally omitted because no issuer HTTP or quota spend is authorized for
+this repair. Push the coherent correction on ETF and require new exact-source
+CI; Provider profile handle `84370` retains heavy priority and the full profile
+and staging integration remain unstarted.
+
 ## Current continuation state — 2026-10-15
 
 Read this section and the latest dated entries before interpreting the older

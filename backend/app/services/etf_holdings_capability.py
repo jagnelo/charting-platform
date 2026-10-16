@@ -636,17 +636,18 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         outcome=UNAVAILABLE,
         evidence_state="no_complete_executable_public_artifact",
         provider_identity="pacific_investments",
-        investigated_at=date(2026, 10, 5),
+        investigated_at=date(2026, 10, 15),
         next_action=(
-            "Keep MINT unavailable. PIMCO's current ETF suite shows product, AUM (US$17.526B "
-            "as of 2026-08-31), and NAV/market price through 2026-10-01, and its official "
-            "factsheet states that the fund discloses all holdings daily; the latest reviewed "
-            "factsheet itself is dated 2026-03-31. That policy statement does not make a "
-            "complete executable artifact available to this client: the anonymous fund-detail "
-            "endpoint still returns HTTP 401 on 2026-10-05, and the previously tested document "
-            "routes did not provide a complete basket. Re-test after access or route behavior "
-            "changes; do not promote a top-ten response, creation basket, or SEC-derived record "
-            "as current support."
+            "Keep MINT unavailable. The official PIMCO suite and linked product-page text "
+            "reviewed 2026-10-15 report AUM of US$18.292B as of 2026-09-30 and NAV/market "
+            "prices through 2026-10-14, but expose no complete current holdings table or "
+            "downloadable artifact. The linked pages rendered as a location/account/contact "
+            "shell in this text review; that does not establish that holdings are sign-in gated "
+            "or that an API is absent. The latest official daily-disclosure factsheet reviewed "
+            "remains dated 2026-03-31. The anonymous fund-detail HTTP 401 on 2026-10-05 is "
+            "historical; the page-only refresh made no API request. Re-test only after a route "
+            "or access change; do not promote a top-ten response, creation basket, or SEC-derived "
+            "record as current support."
         ),
         evidence_refs=(
             "web:pimco-mint-daily-disclosure-2026-09-05",
@@ -688,6 +689,8 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:pimco-etf-suite-current-2026-10-05-ticker-nav-aum-only",
             "web:pimco-mint-official-daily-disclosure-2026-10-05",
             "live:pimco-mint-top-ten-2026-10-05-unauthorized",
+            "web:pimco-etf-suite-current-2026-10-15",
+            "web:pimco-mint-product-page-current-2026-10-15",
         ),
     ),
     "BOND": ETFHoldingsSymbolAudit(
@@ -695,17 +698,18 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         outcome=UNAVAILABLE,
         evidence_state="no_complete_executable_public_artifact",
         provider_identity="pacific_investments",
-        investigated_at=date(2026, 10, 5),
+        investigated_at=date(2026, 10, 15),
         next_action=(
-            "Keep BOND unavailable. PIMCO's current ETF suite shows product, AUM (US$8.590B "
-            "as of 2026-08-31), and NAV/market price through 2026-10-01, and its official "
-            "factsheet states that the fund discloses all holdings daily; the latest reviewed "
-            "factsheet itself is dated 2026-03-31. That policy statement does not make a "
-            "complete executable artifact available to this client: the anonymous fund-detail "
-            "endpoint still returns HTTP 401 on 2026-10-05, and the previously tested document "
-            "routes did not provide a complete basket. Re-test after access or route behavior "
-            "changes; do not promote a top-ten response, creation basket, or SEC-derived record "
-            "as current support."
+            "Keep BOND unavailable. The official PIMCO suite and linked product-page text "
+            "reviewed 2026-10-15 report AUM of US$8.536B as of 2026-09-30 and NAV/market "
+            "prices through 2026-10-14, but expose no complete current holdings table or "
+            "downloadable artifact. The linked pages rendered as a location/account/contact "
+            "shell in this text review; that does not establish that holdings are sign-in gated "
+            "or that an API is absent. The latest official daily-disclosure factsheet reviewed "
+            "remains dated 2026-03-31. The anonymous fund-detail HTTP 401 on 2026-10-05 is "
+            "historical; the page-only refresh made no API request. Re-test only after a route "
+            "or access change; do not promote a top-ten response, creation basket, or SEC-derived "
+            "record as current support."
         ),
         evidence_refs=(
             "web:pimco-bond-daily-disclosure-2026-09-05",
@@ -747,6 +751,8 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:pimco-etf-suite-current-2026-10-05-ticker-nav-aum-only",
             "web:pimco-bond-official-daily-disclosure-2026-10-05",
             "live:pimco-bond-top-ten-2026-10-05-unauthorized",
+            "web:pimco-etf-suite-current-2026-10-15",
+            "web:pimco-bond-product-page-current-2026-10-15",
         ),
     ),
     "GEME": ETFHoldingsSymbolAudit(
