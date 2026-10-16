@@ -34,11 +34,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [
-    "ps/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -57,14 +53,14 @@
   "goal_request_state": "ready",
   "goal_state": "unavailable",
   "goal_unavailable_reason": "The existing goal is blocked in the goal service and no resume/activate operation is exposed; duplicate creation is prohibited. Continue the Strategy branch under its existing writer claim and explicit coordinator direction without claiming the formal goal is active.",
-  "head": "db7c16e77dfe05f5e14c1ef331cc86b36cdfd209",
-  "implementation_sha": "1fca3ec0b0f14d8e4f33ab25b0ce209847bd22de",
-  "last_checkpoint": "2026-10-15T17:01:32.993923+00:00",
+  "head": "c9723d2b3718b9d598e0d8d307c9fbbd1d943187",
+  "implementation_sha": "c9723d2b3718b9d598e0d8d307c9fbbd1d943187",
+  "last_checkpoint": "2026-10-16T13:54:24Z",
   "last_human_progress_update": "2026-10-16T10:17:02.035346+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
-  "plan_hash": "0eeb7a978d0b8a0205bf864a6d855c580c693ed4f34474b94f790d62bbfeb4f3",
+  "plan_hash": "a289776236f5120d63f40784efe926ff5a122b9c611c6be7b020cb99070034e2",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -89,15 +85,15 @@
       "SLICP1",
       "SLICP2"
     ],
-    "current_blocker": "Exact source 54fa13e1ba17a40de6f242e16d5a96d8217615cb backend CI run 38820638540 exited 152 at 36% in research_runner tests, with no assertion or coverage summary. Cause is unproven; Provider/ETF/TC product baseline and local full profile remain unavailable.",
-    "current_phase": "integration-1-exact-source-backend-ci-red-awaiting-green-provider",
-    "next_action": "Preserve run 38820638540 failure and investigate from existing source/log evidence without rerunning; reconcile bounded runner after accepted green Provider staging and under the assigned heavy-gate order",
+    "current_blocker": "Historical exact source 54fa13e1ba17a40de6f242e16d5a96d8217615cb backend CI run 38820638540 exited 152 at 36% with no assertion or coverage summary; cause remains unproven. Current source c9723d2b3718b9d598e0d8d307c9fbbd1d943187 passed hosted CI run 38907993948, with Exhaustive skipped. Provider/ETF/TC product releases, local full_stack_browser, and combined consumer/PostgreSQL validation remain outstanding.",
+    "current_phase": "current-tip-hosted-ci-green-awaiting-local-and-upstream-gates",
+    "next_action": "Run exact-tip local full_stack_browser after the parallel frontend is ready and the assigned heavy-validation slot is available; after accepted Provider then ETF then TC2000 releases, reconcile combined consumers and PostgreSQL/migration contracts without importing sibling code early.",
     "total": 5,
-    "updated_at": "2026-10-16T10:17:02.035325+00:00"
+    "updated_at": "2026-10-16T13:54:24Z"
   },
-  "remote": "5016f81fe0cdd9b89cd241367b4f7bf2923ae2ef",
-  "remote_sha": "1fca3ec0b0f14d8e4f33ab25b0ce209847bd22de",
-  "remote_synchronized": false,
+  "remote": "c9723d2b3718b9d598e0d8d307c9fbbd1d943187",
+  "remote_sha": "c9723d2b3718b9d598e0d8d307c9fbbd1d943187",
+  "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "35f63909-6dea-4459-9682-dc8eecc9c720",

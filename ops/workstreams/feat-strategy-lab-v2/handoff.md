@@ -14704,3 +14704,21 @@ is consistent with a native-thread shutdown sensitivity, but does not establish
 the cause of the separate exact-source `54fa13e1` CI exit 152. That historical
 failure remains unproven and unchanged. No full profile, production limit,
 coverage threshold, or CI rerun was performed.
+
+## 2026-10-16 — exact current-tip hosted CI receipt
+
+The exact pushed Strategy source `c9723d2b3718b9d598e0d8d307c9fbbd1d943187`
+completed GitHub Actions CI run `38907993948` successfully. Branch-declared,
+frontend unit, backend unit/integration, and Playwright E2E jobs succeeded;
+Exhaustive Integration Gate was skipped. The immediately prior Strategy tip
+`9dd9a56251643275f285b8639403ed20a2acace4` also passed exact CI run
+`38904567468`. These hosted receipts do not satisfy the required local
+`full_stack_browser` profile or combined Provider/ETF/TC consumer and
+PostgreSQL gates, and they do not accept any product checkpoint. The older
+`54fa13e1` / `38820638540` exit 152 remains preserved as an unproven historical
+failure, not a current-tip result.
+
+The branch-owned next action remains exact-tip local full-browser acceptance
+once the parallel frontend is ready and its heavy-validation slot is available.
+The product consumer reconciliation order remains Provider → ETF → TC2000 →
+Strategy; do not import sibling implementations before their accepted releases.

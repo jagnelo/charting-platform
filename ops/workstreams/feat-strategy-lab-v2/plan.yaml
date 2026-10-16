@@ -101,6 +101,22 @@ integration_checkpoint:
         RLIMIT_CPU around research execution. Plausible lead only, not a proven
         cause. Do not rerun blindly or alter limits/thresholds; retain exact log
         and investigate boundedly after upstream green release.
+    latest_exact_source_success:
+      sha: c9723d2b3718b9d598e0d8d307c9fbbd1d943187
+      run_id: 38907993948
+      conclusion: success
+      jobs: Branch-declared Tests, Frontend Unit Tests, Backend Tests, and E2E Tests (Playwright) succeeded; Exhaustive Integration Gate was skipped.
+      scope_limit: >-
+        This is exact-source hosted CI, not the required local full_stack_browser
+        profile or post-Provider/ETF/TC combined consumer and PostgreSQL acceptance.
+        The historical 54fa13e1 exit-152 cause remains unproven.
+    previous_exact_source_success:
+      sha: 9dd9a56251643275f285b8639403ed20a2acace4
+      run_id: 38904567468
+      conclusion: success
+      scope_limit: >-
+        Exact earlier Strategy source only; superseded as the latest hosted result
+        by run 38907993948 on c9723d2b3718b9d598e0d8d307c9fbbd1d943187.
   prospective_provider_coverage_reconciliation: ops/workstreams/feat-strategy-lab-v2/coverage-runner-reconciliation.md
   downstream_consumers:
   - Combined workstation and future Strategy Lab frontend
@@ -278,11 +294,11 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2]
   total: 5
-  current_phase: integration-1-exact-source-backend-ci-red-awaiting-green-provider
+  current_phase: current-tip-hosted-ci-green-awaiting-local-and-upstream-gates
   current_blocker: >-
-    Exact Strategy source 54fa13e1ba17a40de6f242e16d5a96d8217615cb failed backend CI run 38820638540 (exit 152 at 36% in research_runner unit tests; no assertion/coverage summary). Prior run 38812646577 on 1fca3ec0 is historical only. Cause is not proven; RLIMIT_CPU/SIGXCPU is a plausible source-grounded lead, not a confirmed diagnosis. Provider, ETF and TC2000 product checkpoints remain unaccepted/unintegrated, the required local full_stack_browser and combined consumer/PostgreSQL gates remain open, and Provider retains the first heavy local validation slot.
+    Historical Strategy source 54fa13e1ba17a40de6f242e16d5a96d8217615cb failed backend CI run 38820638540 (exit 152 at 36% in research_runner unit tests; no assertion/coverage summary); its cause remains unproven. The current tested tip c9723d2b3718b9d598e0d8d307c9fbbd1d943187 passed hosted CI run 38907993948, but Exhaustive Integration Gate was skipped. Provider, ETF and TC2000 product checkpoints remain unaccepted/unintegrated; the required local full_stack_browser and combined consumer/PostgreSQL gates remain open, and Provider retains the first heavy local validation slot.
   next_action: >-
-    Preserve the exact red CI receipt and investigate only from existing source/log evidence; do not blindly rerun or alter limits/thresholds. After accepted Provider green staging, reconcile the bounded runner and Strategy test root as documented, then run required local/full combined gates under the assigned slot and prepare exact eligible source for coordinator review.
+    Preserve the historical 54fa13e1 red receipt without changing its unproven diagnosis or blindly rerunning the held profile. Continue independent Strategy roadmap work; after accepted Provider green staging, reconcile the bounded runner and Strategy test root as documented, then run required local/full combined gates under the assigned slot and prepare exact eligible source for coordinator review.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
@@ -1178,13 +1194,15 @@ roadmap_progress_history:
     recovery, worker-fleet leases, and branch-owned security/isolation/scaling
     slices are also green, and the authenticated live Compose curve transfer is
     now proven against the real FastAPI/PostgreSQL stack and shared artifact
-    volume. Remaining work is branch acceptance rather than an engine-version
-    wait: exact-tip full-browser acceptance and cross-workstream reconciliation.
-    Provider-platform,
-    ETF, and TC2000 contracts remain owned by their branches; shared router,
-    migration, and provider-decoder reconciliation must wait for their staged
-    contracts. Existing browser failures are in the parallel TC2000-owned
-    surfaces, not this backend package.
+    volume. Exact Strategy source c9723d2b3718b9d598e0d8d307c9fbbd1d943187
+    also passed hosted CI run 38907993948 (standard jobs including E2E passed;
+    Exhaustive was skipped). Remaining work is branch acceptance rather than an
+    engine-version wait: exact-tip local full-browser acceptance and
+    cross-workstream reconciliation. Provider-platform, ETF, and TC2000
+    contracts remain owned by their branches; shared router, migration, and
+    provider-decoder reconciliation must wait for their staged contracts.
+    Existing browser failures are in the parallel TC2000-owned surfaces, not
+    this backend package.
   next_action: >-
     Backend package, coverage, Compose API, and migration gates are green.
     Continue with the exact-tip full-browser acceptance profile when the
