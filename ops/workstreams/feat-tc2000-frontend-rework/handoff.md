@@ -1,5 +1,73 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-16 — F9e native smooth-scroll flake cause reproduced
+
+Coordinator's independent actual-source-derived static Help DOM/CSS diagnostic
+(`tc-help-native-scroll-diagnostic-20261016.md`) reproduces the flake mechanism:
+after a burst of ten real PageDown key presses without settling, scrollTop is
+93 while the maximum is573; after measured native frames settle, it reaches
+573. With per-key measured settle it immediately reaches the bottom. This is
+diagnostic evidence for the observer timing, not app acceptance or a pixel
+reference update.
+
+The earlier F9e adjustment waited only for positive scroll progress, which is
+insufficient because smooth native scrolling continues after movement begins.
+It now waits after each PageDown for the actual `scrollTop` to become stable
+across three animation frames, bounded at two seconds. The ten-PageDown limit,
+actual-bottom condition, fully-visible final-row check, PageUp/Home/Tab/Escape,
+focus recovery, and visual tolerance are preserved. No Help CSS/reference or
+approval changed. Fresh isolated-app browser validation remains required.
+
+## 2026-10-16 — F8n retained-video diagnosis update
+
+Coordinator's retained-video review at
+`/home/m920q/charting-platform/.ai/staging-attempts/crosshair-retained-video-review-20261016.md`
+shows the popup reached a populated chart by 1.5 seconds, but its OHLC date
+stayed at latest `2025-12-29` with no historical cursor through 7 seconds.
+Therefore the earlier `aria-busy=false` readiness hypothesis is insufficient
+by itself and the failure must not yet be attributed to BroadcastChannel or the
+target Ratio chart.
+
+F8n now uses the actual `.u-over` interaction layer's measured bounds for its
+ordinary pointer move. It first requires the source OHLC date to change, then a
+source-published `data-linked-timestamp`, then the parent Ratio tool's linked
+timestamp to match, before retaining the original target cursor state/visibility
+assertions. This separates source hit/renderer lifecycle from publish/delivery
+and target application without a forced action, retry, arbitrary sleep, or
+weakened assertion. It remains a proposed diagnostic until a bounded browser
+run is coordinated; no production source change or root cause is yet proven.
+
+## 2026-10-16 — Retry-only UI failure follow-up (browser run pending)
+
+Coordinator's terminal audit of exact run `38840374244`, E2E job
+`116781448508`, is preserved as `187 passed, 110 skipped, 2 flaky`; F9e
+(`bottomMetrics.atBottom`) and F8m (Yellow menuitemradio after Purple) passed
+only after retry. The changes below do not reinterpret that result as clean.
+
+F9e retains keyboard-driven PageDown/PageUp/Home/Tab/Escape and the full final
+Help-row visibility assertion. Its bottom observer now allows at most one CSS
+pixel of native scroll remainder (to account for fractional Chromium
+`scrollTop`) and waits for positive scroll progress after each PageDown rather
+than sampling immediately. F8m retains ordinary group-menu clicks and all
+Purple/Yellow/wildcard/grey assertions; the Yellow option is now scoped to the
+wildcard panel's own menu, with an explicit expanded/visible readiness check.
+
+F8n source review found that the test awaited visible `.uplot` elements but not
+the chart readiness state. The popup chart's `aria-busy` remains true until
+initialization completes; its UPlot ready hook installs pointer handlers, so a
+move issued at mere visibility can be lost. F8n now awaits the Ratio tool's
+non-loading state and popup `.chart-root[aria-busy=false]` before the same
+ordinary pointer movement. This is a test-readiness hypothesis supported by
+the component lifecycle; it remains unverified until the root-coordinated
+bounded browser slot is available. No production behavior, retry policy,
+visual oracle, tolerance, or skip changed.
+
+Only Playwright collection has run for these edits. No browser, server, build,
+assigned DB, retained account, listener, or service was started, changed, or
+cleaned up. TCP1 remains narrowly accepted; hosted 104-case visuals remain
+skipped in ordinary CI, and TCP2/TCP3/TCP4/TCP5 plus official V25 parity remain
+open.
+
 ## 2026-10-16 — Exact metadata-tip CI outcome
 
 After the provenance/CI record was pushed as metadata-only commit
@@ -20000,4 +20068,50 @@ for the new request. When the current value differs, it goes directly to
 and the existing ordinary-click, terminal-state, persistence, selection, and
 render assertions are unchanged. Do not replay it on the assigned persistent
 database; next evidence should come from a fresh isolated CI stack.
+
+## 2026-10-16 — Retry-flake source correction follow-up
+
+Exact metadata-tip run `38843092299` for `36ac5a59880176babd31c567d39ee8ff430caeaf`
+was terminal SUCCESS at the workflow level, but E2E job `116788992102` had
+187 passed, 110 skipped, and two retry-passing flakes: F9e Help bottom
+observation and F8r Market Breadth visibility after its menu action. The
+coordinator confirms that all 104 visual cases were skipped. This is not a
+zero-flake result, visual acceptance, or whole-checkpoint acceptance.
+
+The current uncommitted F9e observer waits for native scroll movement to settle
+over three animation frames, bounded at two seconds, after both PageDown and
+PageUp. It preserves ordinary keyboard input, the ten-PageDown limit, the
+within-one-CSS-pixel native bottom check, fully visible last row, Home, Tab,
+Escape, and focus recovery. No source CSS, screenshot, reference, or tolerance
+changed. The Help native-scroll static reproduction remains mechanistic
+evidence only; actual isolated-app validation is still needed.
+
+F8r now waits for the named Market Breadth tool shell separately from the
+`.breadth-tool` body mount, after confirming the workspace host is visible.
+This distinguishes whether opening/activation or body mounting stalls; it
+does not yet establish or repair the app cause. Existing narrow-width control
+containment assertions remain unchanged. F8m keeps ordinary menu interaction
+and existing link-group semantics. F8n now captures the popup's linked
+timestamp before hover and requires both historical OHLC movement and a changed
+source timestamp after an ordinary pointer move over measured `.u-over`
+geometry, then checks the parent timestamp and original target cursor state.
+This is a staged diagnostic, not evidence that the event chain now works.
+
+Local checks on this worktree passed `vue-tsc --noEmit`, and Playwright
+collected the four focused tests. A first collection command was run from the
+repository root with the frontend prefix incorrectly applied and produced
+irrelevant Vue/Vitest import errors; rerunning from `frontend/` collected all
+four tests successfully. No browser, server, build, backend, account, provider,
+or Docker fixture was started in this continuation. Do not replay these flows
+against the assigned persistent database: the previously created five test
+accounts remain retained. The corrected source still needs actual isolated
+app/browser validation and a new exact-source CI audit; no results are being
+inferred from the prior `36ac5a598` run.
+
+F8n's minimal diagnostic proposal for coordination: first prove the ordinary
+source hover changes OHLC on the `.u-over` hit layer; then prove its published
+timestamp changes; then observe parent Ratio timestamp; only then attribute a
+failure to target cursor rendering. If the first stage fails, inspect source
+renderer lifetime and pointer hit geometry before bus or target code. No
+Provider/sibling source import or full competing profile is authorized here.
 

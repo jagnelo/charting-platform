@@ -30,6 +30,50 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
+  F9e cause is now independently reproduced in actual-source-derived static
+  Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
+  20261016.md: ten immediate PageDown keys leave scrollTop=93/max=573; after
+  measured native-frame settlement scrollTop reaches573/max573. F9e's current
+  source patch waits for real scroll movement to settle across3
+  requestAnimationFrame callbacks (bounded at2s) after each ordinary PageDown
+  and PageUp. It retains the10-key cap, native bottom within1 CSS pixel,
+  fully-visible last-row, Home, Tab, Escape and focus-return checks. The exact
+  hosted run38843092299 had187 passed/110 skipped/2 retry flakes (F9e and
+  F8r);104 visual cases were skipped. No actual-app rerun has been made yet.
+  The source-derived static Help reproduction supports the observer diagnosis,
+  not app acceptance. No Help CSS/reference/approval change is needed.
+
+  New retained-video review (coordinator 2026-10-16): popup chart was
+  populated by 1.5s, but OHLC remained at latest 2025-12-29 and no historical
+  source cursor was visible through 7s. This supersedes the earlier assumption
+  that waiting for aria-busy=false alone explains F8n. F8n now targets the real
+  .u-over layer and requires source readout/date movement, then source published
+  linked timestamp and matching parent timestamp, before retaining the existing
+  target cursor assertions. This is still unverified pending coordinated
+  browser execution; no product repair is established. Do not attribute this
+  to the bus/target until ordinary source hover is proven.
+
+  Follow-up to exact hosted run38840374244: coordinator audited E2E job
+  116781448508 as 187 passed, 110 skipped, and two retry-passing flakes,
+  specifically F9e at its exact fractional scroll-bottom observer and F8m at
+  the Yellow link-menu item click after selecting Purple. Focused test-source
+  corrections now wait for per-key native scroll settlement and a fully
+  visible final Help row with subpixel-safe native-bottom measurement; scope the Yellow
+  option to its menu after asserting the menu opened. F8n now waits for both
+  Ratio readiness and popup chart aria-busy=false before ordinary pointer
+  movement because .uplot visibility precedes UPlot's ready-hook handler setup.
+  F8n's source-hover probe uses actual .u-over geometry and requires historical
+  OHLC movement plus a changed source linked timestamp before checking parent
+  and target propagation. F8r now distinguishes visible Market Breadth shell
+  activation from inner component-body mount; this is diagnostic and does not
+  yet explain or repair the missing tool. Current focused source changes pass
+  vue-tsc and Playwright collection only; no browser rerun has occurred. Do
+  not use the assigned persistent database to create more test fixtures;
+  actual fresh-app/browser validation must use coordinated isolated
+  infrastructure.
+  TCP1 remains narrowly accepted; TCP2-TCP5 and full official V25 parity remain
+  open. Hosted visual cases in the cited run were skipped, not passes.
+
   Latest exact metadata-tip CI (2026-10-16): commit
   36ac5a59880176babd31c567d39ee8ff430caeaf has terminal Actions run
   38843092299 attempt1 SUCCESS. Frontend Unit, Branch-declared, Backend and
@@ -39,8 +83,9 @@ current_blocker: >-
   test at case144/299 passed without retry. Visual tests were skipped, not
   screenshot passes. Workflow removed only its isolated charting-platform-ci
   services/volumes/network. This is not a zero-flake run or full feature
-  acceptance. The next coherent workstream record commit is documentation-only;
-  product/test sources remain exactly those exercised by this run.
+  acceptance. It tested the source as of 36ac5a598; the current worktree has
+  subsequent test-only corrections that still require exact-source CI and
+  actual isolated-app evidence.
 
   Exact current-source Actions result (2026-10-16): run 38840374244 attempt 1
   matches full head 977e68afb1cf6bb40a5cd2540dded09b56c9b245 and concluded

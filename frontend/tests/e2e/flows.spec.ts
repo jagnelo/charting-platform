@@ -949,29 +949,62 @@ test.describe('Chart', () => {
     await expect(helpDialog).toBeFocused()
     const scrollMetrics = await helpDialog.evaluate(element => ({ clientHeight: element.clientHeight, scrollHeight: element.scrollHeight }))
     expect(scrollMetrics.scrollHeight).toBeGreaterThan(scrollMetrics.clientHeight)
+    const settleNativeHelpScroll = (previousTop: number, direction: 'up' | 'down') => helpDialog.evaluate(async (element, state) => {
+      const deadline = performance.now() + 2_000
+      let lastTop = element.scrollTop
+      let movementObserved = state.direction === 'up' ? lastTop < state.previousTop : lastTop > state.previousTop
+      let stableFrames = 0
+      while (performance.now() < deadline && stableFrames < 3) {
+        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+        const currentTop = element.scrollTop
+        if (currentTop !== lastTop) {
+          movementObserved = movementObserved || (state.direction === 'up'
+            ? currentTop < state.previousTop
+            : currentTop > state.previousTop)
+          stableFrames = 0
+        } else if (movementObserved) {
+          stableFrames += 1
+        }
+        lastTop = currentTop
+      }
+      if (!movementObserved || stableFrames < 3) {
+        throw new Error(`Help ${state.direction === 'up' ? 'PageUp' : 'PageDown'} did not produce a settled native scroll within 2 seconds`)
+      }
+      return lastTop
+    }, { previousTop, direction })
+    let previousScrollTop = await helpDialog.evaluate(element => element.scrollTop)
     await helpDialog.press('PageDown')
+    await settleNativeHelpScroll(previousScrollTop, 'down')
     await expect.poll(() => helpDialog.evaluate(element => element.scrollTop)).toBeGreaterThan(0)
-    let previousScrollTop = -1
-    await expect.poll(async () => {
-      const scrollTop = await helpDialog.evaluate(element => element.scrollTop)
-      const settled = scrollTop === previousScrollTop
-      previousScrollTop = scrollTop
-      return settled
-    }).toBe(true)
+    previousScrollTop = await helpDialog.evaluate(element => element.scrollTop)
     await helpDialog.press('PageUp')
+    await settleNativeHelpScroll(previousScrollTop, 'up')
     await expect.poll(() => helpDialog.evaluate(element => element.scrollTop)).toBe(0)
-    let bottomMetrics = await helpDialog.evaluate(element => ({
-      atBottom: element.scrollTop === element.scrollHeight - element.clientHeight,
-      lastRowVisible: false,
-    }))
+    let bottomMetrics = await helpDialog.evaluate(element => {
+      const bounds = element.getBoundingClientRect()
+      const lastRow = element.querySelector('dl > div:last-child')?.getBoundingClientRect()
+      const remaining = element.scrollHeight - element.clientHeight - element.scrollTop
+      return {
+        // scrollTop may be fractional in Chromium; require the native bottom
+        // within one CSS pixel and independently prove the final shortcut row
+        // is fully visible in the scrollport.
+        atBottom: remaining >= 0 && remaining <= 1,
+        lastRowVisible: !!lastRow && lastRow.top >= bounds.top && lastRow.bottom <= bounds.bottom,
+        scrollTop: element.scrollTop,
+      }
+    })
     for (let page = 0; page < 10 && !bottomMetrics.atBottom; page += 1) {
+      previousScrollTop = bottomMetrics.scrollTop
       await helpDialog.press('PageDown')
+      await settleNativeHelpScroll(previousScrollTop, 'down')
       bottomMetrics = await helpDialog.evaluate(element => {
         const bounds = element.getBoundingClientRect()
         const lastRow = element.querySelector('dl > div:last-child')?.getBoundingClientRect()
+        const remaining = element.scrollHeight - element.clientHeight - element.scrollTop
         return {
-          atBottom: element.scrollTop === element.scrollHeight - element.clientHeight,
+          atBottom: remaining >= 0 && remaining <= 1,
           lastRowVisible: !!lastRow && lastRow.top >= bounds.top && lastRow.bottom <= bounds.bottom,
+          scrollTop: element.scrollTop,
         }
       })
     }
@@ -2328,7 +2361,11 @@ test.describe('TC2000 workstation', () => {
     await sourceLink.click()
     await page.getByRole('menuitemradio', { name: 'Purple', exact: true }).click()
     await wildcardLink.click()
-    await page.getByRole('menuitemradio', { name: 'Yellow', exact: true }).click()
+    await expect(wildcardLink).toHaveAttribute('aria-expanded', 'true')
+    const wildcardMenu = wildcard.getByRole('menu', { name: 'Symbol link group' })
+    const yellowOption = wildcardMenu.getByRole('menuitemradio', { name: 'Yellow', exact: true })
+    await expect(yellowOption).toBeVisible()
+    await yellowOption.click()
     await expect(sourceLink).toHaveAttribute('aria-label', 'Symbol link group: purple')
     await expect(wildcardLink).toHaveAttribute('aria-label', 'Symbol link group: yellow')
 
@@ -2528,6 +2565,7 @@ test.describe('TC2000 workstation', () => {
     const target = targetWindow.locator('.ratio-chart')
     await expect(sourceWindow.locator('.chart-tool .uplot')).toBeVisible({ timeout: 20_000 })
     await expect(target.locator('.uplot')).toBeVisible({ timeout: 20_000 })
+    await expect(target).toHaveAttribute('aria-busy', 'false', { timeout: 20_000 })
     await sourceWindow.locator('select[aria-label="Chart symbol link group"]').selectOption('blue')
     await targetWindow.locator('select[aria-label="Relative Strength symbol link group"]').selectOption('blue')
 
@@ -2540,9 +2578,27 @@ test.describe('TC2000 workstation', () => {
     await popup.waitForLoadState('domcontentloaded')
     const popupChart = popup.locator('.chart-tool')
     await expect(popupChart.locator('.uplot')).toBeVisible({ timeout: 20_000 })
-    const popupBox = await popupChart.locator('.uplot').boundingBox()
-    expect(popupBox).not.toBeNull()
-    await popup.mouse.move(popupBox!.x + popupBox!.width * 0.63, popupBox!.y + popupBox!.height * 0.45)
+    // Visibility can precede the chart's ready hook, which installs the real
+    // pointer interaction handlers. Do not send the one cross-window cursor
+    // event until the source chart reports that initialization is complete.
+    await expect(popupChart.locator('.chart-root')).toHaveAttribute('aria-busy', 'false', { timeout: 20_000 })
+    const popupReadoutDate = popupChart.locator('.ohlcv-info .tt-date')
+    await expect(popupReadoutDate).toBeVisible()
+    const sourceDateBefore = (await popupReadoutDate.textContent())?.trim()
+    const popupChartRoot = popupChart.locator('.chart-root')
+    const sourceTimestampBefore = await popupChartRoot.getAttribute('data-linked-timestamp')
+    const popupOver = popupChart.locator('.u-over').first()
+    await expect(popupOver).toBeVisible()
+    const popupOverBox = await popupOver.boundingBox()
+    expect(popupOverBox).not.toBeNull()
+    await popup.mouse.move(popupOverBox!.x + popupOverBox!.width * 0.63, popupOverBox!.y + popupOverBox!.height * 0.45)
+    // Prove the ordinary pointer reached a historical bar in the source chart
+    // before treating a missing target update as a cross-window problem.
+    await expect.poll(() => popupReadoutDate.textContent().then(value => value?.trim()), { timeout: 10_000 }).not.toBe(sourceDateBefore)
+    await expect.poll(() => popupChartRoot.getAttribute('data-linked-timestamp'), { timeout: 10_000 }).not.toBe(sourceTimestampBefore)
+    const publishedTimestamp = await popupChartRoot.getAttribute('data-linked-timestamp')
+    expect(publishedTimestamp).toBeTruthy()
+    await expect(target).toHaveAttribute('data-linked-timestamp', publishedTimestamp!)
     await expect.poll(() => targetCursor.evaluate(element => ({ transform: (element as HTMLElement).style.transform, off: element.classList.contains('u-off') })), { timeout: 10_000 }).not.toEqual(before)
     await expect(targetCursor).not.toHaveClass(/u-off/)
 
@@ -4737,9 +4793,15 @@ test.describe('TC2000 workstation', () => {
   test('F8r-breadth-narrow — Market Breadth controls remain contained in a narrow desktop dock', async ({ page, browserDiagnostics }) => {
     await page.setViewportSize({ width: 390, height: 800 })
     await page.goto('/chart/SPY')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
     await page.getByRole('button', { name: 'Add tool' }).click()
     await page.getByRole('menuitem', { name: 'Market Breadth', exact: true }).click()
-    const breadthWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.breadth-tool') }).last()
+    // Observe shell creation/activation separately from the tool body mount so
+    // a missing component is distinguishable from a failed Add-tool action.
+    const breadthWindow = page.locator('.tool-window').filter({
+      has: page.locator('.tool-window__title', { hasText: /^Market Breadth$/ }),
+    }).last()
+    await expect(breadthWindow).toBeAttached({ timeout: 15_000 })
     await expect(breadthWindow).toBeVisible({ timeout: 15_000 })
     const breadth = breadthWindow.locator('.breadth-tool')
     await expect(breadth).toBeVisible({ timeout: 15_000 })
