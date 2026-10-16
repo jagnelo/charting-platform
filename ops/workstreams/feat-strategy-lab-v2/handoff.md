@@ -14636,3 +14636,25 @@ Provider prerequisite or authorize source imports, sibling writes, interim
 combined copies, heavy gates, or runtime/migration contract changes. Provider
 remains pending, and all source heads/contracts must be rechecked at the actual
 green staging reconciliation.
+
+## Exact-source backend CI failure — preserved, cause not proven
+
+The exact CI log for `54fa13e1ba17a40de6f242e16d5a96d8217615cb`, run
+`38820638540`, Backend Tests job `116716106264`, ends at
+`2026-10-15T23:00:25.0138175Z` with exit 152. Last pytest progress is 36% in
+`tests/unit/services/test_research_runner.py`; there is no assertion/traceback
+block or coverage summary. Backend integration and dependent E2E/Exhaustive jobs
+were skipped. Thus the conditional Strategy package path in the command is not
+proof that those tests executed on this run, and the failure is not evidence of
+the 75% aggregate coverage threshold failing. The green `1fca3ec0` run
+`38812646577` is historical, not acceptance of `54fa13e1`.
+
+Exit 152 is consistent with Linux `128 + SIGXCPU(24)`. The exact Strategy
+runner has a process-level `RLIMIT_CPU` around research execution and restores
+limits in `finally`; a CPU-limit signal during an in-process test could kill
+pytest before cleanup/summary. This is only a source-grounded hypothesis. The
+coordinator reports an independent reproduction of this exit class near a
+CPU-second boundary, strengthening but not proving attribution. No rerun, limit
+change, test weakening, or threshold change was made. Investigate from this
+source/log evidence and only use bounded reproducer work under the approved
+heavy-gate order; keep each exact commit/run result distinct.

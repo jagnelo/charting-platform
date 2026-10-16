@@ -73,9 +73,21 @@ integration_checkpoint:
   exact_source_ci:
     sha: 1fca3ec0b0f14d8e4f33ab25b0ce209847bd22de
     run_id: 38812646577
-    conclusion: success
-    evidence: Branch-declared, frontend unit, backend unit/integration and Playwright jobs passed; Exhaustive Integration Gate skipped.
+    conclusion: success_historical
+    evidence: Branch-declared, frontend unit, backend unit/integration and Playwright jobs passed; Exhaustive Integration Gate skipped. Superseded for current-source acceptance by the later exact-source failure below.
     scope_limit: Hosted exact-source CI only; does not satisfy required local full_stack_browser profile or post-Provider/ETF/TC combined consumer validation.
+    later_exact_source_failure:
+      sha: 54fa13e1ba17a40de6f242e16d5a96d8217615cb
+      run_id: 38820638540
+      job_id: 116716106264
+      conclusion: failure_exit_152
+      observed_at: 2026-10-15T23:00:25.0138175Z
+      progress: Unit stream ended at 36% in tests/unit/services/test_research_runner.py; no assertion/traceback or coverage summary; integration and dependent E2E/Exhaustive jobs skipped.
+      diagnosis: >-
+        Exit 152 is consistent with SIGXCPU; exact source applies a process-level
+        RLIMIT_CPU around research execution. Plausible lead only, not a proven
+        cause. Do not rerun blindly or alter limits/thresholds; retain exact log
+        and investigate boundedly after upstream green release.
   prospective_provider_coverage_reconciliation: ops/workstreams/feat-strategy-lab-v2/coverage-runner-reconciliation.md
   downstream_consumers:
   - Combined workstation and future Strategy Lab frontend
@@ -253,11 +265,11 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2]
   total: 5
-  current_phase: integration-1-common-repair-hosted-ci-green-awaiting-product-baseline
+  current_phase: integration-1-exact-source-backend-ci-red-awaiting-green-provider
   current_blocker: >-
-    Exact-source hosted CI 38812646577 is green on 1fca3ec0b0f14d8e4f33ab25b0ce209847bd22de, but the required local full_stack_browser profile and actual combined consumer/PostgreSQL gates remain open. The released 82d881e76be8de538abb6ec5c454d96afe0ee56a baseline contains only the common repair. Provider, ETF and TC2000 product checkpoints remain unaccepted and unintegrated, so actual shared consumer wiring is not yet available. The legacy/mixed-history guard remains fail-closed; no retained database requiring a transition has been identified.
+    Exact Strategy source 54fa13e1ba17a40de6f242e16d5a96d8217615cb failed backend CI run 38820638540 (exit 152 at 36% in research_runner unit tests; no assertion/coverage summary). Prior run 38812646577 on 1fca3ec0 is historical only. Cause is not proven; RLIMIT_CPU/SIGXCPU is a plausible source-grounded lead, not a confirmed diagnosis. Provider, ETF and TC2000 product checkpoints remain unaccepted/unintegrated, the required local full_stack_browser and combined consumer/PostgreSQL gates remain open, and Provider retains the first heavy local validation slot.
   next_action: >-
-    Preserve the Provider-first heavy local validation slot. Continue actual consumer reconciliation and run the required local full profile only after accepted Provider, ETF and TC2000 product checkpoints are released in synchronized green staging and this exact source is confirmed unfrozen; then prepare the exact eligible source for coordinator review under the delegated conditional-acceptance authority.
+    Preserve the exact red CI receipt and investigate only from existing source/log evidence; do not blindly rerun or alter limits/thresholds. After accepted Provider green staging, reconcile the bounded runner and Strategy test root as documented, then run required local/full combined gates under the assigned slot and prepare exact eligible source for coordinator review.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging

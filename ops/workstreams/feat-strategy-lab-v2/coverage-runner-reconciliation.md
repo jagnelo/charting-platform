@@ -16,6 +16,41 @@ unit command conditionally includes `app/strategy_lab_v2/tests`; a separate CI
 integration command runs `tests/integration`. Backend pytest configuration
 retains `--cov-fail-under=55`.
 
+The conditional CI path does not prove the Strategy package ran in every
+attempt. On exact Strategy source `54fa13e1ba17a40de6f242e16d5a96d8217615cb`,
+run `38820638540`, backend job `116716106264` failed at
+`2026-10-15T23:00:25.0138175Z` with exit 152. The log shows the unit stream at
+36%, in `tests/unit/services/test_research_runner.py`, then process termination.
+It contains no pytest failure/traceback block or coverage summary; backend
+integration and dependent E2E/Exhaustive jobs were skipped. The Strategy suite
+was listed after `tests/unit` in the job command, but this run does not prove it
+was reached or executed. This was not an aggregate 75% coverage failure.
+Earlier successful CI run `38812646577` on `1fca3ec0` is historical evidence
+only, not acceptance of exact source `54fa13e1`.
+
+## Exact-source failure and bounded diagnosis
+
+Observed evidence is an abrupt process exit, not a failed assertion. Exit 152
+is consistent with the Linux shell convention `128 + SIGXCPU(24)`. In exact
+source `54fa13e1`, `backend/research_runner/runner.py` applies a process-level
+`RLIMIT_CPU` soft bound based on `ceil(current process CPU seconds + 15)` during
+research execution and restores limits in `finally`. A CPU-limit signal during
+an in-process unit test could terminate the whole pytest process before normal
+cleanup/summary. The last visible file/progress and signal-like exit make this a
+plausible lead; they do not prove which test or execution crossed a limit, nor
+that the resource guard is the sole cause. Coordinator source investigation
+also reported reproducing this exit class near a CPU-second boundary, which
+strengthens the lead but is not a replacement for exact-attempt causality.
+
+Do not infer that bounded shards alone fix the failure, alter `RLIMIT_CPU`,
+increase limits, lower either coverage threshold, or blindly rerun the suite.
+Diagnosis should first retain this exact job log/source linkage and inspect
+existing runner limits/tests; after the authorized green Provider baseline,
+bounded independent shards can isolate any reproducer without changing
+production limits. A fix requires a reproduced causal path and regression
+evidence. Keep the `1fca3ec0` success, the `54fa13e1` failure, and later CI
+results as separate immutable receipts.
+
 The pending Provider source inspected read-only at
 `91164b355bf95da326063ce19caa33ed26003960` adds
 `scripts/backend_coverage.py`. Its `TEST_ROOTS` are currently only
@@ -43,9 +78,10 @@ is pending and is not an accepted/published green baseline.
   enforced.
 - In CI, retain the actual package inclusion in the unit step, integration
   coverage append, and final aggregate 75% report. Confirm from the exact run's
-  command/job evidence that the v2 package was actually executed. Do not claim
-  CI ran the bounded local helper or its shards unless the CI workflow actually
-  invokes it; accurately describe the separate unit/integration CI commands.
+  command/job evidence that the v2 package was actually executed and the unit
+  process completed. Do not claim CI ran the bounded local helper or its shards
+  unless the CI workflow actually invokes it; accurately describe the separate
+  unit/integration CI commands.
 - Add focused runner regressions for third-root collection and parsing,
   non-empty-root enforcement, bounded execution of every Strategy node ID, and
   coverage accumulation/threshold behavior. After full reconciliation, run the
