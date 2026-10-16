@@ -211,6 +211,70 @@ def test_expired_or_cancelled_state_releases_cost_and_retains_revision(db):
     assert len(list(db.scalars(select(ProviderRecurringCostCommitmentRevision)))) == 2
 
 
+def test_commitment_lifecycle_revisions_recalculate_cost_and_retain_every_state(db):
+    source = _source(db, "cost-complete-lifecycle")
+    assert _budget(db).allowed
+
+    proposed = _admit(db, source.id, state="proposed", amount="18")
+    assert proposed.allowed
+    assert proposed.proposed_monthly == Decimal("18.0000")
+    assert proposed.committed_monthly == Decimal("0.0000")
+
+    active = _admit(db, source.id, state="active", amount="18")
+    assert active.allowed
+    assert active.commitment_id == proposed.commitment_id
+    assert active.revision == 2
+    assert active.committed_monthly == Decimal("0.0000")
+    assert active.remaining_monthly == Decimal("2.0000")
+
+    trial = _admit(
+        db,
+        source.id,
+        state="trial",
+        amount="0",
+        post_trial_amount="180",
+        post_trial_currency="USD",
+        post_trial_interval_unit="year",
+        post_trial_interval_count=1,
+    )
+    assert trial.allowed
+    assert trial.commitment_id == active.commitment_id
+    assert trial.revision == 3
+    assert trial.proposed_monthly == Decimal("15.0000")
+    assert trial.remaining_monthly == Decimal("5.0000")
+
+    resumed = _admit(db, source.id, state="active", amount="18")
+    assert resumed.allowed
+    assert resumed.commitment_id == trial.commitment_id
+    assert resumed.revision == 4
+    assert resumed.proposed_monthly == Decimal("18.0000")
+    assert resumed.remaining_monthly == Decimal("2.0000")
+
+    cancelled = _admit(db, source.id, state="cancelled", amount="18")
+    assert cancelled.allowed
+    assert cancelled.commitment_id == resumed.commitment_id
+    assert cancelled.revision == 5
+    assert cancelled.proposed_monthly == Decimal("0.0000")
+    assert cancelled.remaining_monthly == Decimal("20.0000")
+    assert provider_recurring_cost_status(db).committed_monthly == Decimal("0.0000")
+
+    revisions = list(
+        db.scalars(
+            select(ProviderRecurringCostCommitmentRevision).order_by(
+                ProviderRecurringCostCommitmentRevision.revision
+            )
+        )
+    )
+    assert [revision.revision for revision in revisions] == [1, 2, 3, 4, 5]
+    assert [revision.snapshot["state"] for revision in revisions] == [
+        "proposed",
+        "active",
+        "trial",
+        "active",
+        "cancelled",
+    ]
+
+
 def test_explicit_expired_transition_does_not_count_and_stale_active_quote_is_rejected(db):
     source = _source(db, "cost-expiry")
     _budget(db)

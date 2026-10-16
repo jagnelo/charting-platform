@@ -1,4 +1,74 @@
 schema: 4
+# Current ICP2/ICP6 continuation — 2026-10-16 20:12Z: exact CI run 38955620628
+# is green for required standard jobs on af7913ea. The earlier coordinator
+# receipt 38943410344 remains source-bound to ba06bdc6 only. Added and passed a
+# bounded 36-test recurring-cost/admin/series/coverage regression selection;
+# one account commitment is checked across proposed→active→trial→active→cancelled
+# with all monthly totals and revision snapshots. Current elevated preflight
+# on af7913ea has no global ledger blocker, but full-matrix transport remains
+# blocked before HTTP: 21 providers passed provider-specific admission; six
+# remain held (CTA, Dinari, EODHD, Marketstack, Nasdaq, Tiingo) for headroom or
+# unreviewed cost/reset/usage facts. Zero HTTP/quota spend. No FX rate or
+# currency-equivalence rule is invented; full browser profile remains held
+# until a synchronized green staging release. Preserve every prior receipt.
+# Current Provider-owned status — 2026-10-16 20:07Z: exact run 38955620628
+# is terminal success on source af7913ea for Backend, Frontend Unit, Playwright
+# E2E, and Branch-declared; Exhaustive was skipped by feature policy. GitHub's
+# exposed job receipt does not provide E2E counts, so none are inferred. Current
+# staging e0cb269a remains non-green (exact run 38947572686 failed at E2E), so
+# the Provider full local/browser profile remains held. This is not checkpoint
+# acceptance.
+# Current Provider-owned status — 2026-10-16 20:06Z: exact Provider CI
+# 38955620628 on af7913ea remains at E2E; other required feature-branch jobs
+# passed. GitHub staging tip e0cb269afc8460bdc814c93ec71c640f01b2b31f failed
+# exact CI 38947572686 at E2E and is not a green repair release. Keep the full
+# local/browser profile held. Coordinator's live-runner MarketData.app/Tiingo
+# admission finding is fixed and covered by the current Backend job. Full
+# checkpoint remains open.
+# Provider live-runner effective-plan review reconciliation — 2026-10-16
+# 20:03Z: coordinator's prior MarketData.app/Tiingo main-flow finding is
+# implemented in branch commits d9104b369 and 91164b355, included in exact
+# source af7913ea. Real runner admission now checks effective plans after
+# selection for every supported full/provider/case/account-usage mode, before
+# live lock/subprocess; MarketData.app and Tiingo paid/trial/unknown controls
+# fail closed under both paid-toggle states, with reviewed-free/expired-trial
+# and narrow EODHD usage-bootstrap controls retained. Exact run 38955620628's
+# Backend job passed these regressions; E2E is still running. This is not a
+# full-profile/live acceptance or checkpoint closure.
+# Current Provider-owned status — 2026-10-16 19:55Z: exact current run
+# 38955620628 on af7913ea has Backend, Frontend Unit, and Branch-declared
+# success; Playwright E2E remains in progress; Exhaustive is policy-skipped.
+# Bounded ICP2/ICP6 regressions passed 21/21 across two local invocations, with
+# no provider transport or quota spend. Prior base receipt 38943410344 is
+# terminal green only for ba06bdc6. Full browser profile remains coordinator-
+# held; checkpoint and complete roadmap remain open.
+# Current Provider-owned status — 2026-10-16 19:54Z: exact current run
+# 38955620628 on af7913ea has Backend, Frontend Unit, and Branch-declared
+# success; Playwright E2E remains in progress; Exhaustive is policy-skipped.
+# Focused Provider ICP2/ICP6 contract selection passed 17/17 locally with no
+# provider transport or quota spend. Prior base receipt 38943410344 is
+# terminal green only for ba06bdc6. Full browser profile remains coordinator-
+# held; checkpoint and complete roadmap remain open.
+# Superseding Provider-owned continuation update — 2026-10-16 19:52Z:
+# Coordinator confirms exact CI run 38943410344 is terminal green for source
+# ba06bdc6b525c8f007fd6917bd3df2603aa8f093: Backend, Frontend Unit,
+# Branch-declared, Playwright E2E (151 passed/109 skipped; zero reported
+# retries/flakes/failures); Exhaustive skipped by branch policy. This receipt
+# validates only that source. Current source af7913ea has run 38955620628 with
+# Backend (unit/integration/coverage) and Frontend Unit green; E2E and
+# Branch-declared are running, not terminal. Continue ICP2/ICP6 work; full
+# browser profile remains held for the coordinator's synchronized release.
+# Superseding Provider-owned continuation update — 2026-10-16 19:41Z:
+# zero-price Free Forever regression is committed/pushed at af7913ea; exact CI
+# 38955620628 has Frontend Unit and Backend unit tests green, PostgreSQL
+# integration is running. Focused service tests pass 11/11 and Ruff/format/diff
+# pass.
+# The immediately previous source bc5650fc has exact standard CI 38950483900
+# green: Backend including PostgreSQL integration/coverage, Frontend Unit,
+# Branch-declared, and E2E 151 passed/109 skipped with no reported test retry,
+# flake or failure; Exhaustive skipped by policy. No full-local profile until
+# synchronized staging repair is released; full Provider checkpoint remains
+# open and no provider transport/activation occurred.
 # Superseding Provider-owned continuation update — 2026-10-16 19:30Z:
 # exact standard CI 38950483900 is green on pushed source bc5650fc: Backend
 # including PostgreSQL integration/coverage, Frontend Unit, Branch-declared,

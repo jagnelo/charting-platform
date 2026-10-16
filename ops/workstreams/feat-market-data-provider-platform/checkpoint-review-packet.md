@@ -1,5 +1,116 @@
 # Provider integration checkpoint review packet
 
+## Current owned continuation — 2026-10-16 20:12Z
+
+- Exact coordinator CI receipt `38943410344` is confirmed terminal green only
+  for `ba06bdc6b525c8f007fd6917bd3df2603aa8f093`; it is already recorded in
+  the append-only validation journal and handoff. Its E2E was 151 passed / 109
+  skipped, with no reported retries/flakes/failures; Exhaustive was skipped by
+  feature policy. Current exact source `af7913ea` has its own green standard
+  CI, run `38955620628`. Neither receipt clears the separate seeded local
+  browser failure or constitutes checkpoint acceptance.
+- Added the recurring-cost lifecycle regression on the dirty current candidate:
+  one account progresses proposed → active → trial → active → cancelled, with
+  monthly-cost recalculation, stable ID, five preserved revision snapshots,
+  and final zero monthly commitment. The focused cost/admin/OHLCV/coverage
+  selection passes 36/36. This is bounded local evidence, not full profile.
+- Elevated current-source `--preflight-only` receipt at `af7913ea` is
+  `blocked_before_transport`, with 0 provider HTTP requests/quota spend and no
+  global coordinator blocker. 21 provider groups passed their provider-level
+  checks; six remain held: CTA and Nasdaq directory headroom, Dinari reviewed
+  cost/reset profile, EODHD manifest headroom, Marketstack OHLCV headroom plus
+  discovery costs/MIC, and Tiingo plan/hour/day baselines. Exact details are
+  retained in `validation.jsonl`; do not repeat held calls.
+- Continue Provider-owned ICP2 currency/evidence/reconciliation and ICP6
+  producer contracts. No EUR/USD conversion is invented. Full local/browser
+  profile remains held until a synchronized green staging SHA and slot are
+  released; no sibling wiring, staging mutation, provider transport,
+  activation, deployment, or data cleanup.
+
+## Superseding current Provider-owned operation status — 2026-10-16 20:08Z
+
+Current-source `--preflight-only` on `af7913ea` is recorded in the append-only
+validation journal as `blocked_before_transport`: 27 providers evaluated,
+zero provider HTTP requests, zero quota spend. Provider-specific checks leave
+24 eligible and quarantine three: Dinari (reviewed Sandbox quota/cost profile
+missing), Marketstack directory discovery (venue/MIC/page bounds unresolved),
+and Tiingo (plan unrecognized/unreviewed). This does **not** assert current
+quota headroom: the durable quota coordinator is read-only in the current
+sandbox, which globally blocks every operation before transport. Alpha Vantage
+is no longer a provider-specific blocker in this snapshot, but no operation
+may be routed until durable quota admission is available and that operation's
+reservation has sufficient recorded headroom. MarketData.app's local config
+resolves the expired trial to Free Forever; this is not a fresh native usage
+observation. No operation was activated or called.
+
+## Superseding current Provider-owned continuation status — 2026-10-16 20:07Z
+
+Exact pushed Provider source `af7913eaef7d9bee41e6e08cfa34486e0a34d838`, run
+`38955620628`, is terminal success for Backend (unit, PostgreSQL integration,
+coverage), Frontend Unit, Playwright E2E, and Branch-declared. Exhaustive was
+skipped by feature-branch policy. The available GitHub receipt does not expose
+E2E case counts or retry details; they are not inferred. This is exact source
+CI evidence, not local full-profile or checkpoint acceptance.
+
+Current staging ref `e0cb269afc8460bdc814c93ec71c640f01b2b31f` remains
+non-green: exact run `38947572686` failed its Playwright E2E job. No synchronized
+green repair release is available in the checked evidence, so the Provider
+full local/browser profile stays held. No staging mutation occurred.
+
+## Superseding current Provider-owned continuation status — 2026-10-16 20:06Z
+
+The current GitHub `staging` ref is `e0cb269afc8460bdc814c93ec71c640f01b2b31f`;
+its exact CI run `38947572686` is terminal red because Playwright E2E failed
+(Backend, Frontend Unit, and Exhaustive passed; Branch-declared was skipped by
+staging policy). It is not an approved green repair release, so the Provider
+full local/browser rerun remains held. Provider source `af7913ea` run
+`38955620628` still has E2E running; its other required feature-branch jobs
+passed. No staging edits or merges were made.
+
+## Superseding current Provider-owned continuation status — 2026-10-16 20:03Z
+
+The coordinator's previously reported MarketData.app / Tiingo effective-plan
+admission defect in `scripts/run-live-provider-probes.py` is fixed on current
+source `af7913ea` by `d9104b369` and `91164b355`. The actual runner main path
+applies fail-closed plan admission after supported full/provider/case and
+MarketData.app account-usage selection, before lock or test subprocess. Tests
+cover both paid-toggle states and paid, trial, and unknown/unreviewed negative
+cases while retaining reviewed-free, expired-trial, and the narrow EODHD
+zero-credit usage controls. Exact run `38955620628` has a successful Backend
+job (including these tests), Frontend Unit, and Branch-declared; Playwright
+E2E remains in progress. This does not replace the held full local profile,
+live-operation acceptance, or checkpoint review.
+
+## Superseding current Provider-owned continuation status — 2026-10-16 19:52Z
+
+Coordinator confirms exact Actions run `38943410344` is terminal green for
+base source `ba06bdc6b525c8f007fd6917bd3df2603aa8f093`: Backend, Frontend Unit,
+Branch-declared, and Playwright E2E succeeded (151 passed/109 skipped, zero
+reported retries/flakes/failures); Exhaustive was skipped by branch policy.
+This is not evidence for later Provider source and does not clear the separate
+red seeded local browser profile.
+
+Current pushed source `af7913eaef7d9bee41e6e08cfa34486e0a34d838` is under exact
+run `38955620628`: Backend (unit, PostgreSQL integration, coverage) and
+Frontend Unit are green; E2E and Branch-declared are running, so CI is not
+terminal. Continue Provider-owned ICP2 recurring-cost and ICP6 producer /
+consumer contract work. Full local/browser validation remains held until the
+coordinator releases a synchronized staging SHA. No provider HTTP/quota spend,
+paid/trial activation, data reset, staging/sibling edit, or deployment.
+
+## Superseding current Provider-owned continuation status — 2026-10-16 19:41Z
+
+Current source `af7913eaef7d9bee41e6e08cfa34486e0a34d838` is committed/pushed;
+exact run `38955620628` has Frontend Unit and Backend unit tests green, with
+PostgreSQL integration running.
+It includes the reviewed zero-price recurring-plan regression; focused service
+tests pass 11/11, but this latest source is not yet CI validated. Predecessor
+source `bc5650fc` is exact standard-CI green in run `38950483900` (Backend,
+Frontend Unit, Branch-declared, and E2E 151 passed/109 skipped; Exhaustive
+skipped by policy). The original coordinator receipt `38943410344` applies only
+to base `ba06bdc6`. No full local profile/browser rerun until synchronized
+staging repair is released; no checkpoint acceptance is claimed.
+
 ## Superseding current Provider-owned continuation status — 2026-10-16 19:30Z
 
 Exact standard CI is green on pushed source `bc5650fc` in run `38950483900`:

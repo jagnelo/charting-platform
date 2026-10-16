@@ -1,5 +1,140 @@
 # feat/market-data-provider-platform
 
+## 2026-10-16 20:12Z — coordinator receipt reconciled; lifecycle contract regression
+
+- The coordinator's terminal-green Actions receipt `38943410344` is already
+  preserved in the append-only journal and prior handoff entries, bound only
+  to source `ba06bdc6b525c8f007fd6917bd3df2603aa8f093` (151 passed / 109
+  skipped; no retries, flakes, or failures reported; Exhaustive skipped by
+  feature policy). It is historical base evidence, not validation of current
+  source. The newer exact feature run `38955620628` remains the applicable
+  standard CI for source `af7913ea` and passed required jobs; it does not
+  accept the Provider checkpoint or erase the separate red seeded browser
+  profile.
+- Added an ICP2 regression that exercises one billing-account commitment
+  through proposed → active → trial → active → cancelled. It checks each
+  monthly-cost recalculation, stable commitment identity, monotonically
+  retained revisions, and final zero commitment. The recurring-cost, admin,
+  OHLCV, and coverage producer-contract selection passes `36/36` (13.13s;
+  five existing deprecation warnings). This is bounded local evidence only.
+- Current exact-source no-transport quota preflight is the elevated result at
+  `af7913ea`: 21 providers passed provider-specific admission and six remain
+  quarantined/held (CTA, Dinari, EODHD, Marketstack, Nasdaq, Tiingo) for exact
+  headroom, contract, cost, or usage-baseline reasons in `validation.jsonl`.
+  It made zero HTTP requests/quota spend. Do not refresh or replay held calls.
+- Continue ICP2 recurring-cost currency/evidence/reconciliation work and ICP6
+  Provider-owned producer contracts. Do not invent EUR/USD conversion or
+  budget denomination; no downstream sibling wiring is claimed. Full browser
+  profile remains held until coordinator releases synchronized green staging.
+  No provider transport, activation, staging/sibling edit, deployment, data
+  reset, or cleanup occurred.
+
+## 2026-10-16 20:08Z — current-source no-transport operation preflight
+
+- Ran `scripts/run-live-provider-probes.py --preflight-only` against exact
+  source `af7913ea`; it returned `blocked_before_transport`, evaluated 27
+  providers, and made zero provider HTTP requests or quota spend. The command
+  appended its full redacted receipt to `validation.jsonl`.
+- Provider-specific plan/admission checks left 24 providers eligible and
+  quarantined three: Dinari (missing reviewed Sandbox quota/cost profile),
+  Marketstack directory discovery (venue/MIC and page-cost bounds missing),
+  and Tiingo (configured plan unknown/unreviewed). Independently, all selected
+  operations are globally blocked because the durable quota ledger is
+  read-only in this sandbox. Thus the preflight does not prove actual quota
+  headroom for any provider. Alpha Vantage is not a provider-specific blocker
+  in this snapshot, but it is not eligible for transport until durable quota
+  admission works and its exact reservation is proved.
+- MarketData.app's configured expired trial resolves to Free Forever by local
+  config; this is not a fresh provider account-usage observation. No plan was
+  activated or changed. Preserve the prior quotas and holds; no live tests,
+  local profile, staging write, deployment, or data cleanup occurred.
+
+## 2026-10-16 20:07Z — exact Provider CI terminal green
+
+- Exact pushed source `af7913eaef7d9bee41e6e08cfa34486e0a34d838`, Actions run
+  `38955620628`, is terminal success for Backend (unit, PostgreSQL integration,
+  combined coverage), Frontend Unit, Playwright E2E, and Branch-declared.
+  Exhaustive was skipped by feature-branch policy. The GitHub job receipt
+  available here confirms E2E success but does not expose case counts/retry
+  details; those are not inferred. This validates this code source, not the
+  Provider checkpoint or its held local full profile.
+- Current `staging` ref `e0cb269a…` is not a released green repair: exact run
+  `38947572686` failed E2E. Do not start the full local/browser profile until
+  the coordinator publishes/releases a synchronized green repair baseline.
+- No provider HTTP/quota, paid/trial activation, staging merge, deployment,
+  data reset, sibling edit, or cleanup occurred.
+
+## 2026-10-16 20:06Z — staging release gate rechecked
+
+- Read-only GitHub lookup shows the current `staging` ref is
+  `e0cb269afc8460bdc814c93ec71c640f01b2b31f`; its exact run
+  `38947572686` is terminal failure because Playwright E2E failed. Backend,
+  Frontend Unit, and Exhaustive succeeded; Branch-declared was skipped by the
+  staging-run policy. Therefore this tip is not a green repair release and does
+  not lift the browser-profile hold. No staging merge or sibling write was
+  attempted.
+- Provider run `38955620628` remains active at Playwright E2E on source
+  `af7913ea`; its Backend, Frontend Unit, and Branch-declared jobs succeeded.
+  Preserve and await that exact run rather than pushing a superseding source.
+
+## 2026-10-16 20:03Z — live-runner effective-plan finding reconciled
+
+- Read the current coordinator review and confirmed its MarketData.app / Tiingo
+  real-main admission finding is addressed on this branch by `d9104b369`
+  (`enforce effective free-plan live admission`) and diagnostic follow-up
+  `91164b355`, both included in exact source `af7913ea`.
+- Current runner applies plan blockers after supported selection modes and
+  before live lock/subprocess. Main-flow tests cover full/provider/case and
+  MarketData.app account-usage selection, both paid-toggle settings, paid,
+  trial, and unknown/unreviewed denials; reviewed-free and expired-trial
+  controls remain, and EODHD's specific zero-credit account-usage exception is
+  unchanged. Backend Tests succeeded on exact CI `38955620628`.
+- E2E remains in progress; no terminal overall CI or full-profile result yet.
+  No new provider requests/quota spend, paid/trial activation, staging or
+  sibling edits, deployment, reset, or cleanup.
+
+## 2026-10-16 19:55Z — focused ICP2/ICP6 verification
+
+- Re-ran the shared recurring-cost suite and selected producer success,
+  quota/unreviewed denial, local-only retained-data, and provider-backed no-data
+  tests: `17/17` passed in 9.42s. Only five third-party deprecation warnings;
+  no provider transport or quota spend. This is a bounded local check, not the
+  required full local profile or provider live acceptance.
+- Four additional coverage producer cases passed (`4/4`): provider-neutral
+  retained-ready, missing, and bounded-slice responses with no provider
+  routing. Together, the bounded ICP2/ICP6 selection is `21/21` across two
+  invocations; the two pytest runs remain separately recorded in the journal.
+- Exact run `38955620628` on `af7913ea` now has Backend, Frontend Unit, and
+  Branch-declared success; Playwright E2E remains in progress. Exhaustive is
+  skipped by feature-branch policy. No overall CI conclusion yet.
+- Continue ICP2/ICP6 contract work without provider calls or browser profile;
+  the latter remains held until synchronized staging repair release.
+
+## 2026-10-16 19:52Z — coordinator CI receipt reconciliation
+
+- Coordinator confirms exact Actions run `38943410344` is terminal green for
+  source `ba06bdc6b525c8f007fd6917bd3df2603aa8f093`: Backend, Frontend Unit,
+  Branch-declared, and Playwright E2E succeeded; E2E was 151 passed / 109
+  skipped with zero reported retries, flakes, or failures. Exhaustive was
+  skipped by branch policy. This is base-only evidence and does not validate
+  later source or clear the separate red seeded local profile.
+- Current source `af7913eaef7d9bee41e6e08cfa34486e0a34d838` remains in run
+  `38955620628`: Backend (unit, PostgreSQL integration, coverage) and Frontend
+  Unit are green; E2E and Branch-declared are running. No terminal overall CI
+  result is claimed. The zero-price Free Forever cost regression is in this
+  source.
+- Continue Provider-owned ICP2 recurring-cost and ICP6 producer/consumer
+  contract work. Keep full local/browser validation held until the coordinator
+  releases synchronized staging. No provider requests/quota spend, activation,
+  sibling/staging edits, deployment, data reset, or cleanup.
+
+## 2026-10-16 19:41Z — zero-price test CI integration running
+
+- Added regression `test_reviewed_free_forever_commitment_uses_zero_budget_and_never_activates_provider`; service tests pass `11/11`, Ruff/format/diff pass. It verifies a reviewed `free-forever` $0 plan can be retained under an explicit budget, consumes zero, remains visible, and never authorizes activation.
+- Committed and pushed as `af7913eaef7d9bee41e6e08cfa34486e0a34d838`. Exact Actions run `38955620628` has Backend unit tests and Frontend Unit green; PostgreSQL integration is running. E2E and Branch-declared are not terminal yet.
+- Previous exact standard CI `38950483900` is green on `bc5650fc` (Backend including PostgreSQL integration/coverage, Frontend Unit, Branch-declared, E2E 151 passed/109 skipped with no reported retries/flakes/failures; Exhaustive skipped by policy). It does not validate the new test commit. Earlier base run `38943410344` remains green only for `ba06bdc6`.
+- Full local profile/browser rerun remains held for synchronized staging repair release. No provider HTTP/quota, activation, data reset, staging/sibling edit, deployment, or cleanup.
+
 ## 2026-10-16 19:30Z — zero-price recurring-plan regression
 
 - Exact standard CI `38950483900` is green on pushed source `bc5650fc`;
