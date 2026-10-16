@@ -7233,6 +7233,35 @@ progress:
     30-day shadow run. Keep user-deferred Tradier/IBKR/Ondo and Dinari
     production disabled.
 current_gate_checkpoint: >-
+  Updated 2026-10-16 07:17Z: the exact current source is
+  `3cf41abdda47c0d2d7b0bd17ca1f1fb62b6a7ffe`, containing implementation
+  candidate `0111cc698ad8c03220b60725bdc2df68195d96e8` plus the published
+  evidence/packet refresh. Candidate `0111cc6` passed local backend coverage
+  (2,796 unit + 395 PostgreSQL/Redis integration, 82%) and all non-browser
+  profile stages. The 260-case functional browser matrix passed 151, skipped
+  109 expected cases, and had zero failures/retries. Strict pinned visual
+  passed 101/104 with three frontend-owned Study Lab mismatches (~1.0% vs
+  0.5% threshold); the full local profile is therefore red and the candidate
+  is not ready for conditional acceptance. Standard E2E wrapper stopped before
+  assertions on EACCES in existing Docker-owned report directories. Exact CI
+  run `38857046752` passed its required jobs on `0111cc6`; exact CI for this
+  latest packet-only source is queued as `38866260831`. Provider egress was
+  denied and no provider calls/quota spend occurred. The first standard-profile
+  cleanup removed four fresh branch test volumes and four scoped images; no
+  persistent app/provider data was targeted. A second isolated stack was
+  stopped without `-v`, retaining four fresh test volumes. The packet and
+  validation journal identify current routing posture separately from
+  source-bound historical live results; no historical receipt was rebound.
+  Released common-repair staging `82d881e76be8de538abb6ec5c454d96afe0ee56a`
+  is already an ancestor. Human's 22:55Z answer delegates conditional
+  checkpoint acceptance to the coordinator only after required contracts and
+  full tests pass, within verified-free scope. It is not current-source
+  acceptance and does not permit this branch to self-integrate. Current owner
+  action: resolve the three frontend-owned visual failures with their owner,
+  then rerun the declared profile and exact-source CI. Provider branch must
+  not edit frontend, self-integrate, deploy, activate paid/trial operations,
+  or reset quota/data. The detailed historical checkpoint notes below are
+  superseded where they conflict with this update; the full roadmap remains.
   Updated 2026-10-13 11:38Z: exact staged tree
   `3166d70a39c500d63ecc37aeeac9ce50dd66f6ad` passed 20/20 preflight-admitted
   provider manifests (56/56 cases, zero failures/skips, 138 requests,
