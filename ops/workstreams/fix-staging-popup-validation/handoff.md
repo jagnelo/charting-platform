@@ -249,3 +249,13 @@ until all actual required evidence is clean. Operational checkpoint owns:
 - ops/workstreams/fix-staging-popup-validation/handoff.md
 - ops/workstreams/fix-staging-popup-validation/session.json
 - ops/workstreams/fix-staging-popup-validation/validation.jsonl
+
+Normal plan-ready initially refused because the evidence record was dirty, as
+required; after committing/pushing6ed5e316105a971da7f88047933dcf13183ae842,
+plan-ready and the EXISTING goal's active-state rebind succeeded. Normal session
+checkpoint then succeeded with zero owned Docker resources. Only session.json
+now changes, faithfully fixing the helper's truncated first porcelain path and
+recording d0fc689c as implementation rather than the enclosing docs checkpoint.
+Final enclosing HEAD/origin will be verified externally after this record; do
+not create another commit merely to write its own hash or rerun profiles for
+metadata. Required full browser/104visual and exact final CI remain open.
