@@ -10,6 +10,7 @@ the expanded schema. The temporary database/worktree are always removed.
 from __future__ import annotations
 
 import argparse
+import difflib
 import os
 import shutil
 import socket
@@ -136,6 +137,58 @@ def provider_quota_schema(database: str) -> str:
     )
 
 
+def provider_recurring_cost_schema(database: str) -> str:
+    """Compare the new shared cost-governance schema on both install paths."""
+    tables = (
+        "'provider_recurring_cost_budget', "
+        "'provider_recurring_cost_budget_revision', "
+        "'provider_recurring_cost_commitment', "
+        "'provider_recurring_cost_commitment_revision'"
+    )
+    columns = postgres_scalar(
+        database,
+        "SELECT table_name || '.' || column_name || '|' || data_type || '|' || is_nullable "
+        "|| '|' || COALESCE(column_default, '<none>') || '|' "
+        "|| COALESCE(character_maximum_length::text, '') || '|' "
+        "|| COALESCE(numeric_precision::text, '') || '|' "
+        "|| COALESCE(numeric_scale::text, '') "
+        "FROM information_schema.columns WHERE table_schema = 'public' "
+        f"AND table_name IN ({tables}) ORDER BY table_name, ordinal_position",
+    )
+    constraints = postgres_scalar(
+        database,
+        "SELECT tc.table_name || '.' || tc.constraint_name || '|' || tc.constraint_type "
+        "|| '|' || COALESCE(string_agg(kcu.column_name, ',' ORDER BY kcu.ordinal_position), '') "
+        "|| '|' || COALESCE(cc.check_clause, '') "
+        "FROM information_schema.table_constraints tc "
+        "LEFT JOIN information_schema.key_column_usage kcu "
+        "ON tc.constraint_catalog = kcu.constraint_catalog "
+        "AND tc.constraint_schema = kcu.constraint_schema "
+        "AND tc.constraint_name = kcu.constraint_name "
+        "AND tc.table_name = kcu.table_name "
+        "LEFT JOIN information_schema.check_constraints cc "
+        "ON tc.constraint_catalog = cc.constraint_catalog "
+        "AND tc.constraint_schema = cc.constraint_schema "
+        "AND tc.constraint_name = cc.constraint_name "
+        "WHERE tc.table_schema = 'public' "
+        "AND (tc.constraint_type != 'CHECK' OR cc.check_clause NOT LIKE '%IS NOT NULL%') "
+        f"AND tc.table_name IN ({tables}) "
+        "GROUP BY tc.table_name, tc.constraint_name, tc.constraint_type, cc.check_clause "
+        "ORDER BY tc.table_name, tc.constraint_name",
+    )
+    indexes = postgres_scalar(
+        database,
+        "SELECT tablename || '.' || indexname || '|' || indexdef "
+        "FROM pg_indexes WHERE schemaname = 'public' "
+        f"AND tablename IN ({tables}) ORDER BY tablename, indexname",
+    )
+    if not columns or not constraints:
+        return ""
+    return "\n".join(
+        (columns, "-- constraints --", constraints, "-- indexes --", indexes)
+    )
+
+
 def seed_legacy_quota_fixture() -> None:
     source_id = postgres_scalar(
         "chartingdb",
@@ -145,6 +198,37 @@ def seed_legacy_quota_fixture() -> None:
     )
     if not source_id.isdigit():
         raise SystemExit("could not create existing-database provider quota fixture")
+    defaulted_limit_columns = int(
+        postgres_scalar(
+            "chartingdb",
+            "SELECT count(*) FROM information_schema.columns "
+            "WHERE table_schema = 'public' AND table_name = 'provider_policy' "
+            "AND column_name IN ('max_concurrency', 'tokens_per_minute', "
+            "'burst_capacity', 'cooldown_seconds') AND column_default IS NOT NULL",
+        )
+    )
+    if defaulted_limit_columns == 4:
+        # Exercise the old generic-default upgrade path only when the actual
+        # previous-release schema still has those defaults.
+        statement = (
+            "INSERT INTO provider_policy "
+            "(data_source_id, capability, max_concurrency, tokens_per_minute, "
+            "burst_capacity, cooldown_seconds) "
+            f"VALUES ({source_id}, 'PRICE_HISTORY', 2, 60, 15, 30)"
+        )
+    elif defaulted_limit_columns == 0:
+        # A newer previous release has already removed the unsafe defaults;
+        # create its real fail-closed state instead of injecting legacy values
+        # after the migration that was meant to remove them has run.
+        statement = (
+            "INSERT INTO provider_policy (data_source_id, capability) "
+            f"VALUES ({source_id}, 'PRICE_HISTORY')"
+        )
+    else:
+        raise SystemExit(
+            "previous-release provider quota schema has only some generic defaults; "
+            "refusing to synthesize an ambiguous fixture"
+        )
     run(
         [
             "docker",
@@ -158,10 +242,7 @@ def seed_legacy_quota_fixture() -> None:
             "-v",
             "ON_ERROR_STOP=1",
             "-c",
-            "INSERT INTO provider_policy "
-            "(data_source_id, capability, max_concurrency, tokens_per_minute, "
-            "burst_capacity, cooldown_seconds) VALUES "
-            f"({source_id}, 'PRICE_HISTORY', 2, 60, 15, 30)",
+            statement,
         ]
     )
 
@@ -217,6 +298,25 @@ def assert_provider_quota_equivalence() -> None:
                 f"{database} did not preserve fail-closed provider quota state: {remaining} rows"
             )
     print("provider quota schema/data equivalence: fresh and existing paths passed")
+    existing_cost_schema = provider_recurring_cost_schema("chartingdb")
+    fresh_cost_schema = provider_recurring_cost_schema("chartingfresh")
+    if not existing_cost_schema or existing_cost_schema != fresh_cost_schema:
+        print(
+            "\n".join(
+                difflib.unified_diff(
+                    existing_cost_schema.splitlines(),
+                    fresh_cost_schema.splitlines(),
+                    fromfile="existing-database-upgrade",
+                    tofile="fresh-install",
+                    lineterm="",
+                )
+            )
+        )
+        raise SystemExit(
+            "provider recurring-cost schema differs between fresh install and "
+            "existing-database upgrade"
+        )
+    print("provider recurring-cost schema equivalence: fresh and existing paths passed")
 
 
 def old_head(worktree: Path) -> str:

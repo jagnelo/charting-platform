@@ -92,6 +92,12 @@ from app.models.provider_observation import (
     OptionQuotePoint,
     UniverseDiscoverySnapshot,
 )
+from app.models.provider_recurring_cost import (
+    ProviderRecurringCostBudget,
+    ProviderRecurringCostBudgetRevision,
+    ProviderRecurringCostCommitment,
+    ProviderRecurringCostCommitmentRevision,
+)
 from app.models.provider_runtime import (
     ProviderAccountUsageObservation,
     ProviderAvailabilityObservation,
@@ -207,6 +213,10 @@ __all__ = [
     "ProviderAvailabilityRun",
     "ProviderAvailabilityObservation",
     "ProviderAccountUsageObservation",
+    "ProviderRecurringCostBudget",
+    "ProviderRecurringCostBudgetRevision",
+    "ProviderRecurringCostCommitment",
+    "ProviderRecurringCostCommitmentRevision",
     "ProviderRequestLog",
     "ProviderCapacityEvent",
     "DatasetStatus",

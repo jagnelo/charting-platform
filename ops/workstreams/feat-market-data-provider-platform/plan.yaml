@@ -1,4 +1,21 @@
 schema: 4
+# Superseding Provider-owned continuation update — 2026-10-16 18:34Z:
+# the worktree is dirty on synchronized base ba06bdc6. AC-RECURRING-COST is
+# partially delivered: explicit DB-backed aggregate budget/commitment APIs and
+# callable now exist, with no default budget and no paid-activation authority.
+# The focused unit/admin/migration group passes 21/21; PostgreSQL concurrency,
+# including concurrent first configuration and ceiling admission, passes 1/1.
+# Current edits normalize environment scope and expose the producer contract in
+# consumer_contract_examples. Exact-source CI/full profile remain open; Provider
+# browser rerun is still held for synchronized coordinator staging repair.
+# No provider HTTP/quota spend or target/consumer activation has occurred.
+# Exact CI run 38943410344 is now confirmed terminal green for base ba06bdc6:
+# Backend, Frontend Unit, Branch-declared, and E2E succeeded (151 passed,
+# 109 skipped, no retry/flake); Exhaustive was skipped by branch policy. This
+# does not validate the dirty candidate or clear the red seeded local profile.
+# The additive migration's fresh/upgrade PostgreSQL equivalence was rerun after
+# changing audit-revision foreign keys to RESTRICT; provider quota schema/data,
+# recurring-cost schema, and previous-release /health=200 all pass.
 # Current operational status as of 2026-10-16 17:06Z: exact branch source
 # 1236a367a1d81fba69bb85496e12a56ec22c9f56 is synchronized and CI
 # 38902818604 passed required standard jobs (Exhaustive skipped). The full
@@ -186,7 +203,7 @@ integration_checkpoint:
   operational_trial_authorized: false
   operational_trial_timing: "After integration on a separately authorized combined test deployment; this checkpoint does not start the trial. Retain the 30-day duration, daily/final reports, 99% eligible D1 coverage target, discrepancy analysis, and zero silent identity/quota violations as roadmap acceptance gates."
   latest_evidence_snapshot: >-
-    Current evidence as of 2026-10-16 17:49Z supersedes older dated snapshots
+    Current evidence as of 2026-10-16 18:01Z supersedes older dated snapshots
     below. Provider HEAD/origin are `51ebc7d45aa34d2e8790988778ee5e6eec14bdd7`.
     Hosted Actions `38937321525` is terminal-success for Backend, Frontend
     Unit, Branch-declared, and Playwright E2E; Exhaustive was skipped by the
@@ -197,6 +214,19 @@ integration_checkpoint:
     `0145b65992b8692ce69f82f804f83f6c8e551fea`, with no synchronized repair
     release. Provider's full seeded browser result at `1236a367` remains red
     (256 passed, F9e/F8s failed, 2 expected live skips; 104 visuals passed).
+
+    ICP6 producer contract tests now compare complete ready/partial/missing
+    coverage payloads, exact provider-backed no-data 404, and local-only empty
+    200 []. Focused coverage/OHLCV router suites passed 13/13 after formatting,
+    with Ruff and diff checks green. These changes are committed and pushed at
+    ba06bdc6b525c8f007fd6917bd3df2603aa8f093; exact CI 38943410344 is in
+    progress and is not yet a green receipt.
+
+    Shared repair run 38940886651 is now terminal-success for Backend,
+    Frontend Unit, Branch-declared, and E2E; Exhaustive was skipped for its
+    feature-push event. GitHub staging remains at
+    0145b65992b8692ce69f82f804f83f6c8e551fea, so this repair is not yet
+    released to Provider and the full local Provider browser rerun remains held.
 
     Shared repair Actions `38940886651` on
     `c9127042fa25aaed687dc59787bff607e68338f4` has Backend, Frontend Unit,
@@ -223,7 +253,7 @@ integration_checkpoint:
     The exact pushed source has 334/334 bounded ICP2/ICP6 unit cases across two
     runs. The Provider workstream checker validates 34 records. ICP6 tested
     response examples and downstream owners are in `consumer_contract_examples`;
-    AC-RECURRING-COST remains not_started full-roadmap work. No current-source
+    AC-RECURRING-COST is partially_delivered full-roadmap work. No current-source
     provider live success, full local profile, or checkpoint acceptance exists.
 
     Coordinator full-browser run's retained Playwright artifacts are now
@@ -478,7 +508,7 @@ integration_checkpoint:
         - backend/app/models/market_data_foundation.py
       ownership_boundary: "This branch owns shared identity/provider governance only; do not edit the ETF branch or implement its adapter bridge here."
       evidence_required: "Integration/API tests for identity and provider capability/entitlement/quota/health, including successful and unavailable examples; verify PROVIDER_FREE_ONLY_CHECKPOINT denies paid plans regardless of ALLOW_PAID_PROVIDER_ROUTING, and trial/unreviewed plans deny before transport. ETF later verifies bridge admission and actual request/page/retry accounting against green staging."
-      cost_admission_boundary: "No shared aggregate monthly recurring-subscription cost API exists. PROVIDER_FREE_ONLY_CHECKPOINT=true is the tested shared checkpoint boundary: it denies reviewed paid plans regardless of ALLOW_PAID_PROVIDER_ROUTING and denies trials/unreviewed plans; execute_provider_call and list_provider_status share provider_entitlement_admission. Disabling checkpoint mode restores full-roadmap ALLOW_PAID_PROVIDER_ROUTING opt-in. This is not aggregate cost admission or paid-activation authorization. The approved 20 EUR/USD-equivalent aggregate recurring-cost ceiling remains a Provider-owned full-roadmap continuation, not a prerequisite for this verified-free-only checkpoint. Its continuation contract must account for all active and proposed commitments per provider billing account/environment, across API keys and capabilities without double-counting one account-level subscription. Account identity must be a stable opaque scope, never a secret. Persist plan, exact amount/currency/recurring interval, effective dates/state, evidence source/version and observation time, plus a trial's known post-trial recurring price rather than treating the trial as zero. Unknown account scope, price, currency, interval, effective state, post-trial price, or evidence must fail closed. Normalize only documented intervals to a monthly equivalent. Mixed-currency totals are non-admissible absent an explicitly reviewed, timestamped FX policy/rate; do not invent FX. The budget denomination and equivalence rule must be explicit configuration. Admission must atomically account for existing active commitments and the proposed commitment under the configured ceiling, with concurrency/restart tests; it must not itself enable or authorize paid provider activation. Required tests include same-account multi-key deduplication, independent-account aggregation, active/proposed/expired transitions, known and unknown post-trial pricing, interval normalization, unknown/mixed-currency denial, concurrent near-limit admissions, and evidence changes/reconciliation. The feature remains unimplemented; no partial in-memory cost admission or ETF-only ledger is acceptable. ETF owns its post-staging ICP6 adapter bridge and actual request/page/retry accounting."
+      cost_admission_boundary: "PROVIDER_FREE_ONLY_CHECKPOINT=true is the tested shared checkpoint boundary: it denies reviewed paid plans regardless of ALLOW_PAID_PROVIDER_ROUTING and denies trials/unreviewed plans; execute_provider_call and list_provider_status share provider_entitlement_admission. Disabling checkpoint mode restores full-roadmap reviewed-paid opt-in. This boundary is not aggregate recurring-cost admission or paid-activation authorization. A Provider-owned database-backed recurring-cost service now exists: admin-only GET /api/v1/market-data/recurring-costs, PUT /api/v1/market-data/recurring-costs/budget, POST /api/v1/market-data/recurring-costs/commitments, and synchronous callable configure_provider_recurring_cost_budget/admit_provider_recurring_cost/provider_recurring_cost_status in backend/app/services/provider_recurring_costs.py. It uses an explicitly reviewed single-currency monthly ceiling; counts all active/proposed/trial commitments across providers; represents one billing account once per provider/environment independent of API keys/capabilities; persists a hashed opaque account scope, plan, price/period, effective dates/state, evidence source/version/observation time and revision history; includes known post-trial cost; conservatively rounds supported month/year prices upward; and fails closed on missing/invalid evidence, unknown price/period, unknown trial post-price, currency mismatch, absent budget, and over-ceiling proposals. Budget configuration is explicit and has no seeded default. Exact currency equivalence between EUR and USD remains unconfigured; no FX rate is invented. Cost admission never enables routing or authorizes paid activation. Remaining full-roadmap work: exact-source PostgreSQL first-budget/configuration and concurrent near-ceiling/restart evidence, migration equivalence, review/reconciliation of provider plan evidence and all state transitions, operator selection of budget denomination/equivalence policy, and consumer bridge wiring after Provider staging. This is not a prerequisite for the verified-free-only checkpoint. ETF owns its post-staging adapter bridge and actual request/page/retry accounting; it must not create a parallel ledger."
     - consumer: feat/tc2000-frontend-rework
       consumes: "Canonical instrument identity, local OHLCV series, coverage/preflight, freshness, and explicit missing/unavailable status; no provider request occurs inside evaluation."
       provider_contract_locations:
@@ -511,6 +541,25 @@ integration_checkpoint:
         - backend/tests/unit/services/test_provider_runtime.py::test_unreviewed_provider_entitlement_is_not_runtime_usable
         - backend/tests/unit/routers/test_ohlcv_router.py::TestOHLCVRouter::test_no_provider_data_returns_404
       ownership_remainder: "ETF owns its post-staging async/per-attempt adapter bridge and page/retry accounting; TC2000 and Strategy Lab v2 own consumer-specific wiring. This checkpoint does not claim async invoke support or completed sibling integration."
+    recurring_cost_admission:
+      admin_endpoints:
+        status: "GET /api/v1/market-data/recurring-costs"
+        configure_budget: "PUT /api/v1/market-data/recurring-costs/budget"
+        admit_commitment: "POST /api/v1/market-data/recurring-costs/commitments"
+      backend_callables:
+        - "configure_provider_recurring_cost_budget(session, monthly_ceiling, currency, evidence_source, evidence_version, reviewed_at)"
+        - "admit_provider_recurring_cost(session, data_source_id, environment, billing_account_scope, configured_plan, state, amount/currency/interval, evidence, effective_at, optional ends_at and post-trial price)"
+        - "provider_recurring_cost_status(session)"
+      success_contract: "A successful decision includes allowed=true, reason_code, currency, monthly_ceiling, committed_monthly, proposed_monthly, remaining_monthly, commitment_id/revision where applicable, and paid_activation_authorized=false. Admin status exposes retained provider/environment/plan/state/monthly-equivalent/evidence/revision without exposing billing_account_scope or its digest."
+      unavailable_contract: "Absent budget, unknown price/interval/trial post-price, unreviewed evidence/scope, currency mismatch, or a proposal over ceiling returns a typed denial and persists no proposed commitment; the API maps admission denials to 409. No route activation or provider transport is performed."
+      tests:
+        - backend/tests/unit/services/test_provider_recurring_costs.py::test_recurring_cost_requires_an_explicit_budget_and_reviewed_evidence
+        - backend/tests/unit/services/test_provider_recurring_costs.py::test_account_plan_is_counted_once_across_keys_and_revisions_are_retained
+        - backend/tests/unit/services/test_provider_recurring_costs.py::test_distinct_accounts_aggregate_and_over_ceiling_proposal_is_not_persisted
+        - backend/tests/unit/services/test_provider_recurring_costs.py::test_trial_uses_known_post_trial_recurring_price_and_unknown_trial_is_denied
+        - backend/tests/unit/routers/test_market_data_admin_router.py::test_recurring_cost_admin_contract_is_admin_only_and_never_activates_providers
+        - backend/tests/integration/test_provider_recurring_cost_concurrency.py::test_concurrent_near_ceiling_admissions_are_serialized_and_durable
+      ownership_remainder: "Provider owns this shared producer and its full-roadmap evidence/currency-policy completion. ETF may wire to this contract only after green Provider staging, owns request/page/retry quota settlement, and must prove aggregate admission plus unavailable/no-transport behavior without a duplicate ledger. TC2000 and Strategy Lab v2 retain their separate consumer data/availability wiring; none is wired across worktrees by this change."
     series_success:
       endpoint: "GET /ohlcv/{symbol}/{timeframe}?local_only=true"
       test: backend/tests/unit/routers/test_ohlcv_router.py::TestOHLCVRouter::test_local_only_returns_retained_bars_in_consumer_shape
@@ -720,8 +769,8 @@ integration_checkpoint:
       owner: "feat/market-data-provider-platform"
       continuation_acceptance_test: "Concurrent/restart tests cover provider-specific quota dimensions and reject unknown/exhausted operations before transport."
     - id: AC-RECURRING-COST
-      status: not_started
-      disposition: "The recurring-cost model/admission implementation is absent. The checkpoint's shared free-only route boundary is not aggregate subscription-cost admission and does not satisfy this full-roadmap criterion. Its explicit design/tests are recorded under the Provider ICP2 consumer contract, but no recurring commitment is currently stored, summed, or admitted."
+      status: partially_delivered
+      disposition: "A Provider-owned database-backed recurring-cost subsystem now exists: an explicitly reviewed single-currency ceiling, one commitment per provider billing-account scope and environment (independent of API keys/capabilities), retained budget/commitment evidence revisions, conservative monthly/yearly normalization, trial post-price accounting, fail-closed unknown/mixed currency handling, and authenticated admin status/configuration/admission endpoints. Cost admission does not authorize provider activation or routing. Remaining: exact-source PostgreSQL concurrency/restart and full migration-equivalence evidence; owner-reviewed provider plan evidence/operator provisioning; explicit 20 EUR/USD denomination policy remains configured rather than inferred; consumer bridge wiring after Provider staging; and tests for reconciled evidence and every state transition. This remains full-roadmap work and is not a prerequisite for the verified-free-only checkpoint."
       owner: "feat/market-data-provider-platform"
       continuation_acceptance_test: "Database-backed tests cover account/environment scope and same-account cross-key deduplication; exact plan price/currency/period and known post-trial pricing; active/proposed/expired transitions; supported monthly normalization; fail-closed unknown and mixed-currency cases; atomic concurrent near-ceiling proposals; restart durability; evidence revisions; and proof that budget admission does not authorize paid activation. Fresh-install and existing-database upgrade schemas must be equivalent."
     - id: AC-REFRESH

@@ -1,11 +1,14 @@
 """Backend-only market-data governance and diagnostics endpoints."""
 
 import asyncio
+from dataclasses import asdict
 from datetime import UTC, date, datetime
+from decimal import Decimal
 from types import SimpleNamespace
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import require_admin
 from app.config import provider_rate_limit_seed
 from app.database import get_db
+from app.models.data_source import DataSource
 from app.models.exchange import Exchange
 from app.models.instrument import Instrument
 from app.models.market_data_foundation import (
@@ -37,6 +41,10 @@ from app.models.market_data_foundation import (
     ShortInterestObservation,
 )
 from app.models.provider_observation import LatestPriceSnapshot
+from app.models.provider_recurring_cost import (
+    ProviderRecurringCostBudget,
+    ProviderRecurringCostCommitment,
+)
 from app.models.provider_runtime import ProviderCapability, ProviderCapacityEvent
 from app.models.tokenized_asset import TokenizedAssetDetail
 from app.models.user import User
@@ -49,6 +57,11 @@ from app.services.provider_quota_coordinator import (
     provider_quota_baseline_status,
     provider_quota_coordinator_summary,
     reconcile_provider_quota_baseline,
+)
+from app.services.provider_recurring_costs import (
+    admit_provider_recurring_cost,
+    configure_provider_recurring_cost_budget,
+    provider_recurring_cost_status,
 )
 
 router = APIRouter(prefix="/market-data", tags=["market-data-admin"])
@@ -78,6 +91,49 @@ class ProviderQuotaBaselineRequest(BaseModel):
     @classmethod
     def require_non_secret_evidence_reference(cls, value: str) -> str:
         return normalize_quota_evidence_reference(value)
+
+
+class ProviderRecurringCostBudgetRequest(BaseModel):
+    monthly_ceiling: Decimal = Field(gt=0)
+    currency: str = Field(min_length=3, max_length=3)
+    evidence_source: str = Field(min_length=1, max_length=500)
+    evidence_version: str = Field(min_length=1, max_length=120)
+    reviewed_at: datetime
+
+    @field_validator("reviewed_at")
+    @classmethod
+    def require_review_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("reviewed_at must include a timezone")
+        return value
+
+
+class ProviderRecurringCostCommitmentRequest(BaseModel):
+    data_source_id: int = Field(gt=0)
+    environment: str = Field(min_length=1, max_length=40)
+    billing_account_scope: str = Field(min_length=1, max_length=500)
+    configured_plan: str = Field(min_length=1, max_length=100)
+    state: Literal["proposed", "active", "trial", "expired", "cancelled"]
+    amount: Decimal | None = Field(default=None, ge=0)
+    currency: str | None = Field(default=None, min_length=3, max_length=3)
+    interval_unit: Literal["month", "year"] | None = None
+    interval_count: int | None = Field(default=None, gt=0)
+    evidence_source: str = Field(min_length=1, max_length=500)
+    evidence_version: str = Field(min_length=1, max_length=120)
+    evidence_observed_at: datetime
+    effective_at: datetime
+    ends_at: datetime | None = None
+    post_trial_amount: Decimal | None = Field(default=None, ge=0)
+    post_trial_currency: str | None = Field(default=None, min_length=3, max_length=3)
+    post_trial_interval_unit: Literal["month", "year"] | None = None
+    post_trial_interval_count: int | None = Field(default=None, gt=0)
+
+    @field_validator("evidence_observed_at", "effective_at", "ends_at")
+    @classmethod
+    def require_cost_timestamp_timezone(cls, value: datetime | None) -> datetime | None:
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+            raise ValueError("cost commitment timestamps must include a timezone")
+        return value
 
 
 class SecIssuerReportMaterializationRequest(BaseModel):
@@ -370,6 +426,107 @@ async def list_exchange_sessions(
             for row in exceptions
         ],
     }
+
+
+@router.get("/recurring-costs")
+async def get_provider_recurring_cost_status(
+    limit: int = Query(default=200, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """Expose the reviewed aggregate ceiling and retained account commitments."""
+    summary = await db.run_sync(provider_recurring_cost_status)
+    rows = (
+        await db.execute(
+            select(ProviderRecurringCostCommitment, DataSource.name)
+            .join(DataSource, DataSource.id == ProviderRecurringCostCommitment.data_source_id)
+            .order_by(
+                ProviderRecurringCostCommitment.data_source_id,
+                ProviderRecurringCostCommitment.environment,
+                ProviderRecurringCostCommitment.id,
+            )
+            .limit(limit)
+        )
+    ).all()
+    budget = await db.get(ProviderRecurringCostBudget, 1)
+    return {
+        "admission": asdict(summary),
+        "budget_evidence": (
+            {
+                "source": budget.evidence_source,
+                "version": budget.evidence_version,
+                "reviewed_at": budget.reviewed_at,
+                "revision": budget.revision,
+            }
+            if budget
+            else None
+        ),
+        "commitments": [
+            {
+                "id": row.id,
+                "provider": provider_name,
+                "environment": row.environment,
+                "configured_plan": row.configured_plan,
+                "state": row.state,
+                "monthly_equivalent": row.monthly_equivalent,
+                "currency": row.currency,
+                "effective_at": row.effective_at,
+                "ends_at": row.ends_at,
+                "evidence_source": row.evidence_source,
+                "evidence_version": row.evidence_version,
+                "evidence_observed_at": row.evidence_observed_at,
+                "revision": row.revision,
+            }
+            for row, provider_name in rows
+        ],
+        "paid_activation_authorized": False,
+    }
+
+
+@router.put("/recurring-costs/budget")
+async def configure_provider_recurring_cost_budget_endpoint(
+    request: ProviderRecurringCostBudgetRequest,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """Set an explicit reviewed budget; this never enables paid provider routes."""
+    decision = await db.run_sync(
+        lambda sync_session: configure_provider_recurring_cost_budget(
+            sync_session,
+            monthly_ceiling=request.monthly_ceiling,
+            currency=request.currency,
+            evidence_source=request.evidence_source,
+            evidence_version=request.evidence_version,
+            reviewed_at=request.reviewed_at,
+        )
+    )
+    if not decision.allowed:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=jsonable_encoder(asdict(decision)),
+        )
+    return asdict(decision)
+
+
+@router.post("/recurring-costs/commitments", status_code=status.HTTP_201_CREATED)
+async def admit_provider_recurring_cost_endpoint(
+    request: ProviderRecurringCostCommitmentRequest,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """Record/admit a plan commitment without authorizing provider activation."""
+    decision = await db.run_sync(
+        lambda sync_session: admit_provider_recurring_cost(
+            sync_session,
+            **request.model_dump(),
+        )
+    )
+    if not decision.allowed:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=jsonable_encoder(asdict(decision)),
+        )
+    return asdict(decision)
 
 
 @router.get("/quota")

@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from app.config import provider_rate_limit_seed
+from app.models.data_source import DataSource
 from app.models.market_data_foundation import (
     Issuer,
     MarketEventConsensus,
@@ -11,6 +12,7 @@ from app.models.market_data_foundation import (
     MarketRefreshJob,
     SecIssuerDirectoryCandidate,
 )
+from app.models.provider_recurring_cost import ProviderRecurringCostCommitment
 
 
 def test_refresh_queue_status_requires_admin_and_hides_lease_token(
@@ -461,3 +463,80 @@ def test_sec_directory_candidate_report_is_admin_only_and_paginated(client, admi
     assert materialized.status_code == 200, materialized.text
     assert materialized.json()["created"] == 1
     assert materialized.json()["provider_http_requests"] == 0
+
+
+def test_recurring_cost_admin_contract_is_admin_only_and_never_activates_providers(
+    client, auth_headers, admin_headers, db
+):
+    from app.models.provider_recurring_cost import ProviderRecurringCostBudget
+
+    path = "/api/v1/market-data/recurring-costs"
+    assert client.get(path).status_code == 401
+    assert client.get(path, headers=auth_headers).status_code == 403
+    status_response = client.get(path, headers=admin_headers)
+    assert status_response.status_code == 200, status_response.text
+    assert status_response.json()["admission"]["reason_code"] == "budget_not_configured"
+
+    budget_response = client.put(
+        f"{path}/budget",
+        headers=admin_headers,
+        json={
+            "monthly_ceiling": "20.00",
+            "currency": "USD",
+            "evidence_source": "operator-reviewed budget",
+            "evidence_version": "test-v1",
+            "reviewed_at": datetime.now(UTC).isoformat(),
+        },
+    )
+    assert budget_response.status_code == 200, budget_response.text
+    assert budget_response.json()["paid_activation_authorized"] is False
+    assert db.get(ProviderRecurringCostBudget, 1).monthly_ceiling == 20
+
+    provider = DataSource(name="cost-admin-provider", is_active=True)
+    over_budget_provider = DataSource(name="cost-admin-over-budget", is_active=True)
+    db.add_all([provider, over_budget_provider])
+    db.flush()
+
+    def commitment_payload(data_source_id: int, account_scope: str, amount: str):
+        timestamp = datetime.now(UTC).isoformat()
+        return {
+            "data_source_id": data_source_id,
+            "environment": "production",
+            "billing_account_scope": account_scope,
+            "configured_plan": "reviewed-basic",
+            "state": "proposed",
+            "amount": amount,
+            "currency": "USD",
+            "interval_unit": "month",
+            "interval_count": 1,
+            "evidence_source": "provider pricing page",
+            "evidence_version": "2026-10-16",
+            "evidence_observed_at": timestamp,
+            "effective_at": timestamp,
+        }
+
+    accepted = client.post(
+        f"{path}/commitments",
+        headers=admin_headers,
+        json=commitment_payload(provider.id, "opaque-account-1", "12"),
+    )
+    assert accepted.status_code == 201, accepted.text
+    assert accepted.json()["paid_activation_authorized"] is False
+
+    denied = client.post(
+        f"{path}/commitments",
+        headers=admin_headers,
+        json=commitment_payload(over_budget_provider.id, "opaque-account-2", "9"),
+    )
+    assert denied.status_code == 409, denied.text
+    assert denied.json()["detail"]["reason_code"] == "monthly_ceiling_exceeded"
+    assert db.query(ProviderRecurringCostCommitment).count() == 1
+
+    visible = client.get(path, headers=admin_headers)
+    assert visible.status_code == 200, visible.text
+    body = visible.json()
+    assert body["admission"]["committed_monthly"] == 12
+    assert body["admission"]["remaining_monthly"] == 8
+    assert len(body["commitments"]) == 1
+    assert body["commitments"][0]["provider"] == "cost-admin-provider"
+    assert "billing_account_scope_digest" not in visible.text

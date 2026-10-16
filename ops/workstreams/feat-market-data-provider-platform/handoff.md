@@ -1,5 +1,152 @@
 # feat/market-data-provider-platform
 
+## 2026-10-16 18:40Z — final PostgreSQL cost-governance candidate check
+
+- Reran the isolated PostgreSQL race test after the restrictive audit-FK
+  migration. The first two attempts reached teardown after their product
+  assertions and exposed only test-fixture cleanup issues (revision deletion
+  order, then a missing model import); those are recorded in the append-only
+  journal. After repair, the final-schema test passes `1/1` in `10.87s`,
+  covering simultaneous first-budget configuration, one-of-two `$12`/`$11`
+  proposals under `$20`, fresh-session durability, and cleanup constrained to
+  the test's temporary database.
+- The final migration-equivalence result is green for both fresh and
+  prior-release upgrade paths, including restrictive revision FKs and old app
+  health `200`. Focused unit/admin/migration suite is `22/22`.
+- The current feature worktree is still dirty and uncommitted. Exact hosted CI
+  `38943410344` is green only for base `ba06bdc6`; no claim is made for this
+  candidate. Full local profile and seeded browser rerun remain pending the
+  coordinator's synchronized staging release. All provider HTTP/quota, paid,
+  trial, unreviewed, and unsafe operations remain held; no data reset, sibling
+  or staging mutation, deployment, or cleanup was performed.
+
+## 2026-10-16 18:38Z — retained audit history and migration revalidation
+
+- Tightened recurring-cost evidence retention: budget/commitment revision
+  foreign keys now use `ON DELETE RESTRICT` and ORM relationships no longer
+  cascade-delete the history. Added unit coverage proving neither budget,
+  commitment, nor provider-scope deletion can erase revision rows.
+- Focused unit/admin/migration tests now pass `22/22`; the added case exercises
+  deletion rejection with SQLite foreign keys enabled. Ruff check and format
+  checks pass.
+- Because the additive migration changed, reran
+  `INTEGRATION_BASE_SHA=ba06bdc6... make test-migration-compatibility` against
+  temporary PostgreSQL. It passed for fresh install and prior-release upgrade;
+  provider quota schema/fail-closed data are unchanged, recurring-cost schema
+  including restrictive revision FKs is equivalent, and old-app `/health`
+  returns `200`.
+- The exact green CI receipt remains run `38943410344` on base `ba06bdc6`, not
+  this dirty candidate. It does not clear the full seeded-browser red. No
+  provider HTTP/quota, paid/trial activation, full local profile, staging or
+  sibling edit, deployment, or retained-data cleanup occurred.
+
+## 2026-10-16 18:35Z — exact base CI receipt
+
+- Coordinator confirms exact Actions run `38943410344` is terminal green for
+  synchronized base `ba06bdc6b525c8f007fd6917bd3df2603aa8f093`: Backend,
+  Frontend Unit, Branch-declared, and Playwright E2E succeeded. E2E was
+  `151 passed / 109 skipped`, with no retries, flakes, or failures; Exhaustive
+  was skipped by branch policy.
+- Recorded this source-qualified result in the append-only validation journal
+  and superseding review packet. It validates only committed base `ba06bdc6`,
+  not the dirty recurring-cost candidate; it also does not erase the red
+  seeded 260-case local Provider profile or accept the checkpoint.
+- Continue Provider-owned ICP2/ICP6 work. Keep provider HTTP/quota, paid,
+  trial, unreviewed, and unsafe operations held. Do not start the seeded
+  browser profile until the coordinator releases a synchronized green staging
+  SHA. No staging/sibling changes or acknowledgement-only commit.
+
+## 2026-10-16 18:34Z — recurring-cost race hardening and ICP6 contract refresh
+
+- Continued only Provider-owned ICP2 recurring-cost and ICP6 producer/consumer
+  contract work; no browser/full-stack profile, provider transport, or quota
+  spend was started.
+- The first PostgreSQL race-test attempt exposed a test-fixture mistake: the
+  two simultaneous first-budget configurations used ceilings of `$20` and
+  `$25`, so both `$12`/`$11` commitments were correctly within the winning
+  `$25` ceiling. The fixture now configures `$20` in both racing transactions.
+  The corrected isolated PostgreSQL test passes `1/1`, proving concurrent
+  initial budget revisions, only one of `$12`/`$11` admitted under `$20`, and
+  persisted aggregate/commitment/revision visibility from a fresh session.
+- Budget configuration and commitment admission now share one
+  transaction-scoped PostgreSQL advisory lock. Account environments normalize
+  to lowercase before uniqueness lookup, so case-only variants cannot create a
+  second commitment; the unit regression verifies same-account deduplication.
+- Updated the ETF-facing ICP6 producer contract in `plan.yaml`: the actual
+  admin endpoints and service callables, decision/status fields, typed denial
+  behavior, exact success/unavailable tests, and downstream ownership are
+  listed. ETF may wire only after green Provider staging; it owns adapter and
+  request/page/retry quota settlement and must not create a parallel ledger.
+  TC2000 and Strategy Lab consumer reconciliation remain their owners' later
+  work. No sibling tree was inspected or edited.
+- Focused unit/admin/migration tests pass `21/21`; Ruff check and format check
+  pass for all changed Python files; `git diff --check` passes; all `34`
+  workstream records validate. Migration compatibility evidence remains the
+  earlier same-migration dirty-candidate run against base `ba06bdc6`; this turn
+  did not change the migration or migration harness.
+- Current exact feature source is still dirty on synchronized base `ba06bdc6`;
+  this candidate has no hosted CI. Existing `38943410344` validates only the
+  base. Full local profile remains held because assigned Provider/TC stacks are
+  active and the coordinator has not released a synchronized staging repair.
+  The historical full browser result remains red and TC-owned. No budget was
+  configured, no subscription or provider activated, and no provider HTTP,
+  quota spend, data reset, sibling/staging mutation, deployment, or cleanup
+  occurred.
+
+## 2026-10-16 18:26Z — shared recurring-cost admission and database evidence
+
+- Implemented Provider-owned durable subscription-cost budget, account/env
+  commitment, and append-only budget/commitment revision models; exact
+  month/year normalization; known trial post-price accounting; same-account
+  cross-key deduplication; and fail-closed unknown-plan/price/interval,
+  stale-active, mixed-currency, and over-ceiling behavior. Added admin-only
+  status, explicit budget configuration, and commitment-admission endpoints.
+  The callable and API explicitly keep paid-activation authority false.
+- The cost budget is not automatically seeded: until an operator explicitly
+  configures a reviewed ceiling/currency/evidence, status is
+  `budget_not_configured` and admission denies. No rate or FX conversion is
+  inferred. This is Provider full-roadmap work, not a requirement to pass the
+  verified-free-only integration checkpoint.
+- Focused admin/service/migration tests pass `21/21`; the exact new PostgreSQL
+  concurrency plus separate-session durability test passes `1/1` (12s). The
+  full migration-compatibility command passed against prior source `ba06bdc6`:
+  quota schema/fail-closed data preserved, all new cost schema fields and
+  constraints/indexes equal across fresh install and existing-database upgrade,
+  and previous-app health returned 200. Added schema-aware fixture behavior to
+  the migration gate because it had tried to insert the old generic 2/60/15/30
+  values after the selected base had already applied `ff5`; kept every
+  fail-closed assertion. An initial over-strict schema comparison also exposed
+  per-database generated NOT NULL names; the gate now compares column nullability
+  and all stable constraints/indexes without those generated names.
+- This work is dirty and based on synchronized `ba06bdc6b525c8f007fd6917bd3df2603aa8f093`;
+  exact candidate CI has not started. Existing Actions run `38943410344` is for
+  `ba06bdc6` only, with E2E still running at last poll, so it cannot validate
+  this candidate. The Provider full browser selection remains red at `1236a367`
+  and TC owns F9e/F8s. Browser rerun remains held pending synchronized staging
+  repair. No provider HTTP/quota spend, staging/sibling edit, paid/trial
+  activation, deployment, or retained-data reset/cleanup occurred.
+
+## 2026-10-16 17:55Z — pushed ICP6 contract-test candidate
+
+- Commit ba06bdc6b525c8f007fd6917bd3df2603aa8f093 is pushed and local
+  HEAD/origin are synchronized. It tightens exact producer payload assertions;
+  focused router tests pass 13/13, Ruff and diff checks pass, and branch
+  validation passes 34 records.
+- Exact push CI run 38943410344 has started and is in progress; do not call
+  this commit CI-green until its required jobs are terminal.
+- Repair run 38940886651 remains in progress at E2E and staging remains
+  0145b65992b8692ce69f82f804f83f6c8e551fea. Provider full browser validation
+  stays held until the coordinator's synchronized repair release.
+
+## 2026-10-16 18:01Z — repair run terminal, staging still unchanged
+
+- Repair run 38940886651 is now terminal-success for Backend, Frontend Unit,
+  Branch-declared, and E2E; Exhaustive was skipped normally. Staging is still
+  0145b65992b8692ce69f82f804f83f6c8e551fea, so do not start the Provider
+  browser profile until the coordinator releases the synchronized baseline.
+- Provider candidate ba06bdc6 CI 38943410344 remains in progress at Backend;
+  Frontend Unit succeeded. Preserve it as pending exact-source validation.
+
 ## 2026-10-16 17:52Z — exact consumer response contracts strengthened
 
 - Provider-owned ICP6 tests now assert complete serialized payloads for
@@ -26491,6 +26638,39 @@ exact candidate receipts remain separate gates.
   `make branch-validate` passed again; all 34 workstream records validated.
   The validator still reports its non-fatal owner-private quota-directory and
   optional `sed`-argument sandbox warnings.
+
+## 2026-10-16 18:19Z — shared recurring-cost admission foundation
+
+- Implemented Provider-owned shared recurring-cost persistence and governance:
+  explicit single-currency monthly ceiling; one plan per provider billing
+  account/environment rather than API key or capability; hashed opaque account
+  scope; active/proposed/trial/expired/cancelled transitions; known post-trial
+  monthly cost; conservative upward-rounded month/year normalization; fail-closed
+  unknown prices/plans, unsupported intervals, stale active terms and mixed
+  currency; and append-only budget/commitment evidence revisions. The budget
+  and commitment callables return an explicit decision and never authorize paid
+  provider activation.
+- Added admin-only `GET /api/v1/market-data/recurring-costs`, `PUT
+  /api/v1/market-data/recurring-costs/budget`, and `POST
+  /api/v1/market-data/recurring-costs/commitments` routes. Budget must be
+  configured with reviewed evidence before admission is possible. The API does
+  not activate providers or alter free-only/paid-routing switches.
+- Added an additive migration and SQLite migration smoke test, unit coverage for
+  account deduplication, distinct-account aggregation, annual normalization,
+  budget and commitment revisions, ceiling denial, trial post-price, unknown
+  plan/price/interval, currency mismatch, state transitions, and the admin
+  success/denial/authentication contract. The focused combined suite passed
+  `21/21`; Ruff and `git diff --check` pass. A PostgreSQL concurrent near-limit
+  integration test is added but has not yet run locally; exact-source CI is
+  required for it. Full fresh-install/existing-database migration equivalence
+  remains required.
+- This changes `AC-RECURRING-COST` from `not_started` to `partially_delivered`;
+  its complete roadmap acceptance remains open. No budget or provider price was
+  seeded from an assumption, no currency conversion was invented, and no paid
+  provider was activated. ICP6's existing coverage/OHLCV producer contract
+  tests remain unchanged; downstream ETF/TC/Strategy wiring is still theirs
+  after Provider staging.
+- Current synchronized base before these edits is `ba06bdc6b525c8f007fd6917bd3df2603aa8f093`; the local candidate is dirty and not yet committed/pushed. Its exact Actions run `38943410344` had Backend green, Frontend Unit green, and E2E still running at last check; it does not validate these new changes. The historical full Provider browser matrix remains red and held for TC-owned fixes plus coordinator staging release. No Provider browser rerun, vendor request, quota spend, staging/sibling edit, deployment, data reset or cleanup occurred.
 
 ## 2026-10-16 17:15Z — exact-source routing/quota checks and stack boundary
 
