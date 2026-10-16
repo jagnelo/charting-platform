@@ -30,6 +30,18 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
+  As of 2026-10-16T06:16Z, TC remains TCP1-only accepted. The coordinator's
+  05:24 visual slot is CLOSED after raw-Noble run33850 stopped incomplete at
+  95/104 observed cases; it had no read-only DejaVu mount and is not visual
+  acceptance. Do not change fonts mid-matrix or rerun without a fresh sufficiently
+  long slot. The TC-owned Favorites slice now implements per-user persistence,
+  chart star, Quick List and Shift+V behavior, but needs exact-source backend/
+  browser validation; local backend TestClient hung before reaching its route.
+  Provider/ETF have not reached green product staging in the latest root receipt
+  (06:02Z), so do not reconcile/import their consumer work yet. Full normalized
+  visuals, upstream consumers, combined profile, exact CI, and complete V25
+  parity remain open.
+historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
   20261016.md: ten immediate PageDown keys leave scrollTop=93/max=573; after
@@ -518,6 +530,7 @@ owned_paths:
   - frontend/src/components/alerts/AlertForm.vue
   - frontend/src/components/strategy/
   - frontend/src/stores/dashboardLinks.ts
+  - frontend/src/stores/favorites.ts
   - frontend/src/stores/panelLinks.ts
   - frontend/src/stores/recentInstruments.ts
   - frontend/src/stores/workspace.ts
@@ -531,6 +544,11 @@ owned_paths:
   - frontend/tests/e2e/workstation_performance.spec.ts
   - frontend/playwright.config.ts
   - backend/app/routers/analysis.py
+  - backend/alembic/versions/a7c91e03d54b_add_user_favorites.py
+  - backend/app/models/favorite_instrument.py
+  - backend/app/routers/favorites.py
+  - backend/app/schemas/favorites.py
+  - backend/tests/unit/routers/test_favorites_router.py
   - backend/app/routers/strategy_lab.py
   - backend/app/routers/research.py
   - backend/app/schemas/analysis.py
@@ -603,6 +621,10 @@ excluded_paths:
   - docs/data-providers.md
   - docs/project-todos.md
 shared_path_exceptions:
+  - path: backend/app/main.py
+    reason: Register the TC-owned authenticated Favorites router only; do not add provider, ETF, or generic service behavior.
+  - path: backend/app/models/__init__.py
+    reason: Register the TC-owned FavoriteInstrument model only; preserve upstream model ownership and reconcile this shared import path after staging.
   - path: backend/app/routers/analysis.py
     owners: [TC, market-data-provider-platform, etf-holdings-constituents]
     reason: TC analysis/readiness aggregation only; keep provider and ETF authority upstream.
@@ -951,6 +973,34 @@ current_checkpoint_status: >-
   workstream documentation; the last terminal application-source evidence
   remains73fba9d4/run38852207578. It does not change TCP1-only completion or
   the normalized visual/upstream staging blockers above.
+  Superseding checkpoint (2026-10-16T06:16Z): latest coordinator receipt
+  updated_at06:02:51Z confirms no Provider/ETF product checkpoint has been
+  released; Provider 0111cc6 is reported in its full backend profile and ETF
+  8eccbdf is awaiting Provider. TC's consumed 05:24 visual slot is closed:
+  raw-Noble Playwright 1.62.1 run33850 selected the full104 cases but ended with
+  only95 observed and no accepted terminal matrix, without the read-only DejaVu
+  font mount. Preserve this as partial diagnostic evidence; no mid-run font
+  change, baseline refresh, or new visual launch occurred.
+
+  The dirty TC-owned Favorites slice is now explicitly recorded in this plan's
+  narrow owned/shared path rules: isolated per-user favorite persistence/API,
+  distinct My Favorites Quick List, chart star, and Shift+V selected/active-row
+  additions. Migration a7c91e03d54b is the local Alembic head. Backend Ruff,
+  py_compile and migration-head checks pass; frontend focused tests pass92/92
+  and the full serial suite passes133 files/1254 tests. Type-check and the
+  production build pass, and the new authenticated F8v E2E test collects.
+  Local route integration remains unproven: TestClient hangs at an
+  existing unauthenticated WatchLists call before reaching Favorites. The
+  latest exact published source run38858169312 targets da70fa5 (not this dirty
+  source): Frontend Unit, Branch-declared, and Backend jobs passed, E2E was
+  still in progress at 06:16Z, and Exhaustive was skipped. All current
+  Favorites changes still need exact-source CI and backend/browser execution.
+
+  TCP1 remains narrowly accepted only. TCP2 full normalized104 visuals and
+  functional validation, TCP3 Provider/ETF green staging consumers, TCP4
+  combined profile, TCP5 clean review checkpoint, and official V25 parity
+  remain open. No staging writes, sibling imports, runtime/data/account cleanup,
+  screenshot-oracle/tolerance edits, or deployment/trial actions occurred.
 historical_implementation_records:
   - "Added TC2000's documented HLC Bars style to the frontend chart contract and settings, drawing the existing OHLCV high-low range with a close tick and omitting the open tick. Ctrl+B now cycles HLC, OHLC, Candles, Line in that order. The focused renderer/workstation tests passed 45/45; the full serial frontend suite passed 130 files / 1,225 tests; vue-tsc/Vite build passed; authenticated F8k-direct-chart-style passed 1/1 across all four styles. The protected Help screenshot test failed against its unchanged baseline with 50,941 pixels / 3.0% difference (0.5% threshold); no visual baseline/policy was changed."
   - "Authenticated follow-up browser evidence supersedes the earlier unauthenticated CLI attempt: a unique account in the assigned TC stack was used to activate the chart, press `/`, and confirm the plot library reopened with its `Filter indicators` search focused. No account was created outside the branch stack; no other worktree changed. The account remains a test artifact in the assigned stack. The Help visual oracle was not rerun after this shortcut, and its protected baseline remains unchanged."

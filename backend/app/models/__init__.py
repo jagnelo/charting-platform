@@ -18,6 +18,7 @@ from app.models.etf_holdings import (
     ETFProfile,
 )
 from app.models.exchange import Exchange
+from app.models.favorite_instrument import FavoriteInstrument
 from app.models.indicator_alert import IndicatorAlert, IndicatorAlertCondition
 from app.models.indicator_cache import IndicatorCache
 from app.models.indicator_preset import IndicatorPreset
@@ -112,6 +113,7 @@ __all__ = [
     "AdjustmentFactorObservation",
     "User",
     "Exchange",
+    "FavoriteInstrument",
     "AssetClass",
     "InstrumentType",
     "Basket",

@@ -815,6 +815,15 @@ export interface WatchlistItem {
   left_screener_at?: string | null
 }
 
+export interface FavoriteInstrument {
+  id: number
+  instrument_id: number
+  position: number
+  added_at: string
+  symbol: string
+  name: string
+}
+
 export interface Watchlist {
   id: number
   name: string

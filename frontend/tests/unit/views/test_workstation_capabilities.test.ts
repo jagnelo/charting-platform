@@ -16,4 +16,13 @@ describe('primary workstation capability boundary', () => {
       expect(registered.has(supported)).toBe(true)
     }
   })
+
+  it('exposes My Favorites as a distinct fixed Quick List, not a personal watchlist alias', () => {
+    const favorites = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.title === 'My Favorites')
+    expect(favorites).toMatchObject({
+      tool_type: 'watchlist',
+      instance_prefix: 'favorites',
+      configuration: { personal: true, favorites: true },
+    })
+  })
 })

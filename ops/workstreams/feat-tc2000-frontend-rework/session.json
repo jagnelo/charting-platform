@@ -52,10 +52,29 @@
     "visuals": "Workstream-only commit; no hosted visual execution observed. Prior completed application-source evidence remains run38852207578 for 73fba9d4; local run33850 was partial raw-Noble evidence and not acceptance."
   },
   "dirty_paths": [
+    "backend/app/main.py",
+    "backend/app/models/__init__.py",
+    "docs/tc2000-parity.md",
+    "docs/tc2000-roadmap.md",
+    "frontend/src/components/workstation/ToolWindow.vue",
+    "frontend/src/components/workstation/VirtualWatchlistTool.vue",
+    "frontend/src/components/workstation/WorkstationToolContent.vue",
+    "frontend/src/stores/workspace.ts",
+    "frontend/src/types/index.ts",
+    "frontend/src/views/WorkstationView.vue",
+    "frontend/tests/e2e/flows.spec.ts",
+    "frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl",
+    "backend/alembic/versions/a7c91e03d54b_add_user_favorites.py",
+    "backend/app/models/favorite_instrument.py",
+    "backend/app/routers/favorites.py",
+    "backend/app/schemas/favorites.py",
+    "backend/tests/unit/routers/test_favorites_router.py",
+    "frontend/src/stores/favorites.ts",
+    "frontend/tests/unit/stores/test_favorites_store.test.ts"
   ],
   "docker": {
     "accounting_complete": true,
@@ -70,7 +89,7 @@
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
     ],
-    "known_bytes": 733063354,
+    "known_bytes": 733163504,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
@@ -81,7 +100,7 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 729995450,
+    "volume_bytes": 730095600,
     "volume_count": 4,
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
@@ -129,7 +148,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "614ea57252c165dfcb46b526cd8deaf59107c884",
+  "head": "da70fa5322f077ed38efc9741a71c3b00240074b",
   "implementation_sha": "d0add5588612339203073b21015028ad4ffeb106",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -139,7 +158,7 @@
   },
   "interrupted": false,
   "last_checkpoint": "2026-10-16T02:01:21+00:00",
-  "last_human_progress_update": "2026-10-16T05:53:01.547855+00:00",
+  "last_human_progress_update": "2026-10-16T06:16:41.284320+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
     "conclusion": "success",
@@ -158,7 +177,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "next_action": "Recheck the current coordinator receipt and exact branch Actions state before further gated work. Run the complete normalized 104-case visual matrix only under a newly granted bounded slot with the read-only DejaVu font mount and sufficient walltime; do not infer results from partial raw-Noble run33850. After exact green Provider and ETF staging releases, merge staging into this own clean unfrozen branch and reconcile actual consumer contracts. Complete the full local/combined functional profile and exact-source CI, then prepare ready_for_human_review while preserving the full V25 roadmap and all official-parity debt.",
-  "plan_hash": "421fe1ab8a0018f5e09d9fae2f7ebe3d7a6c8d0d8b3de5a72c38809fa08c736d",
+  "plan_hash": "4177d8e77eeb9dbd31aff0e475315f96c9f1eb4df2a7e4ba2a91a6c60e56cd46",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -172,11 +191,11 @@
     "completed": [
       "TCP1"
     ],
-    "current_blocker": "Exact-head Actions 38857743979 for 614ea572 is still running backend tests with E2E not yet provisioned. The local raw-Noble run33850 is partial only; a normalized full104 visual run requires a new bounded coordinator slot. The latest coordinator receipt still shows Provider checkpoint corrections and ETF bridge pending.",
-    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_FULL_NORMALIZED_VISUAL_AND_LOCAL_VALIDATION_OPEN;TCP3_PROVIDER_ETF_STAGING_CONSUMERS_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
-    "next_action": "Audit 38857743979 only when terminal; meanwhile continue evidence-backed TC-owned preparation without another heavy browser run. Re-read the coordinator receipt before any normalized visual slot or upstream reconciliation. Merge Provider and ETF only from exact green staging releases, then complete all remaining TCP2-TCP5 gates and preserve the full V25 roadmap.",
+    "current_blocker": "Visual slot 2026-10-16T0524 is closed after raw-Noble run33850 observed 95/104 without DejaVu; this is partial, not acceptance. Dirty Favorites route/UI slice has static and focused frontend proof but no exact-source CI or backend/browser run. Latest coordinator receipt 06:02Z has no green Provider/ETF product staging release.",
+    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_FAVORITES_SOURCE_AND_FULL_NORMALIZED_VISUAL_VALIDATION_OPEN;TCP3_PROVIDER_ETF_STAGING_CONSUMERS_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
+    "next_action": "Complete source review and exact-source checks for Favorites, audit the same-source Actions run38858169312 to terminal, then publish a coherent candidate for CI. Request/use a new coordinator slot only for the full normalized 104 visual matrix with read-only DejaVu and sufficient walltime. Reconcile Provider/ETF consumers only from exact green staging releases; preserve full V25 roadmap.",
     "total": 5,
-    "updated_at": "2026-10-16T05:53:01.547835+00:00"
+    "updated_at": "2026-10-16T06:16:41.284301+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
@@ -192,7 +211,7 @@
     "remote_tracking_sha": "614ea57252c165dfcb46b526cd8deaf59107c884",
     "status": "pushed"
   },
-  "remote": "614ea57252c165dfcb46b526cd8deaf59107c884",
+  "remote": "da70fa5322f077ed38efc9741a71c3b00240074b",
   "remote_sha": "614ea57252c165dfcb46b526cd8deaf59107c884",
   "remote_synchronized": true,
   "retained_docker_resources": [],

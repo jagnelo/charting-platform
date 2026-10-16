@@ -44,6 +44,7 @@
               <div><dt>Backspace</dt><dd>Previous symbol in viewed history</dd></div>
               <div><dt>Shift+L</dt><dd>Toggle maximize for the selected window</dd></div>
               <div><dt>Shift+F</dt><dd>Flag or unflag selected WatchList symbols</dd></div>
+              <div><dt>Shift+V</dt><dd>Add selected WatchList symbols to My Favorites</dd></div>
               <div><dt>Ctrl+M</dt><dd>Choose an explicit personal WatchList membership action for the selected symbols</dd></div>
               <div><dt>Shift+drag divider</dt><dd>Resize panes above the divider evenly</dd></div>
               <div><dt>Ctrl+drag divider</dt><dd>Resize panes below the divider evenly</dd></div>

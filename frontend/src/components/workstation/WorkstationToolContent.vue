@@ -1,5 +1,5 @@
 <template>
-  <ToolWindow :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="activeSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="isActiveToolWindow" @pointerdown.capture="emit('activate')" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
+  <ToolWindow :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="activeSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="isActiveToolWindow" :favorite-available="tool.tool_type === 'chart' && favoriteStore.loaded && chartStore.instrument?.id != null" :favorite-active="favoriteStore.isFavorite(chartStore.instrument?.id)" @toggle-favorite="toggleChartFavorite" @pointerdown.capture="emit('activate')" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
     <div v-if="tool.instance_key === 'benchmark-list'" class="benchmark-surface">
       <div class="benchmark-surface__family-controls" aria-label="Benchmark family selector">
         <label>Family
@@ -119,8 +119,12 @@
       @plot-drop="addPlotColumn"
       @condition-drop="addConditionColumn"
     />
-    <section v-else-if="tool.tool_type === 'watchlist' && tool.configuration.personal === true" class="personal-watchlist-tool" role="region" aria-label="Personal watchlists" :aria-busy="((watchlistStore.loading && !selectedPersonalWatchlist && !flaggedItemsSelected && !selectedCombo) || personalListBusy || personalWatchlistBusy) ? 'true' : 'false'">
-      <div class="personal-watchlist-tool__controls">
+    <section v-else-if="tool.tool_type === 'watchlist' && (tool.configuration.personal === true || isFavoritesTool)" class="personal-watchlist-tool" role="region" :aria-label="isFavoritesTool ? 'My Favorites Quick List' : 'Personal watchlists'" :aria-busy="(isFavoritesTool ? favoriteStore.loading : ((watchlistStore.loading && !selectedPersonalWatchlist && !flaggedItemsSelected && !selectedCombo) || personalListBusy || personalWatchlistBusy)) ? 'true' : 'false'">
+      <div v-if="isFavoritesTool" class="personal-watchlist-tool__controls">
+        <span>{{ favoriteStore.favorites.length }} symbols · My Favorites</span>
+        <span v-if="favoriteStore.error" class="personal-watchlist-tool__error" role="alert">{{ favoriteStore.error }}</span>
+      </div>
+      <div v-else class="personal-watchlist-tool__controls">
         <label>WatchList
             <select :value="flaggedItemsSelected ? 'flagged' : selectedComboKey ? `combo:${selectedComboKey}` : effectiveSelectedPersonalWatchlistId == null ? '' : String(effectiveSelectedPersonalWatchlistId)" aria-label="Personal watchlist" @change="selectPersonalWatchlist(($event.target as HTMLSelectElement).value)">
             <option value="flagged">Flagged Items</option>
@@ -142,6 +146,7 @@
         <span v-else-if="watchlistStore.loading">Loading watchlists…</span>
         <span v-else>No personal watchlists available.</span>
         <span v-if="personalWatchlistError" class="personal-watchlist-tool__error">{{ personalWatchlistError }}</span>
+        <span v-if="favoriteStore.error" class="personal-watchlist-tool__error" role="alert">{{ favoriteStore.error }}</span>
         <span v-if="watchlistStore.loadError" class="personal-watchlist-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ watchlistStore.loadError }}</span>
         <section class="combo-editor" aria-label="Combo list editor">
           <header>Combo list</header>
@@ -167,10 +172,10 @@
         </section>
       </div>
       <VirtualWatchlistTool
-        v-if="selectedPersonalWatchlist || flaggedItemsSelected || selectedCombo"
+        v-if="isFavoritesTool || selectedPersonalWatchlist || flaggedItemsSelected || selectedCombo"
         :timeframe="activeTimeframe"
-        :label="flaggedItemsSelected ? 'Flagged Items' : selectedCombo?.name ?? selectedPersonalWatchlist?.name ?? 'WatchList'"
-        :rows="flaggedItemsSelected ? flaggedWatchlistRows : selectedCombo ? comboWatchlistRows : personalWatchlistRows"
+        :label="isFavoritesTool ? 'My Favorites' : flaggedItemsSelected ? 'Flagged Items' : selectedCombo?.name ?? selectedPersonalWatchlist?.name ?? 'WatchList'"
+        :rows="isFavoritesTool ? favoriteRows : flaggedItemsSelected ? flaggedWatchlistRows : selectedCombo ? comboWatchlistRows : personalWatchlistRows"
         :selected="activeSymbol"
         :columns="personalWatchlistColumns"
         :visible-column-keys="configuredColumnKeys"
@@ -188,11 +193,12 @@
         :drop-error="conditionDropError"
         :python-columns="configuredPythonColumns"
         :python-condition="configuredPythonCondition"
-        :membership-targets="personalWatchlistTargets"
-        :source-watchlist-id="selectedPersonalWatchlist?.id"
-        :market-map-source-id="personalMarketMapSourceId"
-        :reorderable="Boolean(selectedPersonalWatchlist && !selectedPersonalWatchlist.is_locked && !selectedPersonalWatchlist.is_managed)"
-        :allow-remove="Boolean(selectedPersonalWatchlist && !selectedPersonalWatchlist.is_locked && !selectedPersonalWatchlist.is_managed)"
+        :membership-targets="isFavoritesTool ? [] : personalWatchlistTargets"
+        :source-watchlist-id="isFavoritesTool ? undefined : selectedPersonalWatchlist?.id"
+        :market-map-source-id="isFavoritesTool ? favoriteMarketMapSourceId : personalMarketMapSourceId"
+        :reorderable="!isFavoritesTool && Boolean(selectedPersonalWatchlist && !selectedPersonalWatchlist.is_locked && !selectedPersonalWatchlist.is_managed)"
+        :allow-remove="isFavoritesTool || Boolean(selectedPersonalWatchlist && !selectedPersonalWatchlist.is_locked && !selectedPersonalWatchlist.is_managed)"
+        :favorite-list="isFavoritesTool"
         @select="selectSymbol($event.symbol, $event.instrumentId)"
         @reorder="selectedPersonalWatchlist && emit('reorder', selectedPersonalWatchlist.id, $event)"
         @compare="emit('compare', $event)"
@@ -922,6 +928,7 @@ import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore } from '@/stores/alerts'
 import { useWorkspaceStore, type BenchmarkFamilyCoverageState, type BenchmarkFamilyReadinessState, type GenericBreadthHistoryState, type GenericBreadthState, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
 import { useWatchlistStore } from '@/stores/watchlist'
+import { useFavoritesStore } from '@/stores/favorites'
 import type { Instrument, Watchlist, WatchlistSource } from '@/types'
 import ToolWindow from './ToolWindow.vue'
 import VirtualWatchlistTool, { type WatchlistColumn, type WatchlistRow } from './VirtualWatchlistTool.vue'
@@ -1081,6 +1088,12 @@ const isActiveToolWindow = computed(() => {
   return props.activeWindowKey == null || props.tool.instance_key === props.activeWindowKey
 })
 const watchlistStore = useWatchlistStore()
+const favoriteStore = useFavoritesStore()
+const isFavoritesTool = computed(() => props.tool.configuration.favorites === true)
+async function toggleChartFavorite() {
+  const instrumentId = chartStore.instrument?.id
+  if (props.tool.tool_type === 'chart' && instrumentId != null) await favoriteStore.toggle(instrumentId)
+}
 const queryClient = useQueryClient()
 const configuredWatchlistId = props.tool.configuration.watchlist_id
 const flaggedItemsSelected = ref(configuredWatchlistId === 'flagged')
@@ -1120,6 +1133,17 @@ const personalWatchlistRows = computed(() => (selectedPersonalWatchlist.value?.i
     change: watchlistStore.priceMap[item.symbol ?? '']?.pct ?? null,
   },
 })))
+const favoriteRows = computed(() => favoriteStore.favorites.map(item => ({
+  itemId: item.id,
+  instrumentId: item.instrument_id,
+  symbol: item.symbol,
+  name: item.name,
+  values: {
+    last: watchlistStore.priceMap[item.symbol]?.close ?? null,
+    change: watchlistStore.priceMap[item.symbol]?.pct ?? null,
+  },
+})))
+const favoriteMarketMapSourceId = computed(() => explicitMarketMapSourceId(favoriteRows.value))
 const flaggedWatchlistRows = computed(() => buildFlaggedWatchlistRows(personalWatchlists.value, watchlistStore.priceMap))
 const comboWatchlistRows = computed(() => selectedCombo.value
   ? buildComboWatchlistRows(watchlistStore.watchlists, selectedCombo.value, watchlistStore.priceMap)
@@ -1455,7 +1479,13 @@ async function handleMembershipAction(action: 'copy-to-watchlist' | 'move-to-wat
   }
 }
 
-function handlePersonalRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: { symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number; flagged?: boolean }, targetWatchlistId?: number, selectedRows?: Array<{ symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number; flagged?: boolean }>) {
+function handlePersonalRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'favorite' | 'remove', row: { symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number; flagged?: boolean }, targetWatchlistId?: number, selectedRows?: Array<{ symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number; flagged?: boolean }>) {
+  if (action === 'favorite') {
+    for (const item of selectedRows?.length ? selectedRows : [row]) {
+      if (item.instrumentId != null) void favoriteStore.add(item.instrumentId)
+    }
+    return
+  }
   if (action === 'flag' && row.itemId != null) {
     const targets = selectedRows?.length ? selectedRows : [row]
     if (targets.some(item => item.itemId == null || (item.sourceWatchlistId ?? selectedPersonalWatchlist.value?.id) == null)) return
@@ -1472,6 +1502,10 @@ function handlePersonalRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' 
     void handleMembershipAction(action, row, targetWatchlistId, selectedRows?.length ? selectedRows : [row])
     return
   }
+  if (action === 'remove' && isFavoritesTool.value && row.instrumentId != null) {
+    void favoriteStore.remove(row.instrumentId)
+    return
+  }
   if (action === 'remove' && selectedPersonalWatchlist.value && row.itemId != null) {
     void watchlistStore.removeItem(selectedPersonalWatchlist.value.id, row.itemId)
     return
@@ -1481,6 +1515,9 @@ function handlePersonalRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' 
 
 onMounted(async () => {
   void loadBreadthPythonSeriesAssets()
+  if ((props.tool.tool_type === 'chart' || isFavoritesTool.value) && !favoriteStore.loaded && !favoriteStore.loading) {
+    void favoriteStore.load()
+  }
   if ((props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth' || props.tool.tool_type === 'study_lab') && !watchlistStore.watchlistSources.length && !watchlistStore.watchlistSourcesLoading) {
     await watchlistStore.loadWatchlistSources()
     if (disposed) return
@@ -1489,7 +1526,16 @@ onMounted(async () => {
     await watchlistStore.loadWatchlists()
     if (disposed) return
   }
-  if (props.tool.tool_type !== 'watchlist' || props.tool.configuration.personal !== true) return
+  if (props.tool.tool_type !== 'watchlist' || (props.tool.configuration.personal !== true && !isFavoritesTool.value)) return
+  if (isFavoritesTool.value) {
+    if (!favoriteStore.loaded) await favoriteStore.load()
+    if (disposed) return
+    const symbols = favoriteRows.value.map(row => row.symbol)
+    if (symbols.length) await watchlistStore.fetchPrices(symbols, false, true)
+    if (disposed) return
+    void loadIndicatorColumns(favoriteRows.value)
+    return
+  }
   await loadComboLists()
   if (disposed) return
   if (selectedPersonalWatchlistId.value == null && !flaggedItemsSelected.value) {
@@ -1560,6 +1606,11 @@ watch(() => flaggedWatchlistRows.value.map(row => row.symbol).join(','), value =
   if (symbols.length) void watchlistStore.fetchPrices(symbols, false, true)
 })
 watch(() => comboWatchlistRows.value.map(row => row.symbol).join(','), value => {
+  const symbols = (value ?? '').split(',').filter(Boolean)
+  if (symbols.length) void watchlistStore.fetchPrices(symbols, false, true)
+})
+watch(() => favoriteRows.value.map(row => row.symbol).join(','), value => {
+  if (!isFavoritesTool.value) return
   const symbols = (value ?? '').split(',').filter(Boolean)
   if (symbols.length) void watchlistStore.fetchPrices(symbols, false, true)
 })
@@ -1933,8 +1984,14 @@ function selectProxy(symbol: string, instrumentId?: number | null) {
   emit('selectProxy', symbol, instrumentId)
 }
 
-function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: { symbol: string; instrumentId: number | null; flagged?: boolean }, targetWatchlistId?: number) {
+function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'favorite' | 'remove', row: { symbol: string; instrumentId: number | null; flagged?: boolean }, targetWatchlistId?: number, selectedRows?: Array<{ symbol: string; instrumentId: number | null }>) {
   if (action === 'flag') return
+  if (action === 'favorite') {
+    for (const item of selectedRows?.length ? selectedRows : [row]) {
+      if (item.instrumentId != null) void favoriteStore.add(item.instrumentId)
+    }
+    return
+  }
   if (action === 'copy-to-watchlist' || action === 'move-to-watchlist') {
     void handleMembershipAction(action, row, targetWatchlistId)
     return

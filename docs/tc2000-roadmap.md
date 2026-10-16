@@ -5,6 +5,20 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-06
 
+## 2026-10-16 — My Favorites source slice (validation pending)
+
+TC now has a separate per-user Favorites persistence model and API, a dedicated
+My Favorites Quick List entry, chart-star add/remove, and Shift+V copying the
+active or selected canonical WatchList symbols. Favorites remain distinct from
+arbitrary WatchLists and Flagged Items. Focused frontend store/row tests pass
+89/89 and Vue type-check passes; migration ancestry and lint pass. Exact-source
+backend integration, full application/browser behavior and the authorized
+full visual matrix remain open. The Help content now includes Shift+V, so all
+four Help captures need reviewed refresh under a newly granted full visual
+slot; no baseline or tolerance has been altered. This source slice does not
+close Favorites parity until persisted cross-session behavior and ordinary
+chart/list interactions pass.
+
 ## 2026-10-06 — Ctrl+M opens explicit WatchList membership actions
 
 Ctrl+M now opens the existing row-action membership picker for the active

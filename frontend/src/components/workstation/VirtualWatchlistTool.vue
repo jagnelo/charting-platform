@@ -105,7 +105,7 @@
       <button type="button" role="menuitem" tabindex="-1" @click="runContextAction('alert')">Open alerts</button>
       <button type="button" role="menuitem" tabindex="-1" @click="runContextAction('copy')">Copy symbol</button>
       <button v-if="contextMarketMapSourceId" type="button" role="menuitem" tabindex="-1" @click="openContextMarketMap">Open constituents in Market Map</button>
-      <button v-if="contextMenu.row.itemId != null" type="button" role="menuitem" tabindex="-1" @click="runContextAction('flag')">{{ contextMenu.row.flagged ? 'Unflag' : 'Flag' }}</button>
+      <button v-if="contextMenu.row.itemId != null && !favoriteList" type="button" role="menuitem" tabindex="-1" @click="runContextAction('flag')">{{ contextMenu.row.flagged ? 'Unflag' : 'Flag' }}</button>
       <button
         v-if="relatedLists.length"
         type="button"
@@ -222,6 +222,7 @@ const props = withDefaults(defineProps<{
   pythonCondition?: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off'; timeframe?: string } | null
   reorderable?: boolean
   allowRemove?: boolean
+  favoriteList?: boolean
   sourceWatchlistId?: number | null
   /** Canonical source consumed by Market Map; may be a locked system source. */
   marketMapSourceId?: string | null
@@ -256,6 +257,7 @@ const props = withDefaults(defineProps<{
   pythonCondition: null,
   reorderable: false,
   allowRemove: false,
+  favoriteList: false,
   sourceWatchlistId: null,
   marketMapSourceId: null,
   marketMapSourceForRow: undefined,
@@ -263,7 +265,7 @@ const props = withDefaults(defineProps<{
   columnOverrides: () => ({}),
 })
 const queryClient = useQueryClient()
-const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; 'market-map': [sourceId: string]; reorder: [itemIds: number[]]; 'plot-drop': [payload: ChartAnalysisDragPayload]; 'condition-drop': [payload: TechnicalConditionDragPayload]; 'row-action': [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: WatchlistRow, targetWatchlistId?: number, selectedRows?: WatchlistRow[]]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string; format?: 'percent' | 'number'; decimals?: number }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string; timeframe?: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off'; timeframe?: string } | null] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; 'market-map': [sourceId: string]; reorder: [itemIds: number[]]; 'plot-drop': [payload: ChartAnalysisDragPayload]; 'condition-drop': [payload: TechnicalConditionDragPayload]; 'row-action': [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'favorite' | 'remove', row: WatchlistRow, targetWatchlistId?: number, selectedRows?: WatchlistRow[]]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string; format?: 'percent' | 'number'; decimals?: number }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string; timeframe?: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off'; timeframe?: string } | null] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
 const conditionFilter = ref(props.conditionScreenerId == null ? '' : String(props.conditionScreenerId))
@@ -1675,6 +1677,20 @@ function toggleStackedColumn(key: string) {
 }
 
 function onKeydown(event: KeyboardEvent) {
+  const isFavoritesShortcut = event.key.toLowerCase() === 'v' && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey
+  if (isFavoritesShortcut) {
+    event.preventDefault()
+    const activeSymbol = keyboardActiveSymbol.value || props.selected
+    const activeRow = filteredRows.value.find(row => row.symbol === activeSymbol)
+    if (!activeRow) return
+    const rows = selectedSymbols.value.includes(activeRow.symbol)
+      ? filteredRows.value.filter(row => selectedSymbols.value.includes(row.symbol))
+      : [activeRow]
+    if (!rows.length || rows.some(row => row.instrumentId == null)) return
+    if (rows.length > 1) emit('row-action', 'favorite', activeRow, undefined, rows)
+    else emit('row-action', 'favorite', activeRow)
+    return
+  }
   const isMembershipShortcut = event.key.toLowerCase() === 'm' && event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey
   if (isMembershipShortcut) {
     event.preventDefault()

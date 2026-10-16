@@ -8,14 +8,14 @@ Rechecked the primary TC2000 references for the three open interactions:
 [Custom Date Sort](https://help.tc2000.com/m/69401/l/324107-how-to-use-custom-date-sort),
 and [Tag Columns](https://help.tc2000.com/m/125751/l/1874621-how-to-create-a-tag-column-in-a-watchlist).
 This supersedes the unresolved destination assumptions in the 2026-10-06 gap
-audit; it does not claim implementation.
+audit. The first TC-owned implementation slice is recorded below; runtime and
+full visual acceptance remain open.
 
 - `Shift+V` targets the fixed **My Favorites** Quick List, not an arbitrary
   personal WatchList. The reference describes adding/removing the chart's
   symbol and copying one or multiple selected WatchList symbols; its chart star
   adds and deselecting that star removes. This is distinct from `Shift+F`
   Flagged Items and must not be implemented by aliasing `WatchlistItem.flagged`.
-  The current app still lacks a dedicated persisted My Favorites collection.
 - `Shift+T` opens **Custom Date Sort**. Its range comes from a chart drag or a
   selected trendline, then the user chooses percent change, performance versus
   sub-industry, or performance versus industry, and sorts into a new window or
@@ -31,10 +31,27 @@ audit; it does not claim implementation.
   tag namespace.
 
 These references resolve product intent, not the implementation contract for
-Favorites persistence or Tag Column storage. Those remain TC-owned tasks. The
-Custom Date Sort consumer also depends on the staged provider history/coverage
-and classification contracts. No shortcut code, screenshot reference,
-threshold, mask, skip, or acceptance policy changed in this audit.
+Tag Column storage. That remains a TC-owned task. The Custom Date Sort consumer
+also depends on the staged provider history/coverage and classification
+contracts. No screenshot reference, threshold, mask, skip, or acceptance policy
+changed in this audit.
+
+## 2026-10-16 — My Favorites persistence and command path (validation pending)
+
+The current source adds a distinct per-user `favorite_instrument` collection,
+authenticated list/add/remove routes, and a fixed My Favorites Quick List in
+the workstation tool library. A chart-header star toggles the active canonical
+instrument; Shift+V on a WatchList adds the active row or the selected canonical
+rows. The collection is separate from personal WatchLists and Flagged Items;
+Favorites rows do not expose the Flag action. Focused store and WatchList tests
+pass 89/89, and Vue type-check passes. Backend migration head resolves to the
+new additive revision and Python lint passes. Fresh mounted-app/backend route
+validation and browser evidence are still required; the local TestClient also
+stalled on the pre-existing unauthenticated `/watchlists` request, so that
+local attempt is inconclusive rather than a Favorites failure/pass. The Help
+text now documents Shift+V. Existing Help captures are consequently stale for
+this row and must be reviewed/refreshed only in an authorized full visual run,
+with the unchanged 0.005 tolerance. No reference or tolerance has yet changed.
 
 ## 2026-10-06 — Ctrl+M explicit personal-list membership flow
 

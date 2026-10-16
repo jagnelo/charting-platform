@@ -1,5 +1,42 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-16 — Favorites slice progress and expired visual slot
+
+The latest coordinator receipt (`updated_at` 06:02:51Z) still reports no
+Provider/ETF product release: Provider `0111cc6` was in its full backend profile
+and ETF `8eccbdf` was awaiting Provider. Do not import either feature branch or
+begin downstream consumer reconciliation until the coordinator releases the
+corresponding green staging baseline.
+
+The consumed 05:24 TC visual slot is closed. Raw Noble Playwright 1.62.1 run
+`33850` selected the 104-case matrix but ended with 95 observed cases and no
+accepted terminal matrix; it did not mount the coordinator-verified DejaVu
+directory. Preserve it as partial diagnostic evidence. No mid-matrix font
+change, screenshot baseline/tolerance edit, or new visual launch was made. A
+future normalized full104 run requires a new sufficiently long coordinator
+slot.
+
+The active TC-owned V25 Favorites slice adds authenticated per-user persistence,
+the fixed My Favorites Quick List, chart-star add/remove, and Shift+V copy of the
+active/selected canonical WatchList symbols. It is now explicit in the plan's
+TC-owned/shared-path allowlist; this does not alter upstream provider/ETF
+ownership. Migration `a7c91e03d54b` is the local Alembic head. Backend Ruff,
+Python compilation, and migration-head checks pass; focused Favorites,
+WatchList keyboard and tool-registry suites pass 92/92; the full serial
+frontend suite passes 133 files/1,254 tests; type-check and production build
+pass. The authenticated F8v persistence test collects. Local API integration
+remains unverified because TestClient hangs on an existing unauthenticated
+WatchLists request before reaching the Favorites route. Current exact Actions
+run `38858169312` is for published `da70fa5`, not these dirty changes: its
+Frontend Unit, Branch-declared, and Backend jobs succeeded; E2E remained live at
+06:16Z and Exhaustive was skipped.
+
+TCP1 remains the only narrowly accepted checkpoint. Favorites behavior needs
+exact-source backend and mounted-app validation. TCP2 full normalized visual,
+TCP3 Provider/ETF consumers, TCP4 combined profile, TCP5 review publication,
+and official V25 parity remain open. No staging/sibling worktree, assigned
+runtime, retained data/accounts, or listeners were touched.
+
 ## 2026-10-16 — F9e native smooth-scroll flake cause reproduced
 
 Coordinator's independent actual-source-derived static Help DOM/CSS diagnostic

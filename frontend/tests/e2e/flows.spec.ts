@@ -7340,6 +7340,38 @@ test.describe('Dashboard', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8v — My Favorites persists chart membership and opens as a Quick List', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(45_000)
+    await page.goto('/chart/SPY')
+
+    const addFavorite = page.getByRole('button', { name: 'Add SPY to My Favorites', exact: true })
+    await expect(addFavorite).toBeVisible({ timeout: 15_000 })
+    const addResponse = page.waitForResponse(response => {
+      const path = new URL(response.url()).pathname
+      return response.request().method() === 'PUT' && /^\/api\/v1\/favorites\/instruments\/\d+$/.test(path)
+    })
+    await addFavorite.click()
+    expect((await addResponse).status()).toBe(200)
+    const removeFavorite = page.getByRole('button', { name: 'Remove SPY from My Favorites', exact: true })
+    await expect(removeFavorite).toHaveAttribute('aria-pressed', 'true')
+
+    // The favorite is a user-owned persisted collection, independent of the
+    // current chart/workspace mount. A normal page reload must restore it.
+    await page.reload()
+    await expect(page.getByRole('button', { name: 'Remove SPY from My Favorites', exact: true }))
+      .toHaveAttribute('aria-pressed', 'true', { timeout: 15_000 })
+
+    await page.getByRole('button', { name: 'Add tool' }).click()
+    const toolMenu = page.locator('.workstation__tool-library-menu')
+    await expect(toolMenu).toBeVisible({ timeout: 10_000 })
+    await toolMenu.getByRole('menuitem', { name: 'My Favorites', exact: true }).click()
+    const favorites = page.getByRole('region', { name: 'My Favorites Quick List' })
+    await expect(favorites).toBeVisible({ timeout: 10_000 })
+    await expect(favorites).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 })
+    await expect(favorites.locator('.watchlist__row').filter({ hasText: 'SPY' })).toBeVisible()
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8z — workstation remains contained at 125% browser page scale', async ({ page, browserDiagnostics }) => {
     const cdp = await page.context().newCDPSession(page)
     await cdp.send('Emulation.setPageScaleFactor', { pageScaleFactor: 1.25 })

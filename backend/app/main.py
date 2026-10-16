@@ -19,6 +19,7 @@ from app.routers import (
     dashboards,
     drawings,
     etf_holdings,
+    favorites,
     indicators,
     instrument_indicators,
     instruments,
@@ -122,6 +123,7 @@ app.include_router(strategy_lab.router, prefix=PREFIX)
 app.include_router(indicators.router, prefix=PREFIX)
 app.include_router(instrument_indicators.router, prefix=PREFIX)
 app.include_router(watchlists.router, prefix=PREFIX)
+app.include_router(favorites.router, prefix=PREFIX)
 app.include_router(screener_alerts.router, prefix=PREFIX)
 app.include_router(calendar.router, prefix=PREFIX)
 app.include_router(coverage.router, prefix=PREFIX)

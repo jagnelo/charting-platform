@@ -1439,6 +1439,35 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.get('.watchlist__compare-button').attributes('aria-label')).toBe('Compare 2 selected symbols')
   })
 
+  it('uses Shift+V to add the active and selected canonical symbols to My Favorites', async () => {
+    const sourceRows = [
+      { ...rows[0], sourceWatchlistId: 12 },
+      { ...rows[1], sourceWatchlistId: 12 },
+    ]
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: { label: 'Momentum', rows: sourceRows },
+    })
+    const selectRow = (wrapper.vm as unknown as { selectRow: (row: typeof sourceRows[number], event: MouseEvent) => void }).selectRow
+    selectRow(sourceRows[0], new MouseEvent('click'))
+    selectRow(sourceRows[1], new MouseEvent('click', { ctrlKey: true }))
+    await wrapper.vm.$nextTick()
+
+    const event = new KeyboardEvent('keydown', { key: 'v', shiftKey: true, bubbles: true, cancelable: true })
+    wrapper.find('[role="listbox"]').element.dispatchEvent(event)
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(wrapper.emitted('row-action')?.at(-1)).toEqual([
+      'favorite',
+      expect.objectContaining({ symbol: sourceRows[1].symbol }),
+      undefined,
+      expect.arrayContaining([
+        expect.objectContaining({ instrumentId: sourceRows[0].instrumentId }),
+        expect.objectContaining({ instrumentId: sourceRows[1].instrumentId }),
+      ]),
+    ])
+    expect(wrapper.get('.watchlist__compare-button').attributes('aria-label')).toBe('Compare 2 selected symbols')
+  })
+
   it('uses Shift+N to open a note for the active WatchList row', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: { label: 'Momentum', rows, selected: 'XLE' },
