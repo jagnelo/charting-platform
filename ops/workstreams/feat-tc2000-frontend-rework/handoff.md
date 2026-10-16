@@ -20831,3 +20831,61 @@ canvas reappears before changing this observer again. TCP1 remains narrowly
 accepted; TCP2 full visuals, TCP3 Provider/ETF consumers, TCP4 combined
 validation, TCP5 review, and official V25 parity remain open.
 
+## 2026-10-16 — ChartPlotLibrary snapshot fixture rejection
+
+Exact source `3e218a3756d645e532b74daf51ca5dfaf73aeb86` had terminal-red CI
+`38919524473`: Backend and Branch-declared passed, Frontend Unit failed on one
+unhandled Vue update rejection, and E2E/exhaustive were skipped. The rejection
+was traced to the ChartPlotLibrary test “does not copy an ambiguous multi-output
+chart indicator into a watchlist column.” It installed a valid workspace,
+triggered the real debounced `scheduleSnapshot()` path, and left the component
+mounted; the default `apiMock.put` fixture returned `{}` instead of the full
+`WorkspaceOut` response required by the snapshot endpoint. When that delayed
+response replaced the workspace, the component's active-tab computation saw a
+truthy object without `tabs` and failed. A focused 400 ms wait reproduced the
+exact `workspace.ts:1168` rejection. Production's snapshot route declares
+`response_model=WorkspaceOut`, so this is a test-fixture timer leak rather than
+the expected API/store invariant.
+
+The test now stubs `scheduleSnapshot()` because persistence is not part of this
+test's oracle and explicitly unmounts the wrapper; its existing copy refusal,
+workspace-configuration, and status assertions are unchanged. No store guard,
+optional chaining, suppression, or assertion relaxation was added. The focused
+ChartPlotLibrary suite passed 45/45; full Vitest passed 135 files/1,264 tests
+without unhandled errors; `vitest run --coverage` passed the same 1,264 tests
+with 85.43% statements/lines, 73.23% branches, and 75.15% functions. Type-check,
+production build (existing large-chunk warning), scope validation and six
+self-tests, workstream validation, and diff checks passed. The `make
+branch-tests` wrapper could not enter its runtime preflight because the shared
+`.ai/runtime/allocations.lock` is read-only here; it was not bypassed. Its
+stack-free constituent checks were run directly.
+
+Substantive test-only commit `1f3b6920a1f254c1d8a09a066ec5030c8d16a8e6` is
+pushed. Exact run `38921580484` is queued for that full SHA; await and audit
+Backend, Frontend Unit, Branch-declared, and E2E outcomes before treating this
+repair as validated. No local browser/profile or service was started. The prior
+red receipt remains historical; the earlier 10,000-cell Market Map observer
+change is separate and untouched. TCP1 remains narrowly accepted; TCP2 visual
+reference/use, TCP3 Provider/ETF consumers, TCP4 combined validation, TCP5
+review, and official V25 parity remain open.
+
+### Exact-source CI follow-up — 2026-10-16
+
+Run `38921580484` attempt 1 is terminal success on the exact pushed source
+`1f3b6920a1f254c1d8a09a066ec5030c8d16a8e6`. Backend Tests, Frontend Unit
+Tests, Branch-declared Tests, and E2E Tests all succeeded. Backend logs report
+1,625 unit tests and 409 integration tests passed. Frontend coverage reports
+135 files/1,264 tests passed; Branch-declared passed. E2E job `117046361974`
+reports 190 passed, 110 skipped in 17.5 minutes; its complete log has no
+Playwright test retry, flake, or failure. The Exhaustive Integration Gate was
+skipped by ordinary branch policy. Hosted screenshot cases among the 110
+skips are not visual evidence, so this does not close TCP2 or claim the full
+104-case visual matrix.
+
+This confirms the fixture-only fix: no product store behavior or assertions
+changed. The earlier `38919524473` frontend-unit rejection remains recorded as
+the cause that motivated this repair. The 10,000-cell Market Map viewport-scroll
+observer is separate and remains unchanged. Continue the open TC roadmap: TCP2
+visual reference/use, TCP3 Provider/ETF consumer reconciliation, TCP4 combined
+validation, TCP5 ready-for-review closeout, and official V25 parity remain open.
+

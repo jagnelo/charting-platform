@@ -37,24 +37,22 @@
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "current_exact_ci": {
     "attempt": 1,
-    "conclusion": "failure",
-    "e2e_summary": "189 passed, 110 skipped, one F8aa Favorites locator failure; page-level locator matched both Chart and Relative Strength groups",
-    "head_sha": "7969480fe57ffc21236a003184fa83063b6b7406",
+    "conclusion": "success",
+    "e2e_summary": "190 passed, 110 skipped in 17.5 minutes; complete E2E log audited with zero retries, flakes, or failures",
+    "head_sha": "1f3b6920a1f254c1d8a09a066ec5030c8d16a8e6",
     "jobs": {
-      "backend": "success",
-      "branch_declared": "failure; eight coordinator-owned common paths rejected by TC scope guard",
-      "e2e": "failure; 189 passed, 110 skipped, one F8aa Favorites locator failure",
-      "exhaustive_feature_branch": "not reported as required feature validation",
-      "frontend_unit": "success"
+      "backend": "success; 1625 unit and 409 integration tests passed",
+      "branch_declared": "success",
+      "e2e": "success; 190 passed, 110 skipped, zero retries/flakes/failures",
+      "exhaustive_feature_branch": "skipped by branch policy",
+      "frontend_unit": "success; 135 files and 1264 tests passed with coverage"
     },
-    "run_id": 38906246039,
-    "status": "terminal red on exact pushed source; Backend and Frontend succeeded, Branch-declared failed scope validation, and E2E had one F8aa locator failure",
-    "visuals": "No visual acceptance inferred from this functional E2E result; official V25 parity remains required roadmap work."
+    "run_id": 38921580484,
+    "status": "terminal success on exact pushed source; all required ordinary branch jobs passed",
+    "visuals": "The 110 E2E skips include screenshot cases and are not visual passes; TCP2 full 104-case matrix and official V25 parity remain open."
   },
   "dirty_paths": [
-    "frontend/tests/e2e/flows.spec.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
     "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
@@ -106,8 +104,8 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "7969480fe57ffc21236a003184fa83063b6b7406",
-  "implementation_sha": "7969480fe57ffc21236a003184fa83063b6b7406",
+  "head": "1f3b6920a1f254c1d8a09a066ec5030c8d16a8e6",
+  "implementation_sha": "1f3b6920a1f254c1d8a09a066ec5030c8d16a8e6",
   "integration_checkpoint": {
     "acceptance": "pending",
     "coordinator_guidance": "/home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md",
@@ -115,26 +113,26 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-16T13:48:19+00:00",
-  "last_human_progress_update": "2026-10-16T13:48:19+00:00",
+  "last_checkpoint": "2026-10-16T15:39:47+00:00",
+  "last_human_progress_update": "2026-10-16T15:39:47+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
-    "conclusion": "failure",
-    "e2e_summary": "189 passed, 110 skipped, one F8aa Favorites locator failure; both Chart and Relative Strength expose the same favorite control",
-    "head_sha": "7969480fe57ffc21236a003184fa83063b6b7406",
+    "conclusion": "success",
+    "e2e_summary": "190 passed, 110 skipped in 17.5 minutes; zero Playwright retries, flakes, or failures",
+    "head_sha": "1f3b6920a1f254c1d8a09a066ec5030c8d16a8e6",
     "jobs": {
-      "backend": "success",
-      "branch_declared": "failure_scope_guard",
-      "e2e": "failure_F8aa_favorites_locator",
-      "exhaustive_feature_branch": "not_reported",
-      "frontend_unit": "success"
+      "backend": "success; unit 1625 and integration 409 passed",
+      "branch_declared": "success",
+      "e2e": "success; 190 passed, 110 skipped, zero retries/flakes/failures",
+      "exhaustive_feature_branch": "skipped_by_branch_policy",
+      "frontend_unit": "success; 135 files and 1264 tests passed"
     },
-    "run_id": 38906246039,
-    "scope": "Exact pushed source 7969480fe57ffc21236a003184fa83063b6b7406; Backend and Frontend succeeded, Branch-declared failed its scope guard, E2E had one F8aa locator failure among 189 passed/110 skipped. This is a red run and not acceptance.",
-    "visuals": "No pixel pass inferred; the functional E2E summary is not the required 104-case local visual matrix."
+    "run_id": 38921580484,
+    "scope": "Exact pushed source 1f3b6920a1f254c1d8a09a066ec5030c8d16a8e6; required ordinary jobs passed. The 110 E2E skips are not passes, and the exhaustive gate was skipped.",
+    "visuals": "No pixel pass inferred; TCP2 full 104-case local visual matrix and official V25 parity remain open."
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the scoped F8aa observer and scope-guard correction with the preserved 38906246039 red receipt, then require fresh exact-source CI. Do not start a local browser while Provider owns the heavy slot. Do not broaden TCP1 without ordinary populated-RSP desktop/narrow pointer evidence. Keep Help reference approval, unchanged screenshot policy, official V25 parity debt, and TCP2-TCP5 open.",
+  "next_action": "Continue TCP2 full visual/functional review, then reconcile Provider and ETF consumers only after their green staging releases, complete TCP4 combined validation, and prepare TCP5 ready_for_human_review. Do not claim ready_for_integration or staging acceptance before the required dependencies and gates pass. Preserve the approved local Help reference, unchanged screenshot tolerance, and official V25 parity as roadmap work; do not start a competing local heavy browser profile while Provider owns priority.",
   "plan_hash": "77440dc3c0cd96ad353575efd1e380987f9a349ccffee34c064aea27a2952efd",
   "planning_required": false,
   "planning_state": "ready",
@@ -149,28 +147,28 @@
     "completed": [
       "TCP1"
     ],
-    "current_blocker": "Exact CI38906246039 for pushed source7969480fe57ffc21236a003184fa83063b6b7406 is red: scope guard rejected eight common paths and E2E had one ambiguous F8aa Favorites locator failure. The test is scoped to the Chart group, the exact eight paths have narrow exceptions, and the scope baseline is synchronized merge2b92c642237ce2abde40a84ee98383d4ee4285d1. The declared branch suite and focused collection pass locally; mounted-app F8aa and exact-source CI remain pending because Provider retains heavy browser priority. Do not broaden TCP1 from this correction; TCP2 visuals, TCP3 Provider/ETF product consumers, TCP4 combined profile, TCP5 review, and official V25 parity remain open.",
-    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_F8aa_OBSERVER_AND_EXACT_CI_PENDING;TCP3_PROVIDER_ETF_CONSUMERS_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
-    "next_action": "Publish the scoped F8aa observer and scope-guard correction with the preserved 38906246039 red receipt, then require fresh exact-source CI. Do not start a local browser while Provider owns the heavy slot. Do not broaden TCP1 without ordinary populated-RSP desktop/narrow pointer evidence. Keep Help reference approval, unchanged screenshot policy, official V25 parity debt, and TCP2-TCP5 open.",
+    "current_blocker": "The current exact source CI is green for ordinary required jobs, but this is not whole-feature acceptance. TCP2 still requires the opted-in full 104-case visual matrix and functional review under the approved local-only Help reference policy; hosted screenshot skips are not visual passes. TCP3 awaits green Provider and ETF staging releases and TC-side consumer reconciliation. TCP4 combined validation and TCP5 ready_for_human_review closeout remain open. Official V25 parity remains unfinished roadmap work. Do not claim ready_for_integration before dependencies and required gates are satisfied.",
+    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_FULL_VISUAL_AND_FUNCTIONAL_GATES_OPEN;TCP3_PROVIDER_ETF_RELEASE_AND_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
+    "next_action": "Proceed with the remaining full integration roadmap when resource coordination permits: complete TCP2 visual/functional evidence, reconcile actual green Provider/ETF releases in TC, run TCP4 combined validation, and prepare TCP5 ready_for_human_review. Keep the exact CI success and historical reds, approved local Help reference, 0.005 screenshot tolerance, and official V25 parity debt accurately recorded.",
     "total": 5,
-    "updated_at": "2026-10-16T13:48:19+00:00"
+    "updated_at": "2026-10-16T15:39:47+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "7969480fe57ffc21236a003184fa83063b6b7406",
+    "current_local_head": "1f3b6920a1f254c1d8a09a066ec5030c8d16a8e6",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
-    "last_attempted_local_head": "7969480fe57ffc21236a003184fa83063b6b7406",
-    "last_attempted_range": "abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476..7969480fe57ffc21236a003184fa83063b6b7406",
+    "last_attempted_local_head": "1f3b6920a1f254c1d8a09a066ec5030c8d16a8e6",
+    "last_attempted_range": "abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476..1f3b6920a1f254c1d8a09a066ec5030c8d16a8e6",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "7969480fe57ffc21236a003184fa83063b6b7406",
+    "remote_tracking_sha": "1f3b6920a1f254c1d8a09a066ec5030c8d16a8e6",
     "status": "succeeded",
     "current_pending_range": null
   },
-  "remote": "7969480fe57ffc21236a003184fa83063b6b7406",
-  "remote_sha": "7969480fe57ffc21236a003184fa83063b6b7406",
+  "remote": "1f3b6920a1f254c1d8a09a066ec5030c8d16a8e6",
+  "remote_sha": "1f3b6920a1f254c1d8a09a066ec5030c8d16a8e6",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "roadmap_acceptance_criteria": [
