@@ -43,12 +43,12 @@ branch_tests_reason: Existing coordinator/session contract unit checks complemen
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: in_progress
+status: ready_for_human_review
 remaining_gaps:
-  - Implement and validate the documentation refresh, then publish exact-source CI and delegated review; no product checkpoint is accepted by this topic.
+  - Publish this documentation implementation and obtain normal exact-source CI before delegated technical closure; no product checkpoint is accepted by this topic.
 progress:
-  completed: []
+  completed: [DOC1, DOC2, DOC3]
   total: 4
-  current_phase: planning_checkpoint
+  current_phase: local_checks_passed_publish_for_exact_ci
   current_blocker: none
-  next_action: Commit and push this planning checkpoint, run canonical plan-ready and record the existing active central goal, then edit only the listed documentation/status paths.
+  next_action: Commit and push the validated documentation, inspect exact normal CI, then record delegated technical review and closure without another product acceptance or extra prerequisite to the first Provider merge.

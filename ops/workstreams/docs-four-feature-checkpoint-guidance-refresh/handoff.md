@@ -38,3 +38,37 @@ rejected by the conservative text classifier; use `unit` with existing
 coordinator/workstream contract checks rather than weaken the guard. Full
 integration tier and ordinary exact-source/staging CI are not waived. No new
 Docker resources are required by this worktree.
+
+## Implemented and locally validated (2026-10-16 05:55Z)
+
+Refreshed the two coordination Markdown files and descriptive status snapshot:
+the later exact checkpoint delegation and Help decision are recorded; canonical
+source order, complete roadmaps, ownership and test standards are unchanged.
+Common-root operational-record pointers replace the mistaken idea that the
+old versioned snapshot is a live CI poll. Current observations distinguish
+delivered common repair/namespace/coverage corrections from incomplete Provider
+admission and visual work and later consumer/migration reconciliation. No
+unfinished product source is accepted by this topic.
+
+Validation: 50 existing coordinator/session unit checks passed (latest run
+0.23s); all31 workstream records validated; YAML/authority/empty-acceptance checks,
+three existing operational-record pointers, four local links and the complete
+changed-path allowlist passed. `git diff --check` passed. No executable,
+application, schema, dependency, screenshot or runtime configuration changed;
+no provider transport, new test fixture, deployment or data cleanup occurred.
+Exact-source hosted CI and delegated technical closure remain pending.
+
+The current root integration goal remains active; this documentation subtask
+does not replace or complete it. Provider is validating new retained-plan code
+`0111cc698...`; its separate live-main finding must still be reviewed. TC's
+bounded fixture run ended incomplete at95/104 and its disposable fixture was
+removed before its deadline; no visual acceptance was inferred.
+
+Owned paths for a later explicit coordinator handoff:
+`docs/feature-integration-coordination.md`,
+`docs/feature-integration-reconciliation.md`,
+`ops/feature-integration-status.yaml`,
+`ops/workstreams/docs-four-feature-checkpoint-guidance-refresh/plan.yaml`,
+`ops/workstreams/docs-four-feature-checkpoint-guidance-refresh/handoff.md`,
+`ops/workstreams/docs-four-feature-checkpoint-guidance-refresh/validation.jsonl`,
+`ops/workstreams/docs-four-feature-checkpoint-guidance-refresh/session.json`.
