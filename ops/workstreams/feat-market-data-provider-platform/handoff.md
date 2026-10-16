@@ -21,10 +21,11 @@
   Ruff check/format and `git diff --check` passed; no provider HTTP or quota
   spend occurred.
 - Existing CI run `38866335811` is for pre-fix docs-only candidate `f798b6c`;
-  do not use it as validation of this code fix. Backend, frontend-unit and
-  branch-declared jobs passed; its Playwright job was still running. Preserve
-  the attempt to terminal completion, then publish this fix and require fresh
-  exact-source CI.
+  it completed successfully at 07:52Z. Backend, frontend-unit,
+  branch-declared, and Playwright jobs passed; Exhaustive Integration Gate was
+  skipped by the feature-push condition. Do not use it as validation of this
+  code fix. The old attempt reached terminal completion without cancellation;
+  publish this fix and require fresh exact-source CI.
 
 ## 2026-10-16 07:12Z — current candidate and checkpoint disposition
 

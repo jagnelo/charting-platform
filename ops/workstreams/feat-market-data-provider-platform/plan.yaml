@@ -3084,9 +3084,10 @@ progress:
       paid-toggle states, plus reviewed-free positive and existing EODHD
       operation-only zero-credit positive control. Full provider-runtime unit
       file passed 79/79; Ruff and diff checks passed; zero provider HTTP/quota
-      use. Previously running CI `38866335811` was preserved; its result is
-      pre-fix-source evidence only. Fresh exact-source CI is required after
-      publication.
+      use. Previously running CI `38866335811` completed successfully on
+      pre-fix docs-only source `f798b6c` (E2E passed; Exhaustive Integration
+      Gate skipped); it was preserved without cancellation and is not evidence
+      for this fix. Fresh exact-source CI is required after publication.
     - >-
       2026-10-16 07:12Z current-source checkpoint update: exact candidate
       `0111cc698ad8c03220b60725bdc2df68195d96e8` is clean/pushed and exact
@@ -7260,7 +7261,9 @@ current_gate_checkpoint: >-
   is not ready for conditional acceptance. Standard E2E wrapper stopped before
   assertions on EACCES in existing Docker-owned report directories. Exact CI
   run `38857046752` passed its required jobs on `0111cc6`; exact CI for this
-  latest packet-only source is queued as `38866260831`. Provider egress was
+  pre-fix packet source `f798b6c` then passed CI `38866335811` (backend,
+  frontend-unit, branch-declared and E2E; Exhaustive Integration Gate skipped).
+  This does not validate the entitlement fix. Provider egress was
   denied and no provider calls/quota spend occurred. The first standard-profile
   cleanup removed four fresh branch test volumes and four scoped images; no
   persistent app/provider data was targeted. A second isolated stack was
@@ -7580,10 +7583,9 @@ current_gate_checkpoint: >-
       acceptance; the cross-window UI failure remains with its frontend owner,
       and source-bound live evidence/CI status remain to be reconciled.
   next_action: >-
-    Complete the unknown/unreviewed provider plan evidence fix and focused
-    validation; preserve the already-running CI attempt to terminal completion
-    and record its exact outcome without treating it as validation of this fix.
-    Publish this candidate and require exact-source CI. Then coordinate repair
+    Publish the committed unknown/unreviewed plan-evidence fix and require
+    exact-source CI. The preserved pre-fix CI attempt completed successfully
+    and is recorded, but does not validate this fix. Then coordinate repair
     of the three frontend-owned strict Study Lab visual mismatches without
     editing frontend or sibling-owned files, rerun the declared full local
     profile, refresh the ICP1-7 packet and enabled-versus-disabled operation
