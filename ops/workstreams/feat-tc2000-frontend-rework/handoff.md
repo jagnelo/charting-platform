@@ -20931,3 +20931,18 @@ baseline and rerun its own required gates. Do not import TC directly into
 Provider, merge the broader TC feature, or bypass Provider → ETF → TC ownership
 order. TCP2–TCP5 and official V25 parity remain open.
 
+### Exact-source CI follow-up — 2026-10-16
+
+TC commit `0c7bc1b8ce76a9761e4c20d02b4bb59d1591920f` is pushed and exact run
+`38930779878` attempt 1 is terminal success on that SHA. Backend Tests
+`117073896999`, Frontend Unit Tests `117073896882`, Branch-declared Tests
+`117073896595`, and E2E Tests `117077458274` passed; Exhaustive Integration
+Gate `117077461073` was skipped by feature-branch policy. E2E log reports 190
+passed and 110 skipped in 18.8 minutes. `F8s-family-matrix` ran in the normal
+sequence at case 145/300; the complete log contains no Playwright test retries,
+flakes, or failures. CI teardown removed only its isolated stack. This
+validates the harness correction at the exact source; it does not execute the
+Provider 260-case profile, establish Provider checkpoint acceptance, or close
+TC's broader visual/roadmap gates. The earlier Provider F9e/F8s failure and its
+focused reruns remain recorded separately and unchanged.
+
