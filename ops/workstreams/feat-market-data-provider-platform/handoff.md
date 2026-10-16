@@ -1,6 +1,22 @@
 # feat/market-data-provider-platform
 
-## 2026-10-16 18:49Z — current CI reconciliation and retained-cost-history API
+## 2026-10-16 19:30Z — zero-price recurring-plan regression
+
+- Exact standard CI `38950483900` is green on pushed source `bc5650fc`;
+  details and source binding are in the append-only journal. This does not
+  close the separate full-local-profile or Provider checkpoint gates.
+- Added a focused ICP2 regression proving a reviewed `free-forever` plan with
+  amount `0` can be recorded under an explicitly configured ceiling, consumes
+  zero monthly budget, stays visible in status, and keeps
+  `paid_activation_authorized=false`. Recurring-cost service tests pass
+  `11/11`; Ruff check/format and `git diff --check` pass. This test change is
+  dirty and has no exact-source CI yet.
+- No provider transport/quota spend, activation, browser/full-stack run, data
+  reset, staging/sibling edit, deployment, or cleanup occurred. Continue the
+  provider-owned ICP2/ICP6 work; keep the Provider browser profile held until
+  synchronized staging repair release.
+
+## 2026-10-16 19:29Z — exact-source standard CI green
 
 - Reconciled coordinator receipt `38943410344` to its exact source
   `ba06bdc6b525c8f007fd6917bd3df2603aa8f093`. This is already recorded in the
@@ -9,10 +25,22 @@
   skipped with no retries, flakes, or failures; Exhaustive was skipped by
   branch policy. It remains base-only evidence and does not validate later
   source or erase the historical red seeded browser profile.
-- Current committed Provider cost-governance source is
-  `1b09ffe3c4c35bdfea24b627474c04146563c5fd`; its Actions run `38949200216`
-  remains in progress (Frontend Unit succeeded; Backend unit tests are running).
-  Do not call it green or apply it to later dirty changes.
+- The pagination/history API extension is committed and pushed as
+  `bc5650fc0a888def69d1e7855bdc655337235133` (tree
+  `d3d722c666a73657f59d197d55ffbf2f1b063e90`). Its exact Actions run is
+  `38950483900`; Backend (unit, PostgreSQL integration, coverage), Frontend
+  Unit, Branch-declared, and Playwright E2E are green. E2E was 151 passed / 109
+  skipped in 15.7 minutes; no Playwright retries, flakes, or failures were
+  reported. Exhaustive is skipped by branch policy. This is exact standard CI,
+  not Provider checkpoint acceptance or a substitute for the held full local
+  profile. The prior-source run `38949200216` remains cancelled and is not
+  counted as green.
+  Predecessor run `38949200216` is terminal cancelled: its unit tests and
+  Frontend Unit succeeded, while PostgreSQL integration, E2E, Branch-declared,
+  and Exhaustive jobs were cancelled. The newer run is the cumulative exact
+  source; do not treat the cancelled predecessor as green. Cancellation timing
+  follows the new push, but the workflow's cancellation cause has not been
+  independently confirmed.
 - Continued ICP2/ICP6 by adding paginated cost-status commitment enumeration
   and paginated read-only budget/commitment revision-history endpoints. This
   prevents the 500-row page cap from hiding commitments or audit history. The
@@ -21,9 +49,9 @@
   the public history projection now redacts it while preserving database
   history, with a response-level regression. Both revision-history endpoints
   have explicit unauthenticated/non-admin denial assertions. The focused router
-  suite passes `11/11`; Ruff check/format and `git diff --check` pass. Exact-
-  source CI is still required; run `38949200216` covers only `1b09ffe3`, not
-  this extension.
+  suite passes `11/11`; Ruff check/format, `git diff --check`, and 34-record
+  workstream validation pass. Exact-source CI `38950483900` is in progress. The
+  coordinator's green `38943410344` still applies only to base `ba06bdc6`.
 - No provider HTTP/quota spend, paid/trial/unreviewed/unsafe activation,
   full-stack/browser profile, data reset, staging/sibling edit, deployment, or
   cleanup occurred. Provider browser rerun remains held until the coordinator

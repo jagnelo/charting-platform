@@ -45,8 +45,7 @@
     "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
   },
   "dirty_paths": [
-    "backend/app/routers/market_data_admin.py",
-    "backend/tests/unit/routers/test_market_data_admin_router.py",
+    "backend/tests/unit/services/test_provider_recurring_costs.py",
     "ops/workstreams/feat-market-data-provider-platform/checkpoint-review-packet.md",
     "ops/workstreams/feat-market-data-provider-platform/handoff.md",
     "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
@@ -77,15 +76,15 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "1b09ffe3c4c35bdfea24b627474c04146563c5fd",
-  "implementation_sha": "1b09ffe3c4c35bdfea24b627474c04146563c5fd",
+  "head": "bc5650fc0a888def69d1e7855bdc655337235133",
+  "implementation_sha": "bc5650fc0a888def69d1e7855bdc655337235133",
   "interrupted": false,
-  "last_checkpoint": "2026-10-16T18:45:19Z",
+  "last_checkpoint": "2026-10-16T19:30:53Z",
   "last_human_progress_update": "2026-10-16T11:12:47.867964+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Reconcile exact-source hosted CI for the Provider recurring-cost plus admin-history candidate; run the normal full local profile only after synchronized staging repair is released and the validation slot is available. Focused router tests pass 11/11 with authorization and private-digest assertions; Ruff check/format and diff check pass. Cost-governance commit 1b09ffe3 CI 38949200216 remains in progress on that prior source (Frontend Unit green; Backend integration tests running). Coordinator CI 38943410344 is confirmed green only for base ba06bdc6 and already appears in the append-only journal: Backend, Frontend Unit, Branch-declared, E2E 151 passed/109 skipped, zero retries/flakes/failures, Exhaustive skipped by policy. Preserve historical full browser red 1236a367; TC owns F9e/F8s and Provider browser rerun remains held pending synchronized staging repair. Continue ICP2 recurring-cost governance and ICP6 producer contract. No provider HTTP/quota, paid/trial/unreviewed activation, staging integration, deployment, data reset, or cleanup.",
+  "next_action": "Continue Provider-owned ICP2 recurring-cost and ICP6 producer/consumer contract work. Exact CI 38950483900 is green on bc5650fc (Backend including PostgreSQL integration/coverage, Frontend Unit, Branch-declared, E2E 151 passed/109 skipped with no reported retry/flaky/failure; Exhaustive skipped by policy). The new dirty zero-price Free Forever regression passes with the recurring-cost service suite 11/11 but needs exact-source CI. Await synchronized staging-repair release before the normal full local profile/browser selection. Coordinator-reconfirmed CI 38943410344 remains green only for base ba06bdc6 in the journal. Preserve historical browser red 1236a367 (TC-owned F9e/F8s). No provider HTTP/quota, paid/trial/unreviewed activation, staging integration, deployment, data reset, or cleanup.",
   "parent_branch": "staging",
-  "plan_hash": "083536ca23005c260e099a9f7c3e73e91022f10101cfdca1bda2c02bcbfb0839",
+  "plan_hash": "e7a4420e70d3ff9eb86e4fea77bfa7f7305a926ff6b873e60dab526e4d3dc709",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -115,14 +114,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "Recurring-cost governance is committed/pushed at 1b09ffe3 with exact Actions run 38949200216 still in progress; a separate pagination/revision-history admin API extension is dirty, focused-tested, and not yet validated on an exact pushed source. The Provider checkpoint remains open: full local profile and exact-source validation of the evolving branch remain required, while the seeded browser rerun is held for synchronized staging repair. Historical 1236a367 remains red for TC-owned F9e/F8s; focused reruns do not erase that result. Currency/equivalence policy, provider evidence/reconciliation, broader lifecycle coverage, downstream ETF wiring, and the complete roadmap remain open. Preserve all held provider operations and queried evidence.",
+    "current_blocker": "Exact standard CI is green on pushed Provider source bc5650fc in run 38950483900; the focused zero-price commitment test is an additional dirty change not yet covered by exact CI. The normal full local profile/browser selection remains held until the coordinator releases synchronized staging repair. Historical 1236a367 remains red for TC-owned F9e/F8s. Aggregate cost currency/equivalence policy, provider plan evidence/reconciliation, broader lifecycle coverage, downstream ETF wiring, and the complete roadmap remain open. Preserve all held provider operations and queried evidence.",
     "current_phase": "provider-icp2-recurring-cost-and-icp6-contract-refresh",
-    "next_action": "Commit/push the coherent pagination and retained cost-history API extension with its records, then verify exact-source CI for that tip. Continue ICP2/ICP6 cost-admission and producer-contract work without provider transport. Do not run provider HTTP/quota, paid/trial activation, or a full-stack/browser profile until the coordinator releases synchronized staging repair; do not integrate to staging, deploy, reset data, or clean retained resources.",
+    "next_action": "Continue ICP2/ICP6 recurring-cost and consumer-contract work. Run the normal local profile only once the coordinator releases synchronized staging repair and its slot. Preserve all provider holds and evidence; no transport, activation, staging integration, deployment, data reset, or cleanup.",
     "total": 7,
-    "updated_at": "2026-10-16T18:49:13Z"
+    "updated_at": "2026-10-16T19:30:53Z"
   },
   "remote": "51ebc7d45aa34d2e8790988778ee5e6eec14bdd7",
-  "remote_sha": "1b09ffe3c4c35bdfea24b627474c04146563c5fd",
+  "remote_sha": "bc5650fc0a888def69d1e7855bdc655337235133",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-provider-validation-1236-20261016 and provider-playwright-1236-hostaccess-20261016 remain running/preserved; no stop, reset, prune, or cleanup. Browser runner returned to sleep service after focused checks."

@@ -1,13 +1,37 @@
 # Provider integration checkpoint review packet
 
-## Superseding current Provider-owned continuation status — 2026-10-16 18:48Z
+## Superseding current Provider-owned continuation status — 2026-10-16 19:30Z
+
+Exact standard CI is green on pushed source `bc5650fc` in run `38950483900`:
+Backend (unit, PostgreSQL integration, coverage), Frontend Unit,
+Branch-declared, and Playwright E2E passed; E2E was 151 passed/109 skipped in
+15.7 minutes with no reported retry/flaky/failure, and Exhaustive was skipped
+by branch policy. The local full profile remains held for synchronized staging
+repair. A new dirty focused-test change covers a zero-price reviewed
+Free Forever recurring plan; the service suite passes 11/11, but this new
+candidate is not covered by that CI. No Provider checkpoint acceptance is
+claimed.
+
+## Superseding current Provider-owned continuation status — 2026-10-16 19:29Z
 
 The Provider cost-governance implementation is committed and pushed as
 `1b09ffe3c4c35bdfea24b627474c04146563c5fd` on top of synchronized base
-`ba06bdc6`; exact Actions run `38949200216` is in progress on that SHA. A
-separate admin observability extension adds pagination and retained revision
-history; its focused tests pass, but it is not covered by that run and requires
-its own exact-source CI. The cost-governance focused unit/admin/migration group passed `22/22`
+`ba06bdc6`; exact Actions run `38949200216` has unit tests green and is running
+PostgreSQL integration tests. The follow-up admin observability extension is
+committed and pushed as `bc5650fc0a888def69d1e7855bdc655337235133` (tree
+`d3d722c666a73657f59d197d55ffbf2f1b063e90`); its exact Actions run
+`38950483900` is terminal success: Backend Tests (unit, PostgreSQL integration,
+coverage), Frontend Unit, Branch-declared, and Playwright E2E all passed. E2E
+was 151 passed / 109 skipped in 15.7 minutes; logs show no Playwright retry,
+flaky, or failed result. Exhaustive is skipped by branch policy. This is exact
+standard CI, not Provider checkpoint acceptance or the held full local profile.
+Its
+predecessor `38949200216` is terminal cancelled after its unit tests and
+Frontend Unit succeeded; PostgreSQL integration, E2E, Branch-declared, and
+Exhaustive were cancelled, so that predecessor is not green evidence. The
+focused router suite passed `11/11`, including
+admin-only history routes and account-scope digest redaction. The
+cost-governance focused unit/admin/migration group passed `22/22`
 and its isolated PostgreSQL test passes
 `1/1`, including concurrent first-budget configuration, near-ceiling admission,
 and fresh-session durability. The pagination/revision-history router extension
@@ -34,8 +58,7 @@ now share a transaction-scoped PostgreSQL advisory lock; test account
 environment names normalize case to avoid duplicate commitments. The reviewed
 budget currency/equivalence policy still requires operator configuration; no
 FX rate is inferred. No admin budget was configured and no subscription or
-provider was activated. The pagination extension is not covered by hosted CI
-yet. Coordinator reconfirmed exact Actions run `38943410344`
+provider was activated. Coordinator reconfirmed exact Actions run `38943410344`
 for base `ba06bdc6`: Backend, Frontend Unit, Branch-declared, and E2E succeeded;
 E2E was 151 passed/109 skipped with zero retries/flakes/failures, while
 Exhaustive was skipped under branch policy. The receipt is already in the

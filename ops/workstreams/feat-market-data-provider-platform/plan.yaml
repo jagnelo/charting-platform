@@ -1,16 +1,26 @@
 schema: 4
-# Superseding Provider-owned continuation update — 2026-10-16 18:48Z:
-# cost-governance implementation is committed/pushed at 1b09ffe3 on ba06bdc6;
-# exact hosted CI 38949200216 remains in progress (Frontend Unit green, Backend
-# integration tests running). A separate admin API extension adds pagination to
-# commitments and read-only budget/commitment revision histories. Its focused
-# router suite passes 11/11 and Ruff/format/diff checks pass; exact-source CI on
-# the resulting candidate remains required. Review also caught and fixed
-# account-scope digest exposure in the API history
-# response; database retention remains intact, and a regression assertion
-# passes. Coordinator run 38943410344 is green only for
+# Superseding Provider-owned continuation update — 2026-10-16 19:30Z:
+# exact standard CI 38950483900 is green on pushed source bc5650fc: Backend
+# including PostgreSQL integration/coverage, Frontend Unit, Branch-declared,
+# and E2E (151 passed/109 skipped, no reported retries/flakes/failures); the
+# Exhaustive gate was skipped by policy. Added focused coverage on the dirty
+# follow-up proving a reviewed zero-price Free Forever commitment consumes no
+# budget and does not authorize activation; recurring-cost service tests pass
+# 11/11 with Ruff/format/diff. Exact CI/profile for this new test change remains
+# pending. The full local profile is still held pending synchronized staging
+# repair release. The full Provider checkpoint and roadmap remain open.
+# Superseding Provider-owned continuation update — 2026-10-16 19:29Z:
+# current source bc5650fc is pushed and exact CI 38950483900 is terminal green:
+# Backend (unit/integration/coverage), Frontend Unit, Branch-declared, and E2E
+# all succeeded; E2E was 151 passed/109 skipped with no reported retries, flakes
+# or failures. Exhaustive was skipped by branch policy. Predecessor 38949200216
+# was cancelled and is not counted as green. Focused 11/11 router tests include
+# admin authorization and account-scope digest redaction. Coordinator run
+# 38943410344 is green only for
 # base ba06bdc6 and is already recorded in validation.jsonl; it does not validate
-# either later source. Historical full seeded browser red is not erased, and
+# the later cost-governance source. The Provider's required full local profile
+# remains pending the coordinator's synchronized staging-repair release. The
+# historical full seeded browser red is not erased, and
 # Provider browser rerun remains held pending synchronized green staging repair.
 # Continue ICP2/ICP6 cost-admission and producer-contract work. Full checkpoint
 # and roadmap remain open; no provider HTTP/quota spend or activation occurred.
@@ -578,6 +588,7 @@ integration_checkpoint:
         - backend/tests/unit/services/test_provider_recurring_costs.py::test_account_plan_is_counted_once_across_keys_and_revisions_are_retained
         - backend/tests/unit/services/test_provider_recurring_costs.py::test_distinct_accounts_aggregate_and_over_ceiling_proposal_is_not_persisted
         - backend/tests/unit/services/test_provider_recurring_costs.py::test_trial_uses_known_post_trial_recurring_price_and_unknown_trial_is_denied
+        - backend/tests/unit/services/test_provider_recurring_costs.py::test_reviewed_free_forever_commitment_uses_zero_budget_and_never_activates_provider
         - backend/tests/unit/routers/test_market_data_admin_router.py::test_recurring_cost_admin_contract_is_admin_only_and_never_activates_providers
         - backend/tests/integration/test_provider_recurring_cost_concurrency.py::test_concurrent_near_ceiling_admissions_are_serialized_and_durable
       ownership_remainder: "Provider owns this shared producer and its full-roadmap evidence/currency-policy completion. ETF may wire to this contract only after green Provider staging, owns request/page/retry quota settlement, and must prove aggregate admission plus unavailable/no-transport behavior without a duplicate ledger. TC2000 and Strategy Lab v2 retain their separate consumer data/availability wiring; none is wired across worktrees by this change."

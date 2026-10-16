@@ -110,6 +110,24 @@ def test_account_plan_is_counted_once_across_keys_and_revisions_are_retained(db)
     assert db.scalar(select(ProviderRecurringCostCommitment)).environment == "production"
 
 
+def test_reviewed_free_forever_commitment_uses_zero_budget_and_never_activates_provider(db):
+    source = _source(db, "cost-free-forever")
+    assert _budget(db).allowed
+
+    decision = _admit(db, source.id, configured_plan="free-forever", amount="0")
+
+    assert decision.allowed
+    assert decision.proposed_monthly == Decimal("0.0000")
+    assert decision.committed_monthly == Decimal("0.0000")
+    assert decision.remaining_monthly == Decimal("20.0000")
+    assert decision.paid_activation_authorized is False
+    stored = db.scalar(select(ProviderRecurringCostCommitment))
+    assert stored is not None
+    assert stored.configured_plan == "free-forever"
+    assert stored.monthly_equivalent == Decimal("0.0000")
+    assert provider_recurring_cost_status(db).committed_monthly == Decimal("0.0000")
+
+
 def test_distinct_accounts_aggregate_and_over_ceiling_proposal_is_not_persisted(db):
     first_source = _source(db, "cost-provider-a")
     second_source = _source(db, "cost-provider-b")
