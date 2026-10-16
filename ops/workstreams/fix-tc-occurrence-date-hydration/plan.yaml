@@ -21,20 +21,22 @@ human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
 local_validation_reason: >-
   This frontend store/view/chart fix addresses an end-to-end timestamp race.
-  Preserve the required full-stack/browser tier. The originating TC commit has
-  exact green CI; this repair must receive its own exact-source CI and the
-  resulting staging SHA must pass the Exhaustive Integration Gate. The local
-  runner cannot currently provision a fresh UV environment because DNS lookup
-  for Python package artifacts fails, so no local browser pass is claimed.
+  The required isolated full-stack/browser tier ran from this exact repair
+  source in its assigned Compose project with E2E_SEED_MARKET_DATA=true; the
+  targeted F8s-breadth-family-ratio regression passed 1/1. Its containers,
+  network, volumes, and repair-specific builder were removed and verified
+  absent, with the shared default Docker builder restored. Exact-source CI is
+  still required, and the resulting staging SHA must pass the Exhaustive
+  Integration Gate before the degraded marker can clear.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 goal: "Repair the exact degraded staging failure at e0cb269afc8460bdc814c93ec71c640f01b2b31f by transplanting only TC2000 fix 957216a1bbb0727dc7f5f26f644d84df911e5522 for preserving explicitly selected occurrence timestamps during chart hydration, then validate and guarded-integrate this narrow repair under the active four-feature staging goal; no deployment, paid activation, operational trial, or master promotion."
 scope:
-  - Transplant only TC2000 fix commit 957216a1bbb0727dc7f5f26f644d84df911e5522 onto exact degraded staging e0cb269afc8460bdc814c93ec71c640f01b2b31f.
-  - Prevent stale chart cursor publication from replacing an explicit occurrence timestamp while the selected symbol's data and chart hydrate.
+  - Port the occurrence-timestamp hold and post-hydration republish from TC2000 fix commit 957216a1bbb0727dc7f5f26f644d84df911e5522 onto exact degraded staging e0cb269afc8460bdc814c93ec71c640f01b2b31f.
+  - Give each explicit timestamp hold an identity token so an older asynchronous selection cannot release a newer same-date hold.
+  - Keep staging's UPlotChart implementation intact; the TC commit's additional programmatic-cursor guard depends on full TC branch hooks absent from degraded staging, while the store gate rejects stale cursor timestamps for this failure.
   - Preserve the full TC2000 feature roadmap and all normal cursor, chart, integration, and visual checks.
 owned_paths:
-  - frontend/src/components/chart/UPlotChart.vue
   - frontend/src/stores/workspace.ts
   - frontend/src/views/WorkstationView.vue
   - frontend/tests/unit/stores/test_workspace_store.test.ts
@@ -43,27 +45,28 @@ dependencies:
   - Persistent staging is degraded only at exact synchronized SHA e0cb269afc8460bdc814c93ec71c640f01b2b31f under marker .ai/staging-degraded.json; its E2E failure is recorded by run 38947572686.
 acceptance_criteria:
   - id: OCCURRENCE1
-    text: Repair branch remains based directly on the exact degraded staging SHA and contains only the reviewed timestamp fix plus its own workstream record.
+    text: Repair branch remains based directly on the exact degraded staging SHA and contains only the timestamp-race repair/regression plus its own workstream record, not the full TC feature.
   - id: OCCURRENCE2
-    text: Regression coverage proves explicit historical occurrence intent is protected from stale cursor publications during hydration, superseding selections remain authoritative, and normal chart cursor publication resumes after the hold clears.
+    text: Regression coverage proves explicit historical occurrence intent is protected from stale cursor publications during hydration, an older same-date selection cannot clear a newer hold, superseding selections remain authoritative, and normal cursor publication resumes after the owning hold clears.
   - id: OCCURRENCE3
     text: Exact repair branch CI is fully successful without flaky tests; the guarded remediation merge preserves the exact degraded base and the exact resulting staging SHA passes Exhaustive Integration Gate before the marker is cleared.
 branch_tests:
-  - Exact-source CI: Frontend Unit Tests, Backend Tests, Branch-declared Tests, and E2E Tests (Playwright), including TC2000 workstation F8s-breadth-family-ratio.
+  []
 branch_tests_reason: >-
-  The exact owner-branch run is green, but the repair branch has a different
-  base and must prove the same source diff there; the exact staging exhaustive
-  gate remains required after guarded integration.
+  No additional branch-specific shell command is needed: exact-source CI
+  independently runs frontend unit tests, backend tests, and the Playwright
+  suite including F8s-breadth-family-ratio. This field only accepts executable
+  commands. The guarded staging merge must still pass the exhaustive gate.
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
 status: authorized
 remaining_gaps:
-  - Transplant and inspect the exact four-file fix on the degraded staging base.
-  - Pass exact repair-branch CI, then guarded-integrate and pass exact staging Exhaustive Integration Gate.
+  - Pass exact repair-branch CI on the corrected workstream declaration with no flaky tests.
+  - Guarded-integrate while preserving the exact degraded base, then pass the exact staging Exhaustive Integration Gate before the degraded marker is cleared.
 progress:
-  completed: []
+  completed: [OCCURRENCE1, OCCURRENCE2]
   total: 3
-  current_phase: narrow_fix_transplant
-  current_blocker: none
-  next_action: transplant only the approved TC fix, inspect its exact diff against degraded staging, then validate the repair branch
+  current_phase: exact_repair_validation
+  current_blocker: Corrected exact-source CI has not yet run. Prior run 38959676649 is terminal red solely because a descriptive sentence was executed as the branch shell test; its Playwright E2E job passed. The corrected command list and local full-stack F8s regression are now validated.
+  next_action: Append the focused browser/cleanup receipt, commit and push the corrected workstream declaration, then require a green zero-flake exact-source CI run before guarded degraded remediation integration.

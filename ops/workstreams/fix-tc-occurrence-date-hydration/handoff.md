@@ -27,16 +27,55 @@ features, deployment, or operational-trial policy.
 - The repair branch was bootstrapped by the guarded worktree helper from the
   exact synchronized degraded SHA, with `REMEDIATE_DEGRADED=1` authorization.
 
-## Next actions
+## Reconciliation note
 
-1. Transplant only the approved fix commit and inspect the result against the
-   staging base.
-2. Run focused local checks where the environment supports them and obtain a
-   clean exact-source CI result for the synchronized repair tip; no flaky test
-   is acceptable.
-3. Complete the branch-owned validation/closure receipt, then invoke the
-   canonical guarded degraded remediation integration.
-4. Keep staging degraded until the exact merged staging SHA passes the
-   Exhaustive Integration Gate and a synchronized green receipt is recorded.
-5. Continue the root goal with Provider → ETF → full TC2000 → Strategy Lab v2;
-   do not treat this narrow repair as full TC acceptance.
+The transplant conflicted only in `UPlotChart.vue`. The TC branch's added
+`linkedCursorProgrammatic` guard assumes cursor hooks already present on the
+full TC feature branch, but absent from degraded staging. The existing staging
+chart publishes cursor timestamps through the shared workspace store, so its
+explicit-timestamp gate is sufficient to preserve the asserted linked date.
+Keep staging's chart component unchanged; the complete TC branch still retains
+its programmatic-cursor behavior for its later ordered integration. No visual
+snapshot or tolerance was changed.
+
+Review also found that a timestamp-only cleanup could let an older in-flight
+selection clear a newer selection for the same date. The repair adds a
+per-selection token to the store hold and a regression covering same-date
+supersession, then lets the owning request release only its own token.
+
+## Current progress and next actions
+
+- Planning is complete and the repair worktree has an exclusive claim under
+  the already-active root goal; no competing goal was created.
+- Repair source commit `0794384a9c431732376a00a947bd42912afbb5fc` contains only
+  the store/view timestamp-race fix, its regression, and its workstream record;
+  staging's `UPlotChart.vue` is unchanged. Focused store tests passed `75/75`,
+  and `npm run build` passed locally. The assigned isolated Compose project
+  `charting-stack-fix-tc-occurrence-date-hydration-5fe4d495` then passed the
+  focused F8s-breadth-family-ratio Playwright regression `1/1` in 10.3 seconds
+  against this exact source with `E2E_SEED_MARKET_DATA=true`. The targeted test
+  stubs its market-data route and used only the isolated repair database.
+- Repair exact-source CI run `38959676649` is not acceptable: Frontend Unit
+  Tests passed, but Branch-declared Tests failed because a descriptive sentence
+  was mistakenly placed in the executable `branch_tests` list and `/bin/sh`
+  rejected it. Backend Tests and Playwright E2E later passed; the run remains
+  irrecoverably red only because of the completed declaration job. This is a
+  harness declaration error, not a product-test failure. The local plan now has
+  an empty command list with an explanatory `branch_tests_reason`; the corrected
+  declaration must be pushed and pass exact-source CI without flakes.
+- The repair frontend package lock matches TC's lock blob exactly. An offline
+  `npm ci` installed the locked dependencies, and Playwright collected exactly
+  the target `F8s-breadth-family-ratio` case. The local execution completed
+  against the isolated stack. The exact repair project was then brought down
+  through `make test-stack-down`; read-only verification found no matching
+  containers, volumes, or network, and confirmed the shared default Docker
+  builder remained selected. Provider and TC-assigned stacks were untouched.
+- The required local full-stack/browser regression is complete. Exact-source
+  replacement CI on the corrected plan and the guarded staging EIG remain
+  outstanding; the earlier red run is preserved and cannot be treated as
+  acceptance.
+- After corrected exact-source CI and closure review, invoke canonical guarded
+  degraded remediation. Keep the marker until the exact merged staging SHA
+  passes `Exhaustive Integration Gate` and synchronization is verified.
+- Continue Provider → ETF → full TC2000 → Strategy Lab v2 afterward; this
+  narrow repair is not full TC acceptance.
