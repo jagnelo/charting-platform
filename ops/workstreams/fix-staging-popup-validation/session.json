@@ -1,20 +1,65 @@
 {
-  "schema": 2,
+  "acceptance_criteria": [],
+  "active_session_id": "920af921-5c9b-4933-b601-39aeea5bf1c9",
   "branch": "fix/staging-popup-validation",
-  "parent_branch": "staging",
-  "implementation_sha": "5768bec4ae12fb06ecc37f06cf656387751eadaa",
-  "remote_sha": null,
-  "active_session_id": null,
-  "previous_session_ids": [],
-  "goal_state": "not_started",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-staging-popup-validation-26b1a929",
+      "charting-stack-fix-staging-popup-validation-26b1a929"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-staging-popup-validation-26b1a92968"
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/staging-popup-validation: Human delegated technical repair authority: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Narrow coordinator task: repair the actual staging F8j popup-close observer race and fail CI on retry-passing flaky tests while preserving genuine pointer actions, geometry/cross-window assertions, all tests, references and tolerances; investigate crosshair readiness only if needed. Base is exact synchronized staging5768 with canonical successful-CI receipt but independently audited browser quality hold (one cleanup flake), not accepted product staging. No feature import, paid activation, deployment or operational trial.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/staging-popup-validation: Human delegated technical repair authority: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Narrow coordinator task: repair the actual staging F8j popup-close observer race and fail CI on retry-passing flaky tests while preserving genuine pointer actions, geometry/cross-window assertions, all tests, references and tolerances; investigate crosshair readiness only if needed. Base is exact synchronized staging5768 with canonical successful-CI receipt but independently audited browser quality hold (one cleanup flake), not accepted product staging. No feature import, paid activation, deployment or operational trial.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "ba32cfe16608b1714c093ef1e485deb4754d490b",
+  "implementation_sha": "5768bec4ae12fb06ecc37f06cf656387751eadaa",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "86658791d9d95c69bfcb1c688587be20287d3f4de9af1591d945cd3265098f97",
+  "planning_required": true,
   "planning_state": "draft",
+  "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "total": 0,
+    "current_blocker": "none",
     "current_phase": "plan",
-    "current_blocker": "none"
+    "total": 0
   },
-  "next_action": "run make agent-session-start",
-  "retained_docker_resources": []
+  "remote": "ba32cfe16608b1714c093ef1e485deb4754d490b",
+  "remote_sha": null,
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "920af921-5c9b-4933-b601-39aeea5bf1c9",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-staging-popup-validation/ops/workstreams/fix-staging-popup-validation",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-staging-popup-validation/ops/workstreams/fix-staging-popup-validation/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-staging-popup-validation/ops/workstreams/fix-staging-popup-validation/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-staging-popup-validation/ops/workstreams/fix-staging-popup-validation/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-staging-popup-validation/ops/workstreams/fix-staging-popup-validation/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-staging-popup-validation",
+  "worktree_id": "fix-staging-popup-validation-26b1a92968"
 }

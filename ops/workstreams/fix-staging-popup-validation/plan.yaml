@@ -5,30 +5,50 @@ parent_branch: staging
 parent_sha: 5768bec4ae12fb06ecc37f06cf656387751eadaa
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Human delegated technical repair authority: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Narrow coordinator task: repair the actual staging F8j popup-close observer race and fail CI on retry-passing flaky tests while preserving genuine pointer actions, geometry/cross-window assertions, all tests, references and tolerances; investigate crosshair readiness only if needed. Base is exact synchronized staging5768 with canonical successful-CI receipt but independently audited browser quality hold (one cleanup flake), not accepted product staging. No feature import, paid activation, deployment or operational trial."
-planning_state: draft
+planning_state: ready
 human_closure_authorization: pending
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: full_stack_browser
+local_validation_reason: Popup lifecycle browser observations and CI acceptance semantics require the complete isolated full-stack browser and unchanged strict visual profile, plus exact-source CI. Focused mocked tests are not application acceptance.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 goal: "Human delegated technical repair authority: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Narrow coordinator task: repair the actual staging F8j popup-close observer race and fail CI on retry-passing flaky tests while preserving genuine pointer actions, geometry/cross-window assertions, all tests, references and tolerances; investigate crosshair readiness only if needed. Base is exact synchronized staging5768 with canonical successful-CI receipt but independently audited browser quality hold (one cleanup flake), not accepted product staging. No feature import, paid activation, deployment or operational trial."
-scope: []
-owned_paths: []
-dependencies: []
-acceptance_criteria: []
-branch_tests: []
-branch_tests_reason: pending agent assessment
+scope:
+  - Repair the independently reproduced F8j popup-close observer race without changing its preceding geometry assertions or ordinary user actions.
+  - Unit-test the real cleanup utility against already-closed, ordinary-close, close-during-click, unrelated-click-error and close-timeout outcomes; no unhandled late rejection.
+  - Fail CI on flaky tests even when a retry passes; retain existing retry count for diagnostic artifacts, all tests and original visual tolerances/references.
+  - Investigate the separate cross-window cursor assertion only if the required full gates reproduce it; do not mislabel it as cleanup or weaken its oracle.
+owned_paths:
+  - frontend/playwright.config.ts
+  - frontend/tests/e2e/flows.spec.ts
+  - frontend/tests/e2e/popup_cleanup.ts
+  - frontend/tests/unit/lib/test_popup_cleanup.test.ts
+  - frontend/tests/unit/lib/test_playwright_flaky_gate.test.ts
+  - ops/workstreams/fix-staging-popup-validation/
+dependencies:
+  - Exact synchronized staging5768 has a canonical successful-CI receipt, but remains coordinator quality-held because its exhaustive functional matrix had one cleanup flake. This authorized repair is not ordinary feature development or product acceptance of that result.
+  - Provider owns the currently reserved heavy local browser slot; do not run a competing isolated full-stack profile until a coordinated safe boundary.
+  - No unmerged TC or Provider source import; existing staging helper behavior and primary failing logs are sufficient to author this narrow test repair.
+acceptance_criteria:
+  - {id: POP1, text: "Preserve the exact staging failure and distinguish cleanup from the separate actual crosshair assertion."}
+  - {id: POP2, text: "The tested shared cleanup utility handles actual close races while unrelated errors and missing close events remain failures; F8j uses it without weakening geometry assertions."}
+  - {id: POP3, text: "Real Playwright CI configuration fails on retry-passing flaky tests; retry count, selection, references and tolerances remain unchanged."}
+  - {id: POP4, text: "Focused tests, type/build, full isolated functional/104 visual profile and exact-source branch CI pass without retries/flakes, with owned resource cleanup and honest source binding."}
+  - {id: POP5, text: "Clean pushed technical-repair checkpoint, coherent evidence and exact delegated acceptance record are ready for coordinator review and normal guarded staging integration; full four-feature objective remains open."}
+branch_tests:
+  - cd frontend && npx vitest run tests/unit/lib/test_popup_cleanup.test.ts tests/unit/lib/test_playwright_flaky_gate.test.ts
+branch_tests_reason: Pure mocked popup lifecycle and actual configuration import checks are stack-free; full application/browser/visual acceptance remains a separate full_stack_browser requirement.
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: authorized
-remaining_gaps: []
+status: in_progress
+remaining_gaps:
+  - Implementation and all focused/full validation remain pending; no checkpoint acceptance or product integration.
 progress:
-  completed: []
-  total: 0
-  current_phase: plan
+  completed: [POP1]
+  total: 5
+  current_phase: popup-observer-and-flaky-gate-repair
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: Implement the single owned popup-validation changeset and focused tests, close it coherently, then coordinate the required full browser slot without disturbing Provider.
