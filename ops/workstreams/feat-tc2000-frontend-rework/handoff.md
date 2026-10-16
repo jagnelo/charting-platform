@@ -19598,3 +19598,40 @@ acceptance; preserve every expectation and retry result unchanged. The local
 one-accessibility-plus-four-Help-profile run and tracked four-PNG local product
 reference remain valid, with official V25 parity still open.
 
+## 2026-10-16 — Released common repair reconciled
+
+The coordinator released exact synchronized green staging source
+`82d881e76be8de538abb6ec5c454d96afe0ee56a` as the common repair baseline only.
+Its canonical staging receipt reports exit 0 and green ordinary plus exhaustive
+gates, with no browser retries/flakes; no feature product checkpoint was
+accepted. This TC worktree was clean and unfrozen before merging that exact SHA.
+The resulting TC merge commit is `d4274a9fa3119c212a9aaf2c0006c20d921812e8`.
+
+The semantic merge keeps TC's `snapshotPersistingGeneration` as the single
+in-flight generation counter (the staging `snapshotSaveGeneration` served the
+same role). TC's structural-local-change conflict-recovery guards and tests are
+preserved. The staging repair's accepted-superseded-response revision and
+persisted-baseline acknowledgement, selected-workspace identity guard, and
+negative tests for stale revision, trailing debounced save, and workspace
+switch are incorporated. The pointer layout retains TC's per-chart template
+source key and wrapper pointer behavior, while using the released right-side
+Plots slot. F9c now verifies the populated comparison and ordinary Plots and
+Remove actions while the chip exists; no force-click or retry policy is used.
+The Market Map-to-Study flow also waits for the accepted snapshot and terminal
+refresh before selecting members.
+
+Local focused `test_workspace_store.test.ts` passed 79/79, `npm run build`
+passed Vue type-check and Vite (520 modules), and `git diff --check` passed.
+The session runtime allocator preflight could not write the global
+`/home/m920q/charting-platform/.ai/runtime/allocations.lock` in this restricted
+environment. A read-only runtime inventory found the assigned six-service TC
+stack healthy; it was not restarted or cleaned. Provider owns the current heavy
+validation slot, so no competing browser/Docker gate was started. Still
+required, without retries: populated comparison Plots/Remove/template browser
+flow, date-pointer reload persistence, exact-source full opted-in combined
+visual matrix in documented deterministic browser/font conditions, and normal
+exact-source CI. The earlier hosted CI did not execute its listed 104 visuals;
+local one-keyboard/four-Help-profile evidence remains valid but is not TCP4's
+full matrix. Official V25 Help is still `required_missing`. Provider/ETF product
+consumption and the full TCP3/TCP4 roadmap remain open.
+

@@ -122,11 +122,11 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-15T23:33:12+00:00",
+  "last_checkpoint": "2026-10-16T21:46:00+00:00",
   "last_human_progress_update": "2026-10-15T23:33:12+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Await dependency-first Provider/ETF staging synchronization; then consume the green common pointer/save repair through staging, reconcile save semantics, repeat date-pointer persistence without retries, and obtain clean exact-source CI while preserving the approved local Help references and official V25 parity debt.",
-  "plan_hash": "4c38621f50168538d476cc362890283418858733d4fd02def2c229cc88e3f838",
+  "next_action": "After Provider releases heavy browser capacity, run no-retry populated comparison and date-pointer persistence checks, execute the exact-source deterministic full opted-in visual matrix, then obtain clean exact-source CI; continue Provider/ETF consumer integration without weakening oracles and preserve official V25 Help parity debt.",
+  "plan_hash": "1bd9eb1ee292c780cbe9da3283b9b554acb24e5ee98823431b8ae3e3205a8e07",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -138,9 +138,9 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "Exact-source Actions run 38812796211 passed for 36bad277052247a4f68af8d1e259c3cf403f787a. Coordinator TCP1 pointer repair awaits synchronized green staging; Provider/ETF synchronization and exact TCP4 full integration remain open.",
-    "current_phase": "TCP2_HELP_REVIEWED_PUSH_AND_EXACT_CI",
-    "next_action": "Help follow-up is reviewed, pushed, and exact-source Actions passed. Continue TCP1/TCP3/TCP4 when coordinator pointer repair and synchronized Provider/ETF staging gates release; do not sync TC source before green staging.",
+    "current_blocker": "TCP1 common repair 82d881e76be8de538abb6ec5c454d96afe0ee56a merged by d4274a9fa3119c212a9aaf2c0006c20d921812e8; focused store tests 79/79 and production type-check/build pass. Retry-free populated comparison and date-pointer browser checks plus exact-source opted-in visual matrix remain pending coordinated browser capacity. Provider/ETF consumer integration, TCP3/TCP4, and clean exact-source CI remain open.",
+    "current_phase": "TCP1_RECONCILED_BROWSER_CHECK_PENDING;TCP2_HELP_REVIEWED;TCP3_UPSTREAM_WAIT",
+    "next_action": "Coordinate with Provider heavy-gate owner; then run no-retry populated comparison Plots/Remove/template and date-pointer persistence checks, exact-source deterministic full opted-in visual matrix, and normal exact-source CI. Preserve assigned runtime and official V25 Help parity debt.",
     "total": 5,
     "updated_at": "2026-10-15T22:40:00+00:00"
   },

@@ -2,9 +2,9 @@ schema: 4
 branch: feat/tc2000-frontend-rework
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
-parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
-latest_staging_parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
-latest_staging_merge_sha: da78591c0f75626d584e0bc691cd939f80addc27
+parent_sha: 82d881e76be8de538abb6ec5c454d96afe0ee56a
+latest_staging_parent_sha: 82d881e76be8de538abb6ec5c454d96afe0ee56a
+latest_staging_merge_sha: 82d881e76be8de538abb6ec5c454d96afe0ee56a
 dependency_authorization: "Human-approved consumer dependency on feat/market-data-provider-platform and feat/etf-holdings-constituents; consume only after their work reaches staging."
 human_intent_authorization: >-
   The human approved implementation of the TC2000 V25-inspired workstation roadmap
@@ -35,14 +35,12 @@ current_blocker: >-
   is pending. The coordinator's crowded-gap screenshot was timestamped
   2026-10-15 18:15:28+0100, before the 22:04+0100 commit that first widened the
   Help key column to 96px, so it was not evidence of the then-current source.
-  A fresh current-source fixture review still warranted more separation; the
-  TC-owned column is now 112px, and the per-row browser guard requires at least
-  8 CSS pixels plus verifies rendered description-line bounds. The exact
-  four-profile screenshots were visually reviewed and only the four Linux Help
-  references were rederived; normal screenshot checks passed 4/4 at the
-  unchanged 0.5% tolerance. `F9e-shell-menus-keyboard` passed 1/1 with the
-  existing PageDown/PageUp/Home, last-row reachability, Close-tab, Escape, and
-  trigger-focus assertions intact. Official V25 Help remains
+  The current TC-owned Help column is 96px with a 7px gap; the per-row browser
+  guard verifies separation and rendered-description bounds. Four current
+  Linux references were reviewed and the keyboard flow passed with
+  PageDown/PageUp/Home, last-row reachability, Close-tab, Escape, and trigger
+  focus. Focused Help screenshots passed 4/4 at unchanged 0.5% tolerance.
+  Hosted CI did not execute these visual tests. Official V25 Help remains
   `required_missing` and unfinished roadmap work.
 
   The first rerun exposed a race from issuing PageUp before PageDown had
@@ -55,15 +53,17 @@ current_blocker: >-
   Tests, Branch-declared Tests, and E2E Tests (Playwright) passed; Exhaustive
   Integration Gate was skipped on the feature branch. This exact tree includes
   Help commits be6b125/6fb51f1 and the workstream reconciliation. Preserve
-  assigned runtime/data/listener 15190. The coordinator repair has since reached
-  green staging as bc32034e/82d881e7; consume it only through the authorized
-  dependency-first staging sequence, not as a direct feature import. Latest
+  assigned runtime/data/listener 15190. The exact released common repair source
+  `82d881e76be8de538abb6ec5c454d96afe0ee56a` is now merged into this branch
+  after release authorization; pointer geometry and shared snapshot persistence
+  were reconciled semantically. Latest
   exact branch run 38824304286 for f1eef21b791659babdcd83a32151b2b6810f21a8
   had 186 passed, 110 skipped, and three retry-passing flakes (F9c comparison,
   date-pointer reload, F8w EasyScan-to-Market-Gauge), so clean all-source CI
   remains open. Hosted visual cases were not opted in; the Help visual evidence
   is the separate local one-keyboard/four-profile pass.
-  Provider/ETF synchronization and exact TCP4 full integration remain open.
+  Provider/ETF product synchronization, exact TCP4 full integration, and a
+  retry-free populated-comparison/date-pointer browser replay remain open.
 
   Checkpoint adoption 2026-10-15: the populated-comparison pointer check found
   a remaining default-wide geometry defect in the current TC source despite the
@@ -547,7 +547,7 @@ dependencies:
   - "feat/etf-holdings-constituents (ETF holdings capability, audit, and source lineage); currently waits on provider-platform staging integration."
   - "Consume both dependencies only after their changes reach staging; do not modify their worktrees or duplicate their adapters, provider routing, credentials, ingestion, or refresh workers."
   - "Strategy Lab is intentionally not an upstream dependency for this branch; preserve TC's existing Python/DSL/Study/Strategy engine."
-scope_guard_baseline_sha: e93de4af43766a85242958e30702d32f231df8ee
+scope_guard_baseline_sha: d4274a9fa3119c212a9aaf2c0006c20d921812e8
 dependency_order:
   - feat/market-data-provider-platform -> staging
   - feat/etf-holdings-constituents -> staging (after provider-platform)
@@ -601,19 +601,20 @@ status: in_progress
 progress:
   completed: []
   total: 5
-  current_phase: TCP2_HELP_READABILITY_REVIEWED;_TCP1_COORDINATOR_STAGING_WAIT
+  current_phase: TCP1_RECONCILED_BROWSER_CHECK_PENDING;_TCP2_HELP_REVIEWED;_TCP3_UPSTREAM_WAIT
   next_action: >-
-    Continue TCP1/TCP3/TCP4 only when coordinator pointer repair and
-    synchronized Provider/ETF staging gates release. The coordinator reports
-    staging 82d881e7 ordinary E2E is green but Exhaustive run 38805309009 is
-    still active and no baseline release has been issued; do not synchronize TC
-    source yet. Before TCP4, execute the exact-source full local/combined
-    opted-in visual matrix in a documented deterministic browser/font
-    environment. Preserve assigned runtime/data/listener 15190 and keep
-    official V25 Help parity explicitly unfinished.
+    TCP1 source 82d881e76be8de538abb6ec5c454d96afe0ee56a is merged and
+    semantically reconciled. After Provider heavy-gate coordination releases
+    browser capacity, repeat ordinary populated comparison Plots/Remove/template
+    interaction and date-pointer reload persistence without retries. Before
+    TCP4, execute the exact-source full local/combined opted-in visual matrix in
+    a documented deterministic browser/font environment. Preserve assigned
+    runtime/data/listener 15190 and keep official V25 Help parity unfinished.
     Keep official V25 Help parity required_missing. Do not duplicate the
-    coordinator-owned pointer repair or synchronize TC source until green
-    staging. Continue the full roadmap and preserve the integration gate and
+    coordinator-owned pointer repair. Remaining TC work includes R1/R5/R6 and
+    V25 Favorites, custom-date sorting, and Tag Column gaps. Provider/ETF
+    product integration, TCP3/TCP4, complete roadmap validation, and
+    exact-source clean CI remain open. Preserve the integration gate and
     assigned runtime/data.
     Historical next action: Continue TC-owned R1/R5/R6 implementation and trace the Help screenshot
     layout-state mismatch. Ctrl+M now opens explicit list membership actions,
@@ -625,13 +626,18 @@ progress:
     integration gate open. Defer upstream consumption/reconciliation until both
     dependencies reach staging. Stop at ready_for_human_review.
   current_blocker: >-
-    Coordinator-owned pointer/save repair is reported on staging 82d881e7 with
-    ordinary E2E green, but Exhaustive run 38805309009 remains active and no
-    baseline release has been issued; do not synchronize TC yet. Provider/ETF
-    green-staging synchronization and the exact full integration gate remain
-    incomplete. Before TCP4, the exact-source full local/combined opted-in
-    visual matrix must execute in a documented deterministic browser/font
-    environment; the Help-only local run is not a substitute. The
+    TCP1 source 82d881e76be8de538abb6ec5c454d96afe0ee56a was merged by
+    TC merge commit d4274a9fa3119c212a9aaf2c0006c20d921812e8 and
+    reconciled; focused workspace-store tests passed 79/79 and frontend build
+    passed after type-check. The runtime allocator preflight could not write its
+    global allocations.lock in this restricted environment. The ordinary
+    populated comparison/template and date-pointer reload browser replay remains
+    required without retries; Provider owns the current heavy validation slot,
+    so defer browser gates until coordinated capacity is available. Before TCP4,
+    the exact-source full local/combined opted-in visual matrix must execute in
+    a documented deterministic browser/font environment; the Help-only local
+    run is not a substitute. Provider/ETF product integration and TCP3/TCP4
+    remain incomplete. The
     human-approved local Help product reference is tracked and validated at
     unchanged thresholds; official V25 Help visual parity remains
     required_missing and unfinished. Local focused Help checks passed one
