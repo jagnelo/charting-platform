@@ -1,0 +1,34 @@
+schema: 4
+branch: fix/tc-occurrence-date-hydration
+base_sha: e0cb269afc8460bdc814c93ec71c640f01b2b31f
+parent_branch: staging
+parent_sha: e0cb269afc8460bdc814c93ec71c640f01b2b31f
+dependency_authorization: "Human authorized the four-feature staging checkpoint and delegated technical acceptance: Yes I approve, and you do not need my acceptance to close it off; do this yourself, with care. Use a narrow branch based directly on exact degraded staging, preserve all tests and gates, and do not deploy, activate paid behavior, run a trial, or promote master."
+human_intent_authorization: "Repair the exact degraded staging failure at e0cb269afc8460bdc814c93ec71c640f01b2b31f by transplanting only TC2000 fix 957216a1bbb0727dc7f5f26f644d84df911e5522 for preserving explicitly selected occurrence timestamps during chart hydration, then validate and guarded-integrate this narrow repair under the active four-feature staging goal; no deployment, paid activation, operational trial, or master promotion."
+planning_state: draft
+human_closure_authorization: pending
+closure_summary: pending
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: pending_agent_assessment
+local_validation_reason: pending agent assessment from changed paths and runtime impact
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "Repair the exact degraded staging failure at e0cb269afc8460bdc814c93ec71c640f01b2b31f by transplanting only TC2000 fix 957216a1bbb0727dc7f5f26f644d84df911e5522 for preserving explicitly selected occurrence timestamps during chart hydration, then validate and guarded-integrate this narrow repair under the active four-feature staging goal; no deployment, paid activation, operational trial, or master promotion."
+scope: []
+owned_paths: []
+dependencies: []
+acceptance_criteria: []
+branch_tests: []
+branch_tests_reason: pending agent assessment
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: authorized
+remaining_gaps: []
+progress:
+  completed: []
+  total: 0
+  current_phase: plan
+  current_blocker: none
+  next_action: complete the branch-owned plan before creating a goal
