@@ -1,0 +1,114 @@
+{
+  "acceptance_criteria": [
+    {
+      "id": "DOC1",
+      "text": "Guidance records exact delegated checkpoint and Help-reference decisions without inventing acceptance, reducing a roadmap, or authorizing deployment/paid activation/trial."
+    },
+    {
+      "id": "DOC2",
+      "text": "Canonical status and guidance identify current operational receipts, their common-root location, publication-snapshot semantics and the existing clean-staging helper route while preserving dirty root edits."
+    },
+    {
+      "id": "DOC3",
+      "text": "Reconciliation guidance distinguishes closed fixes from remaining Provider admission/visual gates and later ETF/TC/Strategy contracts and migrations; no stale pointer, collision or coverage failure is represented as current."
+    },
+    {
+      "id": "DOC4",
+      "text": "Documentation-only scope, YAML/workstream/link/diff checks and normal exact-source CI are recorded honestly; publish the clean source for delegated coordinator review with all product acceptances still open."
+    }
+  ],
+  "active_session_id": null,
+  "branch": "docs/four-feature-checkpoint-guidance-refresh",
+  "dirty_paths": [
+    "ps/workstreams/docs-four-feature-checkpoint-guidance-refresh/handoff.md",
+    "ops/workstreams/docs-four-feature-checkpoint-guidance-refresh/session.json",
+    "ops/workstreams/docs-four-feature-checkpoint-guidance-refresh/validation.jsonl"
+  ],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-docs-four-feature-checkpoint-guidance-refresh-7810382e",
+      "charting-stack-docs-four-feature-checkpoint-guidance-refresh-7810382e"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "docs-four-feature-checkpoint-guidance-refresh-7810382e26"
+  },
+  "docker_before_cleanup": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-docs-four-feature-checkpoint-guidance-refresh-7810382e",
+      "charting-stack-docs-four-feature-checkpoint-guidance-refresh-7810382e"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "docs-four-feature-checkpoint-guidance-refresh-7810382e26"
+  },
+  "docker_ready": null,
+  "finished": true,
+  "finished_at": "2026-10-16T06:35:00.413839+00:00",
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance docs/four-feature-checkpoint-guidance-refresh: Refresh the authorized four-feature coordination guidance and its operational-record pointers without accepting incomplete products, changing merge order or weakening any gate. This work is a subtask of the existing active unbounded central integration goal, not a replacement or its completion.. Acceptance criteria: DOC1: Guidance records exact delegated checkpoint and Help-reference decisions without inventing acceptance, reducing a roadmap, or authorizing deployment/paid activation/trial.; DOC2: Canonical status and guidance identify current operational receipts, their common-root location, publication-snapshot semantics and the existing clean-staging helper route while preserving dirty root edits.; DOC3: Reconciliation guidance distinguishes closed fixes from remaining Provider admission/visual gates and later ETF/TC/Strategy contracts and migrations; no stale pointer, collision or coverage failure is represented as current.; DOC4: Documentation-only scope, YAML/workstream/link/diff checks and normal exact-source CI are recorded honestly; publish the clean source for delegated coordinator review with all product acceptances still open.. Required local profile: unit. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-10-16T06:32:53.322076+00:00",
+  "goal_request": {
+    "objective": "Advance docs/four-feature-checkpoint-guidance-refresh: Refresh the authorized four-feature coordination guidance and its operational-record pointers without accepting incomplete products, changing merge order or weakening any gate. This work is a subtask of the existing active unbounded central integration goal, not a replacement or its completion.. Acceptance criteria: DOC1: Guidance records exact delegated checkpoint and Help-reference decisions without inventing acceptance, reducing a roadmap, or authorizing deployment/paid activation/trial.; DOC2: Canonical status and guidance identify current operational receipts, their common-root location, publication-snapshot semantics and the existing clean-staging helper route while preserving dirty root edits.; DOC3: Reconciliation guidance distinguishes closed fixes from remaining Provider admission/visual gates and later ETF/TC/Strategy contracts and migrations; no stale pointer, collision or coverage failure is represented as current.; DOC4: Documentation-only scope, YAML/workstream/link/diff checks and normal exact-source CI are recorded honestly; publish the clean source for delegated coordinator review with all product acceptances still open.. Required local profile: unit. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "ready",
+  "goal_state": "active",
+  "goal_unavailable_reason": null,
+  "head": "9803ef16539a9200481e98b1acc06cb3262b3692",
+  "implementation_sha": "e67cf76dc8bfc6c78e798079837579f7ae498611",
+  "interrupted": true,
+  "local_validation_profile": "unit",
+  "next_action": "Validated documentation-only closure metadata handoff. Publish clean final source, require its exact normal CI and canonical staging gate; no product checkpoint or whole-root-goal completion is accepted.",
+  "parent_branch": "staging",
+  "plan_hash": "bc4579fbcfdd7eb59ceceb6fc0ddc202271b98dd7c8f5d87a1a92808ae20de6f",
+  "planning_required": false,
+  "planning_state": "ready",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [],
+    "current_blocker": "none",
+    "current_phase": "plan",
+    "total": 0
+  },
+  "remote": "68ab7d07c76355862d44f8158a3a03127bc700b3",
+  "remote_sha": "e67cf76dc8bfc6c78e798079837579f7ae498611",
+  "remote_synchronized": false,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "6ba5903e-d2b7-4064-946a-c8b530c0f4b2",
+  "state": "interrupted",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/docs-four-feature-checkpoint-guidance-refresh/ops/workstreams/docs-four-feature-checkpoint-guidance-refresh",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/docs-four-feature-checkpoint-guidance-refresh/ops/workstreams/docs-four-feature-checkpoint-guidance-refresh/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/docs-four-feature-checkpoint-guidance-refresh/ops/workstreams/docs-four-feature-checkpoint-guidance-refresh/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/docs-four-feature-checkpoint-guidance-refresh/ops/workstreams/docs-four-feature-checkpoint-guidance-refresh/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/docs-four-feature-checkpoint-guidance-refresh/ops/workstreams/docs-four-feature-checkpoint-guidance-refresh/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/docs-four-feature-checkpoint-guidance-refresh",
+  "worktree_id": "docs-four-feature-checkpoint-guidance-refresh-7810382e26"
+}

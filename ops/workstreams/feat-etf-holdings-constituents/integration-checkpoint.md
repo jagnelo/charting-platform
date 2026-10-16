@@ -7,6 +7,27 @@ objective and fourteen original criteria remain verbatim in `plan.yaml` under
 each delivered scope, remainder, owner and continuation acceptance test. This
 checkpoint does not close the full ETF roadmap.
 
+## Exact common green staging reconciliation — 2026-10-16 13:10Z
+
+Coordinator direction authorized the ETF owner to reconcile exact synchronized
+green staging commit `0145b65992b8692ce69f82f804f83f6c8e551fea` at the next safe
+owner boundary. Its Exhaustive Integration Gate `38896729111` passed. This
+commit contains common cleanup/resource/flaky-test repairs only; it is not
+acceptance of Provider or ETF product scope and does not authorize this branch
+to merge into persistent staging.
+
+The branch was clean at `8eccbdf522c0cf29e9ebcbc0e65a8e02c39c1044` before the
+merge. One content conflict in `frontend/tests/e2e/flows.spec.ts` was resolved
+by retaining the released shared popup cleanup helper and one-shot conflict
+response while preserving the ETF recovery assertion, cross-window rationale,
+page-count check and browser diagnostics. Focused unit validation passed 2
+files / 10 tests. Full ETF validation remains required and was not run during
+Provider's heavy-validation priority. The actual Provider product checkpoint
+remains unaccepted; ETF bridge implementation and shared-runtime contract tests
+remain gated on its exact accepted green staging release. No live issuer/SEC
+requests, quota spend, retained-data cleanup, deployment or sibling/staging
+write occurred.
+
 ## Source and evidence reconciliation
 
 ### ETF-tree Provider runtime snapshot — 2026-10-15, source HEAD 13fd50a

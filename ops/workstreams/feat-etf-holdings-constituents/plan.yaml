@@ -106,7 +106,11 @@ integration_checkpoint:
     provider_state: >-
       Provider source 575a67 is explicitly not accepted. The coordinator reports
       that actual admission/runner and combined-coverage CI corrections remain
-      open; Provider retains the first heavy local validation slot. Provider
+      open; the latest direction assigns Provider profile handle 84370 the
+      heavy-validation priority. The synchronized green staging release
+      0145b65992b8692ce69f82f804f83f6c8e551fea is now reconciled into this ETF
+      branch as the common cleanup/resource/flaky-test repair only; it does not
+      accept a Provider or ETF product checkpoint. Provider
       must document its existing synchronous invoke/executor/telemetry contract
       honestly, but need not implement ETF-specific async/redirect transport
       wiring before its own checkpoint. Provider supplies generic reviewed-
@@ -125,8 +129,12 @@ integration_checkpoint:
       bypass, and preservation of existing snapshot lineage. Detailed design
       is in shared-cost-admission.md.
     continuation_boundary: >-
-      Once Provider's exact green product checkpoint is released into staging,
-      reconcile that exact SHA in this ETF worktree, implement and test the real
+      The current common green staging baseline 0145b65992b8692ce69f82f804f83f6c8e551fea
+      has been reconciled into this ETF worktree. Continue only independent,
+      bounded ETF preparation while Provider owns profile handle 84370; do not
+      duplicate generic admission/quota-ledger mechanics. Once the actual
+      accepted Provider product checkpoint is released into green staging,
+      reconcile that exact release into this ETF worktree, implement and test the real
       shared bridge, including backward-compatible exactly-once async completion,
       evidence-backed ETF issuer/host/account/operation policy onboarding through
       the shared runtime, and per-outbound-attempt admission/settlement against
@@ -237,10 +245,10 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: Record ETF publisher-policy onboarding ownership boundary
-    state: ownership_boundary_recorded_provider_release_pending
-    baseline: e0af9ddc1310a27009d380bdb4b825d959cc0431
-    intent: Record that Provider owns generic reviewed-policy/admission/ledger mechanics while ETF owns post-release real-path binding and evidence-backed ETF publisher-policy onboarding; unknowns stay non-routable, no all-publisher pre-merge gate or second ledger is introduced, and cached/historical/PIT reads remain network-free.
+    name: Reconcile exact green common staging baseline into ETF
+    state: staging_0145b659_reconciled;provider_product_checkpoint_pending
+    baseline: 8eccbdf522c0cf29e9ebcbc0e65a8e02c39c1044
+    intent: Consume only the exact released common cleanup/resource/flaky-test baseline 0145b65992b8692ce69f82f804f83f6c8e551fea into the assigned ETF branch, preserving existing tests and assertions; retain Provider's generic governance ownership and wait for its actual accepted product checkpoint before consumer wiring.
     owned_paths:
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md
@@ -1397,6 +1405,17 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
+  Exact common green staging baseline 0145b65992b8692ce69f82f804f83f6c8e551fea
+  is now reconciled into this branch. The conflict in shared Playwright flows
+  was resolved by using the released popup cleanup helper, keeping the
+  recovery-test assertion that a targeted conflict actually occurred, and
+  retaining page-count/browser-diagnostic assertions. Its two helper/flaky-gate
+  unit files pass 10/10; no browser/full profile was started. Continue bounded
+  ETF preparation that is independent of Provider, without live issuer/SEC
+  calls or a full publisher terms audit. Provider profile handle 84370 owns
+  heavy-validation priority. Wait for the actual accepted Provider product
+  checkpoint before wiring ETF_HOLDINGS or validating shared runtime; do not
+  duplicate Provider admission/quota-ledger mechanics.
   Provider supplies generic reviewed-policy, admission and durable-ledger
   mechanics, while ETF owns binding real issuer/host/account/operation contexts
   and onboarding evidence-backed ETF publisher policies through that runtime

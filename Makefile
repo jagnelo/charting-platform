@@ -361,6 +361,10 @@ integrate:
 	@test -n "$(BRANCH)" || (echo "usage: make integrate BRANCH=feat/name" >&2; exit 2)
 	$(WORKFLOW_PYTHON) scripts/staging.py integrate "$(BRANCH)" $(if $(REMEDIATE_DEGRADED),--remediate,)
 
+staging-reconcile:
+	@test -n "$(COMMIT)" || (echo "usage: make staging-reconcile COMMIT=<exact-current-staging-sha>" >&2; exit 2)
+	$(WORKFLOW_PYTHON) scripts/staging.py reconcile --commit "$(COMMIT)"
+
 integrate-set:
 	@test -n "$(BRANCHES)" || (echo "usage: make integrate-set BRANCHES='feat/a feat/b'" >&2; exit 2)
 	$(WORKFLOW_PYTHON) scripts/staging.py integrate $(BRANCHES) $(if $(REMEDIATE_DEGRADED),--remediate,)

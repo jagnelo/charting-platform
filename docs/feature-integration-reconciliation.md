@@ -6,6 +6,83 @@ worktree. The human directed the central session to coordinate integration and
 proceed until a genuine blocker or human decision. Preserve the existing order:
 Provider → ETF → TC2000 → Strategy Lab v2.
 
+## Current reconciliation snapshot: 2026-10-16
+
+The October15 audit below remains history. It is not the current queue or an
+instruction to repair already closed defects again. Read the common-root live
+records named in [the coordination guidance](feature-integration-coordination.md)
+and recheck actual refs, owner workstreams and exact-source CI before acting.
+No product checkpoint or joint baseline is accepted by this document.
+
+- Common chart geometry/save/popup repair is delivered through synchronized
+  green staging `82d881e76be8de538abb6ec5c454d96afe0ee56a`, exact successful
+  CI `38805309009`. Preserve it during each owner reconciliation.
+- Provider published `0111cc698ad8c03220b60725bdc2df68195d96e8` after the
+  partial FMP correction. This adds retained FMP/Tiingo seed reconciliation and
+  configured-plan mismatch rejection while preserving manual review provenance;
+  its full local backend gate and exact CI `38857046752` are still running at
+  this snapshot. Review the actual retained-row/executor negative tests and
+  final results before closing that finding. The real live-runner all-mode
+  MarketData.app/Tiingo paid/trial/unknown-plan admission finding remains
+  distinct; a backend resolver correction or a simulated constant-map check
+  alone does not prove actual CLI admission before lock/subprocess/transport.
+- Provider's CI coverage-equivalence correction is independently verified on
+  predecessor `f614621...`: actual append-preserved unit/integration coverage
+  and `coverage report --fail-under=75` passed at 82%. Do not confuse its
+  unit-only 72% or stale October6 root `.coverage` with combined coverage.
+  Keep that enforcement and require the final source's own complete CI.
+- The 23 individually admitted manifests passed on exact staged tree
+  `592261aaef97a9ba2d3b3d6c818720eadd630abc`: 62 cases, 151 requests,
+  64,552,569 retained response bytes and 23 ledger receipts. Four manifests
+  remained held. This is historical selected-candidate proof, not all27,
+  current-source acceptance or a permanent omission of the held roadmap.
+  Do not rebind it or reset quotas after later changes.
+- Provider's functional browser component passed 154 cases with 106 expected
+  skips and no retries. Its separate raw-Noble visual component passed101/104;
+  three Study Lab comparisons remain red. A read-only DejaVu font-directory
+  mount was independently verified to change Noble's monospace resolution
+  while retaining Arial's family. Investigate that established test runtime
+  before a UI/reference change, then execute the **full104**, not merely the
+  failed cases. Mapping a font family is not itself a passing pixel receipt.
+- ETF published `8eccbdf522c0cf29e9ebcbc0e65a8e02c39c1044`. Its request-path
+  and policy ownership preparation is available; the actual async/per-attempt
+  consumer bridge and shared-runtime acceptance follow green Provider release.
+  Provider owns generic admission and the durable ledger; ETF owns reviewed
+  publisher evidence and its adapter bridge. No duplicate ledger, inferred
+  quota, blanket free classification or unmerged Provider import is authorized.
+- TC's exact implementation `73fba9d4acc815e963d06cf5085db7497ccac1f7`
+  passed all normal hosted jobs, including 189 functional cases, 110 expected
+  skips, zero retries/flakes. Actual104 visual checks were skipped there.
+  Later metadata tip `2899aebda79ac4b3e9eeb312a2cc22227bd524a8` records the
+  bounded fresh local visual run: interrupted before all104, observed at95;
+  not visual acceptance. Its unique disposable fixture was removed, while
+  assigned data/services were retained. The Help reference-policy decision is
+  resolved, but full visual and post-Provider/ETF consumers remain open.
+- Strategy's namespace repair uses `slv2_0001`–`slv2_0008`; do not redo the old
+  collision repair. Current `54fa13e1ba17a40de6f242e16d5a96d8217615cb` CI
+  `38820638540` failed backend with exit152 during research-runner tests;
+  browser tests were skipped. Only workstream metadata differs from the earlier
+  green implementation. Its runner already offsets CPU limits and restores
+  them; missing offset is not an established cause. Diagnose the actual case
+  and reconcile bounded execution after green upstream release, preserving
+  the v2 test package, combined75% gate and production isolation boundaries.
+
+A current read-only migration-file scan yields115 unique revisions, no missing
+parents and prospective union heads `c4d5e6f7a8b9`, `ff2a3b4c5d6e`, `slv2_0008`.
+ETF's `fe4f5a6b7c8d` is already an ancestor in Provider's graph. This is not an
+actual merged database/checkout. After real green releases, TC and Strategy
+reconcile the actual graph and add reviewed merge revisions if necessary;
+never reparent applied history, stamp/reset, or create speculative unmerged DDL.
+Preserve Provider's nullable/no-assumed-default `b6c` definition **and** its
+`ff5` forward upgrade for existing installations. Full PostgreSQL and combined
+consumer acceptance remains required on reconciled source.
+
+These observations prepare later merges; they introduce no circular full-TC or
+full-ETF prerequisite for the first Provider checkpoint. The product order stays
+Provider → ETF → TC → Strategy. Releasing green upstream staging lets downstream
+owners prepare in parallel within their own claims; one coordinator integrates
+only one accepted product source at a time.
+
 ## Observed source boundaries
 
 | Source | Observed HEAD | State at inspection |

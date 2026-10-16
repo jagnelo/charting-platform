@@ -1,5 +1,35 @@
 # feat/etf-holdings-constituents
 
+## Exact common staging reconciliation — 2026-10-16 13:10Z
+
+At the coordinator-authorized safe owner boundary, this branch reconciled
+exact synchronized green staging baseline
+`0145b65992b8692ce69f82f804f83f6c8e551fea` into the clean ETF source that was
+at `8eccbdf522c0cf29e9ebcbc0e65a8e02c39c1044`. Staging's exhaustive gate
+`38896729111` is evidence for common cleanup/resource/flaky-test repairs only;
+this merge does not accept Provider or ETF product scope, nor authorize
+integration into staging.
+
+The sole content conflict was `frontend/tests/e2e/flows.spec.ts`. Resolution
+keeps the released shared popup cleanup helper and one-shot conflict response
+behavior, while retaining the ETF recovery assertion proving a targeted
+conflict occurred and preserving the ETF cross-window explanation, page-count
+and browser-diagnostic assertions. No existing snapshot, threshold or test
+assertion was weakened. Focused local validation passed the two popup
+cleanup/flaky-gate unit files: 2 files, 10 tests, exit 0. This is not the
+required full ETF profile or checkpoint evidence. No browser/full profile,
+Provider bridge test, issuer/SEC request, or quota spend was started.
+
+Provider profile handle `84370` retains heavy-validation priority and the
+Provider product checkpoint remains unaccepted. Continue only bounded ETF
+preparation independent of that producer. After the actual accepted Provider
+product checkpoint is released into green staging, reconcile that exact source
+into this ETF worktree before implementing and validating the shared
+`ETF_HOLDINGS` consumer bridge. Unknown, quota-held, paid, trial and unsafe
+operations remain disabled; retain the full roadmap and cached/historical/PIT
+network-free semantics. No other worktree or persistent staging ref was
+modified.
+
 ## Current continuation state — 2026-10-15
 
 Read this section and the latest dated entries before interpreting the older

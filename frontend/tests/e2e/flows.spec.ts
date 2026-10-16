@@ -4,21 +4,8 @@
  *
  * Run: make test-stack-up && npx playwright test
  */
-import { type Page } from '@playwright/test'
 import { test, expect, LoginPage, ChartPage, ScreenerPage, DashboardPage, RadarPage } from './helpers'
-
-async function closePopupWhenOpen(popup: Page) {
-  if (popup.isClosed()) return
-  const closed = popup.waitForEvent('close', { timeout: 10_000 }).catch((error: unknown) => {
-    if (!popup.isClosed()) throw error
-  })
-  try {
-    await popup.locator('button[title="Close"]').click()
-  } catch (error) {
-    if (!popup.isClosed()) throw error
-  }
-  await closed
-}
+import { closePopupWhenOpen } from './popup_cleanup'
 
 
 // ── Auth flows ─────────────────────────────────────────────────────────────────
@@ -1087,17 +1074,7 @@ test.describe('TC2000 workstation', () => {
     // A persisted-layout refresh can close the browser-owned pop-out between the
     // geometry read and cleanup. Treat that already-closed state as successful cleanup;
     // otherwise close it through the user-facing control and await the browser event.
-    if (!popup.isClosed()) {
-      // A concurrent revisioned workspace refresh can close a disposable child
-      // after the source has already restored it. Treat that completed cleanup
-      // as equivalent to the explicit close click; never turn a transient child
-      // lifetime race into a false lifecycle failure.
-      if (!popup.isClosed()) {
-        const closed = popup.waitForEvent('close')
-        await popup.locator('button[title="Close"]').click()
-        await closed
-      }
-    }
+    await closePopupWhenOpen(popup)
 
     // The docked window is the durable source of truth; a disposable pop-out cannot
     // remove it from the parent layout.
@@ -1485,9 +1462,7 @@ test.describe('TC2000 workstation', () => {
       return (persisted?.style as { popout?: Record<string, unknown> } | undefined)?.popout
     }), { timeout: 10_000, intervals: [250, 500, 1_000] }).toEqual(expect.objectContaining({ left: expect.any(Number), top: expect.any(Number), width: expect.any(Number), height: expect.any(Number) }))
 
-    if (!popup.isClosed()) {
-      await closePopupWhenOpen(popup)
-    }
+    await closePopupWhenOpen(popup)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -1502,22 +1477,19 @@ test.describe('TC2000 workstation', () => {
       return await response.json() as Record<string, unknown>
     })
 
-    let conflictResponses = 0
+    let conflictPending = true
     const baselineWindowKeys = new Set(
       (baseline.tabs as Array<{ windows?: Array<{ instance_key?: string }> }>).flatMap(tab =>
         (tab.windows ?? []).map(window => window.instance_key).filter((key): key is string => Boolean(key)),
       ),
     )
     await page.route(/\/api\/v1\/workspaces\/\d+\/snapshot$/, async route => {
-      if (route.request().method() !== 'PUT') return route.continue()
+      if (route.request().method() !== 'PUT' || !conflictPending) return route.continue()
       // A previous pop-out can still be finishing a legitimate geometry
       // snapshot when this page starts. Inject the conflict only for the
       // mutation under test: the newly added Notes window. Otherwise the
       // setup races a bootstrap/cleanup write and the actual user mutation
-      // never exercises the recovery branch. Keep returning the conflict for
-      // this addition: a real optimistic-lock conflict remains until the
-      // client reconciles the remote revision, even if a layout event queues a
-      // newer local snapshot while the first request is in flight.
+      // never exercises the recovery branch.
       const payload = route.request().postDataJSON() as {
         tabs?: Array<{ windows?: Array<{ instance_key?: string; tool_type?: string; title?: string }> }>
       }
@@ -1529,7 +1501,7 @@ test.describe('TC2000 workstation', () => {
         }),
       )
       if (!hasLocalWindowAddition) return route.continue()
-      conflictResponses += 1
+      conflictPending = false
       await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ detail: { code: 'workspace_revision_conflict', message: 'conflict' } }) })
     })
     await page.route(/\/api\/v1\/workspaces\/\d+$/, async route => {
@@ -1551,7 +1523,7 @@ test.describe('TC2000 workstation', () => {
     await expect(notes.last()).toBeVisible({ timeout: 10_000 })
     await expect(page.locator('.workstation__footer')).toContainText(/recovery/i, { timeout: 15_000 })
     await expect(page.locator('.workstation__footer')).toContainText('local changes were preserved', { timeout: 15_000 })
-    expect(conflictResponses).toBeGreaterThan(0)
+    expect(conflictPending).toBe(false)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
