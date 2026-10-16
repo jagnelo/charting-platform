@@ -1,4 +1,19 @@
 schema: 4
+# Superseding Provider-owned continuation update — 2026-10-16 18:48Z:
+# cost-governance implementation is committed/pushed at 1b09ffe3 on ba06bdc6;
+# exact hosted CI 38949200216 remains in progress (Frontend Unit green, Backend
+# integration tests running). A separate admin API extension adds pagination to
+# commitments and read-only budget/commitment revision histories. Its focused
+# router suite passes 11/11 and Ruff/format/diff checks pass; exact-source CI on
+# the resulting candidate remains required. Review also caught and fixed
+# account-scope digest exposure in the API history
+# response; database retention remains intact, and a regression assertion
+# passes. Coordinator run 38943410344 is green only for
+# base ba06bdc6 and is already recorded in validation.jsonl; it does not validate
+# either later source. Historical full seeded browser red is not erased, and
+# Provider browser rerun remains held pending synchronized green staging repair.
+# Continue ICP2/ICP6 cost-admission and producer-contract work. Full checkpoint
+# and roadmap remain open; no provider HTTP/quota spend or activation occurred.
 # Superseding Provider-owned continuation update — 2026-10-16 18:34Z:
 # the worktree is dirty on synchronized base ba06bdc6. AC-RECURRING-COST is
 # partially delivered: explicit DB-backed aggregate budget/commitment APIs and
@@ -16,6 +31,10 @@ schema: 4
 # The additive migration's fresh/upgrade PostgreSQL equivalence was rerun after
 # changing audit-revision foreign keys to RESTRICT; provider quota schema/data,
 # recurring-cost schema, and previous-release /health=200 all pass.
+# Current source 1b09ffe3 has hosted CI run 38949200216 in progress; a further
+# local-only admin change adds explicit pagination and read-only budget/plan
+# revision history. Its router tests pass 11/11; it is not covered by run
+# 38949200216 until committed and validated on a new exact source.
 # Current operational status as of 2026-10-16 17:06Z: exact branch source
 # 1236a367a1d81fba69bb85496e12a56ec22c9f56 is synchronized and CI
 # 38902818604 passed required standard jobs (Exhaustive skipped). The full
@@ -546,11 +565,13 @@ integration_checkpoint:
         status: "GET /api/v1/market-data/recurring-costs"
         configure_budget: "PUT /api/v1/market-data/recurring-costs/budget"
         admit_commitment: "POST /api/v1/market-data/recurring-costs/commitments"
+        budget_revision_history: "GET /api/v1/market-data/recurring-costs/budget/revisions"
+        commitment_revision_history: "GET /api/v1/market-data/recurring-costs/commitments/{id}/revisions"
       backend_callables:
         - "configure_provider_recurring_cost_budget(session, monthly_ceiling, currency, evidence_source, evidence_version, reviewed_at)"
         - "admit_provider_recurring_cost(session, data_source_id, environment, billing_account_scope, configured_plan, state, amount/currency/interval, evidence, effective_at, optional ends_at and post-trial price)"
         - "provider_recurring_cost_status(session)"
-      success_contract: "A successful decision includes allowed=true, reason_code, currency, monthly_ceiling, committed_monthly, proposed_monthly, remaining_monthly, commitment_id/revision where applicable, and paid_activation_authorized=false. Admin status exposes retained provider/environment/plan/state/monthly-equivalent/evidence/revision without exposing billing_account_scope or its digest."
+      success_contract: "A successful decision includes allowed=true, reason_code, currency, monthly_ceiling, committed_monthly, proposed_monthly, remaining_monthly, commitment_id/revision where applicable, and paid_activation_authorized=false. Admin status and revision-history responses expose retained provider/environment/plan/state/monthly-equivalent/evidence/revision without exposing billing_account_scope or its digest; current commitments and budget/commitment revision history are paginated with total/limit/offset/next_offset so a page cap cannot silently hide rows."
       unavailable_contract: "Absent budget, unknown price/interval/trial post-price, unreviewed evidence/scope, currency mismatch, or a proposal over ceiling returns a typed denial and persists no proposed commitment; the API maps admission denials to 409. No route activation or provider transport is performed."
       tests:
         - backend/tests/unit/services/test_provider_recurring_costs.py::test_recurring_cost_requires_an_explicit_budget_and_reviewed_evidence

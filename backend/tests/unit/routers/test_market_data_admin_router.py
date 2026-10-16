@@ -473,6 +473,10 @@ def test_recurring_cost_admin_contract_is_admin_only_and_never_activates_provide
     path = "/api/v1/market-data/recurring-costs"
     assert client.get(path).status_code == 401
     assert client.get(path, headers=auth_headers).status_code == 403
+    assert client.get(f"{path}/budget/revisions").status_code == 401
+    assert client.get(f"{path}/budget/revisions", headers=auth_headers).status_code == 403
+    assert client.get(f"{path}/commitments/1/revisions").status_code == 401
+    assert client.get(f"{path}/commitments/1/revisions", headers=auth_headers).status_code == 403
     status_response = client.get(path, headers=admin_headers)
     assert status_response.status_code == 200, status_response.text
     assert status_response.json()["admission"]["reason_code"] == "budget_not_configured"
@@ -522,6 +526,19 @@ def test_recurring_cost_admin_contract_is_admin_only_and_never_activates_provide
     )
     assert accepted.status_code == 201, accepted.text
     assert accepted.json()["paid_activation_authorized"] is False
+    accepted_second = client.post(
+        f"{path}/commitments",
+        headers=admin_headers,
+        json=commitment_payload(over_budget_provider.id, "opaque-account-3", "7"),
+    )
+    assert accepted_second.status_code == 201, accepted_second.text
+    updated = client.post(
+        f"{path}/commitments",
+        headers=admin_headers,
+        json=commitment_payload(provider.id, "opaque-account-1", "12.5"),
+    )
+    assert updated.status_code == 201, updated.text
+    assert updated.json()["revision"] == 2
 
     denied = client.post(
         f"{path}/commitments",
@@ -530,13 +547,72 @@ def test_recurring_cost_admin_contract_is_admin_only_and_never_activates_provide
     )
     assert denied.status_code == 409, denied.text
     assert denied.json()["detail"]["reason_code"] == "monthly_ceiling_exceeded"
-    assert db.query(ProviderRecurringCostCommitment).count() == 1
+    assert db.query(ProviderRecurringCostCommitment).count() == 2
 
     visible = client.get(path, headers=admin_headers)
     assert visible.status_code == 200, visible.text
     body = visible.json()
-    assert body["admission"]["committed_monthly"] == 12
-    assert body["admission"]["remaining_monthly"] == 8
-    assert len(body["commitments"]) == 1
-    assert body["commitments"][0]["provider"] == "cost-admin-provider"
+    assert body["admission"]["committed_monthly"] == 19.5
+    assert body["admission"]["remaining_monthly"] == 0.5
+    assert len(body["commitments"]) == 2
+    assert body["commitment_pagination"] == {
+        "total": 2,
+        "limit": 200,
+        "offset": 0,
+        "next_offset": None,
+    }
     assert "billing_account_scope_digest" not in visible.text
+
+    first_page = client.get(path, params={"limit": 1}, headers=admin_headers)
+    assert first_page.status_code == 200
+    assert first_page.json()["commitment_pagination"] == {
+        "total": 2,
+        "limit": 1,
+        "offset": 0,
+        "next_offset": 1,
+    }
+    commitment_id = first_page.json()["commitments"][0]["id"]
+    missing_history = client.get(f"{path}/commitments/999999/revisions", headers=admin_headers)
+    assert missing_history.status_code == 404
+    revisions = client.get(
+        f"{path}/commitments/{commitment_id}/revisions",
+        params={"limit": 1},
+        headers=admin_headers,
+    )
+    assert revisions.status_code == 200
+    assert revisions.json()["total"] == 2
+    assert revisions.json()["next_offset"] == 1
+    assert revisions.json()["revisions"][0]["revision"] == 1
+    assert "billing_account_scope_digest" not in revisions.text
+    next_revisions = client.get(
+        f"{path}/commitments/{commitment_id}/revisions",
+        params={"limit": 1, "offset": 1},
+        headers=admin_headers,
+    )
+    assert next_revisions.json()["revisions"][0]["revision"] == 2
+
+    budget_update = client.put(
+        f"{path}/budget",
+        headers=admin_headers,
+        json={
+            "monthly_ceiling": "20.50",
+            "currency": "USD",
+            "evidence_source": "operator-reviewed revised budget",
+            "evidence_version": "test-v2",
+            "reviewed_at": datetime.now(UTC).isoformat(),
+        },
+    )
+    assert budget_update.status_code == 200
+    budget_revisions = client.get(
+        f"{path}/budget/revisions", params={"limit": 1}, headers=admin_headers
+    )
+    assert budget_revisions.status_code == 200
+    assert budget_revisions.json()["total"] == 2
+    assert budget_revisions.json()["next_offset"] == 1
+    assert budget_revisions.json()["revisions"][0]["revision"] == 1
+    next_budget_revision = client.get(
+        f"{path}/budget/revisions",
+        params={"limit": 1, "offset": 1},
+        headers=admin_headers,
+    )
+    assert next_budget_revision.json()["revisions"][0]["revision"] == 2

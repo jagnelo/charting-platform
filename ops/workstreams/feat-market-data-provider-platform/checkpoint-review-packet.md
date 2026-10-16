@@ -1,12 +1,20 @@
 # Provider integration checkpoint review packet
 
-## Superseding current Provider-owned continuation status — 2026-10-16 18:38Z
+## Superseding current Provider-owned continuation status — 2026-10-16 18:48Z
 
-The local worktree is a dirty candidate based on synchronized `ba06bdc6` and
-adds Provider-wide recurring-subscription cost governance. Focused admin-router,
-service, and migration tests pass `22/22`; the isolated PostgreSQL test passes
+The Provider cost-governance implementation is committed and pushed as
+`1b09ffe3c4c35bdfea24b627474c04146563c5fd` on top of synchronized base
+`ba06bdc6`; exact Actions run `38949200216` is in progress on that SHA. A
+separate admin observability extension adds pagination and retained revision
+history; its focused tests pass, but it is not covered by that run and requires
+its own exact-source CI. The cost-governance focused unit/admin/migration group passed `22/22`
+and its isolated PostgreSQL test passes
 `1/1`, including concurrent first-budget configuration, near-ceiling admission,
-and fresh-session durability. The exact
+and fresh-session durability. The pagination/revision-history router extension
+passes its focused `11/11` route tests, Ruff check/format, and `git diff --check`.
+A review caught and fixed a privacy issue before commit: the retained
+internal account-scope digest is now redacted from the API revision snapshot,
+with a regression assertion. The exact
 fresh-install/existing-database migration gate passed against base `ba06bdc6`:
 cost schemas (columns, nullability, named constraints/indexes) match, existing
 fail-closed provider quota data is preserved, and the previous application
@@ -26,14 +34,17 @@ now share a transaction-scoped PostgreSQL advisory lock; test account
 environment names normalize case to avoid duplicate commitments. The reviewed
 budget currency/equivalence policy still requires operator configuration; no
 FX rate is inferred. No admin budget was configured and no subscription or
-provider was activated. The dirty candidate has not been committed or hosted-CI
-validated. Base commit `ba06bdc6` now has exact Actions run `38943410344`
-terminal green: Backend, Frontend Unit, Branch-declared, and E2E all succeeded;
+provider was activated. The pagination extension is not covered by hosted CI
+yet. Coordinator reconfirmed exact Actions run `38943410344`
+for base `ba06bdc6`: Backend, Frontend Unit, Branch-declared, and E2E succeeded;
 E2E was 151 passed/109 skipped with zero retries/flakes/failures, while
-Exhaustive was skipped under branch policy. This base CI does not validate the
-dirty candidate. The GET status, PUT budget, and POST commitment producer contract
-and ETF/TC/Strategy ownership remainder are reflected in the plan; no sibling
-consumer wiring was performed.
+Exhaustive was skipped under branch policy. The receipt is already in the
+append-only validation journal; it does not validate the cost-governance commit
+or pagination extension. Actions run `38949200216` remains in progress on
+`1b09ffe3`; Frontend Unit is green and Backend unit tests are still running.
+The producer contract includes GET status, PUT budget, POST commitment, and
+paginated read-only revision-history routes; ETF/TC/Strategy ownership
+remainder is reflected in the plan and no sibling consumer wiring occurred.
 
 The Provider full browser result at `1236a367` remains red (256 passed, 2
 expected live skips, F9e/F8s failed; 104 visuals passed). TC owns those fixes.

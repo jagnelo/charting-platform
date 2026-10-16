@@ -43,7 +43,9 @@ from app.models.market_data_foundation import (
 from app.models.provider_observation import LatestPriceSnapshot
 from app.models.provider_recurring_cost import (
     ProviderRecurringCostBudget,
+    ProviderRecurringCostBudgetRevision,
     ProviderRecurringCostCommitment,
+    ProviderRecurringCostCommitmentRevision,
 )
 from app.models.provider_runtime import ProviderCapability, ProviderCapacityEvent
 from app.models.tokenized_asset import TokenizedAssetDetail
@@ -431,6 +433,7 @@ async def list_exchange_sessions(
 @router.get("/recurring-costs")
 async def get_provider_recurring_cost_status(
     limit: int = Query(default=200, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_db),
     _admin: User = Depends(require_admin),
 ):
@@ -445,12 +448,22 @@ async def get_provider_recurring_cost_status(
                 ProviderRecurringCostCommitment.environment,
                 ProviderRecurringCostCommitment.id,
             )
+            .offset(offset)
             .limit(limit)
         )
     ).all()
+    total_commitments = (
+        await db.execute(select(func.count()).select_from(ProviderRecurringCostCommitment))
+    ).scalar_one()
     budget = await db.get(ProviderRecurringCostBudget, 1)
     return {
         "admission": asdict(summary),
+        "commitment_pagination": {
+            "total": total_commitments,
+            "limit": limit,
+            "offset": offset,
+            "next_offset": offset + len(rows) if offset + len(rows) < total_commitments else None,
+        },
         "budget_evidence": (
             {
                 "source": budget.evidence_source,
@@ -480,6 +493,105 @@ async def get_provider_recurring_cost_status(
             for row, provider_name in rows
         ],
         "paid_activation_authorized": False,
+    }
+
+
+@router.get("/recurring-costs/budget/revisions")
+async def list_provider_recurring_cost_budget_revisions(
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """Read the append-only history of reviewed aggregate budget changes."""
+    total = (
+        await db.execute(select(func.count()).select_from(ProviderRecurringCostBudgetRevision))
+    ).scalar_one()
+    rows = (
+        (
+            await db.execute(
+                select(ProviderRecurringCostBudgetRevision)
+                .order_by(ProviderRecurringCostBudgetRevision.revision)
+                .offset(offset)
+                .limit(limit)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return {
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "next_offset": offset + len(rows) if offset + len(rows) < total else None,
+        "revisions": [
+            {
+                "revision": row.revision,
+                "currency": row.currency,
+                "monthly_ceiling": row.monthly_ceiling,
+                "evidence_source": row.evidence_source,
+                "evidence_version": row.evidence_version,
+                "reviewed_at": row.reviewed_at,
+                "created_at": row.created_at,
+            }
+            for row in rows
+        ],
+    }
+
+
+@router.get("/recurring-costs/commitments/{commitment_id}/revisions")
+async def list_provider_recurring_cost_commitment_revisions(
+    commitment_id: int,
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """Read retained evidence revisions for one account-level commitment."""
+    commitment = await db.get(ProviderRecurringCostCommitment, commitment_id)
+    if commitment is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="commitment not found")
+    total = (
+        await db.execute(
+            select(func.count()).where(
+                ProviderRecurringCostCommitmentRevision.commitment_id == commitment_id
+            )
+        )
+    ).scalar_one()
+    rows = (
+        (
+            await db.execute(
+                select(ProviderRecurringCostCommitmentRevision)
+                .where(ProviderRecurringCostCommitmentRevision.commitment_id == commitment_id)
+                .order_by(ProviderRecurringCostCommitmentRevision.revision)
+                .offset(offset)
+                .limit(limit)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return {
+        "commitment_id": commitment_id,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "next_offset": offset + len(rows) if offset + len(rows) < total else None,
+        "revisions": [
+            {
+                "revision": row.revision,
+                "snapshot": {
+                    key: value
+                    for key, value in row.snapshot.items()
+                    if key != "billing_account_scope_digest"
+                },
+                "evidence_source": row.evidence_source,
+                "evidence_version": row.evidence_version,
+                "evidence_observed_at": row.evidence_observed_at,
+                "created_at": row.created_at,
+            }
+            for row in rows
+        ],
     }
 
 

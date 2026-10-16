@@ -1,5 +1,35 @@
 # feat/market-data-provider-platform
 
+## 2026-10-16 18:49Z — current CI reconciliation and retained-cost-history API
+
+- Reconciled coordinator receipt `38943410344` to its exact source
+  `ba06bdc6b525c8f007fd6917bd3df2603aa8f093`. This is already recorded in the
+  append-only journal and 18:35 handoff entry: Backend, Frontend Unit,
+  Branch-declared, and Playwright E2E succeeded; E2E was 151 passed / 109
+  skipped with no retries, flakes, or failures; Exhaustive was skipped by
+  branch policy. It remains base-only evidence and does not validate later
+  source or erase the historical red seeded browser profile.
+- Current committed Provider cost-governance source is
+  `1b09ffe3c4c35bdfea24b627474c04146563c5fd`; its Actions run `38949200216`
+  remains in progress (Frontend Unit succeeded; Backend unit tests are running).
+  Do not call it green or apply it to later dirty changes.
+- Continued ICP2/ICP6 by adding paginated cost-status commitment enumeration
+  and paginated read-only budget/commitment revision-history endpoints. This
+  prevents the 500-row page cap from hiding commitments or audit history. The
+  routes remain admin-only and perform no provider activation or transport. A
+  review found the internal billing-account digest in retained revision JSON;
+  the public history projection now redacts it while preserving database
+  history, with a response-level regression. Both revision-history endpoints
+  have explicit unauthenticated/non-admin denial assertions. The focused router
+  suite passes `11/11`; Ruff check/format and `git diff --check` pass. Exact-
+  source CI is still required; run `38949200216` covers only `1b09ffe3`, not
+  this extension.
+- No provider HTTP/quota spend, paid/trial/unreviewed/unsafe activation,
+  full-stack/browser profile, data reset, staging/sibling edit, deployment, or
+  cleanup occurred. Provider browser rerun remains held until the coordinator
+  releases a synchronized green staging SHA; the historical 1236a367 profile
+  remains red with TC-owned F9e/F8s failures.
+
 ## 2026-10-16 18:40Z — final PostgreSQL cost-governance candidate check
 
 - Reran the isolated PostgreSQL race test after the restrictive audit-FK
