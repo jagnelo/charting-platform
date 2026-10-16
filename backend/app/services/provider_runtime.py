@@ -471,6 +471,19 @@ def _entitlement_seed(provider_name: str, capability: ProviderCapability) -> dic
             base["usage_terms"] = (
                 f"Tiingo {plan} plan; provider-specific request, symbol, and bandwidth quotas apply."
             )
+    if provider_name == "fmp":
+        plan = str(getattr(settings, "FMP_REVIEWED_PLAN", "basic") or "").strip().lower()
+        if plan not in {"basic", "starter", "premium", "ultimate"}:
+            base["configured_plan"] = "unreviewed"
+            base["is_free"] = False
+            base["usage_terms"] = "FMP account plan is unrecognized and must be reviewed."
+        else:
+            base["configured_plan"] = f"fmp-{plan}-operator-reviewed"
+            base["is_free"] = plan == "basic"
+            base["usage_terms"] = (
+                f"FMP {plan} personal-use plan; provider request and rolling bandwidth "
+                "quotas apply."
+            )
     base.setdefault(
         "live_probe_status",
         settings.PROVIDER_LIVE_PROBE_STATUS_SEEDS.get(provider_name, "not_run"),

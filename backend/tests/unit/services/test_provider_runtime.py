@@ -347,6 +347,49 @@ def test_tiingo_selected_plan_is_visible_in_provider_entitlement_diagnostics(mon
     assert unreviewed["configured_plan"] == "unreviewed"
 
 
+@pytest.mark.parametrize("plan", ["starter", "premium", "ultimate"])
+def test_fmp_selected_paid_plan_is_not_seeded_as_free(monkeypatch, plan):
+    monkeypatch.setattr(settings, "FMP_REVIEWED_PLAN", plan)
+
+    entitlement = _entitlement_seed("fmp", ProviderCapability.PRICE_HISTORY)
+
+    assert entitlement["configured_plan"] == f"fmp-{plan}-operator-reviewed"
+    assert entitlement["is_free"] is False
+    runtime_entitlement = SimpleNamespace(
+        configured_plan=entitlement["configured_plan"], is_free=entitlement["is_free"]
+    )
+    assert (
+        provider_entitlement_admission(
+            runtime_entitlement, checkpoint_free_only=True, allow_paid=True
+        )["reason_code"]
+        == "checkpoint_free_only"
+    )
+    assert (
+        provider_entitlement_admission(
+            runtime_entitlement, checkpoint_free_only=False, allow_paid=False
+        )["reason_code"]
+        == "paid_routing_disabled"
+    )
+    assert (
+        provider_entitlement_admission(
+            runtime_entitlement, checkpoint_free_only=False, allow_paid=True
+        )["reason_code"]
+        == "reviewed_paid_opt_in"
+    )
+
+
+def test_fmp_basic_plan_is_free_and_unknown_plan_fails_closed(monkeypatch):
+    monkeypatch.setattr(settings, "FMP_REVIEWED_PLAN", "basic")
+    basic = _entitlement_seed("fmp", ProviderCapability.PRICE_HISTORY)
+    assert basic["configured_plan"] == "fmp-basic-operator-reviewed"
+    assert basic["is_free"] is True
+
+    monkeypatch.setattr(settings, "FMP_REVIEWED_PLAN", "legacy-premium")
+    unknown = _entitlement_seed("fmp", ProviderCapability.PRICE_HISTORY)
+    assert unknown["configured_plan"] == "unreviewed"
+    assert unknown["is_free"] is False
+
+
 def test_account_usage_bootstrap_allows_only_explicit_unknown_dimensions():
     contract = {
         "reset": "per_dimension",

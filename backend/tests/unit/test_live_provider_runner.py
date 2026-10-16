@@ -3812,3 +3812,117 @@ def test_preflight_only_never_launches_live_transport_and_records_nonacceptance(
     assert receipt["provider_http_requests"] == 0
     assert receipt["transport_started"] is False
     assert receipt["live_acceptance"] is False
+
+
+@pytest.mark.parametrize("allow_paid", [False, True])
+def test_fmp_paid_plan_is_denied_by_free_only_checkpoint_independent_of_paid_toggle(
+    allow_paid,
+):
+    runner = _runner_module()
+
+    status = runner.fmp_account_plan_routing_status(
+        "premium", free_only=True, allow_paid=allow_paid
+    )
+
+    assert status.startswith("non-routable: shared free-only checkpoint")
+
+
+@pytest.mark.parametrize(
+    ("plan", "free_only", "allow_paid", "routable"),
+    [
+        ("basic", True, False, True),
+        ("premium", True, True, False),
+        ("premium", False, False, False),
+        ("premium", False, True, True),
+        ("unknown", False, True, False),
+    ],
+)
+def test_fmp_account_plan_status_tracks_exact_plan_and_free_only_switch(
+    plan, free_only, allow_paid, routable
+):
+    runner = _runner_module()
+
+    status = runner.fmp_account_plan_routing_status(
+        plan, free_only=free_only, allow_paid=allow_paid
+    )
+
+    assert status.startswith("routable") is routable
+
+
+@pytest.mark.parametrize("scope", ["full", "case", "account_usage"])
+@pytest.mark.parametrize("allow_paid", ["false", "true"])
+def test_live_runner_main_blocks_paid_fmp_before_transport_for_each_scope(
+    monkeypatch, capsys, tmp_path, scope, allow_paid
+):
+    runner = _runner_module()
+    validation_path = tmp_path / "validation.jsonl"
+    validation_path.touch()
+    test_case = "test_fmp_credentialed_account_usage_snapshot"
+    case_selectors = [f"fmp:{test_case}"] if scope == "case" else []
+    arguments = SimpleNamespace(
+        verify_candidate_receipts=None,
+        candidate_receipt_file=None,
+        allow_staged_candidate=False,
+        provider=None if scope == "full" else ["fmp"],
+        case=case_selectors,
+        account_usage_only=scope == "account_usage",
+        dinari_sandbox_canary=False,
+        preflight_only=True,
+    )
+    monkeypatch.setattr(runner, "_arguments", lambda: arguments)
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
+    monkeypatch.setattr(runner, "DEFAULT_SHARED_ENV", tmp_path / "absent.env")
+    monkeypatch.setattr(runner, "load_dotenv", lambda *args, **kwargs: None)
+    monkeypatch.setattr(runner, "changed_provider_code", lambda: True)
+    monkeypatch.setattr(runner, "approved_live_deferrals", lambda: {})
+    monkeypatch.setattr(runner, "live_matrix_inventory_errors", lambda: [])
+    monkeypatch.setattr(runner, "LIVE_PROVIDER_CASES", {"fmp": (("test", test_case),)})
+    monkeypatch.setattr(
+        runner,
+        "LIVE_CASE_OPERATIONS",
+        {"fmp": {test_case: {"fetch_account_usage"}}},
+    )
+    monkeypatch.setattr(runner, "LIVE_CASE_OPERATION_MULTIPLIERS", {})
+    monkeypatch.setattr(runner, "LIVE_OPERATION_DISPOSITIONS", {"fmp": {}})
+    monkeypatch.setattr(runner, "LIVE_REQUIRED_OPERATIONS", {"fmp": {"fetch_account_usage"}})
+    monkeypatch.setattr(runner, "LIVE_PROVIDER_SAFETY_DISPOSITIONS", {})
+    monkeypatch.setattr(runner, "CREDENTIALS", {"fmp": ()})
+    monkeypatch.setattr(runner, "KEYLESS", ())
+    monkeypatch.setattr(runner, "setting_is_configured", lambda _name: True)
+    monkeypatch.setattr(runner, "usage_scope_is_configured", lambda: True)
+    monkeypatch.setattr(runner, "durable_quota_preflight", lambda: (True, None))
+    monkeypatch.setattr(runner, "live_operation_quota_preflight", lambda *args, **kwargs: {})
+    monkeypatch.setattr(
+        runner,
+        "routing_safety_preflight",
+        lambda: {
+            "fmp": "routable",
+            "fmp account plan": runner.fmp_account_plan_routing_status(
+                "premium", free_only=True, allow_paid=allow_paid == "true"
+            ),
+        },
+    )
+    monkeypatch.setattr(runner, "_source_sha", lambda: "a" * 40)
+    monkeypatch.setattr(runner, "_dirty_source_paths", lambda: [])
+    monkeypatch.setattr(runner, "_workstream_validation_path", lambda: validation_path)
+    monkeypatch.setattr(
+        runner,
+        "provider_live_run_lock",
+        lambda: (_ for _ in ()).throw(AssertionError("blocked preflight acquired live lock")),
+    )
+    monkeypatch.setattr(
+        runner.subprocess,
+        "run",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("blocked preflight started provider tests")
+        ),
+    )
+    monkeypatch.setenv("RUN_LIVE_PROVIDER_TESTS", "1")
+    monkeypatch.setenv("PROVIDER_FREE_ONLY_CHECKPOINT", "true")
+    monkeypatch.setenv("ALLOW_PAID_PROVIDER_ROUTING", allow_paid)
+
+    assert runner.main() == 2
+    assert "shared free-only checkpoint blocks paid FMP premium plan" in capsys.readouterr().out
+    receipt = json.loads(validation_path.read_text(encoding="utf-8"))
+    assert receipt["provider_http_requests"] == 0
+    assert receipt["transport_started"] is False

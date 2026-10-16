@@ -64,6 +64,16 @@ def test_backend_pytest_defaults_do_not_enable_implicit_coverage_reports():
     assert "--cov" not in addopts
 
 
+def test_ci_preserves_unit_coverage_and_enforces_combined_backend_threshold():
+    workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    integration = workflow.split(
+        "- name: Run integration tests (with testcontainers)", 1
+    )[1]
+    integration = integration.split("- name: Enforce combined backend coverage", 1)[0]
+    assert "--cov-append" in integration
+    assert "uv run coverage report --fail-under=75" in workflow
+
+
 def test_runner_streams_subprocess_output_instead_of_buffering(monkeypatch, tmp_path):
     observed = {}
 

@@ -63,9 +63,13 @@ jobs:
           cd backend
           ENV_FILE=.env.dev uv run pytest tests/integration \
             --override-ini addopts= \
+            --cov-append \
             --cov=app --cov-report=xml:coverage-integration.xml \
             --cov-fail-under=0 \
             --no-header -q
+
+      - name: Enforce combined backend coverage
+        run: cd backend && uv run coverage report --fail-under=75
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

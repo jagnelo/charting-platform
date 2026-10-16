@@ -1192,6 +1192,26 @@ def owner_accepts_provider_terms_risk() -> bool:
     return bool(settings.PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK)
 
 
+def fmp_account_plan_routing_status(
+    plan: str, *, free_only: bool, allow_paid: bool
+) -> str:
+    """Apply the shared checkpoint admission rule to the configured FMP plan."""
+
+    normalized = str(plan or "").strip().lower()
+    if normalized not in {"basic", "starter", "premium", "ultimate"}:
+        return "non-routable: FMP_REVIEWED_PLAN is unrecognized"
+    if normalized == "basic":
+        return "routable: configured FMP Basic plan is free"
+    if free_only:
+        return f"non-routable: shared free-only checkpoint blocks paid FMP {normalized} plan"
+    if not allow_paid:
+        return (
+            f"non-routable: paid FMP {normalized} plan requires "
+            "ALLOW_PAID_PROVIDER_ROUTING=true"
+        )
+    return f"routable: reviewed paid FMP {normalized} plan"
+
+
 def active_live_provider_safety_dispositions() -> dict[str, str]:
     """Apply the owner's recorded private-use decision without hiding access limits."""
 
@@ -1635,7 +1655,7 @@ LIVE_PREFLIGHT_ROUTING_CONTROLS = {
     "dinari": ("dinari sandbox canary quota",),
     "xstocks": ("xstocks",),
     "bybit_xstocks": ("bybit_xstocks",),
-    "fmp": ("fmp",),
+    "fmp": ("fmp", "fmp account plan"),
     "tiingo": ("tiingo",),
 }
 
@@ -2940,6 +2960,11 @@ def routing_safety_preflight() -> dict[str, str]:
                 else f"non-routable: missing positive bounds for {', '.join(missing)}"
             )
         )
+    result["fmp account plan"] = fmp_account_plan_routing_status(
+        os.getenv("FMP_REVIEWED_PLAN", "basic"),
+        free_only=_env_bool("PROVIDER_FREE_ONLY_CHECKPOINT"),
+        allow_paid=_env_bool("ALLOW_PAID_PROVIDER_ROUTING"),
+    )
     return result
 
 
@@ -2966,6 +2991,10 @@ def live_required_safety_blockers(
     if account_usage_only:
         from app.providers.registry import provider_missing_routing_controls
 
+        account_plan_controls = {
+            "fmp": ("fmp account plan",),
+            "marketdata_app": ("marketdata.app account plan",),
+        }
         for provider in sorted(providers):
             missing_controls = provider_missing_routing_controls(
                 provider, "fetch_account_usage"
@@ -2975,6 +3004,12 @@ def live_required_safety_blockers(
                     "non-routable for account usage: missing/invalid "
                     + ", ".join(missing_controls)
                 ]
+            for safety_name in account_plan_controls.get(provider, ()):
+                status = safety_statuses.get(
+                    safety_name, "non-routable: account-plan status is missing"
+                )
+                if not status.startswith("routable"):
+                    blocked.setdefault(provider, []).append(status)
         return blocked
 
     # FINRA's synchronous short-interest and Daily List adapters have exact
