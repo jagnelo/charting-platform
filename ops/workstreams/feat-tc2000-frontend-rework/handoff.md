@@ -20292,3 +20292,68 @@ the complete V25 roadmap remain open. Do not infer that the passing F8u case
 resolves Provider's separate failure or invent a product fix absent TC runtime
 evidence; Provider retains local heavy-validation priority.
 
+## 2026-10-16 — Prospective shared-migration preflight (read-only)
+
+Coordinator reports a read-only migration-union preflight for the future
+Provider/ETF green-staging reconciliation: the prospective all-four union has
+115 unique migration IDs and no missing parents; the ETF `fe4` revision is
+already an ancestor in Provider's graph. The note names abbreviated candidate
+heads `c4d5e6f7a8b9` (Provider) and `ff2a3b4c5d6e` (TC), plus `slv2_0008`;
+these abbreviations are not treated here as independently resolved Git refs or
+as a released baseline. The coordinator also flags shared revision `b6c`:
+preserve Provider's nullable definition and avoid generic quota defaults; its
+actual `ff5` forward migration also corrects installed columns.
+
+No migration edit or DDL was made from this preflight. After the coordinator
+releases actual green Provider/ETF staging, merge that exact staging baseline
+into this clean, unfrozen TC branch and inspect the actual combined heads and
+revision graph. Use a reviewed additive merge revision only if the merged graph
+requires one; do not reparent applied history, stamp/reset a database, or add
+speculative unmerged DDL. Provider/ETF staging release and TC migration
+reconciliation remain open; this preflight is not a product baseline or gate
+acceptance.
+
+## 2026-10-16 — Bounded local visual slot (partial, not acceptance)
+
+Consumed the coordinator's `tc_visual_slot_20261016T0524` grant. Before start,
+host availability exceeded the required 1 GiB and no pytest/Chrome or Source
+heavy job was present. Built and health-checked a fresh isolated Compose
+fixture (`tc-visual-slot-20261016`) from the current TC worktree with seeded
+market data, provider credentials blank, background provider schedules and
+bootstrap disabled, and its own network/volumes/ports. The frontend was source
+mounted read-only. Browser was pinned to Playwright 1.62.1 Noble, one worker,
+zero retries, the four existing viewport/DPI projects, unchanged strict
+references and 0.005 tolerance.
+
+The first browser launch failed before running tests because Playwright tried
+to clear the default read-only `frontend/test-results`; this produced zero
+tests and is not evidence. The rerun redirected outputs to `/tmp` and reached
+case 95/104 before the bounded slot was released. The client hit its 600-second
+bound at observed case 92/104; its named browser container outlived that
+client and was stopped by exact name before slot expiry. No authoritative
+terminal summary for the rerun was retained, so individual outcomes and a
+complete matrix result are unknown. The HTML report under
+`/tmp/tc-visual-slot-20261016-output/report` belongs to the first zero-test
+launch, not the rerun. Partial progress does not count toward TCP2 and no
+visual acceptance is claimed. Preserve the `/tmp` run artifacts for diagnosis.
+
+The fresh fixture's containers, disposable volumes and network were removed
+through its exact Compose project teardown. No assigned TC services/data or
+accounts, port 15190, Provider/Stremio resources, references/oracles, sibling
+worktree or staging checkout were touched. Full 104 visual validation,
+Provider/ETF consumer reconciliation, combined profile, and final checkpoint
+review remain open.
+
+Coordinator runtime clarification: browser run `33850` used raw Playwright
+1.62.1 Noble without the read-only DejaVu font mount. Root independently
+verified raw Noble resolves Arial to Liberation Sans and monospace to WenQuanYi
+Zen Hei Mono; mounting only `/usr/share/fonts/truetype/dejavu` read-only leaves
+Arial unchanged and supplies DejaVu Sans Mono, matching the prior common-repair
+strict visual runtime. A separate Provider raw-104 run had three Study Lab
+failures among 101 passes in 11.3 minutes, so this bounded 600-second TC run
+could not establish completion. Preserve its partial raw-runtime evidence; do
+not attribute any Study Lab monospace difference to product/reference/tolerance
+without a future full 104-case normalized run. No font was changed mid-run,
+the expired slot was not extended, and no rerun was started. A normalized run
+requires a newly granted slot with sufficient walltime.
+
