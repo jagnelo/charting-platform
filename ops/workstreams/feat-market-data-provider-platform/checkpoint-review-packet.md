@@ -128,6 +128,20 @@ unchanged.
 | ICP6 — consumers | Producer success/unavailable behavior and callable contract are tested. ETF can call `app.services.provider_runtime.execute_provider_call(db, capability, operation, *, provider_name, operation_cost_overrides, invoke, ...)`; denied admission prevents `invoke`. `provider_entitlement_admission(entitlement)` returns `allowed`, `reason_code`, `configured_plan`, `is_free`, `checkpoint_free_only`, and `basis`; provider status exposes this as `entitlement_admission`. This is routing eligibility, not aggregate subscription-cost admission. Success/unavailable examples exist in ETF coverage and Strategy evaluation/coverage tests. | Before Provider staging, deliver the producer contract and named owners only; actual ETF/TC2000/Strategy adapter wiring and consumer-specific reconciliation happen after Provider is green in staging. ETF owns holdings adapter/bridge plus page/retry accounting; TC2000 and Strategy own their consumer wiring. |
 | ICP7 — reviewable source | Clean pushed source `0111cc6`; focused regressions 78/78 provider-runtime and 13/13 FMP runner admission; local backend 2,796 unit + 395 integration, 82%; exact-source CI `38857046752` success for all required jobs including E2E; functional browser 151 passed/109 skipped/0 failed/0 retries. Released common-repair staging `82d881e7` is already in ancestry. | The stock full-profile E2E wrapper stopped before assertions due existing report-directory permissions; manual equivalent ran successfully. Strict pinned visual is 101/104 with three Study Lab snapshot mismatches (~1% vs 0.5%), so the declared profile is not fully green. The coordinator has not accepted this source; this branch must not edit frontend. |
 
+### Coordinator ICP2 review correction (new candidate, not yet validated by hosted CI)
+
+The coordinator identified an unsafe inference: an affirmative `is_free` flag
+plus an arbitrary non-empty plan label was not sufficient evidence that the
+provider plan had been reviewed. The current correction requires either an
+exact current provider/capability seed-plan match with matching free/paid
+classification, or an explicit reviewed label. It adds status, resolver, and
+executor no-transport tests for `unknown`, `unknown-plan`, `mystery-plan`, and
+`unreviewed` with `is_free=True`, both `ALLOW_PAID_PROVIDER_ROUTING` values,
+and a reviewed-free positive control. The narrow EODHD zero-credit account
+usage exception remains separately tested. The full provider-runtime unit file
+passed 79/79 locally; these changes are not yet included in the source/CI
+receipts above. No provider HTTP call or quota use occurred.
+
 ## Most recent no-transport operation holds
 
 At 2026-10-16 04:48:53Z, exact-source preflight of `f614621` made zero requests.

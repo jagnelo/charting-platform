@@ -314,7 +314,10 @@ def provider_entitlement_admission(
 
     The checkpoint accepts only explicitly reviewed free plans. Temporary
     trials are denied even when represented as free because their post-trial
-    cost is not a durable zero-cost entitlement. Outside checkpoint mode,
+    cost is not a durable zero-cost entitlement. Review evidence is either an
+    exact match to the current provider/capability seed or an explicit
+    ``reviewed-`` / ``-operator-reviewed`` plan label; a truthy free flag or
+    arbitrary non-empty label is not evidence. Outside checkpoint mode,
     reviewed paid plans retain the separate full-roadmap opt-in.
     """
 
@@ -326,6 +329,24 @@ def provider_entitlement_admission(
     paid_enabled = settings.ALLOW_PAID_PROVIDER_ROUTING if allow_paid is None else allow_paid
     plan = str(entitlement.configured_plan or "").strip().lower()
     is_free = entitlement.is_free is True
+    plan_markers = set(plan.replace("_", "-").split("-"))
+    plan_is_unreviewed = not plan or bool(plan_markers.intersection({"unreviewed", "unknown"}))
+    normalized_plan = plan.replace("_", "-")
+    explicit_review_label = normalized_plan.startswith("reviewed-") or normalized_plan.endswith(
+        "-operator-reviewed"
+    )
+    configured_plan_match = False
+    if provider_name is not None and capability is not None:
+        configured_seed = _entitlement_seed(provider_name, capability)
+        seeded_plan = str(configured_seed.get("configured_plan") or "").strip().lower()
+        seeded_markers = set(seeded_plan.replace("_", "-").split("-"))
+        configured_plan_match = bool(
+            seeded_plan
+            and seeded_plan == plan
+            and not seeded_markers.intersection({"unreviewed", "unknown"})
+            and configured_seed.get("is_free") is is_free
+        )
+    has_reviewed_plan_evidence = explicit_review_label or configured_plan_match
     plan_mismatch = False
     if provider_name in {"fmp", "tiingo"} and capability is not None:
         configured_seed = _entitlement_seed(provider_name, capability)
@@ -338,11 +359,12 @@ def provider_entitlement_admission(
             # Keep the persisted review intact for diagnostics; fail closed
             # until the seed refresh or operator configuration is reconciled.
             plan_mismatch = True
-    plan_markers = set(plan.replace("_", "-").split("-"))
-    if not plan or plan_markers.intersection({"unreviewed", "unknown"}):
+    if plan_is_unreviewed:
         allowed, reason = False, "entitlement_unreviewed"
     elif plan_mismatch:
         allowed, reason = False, "provider_plan_config_mismatch"
+    elif not has_reviewed_plan_evidence:
+        allowed, reason = False, "entitlement_unreviewed"
     elif "trial" in plan:
         allowed, reason = False, "trial_cost_not_admissible"
     elif free_only and not is_free:

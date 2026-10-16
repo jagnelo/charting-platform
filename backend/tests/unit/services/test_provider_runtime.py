@@ -1690,24 +1690,88 @@ async def test_free_only_checkpoint_boundary_rejects_reviewed_paid_provider(db, 
         assert paid_status["entitlement_admission"]["reason_code"] == "checkpoint_free_only"
     assert transport_calls == []
 
-    # An affirmative `is_free` bit does not make an unknown plan reviewed.
-    # Prove the shared admission, status, resolver, and executor all fail
-    # closed under either paid-routing toggle.
-    for unknown_plan in ("unknown", "unknown-plan"):
-        entitlement.configured_plan = unknown_plan
+
+@pytest.mark.asyncio
+async def test_unrecognized_free_plan_evidence_fails_closed_across_runtime_surfaces(
+    db, monkeypatch
+):
+    """An affirmative free bit cannot turn an unrecognized plan into reviewed evidence."""
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "free_forever")
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 100)
+    monkeypatch.setattr(settings, "MARKETDATA_APP_API_KEY", "unit-test-key")
+    monkeypatch.setattr(
+        "app.services.provider_runtime.provider_missing_routing_controls",
+        lambda *_args, **_kwargs: [],
+    )
+    await seed_provider_runtime(async_db)
+
+    source = db.execute(select(DataSource).where(DataSource.name == "marketdata_app")).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == source.id,
+            ProviderEntitlement.capability == ProviderCapability.LATEST_PRICE,
+        )
+    ).scalar_one()
+    assert (
+        provider_entitlement_admission(
+            entitlement,
+            provider_name="marketdata_app",
+            capability=ProviderCapability.LATEST_PRICE,
+        )["allowed"]
+        is True
+    )
+    assert provider_entitlement_admission(
+        SimpleNamespace(configured_plan="unreviewed", is_free=True),
+        checkpoint_free_only=True,
+        allow_paid=True,
+    ) == {
+        "allowed": False,
+        "reason_code": "entitlement_unreviewed",
+        "configured_plan": "unreviewed",
+        "is_free": True,
+        "checkpoint_free_only": True,
+        "basis": "reviewed_provider_entitlement",
+        "plan_configuration_matches": True,
+    }
+
+    transport_calls = []
+    for plan in ("unknown", "unknown-plan", "mystery-plan"):
+        entitlement.configured_plan = plan
         entitlement.is_free = True
+        entitlement.revision += 1
+        await record_entitlement_revision(async_db, entitlement, change_reason="api_patch")
         for allow_paid in (False, True):
             monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", allow_paid)
-            decision = provider_entitlement_admission(entitlement)
-            assert decision["allowed"] is False
-            assert decision["reason_code"] == "entitlement_unreviewed"
-            denied_chain = await resolve_provider_chain(
+            admission = provider_entitlement_admission(
+                entitlement,
+                provider_name="marketdata_app",
+                capability=ProviderCapability.LATEST_PRICE,
+            )
+            assert admission["allowed"] is False, (plan, allow_paid)
+            assert admission["reason_code"] == "entitlement_unreviewed"
+
+            status = next(
+                row
+                for row in await list_provider_status(async_db)
+                if row["provider"] == "marketdata_app"
+                and row["capability"] == ProviderCapability.LATEST_PRICE.value
+            )
+            assert status["entitlement_state"] == "unreviewed", (
+                plan,
+                status["entitlement_admission"],
+            )
+            assert status["routing_eligible"] is False
+            assert status["entitlement_admission"]["reason_code"] == "entitlement_unreviewed"
+
+            chain = await resolve_provider_chain(
                 async_db,
                 ProviderCapability.LATEST_PRICE,
                 operation="get_current_price",
                 operation_cost_overrides={"marketdata_app": 1},
             )
-            assert all(item.provider_name != "marketdata_app" for item in denied_chain)
+            assert all(item.provider_name != "marketdata_app" for item in chain)
             with pytest.raises(RuntimeError, match="No enabled providers available"):
                 await execute_provider_call(
                     async_db,
@@ -1717,18 +1781,7 @@ async def test_free_only_checkpoint_boundary_rejects_reviewed_paid_provider(db, 
                     operation_cost_overrides={"marketdata_app": 1},
                     invoke=lambda *_args: transport_calls.append("called"),
                 )
-            unknown_status = next(
-                row
-                for row in await list_provider_status(async_db)
-                if row["provider"] == "marketdata_app"
-                and row["capability"] == ProviderCapability.LATEST_PRICE.value
-            )
-            assert unknown_status["entitlement_state"] == "unreviewed"
-            assert unknown_status["routing_eligible"] is False
-            assert unknown_status["entitlement_admission"]["reason_code"] == (
-                "entitlement_unreviewed"
-            )
-    assert transport_calls == []
+            assert transport_calls == []
 
     # Leaving checkpoint mode deliberately restores full-roadmap opt-in
     # semantics, without implying aggregate subscription-cost admission.
@@ -1751,7 +1804,7 @@ async def test_free_only_checkpoint_boundary_rejects_reviewed_paid_provider(db, 
     # even after deliberately leaving checkpoint mode and enabling paid plans.
     for plan, reason in (
         ("unreviewed-cost-profile", "entitlement_unreviewed"),
-        ("starter_trial", "trial_cost_not_admissible"),
+        ("reviewed-starter_trial", "trial_cost_not_admissible"),
     ):
         entitlement.configured_plan = plan
         entitlement.is_free = True
@@ -1885,6 +1938,7 @@ async def test_checkpoint_blocks_paid_unknown_and_trial_usage_probes_before_tran
             ("unreviewed", False),
             ("unknown-plan", True),
             ("unknown", True),
+            ("mystery-plan", True),
             ("starter_trial", True),
         ):
             entitlement.configured_plan = plan

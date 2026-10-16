@@ -3073,6 +3073,21 @@ remaining_gaps:
 progress:
   history:
     - >-
+      2026-10-16 unknown-plan evidence correction: coordinator review found
+      that an affirmative `is_free` bit plus an unfamiliar non-empty plan label
+      could be admitted despite existing literal `unknown`/`unreviewed` marker
+      checks. Admission now requires an exact current provider/capability seed
+      match with matching free/paid classification or an explicit
+      `reviewed-...` / `...-operator-reviewed` label. Runtime status, resolver,
+      and executor no-transport coverage now includes `unknown`, `unknown-plan`,
+      `mystery-plan`, and direct `unreviewed` with `is_free=True` under both
+      paid-toggle states, plus reviewed-free positive and existing EODHD
+      operation-only zero-credit positive control. Full provider-runtime unit
+      file passed 79/79; Ruff and diff checks passed; zero provider HTTP/quota
+      use. Previously running CI `38866335811` was preserved; its result is
+      pre-fix-source evidence only. Fresh exact-source CI is required after
+      publication.
+    - >-
       2026-10-16 07:12Z current-source checkpoint update: exact candidate
       `0111cc698ad8c03220b60725bdc2df68195d96e8` is clean/pushed and exact
       feature CI `38857046752` passed all required jobs; the Exhaustive
@@ -7565,11 +7580,15 @@ current_gate_checkpoint: >-
       acceptance; the cross-window UI failure remains with its frontend owner,
       and source-bound live evidence/CI status remain to be reconciled.
   next_action: >-
-    Coordinate repair of the three frontend-owned strict Study Lab visual
-    mismatches without editing frontend or sibling-owned files. Then rerun the
-    declared full local profile and exact-source CI, refresh the ICP1-7 packet
-    and enabled-versus-disabled operation inventory, and submit exact evidence
-    to the central coordinator for delegated conditional checkpoint acceptance.
+    Complete the unknown/unreviewed provider plan evidence fix and focused
+    validation; preserve the already-running CI attempt to terminal completion
+    and record its exact outcome without treating it as validation of this fix.
+    Publish this candidate and require exact-source CI. Then coordinate repair
+    of the three frontend-owned strict Study Lab visual mismatches without
+    editing frontend or sibling-owned files, rerun the declared full local
+    profile, refresh the ICP1-7 packet and enabled-versus-disabled operation
+    inventory, and submit exact evidence to the central coordinator for
+    delegated conditional checkpoint acceptance.
     Keep provider receipts bound to original source; refresh only operations
     admitted by reviewed-free contracts and current durable quota evidence.
     Preserve the complete roadmap and all queried data. The coordinator owns

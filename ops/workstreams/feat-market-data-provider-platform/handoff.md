@@ -1,5 +1,31 @@
 # feat/market-data-provider-platform
 
+## 2026-10-16 — unknown/unreviewed entitlement evidence correction
+
+- Coordinator review identified that an affirmative free flag plus an
+  unfamiliar non-empty plan label could be treated as reviewed. Literal
+  `unknown`/`unreviewed` markers were already denied, but arbitrary names lacked
+  provenance checks. Admission now requires an exact current
+  provider/capability seed match with the same free/paid classification, or an
+  explicit `reviewed-...` / `...-operator-reviewed` label. Unknown markers,
+  arbitrary names, and trials remain denied; reviewed paid opt-in remains
+  separate and cannot bypass free-only checkpoint mode.
+- New runtime tests cover `unknown`, `unknown-plan`, `mystery-plan`, and direct
+  `unreviewed` with `is_free=True`. Both paid-toggle states are exercised
+  through direct admission, provider status, resolver exclusion, and executor
+  transport denial. A configured reviewed-free plan is a positive control.
+- The exact EODHD exception remains distinct: only reviewed
+  `fetch_account_usage` with explicit zero daily-credit cost can bootstrap,
+  while request-rate units remain charged. The existing positive control and
+  account-usage negatives passed. Full provider-runtime unit file: 79/79;
+  Ruff check/format and `git diff --check` passed; no provider HTTP or quota
+  spend occurred.
+- Existing CI run `38866335811` is for pre-fix docs-only candidate `f798b6c`;
+  do not use it as validation of this code fix. Backend, frontend-unit and
+  branch-declared jobs passed; its Playwright job was still running. Preserve
+  the attempt to terminal completion, then publish this fix and require fresh
+  exact-source CI.
+
 ## 2026-10-16 07:12Z — current candidate and checkpoint disposition
 
 - Exact candidate `0111cc698ad8c03220b60725bdc2df68195d96e8` is clean and
