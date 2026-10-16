@@ -25531,6 +25531,15 @@ exact candidate receipts remain separate gates.
   `docker compose down -v`; generated database volumes and prior report
   artifacts remain preserved. No response archive, quota ledger, or provider
   data was cleaned or reset.
+- The initial attempt to relocate Docker-owned ignored outputs failed on
+  permission checks before removing the originals; it left an additional copy
+  of `frontend/test-results/` at
+  `/tmp/provider-playwright-artifacts.lbnZtw/test-results/`. The source
+  `frontend/test-results/` and `frontend/playwright-report/` remain present and
+  now report owner `root:root` (they reported `nobody:nogroup` before the
+  browser rerun). No ownership repair was attempted. A normal-user rerun may
+  still need that local artifact permission issue resolved; no tracked source
+  was affected.
 - Outcome: full local validation is red at `e2e-functional`; the current
   source is not ready for coordinator acceptance. The 22:55Z conditional
   checkpoint-acceptance delegation remains recorded and active, but required
