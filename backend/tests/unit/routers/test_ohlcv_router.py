@@ -130,7 +130,9 @@ class TestOHLCVRouter:
         )
 
         assert res.status_code == 404
-        assert "No OHLCV data available" in res.json()["detail"]
+        assert res.json() == {
+            "detail": f"No OHLCV data available for instrument '{instrument.symbol}' on D1."
+        }
 
     def test_refresh_coordination_failure_returns_retryable_503(
         self, client, auth_headers, instrument, monkeypatch
@@ -166,7 +168,7 @@ class TestOHLCVRouter:
         )
 
         assert res.status_code == 200
-        assert isinstance(res.json(), list)
+        assert res.json() == []
         assert calls == [{"allow_provider_fetch": False}]
 
     def test_transformed_local_only_skips_provider_hydration(

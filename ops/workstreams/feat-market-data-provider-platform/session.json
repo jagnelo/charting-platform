@@ -45,9 +45,6 @@
     "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
   },
   "dirty_paths": [
-    "backend/tests/unit/routers/test_coverage_router.py",
-    "backend/tests/unit/routers/test_ohlcv_router.py",
-    "backend/tests/unit/services/test_provider_runtime.py",
     "ops/workstreams/feat-market-data-provider-platform/checkpoint-review-packet.md",
     "ops/workstreams/feat-market-data-provider-platform/handoff.md",
     "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
@@ -78,15 +75,15 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "1236a367a1d81fba69bb85496e12a56ec22c9f56",
-  "implementation_sha": "1236a367a1d81fba69bb85496e12a56ec22c9f56",
+  "head": "51ebc7d45aa34d2e8790988778ee5e6eec14bdd7",
+  "implementation_sha": "51ebc7d45aa34d2e8790988778ee5e6eec14bdd7",
   "interrupted": false,
   "last_checkpoint": "2026-10-15T20:42:10.318662+00:00",
   "last_human_progress_update": "2026-10-16T11:12:47.867964+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue Provider-owned ICP2 aggregate recurring-cost and ICP6 producer/consumer contract work without browser/runtime changes or provider calls. Keep all quota-held/unreviewed/paid/trial routes disabled and do not spend for freshness. Preserve the full browser red result (256 passed, 2 failed, 2 expected skipped) and 104/104 visuals at source 1236a367; both focused reruns passed but do not resolve the failures. TC run 38930779878 on TC source 0c7bc1b8ce76a9761e4c20d02b4bb59d1591920f is terminal success for Branch-declared, Frontend Unit, Backend, and Playwright E2E; Exhaustive was skipped. Staging remains 0145b65992b8692ce69f82f804f83f6c8e551fea and no synchronized repair release was found. Do not rerun Provider browser tests until coordinator releases synchronized staging repair. Exact-source CI 38902818604 passed required standard jobs but skipped Exhaustive; this is not acceptance.",
+  "next_action": "Continue Provider-owned ICP2 aggregate recurring-cost contract work and ICP6 producer/consumer contracts without frontend or browser/runtime changes. Exact Actions 38937321525 on 51ebc7d45aa34d2e8790988778ee5e6eec14bdd7 is terminal-success for Backend, Frontend Unit, Branch-declared, and Playwright E2E; E2E selected 260 cases (151 passed, 109 skipped) with no test failures, retries, or flaky markers. The strengthened full-payload consumer contract tests pass 13/13 in the dirty worktree; exact-source CI remains required. Preserve the older full-browser red at 1236a367. Keep Provider browser validation held until coordinator release; repair run 38940886651 E2E remains in progress and staging remains 0145b65992b8692ce69f82f804f83f6c8e551fea. No provider HTTP or quota spend. Preserve all operation holds, the 334/334 bounded evidence, and the complete roadmap. No staging/sibling changes, paid/trial activation, deployment, or data cleanup.",
   "parent_branch": "staging",
-  "plan_hash": "86523234bc467da39390b9b7db47e4faf4d821109146c43b0421c5b8ee1319e4",
+  "plan_hash": "a5450151535fda703a1207087b698234b914cfd0f78009379ead0396f2cd6e42",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -116,14 +113,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "At source 1236a367a1d81fba69bb85496e12a56ec22c9f56, hosted CI 38902818604 passed required standard jobs (Exhaustive skipped). Full seeded Playwright 260-case selection remains red: 256 passed, F9e-easyscan-builder-keyboard and F8s-family-matrix failed, 2 expected live-canonical cases skipped; visual 104/104 passed unchanged threshold. Both focused reruns passed 2/2, diagnostic only. TC owns both browser repairs; TC run 38930779878 on source 0c7bc1b8ce76a9761e4c20d02b4bb59d1591920f is terminal success for Branch-declared, Frontend Unit, Backend, and E2E; Exhaustive was skipped. Staging still points to 0145b65992b8692ce69f82f804f83f6c8e551fea and no synchronized repair release is recorded; do not rerun browser selection until that release. Provider checkpoint acceptance remains open. ICP2 audit found recurring-cost/account inputs absent from current provider-scoped entitlement model; a quota-ledger sum cannot enforce aggregate subscription spend. The approved contract remains full-roadmap Provider work, not implemented or checkpoint acceptance. ICP6 producer success/unavailable evidence and downstream ownership are documented. Dirty-candidate tests: provider_runtime.py 79/79; provider_routing.py plus test_providers_router.py 43/43; focused OHLCV router contract tests 2/2. These are bounded unit results, not full profile or exact-source CI. Sibling adapters remain post-staging owner work. Preserve all live-operation holds.",
-    "current_phase": "post-exact-source-ci-and-full-browser-diagnostic",
-    "next_action": "Continue Provider-owned ICP2 aggregate recurring-cost and ICP6 producer/consumer-contract work without browser/runtime changes or provider calls. ICP2 plan now records a durable opaque provider billing-account/environment commitment contract, cross-key deduplication, exact recurring price/currency/interval/post-trial evidence, fail-closed unknown and mixed-currency handling, atomic active+proposed admission, and required concurrency/restart/state tests; implementation remains open and cannot authorize paid activation. ICP6 now has tested retained-bar success, ready/partial/missing coverage, local-only empty 200 [], and provider-backed no-data 404; coverage/OHLCV router suites passed 13/13 and Ruff check/format passed on the dirty candidate. Continue only bounded non-browser/non-transport work while assigned Compose stacks run. Preserve full seeded browser red result at source 1236a367 (256 passed, 2 failed F9e/F8s, 2 expected skips; visuals 104/104); TC owns both fixes and TC run 38930779878 standard jobs including E2E succeeded, Exhaustive skipped. Wait for a synchronized coordinator staging repair release before any Provider browser rerun. Keep all provider holds; no HTTP/quota spend, staging mutation, deployment, paid/trial activation, or data cleanup.",
+    "current_blocker": "Provider HEAD and origin are synchronized at 51ebc7d45aa34d2e8790988778ee5e6eec14bdd7. Exact Actions run 38937321525 is terminal-success for Backend, Frontend Unit, Branch-declared, and Playwright E2E; E2E selected 260 cases (151 passed, 109 skipped) with no test failures, retries, or flaky markers. The prior full seeded Provider browser matrix remains red at 1236a367 (256 passed, F9e/F8s failed, 2 expected live skips; 104 visuals passed); TC owns both fixes. Shared repair run 38940886651 on c9127042fa25aaed687dc59787bff607e68338f4 has Backend, Frontend Unit, and Branch-declared green but E2E remains in progress; staging is still 0145b65992b8692ce69f82f804f83f6c8e551fea. Keep Provider browser validation held. Continue Provider-owned ICP2 aggregate recurring-cost contract work and ICP6 producer/consumer contract work without browser/runtime changes. AC-RECURRING-COST remains not_started. Preserve live-operation holds and the full roadmap.",
+    "current_phase": "provider-icp2-icp6-continuation-after-exact-ci",
+    "next_action": "Continue Provider-owned ICP2 aggregate recurring-cost contract work and ICP6 producer/consumer contracts without frontend/browser-runtime changes. The strengthened full-payload consumer tests pass 13/13 in the dirty worktree; exact-source CI remains required. Repair run 38940886651 E2E is in progress and staging remains 0145b65992b8692ce69f82f804f83f6c8e551fea, so hold Provider browser validation until synchronized coordinator release. Preserve the terminal Provider CI result and older red full browser result. No provider HTTP or quota spend. Preserve the 334/334 bounded tests, six quarantined groups, and full roadmap. No staging/sibling changes, paid/trial activation, deployment, or data cleanup.",
     "total": 7,
-    "updated_at": "2026-10-16T17:06:03Z"
+    "updated_at": "2026-10-16T17:54:07Z"
   },
-  "remote": "1236a367a1d81fba69bb85496e12a56ec22c9f56",
-  "remote_sha": "1236a367a1d81fba69bb85496e12a56ec22c9f56",
+  "remote": "51ebc7d45aa34d2e8790988778ee5e6eec14bdd7",
+  "remote_sha": "51ebc7d45aa34d2e8790988778ee5e6eec14bdd7",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-provider-validation-1236-20261016 and provider-playwright-1236-hostaccess-20261016 remain running/preserved; no stop, reset, prune, or cleanup. Browser runner returned to sleep service after focused checks."

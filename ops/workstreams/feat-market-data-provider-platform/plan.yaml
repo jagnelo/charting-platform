@@ -186,6 +186,46 @@ integration_checkpoint:
   operational_trial_authorized: false
   operational_trial_timing: "After integration on a separately authorized combined test deployment; this checkpoint does not start the trial. Retain the 30-day duration, daily/final reports, 99% eligible D1 coverage target, discrepancy analysis, and zero silent identity/quota violations as roadmap acceptance gates."
   latest_evidence_snapshot: >-
+    Current evidence as of 2026-10-16 17:49Z supersedes older dated snapshots
+    below. Provider HEAD/origin are `51ebc7d45aa34d2e8790988778ee5e6eec14bdd7`.
+    Hosted Actions `38937321525` is terminal-success for Backend, Frontend
+    Unit, Branch-declared, and Playwright E2E; Exhaustive was skipped by the
+    feature-push workflow. E2E selected 260 cases (151 passed, 109 skipped);
+    log review found no failed tests, Playwright retries, or flaky markers.
+    TC `38930779878` is terminal-success for standard jobs including E2E;
+    staging remains
+    `0145b65992b8692ce69f82f804f83f6c8e551fea`, with no synchronized repair
+    release. Provider's full seeded browser result at `1236a367` remains red
+    (256 passed, F9e/F8s failed, 2 expected live skips; 104 visuals passed).
+
+    Shared repair Actions `38940886651` on
+    `c9127042fa25aaed687dc59787bff607e68338f4` has Backend, Frontend Unit,
+    and Branch-declared success, while Playwright E2E remains in progress and
+    Exhaustive is skipped. A read-only GitHub branch lookup confirms staging
+    is still `0145b65992b8692ce69f82f804f83f6c8e551fea`; no Provider browser
+    rerun or repair import is authorized yet.
+
+    Exact-source no-transport preflight `2026-10-16T17:35:14Z` evaluated 27
+    providers using the persistent private quota coordinator through the
+    already-assigned Provider backend environment. Its read/write health check
+    succeeded. It reported 21 providers with policy and combined-manifest
+    headroom and six provider-specific quarantine groups: CTA Plan, EODHD,
+    Nasdaq (directory headroom below full-manifest reservations); Dinari
+    (missing reviewed Sandbox quota/reset/cost contract); Marketstack (OHLCV
+    headroom plus unresolved discovery bounds); and Tiingo (unreviewed plan and
+    unknown hour/day baselines). It made zero provider HTTP requests and spent
+    no quota. Preflight does not reserve quota or constitute live success;
+    each subsequently authorized operation still needs fresh durable admission.
+    The earlier 17:30 sandbox-only failure remains in its own receipt and is
+    superseded for coordinator availability by this successful shared-store
+    check.
+
+    The exact pushed source has 334/334 bounded ICP2/ICP6 unit cases across two
+    runs. The Provider workstream checker validates 34 records. ICP6 tested
+    response examples and downstream owners are in `consumer_contract_examples`;
+    AC-RECURRING-COST remains not_started full-roadmap work. No current-source
+    provider live success, full local profile, or checkpoint acceptance exists.
+
     Coordinator full-browser run's retained Playwright artifacts are now
     terminal: its pinned script verifies application/frontend source against
     `d0fc689c91f2dedf8dcf42a17a802abda37883d3`, runs the full functional
@@ -464,7 +504,12 @@ integration_checkpoint:
       callable: "await app.services.provider_runtime.execute_provider_call(db, capability, operation, *, provider_name, operation_cost_overrides, invoke, ...)"
       invocation_contract: "invoke is a synchronous callable (provider, provider_symbol) -> value; the runtime executes it in a worker thread with copied telemetry context. Async callbacks are not awaited and are not supported by this contract."
       success_shape: "ProviderExecutionResult(provider_name, data_source, policy, health, result, response_payloads); response payload retention is enabled by default."
+      success_test: backend/tests/unit/services/test_provider_runtime.py::test_execute_provider_call_persists_transport_measurement
       unavailable_shape: "If no usable provider response remains for an instrument, ProviderNoDataError is raised; unknown/exhausted quota is denied before invoke. Consumers must preserve unavailable/partial status rather than substitute guessed or stale data."
+      unavailable_tests:
+        - backend/tests/unit/services/test_provider_runtime.py::test_execute_provider_call_reports_quota_denial_before_transport
+        - backend/tests/unit/services/test_provider_runtime.py::test_unreviewed_provider_entitlement_is_not_runtime_usable
+        - backend/tests/unit/routers/test_ohlcv_router.py::TestOHLCVRouter::test_no_provider_data_returns_404
       ownership_remainder: "ETF owns its post-staging async/per-attempt adapter bridge and page/retry accounting; TC2000 and Strategy Lab v2 own consumer-specific wiring. This checkpoint does not claim async invoke support or completed sibling integration."
     series_success:
       endpoint: "GET /ohlcv/{symbol}/{timeframe}?local_only=true"
@@ -480,6 +525,11 @@ integration_checkpoint:
           is_adjusted: true
     coverage_with_missing_data:
       endpoint: "GET /coverage/instruments/{symbol}/ohlcv?timeframe=D1&start=...&end=..."
+      status: partial
+      test: backend/tests/unit/routers/test_coverage_router.py::TestCoverageRouter::test_exposes_provider_neutral_range_readiness_and_bounded_slices
+      contract_assertion: >-
+        The test compares the complete serialized response, including requested
+        and covered bounds, exact missing slice, explanation, and provenance.
       response_shape:
         instrument_id: 42
         symbol: EXAMPLE
@@ -501,14 +551,68 @@ integration_checkpoint:
       endpoint: "GET /coverage/instruments/{symbol}/ohlcv?timeframe=D1&start=...&end=..."
       status: ready
       response_fields: [instrument_id, symbol, timeframe, status, covered_start, covered_end, bar_count, missing_slices, provenance]
+      response_shape:
+        instrument_id: 42
+        symbol: EXAMPLE
+        timeframe: D1
+        adjusted: true
+        mode: historical
+        requested_start: "2026-01-02T00:00:00Z"
+        requested_end: "2026-01-02T00:00:00Z"
+        status: ready
+        covered_start: "2026-01-02T00:00:00Z"
+        covered_end: "2026-01-02T00:00:00Z"
+        bar_count: 1
+        missing_slices: []
+        provenance: canonical_local_database
       test: backend/tests/unit/routers/test_coverage_router.py::TestCoverageRouter::test_exposes_fully_covered_range_without_provider_routing
+      contract_assertion: >-
+        The test compares the complete serialized response, including bounds,
+        empty missing_slices, explanation, and canonical-local provenance.
       note: "A ready response describes retained canonical local coverage only; this endpoint does not route to or query a provider."
     coverage_missing:
       endpoint: "GET /coverage/instruments/{symbol}/ohlcv?timeframe=D1&start=...&end=..."
       status: missing
       response_fields: [instrument_id, symbol, timeframe, covered_start, covered_end, bar_count, missing_slices, provenance]
       test: backend/tests/unit/routers/test_coverage_router.py::TestCoverageRouter::test_exposes_missing_range_without_provider_routing
+      contract_assertion: >-
+        The test compares the complete serialized response, including requested
+        bounds, null covered bounds, missing slice, explanation, and provenance.
       note: "A missing response is distinct from partial coverage and reports the requested range as unavailable without provider routing."
+      response_shape:
+        instrument_id: 42
+        symbol: EXAMPLE
+        timeframe: D1
+        adjusted: true
+        mode: historical
+        requested_start: "2026-01-02T00:00:00Z"
+        requested_end: "2026-01-02T00:00:00Z"
+        status: missing
+        covered_start: null
+        covered_end: null
+        bar_count: 0
+        missing_slices:
+          - start: "2026-01-02T00:00:00Z"
+            end: "2026-01-02T00:00:00Z"
+        provenance: canonical_local_database
+    series_unavailable:
+      endpoint: "GET /ohlcv/{symbol}/{timeframe}"
+      status_code: 404
+      response_shape:
+        detail: "No OHLCV data available for instrument 'EXAMPLE' on D1."
+      test: backend/tests/unit/routers/test_ohlcv_router.py::TestOHLCVRouter::test_no_provider_data_returns_404
+      contract_assertion: >-
+        The test compares the exact 404 detail payload; retryable
+        refresh-coordination 503 is tested separately.
+      note: "This means no provider returned usable data. It is distinct from local_only=true returning an empty array and from a retryable provider-capacity/refresh-coordination 503."
+    series_empty_local_only:
+      endpoint: "GET /ohlcv/{symbol}/{timeframe}?local_only=true"
+      status_code: 200
+      response_shape: []
+      test: backend/tests/unit/routers/test_ohlcv_router.py::TestOHLCVRouter::test_local_only_skips_provider_hydration
+      contract_assertion: >-
+        The test asserts an exact empty array and verifies fetch_ohlcv_latest
+        was called with allow_provider_fetch=false.
     unresolved_identity:
       canonical_only_request: "GET /instruments/{symbol}?canonical_only=true"
       not_found_response_shape:
@@ -5941,37 +6045,60 @@ progress:
       request was made, and the historical live receipt remains source-bound.
   completed: []
   total: 7
-  current_phase: post-released-staging-merge-bounded-checks-and-exact-ci
+  current_phase: exact-source-ci-live-preflight-and-checkpoint-contract-review
   current_blocker: >-
-    Provider has reconciled only released staging SHA
-    `0145b65992b8692ce69f82f804f83f6c8e551fea` as local merge commit
-    `ca86eaf147f391829fb9f060b43633b1bb8b79b2`; the tree is clean, but this
-    merge and its bounded-test receipt are not yet pushed. Four shared paths
-    auto-merged without textual conflict and were audited semantically. Exact
-    merged-source tests passed: research-runner 106/106 with
-    `OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1`, staging workflow 64/64,
-    inherited popup/flaky frontend units 10/10, Provider runner admission
-    144/144. An uncapped research-runner invocation ended during the statsmodels
-    OLS case without pytest summary; the cause remains unknown, while the full
-    unchanged file passes with numerical-library parallelism constrained. No
-    provider HTTP or quota use occurred. Exact-source CI and full local profile
-    on the merged Provider candidate remain pending; older red CI at
-    `03bafd6` is not evidence about `ca86eaf`. The coordinator's staging CI
-    `38896729111` remains green for staging only and does not accept a Provider
-    product checkpoint. Keep held operations untouched.
-    Retain quota holds and historical source-bound receipts; no provider
-    traffic, deployment, paid/trial activation, operational trial, or data
+    Provider HEAD and origin are synchronized at
+    `51ebc7d45aa34d2e8790988778ee5e6eec14bdd7`. Exact CI run `38937321525`
+    has Backend, Frontend Unit, and Branch-declared successful; Playwright E2E
+    remains in progress, and Exhaustive is skipped by the push-triggered
+    workflow. TC run `38930779878` is terminal-success for standard jobs
+    including E2E, but GitHub staging is still
+    `0145b65992b8692ce69f82f804f83f6c8e551fea`; do not rerun Provider browser
+    validation before a synchronized coordinator repair release. The last
+    Provider full seeded browser matrix remains red on `1236a367` (256 passed,
+    F9e/F8s failed, 2 expected live skips; visuals 104/104 passed).
+
+    The latest full-matrix preflight at 17:35Z accessed the persistent quota
+    coordinator through the existing Provider backend environment and passed
+    its read/write health check. It found 21 providers with policy and
+    combined-manifest headroom and quarantined six groups: CTA Plan, EODHD and
+    Nasdaq due insufficient directory headroom; Dinari due incomplete reviewed
+    Sandbox quota/reset/cost; Marketstack due monthly OHLCV headroom and
+    unresolved discovery costs; Tiingo due unreviewed plan and unknown
+    hour/day baselines. It made zero provider HTTP requests and spent no quota.
+    The preflight does not reserve usage or prove integration success; a fresh
+    operation-level reservation is still required before any separately
+    authorized transport. The earlier host-shell read-only failure is retained
+    historically and is not a current global coordinator blocker.
+
+    ICP6 now has test-linked `ready`, `missing`, and provider-backed no-data
+    response examples; downstream wiring remains owned by ETF, TC2000, and
+    Strategy Lab after Provider's green staging checkpoint. The 334 bounded
+    ICP2/ICP6 unit cases pass on `51ebc7d` across two runs. Aggregate recurring
+    subscription-cost admission remains `AC-RECURRING-COST: not_started` and is
+    full-roadmap work; quota accounting and the free-only routing boundary do
+    not satisfy it. Provider checkpoint acceptance and the full local profile
+    remain open. Preserve all quota holds, response data, and source-bound
+    receipts; no paid/trial activation, deployment, integration, reset, or
     cleanup is authorized.
   next_action: >-
-    Finish validation and commit/push the merged-source packet. Inspect exact
-    hosted CI for the pushed Provider tip. Run the no-transport durable quota
-    preflight, then validate only operations currently admitted with adequate
-    headroom; do not replay held providers. Continue ICP2 aggregate recurring
-    cost governance and ICP6 tested producer success/unavailable contracts, then
-    complete the required exact-tip full local profile and hosted CI. Do not
-    repeat the terminal104-case visual component or spend quota solely for
-    freshness. Preserve the complete roadmap and every held/disabled operation
-    disposition.
+    Continue Provider-owned ICP2 aggregate recurring-cost contract work and
+    ICP6 producer/consumer contracts without frontend or browser/runtime
+    changes. Preserve the exact terminal Actions result for `38937321525`
+    (151 passed, 109 skipped, no test failures/retries/flakes) and the older
+    full-browser red result at `1236a367`. Keep the Provider full browser
+    profile held until the coordinator releases synchronized staging repair;
+    TC owns F9e/F8s fixes. Do not run a competing local stack. Continue
+    operation-disposition work without provider HTTP or quota spend.
+    The persistent shared quota coordinator is currently available through the
+    assigned backend environment; preserve its state. Do not spend quota while
+    the no-provider-HTTP direction stands. Once the coordinator releases the
+    synchronized browser repair and live-test authority permits, perform fresh
+    per-operation admissions before transport, complete the exact-source full
+    local profile and CI/live gates, and present the complete packet for review.
+    Preserve all roadmap criteria, source-bound receipts and queried data. No
+    feature-agent staging merge, paid/trial activation, deployment, ledger
+    reset, or data cleanup.
   previous_goal_blocker: >-
     Continued local implementation is not blocked by an owner decision. The
     prior staged candidate is `32dafe227755d7a890bfeb4d96ffc53542af7ba7`; its

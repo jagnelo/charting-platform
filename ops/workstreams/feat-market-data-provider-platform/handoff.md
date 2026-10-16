@@ -1,5 +1,108 @@
 # feat/market-data-provider-platform
 
+## 2026-10-16 17:52Z — exact consumer response contracts strengthened
+
+- Provider-owned ICP6 tests now assert complete serialized payloads for
+  coverage ready, partial, and missing, plus the exact provider-backed no-data
+  404. This closes a test-oracle gap where several documented fields were not
+  asserted. No production runtime or frontend changed.
+- The post-format focused router selection passed 13/13. Ruff check/format and
+  diff check also pass. This is dirty-source evidence, not exact-commit proof;
+  exact CI and the full local profile remain required before review.
+- Repair run 38940886651 still has E2E in progress and staging is still
+  0145b65992b8692ce69f82f804f83f6c8e551fea; continue holding the Provider
+  browser matrix and preserve all live-operation holds.
+
+## 2026-10-16 17:49Z — repair release is not ready
+
+- Shared repair Actions `38940886651` on
+  `c9127042fa25aaed687dc59787bff607e68338f4`: Backend, Frontend Unit, and
+  Branch-declared succeeded; Playwright E2E is still running; Exhaustive is
+  skipped. GitHub `staging` remains
+  `0145b65992b8692ce69f82f804f83f6c8e551fea`. Do not start Provider browser
+  validation or import repair source before coordinator release.
+- Provider Actions `38937321525` remains terminal-success at exact source
+  `51ebc7d45aa34d2e8790988778ee5e6eec14bdd7` (151 E2E passed, 109 skipped,
+  no test failures/retries/flakes). This does not clear the earlier local
+  full-browser failure or accept the checkpoint.
+- Continue ICP2 aggregate-cost and ICP6 producer/consumer contract work within
+  the current no-browser/runtime-change boundary. No provider HTTP/quota spend.
+
+## 2026-10-16 17:43Z — exact CI and current continuation
+
+- Provider HEAD and origin are synchronized at
+  `51ebc7d45aa34d2e8790988778ee5e6eec14bdd7`. Exact Actions run
+  `38937321525` is terminal: Backend, Frontend Unit, Branch-declared, and
+  Playwright E2E succeeded; Exhaustive was skipped for the feature-push
+  workflow. E2E selected 260 cases (151 passed, 109 skipped); log review found
+  no failed tests, Playwright retries, or flaky markers.
+- TC run `38930779878` is green, but the coordinator has not released a
+  synchronized staging repair. TC owns the Add Tool readiness and benchmark
+  fixture fixes. Do not duplicate them or rerun Provider browser tests yet.
+  Keep full local browser validation held while the assigned Provider/TC
+  Compose stacks are active.
+- Continue Provider-owned ICP2 aggregate subscription-cost contract work and
+  ICP6 producer/consumer contract work. `AC-RECURRING-COST` is still
+  `not_started`; existing quota/free-only accounting is not that feature.
+  ICP6 producer shapes and unavailable behavior have test-linked examples;
+  downstream ETF/TC2000/Strategy wiring remains their post-staging ownership.
+- Preserve the 334/334 bounded exact-source tests and older red full-browser
+  result separately. No provider HTTP or quota spend, paid/trial activation,
+  staging/sibling mutation, deployment, or data cleanup occurred.
+
+## 2026-10-16 17:31Z — live-admission preflight result
+
+- Exact source `51ebc7d45aa34d2e8790988778ee5e6eec14bdd7` preflight evaluated
+  27 providers with zero HTTP requests and zero quota spend. No credential
+  names were missing, but this was **not** quota admission: the configured
+  private SQLite quota ledger is read-only to this sandbox, so no operation
+  obtained a fresh reservation. Do not switch to a temporary empty ledger.
+- Dinari Sandbox, Marketstack discovery, and Tiingo remain independently
+  quarantined for missing reviewed quota/cost profile, unresolved discovery
+  bounds, and unreviewed plan respectively. See the append-only preflight
+  receipt for all details.
+- Provider Actions `38937321525`: backend, frontend-unit and branch-declared
+  are green; E2E still running; Exhaustive skipped. TC `38930779878` is green
+  for standard jobs including E2E; staging is still
+  `0145b65992b8692ce69f82f804f83f6c8e551fea`, so Provider browser rerun remains
+  held. No quota/live success, full profile, or checkpoint acceptance is
+  implied.
+
+## 2026-10-16 17:27Z — ICP2/ICP6 continuation and exact CI state
+
+- Current Provider HEAD/origin: `51ebc7d45aa34d2e8790988778ee5e6eec14bdd7`.
+  Exact Actions `38937321525`: Backend, Frontend Unit, Branch-declared pass;
+  Playwright E2E remains in progress during stack startup; Exhaustive skipped.
+- TC's exact `38930779878` is now terminal-success for standard jobs including
+  E2E. Staging remains `0145b65992b8692ce69f82f804f83f6c8e551fea`; wait for a
+  synchronized coordinator release before rerunning Provider's still-red
+  historical full browser matrix. TC owns F9e/F8s fixes; do not duplicate or
+  change frontend code.
+- ICP6 plan examples now spell out ready/missing coverage and provider-backed
+  no-data response shapes, linked to their tests. This is producer contract
+  evidence only; ETF, TC2000 and Strategy Lab retain their downstream wiring.
+- ICP2's durable recurring-cost admission remains full-roadmap `not_started`;
+  quota accounting/free-only routing are not a cost ceiling. Keep unknown,
+  held, paid and trial routes disabled. Do not spend quota for freshness.
+- No browser/full-stack rerun, provider request, quota spend, staging/sibling
+  mutation, deployment, activation or data cleanup occurred in this update.
+
+## 2026-10-16 17:37Z — persistent ledger and current preflight
+
+- The 17:30 host-shell ledger error was sandbox-only. Read-only inspection of
+  the already-running Provider container found the same persistent private
+  ledger mounted there and zero unreconciled live receipts. Its 17:35:14Z
+  documented no-transport preflight passed quota-coordinator health/write
+  validation. It found 21 providers with full-manifest headroom and six
+  quarantined groups (CTA Plan, EODHD, Nasdaq, Dinari, Marketstack, Tiingo).
+  It made zero HTTP requests and spent no quota; no live reservation or success
+  was created. Exact per-provider reasons are in the preflight receipt.
+- Keep quota-held operations disabled and do not spend while the current
+  no-provider-HTTP direction stands. Do not use a separate temporary ledger.
+  Exact Provider CI `38937321525` still has Playwright running; staging remains
+  `0145b65992b8692ce69f82f804f83f6c8e551fea`. No Provider browser rerun before
+  the coordinator's synchronized repair release.
+
 ## 2026-10-16 16:00Z — current-source browser result and TC-owned diagnostic handoff
 
 Current Provider source is `1236a367a1d81fba69bb85496e12a56ec22c9f56`;
@@ -26370,3 +26473,42 @@ exact candidate receipts remain separate gates.
   migration-equivalence tests, and no implicit paid-activation authority.
 - All 34 workstream records passed `make branch-validate` after the change.
   No runtime or external provider behavior changed.
+
+## 2026-10-16 17:11Z — published candidate contract tests pass
+
+- Commit `51ebc7d45aa34d2e8790988778ee5e6eec14bdd7` is present in the feature
+  branch and its origin tracking ref. On that exact SHA, the complete
+  `test_provider_runtime.py`, `test_coverage_router.py`, and `test_ohlcv_router.py`
+  selection passed `92/92` in 110.78s; five third-party deprecation warnings
+  were emitted. No Docker/full-stack/browser or provider transport was used.
+- The repository's GitHub combined status endpoint returned an empty legacy
+  status list. Treat Actions state as unverified, not passed; no hosted CI run
+  ID has been established for this commit.
+- The old full seeded browser result remains red and held. Do not rerun it until
+  a synchronized coordinator staging repair is released. No checkpoint
+  acceptance is claimed.
+- After recording that result, `git diff --check`, session-JSON parsing, and
+  `make branch-validate` passed again; all 34 workstream records validated.
+  The validator still reports its non-fatal owner-private quota-directory and
+  optional `sed`-argument sandbox warnings.
+
+## 2026-10-16 17:15Z — exact-source routing/quota checks and stack boundary
+
+- Against pushed SHA `51ebc7d45aa34d2e8790988778ee5e6eec14bdd7`,
+  `test_provider_routing.py`, `test_providers_router.py`,
+  `test_provider_quota_contract.py`, and
+  `test_provider_quota_coordinator.py` passed `242/242` in 27.89s with five
+  third-party deprecation warnings. Together with the exact-source 92/92
+  runtime and coverage/OHLCV suites, this is 334 bounded ICP2/ICP6 unit cases
+  across two runs, not a full backend/integration/profile result.
+- Read-only `docker ps` confirmed the assigned Provider and TC stacks remain
+  active. Their containers and datasets were left untouched; no full-stack or
+  browser profile was launched.
+- GitHub Actions for this exact commit remain unverified. No provider request,
+  quota spend, staging/sibling mutation, deployment, paid/trial activation, or
+  cleanup occurred.
+- The durable ICP6 provider-execution example now links the exact success and
+  unavailable tests: retained `ProviderExecutionResult` success,
+  quota-denied-before-callback, unreviewed-entitlement exclusion, and the
+  provider-backed no-data `404`. All are included in the exact-source bounded
+  test evidence above.
