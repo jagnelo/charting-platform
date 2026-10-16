@@ -30,17 +30,24 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  As of 2026-10-16T06:16Z, TC remains TCP1-only accepted. The coordinator's
-  05:24 visual slot is CLOSED after raw-Noble run33850 stopped incomplete at
-  95/104 observed cases; it had no read-only DejaVu mount and is not visual
-  acceptance. Do not change fonts mid-matrix or rerun without a fresh sufficiently
-  long slot. The TC-owned Favorites slice now implements per-user persistence,
-  chart star, Quick List and Shift+V behavior, but needs exact-source backend/
-  browser validation; local backend TestClient hung before reaching its route.
-  Provider/ETF have not reached green product staging in the latest root receipt
-  (06:02Z), so do not reconcile/import their consumer work yet. Full normalized
-  visuals, upstream consumers, combined profile, exact CI, and complete V25
-  parity remain open.
+  At 2026-10-16T07:27Z TC remains TCP1-only accepted. Test-only reconciliation
+  f2dadcea092ddaa8340e611bd8cb28cc6d3550e3 is exact-source green on required CI
+  run38864400017: Frontend Unit, Branch-declared, Backend including
+  Testcontainers, and E2E jobs all succeeded; feature Exhaustive was skipped.
+  E2E logged189 passed,110 skipped and one retry-passing flaky unrelated Market
+  Map performance guard: first attempt expected `1 selected member: SPY` but
+  received empty text after a 5s assertion; its automatic retry passed. F8u-gauge,
+  F8x-capabilities and F8aa-favorites all appeared in the first attempt and not
+  in retries. Preserve the flake; do not weaken the assertion. All104 hosted
+  visual cases were skipped, not passes. The five changed E2E selection fixes
+  are exact-source verified for ordinary CI, but the performance observer is
+  now the next TC-owned functional diagnosis. Local run33850 remains partial raw
+  Noble95/104 without DejaVu; its slot is closed. Full normalized visuals need a
+  new sufficiently long coordinator slot and read-only DejaVu from launch. The
+  06:02Z coordinator receipt and independently checked remote refs still show
+  staging82d881e7 with no green Provider/ETF product release; refresh the root
+  receipt before dependency reconciliation. Consumer integration, combined
+  profile, and official V25 parity remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -1001,6 +1008,55 @@ current_checkpoint_status: >-
   combined profile, TCP5 clean review checkpoint, and official V25 parity
   remain open. No staging writes, sibling imports, runtime/data/account cleanup,
   screenshot-oracle/tolerance edits, or deployment/trial actions occurred.
+  Candidate publication (2026-10-16T06:21Z): source commit
+  1afe504d17d8adb3708f2bfc1c9f3f43f7e2f83a is pushed and is the current TC
+  branch tip. It contains the per-user Favorites API/model/migration, chart-star
+  and Shift+V UI, dedicated Quick List, backend route tests, focused frontend
+  coverage, and authenticated reload E2E F8v. It passed the full serial
+  frontend suite133/133 files and1254/1254 tests, type-check, production build,
+  backend Ruff/py_compile/alembic-head checks, scope guard and workstream
+  validation. Exact CI run38860684457 targets the full candidate SHA; Frontend
+  Unit, Branch-declared and Backend jobs succeeded; E2E is in progress and the
+  feature Exhaustive job is skipped. This is a live partial run, not a complete
+  validation pass yet. Older run38858169312 still targets da70fa5 and
+  cannot prove this candidate. TCP1 only is accepted; TCP2-TCP5 and V25 parity remain
+  open. No browser runtime, assigned data/accounts/services, screenshot refs,
+  sibling checkout, or staging branch was changed.
+  Terminal exact-source audit (2026-10-16T06:50Z): run38860684457 attempt1
+  matches full Favorites source1afe504d17d8adb3708f2bfc1c9f3f43f7e2f83a but
+  concludes FAILURE. Frontend Unit, Branch-declared and Backend jobs succeeded;
+  E2E reports188 passed,110 skipped, one persistent F8x-capabilities failure,
+  and one retry-passing F8u-gauge flake; F8v Favorites passed first attempt.
+  Hosted visual tests were skipped, not executed. Current uncommitted correction
+  updates the supported tool list, waits for the successful indicator-save
+  response before retaining F8u's unchanged menu-closed assertion, and renames
+  Favorites to F8aa-favorites to avoid duplicate F8v labels. New exact-source
+  validation is pending; this does not close TCP2 or checkpoint acceptance.
+  Exact-source E2E expectation reconciliation (2026-10-16T07:00Z): source-only
+  commit f2dadcea092ddaa8340e611bd8cb28cc6d3550e3 is pushed and synchronized.
+  It updates F8x's supported tool list for the delivered Favorites feature,
+  correlates F8u-gauge's unchanged menu-closed assertion with the ordinary
+  successful indicator-save response awaited by the component, and removes a
+  duplicate Playwright title. Collection found exactly those3 tests; TC scope
+  guard passed25 changed paths, workstream validation passed, JSON/JSONL and
+  diff checks passed. Exact Actions run38864400017 matches this source and is
+  active (Frontend Unit, Branch-declared, and Backend jobs in progress at
+  06:59Z); no terminal result is claimed. No browser or database runtime was
+  started locally. This is not TCP2 acceptance; keep TCP1 as the only accepted
+  criterion and preserve full visual, upstream, combined-profile, checkpoint,
+  and V25 roadmap requirements.
+  Terminal exact-source audit (2026-10-16T07:27Z): run38864400017 attempt1
+  matches full source f2dadcea092ddaa8340e611bd8cb28cc6d3550e3 and concludes
+  SUCCESS; Frontend Unit116853806747, Branch-declared116853806992, Backend
+  116853807084 including Testcontainers, and E2E116856407403 succeeded. E2E
+  reports189 passed,110 skipped, and1 flaky: the unrelated 10,000-cell Market
+  Map performance guard first expected `1 selected member: SPY` but got empty
+  text at its unchanged5s assertion; the automatic retry passed. F8u-gauge,
+  F8x-capabilities, and F8aa-favorites occurred in the first attempt, with no
+  retries for those tests. Feature Exhaustive116856408905 was skipped. All104
+  hosted visual cases were skipped, not passes; no pixel acceptance follows.
+  Retain the performance flake as next TC-owned functional diagnosis. The CI
+  job tore down only its charting-platform-ci containers, volumes, and network.
 historical_implementation_records:
   - "Added TC2000's documented HLC Bars style to the frontend chart contract and settings, drawing the existing OHLCV high-low range with a close tick and omitting the open tick. Ctrl+B now cycles HLC, OHLC, Candles, Line in that order. The focused renderer/workstation tests passed 45/45; the full serial frontend suite passed 130 files / 1,225 tests; vue-tsc/Vite build passed; authenticated F8k-direct-chart-style passed 1/1 across all four styles. The protected Help screenshot test failed against its unchanged baseline with 50,941 pixels / 3.0% difference (0.5% threshold); no visual baseline/policy was changed."
   - "Authenticated follow-up browser evidence supersedes the earlier unauthenticated CLI attempt: a unique account in the assigned TC stack was used to activate the chart, press `/`, and confirm the plot library reopened with its `Filter indicators` search focused. No account was created outside the branch stack; no other worktree changed. The account remains a test artifact in the assigned stack. The Help visual oracle was not rerun after this shortcut, and its protected baseline remains unchanged."

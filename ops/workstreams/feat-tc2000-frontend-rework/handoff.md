@@ -37,6 +37,50 @@ TCP3 Provider/ETF consumers, TCP4 combined profile, TCP5 review publication,
 and official V25 parity remain open. No staging/sibling worktree, assigned
 runtime, retained data/accounts, or listeners were touched.
 
+### Candidate publication — 06:21Z
+
+The Favorites source and its narrow scope/workstream records are now committed
+and pushed as `1afe504d17d8adb3708f2bfc1c9f3f43f7e2f83a`. Full serial frontend
+Vitest passed `133/133` files and `1,254/1,254` tests; production build and
+type-check passed; backend Ruff, compilation, Alembic single-head, scope guard,
+and workstream validation passed. Exact Actions run `38860684457` matches the
+full candidate SHA and was pending with no jobs provisioned at last read. The
+older `38858169312` targets `da70fa5` and cannot validate the Favorites code.
+Candidate publication is not checkpoint acceptance: backend integration and
+mounted-app F8v still depend on the exact run, while no local browser was
+started. The raw Noble visual run remains partial `95/104`; the visual slot is
+closed and the complete normalized matrix requires a fresh coordinator grant.
+Provider/ETF still have no green product staging release in the latest receipt;
+consumer reconciliation remains deferred. TCP1 is still the sole accepted
+criterion; TCP2–TCP5 and official V25 parity stay open.
+
+### Exact candidate CI progress — 06:24Z
+
+Run `38860684457` still matches the full
+`1afe504d17d8adb3708f2bfc1c9f3f43f7e2f83a` source SHA. Frontend Unit job
+`116842299544`, Branch-declared job `116842299738`, and Backend job
+`116842299799` have started and are currently in progress; E2E and Exhaustive
+jobs were not provisioned at the poll. These are live incomplete results, not
+passes. The previous `da70fa5` run remains a separate older source. The latest
+readable coordinator receipt is still 06:02:51Z: no Provider/ETF product
+baseline release, and the TC visual slot remains closed.
+
+At the 06:25Z follow-up, run `38860684457` still matches the full candidate
+SHA. Frontend Unit and Branch-declared jobs have succeeded. Backend unit tests
+also succeeded, including the new Favorites router tests; its Testcontainers
+integration-test step remains in progress. E2E has not yet been provisioned,
+so F8v's authenticated chart-star/reload/Quick-List behavior remains unverified.
+The local TestClient hang does not negate the successful exact-source backend
+unit job, but it remains an honest local-environment limitation.
+
+At the 06:30Z follow-up, Backend Tests job `116842299799` completed SUCCESS
+on the exact candidate; this includes both unit and Testcontainers integration
+steps. Frontend Unit `116842299544` and Branch-declared `116842299738` are also
+SUCCESS. E2E job `116844667112` is now in progress; the feature Exhaustive job
+`116844669090` is skipped by the branch workflow. The API route/integration
+coverage is now stronger; authenticated mounted-app F8v remains pending until
+the E2E result is terminal.
+
 ## 2026-10-16 — F9e native smooth-scroll flake cause reproduced
 
 Coordinator's independent actual-source-derived static Help DOM/CSS diagnostic
@@ -20440,4 +20484,130 @@ yet provisioned, so no complete run result is inferred. Earlier metadata runs
 last terminal application-source evidence remains `73fba9d4`/`38852207578`;
 it skipped all hosted visual cases. The latest coordinator receipt still
 contains no green Provider/ETF product release or new normalized visual slot.
+
+Follow-up Actions inspection at 06:31Z: exact candidate run `38860684457`
+still targets full SHA `1afe504d17d8adb3708f2bfc1c9f3f43f7e2f83a`. Frontend Unit,
+Branch-declared, and Backend jobs are terminal SUCCESS, including Backend unit
+and Testcontainers integration steps. E2E job `116844667112` remains in
+progress; feature Exhaustive job `116844669090` is skipped. No E2E/F8v outcome
+is inferred. The separate visual run `33850` remains raw Noble without the
+read-only DejaVu mount, stopped after 95/104 observed cases, and its slot is
+closed. Preserve that partial outcome; do not alter fonts mid-matrix or claim
+full104. A future complete normalized matrix requires a new sufficiently long
+coordinator slot, mounting only the verified DejaVu font directory read-only
+from the beginning. All screenshot references, 0.005 tolerance, and policies
+remain unchanged.
+
+## 2026-10-16 — Scoped cleanup of the expired visual fixture
+
+At 06:33Z, rechecked the exact four image IDs from temporary project
+`tc-visual-slot-20261016`. Each image still carried
+`charting.worktree.id=tc-visual-slot-20261016`, had only its corresponding
+temporary-project service tag, and had no container references. Removed only
+those four exact IDs with ordinary `docker image rm` (no force or prune):
+backend `60327e8daf2b`, worker `5b1d4c941e37`, frontend `9e96a0b4ef65`, and
+research-runner `e18fcfb641ff`. Post-removal inspect found all four IDs absent.
+Layer comparison showed shared base layers also referenced by Provider and/or
+the assigned TC images; those layers and all unrelated tags/images were
+preserved. The temporary fixture's containers, volumes, and network were
+already absent. No assigned services/data, diagnostic screenshots/source,
+browser artifacts, or sibling resources were changed. This closes only the
+expired fixture-image cleanup; it does not create a visual slot or acceptance.
+
+## 2026-10-16 — Exact Favorites candidate E2E audit and correction
+
+Exact Actions run `38860684457`, attempt 1, matches full source SHA
+`1afe504d17d8adb3708f2bfc1c9f3f43f7e2f83a` and has workflow conclusion
+FAILURE. Frontend Unit, Branch-declared, and Backend jobs succeeded. E2E job
+`116844667112` reports `188 passed`, `110 skipped`, one persistent failure, and
+one retry-passing flaky test; the feature Exhaustive job is skipped. The failed
+F8x-capabilities assertion expected the pre-Favorites menu contents while the
+actual accessible Add-tool menu correctly included the newly supported My
+Favorites item. The F8u-gauge flake observed the plots dialog still present at
+the 10-second closure assertion after selecting RSI. The component intentionally
+awaits `saveIndicatorsForInstrument()` before closing; the previous E2E observer
+did not correlate menu closure with that save's response, so the exact source of
+the intermittent delay is not proven by the failure log alone. The focused
+observer correction waits for the matching successful save response, then
+retains the menu-close assertion to distinguish persistence readiness from a
+closure defect. F8v Favorites
+passed on its first attempt, confirming chart membership survived reload and
+the item appeared in My Favorites Quick List. All110 hosted visual skips include
+the visual cases; no pixel acceptance is inferred.
+
+The current source delta is test-only: update the supported-tools expected list
+to include My Favorites; in F8u-gauge, wait for the ordinary successful
+`PUT /api/v1/instrument-indicators/{id}` response before retaining the same
+`chart-plots__menu` closed assertion; rename the new Favorites E2E title to
+`F8aa-favorites` because `F8v` is already used by the Boolean-column transfer
+flow. No assertion, test timeout, retry count, product source, visual oracle,
+tolerance, or screenshot policy was weakened. These focused corrections are
+not yet covered by exact-source CI. Next action is browser-test collection plus
+scope/workstream/diff checks, then publish this coherent source/record context
+and audit its exact-source E2E before any further source context.
+
+## 2026-10-16 — Published E2E expectation reconciliation
+
+The test-only correction is committed and pushed as
+`f2dadcea092ddaa8340e611bd8cb28cc6d3550e3`, synchronized with
+`origin/feat/tc2000-frontend-rework`. It adds the supported My Favorites surface
+to F8x's expected Add-tool list, waits for the successful ordinary indicator
+save response before keeping F8u-gauge's existing plots-menu-closed assertion,
+and renames the Favorites persistence flow to avoid the duplicate `F8v` title.
+Focused Playwright collection selected exactly these three tests. TC scope
+validation passed for 25 changed paths; workstream validation, JSON/JSONL
+parsing, and `git diff --check` passed. The first collection attempt from the
+repository root tried to reach npm and failed DNS; rerunning from `frontend/`
+used the installed Playwright and passed collection. No browser or database
+runtime was launched locally, and no assertions, timeouts, retries, visual
+references, or tolerances were weakened.
+
+Exact Actions run `38864400017` matches the full source SHA and is active. At
+06:59Z, Frontend Unit, Branch-declared, and Backend jobs were in progress; E2E
+had not yet appeared. The preceding run `38860684457` remains a terminal
+failure on the old source `1afe504d`; retain its `188 passed/110 skipped`, one
+persistent F8x assertion failure, one retry-passing F8u flake, and first-try
+Favorites success as historical evidence, not as validation of this fix. Audit
+the new run to terminal and inspect actual E2E retry/skip logs. The hosted visual
+suite is normally skipped unless opted in, so it cannot satisfy TCP2's strict
+104-profile matrix.
+
+TCP1 remains the only accepted checkpoint criterion. The 05:24 visual slot is
+closed; run33850 remains partial raw-Noble evidence at 95/104 without the
+read-only DejaVu mount. No normalized full visual run is authorized now. The
+latest root coordination receipt read is 06:02Z and contains no green Provider
+or ETF product staging release; refresh coordinator state before any consumer
+merge. Keep TCP2 full functional/visual evidence, TCP3 Provider/ETF consumer
+reconciliation, TCP4 combined validation, TCP5 checkpoint review, and all
+official V25 roadmap requirements open. No assigned services/data/accounts,
+port15190, sibling worktree, staging tree, or references were changed.
+
+## 2026-10-16 — Exact-source F8 correction CI audit
+
+Exact Actions run `38864400017`, attempt 1, matches the full pushed source SHA
+`f2dadcea092ddaa8340e611bd8cb28cc6d3550e3` and concludes SUCCESS. Frontend
+Unit `116853806747`, Branch-declared `116853806992`, Backend/Testcontainers
+`116853807084`, and E2E `116856407403` all succeeded. The feature Exhaustive
+job `116856408905` was skipped, as expected for a feature branch. E2E logs
+report `189 passed`, `110 skipped`, and `1 flaky` in 16.6m. The one retry-passing
+flake is outside the just-corrected tests: `workstation_performance.spec.ts:303`
+for 10,000-cell Market Map interaction. First attempt expected `1 selected
+member: SPY`, received empty text after the existing 5s assertion, then its
+automatic retry passed. F8u-gauge, F8x-capabilities, and F8aa-favorites all ran
+on the first attempt and do not appear in retries. Preserve the flake and its
+original assertion; diagnose it as the next TC-owned functional issue rather
+than claiming a zero-flake run.
+
+The `110` skips include all hosted screenshot profiles; these are not visual
+passes. The test corrections now have exact-source ordinary CI coverage, but
+TCP2 remains open for the full normalized104 local visual matrix and clean
+functional evidence. Run33850 is still only partial raw-Noble `95/104` without
+the DejaVu mount, and its granted slot is closed. No new local browser slot was
+used. Independently checked refs still show staging at `82d881e7`, Provider at
+`0111cc69`, and ETF at `8eccbdf`; no green Provider/ETF product baseline has
+been released. Refresh the coordinator receipt before dependency reconciliation.
+TCP1 only remains accepted; TCP2-TCP5 and official V25 parity are still open.
+The CI job removed only its isolated `charting-platform-ci` runtime; assigned
+TC services, retained accounts/data, diagnostic artifacts, sibling worktrees,
+staging, and screenshot references were untouched.
 
