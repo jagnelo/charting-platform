@@ -1,5 +1,47 @@
 # feat/market-data-provider-platform
 
+## 2026-10-16 09:23Z — current MD/Tiingo admission correction and browser evidence
+
+- MarketData.app and Tiingo plan decisions now gate the real live-probe runner
+  in every supported selection mode before the shared live-use lock or child
+  test process. MarketData.app uses the exact reviewed plan/credit pair and
+  trial expiry; an expired configured trial resolves to Free Forever's
+  100-credit/day tier, while active trials, malformed/unknown tiers and
+  reviewed paid tiers are denied under the approved free-only checkpoint.
+  Tiingo admits only the reviewed Starter free tier; paid Power is denied under
+  free-only and unrecognized tiers fail closed. The existing EODHD
+  operation-specific zero-credit account-usage exception remains separate.
+- Current real-runner tests: `backend/tests/unit/test_live_provider_runner.py`
+  passed 144/144 with both paid-toggle values, full/provider/case and supported
+  MarketData.app account-usage selection, asserting denied paths acquire no
+  lock and start no subprocess. Reviewed Free Forever, expired-trial fallback,
+  and Tiingo Starter positive controls pass. Ruff check, format check and
+  `git diff --check` pass. No provider transport or quota use occurred.
+- Seeded, pinned Playwright 1.62.1/Noble functional selection finished
+  153 passed, 106 expected skips and one failed, zero retries. The failure is
+  the real F8j popup-close cleanup race (test declared at
+  `flows.spec.ts:1465`, failing cleanup click at line1490); it is the same
+  coordinator-reported close cleanup issue and is not waived. The three
+  deterministic market-data fixture tests ran. The preceding wrong-upstream
+  attempt remains recorded separately at
+  `/tmp/provider-browser-20261016.gbn28D/functional-artifacts` and was not
+  counted as evidence. Current functional artifacts are in
+  `/tmp/provider-browser-20261016.gbn28D/functional-rerun-artifacts`.
+- The complete strict visual selection ran in the same seeded Noble runtime
+  with the read-only DejaVu system-font mount, fresh writable output, original
+  screenshot references/tolerance and retries disabled: 104/104 passed.
+  Artifacts are in `/tmp/provider-browser-20261016.gbn28D/visual-final-artifacts`.
+  The branch-scoped test stack remains up with provider egress denied; the
+  pinned browser container is terminal. The heavy validation slot is released
+  to the staging coordinator as requested. Do not start another full profile
+  until the coordinator publishes repaired green common staging.
+- This source is still not accepted: functional browser quality is red, exact
+  current-source CI and final frozen-source full profile remain outstanding.
+  The shared staging popup-cleanup repair is coordinator-owned; do not change
+  frontend or import its unmerged branch. No vendor calls are needed merely to
+  refresh receipts, held quotas/data remain untouched, and the provider branch
+  must not self-integrate.
+
 ## 2026-10-16 — unknown/unreviewed entitlement evidence correction
 
 - Coordinator review identified that an affirmative free flag plus an

@@ -3073,6 +3073,31 @@ remaining_gaps:
 progress:
   history:
     - >-
+      2026-10-16 09:23Z current MD/Tiingo live-runner correction and honest
+      browser disposition: the actual runner now applies effective account-plan
+      admission to MarketData.app and Tiingo in full/provider/case and supported
+      MarketData.app account-usage modes before lock/subprocess/transport.
+      Reviewed Free Forever, expired-trial-to-Free-Forever, and Tiingo Starter
+      are positive controls; current trial, paid under free-only, malformed or
+      unknown plans fail closed. EODHD's exact zero-credit usage exception is
+      unchanged. `test_live_provider_runner.py` passed 144/144; Ruff,
+      formatting and diff checks passed; no provider request/quota use occurred.
+      Correct seeded Playwright1.62.1 Noble functional matrix completed
+      153passed/106expected-skipped/1failed, zero retries: actual F8j
+      popup-close cleanup race at `flows.spec.ts:1465`, matching the common
+      staging quality hold. The three deterministic market-data fixtures ran.
+      Separate complete strict visual matrix passed 104/104 with the approved
+      DejaVu-font runtime, original references/tolerance, and zero retries.
+      Fresh artifacts remain under `/tmp/provider-browser-20261016.gbn28D/`;
+      the earlier mismatched-upstream attempt is preserved separately and is
+      not counted. Coordinator's shared popup/flaky-gate repair owns the F8j
+      fix. The browser process is terminal and the heavy local validation slot
+      was released to the coordinator; do not launch another full profile until
+      its repaired green common staging baseline is published. Current source
+      remains unaccepted: final frozen-source profile and exact-source CI are
+      pending. No provider calls, frontend changes, integration, paid/trial
+      activation or data cleanup occurred.
+    - >-
       2026-10-16 unknown-plan evidence correction: coordinator review found
       that an affirmative `is_free` bit plus an unfamiliar non-empty plan label
       could be admitted despite existing literal `unknown`/`unreviewed` marker

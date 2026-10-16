@@ -1,5 +1,80 @@
 # Provider integration checkpoint review packet
 
+## Current source state and latest evidence — 2026-10-16 09:23Z
+
+Current branch source is a dirty, in-progress candidate based on pushed
+`7884c132a924362f18da5f0b0a1d023cea7f97fe`; the latest provider runner and
+unit-test changes are not yet committed, so no current exact-source CI or final
+acceptance is claimed. The shared staging baseline `5768bec4...` remains on
+QUALITY HOLD: its Exhaustive test retried and then passed the F8j popup-close
+cleanup case. The central coordinator owns the narrow repair on
+`fix/staging-popup-validation` (`47e81ae5...`, clean metadata tip
+`0e68c021...`). Provider must not import that unmerged branch or edit frontend.
+
+Provider's runner change now evaluates MarketData.app and Tiingo effective-plan
+admission in every supported actual `main()` selection path, before lock,
+subprocess or transport. The actual runner unit file passed 144/144; both
+`ALLOW_PAID_PROVIDER_ROUTING` values were covered. MarketData.app Free Forever
+and expired-trial fallback, and Tiingo Starter, are positive plan controls;
+paid/current-trial/unknown or unreviewed plans fail closed in the free-only
+checkpoint. The EODHD exact zero-credit account-usage exception is unchanged.
+Ruff, format and diff checks passed. These are no-provider-transport tests,
+not live receipts.
+
+The correctly seeded Playwright 1.62.1/Noble functional matrix ended
+153passed/106expected-skipped/1failed, zero retries. The failure is the actual
+F8j popup-close cleanup race (test declared at `flows.spec.ts:1465`, failing
+cleanup click at line1490); do not waive it or confuse it with the separately
+reported earlier F8n cursor assertion. All three
+deterministic market-data fixture tests ran. The separate strict visual run
+passed 104/104, zero retries, using the established read-only DejaVu mount and
+unchanged references/tolerance. Functional, visual and earlier invalid-run
+artifacts are retained under `/tmp/provider-browser-20261016.gbn28D/`; the
+invalid upstream-mode attempt is not counted as evidence. Browser processes
+are terminal and the heavy local validation slot is released to the
+coordinator. Wait for its repaired green common staging baseline before any
+new full profile. No provider requests or quota consumption occurred.
+
+### Current provider-operation admission/disposition
+
+- No operation gained new live authorization from this change. Current-source
+  live receipts remain **none**; the 23-provider/62-case/151-request receipt
+  set below remains bound only to its historical candidate and must not be
+  rebound. Ordinary execution remains conditional on provider-specific
+  capability, credential, account-plan, terms, fresh quota/cost/baseline and
+  durable-ledger admission.
+- MarketData.app is plan-routable only for the reviewed Free Forever tier (an
+  expired configured trial resolves to its 100-credits/day tier). Active
+  trial, paid Starter/Trader in this free-only checkpoint, mismatched plan and
+  unknown plan are denied before external transport. Historical bounded free
+  reads are not a new current-source live receipt. Unbounded response-priced
+  option-history queries remain disabled because no finite request cost was
+  admitted.
+- Tiingo's reviewed Starter plan is plan-routable, but the provider remains
+  operationally held pending a fresh account-wide hourly/daily/bandwidth
+  baseline and quota admission. Power/paid, custom and unknown plans are
+  denied in this checkpoint. This runner change consumed no Tiingo quota.
+- Alpha Vantage remains held for insufficient daily headroom; Dinari Sandbox
+  remains held for incomplete reviewed reset and per-operation cost evidence;
+  Marketstack remains held after its reported monthly quota exhaustion and
+  unresolved directory page/MIC/cost contract. No call was made to any held
+  provider. These hold reasons are not generalized defaults.
+- Prior reviewed-free manifest evidence for other providers remains useful only
+  for the exact historical source and operation. Preserve established
+  no-route/disabled cases: CoinGecko Demo `/key` (Pro-only), Finnhub free stock
+  candles and FMP Basic stock-list discovery (observed entitlement denials),
+  FINRA generic asynchronous transport without an admitted dataset consumer,
+  restricted Bybit xStocks deployment egress, and user-deferred Tradier, IBKR
+  and Ondo. EODHD's `fetch_account_usage` is a narrowly reviewed
+  zero-daily-credit bootstrap with the separate request-rate charge; it is not
+  a provider-wide paid-plan exception.
+- Provider and downstream full-roadmap gaps remain explicit: complete NMS/OTC
+  lifecycle reconciliation, aggregate recurring-cost admission, consumer
+  adapter wiring, target-specific CI/deployment secret stores, remaining
+  provider live manifests, broader options/Greeks and any separately
+  authorized operational trial. None is silently marked complete by the
+  runner or browser tests.
+
 Status as of 2026-10-16 07:12Z: exact candidate `0111cc698ad8c03220b60725bdc2df68195d96e8`
 is clean and pushed. Its current-source full local profile passed workstream,
 dependency/lock, migration-head, lint/type, backend (2,796 unit plus 395

@@ -3849,6 +3849,186 @@ def test_fmp_account_plan_status_tracks_exact_plan_and_free_only_switch(
     assert status.startswith("routable") is routable
 
 
+@pytest.mark.parametrize("allow_paid", [False, True])
+def test_effective_free_plan_controls_admit_reviewed_free_and_expired_trial(
+    allow_paid,
+):
+    runner = _runner_module()
+    future_now = datetime(2026, 10, 16, tzinfo=UTC)
+
+    free_status = runner.marketdata_app_account_plan_routing_status(
+        "free_forever", 100, "", free_only=True, allow_paid=allow_paid, now=future_now
+    )
+    expired_trial_status = runner.marketdata_app_account_plan_routing_status(
+        "starter_trial",
+        10000,
+        "2026-10-15T18:09:00+00:00",
+        free_only=True,
+        allow_paid=allow_paid,
+        now=future_now,
+    )
+    tiingo_status = runner.tiingo_account_plan_routing_status(
+        "starter", free_only=True, allow_paid=allow_paid
+    )
+
+    assert free_status.startswith("routable")
+    assert "Free Forever" in expired_trial_status
+    assert expired_trial_status.startswith("routable")
+    assert tiingo_status.startswith("routable")
+    assert (
+        runner.live_provider_plan_admission_blockers(
+            {"marketdata_app"}, {"marketdata.app account plan": expired_trial_status}
+        )
+        == {}
+    )
+    assert (
+        runner.live_provider_plan_admission_blockers(
+            {"tiingo"}, {"tiingo account plan": tiingo_status}
+        )
+        == {}
+    )
+
+
+@pytest.mark.parametrize(
+    ("provider", "scope", "plan", "limit", "expiry"),
+    [
+        ("marketdata_app", "full", "starter", 10000, ""),
+        ("marketdata_app", "provider", "trader", 100000, ""),
+        ("marketdata_app", "case", "starter_trial", 10000, "2026-10-17T18:09:00+00:00"),
+        ("marketdata_app", "account_usage", "mystery", 0, ""),
+        ("tiingo", "full", "power", 0, ""),
+        ("tiingo", "provider", "custom", 0, ""),
+        ("tiingo", "case", "mystery", 0, ""),
+    ],
+)
+@pytest.mark.parametrize("allow_paid", ["false", "true"])
+def test_live_runner_denies_nonfree_effective_plans_before_lock_or_subprocess(
+    monkeypatch, capsys, tmp_path, provider, scope, plan, limit, expiry, allow_paid
+):
+    runner = _runner_module()
+    validation_path = tmp_path / "validation.jsonl"
+    validation_path.touch()
+    account_case = (
+        "test_marketdata_app_credentialed_account_usage_snapshot"
+        if provider == "marketdata_app"
+        else "test_tiingo_credentialed_account_usage_snapshot"
+    )
+    read_case = "test_optional_credentialed_provider_small_read"
+    case_selectors = [f"{provider}:{read_case}"] if scope == "case" else []
+    arguments = SimpleNamespace(
+        verify_candidate_receipts=None,
+        candidate_receipt_file=None,
+        allow_staged_candidate=False,
+        provider=None if scope == "full" else [provider],
+        case=case_selectors,
+        account_usage_only=scope == "account_usage",
+        dinari_sandbox_canary=False,
+        preflight_only=False,
+    )
+    monkeypatch.setattr(runner, "_arguments", lambda: arguments)
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
+    monkeypatch.setattr(runner, "DEFAULT_SHARED_ENV", tmp_path / "absent.env")
+    monkeypatch.setattr(runner, "load_dotenv", lambda *args, **kwargs: None)
+    monkeypatch.setattr(runner, "changed_provider_code", lambda: True)
+    monkeypatch.setattr(runner, "approved_live_deferrals", lambda: {})
+    monkeypatch.setattr(runner, "live_matrix_inventory_errors", lambda: [])
+    monkeypatch.setattr(
+        runner,
+        "LIVE_PROVIDER_CASES",
+        {
+            provider: (
+                ("test_market_data_providers_live.py", account_case),
+                ("test_market_data_providers_live.py", read_case),
+            )
+        },
+    )
+    monkeypatch.setattr(
+        runner,
+        "LIVE_CASE_OPERATIONS",
+        {provider: {account_case: {"fetch_account_usage"}, read_case: {"fetch_ohlcv"}}},
+    )
+    monkeypatch.setattr(runner, "LIVE_CASE_OPERATION_MULTIPLIERS", {})
+    monkeypatch.setattr(runner, "LIVE_OPERATION_DISPOSITIONS", {provider: {}})
+    monkeypatch.setattr(
+        runner, "LIVE_REQUIRED_OPERATIONS", {provider: {"fetch_ohlcv", "fetch_account_usage"}}
+    )
+    monkeypatch.setattr(runner, "LIVE_PROVIDER_SAFETY_DISPOSITIONS", {})
+    monkeypatch.setattr(runner, "LIVE_PREFLIGHT_ROUTING_CONTROLS", {provider: ()})
+    monkeypatch.setattr(runner, "CREDENTIALS", {provider: ()})
+    monkeypatch.setattr(runner, "KEYLESS", ())
+    monkeypatch.setattr(runner, "setting_is_configured", lambda _name: True)
+    monkeypatch.setattr(runner, "usage_scope_is_configured", lambda: True)
+    monkeypatch.setattr(runner, "durable_quota_preflight", lambda: (True, None))
+    monkeypatch.setattr(runner, "live_operation_quota_preflight", lambda *args, **kwargs: {})
+    monkeypatch.setattr(runner, "live_required_safety_blockers", lambda *args, **kwargs: {})
+    if provider == "marketdata_app":
+        status = runner.marketdata_app_account_plan_routing_status(
+            plan,
+            limit,
+            expiry,
+            free_only=True,
+            allow_paid=allow_paid == "true",
+            now=datetime(2026, 10, 16, tzinfo=UTC),
+        )
+        status_name = "marketdata.app account plan"
+    else:
+        status = runner.tiingo_account_plan_routing_status(
+            plan, free_only=True, allow_paid=allow_paid == "true"
+        )
+        status_name = "tiingo account plan"
+    monkeypatch.setattr(runner, "routing_safety_preflight", lambda: {status_name: status})
+    monkeypatch.setattr(runner, "_source_sha", lambda: "a" * 40)
+    monkeypatch.setattr(runner, "_dirty_source_paths", lambda: [])
+    monkeypatch.setattr(runner, "_workstream_validation_path", lambda: validation_path)
+    validation_calls = []
+    monkeypatch.setattr(
+        runner,
+        "_record_live_validation",
+        lambda **kwargs: validation_calls.append(kwargs) or "blocked",
+    )
+    monkeypatch.setattr(
+        runner,
+        "provider_live_run_lock",
+        lambda: (_ for _ in ()).throw(AssertionError("blocked plan acquired live lock")),
+    )
+    monkeypatch.setattr(
+        runner.subprocess,
+        "run",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("blocked plan started provider tests")
+        ),
+    )
+    monkeypatch.setenv("RUN_LIVE_PROVIDER_TESTS", "1")
+    monkeypatch.setenv("PROVIDER_FREE_ONLY_CHECKPOINT", "true")
+    monkeypatch.setenv("ALLOW_PAID_PROVIDER_ROUTING", allow_paid)
+
+    assert runner.main() == 2
+    output = capsys.readouterr().out
+    assert provider in output and "non-routable" in output
+    assert len(validation_calls) == 1
+    assert validation_calls[0]["exit_code"] == 2
+    assert validation_calls[0]["counts"]["case_count"] == 0
+    assert "required live capability safety" in validation_calls[0]["missing"]
+    assert any(
+        provider in blocker
+        for blocker in validation_calls[0]["missing"]["required live capability safety"]
+    )
+
+
+def test_live_runner_plan_gate_does_not_remove_eodhd_zero_credit_usage_path():
+    runner = _runner_module()
+
+    assert runner.live_provider_plan_admission_blockers({"eodhd"}, {}) == {}
+    assert (
+        runner.live_required_safety_blockers(
+            {"eodhd"},
+            {"eodhd": "non-routable: data-use terms not approved"},
+            account_usage_only=True,
+        )
+        == {}
+    )
+
+
 @pytest.mark.parametrize("scope", ["full", "case", "account_usage"])
 @pytest.mark.parametrize("allow_paid", ["false", "true"])
 def test_live_runner_main_blocks_paid_fmp_before_transport_for_each_scope(

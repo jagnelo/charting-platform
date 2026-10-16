@@ -1212,6 +1212,73 @@ def fmp_account_plan_routing_status(
     return f"routable: reviewed paid FMP {normalized} plan"
 
 
+def tiingo_account_plan_routing_status(
+    plan: str, *, free_only: bool, allow_paid: bool
+) -> str:
+    """Fail closed on unreviewed Tiingo tiers before any live probe starts."""
+
+    normalized = str(plan or "").strip().lower()
+    if normalized == "starter":
+        return "routable: reviewed Tiingo Starter free plan"
+    if normalized != "power":
+        return "non-routable: Tiingo plan is unrecognized or not individually reviewed"
+    if free_only:
+        return "non-routable: shared free-only checkpoint blocks paid Tiingo Power plan"
+    if not allow_paid:
+        return "non-routable: paid Tiingo Power plan requires ALLOW_PAID_PROVIDER_ROUTING=true"
+    return "routable: reviewed paid Tiingo Power plan"
+
+
+def marketdata_app_account_plan_routing_status(
+    plan: str,
+    daily_credit_limit: int,
+    expires_at: str,
+    *,
+    free_only: bool,
+    allow_paid: bool,
+    now: datetime | None = None,
+) -> str:
+    """Resolve the reviewed MarketData.app plan, including expired-trial fallback."""
+
+    normalized = str(plan or "").strip().lower()
+    plan_limits = {
+        "free_forever": 100,
+        "starter_trial": 10000,
+        "trader_trial": 100000,
+        "starter": 10000,
+        "trader": 100000,
+    }
+    expected_limit = plan_limits.get(normalized)
+    if expected_limit is None or daily_credit_limit != expected_limit:
+        return "non-routable: explicit reviewed MarketData.app plan/limit pair required"
+    if normalized.endswith("_trial"):
+        try:
+            expiry = datetime.fromisoformat(
+                str(expires_at or "").replace("Z", "+00:00")
+            )
+        except ValueError:
+            expiry = None
+        if expiry is None or expiry.tzinfo is None:
+            return (
+                "non-routable: trial requires a timezone-aware "
+                "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT"
+            )
+        current = now or datetime.now(UTC)
+        if expiry.astimezone(UTC) <= current.astimezone(UTC):
+            return (
+                "routable: configured trial expired; effective quota automatically falls back to "
+                "Free Forever at 100 credits/day"
+            )
+        return "non-routable: temporary trial plans are not admitted"
+    if normalized in {"starter", "trader"}:
+        if free_only:
+            return "non-routable: shared free-only checkpoint blocks paid plans"
+        if not allow_paid:
+            return "non-routable: paid plan requires ALLOW_PAID_PROVIDER_ROUTING=true"
+        return "routable: paid plan reviewed"
+    return "routable: reviewed Free Forever plan"
+
+
 def active_live_provider_safety_dispositions() -> dict[str, str]:
     """Apply the owner's recorded private-use decision without hiding access limits."""
 
@@ -2754,71 +2821,48 @@ def routing_safety_preflight() -> dict[str, str]:
         else "non-routable: venue-wide page cost, monthly allowance/reset, or MIC is unresolved: "
         + ", ".join(dict.fromkeys(marketstack_discovery_missing))
     )
-    marketdata_plan = os.getenv("MARKETDATA_APP_REVIEWED_PLAN", "").strip().lower()
-    marketdata_limits = {
-        "free_forever": 100,
-        "starter_trial": 10000,
-        "trader_trial": 100000,
-        "starter": 10000,
-        "trader": 100000,
-    }
     try:
         marketdata_limit = int(
-            os.getenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "0").strip() or "0"
+            os.getenv(
+                "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT",
+                str(
+                    getattr(
+                        app_settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 0
+                    )
+                ),
+            ).strip()
+            or "0"
         )
     except ValueError:
         marketdata_limit = 0
-    expected_marketdata_limit = marketdata_limits.get(marketdata_plan)
-    marketdata_expiry_issue = False
-    trial_expired = False
-    if marketdata_plan.endswith("_trial"):
-        raw_expiry = os.getenv("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", "").strip()
-        try:
-            parsed_expiry = datetime.fromisoformat(raw_expiry.replace("Z", "+00:00"))
-        except ValueError:
-            parsed_expiry = None
-        marketdata_expiry_issue = parsed_expiry is None or parsed_expiry.tzinfo is None
-        trial_expired = bool(
-            parsed_expiry is not None
-            and parsed_expiry.tzinfo is not None
-            and parsed_expiry.astimezone(UTC) <= datetime.now(UTC)
-        )
-    marketdata_pair_valid = (
-        expected_marketdata_limit is not None
-        and marketdata_limit == expected_marketdata_limit
+    marketdata_plan = os.getenv(
+        "MARKETDATA_APP_REVIEWED_PLAN",
+        str(getattr(app_settings, "MARKETDATA_APP_REVIEWED_PLAN", "")),
     )
-    if marketdata_pair_valid and marketdata_expiry_issue:
-        result["marketdata.app account plan"] = (
-            "non-routable: trial requires a timezone-aware "
-            "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT"
-        )
-    elif marketdata_pair_valid and trial_expired:
-        result["marketdata.app account plan"] = (
-            "routable: configured trial expired; effective quota automatically falls back to "
-            "Free Forever at 100 credits/day"
-        )
-    elif marketdata_pair_valid and marketdata_plan.endswith("_trial"):
-        result["marketdata.app account plan"] = (
-            "non-routable: temporary trial plans are not admitted; use a separately "
-            "reviewed non-trial entitlement"
-        )
-    elif marketdata_pair_valid and marketdata_plan in {"starter", "trader"}:
-        if _env_bool("PROVIDER_FREE_ONLY_CHECKPOINT"):
-            result["marketdata.app account plan"] = (
-                "non-routable: shared free-only checkpoint blocks paid plans"
-            )
-        elif _env_bool("ALLOW_PAID_PROVIDER_ROUTING"):
-            result["marketdata.app account plan"] = "routable: paid plan reviewed"
-        else:
-            result["marketdata.app account plan"] = (
-                "non-routable: paid plan requires ALLOW_PAID_PROVIDER_ROUTING=true"
-            )
-    elif marketdata_pair_valid:
-        result["marketdata.app account plan"] = "routable"
-    else:
-        result["marketdata.app account plan"] = (
-            "non-routable: explicit reviewed plan/limit pair required"
-        )
+    configured_expiry = getattr(
+        app_settings, "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", None
+    )
+    raw_expiry = os.getenv(
+        "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT",
+        configured_expiry.isoformat()
+        if isinstance(configured_expiry, datetime)
+        else "",
+    )
+    result["marketdata.app account plan"] = marketdata_app_account_plan_routing_status(
+        marketdata_plan,
+        marketdata_limit,
+        raw_expiry,
+        free_only=_env_bool("PROVIDER_FREE_ONLY_CHECKPOINT"),
+        allow_paid=_env_bool("ALLOW_PAID_PROVIDER_ROUTING"),
+    )
+    tiingo_plan = os.getenv(
+        "TIINGO_REVIEWED_PLAN", str(getattr(app_settings, "TIINGO_REVIEWED_PLAN", ""))
+    )
+    result["tiingo account plan"] = tiingo_account_plan_routing_status(
+        tiingo_plan,
+        free_only=_env_bool("PROVIDER_FREE_ONLY_CHECKPOINT"),
+        allow_paid=_env_bool("ALLOW_PAID_PROVIDER_ROUTING"),
+    )
     raw_option_chain_bound = (
         os.getenv("MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", "0").strip() or "0"
     )
@@ -2993,7 +3037,6 @@ def live_required_safety_blockers(
 
         account_plan_controls = {
             "fmp": ("fmp account plan",),
-            "marketdata_app": ("marketdata.app account plan",),
         }
         for provider in sorted(providers):
             missing_controls = provider_missing_routing_controls(
@@ -3103,6 +3146,27 @@ def live_required_safety_blockers(
             )
             if not status.startswith("routable"):
                 blocked.setdefault(provider, []).append(status)
+    return blocked
+
+
+def live_provider_plan_admission_blockers(
+    providers: set[str], safety_statuses: dict[str, str]
+) -> dict[str, list[str]]:
+    """Apply effective account-plan admission in every supported runner mode."""
+
+    plan_controls = {
+        "marketdata_app": "marketdata.app account plan",
+        "tiingo": "tiingo account plan",
+    }
+    blocked: dict[str, list[str]] = {}
+    for provider, status_name in plan_controls.items():
+        if provider not in providers:
+            continue
+        status = safety_statuses.get(
+            status_name, "non-routable: effective account-plan status is missing"
+        )
+        if not status.startswith("routable"):
+            blocked[provider] = [status]
     return blocked
 
 
@@ -5507,6 +5571,10 @@ def main() -> int:
         account_usage_only=account_usage_only,
         operations_by_provider=(selected_case_operations if case_selectors else None),
     )
+    for provider, statuses in live_provider_plan_admission_blockers(
+        selected_for_run, safety_statuses
+    ).items():
+        blocked_live_safety.setdefault(provider, []).extend(statuses)
     if blocked_live_safety:
         missing["required live capability safety"] = [
             f"{provider}: {status}"
