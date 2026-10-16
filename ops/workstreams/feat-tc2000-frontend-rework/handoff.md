@@ -20197,3 +20197,98 @@ synthetic drag behavior. Provider's UPlot implementation lacks TC's `aria-busy`
 marker, so do not assume the TC F8n readiness observation can be copied
 upstream. No sibling source, provider, data, or account was modified.
 
+The coordinator's follow-up read confirms the same activation-contract mismatch
+exists in Provider's older frontend: `WorkstationView.openTool()` polls
+`[data-tool-key]`, while only `data-window-key` had been rendered there. TC's
+additive `data-tool-key` alias from the same `windowKey` preserves existing
+selectors and satisfies that consumer contract. The focused ToolWindow unit
+test is bounded proof for the alias, not proof that it caused the hosted F8r
+flake or full-app acceptance. Keep it as TC-owned source; this does not authorize
+Provider to wait for all of TC, nor import unmerged TC code into Provider.
+No separate shared repair is justified unless a required Provider functional
+failure independently establishes one.
+
+## 2026-10-16 — Narrow acceptance of 43e mounted-app observers
+
+The coordinator's independent terminal audit accepts exact source
+`43e2c02754f3eeea92ccd6df1fb6e7e293c4d185` / Actions run `38846672417`, E2E
+job `116800303092`, narrowly as mounted-app functional observer evidence:
+189 passed, 110 expected skips, 17.1 minutes, zero retries/flakes/failures.
+This evidence is for 43e only. It does not cover the later ToolWindow alias in
+`d9e1187fb`, the F8b cleanup correction in current candidate `73fba9d4`, the 104
+visual checks/TCP2, or full checkpoint closure. The exact current candidate CI
+`38852207578` is still in progress. Keep full local functional and 104-visual
+gates plus Provider/ETF consumers open until green staging releases their
+product baselines; do not start a competing heavy local stack while Provider
+owns the slot.
+
+## 2026-10-16 — Resume preflight and F8u source diagnosis boundary
+
+The canonical coordinator guidance and checkpoint contract were reread before
+resuming. `make agent-context` classified this as the expected implementation
+worktree, but the ordinary UV cache was read-only; with an isolated `/tmp` UV
+cache, the runtime wrapper then failed to write the shared root
+`.ai/runtime/allocations.lock`. `make agent-session-start` correctly refused a
+new session because this continuation already has a writer claim and dirty
+owned records. No takeover/new claim was attempted. The supported UV-managed
+`agent-session.py status` command refreshed the owned session record to exact
+HEAD `73fba9d4acc815e963d06cf5085db7497ccac1f7`, matching origin, and the
+current plan hash while retaining claim `40277689-45a1-4b10-b129-2435358ad9d2`.
+The supported progress command then retained TCP1 as the sole completed item
+and updated the active TCP2-TCP5 continuation state. Full V25 goals and all
+original roadmap acceptance criteria remain intact.
+
+Read-only F8u review maps the current ordinary drag path: `ChartPlotLibrary`
+serializes a chart-plot MIME payload and keeps a same-document fallback;
+`dragend` schedules its bounded cleanup. `VirtualWatchlistTool` recognizes the
+payload during compatible dragover and on drop reads it, emits `plot-drop`, and
+clears fallback state. `WorkstationToolContent.addPlotColumn` derives a
+single-output column, registers it as pending for rendering, and emits updated
+configuration. Existing unit tests cover serialized payload/fallback expiry
+and a synthetic watchlist drop; neither proves the real-browser transfer and
+activation path. The hosted F8u failure only proves that the RSI header was not
+visible after the real drag; the failing stage is still unknown. Next actual
+browser diagnosis should passively distinguish source `dragstart`, target
+`dragover/drop` and MIME types, payload read/`plot-drop`, configuration update,
+and rendered header, using the ordinary drag and preserving the current final
+assertion. Do not add a retry, sleep, forced click, or synthetic drag. Defer
+that runtime probe until Provider releases the local heavy slot. No F8u source
+or product change was made in this review.
+
+## 2026-10-16 — Exact CI pointers and source-state review
+
+Reconciled stale session metadata against the live branch and Actions records.
+The latest completed exact-source CI audit is `d9e1187fb` / run
+`38849132666` (189 passed, 110 skipped, no retry/flakes/failures; hosted visual
+cases skipped). The coordinator's narrower acceptance for `43e2c027` /
+`38846672417` remains separately scoped to mounted-app functional observers on
+that SHA. Current pushed source is `73fba9d4`, matching `origin`; its exact run
+`38852207578` remains in progress: frontend unit, backend, and branch-declared
+jobs succeeded, while Playwright is still running. No outcome is inferred from
+that active run. Session metadata now distinguishes the last completed run
+from the current active run and no longer points `next_action` at the obsolete
+`38840374244` run. The full local/combined profile, 104 visual checks,
+Provider/ETF consumer gates, TCP4/TCP5, and the complete V25 roadmap remain
+open. No app, browser, assigned runtime/data, sibling worktree, or staging
+checkout was changed.
+
+## 2026-10-16 — Exact 73fba9d4 CI terminal result
+
+This supersedes the preceding “still in progress” note for the exact candidate.
+Actions run `38852207578` attempt1 matches full source SHA
+`73fba9d4acc815e963d06cf5085db7497ccac1f7` and concluded success. Frontend
+Unit, Backend, Branch-declared, and E2E jobs all succeeded; Exhaustive was
+skipped as expected for this feature push. E2E job `116818128033` completed
+with 189 passed/110 skipped in 19.5 minutes. Inspection of the E2E body found
+no retry, flaky, failure, or error output; F8b popup close, F8n pop-out
+crosshair, and F8u real plot drag appeared in the 299-test first-attempt run.
+The Playwright step environment had `STACK_URL` only, with no visual opt-in;
+all104 screenshot cases remain unvalidated by this run. The hosted CI's own
+Compose containers, volumes, and network were removed by its teardown. No
+assigned runtime/data/accounts, sibling worktree, or staging checkout was
+changed. TCP2 full local functional/104 visual validation, TCP3 Provider/ETF
+consumer reconciliation, TCP4 combined profile, TCP5 checkpoint review, and
+the complete V25 roadmap remain open. Do not infer that the passing F8u case
+resolves Provider's separate failure or invent a product fix absent TC runtime
+evidence; Provider retains local heavy-validation priority.
+

@@ -89,7 +89,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "36ac5a59880176babd31c567d39ee8ff430caeaf",
+  "head": "73fba9d4acc815e963d06cf5085db7497ccac1f7",
   "implementation_sha": "d0add5588612339203073b21015028ad4ffeb106",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -99,10 +99,42 @@
   },
   "interrupted": false,
   "last_checkpoint": "2026-10-16T02:01:21+00:00",
-  "last_human_progress_update": "2026-10-15T23:33:12+00:00",
+  "last_human_progress_update": "2026-10-16T04:49:32.986228+00:00",
+  "latest_exact_ci_audit": {
+    "attempt": 1,
+    "conclusion": "success",
+    "e2e_summary": "189 passed, 110 skipped, zero retries/flakes/failures (no retry/flaky/error output in the E2E test body); F8b popup close, F8n pop-out crosshair, and F8u real plot drag appeared on first attempt. Hosted visuals were skipped.",
+    "head_sha": "73fba9d4acc815e963d06cf5085db7497ccac1f7",
+    "jobs": {
+      "backend": "success",
+      "branch_declared": "success",
+      "e2e": "success",
+      "exhaustive_feature_branch": "skipped",
+      "frontend_unit": "success"
+    },
+    "run_id": 38852207578,
+    "scope": "Exact 73fba9d4 source validated by all required ordinary CI jobs; hosted screenshot parity was not opted in, and no full checkpoint acceptance is inferred.",
+    "visuals": "Skipped in hosted run; not pixel evidence."
+  },
+  "current_exact_ci": {
+    "attempt": 1,
+    "head_sha": "73fba9d4acc815e963d06cf5085db7497ccac1f7",
+    "run_id": 38852207578,
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": {
+      "backend": "success",
+      "branch_declared": "success",
+      "e2e": "success",
+      "exhaustive_feature_branch": "skipped",
+      "frontend_unit": "success"
+    },
+    "e2e_summary": "189 passed, 110 skipped, zero retry/flaky/failure output; 19.5 minutes.",
+    "visuals": "Skipped: the step environment contained STACK_URL only; no visual opt-in, so no pixel acceptance."
+  },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "TCP1 is narrowly coordinator-accepted, not whole-checkpoint acceptance: staging82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009 -> TC merge d4274a9fa3119c212a9aaf2c0006c20d921812e8 -> implementation7f33b07dfc7ffa57d5285e04981448732e3eb727/exact CI38835330075 attempt1, E2E116765465161 189 passed/110 expected skips/zero retry, flake or failure. The exact tc_post_merge_scope_and_test_collection journal row is restored unchanged and verified against59bbb968; no history rewrite needed. Prior actual-app focused browser provenance: existing Vite15190 -> assigned backend28008; temporary Chromium was stopped, separate Vite15191 was stopped, and 5 assigned DB test accounts remain untouched/private inventory at ignored .ai/runtime/tc2000-focused-browser-account-inventory.json. Current F8s test uses deterministic page.route source/history/clone/Market Map/snapshot fixtures and is not provider-live evidence. Exact run38840374244 for full source977e68afb1cf6bb40a5cd2540dded09b56c9b245 attempt1 is IN PROGRESS; frontend unit and branch-declared passed, backend integration running; wait for terminal and audit actual E2E retry/flake outcomes before recording CI status. No local runtime/data cleanup. TCP2 full104 opted-in visual, TCP3 staged Provider/ETF consumer gates, TCP4 combined profile, TCP5 closure and full V25 roadmap remain open; no TC staging integration.",
-  "plan_hash": "dadb5cdce505577c5210e12ad0421b4f1f7159d4708a554281788489baa49890",
+  "next_action": "Exact73fba9d4/run38852207578 is now successful with zero E2E retries/flakes, but hosted visual cases were skipped. Continue TC-owned diagnosis of F8u only if evidence warrants; the observed normal flow passed here, while Provider's distinct report remains diagnostic until staged shared coverage is reviewed. Do not start a competing local browser stack while Provider owns the heavy slot. Once synchronized green Provider and ETF product staging is released, merge it into this clean TC branch, reconcile real consumer contracts, then run the full local/combined functional and opted-in visual profile before preparing the checkpoint for review. Preserve the entire V25 roadmap; no staging integration/full checkpoint acceptance is inferred.",
+  "plan_hash": "e97cb45a3638891167e1b54bef9bee57dc7ec001152c8838db1f2d29e4b8922b",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -113,17 +145,19 @@
     "e7ed8602-bc49-4daa-be2c-7cc01bf37f6b"
   ],
   "progress": {
-    "completed": ["TCP1"],
-    "current_blocker": "TCP1 narrow technical pointer repair/reconciliation is coordinator-accepted only: staging82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009 -> TC merge d4274a9fa3119c212a9aaf2c0006c20d921812e8 -> implementation7f33b07dfc7ffa57d5285e04981448732e3eb727 exact attempt1 CI38835330075, E2E116765465161 189 passed/110 expected skips/zero retries, flakes or failures. Exact tc_post_merge_scope_and_test_collection row is present unchanged versus59bbb968 and was restored in256d680e. Prior actual-app browser was existing Vite15190 -> assigned backend28008, not isolated Compose/provider-live; temporary Chromium and Vite15191 were stopped; 5 assigned DB accounts remain unchanged and privately inventoried. Current F8s uses deterministic Playwright route mocks, not live-provider evidence. Exact run38840374244 head977e68afb1cf6bb40a5cd2540dded09b56c9b245 attempt1 is terminal SUCCESS: frontend unit, branch-declared, backend and E2E jobs succeeded; exhaustive gate skipped. E2E116781448508 had187 passed/110 skipped/2 retry-passing flakes in18m (F9e-shell-menus-keyboard and F8m-chart-panels); current F8s passed without retry. Hosted visual cases were skipped, not pixel passes. CI Compose resources were cleaned by the hosted workflow; assigned runtime/data untouched. TCP2 full104 visual, TCP3 Provider/ETF consumer gates, TCP4 combined profile, TCP5 closure and V25 roadmap remain open; no staging integration.",
-    "current_phase": "TCP1_NARROW_TECHNICAL_REPAIR_ACCEPTED;TCP2_HELP_REFERENCE_REVIEWED_NARROW_ONLY_FULL_MATRIX_PENDING;TCP3_PROVIDER_ETF_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_CLOSURE_OPEN",
-    "next_action": "The journal row and provenance corrections are recorded append-only; five assigned DB accounts remain unchanged/private and no local service/data was cleaned. Exact CI38840374244 for977e68afb1cf6bb40a5cd2540dded09b56c9b245 is terminal Actions SUCCESS with two E2E retry-passing flakes (F9e and F8m); F8s passed without retry, visuals remain skipped. Preserve this honest outcome; do not treat run as zero-flake or full visual acceptance. Continue branch-owned roadmap while Provider retains heavy local capacity. Await green Provider and ETF staging consumer baselines before TCP3, then complete TCP2 full104 visuals/TCP4 combined exact CI/TCP5 closure and remaining V25 roadmap; no TC staging integration.",
+    "completed": [
+      "TCP1"
+    ],
+    "current_blocker": "Exact73fba9d4/run38852207578 passed all required ordinary CI jobs (189 passed/110 skipped/zero retries); screenshot parity was not opted in. Provider retains the local heavy slot; green Provider/ETF product staging baselines are not released. Full local functional and104-profile visual gates remain open.",
+    "current_phase": "TCP1_NARROWLY_ACCEPTED;TCP2_SOURCE_REPAIRS_AND_FULL_VALIDATION_OPEN;TCP3_PROVIDER_ETF_STAGING_PENDING;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
+    "next_action": "Preserve terminal run38852207578 evidence; no F8u fix is inferred from a passing ordinary-flow test. Continue only evidence-backed TC-owned diagnosis without added retry, sleep, force or synthetic drag and no local heavy stack while Provider owns the slot. After Provider and ETF reach synchronized green staging, merge that staging into this branch and reconcile real consumer contracts; then complete the full combined profile and checkpoint review while preserving the entire V25 roadmap.",
     "total": 5,
-    "updated_at": "2026-10-16T03:26:16+00:00"
+    "updated_at": "2026-10-16T04:49:32.986208+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "36ac5a59880176babd31c567d39ee8ff430caeaf",
+    "current_local_head": "73fba9d4acc815e963d06cf5085db7497ccac1f7",
     "current_pending_range": null,
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
@@ -131,28 +165,12 @@
     "last_attempted_range": "59bbb968feefd2ba9c74638dcfa6863d5533186c..7f33b07dfc7ffa57d5285e04981448732e3eb727",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "36ac5a59880176babd31c567d39ee8ff430caeaf",
+    "remote_tracking_sha": "73fba9d4acc815e963d06cf5085db7497ccac1f7",
     "status": "pushed"
   },
-  "remote": "36ac5a59880176babd31c567d39ee8ff430caeaf",
-  "remote_sha": "36ac5a59880176babd31c567d39ee8ff430caeaf",
+  "remote": "73fba9d4acc815e963d06cf5085db7497ccac1f7",
+  "remote_sha": "73fba9d4acc815e963d06cf5085db7497ccac1f7",
   "remote_synchronized": true,
-  "latest_exact_ci_audit": {
-    "head_sha": "36ac5a59880176babd31c567d39ee8ff430caeaf",
-    "run_id": 38843092299,
-    "attempt": 1,
-    "conclusion": "success",
-    "jobs": {
-      "frontend_unit": "success",
-      "branch_declared": "success",
-      "backend": "success",
-      "e2e": "success",
-      "exhaustive_feature_branch": "skipped"
-    },
-    "e2e_summary": "187 passed, 110 skipped, 2 retry-passing flakes: F9e-shell-menus-keyboard and F8r-breadth-narrow; F8s-market-map-watchlist passed without retry.",
-    "visuals": "Skipped in hosted run; not pixel evidence.",
-    "scope": "Metadata-only tip; not zero-flake or full feature acceptance."
-  },
   "retained_docker_resources": [],
   "roadmap_acceptance_criteria": [
     {

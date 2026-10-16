@@ -792,6 +792,24 @@ progress:
     Column ownership. Keep the full visual matrix and cleanup-safe exact
     integration gate open. Defer upstream consumption/reconciliation until both
     dependencies reach staging. Stop at ready_for_human_review.
+    Current continuation (2026-10-16): exact mounted-app observers on
+    43e2c0275/run38846672417 are narrowly accepted (189 passed, 110 expected
+    skips, zero retries/flakes/failures); this evidence does not cover later
+    changes. The additive ToolWindow alias and unit assertion are in d9e1187fb;
+    exact run38849132666 matched that source, with 11/11 ToolWindow unit tests
+    and clean required jobs, but all visuals were skipped. Current F8b cleanup
+    candidate is 73fba9d4acc815e963d06cf5085db7497ccac1f7; exact CI38852207578
+    attempt1 is terminal success. All required jobs succeeded; Playwright reports
+    189 passed/110 skipped/zero retries, flakes, or failures. F8b close, F8n
+    pop-out crosshair, and F8u real plot drag appeared in the first-attempt run.
+    The standard workflow passed only STACK_URL and did not opt into screenshot
+    parity; hosted visual skips are not pixel acceptance. Complete local
+    functional and all104 unchanged visual checks after Provider releases the
+    heavy local slot. Provider and ETF are not yet released as green product
+    staging baselines; do not merge them early or import feature branches.
+    Continue independent TC-owned source diagnosis, including F8u without adding
+    retry/sleep/force/synthetic drag. Preserve the complete V25 roadmap and stop
+    only at ready_for_human_review.
   current_blocker: >-
     TCP1 source 82d881e76be8de538abb6ec5c454d96afe0ee56a was merged by
     TC merge commit d4274a9fa3119c212a9aaf2c0006c20d921812e8 and
@@ -855,6 +873,22 @@ progress:
     source/readiness/drag diagnosis; no retry, sleep, force, synthetic drag, or
     upstream readiness assumption was added. Provider's UPlot lacks TC's
     aria-busy marker, so TC's F8n observer is not assumed portable upstream.
+    The coordinator independently accepts 43e2c0275/run38846672417 only as
+    mounted-app functional observer evidence, not for later d9/73 source. Exact
+    d9e1187fb/run38849132666 validates the additive ToolWindow readiness alias
+    (focused test 11/11; required CI jobs successful; 189 passed/110 skipped,
+    no retries; hosted visuals skipped). Current F8b source correction is
+    published in 73fba9d4acc815e963d06cf5085db7497ccac1f7; run38852207578 was
+    verified live/in progress on this exact SHA. It is a candidate only until
+    terminal E2E is audited. Local mounted-app/full-functional and104-profile
+    visual evidence still required; no local heavy stack while Provider owns
+    the slot. Provider/ETF staged consumers remain unavailable until green
+    product staging release. Latest coordinator evidence identifies Provider's
+    56e full profile as in progress and ETF's shared bridge as pending. Standard
+    Make preflight cannot write root `.ai/runtime/allocations.lock` here. UV-
+    managed direct `agent-session.py status` with an isolated `/tmp` cache
+    refreshed this session record while preserving the writer claim; do not
+    rerun `agent-session-start` on this already claimed dirty continuation.
 current_checkpoint_status: >-
   TCP1 is coordinator-accepted narrowly: common green staging
   82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009 was reconciled by
@@ -876,6 +910,15 @@ current_checkpoint_status: >-
   unchanged 0.005 104-profile matrix remain required; official V25 Help is
   still required_missing. Continue independent TC-owned roadmap work while
   Provider/ETF product baselines are pending; never direct-import sibling work.
+  Exact candidate source73fba9d4acc815e963d06cf5085db7497ccac1f7 is now
+  terminally validated by Actions run38852207578 attempt1: all required jobs
+  succeeded and E2E job116818128033 reports189 passed/110 skipped with no
+  retry, flaky, or failure output. The ordinary STACK_URL-only workflow did
+  not opt into the 104 screenshot cases; its visual skips remain unvalidated.
+  F8b popup close, F8n cross-window pointer, and F8u real plot drag occurred in
+  the first-attempt functional run. This does not close TCP2, TCP3, TCP4, TCP5,
+  or the complete V25 roadmap. The hosted CI stack and its temporary volumes
+  were torn down by that job; assigned runtime/data/accounts were untouched.
 historical_implementation_records:
   - "Added TC2000's documented HLC Bars style to the frontend chart contract and settings, drawing the existing OHLCV high-low range with a close tick and omitting the open tick. Ctrl+B now cycles HLC, OHLC, Candles, Line in that order. The focused renderer/workstation tests passed 45/45; the full serial frontend suite passed 130 files / 1,225 tests; vue-tsc/Vite build passed; authenticated F8k-direct-chart-style passed 1/1 across all four styles. The protected Help screenshot test failed against its unchanged baseline with 50,941 pixels / 3.0% difference (0.5% threshold); no visual baseline/policy was changed."
   - "Authenticated follow-up browser evidence supersedes the earlier unauthenticated CLI attempt: a unique account in the assigned TC stack was used to activate the chart, press `/`, and confirm the plot library reopened with its `Filter indicators` search focused. No account was created outside the branch stack; no other worktree changed. The account remains a test artifact in the assigned stack. The Help visual oracle was not rerun after this shortcut, and its protected baseline remains unchanged."
