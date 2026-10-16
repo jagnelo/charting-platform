@@ -96,3 +96,29 @@ can include this independent docs source in a legitimate canonical multi-source
 attempt alongside the first accepted Provider source if that avoids a redundant
 staging gate; never delay a genuinely ready product checkpoint for this docs
 topic. No alternate combined checkout, direct feature import or test bypass.
+
+### Journal schema correction before final publication
+
+The post-review validator correctly rejected two entries missing its required
+`command` field; the older first entry already had the exact executed command
+under `unit_command`. Preserve all old fact values and add only the missing
+alias, with an explicit audit amendment naming the original committed row and
+its SHA-256. The original malformed record remains available verbatim in Git
+`68ab7d07...`; no result, test count, source binding or fingerprint is changed
+or deleted. The second, not-yet-published row receives its actual audit-command
+descriptor. Revalidate the full journal and unit checks before publication.
+
+After the earlier explicit claim release, the normal dirty-bootstrap guard
+refused a new start. No bypass/takeover was attempted: local-only checkpoint
+`9803ef16539a9200481e98b1acc06cb3262b3692` preserves that exact interrupted
+state and is explicitly not accepted. A normal clean preflight then created
+claim `6ba5903e-d2b7-4064-946a-c8b530c0f4b2` for this same metadata repair.
+The root four-feature goal is still active; this is not product implementation.
+
+Schema-repair revalidation passed: all31 workstream records and the50 unit
+checks (0.31s). A separate semantic check proved every original evidence value
+unchanged, only the required command alias added, all3 CI-validated documentation
+files byte-identical to68ab7d07, and all later changes confined to this own
+workstream's closure metadata. Release the replacement claim through the same
+explicit coordinator handoff, then publish clean final metadata and require its
+own exact CI. Do not label the unpublished9803 metadata checkpoint validated.
