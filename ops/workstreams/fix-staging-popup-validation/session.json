@@ -1,8 +1,32 @@
 {
-  "acceptance_criteria": [],
+  "acceptance_criteria": [
+    {
+      "id": "POP1",
+      "text": "Preserve the exact staging failure and distinguish cleanup from the separate actual crosshair assertion."
+    },
+    {
+      "id": "POP2",
+      "text": "The tested shared cleanup utility handles actual close races while unrelated errors and missing close events remain failures; F8j uses it without weakening geometry assertions."
+    },
+    {
+      "id": "POP3",
+      "text": "Real Playwright CI configuration fails on retry-passing flaky tests; retry count, selection, references and tolerances remain unchanged."
+    },
+    {
+      "id": "POP4",
+      "text": "Focused tests, type/build, full isolated functional/104 visual profile and exact-source branch CI pass without retries/flakes, with owned resource cleanup and honest source binding."
+    },
+    {
+      "id": "POP5",
+      "text": "Clean pushed technical-repair checkpoint, coherent evidence and exact delegated acceptance record are ready for coordinator review and normal guarded staging integration; full four-feature objective remains open."
+    }
+  ],
   "active_session_id": "920af921-5c9b-4933-b601-39aeea5bf1c9",
   "branch": "fix/staging-popup-validation",
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/fix-staging-popup-validation/handoff.md",
+    "ops/workstreams/fix-staging-popup-validation/session.json"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -31,34 +55,36 @@
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
   "goal_objective": "Advance fix/staging-popup-validation: Human delegated technical repair authority: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Narrow coordinator task: repair the actual staging F8j popup-close observer race and fail CI on retry-passing flaky tests while preserving genuine pointer actions, geometry/cross-window assertions, all tests, references and tolerances; investigate crosshair readiness only if needed. Base is exact synchronized staging5768 with canonical successful-CI receipt but independently audited browser quality hold (one cleanup flake), not accepted product staging. No feature import, paid activation, deployment or operational trial.. Acceptance criteria: POP1: Preserve the exact staging failure and distinguish cleanup from the separate actual crosshair assertion.; POP2: The tested shared cleanup utility handles actual close races while unrelated errors and missing close events remain failures; F8j uses it without weakening geometry assertions.; POP3: Real Playwright CI configuration fails on retry-passing flaky tests; retry count, selection, references and tolerances remain unchanged.; POP4: Focused tests, type/build, full isolated functional/104 visual profile and exact-source branch CI pass without retries/flakes, with owned resource cleanup and honest source binding.; POP5: Clean pushed technical-repair checkpoint, coherent evidence and exact delegated acceptance record are ready for coordinator review and normal guarded staging integration; full four-feature objective remains open.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_recorded_at": "2026-10-16T09:09:06.517254+00:00",
+  "goal_recorded_at": "2026-10-16T09:17:05.254575+00:00",
   "goal_request": {
     "objective": "Advance fix/staging-popup-validation: Human delegated technical repair authority: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Narrow coordinator task: repair the actual staging F8j popup-close observer race and fail CI on retry-passing flaky tests while preserving genuine pointer actions, geometry/cross-window assertions, all tests, references and tolerances; investigate crosshair readiness only if needed. Base is exact synchronized staging5768 with canonical successful-CI receipt but independently audited browser quality hold (one cleanup flake), not accepted product staging. No feature import, paid activation, deployment or operational trial.. Acceptance criteria: POP1: Preserve the exact staging failure and distinguish cleanup from the separate actual crosshair assertion.; POP2: The tested shared cleanup utility handles actual close races while unrelated errors and missing close events remain failures; F8j uses it without weakening geometry assertions.; POP3: Real Playwright CI configuration fails on retry-passing flaky tests; retry count, selection, references and tolerances remain unchanged.; POP4: Focused tests, type/build, full isolated functional/104 visual profile and exact-source branch CI pass without retries/flakes, with owned resource cleanup and honest source binding.; POP5: Clean pushed technical-repair checkpoint, coherent evidence and exact delegated acceptance record are ready for coordinator review and normal guarded staging integration; full four-feature objective remains open.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
-  "goal_request_state": "planning_required",
+  "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "ba32cfe16608b1714c093ef1e485deb4754d490b",
-  "implementation_sha": "220e2168ed6e32bbfea74d41a2e50eb566406197",
-  "local_validation_profile": "pending_agent_assessment",
-  "next_action": "continue implementation from the branch workstream",
+  "head": "2e19e74652825d3738d3817c66f319a6a1ff658b",
+  "implementation_sha": "2e19e74652825d3738d3817c66f319a6a1ff658b",
+  "last_checkpoint": "2026-10-16T09:18:49.061201+00:00",
+  "local_validation_profile": "full_stack_browser",
+  "next_action": "Audit exact-source hosted CI and run required full_stack_browser after Provider releases the heavy slot; preserve implementation47e81ae5 and the active whole-objective coordinator goal.",
   "parent_branch": "staging",
-  "plan_hash": "d8df50b7b74cf237e34b8bdfe86a4cd6f3a9f50af6e999c34e32ad39ead9ce9c",
-  "planning_required": true,
+  "plan_hash": "3c0fcb8a4c1fe657843cda9bb0fbe9795074af4010d37f7d7e0bf36ced8aa822",
+  "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
-    "completed": [],
-    "current_blocker": "none",
-    "current_phase": "plan",
-    "total": 0
+    "completed": ["POP1", "POP2", "POP3"],
+    "current_blocker": "Required full local profile awaits the existing Provider heavy slot; hosted CI pending, not a human-action blocker.",
+    "current_phase": "implementation-published-awaiting-required-full-gates",
+    "total": 5
   },
-  "remote": "ba32cfe16608b1714c093ef1e485deb4754d490b",
-  "remote_sha": "220e2168ed6e32bbfea74d41a2e50eb566406197",
+  "remote": "2e19e74652825d3738d3817c66f319a6a1ff658b",
+  "remote_sha": "2e19e74652825d3738d3817c66f319a6a1ff658b",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "920af921-5c9b-4933-b601-39aeea5bf1c9",
+  "state": "checkpointed",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-staging-popup-validation/ops/workstreams/fix-staging-popup-validation",
   "workstream_files": [

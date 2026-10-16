@@ -105,3 +105,30 @@ exact CI runs and Provider releases the reserved heavy local slot. Do not
 re-run full profiles merely for metadata changes or edit the in-flight source
 without a concrete failing-gate reason. The later metadata-only enclosing hash
 is verified externally with HEAD/origin; it cannot contain its own hash.
+
+Current operational checkpoint owns exactly:
+
+- ops/workstreams/fix-staging-popup-validation/handoff.md
+- ops/workstreams/fix-staging-popup-validation/session.json
+
+The substantive plan/evidence checkpoint is already pushed at
+2e19e74652825d3738d3817c66f319a6a1ff658b. The normal checkpoint initially
+refused the changed plan until that plan was committed and plan-ready rerun;
+plan-ready resets the execution-aid state, so it was rebound to the EXISTING
+active whole-objective root goal before retry. The subsequent dirty-path
+ownership check requires these literal owned paths in the handoff, now listed.
+No guard, claim, broader goal, source content or test requirement was bypassed.
+Finish the normal session/resource checkpoint and publish only these two
+operational paths, preserving the implementation and full-gate hold.
+
+Normal checkpoint succeeded09:18:49 and independently found zero containers,
+volumes, images or build cache attributable to this new worktree; no resource
+deletion. The helper's snapshot retained stale initial progress/planning flags
+and truncated the first porcelain path. This operational record faithfully
+aligns those fields to committed POP1-POP3/5, full_stack_browser pending and the
+real owned paths; no helper/source code or claim was changed. Last checkpoint
+HEAD/origin2e19 is intentionally pre-record state, not a self-referential final
+hash. Implementation remains47e81ae5. Final enclosing HEAD/origin and clean
+status are verified externally after push, without another freshness-only
+metadata commit. Implementation CI38879023209 was pending at09:14; the later
+metadata candidate requires its own exact normal CI before eventual integration.
