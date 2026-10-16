@@ -2,7 +2,7 @@
   "acceptance_criteria": [
     {
       "id": "TCP1",
-      "text": "Accept and verify the coordinator-owned chart-template pointer repair only after green staging delivery; do not duplicate its fix in TC."
+      "text": "TCP1 COMPLETE and coordinator-accepted as narrow technical repair/reconciliation only: exact green staging delivery 82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009, merged into TC by d4274a9fa3119c212a9aaf2c0006c20d921812e8, implementation checkpoint 7f33b07dfc7ffa57d5285e04981448732e3eb727 verified by exact attempt-1 CI run 38835330075. This does not accept the whole TC checkpoint, close TCP2-TCP5, or authorize TC staging integration."
     },
     {
       "id": "TCP2",
@@ -36,7 +36,6 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
-    "docs/tc2000-parity.md",
     "frontend/tests/e2e/flows.spec.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
@@ -91,7 +90,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "7f33b07dfc7ffa57d5285e04981448732e3eb727",
+  "head": "a60e2304e0b4d8c052ce4a2f0157a48066bc5c39",
   "implementation_sha": "d0add5588612339203073b21015028ad4ffeb106",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -103,7 +102,7 @@
   "last_checkpoint": "2026-10-16T02:01:21+00:00",
   "last_human_progress_update": "2026-10-15T23:33:12+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Common green staging 82d881e7 is reconciled through merge d4274a9 in current source 7f33b07d; retain original pre-merge history and four conflict-resolution audit. Current Help remains 112px key column / 7px CSS gap with existing 8px measured-separation guard; reviewed reference blobs and official V25 required_missing status are unchanged. F8s stale exact accessible-name locator is fixed; two fresh-account no-retry F8s runs and populated desktop/390x800 F9c Plots/Remove flows passed. Exact-head Actions 38835330075 for 7f33b07d is terminal success: Backend, Branch-declared, Frontend Unit, and E2E succeeded; E2E 189 passed/110 skipped; Exhaustive skipped. Hosted visual parity was not opted in. Continue with full local/combined and opted-in visual matrix as Provider capacity allows, then reconcile Provider/ETF consumers only after green product baselines. Preserve official V25 Help parity debt.",
+  "next_action": "Correct the append-only workstream journal and handoff with audited browser provenance. Prior focused F8s/F9c runs used existing Vite 127.0.0.1:15190 proxying to assigned TC backend 127.0.0.1:28008, not isolated Compose; five test-account rows remain privately inventoried in ignored .ai/runtime and must not be deleted. A current F8s sequencing delta is unvalidated beyond Playwright collection. No TC-owned browser/build process remains; Docker state refresh is unavailable due socket permission denial. Release the bounded slot to Provider. Schedule a new bounded browser run for the current delta only with coordinator/resource alignment and no further targeted data mutation. Continue full local/combined and opted-in 104-profile visual matrix as capacity allows; Provider/ETF consumers follow their green product baselines. Preserve V25 Help parity debt.",
   "plan_hash": "6d58da4cd2230fb8b813b819997e9c0d72c8989792c333d7e81be3b1b66fc5cd",
   "planning_required": false,
   "planning_state": "ready",
@@ -116,16 +115,16 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "Coordinator-audited exact ancestor run 38827799889 and predecessor exact-head run 38831565334 had flakes/failure as documented, with hosted visuals skipped. Current source commit 7f33b07d contains released green staging 82d881e7 via actual merge d4274a9; original pre-merge history and four conflict resolutions are preserved. Current Help is 112px column / 7px gap with existing 8px measured-separation guard; accepted references unchanged. The F8s failure was a stale accessible-name locator ('Refresh' versus 'Refresh Market Map'); corrected E2E test passed twice locally without retries, and populated comparison Plots/Remove passed at desktop and 390x800. Exact-head Actions 38835330075 for 7f33b07dfc7ffa57d5285e04981448732e3eb727 is terminal success across Backend, Branch-declared, Frontend Unit, and E2E (189 passed, 110 skipped); Exhaustive skipped and hosted visual parity was not opted in. Full local/combined validation and deterministic opted-in 104-profile visual matrix remain open. Provider/ETF consumer integration, TCP3/TCP4, and clean all-source checkpoint remain open; official V25 Help remains required_missing.",
-    "current_phase": "TCP1_FOCUSED_BROWSER_AND_EXACT_CI_PASS;TCP2_HELP_REFERENCE_REVIEWED_NARROW_ONLY_FULL_MATRIX_PENDING;TCP3_UPSTREAM_WAIT",
-    "next_action": "Coordinate the next full local/combined validation slot with Provider, then execute the deterministic opted-in 104-profile visual matrix without changing references/tolerances. Continue Provider/ETF consumer reconciliation only after their green product baselines; preserve assigned runtime and official V25 Help parity debt.",
+    "current_blocker": "Source checkpoint 7f33b07d contains released green staging 82d881e7 via merge d4274a9; Help 112px/7px geometry and accepted references unchanged. Exact CI 38835330075 passed ordinary E2E (189 passed, 110 skipped); hosted visuals were not opted in and Exhaustive was skipped. Provenance correction: prior focused F8s/F9c tests used existing Vite 127.0.0.1:15190 proxying to assigned TC backend 127.0.0.1:28008, not isolated Compose; five test accounts remain in assigned DB and are privately inventoried, not deleted. Browser mocks covered source/list/Market Map/snapshot calls; auth/account creation/workspace persistence used assigned backend. No TC-owned browser/build remains; Docker status refresh denied by socket permissions. Current F8s source-transition delta has collection-only evidence and remains browser-unvalidated. Do not claim isolated fixture or joint acceptance. Full local/combined validation, opted-in 104-profile visual matrix, Provider/ETF consumer integration, TCP3/TCP4, and clean all-source checkpoint remain open; official V25 Help remains required_missing.",
+    "current_phase": "TCP1_NARROW_TECHNICAL_REPAIR_ACCEPTED;TCP2_HELP_REFERENCE_REVIEWED_NARROW_ONLY_FULL_MATRIX_PENDING;TCP3_PROVIDER_ETF_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_CLOSURE_OPEN",
+    "next_action": "Release bounded TC slot to Provider now. Coordinate a later focused no-retry browser replay of the current F8s delta before full local/combined and opted-in visual gates; no more data mutation until that run is explicitly scoped. Reconcile Provider/ETF consumers only after their green product baselines.",
     "total": 5,
-    "updated_at": "2026-10-16T02:01:21+00:00"
+    "updated_at": "2026-10-16T02:35:00+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "7f33b07dfc7ffa57d5285e04981448732e3eb727",
+    "current_local_head": "a60e2304e0b4d8c052ce4a2f0157a48066bc5c39",
     "current_pending_range": null,
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
@@ -136,8 +135,8 @@
     "remote_tracking_sha": "7f33b07dfc7ffa57d5285e04981448732e3eb727",
     "status": "pushed"
   },
-  "remote": "7f33b07dfc7ffa57d5285e04981448732e3eb727",
-  "remote_sha": "7f33b07dfc7ffa57d5285e04981448732e3eb727",
+  "remote": "a60e2304e0b4d8c052ce4a2f0157a48066bc5c39",
+  "remote_sha": "a60e2304e0b4d8c052ce4a2f0157a48066bc5c39",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "roadmap_acceptance_criteria": [

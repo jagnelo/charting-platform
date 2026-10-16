@@ -377,7 +377,7 @@ integration_checkpoint:
     AC8: {status: deferred, owner: TC-after-coordinator, reason: requires green Provider and ETF staging, remainder: line-level reconciliation and exact-source validation, continuation_test: green staging receipt plus shared-path dispositions and full gate}
     AC9: {status: partial, owner: TC, delivered: preserved source and exclusive worktree, remainder: clean pushed checkpoint review and later full-roadmap review, continuation_test: clean synchronized source and review receipt}
 acceptance_criteria:
-  - {id: TCP1, text: "Accept and verify the coordinator-owned chart-template pointer repair only after green staging delivery; do not duplicate its fix in TC."}
+  - {id: TCP1, text: "COMPLETE (narrow coordinator technical acceptance only): green staging 82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009 merged by d4274a9fa3119c212a9aaf2c0006c20d921812e8; implementation 7f33b07dfc7ffa57d5285e04981448732e3eb727 verified by exact attempt-1 CI 38835330075. This is not whole-checkpoint acceptance or staging-integration authority."}
   - {id: TCP2, text: "Resolve TC-owned functional/visual failures without weakening checks; review and adopt only the human-authorized local Help reference after all four profiles pass, while keeping official V25 Help parity as unfinished roadmap work."}
   - {id: TCP3, text: "After Provider and ETF reach synchronized green staging, merge that staging into this clean unfrozen source and reconcile all shared paths and actual provider coverage/preflight and ETF lineage/freshness consumers."}
   - {id: TCP4, text: "Validate usable combined workstation and immutable Study consumers, success and unavailable paths, with the required full integration/browser profile and exact-source branch CI."}
@@ -574,6 +574,18 @@ dependencies:
   - "Consume both dependencies only after their changes reach staging; do not modify their worktrees or duplicate their adapters, provider routing, credentials, ingestion, or refresh workers."
   - "Strategy Lab is intentionally not an upstream dependency for this branch; preserve TC's existing Python/DSL/Study/Strategy engine."
 scope_guard_baseline_sha: d4274a9fa3119c212a9aaf2c0006c20d921812e8
+focused_browser_provenance_correction: >-
+  The 2026-10-16 F8s/F9c retry-free runs used the existing TC worktree Vite at
+  127.0.0.1:15190, proxied to the assigned TC backend at 127.0.0.1:28008;
+  they were not isolated Compose. Source/list/Market Map/snapshot endpoints
+  were mocked by the F8s test, while authentication, account creation, and
+  workspace persistence used the assigned backend. Five created test-account
+  rows remain retained and are privately inventoried in ignored
+  .ai/runtime/tc2000-focused-browser-account-inventory.json. No deletion or
+  service cleanup occurred. The current genuine-source-transition assertion
+  has Playwright collection evidence only, not browser execution. No TC-owned
+  browser/build process remains; Docker socket access prevents a fresh
+  container-state audit. Provider retains full local validation priority.
 human_checkpoint_acceptance_authorization:
   recorded_at: "2026-10-15T22:55:31Z"
   question: "May I accept and merge the four development checkpoints into staging once their required cross-feature contracts and full tests pass, using verified free operations only and leaving quota-held, unreviewed, paid/trial and unsafe operations explicitly disabled? This preserves the complete feature roadmaps and does not authorize deployment, paid activation, or the operational trial."
@@ -633,7 +645,7 @@ status: in_progress
 progress:
   completed: []
   total: 5
-  current_phase: TCP1_FOCUSED_BROWSER_CHECKS_PASS_EXACT_CI_PENDING;_TCP2_HELP_REFERENCE_REVIEWED_NARROW_ONLY_FULL_MATRIX_PENDING;_TCP3_UPSTREAM_WAIT
+  current_phase: TCP1_NARROW_TECHNICAL_REPAIR_ACCEPTED;_TCP2_HELP_REFERENCE_REVIEWED_NARROW_ONLY_FULL_MATRIX_PENDING;_TCP3_PROVIDER_ETF_CONSUMER_RECONCILIATION_OPEN;_TCP4_COMBINED_PROFILE_OPEN;_TCP5_CLOSURE_OPEN
   next_action: >-
     TCP1 source 82d881e76be8de538abb6ec5c454d96afe0ee56a is already an ancestor
     through merge d4274a9fa3119c212a9aaf2c0006c20d921812e8; no second merge is

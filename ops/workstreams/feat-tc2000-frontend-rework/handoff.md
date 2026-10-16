@@ -19846,3 +19846,57 @@ not close full TCP2, the deterministic opted-in 104-profile visual matrix,
 Provider/ETF consumer reconciliation, the combined local/Exhaustive gate, or
 the human review checkpoint. Preserve official V25 Help as required-missing.
 
+## 2026-10-16 — TCP1 narrow technical acceptance
+
+The coordinator accepted TCP1 only, under the existing human-delegated
+technical checkpoint authority. The accepted evidence chain is exact green
+staging source `82d881e76be8de538abb6ec5c454d96afe0ee56a` / Actions run
+`38805309009`; TC merge `d4274a9fa3119c212a9aaf2c0006c20d921812e8`; and
+implementation checkpoint `7f33b07dfc7ffa57d5285e04981448732e3eb727` with
+exact attempt-1 CI `38835330075`. The full E2E job `116765465161` was audited
+at 189 passed, 110 expected skips, 20.1 minutes, zero retry/flake/failure.
+That source also includes the real populated ordinary-click desktop and narrow
+F9c evidence. Current `a60e2304e0b4d8c052ce4a2f0157a48066bc5c39` differs from
+`7f33b07d` only in workstream metadata; its own exact CI must not be called
+green until terminal evidence is checked.
+
+This closes TCP1's coordinator-owned pointer repair/reconciliation only. It is
+not acceptance of the whole TC checkpoint and does not authorize TC staging
+integration. TCP2's full 104-profile visual matrix, TCP3's Provider/ETF
+consumer reconciliation, TCP4's combined profile, and TCP5's closure and
+roadmap dispositions remain open. The conditional delegated acceptance scope,
+full remaining roadmap, no-staging-write boundary, and retained-account
+provenance remain in force.
+
+## 2026-10-16 — Focused browser provenance correction
+
+Correction to the prior section titled “Bounded no-retry F8s and populated
+comparison verification”: those runs were not performed against an isolated
+Compose fixture. They used the existing TC worktree Vite at
+`127.0.0.1:15190`, with `VITE_API_PROXY_TARGET=http://127.0.0.1:28008`, and
+the assigned TC backend container exposed on port `28008`. The existing
+assigned TC services were preserved; no isolated Compose project was created.
+
+The F8s spec mocked watchlist-source retrieval, saved-source creation,
+clone/watchlist requests, Market Map result, and snapshot APIs. Authentication,
+account creation, and chart/workspace persistence still used the assigned
+backend/database. The runs created five test-account rows in that assigned
+database. They remain retained and were not cleaned up. The exact private
+account inventory is in ignored
+`.ai/runtime/tc2000-focused-browser-account-inventory.json`; identities are
+intentionally excluded from tracked evidence. No Provider/ETF live probe was
+run. Earlier Playwright browser processes exited; this audit found no TC-owned
+browser or build process still running. Docker CLI access currently returns
+permission denied, so container state could not be refreshed independently;
+no cleanup was attempted, and neither port 15190 nor retained data was touched.
+
+The current working-tree F8s test delta changes source-selection sequencing so
+an already-selected `watchlist:7` first transitions to a different source and
+then back, ensuring each automatic-refresh assertion follows a genuine source
+change. This delta has passed Playwright test collection only; it has not been
+browser-executed. Therefore the earlier no-retry F8s/F9c outcomes remain valid
+for their tested source, but are not proof of this new delta or of an isolated
+fixture/full joint acceptance. No further targeted account/data mutation is
+authorized by this evidence correction. The bounded TC browser/build slot is
+released; Provider retains full local validation priority.
+
