@@ -42,6 +42,19 @@ integration_checkpoint:
     scope: Common repair only; no Provider, ETF or TC2000 product checkpoint acceptance and no combined product baseline release.
     human_technical_fix_delegation: >-
       The coordinator may review and close validated technical fixes without per-fix human signoff, per the 2026-10-15 recorded direction. This does not waive validation or accept feature checkpoints.
+  latest_common_repair_reconciliation:
+    staging_sha: 0145b65992b8692ce69f82f804f83f6c8e551fea
+    exact_ci_run: 38896729111
+    strategy_merge_commit: db7c16e77dfe05f5e14c1ef331cc86b36cdfd209
+    scope: >-
+      Exact coordinator-released green common repair baseline only; no product
+      checkpoint acceptance, no Provider/ETF/TC product baseline, and no sibling
+      or persistent staging mutation.
+    bounded_test_evidence: >-
+      The two changed research-runner tests reported passing, but pytest did not
+      exit after reporting them; the still-open command was interrupted after
+      process inspection found no lingering pytest/research child. Do not claim
+      a clean pytest exit or full runner-suite pass from this invocation.
   planning_authorization: Prepare strategy-lab-v2-integration-1 in feat/strategy-lab-v2 and its existing
     worktree. Adopt the central-first Strategy resume task in your own plan/handoff/session, preserving
     the full production-grade engine-neutral backtest/experiment/broker-free forward roadmap. Prepare

@@ -14658,3 +14658,36 @@ CPU-second boundary, strengthening but not proving attribution. No rerun, limit
 change, test weakening, or threshold change was made. Investigate from this
 source/log evidence and only use bounded reproducer work under the approved
 heavy-gate order; keep each exact commit/run result distinct.
+
+## 2026-10-16 — reconcile latest green common staging repair
+
+Rechecked the owner branch and remotes before acting: `feat/strategy-lab-v2`
+and its origin were clean and synchronized at `5016f81fe0cdd9b89cd241367b4f7bf2923ae2ef`;
+`staging` and `origin/staging` both resolved to the coordinator-authorized
+`0145b65992b8692ce69f82f804f83f6c8e551fea` (Exhaustive Integration Gate
+`38896729111`). Merged that exact green common repair baseline into this
+Strategy branch as `db7c16e77dfe05f5e14c1ef331cc86b36cdfd209`. It is shared
+test/runtime/workflow repair only, not product checkpoint acceptance and not
+the Provider/ETF/TC product baseline. No sibling or persistent staging worktree
+was changed. Strategy-owned migrations and product code were preserved.
+
+The released test-only runner correction makes the wall-time test isolate its
+competing process CPU limit while retaining the actual wall alarm, memory guard
+and restoration checks, and separately proves CPU enforcement in a bounded
+child. Both changed tests reported passing in a focused pytest invocation.
+However, pytest did not exit after reporting those passes; process inspection
+found no lingering pytest/research child, and the still-open command was
+interrupted. Therefore this is bounded test evidence, not a clean pytest exit
+or full runner-suite pass. No production resource limit, coverage threshold or
+CI profile was changed or rerun. Exact Strategy source `54fa13e1` / CI
+`38820638540` remains the recorded exit-152 failure with cause unproven.
+
+The formal session goal API still reports the existing goal blocked and exposes
+no resume operation; creating another goal would duplicate the existing
+request. Work continued under the preserved writer claim and this explicit
+coordinator direction, without claiming the formal goal became active. The
+full roadmap and existing exact-CI evidence remain intact. Product consumer
+reconciliation still waits for accepted green Provider, then ETF, then TC2000
+releases; combined PostgreSQL/application gates and the required local
+`full_stack_browser` profile remain open. Provider retains the first heavy
+local validation slot.
