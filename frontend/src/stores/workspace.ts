@@ -2867,6 +2867,18 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
+  function acknowledgeSupersededSnapshot(saved: WorkspaceState, workspaceId: number, baseRevision: number) {
+    const live = workspace.value
+    if (!live || live.id !== workspaceId || saved.id !== workspaceId
+      || live.revision !== baseRevision || saved.revision <= baseRevision) return
+    // The server accepted this write even though newer local fields exist.
+    // Retain those fields and object identities, but acknowledge its revision
+    // and actual persisted baseline so the next save does not conflict with
+    // our own successful write. Never adopt it into a different/newer workspace.
+    live.revision = saved.revision
+    persistedWorkspace = cloneSerializable(saved)
+  }
+
   async function saveSnapshot() {
     if (snapshotSavePromise) {
       // A newer edit can arrive while this request is pending. Compare the
@@ -2879,6 +2891,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
     if (!workspace.value) return
     const current = workspace.value
+    const baseRevision = current.revision
     const generation = snapshotGeneration
     snapshotPersistingGeneration = generation
     const payloadAtStart = snapshotPayload(current)
@@ -2886,7 +2899,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const persist = (async () => {
       try {
         const saved = await api.put<WorkspaceState>(`/workspaces/${current.id}/snapshot`, payloadAtStart)
-        if (generation !== snapshotGeneration) return
+        if (workspace.value?.id !== current.id) return
+        if (generation !== snapshotGeneration) {
+          acknowledgeSupersededSnapshot(saved, current.id, baseRevision)
+          return
+        }
         workspace.value = saved
         persistedWorkspace = cloneSerializable(workspace.value)
         recentClosedWindowOverrides.clear()
@@ -2913,7 +2930,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
             const merged = mergeDisjointWindowChanges(persistedWorkspace, current, latest)
             if (merged) {
               const saved = await api.put<WorkspaceState>(`/workspaces/${latest.id}/snapshot`, snapshotPayload(merged))
-              if (generation !== snapshotGeneration) return
+              if (workspace.value?.id !== current.id) return
+              if (generation !== snapshotGeneration) {
+                acknowledgeSupersededSnapshot(saved, current.id, baseRevision)
+                return
+              }
               workspace.value = saved
               persistedWorkspace = cloneSerializable(saved)
               recentClosedWindowOverrides.clear()

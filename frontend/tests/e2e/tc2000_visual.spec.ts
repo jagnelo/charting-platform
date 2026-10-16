@@ -353,7 +353,13 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     })
     if (!popup.isClosed()) {
       const closed = popup.waitForEvent('close')
-      await popoutTool.locator('button[title="Close"]').click()
+      try {
+        await popoutTool.locator('button[title="Close"]').click()
+      } catch (error) {
+        // The ordinary Close action destroys this page before Chromium may
+        // acknowledge click completion. A still-open popup is a real failure.
+        if (!popup.isClosed()) throw error
+      }
       await closed
     }
     await expect(sourceTool).toBeVisible()
@@ -867,6 +873,14 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(study.locator('.study-histogram-uplot, [class*="study-histogram"]').first()).toBeVisible()
     await expect(study.locator('table').filter({ hasText: 'positive_close' })).toBeVisible()
     await expect(study.locator('.study-lab-tool__events button').filter({ hasText: 'positive_close' })).toBeVisible()
+    // Opening Study replaces the preceding layout. Its new chart and result
+    // canvases must reach the ready state shown by this existing reference.
+    await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 15_000 })
+    await expect(page.locator('.chart-tool .tool-state')).toHaveCount(0, { timeout: 15_000 })
+    await expect(page.locator('.chart-tool canvas').first()).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Study Lab research results' })).toContainText('No persisted studies yet.')
+    await expect(study.locator('.study-bars canvas')).toBeVisible()
+    await expect(study.locator('.study-histogram canvas')).toBeVisible()
     await expect(page).toHaveScreenshot('study-lab-structured-result-gap.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -921,6 +935,10 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await page.route(/\/api\/v1\/research\/runs$/, async route => {
       if (route.request().method() !== 'POST') return route.continue()
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(failedRun) })
+    })
+    await page.route(url => url.pathname.endsWith('/api/v1/research/runs'), async route => {
+      if (route.request().method() !== 'GET') return route.fallback()
+      await new Promise<void>(() => {})
     })
     await page.route(/\/api\/v1\/research\/runs\/780$/, async route => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(failedRun) })

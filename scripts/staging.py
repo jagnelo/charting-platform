@@ -89,8 +89,21 @@ def integration_lock():
 
 
 def root_master_ready() -> None:
-    if git("branch", "--show-current") != "master":
-        raise SystemExit("run this command from the root master checkout")
+    # The persistent staging checkout is also a coordinator role. Its own
+    # tracked source must be clean; unrelated edits in the root control
+    # checkout are never used, moved, or discarded by this route.
+    branch = git("branch", "--show-current")
+    if ROOT == STAGING_PATH and branch == "staging":
+        if git("status", "--porcelain"):
+            raise SystemExit("the staging coordinator checkout is dirty")
+        fetch_branch("master", cwd=ROOT)
+        if git("rev-parse", "master") != git("rev-parse", "origin/master"):
+            raise SystemExit("local master is not synchronized with origin/master")
+        return
+    if ROOT != COMMON_ROOT or branch != "master":
+        raise SystemExit(
+            "run this command from the root master or persistent staging coordinator checkout"
+        )
     if git("status", "--porcelain"):
         raise SystemExit("the root master checkout is dirty")
     fetch_branch("master")

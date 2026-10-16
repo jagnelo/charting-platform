@@ -1,0 +1,98 @@
+schema: 4
+branch: fix/chart-template-pointer-interaction
+base_sha: 5267f11a491795d85ee35b56cabbe550394f3823
+parent_branch: staging
+parent_sha: 5267f11a491795d85ee35b56cabbe550394f3823
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "Human approved the coordinator proposal to open a narrowly scoped chart-template pointer repair and stated: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Scope: repair physical desktop overlap between populated comparison chips and Plots; preserve no-comparison default and passing narrow layout; validate with ordinary pointer actions, required full profile and exact CI; coordinator owns technical closure and staging integration. No other feature worktree writes, Help oracle changes, provider calls, deployment or data cleanup."
+planning_state: ready
+human_closure_authorization: >-
+  The human explicitly delegated technical-fix review and closure to this
+  coordinator on 2026-10-15: Yes I approve, and you do not need my acceptance
+  to close it off, it's a waste of time for me to individually verify each
+  individual fix in all the 4 parallel development branches - do this yourself,
+  with care, I just want to get to the merged-into-staging state to finally try
+  this out. Exercised only for these validated chart geometry and causally
+  blocking workspace-save repairs and their unchanged-oracle regression
+  corrections. No feature-checkpoint scope reduction, deployment, provider
+  activation, trial or retained-data deletion is accepted by this closure.
+closure_summary: >-
+  Delivered physically independent populated comparison/Plots controls while
+  preserving empty/default and narrow geometry; acknowledged superseded saved
+  revisions without overwriting newer fields or another workspace; flushed
+  trailing edits after an in-flight save; retained genuine conflict recovery;
+  strengthened populated-pointer and real source-persistence regressions and
+  corrected cache-aware/reset, Study readiness/loading, and expected popup-close
+  test observers. Validated implementation/source:
+  ad30231df085c1168ed51b2567e33586b7612853. Evidence: 927 frontend unit tests,
+  final Docker vue-tsc/Vite build, 10 repeated pointer/persistence checks,
+  8 repeated all-profile popup checks, then entire no-retry browser profile:
+  258 passed, 2 expected opt-in live skips, zero failed/flaky, all104 original
+  screenshot checks passed at unchanged0.5% tolerance in33.3m. Exact code-source
+  CI38796755658 passed every required job; E2E151passed109skipped without retry
+  or flake. All30 workstreams and diff checks pass; owned backend tail has zero
+  tracebacks/error-or-critical/HTTP5xx. No migrations, dependencies, deployment
+  or provider configuration changes, no reference/mask/tolerance changes and no
+  sibling source imports. No feature checkpoint is accepted here. Final metadata
+  CI and exact pushed staging Exhaustive Integration Gate remain mandatory.
+  integration_capture: exact branch HEAD. Release the implementation claim via
+  explicit coordinator handoff after scoped disposable-resource cleanup; freeze
+  the final clean pushed source for guarded integration, with no intervening writes.
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: full_stack_browser
+local_validation_reason: Responsive chart-toolbar geometry must be validated in a real seeded application, including populated comparison values, restored templates and adjacent controls.
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "Repair chart-template comparison/Plots hit-target overlap on desktop, preserve the no-comparison default and passing narrow layout, and publish a validated clean checkpoint for delegated coordinator review. No feature imports, Help reference changes, provider requests, deployment or retained-data cleanup."
+scope:
+  - Physically separate populated comparison chips from the Plots trigger without relying on z-index reversal.
+  - Preserve the no-comparison default geometry and the existing narrow viewport two-row toolbar.
+  - Validate restored templates, real percentage labels, independent ordinary pointer actions and adjacent toolbar behavior on an isolated seeded application.
+  - Reconcile the observed pre-existing Market Map browser-test refresh race using terminal request/render/selection assertions; retain all existing product assertions and ordinary clicks.
+  - Require the reopened Market Map source to be successfully persisted before selecting and publishing its members; a lost configuration must fail rather than be hidden by a retry.
+  - Repair the causally blocking snapshot acknowledgement and dropped trailing-save race exposed by that stronger assertion, under the recorded human delegation for validated technical fixes needed by the four integrations; preserve newer local edits and genuine cross-workspace/conflict safeguards.
+  - Strengthen the existing template comparison regression with populated percentage and ordinary Plots open/close checks while its comparison chip remains present.
+  - Make the existing transform-reset browser observer respect legitimate client cache reuse while retaining a real parameter-free server request assertion after persisted-state reload.
+  - Pin the existing Study sandbox-error visual fixture's adjacent loading surfaces and explicitly await structured-result chart readiness; preserve every reference and screenshot tolerance.
+  - Correct the existing floating-state visual test's expected popup self-destruction handling while preserving its ordinary Close action, screenshot, source-tool restoration and critical diagnostics.
+owned_paths:
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/stores/workspace.ts
+  - frontend/tests/unit/stores/test_workspace_store.test.ts
+  - frontend/tests/e2e/flows.spec.ts
+  - frontend/tests/e2e/tc2000_visual.spec.ts
+  - ops/workstreams/fix-chart-template-pointer-interaction/
+dependencies:
+  - Synchronized staging 5267f11a491795d85ee35b56cabbe550394f3823; exact CI run 38773602828 has success job conclusions, but terminal logs expose one retried visual flake, not clean product acceptance.
+  - Read-only TC real-app cross-check at 389069a32682f97c51c0a6dd5cca99be3bb23c2a, published in evidence checkpoint 6051b078e9c0decd8e8a77e2cd52eb648b1355ef.
+acceptance_criteria:
+  - id: PTR1
+    text: Desktop save/remove/restore with a populated RSP percentage permits ordinary Plots and Remove RSP clicks while both controls exist; no force/trial-only proof or blank-percentage shortcut.
+  - id: PTR2
+    text: No-comparison default geometry remains unchanged; populated and multiple/long comparison chips cannot cover Plots or Templates, and menus retain ordinary close/focus behavior.
+  - id: PTR3
+    text: The 390x800 narrow viewport and on-screen chart retain independent comparison/Plots targets and usable menu bounds; comparison input/add controls remain interactive.
+  - id: PTR4
+    text: Frontend unit tests, type check/build and required isolated application browser/regression validation pass with unchanged oracles/tolerances; exact-source branch CI and subsequent staging gate remain required.
+  - id: PTR5
+    text: Publish clean committed/pushed source and precise review/closure evidence under delegated technical-fix authorization; preserve all sibling code/data and leave Help policy, provider activation, deployment and broader feature acceptance untouched.
+branch_tests: []
+branch_tests_reason: Existing chart-template/comparison frontend unit tests, F9c and adjacent browser flows, complete frontend suite and normal full integration CI cover this narrow repair; no additional standalone branch command is needed.
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: ready_for_integration
+active_changeset_context:
+  name: pointer-popup-close-teardown
+  intent: Tolerate only the expected closed-popup click teardown while retaining screenshot, actual page-close, source restoration and critical diagnostics assertions.
+  owned_paths:
+    - frontend/tests/e2e/tc2000_visual.spec.ts
+    - ops/workstreams/fix-chart-template-pointer-interaction/
+remaining_gaps: []
+progress:
+  completed: [PTR1, PTR2, PTR3, PTR4, PTR5]
+  total: 5
+  current_phase: delegated_technical_closure_and_coordinator_handoff
+  current_blocker: none
+  next_action: Cleanup is audited complete and the implementation claim is released. Publish final closure metadata cleanly, require its exact source CI, then integrate only through persistent staging and await the exact exhaustive gate. No feature acceptance, promotion or deployment.

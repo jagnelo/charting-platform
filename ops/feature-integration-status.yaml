@@ -1,0 +1,111 @@
+schema: 1
+updated_at: '2026-10-15T16:55:07Z'
+coordinator: this central session in the persistent staging worktree
+human_authorization: >-
+  Start coordinating the four-feature staging integration. Proceed until you
+  either have no way to continue and/or require my action for something.
+reconciliation_handoff: docs/feature-integration-reconciliation.md
+technical_repair_authorization: >-
+  Yes I approve, and you do not need my acceptance to close it off, it's a
+  waste of time for me to individually verify each individual fix in all the
+  4 parallel development branches - do this yourself, with care, I just want
+  to get to the merged-into-staging state to finally try this out
+integration_order:
+  - feat/market-data-provider-platform
+  - feat/etf-holdings-constituents
+  - feat/tc2000-frontend-rework
+  - feat/strategy-lab-v2
+source_freezes: []
+accepted_product_checkpoints: []
+baseline:
+  remote_staging: 98f0b888817c461fa00e6e310c5b378b0c4c512f
+  remote_master: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
+  last_green_ci_run: 33627738401
+  current_ci_run: 38770968246
+  current_ci_result: in_progress
+  staging_degraded: false
+  master_degraded: false
+  workflow_publication: published; exact exhaustive and Playwright jobs pending
+  combined_product_baseline_released: false
+coordinator_actions:
+  - >-
+    The human pasted the provider goal direction into its owning session and
+    reports it is now progressing as a goal. Do not perform more goal-label
+    work or restart the extension; coordinate its actual checkpoint evidence.
+  - >-
+    Repair the staging helper's root-only caller guard. Permit only the clean
+    persistent staging coordinator, verify local master against origin/master,
+    and retain exact source, closure, staging, CI and degraded-state guards.
+    Preserve all unrelated root-checkout edits.
+  - Observe exact published staging CI; backend and frontend jobs are green.
+  - >-
+    Human authorized the independently deliverable chart-template pointer
+    repair and delegated validated technical-fix closure to the coordinator.
+    TC supplied the minimal proposal and passing focused evidence. Bootstrap
+    its own repair worktree; do not import the whole TC branch or modify the
+    backend-only Provider worktree's frontend.
+  - >-
+    The worktree bootstrap helper had the same obsolete root-master-only guard
+    as the integration helper. Extend it to the exact clean persistent staging
+    coordinator, checking synchronized master/staging refs while preserving
+    unrelated dirty root edits. No closure, degraded-state or source guard waived.
+  - >-
+    Strategy's independent preparation is done, but four Alembic identifiers
+    collide with Provider/TC definitions. Queued the compatibility-safe audit
+    and repair task to its existing session, message
+    01a1407a-642b-7012-be6f-6e0e68c947a5. Owner acknowledgement and active
+    namespace/ambiguity-guard work were verified from its session at 16:53Z.
+    Do not equate that active turn with final checkpoint readiness.
+  - >-
+    Resolve ETF's shared recurring-budget admission contract with Provider;
+    verify free-only fail-closed boundaries and actual per-request accounting.
+    Review Provider's changed inherited migration and additive upgrade together.
+  - >-
+    Review source checkpoints in order and present concrete acceptance evidence
+    before each product integration. Do not freeze or merge unfinished sources.
+features:
+  provider:
+    branch: feat/market-data-provider-platform
+    checkpoint: provider-platform-integration-1
+    state: owner implementing and validating checkpoint
+    evidence: >-
+      Latest durable source record has 20/27 matching provider live manifests
+      with 56 cases passing. Seven manifests are held. The latest recorded
+      full browser run has one chart-template click failure. A backend rerun
+      was active in the owner's latest handoff; do not start another local
+      heavy gate from this coordinator.
+    next: >-
+      Owner finishes candidate validation and operation-level unavailable/deferred
+      dispositions and publishes a clean review checkpoint. Deployment-secret
+      provisioning and the 30-day operational trial remain later gates; the
+      checkpoint must still test local secret boundaries and needed consumers.
+  etf:
+    branch: feat/etf-holdings-constituents
+    checkpoint: etf-holdings-integration-1
+    state: independent consumer preparation published; staged bridge pending
+    observed_head: d1040b41b99b3ece8e25e777ef51a300393c7429
+    next: >-
+      Preserve the point-in-time repair and 1536 unit-test evidence. Clarify
+      shared cost admission with Provider now. After Provider staging CI is
+      green, reconcile the ETF-owned bridge and validate actual shared runtime
+      requests, quotas, health, availability and retained lineage before review.
+  tc2000:
+    branch: feat/tc2000-frontend-rework
+    checkpoint: tc2000-workstation-integration-1
+    state: pointer proposal published; visual/runtime validation in progress
+    observed_head: f39a0d5da97969154cf09a9d195d6583c52deff6
+    next: >-
+      Diagnose the chart-template pointer interception and remaining browser/visual
+      blockers now. Report a minimal independently testable repair for the shared
+      gate if needed. Consume provider and ETF only from green staging, then
+      reconcile real consumer behavior and produce the workstation checkpoint.
+  strategy:
+    branch: feat/strategy-lab-v2
+    checkpoint: strategy-lab-v2-integration-1
+    state: owner actively repairing independent migration collisions
+    observed_head: b85a4b9cb6a1bde93605f8f91c53add466782834
+    next: >-
+      Audit and safely resolve Strategy-owned duplicate migration identifiers
+      before the combined baseline arrives. Preserve retained database history;
+      no blind rename/stamp/reset. Actual consumer wiring still waits for the
+      accepted green Provider/ETF/TC baseline and source-unfreeze verification.
