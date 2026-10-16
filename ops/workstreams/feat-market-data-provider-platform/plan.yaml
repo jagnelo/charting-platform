@@ -3085,9 +3085,11 @@ progress:
       operation-only zero-credit positive control. Full provider-runtime unit
       file passed 79/79; Ruff and diff checks passed; zero provider HTTP/quota
       use. Previously running CI `38866335811` completed successfully on
-      pre-fix docs-only source `f798b6c` (E2E passed; Exhaustive Integration
-      Gate skipped); it was preserved without cancellation and is not evidence
-      for this fix. Fresh exact-source CI is required after publication.
+      pre-fix docs-only source `f798b6c` and was not treated as fix evidence.
+      Exact fix source `9a0738b138786bdcf74f7efe6485ac784bf8843b` then passed
+      CI `38870197964`: backend, frontend-unit, branch-declared, and E2E
+      success; Exhaustive Integration Gate skipped on feature push. Broader
+      full local-profile/strict-visual acceptance remains outstanding.
     - >-
       2026-10-16 07:12Z current-source checkpoint update: exact candidate
       `0111cc698ad8c03220b60725bdc2df68195d96e8` is clean/pushed and exact
@@ -7583,12 +7585,10 @@ current_gate_checkpoint: >-
       acceptance; the cross-window UI failure remains with its frontend owner,
       and source-bound live evidence/CI status remain to be reconciled.
   next_action: >-
-    Publish the committed unknown/unreviewed plan-evidence fix and require
-    exact-source CI. The preserved pre-fix CI attempt completed successfully
-    and is recorded, but does not validate this fix. Then coordinate repair
-    of the three frontend-owned strict Study Lab visual mismatches without
-    editing frontend or sibling-owned files, rerun the declared full local
-    profile, refresh the ICP1-7 packet and enabled-versus-disabled operation
+    Coordinate repair of the three frontend-owned strict Study Lab visual
+    mismatches without editing frontend or sibling-owned files, rerun the
+    declared full local profile, refresh the ICP1-7 packet and
+    enabled-versus-disabled operation
     inventory, and submit exact evidence to the central coordinator for
     delegated conditional checkpoint acceptance.
     Keep provider receipts bound to original source; refresh only operations

@@ -23,9 +23,16 @@
 - Existing CI run `38866335811` is for pre-fix docs-only candidate `f798b6c`;
   it completed successfully at 07:52Z. Backend, frontend-unit,
   branch-declared, and Playwright jobs passed; Exhaustive Integration Gate was
-  skipped by the feature-push condition. Do not use it as validation of this
+  skipped by the feature-push condition. It was not used as validation of the
   code fix. The old attempt reached terminal completion without cancellation;
-  publish this fix and require fresh exact-source CI.
+  a separate exact-source run was then required and completed as recorded below.
+- Fix candidate `9a0738b138786bdcf74f7efe6485ac784bf8843b` is pushed and its
+  exact-source CI `38870197964` completed successfully: backend,
+  frontend-unit, branch-declared, and Playwright jobs passed; Exhaustive
+  Integration Gate was skipped by the feature-push condition. This closes the
+  code/CI evidence for the ICP2 plan-evidence correction. It does not clear the
+  broader checkpoint's outstanding full local-profile/strict visual gate or
+  imply coordinator acceptance.
 
 ## 2026-10-16 07:12Z — current candidate and checkpoint disposition
 
