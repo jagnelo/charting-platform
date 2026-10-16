@@ -70,12 +70,23 @@ supersession, then lets the owning request release only its own token.
   through `make test-stack-down`; read-only verification found no matching
   containers, volumes, or network, and confirmed the shared default Docker
   builder remained selected. Provider and TC-assigned stacks were untouched.
-- The required local full-stack/browser regression is complete. Exact-source
-  replacement CI on the corrected plan and the guarded staging EIG remain
-  outstanding; the earlier red run is preserved and cannot be treated as
-  acceptance.
-- After corrected exact-source CI and closure review, invoke canonical guarded
-  degraded remediation. Keep the marker until the exact merged staging SHA
-  passes `Exhaustive Integration Gate` and synchronization is verified.
+- The required local full-stack/browser regression is complete. Exact branch
+  CI run `38963802695` matches source
+  `7a5af939b034179ff055e296a3a43baeaffb91bd`: Frontend Unit, Backend,
+  Branch-declared, and Playwright all succeeded; E2E reported 151 passed, 109
+  skipped, with no retry, flaky test, or failure. The feature branch's
+  Exhaustive Integration Gate was skipped by branch policy. Earlier red runs
+  remain preserved as history, not acceptance.
+- This closure-record commit must itself receive green exact-source CI. Once
+  that exact pushed tip is green, the coordinator invokes only the canonical
+  `make integrate BRANCH=fix/tc-occurrence-date-hydration
+  REMEDIATE_DEGRADED=1` workflow, preserving base
+  `e0cb269afc8460bdc814c93ec71c640f01b2b31f`. Keep the degraded marker until
+  the exact merged staging SHA is synchronized and passes
+  `Exhaustive Integration Gate`.
+- `session.json` records the last known pre-record checkpoint `7a5af939`; the
+  commit that contains this closure record cannot include its own final SHA.
+  After committing, verify the actual `HEAD`, `origin/fix/tc-occurrence-date-hydration`,
+  and clean worktree externally before starting the next integration context.
 - Continue Provider → ETF → full TC2000 → Strategy Lab v2 afterward; this
   narrow repair is not full TC acceptance.

@@ -15,7 +15,27 @@ human_closure_authorization: >-
   merged-into-staging state to finally try this out". This repair is limited to
   fixing the exact stale-linked-timestamp E2E failure on degraded staging; it
   does not accept or close the full TC2000 feature roadmap.
-closure_summary: pending
+closure_summary: >-
+  Narrow coordinator-owned repair of the exact staging occurrence-date race
+  reproduced by run 38947572686: product implementation commit
+  0794384a9c431732376a00a947bd42912afbb5fc preserves explicitly selected
+  linked-occurrence timestamps while chart hydration emits stale cursor
+  publications; per-selection identity prevents an older same-date request
+  from clearing a newer hold. The repair is based directly on degraded staging
+  e0cb269afc8460bdc814c93ec71c640f01b2b31f and keeps staging UPlotChart intact.
+  Exact full-stack local regression passed 1/1; focused store tests passed
+  75/75; frontend production build passed; isolated repair Compose resources
+  were removed and verified absent. Exact branch CI run 38963802695 on tested
+  source 7a5af939b034179ff055e296a3a43baeaffb91bd passed Frontend Unit,
+  Backend, Branch-declared, and Playwright jobs. Playwright reported 151
+  passed, 109 skipped, no retries/flakes/failures; feature Exhaustive was
+  skipped by branch policy. No migration, deployment, paid-provider, live
+  quota, or operational-trial impact. The only code conflict with the original
+  TC repair was UPlotChart and was intentionally not ported because its hooks
+  do not exist on degraded staging. Remaining gates are exact CI on this
+  closure-record commit and the Exhaustive Integration Gate on the exact
+  guarded staging merge before removing the degraded marker. This does not
+  close the full TC roadmap. integration_capture: exact branch HEAD
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
@@ -25,9 +45,12 @@ local_validation_reason: >-
   source in its assigned Compose project with E2E_SEED_MARKET_DATA=true; the
   targeted F8s-breadth-family-ratio regression passed 1/1. Its containers,
   network, volumes, and repair-specific builder were removed and verified
-  absent, with the shared default Docker builder restored. Exact-source CI is
-  still required, and the resulting staging SHA must pass the Exhaustive
-  Integration Gate before the degraded marker can clear.
+  absent, with the shared default Docker builder restored. Exact-source branch
+  CI run 38963802695 on 7a5af939b034179ff055e296a3a43baeaffb91bd passed all
+  required branch jobs; its Playwright suite reported 151 passed, 109 skipped,
+  and no retry/flaky/failing tests. The closure-record commit still requires
+  its own exact-source CI, and the resulting staging SHA must pass the
+  Exhaustive Integration Gate before the degraded marker can clear.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 goal: "Repair the exact degraded staging failure at e0cb269afc8460bdc814c93ec71c640f01b2b31f by transplanting only TC2000 fix 957216a1bbb0727dc7f5f26f644d84df911e5522 for preserving explicitly selected occurrence timestamps during chart hydration, then validate and guarded-integrate this narrow repair under the active four-feature staging goal; no deployment, paid activation, operational trial, or master promotion."
@@ -60,13 +83,13 @@ branch_tests_reason: >-
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: authorized
+status: ready_for_integration
 remaining_gaps:
-  - Pass exact repair-branch CI on the corrected workstream declaration with no flaky tests.
-  - Guarded-integrate while preserving the exact degraded base, then pass the exact staging Exhaustive Integration Gate before the degraded marker is cleared.
+  - Pass exact-source branch CI on this final closure-record commit.
+  - Guarded-integrate while preserving the exact degraded base, then pass the Exhaustive Integration Gate on the synchronized staging SHA before the degraded marker is cleared.
 progress:
   completed: [OCCURRENCE1, OCCURRENCE2]
   total: 3
-  current_phase: exact_repair_validation
-  current_blocker: Corrected exact-source CI has not yet run. Prior run 38959676649 is terminal red solely because a descriptive sentence was executed as the branch shell test; its Playwright E2E job passed. The corrected command list and local full-stack F8s regression are now validated.
-  next_action: Append the focused browser/cleanup receipt, commit and push the corrected workstream declaration, then require a green zero-flake exact-source CI run before guarded degraded remediation integration.
+  current_phase: closure_record_ci
+  current_blocker: Exact branch CI run 38963802695 passed on tested source 7a5af939b034179ff055e296a3a43baeaffb91bd. The final closure-record commit must receive its own green exact-source CI before guarded degraded remediation integration.
+  next_action: Commit and push the closure record, verify exact-source CI on that tip, then invoke the canonical guarded degraded remediation workflow and keep the marker until staging Exhaustive Integration Gate passes.
