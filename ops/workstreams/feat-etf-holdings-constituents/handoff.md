@@ -11366,3 +11366,44 @@ symbol-level roadmap remains ETF-owned and open for continuation. Cached,
 historical, and point-in-time reads stay network- and reservation-free. No
 live request, Provider import, runtime acceptance, scope reduction, paid/trial
 activation, or heavy validation was authorized or performed by this update.
+
+### Abandoned ETF persisted-consumer pytest diagnosis and cleanup — 2026-10-16 03:44Z
+
+At the human's report, host-side read-only inspection verified these exact
+processes before signaling: PID `686801`, started 2026-10-15 22:17:56 local,
+`pytest ...test_etf_holdings_checkpoint_consumers.py -q --no-cov`; PID
+`696172`, started 22:22:25 local, same module with `-vv -x --no-cov`; and PID
+`697935`, started 22:23:16 local, only
+`test_current_consumer_exposes_native_identity_and_snapshot_lineage`, wrapped
+by `timeout --signal=INT 45s` and configured with `faulthandler_timeout=25`.
+All ran as UID 1000 from this exact ETF worktree. Their Codex sandbox roots
+(`686796`, `696167`, `697926`) had PPID 1 and were in
+`app-com.microsoft.VSCode-1881899.scope`; pytest stdout/stderr descriptors
+pointed to deleted zero-byte temporary files, so there was no retained output
+or live result handle. At inspection each pytest had only 6–9 seconds CPU over
+more than six hours and was waiting in `futex_do_wait`. The timed invocation's
+45-second interrupt wrapper had itself remained live for over six hours.
+
+These were three stale/abandoned hung attempts, not tests still making progress
+and not passing evidence. After revalidating each PID's start time, UID, and
+full command immediately before action, sent SIGINT to all three exact pytest
+PIDs. The timed single-test process exited. The two full-module processes
+remained futex-blocked with no pending SIGINT; sent catchable SIGTERM only to
+those two verified pytest PIDs. A follow-up host check found all three pytest
+processes, their UV/timeout wrappers, and their Codex sandbox roots exited.
+No database, retained fixture, container, or other process was touched. The
+test result for all three attempts is unknown/interrupted, not pass or fail.
+
+Limited source diagnosis: the module's synchronous API cases exercise FastAPI
+`TestClient` (`client.get`) while its shared test DB is a synchronous session
+adapted to async dependencies (`AsyncSessionAdapter`). The observed futex wait
+is consistent with a TestClient/thread/event-loop handoff stall in this
+restricted execution context, but these dead processes retained no stack or
+pytest output, so that mechanism is not proven. An earlier separately bounded
+run of the same selected API test passed on the host, and its complete 14-case
+consumer module passed 14/14 on the host in 7.06 seconds (recorded above at
+2026-10-15 21:58Z). That prior pass does not change the status of these three
+interrupted attempts and does not exercise the future shared Provider bridge.
+Do not repeat the module in the restricted runner; after the Provider release,
+run the required real-runtime contract in the coordinated host profile with a
+hard timeout/process-group cleanup and capture a durable normal exit receipt.
