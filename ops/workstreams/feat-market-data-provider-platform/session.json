@@ -49,9 +49,7 @@
     "ops/workstreams/feat-market-data-provider-platform/handoff.md",
     "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
     "ops/workstreams/feat-market-data-provider-platform/session.json",
-    "ops/workstreams/feat-market-data-provider-platform/validation.jsonl",
-    "backend/tests/unit/services/test_provider_recurring_costs.py",
-    "backend/tests/integration/test_provider_recurring_cost_concurrency.py"
+    "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
   ],
   "docker": {
     "available": false,
@@ -77,15 +75,15 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "3754d0bd2c55492d1868b8ee039a23f4a45d182f",
-  "implementation_sha": "3754d0bd2c55492d1868b8ee039a23f4a45d182f",
+  "head": "e408d35c448c132cb57bbcdde90a83865edd30de",
+  "implementation_sha": "e408d35c448c132cb57bbcdde90a83865edd30de",
   "interrupted": false,
-  "last_checkpoint": "2026-10-16T21:37:00Z",
+  "last_checkpoint": "2026-10-16T22:17:32Z",
   "last_human_progress_update": "2026-10-16T11:12:47.867964+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Reconcile terminal run 38966141433 as red only on source 3754d0bd (Backend, Frontend Unit, Branch-declared green; Playwright failed at TC-owned F8u, 150 passed/109 skipped/1 failed; Exhaustive skipped). The dirty SQLite/PostgreSQL restart regressions and workstream updates are not covered. Finish the Provider-owned ICP2/ICP6 contract work, validate the coherent dirty candidate, publish it and require exact-source CI; do not duplicate TC's F8u repair or rerun the seeded browser matrix before coordinator release. Preserve the historical 389434 green receipt on ba06bdc6 only, six provider-operation holds, all prior browser evidence, and no provider transport/quota spend, deployment, reset, cleanup, paid/trial activation, red-staging merge, or invented FX.",
+  "next_action": "Record exact successful Provider CI run 38970895095 for source e408d35c448c132cb57bbcdde90a83865edd30de (2,837 backend unit + 396 integration passed, coverage 82%, Frontend Unit, Branch-declared, and E2E 151 passed/109 expected skips; Exhaustive skipped). Reconcile the append-only journal and current review records. Current staging tip 79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b / run 38972891559 is still in progress; await its coordinator release before the held full local profile or any staging merge. Continue safe Provider ICP2/ICP6 gaps only; preserve all operation holds and historical seeded-browser evidence. No provider transport/quota spend, deployment, reset, cleanup, paid/trial activation, red-staging merge, or invented FX.",
   "parent_branch": "staging",
-  "plan_hash": "720180d107d41e7e2d500aa7bb5d70342cd0ebbb7599edb301bd2ed20f0bbd8d",
+  "plan_hash": "a8875425f88edd353e17890043664f37442479bcd3d7eda2f0134d0d77bf55cd",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -115,14 +113,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "Exact source 3754d0bd CI run 38966141433 is terminal red only because Playwright failed TC-owned F8u (150 passed/109 skipped/1 failed); Backend, Frontend Unit, and Branch-declared succeeded, Exhaustive skipped. Dirty Provider restart regressions/workstream edits are outside that run and need exact-source hosted CI. The SQLite engine-reopen test passes in the 42/42 bounded unit selection and isolated PostgreSQL concurrency/restart integration passes 1/1 locally. Six provider groups remain held, with no transport/quota spend. Full local profile remains held pending coordinator release of exact synchronized green staging; historical seeded browser red remains distinct. ICP2 single-currency/no-FX policy and provider-plan evidence/reconciliation remain roadmap gaps; ETF/TC/Strategy own downstream wiring after Provider staging. Checkpoint not accepted.",
+    "current_blocker": "Provider source e408d35c has exact standard branch CI success 38970895095: backend 2,837 unit + 396 integration passed, combined coverage 82%, Frontend Unit, Branch-declared, and E2E 151 passed/109 expected skips; Exhaustive skipped by policy. Current staging tip 79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b / CI 38972891559 is nonterminal, so the required full local profile and final review packet remain held until coordinator releases synchronized green staging. Historical seeded local-browser red is still separately recorded. Six provider groups remain held with no transport/quota spend. ICP2 currency/provider-plan evidence and ICP6 post-staging consumer wiring remain roadmap work; checkpoint not accepted.",
     "current_phase": "provider-icp2-recurring-cost-and-icp6-contract-refresh",
-    "next_action": "Complete the remaining Provider-owned ICP2 aggregate recurring-cost and ICP6 producer/consumer contract work without touching TC-owned F8u or any held provider operation. Validate and publish the coherent SQLite/PostgreSQL restart tests plus workstream reconciliation; require exact-source hosted CI. Do not rerun the seeded browser profile until coordinator release of exact synchronized green staging. Preserve historical receipts and current holds; no FX invention, provider transport, quota spend, paid/trial routes, deployment, reset, cleanup, or red-staging merge.",
+    "next_action": "Append exact terminal CI 38970895095 and update checkpoint records without rebinding older receipts; validate and publish the coherent workstream state. Recheck staging CI 38972891559; once the coordinator releases exact synchronized green staging, reconcile it into this branch under the normal owner workflow, then run the required full local validation profile and exact-source CI. Continue only safe Provider-owned ICP2/ICP6 work while waiting. Preserve historical receipts, provider-operation holds, and the prior local seeded-browser red; no provider transport/quota spend, FX invention, paid/trial activation, deployment, reset, cleanup, or self-integration into staging.",
     "total": 7,
-    "updated_at": "2026-10-16T21:37:00Z"
+    "updated_at": "2026-10-16T22:17:32Z"
   },
   "remote": "51ebc7d45aa34d2e8790988778ee5e6eec14bdd7",
-  "remote_sha": "3754d0bd2c55492d1868b8ee039a23f4a45d182f",
+  "remote_sha": "e408d35c448c132cb57bbcdde90a83865edd30de",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-provider-validation-1236-20261016 and provider-playwright-1236-hostaccess-20261016 remain running/preserved; no stop, reset, prune, or cleanup. Browser runner returned to sleep service after focused checks."

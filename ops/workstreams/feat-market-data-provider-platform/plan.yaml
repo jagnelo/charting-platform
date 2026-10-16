@@ -1,12 +1,13 @@
 schema: 4
-# Current source/CI update — 2026-10-16 21:37Z: Actions 38966141433 is
-# terminal on pushed source 3754d0bd: Backend, Frontend Unit, Branch-declared
-# succeeded; E2E failed at TC-owned F8u (150 passed/109 skipped/1 failed, no
-# retry); Exhaustive skipped by policy. Dirty Provider restart tests are not in
-# that source and require exact-source CI. Coordinator-confirmed 38943410344 is
-# green only for historical ba06bdc6 (151 passed/109 skipped, no failures,
-# retries or flakes; Exhaustive skipped). Dirty PostgreSQL restart integration
-# passes 1/1 in an isolated local testcontainer; bounded unit tests 42/42.
+# Current source/CI update — 2026-10-16 22:16Z: exact Actions run 38970895095
+# is terminal green on synchronized source e408d35c448c132cb57bbcdde90a83865edd30de.
+# Backend: 2,837 unit + 396 integration passed; combined coverage 82% >= 75%.
+# Frontend Unit, Branch-declared, and E2E succeeded; E2E 151 passed/109
+# expected skips, no failures or retry-passing tests. Exhaustive was skipped by
+# feature policy. Current staging tip 79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b
+# / run 38972891559 remains in progress; full local profile stays held until
+# coordinator releases green synchronized staging. Exact CI does not equal
+# checkpoint acceptance. 38943410344 remains green only for historical ba06bdc6.
 # Historical 21:28Z status: the PostgreSQL recurring-cost
 # The file-backed recurring-cost
 # restart regression now reopens the same SQLite database through a new engine
@@ -943,7 +944,7 @@ integration_checkpoint:
       continuation_acceptance_test: "Concurrent/restart tests cover provider-specific quota dimensions and reject unknown/exhausted operations before transport."
     - id: AC-RECURRING-COST
       status: partially_delivered
-      disposition: "A Provider-owned database-backed recurring-cost subsystem now exists: an explicitly reviewed single-currency ceiling including a zero no-spend ceiling; one commitment per provider billing-account scope and environment independent of keys/capabilities; retained budget/commitment evidence revisions; conservative monthly/yearly normalization; trial post-price accounting; fail-closed unknown/mixed-currency handling; and authenticated admin endpoints. Cost admission does not authorize provider activation or routing. Migration b6e9a42d1c73 passes fresh/upgrade schema equivalence, actual zero-accept/negative-reject checks in both databases, and previous-app health 200. Unit/admin tests cover zero-ceiling Free Forever acceptance, positive-cost denial, retention of an existing paid commitment when lowering the ceiling is rejected, and lifecycle revisions. The PostgreSQL near-ceiling concurrency test passes 1/1. Exact CI 38966141433 is running on pushed source 3754d0bd; this is not yet terminal evidence. Remaining: restart-durability proof, exact terminal hosted CI, owner-reviewed provider plan evidence/operator provisioning, the explicit 20 EUR/USD denomination policy remains configured rather than inferred, consumer bridge wiring after Provider staging, and reconciled-evidence transitions. This remains full-roadmap work and is not a prerequisite for the verified-free-only checkpoint."
+      disposition: "A Provider-owned database-backed recurring-cost subsystem now exists: an explicitly reviewed single-currency ceiling including a zero no-spend ceiling; one commitment per provider billing-account scope and environment independent of keys/capabilities; retained budget/commitment evidence revisions; conservative monthly/yearly normalization; trial post-price accounting; fail-closed unknown/mixed-currency handling; and authenticated admin endpoints. Cost admission does not authorize provider activation or routing. Migration b6e9a42d1c73 passes fresh/upgrade schema equivalence, actual zero-accept/negative-reject checks in both databases, and previous-app health 200. Unit/admin tests cover zero-ceiling Free Forever acceptance, positive-cost denial, retention of an existing paid commitment when lowering the ceiling is rejected, lifecycle revisions, and restart durability. Exact CI 38970895095 is green on e408d35c: 2,837 unit + 396 integration passed, combined coverage 82%, Frontend Unit, Branch-declared, and E2E 151/109 passed; Exhaustive skipped by policy. Remaining full-roadmap work: owner-reviewed provider plan evidence/operator provisioning, selection/configuration of the approved 20 EUR/USD-equivalent budget denomination without inventing FX, recurring-cost consumer bridge after Provider staging, and reconciled-evidence transitions. The free-only checkpoint does not authorize paid activation. This remains full-roadmap work and is not a prerequisite for the verified-free-only checkpoint."
       owner: "feat/market-data-provider-platform"
       continuation_acceptance_test: "Database-backed tests cover account/environment scope and same-account cross-key deduplication; exact plan price/currency/period and known post-trial pricing; active/proposed/expired transitions; supported monthly normalization; fail-closed unknown and mixed-currency cases; atomic concurrent near-ceiling proposals; restart durability; evidence revisions; and proof that budget admission does not authorize paid activation. Fresh-install and existing-database upgrade schemas must be equivalent."
     - id: AC-REFRESH

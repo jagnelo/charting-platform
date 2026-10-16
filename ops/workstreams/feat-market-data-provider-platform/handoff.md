@@ -1,5 +1,25 @@
 # feat/market-data-provider-platform
 
+## 2026-10-16 22:16Z — exact Provider branch CI green; no staging release yet
+
+- Exact pushed run `38970895095` succeeded on source
+  `e408d35c448c132cb57bbcdde90a83865edd30de`: Backend 2,837 unit + 396
+  integration tests, combined coverage 82% (75% minimum), Frontend Unit,
+  Branch-declared, and Playwright E2E (151 passed / 109 expected skips, no
+  failures or retry-passing tests). Exhaustive was skipped by branch policy.
+  This validates the committed SQLite/PostgreSQL recurring-cost restart
+  regressions and the exact branch source; it does not itself accept Provider.
+- Current staging tip `79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b` has exact CI
+  `38972891559` in progress. Wait for coordinator release of synchronized
+  green staging before any required full local profile; do not merge a red or
+  nonterminal tip. The released baselines already in Provider ancestry do not
+  substitute for the current release.
+- Keep the separate historical seeded full-browser failure and all
+  quota-held/unreviewed/paid/trial operations explicit. No provider requests,
+  quota spend, deployment, reset, or data cleanup occurred. Continue the
+  provider-plan/currency-policy remainder under ICP2 and keep post-staging
+  consumer wiring under ETF/TC/Strategy ownership in ICP6.
+
 ## 2026-10-16 21:37Z — exact pushed CI reconciled; continue Provider contracts
 
 - The coordinator-reconfirmed Actions run `38943410344` is already recorded

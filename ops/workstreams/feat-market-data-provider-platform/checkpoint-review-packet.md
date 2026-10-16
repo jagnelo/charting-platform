@@ -1,5 +1,25 @@
 # Provider integration checkpoint review packet
 
+## 2026-10-16 22:16Z — exact branch CI green; staging release still pending
+
+Exact Actions run `38970895095` is terminal success on pushed source
+`e408d35c448c132cb57bbcdde90a83865edd30de`: Backend (2,837 unit tests,
+396 integration tests, combined coverage 82% against the 75% gate), Frontend
+Unit, Branch-declared, and Playwright E2E all succeeded. E2E reported 151
+passed and 109 expected skips in 14.3 minutes; no failed or retry-passing
+tests appear in the retained job log. Exhaustive Integration Gate was skipped
+by feature policy. This covers the SQLite/PostgreSQL recurring-cost
+engine-reopen regressions in the pushed source. No provider HTTP or quota was
+used. This is exact branch CI evidence, not checkpoint acceptance or the
+required local full-stack/browser profile.
+
+Current `staging` tip is `79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b`; its
+exact run `38972891559` is still in progress. Do not merge it or start the held
+full local profile until the coordinator releases a synchronized green staging
+source. Preserve the separate historical local seeded-browser red and all
+provider operation holds. ICP2 currency/plan-evidence and ICP6 post-staging
+consumer wiring remain explicitly open.
+
 ## 2026-10-16 21:37Z — exact pushed CI terminal; Provider-owned durability work remains dirty
 
 Actions run `38966141433` is terminal on pushed source
