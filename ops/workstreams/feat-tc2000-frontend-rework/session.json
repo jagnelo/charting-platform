@@ -38,52 +38,29 @@
   "current_exact_ci": {
     "attempt": 1,
     "conclusion": "success",
-    "e2e_summary": "189 passed, 110 skipped, one retry-passing flaky unrelated Market Map 10,000-cell performance assertion; F8u-gauge, F8x-capabilities, and F8aa-favorites on first attempt",
-    "head_sha": "f2dadcea092ddaa8340e611bd8cb28cc6d3550e3",
+    "e2e_summary": "189 passed, 110 skipped, one retry-passing F8m chart-panel menu flake (Grey menuitemradio not found after wildcard-link click); the 10,000-cell Market Map selection and announcement flow passed first attempt",
+    "head_sha": "e2b474b8605fc0f8d9554d70745d0f0bf2e0baaf",
     "jobs": {
       "backend": "success",
       "branch_declared": "success",
-      "e2e": "success; 189 passed, 110 skipped, one unrelated retry-passing flaky performance assertion",
+      "e2e": "success; 189 passed, 110 skipped, one retry-passing F8m chart-panel menu flake",
       "exhaustive_feature_branch": "skipped",
       "frontend_unit": "success"
     },
-    "run_id": 38864400017,
-    "status": "completed success; all required jobs succeeded, with one E2E retry-passing flaky performance assertion; feature Exhaustive skipped",
-    "visuals": "All110 hosted visual cases were skipped; no pixel pass inferred. Local run33850 remains partial raw-Noble 95/104 evidence without DejaVu and is not acceptance."
+    "run_id": 38868618416,
+    "status": "completed success; all required jobs succeeded; E2E contains one retry-passing F8m flake; feature Exhaustive skipped",
+    "visuals": "Hosted screenshot cases were skipped; no pixel pass inferred. Local run33850 remains partial raw-Noble 95/104 evidence without DejaVu and is not acceptance."
   },
   "dirty_paths": [
+    "frontend/tests/e2e/flows.spec.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
     "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 6,
-    "containers": [
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-frontend-1",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-worker-1",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-backend-1",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-postgres-1",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
-    ],
-    "known_bytes": 733363504,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 730295600,
-    "volume_count": 4,
-    "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -129,8 +106,8 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "f2dadcea092ddaa8340e611bd8cb28cc6d3550e3",
-  "implementation_sha": "d0add5588612339203073b21015028ad4ffeb106",
+  "head": "e2b474b8605fc0f8d9554d70745d0f0bf2e0baaf",
+  "implementation_sha": "e2b474b8605fc0f8d9554d70745d0f0bf2e0baaf",
   "integration_checkpoint": {
     "acceptance": "pending",
     "coordinator_guidance": "/home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md",
@@ -138,13 +115,13 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-16T07:28:35+00:00",
-  "last_human_progress_update": "2026-10-16T07:28:35+00:00",
+  "last_checkpoint": "2026-10-16T08:17:03+00:00",
+  "last_human_progress_update": "2026-10-16T08:17:03+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
     "conclusion": "success",
-    "e2e_summary": "189 passed, 110 skipped, one retry-passing flaky unrelated Market Map 10,000-cell performance assertion (expected selection text, received empty); F8u-gauge, F8x-capabilities, and F8aa-favorites passed first attempt",
-    "head_sha": "f2dadcea092ddaa8340e611bd8cb28cc6d3550e3",
+    "e2e_summary": "189 passed, 110 skipped, one retry-passing F8m chart-panel menu flake (Grey menuitemradio not found after wildcard-link click); the 10,000-cell Market Map selection and announcement flow passed first attempt",
+    "head_sha": "e2b474b8605fc0f8d9554d70745d0f0bf2e0baaf",
     "jobs": {
       "backend": "success",
       "branch_declared": "success",
@@ -152,13 +129,13 @@
       "exhaustive_feature_branch": "skipped",
       "frontend_unit": "success"
     },
-    "run_id": 38864400017,
-    "scope": "Exact source f2dadcea092ddaa8340e611bd8cb28cc6d3550e3; Frontend Unit, Branch-declared, Backend including Testcontainers, and E2E jobs concluded success. E2E has one retry-passing unrelated workstation_performance.spec.ts:303 flake; feature Exhaustive skipped. This is not checkpoint acceptance.",
-    "visuals": "All110 hosted visual cases skipped; not pixel evidence."
+    "run_id": 38868618416,
+    "scope": "Exact source e2b474b8605fc0f8d9554d70745d0f0bf2e0baaf; Frontend Unit, Branch-declared, Backend including Testcontainers, and E2E jobs concluded success. E2E has one retry-passing F8m chart-panel menu flake; feature Exhaustive skipped. The 10k Market Map flow passed first attempt. This is not checkpoint acceptance.",
+    "visuals": "Hosted screenshot cases were skipped; not pixel evidence."
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Diagnose the remaining first-attempt Market Map 10,000-cell selection-text assertion at workstation_performance.spec.ts:303 without weakening its 5s oracle; run focused and full relevant functional proof when a valid bounded slot is available. Keep the exact 38864400017 first-attempt F8u-gauge, F8x-capabilities, and F8aa-favorites success and unrelated performance flake distinct. Do not launch visuals without a fresh sufficiently long coordinator slot with read-only DejaVu from launch; run33850 remains partial. Refresh coordinator state before Provider/ETF reconciliation; TCP2-TCP5 and full V25 roadmap remain open.",
-  "plan_hash": "4c68567902e6036dac468e87ab22e3094a0f107153bdb36b25bcfc17f0e98e7d",
+  "next_action": "Commit and push the F8m observer candidate; audit its exact-source CI and all retry logs before deciding whether further product diagnosis is needed. Preserve the ordinary Grey click and final linked-chart assertions. No local browser slot is authorized. Do not merge until synchronized green Provider+ETF staging is released; keep full visual and V25 roadmap gates open.",
+  "plan_hash": "2bfa9d7939b01d97f302d54259da92b7328c0c873600bdecaee9bb11c1529584",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -172,28 +149,28 @@
     "completed": [
       "TCP1"
     ],
-    "current_blocker": "Exact source f2dadcea is green on required run38864400017, but E2E has one retry-passing first-attempt failure in workstation_performance.spec.ts:303: 10,000-cell Market Map selection expected `1 selected member: SPY` and got empty text after 5s, then retry passed. Preserve the assertion and diagnose. F8u-gauge, F8x-capabilities, and F8aa-favorites all passed first attempt. Run had189 passed/110 skipped; hosted visuals were skipped. TCP1 alone is accepted; full TCP2 visual/local validation, TCP3 consumers, TCP4 combined profile, and TCP5 review remain open. Run33850 is partial raw Noble95/104 without DejaVu; fresh normalized104 requires a new sufficiently long slot. Last root receipt 06:02 had no green Provider/ETF product baseline.",
-    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_FAVORITES_EXACT_CI_REQUIRED_JOBS_PASS_ONE_UNRELATED_FLAKE_AND_FULL_VISUAL_OPEN;TCP3_PROVIDER_ETF_STAGING_CONSUMERS_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
-    "next_action": "Diagnose workstation_performance.spec.ts:303 selection text timing/content without weakening its assertion, then prepare exact-source proof. Continue TCP2 normalized full104 visuals only with a new coordinator slot and read-only DejaVu mounted from launch. Refresh coordinator state before Provider/ETF consumer reconciliation; keep TCP2-TCP5 and full V25 roadmap open.",
+    "current_blocker": "Exact source e2b474b8605fc0f8d9554d70745d0f0bf2e0baaf passed required CI jobs but E2E had one retry-passing F8m failure: Grey was absent after the wildcard-link click. Candidate observer now waits for expanded state and visible Grey within the wildcard panel menu; collection/scope/workstream checks pass. No local browser slot is authorized; candidate exact CI is pending. Hosted visuals were skipped. Provider/ETF green staging consumers, full local/visual validation, combined profile, coordinator review, and official V25 parity remain open.",
+    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_F8M_OBSERVER_CANDIDATE_PENDING_EXACT_CI_AND_FULL_VISUAL;TCP3_PROVIDER_ETF_CONSUMERS_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
+    "next_action": "Commit and push the F8m observer candidate; audit exact-source CI and all retry logs before deciding whether further product diagnosis is needed. Preserve normal Grey click and all resulting chart-state assertions. No local browser slot; do not merge until synchronized green Provider+ETF staging is released.",
     "total": 5,
-    "updated_at": "2026-10-16T07:28:35+00:00"
+    "updated_at": "2026-10-16T08:21:00+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "f2dadcea092ddaa8340e611bd8cb28cc6d3550e3",
+    "current_local_head": "e2b474b8605fc0f8d9554d70745d0f0bf2e0baaf",
     "current_pending_range": null,
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
-    "last_attempted_local_head": "f2dadcea092ddaa8340e611bd8cb28cc6d3550e3",
-    "last_attempted_range": "1afe504d17d8adb3708f2bfc1c9f3f43f7e2f83a..f2dadcea092ddaa8340e611bd8cb28cc6d3550e3",
+    "last_attempted_local_head": "e2b474b8605fc0f8d9554d70745d0f0bf2e0baaf",
+    "last_attempted_range": "f2dadcea092ddaa8340e611bd8cb28cc6d3550e3..e2b474b8605fc0f8d9554d70745d0f0bf2e0baaf",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "f2dadcea092ddaa8340e611bd8cb28cc6d3550e3",
+    "remote_tracking_sha": "e2b474b8605fc0f8d9554d70745d0f0bf2e0baaf",
     "status": "pushed"
   },
-  "remote": "f2dadcea092ddaa8340e611bd8cb28cc6d3550e3",
-  "remote_sha": "f2dadcea092ddaa8340e611bd8cb28cc6d3550e3",
+  "remote": "e2b474b8605fc0f8d9554d70745d0f0bf2e0baaf",
+  "remote_sha": "e2b474b8605fc0f8d9554d70745d0f0bf2e0baaf",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "roadmap_acceptance_criteria": [

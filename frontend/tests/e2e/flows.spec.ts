@@ -2374,7 +2374,11 @@ test.describe('TC2000 workstation', () => {
     await expect(wildcard.locator('.psym')).toHaveText('QQQ', { timeout: 10_000 })
 
     await wildcardLink.click()
-    await page.getByRole('menuitemradio', { name: 'Grey', exact: true }).click()
+    await expect(wildcardLink).toHaveAttribute('aria-expanded', 'true')
+    const isolationMenu = wildcard.getByRole('menu', { name: 'Symbol link group' })
+    const greyOption = isolationMenu.getByRole('menuitemradio', { name: 'Grey', exact: true })
+    await expect(greyOption).toBeVisible()
+    await greyOption.click()
     await selectPanelSymbol(source, 'QQQ', 'SPY')
     await expect(source.locator('.psym')).toHaveText('SPY', { timeout: 10_000 })
     await expect(wildcard.locator('.psym')).toHaveText('QQQ', { timeout: 10_000 })

@@ -20611,3 +20611,75 @@ The CI job removed only its isolated `charting-platform-ci` runtime; assigned
 TC services, retained accounts/data, diagnostic artifacts, sibling worktrees,
 staging, and screenshot references were untouched.
 
+## 2026-10-16 — Dense Market Map selection identity correction
+
+The first-attempt Market Map performance E2E failure on `f2dadcea` expected
+`1 selected member: SPY` after keyboard search but received empty text, even
+though the selected-ID counter showed one item. Source inspection found the
+announcement and downstream selected-member consumers reconstructed the cell
+by searching the entire map after the search flow had already resolved that
+cell. The source change now stores selected `MarketMapCell` records as the
+selection state and derives instrument IDs and symbols from them, preserving
+ordinary click/search, additive selection, clears on map/source transitions,
+publication payloads, and the existing announcement wording. The 10,000-cell
+unit scenario now selects the last cell and asserts `1 selected member:
+SYM10000`.
+
+Focused MarketMapTool/accessibility Vitest passed 60/60; `npm run type-check`
+and `npm run build` passed (with the existing chunk-size warning). UV-managed TC
+scope validation passed for 27 paths, all six scope self-tests passed,
+workstream validation passed, and `git diff --check` passed. No local browser,
+database, or assigned-runtime test was launched. Source commit
+`e2b474b8605fc0f8d9554d70745d0f0bf2e0baaf` is pushed and synchronized.
+
+Exact Actions run `38868618416`, attempt 1, matches the full SHA and concludes
+SUCCESS. Frontend Unit `116867344980`, Branch-declared `116867345480`, Backend
+including Testcontainers `116867345529`, and E2E `116870143652` all succeeded;
+feature Exhaustive `116870145371` was skipped. Playwright logged 189 passed,
+110 skipped, and one retry-passing F8m chart-panel menu flake. The 10,000-cell
+Market Map test appears in the first-attempt sequence and not in retries; it
+passed on this exact source. The F8m failure is separate: at
+`frontend/tests/e2e/flows.spec.ts:2377`, ordinary click waited for the Grey
+`menuitemradio` after clicking a wildcard link, but the menu item was absent;
+its retry passed. The runner log lists screenshot, video, and error-context
+paths, but the workflow uploaded no artifact bundle, so those ephemeral files
+are not retained or downloadable. Preserve the failure and investigate menu lifecycle/readiness
+without force clicks, added retries, weakened assertions, or production label
+changes absent evidence.
+
+Hosted visual cases were skipped and are not pixel evidence. TCP1 remains the
+only accepted checkpoint criterion. TCP2 still requires the full local
+functional profile and normalized 104-case matrix at unchanged 0.005 tolerance;
+the prior run33850 is incomplete, and no new local browser slot is authorized.
+TCP3 waits for Provider and ETF green staging; current public refs show staging
+and Provider CI active, while ETF's latest visible run remains failed. TCP4,
+TCP5, and official V25 parity remain open. No staging/sibling writes, assigned
+data cleanup, screenshot changes, or provider/ETF imports occurred.
+
+## 2026-10-16 — F8m chart-panel menu observer correction
+
+The exact e2b474b run `38868618416` E2E log reports 189 passed, 110 skipped,
+and one retry-passing F8m failure. The first attempt timed out at
+`flows.spec.ts:2377` waiting for page-global `menuitemradio` Grey immediately
+after clicking the Yellow wildcard panel's link button. The log preserves
+ephemeral runner paths for screenshot/video/error context, but the workflow
+uploaded no artifact bundle; these files are not claimed as retained.
+
+The Grey selection step now mirrors the earlier Yellow step's observable menu
+contract: it checks `aria-expanded=true`, scopes the menu and Grey option to the
+wildcard chart panel, waits for the ordinary option to be visible, then clicks
+it. Existing source-to-wildcard QQQ propagation, Grey isolation after changing
+the source to SPY, and ordinary user actions remain asserted. No product code,
+timeouts, retries, force clicks, visual references, or tolerances changed.
+
+Static checks for this patch: Playwright `--list --reporter=list` collects the
+single F8m test; the changed-path profile remains `full_stack_browser`; workstream
+validation and `git diff --check` pass. The first Playwright collection attempt
+used the configured HTML reporter and failed to open the read-only
+`frontend/playwright-report/index.html`; overriding to the list reporter passed.
+No local browser was launched because no fresh browser slot is granted. Exact
+candidate CI and mounted-app behavior are pending. TCP1 remains the only
+accepted criterion; TCP2 full functional/visual, Provider/ETF consumer staging,
+combined validation, TCP5 coordinator review, and official V25 parity remain
+open. No staging/sibling writes or assigned runtime/data changes occurred.
+

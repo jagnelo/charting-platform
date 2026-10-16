@@ -30,24 +30,23 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  At 2026-10-16T07:27Z TC remains TCP1-only accepted. Test-only reconciliation
-  f2dadcea092ddaa8340e611bd8cb28cc6d3550e3 is exact-source green on required CI
-  run38864400017: Frontend Unit, Branch-declared, Backend including
-  Testcontainers, and E2E jobs all succeeded; feature Exhaustive was skipped.
-  E2E logged189 passed,110 skipped and one retry-passing flaky unrelated Market
-  Map performance guard: first attempt expected `1 selected member: SPY` but
-  received empty text after a 5s assertion; its automatic retry passed. F8u-gauge,
-  F8x-capabilities and F8aa-favorites all appeared in the first attempt and not
-  in retries. Preserve the flake; do not weaken the assertion. All104 hosted
-  visual cases were skipped, not passes. The five changed E2E selection fixes
-  are exact-source verified for ordinary CI, but the performance observer is
-  now the next TC-owned functional diagnosis. Local run33850 remains partial raw
-  Noble95/104 without DejaVu; its slot is closed. Full normalized visuals need a
-  new sufficiently long coordinator slot and read-only DejaVu from launch. The
-  06:02Z coordinator receipt and independently checked remote refs still show
-  staging82d881e7 with no green Provider/ETF product release; refresh the root
-  receipt before dependency reconciliation. Consumer integration, combined
-  profile, and official V25 parity remain open.
+  TCP1 remains the only coordinator-accepted criterion. Exact source
+  e2b474b8605fc0f8d9554d70745d0f0bf2e0baaf passed required CI jobs but had one
+  retry-passing F8m chart-panel flake: after an ordinary click on the Yellow
+  wildcard link, the test immediately queried a page-global Grey menu item and
+  timed out because it was absent. The retained log records this exact locator
+  failure; the run uploaded no artifact bundle, so its ephemeral screenshot/video
+  paths are not locally retained. The owned observer correction now verifies the
+  wildcard button is expanded, scopes the menu to that chart panel, waits for
+  Grey visibility, then uses the same ordinary click and retains both final
+  symbol-isolation assertions. Playwright collection lists exactly the F8m test;
+  the changed-path profile remains full_stack_browser, and workstream/diff checks
+  pass. No local browser slot is authorized, so mounted-app proof and exact-source
+  CI for this candidate remain pending. The earlier 10,000-cell Market Map flow
+  passed first attempt, but all hosted screenshot cases were skipped. Full local
+  browser profile and normalized104 visuals, Provider/ETF green staging consumer
+  reconciliation, combined profile, checkpoint review, and official V25 parity
+  remain open. Preserve the full roadmap and all interaction/assertion policies.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -458,28 +457,27 @@ historical_blocker_archive: >-
   tolerance. Full integration and broader AC4-AC7/R1/R5/R6 remain open; provider
   and ETF consumption is deferred until both branches reach staging.
 active_changeset_context:
-  name: TC2000 V25 vertical projection-space keyboard shortcuts
-  status: shell_guard_pushed_projection_browser_help_visual_passed_full_matrix_and_integration_open
-  commit_sha: b24cc4267067d1e81a7219551cbf61f038cfb32d
-  remote_sha: b24cc4267067d1e81a7219551cbf61f038cfb32d
+  name: TC2000 dense Market Map selection and F8m panel-menu observer
+  status: e2b474b_pushed_exact_ci_passed_10k_first_attempt;_F8m_observer_patch_pending_exact_ci
+  commit_sha: e2b474b8605fc0f8d9554d70745d0f0bf2e0baaf
+  remote_sha: e2b474b8605fc0f8d9554d70745d0f0bf2e0baaf
   intent: >-
-    Implement Shift+= and Shift+- as per-chart vertical projection-space
-    changes in linear and logarithmic scales, preserving chart identity,
-    editor/inactive-window keyboard ownership, and provider/ETF boundaries.
+    Retain the matched Market Map cell through selection so selected IDs,
+    symbols, downstream publication and accessible announcement derive from
+    one source of truth; avoid rescanning a 10,000-cell map after keyboard search.
+    Reconcile the retry-passing F8m Grey option observer by waiting for the
+    clicked wildcard panel menu to be expanded and scoping the ordinary option
+    click to its visible panel-owned menu, without changing product behavior.
   owned_paths:
-    - frontend/src/components/chart/UPlotChart.vue
-    - frontend/src/lib/workstation/chart-projection.ts
-    - frontend/src/views/WorkstationView.vue
-    - frontend/tests/unit/lib/test_chart_projection.test.ts
-    - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
-    - docs/tc2000-roadmap.md
-    - docs/tc2000-parity.md
+    - frontend/src/components/workstation/MarketMapTool.vue
+    - frontend/tests/unit/components/test_market_map_tool.test.ts
+    - frontend/tests/e2e/flows.spec.ts
   next_action: >-
-    Continue bounded TC-owned parity work and preserve the incomplete full
-    visual-matrix and generic-integration gates as open. Keep the assigned
-    Docker stack and its four data volumes intact; use a genuinely isolated
-    exact-gate route. Defer R2/R3 and shared-path reconciliation until both
-    upstream branches reach staging. Stop only at ready_for_human_review.
+    Commit and push this observer correction as a candidate, then inspect its
+    exact-source CI for first-attempt F8m and all other retries/flakes. No local
+    browser slot is authorized. Do not claim TCP2 visual completion; wait for a
+    new authorized normalized104 slot. Reconcile Provider and ETF only after
+    green staging release.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -787,7 +785,7 @@ status: in_progress
 progress:
   completed: [TCP1]
   total: 5
-  current_phase: TCP1_NARROW_TECHNICAL_REPAIR_ACCEPTED;_TCP2_HELP_REFERENCE_REVIEWED_NARROW_ONLY_FULL_MATRIX_PENDING;_TCP3_PROVIDER_ETF_CONSUMER_RECONCILIATION_OPEN;_TCP4_COMBINED_PROFILE_OPEN;_TCP5_CLOSURE_OPEN
+  current_phase: TCP1_NARROW_ACCEPTED;_TCP2_F8M_OBSERVER_CANDIDATE_PENDING_EXACT_CI_AND_FULL_VISUAL;_TCP3_PROVIDER_ETF_CONSUMERS_OPEN;_TCP4_COMBINED_PROFILE_OPEN;_TCP5_REVIEW_OPEN
   next_action: >-
     Historical pre-acceptance continuation record (superseded by
     current_checkpoint_status below): TCP1 source 82d881e76be8de538abb6ec5c454d96afe0ee56a is already an ancestor
@@ -836,9 +834,11 @@ progress:
     functional and all104 unchanged visual checks after Provider releases the
     heavy local slot. Provider and ETF are not yet released as green product
     staging baselines; do not merge them early or import feature branches.
-    Continue independent TC-owned source diagnosis, including F8u without adding
-    retry/sleep/force/synthetic drag. Preserve the complete V25 roadmap and stop
-    only at ready_for_human_review.
+    Latest next action: diagnose run38868618416 F8m failure at
+    flows.spec.ts:2377 from its retained exact CI evidence and current source;
+    preserve ordinary Grey-menu action and chart assertions, fix only proven
+    owned behavior, then revalidate. Keep full functional/visual gates and the
+    complete V25 roadmap open.
   current_blocker: >-
     TCP1 source 82d881e76be8de538abb6ec5c454d96afe0ee56a was merged by
     TC merge commit d4274a9fa3119c212a9aaf2c0006c20d921812e8 and
@@ -918,6 +918,13 @@ progress:
     managed direct `agent-session.py status` with an isolated `/tmp` cache
     refreshed this session record while preserving the writer claim; do not
     rerun `agent-session-start` on this already claimed dirty continuation.
+    Superseding exact-source update (2026-10-16T08:13Z): candidate
+    e2b474b8605fc0f8d9554d70745d0f0bf2e0baaf is pushed and exact CI
+    38868618416 attempt1 passed all required jobs. E2E reports189 passed,
+    110 skipped, one retry-passing F8m menu-item failure at flows.spec.ts:2377;
+    the 10,000-cell Market Map path passed on its first attempt. Hosted visuals
+    were skipped. Next diagnose F8m without relaxing the ordinary click or final
+    chart-state assertions. TCP1 only accepted; TCP2-TCP5 and V25 parity open.
 current_checkpoint_status: >-
   TCP1 is coordinator-accepted narrowly: common green staging
   82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009 was reconciled by
@@ -1057,6 +1064,36 @@ current_checkpoint_status: >-
   hosted visual cases were skipped, not passes; no pixel acceptance follows.
   Retain the performance flake as next TC-owned functional diagnosis. The CI
   job tore down only its charting-platform-ci containers, volumes, and network.
+  Latest exact-source audit (2026-10-16T08:13Z): candidate
+  e2b474b8605fc0f8d9554d70745d0f0bf2e0baaf matches exact attempt-1 CI
+  38868618416. Frontend Unit, Branch-declared, Backend/Testcontainers and E2E
+  concluded success; feature Exhaustive was skipped. E2E logged189 passed,
+  110 skipped, and one retry-passing F8m chart-panel failure at
+  frontend/tests/e2e/flows.spec.ts:2377 while waiting for ordinary
+  `menuitemradio` Grey after wildcard-link click. The 10k Market Map selection
+  and accessible announcement flow ran first attempt and passed. Visual projects
+  were skipped; no pixel acceptance. This only resolves the specific observed
+  Market Map selection failure for this exact CI run; full TCP2, local browser
+  profile, normalized104 screenshots, TCP3 Provider/ETF staging consumers,
+  TCP4 combined profile, TCP5 review, and official V25 parity remain open.
+  Current public refs at audit: staging b7eae4b CI active, Provider f798b6c CI
+  active, ETF 8eccbdf latest visible run failed; no Provider+ETF green staging
+  release exists. Do not merge feature branches or staging until coordinator
+  releases the eligible synchronized green baseline.
+  Superseding owned F8m observer update (2026-10-16T08:21Z): the exact
+  run38868618416 E2E log confirms the Grey timeout followed the ordinary
+  wildcardLink click and waited for a page-global menuitemradio. The CI run has
+  no uploaded artifact bundle; runner screenshot/video/error-context paths are
+  not claimed retained. Current patch asserts `aria-expanded=true`, scopes the
+  menu and Grey option to the wildcard chart panel, waits for option visibility,
+  and retains the ordinary click plus both final symbol assertions. Playwright
+  collection lists exactly this test, scope profile stays full_stack_browser,
+  and workstream/diff checks pass. A first list attempt hit EACCES creating the
+  configured HTML report in read-only `frontend/playwright-report`; explicit
+  list reporter collection passed. No browser was launched because no new slot
+  is authorized. Candidate commit and exact-source CI are pending. Keep TCP2
+  functional/visual, TCP3 Provider/ETF staging consumers, TCP4 combined profile,
+  TCP5 coordinator review, and official V25 parity open.
 historical_implementation_records:
   - "Added TC2000's documented HLC Bars style to the frontend chart contract and settings, drawing the existing OHLCV high-low range with a close tick and omitting the open tick. Ctrl+B now cycles HLC, OHLC, Candles, Line in that order. The focused renderer/workstation tests passed 45/45; the full serial frontend suite passed 130 files / 1,225 tests; vue-tsc/Vite build passed; authenticated F8k-direct-chart-style passed 1/1 across all four styles. The protected Help screenshot test failed against its unchanged baseline with 50,941 pixels / 3.0% difference (0.5% threshold); no visual baseline/policy was changed."
   - "Authenticated follow-up browser evidence supersedes the earlier unauthenticated CLI attempt: a unique account in the assigned TC stack was used to activate the chart, press `/`, and confirm the plot library reopened with its `Filter indicators` search focused. No account was created outside the branch stack; no other worktree changed. The account remains a test artifact in the assigned stack. The Help visual oracle was not rerun after this shortcut, and its protected baseline remains unchanged."
