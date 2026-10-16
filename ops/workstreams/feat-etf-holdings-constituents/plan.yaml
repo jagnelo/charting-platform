@@ -104,13 +104,13 @@ integration_checkpoint:
       human-approved verified-free-only boundary. The coordinator owns
       conditional checkpoint acceptance and staging integration.
     provider_state: >-
-      Per the coordinator's current update, Provider is correcting actual
-      admission and runner gates, is not accepted yet, and retains the first
-      heavy validation slot. Provider must document its existing synchronous
-      invoke/executor/telemetry contract honestly, but does not need to implement
-      ETF-specific async/redirect transport wiring before its own checkpoint.
-      Wait for the exact released green Provider SHA; no Provider code imports
-      or sibling edits.
+      Provider source 575a67 is explicitly not accepted. The coordinator reports
+      that actual admission/runner and combined-coverage CI corrections remain
+      open; Provider retains the first heavy local validation slot. Provider
+      must document its existing synchronous invoke/executor/telemetry contract
+      honestly, but need not implement ETF-specific async/redirect transport
+      wiring before its own checkpoint. Wait for the exact released green
+      Provider SHA; no Provider code imports or sibling edits.
     bounded_etf_prep: >-
       Prepare transport-level contract tests without issuer/SEC live calls or
       guessed quota, prices, FX, or aggregate-cost rules. Cover each actual
@@ -229,10 +229,10 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: Prepare ETF request-boundary contract and transport test design
-    state: documented_provider_release_pending
-    baseline: 5020441cc9fa2bf2a8988ca0d5bf7da35b38c1b4
-    intent: Specify ETF-owned no-bypass consumer tests against the eventual actual shared Provider runtime, including every real outbound attempt and preserving the distinction between design and executed evidence.
+    name: Publish offline transport-family and binding inventory
+    state: offline_mapping_recorded_provider_release_pending
+    baseline: e0af9ddc1310a27009d380bdb4b825d959cc0431
+    intent: Map current ETF native/fallback request families to the actual identity, publisher, account and operation context available, and separate reviewed retained source facts from unknown terms/quota/storage rights and application safety caps.
     owned_paths:
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md

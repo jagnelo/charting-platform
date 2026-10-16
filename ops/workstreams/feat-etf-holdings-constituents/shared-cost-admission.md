@@ -290,6 +290,68 @@ once completion, each outbound attempt admitted/settled, denial-before-call,
 and cancellation/timeout accounting. This correction avoids making Provider's
 first checkpoint circular while retaining the full ETF acceptance requirement.
 
+## Offline real-path binding inventory — 2026-10-16
+
+This mapping is derived only from the ETF branch's adapter/refresh/EDGAR source,
+provider audit ledger, settings, retained local validation, and existing
+consumer tests. It is the bridge's post-staging input map, not a Provider API
+contract, terms audit, permission claim, or runtime acceptance. The "operation"
+labels below are semantic distinctions for mapping to the accepted Provider
+operation catalogue later; they are not newly asserted Provider enum values.
+
+| Existing request family and ETF path | Identity/publisher/operation context available per request | Current missing binding / admission consequence |
+| --- | --- | --- |
+| Registered native adapter: direct latest/dated artifact, usually `PublicCsvHoldingsAdapter.fetch_latest` / `fetch_for_date` called by an issuer adapter | Outer refresh has `ETFProfile` and linked canonical `Instrument`; adapter receives `adapter_key`, `source_provider`, `symbol`, optional `issuer_product_id`, identifiers and resolved URL. A request can capture exact URL host, method, transport and latest-vs-dated action. | The HTTP call itself does not receive canonical instrument ID, provider account ID, reviewed terms/revision, or a shared operation/admission reference. `source_provider`/`adapter_key` are code provenance labels, not proof of the legal publisher or zero-cost entitlement for every destination host/CDN. No per-attempt shared reservation exists here. |
+| Issuer product-page discovery followed by holdings artifact (e.g. `IssuerCsvHoldingsAdapter.fetch_latest` → `_discover_source_url_from_product_page` → artifact fetch) | Same fund symbol/product/adapter context exists at the adapter call; product-page host and final artifact host are separately observable. The logical actions differ: issuer route discovery vs holdings artifact fetch. | Each page, redirect and final download is currently independently executed with no shared admission binding. The URL may point to an issuer, API host, CDN or file host; do not collapse those hosts into the `adapter_key` without publisher review. Account scope is absent. |
+| Provider-specific API/token/product-ID/multi-request adapters in `etf_holdings_adapters.py` | Methods commonly retain the current symbol and adapter instance/config; each request URL reveals destination host. Existing code may make lookup, token/session, holdings, category/page, or retry requests in one logical fetch. | There is no common per-request context object or central transport wrapper. The exact provider-account/credential scope, operation cost/quota dimension, and call ordering vary by adapter and must be recovered from each native route before bridge wiring. A whole-fetch allow would miss these attempts. |
+| Transport fallback: HTTPX → `requests` after selected 403s, adapter-specific `requests` paths, and the retained curl subprocess path | Same initiating adapter/symbol/source URL is generally in local method scope; the chosen client/transport and actual target host can be recorded separately. | Every retry/client switch and redirect hop is a distinct attempt. Current automatic redirect options can hide hops; there is no shared attempt ID, account binding, reservation, or settlement in these paths. A retry is not free merely because it reuses the same URL. |
+| Issuer ETF-list discovery: `discover_etf_profiles_from_issuer_feed` | Caller supplies `adapter_key` and `source_url`; registered adapter supplies its `source_provider`. Response rows introduce individual symbol/product identity only after the feed request completes. Semantic operation: issuer-universe discovery. | Before the response, this is a publisher-scoped universe operation rather than one known-fund request. The current call has no provider account, reviewed feed terms, quota or admission reference; it follows redirects automatically. Do not invent one symbol binding for the entire feed. |
+| SEC fund-ticker discovery/enrichment: `discover_etf_profiles_from_sec_fund_tickers` and `enrich_etf_profile_from_sec_fund_tickers` | Fixed SEC source URL and SEC User-Agent; enrichment additionally has a target canonical profile/symbol, while whole-map discovery has no single ETF identity. Semantic operations: SEC fund-map discovery vs profile identifier enrichment. | Current requests are not shared-admitted and follow redirects automatically. SEC public accessibility/User-Agent use does not establish a per-request quota, commercial reuse or raw-data retention permission for this product. Account identity is not represented. |
+| SEC filing fallback: `IssuerCsvHoldingsAdapter._fetch_latest_sec_filing_holdings` → `etf_holdings_edgar.discover_holdings_filings` → N-PORT/legacy document fetch | Starting adapter/profile supplies ETF symbol and SEC CIK/series/class identifiers; filing attempts add accession, form and report date. Actual publisher/source host is SEC (`data.sec.gov` or `www.sec.gov`); semantic operations are submissions index, archived submissions file, and individual filing document. The result is explicitly marked SEC/filing provenance. | Each index/archive/document request and redirect is currently a separate ungoverned HTTP call. Shared account/admission IDs and current SEC quota/terms/retention review are absent from this ETF code/evidence. An issuer denial/error must not create an unmetered SEC bypass. SEC reconstruction remains non-issuer-current. |
+| Local `data:` fixture parsing and cached/current/historical/PIT reads | A `data:` URL is parsed locally; persisted reads use existing ETF profile/snapshot/artifact identity and knowledge/composition timestamps. | These are not provider requests: they must create zero shared reservation and zero transport. Preserve point-in-time selection and historical lineage; do not route a read through refresh or relabel old data as current. |
+
+Fallback classification is symbol/adapter evidence, not a transport guarantee.
+Audited fallback adapters generally inherit `IssuerCsvHoldingsAdapter`; when a
+complete issuer route is absent they may either stop before transport because
+the probe is not ready, or use the configured SEC filing path when sufficient
+SEC identity is present. Some adapter classes also contain narrow symbol-scoped
+routes (for example Pacific AM's GEME path) that must not promote another
+symbol/provider identity. Therefore the bridge must take the actual resolved
+symbol, adapter, source URL and provenance for each attempt; neither a
+fallback-only label nor an SEC-capable probe promises an executable or complete
+holdings result.
+
+### Evidence status: source facts versus application limits
+
+| Fact class | Reviewed in existing ETF context | Still unknown, held, or explicitly not implied |
+| --- | --- | --- |
+| Monetary cost | The issuer adapter config exposes `source_access` and optional free-text `terms_note`; some prior issuer route tests used unauthenticated public responses. The retained `provider-audit.yaml` records quoted USD candidate prices (FundFacts commercial Pro US$49/month, StockFit US$39/month, FMP US$149/month, EODHD US$41.99/month) and records individual candidate dispositions; these historical ledger values are not refreshed or recalculated here. SecuritiesDB and DealCharts were observed as free candidates for specific pages, but their ledger entries say quota and commercial terms were not established. | No uniform reviewed zero-monetary-cost agreement for every enabled issuer host, API, CDN, redirect target, or retry. A public URL, `issuer_public_holdings_file`, a successful anonymous GET, or `published_monthly_cost_usd: 0` for one candidate does not prove no billable access, no future charge, or entitlement. No FX/equivalence calculation is made here; provider/currency values and approval remain authoritative inputs, not inferred. No paid source, credential or trial is activated. |
+| Terms/entitlement | The code can persist `source_access`, `terms_note`, issuer/source labels and route provenance. The provider audit contains symbol/candidate-specific terms findings (including automated-use restrictions, personal/evaluation-only tiers, paid gates, and unresolved redistribution for listed vendors). | `terms_note` is nullable descriptive metadata, not an approved legal review. No blanket commercial collection, reuse, display, redistribution, or retention permission follows from public accessibility. Exact terms revision, reuse right, account/credential owner and review expiry are not common per-request bindings. Unreviewed/held routes stay disabled. |
+| Quota/rate limits | The ETF code supplies operational bounds: HTTP timeout 20s; capability canary disabled by default, max 20 symbols, 60s canary timeout, failure threshold 3/cooldown 3600s; classification maintenance disabled by default, max 50 profiles and 32 enrichments/profile; SEC backfill disabled by default, max 50 profiles and 20 filings/ETF. SEC EDGAR helpers also default to max 20 candidate filings. | These are application workload/safety caps, not publisher quotas, per-request units, reset windows, or proof of zero cost. They do not bound all redirects/retries: auto-followed redirects are hidden, and archive metadata can cause requests before 20 qualifying filings are found. No exact issuer/SEC quota or account baseline is established by this inventory. |
+| Storage/retention | Existing code stores raw payload text/JSON, source URL/identifier, content hash, composition/as-of/published/fetched dates, parser version and legal metadata in `ETFHoldingsRawArtifact`, linked from snapshots. The app exposes historical snapshots and maintains source/knowledge-time lineage. Existing consumer tests cover cached/historical/PIT semantics. | This demonstrates application persistence, not publisher permission or an approved retention duration. No per-publisher storage/redistribution right, purge schedule, expiry, or source-specific retention window is established here. Preserve retained records and historical/PIT behavior; do not clean up data as part of this preparation. |
+
+### Binding contract to consume after exact green staging
+
+For each actual outbound attempt, the ETF bridge should construct context from
+the owning `ETFProfile`/canonical `Instrument` and current adapter: canonical
+instrument/profile identity; issuer product ID and provider symbol; stable
+adapter/provider label; actual request host and reviewed publisher/account
+scope; semantic operation (discovery, current/dated artifact, API lookup/page,
+SEC map/index/archive/document); transport and attempt number; and an
+idempotency/admission reference returned by the accepted shared runtime. The
+shared runtime must supply—not ETF code invent—the reviewed entitlement, exact
+quota/cost basis, terms revision/review state, and reservation/settlement
+semantics. Missing publisher/account/terms/quota/cost evidence denies before
+that attempt. Provider's producer contract remains its documented synchronous
+invoke; ETF owns adapting async transports after release. Keep discovery as a
+separate universe operation, SEC as a distinct degraded/non-current source,
+and cached/historical/PIT reads entirely off the network path.
+
+This family-level map is intentionally not the full 496-publisher terms audit
+or a route-by-route release approval. The exhaustive 140-key fallback audit,
+15 Tier-0/156 Tier-1 priorities and all remaining symbol-specific free-first
+work remain open on the existing roadmap.
+
 ### Common repair baseline consumed — 2026-10-15 21:40Z
 
 The exact synchronized common repair baseline `82d881e76be8de538abb6ec5c454d96afe0ee56a`

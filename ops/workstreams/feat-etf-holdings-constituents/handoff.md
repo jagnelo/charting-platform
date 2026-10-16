@@ -11311,3 +11311,39 @@ in one outer allow or create a second ledger. The integration-checkpoint and
 shared-cost-admission documents now distinguish this post-release ETF task
 from Provider's producer checkpoint criteria. The complete ETF requirement is
 unchanged; this removes only the circular pre-merge dependency assumption.
+
+### Offline transport-family and binding inventory — 2026-10-16
+
+The coordinator's bounded-preparation request is addressed in the
+“Offline real-path binding inventory” section of
+`shared-cost-admission.md`. It maps the current native direct-artifact,
+product-page discovery, provider-specific multi-request API, HTTPX/requests/curl
+fallback, issuer-feed, SEC fund-map, SEC N-PORT/legacy fallback, local data-URL,
+and cached/historical/PIT paths to the identity, publisher, account and
+operation context actually available today. It distinguishes known code
+provenance (`ETFProfile`/instrument/symbol, adapter key/source provider,
+issuer-product IDs and actual request host) from missing per-attempt bindings
+(shared account, reviewed terms/version, exact provider operation and
+admission/reservation/settlement references). The provider operation labels in
+the table are semantic mapping targets only, not invented API enum values.
+
+Existing ETF settings and source establish application bounds, not upstream
+quota: refresh HTTP timeout is 20 seconds; canary/classification/SEC-backfill
+jobs are disabled by default with configured max-symbol/profile/enrichment/file
+bounds; automatic redirects and adapter retry paths remain outside a reliable
+request-count cap. Existing ledger evidence records specific vendor prices and
+some source/terms observations, including free-observed candidates with quota or
+commercial terms unestablished. No blanket zero-cost, free reuse, redistribution,
+or storage-retention right is established for every live issuer/CDN/API or SEC
+attempt. The code stores raw artifact payload/provenance and knowledge dates,
+but this is not a source retention license. Cached/current/historical/PIT reads
+must remain network- and reservation-free; SEC-derived data remains explicitly
+non-issuer-current. Full symbol-level provider and issuer roadmaps remain open.
+
+Provider `575a67` is still not accepted, per the coordinator; live-runner plan
+and CI combined-coverage corrections remain open and Provider owns the heavy
+slot. This inventory is offline only: no issuer/SEC request, Provider import,
+full issuer terms audit, or runtime acceptance occurred. After the exact green
+Provider SHA is released, adapt this map to its accepted contract in the ETF
+bridge; do not make this family-level map or its unknowns an added prerequisite
+to Provider's first merge.
