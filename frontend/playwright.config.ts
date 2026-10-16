@@ -25,6 +25,8 @@ export default defineConfig({
   // CI or isolated environments may opt into a higher value explicitly.
   workers: visualWorkerCount,
   forbidOnly: !!process.env.CI,
+  // Retain retries for diagnostics, but a retry-passing case is not acceptance.
+  failOnFlakyTests: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   timeout: 30_000,
   reporter: [['html', { outputFolder: 'playwright-report' }], ['line']],

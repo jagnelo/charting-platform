@@ -4,21 +4,8 @@
  *
  * Run: make test-stack-up && npx playwright test
  */
-import { type Page } from '@playwright/test'
 import { test, expect, LoginPage, ChartPage, ScreenerPage, DashboardPage, RadarPage } from './helpers'
-
-async function closePopupWhenOpen(popup: Page) {
-  if (popup.isClosed()) return
-  const closed = popup.waitForEvent('close', { timeout: 10_000 }).catch((error: unknown) => {
-    if (!popup.isClosed()) throw error
-  })
-  try {
-    await popup.locator('button[title="Close"]').click()
-  } catch (error) {
-    if (!popup.isClosed()) throw error
-  }
-  await closed
-}
+import { closePopupWhenOpen } from './popup_cleanup'
 
 
 // ── Auth flows ─────────────────────────────────────────────────────────────────
@@ -1485,11 +1472,7 @@ test.describe('TC2000 workstation', () => {
       return (persisted?.style as { popout?: Record<string, unknown> } | undefined)?.popout
     }), { timeout: 10_000, intervals: [250, 500, 1_000] }).toEqual(expect.objectContaining({ left: expect.any(Number), top: expect.any(Number), width: expect.any(Number), height: expect.any(Number) }))
 
-    if (!popup.isClosed()) {
-      const closed = popup.waitForEvent('close')
-      await popup.locator('button[title="Close"]').click()
-      await closed
-    }
+    await closePopupWhenOpen(popup)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
