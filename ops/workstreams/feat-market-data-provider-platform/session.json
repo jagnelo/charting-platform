@@ -75,13 +75,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "e408d35c448c132cb57bbcdde90a83865edd30de",
-  "implementation_sha": "e408d35c448c132cb57bbcdde90a83865edd30de",
+  "head": "761fb4cd0749a98ae140129236fcc1ba5271c451",
+  "implementation_sha": "761fb4cd0749a98ae140129236fcc1ba5271c451",
   "interrupted": false,
-  "last_checkpoint": "2026-10-16T22:17:32Z",
+  "last_checkpoint": "2026-10-16T22:56:25Z",
   "last_human_progress_update": "2026-10-16T11:12:47.867964+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Record exact successful Provider CI run 38970895095 for source e408d35c448c132cb57bbcdde90a83865edd30de (2,837 backend unit + 396 integration passed, coverage 82%, Frontend Unit, Branch-declared, and E2E 151 passed/109 expected skips; Exhaustive skipped). Reconcile the append-only journal and current review records. Current staging tip 79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b / run 38972891559 is still in progress; await its coordinator release before the held full local profile or any staging merge. Continue safe Provider ICP2/ICP6 gaps only; preserve all operation holds and historical seeded-browser evidence. No provider transport/quota spend, deployment, reset, cleanup, paid/trial activation, red-staging merge, or invented FX.",
+  "next_action": "Validate and publish the four-file Provider workstream evidence update, obtaining new exact-source CI for the resulting pushed tip. Source 761fb4cd is now terminal green under run 38974933778: Backend 2,837 unit +396 integration, combined coverage 82%, Frontend Unit, Branch-declared, and Playwright 151 passed/109 expected skips with no failure/retry output; Exhaustive skipped by feature policy. Current staging run 38972891559 is green on 79c8623f but explicit coordinator release is unobserved. Keep the full seeded browser profile and staging reconciliation held until coordinator releases the exact synchronized SHA. Continue Provider-owned ICP2/ICP6 gaps; preserve source-bound receipts, no-invented-FX, downstream ownership, and provider-operation holds. No provider transport/quota spend, deployment, reset, cleanup, paid/trial activation, staging merge, or invented FX.",
   "parent_branch": "staging",
   "plan_hash": "a8875425f88edd353e17890043664f37442479bcd3d7eda2f0134d0d77bf55cd",
   "planning_required": false,
@@ -113,14 +113,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "Provider source e408d35c has exact standard branch CI success 38970895095: backend 2,837 unit + 396 integration passed, combined coverage 82%, Frontend Unit, Branch-declared, and E2E 151 passed/109 expected skips; Exhaustive skipped by policy. Current staging tip 79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b / CI 38972891559 is nonterminal, so the required full local profile and final review packet remain held until coordinator releases synchronized green staging. Historical seeded local-browser red is still separately recorded. Six provider groups remain held with no transport/quota spend. ICP2 currency/provider-plan evidence and ICP6 post-staging consumer wiring remain roadmap work; checkpoint not accepted.",
+    "current_blocker": "No explicit coordinator release of green staging SHA 79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b has been observed, so the required Provider local seeded browser profile and staging reconciliation remain held. Provider source 761fb4cd has terminal exact CI 38974933778 green: Backend 2,837 unit +396 integration, combined coverage 82%, Frontend Unit, Branch-declared, and E2E 151 passed/109 expected skips with no failure/retry output; Exhaustive was skipped by feature policy. Current packet records the 107/107 ICP2/ICP6 tests and 30/30 real-main free-only plan-gate tests. The historical Provider local-browser red remains separate. Provider-operation holds remain; no provider HTTP/quota spend. ICP2 single-currency budget denomination/plan evidence and ICP6 downstream consumer wiring remain open; checkpoint not accepted.",
     "current_phase": "provider-icp2-recurring-cost-and-icp6-contract-refresh",
-    "next_action": "Append exact terminal CI 38970895095 and update checkpoint records without rebinding older receipts; validate and publish the coherent workstream state. Recheck staging CI 38972891559; once the coordinator releases exact synchronized green staging, reconcile it into this branch under the normal owner workflow, then run the required full local validation profile and exact-source CI. Continue only safe Provider-owned ICP2/ICP6 work while waiting. Preserve historical receipts, provider-operation holds, and the prior local seeded-browser red; no provider transport/quota spend, FX invention, paid/trial activation, deployment, reset, cleanup, or self-integration into staging.",
+    "next_action": "Run session/JSONL/workstream validation, then commit and push the refreshed Provider review packet, handoff, session and validation journal. Exact Provider CI 38974933778 is terminal green on 761fb4cd (Backend 2,837 unit +396 integration/82% coverage, Frontend Unit, Branch-declared, E2E 151/109 green; Exhaustive policy-skipped). Run 38943410344 remains historical for ba06bdc6 only and is already recorded. Exact staging run 38972891559 is green on 79c8623f, but coordinator release is unobserved; keep seeded browser/profile and branch reconciliation held. Continue Provider-owned ICP2/ICP6 work; retain all historical evidence, operation holds, and the no-FX-invention rule. No provider transport/quota spend, paid/trial activation, deployment, reset, cleanup, or staging self-integration.",
     "total": 7,
-    "updated_at": "2026-10-16T22:17:32Z"
+    "updated_at": "2026-10-16T22:56:25Z"
   },
   "remote": "51ebc7d45aa34d2e8790988778ee5e6eec14bdd7",
-  "remote_sha": "e408d35c448c132cb57bbcdde90a83865edd30de",
+  "remote_sha": "761fb4cd0749a98ae140129236fcc1ba5271c451",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-provider-validation-1236-20261016 and provider-playwright-1236-hostaccess-20261016 remain running/preserved; no stop, reset, prune, or cleanup. Browser runner returned to sleep service after focused checks."

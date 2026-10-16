@@ -1,5 +1,64 @@
 # feat/market-data-provider-platform
 
+## 2026-10-16 22:56Z — exact current-source branch CI completed green
+
+- Actions run `38974933778` is terminal success for exact pushed source
+  `761fb4cd0749a98ae140129236fcc1ba5271c451`: Backend 2,837 unit + 396
+  integration passed, combined coverage 82% against the 75% gate; Frontend
+  Unit, Branch-declared, and Playwright succeeded. E2E reported 151 passed / 109
+  expected skips in 16.0 minutes, with no failure or retry output in its log.
+  Exhaustive was skipped by feature-push policy. This is source CI, not Provider
+  checkpoint acceptance or the held full local profile.
+- The review packet and append-only journal now record this exact terminal
+  result, retaining earlier run/source bindings including `38943410344` on
+  `ba06bdc6` only. The 107-case ICP2/ICP6 suite and separate 30-case real-main
+  free-only plan gate remain passing on `761fb4cd`; no provider HTTP/quota used.
+- Staging run `38972891559` is green on `79c8623f`, but no coordinator release
+  has been observed. Keep the full local seeded browser profile and staging
+  reconciliation held. Current pending edits are four workstream records and
+  require normal branch validation and exact-source CI after publication.
+- Preserve the single-currency recurring-cost boundary/no invented FX, held
+  provider operations, historical seeded-browser red, and downstream consumer
+  ownership. The checkpoint and full roadmap remain open; no paid/trial
+  activation, deployment, data reset, or cleanup.
+
+## 2026-10-16 22:39Z — bounded ICP2/ICP6 contracts pass; current CI E2E active
+
+- Reconciled the coordinator's exact CI receipt `38943410344`: it was already
+  recorded and remains green only for historical source
+  `ba06bdc6b525c8f007fd6917bd3df2603aa8f093` (151 passed / 109 skipped, no
+  failures/retries/flakes; Exhaustive skipped by policy). It does not validate
+  later source or clear the separate seeded 260-case local browser failure.
+- On current pushed source `761fb4cd0749a98ae140129236fcc1ba5271c451`, bounded
+  Provider-owned ICP2 recurring-cost/runtime and ICP6 coverage/OHLCV contract
+  tests pass `107/107` (five dependency deprecation warnings). No provider HTTP
+  or quota spend occurred.
+- An additional real-main live-runner plan-gate selection passes `30/30` on
+  the same source. Paid, active-trial, and unknown MarketData.app/Tiingo plans
+  are rejected before lock/subprocess under both paid-toggle values; reviewed
+  free, expired-trial-to-Free-Forever, and the narrow EODHD zero-credit usage
+  controls remain passing. The denial tests trap both lock and subprocess, so
+  they issued no provider traffic.
+- Exact branch CI `38974933778` on `761fb4cd` has Backend, Frontend Unit, and
+  Branch-declared successful; Playwright E2E is still running, and Exhaustive
+  is skipped by feature policy. Do not treat the partial job success as a
+  terminal run or checkpoint acceptance.
+- Staging run `38972891559` is now terminal green on exact synchronized
+  `79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b`: the Exhaustive job reports 154
+  functional passes / 106 expected skips and 104 visual passes. This is not
+  yet an observed coordinator release; keep the Provider browser profile and
+  staging reconciliation held. Its teardown log records a Make cleanup
+  assigned-worktree mismatch after the exhaustive tests completed successfully;
+  this is reported for coordinator assessment, not counted as a product test
+  failure or dismissed as irrelevant.
+- ICP2 still has no configured 20 EUR/USD-equivalent denomination: the shared
+  ledger remains explicitly single-currency, and no FX rate is inferred. ICP6
+  producer success/unavailable contracts are tested; downstream ETF/TC/Strategy
+  wiring remains after Provider staging. Keep held operations and the full
+  roadmap open. No seeded browser rerun until coordinator release of an exact
+  synchronized green staging SHA; no live calls, activation, deployment, reset,
+  staging/sibling changes, or data cleanup.
+
 ## 2026-10-16 22:16Z — exact Provider branch CI green; no staging release yet
 
 - Exact pushed run `38970895095` succeeded on source
