@@ -11407,3 +11407,33 @@ interrupted attempts and does not exercise the future shared Provider bridge.
 Do not repeat the module in the restricted runner; after the Provider release,
 run the required real-runtime contract in the coordinated host profile with a
 hard timeout/process-group cleanup and capture a durable normal exit receipt.
+
+### Causal diagnosis boundary correction — ETF consumer hangs — 2026-10-16 03:46Z
+
+The preceding TestClient/thread handoff wording is a bounded hypothesis, not an
+asserted ETF root cause. Read-only comparison against the actual ETF stack shows
+`backend/tests/unit/conftest.py` builds an in-memory SQLite `StaticPool` with
+`check_same_thread=False`, adapts its synchronous SQLAlchemy session for async
+dependencies, and constructs `TestClient(app, raise_server_exceptions=True)`
+without explicit backend options. The locked stack is Starlette 0.37.2 and
+AnyIO 4.14.2: this TestClient defaults to the asyncio backend and sends
+synchronous requests through `anyio.from_thread.start_blocking_portal`, which
+runs a new event-loop thread. The tested capability and basket routes read
+persisted ETF lineage/materialize a Basket; they do not call an issuer adapter,
+Provider `execute_provider_call`, or adapter `asyncio.to_thread`. This module
+therefore is not producer-transport or Provider-bridge evidence. No `uvloop`
+or explicit TestClient backend/policy setup was found in the ETF backend test
+configuration inspected here.
+
+The human's Strategy Lab comparison is relevant only as a test-local precedent:
+its locked uvloop policy addressed historical `asyncio.to_thread` and direct
+`asyncio.run` executor/context hangs without production offloading changes. It
+does not establish the ETF cause or justify importing that policy, changing
+production offloading, or weakening these tests. The old ETF processes were
+already gone before source comparison, and supplied no Python/thread stack;
+portal/event-loop interaction is only one possible area to inspect if a
+coordinated, bounded no-Provider reproduction is later needed. Do not start
+that reproduction now, repeat unbounded tests, or initiate live HTTP/provider
+quota or a heavy profile. The current coordination message reserves heavy
+priority for Provider profile handle `84370`; the full real-provider bridge
+tests still wait for exact green Provider release.
