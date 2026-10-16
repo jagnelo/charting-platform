@@ -2,21 +2,31 @@ schema: 4
 branch: fix/chart-template-pointer-interaction
 base_sha: 5267f11a491795d85ee35b56cabbe550394f3823
 parent_branch: staging
-parent_sha: 5267f11a491795d85ee35b56cabbe550394f3823
+parent_sha: 0145b65992b8692ce69f82f804f83f6c8e551fea
 dependency_authorization: "not applicable: independent staging-based topic"
-human_intent_authorization: "Human approved the coordinator proposal to open a narrowly scoped chart-template pointer repair and stated: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Scope: repair physical desktop overlap between populated comparison chips and Plots; preserve no-comparison default and passing narrow layout; validate with ordinary pointer actions, required full profile and exact CI; coordinator owns technical closure and staging integration. No other feature worktree writes, Help oracle changes, provider calls, deployment or data cleanup."
+human_intent_authorization: >-
+  Human-authorized integration objective: coordinate Provider -> ETF holdings ->
+  TC2000 -> Strategy Lab v2 through reconciliation, delegated technical
+  acceptance, sequential guarded staging merges, and exact-source full
+  validation, delivering a verified-free-only human-testable baseline while
+  retaining every feature roadmap. The human's prior explicit repair delegation
+  stated: "I don't need my acceptance to close it off ... individually verify
+  each individual fix in all the 4 parallel development branches - do this
+  yourself, with care ... get to the merged-into-staging state." This repair
+  workstream is only the two evidenced TC-owned changes needed to clear the
+  Provider-first browser gate; it is not acceptance of the TC feature checkpoint.
 planning_state: ready
 human_closure_authorization: >-
-  The human explicitly delegated technical-fix review and closure to this
-  coordinator on 2026-10-15: Yes I approve, and you do not need my acceptance
-  to close it off, it's a waste of time for me to individually verify each
-  individual fix in all the 4 parallel development branches - do this yourself,
-  with care, I just want to get to the merged-into-staging state to finally try
-  this out. Exercised only for these validated chart geometry and causally
-  blocking workspace-save repairs and their unchanged-oracle regression
-  corrections. No feature-checkpoint scope reduction, deployment, provider
-  activation, trial or retained-data deletion is accepted by this closure.
-closure_summary: >-
+  The human delegated technical-fix review and closure to the coordinator,
+  stating that the coordinator need not request individual acceptance for each
+  fix across the four parallel feature branches. Applied here only to the two
+  narrowly evidenced TC-owned repairs that unblock the Provider-first full
+  browser profile. Close this technical repair only after its full local
+  profile, exact-source CI and guarded staging gate pass. This does not accept
+  any feature checkpoint, weaken validation, authorize provider calls, quota
+  spend, unsafe/unreviewed/paid/trial activation, deployment, promotion or data
+  cleanup.
+previous_closure_summary: >-
   Delivered physically independent populated comparison/Plots controls while
   preserving empty/default and narrow geometry; acknowledged superseded saved
   revisions without overwriting newer fields or another workspace; flushed
@@ -38,13 +48,14 @@ closure_summary: >-
   integration_capture: exact branch HEAD. Release the implementation claim via
   explicit coordinator handoff after scoped disposable-resource cleanup; freeze
   the final clean pushed source for guarded integration, with no intervening writes.
+closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
-local_validation_reason: Responsive chart-toolbar geometry must be validated in a real seeded application, including populated comparison values, restored templates and adjacent controls.
+local_validation_reason: The existing repair line is preserved; the new delta must prove cold-mount Add Tool readiness and deterministic F8s fixture fallback, then run the complete declared repair-branch profile without retries or real endpoint traffic.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
-goal: "Repair chart-template comparison/Plots hit-target overlap on desktop, preserve the no-comparison default and passing narrow layout, and publish a validated clean checkpoint for delegated coordinator review. No feature imports, Help reference changes, provider requests, deployment or retained-data cleanup."
+goal: "Continue the coordinator-owned workstation repair line with only the TC cold-mount EasyScan readiness and deterministic F8s benchmark-fixture fallback proven necessary for Provider's full profile. Preserve the already released chart-template and workspace repairs, all identity assertions and visual tolerances. Do not integrate the full TC feature or alter Provider data, quotas, Help references, deployment, or retained datasets."
 scope:
   - Physically separate populated comparison chips from the Plots trigger without relying on z-index reversal.
   - Preserve the no-comparison default geometry and the existing narrow viewport two-row toolbar.
@@ -56,16 +67,20 @@ scope:
   - Make the existing transform-reset browser observer respect legitimate client cache reuse while retaining a real parameter-free server request assertion after persisted-state reload.
   - Pin the existing Study sandbox-error visual fixture's adjacent loading surfaces and explicitly await structured-result chart readiness; preserve every reference and screenshot tolerance.
   - Correct the existing floating-state visual test's expected popup self-destruction handling while preserving its ordinary Close action, screenshot, source-tool restoration and critical diagnostics.
+  - Repair the TC cold-navigation Add Tool readiness gap by waiting for the actual WorkstationView mount-settled lifecycle boundary; preserve unmount cancellation and ordinary EasyScan behavior.
+  - Make the F8s family-matrix broad route fall back to the earlier exact us-benchmarks fixture and assert that the local root fixture was hit; preserve all eight identity/source assertions and prohibit real endpoint traffic.
 owned_paths:
   - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/views/WorkstationView.vue
   - frontend/src/stores/workspace.ts
   - frontend/tests/unit/stores/test_workspace_store.test.ts
   - frontend/tests/e2e/flows.spec.ts
   - frontend/tests/e2e/tc2000_visual.spec.ts
   - ops/workstreams/fix-chart-template-pointer-interaction/
 dependencies:
-  - Synchronized staging 5267f11a491795d85ee35b56cabbe550394f3823; exact CI run 38773602828 has success job conclusions, but terminal logs expose one retried visual flake, not clean product acceptance.
+  - Synchronized staging parent 0145b65992b8692ce69f82f804f83f6c8e551fea; exact Exhaustive Integration Gate run 38896729111 succeeded. The branch is based on this current green staging tree.
   - Read-only TC real-app cross-check at 389069a32682f97c51c0a6dd5cca99be3bb23c2a, published in evidence checkpoint 6051b078e9c0decd8e8a77e2cd52eb648b1355ef.
+  - TC exact-source run 38930779878 passed the complete required branch CI, including F8s-family-matrix and the mount-readiness source; 190 passed, 110 skipped, no retries/flakes/failures. This is source evidence, not this repair branch's own CI or staging acceptance.
 acceptance_criteria:
   - id: PTR1
     text: Desktop save/remove/restore with a populated RSP percentage permits ordinary Plots and Remove RSP clicks while both controls exist; no force/trial-only proof or blank-percentage shortcut.
@@ -77,22 +92,29 @@ acceptance_criteria:
     text: Frontend unit tests, type check/build and required isolated application browser/regression validation pass with unchanged oracles/tolerances; exact-source branch CI and subsequent staging gate remain required.
   - id: PTR5
     text: Publish clean committed/pushed source and precise review/closure evidence under delegated technical-fix authorization; preserve all sibling code/data and leave Help policy, provider activation, deployment and broader feature acceptance untouched.
+  - id: PTR6
+    text: On cold /chart navigation, an ordinary Add Tool command waits for the actual WorkstationView mount lifecycle boundary and opens the requested tool; unmount resolves the wait and cancels the command without a timeout or forced interaction.
+  - id: PTR7
+    text: The F8s family-matrix root request falls through the later broad route to the earlier deterministic us-benchmarks fixture, proves that fixture was hit, preserves all eight identity/source assertions, and makes no real endpoint request.
 branch_tests: []
 branch_tests_reason: Existing chart-template/comparison frontend unit tests, F9c and adjacent browser flows, complete frontend suite and normal full integration CI cover this narrow repair; no additional standalone branch command is needed.
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: ready_for_integration
+status: in_progress
 active_changeset_context:
-  name: pointer-popup-close-teardown
-  intent: Tolerate only the expected closed-popup click teardown while retaining screenshot, actual page-close, source restoration and critical diagnostics assertions.
+  name: provider-profile-f9e-f8s-repair
+  intent: Carry only the TC cold-mount Add Tool readiness fix and deterministic F8s fixture-fallback/assertion fix needed to unblock Provider's required browser profile; keep the full TC feature and its workstream records out of this repair.
   owned_paths:
-    - frontend/tests/e2e/tc2000_visual.spec.ts
+    - frontend/src/views/WorkstationView.vue
+    - frontend/tests/e2e/flows.spec.ts
     - ops/workstreams/fix-chart-template-pointer-interaction/
-remaining_gaps: []
+remaining_gaps:
+  - Exact-source required CI for this repair branch, including F9e/F8s no-retry evidence.
+  - Guarded merge into persistent staging and a green Exhaustive Integration Gate on the exact resulting staging SHA.
 progress:
-  completed: [PTR1, PTR2, PTR3, PTR4, PTR5]
-  total: 5
-  current_phase: delegated_technical_closure_and_coordinator_handoff
-  current_blocker: none
-  next_action: Cleanup is audited complete and the implementation claim is released. Publish final closure metadata cleanly, require its exact source CI, then integrate only through persistent staging and await the exact exhaustive gate. No feature acceptance, promotion or deployment.
+  completed: [PTR1, PTR2, PTR3]
+  total: 7
+  current_phase: provider_browser_repair_added
+  current_blocker: Exact-source repair-branch CI and the Provider full browser-profile rerun after synchronized green staging remain pending.
+  next_action: Run exact repair-branch CI and audit F9e/F8s with no retries or real endpoint traffic. Then record the delegated technical closure, integrate only through the persistent staging worktree, and await the exact exhaustive gate before asking Provider to rerun its full profile. No feature-checkpoint acceptance, promotion or deployment.

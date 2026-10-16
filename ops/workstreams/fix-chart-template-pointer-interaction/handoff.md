@@ -409,3 +409,31 @@ publish its session state, verify clean matching HEAD/origin, then open the
 product-geometry context. Use only assigned resources and preserve exact
 before/after evidence. The session-local goal uses the concise plan goal without
 a token budget; the helper's expanded goal request is guidance, not a replacement.
+
+## 2026-10-16 — Provider-first browser repair
+
+The already-released chart-template pointer/workspace repair remains preserved
+in synchronized staging. The active delta on this coordinator-owned repair line
+is now limited to two TC-owned changes that unblock Provider's required browser
+profile: wait for the actual WorkstationView mount-settled lifecycle before
+processing a cold-navigation Add Tool command, and let the F8s broad route
+fallback reach the earlier deterministic `us-benchmarks` fixture while
+asserting that fixture was used. The eight family identity/source assertions
+are unchanged; no live endpoint, provider, quota, Help reference, screenshot
+oracle, retained dataset, or sibling worktree is touched.
+
+The source changes were copied from TC's pushed, exact-tested source at
+`32e9c48` and `0c7bc1b`, excluding TC-owned workstream metadata. TC's exact run
+`38930779878` passed all required branch jobs, including both F9e/F8s source
+paths; it is supporting evidence, not this repair branch's own CI. Local
+validation here passes Vue type-check, all 937 frontend unit tests, production
+build, workstream validation (33 records), and collection of the 11 targeted
+F9e/F8s tests. No browser was launched locally because this host cannot access
+Docker; exact repair-branch CI and staging Exhaustive gate remain mandatory.
+
+Next: publish this clean, narrowly scoped candidate; audit exact branch CI and
+no-retry F9e/F8s results; then use only guarded persistent-staging integration
+and wait for its exact exhaustive green receipt. After release, Provider may
+rerun its own full 260-case profile against synchronized green staging. This
+does not accept the TC feature checkpoint or alter Provider's quota/operation
+holds, and it authorizes no deployment, paid activation, trial, or cleanup.

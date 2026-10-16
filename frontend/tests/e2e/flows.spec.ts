@@ -3641,7 +3641,9 @@ test.describe('TC2000 workstation', () => {
     ]
     const familyByKey = new Map(families.map(family => [family.key, family]))
     const selectedSources: string[] = []
+    let benchmarkRootFixtureHits = 0
     await page.route('**/api/v1/market-groups/us-benchmarks*', async route => {
+      benchmarkRootFixtureHits += 1
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
         stable_key: 'us-benchmarks',
         group_type: 'benchmark',
@@ -3667,7 +3669,10 @@ test.describe('TC2000 workstation', () => {
       const pathname = new URL(route.request().url()).pathname
       const familyKey = pathname.match(/\/market-groups\/([^/]+)$/)?.[1]
       const family = familyKey ? familyByKey.get(decodeURIComponent(familyKey)) : undefined
-      if (!family) return route.continue()
+      // This broad family handler is registered after the exact root fixture.
+      // Fall through so Playwright can offer unmatched requests to that earlier
+      // handler; continue() would send the root request to the real endpoint.
+      if (!family) return route.fallback()
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ stable_key: family.key, name: family.name, group_type: 'benchmark_family', members: [{ instrument: { id: 1, symbol: family.proxy, name: `${family.name} proxy` } }], provenance: { benchmark_family: family.key } }) })
     })
     await page.route('**/api/v1/analysis/groups/*/snapshot*', async route => {
@@ -3712,6 +3717,7 @@ test.describe('TC2000 workstation', () => {
     await page.goto('/chart/SPY')
     const benchmarkSurface = page.locator('.benchmark-surface').first()
     await expect(benchmarkSurface).toBeVisible({ timeout: 15_000 })
+    await expect.poll(() => benchmarkRootFixtureHits, { timeout: 15_000 }).toBeGreaterThan(0)
     const familySelect = benchmarkSurface.getByRole('combobox', { name: 'Benchmark family', exact: true })
     for (const family of families) {
       await familySelect.selectOption(family.key)
