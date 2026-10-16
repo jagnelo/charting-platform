@@ -45,10 +45,10 @@ migration_impact: none
 deployment_impact: none
 status: in_progress
 remaining_gaps:
-  - Implementation and all focused/full validation remain pending; no checkpoint acceptance or product integration.
+  - Implementation47e81ae5a64af7869d58d6ec74ad00d69fe687d8 is focused-tested and pushed; full isolated profile and exact-source CI remain pending. No checkpoint acceptance or product integration.
 progress:
-  completed: [POP1]
+  completed: [POP1, POP2, POP3]
   total: 5
-  current_phase: popup-observer-and-flaky-gate-repair
+  current_phase: implementation-published-awaiting-required-full-gates
   current_blocker: none
-  next_action: Implement the single owned popup-validation changeset and focused tests, close it coherently, then coordinate the required full browser slot without disturbing Provider.
+  next_action: Preserve exact implementation47e81ae5 source; audit hosted CI and coordinate full_stack_browser after Provider releases the heavy slot. Fix any real required failure without weakening tests.

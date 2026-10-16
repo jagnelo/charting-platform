@@ -57,3 +57,51 @@ a5ad-2d28723e6b4e, client ID e4bc0759-bab3-46b0-ae7d-af17379f72df; actual
 owner acknowledgment is still to be independently verified. No queued prompt,
 AI restart or takeover. See common-root coordinator records, not copied feature
 .ai paths. Next action: implement this changeset and focused validation.
+
+## 09:12 UTC — implementation and focused evidence, publication pending
+
+The single implementation changeset is now complete in the working tree.
+F8j uses the existing ordinary-close cleanup contract, extracted into a shared
+test utility with rejection immediately handled as data. This prevents a late
+unhandled close-event rejection if an unrelated click error propagates. The
+seven adversarial utility cases preserve failure on a live intercepted popup
+or absent close event. Product/geometry assertions, ordinary pointer actions,
+timeouts, retries, snapshots and visual tolerances are unchanged. The real
+Playwright configuration sets failOnFlakyTests only for CI, retaining its one
+diagnostic retry while making a retry-passing result fail the job.
+
+Focused Vitest9/9 passed1.20s; npm type-check and build passed (existing chunk
+size warning). Real CI-mode Playwright collection passed and retains260tests
+across4files/fiveprojects. Existing locked dependencies installed offline from
+the local npm cache; no package/lock changes or provider requests. All33
+workstream records and git diff --check pass.
+
+An isolated deliberately-flaky no-browser/no-network test imports the ACTUAL
+repository Playwright config and runner: with the new CI setting it reports
+one flaky and exits1 as REQUIRED; identical retry behavior with only the
+temporary control flag disabled exits0. Both bounded30s diagnostics completed
+normally. This is expected policy verification, NOT an application failure or
+passing browser/product evidence. Diagnostic files/artifacts remain at
+/tmp/popup-flaky-gate.N8eQ2J, outside the source; no real test was weakened.
+
+Next: review/stage the five implementation paths, commit/push this completed
+changeset immediately, then record its exact source separately. Full profile,
+exact-source CI and coordinator technical acceptance remain OPEN. Provider
+still owns the heavy local slot; no browser/Compose fixture was launched here.
+
+## 09:14 UTC — implementation changeset published
+
+Implementation47e81ae5a64af7869d58d6ec74ad00d69fe687d8 is committed and
+pushed to origin/fix/staging-popup-validation. It contains exactly the five
+reviewed implementation/test paths; operational files remain separate for
+this checkpoint. Focused9, type-check/build, actual260collection and real
+flaky-policy1/0 diagnostic passed as above; actual profile classifier selects
+full_stack_browser, retained without reduction. No full local/browser/visual
+acceptance is claimed. POP1-POP3 component criteria are delivered; POP4-POP5
+remain open. The broader four-product objective is still active/unachieved.
+
+Close the separate operational checkpoint, then preserve the source while
+exact CI runs and Provider releases the reserved heavy local slot. Do not
+re-run full profiles merely for metadata changes or edit the in-flight source
+without a concrete failing-gate reason. The later metadata-only enclosing hash
+is verified externally with HEAD/origin; it cannot contain its own hash.
