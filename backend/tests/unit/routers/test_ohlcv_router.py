@@ -7,6 +7,50 @@ from app.services.provider_runtime import ProviderNoDataError
 
 
 class TestOHLCVRouter:
+    def test_local_only_returns_retained_bars_in_consumer_shape(
+        self, client, auth_headers, instrument, monkeypatch
+    ):
+        ts = datetime(2026, 10, 15, 20, 0, tzinfo=UTC)
+        bars = [
+            SimpleNamespace(
+                ts=ts,
+                open=100.0,
+                high=105.0,
+                low=99.0,
+                close=104.0,
+                volume=12345.0,
+                vwap=102.5,
+                is_adjusted=True,
+            )
+        ]
+        calls: list[dict] = []
+
+        async def _local_read(*_args, **kwargs):
+            calls.append(kwargs)
+            return bars
+
+        monkeypatch.setattr("app.routers.ohlcv.fetch_ohlcv_latest", _local_read)
+        response = client.get(
+            f"/api/v1/ohlcv/{instrument.symbol}/{Timeframe.D1.value}",
+            params={"local_only": "true"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        assert len(payload) == 1
+        assert payload[0] == {
+            "ts": "2026-10-15T20:00:00Z",
+            "open": 100.0,
+            "high": 105.0,
+            "low": 99.0,
+            "close": 104.0,
+            "volume": 12345.0,
+            "vwap": 102.5,
+            "is_adjusted": True,
+        }
+        assert calls == [{"allow_provider_fetch": False}]
+
     def test_transformed_chart_types_return_server_shape(
         self, client, auth_headers, instrument, monkeypatch
     ):

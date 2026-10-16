@@ -1,11 +1,18 @@
 schema: 4
-# Current operational status as of 2026-10-16 12:45Z: released staging
-# 0145b65992b8692ce69f82f804f83f6c8e551fea is merged at ca86eaf; owner packet
-# commit 081fd6d is pushed and the worktree is clean. Exact-tip CI 38902425042
-# was pending at last observation. Bounded merged-source tests and 34-record
-# workstream validation passed. Full local profile, safe current-source live
-# evidence, ICP2 aggregate-cost work, ICP6 consumer contract, and checkpoint
-# acceptance remain open. No quota was spent; held operations stay disabled.
+# Current operational status as of 2026-10-16 17:06Z: exact branch source
+# 1236a367a1d81fba69bb85496e12a56ec22c9f56 is synchronized and CI
+# 38902818604 passed required standard jobs (Exhaustive skipped). The full
+# seeded 260-case browser selection remains red: 256 passed, 2 failed (F9e/F8s),
+# and 2 expected live-canonical cases skipped; both focused diagnostic reruns
+# passed 2/2 but do not erase the full failure. Strict visuals passed 104/104.
+# TC owns both browser fixes; run 38930779878 on TC source
+# 0c7bc1b8ce76a9761e4c20d02b4bb59d1591920f is terminal success for required
+# standard jobs including E2E (Exhaustive skipped). A fresh ref check still has
+# staging at
+# 0145b65992b8692ce69f82f804f83f6c8e551fea and no synchronized repair release
+# is recorded. Wait for explicit coordinator release before another Provider
+# browser matrix. Provider quota-held operations remain disabled; ICP2/ICP6 and
+# checkpoint review remain open.
 branch: feat/market-data-provider-platform
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
@@ -88,6 +95,8 @@ roadmap_acceptance_criteria:
     text: Exchange sessions, timezones, holidays, early closes, overnight trade-date rules, and user-local projections are versioned and used by freshness and daily-completion logic.
   - id: AC-ROUTING
     text: Provider routing filters by capability, asset/venue/session/interval/history/feed/terms entitlement, health, quota, and workload budget; quota reservations are safe across workers and every decision is observable.
+  - id: AC-RECURRING-COST
+    text: A durable shared admission contract enforces the explicitly configured monthly recurring-subscription ceiling across all active and proposed provider commitments, deduplicates subscriptions shared by keys/capabilities in the same provider billing account/environment, records exact plan/price/currency/interval/effective-state/evidence and post-trial price, normalizes only verified billing periods, fails closed on unknown material inputs or unreviewed mixed-currency conversion, admits concurrent proposals atomically, and remains separate from quota usage and paid-activation authority.
   - id: AC-REFRESH
     text: Whole-universe core-session D1 refresh, tiered intraday polling, local rollups, exact missing-slice repair, request coalescing, deferred broad-evaluator runs, and automatic retry are implemented without provider calls inside evaluation loops.
   - id: AC-DATA
@@ -429,7 +438,7 @@ integration_checkpoint:
         - backend/app/models/market_data_foundation.py
       ownership_boundary: "This branch owns shared identity/provider governance only; do not edit the ETF branch or implement its adapter bridge here."
       evidence_required: "Integration/API tests for identity and provider capability/entitlement/quota/health, including successful and unavailable examples; verify PROVIDER_FREE_ONLY_CHECKPOINT denies paid plans regardless of ALLOW_PAID_PROVIDER_ROUTING, and trial/unreviewed plans deny before transport. ETF later verifies bridge admission and actual request/page/retry accounting against green staging."
-      cost_admission_boundary: "No shared aggregate monthly recurring-subscription cost API exists. PROVIDER_FREE_ONLY_CHECKPOINT=true is a hard shared route-admission constraint that denies reviewed paid plans regardless of ALLOW_PAID_PROVIDER_ROUTING and denies trials/unreviewed plans; execute_provider_call and list_provider_status use the same provider_entitlement_admission decision. Disabling checkpoint mode restores the full-roadmap ALLOW_PAID_PROVIDER_ROUTING opt-in. This is not aggregate cost admission or paid-activation authorization. Provider owns the approved 20 EUR/USD-equivalent aggregate ceiling as ICP2 work; ETF owns ICP6 adapter wiring and actual request/page/retry accounting after green Provider staging. Do not invent FX conversion or add an ETF-only ledger."
+      cost_admission_boundary: "No shared aggregate monthly recurring-subscription cost API exists. PROVIDER_FREE_ONLY_CHECKPOINT=true is the tested shared checkpoint boundary: it denies reviewed paid plans regardless of ALLOW_PAID_PROVIDER_ROUTING and denies trials/unreviewed plans; execute_provider_call and list_provider_status share provider_entitlement_admission. Disabling checkpoint mode restores full-roadmap ALLOW_PAID_PROVIDER_ROUTING opt-in. This is not aggregate cost admission or paid-activation authorization. The approved 20 EUR/USD-equivalent aggregate recurring-cost ceiling remains a Provider-owned full-roadmap continuation, not a prerequisite for this verified-free-only checkpoint. Its continuation contract must account for all active and proposed commitments per provider billing account/environment, across API keys and capabilities without double-counting one account-level subscription. Account identity must be a stable opaque scope, never a secret. Persist plan, exact amount/currency/recurring interval, effective dates/state, evidence source/version and observation time, plus a trial's known post-trial recurring price rather than treating the trial as zero. Unknown account scope, price, currency, interval, effective state, post-trial price, or evidence must fail closed. Normalize only documented intervals to a monthly equivalent. Mixed-currency totals are non-admissible absent an explicitly reviewed, timestamped FX policy/rate; do not invent FX. The budget denomination and equivalence rule must be explicit configuration. Admission must atomically account for existing active commitments and the proposed commitment under the configured ceiling, with concurrency/restart tests; it must not itself enable or authorize paid provider activation. Required tests include same-account multi-key deduplication, independent-account aggregation, active/proposed/expired transitions, known and unknown post-trial pricing, interval normalization, unknown/mixed-currency denial, concurrent near-limit admissions, and evidence changes/reconciliation. The feature remains unimplemented; no partial in-memory cost admission or ETF-only ledger is acceptable. ETF owns its post-staging ICP6 adapter bridge and actual request/page/retry accounting."
     - consumer: feat/tc2000-frontend-rework
       consumes: "Canonical instrument identity, local OHLCV series, coverage/preflight, freshness, and explicit missing/unavailable status; no provider request occurs inside evaluation."
       provider_contract_locations:
@@ -449,10 +458,17 @@ integration_checkpoint:
         - backend/app/routers/providers.py
         - backend/app/services/market_data.py
       ownership_boundary: "Provider branch owns these shared backend contracts; Strategy Lab v2 owns its engine/API wiring and reconciles after provider and ETF staging integrations."
-      evidence_required: "Backend API/worker tests and a consumer contract map with success/unavailable fixtures; Strategy Lab v2 agent later validates against green staging."
+      evidence_required: "Backend API/worker tests and a consumer contract map with success/unavailable fixtures. local_only=true with no retained bars preserves the collection endpoint's 200 [] shape and proves allow_provider_fetch=false; provider-backed ProviderNoDataError separately maps to 404. Strategy Lab v2 agent later validates against green staging."
   consumer_contract_examples:
+    provider_execution:
+      callable: "await app.services.provider_runtime.execute_provider_call(db, capability, operation, *, provider_name, operation_cost_overrides, invoke, ...)"
+      invocation_contract: "invoke is a synchronous callable (provider, provider_symbol) -> value; the runtime executes it in a worker thread with copied telemetry context. Async callbacks are not awaited and are not supported by this contract."
+      success_shape: "ProviderExecutionResult(provider_name, data_source, policy, health, result, response_payloads); response payload retention is enabled by default."
+      unavailable_shape: "If no usable provider response remains for an instrument, ProviderNoDataError is raised; unknown/exhausted quota is denied before invoke. Consumers must preserve unavailable/partial status rather than substitute guessed or stale data."
+      ownership_remainder: "ETF owns its post-staging async/per-attempt adapter bridge and page/retry accounting; TC2000 and Strategy Lab v2 own consumer-specific wiring. This checkpoint does not claim async invoke support or completed sibling integration."
     series_success:
       endpoint: "GET /ohlcv/{symbol}/{timeframe}?local_only=true"
+      test: backend/tests/unit/routers/test_ohlcv_router.py::TestOHLCVRouter::test_local_only_returns_retained_bars_in_consumer_shape
       response_shape:
         - ts: "2026-10-14T20:00:00Z"
           open: 100.0
@@ -481,6 +497,18 @@ integration_checkpoint:
             end: "2026-01-09T00:00:00Z"
         explanation: "Local bars leave one or more bounded range slices unavailable."
         provenance: canonical_local_database
+    coverage_full:
+      endpoint: "GET /coverage/instruments/{symbol}/ohlcv?timeframe=D1&start=...&end=..."
+      status: ready
+      response_fields: [instrument_id, symbol, timeframe, status, covered_start, covered_end, bar_count, missing_slices, provenance]
+      test: backend/tests/unit/routers/test_coverage_router.py::TestCoverageRouter::test_exposes_fully_covered_range_without_provider_routing
+      note: "A ready response describes retained canonical local coverage only; this endpoint does not route to or query a provider."
+    coverage_missing:
+      endpoint: "GET /coverage/instruments/{symbol}/ohlcv?timeframe=D1&start=...&end=..."
+      status: missing
+      response_fields: [instrument_id, symbol, timeframe, covered_start, covered_end, bar_count, missing_slices, provenance]
+      test: backend/tests/unit/routers/test_coverage_router.py::TestCoverageRouter::test_exposes_missing_range_without_provider_routing
+      note: "A missing response is distinct from partial coverage and reports the requested range as unavailable without provider routing."
     unresolved_identity:
       canonical_only_request: "GET /instruments/{symbol}?canonical_only=true"
       not_found_response_shape:
@@ -513,6 +541,12 @@ integration_checkpoint:
           workload_key: "example-workload"
           created_at: "2026-10-15T14:00:00Z"
       note: "A null selection is unavailable, never permission to guess another identity or bypass quota. Routing-decision and identity-quarantine endpoints are admin diagnostics; consumers use local series/coverage and internal provider-routing contracts."
+    ohlcv_unavailable:
+      endpoint: "GET /api/v1/ohlcv/EXAMPLE/D1?local_only=true"
+      http_status: 200
+      response_shape: []
+      test: backend/tests/unit/routers/test_ohlcv_router.py::TestOHLCVRouter::test_local_only_skips_provider_hydration
+      note: "The collection API preserves its existing success shape: an empty array means no retained bars are available. local_only=true does not hydrate from a provider; the test asserts allow_provider_fetch=false. A provider-backed request that ends with ProviderNoDataError separately returns 404, covered by test_no_provider_data_returns_404."
   checkpoint_validation:
     - id: ICP1
       evidence: "Checkpoint minimum: fixture/PostgreSQL tests for stable identity, identity conflicts/quarantine, provenance/history, and legacy compatibility; report known mapping gaps. Full fresh NMS/OTC/SEC reconciliation and venue completeness are roadmap work, not an ICP1 pre-integration gate."
@@ -550,7 +584,7 @@ integration_checkpoint:
         - backend/tests/unit/test_provider_secret_wiring.py
         - tests/deployment/test_rpi_contract.py
     - id: ICP6
-      evidence: "Provide each consumer a contract map, producer-tested success and unavailable behavior, ownership boundary, and consumer-owned reconciliation/test list; explicitly record the hard free-only checkpoint route restriction and Provider-owned aggregate-cost roadmap gap; run backend contract tests here and defer actual downstream wiring/reconciliation to each branch after Provider is green in staging."
+      evidence: "Provide each consumer a contract map, producer-tested success and unavailable behavior, ownership boundary, and consumer-owned reconciliation/test list; explicitly record the hard free-only checkpoint route restriction and Provider-owned aggregate-cost roadmap gap; run backend contract tests here and defer actual downstream wiring/reconciliation to each branch after Provider is green in staging. The OHLCV collection endpoint preserves 200 [] for local_only=true with no retained bars (and proves allow_provider_fetch=false); a provider-backed no-data outcome separately maps ProviderNoDataError to 404."
       tests:
         - backend/tests/integration/api/test_market_data_admin.py
         - backend/tests/integration/api/test_strategy_lab.py
@@ -581,6 +615,11 @@ integration_checkpoint:
       disposition: "Capability routing and durable quota controls exist. During the integration checkpoint, PROVIDER_FREE_ONLY_CHECKPOINT=true denies reviewed paid market-data routes regardless of ALLOW_PAID_PROVIDER_ROUTING and denies trial routes. Unreviewed market-data routes are denied; the only present exception is the exact EODHD fetch_account_usage operation, whose first-party API-limits source lists /api/user at zero daily call credits and whose explicit dimension-cost map charges one requests_per_minute unit and zero calls_per_day units. MarketData.app /user/ is one credit and receives no exception. Turning checkpoint mode off restores the full-roadmap reviewed-paid opt-in path; neither mode is aggregate cost admission or paid-activation authorization. No shared aggregate recurring-subscription cost API or enforcement of the approved 20 EUR/USD-equivalent ceiling exists. Provider owns that ICP2 roadmap work; ETF owns ICP6 consumer-bridge and actual-operation accounting evidence. Other provider-specific dimensions, account baselines, and consumer examples remain open."
       owner: "feat/market-data-provider-platform"
       continuation_acceptance_test: "Concurrent/restart tests cover provider-specific quota dimensions and reject unknown/exhausted operations before transport."
+    - id: AC-RECURRING-COST
+      status: not_started
+      disposition: "The recurring-cost model/admission implementation is absent. The checkpoint's shared free-only route boundary is not aggregate subscription-cost admission and does not satisfy this full-roadmap criterion. Its explicit design/tests are recorded under the Provider ICP2 consumer contract, but no recurring commitment is currently stored, summed, or admitted."
+      owner: "feat/market-data-provider-platform"
+      continuation_acceptance_test: "Database-backed tests cover account/environment scope and same-account cross-key deduplication; exact plan price/currency/period and known post-trial pricing; active/proposed/expired transitions; supported monthly normalization; fail-closed unknown and mixed-currency cases; atomic concurrent near-ceiling proposals; restart durability; evidence revisions; and proof that budget admission does not authorize paid activation. Fresh-install and existing-database upgrade schemas must be equivalent."
     - id: AC-REFRESH
       status: partially_delivered
       disposition: "Refresh/worker mechanisms exist; full-universe coverage and target update-frequency proof are outside this integration checkpoint."

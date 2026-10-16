@@ -1,5 +1,40 @@
 # Provider integration checkpoint review packet
 
+## Superseding current-source status — 2026-10-16 16:00Z
+
+Provider source is `1236a367a1d81fba69bb85496e12a56ec22c9f56` and exact-source
+CI run `38902818604` passed required standard jobs; Exhaustive was skipped.
+This is not checkpoint acceptance. The seeded 260-case Playwright selection
+completed with 256 passed, 2 failed (`F9e-easyscan-builder-keyboard` and
+`F8s-family-matrix`), and 2 expected live-canonical skips
+(`F8e.live-membership`, `F8e.live-sector-drilldown`). All 104 strict visual
+cases passed at the unchanged 0.5% tolerance. Both failed cases then passed a
+focused 2-case rerun with no retries, provider egress denied, and no provider
+HTTP/quota spend; this is diagnostic evidence only and does not erase the full
+selection's red result.
+
+At 16:29Z the same two focused tests were rerun in the preserved isolated
+stack: 2/2 passed, zero retries/skips, 39.1 seconds, zero provider HTTP/quota
+spend. The TC owner has both browser fixes; its exact run `38930779878` had
+Branch-declared, Frontend Unit, and Backend green while Playwright E2E remained
+in progress at the latest coordinator update. Do not rerun the Provider matrix
+until that run is terminal and the coordinator releases a synchronized staging
+repair.
+
+The F8s test-fixture overlap is confirmed: the later broad market-group route
+matches the `us-benchmarks` path and its `route.continue()` miss reaches the
+local backend instead of the earlier intended fixture. Its failure observed a
+Russell 1000 selector while the latest intercepted POST still carried SP1500,
+indicating an uncorrelated/stale request observation, not a product identity
+failure. F9e's final snapshot retained the Add tool menu with no EasyScan panel;
+the readiness/active-tab gate and non-awaited async click are plausible timing
+factors, but the artifact does not prove the internal guard state. Both items
+are TC/frontend-owned; no frontend source was changed. See the dated handoff
+for exact artifacts and a test-only repair direction. The browser runner and
+isolated test stack remain preserved; no container/data cleanup occurred.
+Continue Provider ICP2/ICP6 work and keep all held/unknown/paid/trial provider
+operations disabled. Full Provider checkpoint acceptance remains open.
+
 ## Superseding current-source status — 2026-10-16 12:45Z
 
 This section supersedes earlier “current” summaries below; older entries are
@@ -388,7 +423,7 @@ frontend files remain unchanged.
 | ICP3 — series, coverage and refresh | Series/provenance, gap planning, session-aware freshness, refresh coalescing/leases, and explicit partial coverage are exercised by backend unit/integration and Strategy Lab tests. Full local backend gate and exact-source hosted backend job passed. | After Provider staging, consumers verify stale, partial, missing, and unavailable states remain distinct and do not trigger hidden provider requests. Downstream owners: ETF, TC2000, Strategy Lab. |
 | ICP4 — provider operations | Fresh durable no-transport preflight admitted 23 manifests; exact staged-tree slices passed 62/62 cases, 151 requests, and 64,552,569 response bytes. The verifier confirms those 23 against tree `592261aa...` and reports `live_acceptance=false` because four held providers have no successful manifest receipt. | Keep Alpha Vantage, Dinari, Marketstack and Tiingo held with their exact reasons below. No quota was spent on these four. Their preflight and existing zero-call tests are separate from successful live evidence. Historical 20/27 evidence stays bound to `1afb896...`; it is not rebound. |
 | ICP5 — migrations, startup and secrets | Local secret/config boundary and trusted backend/worker wiring have tests. Current source changes no migrations; migration-compatibility correctly skipped relative to `32e9109`. Prior reported 50-migration fresh-install/existing-database equivalence and health check remain historical, not a new receipt bound to `0111cc6`. Exact-source backend and branch CI are green. | GitHub/RPi/deployment secret stores are target onboarding requirements before those targets are used, not pre-Provider integration requirements. No deployment readiness is claimed. |
-| ICP6 — consumers | Producer success/unavailable behavior and callable contract are tested. ETF can call `app.services.provider_runtime.execute_provider_call(db, capability, operation, *, provider_name, operation_cost_overrides, invoke, ...)`; denied admission prevents `invoke`. `provider_entitlement_admission(entitlement)` returns `allowed`, `reason_code`, `configured_plan`, `is_free`, `checkpoint_free_only`, and `basis`; provider status exposes this as `entitlement_admission`. This is routing eligibility, not aggregate subscription-cost admission. Success/unavailable examples exist in ETF coverage and Strategy evaluation/coverage tests. | Before Provider staging, deliver the producer contract and named owners only; actual ETF/TC2000/Strategy adapter wiring and consumer-specific reconciliation happen after Provider is green in staging. ETF owns holdings adapter/bridge plus page/retry accounting; TC2000 and Strategy own their consumer wiring. |
+| ICP6 — consumers | Producer success/unavailable behavior and callable contract are tested. `execute_provider_call(...)` is async but its `invoke(provider, provider_symbol)` argument must be synchronous; the runtime offloads it to a worker thread with copied telemetry context and returns `ProviderExecutionResult(provider_name, data_source, policy, health, result, response_payloads)`. It does not await async callbacks. Unknown/exhausted quota is denied before `invoke`; no usable provider data raises `ProviderNoDataError`. `GET /api/v1/ohlcv/{symbol}/D1?local_only=true` returns retained local bars or `200 []` when none exist, without provider hydration; this preserves the collection endpoint's existing response shape. A non-local provider request that exhausts usable data has the separately tested `404` `detail` response. | Producer success shape, no-data behavior, and exact local-only empty-result semantics are now explicit in `plan.yaml` and runtime/router tests. Before Provider staging, name downstream owners/remainders only; actual ETF/TC2000/Strategy adapter wiring and consumer-specific reconciliation happen after Provider is green in staging. ETF owns holdings bridge; TC2000 and Strategy own their consumer wiring. |
 | ICP7 — reviewable source | Clean pushed source `0111cc6`; focused regressions 78/78 provider-runtime and 13/13 FMP runner admission; local backend 2,796 unit + 395 integration, 82%; exact-source CI `38857046752` success for all required jobs including E2E; functional browser 151 passed/109 skipped/0 failed/0 retries. Released common-repair staging `82d881e7` is already in ancestry. | The stock full-profile E2E wrapper stopped before assertions due existing report-directory permissions; manual equivalent ran successfully. Strict pinned visual is 101/104 with three Study Lab snapshot mismatches (~1% vs 0.5%), so the declared profile is not fully green. The coordinator has not accepted this source; this branch must not edit frontend. |
 
 ### Coordinator ICP2 review correction (hosted CI validated; local full-profile follow-up remains)
@@ -565,3 +600,119 @@ generated browser artifacts were not reset or removed.
   request-rate cost can be considered for that bootstrap. Positive behavior is
   stub-tested; paid, unknown and trial cases are denied before callback under
   both paid-routing flag states. This correction adds no provider HTTP calls.
+
+## 2026-10-16 16:47Z — current coordinator state and ICP2/ICP6 audit
+
+- Provider source remains `1236a367a1d81fba69bb85496e12a56ec22c9f56`, with
+  dirty, owner-scoped test/workstream follow-up. Exact hosted run `38902818604`
+  passed required standard CI jobs but skipped Exhaustive; it is not checkpoint
+  acceptance. The exact seeded local 260-case browser result remains red at
+  256 passed, F9e and F8s failed, and 2 expected live skips; 104/104 visuals
+  passed. Focused reruns are diagnostic only and do not clear those failures.
+- TC owns both browser fixes. Exact TC run `38930779878` on source
+  `0c7bc1b8ce76a9761e4c20d02b4bb59d1591920f` is terminal success for
+  Branch-declared, Frontend Unit, Backend, and Playwright E2E; Exhaustive was
+  skipped. The staging ref remains `0145b65992b8692ce69f82f804f83f6c8e551fea`
+  and no synchronized repair release was found. Do not rerun Provider browser
+  validation until the coordinator releases the synchronized repair.
+- ICP2 audit: current `ProviderEntitlement`/revision lacks provider-account
+  identity, recurring amount/currency/interval, and known post-trial price;
+  `DataSource` is provider-scoped. Existing durable request/credit/byte/symbol
+  usage accounting cannot safely enforce aggregate recurring subscription
+  cost. The approved aggregate ceiling remains Provider-owned full-roadmap
+  work requiring durable account-scoped commitments, auditable evidence,
+  atomic admission, explicit monthly normalization, and reviewed FX policy
+  (mixed currency denies absent one). No partial in-memory cost admission or
+  invented conversion was added; this is distinct from the verified-free-only
+  checkpoint boundary.
+- ICP6 producer contract: success returns `ProviderExecutionResult` with
+  provider, source, policy, health, value, and retained payloads; unknown or
+  exhausted quota denies before the transport callback. Local-only empty
+  OHLCV remains the tested `200 []` collection shape and proves no hydration;
+  provider-backed `ProviderNoDataError` separately returns tested `404` detail.
+  ETF owns its post-staging holdings bridge and request/page/retry accounting;
+  TC2000 and Strategy Lab own their consumer wiring/reconciliation after
+  Provider staging. No sibling adapter is claimed as wired here.
+- The complete `backend/tests/unit/services/test_provider_runtime.py` module
+  passed `79/79` on the dirty candidate in 107.67s. The two focused OHLCV router
+  contract tests also passed; the earlier focused run covered these together
+  with the strengthened runtime result-shape assertion. This is unit evidence,
+  not the full local profile or checkpoint acceptance. The combined routing and
+  provider policy/status API suites passed `43/43` in 17.50s. All 34 workstream
+  records validate. The complete quota-contract unit module then passed
+  `135/135` in 6.90s, covering provider-specific limits, reset semantics, and
+  operation cost contracts. The durable quota coordinator module passed
+  `64/64` in 6.74s, including restart/process-shared reservations, atomic
+  multidimensional admission, baseline reconciliation, and retained quota
+  evidence. The complete OHLCV router test module now passes `7/7`, including a
+  newly added retained-bar success-shape assertion for consumers; `local_only`
+  explicitly passes `allow_provider_fetch=false`. No provider HTTP/quota,
+  browser run, staging/sibling edit,
+  paid/trial activation, deployment, or data cleanup occurred. Full Provider
+  checkpoint and all broader roadmap criteria remain open.
+
+## 2026-10-16 17:00Z — consumer success and coverage-state fixtures strengthened
+
+- ICP6 now names and tests both successful local consumer contracts: the
+  retained OHLCV collection returns timestamp/OHLCV/VWAP/adjustment fields, and
+  the coverage endpoint returns `status=ready`, exact covered bounds, zero
+  missing slices, and `canonical_local_database` provenance for a fully
+  retained range. `local_only=true` is asserted to disable provider hydration.
+- At 17:00Z, read-only external recheck still showed TC run `38930779878`
+  successful for required standard jobs (Exhaustive skipped), while staging
+  remained `0145b65992b8692ce69f82f804f83f6c8e551fea`; no synchronized repair
+  release was present. Provider browser remains held.
+- The existing empty local `200 []`, partial range coverage, and provider-
+  backed no-data `404` cases remain intact. Combined OHLCV/coverage router
+  tests pass `12/12` on the dirty candidate. These are provider-neutral producer
+  contracts, not provider live success, full-profile acceptance, or downstream
+  feature wiring. No quota or external request was used.
+
+## 2026-10-16 17:03Z — missing-coverage consumer contract completed
+
+- Added a provider-neutral `status=missing` coverage response test for a range
+  with no retained bars. It verifies the exact requested range is returned as
+  one missing slice, with zero bars, null covered bounds, canonical-local
+  provenance, and no provider field or provider routing.
+- The complete coverage and OHLCV router test files pass `13/13` on the dirty
+  candidate (9.55s); Ruff check and format pass. Together with the already
+  tested `ready` and `partial` responses, this distinguishes ready, partial,
+  and missing local-coverage states. The separate OHLCV contract preserves the
+  retained-bar response shape and proves `local_only=true` disables hydration;
+  empty local-only remains `200 []`, while provider-backed no-data remains
+  `404`.
+- This closes the Provider-owned producer-example gap for local OHLCV/coverage
+  success and unavailable states. It does not claim live provider success or
+  downstream adapter wiring: ETF, TC2000, and Strategy Lab retain the named
+  post-staging consumer reconciliation and test ownership.
+- ICP2 remains distinct: no aggregate recurring-subscription commitment model
+  or admission interface has been implemented. The continuation must be
+  account/environment scoped and durable; record plan, provider-account scope,
+  exact recurring amount/currency/interval, effective state, evidence source
+  and observation time, and known post-trial price. Unknown price, currency,
+  interval, account scope, or stale/missing evidence must deny admission.
+  Convert to a monthly equivalent only for explicitly supported intervals;
+  mixed-currency totals remain denied absent a reviewed, timestamped FX policy.
+  Atomic admission must include both existing active and proposed commitments,
+  be separate from request-quota counters and the free-only checkpoint toggle,
+  and must never itself authorize paid activation. No budget model or FX rate
+  is inferred by this test-only continuation.
+- No provider HTTP, quota spend, browser/full-stack run, staging/sibling edit,
+  paid/trial activation, deployment, or data cleanup occurred.
+
+## 2026-10-16 17:06Z — recurring-cost requirement promoted to roadmap criterion
+
+- Added `AC-RECURRING-COST` to the preserved full-roadmap acceptance criteria
+  and its disposition table. It explicitly requires durable monthly ceiling
+  admission across active/proposed commitments, same-account cross-key
+  deduplication, verified price/period/post-trial evidence, fail-closed
+  unknowns and mixed currencies, atomic concurrent admission, restart
+  durability, migration equivalence, and separation from paid-activation
+  authority.
+- Its current status is `not_started`: the free-only checkpoint route gate
+  does not meet aggregate subscription-cost admission. This makes the gap
+  visible to future workstream validation and prevents it being treated as
+  delivered merely because quota accounting or free-only admission exists.
+- `make branch-validate` passed all 34 records after this plan change. Only
+  roadmap/workstream documentation changed; no provider runtime, browser,
+  transport, quota, staging, sibling, or deployment state changed.

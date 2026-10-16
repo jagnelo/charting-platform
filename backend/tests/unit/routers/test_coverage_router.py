@@ -6,6 +6,75 @@ from app.models.provider_observation import DatasetStatus, InstrumentDatasetStat
 
 
 class TestCoverageRouter:
+    def test_exposes_missing_range_without_provider_routing(self, client, auth_headers, instrument):
+        response = client.get(
+            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
+            params={
+                "timeframe": "D1",
+                "start": "2026-01-02T00:00:00Z",
+                "end": "2026-01-02T00:00:00Z",
+                "mode": "historical",
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["instrument_id"] == instrument.id
+        assert body["symbol"] == instrument.symbol
+        assert body["status"] == "missing"
+        assert body["bar_count"] == 0
+        assert body["covered_start"] is None
+        assert body["covered_end"] is None
+        assert body["missing_slices"] == [
+            {"start": "2026-01-02T00:00:00Z", "end": "2026-01-02T00:00:00Z"}
+        ]
+        assert body["provenance"] == "canonical_local_database"
+        assert "provider" not in body
+
+    def test_exposes_fully_covered_range_without_provider_routing(
+        self, client, auth_headers, db, instrument
+    ):
+        session = datetime(2026, 1, 2, tzinfo=UTC)
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                timeframe=Timeframe.D1,
+                ts=session,
+                open=Decimal("10"),
+                high=Decimal("11"),
+                low=Decimal("9"),
+                close=Decimal("10"),
+                volume=Decimal("100"),
+                is_adjusted=True,
+            )
+        )
+        db.flush()
+
+        response = client.get(
+            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
+            params={
+                "timeframe": "D1",
+                "start": "2026-01-02T00:00:00Z",
+                "end": "2026-01-02T00:00:00Z",
+                "mode": "historical",
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["instrument_id"] == instrument.id
+        assert body["symbol"] == instrument.symbol
+        assert body["timeframe"] == "D1"
+        assert body["status"] == "ready"
+        assert body["bar_count"] == 1
+        assert body["covered_start"] == "2026-01-02T00:00:00Z"
+        assert body["covered_end"] == "2026-01-02T00:00:00Z"
+        assert body["missing_slices"] == []
+        assert body["provenance"] == "canonical_local_database"
+        assert "provider" not in body
+
     def test_returns_canonical_local_coverage_without_provider_routing(
         self, client, auth_headers, db, instrument
     ):

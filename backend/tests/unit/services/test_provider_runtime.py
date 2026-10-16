@@ -775,13 +775,19 @@ async def test_execute_provider_call_persists_transport_measurement(db, monkeypa
         observe_response(response)
         return 123.45
 
-    await execute_provider_call(
+    execution = await execute_provider_call(
         async_db,
         ProviderCapability.LATEST_PRICE,
         "get_current_price",
         invoke=invoke,
     )
     assert not provider_runtime_quota_admission_active()
+    assert execution.provider_name == "measured-provider"
+    assert execution.data_source is source
+    assert execution.policy is policy
+    assert execution.health is health
+    assert execution.result == 123.45
+    assert execution.response_payloads == ({"price": "123.45", "provider_field": "retained"},)
     row = db.execute(select(ProviderRequestLog)).scalar_one()
     assert row.http_requests == 1
     assert row.response_bytes == len(b"measured-response")

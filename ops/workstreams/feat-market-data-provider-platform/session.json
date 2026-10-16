@@ -45,9 +45,13 @@
     "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
   },
   "dirty_paths": [
+    "backend/tests/unit/routers/test_coverage_router.py",
+    "backend/tests/unit/routers/test_ohlcv_router.py",
+    "backend/tests/unit/services/test_provider_runtime.py",
     "ops/workstreams/feat-market-data-provider-platform/checkpoint-review-packet.md",
     "ops/workstreams/feat-market-data-provider-platform/handoff.md",
     "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
+    "ops/workstreams/feat-market-data-provider-platform/session.json",
     "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
   ],
   "docker": {
@@ -74,15 +78,15 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "081fd6dff82cc27862a6a86d8c59ff0fcb25aefe",
-  "implementation_sha": "1ab6f79868a736535143ad8a50a649a3afacd36b",
+  "head": "1236a367a1d81fba69bb85496e12a56ec22c9f56",
+  "implementation_sha": "1236a367a1d81fba69bb85496e12a56ec22c9f56",
   "interrupted": false,
   "last_checkpoint": "2026-10-15T20:42:10.318662+00:00",
   "last_human_progress_update": "2026-10-16T11:12:47.867964+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Inspect exact-source hosted CI run 38902425042 for pushed tip 081fd6dff82cc27862a6a86d8c59ff0fcb25aefe. Then run a no-transport durable quota preflight and validate only currently admitted eligible operations without replaying held calls. Continue ICP2 aggregate cost governance and ICP6 consumer contracts; complete the full local profile and final current-source evidence before checkpoint review.",
+  "next_action": "Continue Provider-owned ICP2 aggregate recurring-cost and ICP6 producer/consumer contract work without browser/runtime changes or provider calls. Keep all quota-held/unreviewed/paid/trial routes disabled and do not spend for freshness. Preserve the full browser red result (256 passed, 2 failed, 2 expected skipped) and 104/104 visuals at source 1236a367; both focused reruns passed but do not resolve the failures. TC run 38930779878 on TC source 0c7bc1b8ce76a9761e4c20d02b4bb59d1591920f is terminal success for Branch-declared, Frontend Unit, Backend, and Playwright E2E; Exhaustive was skipped. Staging remains 0145b65992b8692ce69f82f804f83f6c8e551fea and no synchronized repair release was found. Do not rerun Provider browser tests until coordinator releases synchronized staging repair. Exact-source CI 38902818604 passed required standard jobs but skipped Exhaustive; this is not acceptance.",
   "parent_branch": "staging",
-  "plan_hash": "4654917503bcbefd021b1f44abcae0d0f67d0a43bc1ddb2ff4abb17fd8533c7f",
+  "plan_hash": "86523234bc467da39390b9b7db47e4faf4d821109146c43b0421c5b8ee1319e4",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -112,16 +116,18 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "Released common staging 0145b65992b8692ce69f82f804f83f6c8e551fea is merged at ca86eaf147f391829fb9f060b43633b1bb8b79b2. Provider workstream receipts are committed and pushed at 081fd6dff82cc27862a6a86d8c59ff0fcb25aefe; worktree is clean. Bounded merge-source checks pass (research runner 106/106 with thread caps, staging workflow 64/64, popup/flaky frontend units 10/10, provider real-main live-runner 144/144, 34 workstream records, diff check). No provider HTTP or quota use. Exact pushed-tip CI 38902425042 was pending at last check; full local profile, current-source admitted live validation, ICP2 aggregate-cost remainder, ICP6 producer-consumer handoff, and final closure packet remain open. Previous CI and browser receipts do not qualify the exact pushed tip.",
-    "current_phase": "post-released-staging-merge-bounded-checks-and-exact-ci",
-    "next_action": "Inspect exact-source CI run 38902425042. Then run the provider runner no-transport durable quota preflight and validate only operations admitted with safe current headroom; never replay held providers. Continue ICP2 aggregate cost-governance and ICP6 success/unavailable consumer contracts, then execute the required full local profile and final exact-source CI. Preserve all full-roadmap items and no paid/trial/deploy/cleanup actions.",
+    "current_blocker": "At source 1236a367a1d81fba69bb85496e12a56ec22c9f56, hosted CI 38902818604 passed required standard jobs (Exhaustive skipped). Full seeded Playwright 260-case selection remains red: 256 passed, F9e-easyscan-builder-keyboard and F8s-family-matrix failed, 2 expected live-canonical cases skipped; visual 104/104 passed unchanged threshold. Both focused reruns passed 2/2, diagnostic only. TC owns both browser repairs; TC run 38930779878 on source 0c7bc1b8ce76a9761e4c20d02b4bb59d1591920f is terminal success for Branch-declared, Frontend Unit, Backend, and E2E; Exhaustive was skipped. Staging still points to 0145b65992b8692ce69f82f804f83f6c8e551fea and no synchronized repair release is recorded; do not rerun browser selection until that release. Provider checkpoint acceptance remains open. ICP2 audit found recurring-cost/account inputs absent from current provider-scoped entitlement model; a quota-ledger sum cannot enforce aggregate subscription spend. The approved contract remains full-roadmap Provider work, not implemented or checkpoint acceptance. ICP6 producer success/unavailable evidence and downstream ownership are documented. Dirty-candidate tests: provider_runtime.py 79/79; provider_routing.py plus test_providers_router.py 43/43; focused OHLCV router contract tests 2/2. These are bounded unit results, not full profile or exact-source CI. Sibling adapters remain post-staging owner work. Preserve all live-operation holds.",
+    "current_phase": "post-exact-source-ci-and-full-browser-diagnostic",
+    "next_action": "Continue Provider-owned ICP2 aggregate recurring-cost and ICP6 producer/consumer-contract work without browser/runtime changes or provider calls. ICP2 plan now records a durable opaque provider billing-account/environment commitment contract, cross-key deduplication, exact recurring price/currency/interval/post-trial evidence, fail-closed unknown and mixed-currency handling, atomic active+proposed admission, and required concurrency/restart/state tests; implementation remains open and cannot authorize paid activation. ICP6 now has tested retained-bar success, ready/partial/missing coverage, local-only empty 200 [], and provider-backed no-data 404; coverage/OHLCV router suites passed 13/13 and Ruff check/format passed on the dirty candidate. Continue only bounded non-browser/non-transport work while assigned Compose stacks run. Preserve full seeded browser red result at source 1236a367 (256 passed, 2 failed F9e/F8s, 2 expected skips; visuals 104/104); TC owns both fixes and TC run 38930779878 standard jobs including E2E succeeded, Exhaustive skipped. Wait for a synchronized coordinator staging repair release before any Provider browser rerun. Keep all provider holds; no HTTP/quota spend, staging mutation, deployment, paid/trial activation, or data cleanup.",
     "total": 7,
-    "updated_at": "2026-10-16T12:45:00Z"
+    "updated_at": "2026-10-16T17:06:03Z"
   },
-  "remote": "081fd6dff82cc27862a6a86d8c59ff0fcb25aefe",
-  "remote_sha": "081fd6dff82cc27862a6a86d8c59ff0fcb25aefe",
+  "remote": "1236a367a1d81fba69bb85496e12a56ec22c9f56",
+  "remote_sha": "1236a367a1d81fba69bb85496e12a56ec22c9f56",
   "remote_synchronized": true,
-  "retained_docker_resources": [],
+  "retained_docker_resources": [
+    "charting-stack-provider-validation-1236-20261016 and provider-playwright-1236-hostaccess-20261016 remain running/preserved; no stop, reset, prune, or cleanup. Browser runner returned to sleep service after focused checks."
+  ],
   "roadmap_acceptance_criteria": [
     {
       "id": "AC-IDENTITY",
