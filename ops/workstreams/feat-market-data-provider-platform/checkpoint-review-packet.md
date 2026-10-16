@@ -1,5 +1,107 @@
 # Provider integration checkpoint review packet
 
+## 2026-10-16 23:29Z — callback candidate bounded revalidation and publication gate
+
+On the dirty candidate based on `056bb211`, the broader selected regression
+suite passed `252/252` in 121.28 seconds with five dependency deprecation
+warnings. It covered recurring-cost/runtime services, coverage/OHLCV routers,
+and the live-runner admission suite; no provider HTTP, quota use, paid/trial
+activation, or data reset occurred. Ruff, format check, JSON/JSONL parsing,
+`git diff --check`, and all 34 workstream validations passed. Exact prior
+Actions run `38978777973` is green only on base `056bb211`; this candidate still
+needs publication and exact-source CI. Then reconcile the explicitly released
+staging baseline `79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b` in this branch and
+run the required full profile.
+
+## 2026-10-16 23:26Z — Provider base-source hosted CI terminal success
+
+Actions run `38978777973` completed successfully on exact pushed source
+`056bb2115583456c6dfab2faee3d143661cd1b52`. Backend, Frontend Unit,
+Branch-declared, and Playwright jobs succeeded; Playwright reported 151 passed
+and 109 expected skips with no failed/retried cases. The Exhaustive Integration
+Gate was skipped by feature-push policy. This verifies only base `056bb211`,
+not the dirty callback candidate. It is not the full local profile or Provider
+checkpoint acceptance. The callback candidate remains 138/138 on its bounded
+local selection and now needs coherent publication and its own exact-source CI.
+The current released staging reconciliation and all holds remain as recorded
+below.
+
+## 2026-10-16 23:21Z — coordinator released current staging baseline
+
+The coordinator's release receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261016T2318Z-staging-release-79c8623fb122.json`
+explicitly releases synchronized staging SHA
+`79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b` for feature-owner reconciliation.
+Its exact Actions run `38972891559` is green: Backend and Frontend Unit passed;
+Playwright had 151 passed/109 expected skips with no failed/retried cases;
+Exhaustive had 154 functional passes/106 expected skips and all 104 visual
+cases passed. It includes the approved chart-template pointer repair and TC
+occurrence-date hydration repair. This is a repair baseline only, not
+acceptance of the Provider or other feature checkpoints and not a final product
+baseline. This supersedes the earlier wait for `0145b659`; preserve that
+earlier record as historical.
+
+Provider run `38978777973` remains active only in Playwright for exact source
+`056bb2115583456c6dfab2faee3d143661cd1b52`; Backend, Frontend Unit, and
+Branch-declared passed, while Exhaustive was skipped by feature policy. Do not
+call it green or cancel/restart it. Preserve the seven dirty Provider files.
+After this run is terminal and the candidate is committed/revalidated, reconcile
+the released staging SHA in this Provider worktree, resolve conflicts here,
+then run the required full profile and exact-source validation. The sync-only
+ICP6 callback change currently passes its bounded 138/138 selection on the
+dirty candidate; it has no exact-source CI yet. No provider HTTP/quota spend,
+paid/trial activation, deployment, reset, cleanup, staging/sibling mutation, or
+checkpoint acceptance occurred.
+
+## 2026-10-16 23:09Z — exact-current bounded ICP2/ICP6 contracts; hosted CI active
+
+The bounded recurring-cost/runtime, coverage/OHLCV and real live-runner
+admission selection passed `137/137` on exact current source
+`056bb2115583456c6dfab2faee3d143661cd1b52` (five dependency deprecation
+warnings). Paid/trial/unknown effective plans are tested before locks and
+subprocess/transport in the selected runner paths; reviewed-free, expired-trial
+to Free Forever, and the reviewed EODHD zero-credit usage exception remain
+positive controls. No provider HTTP or quota was used. This is a bounded
+contract result, not the complete local profile, provider-live acceptance, or
+checkpoint acceptance.
+
+Exact Actions run `38978777973` targets the same source and remains in progress:
+Backend, Frontend Unit, and Branch-declared succeeded; Playwright E2E is still
+running; Exhaustive is skipped by feature policy. Backend combined coverage
+passed within the successful Backend job. Do not report the whole run as
+terminal green until E2E completes.
+The coordinator's historical run `38943410344` is already recorded elsewhere
+in this append-only packet/journal and remains bound only to `ba06bdc6`; it is
+not rebound to this source. The separate seeded browser profile remains red
+and held until coordinator release. ICP2's reviewed denomination/currency
+policy and ICP6's downstream ETF/TC/Strategy wiring remain explicit remainders.
+
+The GitHub staging branch currently points to `79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b`;
+its exact run `38972891559` is green, including Exhaustive and Playwright, but
+the explicitly coordinator-released common baseline `0145b65992b8692ce69f82f804f83f6c8e551fea`
+is 12 commits behind that current tip. Because the newer tip has no explicit
+coordinator release in this Provider record, neither merging the stale released
+baseline nor inferring release from green CI is safe. Wait for the coordinator
+to identify the current reconciliation SHA; do not mutate staging.
+
+## 2026-10-16 23:17Z — ICP6 sync-only invocation contract hardened
+
+The exact-source `137/137` selection above covered base `056bb211`. On the
+uncommitted Provider candidate based on that source, the same bounded ICP2/ICP6
+selection now passes `138/138` (five dependency warnings). The additional
+producer-runtime guard rejects direct coroutine callbacks before provider
+resolution and rejects awaitables returned by sync wrappers before treating
+them as success; the regression also verifies no HTTP-request quota debit when
+no request was observed. Ruff, formatting, and whitespace checks pass. No
+provider HTTP, quota, paid/trial activation, or data reset occurred.
+
+This candidate is dirty and is not covered by Actions `38978777973`, which is
+still running for base `056bb211` (Backend, Frontend Unit, and Branch-declared
+green; Playwright active; Exhaustive policy-skipped). It needs its own exact
+source CI after the current run terminates and this coherent change is
+published. The contract map in `plan.yaml` now records the sync-only callable
+behavior. Do not confuse this bounded improvement with checkpoint acceptance.
+
 ## 2026-10-16 22:56Z — current-source Provider branch CI terminal green
 
 The current pushed Provider source is `761fb4cd0749a98ae140129236fcc1ba5271c451`.
@@ -848,6 +950,13 @@ frontend files remain unchanged.
   into the repository.
 
 ## ICP1–ICP7 checkpoint disposition
+
+The table below records the prior validated checkpoint source `761fb4cd` and
+run `38974933778`; it is a historical baseline, not current-source evidence.
+The current pushed documentation source `056bb211` has its own in-progress run
+`38978777973`, while the dirty follow-up based on it now has `138/138` bounded
+ICP2/ICP6 tests and the sync-only callable fix but no hosted exact-source CI.
+Use the dated entries above for current status.
 
 | Gate | Evidence / delivered checkpoint contract | Remaining work and owner |
 |---|---|---|

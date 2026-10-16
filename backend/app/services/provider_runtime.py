@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import contextvars
+import inspect
 import json
 import logging
 import random
@@ -2683,6 +2684,11 @@ async def execute_provider_call(
     treat_empty_as_failure: bool = False,
     capture_response_payloads: bool = True,
 ) -> ProviderExecutionResult:
+    if inspect.iscoroutinefunction(invoke):
+        raise TypeError(
+            "provider invoke callback must be synchronous; async callbacks are not awaited"
+        )
+
     chain = await resolve_provider_chain(
         db,
         capability,
@@ -2911,6 +2917,12 @@ async def execute_provider_call(
                 )
             finally:
                 _ACTIVE_PROVIDER_QUOTA_ADMISSION.reset(admission_token)
+            if inspect.isawaitable(result):
+                if inspect.iscoroutine(result):
+                    result.close()
+                raise TypeError(
+                    "provider invoke callback returned an awaitable; async results are not awaited"
+                )
             log_row.http_requests = measurement.http_requests
             log_row.response_bytes = measurement.response_bytes
             log_row.response_headers = dict(measurement.response_headers)

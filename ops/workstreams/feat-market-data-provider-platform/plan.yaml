@@ -700,11 +700,13 @@ integration_checkpoint:
   consumer_contract_examples:
     provider_execution:
       callable: "await app.services.provider_runtime.execute_provider_call(db, capability, operation, *, provider_name, operation_cost_overrides, invoke, ...)"
-      invocation_contract: "invoke is a synchronous callable (provider, provider_symbol) -> value; the runtime executes it in a worker thread with copied telemetry context. Async callbacks are not awaited and are not supported by this contract."
+      invocation_contract: "invoke must be a synchronous callable (provider, provider_symbol) -> non-awaitable value; the runtime executes it in a worker thread with copied telemetry context. Direct coroutine functions are rejected before provider resolution. If a synchronous wrapper returns an awaitable, it is rejected as a failed invocation, coroutine objects are closed, and unobserved request quota is released. Async callbacks are not awaited or supported."
       success_shape: "ProviderExecutionResult(provider_name, data_source, policy, health, result, response_payloads); response payload retention is enabled by default."
       success_test: backend/tests/unit/services/test_provider_runtime.py::test_execute_provider_call_persists_transport_measurement
       unavailable_shape: "If no usable provider response remains for an instrument, ProviderNoDataError is raised; unknown/exhausted quota is denied before invoke. Consumers must preserve unavailable/partial status rather than substitute guessed or stale data."
       unavailable_tests:
+        - backend/tests/unit/services/test_provider_runtime.py::test_execute_provider_call_rejects_async_invoke_before_provider_resolution
+        - backend/tests/unit/services/test_provider_runtime.py::test_execute_provider_call_persists_transport_measurement
         - backend/tests/unit/services/test_provider_runtime.py::test_execute_provider_call_reports_quota_denial_before_transport
         - backend/tests/unit/services/test_provider_runtime.py::test_unreviewed_provider_entitlement_is_not_runtime_usable
         - backend/tests/unit/routers/test_ohlcv_router.py::TestOHLCVRouter::test_no_provider_data_returns_404

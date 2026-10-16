@@ -675,6 +675,28 @@ def test_eodhd_legacy_high_repository_seed_migrates_only_unpinned_policy(pinned,
 
 
 @pytest.mark.asyncio
+async def test_execute_provider_call_rejects_async_invoke_before_provider_resolution(monkeypatch):
+    async def invoke(_provider, _symbol):
+        pytest.fail("async provider callback must not be invoked")
+
+    async def resolve_provider_chain(*_args, **_kwargs):
+        pytest.fail("async callback must be rejected before provider resolution")
+
+    monkeypatch.setattr(
+        "app.services.provider_runtime.resolve_provider_chain",
+        resolve_provider_chain,
+    )
+
+    with pytest.raises(TypeError, match="must be synchronous; async callbacks are not awaited"):
+        await execute_provider_call(
+            None,
+            ProviderCapability.LATEST_PRICE,
+            "get_current_price",
+            invoke=invoke,
+        )
+
+
+@pytest.mark.asyncio
 async def test_execute_provider_call_persists_transport_measurement(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     source = DataSource(
@@ -857,6 +879,48 @@ async def test_execute_provider_call_persists_transport_measurement(db, monkeypa
         }
     ]
     assert rows[-1].error_message == "stream interrupted"
+
+    request_windows = (
+        db.execute(
+            select(ProviderQuotaWindow).where(
+                ProviderQuotaWindow.dimension == "requests_per_minute"
+            )
+        )
+        .scalars()
+        .all()
+    )
+    consumed_requests_before = sum(item.consumed_units for item in request_windows)
+
+    async def deferred_result():
+        return "not synchronous provider data"
+
+    def invoke_returning_awaitable(_provider, _symbol):
+        return deferred_result()
+
+    with pytest.raises(TypeError, match="returned an awaitable; async results are not awaited"):
+        await execute_provider_call(
+            async_db,
+            ProviderCapability.LATEST_PRICE,
+            "get_current_price",
+            invoke=invoke_returning_awaitable,
+        )
+    assert not provider_runtime_quota_admission_active()
+    rows = db.execute(select(ProviderRequestLog).order_by(ProviderRequestLog.id)).scalars().all()
+    assert rows[-1].http_requests == 0
+    assert rows[-1].response_payloads is None
+    assert rows[-1].error_message == (
+        "provider invoke callback returned an awaitable; async results are not awaited"
+    )
+    request_windows_after = (
+        db.execute(
+            select(ProviderQuotaWindow).where(
+                ProviderQuotaWindow.dimension == "requests_per_minute"
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert sum(item.consumed_units for item in request_windows_after) == consumed_requests_before
 
 
 @pytest.mark.asyncio

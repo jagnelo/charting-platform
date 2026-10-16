@@ -1,5 +1,107 @@
 # feat/market-data-provider-platform
 
+## 2026-10-16 23:29Z — candidate revalidation complete; ready to publish
+
+- The uncommitted sync-callback candidate (base `056bb211`) passed the broader
+  bounded selection `252/252` in 121.28s (five dependency deprecation
+  warnings), including provider runtime/recurring-cost, coverage/OHLCV, and
+  live-runner admission tests. Ruff, formatter check, JSON/JSONL parsing,
+  `git diff --check`, and all 34 workstream records passed.
+- No provider HTTP, quota use, paid/trial activation, or data reset occurred.
+  Actions `38978777973` is terminal green on base `056bb211` only and does not
+  validate this dirty candidate. Publish this coherent candidate and obtain
+  exact-source CI before reconciling released staging `79c8623` into this
+  worktree. Full profile and checkpoint acceptance remain outstanding.
+
+## 2026-10-16 23:26Z — Provider base-source CI completed
+
+- Exact Actions run `38978777973` is terminal success for source
+  `056bb2115583456c6dfab2faee3d143661cd1b52`: Backend, Frontend Unit,
+  Branch-declared, and Playwright succeeded; E2E was 151 passed / 109 expected
+  skips with no retries or failures. Exhaustive was skipped by feature policy.
+- This run does not cover the dirty callback-candidate diff or establish full
+  local profile/checkpoint acceptance. Its bounded callback selection remains
+  138/138 on the dirty candidate. Run final local static/workstream checks,
+  publish the coherent candidate, and obtain exact-source CI.
+- Staging `79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b` is explicitly released
+  for later owner reconciliation under receipt
+  `20261016T2318Z-staging-release-79c8623fb122.json`; reconcile it only after
+  candidate publication/revalidation, into this Provider worktree only.
+  Preserve all operational holds and the seeded-browser red; no provider
+  transport/quota, paid/trial activation, deployment, reset, or cleanup.
+
+## 2026-10-16 23:21Z — current coordinator release and safe continuation
+
+- The coordinator's release receipt
+  `/home/m920q/charting-platform/.ai/staging-attempts/20261016T2318Z-staging-release-79c8623fb122.json`
+  explicitly releases synchronized staging SHA
+  `79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b` for owner reconciliation. Its
+  exact run `38972891559` is green, including 151/109 Playwright and
+  154/106-functional plus 104/104 visual exhaustive results. It includes the
+  approved chart-template pointer and TC occurrence-date hydration repairs.
+  It is a repair baseline, not Provider checkpoint acceptance or a final
+  product baseline. This supersedes earlier references to waiting for
+  `0145b659`; older notes remain historical.
+- Provider run `38978777973` remains in progress only in Playwright on
+  `056bb2115583456c6dfab2faee3d143661cd1b52`; other required jobs passed and
+  Exhaustive was skipped by policy. Preserve it and do not call it green,
+  cancel it, or restart it.
+- Preserve the seven current dirty Provider files. Once run `38978777973` is
+  terminal, record its exact outcome, finish source-bound checks, and publish
+  the coherent callback-contract candidate with exact-source CI. Then, at a
+  clean safe boundary, merge released staging `79c8623` into this feature
+  worktree only, resolve there, and run the required full profile and exact
+  source validation.
+- No provider transport/quota spend, paid/trial/unreviewed/unknown routing,
+  deployment, data reset/cleanup, staging or sibling mutation occurred. Keep
+  all holds and the independent seeded-browser red explicit; checkpoint
+  acceptance remains pending.
+
+## 2026-10-16 23:17Z — sync-only runtime invocation contract
+
+- Closed a concrete ICP6 failure mode in `execute_provider_call`: direct
+  coroutine callbacks are rejected before provider resolution; a synchronous
+  wrapper returning an awaitable is now a recorded failed invocation, not
+  false-success data. Coroutine objects are closed. The regression verifies
+  that when transport telemetry observes no HTTP request, request quota is not
+  consumed.
+- The full bounded ICP2/ICP6 selection passes `138/138` on the dirty candidate
+  based on `056bb211` (five existing warnings); the two focused sync-contract
+  paths pass, and Ruff check/format plus `git diff --check` pass. No provider
+  HTTP or quota was used. No exact-source CI exists yet for this new diff.
+- Exact run `38978777973` validates only base `056bb211` and remains active in
+  Playwright; Backend, Frontend Unit, and Branch-declared succeeded, Exhaustive
+  is policy-skipped. Wait for terminal status before publishing a new branch
+  source to avoid overlapping another hosted E2E run.
+- The sync invocation contract and exact test names are recorded in
+  `plan.yaml`. The broader ICP2 denomination and ICP6 downstream wiring
+  remainders, all provider holds, and the separate seeded-browser red remain.
+
+## 2026-10-16 23:09Z — current-source ICP2/ICP6 contract confirmation
+
+- Re-ran the bounded recurring-cost/runtime, coverage/OHLCV and real live-runner
+  admission selection against exact source `056bb2115583456c6dfab2faee3d143661cd1b52`;
+  `137/137` passed with five dependency warnings. Denied effective-plan paths
+  are tested before live lock and subprocess/transport; positive controls for
+  reviewed-free, expired-trial-to-Free-Forever and the reviewed EODHD
+  zero-credit usage exception remain intact. No provider HTTP or quota was used.
+- Exact-source Actions `38978777973` is not terminal: Backend, Frontend Unit,
+  and Branch-declared passed; Playwright E2E is running; Exhaustive is skipped
+  by feature policy. Append a terminal receipt only after E2E concludes; do not
+  infer green from completed component jobs.
+- GitHub staging currently points at `79c8623f` with green exact run
+  `38972891559`, while the coordinator explicitly released common baseline
+  `0145b659` is 12 commits behind. Do not merge the stale baseline or infer
+  release of the newer staging tip from green CI alone; obtain the coordinator's
+  exact current reconciliation SHA after the in-progress Provider run.
+- The coordinator's `38943410344` receipt is already preserved, source-bound to
+  `ba06bdc6` only. ICP2 still requires a reviewed currency/denomination policy
+  before aggregate cross-currency claims; no FX is invented. ICP6's producer
+  success/unavailable contract is explicit and tested, while the actual ETF,
+  TC2000 and Strategy Lab consumer wiring remains downstream-owned after green
+  Provider staging. The separate seeded browser red and held provider
+  operations remain unchanged.
+
 ## 2026-10-16 22:56Z — exact current-source branch CI completed green
 
 - Actions run `38974933778` is terminal success for exact pushed source
