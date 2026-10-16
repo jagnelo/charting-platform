@@ -212,3 +212,40 @@ adoption and a source contract in the existing focused unit file. Focused/unit,
 type/build/collection and exact new CI are required. Do not run the old candidate
 browser profile or wait its superseded CI. Full browser/104visual and honest
 backend stability assessment remain required before delegated acceptance.
+
+Evidence checkpointa6c69f2d30ce3454046e21109386cb0aee466072 is committed,
+pushed and independently verified clean with HEAD=origin. No pending evidence
+commit is carried into the next context. Active changeset now
+adjacent-popup-cleanup-callers owns frontend/tests/e2e/flows.spec.ts,
+frontend/tests/unit/lib/test_popup_cleanup.test.ts and this branch's four
+workstream records. Implement only helper adoption at the two ordinary-Close
+sites and a contract preventing inline cleanup recurrence; preserve the
+browser-close/disconnect action and all substantive assertions. Commit code
+separately immediately after focused checks, then publish its operational record.
+
+## 09:51 UTC — adjacent cleanup implementation published
+
+Two-file implementationd0fc689c91f2dedf8dcf42a17a802abda37883d3 is committed
+and pushed, HEAD=origin independently verified. Only the owned operational
+handoff remains dirty for this separate record. F8b and F8n-links use the tested
+helper, every substantive assertion remains unchanged, and popup.close() in
+the browser-disconnect flow is preserved. A source contract in the existing
+unit file rejects the old inline ordinary-click pattern and retains that
+distinct browser-close coverage.
+
+Focused10/10 pass in0.782s; type-check, production build and full260/four-file
+Playwright collection pass. The source-contract test initially used jsdom's
+non-file URL; it failed explicitly and was corrected to the frontend working
+directory path before the passing run. No product/helper assertions were
+relaxed. Backend/application source remains byte-identical to0e; prior full
+1647/80.72percent traced receipt is component evidence with original152 caveat,
+not a claim that the updated whole browser candidate is green.
+
+Next publish the separate evidence record, then validate this frozen new
+implementation in the isolated full browser/104visual runtime and exact CI.
+No metadata-only source freshness reruns, no sibling import and no acceptance
+until all actual required evidence is clean. Operational checkpoint owns:
+
+- ops/workstreams/fix-staging-popup-validation/handoff.md
+- ops/workstreams/fix-staging-popup-validation/session.json
+- ops/workstreams/fix-staging-popup-validation/validation.jsonl
