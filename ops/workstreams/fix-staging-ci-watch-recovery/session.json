@@ -24,21 +24,24 @@
     "volume_count": 0,
     "worktree_id": "fix-staging-ci-watch-recovery-7b02aabb4f"
   },
+  "docker_ready": null,
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance fix/staging-ci-watch-recovery: Start coordinating the four-feature staging integration. Proceed until you either have no way to continue and/or require my action for something. Technical repairs: Yes I approve, and you do not need my acceptance to close it off; do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Scope: repair coordinator read-only CI watch exhaustion and exact-source interrupted-watch recovery; no product/test-policy/deployment/data changes.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_objective": "Advance fix/staging-ci-watch-recovery: Start coordinating the four-feature staging integration. Proceed until you either have no way to continue and/or require my action for something. Technical repairs: Yes I approve, and you do not need my acceptance to close it off; do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Scope: repair coordinator read-only CI watch exhaustion and exact-source interrupted-watch recovery; no product/test-policy/deployment/data changes.. Acceptance criteria: WATCH1: Polling conserves public API requests without treating unavailable CI as passing or altering retry/test acceptance.; WATCH2: Exact-current reconciliation validates recorded starting/source ancestry and unchanged staging before and after the existing exhaustive CI gate; mismatch/red/pending retain degraded state.; WATCH3: Focused positive/negative workflow tests and normal exact-source CI pass, then canonical remediation integration and exact staging exhaustive gates remain required.. Required local profile: unit. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-10-16T07:26:21.790883+00:00",
   "goal_request": {
-    "objective": "Advance fix/staging-ci-watch-recovery: Start coordinating the four-feature staging integration. Proceed until you either have no way to continue and/or require my action for something. Technical repairs: Yes I approve, and you do not need my acceptance to close it off; do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Scope: repair coordinator read-only CI watch exhaustion and exact-source interrupted-watch recovery; no product/test-policy/deployment/data changes.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+    "objective": "Advance fix/staging-ci-watch-recovery: Start coordinating the four-feature staging integration. Proceed until you either have no way to continue and/or require my action for something. Technical repairs: Yes I approve, and you do not need my acceptance to close it off; do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Scope: repair coordinator read-only CI watch exhaustion and exact-source interrupted-watch recovery; no product/test-policy/deployment/data changes.. Acceptance criteria: WATCH1: Polling conserves public API requests without treating unavailable CI as passing or altering retry/test acceptance.; WATCH2: Exact-current reconciliation validates recorded starting/source ancestry and unchanged staging before and after the existing exhaustive CI gate; mismatch/red/pending retain degraded state.; WATCH3: Focused positive/negative workflow tests and normal exact-source CI pass, then canonical remediation integration and exact staging exhaustive gates remain required.. Required local profile: unit. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "planning_required",
-  "goal_state": "planning_required",
+  "goal_state": "active",
+  "goal_unavailable_reason": null,
   "head": "9756ff33366b51de6f66d66663436bd7f3ee0d7b",
-  "implementation_sha": "b7eae4b0a509a135eb85fef2984633499b16617e",
+  "implementation_sha": "d184d5a99a2983362261b4fa9ddb5fca1926899a",
   "local_validation_profile": "pending_agent_assessment",
-  "next_action": "run make agent-session-start",
+  "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
-  "plan_hash": "34c1caaeaf59bdcbe2d7a78d89e3cf68d74e78565c97e68e301ed379e957f6a4",
+  "plan_hash": "ec3ec2a4d29bab4971edb11ac8ebd96bd03b2a17f3d2a879debc793ad8d2e97e",
   "planning_required": true,
-  "planning_state": "draft",
+  "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
     "completed": [],
@@ -47,7 +50,7 @@
     "total": 0
   },
   "remote": "9756ff33366b51de6f66d66663436bd7f3ee0d7b",
-  "remote_sha": null,
+  "remote_sha": "d184d5a99a2983362261b4fa9ddb5fca1926899a",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

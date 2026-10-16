@@ -26,3 +26,21 @@ merge, data cleanup, API credential handling, or new browser fixture. WATCH1-3
 and owned paths in plan.yaml are the contract. Delegate technical closure only
 after actual tests and exact-source CI pass. Root goal remains active through
 all four feature merges, joint human-usable validation and same-owner release.
+
+## Implementation boundary 2026-10-16 07:30 UTC
+
+Implemented conservative120-second public API watch, terminal-only job reads,
+explicit unavailable/rate-limit diagnostics, and guarded `staging-reconcile`.
+Original one-hour watch envelope retained as30polls, no test retry/tolerance
+change. Reconciliation verifies recorded exact current/source/start ancestry,
+holds the normal integration lock, invokes the existing mandatory exhaustive
+gate, refetches clean synchronized staging, rejects changed attempt metadata,
+persists a green receipt BEFORE marker release, and never merges or pushes.
+75 workflow checks passed0.43s including real API-gate rejection and16negative
+reconciliation cases; Ruff/check/format/profileunit/diff checks passed. Original
+rate bucket headers remaining0of60, reset1792138791. Do not poll that bucket
+before reset or infer passing CI from unavailable evidence. Connected GitHub
+reads can independently observe hosted progress without manufacturing receipts.
+No product code/reference/oracle/deployment/data changes. Implementation still
+needs normal exact-source CI and canonical guarded remediation integration;
+no local operational marker has been bypassed or removed by this work.

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib.util
+import io
+import json
 from contextlib import nullcontext
 from pathlib import Path
 from types import SimpleNamespace
@@ -22,6 +24,228 @@ def load_script(name: str):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+@pytest.mark.parametrize(
+    "jobs_mode", ["success", "skipped", "missing", "duplicate", "run_failure"]
+)
+def test_public_ci_watch_fetches_jobs_only_at_terminal_and_polls_conservatively(
+    monkeypatch: pytest.MonkeyPatch,
+    jobs_mode: str,
+) -> None:
+    staging = load_script("staging")
+    sha = "a" * 40
+    monkeypatch.setattr(staging, "shutil_which", lambda name: None)
+    monkeypatch.setattr(staging, "github_repository", lambda: "example/repo")
+    monkeypatch.setattr(staging, "CI_RETRY_DISCOVERY_ATTEMPTS", 0)
+    calls: list[str] = []
+    sleeps: list[float] = []
+    details = iter(["in_progress", "completed"])
+
+    def urlopen(request, timeout):
+        assert timeout == 20
+        url = request.full_url
+        calls.append(url)
+        if "/actions/runs?" in url:
+            payload = {
+                "workflow_runs": [
+                    {
+                        "id": 123,
+                        "head_sha": sha,
+                        "head_branch": "staging",
+                        "status": "in_progress",
+                        "conclusion": None,
+                    }
+                ]
+            }
+        elif url.endswith("/jobs?per_page=100"):
+            payload = {
+                "jobs": [
+                    {
+                        "name": "Exhaustive Integration Gate",
+                        "conclusion": "skipped"
+                        if jobs_mode == "skipped"
+                        else "success",
+                    }
+                ]
+            }
+            if jobs_mode == "missing":
+                payload["jobs"] = []
+            elif jobs_mode == "duplicate":
+                payload["jobs"] *= 2
+        else:
+            status = next(details)
+            payload = {
+                "id": 123,
+                "status": status,
+                "head_sha": sha,
+                "head_branch": "staging",
+                "run_attempt": 1,
+                "html_url": "https://github.com/example/repo/actions/runs/123",
+                "conclusion": "success" if status == "completed" else None,
+            }
+            if status == "completed" and jobs_mode == "run_failure":
+                payload["conclusion"] = "failure"
+        return io.BytesIO(json.dumps(payload).encode())
+
+    monkeypatch.setattr(staging.urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(staging.time, "sleep", sleeps.append)
+    if jobs_mode == "success":
+        result = staging.github_run("staging", sha, exhaustive=True)
+        assert result["conclusion"] == "success"
+    else:
+        with pytest.raises(SystemExit, match="not green|Exhaustive Integration Gate"):
+            staging.github_run("staging", sha, exhaustive=True)
+    assert len(calls) == 4  # discovery, two run reads, one terminal jobs read
+    assert sum("/jobs?" in url for url in calls) == 1
+    assert sleeps == [120.0]
+    assert staging.CI_API_WATCH_ATTEMPTS * staging.CI_API_POLL_SECONDS == 3600
+
+
+@pytest.mark.parametrize(
+    "code,remaining,message",
+    [
+        (403, "0", "rate limit exhausted"),
+        (429, "0", "rate limit exhausted"),
+        (403, "45", "request denied"),
+    ],
+)
+def test_public_api_errors_never_manufacture_ci_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+    code: int,
+    remaining: str,
+    message: str,
+) -> None:
+    staging = load_script("staging")
+    monkeypatch.setattr(staging, "shutil_which", lambda name: None)
+    monkeypatch.setattr(staging, "github_repository", lambda: "example/repo")
+
+    def denied(request, timeout):
+        raise staging.urllib.error.HTTPError(
+            request.full_url,
+            code,
+            "denied",
+            {"X-RateLimit-Remaining": remaining, "X-RateLimit-Reset": "1792138791"},
+            None,
+        )
+
+    monkeypatch.setattr(staging.urllib.request, "urlopen", denied)
+    with pytest.raises(SystemExit, match=message):
+        staging.github_run("staging", "a" * 40, exhaustive=True)
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "success",
+        "missing_marker",
+        "invalid_json",
+        "non_mapping_marker",
+        "wrong_commit",
+        "advanced_before",
+        "bad_start",
+        "empty_sources",
+        "bad_source_record",
+        "protected_source",
+        "duplicate_source",
+        "bad_source_sha",
+        "non_ancestor",
+        "gate_failure",
+        "advanced_after",
+        "marker_changed",
+        "receipt_failure",
+    ],
+)
+def test_interrupted_watch_reconciliation_is_exact_and_fail_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    case: str,
+) -> None:
+    staging = load_script("staging")
+    sha, start, source = "a" * 40, "b" * 40, "c" * 40
+    marker_path = tmp_path / "staging-degraded.json"
+    marker = {
+        "staging_sha": sha,
+        "starting_staging_sha": start,
+        "sources": [{"branch": "feat/example", "sha": source}],
+        "reason": "HTTP403 public API rate exhaustion",
+    }
+    if case == "wrong_commit":
+        marker["staging_sha"] = "d" * 40
+    elif case == "bad_start":
+        marker["starting_staging_sha"] = "not-a-sha"
+    elif case == "empty_sources":
+        marker["sources"] = []
+    elif case == "bad_source_record":
+        marker["sources"] = [None]
+    elif case == "protected_source":
+        marker["sources"][0]["branch"] = "master"
+    elif case == "duplicate_source":
+        marker["sources"] *= 2
+    elif case == "bad_source_sha":
+        marker["sources"][0]["sha"] = "bad"
+    if case != "missing_marker":
+        marker_path.write_text(
+            "broken"
+            if case == "invalid_json"
+            else "[]"
+            if case == "non_mapping_marker"
+            else json.dumps(marker)
+        )
+    monkeypatch.setattr(staging, "DEGRADED", marker_path)
+    monkeypatch.setattr(staging, "root_master_ready", lambda: None)
+    monkeypatch.setattr(staging, "integration_lock", nullcontext)
+    monkeypatch.setattr(
+        staging,
+        "ensure_staging",
+        lambda remediate: ("d" * 40 if case == "advanced_before" else sha),
+    )
+    monkeypatch.setattr(
+        staging,
+        "synchronized",
+        lambda path, branch: ("d" * 40 if case == "advanced_after" else sha),
+    )
+    monkeypatch.setattr(staging, "fetch_branch", lambda *args, **kwargs: None)
+    attempts: list[dict] = []
+    ancestry_calls: list[str] = []
+
+    def run(*args, **kwargs):
+        # Recovery must never merge, reset, delete a ref or push anything.
+        assert args[:3] == ("git", "merge-base", "--is-ancestor")
+        assert args[4] == sha
+        ancestry_calls.append(args[3])
+        return SimpleNamespace(returncode=1 if case == "non_ancestor" else 0)
+
+    def gate(branch, commit, *, exhaustive):
+        assert (branch, commit, exhaustive) == ("staging", sha, True)
+        if case == "gate_failure":
+            raise SystemExit("actual exhaustive gate not green")
+        if case == "marker_changed":
+            marker_path.write_text(json.dumps({**marker, "reason": "changed"}))
+        return {"url": "https://github.com/example/repo/actions/runs/123"}
+
+    def record(payload):
+        assert marker_path.exists()  # Persist success before releasing the guard.
+        if case == "receipt_failure":
+            raise OSError("receipt write failed")
+        attempts.append(payload)
+
+    monkeypatch.setattr(staging, "run", run)
+    monkeypatch.setattr(staging, "github_run", gate)
+    monkeypatch.setattr(staging, "record_attempt", record)
+    if case == "success":
+        staging.reconcile(sha)
+        assert not marker_path.exists()
+        assert ancestry_calls == [start, source]
+        assert len(attempts) == 1
+        assert attempts[0]["state"] == "green"
+        assert attempts[0]["sources"] == marker["sources"]
+        assert attempts[0]["reconciled_interrupted_watch"] is True
+    else:
+        with pytest.raises((SystemExit, OSError)):
+            staging.reconcile(sha)
+        assert marker_path.exists() == (case != "missing_marker")
+        assert attempts == []
 
 
 def test_ci_uses_staging_and_master_without_emulation() -> None:
