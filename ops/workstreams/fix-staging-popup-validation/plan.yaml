@@ -17,6 +17,7 @@ human_goal_budget_authorization: none
 goal: "Human delegated technical repair authority: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Narrow coordinator task: repair the actual staging F8j popup-close observer race and fail CI on retry-passing flaky tests while preserving genuine pointer actions, geometry/cross-window assertions, all tests, references and tolerances; investigate crosshair readiness only if needed. Base is exact synchronized staging5768 with canonical successful-CI receipt but independently audited browser quality hold (one cleanup flake), not accepted product staging. No feature import, paid activation, deployment or operational trial."
 scope:
   - Repair the independently reproduced F8j popup-close observer race without changing its preceding geometry assertions or ordinary user actions.
+  - Apply the same tested cleanup contract to adjacent ordinary-Close sites F8b and F8n-cross-window-links after exact CI reproduced that same race at F8b; preserve the distinct browser-level close/disconnect scenario and every substantive assertion.
   - Unit-test the real cleanup utility against already-closed, ordinary-close, close-during-click, unrelated-click-error and close-timeout outcomes; no unhandled late rejection.
   - Fail CI on flaky tests even when a retry passes; retain existing retry count for diagnostic artifacts, all tests and original visual tolerances/references.
   - Investigate the separate cross-window cursor assertion only if the required full gates reproduce it; do not mislabel it as cleanup or weaken its oracle.
@@ -29,7 +30,7 @@ owned_paths:
   - ops/workstreams/fix-staging-popup-validation/
 dependencies:
   - Exact synchronized staging5768 has a canonical successful-CI receipt, but remains coordinator quality-held because its exhaustive functional matrix had one cleanup flake. This authorized repair is not ordinary feature development or product acceptance of that result.
-  - Provider owns the currently reserved heavy local browser slot; do not run a competing isolated full-stack profile until a coordinated safe boundary.
+  - Provider explicitly released the heavy local slot at09:23:19 after104visual checks passed; coordinator owns it until the repaired common green baseline is released.
   - No unmerged TC or Provider source import; existing staging helper behavior and primary failing logs are sufficient to author this narrow test repair.
 acceptance_criteria:
   - {id: POP1, text: "Preserve the exact staging failure and distinguish cleanup from the separate actual crosshair assertion."}
@@ -45,10 +46,10 @@ migration_impact: none
 deployment_impact: none
 status: in_progress
 remaining_gaps:
-  - Implementation47e81ae5a64af7869d58d6ec74ad00d69fe687d8 is focused-tested and pushed; full isolated profile and exact-source CI remain pending. No checkpoint acceptance or product integration.
+  - Implementation47e81ae5 is pushed; exact0e CI correctly fails a remaining F8b Close race. Adjacent ordinary-close caller adoption, full isolated browser/104visual, exact new CI and original local backend152 causal assessment remain. No checkpoint acceptance or product integration.
 progress:
   completed: [POP1, POP2, POP3]
   total: 5
-  current_phase: implementation-published-awaiting-required-full-gates
-  current_blocker: none
-  next_action: Preserve exact implementation47e81ae5 source; audit hosted CI and coordinate full_stack_browser after Provider releases the heavy slot. Fix any real required failure without weakening tests.
+  current_phase: adjacent-popup-cleanup-iteration
+  current_blocker: Exact CI rejects F8b cleanup flake; original local backend152 remains unexplained despite a full traced pass.
+  next_action: Close this evidence checkpoint, adopt existing helper at adjacent ordinary-close sites and validate the exact new source, preserving all substantive assertions and full profile.

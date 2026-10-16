@@ -132,3 +132,83 @@ hash. Implementation remains47e81ae5. Final enclosing HEAD/origin and clean
 status are verified externally after push, without another freshness-only
 metadata commit. Implementation CI38879023209 was pending at09:14; the later
 metadata candidate requires its own exact normal CI before eventual integration.
+
+## 09:40 UTC — full-profile validation active; backend signal under diagnosis
+
+Current source remains clean published0e68c0219ca94e61661acd9a9e2b6b24e59c3999
+(implementation47e81ae5). Existing exclusive claim920af921 is verified, not
+replaced or taken over. Provider acknowledged direct handoff at09:23:19 after
+104 visual checks passed without retries and both of its browser runs ended;
+the coordinator now owns the heavy local validation slot.
+
+Temporary driver11202 actually exited1 at migration-head; recovered native
+tool output proves its terminal state. Its expression was over-escaped; actual
+repository Alembic output is one headfe4f5a6b7c8d. Correcting only the temporary
+driver allows that check to pass. Driver80584 then passed33 workstreams,
+locked dependencies/export, normal unchanged-migration skip, offline locked npm,
+Ruff check/format and frontend typecheck. The complete combined coverage gate
+terminated with152 at1125 completed dots, immediately before the existing
+wall-time-limit restoration test1126; no final coverage/result was produced.
+This remains a failed/incomplete gate, not a passing backend receipt.
+
+The exact wall-time test alone passes1/1 in1.44s. Current runner already offsets
+CPU usage with ceil and restores limits, so do not infer the old missing-offset
+bug. One unchanged full-suite diagnostic33254 runs with verbose test names and
+narrow prlimit/alarm/signal strace to identify actual cause. No tests skipped,
+limits relaxed or application code changed. Logs live under
+/tmp/popup-full-profile.y0mPle. Runtime resource-status/cleanup refreshed only
+our own session.json; that helper-created operational diff belongs to this
+validation evidence context, not another writer or product changeset.
+
+Temporary fixture override passes Compose config and script syntax checks:
+internal application network, loopback ports, cleared vendor credentials,
+fixed-frontend TCP relay, pinned Noble browser and read-only DejaVu plan. No
+stack/browser fixture has launched yet. Need all remaining prerequisite stages,
+research-runner sandbox/resource probes, full functional and104 strict visuals,
+owned cleanup, exact final CI and delegated technical acceptance before merge.
+Full four-feature objective remains open; no product baseline was released.
+
+Current evidence context owns exactly this handoff, validation.jsonl and
+session.json; commit its coherent result separately at the completed validation
+boundary, without metadata-only profile reruns or self-referential hash updates.
+
+At09:42:54, independent postbackend driver58865 completedexit0:110frontend
+files/936tests passed,82.11percent statement coverage; uPlot48-file contract,
+visual policy26assertions retaining0.5percent/1px/DeltaE2, production build,
+both Compose contracts and branch9tests pass. Provider probes correctly skip
+because there are no provider-related changes; no live request was made.
+Pinned image inspection with RODejaVu confirms Arial=Libération Sans and
+SegoeUI/sans-serif=DejaVu Sans (read-only font cache warnings only).
+Full diagnostic33254 has passed all unit tests including the prior terminating
+wall-time test; its syscall trace records SIGALRM and restoration to unlimited
+CPU, not SIGXCPU. It is still running integration tests, so no final backend
+pass or causal closure of the original intermittent152 is claimed. Temporary
+full-browser driver and owned cleanup are prepared/syntax-valid, not launched
+while the backend gate's eventual scoped cleanup could remove that fixture.
+
+## 09:47 UTC — validation boundary closed red; next same-defect iteration
+
+Full unchanged backend diagnostic33254 completedexit0:1647passed in486.87s,
+80.72percent combined coverage enforcing75; scoped cleanup completed with no
+retained resources. Original80584 exit152 remains an intermittent failure with
+cause unproven; do not substitute this instrumented pass for causal closure.
+
+Exact0e CI38879738426 finished E2E116906228562 FAILURE as required by the new
+flaky policy:150passed109skipped ONEFLAKY14.3min. The failed first attempt is
+F8b at1084, the same ordinary Close click closing its page during the click;
+retry1 passes. F8j implementation did not fail. This is useful real gate proof,
+not permission to accept the candidate. Preserve the complete original log.
+
+Source audit finds two remaining ordinary Close callsites: F8b and
+F8n-cross-window-links. Both should use the already-tested helper. The separate
+browser-level popup.close/disconnect flow at1555 must stay unchanged. All
+parent-tool, symbol, timeframe, cursor, geometry and pages-count assertions
+remain intact. This is a bounded same-defect iteration within authorized owned
+paths, not a new feature or frontend-source import.
+
+Close this evidence context (plan, handoff, session and validation only) as a
+separate meaningful operational checkpoint, then implement adjacent callsite
+adoption and a source contract in the existing focused unit file. Focused/unit,
+type/build/collection and exact new CI are required. Do not run the old candidate
+browser profile or wait its superseded CI. Full browser/104visual and honest
+backend stability assessment remain required before delegated acceptance.
