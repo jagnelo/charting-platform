@@ -106,8 +106,11 @@ integration_checkpoint:
     provider_state: >-
       Per the coordinator's current update, Provider is correcting actual
       admission and runner gates, is not accepted yet, and retains the first
-      heavy validation slot. Wait for the exact released green Provider SHA;
-      no Provider code imports or sibling edits.
+      heavy validation slot. Provider must document its existing synchronous
+      invoke/executor/telemetry contract honestly, but does not need to implement
+      ETF-specific async/redirect transport wiring before its own checkpoint.
+      Wait for the exact released green Provider SHA; no Provider code imports
+      or sibling edits.
     bounded_etf_prep: >-
       Prepare transport-level contract tests without issuer/SEC live calls or
       guessed quota, prices, FX, or aggregate-cost rules. Cover each actual
@@ -118,8 +121,10 @@ integration_checkpoint:
     continuation_boundary: >-
       Once Provider's exact green product checkpoint is released into staging,
       reconcile that exact SHA in this ETF worktree, implement and test the real
-      shared bridge, run the required combined local and exact-source CI, and
-      continue until the coordinator's acceptance/merge makes the result
+      shared bridge, including backward-compatible exactly-once async completion
+      and per-outbound-attempt admission/settlement against the synchronous
+      producer contract, run the required combined local and exact-source CI,
+      and continue until the coordinator's acceptance/merge makes the result
       available in human-usable staging. Preserve the complete roadmap and
       later observation gate. No paid/trial activation, deployment, unsafe
       operations, or retained-data cleanup.

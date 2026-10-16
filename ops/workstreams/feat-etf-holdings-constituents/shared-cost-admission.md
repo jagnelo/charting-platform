@@ -14,7 +14,7 @@ Read-only inspection on 2026-10-15 found these existing Provider interfaces:
 | Source | Existing behavior | What it does not establish |
 | --- | --- | --- |
 | `provider_runtime.resolve_provider_chain` | Applies shared entitlement, policy, health and configuration eligibility; excludes non-free entitlements when `ALLOW_PAID_PROVIDER_ROUTING` is false. | A consumer-specific, non-bypassable free-only operation policy or an aggregate recurring-subscription budget. |
-| `provider_runtime.execute_provider_call` | Resolves the provider chain, checks operation costs and usage dimensions, then reserves/executes/settles shared calls. Supports exact `provider_name`, instrument, symbol and usage identity. | ETF capability/adapter wiring, all async issuer transports, or a whole multi-request fetch being one correctly charged request. |
+| `provider_runtime.execute_provider_call` | Resolves the provider chain, checks operation costs and usage dimensions, then reserves/executes/settles shared calls. Supports exact `provider_name`, instrument, symbol and usage identity. Its `invoke` is synchronous and runs in an executor; the coordinator's current-source review says copied telemetry context is used, but a returned coroutine is not awaited. | ETF capability/adapter wiring, the ETF-owned async compatibility layer, all async issuer transports, or a whole multi-request fetch being one correctly charged request. |
 | `provider_quota_coordinator.reserve_provider_quota_async` / `settle_provider_quota_async` | Shared durable quota reservation and settlement. | Currency conversion, monthly subscription activation approval or recurring spend admission. Quota units are not automatically monetary cents. |
 | `provider_routing.settle_workload_lease(..., cost_cents=Decimal("0"))` | Adds cost to matching `ProviderQuotaWindow.cost_cents` during successful settlement. | Pre-transport reservation of money, aggregation of subscription commitments, a currency policy or proof that the default zero is the reviewed actual cost. |
 | `settings.ALLOW_PAID_PROVIDER_ROUTING = False` | Default excludes reviewed paid plans from normal routing. | Proof that the same reviewed paid plan is excluded when a broad deployment flag is true. The setting is an explicit configurable switch, not an immutable checkpoint boundary. |
@@ -259,19 +259,36 @@ sufficient to authorize hidden nested traffic.
 3. **Issuer-feed discovery** (`discover_etf_profiles_from_issuer_feed`): discovery GET and any redirect are independently admitted as the reviewed issuer-discovery operation. Denial must happen before the call and before any profile upsert. A successful discovery may only upsert rows from the returned response and cannot silently invoke holdings fetches.
 4. **SEC ticker discovery and enrichment** (`discover_etf_profiles_from_sec_fund_tickers`, `enrich_etf_profile_from_sec_fund_tickers`): each separately invoked SEC request is gated under its reviewed SEC operation and account scope. Assert denial causes zero transport and no identifier mutation; cached/read paths make zero calls. This metadata lookup is not a holdings-currentness signal.
 5. **SEC reconstruction fallback** (`IssuerCsvHoldingsAdapter._fetch_latest_sec_filing_holdings` plus `etf_holdings_edgar`): exercise submission-index/listing discovery and each candidate filing-document fetch as separate attempts. A rejected issuer route must not turn into an unmetered SEC escape hatch. If a SEC attempt is denied, assert no further filing/page is requested and preserve prior ETF snapshots; if admitted, preserve SEC source-tier/freshness semantics and never label the reconstruction issuer-current. Instrument redirects and candidate-form fallback in these tests too.
-6. **Shared executor async boundary**: route an async adapter through the actual `execute_provider_call` integration boundary. Assert the coroutine is awaited exactly once, its exception is recorded as a failed attempt under the accepted settlement rule, and an unawaited coroutine can never be recorded as successful availability or an ETF snapshot. Preserve cancellation/timeout behavior without double settlement.
+6. **ETF-owned compatibility with Provider's synchronous invoke**: after the accepted Provider runtime is staged, integrate to its documented contract rather than requiring Provider to implement ETF's bridge before its checkpoint. The reviewed producer boundary accepts a synchronous `invoke` callback and runs it in an executor with copied telemetry context; it does not await a coroutine returned by that callback. ETF must therefore adapt its async adapter/transport work in its own source so the actual request completes (or raises) exactly once before Provider records a successful (or failed) attempt. Assert a coroutine cannot escape as successful data, be awaited twice, or outlive settlement. Exercise cancellation and timeout so a still-running request cannot be double-settled or retried outside admission. Preserve the shared provider runtime and avoid an outer-refresh-only allow or duplicate ledger.
 7. **No-bypass and no-network denial matrix**: for each reached transport family above, use denied fixtures for missing/ambiguous identity, publisher/account/terms review, expired or restricted terms, entitlement denial, unknown cost/quota/currency/reset evidence, exhausted quota/aggregate budget, and disabled/free-only restrictions. Assert the exact shared denial is persisted and all intercepted network call counts remain zero for the denied attempt and all downstream fallbacks. Exercise unsafe global routing configuration both enabled and disabled (or the producer's tested startup rejection); never turn on a paid provider or trial.
 8. **Durability and ETF outcome semantics**: against the real shared PostgreSQL/Redis ledger, cover duplicate idempotency replay, restart, concurrent shared admission, timeout/uncertain settlement, and exact actual request attempt references. With prior data, denial must retain raw artifact, source/composition/fetched/knowledge times and yield degraded/stale as appropriate; with no prior data it remains unavailable. Current analysis rejects non-current state. Cached and historical reads assert zero reservation and zero transport.
 9. **Inventory anti-regression**: regenerate an AST/source inventory for outbound transports across adapters, refresh, and EDGAR modules. Every reachable request site must either route through the accepted executor or be explicitly classified as non-network/test-only. Fail if a newly added `httpx`, `requests`, curl, or equivalent transport call is absent from the approved inventory. This static guard supplements—not replaces—intercepted runtime call-count tests.
 
-Before these tests can be written against a concrete interface, Provider must
-publish the accepted callable/async semantics, operation and account binding,
-redirect handling, per-attempt quota/cost decision, idempotency/reference
-fields, and retry/uncertain-settlement rules in green staging. Names above refer
-to existing ETF paths for test targeting, not required Provider method names.
-The final independent ETF tests must use the real staged shared runtime and
-intercept issuer transports; mocks of admission alone cannot prove shared
-durability, concurrency, or request accounting.
+Before consumer implementation, Provider must document its actual synchronous
+`invoke` contract honestly, including executor/context behavior, when success or
+failure is recorded, and the shared operation/account/admission/reference
+fields. Provider does not have to build or accept the ETF async/redirect bridge
+before its first product checkpoint. After the coordinator releases its exact
+green staging SHA, ETF owns reconciliation of that sync producer contract with
+async ETF adapters, all per-attempt transport admission, and exactly-once
+completion before settlement. Names above target existing ETF paths, not
+required Provider method names. Final ETF tests must use the real staged shared
+runtime and intercepted issuer transports; admission mocks alone cannot prove
+shared durability, concurrency, request accounting, or safe cancellation.
+
+### Central review correction — async consumer ownership — 2026-10-16
+
+The coordinator's read-only review of ETF commit `90b2f12cf` clarified the
+dependency boundary: `execute_provider_call` has a synchronous `invoke`, runs it
+through `run_in_executor` with copied telemetry context, and does not await a
+coroutine returned by `invoke`. Provider must document this existing producer
+behavior as part of its checkpoint contract, but does not need to deliver
+ETF-specific async adapters, redirects, or transport wiring before Provider's
+own checkpoint can be accepted. That compatibility integration is an ETF-owned
+post-release task. Test it against the actual green staged runtime with exact
+once completion, each outbound attempt admitted/settled, denial-before-call,
+and cancellation/timeout accounting. This correction avoids making Provider's
+first checkpoint circular while retaining the full ETF acceptance requirement.
 
 ### Common repair baseline consumed — 2026-10-15 21:40Z
 

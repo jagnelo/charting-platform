@@ -11294,3 +11294,20 @@ Then coordinate the required combined `full_stack_browser` profile, pass
 exact-source CI, and continue through central technical acceptance/integration
 to the human-usable merged staging result. Keep all ETF roadmap criteria and
 the later observation gate open until their own evidence is complete.
+
+### Central review clarification — Provider sync invoke / ETF async consumer — 2026-10-16
+
+The coordinator's read-only review of `90b2f12cf` clarifies that Provider's
+current `execute_provider_call` contract takes a synchronous `invoke`, runs it
+in an executor with copied telemetry context, and does not await a coroutine
+returned by that callback. Provider must document this existing behavior
+accurately; its first checkpoint is not contingent on implementing the ETF
+async/redirect bridge. Once accepted green Provider staging is released, ETF
+owns the backward-compatible consumer integration in this worktree: actual
+async transport completion exactly once, each real request/redirect/retry/page
+admitted and settled before success is recorded, and cancellation/timeout
+without unaccounted work or duplicate settlement. Do not wrap a whole refresh
+in one outer allow or create a second ledger. The integration-checkpoint and
+shared-cost-admission documents now distinguish this post-release ETF task
+from Provider's producer checkpoint criteria. The complete ETF requirement is
+unchanged; this removes only the circular pre-merge dependency assumption.

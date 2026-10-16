@@ -36,11 +36,16 @@ not acceptance of a Provider checkpoint. On this tree:
   admission implementation under `backend/app`. This is bounded to the actual
   checked-out tree; it does not claim those APIs cannot exist in a later accepted
   Provider source.
-- ETF adapter methods are async and open their own HTTP clients. Passing an async
-  adapter method as the existing synchronous `invoke` callback would return an
-  unawaited coroutine inside the executor and cannot prove successful fetch or
-  request-level admission. A bridge needs the accepted producer's compatible
-  async/transport contract, not just a top-level wrapper around adapter output.
+- ETF adapter methods are async and open their own HTTP clients. The coordinator's
+  read-only review of the current Provider source confirms `execute_provider_call`
+  accepts a synchronous `invoke`, executes it via `run_in_executor` with copied
+  telemetry context, and does not await a coroutine returned by `invoke`. Passing
+  an async adapter directly could therefore let an unawaited coroutine appear to
+  be a successful result. Provider must document this existing sync contract; it
+  is not required to implement the ETF bridge before its own checkpoint. After
+  accepted green Provider staging, ETF owns a backward-compatible adapter/transport
+  integration that completes the async operation exactly once before the shared
+  runtime settles it, with each outbound attempt individually admitted.
 
 The runtime implementation snapshot was recorded at
 `13fd50a789b1c09e11a74ef178cb505521c38f4c`. The current full branch tip at this
@@ -57,11 +62,13 @@ The bridge's first implementation review must therefore reconcile, from the
 green staged producer, (1) exact capability and migration values, (2) a
 non-bypassable entitlement/environment decision for each issuer operation, (3)
 reviewed request units and recurring-cost admission, (4) durable reservation
-and settlement identifiers for each actual outbound attempt, (5) an awaited
-async invocation path or equivalent proven transport boundary, and (6) linked
-health/admission/raw-artifact lineage. Before that source exists, only tests of
-ETF's persisted consumer outcomes and documented test obligations are valid;
-mocking a proposed provider API is not shared-runtime evidence.
+and settlement identifiers for each actual outbound attempt, (5) Provider's
+documented synchronous invoke/telemetry contract and the ETF-owned exactly-once
+async compatibility boundary, and (6) linked health/admission/raw-artifact
+lineage. Provider need not build the ETF adapter bridge before its checkpoint.
+Before green staging exists, only tests of ETF's persisted consumer outcomes
+and documented obligations are valid; mocking a proposed Provider API is not
+shared-runtime evidence.
 
 ## ETF-owned Study Lab screenshot readiness repair
 
@@ -163,9 +170,12 @@ and `requests`/curl fallbacks are additional transports. The final integration
 must derive a reviewed, executable route-to-operation inventory from the
 accepted Provider API, then add transport-level tests that count every actual
 request and prove denied next attempts never leave the process. Unknown cost,
-quota, async invocation semantics, or admission identifiers remain unresolved;
-this inventory does not invent them. It is a current-source preparation result,
-not shared-runtime acceptance.
+quota, or admission identifiers remain unresolved. The producer invocation
+shape is no longer ambiguous per the coordinator's review: its callback is
+synchronous, executor-run, and does not await returned coroutines; ETF's
+backward-compatible async consumer adaptation remains to be implemented after
+the producer is released. This inventory does not invent quota/cost semantics.
+It is a current-source preparation result, not shared-runtime acceptance.
 
 1. Merge only the centrally released green staging SHA into the clean unfrozen
    ETF source. Record starting source/staging hashes, exact staging CI, source
