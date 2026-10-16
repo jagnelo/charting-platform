@@ -1,6 +1,118 @@
 # Provider integration checkpoint review packet
 
-## Current source state and latest evidence — 2026-10-16 09:35Z
+## Current source state and latest evidence — 2026-10-16
+
+The coordinator's initial closure run [`38892600336`](https://github.com/jagnelo/charting-platform/actions/runs/38892600336)
+was cancelled during E2E at case 82/260 when newer same-ref CI superseded it.
+Replacement run [`38894083319`](https://github.com/jagnelo/charting-platform/actions/runs/38894083319)
+passed standard CI on repair source `88032c10e7f4caf9351272f92155f9d0fe25b985`:
+backend, frontend-unit, branch-declared, and Playwright E2E passed; 260 cases
+were collected (151 passed, 109 skipped), with no failure/retry/flaky entry.
+Exhaustive was skipped by feature-push conditions. The coordinator then merged
+the approved repair into staging at
+`0145b65992b8692ce69f82f804f83f6c8e551fea`. Its exact CI
+[`38896729111`](https://github.com/jagnelo/charting-platform/actions/runs/38896729111)
+completed successfully at 12:30Z. Backend job `116958868106`, Playwright E2E
+job `116961537100`, and Exhaustive Integration Gate `116961536915` all
+succeeded; Branch-declared Tests was skipped under this staging-run condition.
+E2E collected all 260 cases (151 passed, 109 expected skips, zero failures or
+test retries); CI keeps `failOnFlakyTests=true`. GitHub reports `staging` at
+`0145b659...`. The coordinator has directly released this exact green
+common-repair baseline for owner-branch reconciliation; it does not accept any
+product checkpoint. Provider may merge only this released staging SHA after
+finishing and pushing its current five-file receipt packet. Do not import the
+fix branch directly or start another heavy profile before reconciliation.
+
+Provider's real-main MarketData.app/Tiingo plan-admission correction is in
+`d9104b3`; the entire `test_live_provider_runner.py` module passed 144/144 on
+Provider HEAD at 11:56:22Z, including both paid-toggle settings and all
+supported runner scopes with transport/lock negatives. No provider request or
+quota spend occurred. Provider's own docs-tip CI `38886062018` remains red on
+the separate F8u assertion; no Provider frontend edits are authorized.
+
+Coordinator repair CI subsequently completed on
+`fix/staging-popup-validation` commit `19a15268d2eae2c0bd60ead6ca1bca72a3d762d7`:
+run [`38888544505`](https://github.com/jagnelo/charting-platform/actions/runs/38888544505)
+has Backend, Frontend Unit, Branch-declared, and standard Playwright jobs all
+successful; Playwright ran 260 selected cases with 151 passed and 109 skipped;
+the F8u drag passed at case 128/260 and the next F8v case started at 129, with
+no F8u retry. Exhaustive was skipped. This is not a
+common staging release or Provider acceptance: GitHub still reports
+`staging` at quality-held `5768bec4ae12fb06ecc37f06cf656387751eadaa`. Wait
+for the coordinator's exact green staging release and do not import the repair
+branch directly.
+
+The coordinator's read-only host Docker run `df96f7324bb0` has since ended.
+Its retained `/tmp/popup-full-profile.y0mPle/full-browser.sh` verifies the
+browser-relevant app/frontend trees against pin
+`d0fc689c91f2dedf8dcf42a17a802abda37883d3`, then runs the full functional
+selection followed by `tc2000_visual.spec.ts` with `--retries=0`, one worker.
+Both retained Playwright `.last-run.json` files say `status: passed` and list
+no failed tests; the current repair worktree's app/frontend trees remain
+identical to that pin. The container and owned stack are gone. The outer
+driver's terminal exit code and exact passed/skipped case counts are not
+preserved in the inspected files, so these are source-qualified Playwright
+component passes, not a complete local-profile receipt or a common staging
+release. The staging ref remains `5768bec4...`; Provider did not launch a
+competing run.
+
+The current clean, pushed documentation tip is `03bafd6f24b8d3d9d26c5d00d85cb4c92c01d1f3`, atop runner implementation `91164b355bf95da326063ce19caa33ed26003960`. Exact-source CI
+[`38886062018`](https://github.com/jagnelo/charting-platform/actions/runs/38886062018)
+is terminal but **not green**: backend, frontend-unit and branch-declared jobs
+passed; standard E2E failed F8u after its retry (150 passed, 109 expected
+skips, one failed); Exhaustive was skipped by the feature-push condition. F8u
+(`frontend/tests/e2e/flows.spec.ts:4418`) drags an RSI plot into the Major US
+benchmarks watchlist, then fails because the RSI header is not present
+(`:4444`). This is a separate plot-to-watchlist behavior failure, not the
+popup-close F8j cleanup race. No Provider frontend source changed. It is not
+waived, and the earlier green runner-code CI `38881637606` does not replace
+this failed exact-current-source CI.
+
+The current seeded Noble strict visual component receipt remains 104/104 with
+zero retries from `/tmp/provider-browser-20261016.gbn28D/visual-final-artifacts`.
+It is an independently completed component run, not proof that the full local
+profile passed; the associated functional run was red on F8j. At the
+coordinator's 10:24Z review, its separate full profile had failed F8u before
+the visual stage, staging `5768bec4...` remained quality-held, and the
+coordinator owned the only heavy local validation slot. Do not launch another
+full profile until the coordinator explicitly releases a repaired green common
+staging baseline. The current branch has no fresh exact-source full-profile
+pass, no current-source live receipt, and no Provider checkpoint acceptance.
+
+The real-main MarketData.app/Tiingo runner correction is complete and
+published: runner tests pass 145/145 including the established diagnostic
+regression, both paid-toggle states, and no-lock/no-subprocess denials; no
+provider HTTP or quota was used. The correction is at `91164b3`; hosted
+run `38881637606` passed backend, frontend-unit, branch-declared and standard
+E2E, with Exhaustive skipped. Its later docs tip's F8u result above is kept
+separate. Existing operation holds and retained provider-response/quota data
+are unchanged.
+
+The coordinator's requested visual-run/slot handoff is already recorded in
+the central review: the 104-check visual run terminated successfully and the
+Provider slot was acknowledged as released at 09:23Z. No local browser process
+is visible in this checkout now. Do not send another slot-release claim or
+start a competing heavy run.
+
+### Current coordination update — 2026-10-16 12:30Z
+
+The staging Actions API now confirms run `38896729111` is terminal `success`
+for exact staging SHA `0145b65992b8692ce69f82f804f83f6c8e551fea`; its
+Exhaustive Integration Gate completed successfully. This resolves the CI-wait
+condition, but not the coordinator-owned exact-baseline release. The fix branch
+has not been imported into Provider. Provider remains at `03bafd6f...`; its
+exact-source run `38886062018` is still red on F8u, separate from the popup
+cleanup race. The published `91164b3` runner correction and the complete
+`test_live_provider_runner.py` module remain green (144/144 on that exact tip);
+the diagnostic compatibility regression was also included in the separate
+145/145 composite focused run. No provider requests or quota use occurred.
+Continue to preserve the 104/104 terminal visual component receipt. After the
+coordinator releases `0145b659...`, reconcile only that exact staging source
+into this branch, resolve the four shared-path semantics, and then rerun the
+required exact-source full profile and hosted CI. Current-source live evidence
+and complete review/acceptance remain outstanding.
+
+### Historical runner-candidate evidence (not current full-profile acceptance)
 
 The runner candidate first published as `d9104b369b421e80aa41281386bcdd275ae9a1d2`
 had one exact-string compatibility assertion fail in CI `38880394731` (2,813
@@ -130,12 +242,12 @@ integrate, permit deployment/paid/trial activation, or allow cleanup.
 
 ## Exact-source evidence boundary
 
-All current-source code and hosted-CI claims in this packet refer to
-`0111cc698ad8c03220b60725bdc2df68195d96e8`; this clean, pushed candidate
-includes released common-repair staging
-`82d881e76be8de538abb6ec5c454d96afe0ee56a` as an ancestor. That is common
-repair only, not Provider acceptance. Provider-owned frontend files remain
-unchanged.
+The detailed records below are historical and remain bound to their named
+candidate SHAs. The current runner code is at `91164b355bf95da326063ce19caa33ed26003960`,
+and current packet/docs tip is `03bafd6f24b8d3d9d26c5d00d85cb4c92c01d1f3`.
+The 2026-10-16 10:57Z exact-current-source CI disposition above supersedes any
+older wording below that called a different SHA current. Provider-owned
+frontend files remain unchanged.
 - On the current candidate, the full local profile passed dependency/lock checks,
   migration-head check (migration compatibility skipped because no migrations
   changed since the released baseline), npm install, Ruff, formatting,

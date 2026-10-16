@@ -1,5 +1,106 @@
 # feat/market-data-provider-platform
 
+## 2026-10-16 12:34Z — released common staging baseline; owner packet first
+
+- Coordinator directly released exact persistent staging baseline
+  `0145b65992b8692ce69f82f804f83f6c8e551fea`, with exact CI run
+  `38896729111` terminal success including Exhaustive. It contains the
+  popup-cleanup/resource-guard technical repair from
+  `fix/staging-popup-validation@88032c10e7f4caf9351272f92155f9d0fe25b985`;
+  it does not accept any product checkpoint.
+- Provider is at `03bafd6f24b8d3d9d26c5d00d85cb4c92c01d1f3`. The existing
+  five dirty workstream files are being preserved and closed as one receipt
+  packet before any ancestry reconciliation. Runner code is already published
+  (`d9104b3`, `91164b3`); its complete focused test module passed 144/144 and a
+  separate composite with the diagnostic compatibility test passed 145/145.
+  No provider requests/quota were used. Exact Provider CI `38886062018` remains
+  red on separate F8u; this is not a waiver and no frontend edits are planned.
+- Once the packet commit/push is verified, merge only the released `0145b659`
+  baseline into this owned Provider branch through the normal owner workflow.
+  Resolve the four shared-path semantics, then rerun only the necessary bounded
+  checks before the next full local profile. Preserve all quota holds, response
+  data and source-bound receipts; no provider calls for freshness, paid/trial
+  activation, deployment, promotion, ledger reset or cleanup.
+- The 104/104 strict visual component run remains terminal with zero retries;
+  its artifacts are retained and the heavy local validation slot was released
+  at 09:23Z. It does not substitute for a complete exact-source profile.
+- No Provider checkpoint is accepted or ready for integration yet. Continue
+  ICP2 aggregate cost-governance remainder and ICP6 consumer contract evidence;
+  preserve the full roadmap and distinguish disabled/held operations from live
+  success.
+
+## 2026-10-16 11:15Z — coordinator browser component artifacts recovered
+
+- GitHub still reports staging at quality-held `5768bec4ae12fb06ecc37f06cf656387751eadaa`; no common baseline release has been published. Repair-branch CI `38888544505` is green for standard jobs (151 Playwright passed, 109 skipped, F8u passed at 128/260 without retry), but Exhaustive was skipped.
+- Coordinator's full-browser driver `/tmp/popup-full-profile.y0mPle/full-browser.sh` validates the browser-relevant app/frontend trees against `d0fc689c91f2dedf8dcf42a17a802abda37883d3`, then runs the full Playwright functional selection and the entire `tc2000_visual.spec.ts` with `--retries=0`, one worker, pinned browser image and read-only DejaVu fonts. Both retained `.last-run.json` files report `status: passed` and `failedTests: []`; the repair worktree's app/frontend source still matches the pin. Host Docker confirms the browser container is gone and the owned stack is cleaned.
+- The outer driver exit code and exact test summary counts are not present in the inspected durable artifacts. Treat this as source-qualified Playwright component passes, not the complete local profile receipt or a released common baseline. Exact staging release remains coordinator-owned; do not import the fix branch or start a competing profile.
+- Provider exact CI `38886062018` remains red on F8u at Provider source `03bafd6f`; current-source live receipts remain none. No frontend edits, provider calls/quota use, container mutations, integration, deployment, paid/trial activation, or data cleanup occurred.
+- Current local operational edits remain the five paths listed below. They are intentionally uncommitted until a coherent Provider source checkpoint can incorporate the exact released common staging and avoid a metadata-only rerun of the already-known-red Provider E2E.
+
+## 2026-10-16 10:57Z — exact-current-source E2E failure recorded
+
+- Current clean source before this evidence-only update is
+  `03bafd6f24b8d3d9d26c5d00d85cb4c92c01d1f3`, containing the already-pushed
+  MarketData.app/Tiingo real-runner correction at `91164b355bf95da326063ce19caa33ed26003960`.
+- Exact-source hosted CI `38886062018` is terminal but red: backend,
+  frontend-unit and branch-declared jobs passed; standard E2E failed F8u after
+  retry (150 passed, 109 expected skips, 1 failure); Exhaustive was skipped by
+  the normal feature-push condition. F8u at `flows.spec.ts:4418` fails at
+  `:4444` because dragging an RSI plot into Major US benchmarks does not
+  produce the RSI header. This is distinct from the F8j popup-close cleanup
+  race and is not waived. No Provider frontend source changed.
+- Runner change evidence remains: full real runner tests plus diagnostic
+  regression passed 145/145, including free-plan positives, denied-plan
+  no-lock/no-subprocess negatives, and both paid-toggle states. Exact runner
+  candidate CI `38881637606` passed backend, frontend-unit, branch-declared and
+  standard E2E; Exhaustive was skipped. No vendor requests or quota use.
+- The earlier seeded Noble strict visual component run passed 104/104, zero
+  retries, but its accompanying functional selection failed F8j; it does not
+  constitute a green full profile. Coordinator's 10:24Z review separately
+  records its own full profile terminal F8u failure before visuals. Its repair
+  branch CI `38888544505` has since passed Backend, Frontend Unit,
+  Branch-declared and standard Playwright; its log shows F8u passed at
+  128/260, followed by F8v at 129 with no F8u retry, and overall 151 passed /
+  109 skipped. Exhaustive was skipped. Staging is still `5768bec4...` on
+  quality hold, so this is not a released baseline.
+  The coordinator owns any follow-up full-profile/release decision.
+  The central review already records the Provider visual run's terminal
+  104/104 result and slot release at 09:23Z. Do not launch another heavy
+  profile until a repaired green common staging baseline is explicitly
+  released.
+- Current-source live receipts remain none; the historical provider receipt
+  remains bound to its original source. Held provider quotas/data are
+  unchanged. No checkpoint acceptance, merge, deployment, paid/trial
+  activation, or retained-data cleanup is implied.
+- Next: continue only scoped non-heavy work or wait for coordinator's repaired
+  green common baseline; then reconcile the exact released baseline into this
+  branch under normal ownership and rerun the required clean exact-source
+  profile/CI. Do not modify frontend or import an unmerged repair branch.
+- This evidence-record context currently owns these local edits:
+  `ops/workstreams/feat-market-data-provider-platform/checkpoint-review-packet.md`,
+  `ops/workstreams/feat-market-data-provider-platform/handoff.md`,
+  `ops/workstreams/feat-market-data-provider-platform/plan.yaml`,
+  `ops/workstreams/feat-market-data-provider-platform/session.json`, and
+  `ops/workstreams/feat-market-data-provider-platform/validation.jsonl`.
+  The session progress update used the active recorded claim; session start
+  was not repeated because this worktree already has an active owner.
+- This evidence-only context is intentionally not committed/pushed yet: doing
+  so against unchanged source would launch another standard CI run while F8u is
+  already known red and staging is waiting on the coordinator-owned repair.
+  Carry these five listed files into the next coherent Provider source
+  checkpoint after the exact common repair is released; do not treat this as a
+  completed or review-ready delivery.
+- Docker-state nuance: the prescribed session recorder's raw subprocess still
+  reports the socket denied in this isolated shell, but an explicit
+  read-only `rtk docker info` succeeds (server 29.1.3), and `rtk docker ps`
+  shows the coordinator's active popup-validation stack and the existing
+  Provider stack. The earlier `session.json` unavailable field describes that
+  recorder subprocess, not host Docker installation/availability. No
+  containers were started, stopped, or modified here.
+- The prior live-container observation is now closed: see the 11:15Z section
+  for retained Playwright artifacts and the explicit limits on what can be
+  claimed from them.
+
 ## 2026-10-16 09:23Z — current MD/Tiingo admission correction and browser evidence
 
 - MarketData.app and Tiingo plan decisions now gate the real live-probe runner
@@ -25844,3 +25945,126 @@ exact candidate receipts remain separate gates.
   conditional delegation. No paid/trial activation, deployment, branch
   integration, human reapproval, data cleanup, or extra provider call is
   authorized or needed here. Full roadmap remains open.
+
+## 2026-10-16 11:30:52Z — coordinator closure CI cancelled
+
+- Read-only GitHub inspection confirmed coordinator closure commit
+  `4d6bb7e3314c682193bc2c163357a54c65278238`, run `38892600336`, concluded
+  `cancelled` during Playwright E2E at case 82/260. Backend, frontend-unit,
+  and branch-declared jobs succeeded; Exhaustive was skipped. The workflow
+  exposes no cancellation reason, so none is inferred.
+- GitHub staging remains `5768bec4ae12fb06ecc37f06cf656387751eadaa`, still
+  quality-held. The coordinator receipt has no newer restart/release direction.
+  Do not rerun the coordinator-owned CI or import its repair branch without a
+  new coordinator instruction or exact green common baseline.
+- Provider's 104/104 strict visual run remains terminal with zero retries and
+  artifacts preserved; the 09:23Z heavy-slot release remains in effect. The
+  real-main MarketData.app/Tiingo runner change is already committed/pushed at
+  `91164b3`; 145/145 targeted tests and its required hosted CI jobs passed.
+  Provider's own exact CI `38886062018` remains red on separate F8u. No provider
+  traffic, quota use, source integration, deployment, or data cleanup occurred.
+
+## 2026-10-16 11:32:43Z — replacement coordinator CI is active
+
+- GitHub run `38892600336` was superseded by new run
+  `38894083319` on commit `88032c10e7f4caf9351272f92155f9d0fe25b985`, whose
+  only changed path is the coordinator's `session.json`. Inspection of
+  `.github/workflows/ci.yml` confirms same-ref concurrency with
+  `cancel-in-progress: true`, explaining the cancellation; no cancelling actor
+  is exposed.
+- Replacement run `38894083319` is in progress: Frontend Unit and
+  Branch-declared passed, Backend is running. Staging remains quality-held at
+  `5768bec4ae12fb06ecc37f06cf656387751eadaa`; no release is available yet.
+- Provider keeps the prior 104/104 strict visual result and released slot; its
+  runner fix remains committed/pushed at `91164b3`. Do not start competing
+  heavy validation, repeat provider calls, or integrate unreleased repair.
+
+## 2026-10-16 11:40:35Z — coordinator replacement E2E active
+
+- Exact coordinator CI `38894083319` on `88032c10e7f4caf9351272f92155f9d0fe25b985`
+  now has Backend, Frontend Unit, and Branch-declared jobs successful. Its
+  Playwright E2E job `116952605577` is the only active job.
+- GitHub staging remains at quality-held
+  `5768bec4ae12fb06ecc37f06cf656387751eadaa`; no common release is available.
+  Preserve the current run; do not start duplicate local browser validation or
+  import the repair branch.
+
+## 2026-10-16 11:53:27Z — coordinator standard CI passed, staging held
+
+- Replacement CI `38894083319` on repair branch tip
+  `88032c10e7f4caf9351272f92155f9d0fe25b985` completed successfully. Backend,
+  Frontend Unit, Branch-declared, and Playwright E2E passed; the 260-case run
+  reported 151 passed and 109 skipped, with no failures or retry/flaky cases.
+  The exact Playwright config has `retries: 1` and `failOnFlakyTests: true`;
+  Exhaustive was skipped by the feature-push condition.
+- This is standard CI evidence for the repair branch, not canonical staging
+  integration. GitHub staging remains quality-held at
+  `5768bec4ae12fb06ecc37f06cf656387751eadaa`. Provider must not merge the
+  repair branch or run another heavy profile before the coordinator's exact
+  green common-staging release.
+- Provider remains unchanged: runner fix `91164b3` is published; its current
+  exact-source CI still has the separate F8u failure. No provider request,
+  quota use, frontend change, or source integration occurred.
+
+## 2026-10-16 11:56:22Z — focused runner proof; staging integration CI active
+
+- The newer Provider runner correction is `d9104b3`; the coordinator review
+  captured at 11:23Z predates it. Re-ran the complete
+  `backend/tests/unit/test_live_provider_runner.py` module on Provider HEAD
+  `03bafd6f24b8d3d9d26c5d00d85cb4c92c01d1f3`: 144 passed in 3.16 seconds.
+  This covers real-main plan admission for MarketData.app and Tiingo across
+  full/provider/case/account-usage modes, both paid-toggle states, no-lock/no-
+  subprocess denial, reviewed-free/expired-trial positive cases, and the
+  EODHD zero-credit exception. No provider HTTP or quota spend occurred.
+- The coordinator has merged only the approved popup-validation repair into
+  staging at `0145b65992b8692ce69f82f804f83f6c8e551fea`. Exact staging CI
+  `38896729111` is still in progress (backend job running at last poll).
+  Provider has not reconciled this ancestry yet; wait for terminal green CI and
+  an explicit coordinator release before doing so. Do not start another heavy
+  local profile or import a repair branch directly.
+- Provider's own CI `38886062018` remains red on the separate F8u assertion;
+  no Provider frontend edits are authorized or planned. Existing 104/104
+  visual run is terminal and its slot remains released. No live-provider call,
+  paid/trial activation, data cleanup, deployment, or integration occurred.
+
+## 2026-10-16 12:00:41Z — staging backend passed; full gates active
+
+- On merged staging `0145b65992b8692ce69f82f804f83f6c8e551fea`, backend job
+  `116958868106` in CI `38896729111` completed successfully at 12:00:24Z.
+  Exhaustive Integration Gate `116961536915` and Playwright E2E
+  `116961537100` are both still running. Wait for their exact terminal results
+  and coordinator release before reconciling this baseline into Provider.
+- The focused Provider runner evidence remains 144/144 on exact Provider HEAD;
+  no provider calls, quota consumption, source changes, or live activation.
+
+## 2026-10-16 12:09:32Z — pre-reconciliation overlap audit
+
+- Read-only diffing from common baseline `82d881e76be8de538abb6ec5c454d96afe0ee56a`
+  found four paths changed on both Provider and staging: `Makefile`,
+  `backend/tests/unit/services/test_research_runner.py`,
+  `docs/agent-orchestration.md`, and `tests/workflow/test_staging_workflow.py`.
+- Their actual hunks are distinct: Provider's Makefile changes cover backend
+  coverage/test stack and provider-live targets while staging adds
+  `staging-reconcile`; Provider adds the research coverage-preflight test while
+  staging updates CPU/wall-limit isolation tests; the two orchestration edits
+  are in different sections; Provider's RPi assertions are at the end of the
+  staging-workflow tests while staging adds CI-watcher tests near the helper.
+  No same-hunk collision was observed. This is only merge preparation, not
+  proof of automatic mergeability or semantic correctness; after release,
+  inspect the actual merge result and run all required gates.
+- CI `38896729111` is still active in both the Exhaustive Integration Gate and
+  Playwright E2E. Provider has not merged staging or changed product files.
+
+## 2026-10-16 12:18:52Z — staging Playwright passed; Exhaustive remains active
+
+- Exact E2E job `116961537100` in staging run `38896729111` completed success
+  at 12:18:01Z. Its log contains all 260/260 case markers and reports 151
+  passed, 109 skipped, zero failures. No Playwright test retry/flaky entry
+  appears. The exact staging Playwright config has one retry but
+  `failOnFlakyTests: true`, so a retry-passing flaky test would fail the job.
+  `ci-retry.sh` lines in setup are dependency-install wrappers, not Playwright
+  test retries.
+- The Exhaustive Integration Gate `116961536915` remains in progress. Staging
+  is therefore not yet released; do not reconcile into Provider until its
+  terminal green result and coordinator release. Provider remains unchanged;
+  no external-provider HTTP or quota use occurred.
