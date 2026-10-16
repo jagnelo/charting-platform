@@ -19564,6 +19564,27 @@ reaches TC through the authorized sequence, then rerun date-pointer persistence
 without retries and complete clean exact-source CI. No TC source, test
 expectation, screenshot threshold, or visual policy changed in this audit.
 
+Evidence correction (2026-10-16): coordinator log review of run `38799367031`
+on `87b9e3ab77d5356408b25b73b086a8fc7f062400` established that hosted E2E did
+not set either `RUN_APPROVED_VISUAL_PARITY` or `RUN_BOARD_VISUAL_PARITY`.
+Consequently all 104 visual cases (26 cases × four profiles) were skipped by
+the suite guard. The burst of 104 visual progress lines at 20:33:54Z records
+skips, not executions. That hosted run did not pass or execute Help screenshots.
+The valid Help evidence is the separate opted-in local run: one keyboard /
+accessibility flow plus four Help profiles at unchanged 0.5% tolerance, with
+the reviewed tracked Linux references. Keep the retry-passing date-pointer
+failure in that historical run as persistence evidence; do not relabel the run
+clean.
+
+Before TCP4, the exact-source full local/combined opted-in matrix must actually
+execute (not merely list or skip screenshot cases) under a recorded deterministic
+browser/font environment. Investigate the original CI-versus-pinned font drift
+without weakening screenshot oracles, changing tolerances, or adding global
+masks. The coordinator reports staging `82d881e7` ordinary E2E at 151 passed /
+109 expected skips with no retry, while Exhaustive run `38805309009` is still
+active and no baseline release has been issued; do not synchronize TC from that
+staging state yet. Existing local Help evidence does not satisfy TCP4.
+
 Follow-up exact pushed-tip run `38824304286` matched
 `f1eef21b791659babdcd83a32151b2b6810f21a8`. Backend, Frontend Unit, and
 Branch-declared checks succeeded; the feature-branch Exhaustive Integration

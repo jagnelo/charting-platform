@@ -604,10 +604,13 @@ progress:
   current_phase: TCP2_HELP_READABILITY_REVIEWED;_TCP1_COORDINATOR_STAGING_WAIT
   next_action: >-
     Continue TCP1/TCP3/TCP4 only when coordinator pointer repair and
-    synchronized Provider/ETF staging gates release. Do not duplicate pointer
-    repair or synchronize TC source before green staging; preserve assigned
-    runtime/data/listener 15190 and keep official V25 Help parity explicitly
-    unfinished.
+    synchronized Provider/ETF staging gates release. The coordinator reports
+    staging 82d881e7 ordinary E2E is green but Exhaustive run 38805309009 is
+    still active and no baseline release has been issued; do not synchronize TC
+    source yet. Before TCP4, execute the exact-source full local/combined
+    opted-in visual matrix in a documented deterministic browser/font
+    environment. Preserve assigned runtime/data/listener 15190 and keep
+    official V25 Help parity explicitly unfinished.
     Keep official V25 Help parity required_missing. Do not duplicate the
     coordinator-owned pointer repair or synchronize TC source until green
     staging. Continue the full roadmap and preserve the integration gate and
@@ -622,10 +625,13 @@ progress:
     integration gate open. Defer upstream consumption/reconciliation until both
     dependencies reach staging. Stop at ready_for_human_review.
   current_blocker: >-
-    Coordinator-owned pointer/save repair bc32034e is green in staging, but TC
-    must consume it through the authorized dependency-first staging sequence;
-    do not duplicate or direct-import it. Provider/ETF green-staging
-    synchronization and the exact full integration gate remain incomplete. The
+    Coordinator-owned pointer/save repair is reported on staging 82d881e7 with
+    ordinary E2E green, but Exhaustive run 38805309009 remains active and no
+    baseline release has been issued; do not synchronize TC yet. Provider/ETF
+    green-staging synchronization and the exact full integration gate remain
+    incomplete. Before TCP4, the exact-source full local/combined opted-in
+    visual matrix must execute in a documented deterministic browser/font
+    environment; the Help-only local run is not a substitute. The
     human-approved local Help product reference is tracked and validated at
     unchanged thresholds; official V25 Help visual parity remains
     required_missing and unfinished. Local focused Help checks passed one

@@ -194,8 +194,13 @@ passed in 32.6s with the unchanged content assertions and 0.5% tolerance.
 GitHub run `38799367031` completed success for exact full SHA
 `87b9e3ab77d5356408b25b73b086a8fc7f062400`: backend, frontend-unit,
 branch-declared, and stack-backed E2E jobs passed; Exhaustive Integration Gate
-was skipped for this feature branch. That run predates the four local snapshot
-changes and therefore does not validate those PNGs. The focused local run does.
+was skipped for this feature branch. The E2E command did not set
+`RUN_APPROVED_VISUAL_PARITY` or `RUN_BOARD_VISUAL_PARITY`; the suite's visual
+skip guard therefore excluded all 104 visual cases (26 cases across four
+profiles). The 104 progress messages at 20:33:54Z were emitted as skips, not
+executions. This run did not execute or pass Help screenshots and is not pixel
+acceptance evidence. The focused, opted-in local run above is the valid Help
+visual evidence.
 The disposable six-service fixture, four volumes, and network were removed by
 exact project name; post-cleanup inspection confirmed the assigned TC stack's
 six services and four volumes remain. Official V25 visual parity remains open.
