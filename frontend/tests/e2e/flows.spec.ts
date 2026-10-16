@@ -7340,7 +7340,8 @@ test.describe('Dashboard', () => {
     test.setTimeout(45_000)
     await page.goto('/chart/SPY')
 
-    const addFavorite = page.getByRole('button', { name: 'Add SPY to My Favorites', exact: true })
+    const chartTool = page.locator('.tool-window').filter({ has: page.locator('.chart-tool') }).first()
+    const addFavorite = chartTool.getByRole('button', { name: 'Add SPY to My Favorites', exact: true })
     await expect(addFavorite).toBeVisible({ timeout: 15_000 })
     const addResponse = page.waitForResponse(response => {
       const path = new URL(response.url()).pathname
@@ -7348,13 +7349,13 @@ test.describe('Dashboard', () => {
     })
     await addFavorite.click()
     expect((await addResponse).status()).toBe(200)
-    const removeFavorite = page.getByRole('button', { name: 'Remove SPY from My Favorites', exact: true })
+    const removeFavorite = chartTool.getByRole('button', { name: 'Remove SPY from My Favorites', exact: true })
     await expect(removeFavorite).toHaveAttribute('aria-pressed', 'true')
 
     // The favorite is a user-owned persisted collection, independent of the
     // current chart/workspace mount. A normal page reload must restore it.
     await page.reload()
-    await expect(page.getByRole('button', { name: 'Remove SPY from My Favorites', exact: true }))
+    await expect(chartTool.getByRole('button', { name: 'Remove SPY from My Favorites', exact: true }))
       .toHaveAttribute('aria-pressed', 'true', { timeout: 15_000 })
 
     await page.getByRole('button', { name: 'Add tool' }).click()

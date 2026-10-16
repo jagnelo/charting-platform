@@ -20765,3 +20765,35 @@ TCP4 combined validation, TCP5 review/closure, and official V25 parity remain
 open. No staging write, sibling import, deployment, paid/trial activation, or
 data cleanup occurred.
 
+## 2026-10-16 — Exact CI 38906246039 audit and observer/scope correction
+
+Coordinator terminal evidence for pushed source
+`7969480fe57ffc21236a003184fa83063b6b7406` is preserved as RED: Backend and
+Frontend succeeded; Branch-declared failed its TC scope guard; E2E reported
+189 passed, 110 skipped, and one F8aa Favorites locator failure. The E2E issue
+is an ambiguous page-level locator: both the Chart and Relative Strength groups
+correctly expose the same favorite button. The test now finds the `.tool-window`
+containing `.chart-tool` and scopes add/pressed/reload assertions to that Chart
+group. The normal reload and My Favorites Quick List membership assertions are
+unchanged. Product behavior is unchanged.
+
+The exact eight rejected files from the coordinator's terminal report are
+classified as coordinator-owned common integration paths in the plan's
+`shared_path_exceptions`: `Makefile`, research-runner unit test, the three
+integration guidance documents, the staging-popup validation journal,
+`scripts/staging.py`, and its workflow test. Other common files carried by the
+green staging merge are accounted for by advancing `scope_guard_baseline_sha`
+to the synchronized merge commit `2b92c642237ce2abde40a84ee98383d4ee4285d1`;
+there is no broad directory allowlist, and unrelated future paths remain
+rejected. The baseline itself and exception list pass scope validation.
+
+The declared branch suite passed locally: scope validator and six fail-closed
+self-tests, frontend type-check, production build (existing large-chunk warning
+only), and workstream validation. Focused Playwright collection found exactly
+one F8aa test. No browser or service was started locally because Provider owns
+the heavy-browser slot. A mounted-app run and fresh exact-source CI remain
+required after publication. Keep the exact 38906246039 RED result in history;
+do not claim new TCP1 pointer evidence from the common merge or this observer
+change. Approved local Help references and unchanged screenshot tolerance stay
+as-is; official V25 parity and TCP2–TCP5 remain open.
+

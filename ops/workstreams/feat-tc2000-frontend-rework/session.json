@@ -37,21 +37,22 @@
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "current_exact_ci": {
     "attempt": 1,
-    "conclusion": "success",
-    "e2e_summary": "190 passed, 110 skipped, zero Playwright retries/flakes/failures; F8m chart-panel Grey selection passed with the scoped menu observer",
-    "head_sha": "abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476",
+    "conclusion": "failure",
+    "e2e_summary": "189 passed, 110 skipped, one F8aa Favorites locator failure; page-level locator matched both Chart and Relative Strength groups",
+    "head_sha": "7969480fe57ffc21236a003184fa83063b6b7406",
     "jobs": {
       "backend": "success",
-      "branch_declared": "success",
-      "e2e": "success; 190 passed, 110 skipped, zero Playwright retries/flakes/failures",
-      "exhaustive_feature_branch": "skipped",
+      "branch_declared": "failure; eight coordinator-owned common paths rejected by TC scope guard",
+      "e2e": "failure; 189 passed, 110 skipped, one F8aa Favorites locator failure",
+      "exhaustive_feature_branch": "not reported as required feature validation",
       "frontend_unit": "success"
     },
-    "run_id": 38873419736,
-    "status": "completed success; Frontend Unit, Branch-declared, Backend and E2E succeeded; 190 passed/110 skipped with zero Playwright retries/flakes; feature Exhaustive skipped",
-    "visuals": "Hosted screenshot cases were skipped; no pixel pass inferred. Local run33850 remains partial raw-Noble 95/104 evidence without DejaVu and is not acceptance."
+    "run_id": 38906246039,
+    "status": "terminal red on exact pushed source; Backend and Frontend succeeded, Branch-declared failed scope validation, and E2E had one F8aa locator failure",
+    "visuals": "No visual acceptance inferred from this functional E2E result; official V25 parity remains required roadmap work."
   },
   "dirty_paths": [
+    "frontend/tests/e2e/flows.spec.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
@@ -105,8 +106,8 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "2b92c642237ce2abde40a84ee98383d4ee4285d1",
-  "implementation_sha": "abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476",
+  "head": "7969480fe57ffc21236a003184fa83063b6b7406",
+  "implementation_sha": "7969480fe57ffc21236a003184fa83063b6b7406",
   "integration_checkpoint": {
     "acceptance": "pending",
     "coordinator_guidance": "/home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md",
@@ -114,26 +115,26 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-16T09:03:18+00:00",
-  "last_human_progress_update": "2026-10-16T09:03:18+00:00",
+  "last_checkpoint": "2026-10-16T13:48:19+00:00",
+  "last_human_progress_update": "2026-10-16T13:48:19+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
-    "conclusion": "success",
-    "e2e_summary": "190 passed, 110 skipped, zero Playwright retries/flakes/failures; F8m chart-panel Grey selection passed with the scoped menu observer",
-    "head_sha": "abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476",
+    "conclusion": "failure",
+    "e2e_summary": "189 passed, 110 skipped, one F8aa Favorites locator failure; both Chart and Relative Strength expose the same favorite control",
+    "head_sha": "7969480fe57ffc21236a003184fa83063b6b7406",
     "jobs": {
       "backend": "success",
-      "branch_declared": "success",
-      "e2e": "success_no_retries_or_flakes",
-      "exhaustive_feature_branch": "skipped",
+      "branch_declared": "failure_scope_guard",
+      "e2e": "failure_F8aa_favorites_locator",
+      "exhaustive_feature_branch": "not_reported",
       "frontend_unit": "success"
     },
-    "run_id": 38873419736,
-    "scope": "Exact source abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476; Frontend Unit, Branch-declared, Backend including Testcontainers, and E2E jobs concluded success. E2E reports 190 passed/110 skipped with zero Playwright retries or flakes; the scoped F8m Grey menu selection passed. Feature Exhaustive skipped. This is functional CI evidence, not checkpoint acceptance.",
-    "visuals": "Hosted screenshot cases were skipped; not pixel evidence."
+    "run_id": 38906246039,
+    "scope": "Exact pushed source 7969480fe57ffc21236a003184fa83063b6b7406; Backend and Frontend succeeded, Branch-declared failed its scope guard, E2E had one F8aa locator failure among 189 passed/110 skipped. This is a red run and not acceptance.",
+    "visuals": "No pixel pass inferred; the functional E2E summary is not the required 104-case local visual matrix."
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Green common-repair staging 0145b65992b8692ce69f82f804f83f6c8e551fea/run38896729111 was merged normally into this TC branch as 2b92c642237ce2abde40a84ee98383d4ee4285d1. Do not duplicate pointer/popup fixes. After Provider releases the heavy local browser priority, rerun ordinary populated-RSP desktop F9c Plots click and narrow-layout checks against exact current source, with no retries or forced clicks; only then update TCP1 evidence. TCP2 full visual, TCP3 Provider/ETF product-consumer reconciliation, TCP4 combined profile, TCP5 review, and official V25 parity remain open.",
+  "next_action": "Publish the scoped F8aa observer and scope-guard correction with the preserved 38906246039 red receipt, then require fresh exact-source CI. Do not start a local browser while Provider owns the heavy slot. Do not broaden TCP1 without ordinary populated-RSP desktop/narrow pointer evidence. Keep Help reference approval, unchanged screenshot policy, official V25 parity debt, and TCP2-TCP5 open.",
   "plan_hash": "77440dc3c0cd96ad353575efd1e380987f9a349ccffee34c064aea27a2952efd",
   "planning_required": false,
   "planning_state": "ready",
@@ -148,28 +149,28 @@
     "completed": [
       "TCP1"
     ],
-    "current_blocker": "Common repair staging 0145b65992b8692ce69f82f804f83f6c8e551fea is exact-head green on run38896729111, including Exhaustive Integration Gate, and is merged into TC at 2b92c642237ce2abde40a84ee98383d4ee4285d1. This is not product checkpoint acceptance. Ordinary populated-RSP desktop F9c Plots and narrow checks have not yet been rerun on the merge because Provider retains heavy local browser priority; do not broaden TCP1 without exact-source no-retry ordinary-pointer evidence. TCP2 visuals, TCP3 Provider/ETF product consumers, TCP4 combined profile, TCP5 review, and official V25 parity remain open.",
-    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_EXACT_CI_CLEAN_FULL_VISUAL_OPEN;TCP3_PROVIDER_ETF_CONSUMERS_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
-    "next_action": "Do not merge or duplicate the stale staging F8j correction; current TC source already uses closePopupWhenOpen and its exact CI passed. Await explicit coordinator release of synchronized Provider/ETF staging; then re-read current refs/owner records, review the downstream reconciliation map, and reconcile semantically on this clean unfrozen branch. Continue non-heavy TC-owned review; retain all full visual/V25 gates.",
+    "current_blocker": "Exact CI38906246039 for pushed source7969480fe57ffc21236a003184fa83063b6b7406 is red: scope guard rejected eight common paths and E2E had one ambiguous F8aa Favorites locator failure. The test is scoped to the Chart group, the exact eight paths have narrow exceptions, and the scope baseline is synchronized merge2b92c642237ce2abde40a84ee98383d4ee4285d1. The declared branch suite and focused collection pass locally; mounted-app F8aa and exact-source CI remain pending because Provider retains heavy browser priority. Do not broaden TCP1 from this correction; TCP2 visuals, TCP3 Provider/ETF product consumers, TCP4 combined profile, TCP5 review, and official V25 parity remain open.",
+    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_F8aa_OBSERVER_AND_EXACT_CI_PENDING;TCP3_PROVIDER_ETF_CONSUMERS_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
+    "next_action": "Publish the scoped F8aa observer and scope-guard correction with the preserved 38906246039 red receipt, then require fresh exact-source CI. Do not start a local browser while Provider owns the heavy slot. Do not broaden TCP1 without ordinary populated-RSP desktop/narrow pointer evidence. Keep Help reference approval, unchanged screenshot policy, official V25 parity debt, and TCP2-TCP5 open.",
     "total": 5,
-    "updated_at": "2026-10-16T13:11:33+00:00"
+    "updated_at": "2026-10-16T13:48:19+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "2b92c642237ce2abde40a84ee98383d4ee4285d1",
+    "current_local_head": "7969480fe57ffc21236a003184fa83063b6b7406",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
-    "last_attempted_local_head": "2b92c642237ce2abde40a84ee98383d4ee4285d1",
-    "last_attempted_range": "abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476..2b92c642237ce2abde40a84ee98383d4ee4285d1",
+    "last_attempted_local_head": "7969480fe57ffc21236a003184fa83063b6b7406",
+    "last_attempted_range": "abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476..7969480fe57ffc21236a003184fa83063b6b7406",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476",
-    "status": "pending",
-    "current_pending_range": "abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476..2b92c642237ce2abde40a84ee98383d4ee4285d1"
+    "remote_tracking_sha": "7969480fe57ffc21236a003184fa83063b6b7406",
+    "status": "succeeded",
+    "current_pending_range": null
   },
-  "remote": "abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476",
-  "remote_sha": "abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476",
+  "remote": "7969480fe57ffc21236a003184fa83063b6b7406",
+  "remote_sha": "7969480fe57ffc21236a003184fa83063b6b7406",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "roadmap_acceptance_criteria": [

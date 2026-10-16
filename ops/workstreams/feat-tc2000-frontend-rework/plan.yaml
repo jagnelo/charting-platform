@@ -30,24 +30,23 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Common repair staging 0145b65992b8692ce69f82f804f83f6c8e551fea is confirmed
-  green by exact CI38896729111, including the Exhaustive Integration Gate, and
-  merged into this TC branch at 2b92c642237ce2abde40a84ee98383d4ee4285d1.
-  This is common repair synchronization only, not acceptance of any
-  Provider/ETF/TC/Strategy product checkpoint. The merge includes released
-  pointer/popup/resource/flaky-gate fixes while preserving TC source and the
-  approved local-only Help references; the single F8b overlap was resolved in
-  comments only and the guarded cleanup call remains intact. The ordinary
-  populated-RSP desktop Plots click and narrow-layout browser checks have not
-  yet been rerun on this exact merge because Provider retains the heavy local
-  browser priority. Do not broaden TCP1 from this merge alone. Existing narrow
-  TCP1 technical acceptance remains scoped to its recorded evidence; update only
-  after exact-source ordinary-pointer proof. TCP2 full local functional and
-  normalized104 visual gates remain open. TCP3 still requires actual Provider/ETF
-  product baselines plus consumer reconciliation; this release is not those
-  integrations. TCP4 combined profile, TCP5 review, and official V25 parity
-  remain open. Preserve full roadmap, screenshot tolerances, and interaction
-  assertions.
+  Exact CI38906246039 on pushed source7969480fe57ffc21236a003184fa83063b6b7406
+  is terminal RED: Backend and Frontend jobs succeeded, branch-declared failed
+  its TC scope check, and E2E reported189 passed/110 skipped with one F8aa
+  Favorites locator failure. The Favorites button is intentionally present in
+  both Chart and Relative Strength groups; the assertion is now scoped to the
+  Chart tool while retaining reload persistence and Quick List checks. The
+  scope report identified eight coordinator-owned common paths, now represented
+  as exact shared_path_exceptions; the scope baseline advances to synchronized
+  merge2b92c642237ce2abde40a84ee98383d4ee4285d1 so previously validated
+  history and unrelated common workstream files are not broadly allowlisted.
+  Scope/self-tests, type-check, build, workstream validation, and focused
+  Playwright collection pass locally. No local browser was launched because
+  Provider retains the heavy browser priority; mounted-app F8aa and exact-source
+  CI remain pending. Keep the F9c evidence and TCP1 narrowly accepted scope
+  unchanged; this source does not broaden TCP1. TCP2 full visual, TCP3
+  Provider/ETF product consumers, TCP4 combined profile, TCP5 review, and
+  official V25 parity remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -710,12 +709,28 @@ shared_path_exceptions:
       gaps, every other manifest state, and unchanged thresholds. This is a
       local staging reference, not V25 approval; coordinator reconciles the
       shared manifest during integration.
+  - path: Makefile
+    reason: Common staging integration workflow target carried by the released 0145 common-repair merge; TC does not own changes to its behavior.
+  - path: backend/tests/unit/services/test_research_runner.py
+    reason: Common staging research-runner isolation regression test carried by the released 0145 common-repair merge; Provider/runner behavior remains upstream-owned.
+  - path: docs/agent-orchestration.md
+    reason: Canonical repository-wide agent workflow guidance carried by the released 0145 common-repair merge; coordinator-owned shared documentation.
+  - path: docs/feature-integration-coordination.md
+    reason: Coordinator-owned cross-feature merge sequencing guidance carried by the released 0145 common-repair merge.
+  - path: docs/feature-integration-reconciliation.md
+    reason: Coordinator-owned cross-feature reconciliation guidance carried by the released 0145 common-repair merge.
+  - path: ops/workstreams/fix-staging-popup-validation/validation.jsonl
+    reason: Coordinator-owned staging-popup CI validation journal carried by the released 0145 common-repair merge.
+  - path: scripts/staging.py
+    reason: Shared staging integration implementation carried by the released 0145 common-repair merge; coordinator-owned workflow behavior.
+  - path: tests/workflow/test_staging_workflow.py
+    reason: Shared staging workflow regression tests carried by the released 0145 common-repair merge; coordinator-owned test infrastructure.
 dependencies:
   - "feat/market-data-provider-platform (provider-neutral identifiers/listings, OHLCV, capability/entitlement/health, evaluator preflight, coverage state, and durable refresh handoff); dependency is not yet in staging."
   - "feat/etf-holdings-constituents (ETF holdings capability, audit, and source lineage); currently waits on provider-platform staging integration."
   - "Consume both dependencies only after their changes reach staging; do not modify their worktrees or duplicate their adapters, provider routing, credentials, ingestion, or refresh workers."
   - "Strategy Lab is intentionally not an upstream dependency for this branch; preserve TC's existing Python/DSL/Study/Strategy engine."
-scope_guard_baseline_sha: d4274a9fa3119c212a9aaf2c0006c20d921812e8
+scope_guard_baseline_sha: 2b92c642237ce2abde40a84ee98383d4ee4285d1
 focused_browser_provenance_correction: >-
   The 2026-10-16 F8s/F9c retry-free runs used the existing TC worktree Vite at
   127.0.0.1:15190, proxied to the assigned TC backend at 127.0.0.1:28008;
