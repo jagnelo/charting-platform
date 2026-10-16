@@ -234,6 +234,45 @@ acceptance. None of these new shared-contract tests is claimed implemented or
 passing by this documentation update; no tests were run for this documentation
 only change.
 
+## Bounded ETF transport-test design — 2026-10-16
+
+This is an ETF-owned test plan, not an API proposal and not evidence that the
+Provider implementation is accepted. Provider is correcting its admission and
+runner gates and still owns the reserved heavy validation slot. Do not import
+its branch, make issuer/SEC live calls, or encode request prices, quota units,
+currency conversion, or a cost ceiling interpretation. Implement these tests
+only after the coordinator releases the exact green Provider product source and
+the ETF branch reconciles that exact synchronized staging baseline.
+
+The key acceptance invariant is about a single actual outbound request, not a
+logical holdings refresh: the shared admission executor must make the reviewed
+decision before bytes leave the process. Libraries must not auto-follow a
+redirect behind the executor. A 403-triggered alternate client, retry, next
+page, separate SEC endpoint, or SEC filing download is a new request and needs
+its own decision and durable reference. An outer refresh-level allow is never
+sufficient to authorize hidden nested traffic.
+
+### Test groups and assertions
+
+1. **Direct issuer artifact through the shared parser** (`PublicCsvHoldingsAdapter.fetch_latest`, currently the httpx-to-requests 403 fallback): with intercepted transports and the real shared runtime, assert each attempt is admitted independently and carries the same canonical ETF/publisher binding plus its concrete operation. Configure an HTTPX 403 followed by a requests retry; prove a denied retry has zero requests.get calls. For redirect responses, prove the client does not silently follow: each hop must be admitted before its target request, and a denied hop leaves that target untouched. Verify only the final validated complete artifact can reach snapshot ingestion.
+2. **Concrete adapter subrequests and pagination**: select representative real adapters from the reconciled route-to-operation inventory for product-page discovery, token/session setup, data download, multi-page/category holdings, and alternate-transport retry. Assert the shared executor sees the exact order of attempted requests, one reservation/settlement reference per actual attempt, and no second transport when admission denies. Cover status retry, timeout retry, parse failure, and malformed next-page metadata without permitting an unadmitted continuation. Derive the adapter list from the final source inventory; do not assume a single adapter is representative of all direct client call sites.
+3. **Issuer-feed discovery** (`discover_etf_profiles_from_issuer_feed`): discovery GET and any redirect are independently admitted as the reviewed issuer-discovery operation. Denial must happen before the call and before any profile upsert. A successful discovery may only upsert rows from the returned response and cannot silently invoke holdings fetches.
+4. **SEC ticker discovery and enrichment** (`discover_etf_profiles_from_sec_fund_tickers`, `enrich_etf_profile_from_sec_fund_tickers`): each separately invoked SEC request is gated under its reviewed SEC operation and account scope. Assert denial causes zero transport and no identifier mutation; cached/read paths make zero calls. This metadata lookup is not a holdings-currentness signal.
+5. **SEC reconstruction fallback** (`IssuerCsvHoldingsAdapter._fetch_latest_sec_filing_holdings` plus `etf_holdings_edgar`): exercise submission-index/listing discovery and each candidate filing-document fetch as separate attempts. A rejected issuer route must not turn into an unmetered SEC escape hatch. If a SEC attempt is denied, assert no further filing/page is requested and preserve prior ETF snapshots; if admitted, preserve SEC source-tier/freshness semantics and never label the reconstruction issuer-current. Instrument redirects and candidate-form fallback in these tests too.
+6. **Shared executor async boundary**: route an async adapter through the actual `execute_provider_call` integration boundary. Assert the coroutine is awaited exactly once, its exception is recorded as a failed attempt under the accepted settlement rule, and an unawaited coroutine can never be recorded as successful availability or an ETF snapshot. Preserve cancellation/timeout behavior without double settlement.
+7. **No-bypass and no-network denial matrix**: for each reached transport family above, use denied fixtures for missing/ambiguous identity, publisher/account/terms review, expired or restricted terms, entitlement denial, unknown cost/quota/currency/reset evidence, exhausted quota/aggregate budget, and disabled/free-only restrictions. Assert the exact shared denial is persisted and all intercepted network call counts remain zero for the denied attempt and all downstream fallbacks. Exercise unsafe global routing configuration both enabled and disabled (or the producer's tested startup rejection); never turn on a paid provider or trial.
+8. **Durability and ETF outcome semantics**: against the real shared PostgreSQL/Redis ledger, cover duplicate idempotency replay, restart, concurrent shared admission, timeout/uncertain settlement, and exact actual request attempt references. With prior data, denial must retain raw artifact, source/composition/fetched/knowledge times and yield degraded/stale as appropriate; with no prior data it remains unavailable. Current analysis rejects non-current state. Cached and historical reads assert zero reservation and zero transport.
+9. **Inventory anti-regression**: regenerate an AST/source inventory for outbound transports across adapters, refresh, and EDGAR modules. Every reachable request site must either route through the accepted executor or be explicitly classified as non-network/test-only. Fail if a newly added `httpx`, `requests`, curl, or equivalent transport call is absent from the approved inventory. This static guard supplements—not replaces—intercepted runtime call-count tests.
+
+Before these tests can be written against a concrete interface, Provider must
+publish the accepted callable/async semantics, operation and account binding,
+redirect handling, per-attempt quota/cost decision, idempotency/reference
+fields, and retry/uncertain-settlement rules in green staging. Names above refer
+to existing ETF paths for test targeting, not required Provider method names.
+The final independent ETF tests must use the real staged shared runtime and
+intercept issuer transports; mocks of admission alone cannot prove shared
+durability, concurrency, or request accounting.
+
 ### Common repair baseline consumed — 2026-10-15 21:40Z
 
 The exact synchronized common repair baseline `82d881e76be8de538abb6ec5c454d96afe0ee56a`

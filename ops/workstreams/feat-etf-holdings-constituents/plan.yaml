@@ -96,6 +96,33 @@ integration_checkpoint:
       remains externally gated; no product checkpoint is currently accepted.
     coordinator_receipt: /home/m920q/charting-platform/.ai/staging-attempts/four-feature-coordination-2026-10-15.json
     coordinator_receipt_key: checkpoint_acceptance_delegation_question
+  latest_coordinator_update:
+    recorded_at: "2026-10-16"
+    direction: >-
+      Continue persistently toward coordinator-accepted, human-usable merged
+      staging; no additional per-checkpoint signoff is required within the
+      human-approved verified-free-only boundary. The coordinator owns
+      conditional checkpoint acceptance and staging integration.
+    provider_state: >-
+      Per the coordinator's current update, Provider is correcting actual
+      admission and runner gates, is not accepted yet, and retains the first
+      heavy validation slot. Wait for the exact released green Provider SHA;
+      no Provider code imports or sibling edits.
+    bounded_etf_prep: >-
+      Prepare transport-level contract tests without issuer/SEC live calls or
+      guessed quota, prices, FX, or aggregate-cost rules. Cover each actual
+      request attempt, redirects, alternate HTTP clients/retries, pagination,
+      issuer-feed/SEC discovery, SEC filing fallback, async invocation, no
+      bypass, and preservation of existing snapshot lineage. Detailed design
+      is in shared-cost-admission.md.
+    continuation_boundary: >-
+      Once Provider's exact green product checkpoint is released into staging,
+      reconcile that exact SHA in this ETF worktree, implement and test the real
+      shared bridge, run the required combined local and exact-source CI, and
+      continue until the coordinator's acceptance/merge makes the result
+      available in human-usable staging. Preserve the complete roadmap and
+      later observation gate. No paid/trial activation, deployment, unsafe
+      operations, or retained-data cleanup.
   disposition_semantics: Target scope of the named checkpoint; these dispositions are not current completion claims. EICP1-EICP7 require fresh evidence before review.
   source_baseline: f2670b0bbde8bb680173d847a43734f7391745f7
   implementation_evidence_baseline: 5854dd2fc70e7424280782c3a61df5f6ed5b04c6
@@ -197,10 +224,10 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: Record focused identity-resolution replay on the released-merge source
-    state: completed_focused_resolver_replay_provider_slot_pending
-    baseline: c58cfeafdba77ee22b89caec9ec7d3057657c6f3
-    intent: Record the focused ETF identity-resolution result on the current common-repair-merged source while preserving the distinction from the required combined full profile, exact-source CI, and unreleased Provider contract.
+    name: Prepare ETF request-boundary contract and transport test design
+    state: documented_provider_release_pending
+    baseline: 5020441cc9fa2bf2a8988ca0d5bf7da35b38c1b4
+    intent: Specify ETF-owned no-bypass consumer tests against the eventual actual shared Provider runtime, including every real outbound attempt and preserving the distinction between design and executed evidence.
     owned_paths:
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md
@@ -1357,46 +1384,18 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  The central-first resume was reconciled at branch HEAD
-  159d1df48c8a242d6ace076e9accbfc901b1552d. Exact staging release
-  82d881e76be8de538abb6ec5c454d96afe0ee56a is already the second parent of
-  ETF merge bff2d390eaf128d54a5bb588298a3b528c9a6785; this is a common repair
-  baseline only, not Provider or ETF product-checkpoint acceptance. GitHub
-  returned no combined status checks for current ETF HEAD. The application and
-  runtime source is unchanged since the 13fd50a runtime inventory; the only
-  later code/test delta is the three-case security-sentinel regression in
-  dd9b7a08ce79303638c3951dd937270e97bbff33. That focused resolution module
-  passed52/52 with coverage disabled, Ruff passed, and the workstream validator
-  passed31 records. The earlier1938-backend/948-frontend/154-functional/104-
-  visual local profile is historical at8e84e7a and is not current-source proof.
-  Provider's product checkpoint and shared producer contract remain unreleased;
-  follow the coordinator's first-slot direction and do not start the heavy
-  profile until it is released. The actual ETF_HOLDINGS bridge remains gated on
-  a reviewed Provider contract; do not guess or stub its interfaces. The merged
-  snapshot-save behavior, chart geometry, and ETF's stronger visual readiness
-  assertions have bounded passing tests recorded in handoff.md. Explicit
-  future/futures and other declared non-equity holdings now fail closed in the
-  equity-only resolver; fixed_income, option, derivative, fund, crypto,
-  commodity, other, and unknown types remain unresolved instead of attaching
-  to an equity by ticker or creating a synthetic stock. The focused resolver
-  and capability tests pass149/149, including persisted holdings lineage,
-  unknown and equity-collision tickers. The parser-default security-sentinel
-  regression now passes through all three identity and persistence matrices;
-  the full resolution module passes52/52. The 14-case persisted-consumer module passed locally in
-  host context; this proves stored consumer outcomes only, not shared-runtime
-  transport/admission. The earlier sandbox TestClient stall was environmental,
-  not an assertion failure. Current ETF-tree inspection found no ETF_HOLDINGS
-  capability, durable per-request shared reservation/settlement, aggregate
-  recurring-cost admission, or awaited async adapter dispatch. Continue the
-  branch-owned producer/consumer contract inventory; do not code against a
-  guessed interface. ETF_HOLDINGS remains gated on a reviewed, tested Provider
-  contract, especially shared cost/free-only admission and denial before every
-  real request, page, retry, redirect, alternate client, or SEC fallback. Do
-  not guess costs or quotas or create an ETF-only ledger. Provider owns the
-  first heavy local validation slot: do not start the competing Docker/browser
-  full profile until coordinated release and a fresh capacity check; then run
-  the unchanged full_stack_browser profile and exact-source CI before checkpoint
-  review. Preserve all fourteen original criteria, issuer truthfulness, the
-  monthly ceiling, futures/cash lineage, and post-integration observation gate.
-  No staging edits, sibling changes, paid/trial activation, deployment, data
-  cleanup, or product-scope reduction.
+  Continue bounded request-level test preparation as documented in
+  shared-cost-admission.md; do not spend live issuer/SEC quota or guess the
+  Provider interface, request costs, quotas, or currency conversion. Per the
+  coordinator's 2026-10-16 update, Provider is correcting actual admission and
+  runner gates, remains unaccepted, and owns the first heavy local-validation
+  slot. Once the exact green Provider product SHA is released into staging,
+  reconcile that exact source into this ETF worktree, implement/test the real
+  ETF_HOLDINGS bridge and per-attempt transport admission, and run the required
+  combined full_stack_browser and exact-source CI after coordinating capacity.
+  Persist through coordinator technical acceptance/integration to human-usable
+  merged staging; the existing human delegation removes per-checkpoint signoff
+  inside its verified-free-only scope but waives no contract, test, or roadmap
+  requirement. Preserve all fourteen criteria and the later observation gate.
+  Do not import a sibling branch, write staging, activate paid/trial routes,
+  deploy, send unsafe requests, or delete retained data.

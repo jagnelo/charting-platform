@@ -11252,3 +11252,45 @@ owns the first heavy local validation slot. Once its exact synchronized green
 product checkpoint is accepted/released, continue the ETF bridge in this same
 worktree, then complete the combined full local profile and exact-source CI and
 submit exact-source evidence for central review.
+
+### Provider transport-boundary test preparation — 2026-10-16
+
+The coordinator's active-goal update says the human expects persistence through
+coordinator-accepted, human-usable merged staging; the conditional
+verified-free-only checkpoint authority already recorded above means no new
+per-fix/per-checkpoint human signoff is needed inside that scope. This is not
+current ETF or Provider source acceptance. Per the update, Provider is
+correcting actual admission and runner gates, remains unaccepted, and owns the
+heavy validation slot. Wait for its exact released green staging SHA; do not
+import its branch or run the competing heavy local profile.
+
+The ETF transport audit confirms the bridge cannot be tested solely around
+`_refresh_adapter_route`: the common parser helper performs an HTTPX request,
+automatically follows redirects, and retries an HTTP 403 through `requests`
+with redirects enabled. Other adapters have many independent HTTP clients and
+some requests/curl fallbacks. `etf_holdings_refresh.py` separately fetches
+issuer feeds and SEC ticker metadata; SEC holdings reconstruction separately
+fetches submission data and candidate filing documents. Each actual request,
+redirect hop, retry/alternate-client attempt, page, discovery call, and SEC
+fallback must be admitted before transport. A denied attempt may not be
+followed by an unmetered alternate path.
+
+The detailed bounded test design is now in
+`shared-cost-admission.md` (“Bounded ETF transport-test design — 2026-10-16”).
+It specifies deterministic intercepted transports, real shared-runtime
+producer/consumer checks after Provider release, no-network denials for every
+downstream path, async invocation/cancellation behavior, SEC non-current
+semantics, preservation of existing raw/snapshot lineage, and a source/AST
+inventory guard against new bypasses. It deliberately specifies semantics,
+not a guessed Provider signature, request price, quota unit, currency conversion,
+or cost value. No issuer/SEC live request or Provider code import was made, and
+no executable bridge test is claimed implemented or passing.
+
+Next: once the coordinator releases the exact green Provider product SHA,
+reconcile that synchronized staging source into this branch, adapt the design
+to its accepted callable and operation schema, implement the actual async
+request-boundary bridge, and execute the deterministic and shared-ledger tests.
+Then coordinate the required combined `full_stack_browser` profile, pass
+exact-source CI, and continue through central technical acceptance/integration
+to the human-usable merged staging result. Keep all ETF roadmap criteria and
+the later observation gate open until their own evidence is complete.

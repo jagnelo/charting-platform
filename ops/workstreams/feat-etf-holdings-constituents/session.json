@@ -30,9 +30,9 @@
     }
   ],
   "active_changeset": {
-    "baseline": "c58cfeafdba77ee22b89caec9ec7d3057657c6f3",
-    "intent": "Record the focused ETF identity-resolution result on the current common-repair-merged source while preserving the distinction from the required combined full profile, exact-source CI, and unreleased Provider contract.",
-    "name": "Record focused identity-resolution replay on the released-merge source",
+    "baseline": "5020441cc9fa2bf2a8988ca0d5bf7da35b38c1b4",
+    "intent": "Specify ETF-owned no-bypass consumer tests against the eventual actual shared Provider runtime, including every real outbound attempt and preserving the distinction between design and executed evidence.",
+    "name": "Prepare ETF request-boundary contract and transport test design",
     "owned_paths": [
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
@@ -40,7 +40,7 @@
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
       "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md"
     ],
-    "state": "completed_focused_resolver_replay_provider_slot_pending"
+    "state": "documented_provider_release_pending"
   },
   "active_session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
   "branch": "feat/etf-holdings-constituents",
@@ -69,7 +69,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "current_blocker_latest": "As of2026-10-15T22:12Z, common repair baseline82d881e76be8de538abb6ec5c454d96afe0ee56a is already an ancestor of this ETF branch; canonical staging CI38805309009 is green for the shared repair only. The coordinator receipt still has provider:null and no accepted product checkpoint. Provider hosted CI38804214507 is green on declared jobs, but it does not establish producer-contract acceptance or completion of its first heavy local gate. The actual ETF tree has no ETF_HOLDINGS capability, durable per-request reservation/settlement or aggregate monthly-cost admission; its dispatcher is synchronous and issuer adapters are async. The current interface/transport inventory is recorded in integration-checkpoint.md. The full profile exited zero only on pre-merge source8e84e7a, not the current merged/resolver source; do not start while Provider owns the first heavy slot. Current implementation faffd6f75 and branch tip13fd50a have no GitHub statuses. No product acceptance, staging/sibling mutation, paid/trial activation, deployment or retained-data cleanup.",
+  "current_blocker_latest": "2026-10-16 coordinator update: Provider is correcting its actual admission and runner gates, is not accepted yet, and owns the first heavy slot. ETF's real shared bridge remains blocked on Provider's exact released green staging SHA. The current source has numerous independently opened adapter HTTP clients, redirects, requests/curl fallbacks, refresh/discovery calls and SEC submission/filing transports; an outer refresh allow is not sufficient. ETF-owned bounded test design is recorded in shared-cost-admission.md, without importing Provider code, live quota use, or guessed prices/FX. After exact Provider release, reconcile that source here, implement real request-by-request admission and async transport integration, run combined full local and exact-source CI, and continue toward coordinator-accepted human-usable merged staging. Conditional acceptance needs no further human checkpoint signoff inside the approved free-only scope, but all contracts/tests remain mandatory. Full roadmap and later observation gate remain open; no paid/trial activation, deployment, unsafe request, or retained-data cleanup.",
   "dirty_paths": [],
   "docker": {
     "available": false,
@@ -228,8 +228,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Resume independent ETF checkpoint preparation without guessing Provider interfaces. Once a reviewed green Provider checkpoint and exact synchronized staging SHA are available, reconcile that exact source in this same branch, implement/test ETF_HOLDINGS against the real shared runtime, and run the required full_stack_browser plus exact-source CI after Provider's first slot. Preserve the full roadmap; do not wait for the full Provider feature or 30-day trial, merge sibling branches, activate paid/trial routes, deploy, or clean retained data.",
-  "plan_hash": "dd8e2b59e45a021fec667076d885b0da72e5584ea9af8f8e2ddb7a58af560163",
+  "next_action": "Complete bounded ETF request-boundary test preparation without live calls or guessed cost/quota/FX. Once the exact reviewed green Provider product SHA is released into staging, reconcile it only into this ETF branch, implement/test ETF_HOLDINGS against the actual shared runtime, coordinate the full_stack_browser slot, pass exact-source CI, and continue through coordinator acceptance/integration to human-usable merged staging. Preserve the full roadmap and later observation gate; no per-checkpoint human signoff is needed within approved scope, but required contracts/tests remain. No paid/trial activation, deployment, sibling imports or retained-data cleanup.",
+  "plan_hash": "323b40aa75a55b0f9d3facb85f437c283161328a34b928ce81a498ceefae5c58",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
