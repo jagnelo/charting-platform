@@ -20078,13 +20078,14 @@ observation and F8r Market Breadth visibility after its menu action. The
 coordinator confirms that all 104 visual cases were skipped. This is not a
 zero-flake result, visual acceptance, or whole-checkpoint acceptance.
 
-The current uncommitted F9e observer waits for native scroll movement to settle
-over three animation frames, bounded at two seconds, after both PageDown and
-PageUp. It preserves ordinary keyboard input, the ten-PageDown limit, the
-within-one-CSS-pixel native bottom check, fully visible last row, Home, Tab,
-Escape, and focus recovery. No source CSS, screenshot, reference, or tolerance
-changed. The Help native-scroll static reproduction remains mechanistic
-evidence only; actual isolated-app validation is still needed.
+The F9e observer correction was pushed in `43e2c0275`: it waits for native
+scroll movement to settle over three animation frames, bounded at two seconds,
+after both PageDown and PageUp. It preserves ordinary keyboard input, the
+ten-PageDown limit, within-one-CSS-pixel native bottom check, fully visible last
+row, Home, Tab, Escape, and focus recovery. Exact isolated source CI below
+passed this flow first attempt. No source CSS, screenshot, reference, or
+tolerance changed. The Help static-scroll reproduction remains mechanism
+evidence only, not visual acceptance.
 
 F8r now waits for the named Market Breadth tool shell separately from the
 `.breadth-tool` body mount, after confirming the workspace host is visible.
@@ -20104,9 +20105,10 @@ irrelevant Vue/Vitest import errors; rerunning from `frontend/` collected all
 four tests successfully. No browser, server, build, backend, account, provider,
 or Docker fixture was started in this continuation. Do not replay these flows
 against the assigned persistent database: the previously created five test
-accounts remain retained. The corrected source still needs actual isolated
-app/browser validation and a new exact-source CI audit; no results are being
-inferred from the prior `36ac5a598` run.
+accounts remain retained. The corrected source has its own exact-source
+isolated CI result recorded below; this is not inferred from the prior
+`36ac5a598` run. A subsequent uncommitted marker correction remains outside
+that exact run.
 
 F8n's minimal diagnostic proposal for coordination: first prove the ordinary
 source hover changes OHLC on the `.u-over` hit layer; then prove its published
@@ -20114,4 +20116,33 @@ timestamp changes; then observe parent Ratio timestamp; only then attribute a
 failure to target cursor rendering. If the first stage fails, inspect source
 renderer lifetime and pointer hit geometry before bus or target code. No
 Provider/sibling source import or full competing profile is authorized here.
+
+## 2026-10-16 — Additional dock activation guard finding
+
+After the exact CI for `43e2c02754f3eeea92ccd6df1fb6e7e293c4d185` completed,
+read-only source tracing found that `WorkstationView.openTool()` polls the DOM
+for `[data-tool-key]` matching the new instance key and clicks that tool's
+Golden Layout tab until the user-visible active state is confirmed. `ToolWindow`
+exposed only `data-window-key`, so that guard could never find a new tool. This
+is a concrete readiness/activation defect in the TC frontend, but it does not
+yet prove the direct cause of the F8r missing-element report because the store
+sets the new instance active before the wait loop.
+
+The working tree now emits both attributes from the same `windowKey`, and adds
+a focused `ToolWindow` unit assertion. `npx vitest run
+tests/unit/components/test_tool_window.test.ts` passed 11/11. This patch is
+separate from pushed `43e2c0275`; its exact CI did not include this change. The
+assigned persistent database and five retained test accounts remain untouched.
+
+The exact `43e2c02754f3eeea92ccd6df1fb6e7e293c4d185` workflow run
+`38846672417` (attempt1) completed with all required jobs successful:
+Frontend Unit Tests, Branch-declared Tests, Backend Tests, and E2E Tests
+(Playwright). Exhaustive Integration Gate was skipped as expected for the
+feature branch. E2E job `116800303092` logged 189 passed, 110 skipped, and no
+retry/flaky/failure cases in 17.1 minutes. F9e, F8m, F8n and F8r each appeared
+in the ordinary first-attempt sequence; all104 visual cases were skipped, not
+pixel-tested. The hosted job tore down only its own `charting-platform-ci`
+containers, volumes, and network. This is exact-source functional E2E evidence
+for `43e2c0275`, not full visual parity, combined TCP4 validation, or whole-TC
+checkpoint acceptance.
 

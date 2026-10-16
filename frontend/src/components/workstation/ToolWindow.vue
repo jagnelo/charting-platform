@@ -1,5 +1,5 @@
 <template>
-  <section class="tool-window" role="group" :data-window-key="windowKey" :class="{ 'tool-window--active': active }" :aria-labelledby="titleId" @keydown.escape="closeMenuToTrigger">
+  <section class="tool-window" role="group" :data-window-key="windowKey" :data-tool-key="windowKey" :class="{ 'tool-window--active': active }" :aria-labelledby="titleId" @keydown.escape="closeMenuToTrigger">
     <header class="tool-window__header">
       <span class="tool-window__drag-handle" draggable="true" aria-label="Drag tool" title="Drag tool" @dragstart="emit('dragstart', $event)"><span class="tool-window__drag-glyph" aria-hidden="true" /></span>
       <strong :id="titleId" class="tool-window__title">{{ title }}</strong>

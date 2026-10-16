@@ -4,6 +4,12 @@ import { describe, expect, it, vi } from 'vitest'
 import ToolWindow from '@/components/workstation/ToolWindow.vue'
 
 describe('ToolWindow', () => {
+  it('exposes the instance key used by workstation tool activation readiness', () => {
+    const wrapper = mount(ToolWindow, { props: { windowKey: 'breadth-instance-1', title: 'Market Breadth' } })
+
+    expect(wrapper.find('.tool-window').attributes('data-tool-key')).toBe('breadth-instance-1')
+  })
+
   it('publishes actual maximize, float, close, and link-group actions without inert header controls', async () => {
     const wrapper = mount(ToolWindow, { props: { title: 'Chart', symbol: 'SPY', linkGroup: 'blue' } })
 

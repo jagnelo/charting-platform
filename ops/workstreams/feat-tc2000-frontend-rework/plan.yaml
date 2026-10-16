@@ -38,10 +38,13 @@ current_blocker: >-
   requestAnimationFrame callbacks (bounded at2s) after each ordinary PageDown
   and PageUp. It retains the10-key cap, native bottom within1 CSS pixel,
   fully-visible last-row, Home, Tab, Escape and focus-return checks. The exact
-  hosted run38843092299 had187 passed/110 skipped/2 retry flakes (F9e and
-  F8r);104 visual cases were skipped. No actual-app rerun has been made yet.
-  The source-derived static Help reproduction supports the observer diagnosis,
-  not app acceptance. No Help CSS/reference/approval change is needed.
+  exact source run38846672417 for43e2c02754f3eeea92ccd6df1fb6e7e293c4d185
+  completed all required jobs successfully. Isolated hosted Playwright reported
+  189 passed/110 skipped and zero retries/flakes; F9e, F8m, F8n, and F8r each
+  passed first attempt. The110 skips include visual cases, so this is functional
+  E2E evidence, not the full visual matrix. The source-derived Help reproduction
+  remains mechanism evidence, not screenshot acceptance. No Help CSS/reference/
+  approval change is needed.
 
   New retained-video review (coordinator 2026-10-16): popup chart was
   populated by 1.5s, but OHLC remained at latest 2025-12-29 and no historical
@@ -49,9 +52,10 @@ current_blocker: >-
   that waiting for aria-busy=false alone explains F8n. F8n now targets the real
   .u-over layer and requires source readout/date movement, then source published
   linked timestamp and matching parent timestamp, before retaining the existing
-  target cursor assertions. This is still unverified pending coordinated
-  browser execution; no product repair is established. Do not attribute this
-  to the bus/target until ordinary source hover is proven.
+  target cursor assertions. On exact source43e2c0275, isolated F8n E2E passed
+  first attempt after ordinary hover changed source OHLC/timestamp, propagated
+  to parent, and changed target cursor. Keep this staged diagnosis; do not
+  infer product repair beyond the source-to-target flow proven by that test.
 
   Follow-up to exact hosted run38840374244: coordinator audited E2E job
   116781448508 as 187 passed, 110 skipped, and two retry-passing flakes,
@@ -65,12 +69,18 @@ current_blocker: >-
   F8n's source-hover probe uses actual .u-over geometry and requires historical
   OHLC movement plus a changed source linked timestamp before checking parent
   and target propagation. F8r now distinguishes visible Market Breadth shell
-  activation from inner component-body mount; this is diagnostic and does not
-  yet explain or repair the missing tool. Current focused source changes pass
-  vue-tsc and Playwright collection only; no browser rerun has occurred. Do
-  not use the assigned persistent database to create more test fixtures;
-  actual fresh-app/browser validation must use coordinated isolated
-  infrastructure.
+  creation from visible activation and inner component-body mount. Source
+  inspection found WorkstationView.openTool waits for [data-tool-key=<instance>]
+  before activating the created dock tab, but ToolWindow emitted only
+  data-window-key. The current uncommitted product correction emits the
+  instance key under both attributes and adds a ToolWindow unit assertion.
+  This repairs a demonstrably dead readiness/activation lookup but is not yet
+  proven as the direct cause of the missing F8r element. Focused component unit
+  test passed11/11; exact source CI for preceding commit43e2c0275 completed
+  successfully with189 passed/110 skipped/zero retries, and F8r passed first
+  attempt there. That run does not include the marker correction. Do not use the
+  assigned persistent database for fixtures; the marker still needs exact-source
+  CI and isolated-app validation.
   TCP1 remains narrowly accepted; TCP2-TCP5 and full official V25 parity remain
   open. Hosted visual cases in the cited run were skipped, not passes.
 
@@ -83,9 +93,10 @@ current_blocker: >-
   test at case144/299 passed without retry. Visual tests were skipped, not
   screenshot passes. Workflow removed only its isolated charting-platform-ci
   services/volumes/network. This is not a zero-flake run or full feature
-  acceptance. It tested the source as of 36ac5a598; the current worktree has
-  subsequent test-only corrections that still require exact-source CI and
-  actual isolated-app evidence.
+  acceptance. It tested the source as of 36ac5a598. Subsequent observer
+  corrections were tested by exact run38846672417 as described above; the
+  additional ToolWindow readiness-marker change is not included in any exact-
+  source CI run yet.
 
   Exact current-source Actions result (2026-10-16): run 38840374244 attempt 1
   matches full head 977e68afb1cf6bb40a5cd2540dded09b56c9b245 and concluded
