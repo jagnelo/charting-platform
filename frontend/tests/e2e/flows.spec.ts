@@ -1608,20 +1608,11 @@ test.describe('TC2000 workstation', () => {
     await popup.waitForLoadState('domcontentloaded')
     await expect(popup.locator('.workstation__popout .tool-window')).toBeVisible({ timeout: 10_000 })
 
-    // A persisted-layout refresh can close the browser-owned pop-out between the
-    // geometry read and cleanup. Treat that already-closed state as successful cleanup;
-    // otherwise close it through the user-facing control and await the browser event.
-    if (!popup.isClosed()) {
-      // A concurrent revisioned workspace refresh can close a disposable child
-      // after the source has already restored it. Treat that completed cleanup
-      // as equivalent to the explicit close click; never turn a transient child
-      // lifetime race into a false lifecycle failure.
-      if (!popup.isClosed()) {
-        const closed = popup.waitForEvent('close')
-        await popup.locator('button[title="Close"]').click()
-        await closed
-      }
-    }
+    // A concurrent revisioned workspace refresh may close the disposable popup
+    // while the ordinary Close click is in flight. Share the guarded cleanup
+    // used by the other popup flows; it only treats an actually closed popup as
+    // successful cleanup and propagates other click failures.
+    await closePopupWhenOpen(popup)
 
     // The docked window is the durable source of truth; a disposable pop-out cannot
     // remove it from the parent layout.

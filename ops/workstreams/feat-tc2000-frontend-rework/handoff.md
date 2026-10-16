@@ -20161,3 +20161,39 @@ reproduced in this run; the `data-tool-key` fix repairs the broken intended
 activation guard, but no claim is made that it was the sole cause of that
 flake. The preceding 43e exact-source run was also clean for the observer fixes.
 
+## 2026-10-16 — Coordinator static Help observer confirmation
+
+The coordinator extracted the unchanged current PageUp-to-bottom/last-row
+observer fragment from `flows.spec.ts` and ran that exact fragment in a
+network-blocked, source-derived static 28-row Help DOM using the App reset and
+default 16px font. It exited 0 in 3.65 seconds: `atBottom=true`,
+`lastRowVisible=true`, `scrollTop=1574` (exact `max=1574`). In the same browser,
+the earlier rapid-key burst had observed `201/1574` before native scrolling
+settled. This corroborates the observer mechanism and the need to wait for
+native scroll completion; it is static-DOM evidence only, not a mounted-app,
+current-commit CI, or TCP2 acceptance run. The 1 CSS-pixel bottom allowance is
+coordinate rounding, not a visual-tolerance change. Keep the existing fully
+visible-last-row, Home, Tab, Escape, focus-return, and all-104 visual checks.
+Fresh app-level validation remains pending. No Help source, oracle, app, data,
+or account was changed for this confirmation. F8m, F8r, and F8n remain separate
+open work items.
+
+## 2026-10-16 — F8b popup-close observer reconciliation
+
+The coordinator's same-harness Provider audit reports E2E job
+`116790236300`: 149 passed, 109 skipped, and two retry-passing flakes. F8b's
+ordinary popup Close click received `Target page closed` after nested
+`isClosed()` checks; F8u failed to locate the RSI header after its real drag.
+The TC F8b had the same nested-precheck pattern, so its duplicated block now
+reuses `closePopupWhenOpen`. That helper performs the ordinary user-facing
+Close click, waits for the close event, ignores an error only when the popup
+actually closed, and propagates other failures. The durable parent source-tool
+and browser-diagnostic assertions are unchanged. This is a source correction,
+not a browser pass; a normal actual-flow run remains required when the
+coordinated browser slot is available.
+
+F8u remains separate and undiagnosed in TC. Do not add retry/sleep/force or
+synthetic drag behavior. Provider's UPlot implementation lacks TC's `aria-busy`
+marker, so do not assume the TC F8n readiness observation can be copied
+upstream. No sibling source, provider, data, or account was modified.
+

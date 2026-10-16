@@ -38,6 +38,15 @@ current_blocker: >-
   requestAnimationFrame callbacks (bounded at2s) after each ordinary PageDown
   and PageUp. It retains the10-key cap, native bottom within1 CSS pixel,
   fully-visible last-row, Home, Tab, Escape and focus-return checks. The exact
+  coordinator also extracted the unchanged current PageUp-to-bottom/last-row
+  Playwright fragment and ran it against the source-derived static 28-row Help
+  DOM with App reset/default 16px font. It exited0 in3.65s with atBottom=true,
+  lastRowVisible=true, scrollTop1574/max1574; the prior immediate burst saw
+  201/1574 before settling. This confirms the observer mechanism only: it was
+  not a mounted-app/current-commit run or TCP2 acceptance. The 1 CSS-pixel
+  residual remains coordinate rounding, not a visual-tolerance change. Fresh
+  app validation remains pending.
+  The exact
   exact source run38846672417 for43e2c02754f3eeea92ccd6df1fb6e7e293c4d185
   completed all required jobs successfully. Isolated hosted Playwright reported
   189 passed/110 skipped and zero retries/flakes; F9e, F8m, F8n, and F8r each
@@ -834,6 +843,18 @@ progress:
     date-pointer reload, F8w Market Gauge); clean all-source CI remains open.
     Continue only with the full roadmap; no staging integration or feature
     completion is implied.
+    New coordinator audit (2026-10-16) reports hosted Provider E2E job
+    116790236300 at149 passed/109 skipped with two retry-passing flakes: F8b
+    popup Close hit Target page closed during an ordinary click after nested
+    isClosed prechecks; F8u could not find the RSI header after real drag. TC's
+    F8b had the same nested-precheck shape. It now delegates popup cleanup to
+    the existing closePopupWhenOpen helper, which keeps the ordinary Close
+    action, tolerates only a popup that actually closed, and propagates other
+    errors; durable source-tool and diagnostics assertions remain. Browser
+    execution is pending Provider's heavy slot. F8u remains a separate
+    source/readiness/drag diagnosis; no retry, sleep, force, synthetic drag, or
+    upstream readiness assumption was added. Provider's UPlot lacks TC's
+    aria-busy marker, so TC's F8n observer is not assumed portable upstream.
 current_checkpoint_status: >-
   TCP1 is coordinator-accepted narrowly: common green staging
   82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009 was reconciled by
