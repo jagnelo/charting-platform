@@ -44,3 +44,8 @@ reads can independently observe hosted progress without manufacturing receipts.
 No product code/reference/oracle/deployment/data changes. Implementation still
 needs normal exact-source CI and canonical guarded remediation integration;
 no local operational marker has been bypassed or removed by this work.
+
+Final review additionally restricts reconciliation itself to the exact
+persistent staging caller (feature/root-control callers refused). Expanded
+regression suite76passed0.49s; previous75-case implementation receipt remains
+historical. Final exact-source CI must cover this additional guard too.

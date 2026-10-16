@@ -163,6 +163,8 @@ def test_interrupted_watch_reconciliation_is_exact_and_fail_closed(
 ) -> None:
     staging = load_script("staging")
     sha, start, source = "a" * 40, "b" * 40, "c" * 40
+    monkeypatch.setattr(staging, "ROOT", tmp_path / "staging")
+    monkeypatch.setattr(staging, "STAGING_PATH", tmp_path / "staging")
     marker_path = tmp_path / "staging-degraded.json"
     marker = {
         "staging_sha": sha,
@@ -246,6 +248,17 @@ def test_interrupted_watch_reconciliation_is_exact_and_fail_closed(
             staging.reconcile(sha)
         assert marker_path.exists() == (case != "missing_marker")
         assert attempts == []
+
+
+def test_reconciliation_refuses_a_feature_or_root_control_caller(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    staging = load_script("staging")
+    monkeypatch.setattr(staging, "ROOT", tmp_path / "not-staging")
+    monkeypatch.setattr(staging, "STAGING_PATH", tmp_path / "staging")
+    with pytest.raises(SystemExit, match="exact persistent staging checkout"):
+        staging.reconcile("a" * 40)
 
 
 def test_ci_uses_staging_and_master_without_emulation() -> None:

@@ -642,6 +642,10 @@ def integrate(branches: list[str], *, remediate: bool) -> None:
 def reconcile(commit: str) -> None:
     """Finish an interrupted watch, never a new merge or synthetic CI receipt."""
     commit = full_sha(commit, "COMMIT")
+    if ROOT != STAGING_PATH:
+        raise SystemExit(
+            "run reconciliation from the exact persistent staging checkout"
+        )
     root_master_ready()
     with integration_lock():
         if not DEGRADED.exists():
