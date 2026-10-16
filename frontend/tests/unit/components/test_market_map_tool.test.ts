@@ -922,6 +922,11 @@ describe('MarketMapTool', () => {
     await wrapper.get('[aria-label="Find Large Market Map member"]').trigger('keydown', { key: 'Enter' })
     expect(wrapper.emitted('select')).toEqual([['SYM1501', 1501]])
 
+    await wrapper.get('[aria-label="Find Large Market Map member"]').setValue('SYM10000')
+    await wrapper.get('[aria-label="Find Large Market Map member"]').trigger('keydown', { key: 'Enter' })
+    expect(wrapper.emitted('select')).toEqual([['SYM1501', 1501], ['SYM10000', 10000]])
+    expect(wrapper.get('.market-map-tool__selection-announcement').text()).toBe('1 selected member: SYM10000')
+
     wrapper.unmount()
     canvasContext.mockRestore()
     vi.restoreAllMocks()

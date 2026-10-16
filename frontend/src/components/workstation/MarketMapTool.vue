@@ -378,7 +378,8 @@ const loading = ref(false)
 const error = ref('')
 const map = ref<MarketMap | null>(null)
 const selectedNode = ref<string | null>(null)
-const selectedIds = ref<number[]>([])
+const selectedMembers = ref<MarketMapCell[]>([])
+const selectedIds = computed(() => selectedMembers.value.map(cell => cell.instrument_id))
 const hoveredCell = ref<MarketMapCell | null>(null)
 const viewportRef = ref<HTMLElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -1077,9 +1078,9 @@ function groupFrameStyle(group: MarketMapLayoutGroup) {
 }
 function selectCell(event: MouseEvent, cell: MarketMapCell) {
   const additive = event.shiftKey || event.ctrlKey || event.metaKey
-  selectedIds.value = additive
-    ? (selectedIds.value.includes(cell.instrument_id) ? selectedIds.value.filter(id => id !== cell.instrument_id) : [...selectedIds.value, cell.instrument_id])
-    : [cell.instrument_id]
+  selectedMembers.value = additive
+    ? (selectedIds.value.includes(cell.instrument_id) ? selectedMembers.value.filter(member => member.instrument_id !== cell.instrument_id) : [...selectedMembers.value, cell])
+    : [cell]
   emit('select', cell.symbol, cell.instrument_id)
 }
 const activeNode = computed(() => map.value?.nodes.find(node => node.node_id === selectedNode.value) ?? null)
@@ -1241,7 +1242,7 @@ function selectCanvasSearch(event: KeyboardEvent) {
   if (event.key !== 'Enter') return
   const cell = canvasSearchMatch.value
   if (!cell) return
-  selectedIds.value = [cell.instrument_id]
+  selectedMembers.value = [cell]
   hoveredCell.value = cell
   emit('select', cell.symbol, cell.instrument_id)
 }
@@ -1441,7 +1442,7 @@ async function resolvePythonBreadthRun(generation = runGeneration) {
 
 function selectNode(nodeId: string | null) {
   selectedNode.value = nodeId
-  selectedIds.value = []
+  selectedMembers.value = []
   resetViewport()
 }
 function clampPan(value: number) {
@@ -1581,7 +1582,7 @@ async function saveLockedSource(memberIds: number[], name: string) {
     sourcePublicationTargetId = saved.source_id
     sourceId.value = saved.source_id
     explicitSymbols.value = ''
-    selectedIds.value = []
+    selectedMembers.value = []
     lockedSourceName.value = ''
     explicitWatchlistName.value = ''
     publicationMessage.value = normalizedIds.length + ' canonical member' + (normalizedIds.length === 1 ? '' : 's') + ' saved as locked source ' + saved.name
@@ -1607,21 +1608,15 @@ async function saveExplicitLockedSource() {
 
 function publishAnalysis(target: 'breadth' | 'study_lab', scope: 'full' | 'selection' = 'full') {
   if (!sourceId.value) return
-  const selectedSymbols = selectedIds.value
-    .map(instrumentId => map.value?.cells.find(cell => cell.instrument_id === instrumentId)?.symbol)
-    .filter((symbol): symbol is string => Boolean(symbol))
   emit('publishAnalysis', {
     target,
     sourceId: sourceId.value,
     selectedIds: [...selectedIds.value],
-    selectedSymbols,
+    selectedSymbols: [...selectedSymbols.value],
     scope,
   })
 }
 
-const selectedMembers = computed(() => selectedIds.value
-  .map(instrumentId => map.value?.cells.find(cell => cell.instrument_id === instrumentId))
-  .filter((cell): cell is NonNullable<typeof cell> => Boolean(cell)))
 const selectedSymbols = computed(() => selectedMembers.value.map(cell => cell.symbol))
 const selectedMemberAnnouncement = computed(() => {
   const symbols = selectedSymbols.value
@@ -1755,7 +1750,7 @@ async function loadSnapshot() {
     activeSnapshotName.value = snapshot.name
     snapshotName.value = snapshot.name
     selectedNode.value = null
-    selectedIds.value = []
+    selectedMembers.value = []
     resetViewport()
   } catch (cause) {
     if (componentMounted && generation === snapshotGeneration && snapshotSelectionId.value === String(snapshotId)) {
@@ -1874,7 +1869,7 @@ async function run() {
     snapshotSelectionId.value = ''
     activeSnapshotName.value = ''
     selectedNode.value = null
-    selectedIds.value = []
+    selectedMembers.value = []
     resetViewport()
   } catch (cause) {
     if (!componentMounted || generation !== runGeneration) return
