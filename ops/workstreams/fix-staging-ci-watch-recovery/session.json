@@ -1,9 +1,39 @@
 {
-  "acceptance_criteria": [],
-  "active_session_id": "b12c73e0-2ad3-420f-9fe9-4fa11209f8d7",
+  "acceptance_criteria": [
+    {
+      "id": "WATCH1",
+      "text": "Polling conserves public API requests without treating unavailable CI as passing or altering retry/test acceptance."
+    },
+    {
+      "id": "WATCH2",
+      "text": "Exact-current reconciliation validates recorded starting/source ancestry and unchanged staging before and after the existing exhaustive CI gate; mismatch/red/pending retain degraded state."
+    },
+    {
+      "id": "WATCH3",
+      "text": "Focused positive/negative workflow tests and normal exact-source CI pass, then canonical remediation integration and exact staging exhaustive gates remain required."
+    }
+  ],
+  "active_session_id": null,
   "branch": "fix/staging-ci-watch-recovery",
-  "dirty_paths": [],
+  "claim": {
+    "branch": "fix/staging-ci-watch-recovery",
+    "host": "m920q",
+    "session_id": "b12c73e0-2ad3-420f-9fe9-4fa11209f8d7",
+    "started_at": "2026-10-16T07:24:52.155103+00:00",
+    "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-staging-ci-watch-recovery",
+    "worktree_id": "fix-staging-ci-watch-recovery-7b02aabb4f"
+  },
+  "dirty_paths": [
+    "ps/workstreams/fix-staging-ci-watch-recovery/handoff.md",
+    "ops/workstreams/fix-staging-ci-watch-recovery/plan.yaml",
+    "ops/workstreams/fix-staging-ci-watch-recovery/session.json",
+    "ops/workstreams/fix-staging-ci-watch-recovery/validation.jsonl"
+  ],
   "docker": {
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+  },
+  "docker_before_cleanup": {
     "accounting_complete": true,
     "available": true,
     "build_cache_bytes": null,
@@ -25,6 +55,8 @@
     "worktree_id": "fix-staging-ci-watch-recovery-7b02aabb4f"
   },
   "docker_ready": null,
+  "finished": true,
+  "finished_at": "2026-10-16T08:02:11.952601+00:00",
   "goal_budget_policy": "unbounded_unless_human_authorized",
   "goal_objective": "Advance fix/staging-ci-watch-recovery: Start coordinating the four-feature staging integration. Proceed until you either have no way to continue and/or require my action for something. Technical repairs: Yes I approve, and you do not need my acceptance to close it off; do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Scope: repair coordinator read-only CI watch exhaustion and exact-source interrupted-watch recovery; no product/test-policy/deployment/data changes.. Acceptance criteria: WATCH1: Polling conserves public API requests without treating unavailable CI as passing or altering retry/test acceptance.; WATCH2: Exact-current reconciliation validates recorded starting/source ancestry and unchanged staging before and after the existing exhaustive CI gate; mismatch/red/pending retain degraded state.; WATCH3: Focused positive/negative workflow tests and normal exact-source CI pass, then canonical remediation integration and exact staging exhaustive gates remain required.. Required local profile: unit. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
   "goal_recorded_at": "2026-10-16T07:26:21.790883+00:00",
@@ -34,27 +66,36 @@
   "goal_request_state": "planning_required",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "9756ff33366b51de6f66d66663436bd7f3ee0d7b",
+  "head": "c08b93a3c2f7b1f7349850b79dc7b5ee0d3bc18d",
   "implementation_sha": "d184d5a99a2983362261b4fa9ddb5fca1926899a",
-  "local_validation_profile": "pending_agent_assessment",
-  "next_action": "continue implementation from the branch workstream",
+  "interrupted": true,
+  "last_human_progress_update": "2026-10-16T08:01:40.060443+00:00",
+  "local_validation_profile": "unit",
+  "next_action": "Explicit implementation-to-coordinator handoff of validated c08 technical repair: publish these four intentional own closure/session files, await final exact normal CI and canonical exact-degraded remediation/full staging exhaustive. Root whole four-feature goal01a115f5-8fd9-7951-ab39-0e484eb17135 remainsACTIVE and unbounded; no product checkpoint accepted or deployment authorized.",
   "parent_branch": "staging",
-  "plan_hash": "ec3ec2a4d29bab4971edb11ac8ebd96bd03b2a17f3d2a879debc793ad8d2e97e",
+  "plan_hash": "5e83379b6427852f72197b80eb97e2b68bdeca1cba8e62e7e2061318d6d28fa0",
   "planning_required": true,
   "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
-    "completed": [],
+    "completed": [
+      "WATCH1",
+      "WATCH2",
+      "WATCH3"
+    ],
     "current_blocker": "none",
-    "current_phase": "plan",
-    "total": 0
+    "current_phase": "delegated_technical_closure_and_coordinator_handoff",
+    "next_action": "Publish final own closure metadata and require exact normal CI then canonical exact-degraded remediation/staging exhaustive; whole root four-feature goal ACTIVE, no product checkpoint acceptance.",
+    "total": 3,
+    "updated_at": "2026-10-16T08:01:40.060425+00:00"
   },
-  "remote": "9756ff33366b51de6f66d66663436bd7f3ee0d7b",
+  "remote": "c08b93a3c2f7b1f7349850b79dc7b5ee0d3bc18d",
   "remote_sha": "d184d5a99a2983362261b4fa9ddb5fca1926899a",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "b12c73e0-2ad3-420f-9fe9-4fa11209f8d7",
+  "state": "interrupted",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-staging-ci-watch-recovery/ops/workstreams/fix-staging-ci-watch-recovery",
   "workstream_files": [
