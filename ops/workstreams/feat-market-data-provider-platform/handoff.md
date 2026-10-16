@@ -25472,4 +25472,27 @@ exact candidate receipts remain separate gates.
 - No provider activation, paid routing, deployment, trial, or staging feature
   integration is authorized. Stop at `ready_for_human_review` after required
   evidence is complete; coordinator owns integration.
+
+## Conditional checkpoint-acceptance delegation
+
+- Human direction (timestamp supplied as `22:55Z`): to the question “May I
+  accept and merge the four development checkpoints into staging once their
+  required cross-feature contracts and full tests pass, using verified free
+  operations only and leaving quota-held, unreviewed, paid/trial and unsafe
+  operations explicitly disabled, preserving full roadmaps/no deployment/paid
+  activation/operational trial?”, the exact answer was: “Yes—approve that
+  initial scope and handle checkpoint acceptance.”
+- This delegates conditional technical checkpoint acceptance to the central
+  coordinator after exact-source contracts and required tests pass. It does not
+  accept this source, waive full local/exact-source CI, authorize this feature
+  agent to integrate, authorize deployment, activate paid/trial routes, start
+  the operational trial, or permit data cleanup. Verified free operations only;
+  held, unreviewed, paid/trial and unsafe operations remain disabled; the full
+  roadmap stays open. Authority record:
+  `/home/m920q/charting-platform/.ai/staging-attempts/four-feature-coordination-2026-10-15.json#checkpoint_acceptance_delegation_question`.
+- Context classification: the already-published `b09ebb1` commit includes the
+  73-file Ruff formatting normalization identified by the formatter check,
+  together with the account-usage fix and tests. This broad formatting work is
+  complete and published; do not rewrite history to split it. No new broad
+  formatting changes are part of this continuation.
 *** End of File

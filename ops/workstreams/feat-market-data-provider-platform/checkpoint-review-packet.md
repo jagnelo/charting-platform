@@ -5,6 +5,15 @@ packet does not authorize provider activation, paid routing, deployment, the
 30-day operational trial, or staging integration. The complete roadmap remains
 open.
 
+The human's conditional checkpoint-acceptance delegation (timestamp supplied
+as `22:55Z`) is recorded in `plan.yaml` and `handoff.md`: “Yes—approve that
+initial scope and handle checkpoint acceptance.” The coordinator may accept
+and merge the four checkpoints only after required cross-feature contracts and
+full tests pass, using verified free operations and keeping held, unreviewed,
+paid/trial and unsafe operations disabled. This is not acceptance of this exact
+source and does not waive validation, authorize this feature agent to
+integrate, permit deployment/paid/trial activation, or allow cleanup.
+
 ## Exact-source evidence boundary
 
 - Current branch HEAD is clean, pushed `b09ebb1f3bd68ad7a0fbdcf14a779d10d9737841`.
@@ -28,6 +37,11 @@ open.
   rejected because a later target stage runs credentialed provider probes and
   can consume shared quota. No local provider probe ran. This full local profile
   is therefore not green.
+- Published commit `b09ebb1` also contains the already-completed broad Ruff
+  formatting normalization (73 files identified by the formatter check)
+  alongside the account-usage fix/tests. This formatting context is classified
+  as complete and published; its history will not be rewritten. This
+  continuation adds no broad formatting edits.
 - A no-transport preflight on exact source `b09ebb1` evaluated 27 providers,
   admitted 21 and quarantined six: Alpha Vantage, CTA Plan, Dinari, Marketstack,
   Nasdaq, and Tiingo. It sent zero provider requests. EODHD is not quarantined.
@@ -82,17 +96,19 @@ discarded. No provider has been activated or routed through paid credentials.
 
 ## Next gates
 
-1. Resolve the remaining full-local-profile gate. Its first attempt stopped
-   before provider tests at a sandbox `EPERM`; the full target also includes a
-   real provider-probe stage that could consume shared quota. No provider probe
-   was executed. Do not bypass that gate by silently omitting or relabeling the
-   provider stage.
+1. Commit the recorded conditional-acceptance direction, hold source changes,
+   then run the full local profile once. Its provider-probe stage may use only
+   verified free operations that pass provider-specific quota admission; keep
+   held, unreviewed, paid/trial and unsafe operations disabled. The earlier
+   attempt stopped at sandbox `EPERM` before provider probes and made no
+   provider requests.
 2. Preserve the six current quota/contract holds. Do not call them or change
    admission policy without fresh exact admission facts. Do not alter the
    historical live receipt or spend held quota for cosmetic freshness.
-3. After validation is terminal, publish a clean, exact-source review packet
-   and request concrete human acceptance. Staging integration is coordinator
-   owned; human acceptance of this checkpoint has not been given.
+3. After validation is terminal, refresh the clean exact-source packet for
+   coordinator review. Conditional checkpoint-acceptance authority is delegated
+   to the coordinator, but this source is not yet accepted. Staging integration
+   remains coordinator-owned and still requires terminal tests/contracts.
 4. Preserve the remaining roadmap: aggregate recurring-cost admission,
    complete US universe/lifecycle reconciliation, downstream consumer wiring,
    environment-specific secret-store onboarding, outstanding provider live

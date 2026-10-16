@@ -139,6 +139,26 @@ integration_checkpoint:
   planning_authorization: "Human instruction on 2026-10-15 to consume the staging coordinator's checkpoint policy and prioritize the integration checkpoint while preserving the full roadmap. Source policy: staging commit e4d10ce0d7abc0056befca06831539fb36287043."
   acceptance_state: pending_human_review
   human_closure_authorization: pending
+  conditional_checkpoint_acceptance_delegation:
+    recorded_at: "22:55Z (user-provided timestamp)"
+    exact_question: >-
+      May I accept and merge the four development checkpoints into staging once
+      their required cross-feature contracts and full tests pass, using verified
+      free operations only and leaving quota-held, unreviewed, paid/trial and
+      unsafe operations explicitly disabled, preserving full roadmaps/no
+      deployment/paid activation/operational trial?
+    exact_answer: >-
+      Yes—approve that initial scope and handle checkpoint acceptance.
+    boundary: >-
+      This delegates conditional technical checkpoint acceptance to the central
+      coordinator after exact-source contracts and required tests pass. It does
+      not accept the current source, waive required contracts or full local and
+      exact-source CI validation, authorize this feature agent to integrate,
+      authorize deployment, enable paid/trial routes, start the operational
+      trial, or permit data cleanup. Verified free operations only; quota-held,
+      unreviewed, paid/trial and unsafe operations remain disabled. The full
+      roadmap remains open.
+    authority_record: "/home/m920q/charting-platform/.ai/staging-attempts/four-feature-coordination-2026-10-15.json#checkpoint_acceptance_delegation_question"
   deferral_authorization_state: pending_human_checkpoint_acceptance
   deferral_rule: "Keep deferred or excluded operations non-routable with tested unavailable behavior. If an operation is required for checkpoint acceptance but excluded, record its exact operation-level reason and obtain a concrete human disposition; do not treat temporary quota holds as accepted permanent deferrals."
   checkpoint_scope_boundary: "ICP1 requires tested stable identity/provenance/history/quarantine and legacy compatibility plus honest mapping-gap reporting, not a fresh complete NMS/OTC/SEC universe. ICP5 requires tested local secret/config boundaries and exact-source branch validation, not GitHub/RPi/deployment secret-store onboarding. ICP6 requires producer success/unavailable evidence and named downstream owners/remainders, not sibling implementation before Provider green staging. The free-only gate denies paid market-data routes regardless of ALLOW_PAID_PROVIDER_ROUTING and denies trials; unreviewed market-data routes stay denied except a provider-declared exact-operation zero-billing account-usage bootstrap with first-party evidence and explicit zero billing-dimension cost. The sole present exception is EODHD /api/user: zero daily API-call credits, while requests_per_minute remains charged. MarketData.app /user/ consumes one credit and is not exempt. Full-universe reconciliation, target secret stores, and downstream adapter/UI wiring remain roadmap or post-integration work. Preserve source-bound provider-live evidence exactly; current retained 20/27 receipt is incomplete and is not rebound to later commits."
@@ -7351,13 +7371,31 @@ current_gate_checkpoint: >-
       requests); it was not rebound. ICP1-7 packet refreshed; checkpoint
       acceptance remains pending and no merge, provider activation, paid route,
       deployment, or trial is authorized.
+    - >-
+      Human checkpoint acceptance delegation recorded at 22:55Z (user-provided
+      timestamp). Exact question: may the coordinator accept and merge the four
+      development checkpoints into staging once required cross-feature contracts
+      and full tests pass, using verified free operations only and leaving
+      quota-held, unreviewed, paid/trial and unsafe operations disabled,
+      preserving full roadmaps/no deployment/paid activation/operational trial?
+      Exact answer: "Yes—approve that initial scope and handle checkpoint
+      acceptance." This grants the coordinator conditional acceptance
+      authority after technical gates pass. It does not accept current source,
+      waive full tests, permit this feature agent to integrate, authorize
+      deployment or paid/trial activation, or allow data cleanup. Full roadmap
+      stays open. The published `b09ebb1` commit also contains mechanical Ruff
+      formatting after the formatter check identified 73 previously unformatted
+      files, alongside the account-usage fix and focused tests. That broad
+      formatting context is already published and will not be history-rewritten;
+      this checkpoint adds no broad formatting changes.
   next_action: >-
-    Resolve the remaining full local integration profile for `b09ebb1` without
-    bypassing its credentialed provider-probe stage: the first attempt stopped
-    at npm ci with sandbox EPERM before any provider probe; privileged whole-
-    target retry was denied because the target can consume provider quota.
-    Preserve current quota holds and the exact-source live receipt boundary.
-    Then publish the clean review packet for concrete human checkpoint
-    acceptance. Preserve every original criterion and the post-integration
-    30-day trial. Stop at ready_for_human_review; do not integrate, deploy,
-    activate paid routing, start the trial, or modify sibling worktrees.
+    Commit and push the recorded conditional acceptance delegation, then hold
+    source changes while running the required full local integration profile
+    once. Its admitted live tests may use only verified free operations whose
+    provider-specific quota preflight passes; keep every held/unreviewed/
+    paid/trial/unsafe operation disabled. Bind all results to that exact
+    candidate, preserve responses and quota records, then complete exact-source
+    CI and refresh the review packet. The coordinator—not this feature agent—
+    owns conditional checkpoint acceptance and staging integration. Preserve
+    every original criterion and the post-integration 30-day trial. No
+    deployment, paid activation, trial, or data cleanup.
