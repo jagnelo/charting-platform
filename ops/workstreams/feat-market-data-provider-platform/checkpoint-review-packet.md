@@ -1,10 +1,14 @@
 # Provider integration checkpoint review packet
 
-Status: not yet eligible for conditional coordinator acceptance: exact-source
-full local validation is red. Acceptance authority is delegated to the central
-coordinator only after required contracts and tests pass. This packet does not
-authorize provider activation, paid routing, deployment, the 30-day operational
-trial, or feature-agent staging integration. The complete roadmap remains open.
+Status: not yet eligible for conditional coordinator acceptance. Provider
+backend and exact functional browser suites pass on local candidate
+`56e309b58035f748f0ea14d6dcc7cde88a5d1b9a`; the separate strict visual-parity
+gate is red on three Study Lab snapshots, and exact-source hosted CI plus a
+fresh provider-operation receipt remain outstanding. Acceptance authority is
+delegated to the central coordinator only after required contracts and tests
+pass. This packet does not authorize provider activation, paid routing,
+deployment, the 30-day operational trial, or feature-agent staging integration.
+The complete roadmap remains open.
 
 The human's conditional checkpoint-acceptance delegation (timestamp supplied
 as `22:55Z`) is recorded in `plan.yaml` and `handoff.md`: “Yes—approve that
@@ -17,65 +21,60 @@ integrate, permit deployment/paid/trial activation, or allow cleanup.
 
 ## Exact-source evidence boundary
 
-- Current application source tested locally was clean, pushed
-  `575a67bab98407fbd9fcf501b1ee9aadd88bef59` (docs-only commits after the
-  account-usage code fix at `b09ebb1f3bd68ad7a0fbdcf14a779d10d9737841`). The
-  branch contains released common-repair staging `82d881e76be8de538abb6ec5c454d96afe0ee56a`
-  through merge `2845817d37296fae8728d72cd22a95082d67081f`. This is common
-  repair only; no Provider feature acceptance is implied. No Provider-owned
-  frontend files changed.
-- Exact-source local Docker backend coverage passed 2,775 unit tests in 56
-  shards and 395 PostgreSQL/Redis integration tests, with 82% combined
-  coverage. The account-usage/secret-wiring suite passed 104/104. Ruff,
-  formatting, type checks, diff checks, and branch workstream validation passed.
-- The exact-source `make validate-integration` run on `575a67b` passed dependency
-  and lock checks, migration-head check, npm install, lint/type checks, backend
-  coverage, frontend unit tests/build, Compose contract, research-runner probes,
-  and the isolated stack health checks. The migration-compatibility check
-  correctly skipped because there were no migration changes since the released
-  baseline. It stopped red at `e2e-functional`; therefore the required full
-  local profile has not passed.
-- The first browser-stage attempt failed before assertions because Playwright
-  could not write to ignored `frontend/test-results` and
-  `frontend/playwright-report` directories owned by the Docker user. The
-  existing artifacts were preserved. A follow-up ran the same 260-case suite
-  against the branch-scoped stack with its provider-egress-deny service
-  healthy, directing new output to `/tmp`: 150 passed, 109 skipped, and one
-  failed, with no retries. The failure is
-  `F8n-cross-window — linked crosshair timestamps propagate through a chart
-  pop-out` at `frontend/tests/e2e/flows.spec.ts:1847`; the linked cursor stayed
-  unchanged through the test's 10-second wait. This UI test is outside Provider
-  ownership; no frontend source was changed. Visual cases ran to completion.
-- The isolated browser stack containers/network were stopped without `-v`; its
-  generated database volumes and existing Playwright artifacts were preserved.
-- Historical exact-source GitHub run `38832540358` for `b09ebb1` has Backend Tests,
-  Frontend Unit Tests, Playwright E2E, and Branch-declared Tests green.
-  Exhaustive Integration Gate was skipped because this was a feature-branch
-  push, so this hosted run is not the staging exhaustive gate and is not CI
-  evidence for later docs-only commit `575a67b`. Exact-source hosted CI for the
-  current tip still needs confirmation.
+- Candidate `56e309b58035f748f0ea14d6dcc7cde88a5d1b9a` contains the FMP plan
+  admission correction, combined backend coverage enforcement in CI, and
+  policy regression tests. It is one commit ahead of `origin` and not yet
+  published. The branch contains released common-repair staging
+  `82d881e76be8de538abb6ec5c454d96afe0ee56a` through merge
+  `2845817d37296fae8728d72cd22a95082d67081f`; this is common repair only, not
+  Provider acceptance. Provider-owned frontend files remain unchanged.
+- Full local profile on this candidate passed dependency/lock checks,
+  migration-head check (migration compatibility skipped because no migrations
+  changed since the released baseline), npm install, Ruff, formatting,
+  TypeScript, backend coverage, frontend unit tests/build, Compose contract,
+  research-runner probes, and isolated stack health. Docker backend tests passed
+  2,792 unit tests in 56 shards and 395 PostgreSQL/Redis integration tests.
+- The `make validate-integration` process exited red at `e2e-functional`
+  before assertions because existing ignored `frontend/test-results` and
+  `frontend/playwright-report` directories are owned by `nobody` and are not
+  writable by the host test process. The original artifacts were preserved;
+  the host could not change ownership under the workspace filesystem policy.
+  To verify the actual browser suite without overwriting those artifacts, the
+  same configured 260-case Playwright matrix was run on this source against the
+  isolated branch stack, with provider egress denied and new artifacts under
+  `/tmp`: 154 passed, 106 expected skips, zero failed, zero retries. The
+  earlier `host.docker.internal` attempt was invalid because it broke secure
+  browser APIs and was interrupted; it is not counted as test evidence.
+- The full profile's separate strict visual-parity stage was run on this source
+  with its normal 104 cases and strict board-parity flag: 101 passed, 3 failed,
+  zero retries. Failures are `Study Lab structured-result gap` at 1080p/100%
+  (1.0% pixel difference, above the 0.5% limit), and `Study Lab sandbox-error
+  gap` at 1080p/100% and 1080p/125% (about 1.0% each). Other viewport cases
+  passed. These are frontend snapshot failures outside Provider ownership; no
+  frontend source or snapshots were changed. Strict visual artifacts are
+  retained in `/tmp/provider-e2e-host.563kL7/visual`.
+- The isolated browser stack was stopped without `docker compose down -v`;
+  its generated volumes and artifacts remain preserved. Provider egress was
+  denied during both browser runs; no provider HTTP requests were made.
+- Prior feature-branch CI run `38842402319` is green for its then-exact source
+  `8f7f7609d61ad7f6337df050a84fa111913b94e6`; it predates candidate
+  `56e309b`. Exact-source hosted CI for `56e309b` is outstanding.
 - Published commit `b09ebb1` also contains the already-completed broad Ruff
   formatting normalization (73 files identified by the formatter check)
   alongside the account-usage fix/tests. This formatting context is classified
   as complete and published; its history will not be rewritten. This
   continuation adds no broad formatting edits.
-- The latest no-transport preflight on exact source `b09ebb1` evaluated 27 providers,
-  admitted 21 and quarantined six: Alpha Vantage, CTA Plan, Dinari, Marketstack,
-  Nasdaq, and Tiingo. It sent zero provider requests. EODHD is not quarantined.
-  Specific current holds are listed below. This preflight is not live acceptance.
-- The provider-probe stage of the full local profile returned success, but no
-  new durable live run is evidenced for `575a67b`: the append-only validation
-  journal has no live record for that source, and the private usage ledger's
-  latest run remains `186ab98a-6971-4a3f-affd-d0a2d8286106` at 2026-10-15
-  20:56Z. This stage is not claimed as live success. No provider calls were
-  repeated to resolve the missing receipt; reconcile the execution record and
-  do not repeat calls without current provider-specific admission.
-- The latest retained provider-live receipt remains bound only to
-  `1afb89658d1d84e801069e1f19d7ee4f985c7e1e`
-  (`186ab98a-6971-4a3f-affd-d0a2d8286106`, 2026-10-15 20:56Z): 20/27 manifests,
-  56 cases passed, zero failed/skipped, 136 HTTP requests and 55,732,001
-  response bytes. It is incomplete and not evidence for this source. Twenty
-  durable quota-ledger receipts were recorded. No receipt was rebound.
+- The latest durable no-transport preflight before the current candidate was
+  bound to `8f7f7609`; its exact held/admitted status is stale. A new exact-source
+  no-transport preflight and the provider operation inventory are pending.
+- The full-profile provider-probe fixture stage is not live acceptance. No
+  current-candidate live receipt exists yet. The historical live receipt
+  remains bound only to `1afb89658d1d84e801069e1f19d7ee4f985c7e1e`
+  (`186ab98a-6971-4a3f-affd-d0a2d8286106`): 20/27 manifests, 56 cases, 136
+  HTTP requests and 55,732,001 response bytes. It is incomplete and is not
+  rebound to this candidate. Current live execution must follow a fresh
+  provider-specific durable quota admission; held operations must remain
+  untouched.
 - The historical live receipt has no per-run response-archive row count. No
   full scan of the multi-gigabyte private archive was done; retention evidence
   is the operation-level harness check and lack of archive-failure

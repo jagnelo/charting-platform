@@ -278,6 +278,35 @@ integration_checkpoint:
     provider holds remain, and Dinari quota contract/reset/cost mapping and
     Marketstack discovery cost/MIC remain unresolved. This preflight is not a
     live acceptance receipt and does not rebind the historical 20/27 result.
+
+    Update 2026-10-16 04:47Z supersedes older Provider browser/profile entries
+    above for the current continuation. Candidate `56e309b58035f748f0ea14d6dcc7cde88a5d1b9a`
+    adds fail-closed FMP plan admission based on `FMP_REVIEWED_PLAN` (Basic
+    free; Starter/Premium/Ultimate paid; unknown unreviewed), exercises paid
+    denial in full/case/account-only runner modes for both paid-toggle values,
+    and makes CI enforce combined backend coverage at 75% using appended
+    integration coverage. Focused policy tests passed 18/18; lint, format,
+    workflow checks, YAML parse, and diff checks passed.
+
+    The Docker full backend gate on this candidate passed 2,792 unit tests in
+    56 shards and 395 PostgreSQL/Redis integration tests. The rest of
+    `make validate-integration` passed dependencies, migrations, lint/types,
+    frontend unit/build, Compose, research-runner probes, and isolated stack
+    health. Its functional E2E wrapper stopped before assertions because the
+    existing ignored Playwright output directories are owned by `nobody` and
+    are not writable by the host process. The same configured 260-case browser
+    matrix was then run from the version-matched Playwright container against
+    this candidate on the isolated stack with provider egress denied: 154
+    passed, 106 expected skips, zero failed, zero retries. The separately
+    required strict 104-case visual-parity stage had 101 pass and three
+    failures: structured-result at 1080p/100%, sandbox-error at 1080p/100%,
+    and sandbox-error at 1080p/125%, each about 1.0% pixel difference against
+    a 0.5% limit. No frontend files or snapshots changed. Therefore the full
+    local profile remains red on the strict visual gate; it is not accepted.
+    Both browser stacks were stopped without deleting volumes or artifacts.
+    Exact-source hosted CI and a fresh durable no-transport/live operation
+    disposition for this candidate remain outstanding. This update adds no
+    provider requests and does not rebind the historical 20/27 live receipt.
   downstream_consumers:
     - feat/etf-holdings-constituents
     - feat/tc2000-frontend-rework
@@ -5656,25 +5685,37 @@ progress:
       received an empty runtime path. The full browser profile, provider
       evidence, external CI/deployment stores, human checkpoint acceptance,
       and complete roadmap remain open.
+    - >-
+      2026-10-16 04:47Z current continuation: candidate
+      `56e309b58035f748f0ea14d6dcc7cde88a5d1b9a` passed the Docker backend gate
+      (2,792 unit tests in 56 shards and 395 PostgreSQL/Redis integration
+      tests). The no-live full profile passed dependency, migration-head,
+      lint/type, frontend unit/build, Compose, research-runner, and isolated
+      stack-health stages. Its regular Playwright wrapper could not write old
+      ignored Docker-owned report directories; the equivalent full 260-case
+      suite ran from the version-matched Playwright container with provider
+      egress denied: 154 passed, 106 expected skips, zero failures/retries.
+      The separate strict visual stage completed 101/104, with three Study Lab
+      snapshot differences of about 1.0% against the 0.5% threshold. The
+      functional and strict-visual artifacts remain under `/tmp`; stack
+      volumes were preserved. Exact-source CI and current-source provider live
+      dispositions remain pending; no frontend file was changed, no provider
+      request was made, and the historical live receipt remains source-bound.
   completed: []
   total: 7
   current_phase: integration-checkpoint-contract-and-evidence
   current_blocker: >-
-    Checkpoint preparation is authorized but acceptance is pending. The
-    consumer contract examples, 2,771-unit/395-integration backend gate, and
-    50-migration compatibility gate are recorded. Exact candidate receipts
-    verify 19/27 providers; the eight missing manifests are quarantined by the
-    fresh no-transport preflight and were not called. The full browser profile
-    has one overlay-intercepted UI timeout (153 passed, 106 skipped). Direct
-    workstream validation passed for 30 records. `make branch-validate` also
-    exited successfully but emitted nonfatal runtime-bootstrap warnings because
-    this sandbox could not prepare the user's private quota-ledger directory;
-    its three subsequent optional `sed` reads received an empty runtime path.
-    Tested unavailable behavior for all proposed exclusions, remaining consumer contract checks,
-    external CI/deployment secret-store verification, and human acceptance of
-    proposed deferrals remain open. A clean pushed-source closure summary is
-    also required. No merge, deployment, provider activation, or operational
-    trial is authorized.
+    Candidate 56e309b is one commit ahead of origin. The Docker full backend
+    gate passed 2,792 unit and 395 PostgreSQL/Redis integration tests, and the
+    full functional browser matrix passed 154 with 106 expected skips. The
+    full local profile remains red: its normal Playwright wrapper cannot write
+    to pre-existing Docker-owned output directories, and the strict visual
+    parity stage has three Study Lab snapshot differences at about 1.0% against
+    the 0.5% limit. No frontend files changed. Exact-source hosted CI and fresh
+    current-source provider admission/live evidence remain open. Keep
+    quota-held providers excluded. The conditional acceptance delegation is
+    active, but it does not accept this source or waive these gates. No merge,
+    deployment, provider activation, trial, or data cleanup is authorized.
   previous_goal_blocker: >-
     Continued local implementation is not blocked by an owner decision. The
     prior staged candidate is `32dafe227755d7a890bfeb4d96ffc53542af7ba7`; its
@@ -7412,14 +7453,17 @@ current_gate_checkpoint: >-
       acceptance; the cross-window UI failure remains with its frontend owner,
       and source-bound live evidence/CI status remain to be reconciled.
   next_action: >-
-    Coordinate the exact F8n-cross-window failure with its frontend owner; do
-    not edit frontend or sibling files from this Provider branch. Reconcile
-    the no-new-live-receipt outcome for the provider-probe stage without
-    spending quota again. After the owning fix is available in an authorized
-    source context, rerun the required full local profile and exact-source CI
-    with admitted verified-free operations only; keep held, unreviewed,
-    paid/trial and unsafe operations disabled. Refresh the clean ICP1-7 packet
-    only from current evidence. The coordinator—not this feature agent—owns
-    conditional checkpoint acceptance and staging integration. Preserve all
-    original criteria and the post-integration 30-day trial. No deployment,
-    paid activation, trial, or data cleanup.
+    Finish current-source durable quota preflight and, only for operations
+    admitted by it, the bounded provider live suite; publish exact enabled
+    successes and every disabled/held operation. Push the FMP plan-admission
+    and combined-coverage correction and refreshed evidence, then obtain
+    exact-source hosted CI. The full functional browser matrix passed 154/260
+    with 106 expected skips, but the separate strict visual gate is red on
+    three Study Lab screenshots; coordinate those frontend-owned snapshot
+    failures without changing frontend files here. Keep held providers and the
+    historical 20/27 receipt unchanged. Prepare a clean ICP1-7 packet for
+    coordinator review only after required source-bound evidence is complete.
+    The coordinator owns conditional checkpoint acceptance and staging
+    integration. Preserve the complete roadmap, the 30-day trial, and all
+    queried data; no deployment, paid activation, or operational trial is
+    authorized.

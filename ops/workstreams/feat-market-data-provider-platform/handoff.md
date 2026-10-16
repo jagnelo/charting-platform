@@ -1,5 +1,59 @@
 # feat/market-data-provider-platform
 
+## 2026-10-16 04:47Z — Provider policy correction and full-gate continuation
+
+- Candidate `56e309b58035f748f0ea14d6dcc7cde88a5d1b9a` adds the selected FMP
+  plan to runtime entitlement admission (`FMP_REVIEWED_PLAN`: Basic is free;
+  Starter/Premium/Ultimate are paid; unknown plans fail closed), applies the
+  free-only decision in normal, case-only, and account-usage-only live-runner
+  modes, and enforces combined backend coverage at 75% in hosted CI. Tests
+  cover paid FMP transport denial under both `ALLOW_PAID_PROVIDER_ROUTING`
+  settings and plan mapping. Focused policy tests passed 18/18; Ruff,
+  formatting, YAML/static workflow checks, diff checks, and `make branch-validate`
+  passed. The commit is currently ahead of origin; publication and exact-source
+  hosted CI remain to be completed.
+- One full `RUN_LIVE_PROVIDER_TESTS=0 make validate-integration` attempt on this
+  candidate passed the Docker backend gate (2,792 unit tests across 56 shards;
+  395 PostgreSQL/Redis integration tests), dependencies, migration-head check
+  (migration compatibility correctly skipped: no changed migrations since the
+  released baseline), lint/format/type checks, frontend units/build, Compose
+  contract, research-runner probes, and isolated stack health. It stopped red
+  at the functional Playwright wrapper before assertions because existing
+  ignored output directories are owned by `nobody` and unwritable by the host
+  runner. Original artifacts were preserved.
+- Using the version-matched Playwright 1.62.1 container as UID 65534, localhost
+  secure context, isolated stack, and provider-egress-deny service, the full
+  configured 260-case browser matrix completed: 154 passed, 106 expected
+  skips, zero failures and zero retries. Its new output is retained at
+  `/tmp/provider-e2e-host.563kL7` (first invalid host-alias attempt is also
+  retained separately and is not test evidence). The profile's separate
+  strict visual-parity matrix completed 101/104, with three failures: Study Lab
+  structured-result gap at 1080p/100% (1.0% pixels) and sandbox-error gap at
+  1080p/100% and 1080p/125% (~1.0% each); the configured threshold is 0.5%.
+  Other visual cases passed. These are frontend-owned snapshot mismatches; no
+  frontend file was changed. Strict artifacts are in
+  `/tmp/provider-e2e-host.563kL7/visual`.
+- Browser stack containers and networks were stopped without `down -v`; all
+  generated test volumes and output artifacts remain preserved. Provider egress
+  was denied; zero provider requests were made during these tests. Full local
+  profile is still red due the strict visual failures, even though the full
+  functional browser matrix is green. Do not alter snapshots or classify the
+  full profile as green from the functional suite alone.
+- Latest central receipt reviewed remains common-repair staging
+  `82d881e76be8de538abb6ec5c454d96afe0ee56a` / CI `38805309009`, released as a
+  shared repair baseline only. Conditional checkpoint acceptance was delegated
+  at 22:55Z for verified-free operations after required contracts/tests; it does
+  not accept this candidate, waive red gates, or authorize this worktree to
+  integrate. No deployment, paid/trial activation, source freeze, or data
+  cleanup is authorized.
+- Next: finish/publish the review packet, run durable no-transport quota
+  admission on the clean published candidate, then run only operations admitted
+  by reviewed-free policy and safe exact quota. Publish exact enabled and
+  disabled/held operation dispositions, push, and verify exact-source hosted
+  CI. Coordinate the strict visual mismatch with its UI owner without changing
+  frontend files here. Keep the original full roadmap open; do not rebind the
+  historical 20/27 receipt.
+
 ## 2026-10-15 08:54Z Tiingo baseline refresh and exact-candidate live validation
 
 - The owner refreshed the Tiingo dashboard: hourly requests 50/50 remaining,
