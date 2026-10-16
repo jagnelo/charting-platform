@@ -354,3 +354,18 @@ assertions, or accept the repair/staging checkpoint. Diagnose the actual drag
 failure before deciding the next source context. The temporary fixture's normal
 scoped teardown has run; retained feature services/data remain out of scope.
 The full backend gate can now run after independently confirming cleanup.
+
+## 10:32 UTC — native backend gate passed; browser failure remains open
+
+After54796 exited and its fixture was removed, exact current source backend
+full gate ran once with the branch-declared OPENBLAS_NUM_THREADS=1 and
+OMP_NUM_THREADS=1 only. It passed1648unit+integration tests in446.02s with
+80.72percent combined coverage against the unchanged75percent requirement.
+Native pytest emitted its expected existing86DeprecationWarnings; no failures.
+The gate's standard owned-resource cleanup returned success and reported no
+containers/images removed or volumes retained. Hosted exact-commit run
+38886754938 for2310fbb86 is still running Backend Tests; its Frontend Unit and
+Branch-declared jobs have completed success. The separately observed source
+probe identified no drag-generated watchlist persistence request after either
+real drag. The full-profile failure remains real and blocks POP4/acceptance;
+104visuals have not run. No merge or product checkpoint acceptance.

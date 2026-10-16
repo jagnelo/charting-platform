@@ -54,5 +54,5 @@ progress:
   completed: [POP1, POP2, POP3]
   total: 5
   current_phase: full-validation-and-drag-failure-diagnosis
-  current_blocker: Full functional selection has a distinct F8u plot-to-watchlist drag failure;104visuals and exact final CI are not accepted. Resource-test correction is implemented and focused105 pass, but complete native backend75percent still needs execution.
-  next_action: Close this operational evidence context, verify fixture cleanup, run the native complete backend gate with bounded numerical parallelism, and inspect the retained F8u trace before proposing any further source context. Preserve failed gates and all original assertions.
+  current_blocker: Full functional selection has a distinct F8u plot-to-watchlist drag failure;104visuals and exact final CI are not accepted. Complete native backend1648 tests/80.72percent passes with the resource-test correction; exact commit CI is still running.
+  next_action: Finish exact-current CI observation. Diagnose F8u through source-qualified trace and a fresh focused real-browser reproduction after making the failed evidence and investigation plan durable. Fix only if a product defect is demonstrated, preserve the ordinary real drag and every assertion, then rerun the entire required full browser/104visual profile on exact source.
