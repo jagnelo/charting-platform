@@ -60,7 +60,7 @@
   "local_validation_profile": "full_stack_browser",
   "next_action": "create the session-local Codex goal from goal_request, then record it as active",
   "parent_branch": "staging",
-  "plan_hash": "d9d8eba72c69e0cfbc2254c980643883ab755ba5702601049c0c3cad26106406",
+  "plan_hash": "fb1984c996fef7d221b44c489bea520a472becf13140c8234ad17944e8a7666f",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [

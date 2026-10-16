@@ -14619,3 +14619,20 @@ or actual post-Provider/ETF/TC consumer and combined PostgreSQL validation.
 Provider retains the first heavy local validation slot; do not launch the
 competing full local gate. The released common-repair baseline remains distinct
 from any accepted product baseline.
+
+## 2026-10-16 — prospective Provider coverage-runner reconciliation
+
+Recorded source-only observations and future merge/test expectations in
+`coverage-runner-reconciliation.md`. Strategy currently executes the v2 package
+in its local combined `test-backend-coverage` target and conditionally in the CI
+unit step. The pending Provider runner uses bounded shards but its current
+`TEST_ROOTS` omit the Strategy package; its CI uses separate unit/integration
+coverage commands and a final combined 75% report. The note requires retaining
+bounded execution while actually collecting and executing the third Strategy
+root after the accepted green Provider baseline arrives, keeping backend's
+existing 55% pytest threshold and the aggregate 75% threshold, and describing
+CI only according to commands that its actual jobs run. It does not add a
+Provider prerequisite or authorize source imports, sibling writes, interim
+combined copies, heavy gates, or runtime/migration contract changes. Provider
+remains pending, and all source heads/contracts must be rechecked at the actual
+green staging reconciliation.

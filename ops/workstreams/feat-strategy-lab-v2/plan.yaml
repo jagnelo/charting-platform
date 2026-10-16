@@ -76,6 +76,7 @@ integration_checkpoint:
     conclusion: success
     evidence: Branch-declared, frontend unit, backend unit/integration and Playwright jobs passed; Exhaustive Integration Gate skipped.
     scope_limit: Hosted exact-source CI only; does not satisfy required local full_stack_browser profile or post-Provider/ETF/TC combined consumer validation.
+  prospective_provider_coverage_reconciliation: ops/workstreams/feat-strategy-lab-v2/coverage-runner-reconciliation.md
   downstream_consumers:
   - Combined workstation and future Strategy Lab frontend
   - Local AI experiment agents
