@@ -44,7 +44,9 @@ class ProviderRecurringCostBudget(Base, TimestampMixin):
 
     __table_args__ = (
         CheckConstraint("id = 1", name="ck_provider_recurring_cost_budget_singleton"),
-        CheckConstraint("monthly_ceiling > 0", name="ck_provider_recurring_cost_budget_positive"),
+        CheckConstraint(
+            "monthly_ceiling >= 0", name="ck_provider_recurring_cost_budget_nonnegative"
+        ),
     )
 
 

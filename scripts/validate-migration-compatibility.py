@@ -317,6 +317,54 @@ def assert_provider_quota_equivalence() -> None:
             "existing-database upgrade"
         )
     print("provider recurring-cost schema equivalence: fresh and existing paths passed")
+    for database in ("chartingdb", "chartingfresh"):
+        negative = run(
+            [
+                "docker",
+                "exec",
+                os.environ["MIGRATION_CONTAINER"],
+                "psql",
+                "-U",
+                "postgres",
+                "-d",
+                database,
+                "-v",
+                "ON_ERROR_STOP=1",
+                "-c",
+                "INSERT INTO provider_recurring_cost_budget "
+                "(id, currency, monthly_ceiling, evidence_source, evidence_version, "
+                "reviewed_at, revision) VALUES "
+                "(1, 'USD', -0.0001, 'migration constraint test', 'negative', now(), 1)",
+            ],
+            check=False,
+        )
+        if negative.returncode == 0 or (
+            "ck_provider_recurring_cost_budget_nonnegative"
+            not in negative.stderr + negative.stdout
+        ):
+            raise SystemExit(
+                f"{database} did not reject a negative recurring-cost ceiling via its named check"
+            )
+        run(
+            [
+                "docker",
+                "exec",
+                os.environ["MIGRATION_CONTAINER"],
+                "psql",
+                "-U",
+                "postgres",
+                "-d",
+                database,
+                "-v",
+                "ON_ERROR_STOP=1",
+                "-c",
+                "INSERT INTO provider_recurring_cost_budget "
+                "(id, currency, monthly_ceiling, evidence_source, evidence_version, "
+                "reviewed_at, revision) VALUES "
+                "(1, 'USD', 0, 'migration constraint test', 'zero', now(), 1)",
+            ]
+        )
+    print("provider recurring-cost budget constraint: zero accepted, negative rejected")
 
 
 def old_head(worktree: Path) -> str:

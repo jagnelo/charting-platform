@@ -616,3 +616,63 @@ def test_recurring_cost_admin_contract_is_admin_only_and_never_activates_provide
         headers=admin_headers,
     )
     assert next_budget_revision.json()["revisions"][0]["revision"] == 2
+
+
+def test_zero_recurring_cost_budget_accepts_free_plan_and_denies_paid_plan(
+    client, admin_headers, db
+):
+    path = "/api/v1/market-data/recurring-costs"
+    budget_response = client.put(
+        f"{path}/budget",
+        headers=admin_headers,
+        json={
+            "monthly_ceiling": "0",
+            "currency": "USD",
+            "evidence_source": "operator-reviewed zero-spend policy",
+            "evidence_version": "test-zero-v1",
+            "reviewed_at": datetime.now(UTC).isoformat(),
+        },
+    )
+    assert budget_response.status_code == 200, budget_response.text
+    assert budget_response.json()["monthly_ceiling"] == 0
+    assert budget_response.json()["paid_activation_authorized"] is False
+
+    free_source = DataSource(name="zero-budget-free", is_active=True)
+    paid_source = DataSource(name="zero-budget-paid", is_active=True)
+    db.add_all([free_source, paid_source])
+    db.flush()
+
+    def payload(source_id: int, plan: str, amount: str):
+        timestamp = datetime.now(UTC).isoformat()
+        return {
+            "data_source_id": source_id,
+            "environment": "production",
+            "billing_account_scope": f"opaque-zero-budget-{source_id}",
+            "configured_plan": plan,
+            "state": "active",
+            "amount": amount,
+            "currency": "USD",
+            "interval_unit": "month",
+            "interval_count": 1,
+            "evidence_source": "reviewed provider pricing evidence",
+            "evidence_version": "test-zero-v1",
+            "evidence_observed_at": timestamp,
+            "effective_at": timestamp,
+        }
+
+    free = client.post(
+        f"{path}/commitments",
+        headers=admin_headers,
+        json=payload(free_source.id, "free-forever", "0"),
+    )
+    assert free.status_code == 201, free.text
+    assert free.json()["paid_activation_authorized"] is False
+
+    paid = client.post(
+        f"{path}/commitments",
+        headers=admin_headers,
+        json=payload(paid_source.id, "reviewed-basic", "0.01"),
+    )
+    assert paid.status_code == 409
+    assert paid.json()["detail"]["reason_code"] == "monthly_ceiling_exceeded"
+    assert db.query(ProviderRecurringCostCommitment).count() == 1

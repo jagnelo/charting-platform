@@ -45,12 +45,19 @@
     "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
   },
   "dirty_paths": [
+    "backend/alembic/versions/b6e9a42d1c73_allow_zero_recurring_cost_budget.py",
+    "backend/app/models/provider_recurring_cost.py",
+    "backend/app/routers/market_data_admin.py",
+    "backend/app/services/provider_recurring_costs.py",
+    "backend/tests/unit/routers/test_market_data_admin_router.py",
+    "backend/tests/unit/migrations/test_provider_recurring_cost_governance.py",
+    "backend/tests/unit/services/test_provider_recurring_costs.py",
     "ops/workstreams/feat-market-data-provider-platform/checkpoint-review-packet.md",
     "ops/workstreams/feat-market-data-provider-platform/handoff.md",
     "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
     "ops/workstreams/feat-market-data-provider-platform/session.json",
     "ops/workstreams/feat-market-data-provider-platform/validation.jsonl",
-    "backend/tests/unit/services/test_provider_recurring_costs.py"
+    "scripts/validate-migration-compatibility.py"
   ],
   "docker": {
     "available": false,
@@ -76,15 +83,15 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "af7913eaef7d9bee41e6e08cfa34486e0a34d838",
-  "implementation_sha": "af7913eaef7d9bee41e6e08cfa34486e0a34d838",
+  "head": "0d4b2b96a12fd9fdbe8c514707952201626ccb7c",
+  "implementation_sha": "0d4b2b96a12fd9fdbe8c514707952201626ccb7c",
   "interrupted": false,
-  "last_checkpoint": "2026-10-16T20:13:54Z",
+  "last_checkpoint": "2026-10-16T20:49:21Z",
   "last_human_progress_update": "2026-10-16T11:12:47.867964+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Exact feature CI 38955620628 is terminal success on source af7913ea for Backend (unit, PostgreSQL integration, combined coverage), Frontend Unit, Playwright E2E, and Branch-declared; Exhaustive skipped by feature policy. The earlier coordinator CI 38943410344 is confirmed green only for ba06bdc6, with 151 passed/109 skipped and no reported retries/flakes/failures; it is not current-source evidence. Elevated current-source no-transport preflight at af7913ea has no global ledger blocker but full-matrix transport is blocked before HTTP by provider-specific admission: 21 provider groups pass their own checks; six are held (CTA and Nasdaq daily directory headroom; Dinari reviewed operation/reset/cost profile; EODHD daily manifest headroom; Marketstack monthly OHLCV headroom plus unresolved discovery cost/MIC; Tiingo plan/hour/day baselines). Zero HTTP/quota spend. Added a proposed→active→trial→active→cancelled recurring-cost regression; bounded cost/admin/OHLCV/coverage tests pass 36/36. Continue ICP2 currency/evidence/reconciliation and ICP6 producer-contract work. Do not invent FX/equivalence policy. Full browser profile remains held until coordinator releases synchronized green staging. Preserve historical red browser profile 1236a367 (TC-owned F9e/F8s). No provider transport, activation, staging integration, deployment, data reset, or cleanup.",
+  "next_action": "Commit the validated zero-ceiling ICP2/ICP6 candidate and push it to the synchronized owner branch for exact-source CI. The current remote ref is verified at 0d4b2b96 via GitHub API; local SSH push DNS resolution failed on first attempt, so retry the authorized push through the approved network path. Preserve all prior receipts, six provider operation holds, and the separate red seeded 260-case browser result; browser rerun remains held until exact synchronized green staging release. No provider transport, activation, staging integration, deployment, reset, cleanup, or invented currency conversion.",
   "parent_branch": "staging",
-  "plan_hash": "835c84aa083fa028ec67a6ec0d0709cb563ace380c0a70ffce1c12d127e5320b",
+  "plan_hash": "35f4eef9073db3c55451bbc864405f8639717df2a04ae720557f1c10338cc5f6",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -114,14 +121,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "Provider exact feature CI 38955620628 is green on source af7913ea for required standard jobs. The full local/browser profile remains held because staging e0cb269afc8460bdc814c93ec71c640f01b2b31f failed exact E2E CI 38947572686. Current-source no-transport preflight is no longer globally blocked by ledger writability; provider-specific holds remain for CTA/Nasdaq daily directory headroom, Dinari reviewed cost/reset contract, EODHD daily manifest headroom, Marketstack monthly OHLCV headroom and unresolved discovery bounds, and Tiingo reviewed plan/hour/day usage baselines. Historical Provider browser red 1236a367 remains TC-owned F9e/F8s. Aggregate cost-currency/equivalence policy, provider plan evidence/reconciliation, downstream ETF wiring, and the full roadmap remain open.",
+    "current_blocker": "Exact CI 38960835914 is terminal green only for clean source 0d4b2b96; the validated dirty zero-ceiling ICP2/ICP6 candidate is not yet committed or covered by hosted CI. Its bounded cost/admin/OHLCV/coverage/SQLite selection passes 41/41 and runtime free-only admission passes 6/6; PostgreSQL fresh/upgrade migration compatibility and concurrency 1/1 remain separately recorded. Workstream validation passes 34/34. The full local/browser profile remains held until exact synchronized green staging is released. Current-source no-transport preflight (af7913ea) records provider-specific holds for CTA/Nasdaq daily directory headroom, Dinari reviewed cost/reset contract, EODHD daily manifest headroom, Marketstack monthly OHLCV headroom/discovery bounds, and Tiingo reviewed plan/hour/day baselines. Historical Provider browser red 1236a367 remains TC-owned F9e/F8s. Aggregate cost-currency/equivalence policy, provider plan evidence/reconciliation, downstream ETF wiring, and the full roadmap remain open.",
     "current_phase": "provider-icp2-recurring-cost-and-icp6-contract-refresh",
-    "next_action": "Continue ICP2 recurring-cost currency/evidence/reconciliation and ICP6 producer-contract work; current bounded cost/admin/OHLCV/coverage selection passed 36/36, including a full one-account proposed→active→trial→active→cancelled cost lifecycle. Do not invent FX/equivalence. Run the normal local profile only after coordinator releases synchronized green staging and its slot. Preserve six provider-specific holds and all evidence; no transport, activation, staging integration, deployment, data reset, or cleanup.",
+    "next_action": "Commit and push the validated zero-ceiling ICP2/ICP6 candidate to the synchronized owner branch, then require exact-source CI. Exact run 38960835914 is green only for clean source 0d4b2b96; run 38943410344 is historical evidence for ba06bdc6 only. Preserve six provider-specific holds and the separate red seeded browser evidence; no provider transport or full browser profile until exact synchronized green staging release; no activation, staging integration, deployment, reset, cleanup, or invented FX.",
     "total": 7,
-    "updated_at": "2026-10-16T20:13:54Z"
+    "updated_at": "2026-10-16T20:58:01Z"
   },
   "remote": "51ebc7d45aa34d2e8790988778ee5e6eec14bdd7",
-  "remote_sha": "af7913eaef7d9bee41e6e08cfa34486e0a34d838",
+  "remote_sha": "0d4b2b96a12fd9fdbe8c514707952201626ccb7c",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-provider-validation-1236-20261016 and provider-playwright-1236-hostaccess-20261016 remain running/preserved; no stop, reset, prune, or cleanup. Browser runner returned to sleep service after focused checks."

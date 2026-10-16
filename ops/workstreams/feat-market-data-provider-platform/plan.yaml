@@ -1,16 +1,58 @@
 schema: 4
-# Current ICP2/ICP6 continuation — 2026-10-16 20:12Z: exact CI run 38955620628
-# is green for required standard jobs on af7913ea. The earlier coordinator
-# receipt 38943410344 remains source-bound to ba06bdc6 only. Added and passed a
-# bounded 36-test recurring-cost/admin/series/coverage regression selection;
-# one account commitment is checked across proposed→active→trial→active→cancelled
-# with all monthly totals and revision snapshots. Current elevated preflight
-# on af7913ea has no global ledger blocker, but full-matrix transport remains
-# blocked before HTTP: 21 providers passed provider-specific admission; six
-# remain held (CTA, Dinari, EODHD, Marketstack, Nasdaq, Tiingo) for headroom or
-# unreviewed cost/reset/usage facts. Zero HTTP/quota spend. No FX rate or
-# currency-equivalence rule is invented; full browser profile remains held
-# until a synchronized green staging release. Preserve every prior receipt.
+# Superseding ICP2/ICP6 status — 2026-10-16 20:56Z: the previously running
+# exact clean-source CI 38960835914 is terminal green on 0d4b2b96 for Backend
+# (unit, PostgreSQL integration and combined coverage), Frontend Unit,
+# Branch-declared and Playwright E2E; Exhaustive was skipped by feature policy.
+# The dirty zero-ceiling follow-up now passes its bounded cost/admin/OHLCV/
+# coverage/SQLite selection 41/41 and runtime free-only admission 6/6, plus
+# Ruff/format/compile/diff. Its PostgreSQL fresh/upgrade migration gate and
+# concurrency evidence are recorded below. This dirty candidate still needs a
+# coherent commit/push and exact-source hosted CI. Full browser rerun remains
+# held until exact synchronized green staging is released. No transport,
+# quota spend, activation, deployment, data reset, or cleanup.
+# 2026-10-16 20:39Z read-only job lookup for exact run 38960835914 on
+# 0d4b2b96: Backend, Frontend Unit, and Branch-declared succeeded; Exhaustive
+# was skipped; Playwright E2E remains in progress. No overall run pass claimed.
+# 2026-10-16 20:45Z: recurring-cost reduction to zero with an active paid
+# commitment is rejected without changing budget/revision/commitment; the
+# combined cost/admin/OHLCV/coverage/SQLite migration tests pass 41/41.
+# 2026-10-16 20:32Z coordinator re-confirmed Actions 38943410344 green only
+# for ba06bdc6 (151 passed/109 skipped E2E; no failures/retries/flakes;
+# Exhaustive skipped by branch policy). Appended as a new journal entry, not
+# rebound to later code. Current dirty ICP2/ICP6 bounded suite passes 38/38;
+# additive zero-ceiling migration fresh/upgrade equivalence and PG concurrency
+# pass; no provider HTTP/quota. Exact Actions run 38960835914 still validates
+# 0d4b2b96 and remains in progress; the dirty follow-up has no hosted CI.
+# The separate ICP2 runtime-boundary selection also passed 5/5: reviewed-free
+# positive, paid/unknown/trial denials across both paid-toggle values, and the
+# operation-specific EODHD zero-credit usage exception. Transport was stubbed.
+# SQLite smoke additionally applies the zero-ceiling migration after the base
+# cost migration: zero accepted, negative rejected, existing source retained.
+# Current ICP2 recurring-cost correction — 2026-10-16 20:26Z: a zero monthly
+# ceiling is now an explicit safe no-spend setting, not an invalid configuration.
+# The previous positive-only API/DB constraint mismatch was reproduced, then
+# fixed additively with migration b6e9a42d1c73. Current dirty-candidate service
+# and admin tests pass 25/25; the migration compatibility gate against prior
+# source ba06bdc6 passed fresh and upgrade paths, same schema/data, previous
+# app health 200, zero-ceiling acceptance, and negative-ceiling rejection.
+# Exact current hosted CI run 38960835914 is still on the prior source
+# 0d4b2b96 (Frontend and backend unit jobs passed; PostgreSQL integration is
+# running); no hosted result exists yet for this dirty follow-up. The zero
+# ceiling does not choose an EUR/USD conversion policy or authorize activation.
+# The current candidate also passes the single PostgreSQL near-ceiling
+# concurrency/durability regression. Its only use of Docker was the contained
+# disposable test database; no provider network was used.
+# Current ICP2/ICP6 continuation — 2026-10-16 20:15Z: lifecycle regression is
+# pushed as 0d4b2b96a12fd9fdbe8c514707952201626ccb7c; exact Actions run
+# 38960835914 is in progress, not yet green. Its 36 focused recurring-cost,
+# admin, OHLCV, and coverage tests passed locally, along with Ruff and branch
+# record validation. Current elevated no-transport preflight on af7913ea has no
+# global ledger blocker, but six provider groups remain held (CTA, Dinari,
+# EODHD, Marketstack, Nasdaq, Tiingo) for exact headroom or unreviewed
+# cost/reset/usage facts. Zero HTTP/quota spend. Earlier coordinator run
+# 38943410344 is source-bound to ba06bdc6 only; run 38955620628 is green only
+# for af7913ea. No FX rule is invented; full browser profile remains held until
+# synchronized green staging release. Preserve all prior receipts.
 # Current Provider-owned status — 2026-10-16 20:07Z: exact run 38955620628
 # is terminal success on source af7913ea for Backend, Frontend Unit, Playwright
 # E2E, and Branch-declared; Exhaustive was skipped by feature policy. GitHub's
@@ -658,8 +700,11 @@ integration_checkpoint:
         - backend/tests/unit/services/test_provider_recurring_costs.py::test_account_plan_is_counted_once_across_keys_and_revisions_are_retained
         - backend/tests/unit/services/test_provider_recurring_costs.py::test_distinct_accounts_aggregate_and_over_ceiling_proposal_is_not_persisted
         - backend/tests/unit/services/test_provider_recurring_costs.py::test_trial_uses_known_post_trial_recurring_price_and_unknown_trial_is_denied
+        - backend/tests/unit/services/test_provider_recurring_costs.py::test_commitment_lifecycle_revisions_recalculate_cost_and_retain_every_state
         - backend/tests/unit/services/test_provider_recurring_costs.py::test_reviewed_free_forever_commitment_uses_zero_budget_and_never_activates_provider
+        - backend/tests/unit/services/test_provider_recurring_costs.py::test_zero_monthly_ceiling_allows_reviewed_free_and_denies_paid_commitment
         - backend/tests/unit/routers/test_market_data_admin_router.py::test_recurring_cost_admin_contract_is_admin_only_and_never_activates_providers
+        - backend/tests/unit/routers/test_market_data_admin_router.py::test_zero_recurring_cost_budget_accepts_free_plan_and_denies_paid_plan
         - backend/tests/integration/test_provider_recurring_cost_concurrency.py::test_concurrent_near_ceiling_admissions_are_serialized_and_durable
       ownership_remainder: "Provider owns this shared producer and its full-roadmap evidence/currency-policy completion. ETF may wire to this contract only after green Provider staging, owns request/page/retry quota settlement, and must prove aggregate admission plus unavailable/no-transport behavior without a duplicate ledger. TC2000 and Strategy Lab v2 retain their separate consumer data/availability wiring; none is wired across worktrees by this change."
     series_success:
@@ -872,7 +917,7 @@ integration_checkpoint:
       continuation_acceptance_test: "Concurrent/restart tests cover provider-specific quota dimensions and reject unknown/exhausted operations before transport."
     - id: AC-RECURRING-COST
       status: partially_delivered
-      disposition: "A Provider-owned database-backed recurring-cost subsystem now exists: an explicitly reviewed single-currency ceiling, one commitment per provider billing-account scope and environment (independent of API keys/capabilities), retained budget/commitment evidence revisions, conservative monthly/yearly normalization, trial post-price accounting, fail-closed unknown/mixed currency handling, and authenticated admin status/configuration/admission endpoints. Cost admission does not authorize provider activation or routing. Remaining: exact-source PostgreSQL concurrency/restart and full migration-equivalence evidence; owner-reviewed provider plan evidence/operator provisioning; explicit 20 EUR/USD denomination policy remains configured rather than inferred; consumer bridge wiring after Provider staging; and tests for reconciled evidence and every state transition. This remains full-roadmap work and is not a prerequisite for the verified-free-only checkpoint."
+      disposition: "A Provider-owned database-backed recurring-cost subsystem now exists: an explicitly reviewed single-currency ceiling including a zero no-spend ceiling; one commitment per provider billing-account scope and environment independent of keys/capabilities; retained budget/commitment evidence revisions; conservative monthly/yearly normalization; trial post-price accounting; fail-closed unknown/mixed-currency handling; and authenticated admin endpoints. Cost admission does not authorize provider activation or routing. Migration b6e9a42d1c73 now passes fresh/upgrade schema equivalence, actual zero-accept/negative-reject checks in both databases, and previous-app health 200. Unit/admin tests cover zero-ceiling Free Forever acceptance and positive-cost denial. Remaining: exact-current PostgreSQL concurrency/restart and hosted CI for this migration, owner-reviewed provider plan evidence/operator provisioning, the explicit 20 EUR/USD denomination policy remains configured rather than inferred, consumer bridge wiring after Provider staging, and reconciled-evidence transitions. This remains full-roadmap work and is not a prerequisite for the verified-free-only checkpoint."
       owner: "feat/market-data-provider-platform"
       continuation_acceptance_test: "Database-backed tests cover account/environment scope and same-account cross-key deduplication; exact plan price/currency/period and known post-trial pricing; active/proposed/expired transitions; supported monthly normalization; fail-closed unknown and mixed-currency cases; atomic concurrent near-ceiling proposals; restart durability; evidence revisions; and proof that budget admission does not authorize paid activation. Fresh-install and existing-database upgrade schemas must be equivalent."
     - id: AC-REFRESH

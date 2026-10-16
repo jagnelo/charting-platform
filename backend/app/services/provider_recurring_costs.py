@@ -162,7 +162,6 @@ def configure_provider_recurring_cost_budget(
     denomination = _currency(currency)
     if (
         ceiling is None
-        or ceiling <= 0
         or denomination is None
         or not _nonempty(evidence_source)
         or not _nonempty(evidence_version)

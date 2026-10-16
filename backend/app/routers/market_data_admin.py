@@ -96,7 +96,7 @@ class ProviderQuotaBaselineRequest(BaseModel):
 
 
 class ProviderRecurringCostBudgetRequest(BaseModel):
-    monthly_ceiling: Decimal = Field(gt=0)
+    monthly_ceiling: Decimal = Field(ge=0)
     currency: str = Field(min_length=3, max_length=3)
     evidence_source: str = Field(min_length=1, max_length=500)
     evidence_version: str = Field(min_length=1, max_length=120)

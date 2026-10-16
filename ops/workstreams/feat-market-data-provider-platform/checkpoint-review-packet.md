@@ -1,5 +1,107 @@
 # Provider integration checkpoint review packet
 
+## 2026-10-16 20:54Z — clean baseline CI terminal; dirty candidate remains
+
+Exact push run `38960835914` completed successfully on clean branch source
+`0d4b2b96a12fd9fdbe8c514707952201626ccb7c`: Backend (unit, PostgreSQL
+integration and combined coverage), Frontend Unit, Branch-declared, and
+Playwright E2E succeeded; Exhaustive was skipped by feature policy. This does
+not cover the dirty zero-ceiling migration candidate, clear the separately red
+seeded 260-case local browser profile, or accept Provider. On the dirty
+follow-up, the bounded cost/admin/OHLCV/coverage/SQLite migration selection
+passes 41/41 and the runtime free-only admission selection passes 6/6. The
+next source-bound gate is coherent commit/push plus hosted CI for this
+candidate; full browser remains held for exact synchronized green staging
+release.
+
+## 2026-10-16 20:45Z — cost ceiling reduction and retention
+
+The current dirty candidate now also proves that an operator cannot lower the
+reviewed budget to zero while an active `$12/month` commitment exists: the
+budget and append-only revision history remain unchanged and the commitment is
+retained. The combined recurring-cost/admin/OHLCV/coverage/SQLite migration
+selection passed 41/41 in 14.10s. The separate five-test free-only runtime
+admission selection, PostgreSQL migration compatibility, and PostgreSQL
+concurrency evidence remain as previously recorded. No provider transport or
+quota use. Exact-source hosted CI for the dirty candidate is not available yet.
+
+## 2026-10-16 20:39Z — exact current-source hosted CI status
+
+Read-only Actions job lookup for run `38960835914` confirms exact SHA
+`0d4b2b96a12fd9fdbe8c514707952201626ccb7c`: Backend Tests, Frontend Unit
+Tests, and Branch-declared Tests succeeded; Exhaustive is skipped by the
+feature workflow; Playwright E2E is still running. Do not infer E2E or overall
+run success. This source predates the dirty zero-ceiling follow-up.
+
+## 2026-10-16 20:32Z — exact CI re-confirmation and current bounded tests
+
+Coordinator re-confirmed Actions run `38943410344` green for exact source
+`ba06bdc6b525c8f007fd6917bd3df2603aa8f093`: Backend, Frontend Unit,
+Branch-declared and Playwright E2E succeeded; E2E 151 passed / 109 skipped,
+0 failures/retries/flakes in 15.6 minutes; Exhaustive was skipped by branch
+policy. This historical-source receipt does not validate current source
+`0d4b2b96` or the dirty follow-up, clear the separate seeded 260-case local
+browser red, or constitute checkpoint acceptance. Its re-confirmation is
+appended in the validation journal.
+
+The current dirty bounded ICP2/ICP6 selection passed 38/38 (recurring cost and
+admin, OHLCV and coverage success/unavailable producer contracts). The
+zero-ceiling additive migration passes fresh and prior-release PostgreSQL
+schema/data equivalence with zero accepted and negative rejected; the focused
+PostgreSQL near-ceiling concurrency test passes 1/1. No provider HTTP/quota
+spend. Exact current hosted CI for `0d4b2b96`, run `38960835914`, is still in
+progress; none of these dirty changes have exact-source hosted CI yet.
+
+Additional ICP2 runtime-boundary selection passed 5/5: explicit reviewed-plan
+seeding, free-only denial of reviewed paid plans, unknown/free-label
+fail-closed admission across status/resolver/executor with both paid-toggle
+states, paid/unknown/trial account-usage transport negatives, and the exact
+EODHD zero-credit account-usage exception positive/negative contract. Test
+transport was stubbed; no provider HTTP or quota was used.
+
+The two-case SQLite migration smoke also passes after extending it to apply
+`b6e9a42d1c73` following the original cost migration, verify zero acceptance and
+negative rejection, and retain the existing source row. PostgreSQL
+fresh/upgrade equivalence and semantics remain separately covered by the
+disposable migration-compatibility gate.
+
+## PostgreSQL recurring-cost concurrency — 2026-10-16 20:29Z
+
+The current dirty zero-ceiling candidate passes the isolated PostgreSQL
+near-ceiling concurrency/durability test (`1/1`, 11.79s), in addition to its
+fresh/upgrade migration compatibility gate and 25 focused service/admin tests.
+These are bounded local checks; current-source hosted CI is still pending and
+the full Provider checkpoint remains open.
+
+## Current ICP2 correction — 2026-10-16 20:26Z
+
+- A zero ceiling is now accepted as an explicit no-spend policy. The service
+  and admin API tests prove a reviewed `$0` Free Forever plan is admissible and
+  a `$0.01` paid plan is denied without activation authority. The initial test
+  exposed the previous DB check rejecting zero; this failed attempt remains
+  retained in the journal.
+- Additive migration `b6e9a42d1c73` is validated by the enhanced PostgreSQL
+  compatibility gate on base `ba06bdc6`: fresh and previous-release upgrade
+  schemas/data match; zero ceiling insert succeeds and negative ceiling insert
+  fails by named check in both; provider quota fail-closed state matches; old
+  app `/health` is `200`. Focused service/admin suite is `25/25`.
+- The code/migration candidate is dirty on base `0d4b2b96`, not committed.
+  Push CI `38960835914` only covers that prior source and is still running:
+  Frontend Unit and Backend unit tests pass, PostgreSQL integration is in
+  progress. Do not infer coverage of the current candidate. No currency
+  equivalence/FX was chosen and the broader ICP2/ICP6 work remains open.
+
+## Exact current candidate — 2026-10-16 20:15Z
+
+The lifecycle regression and its workstream evidence are pushed at exact source
+`0d4b2b96a12fd9fdbe8c514707952201626ccb7c`. Its bounded local
+recurring-cost/admin/OHLCV/coverage selection passed 36/36, plus Ruff and
+workstream integrity checks. Exact push CI `38960835914` has started and is
+still in progress; no current-source hosted success is claimed yet. Previous CI
+`38955620628` remains green for `af7913ea`, and `38943410344` remains green
+only for historical base `ba06bdc6`. Preserve the separate seeded local-browser
+red and wait for synchronized green staging release before rerunning it.
+
 ## Current owned continuation — 2026-10-16 20:12Z
 
 - Exact coordinator CI receipt `38943410344` is confirmed terminal green only
@@ -609,12 +711,12 @@ frontend files remain unchanged.
 | Gate | Evidence / delivered checkpoint contract | Remaining work and owner |
 |---|---|---|
 | ICP1 — identity and lifecycle | Tests cover stable instrument/issuer/listing/provider-symbol identity, provenance and history, ambiguity quarantine, and legacy symbol/API compatibility. See OpenFIGI, instrument-sync, market-data-identity, lifecycle/quarantine migration, and compatibility tests. | Full same-session NMS/OTC/SEC universe reconciliation, all venue mappings, and complete ticker-change/delisting lifecycle remain Provider roadmap work. Partial or stale snapshots must never imply absence or completeness. |
-| ICP2 — provider governance | Shared capability, entitlement, routing and durable multidimensional quota contracts are tested. `PROVIDER_FREE_ONLY_CHECKPOINT=true` denies reviewed paid market-data routes regardless of `ALLOW_PAID_PROVIDER_ROUTING`; trials are denied. Unreviewed market-data routes are denied except the exact reviewed-safe EODHD `/api/user` bootstrap: HTTPS evidence, exact `fetch_account_usage` operation, reconciled `calls_per_day`, explicit zero daily-credit operation cost; `requests_per_minute` is still reserved. Candidate selection exposes only this operation to strict admission. FMP/Tiingo legacy seed labels now refresh to the configured account plan; a genuine API-patched revision is preserved, and plan/config mismatches fail closed. Execution-level tests prove no transport callback under either paid-toggle state. MarketData.app `/user/` is not exempt. | Shared cost admission now has a Provider-owned DB model/service and admin API, but is full-roadmap work—not an ICP2 free-only checkpoint prerequisite and not paid-route authorization. It requires explicit reviewed budget/evidence configuration; same-currency only, no invented FX. Exact-source PostgreSQL concurrency/restart and full migration-equivalence tests remain. ETF owns post-staging consumer bridge and real request/page/retry accounting; no ETF-only ledger. |
+| ICP2 — provider governance | Shared capability, entitlement, routing and durable multidimensional quota contracts are tested. `PROVIDER_FREE_ONLY_CHECKPOINT=true` denies reviewed paid market-data routes regardless of `ALLOW_PAID_PROVIDER_ROUTING`; trials are denied. Unreviewed market-data routes are denied except the exact reviewed-safe EODHD `/api/user` bootstrap: HTTPS evidence, exact `fetch_account_usage` operation, reconciled `calls_per_day`, explicit zero daily-credit operation cost; `requests_per_minute` is still reserved. Candidate selection exposes only this operation to strict admission. FMP/Tiingo legacy seed labels now refresh to the configured account plan; a genuine API-patched revision is preserved, and plan/config mismatches fail closed. Execution-level tests prove no transport callback under either paid-toggle state. MarketData.app `/user/` is not exempt. The current dirty follow-up permits an explicit `$0` no-spend ceiling, denies positive-cost plans under it, preserves existing commitments when a budget reduction would breach the ceiling, and migrates the database constraint additively. The current cost/admin/OHLCV/coverage/SQLite-migration selection passes 41/41, and the separate runtime-boundary selection passes 6/6 (47 total across these two selections). | Shared cost admission now has a Provider-owned DB model/service and admin API, but remains separate from provider activation and does not invent FX. It requires reviewed budget/evidence configuration and supports only one currency at a time. Aggregate EUR/USD equivalence and the future shared cost consumer contract remain explicitly open; no paid route is activated. Exact-source CI for the dirty follow-up remains pending. ETF owns post-staging consumer bridge and real request/page/retry accounting; no ETF-only ledger. |
 | ICP3 — series, coverage and refresh | Series/provenance, gap planning, session-aware freshness, refresh coalescing/leases, and explicit partial coverage are exercised by backend unit/integration and Strategy Lab tests. Full local backend gate and exact-source hosted backend job passed. | After Provider staging, consumers verify stale, partial, missing, and unavailable states remain distinct and do not trigger hidden provider requests. Downstream owners: ETF, TC2000, Strategy Lab. |
 | ICP4 — provider operations | Fresh durable no-transport preflight admitted 23 manifests; exact staged-tree slices passed 62/62 cases, 151 requests, and 64,552,569 response bytes. The verifier confirms those 23 against tree `592261aa...` and reports `live_acceptance=false` because four held providers have no successful manifest receipt. | Keep Alpha Vantage, Dinari, Marketstack and Tiingo held with their exact reasons below. No quota was spent on these four. Their preflight and existing zero-call tests are separate from successful live evidence. Historical 20/27 evidence stays bound to `1afb896...`; it is not rebound. |
-| ICP5 — migrations, startup and secrets | The dirty candidate adds `c5d6e7f8a9b0` for recurring-cost governance. Its PostgreSQL migration-compatibility gate passed against exact base `ba06bdc6`: new cost table schema/index/constraint equivalence, existing fail-closed quota state, and previous-release `/health 200`. SQLite migration smoke also passes. This gate is worktree-candidate evidence, not yet clean exact-source CI. | Run the full normal local profile and exact-source CI after freezing a clean candidate. GitHub/RPi/deployment secret stores remain target onboarding requirements before those targets are used, not pre-Provider integration prerequisites. No deployment readiness is claimed. |
+| ICP5 — migrations, startup and secrets | The dirty candidate includes `c5d6e7f8a9b0` plus additive `b6e9a42d1c73` to permit an explicit zero monthly ceiling. The enhanced PostgreSQL migration-compatibility gate passed against prior exact base `ba06bdc6`: fresh and upgrade schema/data equivalence, zero ceiling accepted and negative ceiling rejected by named constraints in both paths, existing fail-closed quota state, and previous-release `/health 200`; SQLite migration smoke also passes. The bounded current-source gate evidence is not hosted CI for the dirty candidate. | Complete ordinary clean-source validation and exact-source CI after publishing the coherent candidate. GitHub/RPi/deployment secret stores remain target onboarding requirements before those targets are used, not pre-Provider integration prerequisites. No deployment readiness is claimed. |
 | ICP6 — consumers | Producer success/unavailable behavior and callable contract are tested. `execute_provider_call(...)` is async but its `invoke(provider, provider_symbol)` argument must be synchronous; the runtime offloads it to a worker thread with copied telemetry context and returns `ProviderExecutionResult(provider_name, data_source, policy, health, result, response_payloads)`. It does not await async callbacks. Unknown/exhausted quota is denied before `invoke`; no usable provider data raises `ProviderNoDataError`. `GET /api/v1/ohlcv/{symbol}/D1?local_only=true` returns retained local bars or `200 []` when none exist, without provider hydration; this preserves the collection endpoint's existing response shape. A non-local provider request that exhausts usable data has the separately tested `404` `detail` response. | Producer success shape, no-data behavior, and exact local-only empty-result semantics are now explicit in `plan.yaml` and runtime/router tests. Before Provider staging, name downstream owners/remainders only; actual ETF/TC2000/Strategy adapter wiring and consumer-specific reconciliation happen after Provider is green in staging. ETF owns holdings bridge; TC2000 and Strategy own their consumer wiring. |
-| ICP7 — reviewable source | Last clean pushed source is `ba06bdc6`; its exact run `38943410344` has Backend, Frontend Unit and Branch-declared green, Exhaustive skipped, and E2E still in progress at this update. These results predate the dirty cost-governance candidate. | Commit/push a clean coherent candidate, then require exact-source CI and normal full local profile. The Provider full browser result remains red at `1236a367` (TC-owned F9e/F8s; 104 visual cases passed). No product checkpoint is accepted; do not edit frontend or self-integrate. |
+| ICP7 — reviewable source | Latest clean pushed Provider source is `0d4b2b96a12fd9fdbe8c514707952201626ccb7c`; exact run `38960835914` is terminal green for Backend (unit, PostgreSQL integration and combined coverage), Frontend Unit, Branch-declared, and Playwright E2E. Exhaustive was skipped by feature policy. Coordinator separately re-confirmed older run `38943410344` green only for `ba06bdc6`. The current dirty cost/migration candidate has no exact-source CI. | Commit and publish the coherent candidate for exact-source CI, and run the required normal full local profile when the coordinator releases an exact synchronized green staging SHA/slot. The historical Provider full browser result remains red at `1236a367` (TC-owned F9e/F8s; 104 visual cases passed). No product checkpoint is accepted; do not edit frontend or self-integrate. |
 
 ### Coordinator ICP2 review correction (hosted CI validated; local full-profile follow-up remains)
 

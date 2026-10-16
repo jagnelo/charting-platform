@@ -1,5 +1,160 @@
 # feat/market-data-provider-platform
 
+## 2026-10-16 20:54Z — prior clean-source push CI completed green
+
+- GitHub Actions run `38960835914` is terminal success on exact source
+  `0d4b2b96a12fd9fdbe8c514707952201626ccb7c`: Backend Tests (including
+  PostgreSQL integration and combined coverage), Frontend Unit Tests,
+  Branch-declared Tests, and Playwright E2E all succeeded. Exhaustive
+  Integration Gate was skipped by feature-branch policy.
+- This validates the clean pushed source only. The zero-ceiling recurring-cost
+  change and its tests/migration are still dirty and require final-source local
+  gates plus a new exact-source hosted CI. The separate seeded 260-case local
+  browser red remains unresolved and its rerun remains held until the
+  coordinator releases an exact synchronized green staging SHA.
+- Continue the bounded ICP2 recurring-cost/free-only governance and ICP6
+  producer/consumer contract work. No provider transport/quota spend,
+  paid/trial activation, staging integration, deployment, reset, or cleanup.
+- Re-ran the dirty candidate's cost/admin/OHLCV/coverage/SQLite migration
+  selection: `41/41`; six runtime free-only admission cases: `6/6`; Ruff,
+  formatting, Python compilation, and `git diff --check` passed. The separate
+  PostgreSQL fresh/upgrade migration compatibility and concurrency receipts
+  remain the prior dirty-candidate runs recorded below. These bounded checks
+  do not replace full local profile or exact-source CI for this candidate.
+
+## 2026-10-16 20:53Z — coordinator re-confirmed historical exact-source CI
+
+- Coordinator confirms exact push CI run `38943410344` is terminal green for
+  source `ba06bdc6b525c8f007fd6917bd3df2603aa8f093`: Backend, Frontend Unit,
+  Branch-declared, and Playwright E2E succeeded; E2E was 151 passed / 109
+  skipped in 15.6 minutes with no retries, flakes, or failures. Exhaustive
+  Integration Gate was skipped by feature-branch policy.
+- This is another confirmation of the historical `ba06bdc6` source only. It
+  does not validate current branch HEAD `0d4b2b96`, the dirty zero-ceiling
+  follow-up, or the red seeded 260-case local profile, and it does not accept
+  the Provider checkpoint.
+- The confirmation is appended to `validation.jsonl`; prior evidence remains
+  intact. Continue Provider-owned ICP2 recurring-cost and ICP6 producer/
+  consumer contract work. Keep live-provider/quota, paid/trial, unreviewed and
+  unsafe operations held; do not rerun the seeded browser profile until the
+  coordinator releases an exact synchronized green staging SHA.
+
+## 2026-10-16 20:45Z — zero-budget reduction preserves existing commitments
+
+- Added an ICP2 regression that attempts to lower the recurring-cost ceiling
+  to `$0` while a reviewed `$12/month` commitment is active. The reduction is
+  denied, the budget stays at `$20`, the revision history remains unchanged,
+  and the commitment remains active and recorded.
+- The combined dirty-candidate cost/admin/OHLCV/coverage/SQLite-migration
+  selection passed `41/41` in 14.10s (five existing warnings). This includes
+  the new retention assertion plus zero/negative SQLite constraint behavior.
+  No provider HTTP or quota spend occurred.
+- Exact old-source CI `38960835914` is still being polled; its E2E job was last
+  confirmed active. This local change remains dirty and unvalidated by hosted
+  CI until it can be published after that run terminates.
+
+## 2026-10-16 20:39Z — exact current-source CI progress
+
+- Read-only GitHub Actions job state for `38960835914` confirms source
+  `0d4b2b96a12fd9fdbe8c514707952201626ccb7c`: Backend Tests, Frontend Unit
+  Tests, and Branch-declared Tests are terminal success; Exhaustive Integration
+  Gate is skipped by feature-branch policy; Playwright E2E remains in progress.
+  No E2E result is inferred. The dirty candidate is not covered.
+- The new SQLite test for migration `b6e9a42d1c73` passes 2/2, including
+  zero-accepted/negative-rejected semantics and existing source-row
+  preservation. PostgreSQL fresh/upgrade equivalence and current ICP2/ICP6
+  focused suites remain separately recorded.
+
+## 2026-10-16 20:32Z — coordinator CI re-confirmation; ICP2/ICP6 regression refreshed
+
+- Coordinator re-confirmed exact GitHub Actions run `38943410344` as terminal
+  green on source `ba06bdc6b525c8f007fd6917bd3df2603aa8f093`: Backend,
+  Frontend Unit, Branch-declared, and Playwright E2E succeeded; E2E reported
+  151 passed / 109 skipped with no failures, retries, or flakes in 15.6 minutes.
+  Exhaustive Integration Gate was skipped by feature-branch policy. This new
+  confirmation is appended in `validation.jsonl`; it supplements prior entries
+  and does not validate newer source, clear the separate red seeded profile,
+  or accept Provider.
+- Current dirty ICP2/ICP6 bounded suite was rerun: 38/38 passed in 14.36s
+  across recurring-cost service/admin and OHLCV/coverage producer success and
+  unavailable contracts. The PostgreSQL migration compatibility gate passed
+  fresh-install and prior-release upgrade equivalence, zero-ceiling acceptance,
+  negative-ceiling rejection, quota fail-closed equivalence and previous-app
+  health 200; the concurrency test passed 1/1. No provider HTTP or quota spend.
+- A separate five-test ICP2 runtime boundary selection also passed, covering
+  reviewed-free positives, both paid-toggle states, unknown/trial/paid
+  pre-transport denials, and the narrow EODHD zero-credit usage exception. Its
+  transport is stubbed. Append-only corrections clarify two prior journal
+  entries that mistakenly marked executed test files as modified.
+- Closed an SQLite migration-smoke gap: the additive zero-ceiling migration is
+  applied after the original cost-schema migration; zero remains accepted,
+  negative ceiling is rejected, and the pre-existing `data_source` row remains
+  present. The migration test file passes `2/2`; Ruff and diff checks pass.
+- Current branch tip remains `0d4b2b96`; the zero-ceiling model/API/additive
+  migration candidate is dirty and has no exact-source hosted CI. Run
+  `38960835914` remains in progress on `0d4b2b96` (verified via GitHub Actions
+  API), so do not replace/cancel it or claim it covers the dirty follow-up.
+- Continue owned ICP2 cost-governance and ICP6 producer contracts. Preserve
+  unknown/held operations and all quota/data evidence; no provider calls,
+  staging/sibling changes, browser rerun, deployment, paid/trial activation,
+  reset, or cleanup.
+
+## 2026-10-16 20:29Z — recurring-cost PostgreSQL concurrency rechecked
+
+- Ran the isolated PostgreSQL recurring-cost concurrency test against the
+  current nonnegative budget model: `1/1` passed in 11.79s. It validates the
+  atomic near-ceiling admission/durability path on PostgreSQL without provider
+  HTTP or quota usage. The exact result is appended in `validation.jsonl`.
+- The zero-ceiling migration compatibility gate remains green for both fresh
+  and prior-release upgrade databases. Current source is still dirty after the
+  new API/model/migration changes; current hosted CI `38960835914` is still
+  running against the older `0d4b2b96` commit.
+
+## 2026-10-16 20:26Z — zero-ceiling cost policy and additive migration
+
+- Further ICP2 review found that the explicit recurring-cost budget rejected
+  `$0` in its API and database constraint. That prevented a useful reviewed
+  “no paid spend” budget even though zero-cost plans were already supported.
+  Added an additive migration `b6e9a42d1c73` replacing the positive-only check
+  with a nonnegative check; API/service tests now accept a `$0` Free Forever
+  commitment and deny a `$0.01` paid plan while leaving paid activation false.
+- One initial regression failed against the old positive-only constraint; the
+  exact failure is preserved in `validation.jsonl`. With the migration and
+  schema corrected, the focused service/admin selection passes `25/25`; Ruff,
+  format, compile, and diff checks pass.
+- The enhanced migration-compatibility gate passed using prior source
+  `ba06bdc6`: fresh install and upgrade schema/data equivalence; zero ceilings
+  accepted and negative ceilings rejected by the named constraint on both
+  database paths; provider quota state remains fail-closed; previous app
+  `/health` returns `200`. Only the gate's randomly named disposable container
+  and temporary worktree were removed. No provider data/ledger was touched.
+- Exact push run `38960835914` is still validating the prior source
+  `0d4b2b96`: Frontend Unit and Backend unit suites passed; PostgreSQL
+  integration is running. This CI does not cover the dirty zero-ceiling
+  implementation/migration. No second run is started until the current source
+  run reaches terminal state, to preserve source-bound evidence.
+- Exact candidate changes are local and uncommitted. Continue ICP2 currency
+  evidence/reconciliation and ICP6 producer contracts; do not invent EUR/USD
+  equivalence. Six provider groups remain held as recorded in the preflight;
+  no external calls/quota, browser profile, activation, staging/sibling write,
+  deployment, data reset, or cleanup occurred.
+
+## 2026-10-16 20:15Z — lifecycle regression pushed; exact-source CI running
+
+- Published coherent Provider source `0d4b2b96a12fd9fdbe8c514707952201626ccb7c`
+  (`test recurring cost lifecycle contract`) with the lifecycle regression and
+  the prior workstream reconciliation. Local recurring-cost/admin/OHLCV/
+  coverage tests pass `36/36`; Ruff and workstream-integrity checks pass.
+- Exact push CI `38960835914` is in progress on this commit. At first poll,
+  Backend and Frontend Unit were still initializing; no terminal job result is
+  claimed yet. The prior exact CI `38955620628` remains green only for
+  `af7913ea`; run `38943410344` remains historical evidence only for
+  `ba06bdc6`.
+- No provider calls/quota spend, full browser rerun, staging/sibling mutation,
+  paid/trial activation, deployment, reset, or cleanup. Continue Provider-owned
+  ICP2 recurring-cost contract and ICP6 producer/consumer evidence. Full
+  browser profile remains held until synchronized green staging release.
+
 ## 2026-10-16 20:12Z — coordinator receipt reconciled; lifecycle contract regression
 
 - The coordinator's terminal-green Actions receipt `38943410344` is already
