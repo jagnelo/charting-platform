@@ -1,8 +1,12 @@
 {
   "acceptance_criteria": [],
-  "active_session_id": "43ecdcd7-c5c9-4ce7-b34f-2db0bf886b13",
+  "active_session_id": null,
   "branch": "docs/four-feature-checkpoint-guidance-refresh",
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ps/workstreams/docs-four-feature-checkpoint-guidance-refresh/handoff.md",
+    "ops/workstreams/docs-four-feature-checkpoint-guidance-refresh/plan.yaml",
+    "ops/workstreams/docs-four-feature-checkpoint-guidance-refresh/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -24,7 +28,30 @@
     "volume_count": 0,
     "worktree_id": "docs-four-feature-checkpoint-guidance-refresh-7810382e26"
   },
+  "docker_before_cleanup": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-docs-four-feature-checkpoint-guidance-refresh-7810382e",
+      "charting-stack-docs-four-feature-checkpoint-guidance-refresh-7810382e"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "docs-four-feature-checkpoint-guidance-refresh-7810382e26"
+  },
   "docker_ready": null,
+  "finished": true,
+  "finished_at": "2026-10-16T06:28:03.407165+00:00",
   "goal_budget_policy": "unbounded_unless_human_authorized",
   "goal_objective": "Advance docs/four-feature-checkpoint-guidance-refresh: Refresh the authorized four-feature coordination guidance and its operational-record pointers without accepting incomplete products, changing merge order or weakening any gate. This work is a subtask of the existing active unbounded central integration goal, not a replacement or its completion.. Acceptance criteria: DOC1: Guidance records exact delegated checkpoint and Help-reference decisions without inventing acceptance, reducing a roadmap, or authorizing deployment/paid activation/trial.; DOC2: Canonical status and guidance identify current operational receipts, their common-root location, publication-snapshot semantics and the existing clean-staging helper route while preserving dirty root edits.; DOC3: Reconciliation guidance distinguishes closed fixes from remaining Provider admission/visual gates and later ETF/TC/Strategy contracts and migrations; no stale pointer, collision or coverage failure is represented as current.; DOC4: Documentation-only scope, YAML/workstream/link/diff checks and normal exact-source CI are recorded honestly; publish the clean source for delegated coordinator review with all product acceptances still open.. Required local profile: unit. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
   "goal_recorded_at": "2026-10-16T05:47:21.806949+00:00",
@@ -36,8 +63,9 @@
   "goal_unavailable_reason": null,
   "head": "f8ab2960f407f26de486d3ccd1538f97515cf41e",
   "implementation_sha": "e67cf76dc8bfc6c78e798079837579f7ae498611",
+  "interrupted": true,
   "local_validation_profile": "pending_agent_assessment",
-  "next_action": "continue implementation from the branch workstream",
+  "next_action": "Explicit coordinator handoff of validated documentation closure metadata; publish clean final source, require exact normal CI and canonical staging gate. Whole four-feature root goal remains active; no product checkpoint accepted.",
   "parent_branch": "staging",
   "plan_hash": "ab1119fec4abcf65a23f67ac95ff60982ba21f16c14ccf8b486679ee2f9784e9",
   "planning_required": true,
@@ -55,6 +83,7 @@
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "43ecdcd7-c5c9-4ce7-b34f-2db0bf886b13",
+  "state": "interrupted",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/docs-four-feature-checkpoint-guidance-refresh/ops/workstreams/docs-four-feature-checkpoint-guidance-refresh",
   "workstream_files": [
