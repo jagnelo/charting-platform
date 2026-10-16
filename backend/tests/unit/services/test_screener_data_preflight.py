@@ -98,7 +98,14 @@ async def test_shared_preflight_withholds_indicator_snapshot_below_required_hist
         timeframe=Timeframe.D1,
     )
     ts = datetime(2026, 1, 1, tzinfo=UTC)
-    raw = {1: {Timeframe.D1: [_bar(1, Timeframe.D1, ts, 10), _bar(1, Timeframe.D1, ts + timedelta(days=1), 11)]}}
+    raw = {
+        1: {
+            Timeframe.D1: [
+                _bar(1, Timeframe.D1, ts, 10),
+                _bar(1, Timeframe.D1, ts + timedelta(days=1), 11),
+            ]
+        }
+    }
 
     coverage, summary = await screener_engine._preflight_screener_coverage(
         object(), screener, [1], {Timeframe.D1}, raw

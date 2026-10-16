@@ -317,14 +317,21 @@ class OptionQuoteObservation(Base, TimestampMixin):
         Integer, ForeignKey("instrument.id", ondelete="CASCADE"), nullable=False, index=True
     )
     snapshot_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("option_chain_snapshot.id", ondelete="SET NULL"), nullable=True, index=True
+        Integer,
+        ForeignKey("option_chain_snapshot.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
     data_source_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
     )
     provider_symbol: Mapped[str | None] = mapped_column(String(80), nullable=True)
-    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
-    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     payload: Mapped[dict] = mapped_column(JSON, nullable=False)
 
     option_instrument: Mapped["Instrument"] = relationship()

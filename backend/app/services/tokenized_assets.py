@@ -55,9 +55,7 @@ async def _tokenized_asset_refresh_batch(
     state_key = f"tokenized-refresh:{operation}:{scope}"
     state = (
         await db.execute(
-            select(ProviderPaginationState).where(
-                ProviderPaginationState.state_key == state_key
-            )
+            select(ProviderPaginationState).where(ProviderPaginationState.state_key == state_key)
         )
     ).scalar_one_or_none()
     if state is None:
@@ -121,9 +119,7 @@ async def _tokenized_catalog_state(
     state_key = _tokenized_catalog_state_key(provider_name, page_size)
     state = (
         await db.execute(
-            select(ProviderPaginationState).where(
-                ProviderPaginationState.state_key == state_key
-            )
+            select(ProviderPaginationState).where(ProviderPaginationState.state_key == state_key)
         )
     ).scalar_one_or_none()
     if state is None:
@@ -177,9 +173,7 @@ async def _tokenized_event_state(
     )
     state = (
         await db.execute(
-            select(ProviderPaginationState).where(
-                ProviderPaginationState.state_key == state_key
-            )
+            select(ProviderPaginationState).where(ProviderPaginationState.state_key == state_key)
         )
     ).scalar_one_or_none()
     if state is None:
@@ -234,15 +228,19 @@ async def _fair_tokenized_event_provider_order(
         return providers
     names = [str(item.provider_name).strip().lower() for item in providers]
     rows = (
-        await db.execute(
-            select(ProviderPaginationState).where(
-                ProviderPaginationState.provider.in_(names),
-                ProviderPaginationState.capability
-                == ProviderCapability.TOKENIZED_CORPORATE_ACTIONS.value,
-                ProviderPaginationState.operation == "fetch_tokenized_corporate_actions",
+        (
+            await db.execute(
+                select(ProviderPaginationState).where(
+                    ProviderPaginationState.provider.in_(names),
+                    ProviderPaginationState.capability
+                    == ProviderCapability.TOKENIZED_CORPORATE_ACTIONS.value,
+                    ProviderPaginationState.operation == "fetch_tokenized_corporate_actions",
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     by_provider: dict[str, list[ProviderPaginationState]] = {}
     for row in rows:
         by_provider.setdefault(str(row.provider).strip().lower(), []).append(row)
@@ -325,6 +323,8 @@ async def _existing_issuer_id_for_cik(db: AsyncSession, cik: str | None) -> int 
         return None
     rows = (await db.execute(select(Issuer.id).where(Issuer.cik == cik).limit(2))).scalars().all()
     return int(rows[0]) if len(rows) == 1 else None
+
+
 _EVENT_ID_FIELDS = (
     "eventId",
     "event_id",
@@ -539,12 +539,16 @@ async def _underlying_instrument(
     if not symbol:
         return None, "unresolved_or_ambiguous"
     rows = (
-        await db.execute(
-            select(Instrument)
-            .where(Instrument.symbol == symbol, Instrument.is_active.is_(True))
-            .limit(2)
+        (
+            await db.execute(
+                select(Instrument)
+                .where(Instrument.symbol == symbol, Instrument.is_active.is_(True))
+                .limit(2)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     # A ticker alone is not enough to link an underlying when multiple active
     # listings share it.  The token remains valid but its relationship stays
     # unresolved until authoritative identity evidence is available.
@@ -829,7 +833,11 @@ async def refresh_tokenized_assets(
                     break
                 cursor_token = str(next_cursor).strip()
                 cursor_digest = hashlib.sha256(cursor_token.encode("utf-8")).hexdigest()
-                if not cursor_token or cursor_token == requested_cursor or cursor_digest in cursor_history:
+                if (
+                    not cursor_token
+                    or cursor_token == requested_cursor
+                    or cursor_digest in cursor_history
+                ):
                     provider_failed = True
                     state.status = "failed"
                     state.last_failure_at = datetime.now(UTC)
@@ -1041,7 +1049,9 @@ async def refresh_tokenized_events(
                             "tokenized corporate-action provider returned an invalid page"
                         )
                     if not isinstance(rows, list) or not isinstance(next_cursor, str | type(None)):
-                        raise TypeError("tokenized corporate-action provider returned an invalid page")
+                        raise TypeError(
+                            "tokenized corporate-action provider returned an invalid page"
+                        )
                     if any(not isinstance(row, dict) for row in rows):
                         # Never silently drop a provider row. A malformed row
                         # makes the entire page untrusted; leave the durable
@@ -1067,9 +1077,7 @@ async def refresh_tokenized_events(
                             instrument_id=instrument_id,
                             event_time=_parse_datetime(_first_scalar(row, _EVENT_TIME_FIELDS)),
                             effective_date=_parse_date(_first_scalar(row, _EFFECTIVE_DATE_FIELDS)),
-                            announced_at=_parse_datetime(
-                                _first_scalar(row, _ANNOUNCED_AT_FIELDS)
-                            ),
+                            announced_at=_parse_datetime(_first_scalar(row, _ANNOUNCED_AT_FIELDS)),
                             payload=event_payload,
                             is_provisional=True,
                         )
@@ -1229,9 +1237,9 @@ async def refresh_tokenized_prices(
                 provider_symbol=identifier,
                 usage_identity=identifier,
                 provider_name=detail.provider_name,
-                invoke=lambda provider, _symbol, identifier=identifier: provider.get_tokenized_price(
-                    identifier
-                ),
+                invoke=lambda provider,
+                _symbol,
+                identifier=identifier: provider.get_tokenized_price(identifier),
                 response_items=lambda value: 1 if value is not None else 0,
                 treat_empty_as_failure=True,
             )
@@ -1244,9 +1252,7 @@ async def refresh_tokenized_prices(
                     "instrument_id": instrument.id,
                     "provider": execution.provider_name,
                     "provider_asset_id": identifier,
-                    "observed_at": record.observed_at.isoformat()
-                    if record.observed_at
-                    else None,
+                    "observed_at": record.observed_at.isoformat() if record.observed_at else None,
                 }
             )
         except Exception as exc:  # noqa: BLE001 - retain per-asset coverage evidence.
@@ -1331,7 +1337,9 @@ def _tokenized_history_bar(
             "provider_asset_id": provider_asset_id,
             "feed": "tokenized_aggregate_history",
             "session": "24_7",
-            "raw_payload": row.get("raw_payload") if isinstance(row.get("raw_payload"), dict) else row,
+            "raw_payload": row.get("raw_payload")
+            if isinstance(row.get("raw_payload"), dict)
+            else row,
         },
     )
 
@@ -1392,7 +1400,9 @@ async def refresh_tokenized_historical_prices(
                 provider_symbol=identifier,
                 usage_identity=identifier,
                 provider_name=detail.provider_name,
-                invoke=lambda provider, _symbol, identifier=identifier: provider.fetch_tokenized_historical_prices(
+                invoke=lambda provider,
+                _symbol,
+                identifier=identifier: provider.fetch_tokenized_historical_prices(
                     identifier, timespan=normalized_timespan
                 ),
                 response_items=len,

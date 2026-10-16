@@ -140,9 +140,7 @@ def _required_condition_bars(
                 continue
             required[primary_timeframe] = max(
                 required[primary_timeframe],
-                required_bars_for_indicator(
-                    definition["type"], definition.get("params", {})
-                ),
+                required_bars_for_indicator(definition["type"], definition.get("params", {})),
             )
     elif condition_type == "price_change":
         try:
@@ -235,8 +233,7 @@ async def _load_bars_and_rows_by_instrument(
         grouped.setdefault(row.instrument_id, {}).setdefault(row.timeframe, []).append(row)
     series = {
         instrument_id: {
-            timeframe: OHLCVSeries.from_orm_bars(bars)
-            for timeframe, bars in timeframe_rows.items()
+            timeframe: OHLCVSeries.from_orm_bars(bars) for timeframe, bars in timeframe_rows.items()
         }
         for instrument_id, timeframe_rows in grouped.items()
     }

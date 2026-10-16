@@ -11,8 +11,11 @@ from alembic.operations import Operations
 
 
 def _migration_module():
-    path = Path(__file__).parents[3] / "alembic" / "versions" / (
-        "e6f7a8b9c0d1_add_provider_account_usage_payloads.py"
+    path = (
+        Path(__file__).parents[3]
+        / "alembic"
+        / "versions"
+        / ("e6f7a8b9c0d1_add_provider_account_usage_payloads.py")
     )
     spec = importlib.util.spec_from_file_location("provider_account_usage_payloads", path)
     assert spec is not None and spec.loader is not None

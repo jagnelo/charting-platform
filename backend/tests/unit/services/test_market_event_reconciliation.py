@@ -53,7 +53,14 @@ async def test_reconciliation_corroborates_exact_target_and_date(db, instrument)
     assert consensus.source_count == 2
     assert consensus.observation_count == 2
     assert consensus.conflict_fields == []
-    assert len(db.execute(select(MarketEvent).where(MarketEvent.consensus_id == consensus.id)).scalars().all()) == 2
+    assert (
+        len(
+            db.execute(select(MarketEvent).where(MarketEvent.consensus_id == consensus.id))
+            .scalars()
+            .all()
+        )
+        == 2
+    )
 
     rerun = await reconcile_market_events(AsyncSessionAdapter(db))
     assert rerun["groups_created"] == 0

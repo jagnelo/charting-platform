@@ -21,7 +21,9 @@ def test_manifest_evaluation_status_is_separate_from_transport_completion():
         )
         == "deferred"
     )
-    assert research_jobs._manifest_evaluation_status({}, transport_status="completed") == "completed"
+    assert (
+        research_jobs._manifest_evaluation_status({}, transport_status="completed") == "completed"
+    )
     assert research_jobs._manifest_evaluation_status({}, transport_status="failed") == "failed"
 
 

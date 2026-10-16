@@ -176,9 +176,7 @@ class TestInstruments:
         self, fetch_latest, client, auth_headers, instrument, ohlcv_bars
     ):
         """Broad heatmap evaluation must defer cold/short history to refresh workers."""
-        fetch_latest.side_effect = AssertionError(
-            "heatmap evaluation must not make provider calls"
-        )
+        fetch_latest.side_effect = AssertionError("heatmap evaluation must not make provider calls")
         response = client.post(
             "/api/v1/instruments/heatmap-data",
             json={

@@ -83,9 +83,7 @@ class EvaluatorPreflight:
     @property
     def ready_instrument_ids(self) -> frozenset[int]:
         return frozenset(
-            item.instrument_id
-            for item in self.items
-            if item.status == CoverageStatus.READY
+            item.instrument_id for item in self.items if item.status == CoverageStatus.READY
         )
 
     def to_dict(self) -> dict[str, Any]:

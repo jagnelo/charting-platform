@@ -1378,9 +1378,7 @@ class TestWorkspaces:
         assert roles["cap_weight"]["last"] == 102
         assert roles["cap_weight"]["as_of"] == "2026-12-31T23:59:59Z"
         assert roles["cap_weight"]["sma200"] is None
-        assert roles["cap_weight"]["coverage_preflight"]["evaluator"] == (
-            "technical_snapshot"
-        )
+        assert roles["cap_weight"]["coverage_preflight"]["evaluator"] == ("technical_snapshot")
         assert roles["cap_weight"]["coverage_preflight"]["status"] == "deferred"
         assert roles["equal_weight"]["symbol"] == "RSP"
         assert roles["equal_weight"]["available"] is False
@@ -1458,10 +1456,7 @@ class TestWorkspaces:
         assert roles["equal_weight"]["above_ma"]["ma20"]["eligible_count"] == 1
         assert roles["equal_weight"]["near_52w_high"]["percentage"] is None
         assert roles["equal_weight"]["coverage_preflight"]["ma20"]["status"] == "full"
-        assert (
-            roles["equal_weight"]["coverage_preflight"]["near_52w_high"]["status"]
-            == "deferred"
-        )
+        assert roles["equal_weight"]["coverage_preflight"]["near_52w_high"]["status"] == "deferred"
         assert (
             roles["equal_weight"]["coverage_preflight"]["near_52w_high"]["items"][0]["status"]
             == "partial"
@@ -1846,9 +1841,7 @@ class TestWorkspaces:
         assert len(roles["equal_weight"]["history"]) == 7
         assert roles["equal_weight"]["trend"] > 0
         assert roles["equal_weight"]["state"] in {"leading", "weakening"}
-        assert payload["coverage_preflight"]["evaluator"] == (
-            "benchmark_family_relative_rotation"
-        )
+        assert payload["coverage_preflight"]["evaluator"] == ("benchmark_family_relative_rotation")
         assert payload["coverage_preflight"]["status"] == "full"
         assert roles["value"]["available"] is False
         assert roles["value"]["warnings"][0]["code"] == "role_mapping_unavailable"
@@ -2423,9 +2416,7 @@ class TestWorkspaces:
         assert payload["coverage_preflight"]["status"] == "deferred"
         assert payload["coverage_preflight"]["items"][0]["status"] == "partial"
         assert payload["values"][instrument.symbol]["value"] is None
-        assert payload["values"][instrument.symbol]["warning"]["code"] == (
-            "insufficient_history"
-        )
+        assert payload["values"][instrument.symbol]["warning"]["code"] == ("insufficient_history")
 
     def test_group_snapshot_exposes_bounded_calendar_year_returns(
         self, client, auth_headers, db, instrument, ohlcv_bars
@@ -2524,9 +2515,7 @@ class TestWorkspaces:
         assert rotation.json()["history_length"] == 8
         assert len(row["history"]) == 8
         assert row["coverage"] == 1
-        assert rotation.json()["coverage_preflight"]["evaluator"] == (
-            "group_relative_rotation"
-        )
+        assert rotation.json()["coverage_preflight"]["evaluator"] == ("group_relative_rotation")
 
     def test_relative_rotation_respects_point_in_time_membership_and_bars(
         self, client, auth_headers, db, instrument, ohlcv_bars
@@ -2679,7 +2668,9 @@ class TestWorkspaces:
         assert all(point["timestamp"] <= params["as_of"] for point in history.json()["points"])
         assert history.json()["coverage_preflight"]["evaluator"] == "group_breadth_history"
 
-    def test_current_breadth_excludes_expired_ohlcv_members(self, client, auth_headers, db, instrument, ohlcv_bars):
+    def test_current_breadth_excludes_expired_ohlcv_members(
+        self, client, auth_headers, db, instrument, ohlcv_bars
+    ):
         from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
         from app.models.workstation import MarketGroup, MarketGroupMember
 

@@ -184,6 +184,7 @@ async def test_worker_indicator_preflight_coalesces_local_bar_reads(monkeypatch)
         return bars
 
     monkeypatch.setattr(alert_tasks, "_get_recent_bars", fake_recent)
+
     async def fake_preflight(_db, **_kwargs):
         return SimpleNamespace(
             ready_instrument_ids=frozenset({23}),

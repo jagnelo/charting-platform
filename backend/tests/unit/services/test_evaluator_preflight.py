@@ -71,11 +71,13 @@ async def test_preflight_queues_only_the_missing_tail(db, instrument):
     assert len(result.queued_request_keys) == 1
     item = result.items[0]
     assert item.status.value == "partial"
-    assert item.missing_slices == (
-        (start + timedelta(days=3), start + timedelta(days=4)),
-    )
+    assert item.missing_slices == ((start + timedelta(days=3), start + timedelta(days=4)),)
     job = (
-        db.execute(select(MarketRefreshJob).where(MarketRefreshJob.request_key == result.queued_request_keys[0]))
+        db.execute(
+            select(MarketRefreshJob).where(
+                MarketRefreshJob.request_key == result.queued_request_keys[0]
+            )
+        )
     ).scalar_one()
     assert job.start_at == (start + timedelta(days=3)).replace(tzinfo=None)
     assert job.end_at == (start + timedelta(days=4)).replace(tzinfo=None)

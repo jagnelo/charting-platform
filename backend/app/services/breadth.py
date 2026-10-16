@@ -199,7 +199,12 @@ def _field_required_bars(field: Any, params: Mapping[str, Any]) -> int:
         return 1
     if normalized in {"return", "return_1"}:
         return 2
-    if normalized in {"distance_to_52w_high", "distance_to_52_week_high", "distance_to_52w_low", "distance_to_52_week_low"}:
+    if normalized in {
+        "distance_to_52w_high",
+        "distance_to_52_week_high",
+        "distance_to_52w_low",
+        "distance_to_52_week_low",
+    }:
         return _safe_history_int(params.get("lookback"), 252)
     if normalized in {"moving_average_distance", "ma_distance"}:
         return _safe_history_int(params.get("period"), 200)

@@ -116,7 +116,10 @@ def representative_operation(
     ``*_API_KEY`` heuristic.
     """
 
-    if capability == ProviderCapability.MARKET_EVENTS and str(provider_name or "").lower() == "edgar":
+    if (
+        capability == ProviderCapability.MARKET_EVENTS
+        and str(provider_name or "").lower() == "edgar"
+    ):
         # EDGAR exposes filing-driven IPO candidates by issuer/CIK, not the
         # calendar-wide ``fetch_market_events(start, end)`` endpoint used by
         # other market-event providers. Keep its availability operation
@@ -506,9 +509,7 @@ async def run_availability_probes(
                                 default_probe(source.name, policy.capability, request)
                             ),
                             response_items=lambda result: (
-                                len(result)
-                                if isinstance(result, dict | list | tuple | set)
-                                else 1
+                                len(result) if isinstance(result, dict | list | tuple | set) else 1
                             ),
                             treat_empty_as_failure=False,
                         )

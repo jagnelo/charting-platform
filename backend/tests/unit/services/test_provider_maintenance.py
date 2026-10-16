@@ -23,9 +23,7 @@ from tests.unit.conftest import AsyncSessionAdapter
 
 
 @pytest.mark.asyncio
-async def test_summarize_and_prune_provider_observations_keeps_provider_evidence(
-    db, instrument
-):
+async def test_summarize_and_prune_provider_observations_keeps_provider_evidence(db, instrument):
     async_db = AsyncSessionAdapter(db)
     data_source = DataSource(name="yfinance", is_active=True)
     db.add(data_source)

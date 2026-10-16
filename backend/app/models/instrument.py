@@ -100,7 +100,9 @@ class Instrument(Base, TimestampMixin):
         back_populates="instrument", uselist=False, foreign_keys="[ForexDetail.instrument_id]"
     )
     tokenized_asset_detail: Mapped[Optional["TokenizedAssetDetail"]] = relationship(
-        back_populates="instrument", uselist=False, foreign_keys="[TokenizedAssetDetail.instrument_id]"
+        back_populates="instrument",
+        uselist=False,
+        foreign_keys="[TokenizedAssetDetail.instrument_id]",
     )
 
     # Synthetic instrument: its constituent instruments

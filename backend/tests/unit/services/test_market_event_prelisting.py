@@ -115,7 +115,10 @@ async def test_conflicted_consensus_is_quarantined_without_instrument(db):
     assert result["quarantined"] == 1
     assert candidate.status == "quarantined"
     assert candidate.instrument_id is None
-    assert db.execute(select(Instrument).where(Instrument.symbol == "CNFL")).scalar_one_or_none() is None
+    assert (
+        db.execute(select(Instrument).where(Instrument.symbol == "CNFL")).scalar_one_or_none()
+        is None
+    )
 
 
 @pytest.mark.asyncio
@@ -293,12 +296,8 @@ async def test_promotion_continues_after_ambiguous_bounded_candidate(db, instrum
     )
     db.flush()
 
-    first_result = await promote_prelisting_candidates(
-        AsyncSessionAdapter(db), max_candidates=1
-    )
-    second_result = await promote_prelisting_candidates(
-        AsyncSessionAdapter(db), max_candidates=1
-    )
+    first_result = await promote_prelisting_candidates(AsyncSessionAdapter(db), max_candidates=1)
+    second_result = await promote_prelisting_candidates(AsyncSessionAdapter(db), max_candidates=1)
 
     assert first_result["status"] == "partial"
     assert first_result["ambiguous"] == 0
@@ -373,8 +372,9 @@ async def test_promotion_does_not_use_ticker_only_or_ambiguous_venue_matches(db,
     assert result["promoted"] == 0
     assert result["ambiguous"] == 1
     assert db.execute(
-        select(MarketEventPrelistingCandidate.status)
-        .order_by(MarketEventPrelistingCandidate.candidate_key)
+        select(MarketEventPrelistingCandidate.status).order_by(
+            MarketEventPrelistingCandidate.candidate_key
+        )
     ).scalars().all() == ["pending", "pending"]
 
 

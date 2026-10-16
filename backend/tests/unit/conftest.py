@@ -234,9 +234,7 @@ def inline_provider_runtime_executor(monkeypatch):
         async def to_thread(func, /, *args, **kwargs):
             return func(*args, **kwargs)
 
-    monkeypatch.setattr(
-        provider_quota_coordinator, "asyncio", _InlineCoordinatorAsyncio()
-    )
+    monkeypatch.setattr(provider_quota_coordinator, "asyncio", _InlineCoordinatorAsyncio())
 
 
 @pytest.fixture()

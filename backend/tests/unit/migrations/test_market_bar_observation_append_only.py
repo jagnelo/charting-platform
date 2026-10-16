@@ -21,8 +21,11 @@ from alembic.operations import Operations
 
 
 def _migration_module():
-    path = Path(__file__).parents[3] / "alembic" / "versions" / (
-        "d1e2f3a4b5c6_make_market_bar_observations_append_only.py"
+    path = (
+        Path(__file__).parents[3]
+        / "alembic"
+        / "versions"
+        / ("d1e2f3a4b5c6_make_market_bar_observations_append_only.py")
     )
     spec = importlib.util.spec_from_file_location("market_bar_observation_append_only", path)
     assert spec is not None and spec.loader is not None
@@ -63,7 +66,11 @@ def test_market_bar_observation_migration_adds_observation_time_to_key():
         module.op = operations
         module.upgrade()
         constraints = inspect(connection).get_unique_constraints("market_bar_observation")
-        columns = next(item["column_names"] for item in constraints if item["name"] == "uq_market_bar_observation")
+        columns = next(
+            item["column_names"]
+            for item in constraints
+            if item["name"] == "uq_market_bar_observation"
+        )
         assert columns[-1] == "observed_at"
 
         table = metadata.tables["market_bar_observation"]
@@ -77,6 +84,7 @@ def test_market_bar_observation_migration_adds_observation_time_to_key():
         }
         connection.execute(table.insert(), {**base, "observed_at": datetime(2026, 1, 3)})
         connection.execute(table.insert(), {**base, "observed_at": datetime(2026, 1, 4)})
-        assert connection.exec_driver_sql(
-            "SELECT COUNT(*) FROM market_bar_observation"
-        ).scalar_one() == 2
+        assert (
+            connection.exec_driver_sql("SELECT COUNT(*) FROM market_bar_observation").scalar_one()
+            == 2
+        )

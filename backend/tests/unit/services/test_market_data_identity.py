@@ -32,11 +32,15 @@ async def test_identity_quarantine_retains_repeated_provider_payloads(db, instru
     )
 
     assert first.id == second.id
-    observations = db.execute(
-        select(InstrumentIdentityQuarantineObservation).order_by(
-            InstrumentIdentityQuarantineObservation.id
+    observations = (
+        db.execute(
+            select(InstrumentIdentityQuarantineObservation).order_by(
+                InstrumentIdentityQuarantineObservation.id
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assert [row.candidate_payload["version"] for row in observations] == [1, 2]
 
 
@@ -66,9 +70,13 @@ async def test_identity_quarantine_retains_explicit_empty_provider_payload(db, i
     )
 
     assert row.candidate_payload == {}
-    observations = db.execute(
-        select(InstrumentIdentityQuarantineObservation).order_by(
-            InstrumentIdentityQuarantineObservation.id
+    observations = (
+        db.execute(
+            select(InstrumentIdentityQuarantineObservation).order_by(
+                InstrumentIdentityQuarantineObservation.id
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assert observations[-1].candidate_payload == {}

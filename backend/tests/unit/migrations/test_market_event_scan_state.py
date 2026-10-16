@@ -10,8 +10,11 @@ from alembic.operations import Operations
 
 
 def _migration_module():
-    path = Path(__file__).parents[3] / "alembic" / "versions" / (
-        "a3b4c5d6e7f8_add_market_event_scan_state.py"
+    path = (
+        Path(__file__).parents[3]
+        / "alembic"
+        / "versions"
+        / ("a3b4c5d6e7f8_add_market_event_scan_state.py")
     )
     spec = importlib.util.spec_from_file_location("market_event_scan_state", path)
     assert spec is not None and spec.loader is not None

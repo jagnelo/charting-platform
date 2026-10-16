@@ -23,8 +23,11 @@ from alembic.operations import Operations
 
 
 def _migration_module():
-    path = Path(__file__).parents[3] / "alembic" / "versions" / (
-        "9f0a1b2c3d4e_add_scoped_ohlcv_conflict_keys.py"
+    path = (
+        Path(__file__).parents[3]
+        / "alembic"
+        / "versions"
+        / ("9f0a1b2c3d4e_add_scoped_ohlcv_conflict_keys.py")
     )
     spec = importlib.util.spec_from_file_location("scoped_ohlcv_keys", path)
     assert spec is not None and spec.loader is not None
@@ -108,12 +111,16 @@ def test_scoped_ohlcv_conflict_key_migration_backfills_and_reverses():
         module.op = operations
         module.upgrade()
 
-        assert connection.exec_driver_sql(
-            "SELECT scope_key FROM ohlcv_bar WHERE id = 1"
-        ).scalar_one() == "legacy:regular"
-        assert connection.exec_driver_sql(
-            "SELECT scope_key FROM market_bar_observation WHERE id = 1"
-        ).scalar_one() == "series:99:extended"
+        assert (
+            connection.exec_driver_sql("SELECT scope_key FROM ohlcv_bar WHERE id = 1").scalar_one()
+            == "legacy:regular"
+        )
+        assert (
+            connection.exec_driver_sql(
+                "SELECT scope_key FROM market_bar_observation WHERE id = 1"
+            ).scalar_one()
+            == "series:99:extended"
+        )
         assert "scope_key" in {
             column["name"] for column in inspect(connection).get_columns("ohlcv_bar")
         }

@@ -84,9 +84,7 @@ def test_history_entitlement_accepts_fixed_provider_earliest_date():
         ),
     ],
 )
-def test_history_entitlement_fails_closed_without_one_valid_bound(
-    quota_policy, expected_reason
-):
+def test_history_entitlement_fails_closed_without_one_valid_bound(quota_policy, expected_reason):
     entitlement = _history_entitlement(**quota_policy)
     allowed, reason = provider_history_entitlement_matches(
         entitlement,
@@ -260,9 +258,7 @@ async def test_settle_workload_lease_debits_only_its_reserved_windows(db):
         (1, -1),
     ],
 )
-async def test_settle_workload_lease_rejects_malformed_units(
-    db, lease_units, consumed_units
-):
+async def test_settle_workload_lease_rejects_malformed_units(db, lease_units, consumed_units):
     async_db = AsyncSessionAdapter(db)
     lease = ProviderWorkloadLease(
         workload_key="invalid-settlement-units",

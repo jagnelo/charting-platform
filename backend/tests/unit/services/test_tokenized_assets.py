@@ -50,7 +50,10 @@ async def test_dinari_sandbox_asset_cannot_enter_canonical_persistence(db):
         await upsert_tokenized_asset(AsyncSessionAdapter(db), record)
 
     assert db.query(TokenizedAssetDetail).count() == 0
-    assert db.query(Instrument).filter(Instrument.domain_key.startswith("tokenized:dinari:")).count() == 0
+    assert (
+        db.query(Instrument).filter(Instrument.domain_key.startswith("tokenized:dinari:")).count()
+        == 0
+    )
 
 
 @pytest.mark.asyncio
@@ -87,18 +90,26 @@ async def test_upsert_keeps_token_distinct_and_links_unambiguous_underlying(db, 
     assert detail.multiplier == Decimal("0.98")
     assert detail.deployments[0]["address"] == "So111"
 
-    snapshot = db.execute(
-        select(LatestPriceSnapshot)
-        .where(LatestPriceSnapshot.instrument_id == token.id)
-        .order_by(LatestPriceSnapshot.id)
-    ).scalars().first()
+    snapshot = (
+        db.execute(
+            select(LatestPriceSnapshot)
+            .where(LatestPriceSnapshot.instrument_id == token.id)
+            .order_by(LatestPriceSnapshot.id)
+        )
+        .scalars()
+        .first()
+    )
     assert snapshot is not None
     assert snapshot.price == Decimal("100.25")
-    observations = db.execute(
-        select(TokenizedAssetObservation)
-        .where(TokenizedAssetObservation.instrument_id == token.id)
-        .order_by(TokenizedAssetObservation.id)
-    ).scalars().all()
+    observations = (
+        db.execute(
+            select(TokenizedAssetObservation)
+            .where(TokenizedAssetObservation.instrument_id == token.id)
+            .order_by(TokenizedAssetObservation.id)
+        )
+        .scalars()
+        .all()
+    )
     assert len(observations) == 2
     assert observations[0].payload == {"id": "x:AAPL"}
     assert observations[1].payload == {"id": "x:AAPL"}
@@ -167,7 +178,9 @@ async def test_upsert_does_not_guess_ambiguous_underlying(db, instrument_type, i
 
 
 @pytest.mark.asyncio
-async def test_upsert_prefers_underlying_isin_over_duplicate_ticker(db, instrument_type, instrument):
+async def test_upsert_prefers_underlying_isin_over_duplicate_ticker(
+    db, instrument_type, instrument
+):
     instrument.isin = "US0378331005"
     duplicate = Instrument(
         symbol="AAPL",
@@ -230,7 +243,9 @@ async def test_upsert_links_underlying_by_figi_before_ticker(db, instrument_type
 
 
 @pytest.mark.asyncio
-async def test_upsert_links_underlying_by_composite_figi_identifier(db, instrument, instrument_type):
+async def test_upsert_links_underlying_by_composite_figi_identifier(
+    db, instrument, instrument_type
+):
     identifier = InstrumentIdentifier(
         instrument_id=instrument.id,
         identifier_type=InstrumentIdentifierType.COMPOSITE_FIGI,
@@ -325,7 +340,9 @@ async def test_upsert_refuses_conflicting_stable_underlying_identifiers(
 
 
 @pytest.mark.asyncio
-async def test_upsert_resolves_underlying_isin_from_canonical_identifier(db, instrument, instrument_type):
+async def test_upsert_resolves_underlying_isin_from_canonical_identifier(
+    db, instrument, instrument_type
+):
     identifier = InstrumentIdentifier(
         instrument_id=instrument.id,
         identifier_type=InstrumentIdentifierType.ISIN,
@@ -389,7 +406,14 @@ async def test_refresh_tokenized_prices_routes_by_provider_asset_id_and_persists
     calls = []
 
     async def fake_execute(_db, _capability, operation, **kwargs):
-        calls.append((operation, kwargs["provider_name"], kwargs["provider_symbol"], kwargs["usage_identity"]))
+        calls.append(
+            (
+                operation,
+                kwargs["provider_name"],
+                kwargs["provider_symbol"],
+                kwargs["usage_identity"],
+            )
+        )
         return SimpleNamespace(
             provider_name="robinhood_tokens",
             result=TokenizedAssetRecord(
@@ -614,9 +638,7 @@ async def test_refresh_tokenized_historical_prices_persists_scoped_series_and_ob
         assert capability is ProviderCapability.TOKENIZED_HISTORICAL_PRICES
         assert operation == "fetch_tokenized_historical_prices"
         result = kwargs["invoke"](provider, kwargs["provider_symbol"])
-        return SimpleNamespace(
-            provider_name="robinhood_tokens", data_source=source, result=result
-        )
+        return SimpleNamespace(provider_name="robinhood_tokens", data_source=source, result=result)
 
     monkeypatch.setattr(tokenized_assets, "resolve_provider_chain", fake_chain)
     monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
@@ -685,18 +707,14 @@ async def test_refresh_tokenized_historical_prices_persists_scoped_series_and_ob
 
 @pytest.mark.asyncio
 async def test_refresh_tokenized_historical_prices_accepts_year_timespan(db):
-    result = await refresh_tokenized_historical_prices(
-        AsyncSessionAdapter(db), timespan="YEAR"
-    )
+    result = await refresh_tokenized_historical_prices(AsyncSessionAdapter(db), timespan="YEAR")
 
     assert result["status"] == "no_assets"
     assert result["timespan"] == "YEAR"
 
 
 @pytest.mark.asyncio
-async def test_refresh_tokenized_assets_reports_full_page_as_partial(
-    db, monkeypatch
-):
+async def test_refresh_tokenized_assets_reports_full_page_as_partial(db, monkeypatch):
     provider = SimpleNamespace(name="robinhood_tokens")
     record = TokenizedAssetRecord(
         provider="robinhood_tokens",
@@ -719,9 +737,7 @@ async def test_refresh_tokenized_assets_reports_full_page_as_partial(
     monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
     monkeypatch.setattr(tokenized_assets, "upsert_tokenized_asset", fake_upsert)
 
-    result = await refresh_tokenized_assets(
-        AsyncSessionAdapter(db), max_pages=1, page_size=1
-    )
+    result = await refresh_tokenized_assets(AsyncSessionAdapter(db), max_pages=1, page_size=1)
 
     assert result == {
         "status": "partial",
@@ -743,9 +759,7 @@ async def test_refresh_tokenized_assets_reports_full_page_as_partial(
 
 
 @pytest.mark.asyncio
-async def test_refresh_tokenized_assets_resumes_page_after_fairness_budget(
-    db, monkeypatch
-):
+async def test_refresh_tokenized_assets_resumes_page_after_fairness_budget(db, monkeypatch):
     calls: list[int] = []
     record = TokenizedAssetRecord(
         provider="robinhood_tokens",
@@ -798,9 +812,7 @@ async def test_refresh_tokenized_assets_resumes_page_after_fairness_budget(
 
 
 @pytest.mark.asyncio
-async def test_refresh_tokenized_assets_resumes_opaque_cursor_page(
-    db, monkeypatch
-):
+async def test_refresh_tokenized_assets_resumes_opaque_cursor_page(db, monkeypatch):
     calls: list[str | None] = []
     record = TokenizedAssetRecord(
         provider="bybit_xstocks",
@@ -852,9 +864,7 @@ async def test_refresh_tokenized_assets_resumes_opaque_cursor_page(
 
 
 @pytest.mark.asyncio
-async def test_refresh_tokenized_assets_marks_short_page_complete(
-    db, monkeypatch
-):
+async def test_refresh_tokenized_assets_marks_short_page_complete(db, monkeypatch):
     provider = SimpleNamespace(name="robinhood_tokens")
     record = TokenizedAssetRecord(
         provider="robinhood_tokens",
@@ -877,9 +887,7 @@ async def test_refresh_tokenized_assets_marks_short_page_complete(
     monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
     monkeypatch.setattr(tokenized_assets, "upsert_tokenized_asset", fake_upsert)
 
-    result = await refresh_tokenized_assets(
-        AsyncSessionAdapter(db), max_pages=3, page_size=2
-    )
+    result = await refresh_tokenized_assets(AsyncSessionAdapter(db), max_pages=3, page_size=2)
 
     assert result["status"] == "refreshed"
     assert result["truncated"] is False
@@ -898,9 +906,7 @@ async def test_refresh_tokenized_assets_marks_short_page_complete(
 
 
 @pytest.mark.asyncio
-async def test_refresh_tokenized_assets_keeps_provider_failure_and_continues(
-    db, monkeypatch
-):
+async def test_refresh_tokenized_assets_keeps_provider_failure_and_continues(db, monkeypatch):
     first_provider = SimpleNamespace(name="test-unavailable-provider")
     second_provider = SimpleNamespace(name="robinhood_tokens")
     record = TokenizedAssetRecord(
@@ -919,7 +925,9 @@ async def test_refresh_tokenized_assets_keeps_provider_failure_and_continues(
 
     async def fake_execute(_db, _capability, operation, **_kwargs):
         if operation.endswith(":0") and _kwargs.get("provider_name") == "test-unavailable-provider":
-            raise RuntimeError("provider unavailable https://api.example.test/?api_key=super-secret")
+            raise RuntimeError(
+                "provider unavailable https://api.example.test/?api_key=super-secret"
+            )
         return SimpleNamespace(provider_name="robinhood_tokens", result=[record])
 
     async def fake_upsert(_db, _record):
@@ -929,9 +937,7 @@ async def test_refresh_tokenized_assets_keeps_provider_failure_and_continues(
     monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
     monkeypatch.setattr(tokenized_assets, "upsert_tokenized_asset", fake_upsert)
 
-    result = await refresh_tokenized_assets(
-        AsyncSessionAdapter(db), max_pages=1, page_size=2
-    )
+    result = await refresh_tokenized_assets(AsyncSessionAdapter(db), max_pages=1, page_size=2)
 
     assert result["status"] == "partial"
     assert result["assets"] == 1
@@ -985,16 +991,16 @@ async def test_refresh_tokenized_assets_clamps_catalog_request_bounds(db, monkey
     monkeypatch.setattr(tokenized_assets, "resolve_provider_chain", fake_chain)
     monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
 
-    result = await refresh_tokenized_assets(
-        AsyncSessionAdapter(db), max_pages=5000, page_size=5000
-    )
+    result = await refresh_tokenized_assets(AsyncSessionAdapter(db), max_pages=5000, page_size=5000)
 
     assert result["status"] == "refreshed"
     assert requested == [(0, 1000)]
 
 
 @pytest.mark.asyncio
-async def test_refresh_tokenized_prices_keeps_per_asset_failure_evidence(db, instrument, monkeypatch):
+async def test_refresh_tokenized_prices_keeps_per_asset_failure_evidence(
+    db, instrument, monkeypatch
+):
     initial = TokenizedAssetRecord(
         provider="robinhood_tokens",
         asset_id="rh-aapl",
@@ -1059,6 +1065,7 @@ async def test_refresh_tokenized_events_persists_and_links_explicit_action_ident
     provider = SimpleNamespace(
         name="xstocks", fetch_tokenized_corporate_actions=lambda **_kwargs: []
     )
+
     async def fake_chain(*_args, **_kwargs):
         return [SimpleNamespace(provider_name="xstocks", provider=provider)]
 
@@ -1151,9 +1158,7 @@ async def test_refresh_tokenized_events_fails_closed_on_non_object_page_row(
 
 
 @pytest.mark.asyncio
-async def test_refresh_tokenized_events_runs_bounded_global_split_feed(
-    db, instrument, monkeypatch
-):
+async def test_refresh_tokenized_events_runs_bounded_global_split_feed(db, instrument, monkeypatch):
     await upsert_tokenized_asset(
         AsyncSessionAdapter(db),
         TokenizedAssetRecord(
@@ -1178,7 +1183,9 @@ async def test_refresh_tokenized_events_runs_bounded_global_split_feed(
             }
         ]
 
-    provider = SimpleNamespace(name="robinhood_tokens", fetch_tokenized_corporate_actions=fetch_actions)
+    provider = SimpleNamespace(
+        name="robinhood_tokens", fetch_tokenized_corporate_actions=fetch_actions
+    )
 
     async def fake_chain(*_args, **_kwargs):
         return [SimpleNamespace(provider_name="robinhood_tokens", provider=provider)]
@@ -1213,9 +1220,7 @@ async def test_refresh_tokenized_events_runs_bounded_global_split_feed(
 
 
 @pytest.mark.asyncio
-async def test_refresh_tokenized_events_treats_full_robinhood_feed_as_complete(
-    db, monkeypatch
-):
+async def test_refresh_tokenized_events_treats_full_robinhood_feed_as_complete(db, monkeypatch):
     page_size = 25
     rows = [
         {"id": f"robinhood-event-{index}", "effectiveDate": "2026-09-11"}
@@ -1264,9 +1269,7 @@ async def test_refresh_tokenized_events_treats_full_robinhood_feed_as_complete(
 
 
 @pytest.mark.asyncio
-async def test_refresh_tokenized_events_rotates_providers_across_fairness_budget(
-    db, monkeypatch
-):
+async def test_refresh_tokenized_events_rotates_providers_across_fairness_budget(db, monkeypatch):
     calls: list[str] = []
     providers = {
         name: SimpleNamespace(
@@ -1378,9 +1381,7 @@ async def test_refresh_tokenized_events_resumes_opaque_cursor_across_provider_in
             calls.append((kwargs["page"], kwargs["cursor"]))
             return provider_rows[kwargs["cursor"]]
 
-        return SimpleNamespace(
-            name="dinari", fetch_tokenized_corporate_actions_page=fetch_page
-        )
+        return SimpleNamespace(name="dinari", fetch_tokenized_corporate_actions_page=fetch_page)
 
     provider = make_provider()
 
@@ -1448,6 +1449,7 @@ async def test_dinari_sandbox_is_excluded_from_catalogue_and_event_persistence_p
 @pytest.mark.asyncio
 async def test_refresh_tokenized_events_reports_adapters_without_action_surface(db, monkeypatch):
     provider = SimpleNamespace(name="bybit_xstocks")
+
     async def fake_chain(*_args, **_kwargs):
         return [SimpleNamespace(provider_name="bybit_xstocks", provider=provider)]
 

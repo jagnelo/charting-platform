@@ -81,7 +81,14 @@ def test_ibkr_profile_retains_provider_conid_without_making_it_canonical(monkeyp
     monkeypatch.setattr(
         "app.providers.ibkr.httpx.request",
         lambda method, url, **kwargs: FakeResponse(
-            [{"conid": 265598, "symbol": "AAPL", "companyName": "Apple Inc.", "listingExchange": "NASDAQ"}]
+            [
+                {
+                    "conid": 265598,
+                    "symbol": "AAPL",
+                    "companyName": "Apple Inc.",
+                    "listingExchange": "NASDAQ",
+                }
+            ]
         ),
     )
     profile = IBKRProvider().get_instrument_profile("AAPL")
@@ -102,8 +109,22 @@ def test_ibkr_history_normalizes_millisecond_timestamps_and_raw_provenance(monke
         return FakeResponse(
             {
                 "data": [
-                    {"t": int(start.timestamp() * 1000), "o": "100", "h": "105", "l": "99", "c": "104", "v": "1000"},
-                    {"t": int((start + timedelta(days=1)).timestamp() * 1000), "o": 104, "h": 106, "l": 103, "c": 105, "v": 1200},
+                    {
+                        "t": int(start.timestamp() * 1000),
+                        "o": "100",
+                        "h": "105",
+                        "l": "99",
+                        "c": "104",
+                        "v": "1000",
+                    },
+                    {
+                        "t": int((start + timedelta(days=1)).timestamp() * 1000),
+                        "o": 104,
+                        "h": 106,
+                        "l": 103,
+                        "c": 105,
+                        "v": 1200,
+                    },
                 ]
             }
         )
@@ -243,7 +264,12 @@ def test_ibkr_snapshot_accepts_documented_previous_close_prefix(monkeypatch):
 
 def test_ibkr_registry_exposes_only_implemented_capabilities():
     capabilities = set(list_provider_capabilities("ibkr"))
-    assert {"instrument_search", "instrument_metadata", "price_history", "latest_price"} <= capabilities
+    assert {
+        "instrument_search",
+        "instrument_metadata",
+        "price_history",
+        "latest_price",
+    } <= capabilities
     assert "futures_history" in capabilities
     assert "option_chain" not in capabilities
 
@@ -272,9 +298,7 @@ def test_ibkr_futures_history_uses_explicit_provider_conid(monkeypatch):
         )
 
     monkeypatch.setattr("app.providers.ibkr.httpx.request", fake_request)
-    bars = IBKRProvider().fetch_ohlcv(
-        "ES=F", Timeframe.D1, start, end, adjusted=False
-    )
+    bars = IBKRProvider().fetch_ohlcv("ES=F", Timeframe.D1, start, end, adjusted=False)
     assert len(bars) == 1
     assert bars[0].provenance["conid"] == 123456
     assert calls[0][2]["params"]["conid"] == 123456

@@ -1511,10 +1511,52 @@ async def test_free_only_checkpoint_boundary_rejects_reviewed_paid_provider(db, 
         assert paid_status["entitlement_admission"]["reason_code"] == "checkpoint_free_only"
     assert transport_calls == []
 
+    # An affirmative `is_free` bit does not make an unknown plan reviewed.
+    # Prove the shared admission, status, resolver, and executor all fail
+    # closed under either paid-routing toggle.
+    for unknown_plan in ("unknown", "unknown-plan"):
+        entitlement.configured_plan = unknown_plan
+        entitlement.is_free = True
+        for allow_paid in (False, True):
+            monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", allow_paid)
+            decision = provider_entitlement_admission(entitlement)
+            assert decision["allowed"] is False
+            assert decision["reason_code"] == "entitlement_unreviewed"
+            denied_chain = await resolve_provider_chain(
+                async_db,
+                ProviderCapability.LATEST_PRICE,
+                operation="get_current_price",
+                operation_cost_overrides={"marketdata_app": 1},
+            )
+            assert all(item.provider_name != "marketdata_app" for item in denied_chain)
+            with pytest.raises(RuntimeError, match="No enabled providers available"):
+                await execute_provider_call(
+                    async_db,
+                    ProviderCapability.LATEST_PRICE,
+                    "get_current_price",
+                    provider_name="marketdata_app",
+                    operation_cost_overrides={"marketdata_app": 1},
+                    invoke=lambda *_args: transport_calls.append("called"),
+                )
+            unknown_status = next(
+                row
+                for row in await list_provider_status(async_db)
+                if row["provider"] == "marketdata_app"
+                and row["capability"] == ProviderCapability.LATEST_PRICE.value
+            )
+            assert unknown_status["entitlement_state"] == "unreviewed"
+            assert unknown_status["routing_eligible"] is False
+            assert unknown_status["entitlement_admission"]["reason_code"] == (
+                "entitlement_unreviewed"
+            )
+    assert transport_calls == []
+
     # Leaving checkpoint mode deliberately restores full-roadmap opt-in
     # semantics, without implying aggregate subscription-cost admission.
     monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", False)
     monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", False)
+    entitlement.configured_plan = "reviewed-checkpoint-paid-fixture"
+    entitlement.is_free = False
     assert provider_entitlement_admission(entitlement)["reason_code"] == "paid_routing_disabled"
     monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", True)
     assert provider_entitlement_admission(entitlement)["reason_code"] == "reviewed_paid_opt_in"
@@ -1662,7 +1704,8 @@ async def test_checkpoint_blocks_paid_unknown_and_trial_usage_probes_before_tran
         for plan, is_free in (
             ("reviewed-paid-fixture", False),
             ("unreviewed", False),
-            ("unknown-plan", False),
+            ("unknown-plan", True),
+            ("unknown", True),
             ("starter_trial", True),
         ):
             entitlement.configured_plan = plan
@@ -1720,6 +1763,21 @@ async def test_eodhd_reviewed_zero_credit_usage_probe_remains_available_unreview
         "PROVIDER_QUOTA_LEDGER_PATH",
         str(tmp_path / "eodhd-zero-credit-bootstrap.sqlite3"),
     )
+    reviewed_seed = _entitlement_seed
+
+    def unreviewed_eodhd_usage_seed(provider_name, capability):
+        seed = reviewed_seed(provider_name, capability)
+        if provider_name == "eodhd" and capability == ProviderCapability.ACCOUNT_USAGE:
+            seed["configured_plan"] = "unreviewed"
+            seed["is_free"] = False
+        return seed
+
+    # Model an account whose plan is genuinely not reviewed. Repository seed
+    # reconciliation must not silently turn the exception test into a normal
+    # reviewed-free route.
+    monkeypatch.setattr(
+        "app.services.provider_runtime._entitlement_seed", unreviewed_eodhd_usage_seed
+    )
     await seed_provider_runtime(async_db)
 
     source = db.execute(select(DataSource).where(DataSource.name == "eodhd")).scalar_one()
@@ -1760,6 +1818,11 @@ async def test_eodhd_reviewed_zero_credit_usage_probe_remains_available_unreview
     probe_calls = []
     for allow_paid in (False, True):
         monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", allow_paid)
+        monkeypatch.setattr(
+            settings,
+            "PROVIDER_QUOTA_LEDGER_PATH",
+            str(tmp_path / f"eodhd-zero-credit-bootstrap-{allow_paid}.sqlite3"),
+        )
         chain = await resolve_provider_chain(
             async_db,
             ProviderCapability.ACCOUNT_USAGE,
@@ -1788,6 +1851,59 @@ async def test_eodhd_reviewed_zero_credit_usage_probe_remains_available_unreview
         assert result.provider_name == "eodhd"
 
     assert probe_calls == ["called", "called"]
+
+    # The resolver and execution path must enforce the same evidence contract;
+    # a bootstrap reservation alone is not proof that the operation is free.
+    original_contract = deepcopy(policy.quota_contract)
+    # Pin the fixture so seed reconciliation preserves each deliberately
+    # malformed operator contract instead of restoring the reviewed code seed.
+    policy.is_pinned = True
+    exception = original_contract["account_usage_bootstrap"]["checkpoint_unreviewed_zero_billing"]
+    invalid_exceptions = (
+        None,
+        {**exception, "operation": "get_current_price"},
+        {**exception, "cost": 1},
+        {**exception, "source": "application_policy:unverified"},
+        {**exception, "dimension": "requests_per_minute"},
+    )
+    for allow_paid in (False, True):
+        monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", allow_paid)
+        monkeypatch.setattr(
+            settings,
+            "PROVIDER_QUOTA_LEDGER_PATH",
+            str(tmp_path / f"eodhd-invalid-zero-billing-{allow_paid}.sqlite3"),
+        )
+        for invalid_exception in invalid_exceptions:
+            contract = deepcopy(original_contract)
+            bootstrap = contract["account_usage_bootstrap"]
+            if invalid_exception is None:
+                bootstrap.pop("checkpoint_unreviewed_zero_billing")
+            else:
+                bootstrap["checkpoint_unreviewed_zero_billing"] = invalid_exception
+            policy.quota_contract = contract
+            db.flush()
+            assert not policy_allows_unreviewed_account_usage_checkpoint(
+                policy, source, "fetch_account_usage"
+            )
+            denied_chain = await resolve_provider_chain(
+                async_db,
+                ProviderCapability.ACCOUNT_USAGE,
+                operation="fetch_account_usage",
+            )
+            assert all(item.provider_name != "eodhd" for item in denied_chain), (
+                allow_paid,
+                invalid_exception,
+            )
+            denied_calls = []
+            with pytest.raises(RuntimeError, match="No enabled providers available"):
+                await execute_provider_call(
+                    async_db,
+                    ProviderCapability.ACCOUNT_USAGE,
+                    "fetch_account_usage",
+                    provider_name="eodhd",
+                    invoke=lambda *_args: denied_calls.append("called"),
+                )
+            assert denied_calls == []
 
 
 @pytest.mark.asyncio

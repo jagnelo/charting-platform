@@ -86,9 +86,13 @@ async def redis_distributed_lock(
     if ttl_seconds <= 0:
         raise DistributedLockError("OHLCV distributed lock TTL must be positive")
     if not math.isfinite(blocking_timeout_seconds) or blocking_timeout_seconds < 0:
-        raise DistributedLockError("OHLCV distributed lock wait timeout must be finite and non-negative")
+        raise DistributedLockError(
+            "OHLCV distributed lock wait timeout must be finite and non-negative"
+        )
     if not math.isfinite(retry_interval_seconds) or retry_interval_seconds <= 0:
-        raise DistributedLockError("OHLCV distributed lock retry interval must be finite and positive")
+        raise DistributedLockError(
+            "OHLCV distributed lock retry interval must be finite and positive"
+        )
 
     lock = redis.lock(
         _lock_name(namespace, identity),

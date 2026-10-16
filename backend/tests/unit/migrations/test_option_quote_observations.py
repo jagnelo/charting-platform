@@ -10,8 +10,11 @@ from alembic.operations import Operations
 
 
 def _migration_module():
-    path = Path(__file__).parents[3] / "alembic" / "versions" / (
-        "d5f6a7b8c9d0_add_option_quote_observations.py"
+    path = (
+        Path(__file__).parents[3]
+        / "alembic"
+        / "versions"
+        / ("d5f6a7b8c9d0_add_option_quote_observations.py")
     )
     spec = importlib.util.spec_from_file_location("option_quote_observations", path)
     assert spec is not None and spec.loader is not None
@@ -42,8 +45,9 @@ def test_option_quote_observation_migration_is_append_only():
         )
         connection.execute(text("INSERT INTO option_quote_observation " + values))
         connection.execute(text("INSERT INTO option_quote_observation " + values))
-        assert connection.exec_driver_sql(
-            "SELECT COUNT(*) FROM option_quote_observation"
-        ).scalar_one() == 2
+        assert (
+            connection.exec_driver_sql("SELECT COUNT(*) FROM option_quote_observation").scalar_one()
+            == 2
+        )
         module.downgrade()
         assert "option_quote_observation" not in inspect(connection).get_table_names()

@@ -10,8 +10,11 @@ from alembic.operations import Operations
 
 
 def _migration_module():
-    path = Path(__file__).parents[3] / "alembic" / "versions" / (
-        "fa1b2c3d4e5f_add_provider_symbol_lifecycle_timestamps.py"
+    path = (
+        Path(__file__).parents[3]
+        / "alembic"
+        / "versions"
+        / ("fa1b2c3d4e5f_add_provider_symbol_lifecycle_timestamps.py")
     )
     spec = importlib.util.spec_from_file_location("provider_symbol_lifecycle", path)
     assert spec is not None and spec.loader is not None
@@ -31,9 +34,14 @@ def test_provider_symbol_lifecycle_migration_is_additive_and_reversible():
         module.op = Operations(MigrationContext.configure(connection))
         module.upgrade()
 
-        columns = {column["name"] for column in inspect(connection).get_columns("instrument_provider_symbol")}
+        columns = {
+            column["name"]
+            for column in inspect(connection).get_columns("instrument_provider_symbol")
+        }
         assert {"effective_at", "known_at", "retired_at"} <= columns
-        indexes = {index["name"] for index in inspect(connection).get_indexes("instrument_provider_symbol")}
+        indexes = {
+            index["name"] for index in inspect(connection).get_indexes("instrument_provider_symbol")
+        }
         assert {
             "ix_instrument_provider_symbol_effective_at",
             "ix_instrument_provider_symbol_known_at",
@@ -41,5 +49,8 @@ def test_provider_symbol_lifecycle_migration_is_additive_and_reversible():
         } <= indexes
 
         module.downgrade()
-        columns = {column["name"] for column in inspect(connection).get_columns("instrument_provider_symbol")}
+        columns = {
+            column["name"]
+            for column in inspect(connection).get_columns("instrument_provider_symbol")
+        }
         assert not {"effective_at", "known_at", "retired_at"} & columns

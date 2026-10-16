@@ -147,7 +147,9 @@ def _semantic_values(event: MarketEvent) -> dict[str, Any]:
     return values
 
 
-def _group_comparison(events: list[MarketEvent]) -> tuple[dict[str, Any], list[str], list[dict[str, Any]]]:
+def _group_comparison(
+    events: list[MarketEvent],
+) -> tuple[dict[str, Any], list[str], list[dict[str, Any]]]:
     fields = sorted({field for event in events for field in _semantic_values(event)})
     canonical: dict[str, Any] = {}
     agreement_fields: list[str] = []
@@ -205,7 +207,11 @@ async def reconcile_market_events(
 ) -> dict[str, Any]:
     """Build/update bounded consensus groups without selecting a provider winner."""
 
-    if not isinstance(max_events, int) or isinstance(max_events, bool) or not 1 <= max_events <= 50_000:
+    if (
+        not isinstance(max_events, int)
+        or isinstance(max_events, bool)
+        or not 1 <= max_events <= 50_000
+    ):
         raise ValueError("max_events must be between 1 and 50000")
     if start is not None and end is not None and end < start:
         raise ValueError("end must be on or after start")
@@ -317,9 +323,7 @@ async def reconcile_market_events(
         last_observed = max(observed_times)
         consensus = (
             await db.execute(
-                select(MarketEventConsensus).where(
-                    MarketEventConsensus.consensus_key == key
-                )
+                select(MarketEventConsensus).where(MarketEventConsensus.consensus_key == key)
             )
         ).scalar_one_or_none()
         if consensus is None:

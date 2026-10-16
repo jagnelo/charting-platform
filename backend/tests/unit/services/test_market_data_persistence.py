@@ -48,9 +48,11 @@ async def test_persist_fundamentals_retains_repeated_payloads(db, instrument):
     assert inserted_first == 1
     assert inserted_second == 0
     assert db.query(FundamentalFact).count() == 1
-    observations = db.execute(
-        select(FundamentalFactObservation).order_by(FundamentalFactObservation.id)
-    ).scalars().all()
+    observations = (
+        db.execute(select(FundamentalFactObservation).order_by(FundamentalFactObservation.id))
+        .scalars()
+        .all()
+    )
     assert len(observations) == 2
     assert [row.payload for row in observations] == [{"value": 100}, {"value": 100}]
 
@@ -72,9 +74,13 @@ async def test_persist_short_interest_retains_repeated_payloads(db, instrument):
     assert inserted_first == 1
     assert inserted_second == 0
     assert db.query(ShortInterestObservation).count() == 1
-    observations = db.execute(
-        select(ShortInterestProviderObservation).order_by(ShortInterestProviderObservation.id)
-    ).scalars().all()
+    observations = (
+        db.execute(
+            select(ShortInterestProviderObservation).order_by(ShortInterestProviderObservation.id)
+        )
+        .scalars()
+        .all()
+    )
     assert len(observations) == 2
     assert [row.payload for row in observations] == [
         {"shortPosition": 1000},

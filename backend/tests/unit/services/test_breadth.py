@@ -38,30 +38,37 @@ def test_above_moving_average_reports_boolean_and_metric():
 
 
 def test_required_bars_for_condition_matches_nested_breadth_dependencies():
-    assert required_bars_for_condition(
-        {
-            "kind": "all",
-            "params": {
-                "conditions": [
-                    {"kind": "above_moving_average", "params": {"period": 20}},
-                    {"kind": "volume_ratio", "params": {"period": 50}},
-                ]
-            },
-        }
-    ) == 51
-    assert required_bars_for_condition(
-        {"kind": "percentile", "params": {"field": "return", "period": 10}}
-    ) == 11
-    assert required_bars_for_condition(
-        {
-            "kind": "percentile",
-            "target_scope": "cross_sectional",
-            "params": {"field": "return", "period": 252},
-        }
-    ) == 2
-    assert required_bars_for_condition(
-        {"kind": "prior_high_low", "params": {"lookback": 20}}
-    ) == 21
+    assert (
+        required_bars_for_condition(
+            {
+                "kind": "all",
+                "params": {
+                    "conditions": [
+                        {"kind": "above_moving_average", "params": {"period": 20}},
+                        {"kind": "volume_ratio", "params": {"period": 50}},
+                    ]
+                },
+            }
+        )
+        == 51
+    )
+    assert (
+        required_bars_for_condition(
+            {"kind": "percentile", "params": {"field": "return", "period": 10}}
+        )
+        == 11
+    )
+    assert (
+        required_bars_for_condition(
+            {
+                "kind": "percentile",
+                "target_scope": "cross_sectional",
+                "params": {"field": "return", "period": 252},
+            }
+        )
+        == 2
+    )
+    assert required_bars_for_condition({"kind": "prior_high_low", "params": {"lookback": 20}}) == 21
 
 
 def test_within_one_percent_of_52_week_high_uses_the_declared_threshold():

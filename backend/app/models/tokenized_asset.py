@@ -64,7 +64,9 @@ class TokenizedAssetDetail(Base, TimestampMixin):
     instrument: Mapped["Instrument"] = relationship(
         foreign_keys=[instrument_id], back_populates="tokenized_asset_detail"
     )
-    underlying_instrument: Mapped["Instrument | None"] = relationship(foreign_keys=[underlying_instrument_id])
+    underlying_instrument: Mapped["Instrument | None"] = relationship(
+        foreign_keys=[underlying_instrument_id]
+    )
     underlying_issuer: Mapped["Issuer | None"] = relationship(foreign_keys=[underlying_issuer_id])
 
 
@@ -94,8 +96,12 @@ class TokenizedAssetObservation(Base, TimestampMixin):
     provider_asset_id: Mapped[str] = mapped_column(String(160), nullable=False, index=True)
     provider_name: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     token_symbol: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
-    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
-    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     payload: Mapped[dict] = mapped_column(JSON, nullable=False)
 
     instrument: Mapped["Instrument"] = relationship()

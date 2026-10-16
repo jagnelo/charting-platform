@@ -65,8 +65,7 @@ def _alpaca_event_dates(
     """Keep a resumed Alpaca query's date window stable across jobs."""
 
     start_date = str(
-        getattr(settings, "ALPACA_CORPORATE_ACTIONS_START_DATE", "1900-01-01")
-        or "1900-01-01"
+        getattr(settings, "ALPACA_CORPORATE_ACTIONS_START_DATE", "1900-01-01") or "1900-01-01"
     )
     if state is not None and state.query_start_date:
         start_date = state.query_start_date
@@ -150,8 +149,7 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
                 .where(
                     InstrumentEventPageSnapshot.instrument_id == instrument.id,
                     InstrumentEventPageSnapshot.source == continuation_provider,
-                    InstrumentEventPageSnapshot.query_fingerprint
-                    == prior_state.query_fingerprint,
+                    InstrumentEventPageSnapshot.query_fingerprint == prior_state.query_fingerprint,
                     InstrumentEventPageSnapshot.request_page_token == page_token,
                 )
                 .limit(1)
@@ -265,18 +263,15 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
     # JSON envelope. An empty response is still quota-consuming evidence and
     # must be available for replay/audit; truthiness would silently discard it.
     if page.raw_payload is not None:
-        snapshot_stmt = (
-            pg_insert(InstrumentEventPageSnapshot)
-            .values(
-                instrument_id=instrument.id,
-                source=execution.provider_name,
-                query_fingerprint=query_fingerprint,
-                request_page_token=page.request_page_token,
-                next_page_token=page.next_page_token,
-                page_number=page_number,
-                fetched_at=fetched_at,
-                payload=page.raw_payload,
-            )
+        snapshot_stmt = pg_insert(InstrumentEventPageSnapshot).values(
+            instrument_id=instrument.id,
+            source=execution.provider_name,
+            query_fingerprint=query_fingerprint,
+            request_page_token=page.request_page_token,
+            next_page_token=page.next_page_token,
+            page_number=page_number,
+            fetched_at=fetched_at,
+            payload=page.raw_payload,
         )
         # Raw provider responses are append-only.  The normalized event table
         # is an up-to-date projection, but a later response for the same query
@@ -285,13 +280,17 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
         await db.execute(snapshot_stmt)
 
     event_types = (
-        await db.execute(
-            select(InstrumentEvent.event_type).where(
-                InstrumentEvent.instrument_id == instrument.id,
-                InstrumentEvent.source == execution.provider_name,
+        (
+            await db.execute(
+                select(InstrumentEvent.event_type).where(
+                    InstrumentEvent.instrument_id == instrument.id,
+                    InstrumentEvent.source == execution.provider_name,
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     event_count = len(event_types)
     earnings_count = sum(
         1
@@ -391,7 +390,7 @@ async def ensure_instrument_events_loaded(
             .order_by(InstrumentDatasetState.stale_after.desc())
             .limit(1)
         )
-        ).scalar_one_or_none()
+    ).scalar_one_or_none()
     state = (
         await db.execute(
             select(InstrumentEventFetchState)

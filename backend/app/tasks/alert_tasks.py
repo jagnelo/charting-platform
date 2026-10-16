@@ -106,9 +106,7 @@ async def _preflight_latest_prices(
         await db.refresh(instrument, ["listings", "provider_symbols"])
         try:
             price_kwargs = {"redis": redis} if redis is not None else {}
-            prices[instrument_id] = await get_current_price_async(
-                db, instrument, **price_kwargs
-            )
+            prices[instrument_id] = await get_current_price_async(db, instrument, **price_kwargs)
         except Exception as exc:  # noqa: BLE001 - retain per-instrument preflight failure.
             logger.debug(
                 "Latest price unavailable for %s: %s",
@@ -356,7 +354,9 @@ async def check_all_alerts(ctx: dict) -> dict:
             await db.commit()
 
         except Exception as e:
-            logger.error("Alert check failed: %s", bounded_redact_provider_message(e), exc_info=True)
+            logger.error(
+                "Alert check failed: %s", bounded_redact_provider_message(e), exc_info=True
+            )
             await db.rollback()
 
     return {"price_fired": price_fired, "indicator_fired": indicator_fired}

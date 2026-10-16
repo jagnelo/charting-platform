@@ -10,8 +10,11 @@ from alembic.operations import Operations
 
 
 def _migration_module():
-    path = Path(__file__).parents[3] / "alembic" / "versions" / (
-        "b4c5d6e7f8a9_add_tokenized_underlying_identifiers.py"
+    path = (
+        Path(__file__).parents[3]
+        / "alembic"
+        / "versions"
+        / ("b4c5d6e7f8a9_add_tokenized_underlying_identifiers.py")
     )
     spec = importlib.util.spec_from_file_location("tokenized_underlying_identifiers", path)
     assert spec is not None and spec.loader is not None
@@ -31,9 +34,13 @@ def test_tokenized_underlying_identifier_migration_adds_and_removes_columns():
         operations = Operations(MigrationContext.configure(connection))
         module.op = operations
         module.upgrade()
-        columns = {column["name"] for column in inspect(connection).get_columns("tokenized_asset_detail")}
+        columns = {
+            column["name"] for column in inspect(connection).get_columns("tokenized_asset_detail")
+        }
         assert {"underlying_figi", "underlying_composite_figi", "underlying_cusip"} <= columns
 
         module.downgrade()
-        columns = {column["name"] for column in inspect(connection).get_columns("tokenized_asset_detail")}
+        columns = {
+            column["name"] for column in inspect(connection).get_columns("tokenized_asset_detail")
+        }
         assert not {"underlying_figi", "underlying_composite_figi", "underlying_cusip"} & columns

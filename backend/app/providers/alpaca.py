@@ -131,9 +131,7 @@ class AlpacaProvider:
         """
 
         if not self._ok():
-            raise ProviderNotConfiguredError(
-                "alpaca requires ALPACA_API_KEY and ALPACA_SECRET_KEY"
-            )
+            raise ProviderNotConfiguredError("alpaca requires ALPACA_API_KEY and ALPACA_SECRET_KEY")
 
     def fetch_account_usage(self) -> ProviderAccountUsage | None:
         """Observe Alpaca's native market-data request-window headers.
@@ -165,7 +163,9 @@ class AlpacaProvider:
         except httpx.HTTPStatusError:
             raise
         except httpx.RequestError as exc:
-            raise ProviderResponseError(self.name, "Alpaca account-usage transport failure") from exc
+            raise ProviderResponseError(
+                self.name, "Alpaca account-usage transport failure"
+            ) from exc
 
         headers = provider_response_headers(response)
         try:
@@ -194,12 +194,7 @@ class AlpacaProvider:
             raise ProviderResponseError(
                 self.name, "Alpaca returned an invalid native reset timestamp"
             ) from exc
-        if (
-            limit <= 0
-            or remaining < 0
-            or remaining > limit
-            or reset_epoch <= 0
-        ):
+        if limit <= 0 or remaining < 0 or remaining > limit or reset_epoch <= 0:
             raise ProviderResponseError(
                 self.name, "Alpaca returned invalid native request-window counters"
             )
@@ -289,7 +284,9 @@ class AlpacaProvider:
                 raise ProviderResponseError(self.name, "Alpaca returned an invalid bars object")
             raw_rows = bars_payload.get(alpaca_sym, [])
             if raw_rows is None:
-                raise ProviderResponseError(self.name, "Alpaca returned null bars for the requested symbol")
+                raise ProviderResponseError(
+                    self.name, "Alpaca returned null bars for the requested symbol"
+                )
             if not isinstance(raw_rows, list):
                 raise ProviderResponseError(self.name, "Alpaca returned an invalid bars array")
             for b in raw_rows:
@@ -320,9 +317,7 @@ class AlpacaProvider:
                             volume=b.get("v"),
                             vwap=b.get("vw"),
                             is_adjusted=adjusted,
-                            adjustment_basis=(
-                                "provider_adjusted" if adjusted else "raw"
-                            ),
+                            adjustment_basis=("provider_adjusted" if adjusted else "raw"),
                             adjustment_version=("alpaca-all" if adjusted else "provider-native"),
                             provenance={
                                 "provider": self.name,
@@ -335,11 +330,15 @@ class AlpacaProvider:
                         )
                     )
                 except (KeyError, TypeError, ValueError) as exc:
-                    raise ProviderResponseError(self.name, "Alpaca returned an invalid bar row") from exc
+                    raise ProviderResponseError(
+                        self.name, "Alpaca returned an invalid bar row"
+                    ) from exc
 
             page_token = data.get("next_page_token")
             if page_token is not None and not isinstance(page_token, str):
-                raise ProviderResponseError(self.name, "Alpaca returned an invalid pagination token")
+                raise ProviderResponseError(
+                    self.name, "Alpaca returned an invalid pagination token"
+                )
             if not page_token:
                 break
             if page_token in seen_page_tokens:
@@ -564,7 +563,9 @@ class AlpacaProvider:
             if next_token is None or next_token == "":
                 break
             if not isinstance(next_token, str) or next_token == page_token:
-                raise ProviderResponseError(self.name, "Alpaca returned an invalid corporate-actions pagination token")
+                raise ProviderResponseError(
+                    self.name, "Alpaca returned an invalid corporate-actions pagination token"
+                )
             if next_token in seen_page_tokens:
                 raise ProviderResponseError(
                     self.name,
@@ -630,10 +631,14 @@ class AlpacaProvider:
             raise ProviderResponseError(self.name, "Alpaca returned an invalid JSON object")
         ca = payload.get("corporate_actions") or {}
         if not isinstance(ca, dict):
-            raise ProviderResponseError(self.name, "Alpaca returned an invalid corporate-actions object")
+            raise ProviderResponseError(
+                self.name, "Alpaca returned an invalid corporate-actions object"
+            )
         next_token = payload.get("next_page_token")
         if next_token is not None and not isinstance(next_token, str):
-            raise ProviderResponseError(self.name, "Alpaca returned an invalid corporate-actions pagination token")
+            raise ProviderResponseError(
+                self.name, "Alpaca returned an invalid corporate-actions pagination token"
+            )
         return InstrumentEventPage(
             events=_parse_corporate_action_events(ca, symbol, fetched),
             next_page_token=next_token or None,
@@ -766,9 +771,7 @@ def _corporate_action_rows(payload: dict[str, Any], field: str) -> list[dict[str
     if value is None:
         return []
     if not isinstance(value, list) or any(not isinstance(row, dict) for row in value):
-        raise ProviderResponseError(
-            "alpaca", f"Alpaca returned an invalid {field} collection"
-        )
+        raise ProviderResponseError("alpaca", f"Alpaca returned an invalid {field} collection")
     return value
 
 
@@ -791,11 +794,15 @@ def _parse_corporate_action_events(
         for row in _corporate_action_rows(payload, split_field):
             dt = _parse_date(row.get("ex_date") or row.get("effective_date") or "")
             if dt is None:
-                raise ProviderResponseError("alpaca", f"Alpaca returned a {title.lower()} without a valid date")
+                raise ProviderResponseError(
+                    "alpaca", f"Alpaca returned a {title.lower()} without a valid date"
+                )
             split_ratio = _safe_ratio(row.get("new_rate"), row.get("old_rate"))
             if row.get("new_rate") is not None or row.get("old_rate") is not None:
                 if split_ratio is None or split_ratio <= 0:
-                    raise ProviderResponseError("alpaca", f"Alpaca returned an invalid {title.lower()} ratio")
+                    raise ProviderResponseError(
+                        "alpaca", f"Alpaca returned an invalid {title.lower()} ratio"
+                    )
             events.append(
                 InstrumentEventRecord(
                     event_type=InstrumentEventType.SPLIT,
@@ -816,7 +823,9 @@ def _parse_corporate_action_events(
         if row.get("rate") is not None and amount is None:
             raise ProviderResponseError("alpaca", "Alpaca returned an invalid cash-dividend rate")
         if ex_dt is None and pay_dt is None:
-            raise ProviderResponseError("alpaca", "Alpaca returned a cash dividend without a valid date")
+            raise ProviderResponseError(
+                "alpaca", "Alpaca returned a cash dividend without a valid date"
+            )
         if ex_dt:
             events.append(
                 InstrumentEventRecord(

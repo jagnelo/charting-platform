@@ -122,9 +122,7 @@ async def test_ensure_instrument_events_loaded_serves_cache_on_provider_failure(
 
 
 @pytest.mark.asyncio
-async def test_alpaca_corporate_actions_charge_one_durable_page(
-    db, instrument, monkeypatch
-):
+async def test_alpaca_corporate_actions_charge_one_durable_page(db, instrument, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     captured = {}
 
@@ -189,7 +187,10 @@ async def test_event_pages_are_persisted_and_resumed_without_refetching_page_one
             events=[_event("one")],
             next_page_token="page-2",
             request_page_token=None,
-            raw_payload={"corporate_actions": {"cash_dividends": [{"id": "one"}]}, "next_page_token": "page-2"},
+            raw_payload={
+                "corporate_actions": {"cash_dividends": [{"id": "one"}]},
+                "next_page_token": "page-2",
+            },
         ),
         "page-2": InstrumentEventPage(
             events=[_event("two")],
@@ -245,9 +246,7 @@ async def test_event_pages_are_persisted_and_resumed_without_refetching_page_one
 
 
 @pytest.mark.asyncio
-async def test_empty_successful_event_page_is_retained_as_raw_evidence(
-    db, instrument, monkeypatch
-):
+async def test_empty_successful_event_page_is_retained_as_raw_evidence(db, instrument, monkeypatch):
     """An empty provider envelope is still a successful, quota-consuming read."""
 
     async_db = AsyncSessionAdapter(db)

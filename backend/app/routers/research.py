@@ -508,11 +508,7 @@ async def _materialize_declared_dataset(
             bars = bars_by_instrument.get(instrument.id, [])
             coverage_item = coverage_by_id.get(instrument.id)
             if coverage_item is None or coverage_item.status.value != "ready":
-                code = (
-                    "declared_history_unavailable"
-                    if not bars
-                    else "declared_history_incomplete"
-                )
+                code = "declared_history_unavailable" if not bars else "declared_history_incomplete"
                 exclusions.append(
                     {
                         "symbol": symbol,

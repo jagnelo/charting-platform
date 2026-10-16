@@ -37,7 +37,9 @@ class TestProvidersApi:
     def test_native_account_usage_is_admin_only_and_durable_endpoint_exists(
         self, client, admin_headers, auth_headers
     ):
-        assert client.get("/api/v1/providers/usage/account", headers=auth_headers).status_code == 403
+        assert (
+            client.get("/api/v1/providers/usage/account", headers=auth_headers).status_code == 403
+        )
         response = client.get("/api/v1/providers/usage/account", headers=admin_headers)
         assert response.status_code == 200
         assert isinstance(response.json(), list)

@@ -191,7 +191,9 @@ class FREDProvider:
             observations = _observations(payload, "history")
         except httpx.HTTPStatusError as exc:
             _raise_typed_rate_limit(exc)
-            raise ProviderResponseError("fred", f"FRED request failed with HTTP {exc.response.status_code}") from exc
+            raise ProviderResponseError(
+                "fred", f"FRED request failed with HTTP {exc.response.status_code}"
+            ) from exc
         except (ProviderRateLimitError, ProviderResponseError):
             raise
         except httpx.RequestError as exc:
@@ -235,7 +237,9 @@ class FREDProvider:
                     )
                 )
             except (TypeError, ValueError) as exc:
-                raise ProviderResponseError("fred", "FRED returned an invalid observation row") from exc
+                raise ProviderResponseError(
+                    "fred", "FRED returned an invalid observation row"
+                ) from exc
 
         return bars
 
@@ -304,13 +308,19 @@ class FREDProvider:
                 try:
                     value = float(v)
                 except (TypeError, ValueError) as exc:
-                    raise ProviderResponseError("fred", "FRED returned an invalid latest observation") from exc
+                    raise ProviderResponseError(
+                        "fred", "FRED returned an invalid latest observation"
+                    ) from exc
                 if not isfinite(value):
-                    raise ProviderResponseError("fred", "FRED returned a non-finite latest observation")
+                    raise ProviderResponseError(
+                        "fred", "FRED returned a non-finite latest observation"
+                    )
                 return value
         except httpx.HTTPStatusError as exc:
             _raise_typed_rate_limit(exc)
-            raise ProviderResponseError("fred", f"FRED request failed with HTTP {exc.response.status_code}") from exc
+            raise ProviderResponseError(
+                "fred", f"FRED request failed with HTTP {exc.response.status_code}"
+            ) from exc
         except (ProviderRateLimitError, ProviderResponseError):
             raise
         except httpx.RequestError as exc:
@@ -338,7 +348,11 @@ def _observations(payload: object, operation: str) -> list[dict]:
         raise ProviderResponseError("fred", f"FRED {operation} returned an invalid response object")
     observations = payload.get("observations")
     if not isinstance(observations, list):
-        raise ProviderResponseError("fred", f"FRED {operation} returned an invalid observations array")
+        raise ProviderResponseError(
+            "fred", f"FRED {operation} returned an invalid observations array"
+        )
     if any(not isinstance(observation, dict) for observation in observations):
-        raise ProviderResponseError("fred", f"FRED {operation} returned a malformed observation row")
+        raise ProviderResponseError(
+            "fred", f"FRED {operation} returned a malformed observation row"
+        )
     return observations

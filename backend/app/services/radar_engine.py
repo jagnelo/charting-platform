@@ -233,7 +233,9 @@ def _radar_coverage_summary(
     """
 
     missing_instrument_ids = [
-        instrument_id for instrument_id in instrument_ids if not bars_by_instrument.get(instrument_id)
+        instrument_id
+        for instrument_id in instrument_ids
+        if not bars_by_instrument.get(instrument_id)
     ]
     missing_set = set(missing_instrument_ids)
     stale_ids = [
@@ -250,10 +252,7 @@ def _radar_coverage_summary(
         and instrument_id not in stale_set
     ]
     evaluated_count = (
-        len(instrument_ids)
-        - len(missing_instrument_ids)
-        - len(stale_ids)
-        - len(blocked_ids)
+        len(instrument_ids) - len(missing_instrument_ids) - len(stale_ids) - len(blocked_ids)
     )
     unavailable_count = len(missing_instrument_ids) + len(stale_ids) + len(blocked_ids)
     if not instrument_ids:
@@ -402,7 +401,9 @@ async def _queue_radar_repairs(
     stale_set = set(stale_instrument_ids)
     blocked_set = set(coverage_blocked_ids or [])
     missing_set = {
-        instrument_id for instrument_id in instrument_ids if not bars_by_instrument.get(instrument_id)
+        instrument_id
+        for instrument_id in instrument_ids
+        if not bars_by_instrument.get(instrument_id)
     }
     repair_ids = sorted(missing_set | stale_set | blocked_set)
     if not repair_ids:
@@ -443,9 +444,7 @@ async def _queue_radar_repairs(
                     "priority": int(getattr(job, "priority", 50) or 50),
                     "status": str(getattr(job, "status", "queued") or "queued"),
                     "attempts": int(getattr(job, "attempts", 0) or 0),
-                    "next_attempt_at": (
-                        getattr(job, "next_attempt_at", None) or now
-                    ).isoformat(),
+                    "next_attempt_at": (getattr(job, "next_attempt_at", None) or now).isoformat(),
                     "coverage_reason": reason,
                 }
             )
@@ -2657,9 +2656,7 @@ async def run_radar_scan(
             minimum_bars=80,
         )
         coverage_blocked_ids = [
-            item.instrument_id
-            for item in coverage_preflight.items
-            if item.status.value != "ready"
+            item.instrument_id for item in coverage_preflight.items if item.status.value != "ready"
         ]
         coverage_status, coverage_summary = _radar_coverage_summary(
             instrument_ids,

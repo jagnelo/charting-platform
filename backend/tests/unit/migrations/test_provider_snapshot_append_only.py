@@ -35,8 +35,11 @@ _TABLES = {
 
 
 def _migration_module():
-    path = Path(__file__).parents[3] / "alembic" / "versions" / (
-        "e8f9a0b1c2d3_make_provider_snapshots_append_only.py"
+    path = (
+        Path(__file__).parents[3]
+        / "alembic"
+        / "versions"
+        / ("e8f9a0b1c2d3_make_provider_snapshots_append_only.py")
     )
     spec = importlib.util.spec_from_file_location("provider_snapshot_append_only", path)
     assert spec is not None and spec.loader is not None
@@ -57,13 +60,16 @@ def test_provider_snapshot_migration_allows_repeated_payloads_and_guards_downgra
             table_name,
             metadata,
             *column_defs,
-            UniqueConstraint(*columns, name={
-                "instrument_profile_snapshot": "uq_instrument_profile_snapshot_hash",
-                "instrument_identifier_snapshot": "uq_instrument_identifier_snapshot_hash",
-                "instrument_search_snapshot": "uq_instrument_search_snapshot_hash",
-                "universe_discovery_snapshot": "uq_universe_discovery_snapshot_hash",
-                "option_chain_snapshot": "uq_option_chain_snapshot_hash",
-            }[table_name]),
+            UniqueConstraint(
+                *columns,
+                name={
+                    "instrument_profile_snapshot": "uq_instrument_profile_snapshot_hash",
+                    "instrument_identifier_snapshot": "uq_instrument_identifier_snapshot_hash",
+                    "instrument_search_snapshot": "uq_instrument_search_snapshot_hash",
+                    "universe_discovery_snapshot": "uq_universe_discovery_snapshot_hash",
+                    "option_chain_snapshot": "uq_option_chain_snapshot_hash",
+                }[table_name],
+            ),
         )
     metadata.create_all(engine)
     module = _migration_module()

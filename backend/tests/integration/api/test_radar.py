@@ -16,9 +16,7 @@ def _seed_radar_bars(
 
     tf = timeframe or Timeframe.D1
     step_seconds = TIMEFRAME_SECONDS.get(tf, TIMEFRAME_SECONDS[Timeframe.D1])
-    base = start_at or (
-        datetime.now(UTC) - timedelta(seconds=step_seconds * len(prices))
-    )
+    base = start_at or (datetime.now(UTC) - timedelta(seconds=step_seconds * len(prices)))
     for index, price in enumerate(prices):
         db.add(
             OHLCVBar(
@@ -116,9 +114,7 @@ class TestRadarAPI:
     def test_run_exposes_partial_coverage_without_claiming_full_evaluation(
         self, client, auth_headers, db, instrument, instrument_b
     ):
-        _seed_radar_bars(
-            db, instrument, [95, 100, 95, 100, 95, 100] * 20 + [98, 97, 96, 97, 98]
-        )
+        _seed_radar_bars(db, instrument, [95, 100, 95, 100, 95, 100] * 20 + [98, 97, 96, 97, 98])
 
         run_res = client.post("/api/v1/radar/run", headers=auth_headers)
         assert run_res.status_code == 200
@@ -161,9 +157,7 @@ class TestRadarAPI:
     ):
         from app.models.market_data_foundation import MarketRefreshJob
 
-        _seed_radar_bars(
-            db, instrument, [95, 100, 95, 100, 95, 100] * 20 + [98, 97, 96, 97, 98]
-        )
+        _seed_radar_bars(db, instrument, [95, 100, 95, 100, 95, 100] * 20 + [98, 97, 96, 97, 98])
 
         run_res = client.post(
             "/api/v1/radar/run",
@@ -181,9 +175,9 @@ class TestRadarAPI:
         assert repair_summary["jobs"][0]["request_key"] == f"radar:D1:{instrument_b.id}"
         assert repair_summary["jobs"][0]["status"] == "queued"
         assert repair_summary["jobs"][0]["coverage_reason"] == "missing"
-        repair = db.query(MarketRefreshJob).filter_by(
-            request_key=f"radar:D1:{instrument_b.id}"
-        ).one()
+        repair = (
+            db.query(MarketRefreshJob).filter_by(request_key=f"radar:D1:{instrument_b.id}").one()
+        )
         assert repair.status == "queued"
         assert repair.capability == "price_history"
         assert repair.metadata_payload["schedule"] == "radar_coverage_repair"

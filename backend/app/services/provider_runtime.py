@@ -15,7 +15,7 @@ from decimal import Decimal
 from typing import Any, TypeVar
 
 import httpx
-from sqlalchemy import or_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -324,7 +324,8 @@ def provider_entitlement_admission(
     paid_enabled = settings.ALLOW_PAID_PROVIDER_ROUTING if allow_paid is None else allow_paid
     plan = str(entitlement.configured_plan or "").strip().lower()
     is_free = entitlement.is_free is True
-    if not plan or "unreviewed" in plan:
+    plan_markers = set(plan.replace("_", "-").split("-"))
+    if not plan or plan_markers.intersection({"unreviewed", "unknown"}):
         allowed, reason = False, "entitlement_unreviewed"
     elif "trial" in plan:
         allowed, reason = False, "trial_cost_not_admissible"
@@ -2290,6 +2291,26 @@ async def resolve_provider_chain(
     await seed_provider_runtime(db)
     if not settings.PROVIDER_ROUTING_ENABLED:
         return []
+    entitlement_candidate_filter = or_(
+        ProviderEntitlement.is_free.is_(True),
+        settings.ALLOW_PAID_PROVIDER_ROUTING,
+    )
+    if (
+        settings.PROVIDER_FREE_ONLY_CHECKPOINT
+        and capability == ProviderCapability.ACCOUNT_USAGE
+        and operation == "fetch_account_usage"
+    ):
+        # Include only the exact unreviewed native-usage candidate so the
+        # provider-specific zero-billing contract can be checked below. This
+        # is not entitlement admission: every other unreviewed plan is still
+        # rejected before transport by provider_entitlement_admission().
+        entitlement_candidate_filter = or_(
+            entitlement_candidate_filter,
+            and_(
+                ProviderEntitlement.configured_plan == "unreviewed",
+                ProviderPolicy.capability == ProviderCapability.ACCOUNT_USAGE,
+            ),
+        )
     rows = (
         await db.execute(
             select(ProviderPolicy, ProviderHealthState, DataSource, ProviderEntitlement)
@@ -2307,10 +2328,7 @@ async def resolve_provider_chain(
             .where(
                 ProviderPolicy.capability == capability,
                 ProviderPolicy.is_enabled.is_(True),
-                or_(
-                    ProviderEntitlement.is_free.is_(True),
-                    settings.ALLOW_PAID_PROVIDER_ROUTING,
-                ),
+                entitlement_candidate_filter,
             )
         )
     ).all()
@@ -2341,7 +2359,8 @@ async def resolve_provider_chain(
         )
         configured_plan = str(entitlement.configured_plan or "").strip().lower()
         unreviewed_usage_bootstrap = (
-            account_usage_probe
+            settings.PROVIDER_FREE_ONLY_CHECKPOINT
+            and account_usage_probe
             and configured_plan == "unreviewed"
             and policy_allows_unreviewed_account_usage_checkpoint(policy, data_source, operation)
         )
@@ -3077,6 +3096,7 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
             and policy.capability == ProviderCapability.ACCOUNT_USAGE
             and policy_allows_account_usage_bootstrap(policy, "fetch_account_usage")
         )
+        entitlement_admission = provider_entitlement_admission(entitlement)
         status_rows.append(
             {
                 "provider": data_source.name,
@@ -3111,21 +3131,20 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
                 "required_routing_control_variables": list(routing_control_settings),
                 "missing_routing_control_variables": missing_routing_controls,
                 "entitlement_state": (
-                    "reviewed"
-                    if str(entitlement.configured_plan or "").strip().lower() != "unreviewed"
-                    else "unreviewed"
+                    "unreviewed"
+                    if entitlement_admission["reason_code"] == "entitlement_unreviewed"
+                    else "reviewed"
                 ),
-                "entitlement_admission": provider_entitlement_admission(entitlement),
+                "entitlement_admission": entitlement_admission,
                 "live_probe_status": entitlement.live_probe_status,
                 "routing_eligible": bool(
                     policy.is_enabled
                     and (quota_known or bootstrap_only)
                     and provider_is_configured(data_source.name)
                     and not missing_routing_controls
-                    and str(entitlement.configured_plan or "").strip().lower() != "unreviewed"
                     and str(entitlement.live_probe_status or "not_run").strip().lower()
                     in _POSITIVE_LIVE_PROBE_STATUSES
-                    and provider_entitlement_admission(entitlement)["allowed"]
+                    and entitlement_admission["allowed"]
                     and provider_contract_operation_costs_configured(policy, data_source)
                 ),
                 "freshness_seconds": policy.freshness_seconds,

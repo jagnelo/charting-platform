@@ -21,8 +21,11 @@ from alembic.operations import Operations
 
 
 def _migration_module():
-    path = Path(__file__).parents[3] / "alembic" / "versions" / (
-        "7d8e9f0a1b2c_add_provider_quota_groups.py"
+    path = (
+        Path(__file__).parents[3]
+        / "alembic"
+        / "versions"
+        / ("7d8e9f0a1b2c_add_provider_quota_groups.py")
     )
     spec = importlib.util.spec_from_file_location("provider_quota_groups", path)
     assert spec is not None and spec.loader is not None
@@ -100,9 +103,7 @@ def test_provider_quota_group_migration_backfills_and_reverses():
         module.upgrade()
 
         assert (
-            connection.exec_driver_sql(
-                "SELECT quota_group FROM provider_quota_window"
-            ).scalar_one()
+            connection.exec_driver_sql("SELECT quota_group FROM provider_quota_window").scalar_one()
             == "price_history"
         )
         assert (
@@ -120,6 +121,5 @@ def test_provider_quota_group_migration_backfills_and_reverses():
             column["name"] for column in inspect(connection).get_columns("provider_quota_window")
         }
         assert "ix_provider_quota_identity_lookup" in {
-            index["name"]
-            for index in inspect(connection).get_indexes("provider_quota_identity")
+            index["name"] for index in inspect(connection).get_indexes("provider_quota_identity")
         }

@@ -20,8 +20,11 @@ from alembic.operations import Operations
 
 
 def _migration_module():
-    path = Path(__file__).parents[3] / "alembic" / "versions" / (
-        "ab1c2d3e4f5a_add_market_event_consensus.py"
+    path = (
+        Path(__file__).parents[3]
+        / "alembic"
+        / "versions"
+        / ("ab1c2d3e4f5a_add_market_event_consensus.py")
     )
     spec = importlib.util.spec_from_file_location("market_event_consensus", path)
     assert spec is not None and spec.loader is not None
@@ -63,7 +66,9 @@ def test_market_event_consensus_migration_adds_link_and_reverses_cleanly():
             column["name"] for column in inspect(connection).get_columns("market_event_consensus")
         }
         assert {"consensus_key", "status", "conflict_fields", "provenance"} <= consensus_columns
-        event_columns = {column["name"] for column in inspect(connection).get_columns("market_event")}
+        event_columns = {
+            column["name"] for column in inspect(connection).get_columns("market_event")
+        }
         assert "consensus_id" in event_columns
         connection.exec_driver_sql(
             "INSERT INTO market_event_consensus "
@@ -76,9 +81,12 @@ def test_market_event_consensus_migration_adds_link_and_reverses_cleanly():
             "VALUES (1, 'earnings', 'event-1', 'fixture', '{}', 0, "
             "(SELECT id FROM market_event_consensus WHERE consensus_key = 'test-consensus'))"
         )
-        assert connection.exec_driver_sql(
-            "SELECT consensus_id FROM market_event WHERE id = 1"
-        ).scalar_one() is not None
+        assert (
+            connection.exec_driver_sql(
+                "SELECT consensus_id FROM market_event WHERE id = 1"
+            ).scalar_one()
+            is not None
+        )
 
         module.downgrade()
         assert "market_event_consensus" not in inspect(connection).get_table_names()

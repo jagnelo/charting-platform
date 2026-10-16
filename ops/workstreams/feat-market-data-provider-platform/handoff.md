@@ -25386,4 +25386,42 @@ exact candidate receipts remain separate gates.
   Provider frontend work; then run the full declared profile and exact-source
   CI. Do not run provider-live transport to refresh the 20/27, 136-request
   receipt bound to `1afb896`; maintain all held-quota dispositions.
+
+## 2026-10-16 — reviewed-safe account-usage bootstrap proof tightened
+
+- Addressed the 21:08Z review of the unreviewed account-usage bootstrap.
+  Candidate selection now includes only the exact `fetch_account_usage`
+  operation and `configured_plan=unreviewed` while free-only checkpoint mode
+  is active; the normal shared admission then requires the provider-specific
+  zero-billing exception before the callback can run. The exception is also
+  disabled outside checkpoint mode. This does not grant an unreviewed plan
+  market-data routing.
+- The EODHD fixture now simulates a genuinely unreviewed, `is_free=false`
+  account instead of being silently refreshed into the repository's reviewed
+  free seed. Its positive path proves the exact `/api/user` operation,
+  first-party API-limits URL/evidence, reconciled `calls_per_day` dimension,
+  explicit empty daily-credit cost, and separately charged
+  `requests_per_minute` dimension. Its execution callback is stubbed; no
+  provider HTTP was made.
+- Added execution-level zero-call negatives for missing/malformed operation,
+  cost, evidence URL, and billing-dimension proof with both paid-routing toggle
+  values. Existing MarketData.app negatives cover reviewed-paid, unreviewed,
+  unknown/unknown-plan even with `is_free=true`, and trial entitlements under
+  both toggle values and known/bootstrap-unknown quota states; the callback is
+  never reached. Focused tests passed 3/3. Both complete relevant unit files
+  passed 104/104 after formatting; Ruff check/format and `git diff --check`
+  passed.
+- The live provider receipt remains historical and bound to `1afb896` (20/27,
+  136 requests); this validation used no provider transport, quota spend, or
+  ledger reset. The branch is still dirty and uncommitted, and this is not
+  exact-source hosted CI, checkpoint acceptance, or an authorization to
+  activate a provider.
+- A fresh no-transport preflight against the actual shared local ledger then
+  admitted 21 providers and quarantined six (Alpha Vantage, CTA Plan, Dinari,
+  Marketstack, Nasdaq, Tiingo), with zero requests. EODHD was not among the
+  current quarantines. Dinari's full account-reviewed quota/reset/cost profile
+  and Marketstack's venue-wide discovery page cost/MIC remain unresolved. The
+  ordinary sandbox could not access the private ledger, so the same read-only
+  preflight ran with approved local-ledger access; no provider request or
+  ledger reset occurred.
 *** End of File

@@ -212,7 +212,11 @@ async def materialize_prelisting_candidates(
     instrument until an operator reviews the disagreement.
     """
 
-    if not isinstance(max_events, int) or isinstance(max_events, bool) or not 1 <= max_events <= 10_000:
+    if (
+        not isinstance(max_events, int)
+        or isinstance(max_events, bool)
+        or not 1 <= max_events <= 10_000
+    ):
         raise ValueError("max_events must be between 1 and 10000")
     if start is not None and end is not None and end < start:
         raise ValueError("end must be on or after start")
@@ -275,12 +279,16 @@ async def materialize_prelisting_candidates(
         grouped[_candidate_key(event)].append(event)
 
     stock_type = (
-        await db.execute(
-            select(InstrumentType)
-            .where(func.lower(InstrumentType.name).in_(("stock", "equity")))
-            .order_by(InstrumentType.id)
+        (
+            await db.execute(
+                select(InstrumentType)
+                .where(func.lower(InstrumentType.name).in_(("stock", "equity")))
+                .order_by(InstrumentType.id)
+            )
         )
-    ).scalars().first()
+        .scalars()
+        .first()
+    )
     now = datetime.now(UTC)
     created = 0
     updated = 0
@@ -298,10 +306,17 @@ async def materialize_prelisting_candidates(
         if symbol is None:
             skipped += 1
             continue
-        name = next(
-            (_first_text(row, _NAME_FIELDS) for _event, row in payloads if _first_text(row, _NAME_FIELDS)),
-            None,
-        ) or symbol
+        name = (
+            next(
+                (
+                    _first_text(row, _NAME_FIELDS)
+                    for _event, row in payloads
+                    if _first_text(row, _NAME_FIELDS)
+                ),
+                None,
+            )
+            or symbol
+        )
         name = name[:300]
         exchange_mic = next((_mic(row) for _event, row in payloads if _mic(row)), None)
         identifiers: dict[str, str] = {}
@@ -476,7 +491,11 @@ async def promote_prelisting_candidates(
 ) -> dict[str, Any]:
     """Promote only candidates with a unique stable/venue-qualified match."""
 
-    if not isinstance(max_candidates, int) or isinstance(max_candidates, bool) or not 1 <= max_candidates <= 10_000:
+    if (
+        not isinstance(max_candidates, int)
+        or isinstance(max_candidates, bool)
+        or not 1 <= max_candidates <= 10_000
+    ):
         raise ValueError("max_candidates must be between 1 and 10000")
     scan_key = "market-event-prelisting-promotion"
     state = (
@@ -542,7 +561,10 @@ async def promote_prelisting_candidates(
             source_names = list(candidate.provider_sources or [])
             query = (
                 select(Instrument.id)
-                .join(InstrumentProviderSymbol, InstrumentProviderSymbol.instrument_id == Instrument.id)
+                .join(
+                    InstrumentProviderSymbol,
+                    InstrumentProviderSymbol.instrument_id == Instrument.id,
+                )
                 .join(DataSource, DataSource.id == InstrumentProviderSymbol.data_source_id)
                 .where(
                     Instrument.is_active.is_(True),

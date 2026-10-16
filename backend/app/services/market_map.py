@@ -936,7 +936,9 @@ async def build_market_map(
     coverage_preflight = await preflight_ohlcv(
         db,
         evaluator="market_map",
-        instrument_ids=[instrument_id for instrument_id in member_ids if instrument_id in instruments],
+        instrument_ids=[
+            instrument_id for instrument_id in member_ids if instrument_id in instruments
+        ],
         timeframe=timeframe,
         date_from=None,
         date_to=None,
@@ -1182,9 +1184,7 @@ async def build_market_map(
         )
         if stale_reference_ids:
             reference_source_bars = [
-                bar
-                for bar in reference_source_bars
-                if bar.instrument_id not in stale_reference_ids
+                bar for bar in reference_source_bars if bar.instrument_id not in stale_reference_ids
             ]
             exclusions.extend(
                 _warning(

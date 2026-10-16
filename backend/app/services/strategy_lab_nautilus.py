@@ -70,9 +70,7 @@ def _timeframe_to_bar_spec(timeframe: Timeframe) -> str:
         # Y1 is a canonical calendar-year persistence/rollup timeframe for
         # tokenized history, but Nautilus has no verified calendar-year bar
         # specification. Do not silently map it to a daily bar.
-        raise ValueError(
-            f"Nautilus backtests do not support timeframe {timeframe.value}"
-        ) from exc
+        raise ValueError(f"Nautilus backtests do not support timeframe {timeframe.value}") from exc
 
 
 def _period_start(period: str, reference_at: datetime) -> datetime:

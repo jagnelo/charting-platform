@@ -64,12 +64,7 @@ class OpenFigiProvider:
                 self.name,
                 "OpenFIGI omitted its native limit/remaining/reset headers",
             ) from exc
-        if (
-            limit <= 0
-            or remaining < 0
-            or remaining > limit
-            or reset_seconds <= 0
-        ):
+        if limit <= 0 or remaining < 0 or remaining > limit or reset_seconds <= 0:
             raise ProviderResponseError(
                 self.name,
                 "OpenFIGI returned invalid native request-window counters",

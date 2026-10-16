@@ -83,4 +83,3 @@ def test_market_events_calendar_keeps_timestamp_only_events_and_rejects_reversed
     )
     assert response.status_code == 200
     assert response.json()[0]["title"] == "Exchange holiday"
-

@@ -10,8 +10,11 @@ from alembic.operations import Operations
 
 
 def _migration_module():
-    path = Path(__file__).parents[3] / "alembic" / "versions" / (
-        "d3f4a5b6c7d8_add_tokenized_asset_observations.py"
+    path = (
+        Path(__file__).parents[3]
+        / "alembic"
+        / "versions"
+        / ("d3f4a5b6c7d8_add_tokenized_asset_observations.py")
     )
     spec = importlib.util.spec_from_file_location("tokenized_asset_observations", path)
     assert spec is not None and spec.loader is not None
@@ -36,9 +39,12 @@ def test_tokenized_asset_observation_migration_creates_append_only_table():
         )
         connection.execute(text("INSERT INTO tokenized_asset_observation " + values))
         connection.execute(text("INSERT INTO tokenized_asset_observation " + values))
-        assert connection.exec_driver_sql(
-            "SELECT COUNT(*) FROM tokenized_asset_observation"
-        ).scalar_one() == 2
+        assert (
+            connection.exec_driver_sql(
+                "SELECT COUNT(*) FROM tokenized_asset_observation"
+            ).scalar_one()
+            == 2
+        )
 
         module.downgrade()
         assert "tokenized_asset_observation" not in inspect(connection).get_table_names()

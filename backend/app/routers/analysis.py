@@ -1340,8 +1340,7 @@ async def _batch_freshness(
         ):
             current += 1
         elif any(
-            entry.status == DatasetStatus.FRESH
-            or entry.status == DatasetStatus.STALE
+            entry.status == DatasetStatus.FRESH or entry.status == DatasetStatus.STALE
             for entry in entries
         ):
             stale += 1
@@ -1767,9 +1766,7 @@ async def benchmark_family_relative_rotation(
             )
             continue
         bars = bars_by_id.get(instrument.id, [])
-        stale_target = (
-            cap_instrument.id if cap_instrument.id in stale_ids else instrument.id
-        )
+        stale_target = cap_instrument.id if cap_instrument.id in stale_ids else instrument.id
         if instrument.id in stale_ids or cap_instrument.id in stale_ids:
             roles.append(
                 BenchmarkFamilyRotationRoleOut(
@@ -1948,9 +1945,7 @@ async def group_relative_rotation(
         stale_member = instrument.id in stale_ids or benchmark_instrument.id in stale_ids
         if stale_member:
             stale_target = (
-                benchmark_instrument.id
-                if benchmark_instrument.id in stale_ids
-                else instrument.id
+                benchmark_instrument.id if benchmark_instrument.id in stale_ids else instrument.id
             )
             rows.append(
                 RelativeRotationRow(
@@ -2242,9 +2237,7 @@ async def industry_proxy_snapshot(
                 relative_to_market=ratio(market_bars, market.id),
             )
         )
-    freshness, freshness_detail = await _batch_freshness(
-        db, freshness_ids, timeframe, adjusted
-    )
+    freshness, freshness_detail = await _batch_freshness(db, freshness_ids, timeframe, adjusted)
     return IndustryProxySnapshotOut(
         group_key=f"industry-proxy:{sector.symbol}:{industry}",
         etf_symbol=sector.symbol,
@@ -2412,9 +2405,7 @@ async def industry_snapshot(
                 warnings=warnings,
             )
         )
-    freshness, freshness_detail = await _batch_freshness(
-        db, freshness_ids, timeframe, adjusted
-    )
+    freshness, freshness_detail = await _batch_freshness(db, freshness_ids, timeframe, adjusted)
     return IndustrySnapshotOut(
         group_key=f"industry:{etf.symbol}",
         etf_symbol=etf.symbol,
@@ -2748,9 +2739,7 @@ async def etf_constituent_snapshot(
                 technical=technical,
             )
         )
-    freshness, freshness_detail = await _batch_freshness(
-        db, freshness_ids, timeframe, adjusted
-    )
+    freshness, freshness_detail = await _batch_freshness(db, freshness_ids, timeframe, adjusted)
     return ETFConstituentSnapshotOut(
         group_key=f"etf-proxy:{etf.symbol}",
         timeframe=timeframe.value,
@@ -3899,9 +3888,7 @@ async def benchmark_family_ratios(
                 )
             )
     members = _group_members_at(group, as_of)
-    freshness, freshness_detail = await _batch_freshness(
-        db, instrument_ids, timeframe, adjusted
-    )
+    freshness, freshness_detail = await _batch_freshness(db, instrument_ids, timeframe, adjusted)
     return BenchmarkFamilyRatiosOut(
         family_key=family_key,
         official_index_symbol=str(official.get("symbol") or ""),
@@ -4646,6 +4633,7 @@ async def benchmark_family_breadth(
         cap_bars = []
 
     role_coverage_preflights: dict[str, dict[str, object]] = {}
+
     def metric(
         results: list[object],
         aggregate: dict[str, int | float],
@@ -4793,27 +4781,27 @@ async def benchmark_family_breadth(
             {
                 "kind": "within_52_week_high",
                 "params": {"lookback": 252, "threshold": near_threshold, "direction": "high"},
-            }
+            },
         )
         new_high = await evaluate(
             "new_high",
             {
                 "kind": "new_high_low",
                 "params": {"lookback": new_high_lookback, "direction": "high"},
-            }
+            },
         )
         trend_up = await evaluate(
             "trend_up",
             {
                 "kind": "trend",
                 "params": {"fast_period": 20, "slow_period": 50, "direction": "up"},
-            }
+            },
         )
         relative = None
         if role != "cap_weight" and cap_bars:
             relative = await evaluate(
                 "relative_strength_to_cap",
-                {"kind": "relative_strength", "params": {"lookback": 20, "threshold": 0}}
+                {"kind": "relative_strength", "params": {"lookback": 20, "threshold": 0}},
             )
         elif role != "cap_weight" and cap_stale_ids:
             role_exclusions.append(
@@ -5613,9 +5601,7 @@ async def benchmark_family_ranking(
     )
     for rank, row in enumerate(ranked, start=1):
         row.rank = rank
-    freshness, freshness_detail = await _batch_freshness(
-        db, ranking_ids, timeframe, adjusted
-    )
+    freshness, freshness_detail = await _batch_freshness(db, ranking_ids, timeframe, adjusted)
     return BenchmarkFamilyRankingOut(
         family_key=family_key,
         official_index_symbol=str(official.get("symbol") or ""),
@@ -5804,7 +5790,9 @@ async def group_snapshot(
         ).scalars()
     }
     benchmark_instrument = await _instrument(db, benchmark) if benchmark else None
-    all_ids = list(dict.fromkeys(instrument_ids + ([benchmark_instrument.id] if benchmark_instrument else [])))
+    all_ids = list(
+        dict.fromkeys(instrument_ids + ([benchmark_instrument.id] if benchmark_instrument else []))
+    )
     bars_by_id = _truncate_bars_at(
         await _bars_by_instrument(db, all_ids, timeframe, adjusted), as_of
     )
@@ -6047,7 +6035,9 @@ async def group_breadth(
         },
         minimum_bars=252,
     )
-    missing_ids = {instrument_id for instrument_id in member_ids if not bars_by_id.get(instrument_id)}
+    missing_ids = {
+        instrument_id for instrument_id in member_ids if not bars_by_id.get(instrument_id)
+    }
     counts = {20: 0, 50: 0, 200: 0}
     eligible = {20: 0, 50: 0, 200: 0}
     near_counts = {"high": 0, "low": 0}
@@ -6178,7 +6168,8 @@ async def group_breadth(
             1
             for instrument_id, bars in bars_by_id.items()
             if bars and instrument_id not in stale_ids
-        ) / max(len(members), 1),
+        )
+        / max(len(members), 1),
         coverage_detail={
             **{f"ma{period}": eligible[period] / max(len(members), 1) for period in eligible},
             "near_52w": near_eligible / max(len(members), 1),

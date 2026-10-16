@@ -11,8 +11,11 @@ from alembic.operations import Operations
 
 
 def _migration_module():
-    path = Path(__file__).parents[3] / "alembic" / "versions" / (
-        "b0c1d2e3f4a5_add_provider_usage_observation_dimensions.py"
+    path = (
+        Path(__file__).parents[3]
+        / "alembic"
+        / "versions"
+        / ("b0c1d2e3f4a5_add_provider_usage_observation_dimensions.py")
     )
     spec = importlib.util.spec_from_file_location("provider_usage_observation_dimensions", path)
     assert spec is not None and spec.loader is not None
@@ -54,17 +57,23 @@ def test_provider_usage_dimension_migration_backfills_legacy_rows_and_reverses_c
         module = _migration_module()
         module.op = operations
         module.upgrade()
-        columns = {column["name"] for column in inspect(connection).get_columns(
-            "provider_account_usage_observation"
-        )}
+        columns = {
+            column["name"]
+            for column in inspect(connection).get_columns("provider_account_usage_observation")
+        }
         assert {"dimension", "account_plan"} <= columns
-        row = connection.exec_driver_sql(
-            "SELECT dimension FROM provider_account_usage_observation WHERE id = 1"
-        ).mappings().one()
+        row = (
+            connection.exec_driver_sql(
+                "SELECT dimension FROM provider_account_usage_observation WHERE id = 1"
+            )
+            .mappings()
+            .one()
+        )
         assert row["dimension"] == "default"
         module.downgrade()
-        columns = {column["name"] for column in inspect(connection).get_columns(
-            "provider_account_usage_observation"
-        )}
+        columns = {
+            column["name"]
+            for column in inspect(connection).get_columns("provider_account_usage_observation")
+        }
         assert "dimension" not in columns
         assert "account_plan" not in columns

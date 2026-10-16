@@ -227,6 +227,35 @@ integration_checkpoint:
     deployment secret stores, downstream reconciliation, and the full roadmap
     remain open. No merge, deployment, provider activation, or operational
     trial is authorized.
+
+    Update 2026-10-16 00:50Z: released common-repair staging SHA
+    `82d881e76be8de538abb6ec5c454d96afe0ee56a` (green CI 38805309009) is now
+    in this branch's ancestry via local merge `2845817d37296fae8728d72cd22a95082d67081f`;
+    this is common repair only and no Provider feature acceptance is implied.
+    The reviewed-safe account-usage correction now admits only the exact
+    unreviewed `fetch_account_usage` candidate for strict provider-contract
+    validation during the free-only checkpoint. EODHD's positive test uses a
+    genuinely unreviewed, `is_free=false` fixture, verifies the cited HTTPS
+    evidence and explicit zero `calls_per_day` operation cost while charging
+    `requests_per_minute`, and invokes only a stub. Missing/malformed evidence
+    and MarketData.app paid/unknown/trial cases are denied before callback in
+    both paid-toggle states. The two relevant unit files passed 104/104; the
+    full Docker backend gate passed 2,775 unit tests in 56 shards, 395
+    PostgreSQL/Redis integration tests, and 82% coverage. Exact-source hosted
+    CI, clean publication, final browser profile, and any current-source live
+    acceptance remain outstanding. Provider HTTP requests, quota spend, and
+    ledger resets were zero. The live receipt remains bound only to
+    `1afb896...`; no receipt was rebound. This is still dirty uncommitted
+    source and not a checkpoint acceptance, staging feature merge, deployment,
+    provider activation, or trial.
+
+    A same-candidate no-transport provider preflight at 2026-10-16 00:52Z
+    confirmed 21 eligible providers and six provider-specific quarantines
+    (Alpha Vantage, CTA Plan, Dinari, Marketstack, Nasdaq, Tiingo), with zero
+    requests. EODHD was not among the current quarantines. The six named
+    provider holds remain, and Dinari quota contract/reset/cost mapping and
+    Marketstack discovery cost/MIC remain unresolved. This preflight is not a
+    live acceptance receipt and does not rebind the historical 20/27 result.
   downstream_consumers:
     - feat/etf-holdings-constituents
     - feat/tc2000-frontend-rework

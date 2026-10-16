@@ -11,8 +11,11 @@ from alembic.operations import Operations
 
 
 def _migration_module():
-    path = Path(__file__).parents[3] / "alembic" / "versions" / (
-        "e9f0a1b2c3d4_add_market_universe_lifecycle_observation_snapshots.py"
+    path = (
+        Path(__file__).parents[3]
+        / "alembic"
+        / "versions"
+        / ("e9f0a1b2c3d4_add_market_universe_lifecycle_observation_snapshots.py")
     )
     spec = importlib.util.spec_from_file_location("universe_lifecycle_snapshots", path)
     assert spec is not None and spec.loader is not None
@@ -35,9 +38,10 @@ def test_migration_retains_repeated_universe_observations_and_guards_downgrade()
         module.op = Operations(MigrationContext.configure(connection))
         module.upgrade()
 
-        assert "market_universe_lifecycle_observation_snapshot" in inspect(
-            connection
-        ).get_table_names()
+        assert (
+            "market_universe_lifecycle_observation_snapshot"
+            in inspect(connection).get_table_names()
+        )
         values = (
             "(data_source_id, provider_symbol, quote_type, observed_at, "
             "lifecycle_status, first_seen_at, consecutive_seen, consecutive_missing, payload) "
@@ -51,16 +55,18 @@ def test_migration_retains_repeated_universe_observations_and_guards_downgrade()
         connection.execute(
             text("INSERT INTO market_universe_lifecycle_observation_snapshot " + values)
         )
-        assert connection.exec_driver_sql(
-            "SELECT COUNT(*) FROM market_universe_lifecycle_observation_snapshot"
-        ).scalar_one() == 2
+        assert (
+            connection.exec_driver_sql(
+                "SELECT COUNT(*) FROM market_universe_lifecycle_observation_snapshot"
+            ).scalar_one()
+            == 2
+        )
 
         with pytest.raises(RuntimeError, match="universe lifecycle observation evidence"):
             module.downgrade()
-        connection.execute(
-            text("DELETE FROM market_universe_lifecycle_observation_snapshot")
-        )
+        connection.execute(text("DELETE FROM market_universe_lifecycle_observation_snapshot"))
         module.downgrade()
-        assert "market_universe_lifecycle_observation_snapshot" not in inspect(
-            connection
-        ).get_table_names()
+        assert (
+            "market_universe_lifecycle_observation_snapshot"
+            not in inspect(connection).get_table_names()
+        )

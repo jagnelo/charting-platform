@@ -10,8 +10,11 @@ from alembic.operations import Operations
 
 
 def _migration_module():
-    path = Path(__file__).parents[3] / "alembic" / "versions" / (
-        "a0b1c2d3e4f5_add_market_series_default_mapping.py"
+    path = (
+        Path(__file__).parents[3]
+        / "alembic"
+        / "versions"
+        / ("a0b1c2d3e4f5_add_market_series_default_mapping.py")
     )
     spec = importlib.util.spec_from_file_location("market_series_default", path)
     assert spec is not None and spec.loader is not None
@@ -41,12 +44,8 @@ def test_market_series_default_mapping_migration_reverses_cleanly():
             "market_series_id",
             "selected_at",
         }
-        connection.exec_driver_sql(
-            "INSERT INTO instrument (id) VALUES (1)"
-        )
-        connection.exec_driver_sql(
-            "INSERT INTO market_series (id) VALUES (99)"
-        )
+        connection.exec_driver_sql("INSERT INTO instrument (id) VALUES (1)")
+        connection.exec_driver_sql("INSERT INTO market_series (id) VALUES (99)")
         connection.exec_driver_sql(
             """
             INSERT INTO market_series_default
@@ -54,9 +53,12 @@ def test_market_series_default_mapping_migration_reverses_cleanly():
             VALUES (1, 'D1', 1, 99)
             """
         )
-        assert connection.exec_driver_sql(
-            "SELECT market_series_id FROM market_series_default"
-        ).scalar_one() == 99
+        assert (
+            connection.exec_driver_sql(
+                "SELECT market_series_id FROM market_series_default"
+            ).scalar_one()
+            == 99
+        )
 
         module.downgrade()
         assert "market_series_default" not in inspect(connection).get_table_names()

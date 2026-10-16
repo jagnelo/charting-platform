@@ -10,8 +10,11 @@ from alembic.operations import Operations
 
 
 def _migration_module():
-    path = Path(__file__).parents[3] / "alembic" / "versions" / (
-        "8e9f0a1b2c3d_add_market_bar_observation_session.py"
+    path = (
+        Path(__file__).parents[3]
+        / "alembic"
+        / "versions"
+        / ("8e9f0a1b2c3d_add_market_bar_observation_session.py")
     )
     spec = importlib.util.spec_from_file_location("market_bar_session", path)
     assert spec is not None and spec.loader is not None
@@ -36,12 +39,13 @@ def test_market_bar_observation_session_migration_adds_default_and_reverses():
         module.op = operations
         module.upgrade()
 
-        connection.exec_driver_sql(
-            "INSERT INTO market_bar_observation (id) VALUES (1)"
+        connection.exec_driver_sql("INSERT INTO market_bar_observation (id) VALUES (1)")
+        assert (
+            connection.exec_driver_sql(
+                "SELECT session FROM market_bar_observation WHERE id = 1"
+            ).scalar_one()
+            == "regular"
         )
-        assert connection.exec_driver_sql(
-            "SELECT session FROM market_bar_observation WHERE id = 1"
-        ).scalar_one() == "regular"
         assert "session" in {
             column["name"] for column in inspect(connection).get_columns("market_bar_observation")
         }

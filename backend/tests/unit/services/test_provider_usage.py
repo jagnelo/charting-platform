@@ -23,17 +23,17 @@ def test_read_live_usage_ledger_aggregates_redacted_rows(tmp_path, monkeypatch):
     now = datetime(2026, 9, 10, 12, 0, tzinfo=UTC)
     ledger = tmp_path / "provider-live-usage.jsonl"
     ledger.write_text(
-        '\n'.join(
+        "\n".join(
             [
                 '{"at":"2026-09-10T11:00:00+00:00","provider":"fred","operations":2,"http_requests":3,"response_bytes":100,"exit_status":0}',
                 '{"at":"2026-09-08T12:00:00+00:00","provider":"fred","operations":1,"http_requests":1,"response_bytes":50,"exit_status":1,"failed_operations":1,"process_exit_status":2}',
                 '{"at":"2026-09-10T11:30:00+00:00","provider":"coinbase","operations":1,"http_requests":1,"response_bytes":25,"exit_status":0}',
                 '{"at":"2026-09-10T11:45:00+00:00","provider":"coinbase","operations":1,"http_requests":1,"response_bytes":25,"exit_status":0,"response_headers":{"x-rate-limit-remaining":"9","x-api-ratelimit-remaining":"87"}}',
                 '{"at":"2026-09-10T11:45:00+00:00","provider":"fractional","operations":1.5,"http_requests":1,"response_bytes":25,"exit_status":0}',
-                'not-json',
+                "not-json",
             ]
         )
-        + '\n'
+        + "\n"
     )
     monkeypatch.setattr(settings, "PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
 

@@ -2134,8 +2134,8 @@ def routing_safety_preflight() -> dict[str, str]:
 
     def _env_bool(name: str) -> bool:
         raw = os.getenv(name)
-        if raw is None and name == "PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK":
-            return bool(app_settings.PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK)
+        if raw is None and hasattr(app_settings, name):
+            return bool(getattr(app_settings, name))
         return str(raw or "").strip().lower() in {"1", "true", "yes"}
 
     live_settings = SimpleNamespace(
@@ -2777,13 +2777,22 @@ def routing_safety_preflight() -> dict[str, str]:
             "routable: configured trial expired; effective quota automatically falls back to "
             "Free Forever at 100 credits/day"
         )
-    elif marketdata_pair_valid and marketdata_plan in {"starter", "trader"}:
+    elif marketdata_pair_valid and marketdata_plan.endswith("_trial"):
         result["marketdata.app account plan"] = (
-            "routable: paid plan reviewed"
-            if os.getenv("ALLOW_PAID_PROVIDER_ROUTING", "false").strip().lower()
-            == "true"
-            else "non-routable: paid plan requires ALLOW_PAID_PROVIDER_ROUTING=true"
+            "non-routable: temporary trial plans are not admitted; use a separately "
+            "reviewed non-trial entitlement"
         )
+    elif marketdata_pair_valid and marketdata_plan in {"starter", "trader"}:
+        if _env_bool("PROVIDER_FREE_ONLY_CHECKPOINT"):
+            result["marketdata.app account plan"] = (
+                "non-routable: shared free-only checkpoint blocks paid plans"
+            )
+        elif _env_bool("ALLOW_PAID_PROVIDER_ROUTING"):
+            result["marketdata.app account plan"] = "routable: paid plan reviewed"
+        else:
+            result["marketdata.app account plan"] = (
+                "non-routable: paid plan requires ALLOW_PAID_PROVIDER_ROUTING=true"
+            )
     elif marketdata_pair_valid:
         result["marketdata.app account plan"] = "routable"
     else:

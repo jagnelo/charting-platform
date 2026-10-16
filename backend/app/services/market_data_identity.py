@@ -188,9 +188,7 @@ async def _record_quarantine(
         # An explicitly empty provider envelope is still evidence.  Only a
         # missing payload may retain the previous projection.
         existing.candidate_payload = (
-            candidate_payload
-            if candidate_payload is not None
-            else existing.candidate_payload or {}
+            candidate_payload if candidate_payload is not None else existing.candidate_payload or {}
         )
         row = existing
     else:

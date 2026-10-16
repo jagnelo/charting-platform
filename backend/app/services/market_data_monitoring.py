@@ -177,9 +177,7 @@ async def build_shadow_report(
         value for key, value in statuses.items() if key in {"discrepancy", "mismatch"}
     )
 
-    coverage_query = select(MarketCoverageSnapshot).where(
-        MarketCoverageSnapshot.timeframe == "D1"
-    )
+    coverage_query = select(MarketCoverageSnapshot).where(MarketCoverageSnapshot.timeframe == "D1")
     if cutoff is not None:
         coverage_query = coverage_query.where(MarketCoverageSnapshot.evaluated_at >= cutoff)
     coverage_rows = (await db.execute(coverage_query)).scalars().all()
@@ -240,9 +238,7 @@ async def build_shadow_report(
         "quota_capacity_events": {
             "count": len(capacity_events),
             "latest_observed_at": (
-                max(event.observed_at for event in capacity_events)
-                if capacity_events
-                else None
+                max(event.observed_at for event in capacity_events) if capacity_events else None
             ),
         },
         "open_anomalies": {

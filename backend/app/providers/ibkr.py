@@ -422,7 +422,9 @@ class IBKRProvider:
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
         if timeframe not in _TIMEFRAME_TO_BAR:
-            raise ProviderResponseError(self.name, f"IBKR does not support timeframe {timeframe.value}")
+            raise ProviderResponseError(
+                self.name, f"IBKR does not support timeframe {timeframe.value}"
+            )
         if adjusted:
             raise ProviderResponseError(
                 self.name,
@@ -462,7 +464,9 @@ class IBKRProvider:
                     for key in ("o", "h", "l", "c", "v")
                 }
                 if ts is None or any(value is None for value in values.values()):
-                    raise ProviderResponseError(self.name, "IBKR returned a malformed historical bar")
+                    raise ProviderResponseError(
+                        self.name, "IBKR returned a malformed historical bar"
+                    )
                 if not start <= ts < end:
                     continue
                 page_bars.append(
@@ -528,7 +532,9 @@ class IBKRProvider:
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
         seconds = TIMEFRAME_SECONDS.get(timeframe)
         if seconds is None:
-            raise ProviderResponseError(self.name, f"IBKR does not support timeframe {timeframe.value}")
+            raise ProviderResponseError(
+                self.name, f"IBKR does not support timeframe {timeframe.value}"
+            )
         return datetime.now(UTC) - timedelta(seconds=max(1, limit) * seconds * 1.5 + 86400)
 
     def get_current_price(self, symbol: str) -> float | None:
@@ -550,5 +556,7 @@ class IBKRProvider:
             return None
         value = _snapshot_price(rows[0].get("31"))
         if value is None:
-            raise ProviderResponseError(self.name, "IBKR snapshot omitted a finite last price (field 31)")
+            raise ProviderResponseError(
+                self.name, "IBKR snapshot omitted a finite last price (field 31)"
+            )
         return value

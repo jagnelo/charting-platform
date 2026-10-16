@@ -1221,6 +1221,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
         "MARKETSTACK_PROVIDER_ARCHIVE_TERMS_EVIDENCE", "reviewed provider archive terms"
     )
     monkeypatch.setenv("ALLOW_PAID_PROVIDER_ROUTING", "true")
+    monkeypatch.setenv("PROVIDER_FREE_ONLY_CHECKPOINT", "false")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN", "starter")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "10000")
     monkeypatch.setenv("MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", "25")
@@ -1246,7 +1247,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "10000")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", "2030-01-01T00:00:00+00:00")
     statuses = routing_safety_preflight()
-    assert statuses["marketdata.app account plan"] == "routable"
+    assert statuses["marketdata.app account plan"].startswith("non-routable: temporary trial")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", "2020-01-01T00:00:00+00:00")
     statuses = routing_safety_preflight()
     assert statuses["marketdata.app account plan"].startswith(
@@ -1256,10 +1257,41 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", "1")
     statuses = routing_safety_preflight()
     assert statuses["marketdata.app option chain"].startswith("non-routable:")
-
     monkeypatch.setenv("MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", "not-an-integer")
     statuses = routing_safety_preflight()
     assert statuses["marketdata.app option chain"].startswith("non-routable:")
+
+
+def test_live_marketdata_plan_preflight_honors_checkpoint_and_trial_denials(monkeypatch):
+    monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN", "starter")
+    monkeypatch.setenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "10000")
+    monkeypatch.setenv("ALLOW_PAID_PROVIDER_ROUTING", "true")
+    monkeypatch.setenv("PROVIDER_FREE_ONLY_CHECKPOINT", "true")
+
+    # Paid opt-in cannot override the shared free-only checkpoint.
+    status = routing_safety_preflight()["marketdata.app account plan"]
+    assert status == "non-routable: shared free-only checkpoint blocks paid plans"
+
+    # Full-roadmap opt-in remains independently available outside checkpoint
+    # mode; no probe transport is invoked by this safety-only function.
+    monkeypatch.setenv("PROVIDER_FREE_ONLY_CHECKPOINT", "false")
+    assert routing_safety_preflight()["marketdata.app account plan"] == (
+        "routable: paid plan reviewed"
+    )
+
+    # Temporary trial access is not routable even when represented as free or
+    # when paid routing is enabled. An expired trial is a different, explicitly
+    # configured effective Free Forever entitlement.
+    monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN", "starter_trial")
+    monkeypatch.setenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "10000")
+    monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", "2030-01-01T00:00:00+00:00")
+    assert routing_safety_preflight()["marketdata.app account plan"].startswith(
+        "non-routable: temporary trial"
+    )
+    monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", "2020-01-01T00:00:00+00:00")
+    assert routing_safety_preflight()["marketdata.app account plan"].startswith(
+        "routable: configured trial expired; effective quota automatically falls back"
+    )
 
 
 def test_live_preflight_control_aliases_resolve_to_reported_statuses():

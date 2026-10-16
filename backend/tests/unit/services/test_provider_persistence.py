@@ -60,7 +60,9 @@ async def test_profile_classification_system_is_retained_in_detail_provenance(
 
 
 @pytest.mark.asyncio
-async def test_identifier_snapshot_retains_provider_rows_without_changing_projection(db, instrument):
+async def test_identifier_snapshot_retains_provider_rows_without_changing_projection(
+    db, instrument
+):
     data_source = DataSource(name="openfigi", is_active=True)
     db.add(data_source)
     db.flush()
@@ -261,7 +263,11 @@ async def test_search_fetch_persists_and_then_reuses_cache(db, monkeypatch):
                     name="NVIDIA Tokenized",
                     exchange="CoinGecko",
                     instrument_type="CRYPTOCURRENCY",
-                    raw_payload={"id": "nvidia-token", "symbol": "nvda", "name": "NVIDIA Tokenized"},
+                    raw_payload={
+                        "id": "nvidia-token",
+                        "symbol": "nvda",
+                        "name": "NVIDIA Tokenized",
+                    },
                 )
             ]
             resolved = coingecko
@@ -304,7 +310,11 @@ async def test_search_fetch_persists_and_then_reuses_cache(db, monkeypatch):
     assert len(snapshots) == 2
     assert {snapshot.query for snapshot in snapshots} == {"nvda"}
     assert snapshots[0].payload["results"][0]["raw_payload"]
-    assert {snapshot.payload["results"][0]["raw_payload"].get("assetId") or snapshot.payload["results"][0]["raw_payload"].get("id") for snapshot in snapshots} == {"y-1", "nvidia-token"}
+    assert {
+        snapshot.payload["results"][0]["raw_payload"].get("assetId")
+        or snapshot.payload["results"][0]["raw_payload"].get("id")
+        for snapshot in snapshots
+    } == {"y-1", "nvidia-token"}
 
 
 @pytest.mark.asyncio
