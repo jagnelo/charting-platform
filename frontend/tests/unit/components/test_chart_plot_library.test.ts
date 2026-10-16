@@ -953,6 +953,7 @@ describe('ChartPlotLibrary', () => {
       ] }],
     }
     workspace.activeTabKey = 'test'
+    vi.spyOn(workspace, 'scheduleSnapshot').mockImplementation(() => {})
     const chart = usePanelStore('multi-output-copy-test')
     chart.setIndicators([{ type: 'bb', params: { period: 20, std_dev: 2 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
     const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'multi-output-copy-test' } } })
@@ -962,6 +963,7 @@ describe('ChartPlotLibrary', () => {
 
     expect(workspace.activeTab?.windows[1].configuration.indicator_columns).toBeUndefined()
     expect(wrapper.get('[role="status"]').text()).toContain('explicit output')
+    wrapper.unmount()
   })
 
   it('does not publish a late Python asset load after the library unmounts', async () => {
