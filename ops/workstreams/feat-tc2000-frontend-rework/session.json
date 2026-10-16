@@ -35,9 +35,7 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "dirty_paths": [
-    "frontend/tests/e2e/flows.spec.ts"
-  ],
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -86,7 +84,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "256d680ec8ffeddd345c74b7f442cbee6846af65",
+  "head": "977e68afb1cf6bb40a5cd2540dded09b56c9b245",
   "implementation_sha": "d0add5588612339203073b21015028ad4ffeb106",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -98,7 +96,7 @@
   "last_checkpoint": "2026-10-16T02:01:21+00:00",
   "last_human_progress_update": "2026-10-15T23:33:12+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "TCP1 is narrowly accepted by the coordinator, not the whole checkpoint. Exact accepted chain: green staging82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009, TC merge d4274a9fa3119c212a9aaf2c0006c20d921812e8, implementation7f33b07dfc7ffa57d5285e04981448732e3eb727/exact attempt-1 CI38835330075 (E2E116765465161:189 passed,110 expected skips,zero retry/flake/failure). Restored journal row, provenance correction, and TCP1 acceptance are committed/pushed at256d680e. Exact CI38839922705 for256d680ec8ffeddd345c74b7f442cbee6846af65 is queued; do not claim green. Existing current F8s source-transition delta only has test collection 1/1; no browser/data mutation this continuation. Preserve assigned Vite15190, backend28008 and five account rows without cleanup. Use disposable CI/isolated runtime for browser proof, coordinated with Provider's full-local priority. TCP2 full104 visual, TCP3 Provider/ETF consumers, TCP4 combined profile, TCP5 closure and full V25 roadmap remain open; no TC staging integration.",
+  "next_action": "TCP1 is narrowly coordinator-accepted, not whole-checkpoint acceptance: staging82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009 -> TC merge d4274a9fa3119c212a9aaf2c0006c20d921812e8 -> implementation7f33b07dfc7ffa57d5285e04981448732e3eb727/exact CI38835330075 attempt1, E2E116765465161 189 passed/110 expected skips/zero retry, flake or failure. The exact tc_post_merge_scope_and_test_collection journal row is restored unchanged and verified against59bbb968; no history rewrite needed. Prior actual-app focused browser provenance: existing Vite15190 -> assigned backend28008; temporary Chromium was stopped, separate Vite15191 was stopped, and 5 assigned DB test accounts remain untouched/private inventory at ignored .ai/runtime/tc2000-focused-browser-account-inventory.json. Current F8s test uses deterministic page.route source/history/clone/Market Map/snapshot fixtures and is not provider-live evidence. Exact run38840374244 for full source977e68afb1cf6bb40a5cd2540dded09b56c9b245 attempt1 is IN PROGRESS; frontend unit and branch-declared passed, backend integration running; wait for terminal and audit actual E2E retry/flake outcomes before recording CI status. No local runtime/data cleanup. TCP2 full104 opted-in visual, TCP3 staged Provider/ETF consumer gates, TCP4 combined profile, TCP5 closure and full V25 roadmap remain open; no TC staging integration.",
   "plan_hash": "dadb5cdce505577c5210e12ad0421b4f1f7159d4708a554281788489baa49890",
   "planning_required": false,
   "planning_state": "ready",
@@ -111,16 +109,16 @@
   ],
   "progress": {
     "completed": ["TCP1"],
-    "current_blocker": "TCP1 narrow technical pointer repair/reconciliation is coordinator-accepted: staging82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009 -> TC merge d4274a9fa3119c212a9aaf2c0006c20d921812e8 -> implementation7f33b07dfc7ffa57d5285e04981448732e3eb727 exact attempt-1 CI38835330075, E2E116765465161 189 passed/110 expected skips/zero retries, flakes or failures. This is NOT whole checkpoint acceptance or TC staging permission. Journal restoration and acceptance are pushed in256d680e; run38839922705 for exact256d680ec8ffeddd345c74b7f442cbee6846af65 is QUEUED, not green; prior a60 run38838322914 is still in progress. Current F8s sequencing delta collected 1/1 but not browser executed; no data mutation in this continuation. Prior F8s/F9c browser evidence used existing Vite15190 proxying to assigned backend28008, not isolated Compose; five test accounts remain privately inventoried and unchanged. Do not touch assigned runtime/data/15190. Full TCP2 opted-in104 visual matrix at unchanged0.005, TCP3 actual Provider/ETF contracts after green staging, TCP4 combined profile, TCP5 closure and complete V25 roadmap remain open; official V25 Help remains required_missing.",
+    "current_blocker": "TCP1 narrow technical pointer repair/reconciliation is coordinator-accepted only: staging82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009 -> TC merge d4274a9fa3119c212a9aaf2c0006c20d921812e8 -> implementation7f33b07dfc7ffa57d5285e04981448732e3eb727 exact attempt1 CI38835330075, E2E116765465161 189 passed/110 expected skips/zero retries, flakes or failures. Exact tc_post_merge_scope_and_test_collection row is present unchanged versus59bbb968 and was restored in256d680e. Prior actual-app browser was existing Vite15190 -> assigned backend28008, not isolated Compose/provider-live; temporary Chromium and Vite15191 were stopped; 5 assigned DB accounts remain unchanged and privately inventoried. Current F8s uses deterministic Playwright route mocks, not live-provider evidence. Exact run38840374244 head977e68afb1cf6bb40a5cd2540dded09b56c9b245 attempt1 is terminal SUCCESS: frontend unit, branch-declared, backend and E2E jobs succeeded; exhaustive gate skipped. E2E116781448508 had187 passed/110 skipped/2 retry-passing flakes in18m (F9e-shell-menus-keyboard and F8m-chart-panels); current F8s passed without retry. Hosted visual cases were skipped, not pixel passes. CI Compose resources were cleaned by the hosted workflow; assigned runtime/data untouched. TCP2 full104 visual, TCP3 Provider/ETF consumer gates, TCP4 combined profile, TCP5 closure and V25 roadmap remain open; no staging integration.",
     "current_phase": "TCP1_NARROW_TECHNICAL_REPAIR_ACCEPTED;TCP2_HELP_REFERENCE_REVIEWED_NARROW_ONLY_FULL_MATRIX_PENDING;TCP3_PROVIDER_ETF_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_CLOSURE_OPEN",
-    "next_action": "With the existing bounded TC browser slot released and Provider retaining full-local priority, commit the current test-only F8s sequencing correction with explicit collection-only evidence; allow isolated exact-source CI to execute it rather than mutating assigned local data. Continue independent TC-owned V25 roadmap work only where it does not duplicate Provider/ETF ownership. Run full local/combined and unchanged opted-in104 visual gates when coordinated capacity and the required upstream green consumer baselines permit.",
+    "next_action": "The journal row and provenance corrections are recorded append-only; five assigned DB accounts remain unchanged/private and no local service/data was cleaned. Exact CI38840374244 for977e68afb1cf6bb40a5cd2540dded09b56c9b245 is terminal Actions SUCCESS with two E2E retry-passing flakes (F9e and F8m); F8s passed without retry, visuals remain skipped. Preserve this honest outcome; do not treat run as zero-flake or full visual acceptance. Continue branch-owned roadmap while Provider retains heavy local capacity. Await green Provider and ETF staging consumer baselines before TCP3, then complete TCP2 full104 visuals/TCP4 combined exact CI/TCP5 closure and remaining V25 roadmap; no TC staging integration.",
     "total": 5,
-    "updated_at": "2026-10-16T03:00:00+00:00"
+    "updated_at": "2026-10-16T02:55:40+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "a60e2304e0b4d8c052ce4a2f0157a48066bc5c39",
+    "current_local_head": "977e68afb1cf6bb40a5cd2540dded09b56c9b245",
     "current_pending_range": null,
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
@@ -128,11 +126,11 @@
     "last_attempted_range": "59bbb968feefd2ba9c74638dcfa6863d5533186c..7f33b07dfc7ffa57d5285e04981448732e3eb727",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "7f33b07dfc7ffa57d5285e04981448732e3eb727",
+    "remote_tracking_sha": "977e68afb1cf6bb40a5cd2540dded09b56c9b245",
     "status": "pushed"
   },
-  "remote": "256d680ec8ffeddd345c74b7f442cbee6846af65",
-  "remote_sha": "a60e2304e0b4d8c052ce4a2f0157a48066bc5c39",
+  "remote": "977e68afb1cf6bb40a5cd2540dded09b56c9b245",
+  "remote_sha": "977e68afb1cf6bb40a5cd2540dded09b56c9b245",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "roadmap_acceptance_criteria": [

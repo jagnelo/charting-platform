@@ -30,6 +30,41 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
+  Exact current-source Actions result (2026-10-16): run 38840374244 attempt 1
+  matches full head 977e68afb1cf6bb40a5cd2540dded09b56c9b245 and concluded
+  SUCCESS. Frontend unit, branch-declared, backend, and E2E jobs succeeded;
+  Exhaustive Integration Gate was skipped on this feature branch. E2E log:
+  187 passed, 110 skipped, 2 retry-passing flakes in 18.0m
+  (F9e-shell-menus-keyboard and F8m-chart-panels). Updated
+  F8s-market-map-watchlist appeared at case 144/299 and is not listed among
+  retries; it passed without retry. Hosted visual test listings are skips, not
+  pixel passes. The hosted job used its isolated charting-platform-ci Compose
+  stack and removed only that stack's resources after the run. This green CI
+  status is not a zero-flake acceptance run and does not close TCP2 full104
+  visual, TCP3 Provider/ETF consumers, TCP4 combined profile, TCP5 closure,
+  or official V25 parity.
+
+  Provenance/history correction (2026-10-16): the exact committed
+  tc_post_merge_scope_and_test_collection row from 59bbb968 is present
+  unchanged in validation.jsonl; it was restored in 256d680e. Preserve its
+  history and append newer evidence. Prior actual-app focused browser evidence
+  used the existing Vite frontend at 127.0.0.1:15190 proxying to assigned TC
+  backend 127.0.0.1:28008, not isolated Compose or provider-live data. Its
+  Playwright routes supplied deterministic source/history/clone/Market Map/
+  snapshot fixtures; five test-account rows created during prior focused work
+  remain in assigned DB, privately inventoried at ignored
+  .ai/runtime/tc2000-focused-browser-account-inventory.json and must not be
+  deleted or exposed in tracked records. Prior temporary Chromium and the
+  separate Vite 15191 process were stopped; existing 15190 and backend 28008
+  were left intact. No runtime/data cleanup occurred in this continuation.
+  Exact Actions run 38840374244 is for full source 977e68afb1cf6bb40a5cd2540dded09b56c9b245,
+  attempt 1, and was in progress at last check (frontend unit and
+  branch-declared tests succeeded; backend integration remained running).
+  Do not call it terminal/green until all required jobs finish and E2E logs are
+  audited for retries. TCP1 remains narrow coordinator technical acceptance
+  only; TCP2 full 104 visual, TCP3 Provider/ETF consumers, TCP4 combined
+  profile, TCP5 checkpoint closure, and official V25 parity remain open.
+
   The Help local-reference authority/review portion is closed narrowly. On
   2026-10-16 the coordinator independently reviewed the exact four current
   Linux references from source 5fcae9587 / Help source be6b12500 and confirmed

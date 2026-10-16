@@ -1,5 +1,54 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-16 — Exact F8s source-transition CI outcome
+
+Actions run `38840374244`, attempt 1, matches full head
+`977e68afb1cf6bb40a5cd2540dded09b56c9b245` and is terminal success. Frontend
+unit, branch-declared, backend, and E2E jobs succeeded; the Exhaustive
+Integration Gate was skipped on this feature branch. The E2E job ran in its
+own `charting-platform-ci` Compose stack and the workflow removed that stack's
+containers, volumes, and network at completion; this does not describe or
+touch the assigned TC runtime or its five retained account rows.
+
+The E2E log reports 187 passed, 110 skipped, and 2 retry-passing flakes over
+18.0 minutes: `F9e-shell-menus-keyboard` and `F8m-chart-panels`. The new
+`F8s-market-map-watchlist` test ran as case 144/299 and is not among the retry
+cases; it passed without retry using the Playwright route fixtures described
+below. Hosted run logs list the visual tests but those are in the skipped
+count, not screenshot passes. Thus this exact run is green by Actions status
+but not a zero-flake acceptance run and does not close the full 104-case visual
+gate, TCP2-TCP5, Provider/ETF consumer integration, or official V25 parity.
+
+## 2026-10-16 — Browser provenance and journal audit correction
+
+The exact committed `tc_post_merge_scope_and_test_collection` validation row
+from `59bbb968` is present unchanged in the current journal (restored in
+`256d680e`). A later `rg` match included both that original row and a newer
+record that mentions its name; this was not a deletion. Preserve both rows and
+append corrections rather than rewriting the journal.
+
+The recent actual-app focused browser evidence used the already-running TC
+frontend Vite listener at `127.0.0.1:15190`, which proxied to the assigned TC
+backend at `127.0.0.1:28008`. This was not an isolated Compose environment and
+not a provider-live probe. The previous populated-comparison cross-check used
+a temporary Chromium browser container; it was stopped afterward. A separate
+Vite process started for the 15191 cross-check was also stopped; the existing
+15190 listener was not restarted or cleaned up. This continuation started no
+browser or server process. Five test-account rows remain in the assigned TC
+database and were not changed or deleted; their private inventory is kept only
+at ignored `.ai/runtime/tc2000-focused-browser-account-inventory.json` (do not
+copy account identifiers into tracked evidence or clean them up).
+
+The current `F8s-market-map-watchlist` spec uses deterministic Playwright
+`page.route` fixtures for source/history, clone, Market Map, and snapshot
+responses; it asserts a real UI transition and ordinary refresh interaction
+against those mocked responses. Its current 977e68af exact-source CI run is
+still in progress at latest check; that is not proof of assigned-database
+provider behavior. The prior focused actual-app visual/interaction evidence is
+separate from this route-mocked spec and from the pending 104-case visual gate.
+No local data, test accounts, browser, server, listener 15190, or assigned
+service was cleaned up in the recent collection-only continuation.
+
 ## 2026-10-15 — Actual Help usability and text-box inspection
 
 Used the current-source TC frontend already running at `127.0.0.1:15190`,
