@@ -1,9 +1,11 @@
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from uuid import uuid4
 
 import pytest
-from sqlalchemy import delete, select
+from sqlalchemy import create_engine, delete, select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from app.models.data_source import DataSource
 from app.models.provider_recurring_cost import (
@@ -302,6 +304,51 @@ def test_commitment_lifecycle_revisions_recalculate_cost_and_retain_every_state(
         "active",
         "cancelled",
     ]
+
+
+def test_budget_and_commitment_survive_database_engine_restart(tmp_path):
+    import app.models  # noqa: F401 — register all tables before create_all
+    from app.database import Base
+
+    database_path = tmp_path / "recurring-cost-restart.sqlite3"
+    database_url = f"sqlite:///{database_path}"
+    engine = create_engine(database_url)
+    Base.metadata.create_all(engine)
+    source_name = f"cost-restart-{uuid4().hex}"
+
+    try:
+        with Session(engine) as session:
+            source = _source(session, source_name)
+            assert _budget(session, ceiling="20.00").allowed
+            admitted = _admit(
+                session,
+                source.id,
+                billing_account_scope=f"opaque-restart-scope-{uuid4().hex}",
+                amount="12.00",
+            )
+            assert admitted.allowed
+            assert admitted.proposed_monthly == Decimal("12.0000")
+            session.commit()
+    finally:
+        engine.dispose()
+
+    # Reopening the same durable database models loss of process-local state.
+    restarted_engine = create_engine(database_url)
+    try:
+        with Session(restarted_engine) as session:
+            status = provider_recurring_cost_status(session)
+            assert status.allowed
+            assert status.currency == "USD"
+            assert status.monthly_ceiling == Decimal("20.0000")
+            assert status.committed_monthly == Decimal("12.0000")
+            assert status.remaining_monthly == Decimal("8.0000")
+            assert len(list(session.scalars(select(ProviderRecurringCostBudgetRevision)))) == 1
+            commitment = session.scalar(select(ProviderRecurringCostCommitment))
+            assert commitment is not None
+            assert commitment.configured_plan == "reviewed-basic"
+            assert len(list(session.scalars(select(ProviderRecurringCostCommitmentRevision)))) == 1
+    finally:
+        restarted_engine.dispose()
 
 
 def test_explicit_expired_transition_does_not_count_and_stale_active_quote_is_rejected(db):

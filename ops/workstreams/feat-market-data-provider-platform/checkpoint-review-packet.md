@@ -1,5 +1,115 @@
 # Provider integration checkpoint review packet
 
+## 2026-10-16 21:37Z — exact pushed CI terminal; Provider-owned durability work remains dirty
+
+Actions run `38966141433` is terminal on pushed source
+`3754d0bd2c55492d1868b8ee039a23f4a45d182f`: Backend, Frontend Unit, and
+Branch-declared succeeded; Playwright failed in TC-owned F8u; Exhaustive was
+skipped by branch policy. E2E reported 150 passed, 109 skipped, one failed,
+zero retries; the failed case was `flows.spec.ts:4389` (chart plots dragged
+into a watchlist numeric column). The report artifact is retained as run
+artifact `12077210388`. This does not identify a Provider-owned product defect
+and must not be “fixed” by weakening the oracle or editing TC-owned frontend.
+
+The coordinator's separate run `38943410344` remains green only for
+`ba06bdc6b525c8f007fd6917bd3df2603aa8f093` (151 passed, 109 expected skips,
+no failures/retries/flakes; Exhaustive skipped). The receipt remains historical
+and source-bound. The dirty SQLite/PostgreSQL engine-reopen tests and current
+workstream updates are not included in either run. The PostgreSQL integration
+test passed locally 1/1 against its isolated testcontainer; bounded ICP2/ICP6
+unit selection passed 42/42. No provider HTTP or quota spend. The checkpoint
+remains pending.
+
+## 2026-10-16 21:34Z — PostgreSQL restart/concurrency integration passed locally
+
+The single PostgreSQL integration test passed 1/1 in 13.02s using a dedicated
+testcontainer (`TEST_DATABASE_URL` unset). It now proves the concurrency
+admission and persisted cost state after disposing the first engine and
+reopening the same database via a new SQLAlchemy engine. The fixture completed
+its own teardown; retained application/test stacks were untouched. This local
+candidate evidence is not hosted exact-source CI.
+
+Actions run `38966141433` still runs Playwright against pushed source
+`3754d0bd2c55492d1868b8ee039a23f4a45d182f`; Backend, Frontend Unit, and
+Branch-declared succeeded, Exhaustive was skipped by feature policy, and E2E
+was active at 21:34Z. The new restart tests/workstream changes are outside that
+source. Preserve the active run; then publish and require exact-source CI. No
+provider HTTP/quota use; checkpoint acceptance remains open.
+
+## 2026-10-16 21:28Z — PostgreSQL engine-restart integration case authored
+
+The PostgreSQL cost-admission concurrency test now disposes the test engine,
+reopens the same test database with a new SQLAlchemy engine, and verifies that
+budget/revision and commitment/balance state survived before cleaning only its
+fixture records. This is authored, not yet executed locally; its next required
+proof is the exact-source hosted backend integration run. The separate
+file-backed SQLite engine-reopen test is executed in the current 42/42 bounded
+ICP2/ICP6 unit selection, with five existing warnings; Ruff and diff checks pass.
+
+At 21:28Z exact Actions `38966141433` remains on Playwright E2E for pushed
+`3754d0bd2c55492d1868b8ee039a23f4a45d182f`; Backend, Frontend Unit and
+Branch-declared are green, Exhaustive skipped by policy. The run does not
+contain the dirty restart edits. Do not supersede it until it is terminal, then
+publish the coherent source and obtain exact CI. No provider calls or quota
+spend. Checkpoint acceptance remains open.
+
+## 2026-10-16 21:23Z — recurring-cost restart durability test added
+
+A new file-backed SQLite regression now proves that the recurring-cost budget,
+commitment, balance, and revision history survive disposal of the original
+engine and reopening the same database through a new engine. It does not replace
+the separately recorded PostgreSQL migration/concurrency evidence or prove an
+application deployment restart. The complete bounded ICP2 cost/admin/OHLCV/
+coverage/SQLite migration selection passes 42/42 (18.78s; five existing
+warnings); Ruff and diff checks pass. No provider HTTP or quota spend.
+
+This test is dirty and **not** included in exact Actions run `38966141433`, which
+targets pushed source `3754d0bd2c55492d1868b8ee039a23f4a45d182f`. At 21:23Z its
+Backend, Frontend Unit, and Branch-declared jobs succeeded and Playwright E2E
+was still in progress. Wait for that run to finish, then publish and validate
+the coherent follow-up. The coordinator-reconfirmed `38943410344` remains
+historical evidence for `ba06bdc6` only; it is not rebound.
+
+## 2026-10-16 21:18Z — current-source bounded ICP2/ICP6 evidence and historical receipt
+
+The coordinator-confirmed Actions run `38943410344` is terminal green only for
+`ba06bdc6b525c8f007fd6917bd3df2603aa8f093` (151 passed / 109 skipped E2E; no
+failures, retries, or flakes; Exhaustive skipped by feature policy). It is
+already recorded in the append-only journal and remains historical evidence.
+
+On pushed source `3754d0bd2c55492d1868b8ee039a23f4a45d182f`, the focused ICP2
+cost/admin/producer and SQLite migration selection passed 41/41 (14.36s; five
+existing warnings); the selected runtime entitlement/free-only boundary cases
+passed 5/5 (50.75s). No provider HTTP or quota spend. Exact CI `38966141433` on
+that source has Backend, Frontend Unit, and Branch-declared success; Playwright
+E2E was still in progress at 21:18Z. The prior six-case runtime pass, full
+PostgreSQL fresh/upgrade/concurrency evidence, and historical seeded browser
+red remain separately source-bound; none are overwritten by this update.
+
+The Provider candidate is not accepted. Full local browser validation remains
+held until a coordinator-released exact synchronized green staging SHA. Keep
+the six operation groups held, do not refresh external calls, and preserve the
+ICP2 single-currency/no-FX boundary and ICP6 downstream ownership/remainders.
+
+## 2026-10-16 21:04Z — pushed candidate CI in progress; corrected cost disposition pending
+
+The zero-ceiling recurring-cost implementation and its tested migration were
+committed/pushed as `3754d0bd2c55492d1868b8ee039a23f4a45d182f`. Exact Actions
+run `38966141433` is active on that source: Frontend Unit is green and Backend
+is running; later jobs have not yet started. The dirty candidate's bounded
+selection passes 41/41, runtime free-only admission passes 6/6, and separate
+PostgreSQL migration/concurrency checks pass. A local wording correction to
+AC-ROUTING/AC-RECURRING-COST clarifies that cost admission is separate from
+provider route admission and does not supply EUR/USD conversion; it is
+uncommitted and not covered by this run.
+
+The released common repair baseline `0145b65992b8692ce69f82f804f83f6c8e551fea`
+is already an ancestor of the Provider branch. Current `origin/staging` is
+`e0cb269afc8460bdc814c93ec71c640f01b2b31f`, exact CI `38947572686` failed, so
+that moving red staging tip must not be merged. Local full-profile work remains
+held while assigned TC/ETF backend tests are active and TC-owned Provider
+browser failures remain unresolved. No Provider checkpoint is accepted.
+
 ## 2026-10-16 20:54Z — clean baseline CI terminal; dirty candidate remains
 
 Exact push run `38960835914` completed successfully on clean branch source
@@ -711,12 +821,12 @@ frontend files remain unchanged.
 | Gate | Evidence / delivered checkpoint contract | Remaining work and owner |
 |---|---|---|
 | ICP1 — identity and lifecycle | Tests cover stable instrument/issuer/listing/provider-symbol identity, provenance and history, ambiguity quarantine, and legacy symbol/API compatibility. See OpenFIGI, instrument-sync, market-data-identity, lifecycle/quarantine migration, and compatibility tests. | Full same-session NMS/OTC/SEC universe reconciliation, all venue mappings, and complete ticker-change/delisting lifecycle remain Provider roadmap work. Partial or stale snapshots must never imply absence or completeness. |
-| ICP2 — provider governance | Shared capability, entitlement, routing and durable multidimensional quota contracts are tested. `PROVIDER_FREE_ONLY_CHECKPOINT=true` denies reviewed paid market-data routes regardless of `ALLOW_PAID_PROVIDER_ROUTING`; trials are denied. Unreviewed market-data routes are denied except the exact reviewed-safe EODHD `/api/user` bootstrap: HTTPS evidence, exact `fetch_account_usage` operation, reconciled `calls_per_day`, explicit zero daily-credit operation cost; `requests_per_minute` is still reserved. Candidate selection exposes only this operation to strict admission. FMP/Tiingo legacy seed labels now refresh to the configured account plan; a genuine API-patched revision is preserved, and plan/config mismatches fail closed. Execution-level tests prove no transport callback under either paid-toggle state. MarketData.app `/user/` is not exempt. The current dirty follow-up permits an explicit `$0` no-spend ceiling, denies positive-cost plans under it, preserves existing commitments when a budget reduction would breach the ceiling, and migrates the database constraint additively. The current cost/admin/OHLCV/coverage/SQLite-migration selection passes 41/41, and the separate runtime-boundary selection passes 6/6 (47 total across these two selections). | Shared cost admission now has a Provider-owned DB model/service and admin API, but remains separate from provider activation and does not invent FX. It requires reviewed budget/evidence configuration and supports only one currency at a time. Aggregate EUR/USD equivalence and the future shared cost consumer contract remain explicitly open; no paid route is activated. Exact-source CI for the dirty follow-up remains pending. ETF owns post-staging consumer bridge and real request/page/retry accounting; no ETF-only ledger. |
+| ICP2 — provider governance | Shared capability, entitlement, routing and durable multidimensional quota contracts are tested. `PROVIDER_FREE_ONLY_CHECKPOINT=true` denies reviewed paid market-data routes regardless of `ALLOW_PAID_PROVIDER_ROUTING`; trials are denied. Unreviewed market-data routes are denied except the exact reviewed-safe EODHD `/api/user` bootstrap: HTTPS evidence, exact `fetch_account_usage` operation, reconciled `calls_per_day`, explicit zero daily-credit operation cost; `requests_per_minute` is still reserved. Candidate selection exposes only this operation to strict admission. FMP/Tiingo legacy seed labels now refresh to the configured account plan; a genuine API-patched revision is preserved, and plan/config mismatches fail closed. Execution-level tests prove no transport callback under either paid-toggle state. MarketData.app `/user/` is not exempt. The current pushed follow-up permits an explicit `$0` no-spend ceiling, denies positive-cost plans under it, preserves existing commitments when a budget reduction would breach the ceiling, and migrates the database constraint additively. The cost/admin/OHLCV/coverage/SQLite-migration selection passes 41/41, and the separate runtime-boundary selection passes 6/6 (47 total across these two selections). | Shared cost admission now has a Provider-owned DB model/service and admin API, but remains separate from provider activation and does not invent FX. It requires reviewed budget/evidence configuration and supports only one currency at a time. Aggregate EUR/USD equivalence and the future shared cost consumer contract remain explicitly open; no paid route is activated. Exact CI `38966141433` is in progress on pushed source `3754d0bd`; its terminal result is pending. ETF owns post-staging consumer bridge and real request/page/retry accounting; no ETF-only ledger. |
 | ICP3 — series, coverage and refresh | Series/provenance, gap planning, session-aware freshness, refresh coalescing/leases, and explicit partial coverage are exercised by backend unit/integration and Strategy Lab tests. Full local backend gate and exact-source hosted backend job passed. | After Provider staging, consumers verify stale, partial, missing, and unavailable states remain distinct and do not trigger hidden provider requests. Downstream owners: ETF, TC2000, Strategy Lab. |
 | ICP4 — provider operations | Fresh durable no-transport preflight admitted 23 manifests; exact staged-tree slices passed 62/62 cases, 151 requests, and 64,552,569 response bytes. The verifier confirms those 23 against tree `592261aa...` and reports `live_acceptance=false` because four held providers have no successful manifest receipt. | Keep Alpha Vantage, Dinari, Marketstack and Tiingo held with their exact reasons below. No quota was spent on these four. Their preflight and existing zero-call tests are separate from successful live evidence. Historical 20/27 evidence stays bound to `1afb896...`; it is not rebound. |
 | ICP5 — migrations, startup and secrets | The dirty candidate includes `c5d6e7f8a9b0` plus additive `b6e9a42d1c73` to permit an explicit zero monthly ceiling. The enhanced PostgreSQL migration-compatibility gate passed against prior exact base `ba06bdc6`: fresh and upgrade schema/data equivalence, zero ceiling accepted and negative ceiling rejected by named constraints in both paths, existing fail-closed quota state, and previous-release `/health 200`; SQLite migration smoke also passes. The bounded current-source gate evidence is not hosted CI for the dirty candidate. | Complete ordinary clean-source validation and exact-source CI after publishing the coherent candidate. GitHub/RPi/deployment secret stores remain target onboarding requirements before those targets are used, not pre-Provider integration prerequisites. No deployment readiness is claimed. |
 | ICP6 — consumers | Producer success/unavailable behavior and callable contract are tested. `execute_provider_call(...)` is async but its `invoke(provider, provider_symbol)` argument must be synchronous; the runtime offloads it to a worker thread with copied telemetry context and returns `ProviderExecutionResult(provider_name, data_source, policy, health, result, response_payloads)`. It does not await async callbacks. Unknown/exhausted quota is denied before `invoke`; no usable provider data raises `ProviderNoDataError`. `GET /api/v1/ohlcv/{symbol}/D1?local_only=true` returns retained local bars or `200 []` when none exist, without provider hydration; this preserves the collection endpoint's existing response shape. A non-local provider request that exhausts usable data has the separately tested `404` `detail` response. | Producer success shape, no-data behavior, and exact local-only empty-result semantics are now explicit in `plan.yaml` and runtime/router tests. Before Provider staging, name downstream owners/remainders only; actual ETF/TC2000/Strategy adapter wiring and consumer-specific reconciliation happen after Provider is green in staging. ETF owns holdings bridge; TC2000 and Strategy own their consumer wiring. |
-| ICP7 — reviewable source | Latest clean pushed Provider source is `0d4b2b96a12fd9fdbe8c514707952201626ccb7c`; exact run `38960835914` is terminal green for Backend (unit, PostgreSQL integration and combined coverage), Frontend Unit, Branch-declared, and Playwright E2E. Exhaustive was skipped by feature policy. Coordinator separately re-confirmed older run `38943410344` green only for `ba06bdc6`. The current dirty cost/migration candidate has no exact-source CI. | Commit and publish the coherent candidate for exact-source CI, and run the required normal full local profile when the coordinator releases an exact synchronized green staging SHA/slot. The historical Provider full browser result remains red at `1236a367` (TC-owned F9e/F8s; 104 visual cases passed). No product checkpoint is accepted; do not edit frontend or self-integrate. |
+| ICP7 — reviewable source | Latest pushed Provider source is `3754d0bd2c55492d1868b8ee039a23f4a45d182f`; exact run `38966141433` has Backend, Frontend Unit, and Branch-declared success, with Playwright E2E in progress at 21:18Z. The previous clean source `0d4b2b96` passed exact run `38960835914`; coordinator run `38943410344` applies only to `ba06bdc6`. | Finish current run, then reconcile/publish the pending AC-ROUTING/AC-RECURRING-COST documentation correction and require exact-source CI. Full local profile remains outstanding; do not compete with active assigned validation or merge current red staging `e0cb269a`. The historical Provider browser red `1236a367` (TC-owned F9e/F8s; 104 visual cases passed) remains unresolved. No product checkpoint is accepted; do not edit frontend or self-integrate. |
 
 ### Coordinator ICP2 review correction (hosted CI validated; local full-profile follow-up remains)
 

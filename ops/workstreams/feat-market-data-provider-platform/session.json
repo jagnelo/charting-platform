@@ -45,19 +45,13 @@
     "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
   },
   "dirty_paths": [
-    "backend/alembic/versions/b6e9a42d1c73_allow_zero_recurring_cost_budget.py",
-    "backend/app/models/provider_recurring_cost.py",
-    "backend/app/routers/market_data_admin.py",
-    "backend/app/services/provider_recurring_costs.py",
-    "backend/tests/unit/routers/test_market_data_admin_router.py",
-    "backend/tests/unit/migrations/test_provider_recurring_cost_governance.py",
-    "backend/tests/unit/services/test_provider_recurring_costs.py",
     "ops/workstreams/feat-market-data-provider-platform/checkpoint-review-packet.md",
     "ops/workstreams/feat-market-data-provider-platform/handoff.md",
     "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
     "ops/workstreams/feat-market-data-provider-platform/session.json",
     "ops/workstreams/feat-market-data-provider-platform/validation.jsonl",
-    "scripts/validate-migration-compatibility.py"
+    "backend/tests/unit/services/test_provider_recurring_costs.py",
+    "backend/tests/integration/test_provider_recurring_cost_concurrency.py"
   ],
   "docker": {
     "available": false,
@@ -83,15 +77,15 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "0d4b2b96a12fd9fdbe8c514707952201626ccb7c",
-  "implementation_sha": "0d4b2b96a12fd9fdbe8c514707952201626ccb7c",
+  "head": "3754d0bd2c55492d1868b8ee039a23f4a45d182f",
+  "implementation_sha": "3754d0bd2c55492d1868b8ee039a23f4a45d182f",
   "interrupted": false,
-  "last_checkpoint": "2026-10-16T20:49:21Z",
+  "last_checkpoint": "2026-10-16T21:37:00Z",
   "last_human_progress_update": "2026-10-16T11:12:47.867964+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Commit the validated zero-ceiling ICP2/ICP6 candidate and push it to the synchronized owner branch for exact-source CI. The current remote ref is verified at 0d4b2b96 via GitHub API; local SSH push DNS resolution failed on first attempt, so retry the authorized push through the approved network path. Preserve all prior receipts, six provider operation holds, and the separate red seeded 260-case browser result; browser rerun remains held until exact synchronized green staging release. No provider transport, activation, staging integration, deployment, reset, cleanup, or invented currency conversion.",
+  "next_action": "Reconcile terminal run 38966141433 as red only on source 3754d0bd (Backend, Frontend Unit, Branch-declared green; Playwright failed at TC-owned F8u, 150 passed/109 skipped/1 failed; Exhaustive skipped). The dirty SQLite/PostgreSQL restart regressions and workstream updates are not covered. Finish the Provider-owned ICP2/ICP6 contract work, validate the coherent dirty candidate, publish it and require exact-source CI; do not duplicate TC's F8u repair or rerun the seeded browser matrix before coordinator release. Preserve the historical 389434 green receipt on ba06bdc6 only, six provider-operation holds, all prior browser evidence, and no provider transport/quota spend, deployment, reset, cleanup, paid/trial activation, red-staging merge, or invented FX.",
   "parent_branch": "staging",
-  "plan_hash": "35f4eef9073db3c55451bbc864405f8639717df2a04ae720557f1c10338cc5f6",
+  "plan_hash": "720180d107d41e7e2d500aa7bb5d70342cd0ebbb7599edb301bd2ed20f0bbd8d",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -121,14 +115,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "Exact CI 38960835914 is terminal green only for clean source 0d4b2b96; the validated dirty zero-ceiling ICP2/ICP6 candidate is not yet committed or covered by hosted CI. Its bounded cost/admin/OHLCV/coverage/SQLite selection passes 41/41 and runtime free-only admission passes 6/6; PostgreSQL fresh/upgrade migration compatibility and concurrency 1/1 remain separately recorded. Workstream validation passes 34/34. The full local/browser profile remains held until exact synchronized green staging is released. Current-source no-transport preflight (af7913ea) records provider-specific holds for CTA/Nasdaq daily directory headroom, Dinari reviewed cost/reset contract, EODHD daily manifest headroom, Marketstack monthly OHLCV headroom/discovery bounds, and Tiingo reviewed plan/hour/day baselines. Historical Provider browser red 1236a367 remains TC-owned F9e/F8s. Aggregate cost-currency/equivalence policy, provider plan evidence/reconciliation, downstream ETF wiring, and the full roadmap remain open.",
+    "current_blocker": "Exact source 3754d0bd CI run 38966141433 is terminal red only because Playwright failed TC-owned F8u (150 passed/109 skipped/1 failed); Backend, Frontend Unit, and Branch-declared succeeded, Exhaustive skipped. Dirty Provider restart regressions/workstream edits are outside that run and need exact-source hosted CI. The SQLite engine-reopen test passes in the 42/42 bounded unit selection and isolated PostgreSQL concurrency/restart integration passes 1/1 locally. Six provider groups remain held, with no transport/quota spend. Full local profile remains held pending coordinator release of exact synchronized green staging; historical seeded browser red remains distinct. ICP2 single-currency/no-FX policy and provider-plan evidence/reconciliation remain roadmap gaps; ETF/TC/Strategy own downstream wiring after Provider staging. Checkpoint not accepted.",
     "current_phase": "provider-icp2-recurring-cost-and-icp6-contract-refresh",
-    "next_action": "Commit and push the validated zero-ceiling ICP2/ICP6 candidate to the synchronized owner branch, then require exact-source CI. Exact run 38960835914 is green only for clean source 0d4b2b96; run 38943410344 is historical evidence for ba06bdc6 only. Preserve six provider-specific holds and the separate red seeded browser evidence; no provider transport or full browser profile until exact synchronized green staging release; no activation, staging integration, deployment, reset, cleanup, or invented FX.",
+    "next_action": "Complete the remaining Provider-owned ICP2 aggregate recurring-cost and ICP6 producer/consumer contract work without touching TC-owned F8u or any held provider operation. Validate and publish the coherent SQLite/PostgreSQL restart tests plus workstream reconciliation; require exact-source hosted CI. Do not rerun the seeded browser profile until coordinator release of exact synchronized green staging. Preserve historical receipts and current holds; no FX invention, provider transport, quota spend, paid/trial routes, deployment, reset, cleanup, or red-staging merge.",
     "total": 7,
-    "updated_at": "2026-10-16T20:58:01Z"
+    "updated_at": "2026-10-16T21:37:00Z"
   },
   "remote": "51ebc7d45aa34d2e8790988778ee5e6eec14bdd7",
-  "remote_sha": "0d4b2b96a12fd9fdbe8c514707952201626ccb7c",
+  "remote_sha": "3754d0bd2c55492d1868b8ee039a23f4a45d182f",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-provider-validation-1236-20261016 and provider-playwright-1236-hostaccess-20261016 remain running/preserved; no stop, reset, prune, or cleanup. Browser runner returned to sleep service after focused checks."

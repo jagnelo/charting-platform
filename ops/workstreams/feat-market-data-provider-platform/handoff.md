@@ -1,5 +1,133 @@
 # feat/market-data-provider-platform
 
+## 2026-10-16 21:37Z — exact pushed CI reconciled; continue Provider contracts
+
+- The coordinator-reconfirmed Actions run `38943410344` is already recorded
+  in the append-only journal and remains green only for
+  `ba06bdc6b525c8f007fd6917bd3df2603aa8f093`: Backend, Frontend Unit,
+  Branch-declared, and E2E green; E2E 151 passed / 109 skipped, no failure,
+  retries, or flakes; Exhaustive skipped by branch policy.
+- The separate exact run `38966141433` is terminal on source
+  `3754d0bd2c55492d1868b8ee039a23f4a45d182f`: Backend, Frontend Unit, and
+  Branch-declared succeeded; E2E failed only at TC-owned F8u (150 passed,
+  109 skipped, one failed, no retry); Exhaustive skipped. Artifact
+  `12077210388` preserves the Playwright report. Do not change TC-owned UI or
+  weaken the behavioral assertion here.
+- Dirty Provider work adds SQLite and PostgreSQL engine-reopen durability
+  assertions for the aggregate recurring-cost ledger. The bounded unit suite
+  is 42/42 and the PostgreSQL concurrency/restart integration is 1/1 locally;
+  these edits still need publication and exact-source CI. No provider calls or
+  quota spend. Continue ICP2 cost governance and ICP6 producer/consumer
+  contract work, preserving all operation holds and the separate seeded-browser
+  red receipt. Checkpoint remains unaccepted; no staging/deployment action.
+
+## 2026-10-16 21:34Z — PostgreSQL restart/concurrency integration passed
+
+- Ran the single Provider-owned test against its own testcontainer (with
+  `TEST_DATABASE_URL` unset): `test_concurrent_near_ceiling_admissions_are_serialized_and_durable`
+  passed 1/1 in 13.02s. It proves concurrent budget/commitment admission,
+  disposal of the original SQLAlchemy engine, re-connection through a new
+  engine to the same PostgreSQL test DB, and persistence of budget/commitment
+  revisions and balance. Testcontainer teardown completed; retained Provider,
+  TC, and other app stacks were left untouched.
+- This local integration result is bound to dirty candidate content based on
+  `3754d0bd`; it is not yet hosted exact-source CI. The already-running Actions
+  `38966141433` still validates only pushed `3754d0bd` and its Playwright E2E
+  remained active at 21:34Z. Preserve that run; the new SQLite/PostgreSQL tests
+  and workstream updates require a subsequent exact-source hosted run.
+- Previous 42/42 bounded unit evidence, static checks, and 34-record validator
+  remain recorded. No provider HTTP or quota spend. The checkpoint remains
+  open; preserve the held operations and separate browser evidence.
+
+## 2026-10-16 21:28Z — PostgreSQL engine-restart proof added; hosted run remains active
+
+- Extended the PostgreSQL recurring-cost concurrency integration test to dispose
+  its engine, reconnect with a newly created engine to the same test database,
+  and verify persisted budget/revisions, admitted commitment, and remaining
+  balance before fixture-scoped cleanup. This is authored but not yet executed
+  locally; the Docker-backed integration must pass on a clean exact source.
+- Re-ran the bounded unit ICP2/ICP6 cost/admin/OHLCV/coverage/SQLite migration
+  selection: 42/42 passed in 19.59s (five existing warnings). Ruff check and
+  format check both changed test files; `git diff --check` passed. No provider
+  HTTP or quota spend.
+- Actions `38966141433` still runs Playwright E2E for source `3754d0bd`; its
+  Backend, Frontend Unit, and Branch-declared jobs are green and Exhaustive is
+  skipped by feature policy. It does not contain either the new unit test or
+  PostgreSQL engine-restart edit. Preserve this run; once terminal, publish the
+  coherent follow-up and require new exact-source CI including PostgreSQL.
+- Historical receipt `38943410344` remains bound to `ba06bdc6` only. The
+  Provider checkpoint is not accepted; preserve held operations and prior
+  browser evidence. No live calls, quota spend, paid/trial activation, staging
+  mutation, deployment, reset, or cleanup.
+
+## 2026-10-16 21:23Z — recurring-cost restart durability regression added
+
+- Added a focused file-backed SQLite regression that writes the reviewed
+  recurring-cost budget and commitment, disposes the original SQLAlchemy engine,
+  reopens the same database with a new engine, and verifies the ceiling, cost,
+  remaining balance, and retained budget/commitment revisions. This closes a
+  previously untested local process-state-loss scenario; it is not a substitute
+  for the separate PostgreSQL fresh/upgrade/concurrency evidence.
+- The complete bounded ICP2 cost/admin/OHLCV/coverage/SQLite migration selection
+  now passes 42/42 in 18.78s (five existing warnings). Ruff check, format check,
+  and `git diff --check` pass. No provider HTTP or quota spend occurred.
+- This test and the current workstream edits are uncommitted and therefore are
+  **not** covered by Actions run `38966141433`, whose source is the pushed
+  `3754d0bd2c55492d1868b8ee039a23f4a45d182f`. At 21:23Z its Backend, Frontend
+  Unit, and Branch-declared jobs succeeded; Playwright E2E remained in progress.
+  Let that exact run finish; then publish a coherent source and require exact CI.
+- The coordinator's `38943410344` result remains recorded only for `ba06bdc6`.
+  Keep the six provider groups held, preserve the separate red seeded browser
+  profile, and do not run provider transport, quota spend, trial/paid routes,
+  staging mutations, deployment, reset, or cleanup.
+
+## 2026-10-16 21:18Z — ICP2/ICP6 candidate regression; coordinator receipt reconciled
+
+- Reconciled the coordinator's exact Actions receipt `38943410344` on source
+  `ba06bdc6b525c8f007fd6917bd3df2603aa8f093`. Backend, Frontend Unit,
+  Branch-declared, and Playwright E2E succeeded; E2E was 151 passed / 109
+  skipped with no failures, retries, or flakes (15.6 minutes). Exhaustive was
+  skipped by feature policy. This historical result remains bound to `ba06bdc6`.
+- On current committed source `3754d0bd2c55492d1868b8ee039a23f4a45d182f`,
+  reran the ICP2 recurring-cost/admin/OHLCV/coverage/SQLite migration selection:
+  41/41 passed in 14.36s (five existing warnings), and the runtime reviewed-free,
+  paid/unknown/trial admission selection: 5/5 passed in 50.75s. These tests
+  include ICP6 producer success/unavailable response behavior; no provider HTTP
+  or quota spend occurred. The dedicated 5-case runtime subset did not include
+  every prior 6-case runtime assertion; earlier 6/6 evidence remains recorded.
+- Exact current-source run `38966141433` for `3754d0bd` now has Backend,
+  Frontend Unit, and Branch-declared jobs green; Playwright E2E was still running
+  at 21:18Z. No terminal overall result is claimed.
+- Continue ICP2 plan-evidence/currency-policy work without inventing FX or
+  enabling paid routing, and ICP6 contract evidence with the stated downstream
+  owners. Keep all six provider operation groups held and the separate red
+  seeded 260-case profile intact/held pending coordinator-released exact
+  synchronized staging. No provider transport, checkpoint acceptance, staging
+  mutation, deployment, reset, or cleanup.
+
+## 2026-10-16 21:00Z — candidate published; follow-up wording correction held
+
+- The validated zero-ceiling recurring-cost candidate and checkpoint evidence
+  are committed/pushed as `3754d0bd2c55492d1868b8ee039a23f4a45d182f`.
+  Exact push CI `38966141433` is active on that SHA; Backend and Frontend Unit
+  are running, with downstream jobs not yet started. Do not cancel or replace it.
+- A read-through found and locally corrected stale `AC-ROUTING` text that said
+  the shared recurring-cost API did not exist. Current truth: the Provider-owned
+  DB-backed cost API exists, but does not gate/activate routes and supports one
+  currency at a time; no EUR/USD conversion or aggregate equivalent is inferred.
+  This documentation-only correction is uncommitted and not covered by run
+  `38966141433`; it will be handled after the active run reaches a safe boundary.
+- The existing code candidate passed 41 bounded cost/admin/OHLCV/coverage/SQLite
+  migration tests, six free-only runtime admission cases, Ruff/format/compile,
+  branch record validation 34/34, PostgreSQL migration compatibility and a
+  PostgreSQL concurrency test. These are not full checkpoint acceptance.
+- The exact released common baseline `0145b65992b8692ce69f82f804f83f6c8e551fea`
+  is already an ancestor of this Provider branch. Current `origin/staging` is
+  `e0cb269afc8460bdc814c93ec71c640f01b2b31f`, whose exact run `38947572686`
+  failed; do not merge the red moving staging tip. Read-only host checks show
+  assigned TC/ETF focused backend tests active, so no competing full local
+  profile is being started.
+
 ## 2026-10-16 20:54Z — prior clean-source push CI completed green
 
 - GitHub Actions run `38960835914` is terminal success on exact source

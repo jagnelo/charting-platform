@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlalchemy import delete, select
+from sqlalchemy import create_engine, delete, select
 from sqlalchemy.orm import Session
 
 from app.models.data_source import DataSource
@@ -85,6 +85,7 @@ def test_concurrent_near_ceiling_admissions_are_serialized_and_durable(db_engine
             return decision
 
     try:
+        restart_engine = None
         with ThreadPoolExecutor(max_workers=2) as pool:
             first = pool.submit(attempt, 0, "12.00")
             second = pool.submit(attempt, 1, "11.00")
@@ -102,11 +103,33 @@ def test_concurrent_near_ceiling_admissions_are_serialized_and_durable(db_engine
             assert status.remaining_monthly in {8, 9}
             assert len(list(verify.scalars(select(ProviderRecurringCostCommitment)))) == 1
             assert len(list(verify.scalars(select(ProviderRecurringCostCommitmentRevision)))) == 1
+
+        # Recreate the connection pool/engine to prove state is not process-local.
+        database_url = db_engine.url
+        db_engine.dispose()
+        restart_engine = create_engine(database_url, echo=False, pool_pre_ping=True)
+        with Session(restart_engine) as after_restart:
+            restarted_status = provider_recurring_cost_status(after_restart)
+            assert restarted_status.allowed
+            assert restarted_status.monthly_ceiling == 20
+            assert restarted_status.committed_monthly in {11, 12}
+            assert restarted_status.remaining_monthly in {8, 9}
+            assert (
+                len(list(after_restart.scalars(select(ProviderRecurringCostBudgetRevision)))) == 2
+            )
+            assert len(list(after_restart.scalars(select(ProviderRecurringCostCommitment)))) == 1
+            assert (
+                len(list(after_restart.scalars(select(ProviderRecurringCostCommitmentRevision))))
+                == 1
+            )
     finally:
-        with Session(db_engine) as cleanup:
+        cleanup_engine = restart_engine or db_engine
+        with Session(cleanup_engine) as cleanup:
             cleanup.execute(delete(ProviderRecurringCostCommitmentRevision))
             cleanup.execute(delete(ProviderRecurringCostCommitment))
             cleanup.execute(delete(ProviderRecurringCostBudgetRevision))
             cleanup.execute(delete(ProviderRecurringCostBudget))
             cleanup.execute(delete(DataSource).where(DataSource.id.in_(source_ids)))
             cleanup.commit()
+        if restart_engine is not None:
+            restart_engine.dispose()

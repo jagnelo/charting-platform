@@ -1,4 +1,30 @@
 schema: 4
+# Current source/CI update — 2026-10-16 21:37Z: Actions 38966141433 is
+# terminal on pushed source 3754d0bd: Backend, Frontend Unit, Branch-declared
+# succeeded; E2E failed at TC-owned F8u (150 passed/109 skipped/1 failed, no
+# retry); Exhaustive skipped by policy. Dirty Provider restart tests are not in
+# that source and require exact-source CI. Coordinator-confirmed 38943410344 is
+# green only for historical ba06bdc6 (151 passed/109 skipped, no failures,
+# retries or flakes; Exhaustive skipped). Dirty PostgreSQL restart integration
+# passes 1/1 in an isolated local testcontainer; bounded unit tests 42/42.
+# Historical 21:28Z status: the PostgreSQL recurring-cost
+# The file-backed recurring-cost
+# restart regression now reopens the same SQLite database through a new engine
+# and verifies budget, commitment, balance and revisions. The complete bounded
+# ICP2/ICP6 cost/admin/OHLCV/coverage/SQLite selection passes 42/42. This test
+# is dirty and not included in Actions 38966141433 on pushed source 3754d0bd;
+# Playwright E2E is still running there. A coherent updated source needs exact CI.
+# Current source/CI update — 2026-10-16 21:18Z: the validated zero-ceiling
+# ICP2/ICP6 implementation and prior workstream evidence are pushed as
+# 3754d0bd2c55492d1868b8ee039a23f4a45d182f. Exact CI 38966141433 has Backend,
+# Frontend Unit and Branch-declared success; Playwright E2E remains in progress.
+# On this source, bounded ICP2/ICP6 tests pass 41/41 and selected no-transport
+# runtime entitlement tests pass 5/5. The coordinator-confirmed 38943410344
+# remains green only for its historical source ba06bdc6; do not rebind it.
+# A local workstream correction now removes stale AC-ROUTING wording: the
+# aggregate cost API exists, but is separate from route admission and has no
+# inferred EUR/USD equivalence. That documentation correction is uncommitted
+# and is not covered by 38966141433. Do not overwrite or cancel that run.
 # Superseding ICP2/ICP6 status — 2026-10-16 20:56Z: the previously running
 # exact clean-source CI 38960835914 is terminal green on 0d4b2b96 for Backend
 # (unit, PostgreSQL integration and combined coverage), Frontend Unit,
@@ -912,12 +938,12 @@ integration_checkpoint:
       continuation_acceptance_test: "Calendar tests cover sessions, holidays, early closes, timezone projections, and freshness for supported venues."
     - id: AC-ROUTING
       status: partially_delivered
-      disposition: "Capability routing and durable quota controls exist. During the integration checkpoint, PROVIDER_FREE_ONLY_CHECKPOINT=true denies reviewed paid market-data routes regardless of ALLOW_PAID_PROVIDER_ROUTING and denies trial routes. Unreviewed market-data routes are denied; the only present exception is the exact EODHD fetch_account_usage operation, whose first-party API-limits source lists /api/user at zero daily call credits and whose explicit dimension-cost map charges one requests_per_minute unit and zero calls_per_day units. MarketData.app /user/ is one credit and receives no exception. Turning checkpoint mode off restores the full-roadmap reviewed-paid opt-in path; neither mode is aggregate cost admission or paid-activation authorization. No shared aggregate recurring-subscription cost API or enforcement of the approved 20 EUR/USD-equivalent ceiling exists. Provider owns that ICP2 roadmap work; ETF owns ICP6 consumer-bridge and actual-operation accounting evidence. Other provider-specific dimensions, account baselines, and consumer examples remain open."
+      disposition: "Capability routing and durable quota controls exist. During the integration checkpoint, PROVIDER_FREE_ONLY_CHECKPOINT=true denies reviewed paid market-data routes regardless of ALLOW_PAID_PROVIDER_ROUTING and denies trial routes. Unreviewed market-data routes are denied; the only present exception is the exact EODHD fetch_account_usage operation, whose first-party API-limits source lists /api/user at zero daily call credits and whose explicit dimension-cost map charges one requests_per_minute unit and zero calls_per_day units. MarketData.app /user/ is one credit and receives no exception. Turning checkpoint mode off restores the full-roadmap reviewed-paid opt-in path; neither mode is aggregate cost admission or paid-activation authorization. A Provider-owned database-backed aggregate recurring-subscription cost API now exists, with an explicitly reviewed single-currency ceiling and per-account/environment commitments; it does not gate or activate routes. The configured ceiling has no implicit EUR/USD conversion, so the approved 20 EUR/USD-equivalent policy remains unresolved and no paid routes are enabled. Provider owns remaining plan-evidence/operator-provisioning work; ETF owns the post-staging consumer bridge and request/page/retry accounting evidence. Other provider-specific dimensions, account baselines, and consumer examples remain open."
       owner: "feat/market-data-provider-platform"
       continuation_acceptance_test: "Concurrent/restart tests cover provider-specific quota dimensions and reject unknown/exhausted operations before transport."
     - id: AC-RECURRING-COST
       status: partially_delivered
-      disposition: "A Provider-owned database-backed recurring-cost subsystem now exists: an explicitly reviewed single-currency ceiling including a zero no-spend ceiling; one commitment per provider billing-account scope and environment independent of keys/capabilities; retained budget/commitment evidence revisions; conservative monthly/yearly normalization; trial post-price accounting; fail-closed unknown/mixed-currency handling; and authenticated admin endpoints. Cost admission does not authorize provider activation or routing. Migration b6e9a42d1c73 now passes fresh/upgrade schema equivalence, actual zero-accept/negative-reject checks in both databases, and previous-app health 200. Unit/admin tests cover zero-ceiling Free Forever acceptance and positive-cost denial. Remaining: exact-current PostgreSQL concurrency/restart and hosted CI for this migration, owner-reviewed provider plan evidence/operator provisioning, the explicit 20 EUR/USD denomination policy remains configured rather than inferred, consumer bridge wiring after Provider staging, and reconciled-evidence transitions. This remains full-roadmap work and is not a prerequisite for the verified-free-only checkpoint."
+      disposition: "A Provider-owned database-backed recurring-cost subsystem now exists: an explicitly reviewed single-currency ceiling including a zero no-spend ceiling; one commitment per provider billing-account scope and environment independent of keys/capabilities; retained budget/commitment evidence revisions; conservative monthly/yearly normalization; trial post-price accounting; fail-closed unknown/mixed-currency handling; and authenticated admin endpoints. Cost admission does not authorize provider activation or routing. Migration b6e9a42d1c73 passes fresh/upgrade schema equivalence, actual zero-accept/negative-reject checks in both databases, and previous-app health 200. Unit/admin tests cover zero-ceiling Free Forever acceptance, positive-cost denial, retention of an existing paid commitment when lowering the ceiling is rejected, and lifecycle revisions. The PostgreSQL near-ceiling concurrency test passes 1/1. Exact CI 38966141433 is running on pushed source 3754d0bd; this is not yet terminal evidence. Remaining: restart-durability proof, exact terminal hosted CI, owner-reviewed provider plan evidence/operator provisioning, the explicit 20 EUR/USD denomination policy remains configured rather than inferred, consumer bridge wiring after Provider staging, and reconciled-evidence transitions. This remains full-roadmap work and is not a prerequisite for the verified-free-only checkpoint."
       owner: "feat/market-data-provider-platform"
       continuation_acceptance_test: "Database-backed tests cover account/environment scope and same-account cross-key deduplication; exact plan price/currency/period and known post-trial pricing; active/proposed/expired transitions; supported monthly normalization; fail-closed unknown and mixed-currency cases; atomic concurrent near-ceiling proposals; restart durability; evidence revisions; and proof that budget admission does not authorize paid activation. Fresh-install and existing-database upgrade schemas must be equivalent."
     - id: AC-REFRESH
