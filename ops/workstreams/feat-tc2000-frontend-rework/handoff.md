@@ -20797,3 +20797,37 @@ do not claim new TCP1 pointer evidence from the common merge or this observer
 change. Approved local Help references and unchanged screenshot tolerance stay
 as-is; official V25 parity and TCP2–TCP5 remain open.
 
+## 2026-10-16 — 10k Market Map canvas scroll observer
+
+Exact source `2c06d1db09ae3405b1dec3f6b78c280166e7bb76` has terminal-red
+CI `38911065009`: Backend, Frontend, and Branch-declared passed; Playwright
+reported 189 passed, 110 skipped, and one retry-passing flake in
+`workstation_performance.spec.ts`, the 10,000-cell Market Map interaction.
+The first attempt failed at line 418 in `canvas.scrollIntoViewIfNeeded()` with
+“Element is not attached to the DOM”; the retained error context shows the
+10,000-member canvas and idle tool, and the retry passed. Preserve this as a
+flake, not acceptance.
+
+Static source supports a narrow test-only observer adjustment: the map tiles
+viewport is the parent hit surface used again for the later pan check and is
+mounted with map data; the canvas is an additional conditional child selected
+by the large-map threshold. The test now scrolls the viewport first, then
+re-resolves and rechecks the 10,000-member canvas before obtaining its bounds.
+The 5-second render budget and positive canvas backing-size check remain before
+scroll; the ordinary pointer hover/hit-test, search selection, zoom, and pan
+assertions are unchanged. This is a hypothesis-driven locator adjustment, not
+mounted-app proof of the detach cause.
+
+No local browser/profile was started because Provider retains the heavy slot.
+The automatic branch CI was inspected: its branch-declared job is stack-free;
+E2E starts only its isolated seeded Compose stack, with this test intercepting
+the Market Map data contract locally. No live-provider credentials or provider
+probe job is in the branch push workflow. No product code, provider calls,
+assigned services/data, Help reference, or visual tolerance changed. The
+focused no-browser declared checks and test collection passed; fresh exact-source
+CI and mounted-app reproduction remain pending. If the hosted retry recurs,
+capture whether the viewport remains attached across scroll and whether the
+canvas reappears before changing this observer again. TCP1 remains narrowly
+accepted; TCP2 full visuals, TCP3 Provider/ETF consumers, TCP4 combined
+validation, TCP5 review, and official V25 parity remain open.
+

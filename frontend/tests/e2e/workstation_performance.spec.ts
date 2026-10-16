@@ -415,8 +415,15 @@ test.describe('TC2000 workstation performance guards', () => {
 
     // Canvas pointer hit-testing selects a real cell; the search affordance
     // then provides deterministic keyboard selection for the dense mode.
-    await canvas.scrollIntoViewIfNeeded()
-    const canvasBounds = await canvas.boundingBox()
+    // Scroll the map viewport, which remains mounted while its map data is
+    // present, rather than targeting its conditional canvas child. Re-resolve
+    // the canvas after scrolling before preserving the real pointer hit-test.
+    const viewport = mapWindow.locator('.market-map-tool__tiles')
+    await viewport.scrollIntoViewIfNeeded()
+    const pointerCanvas = mapWindow.locator('canvas.market-map-tool__canvas-map')
+    await expect(pointerCanvas).toBeVisible()
+    await expect(pointerCanvas).toHaveAttribute('aria-label', '10000 Market Map members')
+    const canvasBounds = await pointerCanvas.boundingBox()
     expect(canvasBounds).not.toBeNull()
     await page.mouse.move(canvasBounds!.x + canvasBounds!.width * 0.5, canvasBounds!.y + canvasBounds!.height * 0.5)
     await expect(mapWindow.locator('.market-map-tool__hover')).toBeVisible()
@@ -432,7 +439,6 @@ test.describe('TC2000 workstation performance guards', () => {
     const mapCanvas = mapWindow.locator('.market-map-tool__canvas')
     await mapWindow.getByRole('button', { name: 'Zoom in Market Map' }).click()
     await expect(mapCanvas).toHaveAttribute('style', /scale\(1\.25\)/)
-    const viewport = mapWindow.locator('.market-map-tool__tiles')
     await viewport.scrollIntoViewIfNeeded()
     const viewportBounds = await viewport.boundingBox()
     expect(viewportBounds).not.toBeNull()
