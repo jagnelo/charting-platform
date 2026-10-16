@@ -14691,3 +14691,16 @@ reconciliation still waits for accepted green Provider, then ETF, then TC2000
 releases; combined PostgreSQL/application gates and the required local
 `full_stack_browser` profile remain open. Provider retains the first heavy
 local validation slot.
+
+## 2026-10-16 — bounded runner shutdown follow-up
+
+To distinguish the local focused-test teardown behavior from the held exact-tip
+profile, ran only the two changed research-runner tests from Strategy source
+`9dd9a56251643275f285b8639403ed20a2acace4`, with `OPENBLAS_NUM_THREADS=1`,
+`OMP_NUM_THREADS=1`, and a 30-second outer timeout. Both passed and pytest exited
+cleanly (`2 passed, 103 deselected in 3.68s`). The earlier uncapped invocation
+reported both test passes but remained open until interrupted; the difference
+is consistent with a native-thread shutdown sensitivity, but does not establish
+the cause of the separate exact-source `54fa13e1` CI exit 152. That historical
+failure remains unproven and unchanged. No full profile, production limit,
+coverage threshold, or CI rerun was performed.
