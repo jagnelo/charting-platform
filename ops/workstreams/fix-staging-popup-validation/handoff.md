@@ -382,3 +382,40 @@ full-functional/104visual pass. Its normal teardown removed only the exact new
 fixture's containers/networks/four volumes/four generated images; standard
 resource inventory is empty. Next action is a fresh complete browser and
 104visual profile on unchanged source, retries0, with both receipts retained.
+
+## 11:12 UTC — full repair gates green; ready for guarded staging integration
+
+The required complete fresh browser profile on branch HEAD
+19a15268d2eae2c0bd60ead6ca1bca72a3d762d7 completed after the contradictory
+first F8u failure: full functional matrix154passed/106expectedskip/0failed in
+15.4m, then all104 strict visual checks passed in13.2m, retries0. The original
+0.5%/1px/DeltaE2 policy and all references were unchanged. F8j popup lifecycle,
+F8u chart-plot drag and all surrounding flows passed. Normal isolated teardown
+removed its own service containers/networks/four volumes/four generated images;
+agent resource inventory now reports zero containers, volumes and testcontainer
+sessions for this worktree. Retained feature project services and datasets were
+not targets.
+
+Native full backend coverage passed1648 tests/80.72percent against the unchanged
+75percent gate using only declared OPENBLAS_NUM_THREADS=1 and OMP_NUM_THREADS=1
+to bound the test numerical pool. Exact hosted branch CI38888544505 succeeded:
+Backend Tests, Frontend Unit Tests, Branch-declared Tests and Playwright E2E all
+success; Exhaustive Integration Gate correctly skipped on a feature branch.
+E2E completed the260 selection with151pass/109skip and success; strict
+fail-on-flaky config makes a retry-passing flake fail the job. Local full profile
+completed154pass/106skip plus104visual, all retries0.
+
+The first full run's F8u failure is preserved honestly; its focused fresh
+reproduction passed once, and the required subsequent full run passed without
+source changes. No deterministic product defect was established, so no unrelated
+drag code or assertion was changed. The earlier CPU-boundary failure was fixed
+in tests only; CPU and wall limits in production are unchanged. Product app and
+frontend tree bytes are unchanged from the tested frozen repair implementation.
+
+Human-authorized technical closure is recorded in plan.yaml. This closes only
+the popup/strict-flaky and test-only resource-guard repair. Four product feature
+checkpoints remain unaccepted/unmerged. No deployment, master promotion, paid
+activation or trial is authorized. The branch is clean, pushed and ready for
+the coordinator's normal guarded merge into persistent staging; final staging
+Exhaustive Integration Gate still must pass before releasing the common repair
+baseline directly to feature owners.

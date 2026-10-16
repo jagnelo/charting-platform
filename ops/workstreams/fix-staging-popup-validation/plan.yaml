@@ -6,8 +6,8 @@ parent_sha: 5768bec4ae12fb06ecc37f06cf656387751eadaa
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Human delegated technical repair authority: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Narrow coordinator task: repair the actual staging F8j popup-close observer race and fail CI on retry-passing flaky tests while preserving genuine pointer actions, geometry/cross-window assertions, all tests, references and tolerances; investigate crosshair readiness only if needed. Base is exact synchronized staging5768 with canonical successful-CI receipt but independently audited browser quality hold (one cleanup flake), not accepted product staging. No feature import, paid activation, deployment or operational trial."
 planning_state: ready
-human_closure_authorization: pending
-closure_summary: pending
+human_closure_authorization: "Human explicitly delegated closure of each careful technical repair without per-fix acceptance: Yes I approve, and you do not need my acceptance to close it off, it's a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. This closure is limited to the listed popup/strict-flaky and independent resource-guard test repair; product feature checkpoint acceptance remains separate."
+closure_summary: "Delivered the popup cleanup race fix at F8j plus same-class F8b/F8n-links callers, strict CI rejection of retry-passing flakes, and independent real wall/CPU guard tests without production budget changes. Validated source HEAD: 19a15268d2eae2c0bd60ead6ca1bca72a3d762d7. The first full browser attempt had one F8u drag failure; a focused real-browser rerun passed, then the entire fresh full profile passed154 functional and104 strict visual checks, zero retries,106 expected skips. Native combined backend gate passed1648 tests/80.72% versus75%. Exact branch CI38888544505 succeeded for backend, frontend, branch tests and Playwright E2E; Exhaustive Integration Gate is normally skipped on a feature branch. No migration/deployment change; isolated test volumes/containers were removed. No product feature checkpoint has been accepted or merged. integration_capture: exact branch HEAD."
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
@@ -47,12 +47,12 @@ branch_tests_reason: Stack-free popup/config checks plus independent real CPU/wa
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: in_progress
+status: ready_for_integration
 remaining_gaps:
-  - Popup implementationd0fc689c and independent resource-test correctiona8b0c2f are pushed; focused10/frontend937 and resource105 pass. Full functional selection at frozen frontend/app source ended153passed106skipped1failed at F8u real plot drag, retries0;104visuals were not executed after that failure. Preserve artifacts, diagnose separately, complete native backend75percent and final exact CI. No checkpoint acceptance or product integration.
+  - First full260 browser attempt recorded153passed106skipped1failed at F8u; focused fresh reproduction passed once. Required subsequent full profile on unchanged source passed154functional106expectedskip and all104strictvisual checks, retries0. Native backend1648/80.72percent and exact current hosted CI38888544505 allrequired jobs passed. Product feature checkpoints remain separate and unaccepted.
 progress:
-  completed: [POP1, POP2, POP3]
+  completed: [POP1, POP2, POP3, POP4]
   total: 5
-  current_phase: full-validation-and-drag-failure-diagnosis
-  current_blocker: One full frozen-source functional run failed at F8u; the same flow passed once in a fresh isolated seeded rerun. This single focused pass does not clear the full-run failure.104visuals and exact final CI remain unaccepted; full backend1648/80.72percent passed.
-  next_action: Rerun the complete required isolated functional/104visual profile on the same source and preserve the first failure. If clean, audit zero retries/flakes and exact hosted CI; if it fails again, diagnose through the retained traces without weakening assertions.
+  current_phase: delegated-technical-closure-ready
+  current_blocker: none
+  next_action: Coordinator reviews the exact committed closure record and invokes the normal guarded persistent staging integration path. This repair merge alone does not accept or merge any of the four product feature checkpoints.
