@@ -3073,6 +3073,19 @@ remaining_gaps:
 progress:
   history:
     - >-
+      2026-10-16 09:35Z hosted CI exposed one compatibility assertion after
+      the current-plan preflight refactor. Exact CI38880394731 on commit
+      d9104b369b421e80aa41281386bcdd275ae9a1d2 reported Frontend Unit Tests
+      success and Backend Tests failure (2,813 passed/1 failed); branch-
+      declared, E2E and Exhaustive jobs skipped by feature-push conditions.
+      The lone test expected the unchanged previous MarketData.app
+      non-routable-plan diagnostic string. Restored that established text; no
+      admission behavior changed. The failing regression and complete live
+      runner file pass 145/145 after the correction, and Ruff/format/diff plus
+      workstream validation pass. Tiny follow-up is not yet committed or
+      hosted-validated. No heavy local profile is being repeated before the
+      coordinator's repaired green staging release.
+    - >-
       2026-10-16 09:23Z current MD/Tiingo live-runner correction and honest
       browser disposition: the actual runner now applies effective account-plan
       admission to MarketData.app and Tiingo in full/provider/case and supported

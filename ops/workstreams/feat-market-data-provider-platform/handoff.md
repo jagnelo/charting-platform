@@ -42,6 +42,23 @@
   refresh receipts, held quotas/data remain untouched, and the provider branch
   must not self-integrate.
 
+## 2026-10-16 09:35Z — hosted CI diagnostic compatibility follow-up
+
+- The first coherent candidate was committed/pushed as
+  `d9104b369b421e80aa41281386bcdd275ae9a1d2`; exact CI run
+  `38880394731` completed with Frontend Unit Tests success and Backend Tests
+  failure; branch-declared, Playwright, and Exhaustive jobs skipped by the
+  normal push conditions. Backend reported 2,813 passed and one failure in
+  `test_live_preflight_reports_non_routable_safety_controls_without_guessing`:
+  it asserted the existing exact diagnostic string, which the refactor had
+  unnecessarily expanded. This was not an admission behavior failure.
+- Restored the established diagnostic text without changing admission behavior.
+  The affected regression plus the full runner test file pass 145/145; Ruff,
+  formatting, `git diff --check`, and workstream validation pass. One tiny
+  uncommitted follow-up remains; publish it and obtain exact-source CI before
+  treating hosted CI as green. No local full profile is being repeated while
+  the coordinator uses the released heavy slot.
+
 ## 2026-10-16 — unknown/unreviewed entitlement evidence correction
 
 - Coordinator review identified that an affirmative free flag plus an

@@ -1,15 +1,25 @@
 # Provider integration checkpoint review packet
 
-## Current source state and latest evidence — 2026-10-16 09:23Z
+## Current source state and latest evidence — 2026-10-16 09:35Z
 
-Current branch source is a dirty, in-progress candidate based on pushed
-`7884c132a924362f18da5f0b0a1d023cea7f97fe`; the latest provider runner and
-unit-test changes are not yet committed, so no current exact-source CI or final
-acceptance is claimed. The shared staging baseline `5768bec4...` remains on
-QUALITY HOLD: its Exhaustive test retried and then passed the F8j popup-close
-cleanup case. The central coordinator owns the narrow repair on
-`fix/staging-popup-validation` (`47e81ae5...`, clean metadata tip
-`0e68c021...`). Provider must not import that unmerged branch or edit frontend.
+The in-progress runner candidate was committed/pushed as
+`d9104b369b421e80aa41281386bcdd275ae9a1d2`. Its exact CI run
+[`38880394731`](https://github.com/jagnelo/charting-platform/actions/runs/38880394731)
+completed with frontend-unit success and backend failure; backend reported
+2,813 passed plus one failure. The only failure was an existing exact-string
+assertion for the MarketData.app non-routable diagnostic; the admission result
+itself was correct. The established diagnostic text has been restored without
+changing behavior, and the failing assertion plus full live-runner unit file
+now pass 145/145. Ruff/format/diff and branch workstream validation pass. That
+small compatibility follow-up is not yet committed/pushed or host-validated.
+The CI's branch-declared, E2E and Exhaustive jobs skipped by normal feature-push
+conditions. No additional heavy local profile is running.
+
+The shared staging baseline `5768bec4...` remains on QUALITY HOLD: its
+Exhaustive test retried and then passed the F8j popup-close cleanup case. The
+central coordinator owns the narrow repair on `fix/staging-popup-validation`
+(`47e81ae5...`, clean metadata tip `0e68c021...`). Provider must not import
+that unmerged branch or edit frontend.
 
 Provider's runner change now evaluates MarketData.app and Tiingo effective-plan
 admission in every supported actual `main()` selection path, before lock,
@@ -18,8 +28,10 @@ subprocess or transport. The actual runner unit file passed 144/144; both
 and expired-trial fallback, and Tiingo Starter, are positive plan controls;
 paid/current-trial/unknown or unreviewed plans fail closed in the free-only
 checkpoint. The EODHD exact zero-credit account-usage exception is unchanged.
-Ruff, format and diff checks passed. These are no-provider-transport tests,
-not live receipts.
+Ruff, format and diff checks passed before hosted CI exposed the diagnostic
+text expectation. After restoring the established text, the existing
+diagnostic regression plus complete runner test file passed 145/145. These are
+no-provider-transport tests, not live receipts.
 
 The correctly seeded Playwright 1.62.1/Noble functional matrix ended
 153passed/106expected-skipped/1failed, zero retries. The failure is the actual

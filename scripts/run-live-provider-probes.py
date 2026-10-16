@@ -1250,7 +1250,7 @@ def marketdata_app_account_plan_routing_status(
     }
     expected_limit = plan_limits.get(normalized)
     if expected_limit is None or daily_credit_limit != expected_limit:
-        return "non-routable: explicit reviewed MarketData.app plan/limit pair required"
+        return "non-routable: explicit reviewed plan/limit pair required"
     if normalized.endswith("_trial"):
         try:
             expiry = datetime.fromisoformat(
