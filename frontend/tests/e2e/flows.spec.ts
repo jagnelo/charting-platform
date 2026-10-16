@@ -6572,7 +6572,12 @@ test.describe('TC2000 workstation', () => {
     await expect(chart).toBeVisible({ timeout: 10_000 })
     const plots = chart.locator('button[aria-label="Chart plot library"]')
     await plots.click()
+    const indicatorSave = page.waitForResponse(response => {
+      const path = new URL(response.url()).pathname
+      return response.request().method() === 'PUT' && /^\/api\/v1\/instrument-indicators\/\d+$/.test(path) && response.ok()
+    })
     await chart.locator('select[aria-label="Add indicator plot"]').selectOption('rsi')
+    await indicatorSave
     await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
     await plots.click()
     await chart.locator('select[aria-label="Promotion plot"]').selectOption({ index: 1 })
@@ -6716,7 +6721,7 @@ test.describe('TC2000 workstation', () => {
     const menu = page.getByRole('menu', { name: 'Workstation tools' })
     await expect(menu).toBeVisible()
     await expect(menu.getByRole('menuitem')).toHaveText([
-      'Chart', 'WatchList', 'Notes', 'Alerts', 'EasyScan', 'Market Gauge', 'Study Lab',
+      'Chart', 'WatchList', 'My Favorites', 'Notes', 'Alerts', 'EasyScan', 'Market Gauge', 'Study Lab',
       'Study Results', 'Relative Rotation', 'Market Breadth', 'Market Map',
       'Technical Summary', 'Coverage', 'Instrument Report', 'Python Library',
     ])
@@ -7340,7 +7345,7 @@ test.describe('Dashboard', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F8v — My Favorites persists chart membership and opens as a Quick List', async ({ page, browserDiagnostics }) => {
+  test('F8aa-favorites — My Favorites persists chart membership and opens as a Quick List', async ({ page, browserDiagnostics }) => {
     test.setTimeout(45_000)
     await page.goto('/chart/SPY')
 
