@@ -543,7 +543,7 @@ def test_tier_zero_symbol_audit_records_pimco_authentication_boundary():
         assert result.tier == 0
         assert result.outcome == UNAVAILABLE
         assert result.evidence_state == "no_complete_executable_public_artifact"
-        assert result.investigated_at == date(2026, 10, 5)
+        assert result.investigated_at == date(2026, 10, 15)
         assert evidence_refs <= set(result.evidence_refs)
         assert "HTTP 401" in result.next_action
 
