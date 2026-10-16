@@ -5,9 +5,9 @@ parent_branch: staging
 parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Implement the approved US-first multi-provider market-data platform and the approved corrective plan: complete provider-specific contracts and usage accounting; dynamically use every eligible free provider within its exact entitlement/quota; complete NMS/OTC reconciliation and lifecycle handling; isolate local, staging, master, and production credentials; and require exhaustive provider live validation. Backend/data only; do not modify frontend or ETF constituent provider adapters."
-integration_checkpoint_authorization: "Human direction received 2026-10-15 to incorporate the provider-platform-integration-1 checkpoint documented by staging commit e4d10ce0d7abc0056befca06831539fb36287043. Prepare the checkpoint for human review while preserving the full roadmap. This authorizes checkpoint planning and implementation only; checkpoint acceptance, merge, deployment, provider activation, and the 30-day operational trial remain separately unauthorized."
+integration_checkpoint_authorization: "Human direction received 2026-10-15 to incorporate provider-platform-integration-1 from staging commit e4d10ce0d7abc0056befca06831539fb36287043. At 2026-10-15 22:55Z the human answered: Yes—approve that initial scope and handle checkpoint acceptance. The central coordinator owns conditional technical acceptance after required exact-source contracts/tests and may integrate only a proven eligible checkpoint. This does not authorize this feature agent to self-integrate, deploy, activate paid/trial operations, start the operational trial, or clean retained data; preserve the full roadmap."
 planning_state: ready
-human_closure_authorization: pending
+human_closure_authorization: delegated_conditional_acceptance_to_central_coordinator
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
@@ -7513,17 +7513,15 @@ current_gate_checkpoint: >-
       acceptance; the cross-window UI failure remains with its frontend owner,
       and source-bound live evidence/CI status remain to be reconciled.
   next_action: >-
-    Finish current-source durable quota preflight and, only for operations
-    admitted by it, the bounded provider live suite; publish exact enabled
-    successes and every disabled/held operation. Push the FMP plan-admission
-    and combined-coverage correction and refreshed evidence, then obtain
-    exact-source hosted CI. The full functional browser matrix passed 154/260
-    with 106 expected skips, but the separate strict visual gate is red on
-    three Study Lab screenshots; coordinate those frontend-owned snapshot
-    failures without changing frontend files here. Keep held providers and the
-    historical 20/27 receipt unchanged. Prepare a clean ICP1-7 packet for
-    coordinator review only after required source-bound evidence is complete.
-    The coordinator owns conditional checkpoint acceptance and staging
-    integration. Preserve the complete roadmap, the 30-day trial, and all
-    queried data; no deployment, paid activation, or operational trial is
-    authorized.
+    Finish the FMP/Tiingo stale-plan fail-closed correction, exact-source local
+    validation, the declared full-stack/browser gate and exact-source CI. Keep
+    live receipts bound to their original source; refresh only operations
+    admitted by reviewed-free contracts and current durable quota evidence.
+    Publish the explicit enabled-versus-held operation inventory and clean
+    ICP1-7 packet. The active TC visual run currently owns shared browser
+    capacity; do not launch a competing heavy gate. The known strict Study Lab
+    visual mismatch is frontend-owned and this branch must not change frontend.
+    The central coordinator owns delegated conditional checkpoint acceptance
+    and staging integration; this branch must not self-integrate. Preserve the
+    complete roadmap and all queried data. No deployment, paid/trial activation
+    or operational trial is authorized.

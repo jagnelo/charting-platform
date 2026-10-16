@@ -1,21 +1,29 @@
 # Provider integration checkpoint review packet
 
-Status as of 2026-10-16 05:10Z: not yet ready for conditional coordinator
-acceptance. The required functional browser matrix completed (154 passed, 106
-expected skips, zero failures/retries), but strict visual parity remains red on
-three Study Lab snapshots (~1.0% pixel difference against the 0.5% threshold).
-Exact-source CI run `38853327766` for `f614621778521743e5cc8bdce29a61501025ef08`
-is in progress; the final packet commit will need its own exact-source CI.
-Twenty-three individually admitted provider manifests passed 62/62 cases on
-staged candidate tree `592261aaef97a9ba2d3b3d6c818720eadd630abc` (parent
-`f614621778521743e5cc8bdce29a61501025ef08`), with 151 provider requests and
-64,552,569 measured response bytes. The full 27-provider verifier correctly
-remains incomplete for four held providers; this is not full provider live
-acceptance. Provider-owned frontend files remain unchanged. Conditional
-acceptance is coordinator-owned after required contracts and tests pass. This
-packet does not authorize provider activation, paid routing, deployment, the
-30-day operational trial, or feature-agent staging integration. The complete
-roadmap remains open.
+Status as of 2026-10-16 05:39Z: not yet ready for conditional coordinator
+acceptance. The last full functional 260-case browser matrix completed on
+application candidate `56e309b58035f748f0ea14d6dcc7cde88a5d1b9a` (154 passed,
+106 expected skips, zero failures/retries); its strict visual parity remains
+red on three Study Lab snapshots (~1.0% pixel difference against the 0.5%
+threshold). CI run `38854704413` for commit
+`32e9109c411be2f4efa5d3da96a9a2ac8234cdde` had backend, frontend-unit and
+branch-declared jobs green; its Playwright job was still running when the
+FMP/Tiingo correction began. That run is not exact-source evidence for this
+candidate and a canceled E2E is not a pass. The new runtime correction passes
+the complete provider-runtime unit file (78/78) and FMP runner admission cases
+(13/13), with zero provider HTTP calls. Twenty-three individually admitted
+provider manifests passed 62/62 cases on earlier staged tree
+`592261aaef97a9ba2d3b3d6c818720eadd630abc`, with 151 requests and 64,552,569
+measured response bytes. Do not rebind those receipts to the new code tree or
+claim full 27-provider live acceptance. Provider-owned frontend files remain
+unchanged. Conditional acceptance is coordinator-owned after required
+contracts and tests pass. The required current-source full-stack/browser gate
+and exact-source CI remain outstanding; a separate TC visual container is
+currently active, so no competing browser run has been started. The released
+common-repair baseline `82d881e76be8de538abb6ec5c454d96afe0ee56a` is already an
+ancestor of this branch. This packet does not authorize provider activation,
+paid routing, deployment, the 30-day operational trial, or feature-agent
+staging integration. The complete roadmap remains open.
 
 The human's conditional checkpoint-acceptance delegation (timestamp supplied
 as `22:55Z`) is recorded in `plan.yaml` and `handoff.md`: “Yes—approve that
@@ -101,12 +109,12 @@ integrate, permit deployment/paid/trial activation, or allow cleanup.
 | Gate | Evidence / delivered checkpoint contract | Remaining work and owner |
 |---|---|---|
 | ICP1 — identity and lifecycle | Tests cover stable instrument/issuer/listing/provider-symbol identity, provenance and history, ambiguity quarantine, and legacy symbol/API compatibility. See OpenFIGI, instrument-sync, market-data-identity, lifecycle/quarantine migration, and compatibility tests. | Full same-session NMS/OTC/SEC universe reconciliation, all venue mappings, and complete ticker-change/delisting lifecycle remain Provider roadmap work. Partial or stale snapshots must never imply absence or completeness. |
-| ICP2 — provider governance | Shared capability, entitlement, routing and durable multidimensional quota contracts are tested. `PROVIDER_FREE_ONLY_CHECKPOINT=true` denies reviewed paid market-data routes regardless of `ALLOW_PAID_PROVIDER_ROUTING`; trials are denied. Unreviewed market-data routes are denied except the exact reviewed-safe EODHD `/api/user` bootstrap: HTTPS evidence, exact `fetch_account_usage` operation, reconciled `calls_per_day`, explicit zero daily-credit operation cost; `requests_per_minute` is still reserved. Candidate selection exposes only this operation to strict admission. Positive stubbed execution uses a genuinely unreviewed `is_free=false` entitlement under both paid-toggle states. Paid, unknown, unknown-plan, and trial negatives prove zero callback execution under both toggle states, including known and bootstrap-unknown quota states. MarketData.app `/user/` is not exempt. Relevant suite: 104/104; exact-source backend CI is green. | The aggregate 20 EUR/USD-equivalent recurring-cost ceiling is not implemented; it remains Provider roadmap work and is not needed for this free-only checkpoint. ETF owns its consumer bridge and real request/page/retry accounting after Provider staging. No invented FX or ETF-only ledger. |
+| ICP2 — provider governance | Shared capability, entitlement, routing and durable multidimensional quota contracts are tested. `PROVIDER_FREE_ONLY_CHECKPOINT=true` denies reviewed paid market-data routes regardless of `ALLOW_PAID_PROVIDER_ROUTING`; trials are denied. Unreviewed market-data routes are denied except the exact reviewed-safe EODHD `/api/user` bootstrap: HTTPS evidence, exact `fetch_account_usage` operation, reconciled `calls_per_day`, explicit zero daily-credit operation cost; `requests_per_minute` is still reserved. Candidate selection exposes only this operation to strict admission. FMP/Tiingo legacy seed labels now refresh to the configured account plan; a genuine API-patched revision is preserved, and plan/config mismatches fail closed. Execution-level tests prove no transport callback under either paid-toggle state. MarketData.app `/user/` is not exempt. | The aggregate 20 EUR/USD-equivalent recurring-cost ceiling is not implemented; it remains Provider roadmap work and is not needed for this free-only checkpoint. ETF owns its consumer bridge and real request/page/retry accounting after Provider staging. No invented FX or ETF-only ledger. |
 | ICP3 — series, coverage and refresh | Series/provenance, gap planning, session-aware freshness, refresh coalescing/leases, and explicit partial coverage are exercised by backend unit/integration and Strategy Lab tests. Full local backend gate and exact-source hosted backend job passed. | After Provider staging, consumers verify stale, partial, missing, and unavailable states remain distinct and do not trigger hidden provider requests. Downstream owners: ETF, TC2000, Strategy Lab. |
 | ICP4 — provider operations | Fresh durable no-transport preflight admitted 23 manifests; exact staged-tree slices passed 62/62 cases, 151 requests, and 64,552,569 response bytes. The verifier confirms those 23 against tree `592261aa...` and reports `live_acceptance=false` because four held providers have no successful manifest receipt. | Keep Alpha Vantage, Dinari, Marketstack and Tiingo held with their exact reasons below. No quota was spent on these four. Their preflight and existing zero-call tests are separate from successful live evidence. Historical 20/27 evidence stays bound to `1afb896...`; it is not rebound. |
-| ICP5 — migrations, startup and secrets | Local secret/config boundary and trusted backend/worker wiring have tests. Reported 50-migration fresh-install/existing-database equivalence and prior-release health check are historical dirty-candidate evidence, not a clean receipt bound to `b09ebb1`. Exact-source backend and branch-declared CI jobs are green; hosted Playwright remains pending. | Rebind migration equivalence if the branch gate requires final-source proof. GitHub/RPi/deployment secret stores are target onboarding requirements before those targets are used, not pre-Provider integration requirements. No deployment readiness is claimed. |
+| ICP5 — migrations, startup and secrets | Local secret/config boundary and trusted backend/worker wiring have tests. Reported 50-migration fresh-install/existing-database equivalence and prior-release health check are historical dirty-candidate evidence, not a clean receipt bound to this candidate. | Rebind migration equivalence if the branch gate requires final-source proof. GitHub/RPi/deployment secret stores are target onboarding requirements before those targets are used, not pre-Provider integration requirements. No deployment readiness is claimed. |
 | ICP6 — consumers | Producer success/unavailable behavior and callable contract are tested. ETF can call `app.services.provider_runtime.execute_provider_call(db, capability, operation, *, provider_name, operation_cost_overrides, invoke, ...)`; denied admission prevents `invoke`. `provider_entitlement_admission(entitlement)` returns `allowed`, `reason_code`, `configured_plan`, `is_free`, `checkpoint_free_only`, and `basis`; provider status exposes this as `entitlement_admission`. This is routing eligibility, not aggregate subscription-cost admission. Success/unavailable examples exist in ETF coverage and Strategy evaluation/coverage tests. | Before Provider staging, deliver the producer contract and named owners only; actual ETF/TC2000/Strategy adapter wiring and consumer-specific reconciliation happen after Provider is green in staging. ETF owns holdings adapter/bridge plus page/retry accounting; TC2000 and Strategy own their consumer wiring. |
-| ICP7 — reviewable source | `f614621...` is pushed; exact-source CI `38853327766` is in progress. Full Docker backend passed 2,792 unit + 395 integration tests. Functional browser matrix passed 154, with 106 expected skips, zero failures/retries. Twenty-three provider slices passed on exact staged tree `592261aa...`. | Strict visual parity remains red: 101/104 passed; three Study Lab snapshots differ by about 1.0% against 0.5%. The host wrapper also stopped before E2E assertions because existing ignored report directories are not writable; the same browser matrix was run in the version-matched container. Provider must not edit frontend. Final packet source still needs exact-source CI, and the coordinator has not accepted it. |
+| ICP7 — reviewable source | Code correction and focused regressions pass locally (78/78 provider-runtime; 13/13 FMP runner admission); released common-repair staging `82d881e7` is already in branch ancestry. | Full-stack/browser validation and fresh exact-source CI on the completed candidate remain required. Strict visual parity remains red: 101/104 passed, three Study Lab differences ~1.0% vs 0.5%; this branch must not edit frontend. The coordinator has not accepted this source. |
 
 ## Most recent no-transport operation holds
 
@@ -145,7 +153,7 @@ async result download remains unavailable until complete streamed persistence
 and measured-byte admission are proven; rows must never be truncated or
 discarded. No provider has been activated or routed through paid credentials.
 
-## Current live operation inventory
+## Previously tested operation inventory (historical exact-source receipts)
 
 The 23 manifests admitted by preflight completed against staged tree
 `592261aa...`; detailed case results, request/byte counts, run IDs, and
@@ -188,20 +196,51 @@ generated browser artifacts were not reset or removed.
 
 ## Next gates
 
-1. Keep the 23 receipts bound to staged tree `592261aa...`; do not rebind the
-   historical `1afb896...` receipt or claim all 27 manifests passed. Do not
-   call the four held providers until fresh quota/entitlement admission.
-2. Await CI `38853327766` for `f614621...`; run and record exact-source CI on
-   the final packet commit afterward.
-3. Coordinate the three strict Study Lab screenshot failures with their
-   frontend owner; this Provider branch must not edit frontend or sibling-owned
-   files. The full functional browser matrix passed, but the full local profile
-   is not green until the strict visual gate passes or its owner resolves it.
-4. After required gates, submit the exact source to the coordinator for
-   conditional acceptance. The coordinator owns acceptance and staging
-   integration; this branch must not self-integrate.
+1. Keep the 23 receipts bound to staged tree `592261aa...`; they are historical
+   proof for their 23 provider manifests, not live results for the current
+   source. The separate historical `1afb896...` receipt also remains bound to
+   its source. No request was repeated for this correction.
+2. Run the declared full-stack/browser gate when the active TC visual run
+   releases the shared Docker/browser capacity. The known strict Study Lab
+   visual mismatch is frontend-owned; this Provider branch must not edit
+   frontend or sibling-owned files.
+3. Push this completed candidate and require fresh exact-source CI. Any canceled
+   Playwright run for the superseded `32e9109` source is not a pass.
+4. Submit the exact clean source and all evidence to the coordinator for its
+   delegated conditional acceptance decision. The coordinator owns acceptance
+   and staging integration; this branch must not self-integrate.
 5. Preserve the remaining roadmap: aggregate recurring-cost admission,
    complete US universe/lifecycle reconciliation, downstream consumer wiring,
    environment-specific secret-store onboarding, outstanding provider live
    manifests, expanded options/Greeks, and the separately authorized 30-day
    operational trial.
+
+## Current-source operation disposition
+
+- No provider HTTP request or quota spend occurred during the FMP/Tiingo plan
+  correction. The current source has no live success receipt for a provider
+  operation; the 23-provider results above stay bound to staged tree `592261aa`.
+- The 23 providers previously admitted by exact quota/entitlement preflight
+  remain eligible only within their reviewed-free operation contracts. Their
+  recorded manifest results and individual operation caveats are listed above;
+  they are not a claim that every provider capability is usable.
+- Continue to hold Alpha Vantage (insufficient daily reservation headroom),
+  Dinari Sandbox (account-reviewed quota/reset and per-operation cost profile
+  incomplete), Marketstack OHLCV (monthly allowance exhausted / insufficient
+  headroom; directory MIC/page/cost unresolved), and Tiingo (fresh external
+  daily/hourly usage baseline required before transport). No calls are
+  authorized by this packet to those four.
+- Within otherwise admitted providers, preserve the recorded no-route
+  dispositions: CoinGecko Demo `/key` is Pro-only; Finnhub free stock candles
+  and FMP Basic stock-list discovery returned entitlement denials; unbounded
+  response-priced MarketData.app option history remains zero-request; FINRA's
+  generic async dataset transport is not an admitted operation; restricted
+  Bybit xStocks deployment egress remains no-request pending its separate
+  evidence. Tradier, IBKR and Ondo remain explicit user deferrals.
+- The EODHD `/api/user` account-usage bootstrap is a separately reviewed
+  zero-billing operation, not an unreviewed subscription-plan admission. Only
+  the exact `fetch_account_usage` operation with HTTPS evidence, reconciled
+  `calls_per_day`, explicit zero daily-credit cost and the separately reserved
+  request-rate cost can be considered for that bootstrap. Positive behavior is
+  stub-tested; paid, unknown and trial cases are denied before callback under
+  both paid-routing flag states. This correction adds no provider HTTP calls.

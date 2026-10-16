@@ -305,6 +305,8 @@ class ProviderExecutionResult:
 def provider_entitlement_admission(
     entitlement: ProviderEntitlement,
     *,
+    provider_name: str | None = None,
+    capability: ProviderCapability | None = None,
     checkpoint_free_only: bool | None = None,
     allow_paid: bool | None = None,
 ) -> dict[str, Any]:
@@ -324,9 +326,23 @@ def provider_entitlement_admission(
     paid_enabled = settings.ALLOW_PAID_PROVIDER_ROUTING if allow_paid is None else allow_paid
     plan = str(entitlement.configured_plan or "").strip().lower()
     is_free = entitlement.is_free is True
+    plan_mismatch = False
+    if provider_name in {"fmp", "tiingo"} and capability is not None:
+        configured_seed = _entitlement_seed(provider_name, capability)
+        configured_plan = str(configured_seed.get("configured_plan") or "").strip().lower()
+        configured_is_free = configured_seed.get("is_free") is True
+        if configured_plan and (plan != configured_plan or is_free != configured_is_free):
+            # Database rows can outlive an environment plan change. Do not let
+            # an old free classification continue to authorize transport while
+            # the account is configured for a paid, trial, or unknown plan.
+            # Keep the persisted review intact for diagnostics; fail closed
+            # until the seed refresh or operator configuration is reconciled.
+            plan_mismatch = True
     plan_markers = set(plan.replace("_", "-").split("-"))
     if not plan or plan_markers.intersection({"unreviewed", "unknown"}):
         allowed, reason = False, "entitlement_unreviewed"
+    elif plan_mismatch:
+        allowed, reason = False, "provider_plan_config_mismatch"
     elif "trial" in plan:
         allowed, reason = False, "trial_cost_not_admissible"
     elif free_only and not is_free:
@@ -342,6 +358,7 @@ def provider_entitlement_admission(
         "is_free": is_free,
         "checkpoint_free_only": free_only,
         "basis": "reviewed_provider_entitlement",
+        "plan_configuration_matches": not plan_mismatch,
     }
 
 
@@ -2205,10 +2222,54 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                         )
                     }
                 )
+            if provider_name == "fmp":
+                repository_seed_plans.update(
+                    {
+                        # Legacy static seed and every plan label generated
+                        # from FMP_REVIEWED_PLAN by previous/current runtimes.
+                        "basic-free",
+                        *{
+                            f"fmp-{plan}-operator-reviewed"
+                            for plan in ("basic", "starter", "premium", "ultimate")
+                        },
+                    }
+                )
+            if provider_name == "tiingo":
+                repository_seed_plans.update(
+                    {
+                        # Legacy static seed and every plan label generated
+                        # from TIINGO_REVIEWED_PLAN by previous/current runtimes.
+                        "starter-free",
+                        *{
+                            f"tiingo-{plan}-operator-reviewed"
+                            for plan in ("starter", "power", "custom")
+                        },
+                    }
+                )
+            preserve_manual_plan_review = False
+            if (
+                not entitlement_was_new
+                and provider_name in {"fmp", "tiingo"}
+                and str(entitlement.configured_plan or "").strip().lower() in repository_seed_plans
+            ):
+                current_revision = (
+                    await db.execute(
+                        select(ProviderEntitlementRevision).where(
+                            ProviderEntitlementRevision.data_source_id == data_source.id,
+                            ProviderEntitlementRevision.capability == capability,
+                            ProviderEntitlementRevision.revision == entitlement_revision_before,
+                        )
+                    )
+                ).scalar_one_or_none()
+                preserve_manual_plan_review = bool(
+                    current_revision
+                    and current_revision.change_reason not in {None, "runtime_seed"}
+                )
             if (
                 not entitlement_was_new
                 and str(entitlement.configured_plan or "").strip().lower() in repository_seed_plans
                 and entitlement_seed
+                and not preserve_manual_plan_review
             ):
                 # Upgrade rows created by older builds without overwriting an
                 # operator-reviewed entitlement.
@@ -2379,7 +2440,9 @@ async def resolve_provider_chain(
         )
         if (
             not unreviewed_usage_bootstrap
-            and not provider_entitlement_admission(entitlement)["allowed"]
+            and not provider_entitlement_admission(
+                entitlement, provider_name=data_source.name, capability=capability
+            )["allowed"]
         ):
             continue
         if data_source.name == "dinari":
@@ -3109,7 +3172,11 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
             and policy.capability == ProviderCapability.ACCOUNT_USAGE
             and policy_allows_account_usage_bootstrap(policy, "fetch_account_usage")
         )
-        entitlement_admission = provider_entitlement_admission(entitlement)
+        entitlement_admission = provider_entitlement_admission(
+            entitlement,
+            provider_name=data_source.name,
+            capability=policy.capability,
+        )
         status_rows.append(
             {
                 "provider": data_source.name,

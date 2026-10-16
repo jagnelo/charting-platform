@@ -1,5 +1,43 @@
 # feat/market-data-provider-platform
 
+## 2026-10-16 05:39Z — FMP/Tiingo retained-plan correction and checkpoint gates
+
+- Current source adds two protections for existing FMP/Tiingo entitlement rows:
+  legacy repository seed labels refresh to the account's configured plan, while
+  a genuine API-patched review is preserved; independently, plan/configuration
+  mismatches fail closed in routing and provider status. Tests exercise both
+  `ALLOW_PAID_PROVIDER_ROUTING` states and prove the transport callback remains
+  uncalled for legacy-free-to-paid changes and retained operator revisions.
+  The full provider-runtime unit file passed 78/78; the existing FMP admission
+  runner slice passed 13/13. These are no-transport tests.
+- The review packet now distinguishes historical 23-provider live receipts
+  (exact tree `592261aa...`, 62 cases, 151 requests) from current-source live
+  evidence; no current-source HTTP requests were made. The four external quota/
+  account-profile holds and individual provider entitlement limitations are
+  listed explicitly. The reviewed zero-billing EODHD account-usage operation is
+  distinct from unreviewed plan admission.
+- The released common repair `82d881e76be8de538abb6ec5c454d96afe0ee56a` is
+  already an ancestor of this branch; no additional merge is needed. Human
+  answer at 22:55Z was “Yes—approve that initial scope and handle checkpoint
+  acceptance.” This delegates conditional technical checkpoint acceptance to
+  the central coordinator after full required evidence. It does not authorize
+  self-integration, deployment, paid/trial activation, operational trial, or
+  data cleanup; no further human signoff is required within that scope.
+- The declared `full_stack_browser` profile and fresh exact-source CI still
+  need final-candidate evidence. The previous functional matrix was
+  154 passed/106 expected skips with no retries, but strict visual parity was
+  101/104 with three frontend-owned Study Lab mismatches. A TC visual run
+  currently owns shared Docker/browser capacity; do not start a duplicate
+  heavy run. This branch must not edit frontend. CI run `38854704413` is for
+  superseded source `32e9109...`; if canceled by publication, cancellation is
+  not success.
+- Exact next action: complete workstream validation and source review, run the
+  full-stack/browser gate after shared capacity is released, publish one clean
+  candidate, and obtain its exact-source CI result. Keep live receipts source-
+  bound and do not spend quota held for Alpha Vantage, Dinari, Marketstack or
+  Tiingo. Submit the clean ICP1-7 evidence and operation dispositions to the
+  coordinator; do not self-integrate.
+
 ## 2026-10-16 04:47Z — Provider policy correction and full-gate continuation
 
 - Candidate `56e309b58035f748f0ea14d6dcc7cde88a5d1b9a` adds the selected FMP

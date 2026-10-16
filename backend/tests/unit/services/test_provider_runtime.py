@@ -54,6 +54,7 @@ from app.services.provider_runtime import (
     provider_entitlement_admission,
     provider_runtime_quota_admission_active,
     quota_contract_missing_dimensions,
+    record_entitlement_revision,
     resolve_provider_chain,
     seed_provider_runtime,
 )
@@ -388,6 +389,141 @@ def test_fmp_basic_plan_is_free_and_unknown_plan_fails_closed(monkeypatch):
     unknown = _entitlement_seed("fmp", ProviderCapability.PRICE_HISTORY)
     assert unknown["configured_plan"] == "unreviewed"
     assert unknown["is_free"] is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("provider_name", "setting_name", "old_plan", "free_plan", "paid_plan", "api_key_name"),
+    [
+        ("fmp", "FMP_REVIEWED_PLAN", "basic-free", "basic", "premium", "FMP_API_KEY"),
+        (
+            "tiingo",
+            "TIINGO_REVIEWED_PLAN",
+            "starter-free",
+            "starter",
+            "power",
+            "TIINGO_API_KEY",
+        ),
+    ],
+)
+async def test_legacy_free_plan_seed_refreshes_to_paid_and_blocks_transport(
+    db,
+    monkeypatch,
+    provider_name,
+    setting_name,
+    old_plan,
+    free_plan,
+    paid_plan,
+    api_key_name,
+):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    monkeypatch.setattr(settings, setting_name, free_plan)
+    monkeypatch.setattr(settings, api_key_name, "unit-test-credential")
+    await seed_provider_runtime(async_db)
+
+    source = db.execute(select(DataSource).where(DataSource.name == provider_name)).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == source.id,
+            ProviderEntitlement.capability == ProviderCapability.LATEST_PRICE,
+        )
+    ).scalar_one()
+    entitlement.configured_plan = old_plan
+    entitlement.is_free = True
+    entitlement.live_probe_status = "passed"
+    entitlement.revision += 1
+    await record_entitlement_revision(async_db, entitlement, change_reason="runtime_seed")
+    await async_db.flush()
+
+    monkeypatch.setattr(settings, setting_name, paid_plan)
+    expected_plan = f"{provider_name}-{paid_plan}-operator-reviewed"
+    transport_calls = []
+    for allow_paid in (False, True):
+        monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", allow_paid)
+        await seed_provider_runtime(async_db)
+        assert entitlement.configured_plan == expected_plan
+        assert entitlement.is_free is False
+        decision = provider_entitlement_admission(
+            entitlement,
+            provider_name=provider_name,
+            capability=ProviderCapability.LATEST_PRICE,
+        )
+        assert decision["reason_code"] == "checkpoint_free_only"
+        assert decision["plan_configuration_matches"] is True
+        with pytest.raises(RuntimeError, match="No enabled providers available"):
+            await execute_provider_call(
+                async_db,
+                ProviderCapability.LATEST_PRICE,
+                "get_current_price",
+                provider_name=provider_name,
+                operation_cost_overrides={provider_name: 1},
+                invoke=lambda *_args: transport_calls.append("called"),
+            )
+    assert transport_calls == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("provider_name", "setting_name", "legacy_plan", "free_plan", "paid_plan"),
+    [
+        ("fmp", "FMP_REVIEWED_PLAN", "basic-free", "basic", "premium"),
+        ("tiingo", "TIINGO_REVIEWED_PLAN", "starter-free", "starter", "power"),
+    ],
+)
+async def test_manual_api_plan_revision_is_preserved_but_config_mismatch_blocks(
+    db, monkeypatch, provider_name, setting_name, legacy_plan, free_plan, paid_plan
+):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, setting_name, free_plan)
+    await seed_provider_runtime(async_db)
+    source = db.execute(select(DataSource).where(DataSource.name == provider_name)).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == source.id,
+            ProviderEntitlement.capability == ProviderCapability.LATEST_PRICE,
+        )
+    ).scalar_one()
+    entitlement.configured_plan = legacy_plan
+    entitlement.is_free = True
+    entitlement.revision += 1
+    await record_entitlement_revision(async_db, entitlement, change_reason="api_patch")
+    await async_db.flush()
+
+    monkeypatch.setattr(settings, setting_name, paid_plan)
+    await seed_provider_runtime(async_db)
+
+    # Preserve a real operator/API revision; the current account plan mismatch
+    # separately fails closed instead of routing either stale classification.
+    assert entitlement.configured_plan == legacy_plan
+    assert entitlement.is_free is True
+    decision = provider_entitlement_admission(
+        entitlement,
+        provider_name=provider_name,
+        capability=ProviderCapability.LATEST_PRICE,
+    )
+    assert decision["allowed"] is False
+    assert decision["reason_code"] == "provider_plan_config_mismatch"
+    assert decision["plan_configuration_matches"] is False
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    monkeypatch.setattr(
+        settings,
+        "FMP_API_KEY" if provider_name == "fmp" else "TIINGO_API_KEY",
+        "unit-test-credential",
+    )
+    transport_calls = []
+    for allow_paid in (False, True):
+        monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", allow_paid)
+        with pytest.raises(RuntimeError, match="No enabled providers available"):
+            await execute_provider_call(
+                async_db,
+                ProviderCapability.LATEST_PRICE,
+                "get_current_price",
+                provider_name=provider_name,
+                operation_cost_overrides={provider_name: 1},
+                invoke=lambda *_args: transport_calls.append("called"),
+            )
+    assert transport_calls == []
 
 
 def test_account_usage_bootstrap_allows_only_explicit_unknown_dimensions():
