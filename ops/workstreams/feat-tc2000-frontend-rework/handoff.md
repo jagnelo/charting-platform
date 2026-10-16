@@ -20357,3 +20357,25 @@ without a future full 104-case normalized run. No font was changed mid-run,
 the expired slot was not extended, and no rerun was started. A normalized run
 requires a newly granted slot with sufficient walltime.
 
+## 2026-10-16 — Publish the bounded visual evidence context
+
+The evidence context is published as `2899aebda79ac4b3e9eeb312a2cc22227bd524a8`
+on `feat/tc2000-frontend-rework`; local HEAD and `origin` matched when verified.
+The commit changed only this handoff, `session.json`, and the append-only
+validation journal; no frontend/backend source, tests, references, or tolerance
+changed. Workstream validation passed for all 31 records, JSON/JSONL parsing and
+`git diff --check` passed. The exact-head GitHub Actions run
+`38857509304` was pending with no jobs provisioned at last inspection. Older
+run `38855120000` targets superseded metadata-only SHA `5b77a76d` and its E2E
+job remained in progress; neither is a terminal result for `2899aebd`. The
+last completed application-source evidence remains `73fba9d4`/run
+`38852207578` (189 passed, 110 expected skips, zero retries/flakes; hosted
+visuals skipped).
+
+The latest readable coordinator receipt's source-owner summary is timestamped
+05:18Z and reports Provider corrections still open and ETF's staged consumer
+bridge pending. Recheck the receipt before any branch reconciliation or visual
+slot use. Continue TCP2-TCP5 and the full V25 roadmap; no staging integration,
+direct feature import, sibling write, or ungranted heavy browser run is
+authorized by this publication.
+
