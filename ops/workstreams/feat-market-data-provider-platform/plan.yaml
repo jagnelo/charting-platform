@@ -7329,13 +7329,35 @@ current_gate_checkpoint: >-
   attempt exposed unconditional fallback parsing; the isolated stack then
   built and became healthy. Provider-live acceptance and other listed gates
   remain incomplete.
+    - >-
+      2026-10-16 checkpoint reconciliation: released common-repair staging
+      `82d881e76be8de538abb6ec5c454d96afe0ee56a` is in this branch through
+      merge `2845817d37296fae8728d72cd22a95082d67081f`; this is common repair,
+      not Provider acceptance. Exact-source Provider candidate
+      `b09ebb1f3bd68ad7a0fbdcf14a779d10d9737841` is clean and pushed. The
+      reviewed-safe unreviewed EODHD account-usage exception now requires
+      provider/operation-specific zero-billing evidence, retains the separate
+      request-rate charge, and has execution-level paid/unknown/trial denials
+      under both paid-toggle values, including known and bootstrap-unknown
+      quota. Positive test is a stubbed EODHD observation; no provider HTTP.
+      Local Docker full backend gate passed 2,775 unit tests plus 395
+      PostgreSQL/Redis integration tests at 82%; exact-source backend,
+      frontend unit, Playwright E2E and branch-declared GitHub jobs pass in run
+      38832540358. The feature-push event skips the staging Exhaustive
+      Integration Gate. Exact-source no-transport preflight evaluated 27,
+      admitted 21 and quarantined Alpha Vantage, CTA Plan, Dinari, Marketstack,
+      Nasdaq and Tiingo, with zero provider requests. Historical provider-live
+      evidence remains incomplete and bound only to `1afb896...` (20/27, 136
+      requests); it was not rebound. ICP1-7 packet refreshed; checkpoint
+      acceptance remains pending and no merge, provider activation, paid route,
+      deployment, or trial is authorized.
   next_action: >-
-    Continue the authorized provider-platform-integration-1 checkpoint in this
-    worktree. Keep the staged source candidate frozen while the contract plan
-    and workstream records are updated. Then verify every ICP test/evidence
-    item against current source, strengthen any missing consumer contract or
-    negative-path test, refresh provider admission without spending unknown or
-    exhausted quota, and obtain exact-source evidence for checkpoint-enabled
-    operations. Preserve all original criterion dispositions and the 30-day
-    post-integration trial. Stop at ready_for_human_review; do not merge,
-    deploy, activate routing, start the trial, or modify sibling worktrees.
+    Resolve the remaining full local integration profile for `b09ebb1` without
+    bypassing its credentialed provider-probe stage: the first attempt stopped
+    at npm ci with sandbox EPERM before any provider probe; privileged whole-
+    target retry was denied because the target can consume provider quota.
+    Preserve current quota holds and the exact-source live receipt boundary.
+    Then publish the clean review packet for concrete human checkpoint
+    acceptance. Preserve every original criterion and the post-integration
+    30-day trial. Stop at ready_for_human_review; do not integrate, deploy,
+    activate paid routing, start the trial, or modify sibling worktrees.

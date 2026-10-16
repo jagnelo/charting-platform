@@ -25424,4 +25424,52 @@ exact candidate receipts remain separate gates.
   ordinary sandbox could not access the private ledger, so the same read-only
   preflight ran with approved local-ledger access; no provider request or
   ledger reset occurred.
+
+## 2026-10-16 exact-source checkpoint status after common-repair release
+
+- Released common-repair staging `82d881e76be8de538abb6ec5c454d96afe0ee56a`
+  is already in this branch through merge `2845817d37296fae8728d72cd22a95082d67081f`.
+  It is a shared repair baseline, not Provider feature acceptance. No further
+  staging merge is pending, and no Provider-owned frontend implementation was
+  added.
+- Candidate `b09ebb1f3bd68ad7a0fbdcf14a779d10d9737841` is clean and pushed.
+  Local Docker full backend validation passed 2,775 unit tests (56 shards),
+  395 PostgreSQL/Redis integration tests, and 82% combined coverage. Relevant
+  account-usage/secret-wiring tests pass 104/104. Ruff, formatting, diff and
+  branch workstream checks pass.
+- Exact-source GitHub run `38832540358`: Backend Tests, Frontend Unit Tests,
+  Playwright E2E and Branch-declared Tests are green. Exhaustive Integration
+  Gate is skipped on this feature-branch push. The hosted feature-branch jobs
+  are terminal; this is not the staging exhaustive gate. The packet/workstream
+  prose has since been refreshed without changing application code.
+- Exact-source no-transport preflight evaluated 27 providers, admitted 21,
+  quarantined Alpha Vantage, CTA Plan, Dinari, Marketstack, Nasdaq and Tiingo,
+  and sent zero provider requests. The two sandbox attempts were preserved in
+  `validation.jsonl`; the successful private-ledger read confirms provider-
+  specific holds, not a global coordinator failure. EODHD is currently
+  admitted by preflight.
+- Historical provider live evidence remains incomplete and bound only to
+  `1afb89658d1d84e801069e1f19d7ee4f985c7e1e` (20/27 manifests, 136 requests,
+  55,732,001 response bytes). It is not rebound to the current source. Do not
+  spend held quota or alter ledger/archive contents for cosmetic freshness.
+- The packet now separates current no-transport holds from historical live
+  operation outcomes and states ICP1-7 evidence/ownership. Remaining checkpoint
+  gates: the full local profile, any required operation-specific human
+  disposition, and explicit human checkpoint acceptance.
+- One local `make validate-integration` attempt passed workstream validation,
+  dependency lock checks and the migration-head check (migration compatibility
+  correctly skipped because there are no migration changes from the released
+  baseline), then stopped at frontend dependency installation: esbuild's
+  version check returned success but sandbox child-process execution failed
+  with `EPERM`. It did not reach provider probes. A privileged retry of the
+  entire target was rejected by the approval gate because its later
+  `test-live-provider-probes` stage can consume external quota. Do not split or
+  bypass that stage to label the full target green. The E2E and backend/branch
+  CI jobs on `b09ebb1` are green, but the full local profile is not.
+  Aggregate recurring-cost admission, full universe reconciliation, target
+  secret stores, consumer wiring, outstanding provider live manifests, and the
+  30-day trial remain roadmap/post-integration work.
+- No provider activation, paid routing, deployment, trial, or staging feature
+  integration is authorized. Stop at `ready_for_human_review` after required
+  evidence is complete; coordinator owns integration.
 *** End of File
