@@ -30,23 +30,19 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Exact CI38906246039 on pushed source7969480fe57ffc21236a003184fa83063b6b7406
-  is terminal RED: Backend and Frontend jobs succeeded, branch-declared failed
-  its TC scope check, and E2E reported189 passed/110 skipped with one F8aa
-  Favorites locator failure. The Favorites button is intentionally present in
-  both Chart and Relative Strength groups; the assertion is now scoped to the
-  Chart tool while retaining reload persistence and Quick List checks. The
-  scope report identified eight coordinator-owned common paths, now represented
-  as exact shared_path_exceptions; the scope baseline advances to synchronized
-  merge2b92c642237ce2abde40a84ee98383d4ee4285d1 so previously validated
-  history and unrelated common workstream files are not broadly allowlisted.
-  Scope/self-tests, type-check, build, workstream validation, and focused
-  Playwright collection pass locally. No local browser was launched because
-  Provider retains the heavy browser priority; mounted-app F8aa and exact-source
-  CI remain pending. Keep the F9c evidence and TCP1 narrowly accepted scope
-  unchanged; this source does not broaden TCP1. TCP2 full visual, TCP3
-  Provider/ETF product consumers, TCP4 combined profile, TCP5 review, and
-  official V25 parity remain open.
+  The narrow occurrence-date hydration repair is isolated in fix-only commit
+  957216a1bbb0727dc7f5f26f644d84df911e5522. Exact Actions run38954608461
+  attempt1 matches that full SHA and concluded SUCCESS: Backend, Frontend Unit,
+  Branch-declared, and Playwright E2E all succeeded; Exhaustive Integration
+  Gate was skipped by feature-branch policy. E2E logged190 passed/110 skipped
+  in20.4m; F8s-breadth-family-ratio ran at case147/300, and the complete log
+  contains no Playwright test retry, flake, or failure. The skips include visual
+  tests and are not screenshot evidence. This validates the isolated TC source
+  fix, not its transplant to degraded staging SHA e0cb269afc8460bdc814c93ec71c640f01b2b31f
+  or the broader TC checkpoint. The coordinator owns that remediation
+  transplant/integration; this worktree did not merge staging or integrate.
+  Preserve the wider roadmap: TCP2 full visual, TCP3 Provider/ETF consumers,
+  TCP4 combined profile, TCP5 review, and official V25 parity remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-

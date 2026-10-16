@@ -20946,3 +20946,52 @@ Provider 260-case profile, establish Provider checkpoint acceptance, or close
 TC's broader visual/roadmap gates. The earlier Provider F9e/F8s failure and its
 focused reruns remain recorded separately and unchanged.
 
+## 2026-10-16 — TC occurrence timestamp hydration fix (fix-only)
+
+The staging F8s-breadth-family-ratio failure was addressed only in the assigned
+TC worktree. Selecting an occurrence publishes an explicit linked timestamp
+before asynchronous symbol/bar/overlay hydration. During chart rebuild, the
+new renderer may publish its initial/latest cursor; previously that stale
+cursor could replace the requested historical occurrence date before the
+post-hydration republish. A store regression reproduced this overwrite.
+
+While an explicit occurrence timestamp is pending, the workspace store now
+rejects conflicting cursor publications. The chart arms its existing
+programmatic-cursor suppression synchronously when that intent is installed.
+Selection cleanup runs in `finally` and is compare-and-clear on the exact
+timestamp. This also addresses the review concern about a superseded selection:
+cleanup is no longer conditional on selection generation, so its matching hold
+cannot leak if a newer selection fails before publishing; the exact-value guard
+prevents it from clearing a newer, different occurrence timestamp. Unit
+coverage retains ordinary cursor behavior after cleanup and verifies stale
+cleanup cannot clear the newer hold.
+
+The product/test fix is isolated in commit
+`957216a1bbb0727dc7f5f26f644d84df911e5522`
+(`fix(tc2000): preserve occurrence date during chart hydration`), containing
+only `UPlotChart.vue`, `workspace.ts`, `WorkstationView.vue`, and the workspace
+store unit tests. It is pushed to the TC feature branch. Local focused tests
+passed 80/80; full Vitest coverage, `vue-tsc`, production build, TC scope
+validator/self-tests, workstream validator, and `git diff --check` also passed.
+No local full-browser profile was started while Provider owned browser
+priority.
+
+Exact Actions run `38954608461`, attempt1, matches that full SHA and concluded
+SUCCESS. Backend, Frontend Unit, Branch-declared, and E2E jobs all succeeded;
+Exhaustive Integration Gate was skipped by feature-branch policy. E2E reported
+190 passed/110 skipped in20.4m. `F8s-breadth-family-ratio` ran at case147/300;
+the complete job log contains no Playwright test retries, flakes, or failures.
+The110 skips include visual tests and are not visual-parity evidence. The old
+degraded staging run `38947572686` on `e0cb269afc8460bdc814c93ec71c640f01b2b31f`
+remains a historical red result; this TC-branch CI does not itself prove the
+coordinator's staging-derived transplant. Per the coordinator sequencing
+direction, do not merge staging, mark the full TC branch ready for integration,
+or integrate this branch. The coordinator will transplant only this accepted
+fix into its separate remediation branch.
+
+This narrow fix leaves the broader TC roadmap open: TCP2 full functional and
+104-case visual validation, TCP3 Provider/ETF consumer reconciliation, TCP4
+combined-profile validation, TCP5 checkpoint review, and official V25 parity
+remain outstanding. Existing Help local-reference authority and the original
+0.005 visual tolerance are unchanged.
+
