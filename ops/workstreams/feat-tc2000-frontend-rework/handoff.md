@@ -20889,3 +20889,45 @@ observer is separate and remains unchanged. Continue the open TC roadmap: TCP2
 visual reference/use, TCP3 Provider/ETF consumer reconciliation, TCP4 combined
 validation, TCP5 ready-for-review closeout, and official V25 parity remain open.
 
+## 2026-10-16 — Provider F9e/F8s narrow reconciliation proposal
+
+Coordinator reports the Provider source `1236a367a1d81fba69bb85496e12a56ec22c9f56`
+full 260-case no-retry run as 256 passed, 2 expected F8e live skips, and 2
+failures; both failures passed their focused rerun, with no vendor HTTP or quota
+use. F9e is the cold-workstation Add Tool failure. TC already contains the
+narrow mount-readiness repair in `32e9c48eb5777184f48a9304771ad6cea258d26a`,
+and TC exact run `38925923908` on source `911721a2349609301d0f72e7f08cbff2884d434b`
+is reported green (190 passed, 110 skipped, zero test retries). Source review
+confirms `32e9c48` is the minimal behavior change: `openTool` waits for a
+component-mount-settled signal instead of yielding one `nextTick`; `onMounted`
+resolves it and `onBeforeUnmount` resolves it while marking the component
+inactive. It changes neither tool selection semantics nor provider behavior.
+
+F8s is a test-harness route-order issue, not a source-identity/product defect.
+In the eight-family regression, the exact `market-groups/us-benchmarks` fixture
+is registered before a broader `market-groups/*` fixture. For a non-family
+root, the later handler used `route.continue()`, which terminated interception
+and bypassed the earlier deterministic root fixture. Its miss now uses
+`route.fallback()` so the exact fixture gets the request; the existing eight
+family/official-index/proxy/source identity assertions are unchanged. A hit
+counter plus an explicit assertion makes use of the local root fixture a
+deterministic part of the same focused regression. No real endpoint is used by
+the corrected route chain.
+
+No local browser/profile was started while Provider services hold priority.
+No-browser Playwright collection identified exactly the F8s-family-matrix test
+(after overriding its configured HTML reporter, which otherwise hit a
+read-only `frontend/playwright-report` path); `vue-tsc --noEmit`, workstream
+validation, TC scope validation, JSONL parsing, and `git diff --check` passed.
+These checks do not execute the browser assertion; exact-source hosted CI is
+still required after publication. No Provider/staging worktree, service, data,
+quota, screenshot reference, or tolerance was changed.
+
+Proposed coordinator route: treat only `32e9c48`'s mount-readiness change and
+the one-file F8s fixture-fallback/assertion correction as a narrow common
+repair candidate, validate that exact source through the canonical coordinator
+staging workflow, then let Provider reconcile from the released green staging
+baseline and rerun its own required gates. Do not import TC directly into
+Provider, merge the broader TC feature, or bypass Provider → ETF → TC ownership
+order. TCP2–TCP5 and official V25 parity remain open.
+
