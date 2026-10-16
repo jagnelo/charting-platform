@@ -5,30 +5,50 @@ parent_branch: staging
 parent_sha: 82d881e76be8de538abb6ec5c454d96afe0ee56a
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Start coordinating the four-feature staging integration. Proceed until you either have no way to continue and/or require my action for something"
-planning_state: draft
+planning_state: ready
 human_closure_authorization: pending
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: unit
+local_validation_reason: Documentation and coordinator status only, with no executable or runtime changes. Retain the conservative unit minimum selected by the text classifier; exercise existing coordinator/workstream contract tests plus YAML, local links and changed-path checks. Full integration tier and normal exact-source CI remain required.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
-goal: "Start coordinating the four-feature staging integration. Proceed until you either have no way to continue and/or require my action for something"
-scope: []
-owned_paths: []
-dependencies: []
-acceptance_criteria: []
-branch_tests: []
-branch_tests_reason: pending agent assessment
+goal: Refresh the authorized four-feature coordination guidance and its operational-record pointers without accepting incomplete products, changing merge order or weakening any gate. This work is a subtask of the existing active unbounded central integration goal, not a replacement or its completion.
+scope:
+  - Update static explanatory prose with later human approvals and scope limits, preserving original roadmaps and all activation prohibitions.
+  - Refresh the descriptive coordination snapshot and common-root operational-record pointers.
+  - Explain current observations, closed versus pending tasks and published-helper usage in guidance only.
+  - Preserve source ownership, executable protocols, required validation and the complete joint-delivery objective; change no executable or runtime boundary.
+owned_paths:
+  - docs/feature-integration-coordination.md
+  - docs/feature-integration-reconciliation.md
+  - ops/feature-integration-status.yaml
+  - ops/workstreams/docs-four-feature-checkpoint-guidance-refresh/
+dependencies:
+  - Published green staging 82d881e76be8de538abb6ec5c454d96afe0ee56a and exact successful CI 38805309009; no product feature checkpoint has been accepted.
+  - Existing central Codex goal 01a115f5-8fd9-7951-ab39-0e484eb17135 remains active and unbounded for the whole four-feature objective.
+acceptance_criteria:
+  - id: DOC1
+    text: Guidance records exact delegated checkpoint and Help-reference decisions without inventing acceptance, reducing a roadmap, or authorizing deployment/paid activation/trial.
+  - id: DOC2
+    text: Canonical status and guidance identify current operational receipts, their common-root location, publication-snapshot semantics and the existing clean-staging helper route while preserving dirty root edits.
+  - id: DOC3
+    text: Reconciliation guidance distinguishes closed fixes from remaining Provider admission/visual gates and later ETF/TC/Strategy contracts and migrations; no stale pointer, collision or coverage failure is represented as current.
+  - id: DOC4
+    text: Documentation-only scope, YAML/workstream/link/diff checks and normal exact-source CI are recorded honestly; publish the clean source for delegated coordinator review with all product acceptances still open.
+branch_tests:
+  - uv run --project backend python -m pytest tests/workflow/test_agent_session.py tests/workflow/test_staging_workflow.py --no-cov
+branch_tests_reason: Existing coordinator/session contract unit checks complement YAML, workstream, local-link and changed-path checks for this documentation-only scope; normal exact-source branch and staging CI remain unchanged.
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: authorized
-remaining_gaps: []
+status: in_progress
+remaining_gaps:
+  - Implement and validate the documentation refresh, then publish exact-source CI and delegated review; no product checkpoint is accepted by this topic.
 progress:
   completed: []
-  total: 0
-  current_phase: plan
+  total: 4
+  current_phase: planning_checkpoint
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: Commit and push this planning checkpoint, run canonical plan-ready and record the existing active central goal, then edit only the listed documentation/status paths.

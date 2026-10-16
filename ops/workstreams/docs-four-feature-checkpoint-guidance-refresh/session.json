@@ -1,20 +1,65 @@
 {
-  "schema": 2,
+  "acceptance_criteria": [],
+  "active_session_id": "43ecdcd7-c5c9-4ce7-b34f-2db0bf886b13",
   "branch": "docs/four-feature-checkpoint-guidance-refresh",
-  "parent_branch": "staging",
-  "implementation_sha": "82d881e76be8de538abb6ec5c454d96afe0ee56a",
-  "remote_sha": null,
-  "active_session_id": null,
-  "previous_session_ids": [],
-  "goal_state": "not_started",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-docs-four-feature-checkpoint-guidance-refresh-7810382e",
+      "charting-stack-docs-four-feature-checkpoint-guidance-refresh-7810382e"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "docs-four-feature-checkpoint-guidance-refresh-7810382e26"
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance docs/four-feature-checkpoint-guidance-refresh: Start coordinating the four-feature staging integration. Proceed until you either have no way to continue and/or require my action for something. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance docs/four-feature-checkpoint-guidance-refresh: Start coordinating the four-feature staging integration. Proceed until you either have no way to continue and/or require my action for something. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "f8ab2960f407f26de486d3ccd1538f97515cf41e",
+  "implementation_sha": "82d881e76be8de538abb6ec5c454d96afe0ee56a",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "70c3f16b4c6e5af51f0909b0e3a18252d335d8c6bf5eadb5cabcd9826c73a108",
+  "planning_required": true,
   "planning_state": "draft",
+  "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "total": 0,
+    "current_blocker": "none",
     "current_phase": "plan",
-    "current_blocker": "none"
+    "total": 0
   },
-  "next_action": "run make agent-session-start",
-  "retained_docker_resources": []
+  "remote": "f8ab2960f407f26de486d3ccd1538f97515cf41e",
+  "remote_sha": null,
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "43ecdcd7-c5c9-4ce7-b34f-2db0bf886b13",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/docs-four-feature-checkpoint-guidance-refresh/ops/workstreams/docs-four-feature-checkpoint-guidance-refresh",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/docs-four-feature-checkpoint-guidance-refresh/ops/workstreams/docs-four-feature-checkpoint-guidance-refresh/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/docs-four-feature-checkpoint-guidance-refresh/ops/workstreams/docs-four-feature-checkpoint-guidance-refresh/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/docs-four-feature-checkpoint-guidance-refresh/ops/workstreams/docs-four-feature-checkpoint-guidance-refresh/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/docs-four-feature-checkpoint-guidance-refresh/ops/workstreams/docs-four-feature-checkpoint-guidance-refresh/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/docs-four-feature-checkpoint-guidance-refresh",
+  "worktree_id": "docs-four-feature-checkpoint-guidance-refresh-7810382e26"
 }
