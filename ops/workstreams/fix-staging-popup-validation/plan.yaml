@@ -1,0 +1,58 @@
+schema: 4
+branch: fix/staging-popup-validation
+base_sha: 5768bec4ae12fb06ecc37f06cf656387751eadaa
+parent_branch: staging
+parent_sha: 5768bec4ae12fb06ecc37f06cf656387751eadaa
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "Human delegated technical repair authority: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Narrow coordinator task: repair the actual staging F8j popup-close observer race and fail CI on retry-passing flaky tests while preserving genuine pointer actions, geometry/cross-window assertions, all tests, references and tolerances; investigate crosshair readiness only if needed. Base is exact synchronized staging5768 with canonical successful-CI receipt but independently audited browser quality hold (one cleanup flake), not accepted product staging. No feature import, paid activation, deployment or operational trial."
+planning_state: ready
+human_closure_authorization: "Human explicitly delegated closure of each careful technical repair without per-fix acceptance: Yes I approve, and you do not need my acceptance to close it off, it's a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. This closure is limited to the listed popup/strict-flaky and independent resource-guard test repair; product feature checkpoint acceptance remains separate."
+closure_summary: "Delivered the popup cleanup race fix at F8j plus same-class F8b/F8n-links callers, strict CI rejection of retry-passing flakes, and independent real wall/CPU guard tests without production budget changes. Validated source HEAD: 19a15268d2eae2c0bd60ead6ca1bca72a3d762d7. The first full browser attempt had one F8u drag failure; a focused real-browser rerun passed, then the entire fresh full profile passed154 functional and104 strict visual checks, zero retries,106 expected skips. Native combined backend gate passed1648 tests/80.72% versus75%. Exact branch CI38888544505 succeeded for backend, frontend, branch tests and Playwright E2E; Exhaustive Integration Gate is normally skipped on a feature branch. No migration/deployment change; isolated test volumes/containers were removed. No product feature checkpoint has been accepted or merged. integration_capture: exact branch HEAD."
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: full_stack_browser
+local_validation_reason: Popup lifecycle browser observations and CI acceptance semantics require the complete isolated full-stack browser and unchanged strict visual profile, plus exact-source CI. Focused mocked tests are not application acceptance.
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "Human delegated technical repair authority: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Narrow coordinator task: repair the actual staging F8j popup-close observer race and fail CI on retry-passing flaky tests while preserving genuine pointer actions, geometry/cross-window assertions, all tests, references and tolerances; investigate crosshair readiness only if needed. Base is exact synchronized staging5768 with canonical successful-CI receipt but independently audited browser quality hold (one cleanup flake), not accepted product staging. No feature import, paid activation, deployment or operational trial."
+scope:
+  - Repair the independently reproduced F8j popup-close observer race without changing its preceding geometry assertions or ordinary user actions.
+  - Apply the same tested cleanup contract to adjacent ordinary-Close sites F8b and F8n-cross-window-links after exact CI reproduced that same race at F8b; preserve the distinct browser-level close/disconnect scenario and every substantive assertion.
+  - Unit-test the real cleanup utility against already-closed, ordinary-close, close-during-click, unrelated-click-error and close-timeout outcomes; no unhandled late rejection.
+  - Fail CI on flaky tests even when a retry passes; retain existing retry count for diagnostic artifacts, all tests and original visual tolerances/references.
+  - Investigate the separate cross-window cursor assertion only if the required full gates reproduce it; do not mislabel it as cleanup or weaken its oracle.
+  - Make the existing research wall-time unit test independent of its competing CPU timer, preserving its real wall alarm, real memory guard and restoration assertions; add a bounded child-process test proving actual CPU enforcement through execute_job. Production runner and resource budgets must remain unchanged. This addresses the reproduced signal24/exit152 validation interruption under delegated technical/test-maintenance authority.
+owned_paths:
+  - frontend/playwright.config.ts
+  - frontend/tests/e2e/flows.spec.ts
+  - frontend/tests/e2e/popup_cleanup.ts
+  - frontend/tests/unit/lib/test_popup_cleanup.test.ts
+  - frontend/tests/unit/lib/test_playwright_flaky_gate.test.ts
+  - backend/tests/unit/services/test_research_runner.py
+  - ops/workstreams/fix-staging-popup-validation/
+dependencies:
+  - Exact synchronized staging5768 has a canonical successful-CI receipt, but remains coordinator quality-held because its exhaustive functional matrix had one cleanup flake. This authorized repair is not ordinary feature development or product acceptance of that result.
+  - Provider explicitly released the heavy local slot at09:23:19 after104visual checks passed; coordinator owns it until the repaired common green baseline is released.
+  - No unmerged TC or Provider source import; existing staging helper behavior and primary failing logs are sufficient to author this narrow test repair.
+acceptance_criteria:
+  - {id: POP1, text: "Preserve the exact staging failure and distinguish cleanup from the separate actual crosshair assertion."}
+  - {id: POP2, text: "The tested shared cleanup utility handles actual close races while unrelated errors and missing close events remain failures; F8j uses it without weakening geometry assertions."}
+  - {id: POP3, text: "Real Playwright CI configuration fails on retry-passing flaky tests; retry count, selection, references and tolerances remain unchanged."}
+  - {id: POP4, text: "Focused tests, type/build, full isolated functional/104 visual profile and exact-source branch CI pass without retries/flakes, with owned resource cleanup and honest source binding."}
+  - {id: POP5, text: "Clean pushed technical-repair checkpoint, coherent evidence and exact delegated acceptance record are ready for coordinator review and normal guarded staging integration; full four-feature objective remains open."}
+branch_tests:
+  - cd frontend && npx vitest run tests/unit/lib/test_popup_cleanup.test.ts tests/unit/lib/test_playwright_flaky_gate.test.ts
+  - OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 uv run --project backend pytest backend/tests/unit/services/test_research_runner.py --override-ini addopts= -q
+branch_tests_reason: Stack-free popup/config checks plus independent real CPU/wall guard checks; the cold focused numerical-library pool is bounded to one thread without changing any resource limits. Native complete75percent backend coverage and full application/browser/visual acceptance remain required full_stack_browser evidence.
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: ready_for_integration
+remaining_gaps:
+  - First full260 browser attempt recorded153passed106skipped1failed at F8u; focused fresh reproduction passed once. Required subsequent full profile on unchanged source passed154functional106expectedskip and all104strictvisual checks, retries0. Native backend1648/80.72percent and exact current hosted CI38888544505 allrequired jobs passed. Product feature checkpoints remain separate and unaccepted.
+progress:
+  completed: [POP1, POP2, POP3, POP4]
+  total: 5
+  current_phase: delegated-technical-closure-ready
+  current_blocker: none
+  next_action: Coordinator reviews the exact committed closure record and invokes the normal guarded persistent staging integration path. This repair merge alone does not accept or merge any of the four product feature checkpoints.

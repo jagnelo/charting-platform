@@ -4,21 +4,8 @@
  *
  * Run: make test-stack-up && npx playwright test
  */
-import { type Page } from '@playwright/test'
 import { test, expect, LoginPage, ChartPage, ScreenerPage, DashboardPage, RadarPage } from './helpers'
-
-async function closePopupWhenOpen(popup: Page) {
-  if (popup.isClosed()) return
-  const closed = popup.waitForEvent('close', { timeout: 10_000 }).catch((error: unknown) => {
-    if (!popup.isClosed()) throw error
-  })
-  try {
-    await popup.locator('button[title="Close"]').click()
-  } catch (error) {
-    if (!popup.isClosed()) throw error
-  }
-  await closed
-}
+import { closePopupWhenOpen } from './popup_cleanup'
 
 
 // ── Auth flows ─────────────────────────────────────────────────────────────────
@@ -1609,9 +1596,9 @@ test.describe('TC2000 workstation', () => {
     await expect(popup.locator('.workstation__popout .tool-window')).toBeVisible({ timeout: 10_000 })
 
     // A concurrent revisioned workspace refresh may close the disposable popup
-    // while the ordinary Close click is in flight. Share the guarded cleanup
-    // used by the other popup flows; it only treats an actually closed popup as
-    // successful cleanup and propagates other click failures.
+    // between geometry inspection and the ordinary Close click. Share the guarded
+    // cleanup used by the other popup flows; it accepts only an already-closed popup
+    // as successful cleanup and propagates other click failures.
     await closePopupWhenOpen(popup)
 
     // The docked window is the durable source of truth; a disposable pop-out cannot

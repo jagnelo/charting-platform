@@ -1,0 +1,112 @@
+{
+  "acceptance_criteria": [
+    {
+      "id": "POP1",
+      "text": "Preserve the exact staging failure and distinguish cleanup from the separate actual crosshair assertion."
+    },
+    {
+      "id": "POP2",
+      "text": "The tested shared cleanup utility handles actual close races while unrelated errors and missing close events remain failures; F8j uses it without weakening geometry assertions."
+    },
+    {
+      "id": "POP3",
+      "text": "Real Playwright CI configuration fails on retry-passing flaky tests; retry count, selection, references and tolerances remain unchanged."
+    },
+    {
+      "id": "POP4",
+      "text": "Focused tests, type/build, full isolated functional/104 visual profile and exact-source branch CI pass without retries/flakes, with owned resource cleanup and honest source binding."
+    },
+    {
+      "id": "POP5",
+      "text": "Clean pushed technical-repair checkpoint, coherent evidence and exact delegated acceptance record are ready for coordinator review and normal guarded staging integration; full four-feature objective remains open."
+    }
+  ],
+  "active_session_id": "920af921-5c9b-4933-b601-39aeea5bf1c9",
+  "branch": "fix/staging-popup-validation",
+  "claim": {
+    "branch": "fix/staging-popup-validation",
+    "host": "m920q",
+    "session_id": "920af921-5c9b-4933-b601-39aeea5bf1c9",
+    "started_at": "2026-10-16T09:06:14.168419+00:00",
+    "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-staging-popup-validation",
+    "worktree_id": "fix-staging-popup-validation-26b1a92968"
+  },
+  "dirty_paths": [
+    "ps/workstreams/fix-staging-popup-validation/session.json"
+  ],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-staging-popup-validation-26b1a929",
+      "charting-stack-fix-staging-popup-validation-26b1a929"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-staging-popup-validation-26b1a92968"
+  },
+  "docker_ready": {
+    "ready": true,
+    "started_desktop": false,
+    "wait_seconds": 0
+  },
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/staging-popup-validation: Human delegated technical repair authority: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Narrow coordinator task: repair the actual staging F8j popup-close observer race and fail CI on retry-passing flaky tests while preserving genuine pointer actions, geometry/cross-window assertions, all tests, references and tolerances; investigate crosshair readiness only if needed. Base is exact synchronized staging5768 with canonical successful-CI receipt but independently audited browser quality hold (one cleanup flake), not accepted product staging. No feature import, paid activation, deployment or operational trial.. Acceptance criteria: POP1: Preserve the exact staging failure and distinguish cleanup from the separate actual crosshair assertion.; POP2: The tested shared cleanup utility handles actual close races while unrelated errors and missing close events remain failures; F8j uses it without weakening geometry assertions.; POP3: Real Playwright CI configuration fails on retry-passing flaky tests; retry count, selection, references and tolerances remain unchanged.; POP4: Focused tests, type/build, full isolated functional/104 visual profile and exact-source branch CI pass without retries/flakes, with owned resource cleanup and honest source binding.; POP5: Clean pushed technical-repair checkpoint, coherent evidence and exact delegated acceptance record are ready for coordinator review and normal guarded staging integration; full four-feature objective remains open.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-10-16T10:38:35.550647+00:00",
+  "goal_request": {
+    "objective": "Advance fix/staging-popup-validation: Human delegated technical repair authority: Yes I approve, and you do not need my acceptance to close it off, it is a waste of time for me to individually verify each individual fix in all the 4 parallel development branches - do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Narrow coordinator task: repair the actual staging F8j popup-close observer race and fail CI on retry-passing flaky tests while preserving genuine pointer actions, geometry/cross-window assertions, all tests, references and tolerances; investigate crosshair readiness only if needed. Base is exact synchronized staging5768 with canonical successful-CI receipt but independently audited browser quality hold (one cleanup flake), not accepted product staging. No feature import, paid activation, deployment or operational trial.. Acceptance criteria: POP1: Preserve the exact staging failure and distinguish cleanup from the separate actual crosshair assertion.; POP2: The tested shared cleanup utility handles actual close races while unrelated errors and missing close events remain failures; F8j uses it without weakening geometry assertions.; POP3: Real Playwright CI configuration fails on retry-passing flaky tests; retry count, selection, references and tolerances remain unchanged.; POP4: Focused tests, type/build, full isolated functional/104 visual profile and exact-source branch CI pass without retries/flakes, with owned resource cleanup and honest source binding.; POP5: Clean pushed technical-repair checkpoint, coherent evidence and exact delegated acceptance record are ready for coordinator review and normal guarded staging integration; full four-feature objective remains open.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "active",
+  "goal_state": "requested",
+  "goal_unavailable_reason": null,
+  "head": "5c29f749e2379482dc90f331cba3e8bbd09b79e5",
+  "implementation_sha": "4d6bb7e3314c682193bc2c163357a54c65278238",
+  "last_checkpoint": "2026-10-16T10:31:41.879065+00:00",
+  "last_human_progress_update": "2026-10-16T09:47:39.910096+00:00",
+  "local_validation_profile": "full_stack_browser",
+  "next_action": "create the session-local Codex goal from goal_request, then record it as active",
+  "parent_branch": "staging",
+  "plan_hash": "52a0f92f6f987ea35a4872efe7d207870a3de4f6f77458e92f143bdf4fe9f168",
+  "planning_required": false,
+  "planning_state": "ready",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [
+      "POP1",
+      "POP2",
+      "POP3"
+    ],
+    "current_blocker": "New fixed candidate full browser/104visual and exact CI pending; original local backend152 remains unexplained.",
+    "current_phase": "adjacent-cleanup-published-full-validation",
+    "next_action": "Run full isolated browser profile and audit exact final CI; do not accept any retry-passing result.",
+    "total": 5,
+    "updated_at": "2026-10-16T09:47:39.910078+00:00"
+  },
+  "remote": "5c29f749e2379482dc90f331cba3e8bbd09b79e5",
+  "remote_sha": "4d6bb7e3314c682193bc2c163357a54c65278238",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "920af921-5c9b-4933-b601-39aeea5bf1c9",
+  "state": "checkpointed",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-staging-popup-validation/ops/workstreams/fix-staging-popup-validation",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-staging-popup-validation/ops/workstreams/fix-staging-popup-validation/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-staging-popup-validation/ops/workstreams/fix-staging-popup-validation/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-staging-popup-validation/ops/workstreams/fix-staging-popup-validation/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-staging-popup-validation/ops/workstreams/fix-staging-popup-validation/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-staging-popup-validation",
+  "worktree_id": "fix-staging-popup-validation-26b1a92968"
+}

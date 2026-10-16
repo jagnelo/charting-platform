@@ -296,6 +296,19 @@ the retired workflow and must never receive a new candidate.
    synchronized, green staging SHA and fast-forwards `master`. `master` then
    independently replays the exhaustive gate. A failed replay marks master
    degraded and blocks deployment/new integration until repaired.
+
+If the coordinator CI watcher is interrupted or cannot read GitHub, the
+degraded marker remains authoritative until verified recovery. From the exact
+clean persistent staging checkout, `make staging-reconcile COMMIT=<full-sha>`
+may resume that recorded attempt without merging or pushing anything. It
+requires the exact synchronized current SHA, preserved recorded source/start
+ancestry, unchanged attempt marker and the same mandatory exact-source hosted
+Exhaustive Integration Gate. Only actual green evidence permits a new green
+receipt and marker release; missing, pending, inaccessible or red evidence does
+not. This is not authority to edit/delete markers manually, accept a feature,
+replay tests selectively, promote master or deploy. Public API polling is
+conservative and fetches job details only after a run finishes; rate exhaustion
+is unavailable evidence, not a passing test or a product-test failure.
 5. `master` is the runnable/deployable release line, not the branch from which
    ordinary work starts. Promotion never rewrites history and never publishes an
    untested source advance. Source branches and their PR-equivalent workstream

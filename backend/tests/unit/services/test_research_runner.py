@@ -1,5 +1,9 @@
 import json
 import resource
+import signal
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 
@@ -2057,12 +2061,48 @@ def test_runner_rejects_object_graph_and_wrapper_introspection(source):
 
 
 def test_runner_enforces_wall_time_limit_and_restores_signal(monkeypatch):
-    previous_handler = __import__("signal").getsignal(__import__("signal").SIGALRM)
+    previous_handler = signal.getsignal(signal.SIGALRM)
+    cpu_before = resource.getrlimit(resource.RLIMIT_CPU)
+    memory_before = resource.getrlimit(resource.RLIMIT_AS)
+    real_setrlimit = resource.setrlimit
+
+    def isolate_wall_timer(limit, value):
+        # The independently tested CPU guard can legitimately win this race
+        # near a process CPU-second boundary. Keep the real memory guard here;
+        # this test specifically observes the real wall alarm and restoration.
+        if limit != resource.RLIMIT_CPU:
+            real_setrlimit(limit, value)
+
+    monkeypatch.setattr(resource, "setrlimit", isolate_wall_timer)
     monkeypatch.setattr(runner, "MAX_SECONDS", 1)
     result = execute_job({"source": "while True:\n    pass", "dataset": {}})
     assert result["status"] == "failed"
     assert result["diagnostics"][0]["code"] == "wall_time_limit"
-    assert __import__("signal").getsignal(__import__("signal").SIGALRM) == previous_handler
+    assert signal.getsignal(signal.SIGALRM) == previous_handler
+    assert resource.getrlimit(resource.RLIMIT_CPU) == cpu_before
+    assert resource.getrlimit(resource.RLIMIT_AS) == memory_before
+
+
+def test_runner_enforces_real_cpu_guard_independently_of_wall_alarm():
+    job = {"source": "while True:\n    pass", "dataset": {}}
+    script = "\n".join(
+        [
+            "from research_runner import runner",
+            "runner.MAX_SECONDS = 1",
+            # Disable only this child's competing wall timer. execute_job must
+            # still apply its actual CPU guard and terminate the isolated child.
+            "runner.signal.alarm = lambda _seconds: 0",
+            f"runner.execute_job({job!r})",
+        ]
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=Path(__file__).resolve().parents[3],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == -signal.SIGXCPU, result.stderr
 
 
 def test_runner_reports_memory_limit_diagnostic(monkeypatch):
