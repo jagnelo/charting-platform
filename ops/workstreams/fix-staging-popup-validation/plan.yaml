@@ -42,17 +42,17 @@ acceptance_criteria:
   - {id: POP5, text: "Clean pushed technical-repair checkpoint, coherent evidence and exact delegated acceptance record are ready for coordinator review and normal guarded staging integration; full four-feature objective remains open."}
 branch_tests:
   - cd frontend && npx vitest run tests/unit/lib/test_popup_cleanup.test.ts tests/unit/lib/test_playwright_flaky_gate.test.ts
-  - uv run --project backend pytest backend/tests/unit/services/test_research_runner.py --override-ini addopts= -q
-branch_tests_reason: Pure mocked popup lifecycle and actual configuration import checks are stack-free; full application/browser/visual acceptance remains a separate full_stack_browser requirement.
+  - OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 uv run --project backend pytest backend/tests/unit/services/test_research_runner.py --override-ini addopts= -q
+branch_tests_reason: Stack-free popup/config checks plus independent real CPU/wall guard checks; the cold focused numerical-library pool is bounded to one thread without changing any resource limits. Native complete75percent backend coverage and full application/browser/visual acceptance remain required full_stack_browser evidence.
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
 status: in_progress
 remaining_gaps:
-  - Adjacent popup implementationd0fc689c is pushed with focused10/type/build/full937frontend and260collection passing; isolated browser/104visual and hosted exactCI remain active. Actual unchanged runner reproduces CPU termination near a process CPU-second boundary; the isolated independent-guard prototype passes2tests. Publish the bounded backend test-only correction, then complete the native full backend gate and exact final CI. No checkpoint acceptance or product integration.
+  - Popup implementationd0fc689c and independent resource-test correctiona8b0c2f are pushed; focused10/frontend937 and resource105 pass. Full functional selection at frozen frontend/app source ended153passed106skipped1failed at F8u real plot drag, retries0;104visuals were not executed after that failure. Preserve artifacts, diagnose separately, complete native backend75percent and final exact CI. No checkpoint acceptance or product integration.
 progress:
   completed: [POP1, POP2, POP3]
   total: 5
-  current_phase: independent-resource-guard-test-correction
-  current_blocker: Native full-suite wall-time check can lose to its real CPU timer; independent guard assertions must preserve both protections. Full browser/104visual and final exact CI remain open.
-  next_action: Publish this bounded test-only plan, update the single owned backend unit file, run its full focused suite, commit/push separately, then rerun the native complete backend gate after browser cleanup. Keep frontend and production application trees frozen.
+  current_phase: full-validation-and-drag-failure-diagnosis
+  current_blocker: Full functional selection has a distinct F8u plot-to-watchlist drag failure;104visuals and exact final CI are not accepted. Resource-test correction is implemented and focused105 pass, but complete native backend75percent still needs execution.
+  next_action: Close this operational evidence context, verify fixture cleanup, run the native complete backend gate with bounded numerical parallelism, and inspect the retained F8u trace before proposing any further source context. Preserve failed gates and all original assertions.

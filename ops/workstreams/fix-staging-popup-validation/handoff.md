@@ -311,3 +311,46 @@ backend/research_runner tree58570389a689f3e8ca8f5fdc3d90d7dcd838af74. Recheck
 all three at final acceptance. Test-only backend changes require new backend
 execution and exact hosted CI; they do not require throwing away valid unchanged
 frontend/browser component evidence. No four-feature checkpoint is accepted.
+
+## 10:11 UTC — resource test implementation published; all105 focused pass
+
+Single-file test-only implementationa8b0c2f7785132a0c9701cd2dd80bbf6df447aeb
+is committed/pushed, HEAD=origin verified; only the named operational record is
+pending. Existing wall-time assertions stay and now also check CPU/memory
+restoration. That wall test isolates only its competing CPU setting, retaining
+the actual wall alarm and actual memory guard. The new isolated child disables
+only its own competing wall timer and proves execute_job terminates it with
+actualSIGXCPU. Production runner/app/frontend/Compose are byte-identical to the
+running browser source; no production limit or timeout changed.
+
+Two guard tests independently pass5.19s. The complete focused file first ended
+after69cases without summary; verbose diagnosis exposes OpenBLAS's cold
+allocation under the unchanged512MiB AS guard during the existing OLS test,
+BEFORE the wall/CPU tests. Original focused failure logs are preserved, not
+counted as passing. Bounding ONLY numerical parallelism in the test command
+with OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 makes all105cases pass4.99s.
+This is a constrained test environment, not increased memory or skipped
+numerics. Ruff/format/diff pass. The declared branch command now records that
+environment explicitly; the complete native backend75percent gate remains
+required after live54796 ends/cleans, using the same bounded numerical pool.
+
+Current source/API/frontend hashes remain unchanged as captured above. Record
+and publish this operational checkpoint separately. Hosted CI for olderd0d19
+is superseded by an actual test correction, not metadata-only churn; final
+source CI remains mandatory. Full browser54796 continues intact, using its
+original frozen frontend/app source and unchanged104visual references.
+
+## 10:20 UTC — full functional run terminal, distinct drag failure retained
+
+Isolated full-profile process54796 is now terminal: full260 selection yielded
+153passed,106skipped,1failed in16.2minutes, retries0. The failure is F8u real
+chart-plot-to-watchlist drag: RSI header never appears at flows.spec.ts4415.
+This is NOT the repaired ordinary popup Close race. Screenshot, video, trace
+and context remain in /tmp/popup-full-profile.y0mPle/artifacts/functional;
+full-browser-internal-health.log retains the complete run and owned cleanup.
+The driver stopped on this failed functional stage, so104visuals did NOT run.
+Do not claim browser/visual completion, retry away this failure, weaken its
+assertions, or accept the repair/staging checkpoint. Diagnose the actual drag
+failure before deciding the next source context. The temporary fixture's normal
+scoped teardown has run; retained feature services/data remain out of scope.
+The full backend gate can now run after independently confirming cleanup.
