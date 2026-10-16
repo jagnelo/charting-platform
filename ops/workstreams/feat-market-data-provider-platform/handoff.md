@@ -25495,4 +25495,49 @@ exact candidate receipts remain separate gates.
   together with the account-usage fix and tests. This broad formatting work is
   complete and published; do not rewrite history to split it. No new broad
   formatting changes are part of this continuation.
+
+## 2026-10-16 02:37Z exact-source validation result
+
+- Tested application source: clean, pushed `575a67bab98407fbd9fcf501b1ee9aadd88bef59`;
+  after `b09ebb1` this source only adds the approval/workstream documentation.
+- The full `make validate-integration` attempt passed workstream validation,
+  dependency/lock checks, migration-head check (migration compatibility was
+  correctly skipped because no migrations changed), frontend dependency
+  installation, lint/type checks, the Docker-backed backend gate (2,775 unit
+  plus 395 PostgreSQL/Redis integration tests; 82%), frontend unit tests/build,
+  Compose contract, research-runner probes, and isolated stack health.
+- The provider-probe stage returned success, but there is no new durable live
+  receipt bound to this source: `validation.jsonl` contains no live run for
+  `575a67b`, the owner-private live-usage ledger's latest run remains
+  `186ab98a-6971-4a3f-affd-d0a2d8286106` at 2026-10-15 20:56Z, and no new
+  quota reservation is present. Therefore this stage is not reported as
+  current live success; no provider request was repeated to investigate it.
+  The 21/27 no-transport preflight and 20/27 historical live receipt remain
+  bound to their prior exact sources as recorded in the review packet.
+- The first E2E stage attempt failed on filesystem permissions: previous
+  ignored `frontend/test-results/` and `frontend/playwright-report/` trees are
+  owned by Docker and their existing report/screenshot/video artifacts were
+  preserved. To distinguish permissions from a browser regression, the full
+  260-case Playwright suite was run once against the same branch-scoped stack
+  with its `provider-egress-deny` service healthy and new output under
+  `/tmp/provider-platform-playwright-575a67b`. Result: 150 passed, 109 skipped,
+  one failed, zero retries. The single failure is
+  `F8n-cross-window — linked crosshair timestamps propagate through a chart
+  pop-out`; `flows.spec.ts:1847` timed out after 10 seconds because the linked
+  cursor state did not change. The visual cases completed. This test belongs
+  to the frontend workstream; this Provider branch has not modified frontend
+  or sibling-owned files.
+- The branch-scoped browser-test containers and networks were stopped without
+  `docker compose down -v`; generated database volumes and prior report
+  artifacts remain preserved. No response archive, quota ledger, or provider
+  data was cleaned or reset.
+- Outcome: full local validation is red at `e2e-functional`; the current
+  source is not ready for coordinator acceptance. The 22:55Z conditional
+  checkpoint-acceptance delegation remains recorded and active, but required
+  technical gates still apply. Next: reconcile the F8n failure with its
+  frontend owner, clarify why the provider-probe stage produced no new
+  source-bound receipt, then run exact-current CI and the full local profile
+  after the owning issue is resolved. No provider calls, frontend edits,
+  feature integration, paid/trial activation, deployment, or data cleanup are
+  authorized by this checkpoint.
 *** End of File

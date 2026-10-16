@@ -137,8 +137,8 @@ acceptance_criteria:
 integration_checkpoint:
   id: provider-platform-integration-1
   planning_authorization: "Human instruction on 2026-10-15 to consume the staging coordinator's checkpoint policy and prioritize the integration checkpoint while preserving the full roadmap. Source policy: staging commit e4d10ce0d7abc0056befca06831539fb36287043."
-  acceptance_state: pending_human_review
-  human_closure_authorization: pending
+  acceptance_state: pending_required_validation_and_coordinator_review
+  human_closure_authorization: conditional_checkpoint_acceptance_delegated_to_coordinator
   conditional_checkpoint_acceptance_delegation:
     recorded_at: "22:55Z (user-provided timestamp)"
     exact_question: >-
@@ -159,7 +159,9 @@ integration_checkpoint:
       unreviewed, paid/trial and unsafe operations remain disabled. The full
       roadmap remains open.
     authority_record: "/home/m920q/charting-platform/.ai/staging-attempts/four-feature-coordination-2026-10-15.json#checkpoint_acceptance_delegation_question"
-  deferral_authorization_state: pending_human_checkpoint_acceptance
+  deferral_authorization_state: >-
+    Conditionally approved categories only: keep held and unsafe operations
+    disabled; exact required-operation dispositions remain reviewable.
   deferral_rule: "Keep deferred or excluded operations non-routable with tested unavailable behavior. If an operation is required for checkpoint acceptance but excluded, record its exact operation-level reason and obtain a concrete human disposition; do not treat temporary quota holds as accepted permanent deferrals."
   checkpoint_scope_boundary: "ICP1 requires tested stable identity/provenance/history/quarantine and legacy compatibility plus honest mapping-gap reporting, not a fresh complete NMS/OTC/SEC universe. ICP5 requires tested local secret/config boundaries and exact-source branch validation, not GitHub/RPi/deployment secret-store onboarding. ICP6 requires producer success/unavailable evidence and named downstream owners/remainders, not sibling implementation before Provider green staging. The free-only gate denies paid market-data routes regardless of ALLOW_PAID_PROVIDER_ROUTING and denies trials; unreviewed market-data routes stay denied except a provider-declared exact-operation zero-billing account-usage bootstrap with first-party evidence and explicit zero billing-dimension cost. The sole present exception is EODHD /api/user: zero daily API-call credits, while requests_per_minute remains charged. MarketData.app /user/ consumes one credit and is not exempt. Full-universe reconciliation, target secret stores, and downstream adapter/UI wiring remain roadmap or post-integration work. Preserve source-bound provider-live evidence exactly; current retained 20/27 receipt is incomplete and is not rebound to later commits."
   merge_authorized: false
@@ -7388,14 +7390,36 @@ current_gate_checkpoint: >-
       files, alongside the account-usage fix and focused tests. That broad
       formatting context is already published and will not be history-rewritten;
       this checkpoint adds no broad formatting changes.
+    - >-
+      2026-10-16 02:37Z exact-source local full-profile result on application
+      source 575a67bab98407fbd9fcf501b1ee9aadd88bef59: workstream validation,
+      dependency/lock checks, migration head, npm ci, lint/type checks, backend
+      coverage (2,775 unit + 395 PostgreSQL/Redis integration; 82%), frontend
+      unit/build, compose contract, research-runner probes, and stack health
+      passed. The provider-probe stage returned success but emitted no new
+      durable live receipt: validation.jsonl has no run for this source and the
+      owner-local usage ledger's latest run remains the historical
+      186ab98a-6971-4a3f-affd-d0a2d8286106 at 2026-10-15 20:56Z. Do not infer
+      current live success or repeat provider calls without fresh admission.
+      The full local gate stopped red at e2e-functional: initial output failed
+      with EACCES because ignored Playwright folders were Docker-owned. A
+      scoped egress-denied rerun redirected output to /tmp and completed 150
+      cases, skipped 109, and failed one cross-window linked-cursor assertion
+      (F8n-cross-window, flows.spec.ts:1847, 10-second sync timeout). Visual
+      cases completed. No frontend source was changed. The test stack's
+      containers/network were stopped while preserving generated volumes and
+      prior report artifacts. The current branch is not ready for checkpoint
+      acceptance; the cross-window UI failure remains with its frontend owner,
+      and source-bound live evidence/CI status remain to be reconciled.
   next_action: >-
-    Commit and push the recorded conditional acceptance delegation, then hold
-    source changes while running the required full local integration profile
-    once. Its admitted live tests may use only verified free operations whose
-    provider-specific quota preflight passes; keep every held/unreviewed/
-    paid/trial/unsafe operation disabled. Bind all results to that exact
-    candidate, preserve responses and quota records, then complete exact-source
-    CI and refresh the review packet. The coordinator—not this feature agent—
-    owns conditional checkpoint acceptance and staging integration. Preserve
-    every original criterion and the post-integration 30-day trial. No
-    deployment, paid activation, trial, or data cleanup.
+    Coordinate the exact F8n-cross-window failure with its frontend owner; do
+    not edit frontend or sibling files from this Provider branch. Reconcile
+    the no-new-live-receipt outcome for the provider-probe stage without
+    spending quota again. After the owning fix is available in an authorized
+    source context, rerun the required full local profile and exact-source CI
+    with admitted verified-free operations only; keep held, unreviewed,
+    paid/trial and unsafe operations disabled. Refresh the clean ICP1-7 packet
+    only from current evidence. The coordinator—not this feature agent—owns
+    conditional checkpoint acceptance and staging integration. Preserve all
+    original criteria and the post-integration 30-day trial. No deployment,
+    paid activation, trial, or data cleanup.
