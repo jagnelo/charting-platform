@@ -39,13 +39,24 @@
     "attempt": 1,
     "conclusion": null,
     "e2e_summary": null,
-    "head_sha": "2899aebda79ac4b3e9eeb312a2cc22227bd524a8",
-    "jobs": {},
-    "run_id": 38857509304,
-    "status": "queued; no jobs provisioned at last inspection",
-    "visuals": "Documentation-only commit; hosted visual execution has not been observed. Prior completed application-source evidence remains run38852207578 for 73fba9d4."
+    "head_sha": "614ea57252c165dfcb46b526cd8deaf59107c884",
+    "jobs": {
+      "backend": "in_progress",
+      "branch_declared": "success",
+      "e2e": "not yet provisioned",
+      "exhaustive_feature_branch": "not yet provisioned",
+      "frontend_unit": "success"
+    },
+    "run_id": 38857743979,
+    "status": "in_progress; backend running, branch-declared and frontend-unit succeeded; E2E not yet provisioned",
+    "visuals": "Workstream-only commit; no hosted visual execution observed. Prior completed application-source evidence remains run38852207578 for 73fba9d4; local run33850 was partial raw-Noble evidence and not acceptance."
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -59,7 +70,7 @@
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
     ],
-    "known_bytes": 732963354,
+    "known_bytes": 733063354,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
@@ -70,7 +81,7 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 729895450,
+    "volume_bytes": 729995450,
     "volume_count": 4,
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
@@ -118,7 +129,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "2899aebda79ac4b3e9eeb312a2cc22227bd524a8",
+  "head": "614ea57252c165dfcb46b526cd8deaf59107c884",
   "implementation_sha": "d0add5588612339203073b21015028ad4ffeb106",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -128,7 +139,7 @@
   },
   "interrupted": false,
   "last_checkpoint": "2026-10-16T02:01:21+00:00",
-  "last_human_progress_update": "2026-10-16T05:48:05+00:00",
+  "last_human_progress_update": "2026-10-16T05:53:01.547855+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
     "conclusion": "success",
@@ -147,7 +158,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "next_action": "Recheck the current coordinator receipt and exact branch Actions state before further gated work. Run the complete normalized 104-case visual matrix only under a newly granted bounded slot with the read-only DejaVu font mount and sufficient walltime; do not infer results from partial raw-Noble run33850. After exact green Provider and ETF staging releases, merge staging into this own clean unfrozen branch and reconcile actual consumer contracts. Complete the full local/combined functional profile and exact-source CI, then prepare ready_for_human_review while preserving the full V25 roadmap and all official-parity debt.",
-  "plan_hash": "466a57fe4f134172ce32a21be500e57a5bc378dda4205392e4fa7f0a73358d86",
+  "plan_hash": "421fe1ab8a0018f5e09d9fae2f7ebe3d7a6c8d0d8b3de5a72c38809fa08c736d",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -161,16 +172,16 @@
     "completed": [
       "TCP1"
     ],
-    "current_blocker": "The bounded raw Noble visual run reached 95 of 104 but has no authoritative terminal summary and does not count toward TCP2. A normalized full 104-case run needs a new coordinator slot with sufficient time. The latest coordinator receipt still shows Provider checkpoint corrections and ETF staged bridge pending; verify fresh state before acting.",
-    "current_phase": "TCP1_NARROWLY_ACCEPTED;TCP2_FULL_NORMALIZED_VISUAL_AND_LOCAL_VALIDATION_OPEN;TCP3_PROVIDER_ETF_STAGING_CONSUMERS_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
-    "next_action": "Recheck current coordinator receipt and exact branch Actions state. Run normalized full104 visuals only under a newly granted bounded slot with the read-only DejaVu mount and adequate walltime. Merge Provider and ETF only from exact green staging releases, then complete real consumer reconciliation, combined validation, and ready_for_human_review without narrowing the full V25 roadmap.",
+    "current_blocker": "Exact-head Actions 38857743979 for 614ea572 is still running backend tests with E2E not yet provisioned. The local raw-Noble run33850 is partial only; a normalized full104 visual run requires a new bounded coordinator slot. The latest coordinator receipt still shows Provider checkpoint corrections and ETF bridge pending.",
+    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_FULL_NORMALIZED_VISUAL_AND_LOCAL_VALIDATION_OPEN;TCP3_PROVIDER_ETF_STAGING_CONSUMERS_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
+    "next_action": "Audit 38857743979 only when terminal; meanwhile continue evidence-backed TC-owned preparation without another heavy browser run. Re-read the coordinator receipt before any normalized visual slot or upstream reconciliation. Merge Provider and ETF only from exact green staging releases, then complete all remaining TCP2-TCP5 gates and preserve the full V25 roadmap.",
     "total": 5,
-    "updated_at": "2026-10-16T05:48:05+00:00"
+    "updated_at": "2026-10-16T05:53:01.547835+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "2899aebda79ac4b3e9eeb312a2cc22227bd524a8",
+    "current_local_head": "614ea57252c165dfcb46b526cd8deaf59107c884",
     "current_pending_range": null,
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
@@ -178,11 +189,11 @@
     "last_attempted_range": "59bbb968feefd2ba9c74638dcfa6863d5533186c..7f33b07dfc7ffa57d5285e04981448732e3eb727",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "2899aebda79ac4b3e9eeb312a2cc22227bd524a8",
+    "remote_tracking_sha": "614ea57252c165dfcb46b526cd8deaf59107c884",
     "status": "pushed"
   },
-  "remote": "2899aebda79ac4b3e9eeb312a2cc22227bd524a8",
-  "remote_sha": "2899aebda79ac4b3e9eeb312a2cc22227bd524a8",
+  "remote": "614ea57252c165dfcb46b526cd8deaf59107c884",
+  "remote_sha": "614ea57252c165dfcb46b526cd8deaf59107c884",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "roadmap_acceptance_criteria": [

@@ -919,6 +919,38 @@ current_checkpoint_status: >-
   the first-attempt functional run. This does not close TCP2, TCP3, TCP4, TCP5,
   or the complete V25 roadmap. The hosted CI stack and its temporary volumes
   were torn down by that job; assigned runtime/data/accounts were untouched.
+  Superseding workstream update (2026-10-16T05:50Z): feature branch HEAD and
+  origin are synchronized at 614ea57252c165dfcb46b526cd8deaf59107c884; this is
+  a workstream-only closure commit, not a new application-source validation.
+  Exact Actions run 38857743979 for that SHA is pending; run 38857509304 for
+  2899aebd was in progress at inspection and older run 38855120000 was
+  cancelled. The last completed application-source run remains 73fba9d4 /
+  38852207578: ordinary CI succeeded with 189 passed/110 expected skips and
+  zero retries or flakes, while all104 hosted screenshot cases were skipped.
+  The granted local run33850 used raw Playwright 1.62.1 Noble without the
+  read-only DejaVu font mount. It reached 95/104 in emitted progress after its
+  600-second client bound at observed92/104; no authoritative terminal report
+  was retained. Its 95-case progress is partial diagnostic evidence only, not
+  a visual pass. The first failed launch's zero-test HTML report is not the
+  rerun report. The exact disposable fixture was removed; retained assigned
+  services/data/accounts, screenshot references, and 0.005 tolerance were
+  untouched. Any Study Lab monospace difference must first be assessed under
+  the coordinator-verified read-only DejaVu-normalized runtime, with a newly
+  granted slot long enough for the full104 cases; no new slot is currently
+  recorded. The latest readable coordinator receipt payload is updated_at
+  05:18Z: Provider still has checkpoint corrections open and ETF's staged
+  bridge is pending, so no green Provider/ETF product staging release is
+  evidenced here. Do not merge or direct-import either feature branch. TCP2
+  full normalized visual/local validation, TCP3 real consumer reconciliation,
+  TCP4 combined validation, TCP5 review, and official V25 parity remain open.
+  Follow-up read (2026-10-16T05:52Z): run38857743979 for exact head614ea572 is
+  now in progress: Backend Tests are in progress; Branch-declared Tests and
+  Frontend Unit Tests succeeded; E2E and the feature-branch exhaustive gate are
+  not yet provisioned. Runs38857509304 (head2899aebd) and38855120000
+  (head5b77a76d) are now cancelled, not green. This is status-only CI for
+  workstream documentation; the last terminal application-source evidence
+  remains73fba9d4/run38852207578. It does not change TCP1-only completion or
+  the normalized visual/upstream staging blockers above.
 historical_implementation_records:
   - "Added TC2000's documented HLC Bars style to the frontend chart contract and settings, drawing the existing OHLCV high-low range with a close tick and omitting the open tick. Ctrl+B now cycles HLC, OHLC, Candles, Line in that order. The focused renderer/workstation tests passed 45/45; the full serial frontend suite passed 130 files / 1,225 tests; vue-tsc/Vite build passed; authenticated F8k-direct-chart-style passed 1/1 across all four styles. The protected Help screenshot test failed against its unchanged baseline with 50,941 pixels / 3.0% difference (0.5% threshold); no visual baseline/policy was changed."
   - "Authenticated follow-up browser evidence supersedes the earlier unauthenticated CLI attempt: a unique account in the assigned TC stack was used to activate the chart, press `/`, and confirm the plot library reopened with its `Filter indicators` search focused. No account was created outside the branch stack; no other worktree changed. The account remains a test artifact in the assigned stack. The Help visual oracle was not rerun after this shortcut, and its protected baseline remains unchanged."

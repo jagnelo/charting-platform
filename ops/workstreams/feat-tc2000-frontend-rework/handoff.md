@@ -20379,3 +20379,28 @@ slot use. Continue TCP2-TCP5 and the full V25 roadmap; no staging integration,
 direct feature import, sibling write, or ungranted heavy browser run is
 authorized by this publication.
 
+## 2026-10-16 — Current checkpoint status reconciliation
+
+The plan's `current_checkpoint_status` now supersedes its older run/source
+summary while preserving the full V25 roadmap and all original criterion IDs.
+Current branch HEAD is `614ea57252c165dfcb46b526cd8deaf59107c884`, synchronized
+to `origin` at the time of this check. Exact Actions run `38857743979` for that
+head is pending; `38857509304` for `2899aebd` was in progress and
+`38855120000` for `5b77a76d` was cancelled. None changes the partial status of
+raw-Noble run `33850`; full normalized visuals still need a new coordinator
+slot. The latest readable coordinator receipt payload (`updated_at` 05:18Z)
+continues to show Provider checkpoint corrections and ETF bridge work pending;
+no Provider/ETF green product staging release is evidenced. Read new releases
+from the coordinator before merging anything. TCP1 remains the sole narrowly
+accepted criterion; TCP2, TCP3, TCP4 and TCP5 remain open.
+
+Follow-up Actions inspection at 05:52Z: exact run `38857743979` for
+`614ea57252c165dfcb46b526cd8deaf59107c884` is in progress. Backend Tests
+`116833240360` is running; Branch-declared `116833240630` and Frontend Unit
+`116833240692` succeeded. E2E and the feature-branch exhaustive gate were not
+yet provisioned, so no complete run result is inferred. Earlier metadata runs
+`38857509304` (`2899aebd`) and `38855120000` (`5b77a76d`) are cancelled. The
+last terminal application-source evidence remains `73fba9d4`/`38852207578`;
+it skipped all hosted visual cases. The latest coordinator receipt still
+contains no green Provider/ETF product release or new normalized visual slot.
+
