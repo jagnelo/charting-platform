@@ -90,3 +90,24 @@ supersession, then lets the owning request release only its own token.
   and clean worktree externally before starting the next integration context.
 - Continue Provider → ETF → full TC2000 → Strategy Lab v2 afterward; this
   narrow repair is not full TC acceptance.
+
+## 2026-10-16 — closure-tip CI passed; handoff to staging coordinator
+
+Exact push CI run `38967256911` passed on closure source
+`48d86d7f677f3c4e4b414a8838c5e42b14c44082`. Backend, Frontend Unit,
+Branch-declared, and Playwright all passed; Playwright reported 151 passed and
+109 skipped, with no retries, flakes, or failures. The feature Exhaustive
+Integration Gate was skipped by branch policy. This is exact branch CI, not
+staging acceptance.
+
+The staging coordinator is authorized to run only
+`make integrate BRANCH=fix/tc-occurrence-date-hydration
+REMEDIATE_DEGRADED=1` from synchronized degraded staging
+`e0cb269afc8460bdc814c93ec71c640f01b2b31f`. Retain the degraded marker until
+the exact merged staging SHA passes Exhaustive Integration Gate. If the final
+handoff-record tip changes, require its own exact-tip CI before integration.
+The feature/session handoff touched only
+`ops/workstreams/fix-tc-occurrence-date-hydration/handoff.md`,
+`ops/workstreams/fix-tc-occurrence-date-hydration/validation.jsonl`, and
+`ops/workstreams/fix-tc-occurrence-date-hydration/session.json`; no product,
+test, provider, data, or other-worktree files are changed.
