@@ -21,12 +21,14 @@ scope:
   - Unit-test the real cleanup utility against already-closed, ordinary-close, close-during-click, unrelated-click-error and close-timeout outcomes; no unhandled late rejection.
   - Fail CI on flaky tests even when a retry passes; retain existing retry count for diagnostic artifacts, all tests and original visual tolerances/references.
   - Investigate the separate cross-window cursor assertion only if the required full gates reproduce it; do not mislabel it as cleanup or weaken its oracle.
+  - Make the existing research wall-time unit test independent of its competing CPU timer, preserving its real wall alarm, real memory guard and restoration assertions; add a bounded child-process test proving actual CPU enforcement through execute_job. Production runner and resource budgets must remain unchanged. This addresses the reproduced signal24/exit152 validation interruption under delegated technical/test-maintenance authority.
 owned_paths:
   - frontend/playwright.config.ts
   - frontend/tests/e2e/flows.spec.ts
   - frontend/tests/e2e/popup_cleanup.ts
   - frontend/tests/unit/lib/test_popup_cleanup.test.ts
   - frontend/tests/unit/lib/test_playwright_flaky_gate.test.ts
+  - backend/tests/unit/services/test_research_runner.py
   - ops/workstreams/fix-staging-popup-validation/
 dependencies:
   - Exact synchronized staging5768 has a canonical successful-CI receipt, but remains coordinator quality-held because its exhaustive functional matrix had one cleanup flake. This authorized repair is not ordinary feature development or product acceptance of that result.
@@ -40,16 +42,17 @@ acceptance_criteria:
   - {id: POP5, text: "Clean pushed technical-repair checkpoint, coherent evidence and exact delegated acceptance record are ready for coordinator review and normal guarded staging integration; full four-feature objective remains open."}
 branch_tests:
   - cd frontend && npx vitest run tests/unit/lib/test_popup_cleanup.test.ts tests/unit/lib/test_playwright_flaky_gate.test.ts
+  - uv run --project backend pytest backend/tests/unit/services/test_research_runner.py --override-ini addopts= -q
 branch_tests_reason: Pure mocked popup lifecycle and actual configuration import checks are stack-free; full application/browser/visual acceptance remains a separate full_stack_browser requirement.
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
 status: in_progress
 remaining_gaps:
-  - Implementation47e81ae5 is pushed; exact0e CI correctly fails a remaining F8b Close race. Adjacent ordinary-close caller adoption, full isolated browser/104visual, exact new CI and original local backend152 causal assessment remain. No checkpoint acceptance or product integration.
+  - Adjacent popup implementationd0fc689c is pushed with focused10/type/build/full937frontend and260collection passing; isolated browser/104visual and hosted exactCI remain active. Actual unchanged runner reproduces CPU termination near a process CPU-second boundary; the isolated independent-guard prototype passes2tests. Publish the bounded backend test-only correction, then complete the native full backend gate and exact final CI. No checkpoint acceptance or product integration.
 progress:
   completed: [POP1, POP2, POP3]
   total: 5
-  current_phase: adjacent-popup-cleanup-iteration
-  current_blocker: Exact CI rejects F8b cleanup flake; original local backend152 remains unexplained despite a full traced pass.
-  next_action: Close this evidence checkpoint, adopt existing helper at adjacent ordinary-close sites and validate the exact new source, preserving all substantive assertions and full profile.
+  current_phase: independent-resource-guard-test-correction
+  current_blocker: Native full-suite wall-time check can lose to its real CPU timer; independent guard assertions must preserve both protections. Full browser/104visual and final exact CI remain open.
+  next_action: Publish this bounded test-only plan, update the single owned backend unit file, run its full focused suite, commit/push separately, then rerun the native complete backend gate after browser cleanup. Keep frontend and production application trees frozen.

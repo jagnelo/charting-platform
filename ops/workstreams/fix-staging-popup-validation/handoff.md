@@ -259,3 +259,55 @@ recording d0fc689c as implementation rather than the enclosing docs checkpoint.
 Final enclosing HEAD/origin will be verified externally after this record; do
 not create another commit merely to write its own hash or rerun profiles for
 metadata. Required full browser/104visual and exact final CI remain open.
+
+## 10:08 UTC — independent resource-guard test correction, explicitly bounded
+
+Previous adjacent-popup code/evidence context is committed and synchronized at
+d0d19b7a4d2377136383fd28a4ec46f706b27308, clean before this new test context.
+Local frontend937tests/110files/82.11percent passed50.26s; unchanged uPlot48 and
+26visual-policy assertions pass. The first fresh fixture66528 terminated at its
+temporary host-local health probe after ALL own services became healthy, before
+browser assertions. Only its disposable7services/4freshvolumes/2networks/4built
+images/builder were cleaned normally; no retained feature dataset or quotas.
+Correcting ONLY that temporary probe to dockercomposeexec backend localhost
+proves seedflags true. Current54796 is LIVE in full260 functional selection,
+then104strict visuals, retries0. Its sandbox/resource probes passed, including
+real contained memory pressure; no product/test oracle changes.
+
+Read-only actual source diagnostic cpu-wall-boundary-source.log reproduced
+SIGXCPU(returncode-24) at real process CPU target1.999s with the existing
+one-second wall-time-test payload and otherwise unchanged guards/clocks/source.
+Other sampled boundaries returned the expected wall_time_limit. Thus the real
+CPU guard can legitimately win this unit test's competing timers; prior152 is
+not evidence of a missing offset. A separate temporary two-test policy prototype
+passed2/2 in4.63s: wall alarm plus memory/restoration assertions isolated from
+the CPU timer, and a bounded child proving actual CPU-guard termination through
+execute_job with only that child's competing wall alarm disabled. No production
+resource budget, signal path, app code or ordinary-browser assertion changed.
+
+New changeset independent-resource-guard-tests owns ONLY:
+
+- backend/tests/unit/services/test_research_runner.py
+- ops/workstreams/fix-staging-popup-validation/plan.yaml
+- ops/workstreams/fix-staging-popup-validation/handoff.md
+- ops/workstreams/fix-staging-popup-validation/session.json
+- ops/workstreams/fix-staging-popup-validation/validation.jsonl
+
+The human's existing technical-fix delegation authorizes this necessary test
+reliability correction without another per-fix acceptance request. It does not
+authorize relaxing production guards, removing old assertions or accepting
+failed gates. Publish this plan/evidence before the unit-file edit; run the
+whole research-runner unit file, type/static checks, then commit/push the single
+implementation file separately. Run the full native backend coverage gate only
+AFTER54796 ends, because its scoped cleanup would otherwise destroy that live
+fixture. Final exact-source CI/full evidence remain mandatory.
+
+Do NOT edit frontend, backend/app, research_runner, Compose, visual references
+or budgets during this test-only context. Live54796 remains source-qualified to
+d0d19 and content-identical future production trees, not retroactively rebound
+to an unrelated source: frontend treebe2ce47d60fbefae03faf69a714edd51d21688bb,
+backend/app tree614c4f827ff35847420ce1736be11a3a32bcbcc2,
+backend/research_runner tree58570389a689f3e8ca8f5fdc3d90d7dcd838af74. Recheck
+all three at final acceptance. Test-only backend changes require new backend
+execution and exact hosted CI; they do not require throwing away valid unchanged
+frontend/browser component evidence. No four-feature checkpoint is accepted.
