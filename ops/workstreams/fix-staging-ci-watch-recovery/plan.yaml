@@ -44,7 +44,7 @@ status: in_progress
 remaining_gaps: []
 progress:
   completed: []
-  total: 0
+  total: 3
   current_phase: plan
   current_blocker: none
   next_action: complete the branch-owned plan before creating a goal
