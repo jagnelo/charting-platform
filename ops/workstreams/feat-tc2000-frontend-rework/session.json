@@ -35,7 +35,12 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -84,7 +89,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "977e68afb1cf6bb40a5cd2540dded09b56c9b245",
+  "head": "36ac5a59880176babd31c567d39ee8ff430caeaf",
   "implementation_sha": "d0add5588612339203073b21015028ad4ffeb106",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -113,12 +118,12 @@
     "current_phase": "TCP1_NARROW_TECHNICAL_REPAIR_ACCEPTED;TCP2_HELP_REFERENCE_REVIEWED_NARROW_ONLY_FULL_MATRIX_PENDING;TCP3_PROVIDER_ETF_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_CLOSURE_OPEN",
     "next_action": "The journal row and provenance corrections are recorded append-only; five assigned DB accounts remain unchanged/private and no local service/data was cleaned. Exact CI38840374244 for977e68afb1cf6bb40a5cd2540dded09b56c9b245 is terminal Actions SUCCESS with two E2E retry-passing flakes (F9e and F8m); F8s passed without retry, visuals remain skipped. Preserve this honest outcome; do not treat run as zero-flake or full visual acceptance. Continue branch-owned roadmap while Provider retains heavy local capacity. Await green Provider and ETF staging consumer baselines before TCP3, then complete TCP2 full104 visuals/TCP4 combined exact CI/TCP5 closure and remaining V25 roadmap; no TC staging integration.",
     "total": 5,
-    "updated_at": "2026-10-16T02:55:40+00:00"
+    "updated_at": "2026-10-16T03:26:16+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "977e68afb1cf6bb40a5cd2540dded09b56c9b245",
+    "current_local_head": "36ac5a59880176babd31c567d39ee8ff430caeaf",
     "current_pending_range": null,
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
@@ -126,12 +131,28 @@
     "last_attempted_range": "59bbb968feefd2ba9c74638dcfa6863d5533186c..7f33b07dfc7ffa57d5285e04981448732e3eb727",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "977e68afb1cf6bb40a5cd2540dded09b56c9b245",
+    "remote_tracking_sha": "36ac5a59880176babd31c567d39ee8ff430caeaf",
     "status": "pushed"
   },
-  "remote": "977e68afb1cf6bb40a5cd2540dded09b56c9b245",
-  "remote_sha": "977e68afb1cf6bb40a5cd2540dded09b56c9b245",
+  "remote": "36ac5a59880176babd31c567d39ee8ff430caeaf",
+  "remote_sha": "36ac5a59880176babd31c567d39ee8ff430caeaf",
   "remote_synchronized": true,
+  "latest_exact_ci_audit": {
+    "head_sha": "36ac5a59880176babd31c567d39ee8ff430caeaf",
+    "run_id": 38843092299,
+    "attempt": 1,
+    "conclusion": "success",
+    "jobs": {
+      "frontend_unit": "success",
+      "branch_declared": "success",
+      "backend": "success",
+      "e2e": "success",
+      "exhaustive_feature_branch": "skipped"
+    },
+    "e2e_summary": "187 passed, 110 skipped, 2 retry-passing flakes: F9e-shell-menus-keyboard and F8r-breadth-narrow; F8s-market-map-watchlist passed without retry.",
+    "visuals": "Skipped in hosted run; not pixel evidence.",
+    "scope": "Metadata-only tip; not zero-flake or full feature acceptance."
+  },
   "retained_docker_resources": [],
   "roadmap_acceptance_criteria": [
     {

@@ -1,5 +1,19 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-16 — Exact metadata-tip CI outcome
+
+After the provenance/CI record was pushed as metadata-only commit
+`36ac5a59880176babd31c567d39ee8ff430caeaf`, exact Actions run `38843092299`,
+attempt 1, completed successfully against that full head SHA. Frontend Unit,
+Branch-declared, Backend, and E2E jobs succeeded; the feature-branch
+Exhaustive Integration Gate was skipped. E2E reports 187 passed, 110 skipped,
+and 2 retry-passing flakes in 20.0 minutes: `F9e-shell-menus-keyboard` and
+`F8r-breadth-narrow`. F8s was case 144/299 and passed without retry. Visual
+tests shown in the log were skipped, not screenshot passes. The CI-owned
+`charting-platform-ci` services, volumes, and network were removed by the
+workflow; assigned TC resources/data were not touched. This metadata-only exact
+run is green by Actions status but not zero-flake or whole-feature acceptance.
+
 ## 2026-10-16 — Exact F8s source-transition CI outcome
 
 Actions run `38840374244`, attempt 1, matches full head

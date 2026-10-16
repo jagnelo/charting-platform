@@ -30,6 +30,18 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
+  Latest exact metadata-tip CI (2026-10-16): commit
+  36ac5a59880176babd31c567d39ee8ff430caeaf has terminal Actions run
+  38843092299 attempt1 SUCCESS. Frontend Unit, Branch-declared, Backend and
+  E2E jobs succeeded; feature-branch Exhaustive Integration Gate skipped.
+  E2E log: 187 passed, 110 skipped, 2 retry-passing flakes in20.0m
+  (F9e-shell-menus-keyboard and F8r-breadth-narrow). The F8s source-transition
+  test at case144/299 passed without retry. Visual tests were skipped, not
+  screenshot passes. Workflow removed only its isolated charting-platform-ci
+  services/volumes/network. This is not a zero-flake run or full feature
+  acceptance. The next coherent workstream record commit is documentation-only;
+  product/test sources remain exactly those exercised by this run.
+
   Exact current-source Actions result (2026-10-16): run 38840374244 attempt 1
   matches full head 977e68afb1cf6bb40a5cd2540dded09b56c9b245 and concluded
   SUCCESS. Frontend unit, branch-declared, backend, and E2E jobs succeeded;
