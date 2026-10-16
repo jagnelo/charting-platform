@@ -40,13 +40,17 @@ current_blocker: >-
   OHLC response. Candidate test setup now waits for an observable live dock
   before F8r and supplies deterministic local OHLC rows for F14. Existing
   UI assertions,15-second limits, retry policy, and visual thresholds are
-  unchanged. Stack-free type-check, targeted collection, TC scope validation and
-  workstream validation pass; exact-source full CI is pending candidate
-  publication. The earlier exact source run38954608461 on957216a1bbb0727dc7f5f26f644d84df911e5522
-  was clean, but neither run closes broader acceptance. TCP2 full visual, TCP3
-  Provider/ETF consumers, TCP4 combined profile, TCP5 review, and official V25
-  parity remain open; the coordinator owns any staging-derived remediation and
-  integration, and this worktree does not merge staging or sibling branches.
+  unchanged. Candidate commit f06c6788a4b87dc9fb2aaec246a6c07d0b911963 was
+  pushed and exact Actions run38964648067 attempt1 concluded SUCCESS for that
+  full SHA. Backend, Frontend Unit, Branch-declared, and Playwright E2E passed;
+  E2E reported190 passed/110 skipped in19.9m with zero retries, flakes, or
+  failures. F8r ran at case135/300 and F14 at case178/300. Exhaustive Integration
+  Gate was skipped by feature-branch policy; skipped cases include screenshot
+  projects and do not constitute the104-case visual matrix. This closes only
+  these two functional flake observations, not the TC checkpoint. TCP2 full
+  visual, TCP3 Provider/ETF consumers, TCP4 combined profile, TCP5 review, and
+  official V25 parity remain open; the coordinator owns staging-derived
+  remediation/integration, and this worktree does not merge staging or siblings.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-

@@ -21032,3 +21032,26 @@ and its six fail-closed self-tests; workstream validator; and `git diff
 heavy local slot. Exact-source full CI remains required after publication; the
 candidate is not validated until the terminal full branch run is audited.
 
+## 2026-10-16 — Exact-source follow-up for F8r/F14
+
+The test/workstream candidate was published as commit
+`f06c6788a4b87dc9fb2aaec246a6c07d0b911963`. Exact Actions run
+`38964648067`, attempt 1, matches that full SHA and concluded SUCCESS. Backend
+Tests `117187979805`, Frontend Unit Tests `117187980240`, Branch-declared Tests
+`117187979468`, and Playwright E2E `117191199891` all succeeded. E2E logged
+`190 passed, 110 skipped` in 19.9 minutes. F8r ran at case 135/300 and F14 at
+case 178/300; the complete log contains no retry, flaky test, or failure. The
+feature Exhaustive Integration Gate was skipped by branch policy. The 110
+skips include visual cases; this is functional E2E evidence, not execution or
+acceptance of the full104-case visual matrix.
+
+This resolves the two observed retry-only functional failures at the exact
+candidate source through narrow test setup stabilization. It does not prove
+that either historical first-attempt failure was a production defect. The
+original red run `38958541029` remains in the ledger. No local browser/profile,
+Provider/staging worktree, retained data, provider request, visual reference,
+tolerance, or application behavior was changed. TCP2 full visuals, TCP3
+Provider/ETF consumer reconciliation, TCP4 combined profile, TCP5 review, and
+official V25 parity remain open; there is no whole-TC acceptance or staging
+integration authorization in this result.
+
