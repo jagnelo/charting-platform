@@ -1478,6 +1478,8 @@ test.describe('TC2000 workstation', () => {
     })
 
     let conflictPending = true
+    let injectedNotesConflicts = 0
+    let recoveryCopyCreated = false
     const baselineWindowKeys = new Set(
       (baseline.tabs as Array<{ windows?: Array<{ instance_key?: string }> }>).flatMap(tab =>
         (tab.windows ?? []).map(window => window.instance_key).filter((key): key is string => Boolean(key)),
@@ -1487,9 +1489,11 @@ test.describe('TC2000 workstation', () => {
       if (route.request().method() !== 'PUT' || !conflictPending) return route.continue()
       // A previous pop-out can still be finishing a legitimate geometry
       // snapshot when this page starts. Inject the conflict only for the
-      // mutation under test: the newly added Notes window. Otherwise the
-      // setup races a bootstrap/cleanup write and the actual user mutation
-      // never exercises the recovery branch.
+      // mutation under test: the newly added Notes window. Keep it active
+      // across superseded snapshot retries: saveSnapshot intentionally defers
+      // conflict reconciliation when a newer local generation exists, so a
+      // one-shot 409 can let the retry succeed without exercising recovery.
+      // Stop injecting only after the recovery copy is actually created.
       const payload = route.request().postDataJSON() as {
         tabs?: Array<{ windows?: Array<{ instance_key?: string; tool_type?: string; title?: string }> }>
       }
@@ -1501,7 +1505,7 @@ test.describe('TC2000 workstation', () => {
         }),
       )
       if (!hasLocalWindowAddition) return route.continue()
-      conflictPending = false
+      injectedNotesConflicts += 1
       await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ detail: { code: 'workspace_revision_conflict', message: 'conflict' } }) })
     })
     await page.route(/\/api\/v1\/workspaces\/\d+$/, async route => {
@@ -1514,6 +1518,10 @@ test.describe('TC2000 workstation', () => {
     await page.route(/\/api\/v1\/workspaces$/, async route => {
       if (route.request().method() !== 'POST') return route.continue()
       const payload = route.request().postDataJSON() as { name?: string }
+      if (/recovery/i.test(payload.name ?? '')) {
+        conflictPending = false
+        recoveryCopyCreated = true
+      }
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 9910, revision: 1, name: payload.name ?? 'US Top Down Recovery', tabs: [], settings: {} }) })
     })
 
@@ -1521,6 +1529,8 @@ test.describe('TC2000 workstation', () => {
     await page.getByRole('menuitem', { name: 'Notes', exact: true }).click()
     const notes = page.locator('.tool-window:visible').filter({ has: page.locator('.note-tool') })
     await expect(notes.last()).toBeVisible({ timeout: 10_000 })
+    await expect.poll(() => injectedNotesConflicts).toBeGreaterThan(0)
+    await expect.poll(() => recoveryCopyCreated).toBe(true)
     await expect(page.locator('.workstation__footer')).toContainText(/recovery/i, { timeout: 15_000 })
     await expect(page.locator('.workstation__footer')).toContainText('local changes were preserved', { timeout: 15_000 })
     await browserDiagnostics.expectNoCriticalIssues()
@@ -3641,7 +3651,9 @@ test.describe('TC2000 workstation', () => {
     ]
     const familyByKey = new Map(families.map(family => [family.key, family]))
     const selectedSources: string[] = []
+    let benchmarkRootFixtureHits = 0
     await page.route('**/api/v1/market-groups/us-benchmarks*', async route => {
+      benchmarkRootFixtureHits += 1
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
         stable_key: 'us-benchmarks',
         group_type: 'benchmark',
@@ -3667,7 +3679,10 @@ test.describe('TC2000 workstation', () => {
       const pathname = new URL(route.request().url()).pathname
       const familyKey = pathname.match(/\/market-groups\/([^/]+)$/)?.[1]
       const family = familyKey ? familyByKey.get(decodeURIComponent(familyKey)) : undefined
-      if (!family) return route.continue()
+      // This broad family handler is registered after the exact root fixture.
+      // Fall through so Playwright can offer unmatched requests to that earlier
+      // handler; continue() would send the root request to the real endpoint.
+      if (!family) return route.fallback()
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ stable_key: family.key, name: family.name, group_type: 'benchmark_family', members: [{ instrument: { id: 1, symbol: family.proxy, name: `${family.name} proxy` } }], provenance: { benchmark_family: family.key } }) })
     })
     await page.route('**/api/v1/analysis/groups/*/snapshot*', async route => {
@@ -3712,6 +3727,7 @@ test.describe('TC2000 workstation', () => {
     await page.goto('/chart/SPY')
     const benchmarkSurface = page.locator('.benchmark-surface').first()
     await expect(benchmarkSurface).toBeVisible({ timeout: 15_000 })
+    await expect.poll(() => benchmarkRootFixtureHits, { timeout: 15_000 }).toBeGreaterThan(0)
     const familySelect = benchmarkSurface.getByRole('combobox', { name: 'Benchmark family', exact: true })
     for (const family of families) {
       await familySelect.selectOption(family.key)

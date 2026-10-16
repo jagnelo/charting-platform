@@ -312,6 +312,11 @@ const ctrlWheelHeld = ref(false)
 // intent wins so a late initial SPY request cannot restore an older selection.
 let symbolSelectionGeneration = 0
 let drilldownSelectionGeneration = 0
+let componentMounted = false
+let resolveComponentMountSettled: (() => void) | null = null
+const componentMountSettled = new Promise<void>(resolve => {
+  resolveComponentMountSettled = resolve
+})
 const preserveDrilldownSymbol = ref<string | null>(null)
 // SPX is a logical benchmark identity. When an official SPX series is not
 // entitled or cannot be resolved, keep the requested workflow usable through
@@ -1088,6 +1093,15 @@ async function selectIndustryProxy(symbol: string, instrumentId?: number | null)
 }
 
 async function openTool(tool: OpenableToolDefinition, configurationOverride: Record<string, unknown> = {}) {
+  // A shell click can arrive before the asynchronous onMounted hook marks the
+  // component live. Wait for that lifecycle boundary instead of yielding one
+  // render turn and accidentally dropping the first Add-tool action on a cold
+  // /chart navigation. Unmount resolves the same signal so teardown still
+  // cancels the command.
+  if (!componentMounted) {
+    await componentMountSettled
+    if (!componentMounted) return
+  }
   // The dock can already expose a fully usable active tab while the initial
   // workspace promise is still settling (notably after Golden Layout restores
   // a persisted snapshot). Do not strand an Add-tool click behind that promise
@@ -1915,6 +1929,10 @@ watch(() => workspaceStore.workspace?.id, (workspaceId, previousWorkspaceId) => 
 })
 
 onMounted(async () => {
+  componentMounted = true
+  const resolveMount = resolveComponentMountSettled
+  resolveComponentMountSettled = null
+  resolveMount?.()
   const mountSelectionGeneration = symbolSelectionGeneration
   // Capture before chart/uPlot gesture handlers can stop propagation. The
   // workstation-level Ctrl+wheel traversal is a shell command and must remain
@@ -2010,6 +2028,10 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  componentMounted = false
+  const resolveMount = resolveComponentMountSettled
+  resolveComponentMountSettled = null
+  resolveMount?.()
   endTabDrag()
   window.removeEventListener('wheel', handleWheel, { capture: true })
   ctrlWheelHeld.value = false
