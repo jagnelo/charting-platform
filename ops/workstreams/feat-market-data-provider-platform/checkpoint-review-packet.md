@@ -17,11 +17,43 @@ job `116961537100`, and Exhaustive Integration Gate `116961536915` all
 succeeded; Branch-declared Tests was skipped under this staging-run condition.
 E2E collected all 260 cases (151 passed, 109 expected skips, zero failures or
 test retries); CI keeps `failOnFlakyTests=true`. GitHub reports `staging` at
-`0145b659...`. The coordinator has directly released this exact green
-common-repair baseline for owner-branch reconciliation; it does not accept any
-product checkpoint. Provider may merge only this released staging SHA after
-finishing and pushing its current five-file receipt packet. Do not import the
-fix branch directly or start another heavy profile before reconciliation.
+`0145b659...`. The coordinator directly released this exact green common-repair
+baseline for owner-branch reconciliation; it does not accept any product
+checkpoint. Provider first pushed its five-file receipt packet as
+`837273587f865111ef5b7834571d86b4a8791bda`, then merged only this staging SHA
+as `ca86eaf147f391829fb9f060b43633b1bb8b79b2`. Do not import the fix branch
+directly.
+
+### Current Provider source after staging reconciliation — 2026-10-16 12:40Z
+
+The current local Provider tip is merge commit
+`ca86eaf147f391829fb9f060b43633b1bb8b79b2`; its parent feature tip is the
+pushed receipt commit `837273587f865111ef5b7834571d86b4a8791bda`, and its
+staging parent is the released `0145b65992b8692ce69f82f804f83f6c8e551fea`.
+The merge completed without textual conflicts across four shared paths and
+their behavior was inspected. The worktree is clean; the merge commit has not
+yet been pushed. On this exact local tree, focused checks passed: the complete
+research-runner file 106/106 using one numerical-library thread, staging
+workflow tests 64/64, inherited popup/flaky-policy frontend unit tests 10/10,
+and the Provider real-main live-runner admission module 144/144. No provider
+HTTP requests or quota use occurred. The uncapped research-runner test process
+terminated during the statsmodels OLS case with no pytest summary; its cause is
+unknown. The unchanged full file passed with `OPENBLAS_NUM_THREADS=1
+OMP_NUM_THREADS=1`; this constrains numerical parallelism only and preserves
+all test/resource guards. The first frontend unit command used the wrong cwd
+and failed on a relative source path; rerun from `frontend/` passed 10/10.
+
+Exact-source hosted CI, the normal full local profile and current-source live
+acceptance remain pending on this merged candidate. Earlier exact CI
+`38886062018` was red at pre-reconciliation SHA `03bafd6f...` on F8u; it is not
+evidence about the current tip. The staged repair's green run is evidence for
+staging SHA `0145b659...`, not for this combined Provider tip. After pushing
+this merge, inspect its exact branch CI, run the admitted no-transport quota
+preflight, then perform only operations whose current durable usage admission
+is safe. Continue the free-only boundary, aggregate cost-governance remainder,
+and producer/consumer map. Do not refresh data or spend quotas merely for
+freshness; all held/paid/trial/unknown operations remain excluded. Provider
+checkpoint acceptance and full-roadmap completion remain pending.
 
 Provider's real-main MarketData.app/Tiingo plan-admission correction is in
 `d9104b3`; the entire `test_live_provider_runner.py` module passed 144/144 on

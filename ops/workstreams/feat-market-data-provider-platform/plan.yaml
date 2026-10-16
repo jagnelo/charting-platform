@@ -5895,46 +5895,37 @@ progress:
       request was made, and the historical live receipt remains source-bound.
   completed: []
   total: 7
-  current_phase: close-provider-receipt-packet-then-reconcile-released-staging
+  current_phase: post-released-staging-merge-bounded-checks-and-exact-ci
   current_blocker: >-
-    Current Provider source `03bafd6f24b8d3d9d26c5d00d85cb4c92c01d1f3` is
-    synchronized with its local origin-tracking ref. The d9104b3 real-main
-    MarketData.app/Tiingo effective-plan correction passes the complete
-    `test_live_provider_runner.py` module: 144/144 at 11:56:22Z, including
-    full/provider/case/account-usage modes, both paid-toggle states,
-    no-lock/no-subprocess denial, reviewed-free and expired-trial positives,
-    and the EODHD zero-credit exception. No provider HTTP or quota use occurred.
-    Provider exact CI `38886062018` on the docs tip remains red on separate
-    frontend F8u; no Provider frontend code changed. The strict visual component
-    run passed104/104 with zero retries and its heavy slot was released at09:23Z;
-    the associated functional matrix still has F8j red, so whole local
-    acceptance is not established. Coordinator repair was merged by its
-    approved path at staging commit `0145b65992b8692ce69f82f804f83f6c8e551fea`.
-    Exact staging CI `38896729111` for `0145b65992b8692ce69f82f804f83f6c8e551fea`
-    is terminal success: Backend `116958868106`, Playwright E2E `116961537100`,
-    and Exhaustive Integration Gate `116961536915` succeeded; Branch-declared
-    was skipped. E2E collected 260 cases, 151 passed, 109 skipped, zero failed
-    or retried tests, with `failOnFlakyTests=true`. The direct coordinator
-    release of this exact staging baseline has now been explicitly received.
-    It contains only the shared popup-cleanup/resource-guard repair and does not
-    accept a Provider/ETF/TC/Strategy product checkpoint. A read-only audit
-    found four shared paths with distinct hunks, but semantic composition
-    remains unverified. Finish and push the current five-file Provider receipt
-    packet, then merge only `0145b659...` into this owned branch using the
-    normal branch-owner workflow. Do not start another heavy profile before
-    that reconciliation and bounded shared-path checks.
+    Provider has reconciled only released staging SHA
+    `0145b65992b8692ce69f82f804f83f6c8e551fea` as local merge commit
+    `ca86eaf147f391829fb9f060b43633b1bb8b79b2`; the tree is clean, but this
+    merge and its bounded-test receipt are not yet pushed. Four shared paths
+    auto-merged without textual conflict and were audited semantically. Exact
+    merged-source tests passed: research-runner 106/106 with
+    `OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1`, staging workflow 64/64,
+    inherited popup/flaky frontend units 10/10, Provider runner admission
+    144/144. An uncapped research-runner invocation ended during the statsmodels
+    OLS case without pytest summary; the cause remains unknown, while the full
+    unchanged file passes with numerical-library parallelism constrained. No
+    provider HTTP or quota use occurred. Exact-source CI and full local profile
+    on the merged Provider candidate remain pending; older red CI at
+    `03bafd6` is not evidence about `ca86eaf`. The coordinator's staging CI
+    `38896729111` remains green for staging only and does not accept a Provider
+    product checkpoint. Keep held operations untouched.
     Retain quota holds and historical source-bound receipts; no provider
     traffic, deployment, paid/trial activation, operational trial, or data
     cleanup is authorized.
   next_action: >-
-    Complete and commit/push the existing five-file Provider receipt packet,
-    then merge only released staging
-    `0145b65992b8692ce69f82f804f83f6c8e551fea` into this feature branch. Resolve
-    shared-path semantics and run scoped regressions. Continue ICP2 cost
-    governance and ICP6 consumer contracts, then execute the required exact-tip
-    full local profile and hosted CI. Do not repeat the terminal104-case visual
-    component or spend provider quota solely for freshness. Preserve the full
-    roadmap and every held/disabled operation disposition.
+    Finish validation and commit/push the merged-source packet. Inspect exact
+    hosted CI for the pushed Provider tip. Run the no-transport durable quota
+    preflight, then validate only operations currently admitted with adequate
+    headroom; do not replay held providers. Continue ICP2 aggregate recurring
+    cost governance and ICP6 tested producer success/unavailable contracts, then
+    complete the required exact-tip full local profile and hosted CI. Do not
+    repeat the terminal104-case visual component or spend quota solely for
+    freshness. Preserve the complete roadmap and every held/disabled operation
+    disposition.
   previous_goal_blocker: >-
     Continued local implementation is not blocked by an owner decision. The
     prior staged candidate is `32dafe227755d7a890bfeb4d96ffc53542af7ba7`; its

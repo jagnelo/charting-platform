@@ -1,5 +1,41 @@
 # feat/market-data-provider-platform
 
+## 2026-10-16 12:40Z — released staging reconciled; bounded merged-source checks
+
+- After the receipt packet commit `837273587f865111ef5b7834571d86b4a8791bda`
+  was pushed, merged only coordinator-released staging SHA
+  `0145b65992b8692ce69f82f804f83f6c8e551fea` into this Provider-owned branch.
+  The merge is `ca86eaf147f391829fb9f060b43633b1bb8b79b2`. Working tree is
+  clean; the merge commit is local and not yet pushed. No Provider/ETF/TC/Strategy
+  product checkpoint was accepted by this source reconciliation.
+- Audited all four overlapping paths. Makefile provider test targets and new
+  coordinator recovery target coexist; the Provider deferred-coverage test and
+  coordinator CPU/wall-guard tests coexist; the two orchestration-doc additions
+  occupy distinct sections; provider RPi workflow checks and coordinator
+  conservative CI-watcher checks both remain. There were no textual merge
+  conflicts. Focused merged-source checks passed: research-runner file
+  106/106 with `OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1`, staging workflow
+  tests 64/64, popup/flaky-policy frontend unit tests 10/10 from `frontend/`,
+  and Provider live-runner admission tests 144/144. The source code in these
+  tests makes no provider requests; no quota was spent.
+- The first uncapped research-runner file invocation terminated around its
+  statsmodels OLS test (about 66%) with no pytest summary; cause remains
+  undetermined. The full unchanged file passed with numerical-library thread
+  counts constrained to one; no app, limits, tests, assertions or coverage
+  threshold were weakened. The first frontend unit invocation from repo root
+  failed because a source-contract test expects `frontend/` as cwd; rerunning
+  from the package root passed all 10 tests.
+- Next: run workstream validation, commit/push the merged-source receipt and
+  exact-source CI will follow. Then inspect the exact CI result, execute a
+  no-transport durable quota preflight, and use only operations explicitly
+  admitted with sufficient current usage headroom. Preserve held provider
+  calls, response archives and quotas. Continue ICP2 shared cost-governance and
+  ICP6 producer/consumer contract evidence; no paid/trial activation,
+  deployment, promotion or data cleanup.
+- Exact-source full profile, current-source live acceptance and product
+  checkpoint acceptance remain open. The prior 104/104 visual component pass
+  remains terminal evidence but is not reused as a full profile result.
+
 ## 2026-10-16 12:34Z — released common staging baseline; owner packet first
 
 - Coordinator directly released exact persistent staging baseline

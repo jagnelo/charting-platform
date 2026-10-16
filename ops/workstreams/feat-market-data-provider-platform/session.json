@@ -74,13 +74,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "03bafd6f24b8d3d9d26c5d00d85cb4c92c01d1f3",
+  "head": "ca86eaf147f391829fb9f060b43633b1bb8b79b2",
   "implementation_sha": "1ab6f79868a736535143ad8a50a649a3afacd36b",
   "interrupted": false,
   "last_checkpoint": "2026-10-15T20:42:10.318662+00:00",
   "last_human_progress_update": "2026-10-16T11:12:47.867964+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Commit the exact-source CI and admission receipts, then use current durable quota admission to validate only eligible providers without replaying held calls. Continue the remaining ICP2 cost-governance and ICP6 consumer contracts, preserve coordinator ownership, and keep the full checkpoint pending.",
+  "next_action": "Commit and push the merged released-staging source plus its bounded-test receipts. Inspect exact-source hosted CI, then run a no-transport durable quota preflight and validate only currently admitted eligible operations without replaying held calls. Continue ICP2 aggregate cost governance and ICP6 consumer contracts; keep checkpoint acceptance pending.",
   "parent_branch": "staging",
   "plan_hash": "4654917503bcbefd021b1f44abcae0d0f67d0a43bc1ddb2ff4abb17fd8533c7f",
   "planning_required": false,
@@ -112,15 +112,15 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "Provider HEAD 03bafd6f24b8d3d9d26c5d00d85cb4c92c01d1f3 is synchronized; five Provider workstream files contain the owned receipt packet being completed before reconciliation. Published runner code 91164b3 passes the focused runner module 144/144, and a separate diagnostic-compatibility composite passed 145/145; no provider HTTP/quota use. Provider exact-source CI 38886062018 remains red on independent F8u. Staging SHA 0145b65992b8692ce69f82f804f83f6c8e551fea run 38896729111 is terminal success with backend, E2E, Exhaustive success and Branch-declared skipped; E2E 260 selected, 151 passed, 109 skipped, zero failed/test retries. Coordinator explicitly released this common-repair baseline; it does not accept any product checkpoint. After packet commit/push, merge only that exact staging source into Provider and validate shared-path semantics. The 104/104 visual component is terminal, artifacts retained, slot released 09:23Z.",
-    "current_phase": "close-provider-receipt-packet-then-reconcile-released-staging",
-    "next_action": "Validate and coherently commit/push the five existing Provider workstream receipt files. Then use the normal branch-owner workflow to merge exact released staging SHA 0145b65992b8692ce69f82f804f83f6c8e551fea into this Provider branch. Resolve shared-path semantics and run bounded tests, then resume ICP2 cost-governance and ICP6 consumer contracts before required full final-source profile/CI. Keep held/unknown/paid/trial operations disabled; no vendor calls solely for freshness, no data cleanup, deployment or promotion.",
+    "current_blocker": "The released common staging SHA 0145b65992b8692ce69f82f804f83f6c8e551fea has been reconciled into Provider as local merge commit ca86eaf147f391829fb9f060b43633b1bb8b79b2. Shared-path bounded checks pass: research-runner file 106/106 with OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1, staging workflow 64/64, inherited popup/flaky frontend unit tests 10/10, and provider real-main live-runner module 144/144. An uncapped research-runner invocation ended during statsmodels OLS with no pytest summary; cause is unknown. No provider HTTP/quota use. The merged source and receipt update are not yet pushed; exact-source hosted CI, full local profile, current-source admitted live tests, ICP2 aggregate-cost remainder, ICP6 producer-consumer handoff, and final closure packet remain open. The predecessor 03bafd6 CI red F8u does not describe merged source ca86eaf. The prior strict visual component remains 104/104 terminal evidence and is not a full-profile pass.",
+    "current_phase": "post-released-staging-merge-bounded-checks-and-exact-ci",
+    "next_action": "Finish workstream validation and commit/push the merged-source receipt packet. Inspect exact-source branch CI on the pushed tip. Run the provider runner no-transport durable quota preflight, then only live operations admitted with safe current headroom; never replay held providers. Continue ICP2 aggregate cost-governance and ICP6 success/unavailable consumer contracts, then execute the required full local profile and final exact-source CI. Preserve all full-roadmap items and no paid/trial/deploy/cleanup actions.",
     "total": 7,
-    "updated_at": "2026-10-16T12:34:30Z"
+    "updated_at": "2026-10-16T12:40:00Z"
   },
-  "remote": "03bafd6f24b8d3d9d26c5d00d85cb4c92c01d1f3",
-  "remote_sha": "1ab6f79868a736535143ad8a50a649a3afacd36b",
-  "remote_synchronized": true,
+  "remote": "837273587f865111ef5b7834571d86b4a8791bda",
+  "remote_sha": "837273587f865111ef5b7834571d86b4a8791bda",
+  "remote_synchronized": false,
   "retained_docker_resources": [],
   "roadmap_acceptance_criteria": [
     {
