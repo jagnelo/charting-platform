@@ -9,4 +9,20 @@ Created from `staging` at `b7eae4b0a509a135eb85fef2984633499b16617e`.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 - Planning state: draft; the implementation agent must complete scope, acceptance criteria, tests, and local validation profile before creating a goal.
 
-Update this handoff at each coherent boundary.
+## Current implementation plan
+
+Coordinator-owned workflow repair under existing ACTIVE unbounded four-feature
+root goal01a115f5-8fd9-7951-ab39-0e484eb17135, not a replacement goal or product
+acceptance. Mandatory preflight established claim
+b12c73e0-2ad3-420f-9fe9-4fa11209f8d7 from exact degraded stagingb7eae4b0.
+The original canonical documentation merge succeeded, but public API polling
+made two requests every five seconds and exhausted the unauthenticated allowance
+before hosted tests finished. Preserve this interrupted-watch record and marker;
+do not infer failing product tests or delete the marker manually.
+
+Implement only conserved read-only polling and exact-current guarded receipt
+reconciliation. Reuse existing closure/exhaustive gates; no source-feature
+merge, data cleanup, API credential handling, or new browser fixture. WATCH1-3
+and owned paths in plan.yaml are the contract. Delegate technical closure only
+after actual tests and exact-source CI pass. Root goal remains active through
+all four feature merges, joint human-usable validation and same-owner release.

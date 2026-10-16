@@ -5,26 +5,42 @@ parent_branch: staging
 parent_sha: b7eae4b0a509a135eb85fef2984633499b16617e
 dependency_authorization: "Human delegated closure of necessary technical repairs and activated central four-feature integration. This remediation starts only from exact synchronized degraded staging b7eae4b0a509a135eb85fef2984633499b16617e after the canonical watcher failed on HTTP403 API rate exhaustion; retain every source/closure/exact CI/exhaustive gate, no manual marker bypass."
 human_intent_authorization: "Start coordinating the four-feature staging integration. Proceed until you either have no way to continue and/or require my action for something. Technical repairs: Yes I approve, and you do not need my acceptance to close it off; do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Scope: repair coordinator read-only CI watch exhaustion and exact-source interrupted-watch recovery; no product/test-policy/deployment/data changes."
-planning_state: draft
+planning_state: ready
 human_closure_authorization: pending
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: unit
+local_validation_reason: Coordinator Python helper and contract tests only; no application, dependency, migration, Compose, deployment or browser change. Exercise workflow unit tests, formatting, CLI parsing and all workstream validation; preserve full integration tier and normal exact-source CI.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 goal: "Start coordinating the four-feature staging integration. Proceed until you either have no way to continue and/or require my action for something. Technical repairs: Yes I approve, and you do not need my acceptance to close it off; do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Scope: repair coordinator read-only CI watch exhaustion and exact-source interrupted-watch recovery; no product/test-policy/deployment/data changes."
-scope: []
-owned_paths: []
-dependencies: []
-acceptance_criteria: []
-branch_tests: []
-branch_tests_reason: pending agent assessment
+scope:
+  - Reduce unauthenticated read-only CI polling and fetch job details only when terminal.
+  - Add guarded exact-current staging reconciliation after an interrupted CI watch, with source and receipt validation and no merge, push, acceptance, or test bypass.
+  - Preserve degraded state until actual exact staging exhaustive success is established; no manual marker deletion.
+owned_paths:
+  - scripts/staging.py
+  - Makefile
+  - docs/agent-orchestration.md
+  - tests/workflow/test_staging_workflow.py
+  - ops/workstreams/fix-staging-ci-watch-recovery/
+dependencies:
+  - Exact synchronized degraded staging b7eae4b0a509a135eb85fef2984633499b16617e; original canonical docs merge retained, hosted CI38866524549 still running.
+acceptance_criteria:
+  - id: WATCH1
+    text: Polling conserves public API requests without treating unavailable CI as passing or altering retry/test acceptance.
+  - id: WATCH2
+    text: Exact-current reconciliation validates recorded starting/source ancestry and unchanged staging before and after the existing exhaustive CI gate; mismatch/red/pending retain degraded state.
+  - id: WATCH3
+    text: Focused positive/negative workflow tests and normal exact-source CI pass, then canonical remediation integration and exact staging exhaustive gates remain required.
+branch_tests:
+  - uv run --project backend python -m pytest tests/workflow/test_staging_workflow.py tests/workflow/test_agent_session.py --no-cov
+branch_tests_reason: Exercise existing coordinator/session contracts and new interrupted-watch recovery without changing product tests or coverage policy.
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: authorized
+status: in_progress
 remaining_gaps: []
 progress:
   completed: []

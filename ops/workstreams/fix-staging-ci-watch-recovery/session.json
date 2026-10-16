@@ -1,20 +1,65 @@
 {
-  "schema": 2,
+  "acceptance_criteria": [],
+  "active_session_id": "b12c73e0-2ad3-420f-9fe9-4fa11209f8d7",
   "branch": "fix/staging-ci-watch-recovery",
-  "parent_branch": "staging",
-  "implementation_sha": "b7eae4b0a509a135eb85fef2984633499b16617e",
-  "remote_sha": null,
-  "active_session_id": null,
-  "previous_session_ids": [],
-  "goal_state": "not_started",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-staging-ci-watch-recovery-7b02aabb",
+      "charting-stack-fix-staging-ci-watch-recovery-7b02aabb"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-staging-ci-watch-recovery-7b02aabb4f"
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/staging-ci-watch-recovery: Start coordinating the four-feature staging integration. Proceed until you either have no way to continue and/or require my action for something. Technical repairs: Yes I approve, and you do not need my acceptance to close it off; do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Scope: repair coordinator read-only CI watch exhaustion and exact-source interrupted-watch recovery; no product/test-policy/deployment/data changes.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/staging-ci-watch-recovery: Start coordinating the four-feature staging integration. Proceed until you either have no way to continue and/or require my action for something. Technical repairs: Yes I approve, and you do not need my acceptance to close it off; do this yourself, with care, I just want to get to the merged-into-staging state to finally try this out. Scope: repair coordinator read-only CI watch exhaustion and exact-source interrupted-watch recovery; no product/test-policy/deployment/data changes.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "9756ff33366b51de6f66d66663436bd7f3ee0d7b",
+  "implementation_sha": "b7eae4b0a509a135eb85fef2984633499b16617e",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "34c1caaeaf59bdcbe2d7a78d89e3cf68d74e78565c97e68e301ed379e957f6a4",
+  "planning_required": true,
   "planning_state": "draft",
+  "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "total": 0,
+    "current_blocker": "none",
     "current_phase": "plan",
-    "current_blocker": "none"
+    "total": 0
   },
-  "next_action": "run make agent-session-start",
-  "retained_docker_resources": []
+  "remote": "9756ff33366b51de6f66d66663436bd7f3ee0d7b",
+  "remote_sha": null,
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "b12c73e0-2ad3-420f-9fe9-4fa11209f8d7",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-staging-ci-watch-recovery/ops/workstreams/fix-staging-ci-watch-recovery",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-staging-ci-watch-recovery/ops/workstreams/fix-staging-ci-watch-recovery/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-staging-ci-watch-recovery/ops/workstreams/fix-staging-ci-watch-recovery/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-staging-ci-watch-recovery/ops/workstreams/fix-staging-ci-watch-recovery/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-staging-ci-watch-recovery/ops/workstreams/fix-staging-ci-watch-recovery/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-staging-ci-watch-recovery",
+  "worktree_id": "fix-staging-ci-watch-recovery-7b02aabb4f"
 }
