@@ -48,7 +48,31 @@ previous_closure_summary: >-
   integration_capture: exact branch HEAD. Release the implementation claim via
   explicit coordinator handoff after scoped disposable-resource cleanup; freeze
   the final clean pushed source for guarded integration, with no intervening writes.
-closure_summary: pending
+closure_summary: >-
+  This coordinator-owned technical checkpoint is prepared for guarded integration
+  only; the resulting staging gate remains mandatory, and this does not accept the
+  Provider, ETF, TC2000, or Strategy Lab feature checkpoints.
+  Validated implementation/source c9127042fa25aaed687dc59787bff607e68338f4 is
+  the exact pushed source for CI run 38940886651, attempt 1. Branch-declared,
+  Backend, Frontend Unit, and E2E jobs all succeeded. Playwright ran 260 cases:
+  151 passed and 109 expected skips in 14.3 minutes, with zero failed tests,
+  retries, or flaky results. F9e-easyscan-builder-keyboard, F8j and F8j-conflict,
+  and F8s-family-matrix ran in the first attempt. Isolated CI teardown passed;
+  the feature-branch Exhaustive gate was skipped by policy and is required on
+  the resulting staging SHA. This exact-source result validates the cold-mount
+  Add Tool readiness boundary, deterministic F8s root-fixture fallback, and
+  persistent F8j conflict fixture while retaining product and identity
+  assertions. The earlier full 104-case visual evidence remains recorded in
+  previous_closure_summary; this E2E run does not claim new visual passes.
+  No migrations, deployment changes, provider HTTP/quota use, paid/trial
+  activation, retained-data cleanup, screenshot oracle/tolerance changes, or
+  sibling worktree edits were made. No source conflict decision was needed;
+  any integration conflict must be handled only through the guarded workflow.
+  Remaining: exact CI for this closure-record commit, guarded merge, and a green
+  Exhaustive Integration Gate on the exact resulting staging SHA; only then
+  release Provider to rerun its held full profile. Staging validation is a
+  post-merge release gate, not product-checkpoint acceptance.
+  integration_capture: exact branch HEAD
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
@@ -103,7 +127,7 @@ branch_tests_reason: Existing chart-template/comparison frontend unit tests, F9c
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: in_progress
+status: ready_for_integration
 active_changeset_context:
   name: provider-profile-f9e-f8s-repair
   intent: Carry the TC cold-mount Add Tool readiness fix and deterministic F8s fixture-fallback/assertion fix needed to unblock Provider's required browser profile, plus the F8j test-fixture correction required after exact full-profile CI exposed a one-shot simulated-conflict race; keep the full TC feature and its workstream records out of this repair.
@@ -112,11 +136,12 @@ active_changeset_context:
     - frontend/tests/e2e/flows.spec.ts
     - ops/workstreams/fix-chart-template-pointer-interaction/
 remaining_gaps:
-  - Exact-source required CI rerun for this repair branch, including F9e, F8s and F8j no-retry evidence.
+  - Exact-source required CI for the closure-record commit.
   - Guarded merge into persistent staging and a green Exhaustive Integration Gate on the exact resulting staging SHA.
+  - After synchronized staging release, Provider must rerun its held full seeded browser profile and continue its own checkpoint.
 progress:
-  completed: [PTR1, PTR2, PTR3]
+  completed: [PTR1, PTR2, PTR3, PTR5, PTR6, PTR7, PTR8]
   total: 8
-  current_phase: provider_browser_repair_added;_F8j_one-shot_conflict_fixture_flake_reproduced_and_corrected
-  current_blocker: Exact-source repair-branch CI rerun after the F8j test-fixture correction remains pending; Provider's full browser-profile rerun follows synchronized green staging.
-  next_action: Commit and publish the F8j fixture correction, run exact repair-branch CI, and audit F9e/F8s/F8j for zero retries/flakes and no real endpoint traffic. Then record delegated technical closure, integrate only through persistent staging, and await the exact exhaustive gate before asking Provider to rerun its full profile. No feature-checkpoint acceptance, promotion or deployment.
+  current_phase: delegated_technical_closure_recorded;exact_metadata_commit_CI_pending
+  current_blocker: The closure record must pass exact-source branch CI; the guarded staging merge and exact staging Exhaustive Integration Gate remain required before Provider can rerun its held full profile.
+  next_action: Commit and publish this delegated technical closure record, verify exact-source CI for that metadata commit, then integrate only through the guarded persistent-staging helper and wait for the exact staging Exhaustive gate. Release that synchronized green baseline to Provider for its full profile; do not accept any feature checkpoint, promote, or deploy here.

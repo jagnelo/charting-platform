@@ -466,3 +466,26 @@ closure, use only the guarded persistent-staging merge, and require the exact
 staging Exhaustive Integration Gate before releasing Provider's held 260-case
 profile. No provider request, quota spend, staging mutation, or dataset cleanup
 occurred in this correction step.
+
+## 2026-10-16 — Exact-source repair CI green and delegated closure
+
+The exact pushed repair tip `c9127042fa25aaed687dc59787bff607e68338f4`
+completed CI run `38940886651`, attempt 1. Branch-declared, Backend, Frontend
+Unit, and E2E jobs passed. Playwright executed 260 cases: 151 passed, 109
+expected skips, zero failures/retries/flakes, in 14.3 minutes. The complete log
+shows F9e-easyscan-builder-keyboard, F8j/F8j-conflict, and F8s-family-matrix
+each in the first attempt. Isolated runner teardown passed. Exhaustive
+Integration Gate was skipped as expected on a feature branch; it remains
+mandatory for the resulting staging SHA. The run validates the mount-settled
+Add Tool command, deterministic F8s local fixture fallback, and persistent F8j
+conflict fixture without weakening product/identity assertions. It does not
+claim the 104 visual cases; prior full visual evidence remains in the earlier
+repair receipt and the staging gate must repeat visual validation.
+
+The repair workstream is recorded ready for guarded integration under the
+human-delegated narrow technical-fix review. Staging acceptance remains pending,
+and no feature checkpoint is accepted. Next: exact CI on this closure-record commit, guarded
+integration into persistent staging, then exact staging Exhaustive success.
+Only after that green staging release may Provider rerun its held 260-case
+profile. No provider HTTP/quota, dataset cleanup, visual oracle/tolerance,
+deployment, paid/trial activation, or sibling source change occurred.
