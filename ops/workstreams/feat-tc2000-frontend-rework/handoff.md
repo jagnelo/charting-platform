@@ -20733,3 +20733,35 @@ combined validation, TCP5 review, and official V25 parity open. The downstream
 reconciliation map has been read; use its semantic points only at an actual
 released baseline boundary.
 
+## 2026-10-16 — Green common-repair staging 0145 reconciled
+
+The coordinator-designated staging ref and GitHub Actions evidence were
+verified before merge: `staging` resolved to
+`0145b65992b8692ce69f82f804f83f6c8e551fea`; run `38896729111` attempt 1 had
+that exact `head_sha`, concluded success, and its Exhaustive Integration Gate
+job also concluded success. This release is a common repair baseline, not
+acceptance of Provider, ETF, TC, or Strategy product checkpoints. It contains
+the already released pointer repair and shared popup/resource/flaky-gate
+repairs. The merge base with TC was `82d881e76be8de538abb6ec5c454d96afe0ee56a`.
+
+The exact staging commit was merged normally into the assigned TC branch. Merge
+commit `2b92c642237ce2abde40a84ee98383d4ee4285d1` has parents
+`4d98747858385ee36cf0d674e36fb2a3224d1912` and
+`0145b65992b8692ce69f82f804f83f6c8e551fea`. One conflict in
+`frontend/tests/e2e/flows.spec.ts` was only overlapping F8b comments; those
+comments were combined, retaining TC's existing `closePopupWhenOpen` call and
+all assertions. No product source was changed to duplicate the pointer repair.
+The Help local-only reference and unchanged screenshot tolerances remain intact;
+official V25 parity is still roadmap debt.
+
+Required next proof: ordinary desktop F9c Plots action while populated RSP is
+present, followed by narrow-layout checks, with ordinary actionable clicks and
+no retries/force clicks. It has not been rerun on merge `2b92c64`: Provider
+retains the heavy local browser priority, so no competing local profile was
+started. Do not expand the prior narrow TCP1 acceptance from the staging merge
+alone; record any update only from exact-source ordinary-pointer evidence.
+TCP2 full exact-source visuals, TCP3 Provider/ETF product-consumer reconciliation,
+TCP4 combined validation, TCP5 review/closure, and official V25 parity remain
+open. No staging write, sibling import, deployment, paid/trial activation, or
+data cleanup occurred.
+

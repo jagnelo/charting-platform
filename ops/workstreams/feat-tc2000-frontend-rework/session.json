@@ -105,7 +105,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476",
+  "head": "2b92c642237ce2abde40a84ee98383d4ee4285d1",
   "implementation_sha": "abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -133,8 +133,8 @@
     "visuals": "Hosted screenshot cases were skipped; not pixel evidence."
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Exact-source functional CI is clean for abea0c0, but all 110 hosted visual cases were skipped and no local browser slot is authorized. Continue TC-owned source-only review while Provider retains heavy validation priority; reconcile Provider/ETF only after synchronized green staging release and its reconciliation map. Preserve full visual and official V25 roadmap gates.",
-  "plan_hash": "c52f7e43757f18262989367295d53519dc92bf29aa981bc10f413c21f9f92e61",
+  "next_action": "Green common-repair staging 0145b65992b8692ce69f82f804f83f6c8e551fea/run38896729111 was merged normally into this TC branch as 2b92c642237ce2abde40a84ee98383d4ee4285d1. Do not duplicate pointer/popup fixes. After Provider releases the heavy local browser priority, rerun ordinary populated-RSP desktop F9c Plots click and narrow-layout checks against exact current source, with no retries or forced clicks; only then update TCP1 evidence. TCP2 full visual, TCP3 Provider/ETF product-consumer reconciliation, TCP4 combined profile, TCP5 review, and official V25 parity remain open.",
+  "plan_hash": "77440dc3c0cd96ad353575efd1e380987f9a349ccffee34c064aea27a2952efd",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -148,25 +148,25 @@
     "completed": [
       "TCP1"
     ],
-    "current_blocker": "Exact TC source abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476 passed required CI; E2E 190/110, zero retries/flakes, F8m and F8j first-attempt. Staging5768/run38873519119 is terminal with ordinary E2E151/109 zero retries, exhaustive success but one retry-passing F8j flake, and full visual104/104; this is not a coordinator-released Provider/ETF product baseline and does not validate the TC SHA. No new local visual slot is authorized. TCP2 full exact-source visuals, TCP3 Provider/ETF consumer reconciliation, TCP4 combined profile, TCP5 review, and official V25 parity remain open.",
+    "current_blocker": "Common repair staging 0145b65992b8692ce69f82f804f83f6c8e551fea is exact-head green on run38896729111, including Exhaustive Integration Gate, and is merged into TC at 2b92c642237ce2abde40a84ee98383d4ee4285d1. This is not product checkpoint acceptance. Ordinary populated-RSP desktop F9c Plots and narrow checks have not yet been rerun on the merge because Provider retains heavy local browser priority; do not broaden TCP1 without exact-source no-retry ordinary-pointer evidence. TCP2 visuals, TCP3 Provider/ETF product consumers, TCP4 combined profile, TCP5 review, and official V25 parity remain open.",
     "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_EXACT_CI_CLEAN_FULL_VISUAL_OPEN;TCP3_PROVIDER_ETF_CONSUMERS_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
     "next_action": "Do not merge or duplicate the stale staging F8j correction; current TC source already uses closePopupWhenOpen and its exact CI passed. Await explicit coordinator release of synchronized Provider/ETF staging; then re-read current refs/owner records, review the downstream reconciliation map, and reconcile semantically on this clean unfrozen branch. Continue non-heavy TC-owned review; retain all full visual/V25 gates.",
     "total": 5,
-    "updated_at": "2026-10-16T09:03:18+00:00"
+    "updated_at": "2026-10-16T13:11:33+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476",
-    "current_pending_range": null,
+    "current_local_head": "2b92c642237ce2abde40a84ee98383d4ee4285d1",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
-    "last_attempted_local_head": "abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476",
-    "last_attempted_range": "e2b474b8605fc0f8d9554d70745d0f0bf2e0baaf..abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476",
+    "last_attempted_local_head": "2b92c642237ce2abde40a84ee98383d4ee4285d1",
+    "last_attempted_range": "abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476..2b92c642237ce2abde40a84ee98383d4ee4285d1",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
     "remote_tracking_sha": "abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476",
-    "status": "pushed"
+    "status": "pending",
+    "current_pending_range": "abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476..2b92c642237ce2abde40a84ee98383d4ee4285d1"
   },
   "remote": "abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476",
   "remote_sha": "abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476",

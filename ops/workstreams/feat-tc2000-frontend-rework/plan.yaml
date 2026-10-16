@@ -2,9 +2,9 @@ schema: 4
 branch: feat/tc2000-frontend-rework
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
-parent_sha: 82d881e76be8de538abb6ec5c454d96afe0ee56a
-latest_staging_parent_sha: 82d881e76be8de538abb6ec5c454d96afe0ee56a
-latest_staging_merge_sha: d4274a9fa3119c212a9aaf2c0006c20d921812e8
+parent_sha: 0145b65992b8692ce69f82f804f83f6c8e551fea
+latest_staging_parent_sha: 0145b65992b8692ce69f82f804f83f6c8e551fea
+latest_staging_merge_sha: 2b92c642237ce2abde40a84ee98383d4ee4285d1
 dependency_authorization: "Human-approved consumer dependency on feat/market-data-provider-platform and feat/etf-holdings-constituents; consume only after their work reaches staging."
 human_intent_authorization: >-
   The human approved implementation of the TC2000 V25-inspired workstation roadmap
@@ -30,29 +30,24 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  TCP1 is narrowly coordinator-accepted. Exact source
-  abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476 passed Frontend Unit, Backend,
-  Branch-declared, and E2E jobs in Actions run38873419736 attempt1. E2E logged
-  190 passed and110 skipped with no Playwright retry/flaky/failure; the F8m
-  panel-scoped Grey menu observer passed in the mounted CI application. The110
-  skips include all hosted screenshot cases, so this is functional CI evidence,
-  not visual acceptance; the feature Exhaustive Integration Gate was skipped by
-  branch policy. No new local browser slot is authorized. TCP2 still needs the
-  complete local functional profile and normalized104 visuals. TCP3 waits for a
-  coordinator-released synchronized green Provider/ETF baseline. Staging
-  5768bec4ae12fb06ecc37f06cf656387751eadaa/run38873519119 is now terminal:
-  ordinary E2E151 passed/109 skipped with no retries; Exhaustive concluded
-  success, but its authenticated functional run had one retry-passing F8j popup-
-  close flake (153 passed/1 flaky) and its full visual matrix passed104/104. The
-  log also records the cleanup helper refusing an assigned-worktree mismatch;
-  this is a workflow/runtime issue, not a TC source change. That run validates
-  only staging SHA5768, not current TC SHAabea0c0, and the coordinator has not
-  released it as a product baseline. TC's current F8j already uses
-  closePopupWhenOpen and passed first-attempt in exact CI38873419736; do not
-  duplicate the older staging test correction. No new local browser slot is
-  authorized. TCP2 exact-source visual, TCP3 consumer reconciliation, TCP4
-  combined profile, TCP5 review, and official V25 parity remain open. Preserve
-  the full roadmap and all interaction/assertion policies.
+  Common repair staging 0145b65992b8692ce69f82f804f83f6c8e551fea is confirmed
+  green by exact CI38896729111, including the Exhaustive Integration Gate, and
+  merged into this TC branch at 2b92c642237ce2abde40a84ee98383d4ee4285d1.
+  This is common repair synchronization only, not acceptance of any
+  Provider/ETF/TC/Strategy product checkpoint. The merge includes released
+  pointer/popup/resource/flaky-gate fixes while preserving TC source and the
+  approved local-only Help references; the single F8b overlap was resolved in
+  comments only and the guarded cleanup call remains intact. The ordinary
+  populated-RSP desktop Plots click and narrow-layout browser checks have not
+  yet been rerun on this exact merge because Provider retains the heavy local
+  browser priority. Do not broaden TCP1 from this merge alone. Existing narrow
+  TCP1 technical acceptance remains scoped to its recorded evidence; update only
+  after exact-source ordinary-pointer proof. TCP2 full local functional and
+  normalized104 visual gates remain open. TCP3 still requires actual Provider/ETF
+  product baselines plus consumer reconciliation; this release is not those
+  integrations. TCP4 combined profile, TCP5 review, and official V25 parity
+  remain open. Preserve full roadmap, screenshot tolerances, and interaction
+  assertions.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
