@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test'
+import { readFileSync } from 'node:fs'
 import { describe, expect, it, vi } from 'vitest'
 import { closePopupWhenOpen } from '../../e2e/popup_cleanup'
 
@@ -19,6 +20,13 @@ function popupFixture(initiallyClosed = false) {
 }
 
 describe('popup cleanup observer', () => {
+  it('keeps ordinary flow cleanup on the tested observer without replacing browser-disconnect coverage', () => {
+    const flows = readFileSync('tests/e2e/flows.spec.ts', 'utf8')
+    expect(flows).not.toContain('await popup.locator(\'button[title="Close"]\').click()')
+    expect(flows).toContain('await closePopupWhenOpen(popup)')
+    expect(flows).toContain('await popup.close()')
+  })
+
   it('does nothing when the disposable popup is already closed', async () => {
     const fixture = popupFixture(true)
     await closePopupWhenOpen(fixture.popup)
