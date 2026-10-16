@@ -109,8 +109,14 @@ integration_checkpoint:
       open; Provider retains the first heavy local validation slot. Provider
       must document its existing synchronous invoke/executor/telemetry contract
       honestly, but need not implement ETF-specific async/redirect transport
-      wiring before its own checkpoint. Wait for the exact released green
-      Provider SHA; no Provider code imports or sibling edits.
+      wiring before its own checkpoint. Provider supplies generic reviewed-
+      policy/admission/durable-ledger mechanics, not review or onboarding of
+      every ETF publisher before first merge. After exact green release, ETF
+      owns binding real issuer/host/account/operation contexts and onboarding
+      ETF policies supported by evidence through that runtime; missing evidence
+      remains non-routable. This is not a circular all-publisher pre-merge
+      dependency. Wait for the exact released green Provider SHA; no Provider
+      code imports or sibling edits.
     bounded_etf_prep: >-
       Prepare transport-level contract tests without issuer/SEC live calls or
       guessed quota, prices, FX, or aggregate-cost rules. Cover each actual
@@ -121,9 +127,11 @@ integration_checkpoint:
     continuation_boundary: >-
       Once Provider's exact green product checkpoint is released into staging,
       reconcile that exact SHA in this ETF worktree, implement and test the real
-      shared bridge, including backward-compatible exactly-once async completion
-      and per-outbound-attempt admission/settlement against the synchronous
-      producer contract, run the required combined local and exact-source CI,
+      shared bridge, including backward-compatible exactly-once async completion,
+      evidence-backed ETF issuer/host/account/operation policy onboarding through
+      the shared runtime, and per-outbound-attempt admission/settlement against
+      the synchronous producer contract. Missing evidence must remain
+      non-routable. Run the required combined local and exact-source CI,
       and continue until the coordinator's acceptance/merge makes the result
       available in human-usable staging. Preserve the complete roadmap and
       later observation gate. No paid/trial activation, deployment, unsafe
@@ -229,10 +237,10 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: Publish offline transport-family and binding inventory
-    state: offline_mapping_recorded_provider_release_pending
+    name: Record ETF publisher-policy onboarding ownership boundary
+    state: ownership_boundary_recorded_provider_release_pending
     baseline: e0af9ddc1310a27009d380bdb4b825d959cc0431
-    intent: Map current ETF native/fallback request families to the actual identity, publisher, account and operation context available, and separate reviewed retained source facts from unknown terms/quota/storage rights and application safety caps.
+    intent: Record that Provider owns generic reviewed-policy/admission/ledger mechanics while ETF owns post-release real-path binding and evidence-backed ETF publisher-policy onboarding; unknowns stay non-routable, no all-publisher pre-merge gate or second ledger is introduced, and cached/historical/PIT reads remain network-free.
     owned_paths:
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md
@@ -1389,7 +1397,13 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Continue bounded request-level test preparation as documented in
+  Provider supplies generic reviewed-policy, admission and durable-ledger
+  mechanics, while ETF owns binding real issuer/host/account/operation contexts
+  and onboarding evidence-backed ETF publisher policies through that runtime
+  after exact green Provider release. Missing evidence remains non-routable; do
+  not create a second ledger or make the complete all-publisher audit a circular
+  Provider pre-merge prerequisite. Cached/historical/PIT reads remain
+  network-free. Continue bounded request-level test preparation as documented in
   shared-cost-admission.md; do not spend live issuer/SEC quota or guess the
   Provider interface, request costs, quotas, or currency conversion. Per the
   coordinator's 2026-10-16 update, Provider is correcting actual admission and

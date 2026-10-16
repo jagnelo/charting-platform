@@ -372,3 +372,22 @@ asset-kind evidence (including futures and cash rows) remains required when
 mapping shared canonical identities; ticker-like strings must never synthesize
 equity identities. Neither this baseline merge nor bounded unit/type checks
 constitutes EICP3/ETF product acceptance.
+
+### Policy onboarding ownership clarification — 2026-10-16
+
+The coordinator's review of `949a013` clarifies the producer/consumer boundary:
+Provider supplies the generic reviewed-policy, admission, and durable-ledger
+contract. Provider's first checkpoint is not contingent on reviewing or
+onboarding every ETF publisher. After the exact green Provider release, ETF
+owns binding its actual issuer, host, account, and semantic operation contexts
+to that shared runtime, and onboarding ETF policies only when supported by
+reviewed evidence. The shared runtime remains the sole policy/admission ledger;
+ETF must not invent cost, quota, terms, account, or retention values.
+
+For each ETF operation, absent or inadequate publisher/account/terms/quota/cost
+evidence remains denied and non-routable until reviewed; this fail-closed rule
+does not make the all-publisher audit an omnibus prerequisite for Provider's
+first merge. The full symbol-level and issuer/publisher evidence roadmap stays
+open and must be completed in ETF-owned continuation. Cached, historical, and
+point-in-time reads remain network- and reservation-free. This clarification
+does not accept either source, authorize live requests, or reduce ETF criteria.

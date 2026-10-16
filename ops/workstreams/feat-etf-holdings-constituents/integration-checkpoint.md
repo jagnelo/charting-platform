@@ -47,6 +47,18 @@ not acceptance of a Provider checkpoint. On this tree:
   integration that completes the async operation exactly once before the shared
   runtime settles it, with each outbound attempt individually admitted.
 
+Policy onboarding follows the same producer/consumer ownership boundary:
+Provider supplies generic reviewed-policy, admission, and durable-ledger
+mechanics, but does not have to review/onboard all ETF publishers before its
+first checkpoint. After exact green Provider release, ETF owns binding its
+actual issuer/host/account/operation contexts and onboarding evidence-backed
+ETF policies through the shared runtime. Unknown or inadequate evidence keeps
+that operation non-routable; this does not create a circular Provider
+pre-merge requirement or narrow the full ETF publisher/symbol roadmap.
+Cached, historical, and point-in-time reads remain network- and
+reservation-free. No cost, quota, terms, account, or retention values may be
+invented, and no second ledger may be introduced.
+
 The runtime implementation snapshot was recorded at
 `13fd50a789b1c09e11a74ef178cb505521c38f4c`. The current full branch tip at this
 resume is `159d1df48c8a242d6ace076e9accbfc901b1552d`; a source diff from the

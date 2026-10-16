@@ -11347,3 +11347,22 @@ full issuer terms audit, or runtime acceptance occurred. After the exact green
 Provider SHA is released, adapt this map to its accepted contract in the ETF
 bridge; do not make this family-level map or its unknowns an added prerequisite
 to Provider's first merge.
+
+### Central review clarification — ETF publisher-policy onboarding ownership — 2026-10-16
+
+The coordinator's review of `949a013` clarified that Provider supplies the
+generic reviewed-policy/admission/durable-ledger contract; Provider is not
+responsible for reviewing or onboarding every ETF publisher before its first
+checkpoint. After the exact green Provider release, ETF owns binding real
+issuer, host, account, and semantic operation contexts and onboarding
+evidence-backed ETF publisher policies through that shared runtime. The shared
+runtime remains the only ledger/policy engine: ETF must not invent costs,
+quotas, terms, account scope, or retention rights.
+
+Missing or inadequate evidence continues to deny and hold the affected ETF
+operation as non-routable until reviewed. This is not a reason to hold
+Provider's first merge for an all-publisher audit; the full publisher and
+symbol-level roadmap remains ETF-owned and open for continuation. Cached,
+historical, and point-in-time reads stay network- and reservation-free. No
+live request, Provider import, runtime acceptance, scope reduction, paid/trial
+activation, or heavy validation was authorized or performed by this update.
