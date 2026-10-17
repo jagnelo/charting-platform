@@ -42,24 +42,28 @@ owned_paths:
   - frontend/src/components/workstation/WorkstationToolContent.vue
 dependencies: []
 acceptance_criteria:
-  - >-
-    Configured indicator rendering and chart-plot drop updates use the same
-    canonical live workspace configuration snapshot; no unrelated feature
-    source or ownership boundary changes.
-  - >-
-    Existing F8u real pointer-drag flow adds the RSI header to Major US
-    benchmarks on this exact repair source, in a fresh internal-only seeded
-    fixture with provider/OneSignal credentials blank, provider routing/refresh
-    disabled, one worker, and zero retries; repeat the exact flow five times.
-  - >-
-    Affected watchlist/plot component suites, vue-tsc, production frontend
-    build, branch-declared tests, and exact-source ordinary CI pass without
-    weakened assertions, changed timeouts/retries, external provider traffic,
-    or visual-oracle changes.
-  - >-
-    The branch is clean and pushed with exact evidence, stops at
-    ready_for_human_review, and leaves integration solely to the coordinator's
-    guarded persistent-staging workflow.
+  - id: AC1
+    text: >-
+      Configured indicator rendering and chart-plot drop updates use the same
+      canonical live workspace configuration snapshot; no unrelated feature
+      source or ownership boundary changes.
+  - id: AC2
+    text: >-
+      Existing F8u real pointer-drag flow adds the RSI header to Major US
+      benchmarks on this exact repair source, in a fresh internal-only seeded
+      fixture with provider/OneSignal credentials blank, provider routing/refresh
+      disabled, one worker, and zero retries; repeat the exact flow five times.
+  - id: AC3
+    text: >-
+      Affected watchlist/plot component suites, vue-tsc, production frontend
+      build, branch-declared tests, and exact-source ordinary CI pass without
+      weakened assertions, changed timeouts/retries, external provider traffic,
+      or visual-oracle changes.
+  - id: AC4
+    text: >-
+      The branch is clean and pushed with exact evidence, stops at
+      ready_for_human_review, and leaves integration solely to the coordinator's
+      guarded persistent-staging workflow.
 branch_tests:
   - frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts
   - frontend/tests/unit/components/test_chart_plot_library.test.ts
