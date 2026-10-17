@@ -75,16 +75,16 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "dc1864a265fc8bbeeb5549b6169b9ffd7ab9745c",
+  "head": "d5045c70e5cec1ff4ec127527c130f5e29cd1630",
   "implementation_sha": "dc1864a265fc8bbeeb5549b6169b9ffd7ab9745c",
   "interrupted": false,
-  "last_checkpoint": "2026-10-17T15:12:00Z",
+  "last_checkpoint": "2026-10-17T15:51:00Z",
   "last_human_progress_update": "2026-10-17T09:52:00+00:00",
   "local_validation_profile": "full_stack_browser",
-  "run_id": 39043260471,
-  "next_action": "Released staging 6dc178c12498236a2a0060533305e20cf47438b7 was verified current through GitHub API and exact Exhaustive run 39033839693 is green. It was merged into Provider-only at dc1864a265fc8bbeeb5549b6169b9ffd7ab9745c without conflict; the released a32bbaf F8u repair is in the branch. On merged source the bounded ICP2/ICP6 selection passed 252/252 in 131.28s. Host has about 0.9 GiB available and read-only Docker inventory shows multiple retained Provider Noble and Provider/TC stacks active, so do not start browser/Compose. The focused F8u flow and full pinned-Noble 260-functional/104-visual profile remain required on the merged source. Run 39043260471 applies only to pre-merge receipt source e9c0956 and was still in progress at the last check; post-merge exact-source CI is required. Current-source live provider success is absent; latest preflight was blocked before transport by private ledger access and sent zero provider requests; keep all unreviewed, quota-held, paid/trial, unknown and unsafe routes non-routable. Preserve all data and receipts. Continue bounded Provider-owned contract/disposition work; checkpoint remains pending and not ready_for_human_review. No sibling edits, provider/issuer HTTP, quota spend, reset/cleanup, staging mutation, paid/trial activation, or deployment.",
+  "run_id": 39044151374,
+  "next_action": "Provider source d5045c70e5cec1ff4ec127527c130f5e29cd1630 is pushed and synchronized. Exact Actions run 39044151374 is terminal green for Backend, Frontend Unit, Branch-declared, and Playwright; Exhaustive was skipped by feature-branch policy. The pre-merge run 39043260471 on e9c0956 was cancelled after the merge push and is not evidence for the merged source. Released staging 6dc178c12498236a2a0060533305e20cf47438b7, including F8u repair a32bbaf26109ca8e727419e313a0757549692bc1, is merged at parent implementation merge commit dc1864a265fc8bbeeb5549b6169b9ffd7ab9745c. Merged-source bounded ICP2/ICP6 tests passed 252/252 in 131.28s. The focused post-merge F8u flow and complete pinned-Noble 260-functional/104-visual local profile remain unrun: host had about 0.9 GiB available and multiple retained Provider Noble and Provider/TC containers were active, so no local browser/Compose was started. Current-source live-provider success remains incomplete; latest preflight was blocked before transport by private ledger access and sent zero requests. Keep unreviewed, quota-held, paid/trial, unknown and unsafe routes disabled; preserve all data/receipts. Continue bounded Provider-owned non-browser contract/disposition work until the browser slot is safe. Checkpoint remains pending and not ready_for_human_review. No sibling edits, provider/issuer HTTP, quota spend, reset/cleanup, staging mutation, paid/trial activation, or deployment.",
   "parent_branch": "staging",
-  "plan_hash": "1b6dcca99a623b03b845903397851979d480932a1cd564671be8d5916b0ac211",
+  "plan_hash": "b12cb5ebab10e554343bbd300a866d995e0507c5db5074a69dc0425f1b641ffb",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -121,8 +121,8 @@
     "updated_at": "2026-10-17T14:20:00+00:00"
   },
   "remote": "origin/feat/market-data-provider-platform",
-  "remote_sha": "e9c09569ec237ae962a8ec1325d50c974f68aad7",
-  "remote_synchronized": false,
+  "remote_sha": "d5045c70e5cec1ff4ec127527c130f5e29cd1630",
+  "remote_synchronized": true,
   "retained_docker_resources": [
     "The fresh pinned-Noble project provider-noble-2734-retry1-20261017 and runner provider-noble-2734-20261017-functional-retry1 remain running/preserved with seeded isolated datasets; the earlier harness-misconfigured project provider-noble-2734-20261017 also remains preserved. Existing charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, provider-playwright-1236-hostaccess-20261016, and assigned Provider/TC stacks remain running/preserved. No stop, reset, prune, or data cleanup occurred."
   ],

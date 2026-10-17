@@ -6505,6 +6505,16 @@ progress:
   total: 7
   current_phase: provider-checkpoint-icp2-icp6-and-operation-disposition
   current_blocker: >-
+    CURRENT SOURCE UPDATE — 2026-10-17 15:51Z: Provider branch tip
+    `d5045c70e5cec1ff4ec127527c130f5e29cd1630` is pushed and synchronized.
+    Exact Actions run `39044151374` is terminal green for Backend, Frontend
+    Unit, Branch-declared, and Playwright; Exhaustive was skipped by feature
+    policy. The prior pre-merge run `39043260471` on `e9c0956` was cancelled
+    after the superseding merge push. Post-merge local focused F8u and full
+    pinned-Noble 260-functional/104-visual gates remain unrun; host resources
+    and retained Provider/TC stacks remain under the explicit safety hold.
+    This hosted green does not replace those local gates or operation-level
+    current-source live evidence. Do not claim checkpoint readiness.
     CURRENT STATUS — 2026-10-17 15:12Z: synchronized staging ref and GitHub API
     both confirm green baseline `6dc178c12498236a2a0060533305e20cf47438b7`
     (Exhaustive run `39033839693`, all required jobs green). Its released
@@ -6617,16 +6627,19 @@ progress:
     source-bound receipts; no paid/trial activation, deployment, integration,
     reset, or cleanup is authorized.
   next_action: >-
-    Continue only bounded Provider-owned non-browser ICP2/ICP6 and operation
-    contract work while resource constraints remain. Once the coordinator's
-    browser slot is safe, run the unchanged focused F8u flow and then required
-    full pinned-Noble 260-functional/104-visual profile on the exact merged
-    Provider source; preserve every result and artifact. Complete clean pushed
-    exact-source CI and operation-level dispositions. Do not edit TC/ETF/Strategy
-    sources, start browser/Compose under unsafe memory or active fixtures, call
-    providers/issuers, spend quota, reset/clean retained data, activate held
-    routes, write staging, deploy, or reduce any full-roadmap criterion. Stop at
-    `ready_for_human_review` only after all checkpoint gates genuinely pass.
+    Exact pushed Provider source `d5045c70e5cec1ff4ec127527c130f5e29cd1630`
+    passed Actions run `39044151374`: Backend, Frontend Unit, Branch-declared,
+    and Playwright succeeded; Exhaustive was skipped by feature policy. Continue
+    bounded Provider-owned non-browser ICP2/ICP6 and operation-contract work
+    while resource constraints remain. When the coordinator releases a safe
+    browser slot, run unchanged focused F8u and then the full pinned-Noble
+    260-functional/104-visual profile on the exact merged Provider source;
+    preserve every result/artifact. The local focused/full gates remain unrun,
+    and current-source live-provider evidence is incomplete. Do not edit
+    TC/ETF/Strategy sources, start browser/Compose under unsafe memory or active
+    fixtures, call providers/issuers, spend quota, reset/clean retained data,
+    activate held routes, write staging, deploy, or reduce roadmap scope. Stop
+    at `ready_for_human_review` only after all checkpoint gates genuinely pass.
   historical_next_action_pre_20261017T1512Z: >-
     Reconcile exact green Actions run `39040380183` and preserve prior red
     `39037691098` in the packet, handoff, session and append-only journal. The

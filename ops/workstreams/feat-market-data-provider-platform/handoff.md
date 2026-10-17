@@ -1,5 +1,23 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 15:51Z — exact merged-source CI green; local browser gate held
+
+- Provider tip `d5045c70e5cec1ff4ec127527c130f5e29cd1630` is pushed and
+  synchronized. Exact Actions run
+  [39044151374](https://github.com/jagnelo/charting-platform/actions/runs/39044151374)
+  is terminal green: Backend, Frontend Unit, Branch-declared, and Playwright
+  succeeded; Exhaustive was skipped under feature-branch policy.
+- The superseded pre-merge run `39043260471` on `e9c0956` was cancelled after
+  the merge push; it is not used as evidence for merged source.
+- The post-merge focused F8u flow and full pinned-Noble 260-functional/104-
+  visual local profile are still unrun. The latest safety check found about
+  0.9 GiB available and multiple retained Provider Noble and Provider/TC stacks
+  active. No local browser/Compose was started and no retained resource/data was
+  touched.
+- Merged-source bounded ICP2/ICP6 contract tests are 252/252; no provider or
+  issuer transport/quota was used. Checkpoint remains open until the local
+  focused/full profile and remaining operation-level evidence are completed.
+
 ## 2026-10-17 15:12Z — current green staging repair back-merged; browser gate held for resources
 
 - Verified GitHub's current `staging` ref is still

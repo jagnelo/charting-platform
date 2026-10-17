@@ -1,5 +1,24 @@
 # Provider integration checkpoint review packet
 
+## 2026-10-17 15:51Z — merged Provider source CI is green; local browser gates remain open
+
+Pushed Provider source `d5045c70e5cec1ff4ec127527c130f5e29cd1630` passed exact
+[Actions run 39044151374](https://github.com/jagnelo/charting-platform/actions/runs/39044151374).
+Backend, Frontend Unit, Branch-declared, and Playwright jobs succeeded;
+Exhaustive was skipped by feature-branch policy. The prior run
+`39043260471` on pre-merge source `e9c0956` was cancelled after the newer push.
+
+On merged Provider source, bounded ICP2/ICP6 regressions passed 252/252. The
+post-merge focused F8u browser flow and required pinned-Noble full
+260-functional/104-visual profile remain unrun because host memory availability
+was about 0.9 GiB and multiple retained Provider Noble and Provider/TC stacks
+were active. No local container/data/quota was changed. Keep the earlier
+pre-repair F8u failure visible; staging's F8u fix and green CI do not prove the
+focused flow on this merged Provider source. Current-source live provider
+success remains incomplete, and quota-held, unreviewed, paid/trial, unknown and
+unsafe operations stay disabled. Checkpoint remains pending, not ready for
+human review.
+
 ## 2026-10-17 15:12Z — released F8u repair back-merged; exact Provider browser gate pending
 
 GitHub still reports synchronized staging at
