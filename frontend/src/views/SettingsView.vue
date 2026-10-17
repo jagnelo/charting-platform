@@ -337,9 +337,48 @@ const reconciliationError = ref<string | null>(null)
 let lifecycleGeneration = 0
 let providerLoadSequence = 0
 let reconciliationLoadSequence = 0
+let oneSignalSdkLoad: Promise<void> | null = null
+
+const oneSignalSdkUrl = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'
+
+type OneSignalClient = {
+  init: (options: { appId: string; notifyButton: { enable: boolean } }) => Promise<void>
+  Notifications: { requestPermission: () => Promise<void> }
+}
+
+type OneSignalWindow = Window & {
+  OneSignalDeferred?: Array<(client: OneSignalClient) => void | Promise<void>>
+}
 
 function isCurrentLifecycle(generation: number) {
   return generation === lifecycleGeneration
+}
+
+function loadOneSignalSdk() {
+  const existing = document.querySelector<HTMLScriptElement>('script[data-onesignal-sdk]')
+  if (existing?.dataset.onesignalSdkState === 'loaded') return Promise.resolve()
+  if (oneSignalSdkLoad) return oneSignalSdkLoad
+
+  oneSignalSdkLoad = new Promise<void>((resolve, reject) => {
+    const script = existing ?? document.createElement('script')
+    script.addEventListener('load', () => {
+      script.dataset.onesignalSdkState = 'loaded'
+      resolve()
+    }, { once: true })
+    script.addEventListener('error', () => {
+      script.dataset.onesignalSdkState = 'failed'
+      script.remove()
+      oneSignalSdkLoad = null
+      reject(new Error('Unable to load the OneSignal SDK'))
+    }, { once: true })
+    if (!existing) {
+      script.src = oneSignalSdkUrl
+      script.async = true
+      script.dataset.onesignalSdk = 'true'
+      document.head.append(script)
+    }
+  })
+  return oneSignalSdkLoad
 }
 
 const providerCards = computed(() => {
@@ -485,20 +524,27 @@ async function initOneSignal() {
   if (!oneSignalAppId.value) { pushStatus.value = { ok: false, msg: 'Please enter an App ID' }; return }
   localStorage.setItem('onesignal_app_id', oneSignalAppId.value)
   try {
-    // @ts-ignore
-    window.OneSignalDeferred = window.OneSignalDeferred || []
-    // @ts-ignore
-    window.OneSignalDeferred.push(async (OneSignal: any) => {
-      if (!isCurrentLifecycle(generation)) return
-      await OneSignal.init({ appId: oneSignalAppId.value, notifyButton: { enable: false } })
-      if (!isCurrentLifecycle(generation)) return
-      await OneSignal.Notifications.requestPermission()
-      if (!isCurrentLifecycle(generation)) return
-      pushStatus.value = { ok: true, msg: 'Push notifications enabled!' }
+    const oneSignalWindow = window as OneSignalWindow
+    oneSignalWindow.OneSignalDeferred = oneSignalWindow.OneSignalDeferred || []
+    oneSignalWindow.OneSignalDeferred.push(async (OneSignal) => {
+      try {
+        if (!isCurrentLifecycle(generation)) return
+        await OneSignal.init({ appId: oneSignalAppId.value, notifyButton: { enable: false } })
+        if (!isCurrentLifecycle(generation)) return
+        await OneSignal.Notifications.requestPermission()
+        if (!isCurrentLifecycle(generation)) return
+        pushStatus.value = { ok: true, msg: 'Push notifications enabled!' }
+      } catch (error) {
+        if (!isCurrentLifecycle(generation)) return
+        const message = error instanceof Error ? error.message : String(error)
+        pushStatus.value = { ok: false, msg: `Failed: ${message}` }
+      }
     })
-  } catch (e: any) {
+    await loadOneSignalSdk()
+  } catch (error) {
     if (!isCurrentLifecycle(generation)) return
-    pushStatus.value = { ok: false, msg: `Failed: ${e.message}` }
+    const message = error instanceof Error ? error.message : String(error)
+    pushStatus.value = { ok: false, msg: `Failed: ${message}` }
   }
 }
 

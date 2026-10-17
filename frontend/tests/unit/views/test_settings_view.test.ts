@@ -139,6 +139,9 @@ describe('SettingsView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.resetAllMocks()
+    localStorage.removeItem('onesignal_app_id')
+    document.querySelectorAll('script[data-onesignal-sdk]').forEach((script) => script.remove())
+    delete (window as Window & { OneSignalDeferred?: unknown }).OneSignalDeferred
     ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
       if (path === '/presets') return Promise.resolve([])
       if (path === '/providers/policies') return Promise.resolve(providerPolicies)
@@ -146,6 +149,40 @@ describe('SettingsView', () => {
       if (path.startsWith('/providers/reconciliation/issues')) return Promise.resolve([])
       return Promise.resolve([])
     })
+  })
+
+  it('loads the OneSignal SDK only after a configured user requests notifications', async () => {
+    const wrapper = mount(SettingsView, {
+      global: { plugins: [createPinia()] },
+    })
+    await flushPromises()
+
+    expect(document.querySelector('script[data-onesignal-sdk]')).toBeNull()
+    const enableButton = wrapper.findAll('button').find((button) => button.text() === 'Enable Push Notifications')
+    expect(enableButton).toBeDefined()
+
+    await enableButton!.trigger('click')
+    expect(wrapper.text()).toContain('Please enter an App ID')
+    expect(document.querySelector('script[data-onesignal-sdk]')).toBeNull()
+
+    await wrapper.get('input[placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"]').setValue('test-app-id')
+    await enableButton!.trigger('click')
+
+    const sdk = document.querySelector<HTMLScriptElement>('script[data-onesignal-sdk]')
+    expect(sdk?.src).toBe('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js')
+    expect(localStorage.getItem('onesignal_app_id')).toBe('test-app-id')
+
+    const deferred = (window as Window & { OneSignalDeferred?: Array<(client: any) => Promise<void>> }).OneSignalDeferred
+    expect(deferred).toHaveLength(1)
+    const init = vi.fn().mockResolvedValue(undefined)
+    const requestPermission = vi.fn().mockResolvedValue(undefined)
+    await deferred![0]({ init, Notifications: { requestPermission } })
+    sdk!.dispatchEvent(new Event('load'))
+    await flushPromises()
+
+    expect(init).toHaveBeenCalledWith({ appId: 'test-app-id', notifyButton: { enable: false } })
+    expect(requestPermission).toHaveBeenCalledOnce()
+    expect(wrapper.text()).toContain('Push notifications enabled!')
   })
 
   it('keeps usage details collapsed by default and removes duplicate request units', async () => {

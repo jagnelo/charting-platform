@@ -1281,6 +1281,32 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.find('.watchlist__row--active').exists()).toBe(true)
   })
 
+  it('saves a column set without randomUUID', async () => {
+    const originalCrypto = globalThis.crypto
+    vi.stubGlobal('crypto', { getRandomValues: originalCrypto.getRandomValues.bind(originalCrypto) })
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
+    try {
+      await flushPromises()
+      apiPut.mockImplementation(async (_path, item) => {
+        apiGet.mockResolvedValue([{ ...item, version: 1 }])
+        return item
+      })
+      await wrapper.get('button[aria-label="Column sets"]').trigger('click')
+      await wrapper.get('[aria-label="Column set name"]').setValue('Local columns')
+      await wrapper.get('button[aria-label="Save column set"]').trigger('click')
+      await flushPromises()
+
+      expect(apiPut).toHaveBeenCalledWith(expect.stringMatching(/^\/workspaces\/library\/items\/column_set\/local-columns-[0-9a-f]{8}$/), expect.objectContaining({
+        kind: 'column_set', name: 'Local columns', payload: expect.objectContaining({ schema_version: 1 }),
+      }))
+      expect(wrapper.get('button[aria-label="Apply column set Local columns version 1"]').exists()).toBe(true)
+      expect(wrapper.find('.watchlist__column-set-error').exists()).toBe(false)
+    } finally {
+      wrapper.unmount()
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('saves and applies a user-isolated column set using only compatible columns', async () => {
     const saved = { stable_key: 'technical-1', name: 'Technical', version: 1, payload: { configuration: {
       column_keys: ['rsi14', 'symbol', 'unknown'], pinned_boolean_keys: ['above_ma50', 'unknown'],

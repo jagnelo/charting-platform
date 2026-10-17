@@ -47,6 +47,32 @@ describe('ChartTemplateControl', () => {
     expect(apiPut.mock.calls[0][1].payload.configuration).not.toHaveProperty('symbol')
   })
 
+  it('saves a chart template without randomUUID', async () => {
+    const originalCrypto = globalThis.crypto
+    vi.stubGlobal('crypto', { getRandomValues: originalCrypto.getRandomValues.bind(originalCrypto) })
+    const wrapper = mount(ChartTemplateControl, { props: { configuration: { symbol: 'SPY', bar_type: 'line' } } })
+    try {
+      await flushPromises()
+      apiPut.mockImplementation(async (_path, item) => {
+        apiGet.mockResolvedValue([{ ...item, version: 1 }])
+        return item
+      })
+      await wrapper.get('button[aria-label="Chart templates"]').trigger('click')
+      await wrapper.get('[aria-label="Chart template name"]').setValue('Local template')
+      await wrapper.find('.chart-template__save button').trigger('click')
+      await flushPromises()
+
+      expect(apiPut).toHaveBeenCalledWith(expect.stringMatching(/^\/workspaces\/library\/items\/chart_template\/local-template-[0-9a-f]{8}$/), expect.objectContaining({
+        name: 'Local template', payload: expect.objectContaining({ configuration: { bar_type: 'line', indicators: [] } }),
+      }))
+      expect(wrapper.get('.chart-template__apply').text()).toContain('Local template')
+      expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    } finally {
+      wrapper.unmount()
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('publishes a saved indicator stack for the active chart without template identity', async () => {
     apiGet.mockResolvedValueOnce([{
       stable_key: 'trend-20', name: 'Trend 20', version: 3,
