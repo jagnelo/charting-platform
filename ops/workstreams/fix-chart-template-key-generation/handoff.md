@@ -17,4 +17,6 @@ Added regressions that stub a browser crypto object with `getRandomValues` and n
 
 No Provider/issuer calls, quotas, assigned feature services, screenshots, visual oracles, tolerance, or TC worktree files were changed. Remaining gates are a clean committed/pushed repair tip, exact-source required CI, then guarded integration and a green Exhaustive Integration Gate on the exact staging SHA. No human action is currently needed; the full TC feature checkpoint and all its roadmap gates remain open.
 
+The first exact-source CI run (`39009427308`, commit `8c39c8c`) exposed a workstream-command formatting error: CI executes `branch_tests` as shell, and the prose descriptor was interpreted as a command (`frontend:: not found`). Backend and frontend jobs were still running at the initial audit. This is a coordinator-authored validation-record error, not a product test failure; the plan now contains the actual runnable npm command, and the repository's own branch-tests runner has passed locally (78 tests plus `vue-tsc`). A fresh exact-source run is still required; the failed run remains recorded rather than erased.
+
 Update this handoff at each coherent boundary.

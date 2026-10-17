@@ -48,7 +48,7 @@ acceptance_criteria:
   - id: KEY4
     text: Exact-source required branch CI and the guarded persistent-staging Exhaustive Integration Gate pass before technical closure; no full TC2000 feature checkpoint is inferred.
 branch_tests:
-  - "frontend: run the ChartTemplateControl and VirtualWatchlistTool component suites, then vue-tsc --noEmit."
+  - "cd frontend && npx vitest run tests/unit/components/test_chart_template_control.test.ts tests/unit/components/test_virtual_watchlist_tool.test.ts && npx vue-tsc --noEmit"
 branch_tests_reason: >-
   The affected component suites are the regression gate; the exact five-flow
   browser selection and full required CI cover mounted behavior without needing
