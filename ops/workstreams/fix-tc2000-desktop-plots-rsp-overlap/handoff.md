@@ -38,6 +38,15 @@ flow and the existing TC Classic mobile path. Neither the geometry nor these
 new flows have been run against the combined `41d5b6b` source yet; do not claim
 F9c closure from the F8u staging pass.
 
+The first exact-source CI attempt (`39037522747`, source `dfb34977`) passed
+backend, branch-declared and frontend-unit jobs, but Playwright failed before
+the F9c interactions: the factory US Top Down layout had no chart surface
+under 520px, so the test's narrow-chart lookup threw. This did not test or
+falsify the geometry repair. The test now keeps the viewport at 1920x1080 and
+drags the actual rightmost Golden Layout splitter to create the narrow dock;
+Playwright test discovery passes, but that browser interaction and the repair
+remain unverified until exact-source CI and the required local profile run.
+
 ## Ownership and validation
 
 - Branch/worktree: `fix/tc2000-desktop-plots-rsp-overlap`.
@@ -47,7 +56,7 @@ F9c closure from the F8u staging pass.
 - Use fresh internal-only fixtures with seeded local market data; keep provider
   routing/refresh disabled and credentials blank. Do not touch assigned feature
   services, volumes, accounts or data.
-- Last host resource check showed 509 MiB available while unrelated VS Code,
+- Last host resource check showed 582 MiB available while unrelated VS Code,
   Comet, TC and ETF workloads were active. Do not stop those workloads or start
   a new Compose fixture until there is safe memory headroom.
 - Preserve all browser assertions, retry/timeouts and screenshot references,
@@ -57,8 +66,8 @@ F9c closure from the F8u staging pass.
   exact synchronized staging SHA and downstream reconciliation instructions;
   retain their full roadmaps.
 
-Next: run bounded frontend checks on the re-applied candidate when host capacity
-permits; then run the isolated full local functional/visual profile with one
-worker and zero retries. Preserve screenshot references/tolerances. Only after
-that passes should the repair be committed/pushed, exact-source CI observed,
-the branch closure recorded, and the guarded staging workflow run again.
+Next: commit and push the splitter-based test setup, obtain exact-source CI,
+then run the isolated full local functional/visual profile with one worker and
+zero retries when safe host capacity permits. Preserve screenshot references
+and tolerances. Only after all required checks pass should the repair closure
+be recorded and the guarded staging workflow run again.

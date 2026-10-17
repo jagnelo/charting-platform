@@ -20,6 +20,40 @@ async function findNarrowVisibleChart(page: Page): Promise<Locator> {
   throw new Error('The active workstation layout has no visible chart surface narrower than 520 CSS pixels')
 }
 
+async function resizeRightmostDesktopDockToNarrowChart(page: Page): Promise<void> {
+  const host = page.locator('.workspace-layout-host')
+  const hostBox = await host.boundingBox()
+  expect(hostBox).not.toBeNull()
+
+  // The factory US Top Down layout has three side-by-side columns. Keep the
+  // browser at desktop size and use its actual rightmost Golden Layout
+  // splitter to reproduce the narrow dock a user can create at 1920x1080.
+  const splitters = host.locator('.lm_splitter.lm_horizontal:visible')
+  await expect(splitters).toHaveCount(2)
+  const rightmostSplitter = splitters.nth(1)
+  const splitterBox = await rightmostSplitter.boundingBox()
+  expect(splitterBox).not.toBeNull()
+
+  const targetX = hostBox!.x + hostBox!.width - 480
+  expect(targetX).toBeGreaterThan(splitterBox!.x + splitterBox!.width / 2)
+  expect(targetX).toBeLessThan(hostBox!.x + hostBox!.width)
+
+  await page.mouse.move(splitterBox!.x + splitterBox!.width / 2, splitterBox!.y + splitterBox!.height / 2)
+  await page.mouse.down()
+  try {
+    await page.mouse.move(targetX, splitterBox!.y + splitterBox!.height / 2, { steps: 12 })
+  } finally {
+    await page.mouse.up()
+  }
+
+  await expect.poll(async () => {
+    const widths = await host.locator('.chart-tool:visible .chart-tool__surface').evaluateAll(
+      surfaces => surfaces.map(surface => surface.getBoundingClientRect().width).filter(width => width > 0),
+    )
+    return widths.some(width => width < 520)
+  }, { timeout: 10_000 }).toBe(true)
+}
+
 async function expectF9cComparisonAndPlotsHitTargets(chart: Locator) {
   const geometry = await chart.evaluate(root => {
     const plots = root.querySelector('.chart-tool__plots button') as HTMLElement | null
@@ -338,6 +372,8 @@ test.describe('Chart', () => {
     await page.goto('/chart')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
     await expect(page.locator('.workstation__workspace-name')).toHaveText('US Top Down', { timeout: 15_000 })
+    expect(await page.evaluate(() => window.innerWidth)).toBe(1920)
+    await resizeRightmostDesktopDockToNarrowChart(page)
     const chart = await findNarrowVisibleChart(page)
     const templateName = `Narrow comparison ${Date.now()}`
 

@@ -141,13 +141,18 @@ remaining_gaps:
 progress:
   completed: []
   total: 5
-  current_phase: post_green_staging_reconciliation_validation
+  current_phase: deterministic_desktop_dock_test_setup_and_exact_ci_rerun
   current_blocker: >-
-    Full local browser validation is deferred until safe host memory headroom is
-    available. Last observation: 509 MiB available while unrelated VS Code,
-    Comet, TC and ETF workloads were active. Do not stop those workloads or
-    start a new Compose fixture at that resource level.
+    Exact CI run 39037522747 failed only because the new regression test assumed
+    factory US Top Down already contained a chart surface narrower than 520px;
+    it stopped before exercising comparison geometry or pointer behavior. The
+    test now resizes the actual rightmost Golden Layout splitter at a 1920px
+    viewport, but this browser interaction has only passed Playwright test
+    discovery so far. Full local browser validation is also deferred until safe
+    host memory headroom is available (582 MiB at the latest check); do not stop
+    other workloads or start a new Compose fixture at that level.
   next_action: >-
-    Validate the re-applied F9c candidate on top of green staging with bounded
-    frontend checks; run the isolated full browser profile when host resources
-    permit, then obtain exact branch CI.
+    Commit and push the deterministic splitter-based test setup and its exact
+    evidence, then run exact-source CI to verify it reaches the ordinary-click
+    assertions. Run the isolated full local browser profile when host capacity
+    permits; close the geometry repair only after all required criteria pass.
