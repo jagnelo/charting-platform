@@ -1,5 +1,69 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 17:25Z — Tiingo preflight labels now distinguish provider controls from plan
+
+- Current preflight text misleadingly reported `tiingo: routable` beside
+  `tiingo account plan: non-routable`. Those are separate gates: generic
+  provider byte/terms controls versus effective account-plan admission.
+- Renamed the generic status to `tiingo provider controls` and updated the
+  runner routing map. Focused no-transport unit test passed 1/1 in 2.22s; no
+  provider HTTP, live lock, quota reservation, or quota spend.
+- This is a local uncommitted backend-script/test change. The in-progress
+  Actions run `39052826478` validates only pushed source `506c837`, not this
+  correction. Preserve it and wait for that run to terminate before publishing.
+  Required full local browser gates remain held.
+
+## 2026-10-17 17:23Z — Dinari docs reviewed; no rate-limit assumptions added
+
+- Reviewed Dinari official environment, quickstart, and stock-data docs. They
+  establish Sandbox/Live separation and cover stock-list, daily historical
+  price, news, and quote reads. The reviewed public guides do not specify a
+  numeric quota/reset or a 429/Retry-After contract. Do not infer unlimited
+  usage or invent limits; leave all nine Dinari market-data operations
+  quarantined until the account quota/cost/reset profile is reviewed.
+- Exact source links/findings are in `checkpoint-review-packet.md`. Research
+  used public documentation only: no Dinari API request or quota use.
+- Exact Actions run `39052826478` remains in progress on source `506c837`; this
+  evidence update is not yet published. Keep the local F8u/full-browser hold.
+
+## 2026-10-17 17:20Z — current no-transport admission snapshot
+
+- A host-level read-only check isolated the earlier quota-coordinator failure
+  to this session's read-only mount; the configured host ledger is owner
+  writable. All 11,088 live receipt rows were already reconciled, so no pending
+  reservations were settled. The normal no-transport preflight then passed
+  durable-coordinator health and readiness.
+- It evaluated 27 providers: 24 policy-eligible candidates, three held groups.
+  Dinari is missing a reviewed Sandbox quota/cost/reset contract; Marketstack
+  lacks monthly headroom for its two-call test reservation and has unresolved
+  universe discovery costs; Tiingo's plan is unreviewed and hour/day usage
+  baselines are unknown. Zero provider HTTP and zero quota reservation/spend.
+  Eligible candidates remain uncalled under the no-transport direction.
+- The preflight receipt is appended to `validation.jsonl`; current workstream
+  changes remain in progress across the packet, handoff, plan, session, and
+  journal. Do not publish until exact Actions run `39052826478` is terminal.
+  Local F8u/full browser gates remain held pending coordinator capacity/fixture
+  release.
+
+## 2026-10-17 17:15Z — safe full-matrix preflight blocked before transport
+
+- On pushed code/workstream source `506c83757ce5239bb1b2eeb7bcba705093d85797`,
+  the full preflight evaluated 27 providers: 24 policy-eligible candidates,
+  with Dinari, Marketstack discovery, and Tiingo quarantined for their exact
+  provider-specific missing config/review evidence.
+- A read-only durable quota coordinator was a global blocker, so all external
+  transport remained blocked. The preflight sent zero provider requests and
+  spent zero quota; this is not live success. Do not use an empty ledger or
+  bypass admission.
+- Exact hosted CI for this pushed receipt commit is run `39052826478`, currently
+  in progress. Keep the append-only preflight receipt. Focused local F8u and the
+  full pinned-Noble 260-functional/104-visual profile remain held until safe
+  fixture/resource ownership is confirmed.
+- The current in-progress workstream-only follow-up is dirty in
+  `checkpoint-review-packet.md`, `handoff.md`, `plan.yaml`, `session.json`, and
+  append-only `validation.jsonl`; it records this preflight and the current
+  run state. Do not push it until run `39052826478` is terminal.
+
 ## 2026-10-17 17:12Z — current-source CI terminal; checkpoint still open
 
 - Exact pushed source `f9e27c759da44d6883412f3ebecd60eb6664c016` passed

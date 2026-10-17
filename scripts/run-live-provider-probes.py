@@ -1723,7 +1723,7 @@ LIVE_PREFLIGHT_ROUTING_CONTROLS = {
     "xstocks": ("xstocks",),
     "bybit_xstocks": ("bybit_xstocks",),
     "fmp": ("fmp", "fmp account plan"),
-    "tiingo": ("tiingo",),
+    "tiingo": ("tiingo provider controls",),
 }
 
 BYTE_BOUND_OPERATIONS = {
@@ -2995,7 +2995,8 @@ def routing_safety_preflight() -> dict[str, str]:
             )
             if not bandwidth_evidence:
                 missing.append("FMP_BANDWIDTH_QUOTA_EVIDENCE")
-        result[provider] = (
+        status_key = "tiingo provider controls" if provider == "tiingo" else provider
+        result[status_key] = (
             "routable"
             if not missing
             else (

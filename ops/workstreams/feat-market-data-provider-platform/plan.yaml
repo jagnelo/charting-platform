@@ -6505,7 +6505,36 @@ progress:
   total: 7
   current_phase: provider-checkpoint-icp2-icp6-and-operation-disposition
   current_blocker: >-
-    CURRENT SAFE PROGRESS — 2026-10-17 17:12Z: exact branch tip
+    CURRENT SAFE PROGRESS — 2026-10-17 17:25Z: fixed ambiguity in the live
+    preflight report where `tiingo: routable` could appear beside
+    `tiingo account plan: non-routable`; generic controls now read
+    `tiingo provider controls`, separate from account-plan admission. The
+    focused no-transport regression passed 1/1 in 2.22s, with zero provider
+    HTTP, live lock, reservation, or quota spend. This edit is local and not
+    covered by hosted CI run `39052826478`, which is in progress on `506c837`.
+    PREVIOUS SAFE PROGRESS — 2026-10-17 17:23Z: official Dinari environment,
+    quickstart, and stock-data documentation was reviewed. It establishes
+    separate Sandbox/Live endpoints and market-data reads but the reviewed
+    guides state no numerical request quota/reset or 429/Retry-After behavior;
+    do not infer unlimited use or invent a rate. Keep all nine Dinari
+    operations quarantined pending a reviewed account quota/cost/reset profile.
+    No Dinari API request or quota use. Exact Actions `39052826478` remains
+    in progress; this workstream follow-up stays unpublished until terminal.
+    CURRENT SAFE PROGRESS — 2026-10-17 17:20Z: on source
+    `506c83757ce5239bb1b2eeb7bcba705093d85797`, the host-accessible normal
+    no-transport full-matrix preflight passed durable-coordinator health and
+    readiness; all 11,088 registered live receipts were already reconciled,
+    so no pending reservations were settled. It evaluated 27 providers: 24
+    policy-eligible candidates and three quarantined groups. Dinari lacks a
+    reviewed Sandbox quota/cost/reset contract; Marketstack lacks monthly
+    headroom for a two-call live-matrix reservation and has unresolved
+    discovery MIC/page costs; Tiingo has an unreviewed plan and unknown
+    hourly/daily baselines. Zero provider HTTP, reservation, or quota spend.
+    Candidates remain uncalled. Exact Actions run `39052826478` on source
+    `506c8375` remains in progress. Local browser gates remain held by
+    coordinator capacity/fixture safety; no checkpoint acceptance is claimed.
+    PREVIOUS SAFE PROGRESS — 2026-10-17 17:15Z: latest published source
+    PREVIOUS SAFE PROGRESS — 2026-10-17 17:12Z: exact branch tip
     `f9e27c759da44d6883412f3ebecd60eb6664c016` passed the bounded no-transport
     ICP2/ICP6 suite (252/252 in 128.40s; five third-party deprecation
     warnings). Exact Actions run `39049956683` on this tip is terminal green:

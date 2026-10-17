@@ -1,5 +1,67 @@
 # Provider integration checkpoint review packet
 
+## 2026-10-17 17:25Z — preflight label ambiguity fixed locally
+
+The actual no-transport preflight displayed both `tiingo: routable` and
+`tiingo account plan: non-routable`. The first status represented separate
+provider byte/terms controls, not the account-plan admission, but its generic
+key obscured that distinction. Changed that status key to `tiingo provider
+controls`, updated `LIVE_PREFLIGHT_ROUTING_CONTROLS` to consume the explicit
+key, and extended the no-transport unit test to assert that both provider
+controls and account-plan status are distinct. Focused test
+`test_owner_archive_risk_decision_bypasses_provider_terms_gates` passed 1/1 in
+2.22s. No provider HTTP, live lock, quota reservation, or spend. This local
+change is not covered by hosted run `39052826478`, which is still running on
+prior pushed source `506c837`.
+
+## 2026-10-17 17:23Z — Dinari official-doc quota and endpoint review
+
+Reviewed Dinari's official [environment reference](https://docs.dinari.com/reference/environments),
+[quickstart](https://docs.dinari.com/docs/quickstart), and
+[stock-data guide](https://docs.dinari.com/docs/stock-data). They identify
+separate Sandbox/Live endpoints and document stock listing, historical prices,
+news, and quotes. Searches of the reviewed quickstart and stock-data guide
+found no numeric request ceiling, reset window, `429` behavior, or
+`Retry-After` policy. This is an absence in the reviewed public documentation,
+not proof that Dinari is unlimited. Do not invent quota or reset values.
+
+All nine Dinari operations remain quarantined: the current profile lacks an
+account-reviewed Sandbox quota profile, operation-cost bounds, and reviewed
+reset semantics. The current host-accessible no-transport preflight found 24
+policy-eligible candidates and these three held provider groups (Dinari,
+Marketstack, Tiingo); it performed zero provider HTTP and spent no quota.
+Dinari's account-specific limits or an authoritative published policy are
+needed before routing; current coordinator direction also prohibits transport.
+
+## 2026-10-17 17:20Z — durable coordinator available; three provider groups held
+
+After the sandbox-only preflight showed a read-only filesystem, a read-only
+host check confirmed that the configured private SQLite quota ledger is owner
+writable on the host. Its 11,088 registered live receipts were all already
+reconciled, so there were no pending reservations to settle. The documented
+full-matrix `--preflight-only` was then run with host access: durable quota
+admission is ready, 27 providers were evaluated, 24 policy-eligible candidates
+were identified, and three provider groups remain quarantined. Dinari still
+lacks a reviewed Sandbox profile, operation costs, and reset evidence;
+Marketstack has insufficient monthly OHLCV headroom for its two-call matrix
+reservation and unresolved discovery MIC/page costs; Tiingo has an unreviewed
+plan and unknown hourly/daily usage baselines. The preflight made zero provider
+HTTP requests, reserved/spent no quota, and is not live acceptance. The 24
+candidates remain uncalled under the coordinator's no-transport direction.
+
+## 2026-10-17 17:15Z — current-source no-transport admission is globally blocked
+
+The no-transport full-matrix preflight on source `506c83757ce5239bb1b2eeb7bcba705093d85797`
+evaluated all 27 providers. It found 24 policy-eligible candidates and three
+provider-specific quarantines: Dinari lacks a reviewed Sandbox quota profile
+and worst-case operation costs; Marketstack universe discovery lacks a
+resolved venue/MIC and maximum page-cost contract; Tiingo's effective plan is
+unrecognized/unreviewed. Independently, the durable quota coordinator was
+read-only to this process, so it globally blocked all transport. The preflight
+sent zero provider requests, spent no quota, and is not live acceptance. Do not
+switch to an empty ledger or bypass the coordinator. The local full browser
+profile remains on hold pending safe fixture/resource ownership.
+
 ## 2026-10-17 17:12Z — exact current-source hosted CI and ICP2/ICP6 evidence
 
 The pushed Provider source `f9e27c759da44d6883412f3ebecd60eb6664c016`

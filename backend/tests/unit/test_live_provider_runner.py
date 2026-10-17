@@ -2137,10 +2137,16 @@ def test_owner_archive_risk_decision_bypasses_provider_terms_gates(monkeypatch):
         monkeypatch.setenv(f"{prefix}_PROVIDER_ARCHIVE_TERMS_EVIDENCE", "")
 
     statuses = runner.routing_safety_preflight()
-    for provider, prefix in (("fmp", "FMP"), ("tiingo", "TIINGO")):
-        assert f"{prefix}_PROVIDER_ARCHIVE_TERMS_AUTHORIZED" not in statuses[provider]
-        assert f"{prefix}_PROVIDER_ARCHIVE_TERMS_EVIDENCE" not in statuses[provider]
+    for provider, prefix, status_key in (
+        ("fmp", "FMP", "fmp"),
+        ("tiingo", "TIINGO", "tiingo provider controls"),
+    ):
+        assert f"{prefix}_PROVIDER_ARCHIVE_TERMS_AUTHORIZED" not in statuses[status_key]
+        assert f"{prefix}_PROVIDER_ARCHIVE_TERMS_EVIDENCE" not in statuses[status_key]
         assert provider in runner.LIVE_PREFLIGHT_ROUTING_CONTROLS
+    assert "tiingo" not in statuses
+    assert "tiingo provider controls" in statuses
+    assert "tiingo account plan" in statuses
 
 
 def test_marketdata_app_and_twelve_data_live_probes_require_archive_terms(
