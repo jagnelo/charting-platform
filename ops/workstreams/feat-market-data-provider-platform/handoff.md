@@ -1,5 +1,29 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 06:00Z — exact-source no-transport preflight
+
+At source `1887d80be992a184b578767f17321d891744531a`, the full live matrix
+preflight evaluated 27 providers, reported a healthy durable quota coordinator,
+and stopped before transport: zero provider HTTP requests and zero quota spend.
+Provider-specific admission accepts 24; the overall matrix remains
+`blocked_before_transport` because:
+
+- Dinari Sandbox lacks the reviewed quota/reset profile and operation-cost map.
+- Marketstack does not have enough known monthly headroom for the complete
+  two-request live reservation; discovery exchange/MIC and per-page cost are
+  also unresolved.
+- Tiingo's effective plan is unrecognized/unreviewed, and hourly/daily account
+  usage baselines are unknown for its tested market-data operations.
+
+These are not accepted permanent omissions. Keep those three provider groups
+non-routable for live validation; the other 24 only pass preflight and have no
+new live success receipt. Do not replay external calls under the current
+no-provider-call direction. The exact redacted receipt is in `validation.jsonl`.
+Provider implementation source remains `31007ae`; branch source at this
+preflight was `1887d80`. Checkpoint remains open for ICP2/ICP6 contract and
+operation-disposition review. No staging/sibling edits, data reset, activation,
+or deployment occurred.
+
 ## 2026-10-17 05:54Z — full profile rerun and TC-owned key-generation defect
 
 Provider code/test HEAD remains `31007ae8efe7973e1e8f2819157c64322f356b1b`.

@@ -1,5 +1,31 @@
 # Provider integration checkpoint review packet
 
+## 2026-10-17 06:00Z — refreshed no-transport operation dispositions
+
+Current branch source at preflight was `1887d80be992a184b578767f17321d891744531a`;
+provider implementation/test source remains `31007ae8efe7973e1e8f2819157c64322f356b1b`.
+The exact preflight receipt is appended to `validation.jsonl` and reports
+`blocked_before_transport`, a healthy durable quota coordinator, zero provider
+HTTP requests, and zero quota spend. Provider-specific admission accepts 24 of
+27 providers; the complete matrix remains blocked by three required provider
+groups:
+
+- Dinari Sandbox: missing reviewed `DINARI_SANDBOX_QUOTA_PROFILE`; reset
+  semantics remain unreviewed for its tokenized operations.
+- Marketstack: current monthly headroom is below the full-matrix two-request
+  reservation; discovery exchange/MIC and per-page cost bounds are also
+  missing. Do not spend its remaining allowance.
+- Tiingo: configured plan is not individually recognized/reviewed and current
+  hourly/daily usage baselines are unknown for OHLCV, price, profile, and search.
+
+The other 24 providers are only eligible for individually admitted bounded
+cases under their reviewed-free operation policies; this preflight is not live
+success evidence, does not reserve quota, and does not authorize transport.
+The current no-provider-call direction remains in force. Historical live
+receipts stay bound to their original source; no result was rebound to `1887`.
+Keep the exact full-matrix holds above and all remaining ICP2/ICP6 contract and
+checkpoint review work visible.
+
 ## 2026-10-17 05:54Z — current full profile and cross-feature runtime finding
 
 **Current code/test source:** `31007ae8efe7973e1e8f2819157c64322f356b1b`.

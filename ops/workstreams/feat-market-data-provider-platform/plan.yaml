@@ -1,17 +1,19 @@
 schema: 4
-# Current continuation status — 2026-10-17 05:54Z: HEAD remains
-# 31007ae8efe7973e1e8f2819157c64322f356b1b, with exact Actions 39001830674
-# green and the full pinned-Noble 260-case browser profile now passing 258,
-# skipping 2 expected live cases, and failing 0 (zero retries). Preserve the
-# earlier exact-source 146-pass/2-skip/5-fail functional receipt and the
-# host-native 162-pass/2-skip/96-fail receipt; neither is overwritten. The
-# coordinator traced the retained F9e error to crypto.randomUUID not being a
-# function in shared chart-template/column-set key generators. TC owns its
-# getRandomValues repair; 107 component tests and vue-tsc pass, but browser and
-# exact-source CI remain outstanding. Do not edit TC files. Provider checkpoint
-# remains pending ICP2/ICP6/operation-disposition and exact review evidence.
-# No provider HTTP/quota, paid/trial activation, data reset, assigned-stack
-# mutation, staging/sibling edit, or deployment occurred.
+# Current continuation status — 2026-10-17 06:00Z: the full-matrix
+# no-transport preflight at branch source 1887d80be992a184b578767f17321d891744531a
+# found the durable quota coordinator ready, 24 individually admissible
+# providers, and three provider groups held (Dinari, Marketstack, Tiingo).
+# It stopped before transport with zero provider HTTP requests and zero quota
+# spend. Exact details are in the checkpoint packet and redacted receipt.
+# Provider implementation/test source remains 31007ae8efe7973e1e8f2819157c64322f356b1b;
+# its exact Actions 39001830674 is green and full pinned-Noble 260-case browser
+# profile passed 258 with two expected live skips, no failures/retries. Keep
+# both earlier red profiles. The retained crypto.randomUUID runtime error is
+# a shared TC-owned key-generator issue; TC's browser and exact-source CI remain
+# outstanding. Do not edit TC files. Provider checkpoint remains pending ICP2,
+# ICP6, current operation dispositions, and exact review evidence. No provider
+# HTTP/quota, activation, data reset, assigned-stack mutation, staging/sibling
+# edit, or deployment occurred.
 # Historical 05:11Z continuation snapshot, superseded by the 05:54Z status above:
 # product/test source was pushed at
 # 31007ae8efe7973e1e8f2819157c64322f356b1b; exact Actions run 39001830674 is
@@ -6303,7 +6305,9 @@ progress:
   total: 7
   current_phase: provider-checkpoint-icp2-icp6-and-operation-disposition
   current_blocker: >-
-    Provider HEAD/origin are synchronized at `31007ae8efe7973e1e8f2819157c64322f356b1b`.
+    Provider implementation/test source is `31007ae8efe7973e1e8f2819157c64322f356b1b`;
+    the synchronized branch source at the latest no-transport preflight was
+    `1887d80be992a184b578767f17321d891744531a`.
     Exact Actions `39001830674` is green for required feature jobs; Exhaustive
     is skipped by feature policy. The complete pinned-Noble 260-case local
     profile now passes 258 with 2 expected live skips and zero failures or
@@ -6314,6 +6318,17 @@ progress:
     `getRandomValues` fix remains unmerged and lacks browser/exact-CI evidence.
     TC owns that source; Provider must not duplicate it. Provider checkpoint
     remains open for ICP2/ICP6, operation dispositions, and final review.
+
+    Fresh full-matrix preflight at `1887d80b` confirms the durable quota
+    coordinator is ready but blocks before transport: 24 providers pass
+    provider-specific admission, while Dinari lacks reviewed quota/reset and
+    per-operation costs, Marketstack lacks sufficient monthly headroom for the
+    full two-request reservation plus discovery cost/MIC bounds, and Tiingo's
+    plan and hourly/daily usage baselines are unreviewed/unknown. It made zero
+    provider HTTP requests and spent zero quota. This is not live success or
+    transport authorization. Keep these three groups held and all 24
+    individually admissible groups uncalled under the current no-provider-call
+    direction.
 
     The latest full-matrix preflight at 17:35Z accessed the persistent quota
     coordinator through the existing Provider backend environment and passed
