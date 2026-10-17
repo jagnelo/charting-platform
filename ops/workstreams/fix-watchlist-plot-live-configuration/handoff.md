@@ -69,3 +69,19 @@ branch CI is still pending. Do not mark this branch `ready_for_human_review`
 or integrate it until the clean published tip has its exact CI receipt. This
 narrow repair remains distinct from the four feature checkpoint decisions and
 does not authorize deployment, paid activation, quota spend, or a trial.
+
+## Exact CI diagnosis — 2026-10-17
+
+The first exact-source push run `39029708580` for `62323e42b8dcf8a95ed9645a15623acb235ca3c8`
+failed the `Branch-declared Tests` job before running product tests. Its step
+executed the first `branch_tests` item as a shell command and exited 126 because
+the plan had listed a test-file path rather than an executable command. The
+hosted runner log states `/bin/sh: 1: frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts: Permission denied`.
+The backend and frontend jobs were still running when this failure was
+inspected. No product assertion failed in this run.
+
+The plan now declares each affected Vitest suite as an executable
+`cd frontend && npx vitest run ...` command. The F8u browser test remains in the
+separate local full-stack profile; no assertions or environment gates were
+changed. The failed CI receipt remains red, and a fresh exact-source Actions run
+on the corrected plan is required before review or staging integration.

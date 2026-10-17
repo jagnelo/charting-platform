@@ -68,15 +68,13 @@ acceptance_criteria:
       ready_for_human_review, and leaves integration solely to the coordinator's
       guarded persistent-staging workflow.
 branch_tests:
-  - frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts
-  - frontend/tests/unit/components/test_chart_plot_library.test.ts
-  - frontend/tests/e2e/flows.spec.ts — F8u chart plots to watchlist
-  - vue-tsc --noEmit and frontend production build
-  - exact-source GitHub Actions branch CI
+  - cd frontend && npx vitest run tests/unit/components/test_virtual_watchlist_tool.test.ts
+  - cd frontend && npx vitest run tests/unit/components/test_chart_plot_library.test.ts
 branch_tests_reason: >-
-  The existing F8u E2E test exercises the real cross-tool drag and is already
-  present on the staging base. Focused component suites cover its source/target
-  contracts; ordinary CI supplies the branch-wide regression gate.
+  Branch-declared entries are executable shell commands for the stack-free
+  branch-tests job. The real F8u browser flow, vue-tsc, and production build
+  are validated by the full local profile and ordinary branch CI; they are
+  not file paths or prose entries in this command list.
 live_test_impact: >-
   No live provider or issuer test is required. Browser validation must use a
   fresh internal-only fixture with app/worker provider egress denied,
@@ -99,6 +97,6 @@ remaining_gaps:
 progress:
   completed: [AC1, AC2]
   total: 4
-  current_phase: local_validation_complete_exact_source_ci_pending
-  current_blocker: exact-source ordinary branch CI pending publication
-  next_action: record evidence, commit and push the repair checkpoint, refresh plan-ready session metadata, then verify exact-source CI
+  current_phase: correcting_branch_test_command_contract_after_CI_failure
+  current_blocker: exact-source CI run 39029708580 failed because branch_tests entries were not executable commands
+  next_action: run corrected branch-declared tests locally, record the CI cause, publish corrected plan metadata, then verify a fresh exact-source CI run
