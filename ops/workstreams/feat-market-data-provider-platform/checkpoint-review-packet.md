@@ -1,5 +1,47 @@
 # Provider integration checkpoint review packet
 
+## 2026-10-17 13:41Z — exact Actions CI green; durable preflight refreshed
+
+Current Provider HEAD `0f5a55e973cef85ccc352df0bc4685a25808dfd6` is synchronized
+with its feature remote. Exact Actions run [39035131751](https://github.com/jagnelo/charting-platform/actions/runs/39035131751)
+is terminal green: Backend 2,838 unit +396 integration at 82% combined
+coverage (68,041 statements, 11,986 missing); Frontend Unit 940 tests across
+110 files; Branch-declared commands and 52-file migration compatibility
+passed; Playwright 151 passed /109 expected skips in 12.8 minutes, zero failed
+and no retry/flaky markers. Exhaustive is skipped by feature-branch policy.
+Codecov upload reported a missing-token error but is configured non-gating.
+The provider-live workflow did not run. This is exact receipt-source CI, not
+Provider checkpoint acceptance.
+
+A fresh `scripts/run-live-provider-probes.py --preflight-only` run on this exact
+source reached the existing durable quota coordinator through narrowly
+authorized local access. The ordinary sandbox attempt's read-only diagnosis was
+an environment-access limitation; the elevated retry verified coordinator
+health. The resulting admission inventory evaluated 27 providers, with 24
+eligible candidates, three quarantined groups, zero global blockers, zero
+provider HTTP requests, and zero quota spend. It remains `blocked_before_transport`
+and is not live-provider acceptance or transport authorization. Current holds:
+
+- Dinari: sandbox reset/cost contract and per-operation reset semantics are
+  unreviewed.
+- Marketstack: discovery MIC/page cost is unresolved and monthly headroom is
+  below the two-unit reservation; discovery remains non-routable.
+- Tiingo: plan is unreviewed and hourly/daily usage baselines are unknown.
+
+The requested synchronized green staging `2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745`
+is already an ancestor of Provider HEAD and the getRandomValues repair was
+validated post-merge. Its pinned-Noble selection remains red on TC-owned F8u
+(150 passed / 2 expected live skips / 1 failed, retries 0). A newer staging
+ref exposes a separate TC-owned F8u candidate, but its own handoff lacks final
+exact-source CI/release evidence; it is not imported here. Full 260 functional
+and 104 strict-visual local gates remain open.
+
+Host inspection showed roughly 666 MiB available, many retained validation
+projects still running, and the Stremio server using about 2.1 GiB. No project
+or retained dataset was started, stopped, reset, or cleaned. The exact Actions
+receipt and both preflight attempts are recorded; bounded workstream validation
+must pass before publication. The checkpoint is not `ready_for_human_review`.
+
 ## Latest exact-source CI and merged-source profile — 2026-10-17 13:03Z
 
 Exact pushed receipt source `17a64cc6e6d04333caeba89917d72c077b1fddae` passed

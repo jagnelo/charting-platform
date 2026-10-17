@@ -1,5 +1,44 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 13:41Z — exact Actions receipt reconciled; local profile remains open
+
+- Provider HEAD is `0f5a55e973cef85ccc352df0bc4685a25808dfd6`, synchronized
+  with `origin/feat/market-data-provider-platform`. Exact-source Actions run
+  `39035131751` is terminal green: Backend 2,838 unit +396 integration at 82%
+  combined coverage; Frontend Unit 940 tests; Branch-declared commands and
+  52-file migration compatibility passed; E2E 151 passed/109 expected skips in
+  12.8m, zero failures and no retry/flaky markers. Exhaustive was skipped by
+  policy. Codecov's missing-token upload was non-gating; provider-live did not
+  run. This does not accept the Provider checkpoint.
+- A fresh `--preflight-only` check on `0f5a55e` was run twice. The ordinary
+  sandbox attempt falsely reported the owner-protected quota ledger read-only;
+  the narrow local-access retry verified the existing durable coordinator is
+  healthy. Its final result is `blocked_before_transport`: 24 policy-eligible
+  providers, three provider groups quarantined, zero global blockers, zero
+  provider HTTP requests, and zero quota spend. The append-only journal keeps
+  both attempts and their different access contexts; neither is live acceptance.
+- The current quarantine details are Dinari's unreviewed sandbox reset/cost
+  contract; Marketstack's unresolved discovery MIC/page cost plus insufficient
+  monthly headroom for the two-unit reservation; and Tiingo's unreviewed plan
+  and unknown hourly/daily baselines. No provider call is authorized by the
+  preflight or this receipt.
+- Existing ICP2/ICP6 bounded tests remain 252/252 on the merged implementation
+  source `a20766d9`. The post-`2734c6a` pinned-Noble run remains red at TC-owned
+  F8u (150 passed, 2 expected live skips, 1 failed, retries 0). The 260-case
+  functional and 104-case strict-visual gates remain incomplete.
+- A read-only host check found about 666 MiB available, numerous retained
+  Provider/TC validation projects still running, and the Stremio server using
+  about 2.1 GiB. No project was started, stopped, reset, or cleaned. The newer
+  staging ref contains a separate TC-owned F8u repair candidate, but its own
+  handoff still lacks a final exact-source CI/release receipt. Do not merge it
+  until the coordinator records a synchronized green release. Do not edit TC.
+- Next: keep all provider routes held as described and complete the unchanged
+  local browser gates after the coordinator releases a clean exact-source F8u
+  repair and a safe isolated resource window is available. The complete 260
+  functional/104 strict-visual profile remains outstanding; no local browser
+  project was started or cleaned. No staging/sibling writes, provider/issuer
+  HTTP, quota spend, activation, reset/cleanup, or deployment.
+
 ## 2026-10-17 13:03Z — receipt CI green; local F8u remains the blocker
 
 - Re-audited the durable ICP1–ICP7 table and operation inventory. The previous
