@@ -5,30 +5,64 @@ parent_branch: staging
 parent_sha: 79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Human-authorized narrow browser repair: replace unsupported crypto.randomUUID calls in chart-template and column-set key generation with crypto.getRandomValues, preserving the eight-hex key suffix and adding regressions. This unblocks Provider validation; do not bring in the full TC2000 feature or alter its roadmap."
-planning_state: draft
-human_closure_authorization: pending
+planning_state: ready
+human_closure_authorization: >-
+  The human delegated careful technical-fix review and closure without individual
+  approval for each fix across the four parallel feature branches, with the
+  stated goal of reaching a merged-into-staging, human-usable state. Apply that
+  authority only to this narrowly evidenced browser compatibility repair. Close
+  it only after exact-source CI and the guarded staging gate pass. This does not
+  accept the full TC2000 feature checkpoint, authorize provider/quota activity,
+  paid or trial operations, deployment, promotion, or data cleanup.
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: full_stack_browser
+local_validation_reason: >-
+  The source defect manifests in the mounted browser save flows. Validate both
+  component regressions and the five focused no-retry browser flows using the
+  isolated egress-denied fixture; do not use assigned feature services or make
+  provider/issuer requests. Exact-source CI and the canonical staging gate are
+  also required.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 goal: "Human-authorized narrow browser repair: replace unsupported crypto.randomUUID calls in chart-template and column-set key generation with crypto.getRandomValues, preserving the eight-hex key suffix and adding regressions. This unblocks Provider validation; do not bring in the full TC2000 feature or alter its roadmap."
-scope: []
-owned_paths: []
+scope:
+  - Replace unsupported crypto.randomUUID usage in chart-template and saved-column-set key generation with crypto.getRandomValues while preserving normalized name prefixes and eight lowercase hexadecimal suffixes.
+  - Add regressions proving both save flows work when randomUUID is unavailable, persist their existing payloads, and surface no save error.
+  - Publish only this narrow compatibility repair through exact-source CI and the guarded staging gate; leave the full TC2000 feature and its roadmap untouched.
+owned_paths:
+  - frontend/src/components/workstation/ChartTemplateControl.vue
+  - frontend/src/components/workstation/VirtualWatchlistTool.vue
+  - frontend/tests/unit/components/test_chart_template_control.test.ts
+  - frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts
+  - ops/workstreams/fix-chart-template-key-generation/
 dependencies: []
-acceptance_criteria: []
-branch_tests: []
-branch_tests_reason: pending agent assessment
+acceptance_criteria:
+  - id: KEY1
+    text: Both key generators work without crypto.randomUUID, use crypto.getRandomValues, and preserve a normalized name prefix followed by exactly eight lowercase hexadecimal characters.
+  - id: KEY2
+    text: Component regressions simulate a browser crypto surface with getRandomValues but no randomUUID and prove both save requests succeed with the existing payloads and no visible error.
+  - id: KEY3
+    text: The two affected component suites, frontend type check, scope/workstream validation, and unchanged five focused browser flows pass without retries or weakened assertions.
+  - id: KEY4
+    text: Exact-source required branch CI and the guarded persistent-staging Exhaustive Integration Gate pass before technical closure; no full TC2000 feature checkpoint is inferred.
+branch_tests:
+  - "frontend: run the ChartTemplateControl and VirtualWatchlistTool component suites, then vue-tsc --noEmit."
+branch_tests_reason: >-
+  The affected component suites are the regression gate; the exact five-flow
+  browser selection and full required CI cover mounted behavior without needing
+  a new harness.
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: authorized
-remaining_gaps: []
+status: in_progress
+remaining_gaps:
+  - Clean committed and pushed repair tip with exact-source required CI audited green.
+  - Guarded merge into persistent staging and a green Exhaustive Integration Gate on the exact staging SHA.
 progress:
-  completed: []
-  total: 0
-  current_phase: plan
+  completed: [KEY1, KEY2, KEY3]
+  total: 4
+  current_phase: scoped_local_validation_passed
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: commit and publish the narrow repair, audit exact-source CI, then use only the guarded staging integration path and require its exact Exhaustive Integration Gate
