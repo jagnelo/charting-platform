@@ -21276,3 +21276,55 @@ Provider/ETF product baselines and consumer reconciliation, TCP4 combined
 validation and TCP5 review remain open, and official V25 Help parity remains
 unfinished roadmap work. No checkpoint readiness, staging merge or integration
 is claimed.
+
+## 2026-10-17 10:11Z — F8u live-configuration race candidate is focused green
+
+Provider's completed pinned-Noble profile reported one real first-attempt F8u
+failure: after an ordinary RSI plot drag, Major US benchmarks did not expose the
+RSI header. Read-only comparison of the immutable Provider source and current
+TC source found the same MIME fallback, drag-end grace path and unchanged F8u
+test. No Provider worktree, runtime, data or response archive was read or
+modified.
+
+Current committed TC source did not deterministically reproduce the failure:
+the exact unchanged F8u case passed once and then passed five repeated attempts
+on a fresh isolated fixture, all with one worker and zero retries. Static source
+tracing nevertheless established a real detached-root race. The watchlist's
+visible `column_keys` already came from `liveToolConfiguration`, which resolves
+the canonical workspace window while Golden Layout props are stale, but
+`configuredIndicatorColumns` and the chart branch of `addPlotColumn` still read
+and spread `props.tool.configuration`. A drop racing a canonical workspace
+update could therefore publish the visible key and its indicator definition
+from different configuration snapshots.
+
+The narrow candidate makes both the rendered indicator definitions and the
+chart-drop update use the same canonical live configuration snapshot. It does
+not alter the drag implementation, F8u assertions, its existing ordinary-drag
+fallback, timeouts, retries, browser diagnostics, visual references or0.005
+tolerance. Focused plot-drag, Chart Plot Library and Virtual Watchlist suites
+pass139/139; `vue-tsc --noEmit` and `git diff --check` pass.
+
+The rebuilt candidate passed the exact F8u case1/1 and then5/5 repeated in
+fresh project `tc-f8u-focus-20261017t100105z`, pinned Playwright1.62.1 Noble,
+one worker and zero retries. The fixture used one `internal=true` application
+network, no published host ports, blank Provider/OneSignal credentials and
+disabled provider routing/refresh. The browser attached only to that network;
+no external application/browser request, credential, quota, paid service or
+trial was used. The final result receipt is
+`/tmp/tc-f8u-focus-20261017t100105z/artifacts/results/.last-run.json`.
+
+After preserving artifacts, the exact six containers, internal network and
+four volumes were project-label verified and removed; post-cleanup queries
+returned none. Assigned TC/Provider resources and retained data were untouched.
+Exact-source CI39022982335 for prior tip137250816 then completed successfully:
+Backend, Frontend, Branch-declared and E2E jobs passed; Exhaustive was skipped
+by feature-branch policy. The Playwright job and its test step both concluded
+success under the existing CI fail-on-flaky policy. GitHub's unauthenticated
+public log endpoint did not expose the raw test-count summary, so this receipt
+does not invent a count. Product commit
+`918b81eb06f1fb2979781946ddbf8b991b580703` now contains the substantive F8u
+repair; its evidence checkpoint and fresh exact-source CI remain required.
+TCP2 full104 visuals, TCP3 Provider/ETF consumer
+reconciliation, TCP4 combined validation, TCP5 review and official V25 parity
+all remain open; no checkpoint readiness, merge or staging integration is
+claimed.

@@ -38,18 +38,18 @@
   "current_exact_ci": {
     "attempt": 1,
     "conclusion": "success",
-    "e2e_summary": "190 passed, 110 skipped in 15.5 minutes; no Playwright retry or failure event observed in exact E2E job log",
-    "head_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
+    "e2e_summary": "E2E job and Playwright step succeeded under CI fail-on-flaky policy; public log endpoint exposed no raw test count, so none is inferred",
+    "head_sha": "137250816ebc6587c4895b2293d8b565c69e56e5",
     "jobs": {
-      "backend": "success; 1625 unit and 409 integration tests passed",
+      "backend": "success; job117368331408",
       "branch_declared": "success",
-      "e2e": "success; 190 passed, 110 skipped, zero retries/flakes/failures",
+      "e2e": "success; job117369755822; Playwright step success; failOnFlakyTests enabled in CI",
       "exhaustive_feature_branch": "skipped by branch policy",
-      "frontend_unit": "success; 135 files and 1265 tests passed with coverage"
+      "frontend_unit": "success; job117368331671"
     },
-    "run_id": 38981686587,
-    "status": "terminal success on exact current branch/origin source; all required ordinary jobs passed",
-    "visuals": "The 110 E2E skips include screenshot cases and are not visual passes; TCP2 full 104-case matrix and official V25 parity remain open."
+    "run_id": 39022982335,
+    "status": "terminal success on exact pushed source137250816; product commit918b81e requires fresh exact-source CI",
+    "visuals": "No pixel pass inferred; TCP2 full 104-case matrix and official V25 parity remain open."
   },
   "dirty_paths": [
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
@@ -105,8 +105,8 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "977add9f6771337cc3d39124127b8c3fe7449c43",
-  "implementation_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
+  "head": "918b81eb06f1fb2979781946ddbf8b991b580703",
+  "implementation_sha": "918b81eb06f1fb2979781946ddbf8b991b580703",
   "integration_checkpoint": {
     "acceptance": "pending",
     "coordinator_guidance": "/home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md",
@@ -114,7 +114,7 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-17T09:53:09+00:00",
+  "last_checkpoint": "2026-10-17T10:22:51+00:00",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
@@ -133,18 +133,18 @@
     "visuals": "No pixel pass inferred; TCP2 full 104-case local visual matrix and official V25 parity remain open."
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the validated product and evidence commits and require fresh exact-source ordinary CI. Then continue TCP2 full visual validation when coordinated, followed by Provider/ETF consumer reconciliation, TCP4 combined validation and TCP5 review. Preserve the local Help reference at0.005 and official V25 parity as unfinished roadmap work.",
+  "next_action": "Publish product commit918b81e and its coherent evidence checkpoint, then require fresh exact-source ordinary CI. Continue TCP2 full visual validation only in a coordinated slot, followed by Provider/ETF consumer reconciliation, TCP4 combined validation and TCP5 review. Preserve the local Help reference at0.005 and official V25 parity as unfinished roadmap work.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "classification": "TC product compatibility defect shared with Provider31007ae8: saving templates and column sets requires unavailable crypto.randomUUID before PUT",
     "evidence": "/tmp/provider-noble-functional-20261017.dqvnO9/results: F9e displays crypto.randomUUID is not a function; four template flows stop at initial save; two current-TC component regressions reproduced the missing-API failure",
     "fix": "Both non-security library keys now use getRandomValues for the same eight-hex-digit suffix and normalized prefix",
     "focused_validation": "Settings6/6, library component107/107, vue-tsc, Vite production build and full coverage135 files/1268 tests passed. Built index contains no static OneSignal SDK reference.",
-    "ci_scope": "Run38981686587 validates prior fd681152 only; product commit977add9 requires fresh exact-source CI",
+    "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
     "runtime_validation": "GREEN: fresh internal-only project tc-library-key-focus-20261017t094621z; pinned Noble; one worker; retries0; exact five unchanged flows passed5/5; blank provider/OneSignal credentials; no external runtime request.",
     "runtime_receipt": "/tmp/tc-library-key-focus-20261017T094621Z",
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
-    "updated_at": "2026-10-17T09:53:09Z"
+    "updated_at": "2026-10-17T10:22:51Z"
   },
   "plan_hash": "47085dfa310b372afd98775f2b719087011599eaad16e421e635f1174309151f",
   "planning_required": false,
@@ -160,28 +160,28 @@
     "completed": [
       "TCP1"
     ],
-    "current_blocker": "Focused OneSignal opt-in and library-key repair is locally green at product commit977add9: exact five pinned-Noble flows passed5/5 with one worker/zero retries on an internal-only fixture, and focused/type/build/full-coverage checks passed. Fresh exact-source hosted CI is still required. Full TCP2 visual validation, TCP3 Provider/ETF consumers, TCP4 combined validation, TCP5 review and official V25 parity remain open.",
+    "current_blocker": "OneSignal/library checkpoint tip137250816 has terminal-green exact CI39022982335. F8u live-configuration product commit918b81e is focused green:139/139 units, type-check, exact F8u1/1 plus5/5 repeated, one worker/zero retries, internal-only fixture. It still requires evidence publication and fresh exact-source CI. Full TCP2 visual validation, TCP3 Provider/ETF consumers, TCP4 combined validation, TCP5 review and official V25 parity remain open.",
     "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_FULL_VISUAL_AND_FUNCTIONAL_GATES_OPEN;TCP3_PROVIDER_ETF_RELEASE_AND_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
-    "next_action": "Push the coherent product/evidence checkpoint, require fresh exact-source ordinary CI, then resume the remaining coordinated TCP2-TCP5 roadmap without changing Help references,0.005 tolerance or official V25 debt.",
+    "next_action": "Publish the coherent F8u evidence checkpoint, require fresh exact-source ordinary CI, then resume the remaining coordinated TCP2-TCP5 roadmap without changing Help references,0.005 tolerance or official V25 debt.",
     "total": 5,
-    "updated_at": "2026-10-17T09:53:09+00:00"
+    "updated_at": "2026-10-17T10:22:51+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "977add9f6771337cc3d39124127b8c3fe7449c43",
-    "current_pending_range": "fd681152d831054ce4b440e0ce606b48b6d8d39f..977add9f6771337cc3d39124127b8c3fe7449c43",
+    "current_local_head": "918b81eb06f1fb2979781946ddbf8b991b580703",
+    "current_pending_range": "137250816ebc6587c4895b2293d8b565c69e56e5..918b81eb06f1fb2979781946ddbf8b991b580703",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
-    "last_attempted_local_head": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
-    "last_attempted_range": "1e2474708e5f816c6e6956a82bb58bcb4c0e1e02..fd681152d831054ce4b440e0ce606b48b6d8d39f",
+    "last_attempted_local_head": "137250816ebc6587c4895b2293d8b565c69e56e5",
+    "last_attempted_range": "fd681152d831054ce4b440e0ce606b48b6d8d39f..137250816ebc6587c4895b2293d8b565c69e56e5",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
-    "status": "pending evidence commit and push"
+    "remote_tracking_sha": "137250816ebc6587c4895b2293d8b565c69e56e5",
+    "status": "product commit local; evidence commit and push pending"
   },
-  "remote": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
-  "remote_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
+  "remote": "137250816ebc6587c4895b2293d8b565c69e56e5",
+  "remote_sha": "137250816ebc6587c4895b2293d8b565c69e56e5",
   "remote_synchronized": false,
   "retained_docker_resources": [],
   "roadmap_acceptance_criteria": [
