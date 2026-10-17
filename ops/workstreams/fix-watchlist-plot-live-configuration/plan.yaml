@@ -1,0 +1,34 @@
+schema: 4
+branch: fix/watchlist-plot-live-configuration
+base_sha: 2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745
+parent_branch: staging
+parent_sha: 2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "Coordinate the existing Provider \u2192 ETF holdings \u2192 TC2000 \u2192 Strategy Lab v2 feature checkpoints through reconciliation, delegated technical acceptance, sequential guarded merges into persistent staging, and exact-source full validation. Deliver a combined development baseline usable for human testing within the human-approved verified-free-only scope, with quota-held, unreviewed, paid-trial, and unsafe operations disabled and full feature roadmaps retained. No master promotion, deployment, paid activation, or operational trial is authorized."
+planning_state: draft
+human_closure_authorization: pending
+closure_summary: pending
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: pending_agent_assessment
+local_validation_reason: pending agent assessment from changed paths and runtime impact
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "Coordinate the existing Provider \u2192 ETF holdings \u2192 TC2000 \u2192 Strategy Lab v2 feature checkpoints through reconciliation, delegated technical acceptance, sequential guarded merges into persistent staging, and exact-source full validation. Deliver a combined development baseline usable for human testing within the human-approved verified-free-only scope, with quota-held, unreviewed, paid-trial, and unsafe operations disabled and full feature roadmaps retained. No master promotion, deployment, paid activation, or operational trial is authorized."
+scope: []
+owned_paths: []
+dependencies: []
+acceptance_criteria: []
+branch_tests: []
+branch_tests_reason: pending agent assessment
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: authorized
+remaining_gaps: []
+progress:
+  completed: []
+  total: 0
+  current_phase: plan
+  current_blocker: none
+  next_action: complete the branch-owned plan before creating a goal
