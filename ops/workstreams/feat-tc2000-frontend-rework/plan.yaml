@@ -30,40 +30,39 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Product/evidence tip137250816ebc6587c4895b2293d8b565c69e56e5 contains the
-  focused OneSignal opt-in and library-key compatibility repair. Exact-source
-  ordinary CI39022982335 is terminal green: Backend, Frontend,
-  Branch-declared and E2E jobs succeeded; Exhaustive was skipped by feature
-  policy. The successful Playwright step and CI fail-on-flaky policy establish
-  a clean job result, but the unauthenticated public log endpoint did not expose
-  a test-count summary, so no count is inferred. A separate TC-owned
-  F8u candidate corrects one detached Golden Layout state race: chart-plot drop
-  handling previously rendered configured keys from the canonical live
-  workspace record but read and emitted indicator definitions from the stale
-  component prop. Both now use the same live configuration snapshot. Existing
-  drag behavior and diagnostics are unchanged. Before this correction, current
-  TC source passed the exact F8u case6/6 in an isolated fixture, so the Provider
-  red was intermittent rather than deterministically reproduced. With the
-  correction, exact F8u passed1/1 plus5/5 repeated, pinned Noble, one worker and
-  zero retries in fresh internal-only project
-  tc-f8u-focus-20261017t100105z. Provider/OneSignal credentials were blank,
-  provider routing/refresh was disabled, no host ports or external runtime
-  route existed, and only the label-verified temporary project was removed.
-  Product commit918b81eb06f1fb2979781946ddbf8b991b580703 contains that
-  correction. This is focused evidence, not exact-source CI or checkpoint
-  acceptance. Publish its coherent evidence checkpoint, then require fresh
-  exact-source ordinary CI for the new source.
+  Current clean synchronized TC tip
+  aec60070020bf1a181c06103b40fa254352c8a4c contains product commit
+  918b81eb06f1fb2979781946ddbf8b991b580703 and its F8u/OneSignal/library
+  evidence. Exact-source ordinary CI39024834711 attempt1 is terminal green:
+  Backend117373672291, Frontend117373672331, Branch-declared117373672135 and
+  E2E117374968753 succeeded; Exhaustive117374969778 was skipped by feature
+  policy. This closes the fresh exact-CI requirement for those independent
+  repairs, not TCP2 or the whole checkpoint.
+
+  Live coordinator state still contains zero accepted product checkpoints.
+  Synchronized green staging2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745 /
+  run39013106548 adds only the independently accepted chart-template key
+  generation repair to prior green79c8623; it is not a Provider/ETF product
+  baseline. Current remote Provider3ef5de0 and ETFc89c7bf are therefore not
+  available to TC through staging, so TCP3 reconciliation remains dependency-
+  gated and no sibling source may be imported.
+
   TCP2's approved local Help-reference/readability subgate remains narrowly
   closed: the four Linux image blobs match the coordinator-reviewed hashes;
   current source keeps the112px key column,7px grid gap, minimum8px label-to-
   description guard and clipping checks. Existing exact-source Help evidence
   remains keyboard/scroll1/1 and four visual profiles4/4 at the unchanged0.005
-  tolerance. TCP2 still requires the complete opted-in104-case visual matrix
-  against exact current source in the approved deterministic browser/font
-  environment under a later coordinated full-matrix slot. Do not refresh images
-  or weaken assertions/tolerances. Staging79c8623 is a released repair baseline,
-  not product acceptance; do not merge it into TC until Provider then ETF have
-  green product staging baselines. Keep manifest `keyboard_help` and review
+  tolerance. The stack-free visual-policy validator currently passes26
+  screenshot assertions at0.5%/1px/DeltaE2000=2, and all four reviewed Help
+  blobs still match their accepted identities. TCP2 still requires a complete
+  normalized104-case run from start with pinned Noble1.62.1, the verified
+  read-only DejaVu mount, one worker and zero retries. At the latest audit the
+  host had only928MiB available and an active coordinator-owned
+  fix-watchlist-plot-live-configuration browser fixture, so a competing heavy
+  matrix would violate the resource policy. The branch-owned fixture recipe is
+  corrected to stay internal-only now that OneSignal is truly opt-in; no host
+  networking, relay or CDN proxy is permitted. Do not refresh images or weaken
+  assertions/tolerances. Keep manifest `keyboard_help` and review
   `required_missing`; official V25 parity remains unfinished roadmap work.
   TCP3 consumer reconciliation, TCP4 combined validation, TCP5 checkpoint
   review, and full official V25 parity remain open; no whole-TC acceptance is

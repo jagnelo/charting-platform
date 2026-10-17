@@ -21328,3 +21328,51 @@ TCP2 full104 visuals, TCP3 Provider/ETF consumer
 reconciliation, TCP4 combined validation, TCP5 review and official V25 parity
 all remain open; no checkpoint readiness, merge or staging integration is
 claimed.
+
+## 2026-10-17 10:55Z — Resume audit, exact CI closure and visual-route correction
+
+Re-read the persistent staging coordinator's complete integration direction
+and the accepted-checkpoint contract before acting. Local and remote TC both
+resolve to clean tip `aec60070020bf1a181c06103b40fa254352c8a4c`. Exact-source
+Actions run `39024834711`, attempt1, matches that SHA and is terminal success:
+Backend `117373672291`, Frontend `117373672331`, Branch-declared
+`117373672135`, and E2E `117374968753` succeeded; Exhaustive
+`117374969778` was skipped by feature-branch policy. This is the fresh exact-CI
+receipt for the F8u/OneSignal/library checkpoint source. It is not a visual
+matrix result or broader checkpoint acceptance.
+
+Live remote refs are staging `2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745`,
+Provider `3ef5de099fbfb77a80ff1555894a183e50cda91d`, ETF
+`c89c7bfa866c309b9722fcd5c7f8e722783082b4`, and TC `aec600700`. The current
+coordinator receipt still lists zero accepted product checkpoints. Staging's
+latest green receipt `20261017T080217Z-2734c6a57f79` / run `39013106548`
+contains the separately accepted chart-template key-generation repair only,
+not Provider or ETF product baselines. TCP3 therefore remains correctly gated;
+no feature branch was imported or merged.
+
+The stack-free visual-policy check passes26 screenshot assertions with the
+unchanged0.5%/1px/DeltaE2000=2 policy. The current four Linux Help images still
+hash to the coordinator-reviewed blobs `ecc86d4226b89b97c3c6043e6ba25ffe7865465d`,
+`b3d648884881cc5c31d9ad63af9855aaa49851a2`,
+`49499c97efaa1577ea8633d9f51076fdea2b3513`, and
+`8693333f2993a5034c865b46a1f9fb88dc64fc72`. No oracle, threshold, mask, skip,
+Help approval or official-V25 disposition changed.
+
+The branch-owned checkpoint fixture instructions still routed the pinned
+browser through host networking solely to reach the old unconditional OneSignal
+CDN script. That route is obsolete and would now unnecessarily reintroduce
+egress. The instructions now keep the browser on the internal Compose network
+with `STACK_URL=http://frontend`, blank provider/OneSignal keys and disabled
+routing/refresh. They require pinned Noble1.62.1, the verified read-only DejaVu
+font mount from browser start, all four existing viewport/DPI projects, one
+worker, zero retries, all104 cases and the unchanged0.005 screenshots. The old
+600-second client bound is explicitly insufficient because it produced only
+partial95/104 evidence.
+
+No full matrix was launched: read-only host audit showed only928MiB available
+and an active coordinator-owned `fix-watchlist-plot-live-configuration` browser
+fixture. Its containers, data, artifacts and sibling checkout were not touched.
+The exact next independent TC action is the normalized full104 run after that
+slot is released and host headroom is safe. TCP2 full visual acceptance, TCP3
+Provider/ETF consumers, TCP4 combined validation, TCP5 review and the complete
+official V25 roadmap remain open.

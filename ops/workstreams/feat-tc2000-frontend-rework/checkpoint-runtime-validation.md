@@ -38,16 +38,25 @@ then use the same invocation with `up -d --no-build --wait`. This creates its
 own four fixture volumes. No existing assigned volume is attached. The empty
 env-file avoids loading deployment credentials; the internal bridge prevents
 provider egress. On this Docker host, the internal bridge does not publish the
-configured host ports. Read frontend IP using docker inspect; it is currently
-172.22.0.5 during the completed run (resolve it again on a future run).
-Run the pinned Noble browser with --network host and
-STACK_URL=http://172.22.0.5. This lets the browser load the existing external
-OneSignal CDN script while application services remain on their internal-only
-network. A browser attached only to the internal bridge passed freshness and
-screenshot assertions but correctly failed diagnostics for the blocked CDN.
-Retain both setup diagnostics; no external provider calls or test masks are
-introduced. Use the existing unchanged fixture assertions and start with freshness
-to verify the fixture correction, then run required complete checks.
+configured host ports. Keep the pinned Noble browser on that same internal
+Compose network and use Compose DNS with `STACK_URL=http://frontend`; do not
+use host networking, a host-port relay, or an external CDN proxy. Current
+source contains no static OneSignal SDK include. With the OneSignal App ID
+unset, no SDK request is made; an explicitly configured user action remains the
+only supported opt-in load path. Keep provider routing/refresh disabled and all
+provider/OneSignal keys blank in the visual fixture.
+
+For the normalized full matrix, mount only
+`/usr/share/fonts/truetype/dejavu` read-only into pinned
+`mcr.microsoft.com/playwright:v1.62.1-noble` from browser start. This leaves
+Arial on the pinned image's normal fallback and supplies the DejaVu monospace
+used by the previously verified strict visual environment. Run all four
+existing viewport/DPI projects, one worker and zero retries, with
+`RUN_BOARD_VISUAL_PARITY=1`. Preserve every state assertion, screenshot, mask
+and the `0.005` tolerance. Allow enough bounded wall time for all 104 cases;
+the prior 600-second client bound expired before completion and is not an
+acceptable terminal result. Retain the full terminal report and artifacts
+before scoped cleanup.
 
 Cleanup must target **only** `tc2000-checkpoint-fresh-9d78e1`, using that same
 Compose invocation with `down --volumes`. Verify exact project labels before
