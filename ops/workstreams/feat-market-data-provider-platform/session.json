@@ -45,8 +45,6 @@
     "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
   },
   "dirty_paths": [
-    "backend/tests/unit/services/test_etf_holdings_adapters.py",
-    "backend/tests/unit/test_provider_secret_wiring.py",
     "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
     "ops/workstreams/feat-market-data-provider-platform/checkpoint-review-packet.md",
     "ops/workstreams/feat-market-data-provider-platform/handoff.md",
@@ -77,13 +75,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "b7bbdc8152a604e53355a3f7aaf2959b63453189",
-  "implementation_sha": "b7bbdc8152a604e53355a3f7aaf2959b63453189",
+  "head": "31007ae8efe7973e1e8f2819157c64322f356b1b",
+  "implementation_sha": "31007ae8efe7973e1e8f2819157c64322f356b1b",
   "interrupted": false,
-  "last_checkpoint": "2026-10-17T04:13:35Z",
+  "last_checkpoint": "2026-10-17T05:54:00Z",
   "last_human_progress_update": "2026-10-16T11:12:47.867964+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Static/workstream validation is complete on the dirty candidate based on merge source b7bbdc8152a604e53355a3f7aaf2959b63453189: focused tests 2/2, Ruff, diff check, JSON/JSONL parse, and 35 workstream records passed. The full backend profile passed 2,838 unit + 396 integration at 82% coverage; direct frontend Vitest/build/uPlot/policy checks passed. The retained seeded 260-case browser run is red (162 passed, 2 skipped, 96 failed) under host-native Chromium, not pinned Noble + RO DejaVu. F8n received 500 valid local SPY/D1 fixture bars (HTTP 200, 79,783 bytes), yet UI stayed Loading/Unavailable; F8b popup route/auth/workspace reads succeeded but child remained black, with child OHLCV client cancellation (499). TC run 38981686587 passed the corresponding flows; no TC source change or confirmed product cause. Publish this coherent test+receipt candidate and obtain exact-source CI, then complete the valid pinned browser gate in the approved isolated runtime. Preserve artifacts and isolated Compose project; no provider quota, resets/cleanup, staging/sibling edits, or checkpoint acceptance.",
+  "next_action": "Exact source 31007ae8efe7973e1e8f2819157c64322f356b1b has green Actions 39001830674 and the complete pinned-Noble 260-case full profile passed 258 with 2 expected skips, 0 failures, 0 retries. Preserve the earlier 146/2/5 pinned functional red receipt and host-native 162/2/96 red receipt. Coordinator identified the retained F9e error `crypto.randomUUID is not a function` in shared chart-template/column-set generators; TC owns the getRandomValues fix, whose browser validation and exact-source CI remain outstanding. Do not edit TC files. Continue Provider-owned ICP2 recurring-cost and ICP6 producer/consumer contract work, reconcile operation-level enabled/held dispositions, and update the review packet. No provider calls/quota, data reset, assigned-stack cleanup, sibling/staging mutation, deployment, paid/trial activation, or checkpoint closure.",
   "parent_branch": "staging",
   "plan_hash": "a8875425f88edd353e17890043664f37442479bcd3d7eda2f0134d0d77bf55cd",
   "planning_required": false,
@@ -115,15 +113,15 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "The full backend and direct frontend checks pass on the current dirty candidate, but exact-source CI has not yet covered it. The 260-case local browser result is red on host-native Chromium: the required pinned Noble + read-only DejaVu visual runtime is still unverified, and the retained F8b/F8n rendering failures have no proven client-side root cause. ICP2 denomination policy, ICP6 downstream ownership wiring, operation-level live holds, and full-roadmap requirements remain; Provider checkpoint acceptance is pending.",
-    "current_phase": "post-merge-full-profile-result-reconciliation",
-    "next_action": "Commit and push the coherent backend test plus durable receipt update, then obtain exact-source CI. Preserve the current host-native 260-case red and all artifacts. Complete the pinned Playwright Noble + RO DejaVu gate only in the approved isolated runtime; do not touch assigned Provider/TC stacks or datasets. Continue ICP2/ICP6 and provider-operation disposition work without vendor traffic where quota/cost admission is not proven. No data reset/cleanup, paid/trial, deployment, staging/sibling edits, or checkpoint acceptance.",
+    "current_blocker": "The complete pinned-Noble 260-case full profile passed 258 with 2 expected skips and no failures/retries on the current application source; preserve the earlier 146/2/5 functional red receipt and host-native 162/2/96 red receipt. Coordinator identified the retained F9e failure context as `crypto.randomUUID is not a function` in shared chart-template/column-set key generators. TC owns the getRandomValues repair; its browser validation and exact-source CI remain open, and Provider made no TC edits. ICP2/ICP6 and per-operation checkpoint dispositions remain under Provider follow-up; checkpoint acceptance is pending. No provider calls/quota or data reset occurred.",
+    "current_phase": "provider-checkpoint-icp2-icp6-and-operation-disposition",
+    "next_action": "Continue Provider-owned ICP2 recurring-cost and ICP6 producer/consumer contract work, reconcile all operation-level enabled/held dispositions, and prepare clean exact-source review evidence. Preserve the full pinned profile pass and both prior red runs. Do not edit the TC-owned randomUUID generators; require TC's exact browser/CI evidence through the coordinator's normal process. No provider calls/quota, data reset, assigned-stack cleanup, staging/sibling writes, deployment, paid/trial activation, or checkpoint closure.",
     "total": 7,
-    "updated_at": "2026-10-17T04:13:35Z"
+    "updated_at": "2026-10-17T05:54:00Z"
   },
-  "remote": "51ebc7d45aa34d2e8790988778ee5e6eec14bdd7",
-  "remote_sha": "d5ac26f193ee1da3a0a95114c4a46df7ae7eae92",
-  "remote_synchronized": false,
+  "remote": "origin/feat/market-data-provider-platform",
+  "remote_sha": "31007ae8efe7973e1e8f2819157c64322f356b1b",
+  "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-provider-validation-1236-20261016 and provider-playwright-1236-hostaccess-20261016 remain running/preserved; no stop, reset, prune, or cleanup. Browser runner returned to sleep service after focused checks."
   ],

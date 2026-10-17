@@ -1,6 +1,76 @@
 # feat/market-data-provider-platform
 
-## 2026-10-17 — isolated full-profile diagnosis and current validation
+## 2026-10-17 05:54Z — full profile rerun and TC-owned key-generation defect
+
+Provider code/test HEAD remains `31007ae8efe7973e1e8f2819157c64322f356b1b`.
+The earlier pinned-Noble 153-case functional result (146 passed, 2 expected
+skips, 5 failed, zero retries) is preserved as red. A subsequent complete
+pinned-Noble 260-case profile on this application source finished 258 passed,
+2 expected skips, 0 failed, 0 retries. It used the pinned Playwright 1.62.1
+Noble runtime and seeded local data; output is at
+`/tmp/provider-template-diagnostic.qXj7RN/full-results` (`.last-run.json`:
+passed). The isolated frontend image was built from this worktree before
+HEAD's test-only commit; HEAD changed no frontend source.
+
+The coordinator identified the shared cross-feature cause in retained F9e
+error context: `crypto.randomUUID is not a function` in chart-template and
+column-set key generators. TC owns a two-generator `getRandomValues` repair;
+its 107 component tests and vue-tsc pass, but browser validation and exact
+source CI are still outstanding. Provider did not edit TC source. The full
+profile pass is new evidence, not a reclassification of earlier failures or
+proof that the unmerged TC change is validated. Preserve both results and do
+not claim Provider acceptance; ICP2/ICP6 and operation-level checkpoint
+evidence remains to be reconciled.
+
+The retained host-native run remains red at 162 passed, 2 skipped, 96 failed;
+its classification and artifacts remain intact. The independent pinned
+strict-visual subset remains 104/104 passed. No provider/issuer HTTP, quota,
+paid/trial activation, data reset, or assigned-stack mutation occurred.
+Provider routing and egress were denied. Only a temporary proxy allowlisted
+for `cdn.onesignal.com:443` was used; it is now removed. The isolated app
+stack, retained data, and assigned Provider/TC stacks remain untouched.
+
+## 2026-10-17 05:11Z — earlier exact-source status and browser-failure classification
+
+Code/test source `31007ae8efe7973e1e8f2819157c64322f356b1b` has terminal green
+Actions run `39001830674`: Backend, Frontend Unit, Branch-declared, and
+Playwright all succeeded; E2E was 151 passed/109 expected skips with zero
+failures or retry-passes. Exhaustive was skipped by feature policy. Local full
+backend coverage is 2,838 unit + 396 integration at 82%; direct frontend
+checks passed 938 Vitest tests/110 files, typecheck/build, 48 renderer
+contracts, and 26 visual-policy assertions.
+
+The retained host-native 260-case run is still recorded red (162 passed, 2
+skipped, 96 failed, zero retries), but its full failure set is classified:
+91 screenshot mismatches were host-rendering differences, confirmed by the
+104/104 pinned Noble strict visual pass; two slow `beforeEach` navigations did
+not recur under Noble; and all three F8b/F8n UI render timeouts passed in the
+pinned Noble functional run. This does not erase the original receipt.
+
+The exact-source pinned Noble functional run is 146 passed / 2 expected live
+skips / 5 failed (153 total, zero retries). Remaining failures are local
+chart-template/column-set persistence: F9c, F9c-template-transform,
+F9c-template-comparison, F9e, and F9f. Their saved item never appears or the
+expected template-save PUT is never observed. The exact-source hosted E2E is
+green, so the cause is an unresolved local isolated-stack persistence
+discrepancy; do not reset data or edit TC-owned frontend behavior. This keeps
+the full local profile red and the Provider checkpoint pending. Next diagnose
+those five failures against retained artifacts/local stack state without
+resetting it; then rerun the required full local profile. Do not mark
+`ready_for_integration` until the required profile and every checkpoint
+contract are green.
+
+Artifacts: original host report `/tmp/provider-playwright-report-20261017`,
+original results `/tmp/provider-playwright-results-20261017`, pinned visual
+results `/tmp/provider-noble-visual-final-20261017.R03WWW/results`, and pinned
+functional results `/tmp/provider-noble-functional-20261017.dqvnO9/results`.
+No provider HTTP/quota, paid/trial activation, retained-data reset, or assigned
+Provider/TC stack mutation occurred. Only the temporary proxy allowing
+`cdn.onesignal.com:443` was used and has been removed; Provider routing and
+provider egress remained disabled. No frontend or sibling worktree source was
+changed.
+
+## 2026-10-17 — original host-native full-profile diagnosis (superseded by current results below)
 
 The released staging baseline `79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b`
 remains reconciled into this Provider branch at `b7bbdc8152a604e53355a3f7aaf2959b63453189`.
@@ -41,14 +111,11 @@ No threshold, assertion, timeout, retry, or test was changed. Relevant evidence:
   `.uplot` visibility assertion, before its interaction. Retain it as an
   additional red case rather than folding it into F8n-crosshair.
 
-The currently running Compose project is the uniquely named isolated
-`charting-provider-validation-isolated-20261017`; assigned Provider and TC
-projects, data, and retained artifacts remain untouched. Provider routing is
-disabled and egress denied. No vendor request, quota spend, or data reset
-occurred. Next: finish source-bound workstream receipts; exact-source CI for
-`b7bbdc8` plus current test edits is still needed. The local visual gate must
-use the pinned Noble + read-only DejaVu runtime before its result can be
-accepted; do not rerun or reinterpret the existing red report as green.
+At the time of this original run, the uniquely named isolated Compose project
+`charting-provider-validation-isolated-20261017` and assigned Provider/TC
+projects were preserved. The observations above remain bound to source
+`b7bbdc8` and the host-native browser runtime; the current exact-source,
+pinned-runtime results are recorded in the dated status section above.
 
 ## 2026-10-17 00:10Z — staging baseline reconciled; combined-source gates next
 

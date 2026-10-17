@@ -1,6 +1,69 @@
 # Provider integration checkpoint review packet
 
-## 2026-10-17 — post-merge local profile and browser diagnosis
+## 2026-10-17 05:54Z — current full profile and cross-feature runtime finding
+
+**Current code/test source:** `31007ae8efe7973e1e8f2819157c64322f356b1b`.
+Exact Actions run `39001830674` is terminal green for Backend, Frontend Unit,
+Branch-declared, and Playwright. E2E reports 151 passed / 109 expected skips,
+no failures or retry-passes. Exhaustive was skipped by feature-branch policy.
+The local full backend profile passed 2,838 unit + 396 integration tests at
+82% coverage. Direct frontend validation passed 938 Vitest tests/110 files,
+typecheck/build, 48 renderer contracts, and 26 visual-policy assertions.
+
+The retained host-native 260-case browser report remains red at 162 passed, 2
+skipped, 96 failed, zero retries; the complete set is now classified:
+
+- 91 strict screenshot diffs exceeded the unchanged 0.5% threshold only under
+  host Chromium/font rendering. On exact current source, pinned Playwright
+  1.62.1 Noble plus read-only DejaVu passed all 104 strict visual cases with
+  unchanged references and tolerance, zero retries.
+- Two additional tests timed out during `beforeEach` page navigation at the
+  existing 30-second limit. Neither setup timeout recurred in the pinned Noble
+  functional suite.
+- Three initial UI-render cases failed locally: F8b popup tool, F8n-crosshair
+  `.uplot`, and F8n-cross-window `.uplot`. All three passed in the exact-source
+  pinned Noble functional run, and exact hosted E2E is green. They are not
+  confirmed product defects. The recorded valid 500-bar local SPY/D1 response
+  and black popout artifacts remain useful diagnostics; their original red
+  result is preserved, not overwritten.
+
+The earlier exact-source pinned Noble functional run remains a real red
+receipt: 146 passed / 2 expected live skips / 5 failed, zero retries (F9c,
+F9c-template-transform, F9c-template-comparison, F9e, F9f). Preserve it. A
+subsequent complete pinned-Noble 260-case run on the same application source
+finished 258 passed / 2 expected skips / 0 failures, 0 retries; all functional
+and strict visual cases completed. Its output is under
+`/tmp/provider-template-diagnostic.qXj7RN/full-results`, with
+`.last-run.json` reporting passed. The isolated frontend image was built from
+this checkout before HEAD's test-only commit; HEAD did not change either
+frontend key-generator file. The declared full profile has now passed once on
+the current application source, but this does not erase the earlier failures
+or validate the unmerged TC candidate.
+
+Coordinator inspection of the retained F9e error context identified the
+concrete shared defect: `crypto.randomUUID is not a function` in the
+chart-template/column-set key generators. TC owns the two-generator change to
+`getRandomValues`; its component tests and vue-tsc pass, but browser validation
+and exact-source CI remain outstanding. Do not duplicate or edit those files
+from Provider. The one green full rerun does not demonstrate that the TC fix
+is integrated or that the earlier runtime error cannot recur; keep both
+receipts and require browser/CI evidence on TC's own exact source. Provider
+checkpoint remains pending other ICP2/ICP6, operation-disposition, and clean
+exact-source review requirements; do not set `ready_for_integration`.
+
+Artifacts remain at `/tmp/provider-playwright-results-20261017` and
+`/tmp/provider-playwright-report-20261017`; pinned visuals at
+`/tmp/provider-noble-visual-final-20261017.R03WWW/results`; and pinned
+functional results at `/tmp/provider-noble-functional-20261017.dqvnO9/results`.
+No provider/issuer HTTP or quota, paid/trial activation, or retained-data reset
+occurred. The temporary proxy admitted only `cdn.onesignal.com:443` and has
+been stopped/removed; Provider routing/egress remained denied. The isolated
+app stack and retained datasets remain running/untouched, as do the assigned
+Provider and TC stacks.
+
+## 2026-10-17 05:11Z — earlier exact-source gates and browser-failure classification
+
+## 2026-10-17 — original host-native profile diagnosis (historical; superseded above)
 
 Current source is merge base `b7bbdc8152a604e53355a3f7aaf2959b63453189`
 plus pending edits to `test_etf_holdings_adapters.py` and
