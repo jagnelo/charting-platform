@@ -11696,3 +11696,21 @@ green staging. Then verify its exact receipt/interfaces, merge only that release
 staging SHA into this ETF branch, recompute the route/operation inventory, and
 implement the documented bridge/tests. The checkpoint remains in progress and
 must stop at `ready_for_human_review` after all required validation passes.
+
+### Exact-source CI narrative invariant repair — 2026-10-17 21:57Z
+
+The bounded bridge contract was published at
+`b25f9f4a4e876c05586a2df266f6944a0581c81c`. Exact CI `39072885614` tested that
+SHA. Frontend passed; Branch-declared Tests failed one of 611 adapter cases
+because the refreshed `session.json` blocker omitted the evidence-backed
+`15 Tier-0 and 156 Tier-1` phrase required to keep the durable summary tied to
+the runtime and YAML ledgers. This is a workstream narrative regression, not a
+Provider, parser, or product-runtime failure.
+
+The exact ledger-backed phrase was restored without changing product code,
+test assertions, provider classifications, or issuer evidence. The focused
+narrative invariant passed 1/1 and the full no-network adapter module passed
+611/611; workstream validation, JSON parsing, and `git diff --check` also
+passed. A fresh exact-source CI run is required after publication. Provider is
+still not accepted or merged, and MSMR/QQQ plus Militia/GOOG remain unresolved
+and quarantined. No issuer, SEC, or provider HTTP request was made.

@@ -39,7 +39,7 @@
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "state": "published_receipt_c89c7bfa866c309b9722fcd5c7f8e722783082b4; bounded_bridge_contract_and_consumer_test_checklist_prepared; provider_bc45e4b_ci39070049292_ordinary_green_but_unaccepted; bridge_waits_for_accepted_green_provider_staging"
+    "state": "published_bridge_contract_b25f9f4a4e876c05586a2df266f6944a0581c81c; exact_ci39072885614_branch_declared_failed_only_on_omitted_tier_count_narrative; evidence_backed_count_restored_and_611_adapter_tests_passed; fresh_exact_source_ci_required; provider_bc45e4b_ci39070049292_ordinary_green_but_unaccepted; bridge_waits_for_accepted_green_provider_staging"
   },
   "active_session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
   "branch": "feat/etf-holdings-constituents",
@@ -107,7 +107,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "c89c7bfa866c309b9722fcd5c7f8e722783082b4",
+  "head": "b25f9f4a4e876c05586a2df266f6944a0581c81c",
   "implementation_sha": "dd9b7a08ce79303638c3951dd937270e97bbff33",
   "integration_checkpoint": {
     "acceptance_authorization": "pending",
@@ -204,7 +204,7 @@
   },
   "last_checkpoint": "2026-10-17T21:52:02Z",
   "last_human_progress_update": "2026-10-15T22:12:26.620198+00:00",
-  "latest_checkpoint": "2026-10-17 21:52Z: Verified the existing claim in the assigned clean synchronized ETF worktree at c89c7bfa866c309b9722fcd5c7f8e722783082b4 and ran the UV-managed session preflight. Re-read the coordinator checkpoint contract and green staging6dc178c12498236a2a0060533305e20cf47438b7 receipt. Provider bc45e4b223a4abfd89de15e2c7278ed17d43a698 ordinary CI39070049292 is successful with 151 E2E passed/109 expected skips, but no Provider checkpoint acceptance or product staging release exists and its local profile/fixture evidence remains open. Added only ETF-owned static preparation: exact release/source reconciliation gates, capability/identity/admission/quota-budget/async/health/lineage contracts, unified current/degraded/stale/unavailable semantics and ten deterministic no-network shared-runtime consumer test groups. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined because no response body or parsed-row artifact was retained. No product code, live request, quota, fixture, merge, sibling/staging write, cleanup or deployment.",
+  "latest_checkpoint": "2026-10-17 21:57Z: Published the bounded ETF bridge contract at b25f9f4a4e876c05586a2df266f6944a0581c81c. Exact CI39072885614 tested that SHA: Frontend passed; Branch-declared failed only because session.progress.current_blocker omitted the evidence-backed 15 Tier-0 and 156 Tier-1 phrase; Backend was still running when the narrow repair was prepared. Restored that exact ledger-backed phrase without changing product code or tests. The focused narrative invariant passed 1/1 and the complete no-network adapter module passed 611/611; workstream validation, JSON parse and diff check passed. Provider remains unaccepted/unmerged, so the shared bridge remains release-gated. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined. No live request, quota, fixture, merge, sibling/staging write, cleanup or deployment.",
   "local_profile_execution": {
     "cleanup": {
       "host_wide_prune": false,
@@ -292,14 +292,14 @@
     "completed": [
       "EICP1"
     ],
-    "current_blocker": "Provider source bc45e4b223a4abfd89de15e2c7278ed17d43a698 has successful ordinary CI39070049292, but its checkpoint is not accepted or merged into green staging and its required local profile/fixture evidence remains open. The ETF branch therefore cannot yet reconcile or test the actual shared capability, identity, entitlement, quota/settlement, aggregate-cost/free-only, health and availability runtime. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined because CI38911867173 retained no response body or parsed-row evidence. Unknown/quota-held/paid/trial/unsafe operations remain disabled.",
+    "current_blocker": "Provider source bc45e4b223a4abfd89de15e2c7278ed17d43a698 has successful ordinary CI39070049292, but its checkpoint is not accepted or merged into green staging and its required local profile/fixture evidence remains open. The ETF branch therefore cannot yet reconcile or test the actual shared capability, identity, entitlement, quota/settlement, aggregate-cost/free-only, health and availability runtime. The evidence-backed symbol ledgers retain 15 Tier-0 and 156 Tier-1 investigations. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined because CI38911867173 retained no response body or parsed-row evidence. Unknown/quota-held/paid/trial/unsafe operations remain disabled.",
     "current_phase": "provider_release_pending_after_static_bridge_preparation",
     "next_action": "Wait for the coordinator's explicit accepted Provider product release in exact green staging. Then verify the accepted source/CI and concrete shared capability, identity, policy/admission, entitlement, quota/settlement, aggregate-cost or accepted free-only, health and availability interfaces; merge only that released staging SHA into this ETF worktree; record conflicts/migration heads; recompute the route-to-operation inventory; implement the documented ETF_HOLDINGS bridge and deterministic no-network consumer tests; then run the required focused, database, full_stack_browser and exact-source CI gates. Keep MSMR/QQQ and Militia/GOOG quarantined until retained evidence supports a separately reviewed change. Stop at ready_for_human_review.",
     "total": 7,
-    "updated_at": "2026-10-17T21:52:02.000000+00:00"
+    "updated_at": "2026-10-17T21:57:14.000000+00:00"
   },
-  "remote": "c89c7bfa866c309b9722fcd5c7f8e722783082b4",
-  "remote_sha": "c89c7bfa866c309b9722fcd5c7f8e722783082b4",
+  "remote": "b25f9f4a4e876c05586a2df266f6944a0581c81c",
+  "remote_sha": "b25f9f4a4e876c05586a2df266f6944a0581c81c",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
