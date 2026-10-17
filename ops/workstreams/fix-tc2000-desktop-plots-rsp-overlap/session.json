@@ -1,20 +1,65 @@
 {
-  "schema": 2,
+  "acceptance_criteria": [],
+  "active_session_id": "227b57d7-4d91-4440-9545-067aa62cbbde",
   "branch": "fix/tc2000-desktop-plots-rsp-overlap",
-  "parent_branch": "staging",
-  "implementation_sha": "2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745",
-  "remote_sha": null,
-  "active_session_id": null,
-  "previous_session_ids": [],
-  "goal_state": "not_started",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-tc2000-desktop-plots-rsp-overlap-0933a171",
+      "charting-stack-fix-tc2000-desktop-plots-rsp-overlap-0933a171"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-tc2000-desktop-plots-rsp-overlap-0933a1719a"
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/tc2000-desktop-plots-rsp-overlap: The human directed the coordinator to resolve the newly reproduced F9c desktop hit-target overlap as a narrow repair so TC TCP1 and the four-feature staging checkpoint can progress. At 1920x1080 with populated RSP +23.50%, Plots overlaps Remove RSP and an ordinary click is intercepted; TC verified no overlap at 390x800. Limit this repair to responsive chart-header geometry and exact regression evidence. Preserve tests, screenshot oracles/tolerances, data, Provider holds, and all other worktrees. No master promotion, deployment, paid activation, or trial.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/tc2000-desktop-plots-rsp-overlap: The human directed the coordinator to resolve the newly reproduced F9c desktop hit-target overlap as a narrow repair so TC TCP1 and the four-feature staging checkpoint can progress. At 1920x1080 with populated RSP +23.50%, Plots overlaps Remove RSP and an ordinary click is intercepted; TC verified no overlap at 390x800. Limit this repair to responsive chart-header geometry and exact regression evidence. Preserve tests, screenshot oracles/tolerances, data, Provider holds, and all other worktrees. No master promotion, deployment, paid activation, or trial.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "e0ba5262a4970c0a07946746ea4a9b6df558cfc8",
+  "implementation_sha": "2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "b7aa8745f4d711f0c877d53c09c1dda9929bd7d0a5774bac4a9a2e1d515e6aeb",
+  "planning_required": true,
   "planning_state": "draft",
+  "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "total": 0,
+    "current_blocker": "none",
     "current_phase": "plan",
-    "current_blocker": "none"
+    "total": 0
   },
-  "next_action": "run make agent-session-start",
-  "retained_docker_resources": []
+  "remote": "e0ba5262a4970c0a07946746ea4a9b6df558cfc8",
+  "remote_sha": null,
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "227b57d7-4d91-4440-9545-067aa62cbbde",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-tc2000-desktop-plots-rsp-overlap/ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-tc2000-desktop-plots-rsp-overlap/ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-tc2000-desktop-plots-rsp-overlap/ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-tc2000-desktop-plots-rsp-overlap/ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-tc2000-desktop-plots-rsp-overlap/ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-tc2000-desktop-plots-rsp-overlap",
+  "worktree_id": "fix-tc2000-desktop-plots-rsp-overlap-0933a1719a"
 }

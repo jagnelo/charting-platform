@@ -4,31 +4,138 @@ base_sha: 2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745
 parent_branch: staging
 parent_sha: 2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745
 dependency_authorization: "not applicable: independent staging-based topic"
-human_intent_authorization: "The human directed the coordinator to resolve the newly reproduced F9c desktop hit-target overlap as a narrow repair so TC TCP1 and the four-feature staging checkpoint can progress. At 1920x1080 with populated RSP +23.50%, Plots overlaps Remove RSP and an ordinary click is intercepted; TC verified no overlap at 390x800. Limit this repair to responsive chart-header geometry and exact regression evidence. Preserve tests, screenshot oracles/tolerances, data, Provider holds, and all other worktrees. No master promotion, deployment, paid activation, or trial."
-planning_state: draft
-human_closure_authorization: pending
+human_intent_authorization: >-
+  The human directed the coordinator to resolve the newly reproduced F9c
+  desktop hit-target overlap so TC TCP1 and the four-feature staging
+  checkpoint can progress. At 1920x1080 with populated RSP +23.50%, Plots
+  overlaps Remove RSP and an ordinary click is intercepted; TC verified no
+  overlap at 390x800. Limit this repair to responsive chart-header geometry
+  and exact regression evidence. Preserve tests, screenshot oracles/tolerances,
+  data, Provider holds and all other worktrees. No master promotion, deployment,
+  paid activation or trial.
+planning_state: ready
+human_closure_authorization: >-
+  The human has authorized the narrow technical repair and coordinator delivery
+  through synchronized green staging, stating: "TCP1 remains incomplete until
+  the coordinator-owned geometry repair is delivered through synchronized
+  green staging." The human previously delegated validated technical-fix
+  closure to the coordinator: "you do not need my acceptance to close it off."
+  Applied only to this precise chart-header geometry defect. It does not accept
+  the TC feature checkpoint or authorize master promotion, deployment, paid
+  activation, quota spend, an operational trial, or changes to another
+  worktree.
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: full_stack_browser
+local_validation_reason: >-
+  This changes chart-header layout and user pointer behavior. Validate the exact
+  1920x1080 default US Top Down populated-RSP flow and existing 390x800 TC
+  Classic path in isolated internal-only fixtures, then run affected frontend
+  suites, type-check, production build, complete functional/visual local profile,
+  exact-source branch CI and the guarded staging gate. Preserve all original
+  screenshot references, masks, thresholds and tolerance.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
-goal: "The human directed the coordinator to resolve the newly reproduced F9c desktop hit-target overlap as a narrow repair so TC TCP1 and the four-feature staging checkpoint can progress. At 1920x1080 with populated RSP +23.50%, Plots overlaps Remove RSP and an ordinary click is intercepted; TC verified no overlap at 390x800. Limit this repair to responsive chart-header geometry and exact regression evidence. Preserve tests, screenshot oracles/tolerances, data, Provider holds, and all other worktrees. No master promotion, deployment, paid activation, or trial."
-scope: []
-owned_paths: []
-dependencies: []
-acceptance_criteria: []
+goal: >-
+  Eliminate the reproduced F9c desktop Plots/Remove RSP hit-target overlap at
+  narrow chart-container widths while retaining the default wide layout and
+  mobile TC Classic behavior. Publish a narrow validated repair for coordinator
+  integration; do not edit the TC feature worktree, other feature worktrees,
+  staging directly, or deployment configuration.
+scope:
+  - >-
+    Reproduce the pointer interception at 1920x1080 in the default US Top Down
+    layout with an RSP comparison whose percentage is populated; identify and
+    correct the chart-container-width layout defect without relying on viewport
+    width, z-index-only changes or forced clicks.
+  - >-
+    Add unchanged-contract regression evidence for independent Plots and
+    Remove RSP targets and ordinary menu open/close/remove interactions at the
+    failing desktop geometry, plus the existing 390x800 TC Classic layout.
+  - >-
+    Preserve no-comparison/default wide-chart geometry, chart-template save and
+    restore behavior, accessibility, full comparison identity via existing
+    title/content behavior, and every screenshot oracle/tolerance.
+  - >-
+    Keep app/browser network internal-only with seeded local data, blank
+    Provider/OneSignal credentials, provider routing/refresh disabled and no
+    paid, quota-held, unsafe or trial operation.
+owned_paths:
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/tests/e2e/flows.spec.ts
+  - ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/
+dependencies:
+  - >-
+    Exact synchronized green staging parent 2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745,
+    Exhaustive Integration Gate run 39013106548. If staging advances before
+    this repair is integrated, reconcile this branch to the latest green
+    staging tip, repeat affected validation and obtain exact-source CI before
+    coordinator integration.
+  - >-
+    User-supplied exact runtime evidence at TC source
+    389069a32682f97c51c0a6dd5cca99be3bb23c2a: at 1920x1080, Plots rect
+    x=1061 y=107.5 w=42.58 h=18 overlaps Remove RSP x=1013 y=107.5 w=91.55
+    h=15; elementFromPoint at Plots center returns Remove RSP and ordinary
+    Playwright click is intercepted. At 390x800 TC Classic, normal click/menu/
+    close/remove flow succeeds. The current staged source and TC-owned source
+    differ; reproduce against this branch before claiming staged-source closure.
+acceptance_criteria:
+  - id: PTRD1
+    text: >-
+      On the exact repair source at 1920x1080 in default US Top Down, the
+      populated RSP comparison and Plots target do not overlap; elementFromPoint
+      at each button center resolves to its intended control, including after
+      chart-template save/remove/restore with RSP percentage populated.
+  - id: PTRD2
+    text: >-
+      The unchanged ordinary Playwright Plots click opens the menu, ordinary
+      close succeeds, and ordinary Remove RSP click removes the comparison;
+      no trial/force click, percentage blanking, test weakening, retry change,
+      or timeout increase is used.
+  - id: PTRD3
+    text: >-
+      The 390x800 TC Classic chart remains visible and its comparison/Plots
+      hit targets, menu, close and remove path continue to work. Default
+      no-comparison and wide-chart control geometry remain unchanged.
+  - id: PTRD4
+    text: >-
+      Affected frontend tests, type-check and production build pass; the full
+      local functional/visual profile passes first attempt with existing
+      assertions, screenshot references and 0.5%/1px/DeltaE2000 tolerances
+      unchanged; exact-source branch CI and exact pushed staging Exhaustive
+      Integration Gate pass.
+  - id: PTRD5
+    text: >-
+      The repair is cleanly published with exact evidence and closure receipt;
+      no TC/Provider/ETF/Strategy worktree, assigned data, provider quota,
+      live route, paid operation, operational trial or deployment is changed.
 branch_tests: []
-branch_tests_reason: pending agent assessment
-live_test_impact: none
+branch_tests_reason: >-
+  Existing complete frontend Vitest plus the focused F9c desktop and narrow
+  browser flows in Playwright exercise the UI change; full type/build and
+  exact-source branch CI remain mandatory. No unrelated standalone command is
+  needed for this CSS/layout repair.
+live_test_impact: >-
+  No live provider or issuer request is required. Browser validation must use a
+  fresh uniquely labeled internal-only Compose fixture with seeded market data,
+  blank provider and OneSignal credentials, provider routing/refresh disabled,
+  one worker and zero retries. Preserve and remove only resources carrying the
+  exact repair-project labels; assigned feature services/data remain untouched.
 migration_impact: none
 deployment_impact: none
-status: authorized
-remaining_gaps: []
+status: in_progress
+remaining_gaps:
+  - >-
+    Reproduce on this exact staging-derived source and implement the responsive
+    chart-container fix with the new failing-first ordinary-pointer regression.
+  - >-
+    Complete focused and full local validation, exact-source CI, closure record,
+    then guarded integration and exact pushed staging Exhaustive Integration
+    Gate before releasing the repair to the feature owners.
 progress:
   completed: []
-  total: 0
-  current_phase: plan
+  total: 5
+  current_phase: exact_source_reproduction_and_regression
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: reproduce the reported hit-target overlap on the staging-derived branch before editing product code
