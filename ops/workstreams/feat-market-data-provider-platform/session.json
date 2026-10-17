@@ -75,14 +75,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "3ef5de099fbfb77a80ff1555894a183e50cda91d",
+  "head": "938b62169d1d1c152c4e3b3f89bc5e180ab7ffd1",
   "implementation_sha": "a20766d9920ca91bfbf0b15bedcbf16c11776dd9",
   "interrupted": false,
-  "last_checkpoint": "2026-10-17T11:05:00Z",
+  "last_checkpoint": "2026-10-17T11:41:00Z",
   "last_human_progress_update": "2026-10-17T09:52:00+00:00",
   "local_validation_profile": "full_stack_browser",
-  "run_id": 39025252923,
-  "next_action": "Exact Actions run 39025252923 is green for pushed receipt source 3ef5de099fbfb77a80ff1555894a183e50cda91d: Backend 2838 unit + 396 integration tests at 82% coverage, Frontend Unit, Branch-declared and Playwright 151 passed / 109 skipped with no retry/flaky cases; Exhaustive was skipped by feature policy. Preserve this source-bound CI evidence and the preflight bound to f480dd9 (the intervening change was workstream-only). Continue Provider-owned ICP2/ICP6 contract and operation-disposition work, and wait for the coordinator's released TC repair before repeating the full pinned-Noble profile. F8u remains red on implementation source a20766d9; the full 260/104 local gates are not complete. Keep Dinari, Marketstack, and Tiingo operations held as documented. No provider/issuer HTTP or quota spend, paid/trial/unknown/unreviewed/unsafe activation, data reset/cleanup, staging/sibling writes, or deployment.",
+  "run_id": 39027450183,
+  "next_action": "Publish the validated receipt-only workstream update documenting exact green Actions run 39027450183 on source 938b62169d1d1c152c4e3b3f89bc5e180ab7ffd1. It passed Backend 2838 unit + 396 integration tests at 82% coverage, Frontend Unit, Branch-declared and Playwright 151 passed / 109 expected skips; Exhaustive was skipped by feature policy. The successful no-transport preflight remains bound to f480dd9 (the intervening changes through 938b621 were workstream-only). Then continue Provider-owned ICP2/ICP6 work, keep the three provider-specific quarantines intact, and wait for a released common TC repair before rerunning the full pinned-Noble profile. F8u remains red on implementation source a20766d9; full 260/104 local gates are incomplete. No provider/issuer HTTP or quota spend, paid/trial/unknown/unreviewed/unsafe activation, data reset/cleanup, staging/sibling writes, or deployment.",
   "parent_branch": "staging",
   "plan_hash": "eeb1170957507fbf7ee2cbf9de5b649f60def13cdc70f166958140e3c951f6a3",
   "planning_required": false,
@@ -118,10 +118,10 @@
     "current_phase": "provider-checkpoint-evidence-and-exact-ci",
     "next_action": "Append the exact Actions 39022815277 and 10:28Z no-transport preflight evidence to the Provider workstream packet, validate the records, and publish this coherent checkpoint. Continue Provider-owned ICP2/ICP6 contracts and operation dispositions; wait for a released common repair before rerunning the full browser profile. Do not edit TC, ETF, Strategy, or staging. Preserve all provider-specific holds and all retained data; no provider/issuer HTTP, quota spend, paid/trial activation, data reset/cleanup, or deployment.",
     "total": 7,
-    "updated_at": "2026-10-17T11:05:00+00:00"
+    "updated_at": "2026-10-17T11:41:00+00:00"
   },
   "remote": "origin/feat/market-data-provider-platform",
-  "remote_sha": "3ef5de099fbfb77a80ff1555894a183e50cda91d",
+  "remote_sha": "938b62169d1d1c152c4e3b3f89bc5e180ab7ffd1",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "The fresh pinned-Noble project provider-noble-2734-retry1-20261017 and runner provider-noble-2734-20261017-functional-retry1 remain running/preserved with seeded isolated datasets; the earlier harness-misconfigured project provider-noble-2734-20261017 also remains preserved. Existing charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, provider-playwright-1236-hostaccess-20261016, and assigned Provider/TC stacks remain running/preserved. No stop, reset, prune, or data cleanup occurred."

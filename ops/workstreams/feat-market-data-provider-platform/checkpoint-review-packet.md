@@ -1,5 +1,30 @@
 # Provider integration checkpoint review packet
 
+## Latest exact-source CI — 2026-10-17 11:41Z
+
+Exact pushed source `938b62169d1d1c152c4e3b3f89bc5e180ab7ffd1` passed
+[Actions run 39027450183](https://github.com/jagnelo/charting-platform/actions/runs/39027450183).
+Backend passed 2,838 unit + 396 PostgreSQL/Redis integration tests and 82%
+combined coverage (68,041 statements, 11,986 missing); Frontend Unit,
+Branch-declared, and Playwright succeeded (151 passed / 109 expected skips,
+13.1 minutes, no test retry/flaky markers). Exhaustive was skipped by
+feature-branch policy. The provider-live workflow was not invoked. This is
+exact-source branch CI, not Provider checkpoint acceptance.
+
+The successful no-transport quota-coordinator preflight remains bound to
+`f480dd9afa5949b49b6420ff56ba1ed8aca7d3eb`; changes through the CI source
+`938b621` were workstream records only. It showed a healthy existing durable
+coordinator, no global blockers, 24 admission-eligible candidates, and
+operation-specific Dinari, Marketstack, and Tiingo quarantines; zero provider
+HTTP requests. This does not authorize transport.
+
+The required pinned-Noble functional gate is still red on implementation
+source `a20766d9` at TC-owned F8u (150 passed / 2 expected live skips / 1
+failed, retries 0). The full 260 functional and 104 strict-visual local gates
+remain incomplete on this merged source. Therefore this packet is not
+`ready_for_human_review`. Do not edit TC source; await coordinator release of
+any shared repair. Preserve the full roadmap and all operation holds.
+
 ## Latest exact-source CI — 2026-10-17 11:05Z
 
 Pushed receipt commit `3ef5de099fbfb77a80ff1555894a183e50cda91d` passed exact

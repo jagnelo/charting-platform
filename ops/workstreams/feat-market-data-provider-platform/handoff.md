@@ -1,5 +1,26 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 11:41Z — latest receipt-tip CI green; functional gate still red
+
+- Exact pushed source `938b62169d1d1c152c4e3b3f89bc5e180ab7ffd1` passed
+  Actions run [39027450183](https://github.com/jagnelo/charting-platform/actions/runs/39027450183).
+  Backend passed 2,838 unit + 396 PostgreSQL/Redis integration tests and 82%
+  combined coverage (68,041 statements, 11,986 missing); Frontend Unit,
+  Branch-declared, and Playwright passed. Playwright reports 151 passed, 109
+  expected skips, and no test retry/flaky markers in 13.1 minutes. Exhaustive
+  was skipped by feature-branch policy. This is exact-source CI, not Provider
+  acceptance; live-provider transport was not invoked.
+- The no-transport coordinator preflight remains bound to `f480dd9` and had
+  only workstream-record changes between that source and `938b621`: existing
+  durable coordinator healthy, no global blockers, 24 policy-eligible
+  candidates, three provider-specific quarantines, zero provider HTTP.
+- F8u remains a TC-owned local pinned-Noble failure on implementation source
+  `a20766d9` (150 pass / 2 expected live skip / 1 fail, retries zero). The full
+  260 functional and 104 strict-visual local gates remain incomplete. Staging
+  is still the released common repair SHA `2734c6a`; no direct sibling import
+  is authorized. Preserve the red gate and wait for coordinator release of any
+  shared repair. No provider calls/quota or other prohibited action occurred.
+
 ## 2026-10-17 11:05Z — exact receipt-commit CI terminal; functional checkpoint still pending
 
 - Receipt commit `3ef5de099fbfb77a80ff1555894a183e50cda91d` passed exact

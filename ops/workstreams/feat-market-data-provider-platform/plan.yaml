@@ -1,12 +1,12 @@
 schema: 4
-# Current terminal candidate — 2026-10-17 11:05Z: workstream receipt commit
-# `3ef5de099fbfb77a80ff1555894a183e50cda91d` passed exact Actions run
-# `39025252923`: Backend 2,838 unit + 396 integration at 82% combined coverage,
+# Current terminal candidate — 2026-10-17 11:41Z: workstream receipt commit
+# `938b62169d1d1c152c4e3b3f89bc5e180ab7ffd1` passed exact Actions run
+# `39027450183`: Backend 2,838 unit + 396 integration at 82% combined coverage,
 # Frontend Unit and Branch-declared passed, Playwright 151 passed / 109 expected
-# skips in 13.9m with no test retry/flaky markers, Exhaustive skipped by feature
+# skips in 13.1m with no test retry/flaky markers, Exhaustive skipped by feature
 # policy. The successful no-transport quota preflight is source-bound to
-# `f480dd9afa5949b49b6420ff56ba1ed8aca7d3eb` (the immediately preceding source;
-# only workstream records changed afterward): durable coordinator healthy, 24
+# `f480dd9afa5949b49b6420ff56ba1ed8aca7d3eb` (later changes through this CI
+# source were workstream records only): durable coordinator healthy, 24
 # admission-eligible candidates, three provider-specific quarantines, no
 # global blockers, 0 provider HTTP requests. Do not create a blank ledger.
 # F8u remains a TC-owned local browser failure (150 passed, 2 expected skips,
