@@ -267,6 +267,111 @@ pass. The final staged-runtime/full-profile evidence remains open.
 | Historical correction | Date-selected basket excludes data learned after that date; explicit snapshot selection remains inspectable | API and Strategy-facing point-in-time membership agree, including composition/known/published timing and canonical identities |
 | Native/fallback | Existing exhaustive registry/audit/parser tests retained | SEC and fallback-only routes never satisfy issuer-current capability, even after HTTP/parse success |
 
+## Pre-release ETF bridge reconciliation checklist — 2026-10-17
+
+This is the bounded ETF-owned preparation that can be completed before the
+Provider checkpoint is accepted. Persistent staging is clean at
+`6dc178c12498236a2a0060533305e20cf47438b7` with exact exhaustive CI green.
+Coordinator-supplied evidence records Provider branch source
+`bc45e4b223a4abfd89de15e2c7278ed17d43a698` and ordinary branch CI
+`39070049292` as successful, including 151 E2E passes and 109 expected skips.
+The Provider checkpoint is still unaccepted and has not been released through
+green staging; its required local profile/fixture evidence remains open. These
+receipts therefore do not authorize a merge or establish the shared runtime.
+
+### Release gate and source reconciliation
+
+Before changing ETF product code, the ETF owner must verify all of the following
+against one coordinator release receipt:
+
+1. Provider has an explicit conditional checkpoint-acceptance decision, its
+   exact accepted source is an ancestor of persistent staging, and exact staging
+   exhaustive CI is green for that merged source.
+2. The accepted staging source identifies the concrete shared capability,
+   policy/admission, entitlement, quota reservation/settlement, aggregate-cost
+   or accepted free-only boundary, health, identity, and availability callables.
+   Missing interfaces or semantic fields remain blockers; ETF does not guess
+   names, prices, quota units, reset windows, currencies, or defaults.
+3. Only the released staging SHA is merged into this clean ETF worktree. Record
+   pre-merge ETF/staging SHAs, merge parents, conflicts, shared-path decisions,
+   migration heads, and the exact coordinator receipt. Do not import Provider
+   or TC commits directly.
+4. Re-run the static route-to-operation inventory on the combined source before
+   implementation. Bind every issuer, account, host, operation, redirect, page,
+   retry, alternate client, discovery request and SEC fallback to reviewed
+   shared policy. An unmapped or unknown operation stays non-routable.
+
+### Exact ETF-owned bridge contracts
+
+| Boundary | ETF implementation responsibility | Required invariant |
+| --- | --- | --- |
+| Capability and registry | Add `ProviderCapability.ETF_HOLDINGS`, its additive migration/seed, and a narrow facade over existing issuer adapters. | Disabled/unreviewed routes remain unavailable; fallback-only or quarantined routes never become native-current by registration alone. |
+| Canonical identity | Bind `ETFProfile.instrument_id`, canonical fund/security/listing identity, issuer product identity, provider symbol, publisher and account scope to each operation. | Ticker-only matches and future-like tickers cannot create synthetic equity identities; conflicts fail closed without rewriting historical snapshots. |
+| Admission and entitlement | Ask the accepted shared runtime for the exact operation before each outbound attempt. | Unknown, expired, restricted, paid/trial, wrong-environment or otherwise unreviewed evidence denies before transport and cannot fall through to SEC or a direct adapter. |
+| Quota and aggregate cost | Consume shared durable reservation/settlement and the accepted recurring-cost/free-only decision. | Each request, redirect, page, retry and fallback is accounted independently; no ETF ledger, guessed exchange rate, implicit zero, or batch-wide single charge exists. |
+| Async execution | Adapt async issuer transports to the accepted producer invocation contract and await completion exactly once. | A coroutine cannot be recorded as a successful response; cancellation, timeout and exception paths settle or retain reservations once under the producer rule. |
+| Health and raw evidence | Link shared decision/request/reservation/settlement/health identifiers to `ETFHoldingsRawArtifact` and ETF adapter state. | Transport success is distinct from content identity, schema, completeness and freshness; failed content retains inspectable evidence and creates no fresh snapshot. |
+| Consumer lineage | Feed capability API, refresh/canary/worker, basket/current-analysis and historical consumers from the same persisted outcome. | Reads make no network call or reservation; composition, publication, fetched and knowledge timestamps remain immutable and point-in-time selection avoids lookahead. |
+
+The resulting states have one meaning across all consumers:
+
+- `current`: the latest identity-matched, complete native artifact passed shared
+  admission and ETF content validation and is within its reviewed freshness
+  window.
+- `degraded`: a prior usable snapshot remains displayable after a failed or
+  denied refresh, with the new failure and original snapshot lineage visible;
+  it is not accepted for an explicitly current analysis.
+- `stale`: a prior usable snapshot exists but is beyond its freshness deadline;
+  it remains inspectable and is rejected by current-analysis gates.
+- `unavailable`: no usable prior snapshot exists, or canonical identity cannot
+  be resolved safely; no synthetic holdings or fallback-current claim is made.
+
+MSMR/QQQ and Militia/GOOG remain unresolved and quarantined. CI `38911867173`
+retained no response body or parsed-row artifact, so it cannot distinguish page
+content, selection, markup or parser behavior. Their historical successful
+receipts remain history only; neither route can be enabled as current evidence
+without a separately authorized retained first-party response and complete
+identity/table/parser comparison.
+
+### Deterministic consumer tests after release
+
+Add focused tests against the real staged runtime, with all transports locally
+intercepted and call-counted; do not issue issuer, Provider or SEC requests:
+
+1. Reviewed free operation completes the async adapter exactly once, records
+   shared references, retains the raw artifact and yields `current` only after
+   independent identity/date/completeness validation.
+2. Missing/expired/restricted terms, denied entitlement, unknown operation
+   cost/quota/currency/account, unsafe environment and exhausted aggregate
+   budget each produce the exact persisted denial with zero calls across
+   `httpx`, `requests`, curl, redirects, retries, pagination and SEC fallback.
+3. Multi-attempt routes reserve each actual attempt; denial of the second page,
+   redirect or retry prevents that transport call while preserving the first
+   attempt's settlement and raw/error evidence.
+4. Timeout, cancellation, HTTP error, parser error and ambiguous settlement
+   follow the accepted settlement rule exactly once and never create a fresh
+   snapshot or double-spend on replay.
+5. Open shared circuit suppresses transport; a healthy response with stale or
+   incomplete holdings remains `stale`/`degraded`, never `current`.
+6. Denial with prior data preserves `degraded` or `stale` lineage; denial with
+   no prior data is `unavailable`; identity mismatch is unavailable and leaves
+   historical identity untouched.
+7. Cached capability/API reads, explicit historical selection and point-in-time
+   basket/analysis perform zero admission, zero reservation and zero transport.
+8. Native, fallback-only and quarantined routes preserve their classifications;
+   specifically, MSMR/QQQ and Militia/GOOG remain unavailable for current-route
+   acceptance until new retained evidence supports a separate reviewed change.
+9. Concurrent workers, restart, duplicate idempotency replay and background
+   refresh use the same shared account and ledger, without reset, double charge
+   or bypass through a direct adapter.
+10. Additive enum/migration upgrade, application and worker startup, disabled
+    defaults, legacy callers and retained snapshots remain compatible.
+
+Only after these focused checks pass should the normal deterministic branch
+tests, PostgreSQL/Redis admission tests, complete `full_stack_browser` profile
+and exact-source hosted CI run. The branch stops at `ready_for_human_review`;
+the coordinator owns acceptance and persistent staging integration.
+
 Required broader validation remains `full_integration` / `full_stack_browser`:
 focused consumer/bridge/static tests; all deterministic adapters and default live
 contracts; bounded opt-in final-source issuer matrix with every skip/failure

@@ -11665,3 +11665,34 @@ that reproduction now, repeat unbounded tests, or initiate live HTTP/provider
 quota or a heavy profile. The current coordination message reserves heavy
 priority for Provider profile handle `84370`; the full real-provider bridge
 tests still wait for exact green Provider release.
+
+### Bounded bridge preparation refresh — 2026-10-17 21:52Z
+
+The existing ETF owner claim was verified in the exact assigned worktree. The
+UV-managed session status/preflight reported clean synchronized source
+`c89c7bfa866c309b9722fcd5c7f8e722783082b4`, `full_integration` validation and
+the required `full_stack_browser` profile. Persistent staging remains the green
+common baseline `6dc178c12498236a2a0060533305e20cf47438b7`.
+
+Coordinator-supplied evidence says Provider ordinary CI `39070049292` succeeded
+on `bc45e4b223a4abfd89de15e2c7278ed17d43a698`, including 151 E2E passes and
+109 expected skips. Provider is not accepted or merged and its required local
+profile/fixture evidence is still open, so no staging reconciliation or product
+bridge implementation was started.
+
+The checkpoint contract now contains a source-bound release checklist, exact
+ETF ownership boundaries, unified current/degraded/stale/unavailable semantics,
+and ten deterministic shared-runtime consumer test groups. It requires one
+admission per actual request/redirect/page/retry/fallback, exactly-once async
+completion and settlement, canonical identity preservation, one shared quota/
+cost ledger, linked raw/health evidence, and network-free cached/historical/PIT
+reads. MSMR/QQQ and Militia/GOOG remain unresolved and quarantined because the
+failed hosted run retained no response body or parsed-row evidence. No product
+code, provider/issuer/SEC request, quota, fixture, deployment, cleanup, sibling
+worktree or staging source was changed.
+
+Next: wait for the coordinator's explicit accepted Provider product release in
+green staging. Then verify its exact receipt/interfaces, merge only that released
+staging SHA into this ETF branch, recompute the route/operation inventory, and
+implement the documented bridge/tests. The checkpoint remains in progress and
+must stop at `ready_for_human_review` after all required validation passes.
