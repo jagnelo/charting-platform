@@ -1,5 +1,33 @@
 # Provider integration checkpoint review packet
 
+## 2026-10-17 — post-merge local profile and browser diagnosis
+
+Current source is merge base `b7bbdc8152a604e53355a3f7aaf2959b63453189`
+plus pending edits to `test_etf_holdings_adapters.py` and
+`test_provider_secret_wiring.py`. Full backend profile passed 2,838 unit +
+396 integration tests with 82% combined coverage. Direct frontend checks
+passed 938 Vitest tests/110 files, frontend build/typecheck, 48 renderer
+contracts, and 26 visual-policy assertions. Focused tests for the Regan
+fallback and safety-preflight environment override passed 2/2.
+
+The exact retained seeded browser profile is red (162 passed, 2 skipped, 96
+failed); do not accept the host-native visual results because they were not
+run under the required pinned Playwright Noble + RO DejaVu environment. F8n's
+local SPY/D1 endpoint returned 200/79,783 bytes and its authenticated payload
+contained 500 valid fixture bars, but the UI remained Loading/Unavailable.
+F8b's child popup loaded its route, authenticated, fetched its workspace, and
+started tool requests, but remained blank; its child OHLCV request was aborted
+with 499. A separate F8n-cross-window initial-render failure is also in this
+report. These are retained local failures, not established product causes;
+TC run `38981686587` passed its two corresponding flows. No TC source changes,
+provider calls/quota, resets, or assigned-stack mutations were made.
+
+Artifacts are preserved under `/tmp/provider-playwright-results-20261017` and
+`/tmp/provider-playwright-report-20261017`. The unique isolated Compose project
+is still running; all assigned Provider/TC resources remain untouched. Exact
+CI on the merged source plus current edits and a valid pinned-runtime visual
+gate remain open. No checkpoint acceptance is claimed.
+
 ## 2026-10-17 00:10Z — released staging reconciled into Provider branch
 
 Exact synchronized, green staging SHA

@@ -1,4 +1,17 @@
 schema: 4
+# Current continuation status — 2026-10-17: released staging 79c8623 is
+# reconciled at local merge HEAD b7bbdc8. Full backend profile passed 2,838
+# unit + 396 integration tests at 82% coverage; direct frontend unit/build and
+# renderer/policy checks pass. The retained isolated 260-case browser profile
+# is red (162 passed, 2 skipped, 96 failed) on this host Chromium/font runtime;
+# it includes F8b popup non-render and F8n chart non-render cases. Read-only
+# logs show F8n's local SPY/D1 response is 500 valid seeded bars (79,783 bytes,
+# HTTP 200), while F8b's popup route/auth/workspace reads succeeded but its
+# window never rendered the expected tool; child OHLCV request was client
+# cancelled. TC exact E2E 38981686587 passed those flows. Preserve the local
+# failures as unresolved runtime/render evidence, not a confirmed TC defect.
+# Exact-source CI for b7bbdc8 and required pinned-Noble visual gate remain open;
+# no provider HTTP/quota, data reset, or assigned-stack change occurred.
 # Current source/CI update — 2026-10-16 22:16Z: exact Actions run 38970895095
 # is terminal green on synchronized source e408d35c448c132cb57bbcdde90a83865edd30de.
 # Backend: 2,837 unit + 396 integration passed; combined coverage 82% >= 75%.

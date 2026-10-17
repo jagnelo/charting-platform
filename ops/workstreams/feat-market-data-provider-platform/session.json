@@ -45,14 +45,17 @@
     "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
   },
   "dirty_paths": [
+    "backend/tests/unit/services/test_etf_holdings_adapters.py",
+    "backend/tests/unit/test_provider_secret_wiring.py",
+    "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
     "ops/workstreams/feat-market-data-provider-platform/checkpoint-review-packet.md",
     "ops/workstreams/feat-market-data-provider-platform/handoff.md",
     "ops/workstreams/feat-market-data-provider-platform/session.json",
     "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
   ],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "available": true,
+    "reason": "Docker engine is available through the explicitly approved narrow escalation path; the unique isolated validation project is active. Default sandbox access remains restricted."
   },
   "docker_before_cleanup": {
     "available": true,
@@ -77,10 +80,10 @@
   "head": "b7bbdc8152a604e53355a3f7aaf2959b63453189",
   "implementation_sha": "b7bbdc8152a604e53355a3f7aaf2959b63453189",
   "interrupted": false,
-  "last_checkpoint": "2026-10-17T00:10:00Z",
+  "last_checkpoint": "2026-10-17T04:13:35Z",
   "last_human_progress_update": "2026-10-16T11:12:47.867964+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "The released staging baseline 79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b has been merged into this Provider worktree only at local merge commit b7bbdc8152a604e53355a3f7aaf2959b63453189. Prior candidate d5ac26f has exact CI run 38981710549 terminal green, but that run does not include the staging merge. Record and publish this reconciliation, then obtain exact-source CI for the merged source. Run the full required local profile using isolated resources without stopping/cleaning the retained Provider/TC stacks or datasets and without unapproved provider HTTP/quota. The ordinary validate-integration cleanup is unsafe for these currently running resources; do not run it. Preserve seeded-browser red, no-FX rule, downstream ownership, all provider holds, exact source binding, and checkpoint-not-accepted status.",
+  "next_action": "Static/workstream validation is complete on the dirty candidate based on merge source b7bbdc8152a604e53355a3f7aaf2959b63453189: focused tests 2/2, Ruff, diff check, JSON/JSONL parse, and 35 workstream records passed. The full backend profile passed 2,838 unit + 396 integration at 82% coverage; direct frontend Vitest/build/uPlot/policy checks passed. The retained seeded 260-case browser run is red (162 passed, 2 skipped, 96 failed) under host-native Chromium, not pinned Noble + RO DejaVu. F8n received 500 valid local SPY/D1 fixture bars (HTTP 200, 79,783 bytes), yet UI stayed Loading/Unavailable; F8b popup route/auth/workspace reads succeeded but child remained black, with child OHLCV client cancellation (499). TC run 38981686587 passed the corresponding flows; no TC source change or confirmed product cause. Publish this coherent test+receipt candidate and obtain exact-source CI, then complete the valid pinned browser gate in the approved isolated runtime. Preserve artifacts and isolated Compose project; no provider quota, resets/cleanup, staging/sibling edits, or checkpoint acceptance.",
   "parent_branch": "staging",
   "plan_hash": "a8875425f88edd353e17890043664f37442479bcd3d7eda2f0134d0d77bf55cd",
   "planning_required": false,
@@ -112,11 +115,11 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "The exact staging baseline is reconciled into the Provider branch at b7bbdc8152a604e53355a3f7aaf2959b63453189, but this combined source has no exact-source CI yet. The prior candidate d5ac26f CI is green but predates the merge. The standard local full-profile cleanup would delete currently running retained Provider/TC worktree resources, so the full profile must use an isolated non-destructive runner or remain held. The separate seeded-browser red, ICP2 currency/denomination, ICP6 downstream wiring, and provider live-operation holds remain; checkpoint not accepted.",
-    "current_phase": "provider-icp2-recurring-cost-and-icp6-contract-refresh",
-    "next_action": "Publish the staging reconciliation record plus local merge commit b7bbdc8152a604e53355a3f7aaf2959b63453189; obtain exact-source CI on the combined source. Then complete the full local profile using an isolated resource context that preserves all retained Provider/TC services and datasets and avoids unapproved provider HTTP/quota. Verify the safe cleanup scope for any new test resources before running, and retain them rather than removing them if data-loss scope is uncertain. Keep full-roadmap gaps, operation holds, exact source bindings, and no-FX-invention explicit; no paid/trial activation, deployment, reset, or staging/sibling edits.",
+    "current_blocker": "The full backend and direct frontend checks pass on the current dirty candidate, but exact-source CI has not yet covered it. The 260-case local browser result is red on host-native Chromium: the required pinned Noble + read-only DejaVu visual runtime is still unverified, and the retained F8b/F8n rendering failures have no proven client-side root cause. ICP2 denomination policy, ICP6 downstream ownership wiring, operation-level live holds, and full-roadmap requirements remain; Provider checkpoint acceptance is pending.",
+    "current_phase": "post-merge-full-profile-result-reconciliation",
+    "next_action": "Commit and push the coherent backend test plus durable receipt update, then obtain exact-source CI. Preserve the current host-native 260-case red and all artifacts. Complete the pinned Playwright Noble + RO DejaVu gate only in the approved isolated runtime; do not touch assigned Provider/TC stacks or datasets. Continue ICP2/ICP6 and provider-operation disposition work without vendor traffic where quota/cost admission is not proven. No data reset/cleanup, paid/trial, deployment, staging/sibling edits, or checkpoint acceptance.",
     "total": 7,
-    "updated_at": "2026-10-17T00:10:00Z"
+    "updated_at": "2026-10-17T04:13:35Z"
   },
   "remote": "51ebc7d45aa34d2e8790988778ee5e6eec14bdd7",
   "remote_sha": "d5ac26f193ee1da3a0a95114c4a46df7ae7eae92",

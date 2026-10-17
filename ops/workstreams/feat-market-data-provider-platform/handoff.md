@@ -1,5 +1,55 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 — isolated full-profile diagnosis and current validation
+
+The released staging baseline `79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b`
+remains reconciled into this Provider branch at `b7bbdc8152a604e53355a3f7aaf2959b63453189`.
+The full backend profile on that source plus the two pending test-only edits
+passed 2,838 unit tests and 396 integration tests; combined coverage was 82%
+(68,041 statements, 11,950 missed). Direct frontend verification passed 938
+Vitest tests across 110 files, typecheck/build, 48 uPlot renderer contracts,
+and 26 visual-policy assertions. `make test-fe` remains wrapper-blocked by UV
+dependency downloads in this network-restricted host; its direct frontend
+equivalents passed.
+
+The isolated seeded full browser run was retained at
+`/tmp/provider-playwright-results-20261017` and its HTML report at
+`/tmp/provider-playwright-report-20261017`. It is red: 162 passed, 2 skipped,
+96 failed, including visual diffs from this host Chromium/font environment
+(not the required pinned Noble + DejaVu runtime) and TC-local render failures.
+No threshold, assertion, timeout, retry, or test was changed. Relevant evidence:
+
+- F8n-crosshair entered `/chart`; at `2026-10-17T03:34:04.635Z`, the isolated
+  local-only `/api/v1/ohlcv/local/SPY/D1?limit=500` returned HTTP 200 and 79,783
+  response bytes. The separately retained authenticated payload inspection
+  found 500 valid seeded bars spanning 2024-01-30 through 2025-12-29, with no
+  invalid OHLC prices. The failure screenshot nevertheless remains at
+  “Loading SPY…” with freshness “Unavailable”; so this is a frontend
+  data-to-render failure in this run, not missing provider data. The logs do
+  not establish its exact JS/store cause.
+- F8b did open `/popout/benchmark-list?tab=us-top-down` at
+  `2026-10-17T04:03:12.566Z`; its own auth and default-workspace reads returned
+  200, and it initiated associated workspace/tool API requests. The retained
+  child screenshot is entirely black and the expected
+  `.workstation__popout .tool-window` never appeared. The child OHLCV request
+  was client-cancelled (Nginx 499) at 04:03:12.949Z. Thus the route and data
+  bootstrap began, but the expected tool was not demonstrably rendered; the
+  retained artifacts do not prove whether the workspace-key lookup or client
+  render/teardown caused the blank child. TC branch run `38981686587` passed
+  both directed flows, so no TC source change is made here.
+- The report also contains a separate F8n-cross-window failure at the initial
+  `.uplot` visibility assertion, before its interaction. Retain it as an
+  additional red case rather than folding it into F8n-crosshair.
+
+The currently running Compose project is the uniquely named isolated
+`charting-provider-validation-isolated-20261017`; assigned Provider and TC
+projects, data, and retained artifacts remain untouched. Provider routing is
+disabled and egress denied. No vendor request, quota spend, or data reset
+occurred. Next: finish source-bound workstream receipts; exact-source CI for
+`b7bbdc8` plus current test edits is still needed. The local visual gate must
+use the pinned Noble + read-only DejaVu runtime before its result can be
+accepted; do not rerun or reinterpret the existing red report as green.
+
 ## 2026-10-17 00:10Z — staging baseline reconciled; combined-source gates next
 
 - Merged exact coordinator-released staging `79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b`

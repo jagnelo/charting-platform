@@ -901,6 +901,8 @@ def test_marketstack_exchange_page_cost_is_unknown_by_default():
 
 
 def test_live_preflight_reports_non_routable_safety_controls_without_guessing(monkeypatch):
+    # An explicit blank environment value masks any operator .env setting
+    # loaded by the Settings singleton and exercises the missing-expiry branch.
     monkeypatch.setenv("PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK", "false")
     monkeypatch.setenv("ALPACA_CORPORATE_ACTIONS_MAX_PAGES", "0")
     monkeypatch.setenv("ALPACA_REVIEWED_RESET", "")
@@ -1234,7 +1236,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
 
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN", "starter_trial")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "10000")
-    monkeypatch.delenv("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", raising=False)
+    monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", "")
     statuses = routing_safety_preflight()
     assert statuses["marketdata.app account plan"] == (
         "non-routable: trial requires a timezone-aware " "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT"
