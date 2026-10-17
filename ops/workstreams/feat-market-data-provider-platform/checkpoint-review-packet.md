@@ -1,5 +1,61 @@
 # Provider integration checkpoint review packet
 
+## 2026-10-17 16:31Z — exact receipt-tip CI green; recurring-cost and journal checks recorded
+
+Exact pushed Provider source `ccd0646174cfd2db10c2824028e7079335723259`
+passed Actions run `39047001433`: Backend (2,838 unit +396 integration,
+combined coverage 82%), Frontend Unit, Branch-declared, and Playwright
+(151 passed/109 expected skips/0 failed; no retry-passing or flaky markers
+observed). Exhaustive was skipped under feature-branch policy. Provider-live
+did not run. This is a green exact-source branch CI receipt, not Provider
+checkpoint acceptance.
+
+The current worktree's focused recurring-cost unit module passed 15/15 in
+8.36s. `make branch-validate` passed against this checkout with an isolated UV
+cache, validating 37 workstream records. All 3,851 JSONL rows were inspected:
+29 lack top-level `command` or `result`, but all match the checked-in validator's
+explicit structured-receipt schemas (17 research, 8 live-candidate batch, and
+four other kinds); zero rows are rejected. No historical row or shared
+validator was changed. The earlier inability to prepare the private quota
+ledger directory produced nonfatal environment warnings; it did not change
+the validator result.
+
+The required local post-merge focused F8u flow and full pinned-Noble
+260-functional/104-visual profile remain unrun under the coordinator's host
+memory/retained-stack safety hold. Existing red evidence remains preserved.
+Current-source live provider operation evidence is incomplete; held and
+unknown routes remain non-routable. No provider/issuer request, quota spend,
+data reset, staging/sibling edit, or deployment occurred.
+
+The coordinator's repeated report of a 29-row `branch-validate` failure is
+explained by a validator-source mismatch. GitHub staging remains at
+`6dc178c12498236a2a0060533305e20cf47438b7`; its validator still applies the
+old inline top-level-only `command`/`result` predicate. Provider HEAD includes
+the owned typed helper from commit `2970b7947`, which validates the six
+structured receipt schemas and preserves strict ordinary-record checks.
+Provider `make branch-validate` therefore passes; staging's copy would fail
+these rows before Provider integration. No shared/staging file was changed.
+If staging must independently validate this journal before Provider merge, the
+minimal shared change is to port that helper and call it in place of the inline
+predicate, without changing the append-only journal.
+
+## 2026-10-17 15:56Z — targeted free-only admission regression is current-source green
+
+The 24-case focused selection on current Provider tip
+`ccd0646174cfd2db10c2824028e7079335723259` passed in 2.10s. It directly covers
+MarketData.app and Tiingo full/provider/case/account-usage plan admission under
+both paid-toggle states, plus reviewed-free and expired-trial positive controls
+and FMP/MarketData.app checkpoint status. These are mocked safety-path checks;
+they made zero provider/issuer requests and consumed no quota.
+
+Exact Actions run `39047001433` for `ccd0646` is still in progress (Frontend Unit
+green, Backend unit tests running at last check). The previous merged-code run
+`39044151374` on `d5045c7` is green but is not conflated with the latest receipt
+tip. Host `MemAvailable` is only 707636 kB and multiple retained Provider/TC
+stacks remain active, so local browser validation is held for safety. The
+focused post-merge F8u flow and full 260-functional/104-visual gate remain open;
+no container/data/quota changes occurred. Checkpoint remains pending.
+
 ## 2026-10-17 15:51Z — merged Provider source CI is green; local browser gates remain open
 
 Pushed Provider source `d5045c70e5cec1ff4ec127527c130f5e29cd1630` passed exact

@@ -6505,6 +6505,24 @@ progress:
   total: 7
   current_phase: provider-checkpoint-icp2-icp6-and-operation-disposition
   current_blocker: >-
+    LATEST SAFE PROGRESS — 2026-10-17 16:31Z: pushed Provider tip
+    `ccd0646174cfd2db10c2824028e7079335723259` passed exact Actions run
+    `39047001433`: Backend (2,838 unit +396 integration; 82% combined
+    coverage), Frontend Unit, Branch-declared, and Playwright (151 passed/109
+    expected skips/0 failed; no retry-passing or flaky markers observed).
+    Exhaustive was skipped by feature policy; Provider-live was not run. The
+    bounded no-transport free-only admission selection passed 24/24 and the
+    recurring-cost unit module passed 15/15. `make branch-validate` passed on
+    this checkout (37 workstream records) with an isolated UV cache. Direct
+    audit of all 3,851 append-only validation rows confirms all 29 without
+    top-level command/result match supported structured receipt schemas; zero
+    records are rejected. No historical receipt rewrite or shared validator
+    change was made. Provider-live evidence is still incomplete and this does
+    not constitute checkpoint acceptance. The required local post-merge F8u
+    and pinned-Noble 260-functional/104-visual gates remain pending under the
+    coordinator's host memory/retained-stack safety hold; prior red evidence
+    is preserved. No Provider/issuer transport, quota spend, data reset, local
+    browser/Compose, staging/sibling write, or deployment occurred.
     CURRENT SOURCE UPDATE — 2026-10-17 15:51Z: Provider branch tip
     `d5045c70e5cec1ff4ec127527c130f5e29cd1630` is pushed and synchronized.
     Exact Actions run `39044151374` is terminal green for Backend, Frontend
@@ -6627,6 +6645,17 @@ progress:
     source-bound receipts; no paid/trial activation, deployment, integration,
     reset, or cleanup is authorized.
   next_action: >-
+    Preserve exact Actions run `39047001433` green receipt and the new ICP2/
+    validator audit in the append-only journal; validate and commit/push the
+    coherent Provider workstream update, then record the exact new tip/run.
+    Continue Provider-owned ICP2/ICP6 consumer-contract and operation-level
+    disposition work with bounded no-transport tests. Do not start the local
+    focused F8u or full pinned-Noble browser profile until the coordinator
+    releases a safe fixture/resource slot; preserve the required 260-functional
+    and 104-visual gates and every prior red artifact. Current-source provider
+    live evidence remains incomplete. Keep all quota-held, unknown, unreviewed,
+    paid/trial and unsafe routes non-routable. No provider/issuer HTTP, quota
+    spend, activation, reset/cleanup, staging/sibling writes or deployment.
     Exact pushed Provider source `d5045c70e5cec1ff4ec127527c130f5e29cd1630`
     passed Actions run `39044151374`: Backend, Frontend Unit, Branch-declared,
     and Playwright succeeded; Exhaustive was skipped by feature policy. Continue

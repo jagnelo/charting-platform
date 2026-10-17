@@ -1,5 +1,49 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 16:31Z — receipt CI completed; journal validator discrepancy reconciled locally
+
+- Exact pushed tip `ccd0646174cfd2db10c2824028e7079335723259` passed Actions
+  `39047001433`: Backend (2,838 unit +396 integration, 82% combined
+  coverage), Frontend Unit, Branch-declared, and Playwright (151 passed/109
+  expected skips/0 failed; no retry-passing/flaky markers observed). Exhaustive
+  was skipped by feature policy; Provider-live was not run. This is not
+  checkpoint acceptance.
+- The Provider recurring-cost service unit module passed 15/15 in 8.36s.
+  Current `make branch-validate` passed with an isolated UV cache (37 records).
+  Auditing all 3,851 journal rows found 29 without top-level `command` or
+  `result`; all 29 are accepted by the checked-in structured-receipt schemas.
+  No journal history was rewritten and no shared validator code was changed.
+- Full local 260-functional/104-visual and focused post-merge F8u gates remain
+  pending: the coordinator's host/resource safety hold and retained Provider/
+  TC stacks still govern. Existing red evidence stays intact. No local browser/
+  Compose or provider/issuer transport was started, and no quota was spent.
+  Keep the checkpoint open and all quota-held, unreviewed, unknown, paid/trial,
+  and unsafe routes disabled.
+- Validator discrepancy is now isolated: GitHub staging is still at `6dc178c`
+  and its older script rejects typed receipts by requiring top-level
+  `command`/`result`; Provider HEAD has the stricter per-kind structured schema
+  helper introduced at `2970b7947`, and its own `make branch-validate` passes.
+  If central staging needs to validate this Provider journal before the Provider
+  branch is merged, port only that helper and replace the old inline predicate;
+  preserve the append-only historical rows. No shared/staging file was edited.
+
+## 2026-10-17 15:56Z — free-only admission regressions green; branch CI still running
+
+- On current pushed Provider tip `ccd0646174cfd2db10c2824028e7079335723259`,
+  the focused no-transport free-only admission suite passed 24/24 in 2.10s.
+  Coverage includes MarketData.app/Tiingo full, provider, case and account-
+  usage modes under both paid-toggle states, plus reviewed-free/expired-trial
+  positive controls and checkpoint status checks. No provider/issuer endpoint
+  or quota was used.
+- Exact receipt-tip Actions run `39047001433` is live: Frontend Unit passed;
+  Backend unit tests were running at last poll. The underlying merged-source CI
+  `39044151374` on `d5045c7` is green; do not represent it as CI for `ccd0646`.
+- Latest host snapshot is only 707636 kB MemAvailable, and multiple retained
+  Provider Noble and Provider/TC stacks remain up. No local browser/Compose was
+  started. The post-merge focused F8u run and complete 260-functional/104-visual
+  local profile remain pending until the coordinator releases a safe slot.
+  Retained containers, data, and quota remain unchanged; checkpoint stays open.
+
 ## 2026-10-17 15:51Z — exact merged-source CI green; local browser gate held
 
 - Provider tip `d5045c70e5cec1ff4ec127527c130f5e29cd1630` is pushed and
