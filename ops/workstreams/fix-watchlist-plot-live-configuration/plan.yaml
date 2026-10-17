@@ -53,6 +53,9 @@ acceptance_criteria:
       benchmarks on this exact repair source, in a fresh internal-only seeded
       fixture with provider/OneSignal credentials blank, provider routing/refresh
       disabled, one worker, and zero retries; repeat the exact flow five times.
+      App and worker provider egress stays denied. Only the public static SDK
+      host cdn.onesignal.com:443 may use the exact-host browser allowlist proxy;
+      no OneSignal API host or credentials are allowed.
   - id: AC3
     text: >-
       Affected watchlist/plot component suites, vue-tsc, production frontend
@@ -76,20 +79,26 @@ branch_tests_reason: >-
   contracts; ordinary CI supplies the branch-wide regression gate.
 live_test_impact: >-
   No live provider or issuer test is required. Browser validation must use a
-  fresh internal-only fixture with provider and OneSignal egress denied,
-  credentials blank, and provider routing/refresh disabled.
+  fresh internal-only fixture with app/worker provider egress denied,
+  credentials blank, and provider routing/refresh disabled. The browser may
+  fetch only the public OneSignal static SDK through a temporary exact-host
+  cdn.onesignal.com:443 allowlist proxy; OneSignal APIs remain unreachable and
+  credentials remain blank.
 migration_impact: none
 deployment_impact: none
 status: in_progress
 remaining_gaps:
+  - >-
+    Exact-source ordinary GitHub Actions branch CI has not yet completed for
+    this repair checkpoint.
   - >-
     This repair checkpoint does not close Provider, ETF, TC2000, or Strategy
     Lab v2 feature checkpoints. Provider's full 260-case/104-visual validation,
     operation dispositions, and current quota preflight remain owner/coordinator
     gates after this fix is released through staging.
 progress:
-  completed: []
+  completed: [AC1, AC2]
   total: 4
-  current_phase: source_repair_and_full_validation
-  current_blocker: none
-  next_action: implement the minimal live-configuration fix, add evidence, and run the required full integration profile
+  current_phase: local_validation_complete_exact_source_ci_pending
+  current_blocker: exact-source ordinary branch CI pending publication
+  next_action: record evidence, commit and push the repair checkpoint, refresh plan-ready session metadata, then verify exact-source CI
