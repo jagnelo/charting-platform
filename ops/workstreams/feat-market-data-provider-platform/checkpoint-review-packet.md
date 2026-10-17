@@ -1,5 +1,44 @@
 # Provider integration checkpoint review packet
 
+## 2026-10-17 17:12Z — exact current-source hosted CI and ICP2/ICP6 evidence
+
+The pushed Provider source `f9e27c759da44d6883412f3ebecd60eb6664c016`
+passed Actions run `39049956683`: Backend (2,838 unit +396 integration;
+combined coverage enforcement passed), Frontend Unit, Branch-declared, and
+E2E Playwright (151 passed, 109 expected skips, 0 failures; no retry/flake
+markers). Exhaustive was skipped by feature-branch policy. Provider-live was
+not run. The exact-source 252/252 bounded no-transport ICP2/ICP6 regression
+suite also passed in 128.40s. These receipts do not close the focused local
+post-merge F8u gate, full pinned-Noble 260-functional/104-visual profile, or
+current enabled-free-operation evidence. The local profile remains on hold
+until coordinator confirms safe capacity and fixture ownership.
+
+The 29 historical typed validation receipts remain append-only and pass the
+Provider branch validator. The older staging validator incompatibility and
+minimal shared-validator scope are documented; no shared file was changed.
+Provider checkpoint remains open.
+
+## 2026-10-17 16:38Z — current-tip ICP2/ICP6 contract regression
+
+The receipt/workstream commit `f9e27c759da44d6883412f3ebecd60eb6664c016`
+passed the bounded Provider-owned ICP2/ICP6 no-transport unit selection:
+252 passed, 0 failed, 128.40s, with five third-party deprecation warnings.
+It covers recurring-cost/runtime governance, producer success/unavailable
+contracts, coverage/OHLCV behavior, and live-runner free-only admission. No
+provider/issuer HTTP, quota spend, reset, or container/stack mutation occurred.
+
+At that point Actions run `39049956683` was still running. Its terminal green
+result is recorded above. The prior exact-source run `39047001433` on `ccd0646`
+is also retained separately. The workstream receipt update is uncommitted.
+
+The 29 historical structured journal rows remain accepted by Provider's typed
+validator and unchanged. GitHub staging remains on the older strict validator;
+the minimal required common fix is described above. The full local
+260-functional/104-visual profile, focused post-merge F8u, and current-source
+live-operation evidence remain incomplete. Keep the coordinator's resource
+hold and all provider/issuer/quota/activation/data-safety restrictions in
+force; Provider checkpoint acceptance remains pending.
+
 ## 2026-10-17 16:31Z — exact receipt-tip CI green; recurring-cost and journal checks recorded
 
 Exact pushed Provider source `ccd0646174cfd2db10c2824028e7079335723259`

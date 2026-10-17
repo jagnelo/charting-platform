@@ -1,5 +1,40 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 17:12Z — current-source CI terminal; checkpoint still open
+
+- Exact pushed source `f9e27c759da44d6883412f3ebecd60eb6664c016` passed
+  Actions `39049956683`: Backend 2,838 unit +396 integration with combined
+  coverage enforcement, Frontend Unit, Branch-declared, and Playwright 151
+  passed/109 expected skips/0 failed with no retry/flake markers. Exhaustive
+  was skipped by feature policy; provider-live was not run.
+- The exact-source bounded ICP2/ICP6 no-transport selection passed 252/252
+  in 128.40s. No provider/issuer HTTP, quota, reset, or stack mutation.
+- Provider's validator accepts all 29 typed historical journal records
+  without rewriting them. The older staging validator mismatch and proposed
+  minimal shared validator port are documented; no shared/staging edits made.
+- Focused local post-merge F8u, pinned-Noble 260-functional/104-visual, and
+  current enabled-free-operation evidence remain open. Keep local browser
+  validation held until the coordinator confirms safe capacity and fixture
+  ownership. Do not claim checkpoint acceptance or ready-for-integration.
+
+## 2026-10-17 16:38Z — bounded ICP2/ICP6 checks refreshed on current tip
+
+- Current pushed source is `f9e27c759da44d6883412f3ebecd60eb6664c016`.
+  Its bounded no-transport ICP2/ICP6 suite passed 252/252 in 128.40s with
+  five third-party deprecation warnings. Provider/issuer HTTP, quota, reset,
+  and stack mutation were all zero.
+- Exact-source Actions run `39049956683` later completed green as recorded
+  above. Run `39047001433` remains a separate green receipt for prior source
+  `ccd0646`.
+- Provider branch validation accepts all 29 typed historical journal records;
+  the old staging validator mismatch and exact minimal shared change are
+  documented in the checkpoint packet. No shared/staging code or journal
+  history was changed.
+- Keep the full pinned-Noble functional/visual profile and focused F8u held
+  until the coordinator releases a safe fixture/resource slot. Current-source
+  live-operation evidence is still incomplete; all unknown, quota-held,
+  unreviewed, paid/trial and unsafe operations stay non-routable.
+
 ## 2026-10-17 16:31Z — receipt CI completed; journal validator discrepancy reconciled locally
 
 - Exact pushed tip `ccd0646174cfd2db10c2824028e7079335723259` passed Actions

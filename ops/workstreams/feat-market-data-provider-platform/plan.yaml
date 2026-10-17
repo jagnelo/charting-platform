@@ -6505,6 +6505,23 @@ progress:
   total: 7
   current_phase: provider-checkpoint-icp2-icp6-and-operation-disposition
   current_blocker: >-
+    CURRENT SAFE PROGRESS — 2026-10-17 17:12Z: exact branch tip
+    `f9e27c759da44d6883412f3ebecd60eb6664c016` passed the bounded no-transport
+    ICP2/ICP6 suite (252/252 in 128.40s; five third-party deprecation
+    warnings). Exact Actions run `39049956683` on this tip is terminal green:
+    Backend (2,838 unit +396 integration, combined coverage enforced),
+    Frontend Unit, Branch-declared, and Playwright (151 passed/109 expected
+    skips/0 failed; zero retry/flake markers); Exhaustive skipped by feature
+    policy and provider-live not run. The previous green `39047001433` remains
+    bound only to `ccd0646`. The 29 structured
+    append-only historical receipts pass Provider's typed validator; staging's
+    older top-level-only validator mismatch is documented with the exact
+    minimal shared change, and no shared file or history was modified. The
+    required pinned-Noble local 260-functional/104-visual profile and focused
+    post-merge F8u remain held by coordinator resource/fixture safety. Current
+    source live-operation evidence is incomplete. No provider/issuer HTTP,
+    quota spend, reset, stack mutation, staging/sibling write, paid/trial
+    activation, or deployment occurred.
     LATEST SAFE PROGRESS — 2026-10-17 16:31Z: pushed Provider tip
     `ccd0646174cfd2db10c2824028e7079335723259` passed exact Actions run
     `39047001433`: Backend (2,838 unit +396 integration; 82% combined
@@ -6645,11 +6662,12 @@ progress:
     source-bound receipts; no paid/trial activation, deployment, integration,
     reset, or cleanup is authorized.
   next_action: >-
-    Preserve exact Actions run `39047001433` green receipt and the new ICP2/
-    validator audit in the append-only journal; validate and commit/push the
-    coherent Provider workstream update, then record the exact new tip/run.
-    Continue Provider-owned ICP2/ICP6 consumer-contract and operation-level
-    disposition work with bounded no-transport tests. Do not start the local
+    Exact Actions run `39049956683` on source
+    `f9e27c759da44d6883412f3ebecd60eb6664c016` is terminal green. The exact
+    252-case bounded ICP2/ICP6 no-transport regression also passes on this
+    source. Continue Provider-owned operation-
+    level dispositions and producer-contract evidence without provider calls.
+    Do not start the local
     focused F8u or full pinned-Noble browser profile until the coordinator
     releases a safe fixture/resource slot; preserve the required 260-functional
     and 104-visual gates and every prior red artifact. Current-source provider
