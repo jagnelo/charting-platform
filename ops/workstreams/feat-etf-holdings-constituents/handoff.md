@@ -11714,3 +11714,22 @@ narrative invariant passed 1/1 and the full no-network adapter module passed
 passed. A fresh exact-source CI run is required after publication. Provider is
 still not accepted or merged, and MSMR/QQQ plus Militia/GOOG remain unresolved
 and quarantined. No issuer, SEC, or provider HTTP request was made.
+
+### Exact-source terminal CI receipt — 2026-10-17 22:23Z
+
+The narrative repair was published at exact source
+`8b83948d0b7fc804e2d984f4296db5e86d7f6991`. GitHub Actions run
+[`39073141277`](https://github.com/jagnelo/charting-platform/actions/runs/39073141277)
+completed green on attempt 1 for that exact SHA: Backend Tests, Frontend Unit
+Tests, Branch-declared Tests, and E2E Tests (Playwright) all succeeded. E2E
+reported 151 passes and 109 expected skips. The Exhaustive Integration Gate was
+skipped by feature-branch policy.
+
+This is exact validation of the bounded static bridge preparation and workstream
+narrative repair; it is not ETF checkpoint acceptance and does not close the
+Provider dependency. The checkpoint stays `in_progress`. The actual
+`ETF_HOLDINGS` bridge still waits for an accepted synchronized green Provider
+staging release. MSMR/QQQ and Militia/GOOG remain unresolved and quarantined,
+and the full roadmap remains open. No issuer, SEC, or provider HTTP request,
+quota operation, paid/trial activation, heavy local profile, or cross-worktree
+write occurred.

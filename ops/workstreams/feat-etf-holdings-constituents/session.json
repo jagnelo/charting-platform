@@ -39,7 +39,7 @@
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "state": "published_bridge_contract_b25f9f4a4e876c05586a2df266f6944a0581c81c; exact_ci39072885614_branch_declared_failed_only_on_omitted_tier_count_narrative; evidence_backed_count_restored_and_611_adapter_tests_passed; fresh_exact_source_ci_required; provider_bc45e4b_ci39070049292_ordinary_green_but_unaccepted; bridge_waits_for_accepted_green_provider_staging"
+    "state": "published_narrative_repair_8b83948d0b7fc804e2d984f4296db5e86d7f6991; exact_ci39073141277_attempt1_green_backend_frontend_branch_declared_and_e2e; exhaustive_skipped_by_feature_policy; checkpoint_in_progress_not_accepted; provider_bc45e4b_ci39070049292_ordinary_green_but_unaccepted; bridge_waits_for_accepted_green_provider_staging"
   },
   "active_session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
   "branch": "feat/etf-holdings-constituents",
@@ -79,7 +79,6 @@
   "current_blocker_latest": "2026-10-17 21:52Z: Persistent staging6dc178c12498236a2a0060533305e20cf47438b7 is exact-exhaustive green. Coordinator-supplied Provider source bc45e4b223a4abfd89de15e2c7278ed17d43a698 has successful ordinary CI39070049292 (151 E2E passed/109 expected skips), but the Provider checkpoint is not accepted or merged and its required local profile/fixture evidence remains open. ETF product code cannot safely consume or test the real shared runtime before the coordinator releases an accepted green Provider staging checkpoint. The exact release/reconciliation checklist, bridge contracts, lineage semantics and deterministic consumer tests are documented. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined with no retained response/row evidence.",
   "dirty_paths": [
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
     "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
   ],
@@ -107,7 +106,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "b25f9f4a4e876c05586a2df266f6944a0581c81c",
+  "head": "8b83948d0b7fc804e2d984f4296db5e86d7f6991",
   "implementation_sha": "dd9b7a08ce79303638c3951dd937270e97bbff33",
   "integration_checkpoint": {
     "acceptance_authorization": "pending",
@@ -202,9 +201,9 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-17T21:52:02Z",
+  "last_checkpoint": "2026-10-17T22:23:13Z",
   "last_human_progress_update": "2026-10-15T22:12:26.620198+00:00",
-  "latest_checkpoint": "2026-10-17 21:57Z: Published the bounded ETF bridge contract at b25f9f4a4e876c05586a2df266f6944a0581c81c. Exact CI39072885614 tested that SHA: Frontend passed; Branch-declared failed only because session.progress.current_blocker omitted the evidence-backed 15 Tier-0 and 156 Tier-1 phrase; Backend was still running when the narrow repair was prepared. Restored that exact ledger-backed phrase without changing product code or tests. The focused narrative invariant passed 1/1 and the complete no-network adapter module passed 611/611; workstream validation, JSON parse and diff check passed. Provider remains unaccepted/unmerged, so the shared bridge remains release-gated. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined. No live request, quota, fixture, merge, sibling/staging write, cleanup or deployment.",
+  "latest_checkpoint": "2026-10-17 22:23Z: Published the evidence-backed ledger narrative repair at exact source 8b83948d0b7fc804e2d984f4296db5e86d7f6991. Exact CI39073141277 completed green on attempt 1: Backend Tests, Frontend Unit Tests, Branch-declared Tests and E2E Tests (Playwright) all succeeded; E2E reported 151 passed and 109 expected skips; Exhaustive Integration Gate was skipped by feature-branch policy. This validates the bounded static preparation and narrative repair only. The ETF checkpoint remains in_progress and not accepted because Provider has not been accepted and released through synchronized green staging. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined. No live request, quota, fixture, merge, sibling/staging write, cleanup or deployment.",
   "local_profile_execution": {
     "cleanup": {
       "host_wide_prune": false,
@@ -296,10 +295,10 @@
     "current_phase": "provider_release_pending_after_static_bridge_preparation",
     "next_action": "Wait for the coordinator's explicit accepted Provider product release in exact green staging. Then verify the accepted source/CI and concrete shared capability, identity, policy/admission, entitlement, quota/settlement, aggregate-cost or accepted free-only, health and availability interfaces; merge only that released staging SHA into this ETF worktree; record conflicts/migration heads; recompute the route-to-operation inventory; implement the documented ETF_HOLDINGS bridge and deterministic no-network consumer tests; then run the required focused, database, full_stack_browser and exact-source CI gates. Keep MSMR/QQQ and Militia/GOOG quarantined until retained evidence supports a separately reviewed change. Stop at ready_for_human_review.",
     "total": 7,
-    "updated_at": "2026-10-17T21:57:14.000000+00:00"
+    "updated_at": "2026-10-17T22:23:13.000000+00:00"
   },
-  "remote": "b25f9f4a4e876c05586a2df266f6944a0581c81c",
-  "remote_sha": "b25f9f4a4e876c05586a2df266f6944a0581c81c",
+  "remote": "8b83948d0b7fc804e2d984f4296db5e86d7f6991",
+  "remote_sha": "8b83948d0b7fc804e2d984f4296db5e86d7f6991",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
