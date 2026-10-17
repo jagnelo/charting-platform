@@ -1,5 +1,69 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 14:20Z — exact current-source CI terminal red; checkpoint remains open
+
+- Exact Actions run `39037691098` for Provider source
+  `50a0fd908d852f32377e1fed8e942cf9c78f0a9a` is terminal. Backend passed
+  2,838 unit and 396 integration tests with 82% combined coverage; Frontend
+  Unit and Branch-declared passed; Exhaustive was skipped by feature-branch
+  policy. E2E failed at F8u: 150 passed, 109 expected skips, one failure. Its
+  ordinary retry also failed the same `RSI` header visibility assertion after
+  the real chart-plot drag. This matches the post-merge local red and is
+  TC-owned; do not edit its source, assertion, retry policy, or import an
+  unreleased repair. Provider-live was not run.
+- The requested staging repair `2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745`
+  is already an ancestor of current HEAD; its `getRandomValues` changes are
+  present in the exact application/test source. No merge delta exists.
+- Provider-owned bounded ICP2/ICP6 regressions passed 252/252 on current HEAD
+  in 125.88s; no provider/issuer HTTP, quota spend, or data reset. The last
+  healthy-ledger preflight remains source-bound to `0f5a55e` (24 candidates,
+  Dinari/Marketstack/Tiingo quarantined, zero provider HTTP); the newer current
+  source preflight is unable to read the owner-private ledger and is not live
+  acceptance. All candidate and held operations remain uncalled/disabled under
+  the no-transport direction.
+- Workstream records now include the exact failed CI, bounded regression,
+  ancestry, and no-transport results. The post-merge functional gate is red and
+  the full local 260-functional/104-visual profile is incomplete; this branch
+  is not ready for coordinator acceptance. Preserve the full roadmap, artifacts,
+  quota holds, retained datasets and stacks. No staging/sibling mutation,
+  data cleanup/reset, provider transport, paid/trial activation, or deployment.
+
+## 2026-10-17 14:14Z — released repair ancestry confirmed; current bounded tests refreshed
+
+- The human-requested synchronized green staging repair is exactly
+  `2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745` (Exhaustive run `39013106548`).
+  `git merge-base --is-ancestor` confirms it is already included in current
+  Provider HEAD `50a0fd908d852f32377e1fed8e942cf9c78f0a9a`; its relevant
+  `getRandomValues` chart-template/column-set fix is present in implementation
+  source `a20766d9920ca91bfbf0b15bedcbf16c11776dd9`. No merge was needed and
+  no sibling, staging, or unrelated newer staging changes were imported.
+- The designated post-merge pinned-Noble, seeded, provider-egress-denied
+  functional selection already ran on exact implementation/test source
+  `a20766d9`: 150 passed, 2 expected live skips, 1 failed at TC-owned F8u,
+  zero retries. The `getRandomValues` failures are cleared; the remaining real
+  RSI drag failure belongs to TC. Provider will not edit or import TC-owned
+  source. Existing artifacts remain at
+  `/tmp/provider-noble-merged-retry1-20261017.Wvl7IS/results`.
+- Refreshed the bounded ICP2/ICP6 regression selection on current HEAD
+  `50a0fd9`: 252/252 passed in 125.88s, with five dependency deprecation
+  warnings. No provider/issuer HTTP, quota spend, or data reset was part of
+  this run.
+- A fresh `--preflight-only` attempt on `50a0fd9` is preserved in the journal.
+  It stopped before transport with zero provider requests because this process
+  sees the private quota ledger as read-only; this is a local access result,
+  not a provider-wide coordinator diagnosis or live acceptance. Dinari,
+  Marketstack and Tiingo remain provider-specifically held as recorded in the
+  last healthy-ledger preflight. A full Docker profile was not started: current
+  host availability was about 0.8 GiB and this sandbox cannot access Docker;
+  existing isolated stacks/artifacts were left untouched.
+- Exact Actions run `39037691098` is active on synchronized HEAD `50a0fd9`:
+  Backend, Frontend Unit and Branch-declared succeeded; Playwright is still
+  running; Exhaustive is skipped under feature policy. Await terminal E2E and
+  record its exact result. Checkpoint remains pending: F8u is red, full
+  260-functional/104-visual gates are incomplete, and no current-source live
+  provider acceptance exists. No provider/issuer calls, quota spend, activation,
+  data cleanup/reset, staging/sibling mutation or deployment occurred.
+
 ## 2026-10-17 13:41Z — exact Actions receipt reconciled; local profile remains open
 
 - Provider HEAD is `0f5a55e973cef85ccc352df0bc4685a25808dfd6`, synchronized

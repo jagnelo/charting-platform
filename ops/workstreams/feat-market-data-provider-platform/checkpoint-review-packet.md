@@ -1,5 +1,72 @@
 # Provider integration checkpoint review packet
 
+## 2026-10-17 14:20Z — exact current-source Actions terminal red
+
+Exact Actions run [39037691098](https://github.com/jagnelo/charting-platform/actions/runs/39037691098)
+completed on Provider source `50a0fd908d852f32377e1fed8e942cf9c78f0a9a`.
+Backend passed 2,838 unit and 396 integration tests; combined coverage was 82%
+(68,041 statements, 11,987 missing). Frontend Unit and Branch-declared passed;
+Exhaustive was skipped by feature-branch policy. Playwright was red: 150 passed,
+109 expected skips, one failed at `F8u` (`flows.spec.ts:4405`). The first attempt
+and its normal retry both failed the existing 10-second assertion that the
+`RSI` header appear in the `Major US benchmarks` watchlist after the real plot
+drag. This is the TC-owned interaction already red in the post-merge local
+selection, not a Provider/live-data/quota failure. Provider-live was not part of
+the workflow. Do not change assertions/retries or edit/import TC-owned code.
+
+The exact requested green staging repair `2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745`
+(Exhaustive run `39013106548`) is already an ancestor of this source. The
+post-merge pinned-Noble profile already ran against the identical backend and
+frontend application/test tree (`git diff --quiet a20766d..HEAD -- backend frontend`
+passed): 150 passed, 2 expected live skips, one F8u failure, zero retries. The
+released `getRandomValues` fix cleared all five previous key-generation cases.
+The 252-case ICP2/ICP6 suite passed on current HEAD in 125.88s.
+
+The current-source `--preflight-only` attempt stopped before transport because
+the shell could not write the private quota ledger (zero provider HTTP). It
+does not supersede the latest healthy-ledger preflight on `0f5a55e`: 24 policy
+candidates, three quarantined groups (Dinari, Marketstack, Tiingo), no global
+blockers, zero provider HTTP. This candidate list is not live verification or a
+current reservation. All unreviewed, quota-held, paid/trial and unsafe routes
+remain disabled; no provider/issuer calls or quota spend occurred.
+
+No second local browser stack was started: the host had about 0.8 GiB available,
+retained isolated browser stacks/data remain in place, and this sandbox cannot
+access Docker lifecycle operations. The known post-merge browser result already
+uses the exact same app/test tree. Full 260 functional and 104 strict-visual
+local gates remain incomplete. Provider checkpoint is not ready for review.
+
+## 2026-10-17 14:14Z — requested staging repair already merged; current evidence refreshed
+
+The requested released staging repair `2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745`
+(green Exhaustive run `39013106548`) is already an ancestor of Provider HEAD
+`50a0fd908d852f32377e1fed8e942cf9c78f0a9a`. Its `getRandomValues` fix is in
+implementation source `a20766d9920ca91bfbf0b15bedcbf16c11776dd9`; no merge was
+needed. No later staging changes were imported.
+
+The designated post-merge seeded, provider-egress-denied pinned-Noble functional
+selection already ran on that exact application/test source: 150 passed, 2
+expected live skips, 1 failed at the TC-owned F8u RSI-plot drag, zero retries.
+This is still a red gate; the former key-generation failures are cleared. The
+Provider bounded ICP2/ICP6 selection was rerun on current HEAD and passed 252/252
+in 125.88s (five dependency deprecation warnings).
+
+Exact Actions run [39037691098](https://github.com/jagnelo/charting-platform/actions/runs/39037691098)
+is still in progress on exact HEAD `50a0fd9`: Backend, Frontend Unit and
+Branch-declared are successful; Playwright is active; Exhaustive is skipped by
+feature policy. The current preflight attempt is preserved and stopped before
+transport because this process sees the private quota ledger read-only (zero
+provider requests). It does not replace the prior healthy-ledger, zero-request
+preflight; Dinari, Marketstack and Tiingo remain held. No provider or issuer
+HTTP, quota spend, data reset, or stack lifecycle change occurred.
+
+No new browser profile was launched: existing Noble test stacks/artifacts are
+retained and the host has about 0.8 GiB available, so starting another full
+browser stack is unsafe. The previous profile already exercised the exact
+post-merge app/test source and retained the TC-owned F8u failure. Full 260
+functional/104 strict-visual gates remain open, so this checkpoint is not
+`ready_for_human_review`.
+
 ## 2026-10-17 13:41Z — exact Actions CI green; durable preflight refreshed
 
 Current Provider HEAD `0f5a55e973cef85ccc352df0bc4685a25808dfd6` is synchronized
@@ -1549,17 +1616,19 @@ ready for human review.
 | ICP1 — identity and lifecycle | Tests cover stable instrument/issuer/listing/provider-symbol identity, provenance/history, ambiguity quarantine, and legacy symbol/API compatibility. | Report known mapping gaps. Complete same-session NMS/OTC/SEC reconciliation and all venue/ticker-change/delisting history remain full-roadmap work, not this checkpoint's ICP1 minimum. |
 | ICP2 — provider governance | Shared capability, entitlement, free-only routing, durable multidimensional quota, reset windows, and cross-session/concurrent admission are tested. Bounded merged-source ICP2/ICP6 selection passed 252/252; the released key-generation component tests passed 78/78. Paid routes remain denied regardless of `ALLOW_PAID_PROVIDER_ROUTING`; trials and unreviewed plans fail closed apart from the reviewed EODHD zero-daily-credit usage observation, which still reserves its per-minute charge. | Single-currency recurring-cost admission is implemented and tested but does not imply paid activation. Owner selection/configuration of the 20 EUR/USD-equivalent ceiling and ETF's post-staging consumer bridge remain explicit remainders; no FX is invented and no ETF-only ledger is permitted. |
 | ICP3 — series, coverage and refresh | Canonical OHLCV/provenance, gap planning, session-aware freshness, refresh coalescing/leases, local-only behavior, and ready/partial/missing responses have unit/integration and consumer-contract tests. `local_only=true` with no retained bars returns `200 []` without provider hydration; provider-backed no-data is distinct. | Downstream ETF, TC2000, and Strategy consumers verify their own stale/partial/missing/unavailable handling after Provider's green staging checkpoint. |
-| ICP4 — provider operations | Latest source-bound no-transport preflight (`f480dd9`, 2026-10-17 10:28Z) reached the durable quota coordinator, evaluated 27 providers, found 24 policy-eligible candidates and three quarantined groups, no global blockers, and zero provider HTTP. This is not live success. Earlier successful live receipts remain bound to their historical exact trees; none is rebound to this source. | Current-source live acceptance is incomplete. Dinari, Marketstack, and Tiingo stay held with the reasons below; all other eligible operations remain uncalled under the current no-transport direction. Preserve explicit unavailable/deferred routes, and do not infer current success from historical receipts or preflight eligibility. |
+| ICP4 — provider operations | Last healthy-ledger no-transport preflight (`0f5a55e`, 2026-10-17 13:19Z) reached the durable quota coordinator, evaluated 27 providers, found 24 policy-eligible candidates and three quarantined groups, no global blockers, and zero provider HTTP. A newer `50a0fd9` preflight at 14:12Z stopped before transport because this shell could not write the private ledger; it also sent zero provider HTTP. Neither preflight is live success. Earlier successful live receipts remain bound to their historical exact trees; none is rebound to this source. | Current-source live acceptance is incomplete. Dinari, Marketstack, and Tiingo stay held with the reasons below; all other eligible operations remain uncalled under the current no-transport direction. The latest process could not refresh global ledger admission, so no current request is authorized. Preserve explicit unavailable/deferred routes; do not infer current success from historical receipts or preflight eligibility. |
 | ICP5 — migrations, startup and secrets | Additive migrations, SQLite/PostgreSQL coordinator behavior, fresh/upgrade equivalence, rollback/health, and tested local secret/config boundaries have source-qualified tests. Exact receipt source `17a64cc` passed required Actions `39032614793`; this run includes backend PostgreSQL/Redis integration and 82% combined coverage. | Target GitHub/RPi/deployment secret-store verification is needed before using those environments, not before Provider integration. No deployment readiness is claimed. Preserve the full migration and operational roadmap. |
 | ICP6 — consumers | Provider producer success/unavailable contracts are discoverable and tested: retained response result, typed quota/entitlement denial before callback, local-only empty result, and provider-backed no-data behavior. | ETF owns post-staging holdings adapter/page/retry wiring and shared-cost consumer integration; TC2000 and Strategy Lab own their consumer wiring/reconciliation. No sibling implementation is claimed here. |
 | ICP7 — reviewable source | Exact run `39032614793` on `17a64cc` is green for required feature jobs: Backend 2,838 unit +396 integration, 82% combined coverage; Frontend Unit, Branch-declared, and E2E 151 passed/109 expected skips with zero failed/retried/flaky tests; Exhaustive skipped by feature policy. | The designated pinned-Noble local selection remains red at TC-owned F8u (150/2/1, retries 0); full 260 functional and 104 strict-visual local gates are incomplete. Therefore not `ready_for_human_review`. Await the coordinator-released F8u repair and safe host resource window, then rerun unchanged local gates and exact-source validation. Do not self-integrate. |
 
-### Current operation-level admission dispositions — preflight source `f480dd9`, 2026-10-17 10:28Z
+### Current operation-level dispositions — last healthy-ledger preflight `0f5a55e`, 2026-10-17 13:19Z
 
-The existing durable quota coordinator was healthy; the preflight had no global
-blockers and sent no provider HTTP. Admission eligibility below is not a live
-receipt or permission to transport. Under current direction, no provider or
-issuer endpoints may be called and no quota may be spent.
+That preflight found the durable quota coordinator healthy, no global blockers,
+and sent no provider HTTP. A newer preflight on `50a0fd9` at 14:12Z could not
+read the private ledger and is recorded separately above; therefore the
+candidate eligibility below is the last healthy-ledger snapshot, not a current
+reservation or permission to transport. No provider or issuer endpoints may be
+called and no quota may be spent under current direction.
 
 | Current disposition | Provider operations / reason |
 |---|---|

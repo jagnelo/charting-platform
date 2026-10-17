@@ -75,16 +75,16 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "0f5a55e973cef85ccc352df0bc4685a25808dfd6",
+  "head": "50a0fd908d852f32377e1fed8e942cf9c78f0a9a",
   "implementation_sha": "a20766d9920ca91bfbf0b15bedcbf16c11776dd9",
   "interrupted": false,
-  "last_checkpoint": "2026-10-17T13:41:12Z",
+  "last_checkpoint": "2026-10-17T14:20:00Z",
   "last_human_progress_update": "2026-10-17T09:52:00+00:00",
   "local_validation_profile": "full_stack_browser",
-  "run_id": 39035131751,
-  "next_action": "Exact-source Actions run 39035131751 on synchronized receipt HEAD 0f5a55e973cef85ccc352df0bc4685a25808dfd6 is terminal green: Backend 2838 unit +396 integration at 82% combined coverage; Frontend Unit 940 tests; Branch-declared and migration compatibility passed; E2E 151 passed/109 expected skips, 12.8m, no failures/retry/flaky markers; Exhaustive skipped by policy. The provider-live workflow did not run. The elevated no-transport preflight on this source verified the durable quota coordinator healthy, 24 eligible candidates, three quarantine groups (Dinari, Marketstack, Tiingo), zero global blockers, zero provider HTTP, and zero quota spend. Keep all individually unsafe/unreviewed operations non-routable. Staging 2734c6a is already merged; post-merge pinned-Noble remains red at TC-owned F8u (150/2/1, retries 0), and full 260/104 local gates remain open. Do not edit TC or merge its unreleased candidate. Host check showed about 666 MiB available with retained validation stacks and Stremio using about 2.1 GiB; wait for a safe isolated resource window rather than starting another stack or stopping/resetting/cleaning retained resources. No provider/issuer HTTP, quota spend, activation, staging/sibling writes, or deployment.",
+  "run_id": 39037691098,
+  "next_action": "The human-requested released staging repair 2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745 is already an ancestor of current synchronized HEAD 50a0fd908d852f32377e1fed8e942cf9c78f0a9a; no merge delta remains. Its post-merge seeded, provider-egress-denied pinned-Noble selection already ran on the identical backend/frontend application-test tree (git diff a20766d..HEAD -- backend frontend is empty): 150 passed, 2 expected skips, 1 TC-owned F8u failure, zero retries. The 252-case bounded ICP2/ICP6 selection passed on current HEAD in 125.88s. Exact Actions run 39037691098 is terminal failure on current HEAD: backend 2838 unit +396 integration at 82% combined coverage, Frontend Unit and Branch-declared passed, Playwright 150 passed/109 expected skips/1 F8u failure; the normal retry failed the same assertion; Exhaustive was skipped by feature policy. Fresh no-transport preflight was blocked by this process's read-only view of the private quota ledger and sent zero provider requests; previous healthy-ledger inventory remains source-bound. Keep all unreviewed, quota-held, paid/trial and unsafe operations non-routable. Host has about 0.8 GiB available and retained isolated browser stacks/data; do not start another full local browser stack or touch retained resources. No TC edits/imports, provider/issuer HTTP, quota spend, activation, staging/sibling writes, data reset/cleanup, or deployment. Publish the truthful branch-owned checkpoint, then continue after the coordinator releases F8u repair and safe full-profile resources; checkpoint remains pending.",
   "parent_branch": "staging",
-  "plan_hash": "eeb1170957507fbf7ee2cbf9de5b649f60def13cdc70f166958140e3c951f6a3",
+  "plan_hash": "b1f7f9f24f7ebdda6026f77f8ba7c357bcaf4afc733ecf28d6a87948cac53156",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -114,14 +114,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "The designated seeded pinned-Noble selection remains red on merged implementation source a20766d9920ca91bfbf0b15bedcbf16c11776dd9: 150 passed, 2 expected skips, 1 TC-owned F8u RSI-plot drag failure, retries zero. Provider must not edit TC source. Full 260 functional and 104 strict-visual gates are incomplete. Exact Actions run 39035131751 is terminal green on synchronized receipt HEAD 0f5a55e: Backend, Frontend Unit, Branch-declared, and hosted E2E passed; Exhaustive is skipped by policy. The 2734c6a repair is already merged. Current elevated no-transport preflight verified the durable quota coordinator healthy, 24 eligible candidates, three provider-specific quarantine groups (Dinari, Marketstack, Tiingo), zero global blockers, zero HTTP, and zero quota spend. No provider/issuer request is authorized.",
+    "current_blocker": "The requested released 2734c6a repair is already an ancestor of Provider HEAD 50a0fd9; no merge delta remains. The post-merge pinned-Noble profile on the identical backend/frontend app-test tree is red at TC-owned F8u (150 passed, 2 expected live skips, one failure, zero retries); F8u asserts that dragging RSI into the watchlist creates its header. Exact Actions run 39037691098 on HEAD 50a0fd9 is terminal failure: Backend 2838 unit +396 integration at 82% combined coverage, Frontend Unit and Branch-declared passed, E2E 150 passed/109 expected skips/one F8u failure and the retry also failed; Exhaustive skipped by feature policy. No provider-live workflow ran. A fresh no-transport preflight on this source was blocked by this process's read-only view of the private quota ledger; zero provider requests were made. The prior healthy-ledger inventory found 24 policy-eligible operations and quarantined Dinari, Marketstack, and Tiingo, but is source-bound to 0f5a55e. Full 260/104 local gates and current-source live acceptance remain incomplete. No provider/issuer request is authorized.",
     "current_phase": "provider-checkpoint-evidence-and-exact-ci",
-    "next_action": "Exact Actions and current-source preflight receipts are reconciled in the packet, handoff, and append-only journal. Keep provider calls disabled per coordinator direction. Full 260/104 local browser gates remain open because the post-merge pinned-Noble selection is red at TC-owned F8u and the host lacks a safe isolated browser window. Wait for coordinator release of a clean exact-source F8u repair and available resources; then rerun unchanged gates. Full cross-feature review and ready_for_human_review remain open. No provider/issuer HTTP, quota spend, activation, reset/cleanup, staging/sibling write, or deployment.",
+    "next_action": "Publish the truthful Provider-owned workstream update for exact CI run 39037691098 (terminal red on TC-owned F8u) and bounded ICP2/ICP6 252/252; wait for that receipt commit's exact Actions run, preserving all earlier receipts. The post-merge pinned-Noble profile is red at F8u and existing seeded browser stacks/artifacts must remain untouched; host capacity is about 0.8 GiB, so do not start another browser stack. Keep provider/issuer transport disabled, preserve all holds, and continue safe operation-disposition review. Full 260/104 local gates and current-source live validation remain open; ready_for_human_review is not reached. No provider/issuer HTTP, quota spend, activation, reset/cleanup, staging/sibling write, or deployment.",
     "total": 7,
-    "updated_at": "2026-10-17T13:41:12+00:00"
+    "updated_at": "2026-10-17T14:20:00+00:00"
   },
   "remote": "origin/feat/market-data-provider-platform",
-  "remote_sha": "0f5a55e973cef85ccc352df0bc4685a25808dfd6",
+  "remote_sha": "50a0fd908d852f32377e1fed8e942cf9c78f0a9a",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "The fresh pinned-Noble project provider-noble-2734-retry1-20261017 and runner provider-noble-2734-20261017-functional-retry1 remain running/preserved with seeded isolated datasets; the earlier harness-misconfigured project provider-noble-2734-20261017 also remains preserved. Existing charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, provider-playwright-1236-hostaccess-20261016, and assigned Provider/TC stacks remain running/preserved. No stop, reset, prune, or data cleanup occurred."
