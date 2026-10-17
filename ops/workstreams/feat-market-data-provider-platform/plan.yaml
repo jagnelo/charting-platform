@@ -1,4 +1,17 @@
 schema: 4
+# Current exact-source status — 2026-10-17 19:39Z: Provider HEAD and origin
+# are synchronized at 4c6c8ac1fd111f700ed92854f89ac6b24db233de. Coordinator-
+# verified Actions 39060184036 is green on this exact source (Backend 2,840
+# unit +396 integration, 82% combined coverage; Frontend Unit, Branch-declared,
+# Playwright 151 passed/109 expected skips, no failures/retries; Exhaustive
+# skipped by feature policy). Bounded ICP2/ICP6 no-transport regression passed
+# 252/252. Latest no-transport preflight evaluated 27 providers, found 24
+# eligible and quarantined Dinari, Marketstack, Tiingo; zero requests,
+# reservations, or quota spend. No provider transport/quota reservation is
+# authorized. Full pinned-Noble 260-functional/104-visual profile remains held
+# for retained Provider/TC resources, fixture ownership and host capacity.
+# Preserve partial-live history and its missing Alpha usage aggregate. Keep
+# checkpoint open; continue bounded no-transport ICP2/ICP6 and dispositions.
 # Latest exact-source CI result — 2026-10-17 18:44Z: Actions `39056336945`
 # is terminal green on `6e594e53f20e73e40cb60b913b0a95ec7a8c913b`, which
 # corrected the stale `statuses["tiingo"]` test assertion for the explicit
@@ -6544,6 +6557,19 @@ progress:
   total: 7
   current_phase: provider-checkpoint-icp2-icp6-and-operation-disposition
   current_blocker: >-
+    CURRENT STATUS — 2026-10-17 19:39Z: exact pushed source
+    `4c6c8ac1fd111f700ed92854f89ac6b24db233de` passed coordinator-verified
+    Actions run `39060184036`: Backend 2,840 unit +396 integration at 82%
+    combined coverage, Frontend Unit, Branch-declared, and Playwright (151
+    passed/109 expected skips, no failure/retry); Exhaustive skipped by feature
+    policy. The bounded ICP2/ICP6 no-transport suite passes 252/252. Current
+    preflight evaluated 27 providers with durable coordinator ready, 24
+    eligible, Dinari/Marketstack/Tiingo quarantined, and zero provider HTTP,
+    reservations, or spend. Full pinned-Noble 260-functional/104-visual and
+    focused F8u remain held for coordinator confirmation of safe host capacity
+    and fixture ownership. No further provider HTTP/quota is authorized; the
+    earlier partial-live responses and missing Alpha aggregate usage entry
+    remain preserved. Keep checkpoint open.
     CURRENT SAFE PROGRESS — 2026-10-17 17:25Z: fixed ambiguity in the live
     preflight report where `tiingo: routable` could appear beside
     `tiingo account plan: non-routable`; generic controls now read
@@ -6730,6 +6756,15 @@ progress:
     source-bound receipts; no paid/trial activation, deployment, integration,
     reset, or cleanup is authorized.
   next_action: >-
+    Continue bounded Provider-owned no-transport ICP2 recurring-cost and ICP6
+    producer/consumer contract and operation-disposition work. Keep provider
+    HTTP and quota reservation/spend disabled; do not retry the prior partial
+    live matrix. Preserve the full pinned-Noble 260-functional/104-visual and
+    focused F8u gates as pending until safe capacity/fixture ownership is
+    confirmed. Preserve earlier red/partial-live evidence, queried data, and
+    all unknown/quota-held/paid/trial/unreviewed/unsafe holds. Do not touch
+    staging/sibling worktrees, reset/clean retained data, deploy, or mark the
+    checkpoint ready/accepted before every required gate passes.
     Exact Actions run `39049956683` on source
     `f9e27c759da44d6883412f3ebecd60eb6664c016` is terminal green. The exact
     252-case bounded ICP2/ICP6 no-transport regression also passes on this

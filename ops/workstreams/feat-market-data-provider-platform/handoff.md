@@ -1,5 +1,60 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 19:43Z — session ref refresh bug fixed and exact refs reconciled
+
+- Coordinator identified a real inconsistency in generated session metadata:
+  actual HEAD and origin were both `4c6c8ac1fd111f700ed92854f89ac6b24db233de`,
+  but `session.json.remote_sha` still held `6e594e53f20e73e40cb60b913b0a95ec7a8c913b`.
+  The supported status refresh produced the current `remote` field but kept
+  the stale `remote_sha`, because `session_record()` omitted that legacy key
+  and status/checkpoint merges retained old JSON fields.
+- Fixed the session-record builder to emit both `remote` and `remote_sha` from
+  the same observed origin ref, and added a workflow regression test. The
+  session-tool unit module passes 18/18; Ruff check/format and `git diff --check`
+  pass. The complete workflow test suite passes 120/120. Re-ran the supported
+  session status command; it preserved active claim
+  `65775c69-1572-4bee-8caf-0e890a520718` and now stores matching HEAD, remote,
+  and remote_sha with `remote_synchronized=true`.
+- This is a Provider-branch workflow-tool fix and remains uncommitted. It does
+  not change product runtime or authorize staging/sibling mutation. Require
+  branch validation and exact-source hosted CI after the coherent commit.
+- Current Provider gates remain as recorded below: no provider HTTP or quota
+  reservations/spend; Dinari, Marketstack and Tiingo quarantines unchanged;
+  full pinned-Noble 260-functional/104-visual and focused F8u held pending safe
+  capacity/fixture ownership. Next continue no-transport ICP2/ICP6 contract
+  and operation-disposition work, then finish exact-source validation; do not
+  claim checkpoint readiness.
+
+## 2026-10-17 19:39Z — exact current CI reconciled; checkpoint remains open
+
+- Coordinator verified GitHub Actions run `39060184036` checked out the exact
+  pushed Provider HEAD `4c6c8ac1fd111f700ed92854f89ac6b24db233de` and all
+  applicable jobs passed: Backend (2,840 unit +396 integration; 82% combined
+  coverage), Frontend Unit, Branch-declared, and Playwright (151 passed/109
+  expected skips, zero failures/retries). Exhaustive was skipped by feature
+  branch policy. This validates hosted CI only, not the held local full browser
+  profile or current live-operation acceptance.
+- On the same exact source, the bounded ICP2/ICP6 no-transport regression
+  selection passed 252/252 in 127.28s. The current full-matrix preflight
+  evaluated 27 providers with a healthy durable quota coordinator, 24
+  eligible candidates, and zero provider requests/reservations/spend. Dinari
+  remains quarantined for unreviewed Sandbox quota/reset and operation costs;
+  Marketstack for insufficient monthly OHLCV headroom and unresolved discovery
+  cost/MIC/page bound; Tiingo for an unreviewed effective plan and unknown
+  hourly/daily usage baselines. Do not call or reserve these operations.
+- Preserve the earlier partial live receipt and its retained 15 HTTP-200
+  responses / 8,028,077 bytes, including the missing Alpha Vantage aggregate
+  usage row. Further provider HTTP and quota reservation/spend are disabled.
+  The pinned-Noble 260-functional/104-visual profile and focused F8u remain
+  held because retained Provider/TC stacks, unclear fixture ownership, and
+  host capacity make a competing run unsafe.
+- Next: continue bounded Provider-owned ICP2 recurring-cost and ICP6
+  producer/consumer contract and operation-disposition work without transport
+  or browser/Compose startup; preserve every earlier red/partial result. Do
+  not mark ready or accepted until required full-profile and checkpoint gates
+  pass. No staging/sibling changes, data reset/cleanup, deployment, or
+  paid/trial/unreviewed/unsafe activation.
+
 ## 2026-10-17 18:50Z — stale Tiingo assertion fixed; fail-fast follow-up prepared
 
 - Historical exact-source run `39055558629` failed on `6a44d84` because

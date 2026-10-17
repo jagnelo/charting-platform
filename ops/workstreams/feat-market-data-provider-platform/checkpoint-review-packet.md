@@ -1,5 +1,30 @@
 # Provider integration checkpoint review packet
 
+## Current exact-source status — 2026-10-17 19:39Z
+
+Provider HEAD and origin are synchronized at
+`4c6c8ac1fd111f700ed92854f89ac6b24db233de`. Coordinator-verified Actions
+run `39060184036` is green on that exact source: Backend 2,840 unit +396
+integration at 82% combined coverage, Frontend Unit and Branch-declared
+passed, Playwright 151 passed/109 expected skips with no failures/retries;
+Exhaustive was skipped by feature-branch policy. The bounded ICP2/ICP6
+no-transport selection passed 252/252. Neither result is full local-profile
+or live-provider acceptance.
+
+The current no-transport full-matrix preflight evaluated 27 providers; the
+durable coordinator was ready, 24 candidates were eligible, three groups
+remain quarantined (Dinari, Marketstack, Tiingo), and zero provider requests,
+reservations, or quota spend occurred. Exact provider-specific blockers are
+in the append-only validation journal. No provider transport or further quota
+reservation/spend is authorized. Preserve the historical partial-live
+responses and missing Alpha Vantage aggregate usage entry; do not retry.
+
+The local pinned-Noble 260-functional/104-visual profile and focused F8u remain
+held due retained Provider/TC resources, unclear fixture ownership, and low
+host capacity. Checkpoint remains open; no readiness/acceptance claim. Next
+bounded work is Provider-owned no-transport ICP2/ICP6 contract and operation
+disposition, preserving all previous red evidence and full-roadmap criteria.
+
 ## 2026-10-17 18:50Z — exact CI reconciled; partial live attempt retained
 
 The stale-Tiingo-key failure on `6a44d84` is fixed in the test contract: it
@@ -602,32 +627,28 @@ been rerun on current source.
 
 ### Current operation-level preflight and dispositions
 
-The historical source-bound no-transport preflight on `a20766d9` (08:30Z)
-evaluated all 27 manifested providers with a healthy durable quota coordinator,
-no global blockers, 24 policy-eligible candidates, and 3 quarantined provider
-groups. A newer 09:29Z preflight against implementation-equivalent pushed
-source `2be257d8` is the current local status: it evaluated 27 providers and
-exited blocked-before-transport because the configured durable SQLite quota
-ledger was read-only in this process. `quota_coordinator_ready=false` is a
-global blocker, so none of the 24 candidates can proceed through this
-preflight. Both checks sent zero provider requests and spent no quota.
-Eligibility is **not** live success, enabled routing, or authorization to
-transport. Do not substitute a blank ledger to bypass this global admission
-failure.
+Current source `4c6c8ac1fd111f700ed92854f89ac6b24db233de` has a fresh
+no-transport full-matrix preflight (`2026-10-17T19:37:46Z`). The durable quota
+coordinator was ready; all 27 manifested providers were evaluated, with 24
+eligible candidates and three provider groups quarantined. The process made
+zero provider HTTP requests, acquired no live-operation reservations, and
+spent no quota. This is current admission evidence only: coordinator direction
+prohibits further transport/reservation, and eligibility does not mean an
+operation was live-tested or activated. The exact receipt and each blocker are
+preserved in append-only `validation.jsonl`.
 
 | Provider operation(s) | Current disposition | Reason |
 |---|---|---|
-| All provider operations in this local preflight | Globally blocked before quota admission | The configured durable SQLite quota ledger is read-only to this process; `quota_coordinator_ready=false`. No operation is admitted until the existing coordinator can be used safely. |
-| Dinari: `discover_tokenized_assets`, `fetch_tokenized_corporate_actions`, `fetch_tokenized_dividends`, `fetch_tokenized_historical_prices`, `fetch_tokenized_news`, `fetch_tokenized_splits`, `get_tokenized_asset`, `get_tokenized_price`, `get_tokenized_quote` | Quarantined / non-routable | Account-applicable Sandbox reset/quota contract and every operation's costs remain unreviewed; no account-reviewed profile is configured. |
-| Marketstack: `fetch_ohlcv` | Quota-held / non-routable | Current monthly headroom is below the two-request combined-matrix reservation. |
-| Marketstack: `discover_universe_page` | Unreviewed / non-routable | Discovery venue/MIC, per-page maximum cost, and operation cost remain unresolved. |
-| Tiingo: `fetch_ohlcv`, `get_current_price`, `get_instrument_profile`, `search_instruments` | Quarantined / non-routable | Effective plan is unreviewed and both hourly/daily usage baselines are unknown. |
+| Dinari: `discover_tokenized_assets`, `fetch_tokenized_corporate_actions`, `fetch_tokenized_dividends`, `fetch_tokenized_historical_prices`, `fetch_tokenized_news`, `fetch_tokenized_splits`, `get_tokenized_asset`, `get_tokenized_price`, `get_tokenized_quote` | Quarantined / non-routable | Account-reviewed Sandbox quota/reset profile and worst-case per-operation costs are missing; quota reset semantics are unreviewed. |
+| Marketstack: `fetch_ohlcv` | Quota-held / non-routable | Current monthly request headroom is below the two-unit live-matrix reservation. |
+| Marketstack: `discover_universe_page` | Unreviewed / non-routable | Operation cost is unreviewed; discovery exchange/MIC and maximum page-cost bounds are unresolved. |
+| Tiingo: `fetch_ohlcv`, `get_current_price`, `get_instrument_profile`, `search_instruments` | Quarantined / non-routable | Effective plan is not individually reviewed; hourly and daily usage baselines are unknown for each listed operation. |
 | CoinGecko `fetch_account_usage` | Explicit unavailable | Demo `/key` is Pro-only; usage remains represented by the private durable application ledger, not an API probe. |
 | Finnhub `fetch_ohlcv` | Explicit unavailable | Existing evidence records the free-stock-candle entitlement denial; no current endpoint call was made. |
 | FMP `discover_universe_page` | Explicit unavailable | Existing evidence records Basic stock-list entitlement denial; no current endpoint call was made. |
 | FINRA async submit/poll/download helper legs | Not applicable to admitted operation | No admitted dataset service invokes these generic async transport legs; required synchronous operations are separately inventoried. |
 | Tradier; IBKR; Ondo operation groups | User-deferred / non-routable | These account/session integrations were explicitly deferred by the user. |
-| Other 24-provider preflight candidates | Admission-eligible only; not current live-verified or activated | Every actual request still requires operation-specific entitlement and a sufficient durable reservation. No transport was authorized or executed in this task. |
+| Other 24-provider preflight candidates | Admission-eligible only; not current live-verified or activated | Per-operation entitlement/cost/quota admission remains necessary for any future request. The current direction prohibits transport and reservation; no live success is claimed. |
 
 The live runner's `LIVE_PROVIDER_CASES`, `LIVE_CASE_OPERATIONS`,
 `LIVE_REQUIRED_OPERATIONS`, and `LIVE_OPERATION_DISPOSITIONS` remain the

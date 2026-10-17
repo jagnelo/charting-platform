@@ -129,6 +129,46 @@ def test_cleanup_and_readiness_are_scoped_to_the_current_worktree() -> None:
     assert "validation_evidence_current" in session
 
 
+def test_session_record_refreshes_legacy_remote_sha_with_origin_ref(
+    tmp_path: Path, monkeypatch
+) -> None:
+    session = importlib.util.spec_from_file_location(
+        "agent_session_remote_ref",
+        Path(__file__).parents[2] / "scripts" / "agent-session.py",
+    )
+    assert session and session.loader
+    module = importlib.util.module_from_spec(session)
+    session.loader.exec_module(module)
+    commit = "a" * 40
+
+    def git(command: str, *args: str, **kwargs) -> str:
+        if command == "rev-parse" and args == ("HEAD",):
+            return commit
+        if command == "rev-parse" and args == ("origin/feat-example",):
+            return commit
+        raise AssertionError((command, args))
+
+    monkeypatch.setattr(module, "git", git)
+    monkeypatch.setattr(module, "acceptance_criteria", lambda _plan: [])
+    monkeypatch.setattr(module, "dirty_paths", lambda _path: [])
+    monkeypatch.setattr(module, "plan_hash", lambda _path: "plan-hash")
+    monkeypatch.setattr(module, "docker_status", lambda *_args: {"available": False})
+    monkeypatch.setattr(module, "project_names", lambda _branch: [])
+
+    record = module.session_record(
+        "feat-example",
+        tmp_path,
+        {"goal": "test", "local_validation_profile": "unit"},
+        "worktree-id",
+        "session-id",
+    )
+
+    assert record["head"] == commit
+    assert record["remote"] == commit
+    assert record["remote_sha"] == commit
+    assert record["remote_synchronized"] is True
+
+
 def test_goal_request_is_objective_only_and_validation_can_be_profile_scoped(
     tmp_path: Path,
 ) -> None:

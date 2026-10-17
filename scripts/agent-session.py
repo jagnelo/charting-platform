@@ -843,6 +843,10 @@ def session_record(
         "worktree_id": identifier,
         "head": head,
         "remote": remote,
+        # Keep the legacy field synchronized as well. Older session records
+        # carry both names, and status/checkpoint merge this generated record
+        # over the prior JSON; omitting remote_sha would preserve a stale ref.
+        "remote_sha": remote,
         "remote_synchronized": bool(remote and remote == head),
         "dirty_paths": dirty_paths(path),
         "workstream": str(path / "ops" / "workstreams" / slug(branch)),
