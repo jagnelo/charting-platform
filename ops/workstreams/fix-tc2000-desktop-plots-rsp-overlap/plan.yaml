@@ -70,8 +70,11 @@ dependencies:
     Exact synchronized green staging parent 6dc178c12498236a2a0060533305e20cf47438b7,
     Exhaustive Integration Gate run 39033839693. This baseline includes the
     F8u watchlist/live-plot repair. The F9c repair branch was reconciled to
-    this exact tip on 2026-10-17; repeat affected validation on the combined
-    source and obtain exact-source CI before coordinator integration.
+    this exact tip on 2026-10-17. Exact-source branch CI run 39039551432
+    checked out d5aac522b144d57d93df817be2a1699e0ac6e568 and passed, including
+    the splitter-based F9c browser regression (human-reviewed Playwright order:
+    case 15, followed by case 16). The local full functional/visual profile and
+    the later exact pushed staging gate remain outstanding.
   - >-
     User-supplied exact runtime evidence at TC source
     389069a32682f97c51c0a6dd5cca99be3bb23c2a: at 1920x1080, Plots rect
@@ -79,9 +82,11 @@ dependencies:
     h=15; elementFromPoint at Plots center returns Remove RSP and ordinary
     Playwright click is intercepted. At 390x800 TC Classic, normal click/menu/
     close/remove flow succeeds. The TC-supplied source remains the failure
-    evidence; this repair branch now includes the exact green F8u staging
-    baseline. The F9c candidate has not yet been verified on that combined
-    source, so no geometry closure is claimed until focused browser checks pass.
+    evidence; this repair branch includes the exact green F8u staging baseline.
+    The F9c regression now exercises the combined repair source in hosted CI,
+    including actual splitter resizing, ordinary hit-target checks/clicks,
+    template restore, and the mobile flow. This hosted result does not replace
+    the required isolated local profile.
 acceptance_criteria:
   - id: PTRD1
     text: >-
@@ -129,30 +134,32 @@ deployment_impact: none
 status: in_progress
 remaining_gaps:
   - >-
-    Verify the responsive chart-container candidate on the exact repair source,
-    including the populated-RSP desktop geometry and ordinary-pointer
-    regression; preserve the separate F8u live-configuration change from green
-    staging.
+    Run the complete isolated local functional/visual profile on the exact
+    repair source with one worker and zero retries, preserving all existing
+    assertions, screenshot references and tolerances. Wait until fixture
+    ownership and host capacity are safe; do not start a duplicate Compose
+    fixture or stop/clean retained services.
   - >-
-    Complete affected frontend tests, type-check and build, then the full local
-    functional/visual profile, exact-source branch CI, closure record, guarded
-    integration and exact pushed staging Exhaustive Integration Gate before
-    releasing the repair to the feature owners.
+    After local validation, record closure and use the guarded staging
+    integration workflow; the exact pushed staging source must then pass its
+    Exhaustive Integration Gate before the repair is released to feature owners.
 progress:
-  completed: []
+  completed:
+    - >-
+      Exact-source branch CI run 39039551432 passed on
+      d5aac522b144d57d93df817be2a1699e0ac6e568, including the splitter-based
+      F9c regression and ordinary pointer flows.
   total: 5
-  current_phase: deterministic_desktop_dock_test_setup_and_exact_ci_rerun
+  current_phase: safe_host_capacity_for_full_stack_browser
   current_blocker: >-
-    Exact CI run 39037522747 failed only because the new regression test assumed
-    factory US Top Down already contained a chart surface narrower than 520px;
-    it stopped before exercising comparison geometry or pointer behavior. The
-    test now resizes the actual rightmost Golden Layout splitter at a 1920px
-    viewport, but this browser interaction has only passed Playwright test
-    discovery so far. Full local browser validation is also deferred until safe
-    host memory headroom is available (582 MiB at the latest check); do not stop
-    other workloads or start a new Compose fixture at that level.
+    Exact-source CI is green, but the full local profile is not yet safe to
+    start: the latest human-reported read-only host check (2026-10-17 17:50 UTC)
+    showed about 1.7 GiB available while retained Provider stacks and the
+    assigned TC stack remain running with its backend active; fixture
+    ownership/capacity are still unclear. Do not start a duplicate Compose
+    fixture or competing browser matrix; do not stop or clean services.
   next_action: >-
-    Commit and push the deterministic splitter-based test setup and its exact
-    evidence, then run exact-source CI to verify it reaches the ordinary-click
-    assertions. Run the isolated full local browser profile when host capacity
-    permits; close the geometry repair only after all required criteria pass.
+    When fixture ownership and host capacity are safe, run the required isolated
+    full local functional/visual profile with one worker and zero retries. Keep
+    every assertion and visual reference/tolerance unchanged; only then record
+    closure and proceed through guarded staging integration and exact staging CI.
