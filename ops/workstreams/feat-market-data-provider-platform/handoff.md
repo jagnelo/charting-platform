@@ -1,6 +1,6 @@
 # feat/market-data-provider-platform
 
-## 2026-10-17 12:22Z — merged repair, terminal CI, and current blocker reconciled
+## 2026-10-17 13:03Z — receipt CI green; local F8u remains the blocker
 
 - Re-audited the durable ICP1–ICP7 table and operation inventory. The previous
   table still described pre-merge source `761fb4cd`, staging `79c8623`, and an
@@ -9,9 +9,9 @@
   discarded.
 - Current Provider implementation source remains `a20766d9`; exact released
   staging `2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745` is already an ancestor.
-  Receipt-only branch source `a371360` passed exact Actions run `39029780414`:
+  Receipt-only branch source `17a64cc` passed exact Actions run `39032614793`:
   Backend 2,838 unit +396 integration, 82% combined coverage; Frontend Unit,
-  Branch-declared, and Playwright passed (151/109 expected skips, no failed,
+  Branch-declared, and Playwright passed (151/109 expected skips in 13.5m, no failed,
   retried, or flaky tests); Exhaustive was skipped by feature policy.
 - The requested post-merge pinned-Noble selection remains red at TC-owned F8u
   (150 passed, two expected skips, one failure, retries zero); the released
@@ -22,6 +22,12 @@
   operation preflight remains source-bound to `f480dd9`, with zero provider
   HTTP and the documented Dinari, Marketstack, and Tiingo holds. No live call
   or quota spend is authorized. Provider checkpoint remains pending.
+- The post-merge pinned-Noble selection remains red at TC-owned F8u (150 passed,
+  2 expected skips, 1 failure, retries 0); full 260/104 local gates are
+  incomplete. The read-only 12:20Z host check had about 1 GiB available with
+  existing retained validation projects running, so no new browser stack was
+  started or existing data stopped/cleaned. Await the coordinator-released
+  F8u repair and a safe resource window before full local rerun.
 - The 10:28Z source-bound preflight on `f480dd9` reached the existing durable
   quota coordinator, found no global blockers, 24 eligible candidates, and
   three quarantined groups (Dinari, Marketstack, Tiingo), and sent zero

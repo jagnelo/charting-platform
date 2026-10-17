@@ -1,12 +1,12 @@
 # Provider integration checkpoint review packet
 
-## Latest exact-source CI and merged-source profile — 2026-10-17 12:22Z
+## Latest exact-source CI and merged-source profile — 2026-10-17 13:03Z
 
-Exact pushed receipt source `a371360c4a11e24912e7c033bdcc9ee58668a6cc` passed
-[Actions run 39029780414](https://github.com/jagnelo/charting-platform/actions/runs/39029780414).
+Exact pushed receipt source `17a64cc6e6d04333caeba89917d72c077b1fddae` passed
+[Actions run 39032614793](https://github.com/jagnelo/charting-platform/actions/runs/39032614793).
 Backend passed 2,838 unit +396 PostgreSQL/Redis integration tests with 82%
 combined coverage (68,041 statements, 11,986 missing); Frontend Unit and
-Branch-declared passed; Playwright passed 151 with 109 expected skips in 15.5
+Branch-declared passed; Playwright passed 151 with 109 expected skips in 13.5
 minutes, with no failed, retried, or flaky tests. Exhaustive was skipped by
 feature-branch policy. The provider-live workflow did not run. This is exact
 branch CI, not Provider checkpoint acceptance.
@@ -1490,10 +1490,10 @@ frontend files remain unchanged.
 
 ## ICP1–ICP7 checkpoint disposition
 
-Current review, 2026-10-17 12:22Z: implementation source is `a20766d9`,
+Current review, 2026-10-17 13:03Z: implementation source is `a20766d9`,
 which includes the released staging repair `2734c6a`. No product source has
 changed since that merge; later commits update Provider workstream records.
-Exact Actions run `39029780414` on receipt source `a371360` is terminal green:
+Exact Actions run `39032614793` on receipt source `17a64cc` is terminal green:
 Backend 2,838 unit +396 integration at 82% combined coverage; Frontend Unit,
 Branch-declared, and Playwright passed (151 passed/109 expected skips, no
 failures/retries/flakes); Exhaustive was skipped by feature policy. The
@@ -1508,9 +1508,9 @@ ready for human review.
 | ICP2 — provider governance | Shared capability, entitlement, free-only routing, durable multidimensional quota, reset windows, and cross-session/concurrent admission are tested. Bounded merged-source ICP2/ICP6 selection passed 252/252; the released key-generation component tests passed 78/78. Paid routes remain denied regardless of `ALLOW_PAID_PROVIDER_ROUTING`; trials and unreviewed plans fail closed apart from the reviewed EODHD zero-daily-credit usage observation, which still reserves its per-minute charge. | Single-currency recurring-cost admission is implemented and tested but does not imply paid activation. Owner selection/configuration of the 20 EUR/USD-equivalent ceiling and ETF's post-staging consumer bridge remain explicit remainders; no FX is invented and no ETF-only ledger is permitted. |
 | ICP3 — series, coverage and refresh | Canonical OHLCV/provenance, gap planning, session-aware freshness, refresh coalescing/leases, local-only behavior, and ready/partial/missing responses have unit/integration and consumer-contract tests. `local_only=true` with no retained bars returns `200 []` without provider hydration; provider-backed no-data is distinct. | Downstream ETF, TC2000, and Strategy consumers verify their own stale/partial/missing/unavailable handling after Provider's green staging checkpoint. |
 | ICP4 — provider operations | Latest source-bound no-transport preflight (`f480dd9`, 2026-10-17 10:28Z) reached the durable quota coordinator, evaluated 27 providers, found 24 policy-eligible candidates and three quarantined groups, no global blockers, and zero provider HTTP. This is not live success. Earlier successful live receipts remain bound to their historical exact trees; none is rebound to this source. | Current-source live acceptance is incomplete. Dinari, Marketstack, and Tiingo stay held with the reasons below; all other eligible operations remain uncalled under the current no-transport direction. Preserve explicit unavailable/deferred routes, and do not infer current success from historical receipts or preflight eligibility. |
-| ICP5 — migrations, startup and secrets | Additive migrations, SQLite/PostgreSQL coordinator behavior, fresh/upgrade equivalence, rollback/health, and tested local secret/config boundaries have source-qualified tests. Exact receipt source `a371360` passed required Actions `39029780414`; this run includes backend PostgreSQL/Redis integration and 82% combined coverage. | Target GitHub/RPi/deployment secret-store verification is needed before using those environments, not before Provider integration. No deployment readiness is claimed. Preserve the full migration and operational roadmap. |
+| ICP5 — migrations, startup and secrets | Additive migrations, SQLite/PostgreSQL coordinator behavior, fresh/upgrade equivalence, rollback/health, and tested local secret/config boundaries have source-qualified tests. Exact receipt source `17a64cc` passed required Actions `39032614793`; this run includes backend PostgreSQL/Redis integration and 82% combined coverage. | Target GitHub/RPi/deployment secret-store verification is needed before using those environments, not before Provider integration. No deployment readiness is claimed. Preserve the full migration and operational roadmap. |
 | ICP6 — consumers | Provider producer success/unavailable contracts are discoverable and tested: retained response result, typed quota/entitlement denial before callback, local-only empty result, and provider-backed no-data behavior. | ETF owns post-staging holdings adapter/page/retry wiring and shared-cost consumer integration; TC2000 and Strategy Lab own their consumer wiring/reconciliation. No sibling implementation is claimed here. |
-| ICP7 — reviewable source | Exact run `39029780414` on `a371360` is green for required feature jobs: Backend 2,838 unit +396 integration, 82% combined coverage; Frontend Unit, Branch-declared, and E2E 151 passed/109 expected skips with zero failed/retried/flaky tests; Exhaustive skipped by feature policy. | The designated pinned-Noble local selection remains red at TC-owned F8u (150/2/1, retries 0); full 260 functional and 104 strict-visual local gates are incomplete. Therefore not `ready_for_human_review`. Await the coordinator-released F8u repair, then rerun unchanged local gates and exact-source validation. Do not self-integrate. |
+| ICP7 — reviewable source | Exact run `39032614793` on `17a64cc` is green for required feature jobs: Backend 2,838 unit +396 integration, 82% combined coverage; Frontend Unit, Branch-declared, and E2E 151 passed/109 expected skips with zero failed/retried/flaky tests; Exhaustive skipped by feature policy. | The designated pinned-Noble local selection remains red at TC-owned F8u (150/2/1, retries 0); full 260 functional and 104 strict-visual local gates are incomplete. Therefore not `ready_for_human_review`. Await the coordinator-released F8u repair and safe host resource window, then rerun unchanged local gates and exact-source validation. Do not self-integrate. |
 
 ### Current operation-level admission dispositions — preflight source `f480dd9`, 2026-10-17 10:28Z
 
