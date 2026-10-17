@@ -64,13 +64,15 @@ functional/visual profile or the later staging gate.
 - Use fresh internal-only fixtures with seeded local market data; keep provider
   routing/refresh disabled and credentials blank. Do not touch assigned feature
   services, volumes, accounts or data.
-- The latest human-reported read-only host check showed about 1.7 GiB available.
-  My direct read-only `free -h` check at 2026-10-17 23:25 UTC showed 1.1 GiB
-  available. The latest Docker inventory attempt was denied by the socket
-  permission boundary; the previous read-only inventory showed multiple
-  retained Provider validation projects and the assigned TC project running,
-  without identifying active fixture ownership. Capacity and ownership are
-  therefore not safe to assume. Do not start a duplicate Compose fixture or
+- The latest human-reported read-only host check showed about 1.7 GiB available;
+  my direct `free -h` check at 2026-10-17 23:25 UTC showed 1.1 GiB available
+  (12 GiB swap in use). A read-only Docker inventory at 23:27 UTC found seven
+  running charting projects: five Provider/validation stacks, the assigned TC
+  project (6 containers), and the Provider development stack; unrelated
+  Stremio also remains running. Several Provider fixture containers have been
+  up about 15 hours. Container stats show ongoing CPU/I/O, but neither project
+  labels nor stats identify the active fixture owner. Capacity and ownership
+  are therefore not safe to assume. Do not start a duplicate Compose fixture or
   competing browser matrix, and do not stop or clean any service.
 - Preserve all browser assertions, retry/timeouts and screenshot references,
   masks and tolerances. The 104-case visual matrix, exact-source ordinary CI and
