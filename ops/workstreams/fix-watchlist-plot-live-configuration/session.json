@@ -40,7 +40,7 @@
   "goal_unavailable_reason": "No separate branch-local Codex goal created because the central four-feature integration goal is already active in this thread; this narrow repair executes under that goal.",
   "head": "84a1363f5e4ad30fe0480a73720119ac2b0e12fc",
   "implementation_sha": "f69905193e60660bc35013d2702db5a361de8621",
-  "last_human_progress_update": "2026-10-17T11:47:04.764186+00:00",
+  "last_human_progress_update": "2026-10-17T12:21:06.094126+00:00",
   "local_validation_profile": "pending_agent_assessment",
   "next_action": "create the session-local Codex goal from goal_request, then record it as active",
   "parent_branch": "staging",
@@ -51,13 +51,15 @@
   "progress": {
     "completed": [
       "AC1",
-      "AC2"
+      "AC2",
+      "AC3",
+      "AC4"
     ],
-    "current_blocker": "fresh exact-source ordinary CI pending on the corrected plan and session metadata",
-    "current_phase": "corrected_branch_test_commands_published_exact_source_ci_pending",
-    "next_action": "Commit final session progress, then verify Actions on that exact tip; if green, finish repair checkpoint and guarded-release it to staging",
+    "current_blocker": "exact-source CI on the closure-record commit is pending",
+    "current_phase": "coordinator_closed_checkpoint_exact_ci_pending",
+    "next_action": "verify exact-source CI, then integrate via guarded staging and require its exact green gate",
     "total": 4,
-    "updated_at": "2026-10-17T11:47:04.764165+00:00"
+    "updated_at": "2026-10-17T12:21:06.094107+00:00"
   },
   "remote": "84a1363f5e4ad30fe0480a73720119ac2b0e12fc",
   "remote_sha": "f69905193e60660bc35013d2702db5a361de8621",

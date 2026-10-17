@@ -14,7 +14,25 @@ human_closure_authorization: >-
   this narrowly scoped, evidence-backed staging repair. This does not accept
   any of the four feature checkpoints or authorize promotion, deployment, paid
   activation, quota spend, an operational trial, or unrelated cleanup.
-closure_summary: pending
+  The human's 2026-10-17 instruction to do what is needed to get all of this
+  into staging, together with the explicit delegation to handle checkpoint
+  acceptance, authorizes this coordinator-owned prerequisite repair's closure
+  and guarded staging integration. This remains limited to this narrow repair;
+  it does not waive its exact CI or staging gate.
+closure_summary: >-
+  Coordinator-accepted F8u repair: the watchlist chart-plot drop and configured
+  indicator rendering now use one canonical live workspace configuration
+  snapshot. Validated implementation SHA 103ef8e1899412a5a623e8e587ec718de0458c8c
+  passed the local full_stack_browser profile and exact-source GitHub Actions
+  run 39030047625 (branch-declared, backend, frontend, and Playwright jobs
+  succeeded; the exhaustive gate was skipped under feature-branch policy).
+  The final closure-record commit still requires its own exact-source branch CI
+  before integration. No merge conflicts were observed in this narrow source
+  change; guarded integration must abort on any conflict and resolve only on
+  the source branch. Migration impact: none. Deployment impact: none.
+  integration_capture: exact branch HEAD. This repair does not close Provider,
+  ETF holdings, TC2000, or Strategy Lab v2; their remaining contracts, tests,
+  and roadmap work remain open.
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
@@ -84,19 +102,20 @@ live_test_impact: >-
   credentials remain blank.
 migration_impact: none
 deployment_impact: none
-status: in_progress
+status: ready_for_integration
 remaining_gaps:
   - >-
-    Exact-source ordinary GitHub Actions branch CI has not yet completed for
-    this repair checkpoint.
+    The closure-record commit must pass exact-source ordinary GitHub Actions
+    branch CI before guarded staging integration; the successful run recorded
+    above covered the validated implementation SHA, not this final receipt.
   - >-
     This repair checkpoint does not close Provider, ETF, TC2000, or Strategy
     Lab v2 feature checkpoints. Provider's full 260-case/104-visual validation,
     operation dispositions, and current quota preflight remain owner/coordinator
     gates after this fix is released through staging.
 progress:
-  completed: [AC1, AC2]
+  completed: [AC1, AC2, AC3, AC4]
   total: 4
-  current_phase: corrected_branch_test_commands_published
-  current_blocker: fresh exact-source ordinary CI on the corrected plan pending
-  next_action: verify the fresh exact-source CI run; if green, close this narrow repair checkpoint and route it through guarded staging integration
+  current_phase: coordinator_closed_checkpoint_exact_ci_pending
+  current_blocker: exact-source CI on the closure-record commit is pending
+  next_action: verify exact-source CI, then integrate through the guarded staging workflow and require the exact staging gate

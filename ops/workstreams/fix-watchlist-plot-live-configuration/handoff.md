@@ -90,3 +90,25 @@ Both corrected branch-declared commands passed locally (89 tests total), and
 the repository validator accepted all 36 workstream records. The corrected
 plan is published; session goal-request/progress metadata is being synchronized
 before the final exact-source CI run.
+
+## Coordinator closure checkpoint — 2026-10-17
+
+The human delegated coordinator-owned checkpoint acceptance for getting this
+work into staging. This narrowly scoped F8u repair is closed for guarded
+staging integration; it does not close or alter the Provider, ETF, TC2000, or
+Strategy Lab v2 feature checkpoints.
+
+Validated implementation SHA `103ef8e1899412a5a623e8e587ec718de0458c8c` has
+the local full-stack evidence above and exact branch Actions run `39030047625`
+completed successfully: Branch-declared Tests, Backend Tests, Frontend Unit
+Tests, and E2E Tests passed; the Exhaustive Integration Gate was skipped under
+feature-branch policy. The final closure-record commit must still pass its own
+exact-source branch CI before integration. The guarded staging workflow will
+record the exact merge source SHA and require a green staging gate before this
+repair is treated as released there.
+
+No merge conflict has been observed in the narrow product change. If guarded
+integration finds one, abort and resolve on this source branch before retrying.
+There is no migration or deployment impact. Provider's remaining full
+validation, operation dispositions, quota preflight, and all four feature
+roadmaps remain open.
