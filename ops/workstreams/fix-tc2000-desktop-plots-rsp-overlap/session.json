@@ -1,0 +1,20 @@
+{
+  "schema": 2,
+  "branch": "fix/tc2000-desktop-plots-rsp-overlap",
+  "parent_branch": "staging",
+  "implementation_sha": "2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745",
+  "remote_sha": null,
+  "active_session_id": null,
+  "previous_session_ids": [],
+  "goal_state": "not_started",
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "planning_state": "draft",
+  "progress": {
+    "completed": [],
+    "total": 0,
+    "current_phase": "plan",
+    "current_blocker": "none"
+  },
+  "next_action": "run make agent-session-start",
+  "retained_docker_resources": []
+}
