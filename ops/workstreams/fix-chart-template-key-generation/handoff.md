@@ -20,3 +20,28 @@ No Provider/issuer calls, quotas, assigned feature services, screenshots, visual
 The first exact-source CI run (`39009427308`, commit `8c39c8c`) exposed a workstream-command formatting error: CI executes `branch_tests` as shell, and the prose descriptor was interpreted as a command (`frontend:: not found`). Backend and frontend jobs were still running at the initial audit. This is a coordinator-authored validation-record error, not a product test failure; the plan now contains the actual runnable npm command, and the repository's own branch-tests runner has passed locally (78 tests plus `vue-tsc`). A fresh exact-source run is still required; the failed run remains recorded rather than erased.
 
 Update this handoff at each coherent boundary.
+
+## 2026-10-17 06:47Z — delegated technical acceptance and exact CI
+
+The coordinator reviewed the narrow compatibility fix under the human's
+delegated technical-closure authority. Exact source commit
+`12cc951810e4f8fef3d5d37fe2e5640123fc26b4` passed Actions run
+`39009639242`: Backend, Frontend Unit, Branch-declared and Playwright jobs all
+concluded success. Playwright reported 151 passed and 109 skipped; its log has
+no retry or failure markers. The feature-branch Exhaustive Integration Gate
+was skipped as expected. The two focused component suites previously passed
+78/78 with `vue-tsc --noEmit`; the unchanged isolated save/reset/restore,
+comparison, column-set and export/import flows passed 5/5 on identical source
+hunks. The coordinator reran `scripts/validate-workstream.py ops/workstreams`
+and `git diff --check` successfully (35 workstream records validated).
+
+The closure record now separates pre-merge exact branch CI from the mandatory
+post-merge staging Exhaustive Integration Gate. The current metadata commit
+must itself receive exact branch CI before `make integrate`; the helper must
+capture its final SHA. Integrate only this narrow fix into clean persistent
+staging, then wait for green EIG on the exact staging SHA before Provider is
+refreshed or another feature is merged. Provider's current ordinary CI is
+independently green on its previous source, but its pinned functional profile
+must be rerun after consuming the released fix. No TC feature checkpoint is
+closed. No provider request, quota spend, assigned feature data/runtime change,
+visual-reference/tolerance change, or deployment occurred.

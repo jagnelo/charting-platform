@@ -11,10 +11,31 @@ human_closure_authorization: >-
   approval for each fix across the four parallel feature branches, with the
   stated goal of reaching a merged-into-staging, human-usable state. Apply that
   authority only to this narrowly evidenced browser compatibility repair. Close
-  it only after exact-source CI and the guarded staging gate pass. This does not
+  the repair checkpoint after exact-source branch checks pass. The guarded
+  staging integration and exact Exhaustive Integration Gate are mandatory
+  post-merge gates before advancing another branch. This does not
   accept the full TC2000 feature checkpoint, authorize provider/quota activity,
   paid or trial operations, deployment, promotion, or data cleanup.
-closure_summary: pending
+closure_summary: >-
+  Accepted for guarded staging integration: the two chart-template and saved
+  column-set key generators now use crypto.getRandomValues while preserving
+  normalized prefixes, the eight-lowercase-hex suffix and existing API payloads;
+  regressions cover browsers without crypto.randomUUID. Validated implementation
+  SHA 12cc951810e4f8fef3d5d37fe2e5640123fc26b4 passed exact GitHub Actions run
+  39009639242: Backend, Frontend Unit, Branch-declared and E2E all succeeded;
+  Playwright logged 151 passed, 109 skipped, with no retry/failure markers. The
+  feature-branch Exhaustive Integration Gate was skipped by policy. The two
+  focused component suites passed 78/78, vue-tsc passed, and the unchanged
+  isolated five-flow browser rerun passed 5/5 on identical source hunks. No
+  migration or deployment impact; no provider calls, quota use, assigned
+  feature runtime changes, or visual-oracle changes. No merge conflicts have
+  been observed; any actual conflict must be reconciled and revalidated before
+  continuing. integration_capture: exact branch HEAD. The guarded helper must
+  verify exact CI for that captured final tip and record its SHA. Remaining gates:
+  exact CI for this closure tip, then merge into persistent staging and require
+  a green Exhaustive Integration Gate on the exact resulting staging SHA before
+  integrating or releasing any downstream feature. This does not accept the
+  full TC2000 feature checkpoint or close its roadmap.
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
@@ -46,7 +67,7 @@ acceptance_criteria:
   - id: KEY3
     text: The two affected component suites, frontend type check, scope/workstream validation, and unchanged five focused browser flows pass without retries or weakened assertions.
   - id: KEY4
-    text: Exact-source required branch CI and the guarded persistent-staging Exhaustive Integration Gate pass before technical closure; no full TC2000 feature checkpoint is inferred.
+    text: Exact-source required branch CI passes for the final closure tip before integration; the guarded persistent-staging Exhaustive Integration Gate passes on the exact resulting staging SHA before another feature is integrated or the repair baseline is released. No full TC2000 feature checkpoint is inferred.
 branch_tests:
   - "cd frontend && npx vitest run tests/unit/components/test_chart_template_control.test.ts tests/unit/components/test_virtual_watchlist_tool.test.ts && npx vue-tsc --noEmit"
 branch_tests_reason: >-
@@ -56,13 +77,13 @@ branch_tests_reason: >-
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: in_progress
+status: ready_for_integration
 remaining_gaps:
-  - Clean committed and pushed repair tip with exact-source required CI audited green.
-  - Guarded merge into persistent staging and a green Exhaustive Integration Gate on the exact staging SHA.
+  - Exact-source required CI for this closure metadata tip, enforced by the guarded integration helper.
+  - Guarded merge into persistent staging and a green Exhaustive Integration Gate on the exact staging SHA before downstream integration or baseline release.
 progress:
   completed: [KEY1, KEY2, KEY3]
   total: 4
-  current_phase: scoped_local_validation_passed
-  current_blocker: none
-  next_action: commit and publish the narrow repair, audit exact-source CI, then use only the guarded staging integration path and require its exact Exhaustive Integration Gate
+  current_phase: closure_recorded_waiting_exact_head_ci
+  current_blocker: exact_source_CI_for_closure_tip
+  next_action: publish this closure record, wait for exact-head CI, then use only the guarded staging integration path and require its exact staging Exhaustive Integration Gate
