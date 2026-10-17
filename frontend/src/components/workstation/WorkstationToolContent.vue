@@ -2994,9 +2994,18 @@ const configuredPythonColumns = computed(() => Array.isArray(props.tool.configur
   : [])
 type IndicatorColumnConfiguration = { key: string; name: string; indicator: string; params: Record<string, unknown>; timeframe: string; output?: string }
 const pendingIndicatorColumns = ref<IndicatorColumnConfiguration[]>([])
+// Golden Layout may keep a detached virtual-tool root alive briefly after the
+// canonical workspace window has changed. Read its current configuration so
+// chart-plot promotion and the rendered indicator columns share one snapshot.
+const liveToolConfiguration = computed(() => {
+  const canonical = workspaceStore.workspace?.tabs
+    .flatMap(tab => tab.windows)
+    .find(window => window.instance_key === props.tool.instance_key)
+  return canonical?.configuration ?? props.tool.configuration
+})
 const configuredIndicatorColumns = computed<IndicatorColumnConfiguration[]>(() => {
-  const persisted = Array.isArray(props.tool.configuration.indicator_columns)
-    ? props.tool.configuration.indicator_columns.filter((column): column is IndicatorColumnConfiguration => Boolean(column) && typeof column === 'object' && typeof (column as Record<string, unknown>).key === 'string' && typeof (column as Record<string, unknown>).name === 'string' && typeof (column as Record<string, unknown>).indicator === 'string' && typeof (column as Record<string, unknown>).params === 'object' && typeof (column as Record<string, unknown>).timeframe === 'string')
+  const persisted = Array.isArray(liveToolConfiguration.value.indicator_columns)
+    ? liveToolConfiguration.value.indicator_columns.filter((column): column is IndicatorColumnConfiguration => Boolean(column) && typeof column === 'object' && typeof (column as Record<string, unknown>).key === 'string' && typeof (column as Record<string, unknown>).name === 'string' && typeof (column as Record<string, unknown>).indicator === 'string' && typeof (column as Record<string, unknown>).params === 'object' && typeof (column as Record<string, unknown>).timeframe === 'string')
     : []
   const persistedKeys = new Set(persisted.map(column => column.key))
   return [...persisted, ...pendingIndicatorColumns.value.filter(column => !persistedKeys.has(column.key))]
@@ -3033,10 +3042,11 @@ function addPlotColumn(payload: ChartAnalysisDragPayload) {
   }
   if (payload.kind !== 'chart-plot') return
   const column = indicatorColumnFromPlot(payload)
-  const columns = Array.isArray(props.tool.configuration.indicator_columns) ? props.tool.configuration.indicator_columns : []
+  const configuration = liveToolConfiguration.value
+  const columns = Array.isArray(configuration.indicator_columns) ? configuration.indicator_columns : []
   const hasColumn = columns.some(candidate => Boolean(candidate) && typeof candidate === 'object' && (candidate as Record<string, unknown>).key === column.key)
-  const configuredKeys = Array.isArray(props.tool.configuration.column_keys)
-    ? props.tool.configuration.column_keys.filter((key): key is string => typeof key === 'string')
+  const configuredKeys = Array.isArray(configuration.column_keys)
+    ? configuration.column_keys.filter((key): key is string => typeof key === 'string')
     : []
   // A configured column list is authoritative for a customized watchlist. A
   // dropped plot must therefore both register the definition and make it
@@ -3044,7 +3054,7 @@ function addPlotColumn(payload: ChartAnalysisDragPayload) {
   const nextKeys = configuredKeys.includes(column.key) ? configuredKeys : [...configuredKeys, column.key]
   pendingIndicatorColumns.value = [...pendingIndicatorColumns.value.filter(existing => existing.key !== column.key), column]
   emit('configuration', props.tool.instance_key, {
-    ...props.tool.configuration,
+    ...configuration,
     column_keys: nextKeys,
     indicator_columns: hasColumn ? columns : [...columns, column],
   })
