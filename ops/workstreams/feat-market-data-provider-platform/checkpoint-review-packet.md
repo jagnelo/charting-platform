@@ -1,5 +1,35 @@
 # Provider integration checkpoint review packet
 
+## 2026-10-17 06:14Z — current Provider evidence and cross-feature blocker
+
+Provider branch HEAD is `705082771de7b56cc8efcb15c482663f5d4d2be8`;
+the application/test source under review is `31007ae8efe7973e1e8f2819157c64322f356b1b`.
+The exact required Actions run `39001830674` passed Backend, Frontend Unit,
+Branch-declared, and Playwright; Exhaustive was skipped by feature policy.
+Pinned-Noble strict visuals passed 104/104 with unchanged references and
+tolerances. The designated pinned-Noble functional selection remains red:
+146 passed, 2 expected skips, 5 failed, zero retries. Failures F9c,
+F9c-template-transform, F9c-template-comparison, F9e, and F9f stop before
+their expected save/list/PUT results. The retained F9e error states
+`crypto.randomUUID is not a function`; the coordinator identifies shared
+chart-template/column-set key generation as the cross-feature cause. TC owns
+the two-generator `getRandomValues` candidate; its 107 component tests and
+vue-tsc passed, but browser validation and exact-source CI remain outstanding.
+Provider did not and must not edit TC source. This is not a provider payload,
+issuer, or quota failure.
+
+On Provider HEAD `7050827`, the bounded Provider-owned ICP2/ICP6 regression
+selection passed 252/252 in 121.52 seconds with five dependency deprecation
+warnings. No provider HTTP, quota spend, or data reset occurred. Exact Actions
+run `39008799668` is terminal success: Backend (unit, PostgreSQL integration,
+combined coverage), Frontend Unit, Branch-declared, and Playwright succeeded;
+Playwright reports 151 passed/109 expected skips/0 failed with no retry-passing
+or flaky cases. Exhaustive was skipped by feature policy. The separate full
+260-case 258/2 pass
+and host-native 162/2/96 red result remain separate receipts and do not erase
+the designated functional red gate. The checkpoint is not ready for
+integration.
+
 ## Dinari quota evidence — 2026-10-17 06:07Z
 
 Public first-party docs reviewed read-only: the June 11, 2024 API License

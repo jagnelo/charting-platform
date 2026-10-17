@@ -6320,19 +6320,31 @@ progress:
   total: 7
   current_phase: provider-checkpoint-icp2-icp6-and-operation-disposition
   current_blocker: >-
-    Provider implementation/test source is `31007ae8efe7973e1e8f2819157c64322f356b1b`;
-    the synchronized branch source at the latest no-transport preflight was
-    `1887d80be992a184b578767f17321d891744531a`.
-    Exact Actions `39001830674` is green for required feature jobs; Exhaustive
-    is skipped by feature policy. The complete pinned-Noble 260-case local
-    profile now passes 258 with 2 expected live skips and zero failures or
-    retries. Retain the earlier pinned 146/2/5 red result and host-native
-    162/2/96 red result without overwriting them. Coordinator identified the
-    concrete retained F9e error as `crypto.randomUUID is not a function` in
-    shared chart-template/column-set key generators; the corresponding TC
-    `getRandomValues` fix remains unmerged and lacks browser/exact-CI evidence.
-    TC owns that source; Provider must not duplicate it. Provider checkpoint
-    remains open for ICP2/ICP6, operation dispositions, and final review.
+    Current branch HEAD is `705082771de7b56cc8efcb15c482663f5d4d2be8`;
+    application/test source is `31007ae8efe7973e1e8f2819157c64322f356b1b`.
+    Exact Actions `39001830674` and pinned-Noble strict visuals (104/104)
+    passed, but the coordinator-designated pinned-Noble functional profile on
+    that source remains red: 146 passed, 2 expected skips, 5 failed, zero
+    retries. F9c, F9c-template-transform, F9c-template-comparison, F9e, and
+    F9f fail before their expected save/list/PUT outcomes. The retained F9e
+    error explicitly reports `crypto.randomUUID is not a function`; the
+    coordinator identifies shared chart-template/column-set key generation
+    as the cross-feature defect, owned by TC. TC's `getRandomValues` candidate
+    still lacks browser validation and exact-source CI; Provider must not
+    duplicate or edit it. Keep the separate full 260-case 258/2 pass and the
+    host-native 162/2/96 red result as distinct evidence; neither erases the
+    designated 146/2/5 red functional gate.
+
+    On Provider branch HEAD `7050827`, the bounded ICP2/ICP6 regression
+    selection passed 252/252 in 121.52 seconds with five dependency
+    deprecation warnings and no provider HTTP/quota or data reset. Exact
+    Actions run `39008799668` is terminal success: Backend (unit, PostgreSQL
+    integration, combined coverage enforcement), Frontend Unit, Branch-declared,
+    and Playwright passed; E2E reports 151 passed/109 expected skips/0 failed
+    with no retry-passing or flaky cases. Exhaustive was skipped by feature
+    policy. Provider checkpoint remains open
+    for ICP2/ICP6, operation dispositions, the designated functional gate, and
+    final exact-source review.
 
     Fresh full-matrix preflight at `1887d80b` confirms the durable quota
     coordinator is ready but blocks before transport: 24 providers pass
@@ -6371,13 +6383,13 @@ progress:
     source-bound receipts; no paid/trial activation, deployment, integration,
     reset, or cleanup is authorized.
   next_action: >-
-    Continue Provider-owned ICP2 aggregate recurring-cost contract work and
-    ICP6 producer/consumer contracts, then reconcile every operation's enabled
-    versus held disposition into the exact-source review packet. Preserve the
-    new full-profile pass (258 passed/2 expected skips/0 failures) alongside
-    both older red results. Do not edit TC-owned randomUUID generators; await
-    its exact browser/CI evidence through the coordinator's normal cross-feature
-    process. No vendor calls/quota, data reset, assigned-stack cleanup,
+    Commit and push this validated Provider-owned workstream reconciliation,
+    then verify exact-source CI on the resulting head. Continue Provider-owned
+    ICP2/ICP6 contract and operation-disposition work. Preserve the designated
+    146/2/5 pinned functional red, 104/104 visual pass, separate 258/2 complete
+    profile pass, and 162/2/96 host-native red independently. Do not edit TC's
+    randomUUID generators; await its exact browser/CI evidence through the
+    coordinator. No provider calls/quota, data reset, assigned-stack cleanup,
     staging/sibling mutation, or deployment. Keep the full roadmap.
   previous_goal_blocker: >-
     Continued local implementation is not blocked by an owner decision. The

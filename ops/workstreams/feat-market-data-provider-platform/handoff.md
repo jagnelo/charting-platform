@@ -1,5 +1,32 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 06:14Z — current exact-source and cross-feature status
+
+Provider branch HEAD is `705082771de7b56cc8efcb15c482663f5d4d2be8`; the
+application/test source is `31007ae8efe7973e1e8f2819157c64322f356b1b`.
+Actions `39001830674` is green for required feature jobs and pinned-Noble
+strict visuals are 104/104, but the coordinator-designated pinned-Noble
+functional profile is still 146 passed, 2 expected skips, 5 failed, zero
+retries. F9c, F9c-template-transform, F9c-template-comparison, F9e, and F9f
+fail before their expected save/list/PUT outcomes. F9e explicitly reports
+`crypto.randomUUID is not a function`; the coordinator attributes this to
+shared chart-template/column-set key generation. TC owns the proposed
+two-generator `getRandomValues` repair; 107 component tests and vue-tsc pass,
+but browser validation and exact-source CI are not yet proven. Provider must
+not edit TC source. This is not a Provider payload, issuer, or quota defect.
+
+Provider-owned bounded ICP2/ICP6 regression tests passed 252/252 on HEAD
+`7050827` in 121.52 seconds (five dependency deprecation warnings); no
+provider HTTP/quota or data reset occurred. Exact Actions run `39008799668`
+is terminal success: Backend (unit, PostgreSQL integration, combined
+coverage), Frontend Unit, Branch-declared, and Playwright succeeded;
+Playwright reports 151 passed/109 expected skips/0 failed with no retry-passing
+or flaky cases. Exhaustive was skipped by feature policy. Keep the
+separate full 260-case 258/2 pass and host-native 162/2/96 red result intact;
+neither clears the designated functional red gate. Do not start another heavy
+browser run while one is active. Checkpoint remains pending, not
+ready-for-integration.
+
 ## 2026-10-17 06:07Z — Dinari quota-contract documentation research
 
 First-party Dinari material reviewed without contacting its API: the API
