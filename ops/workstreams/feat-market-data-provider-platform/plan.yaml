@@ -1,5 +1,18 @@
 schema: 4
-# Current-source CI terminal — 2026-10-17 09:52Z: pushed workstream commit
+# Current terminal candidate — 2026-10-17 10:29Z: the final workstream receipt
+# push is clean at `f480dd9afa5949b49b6420ff56ba1ed8aca7d3eb` and exact Actions
+# run `39022815277` is green: Backend 2,838 unit + 396 integration at 82%
+# combined coverage, Frontend Unit and Branch-declared passed, E2E 151 passed /
+# 109 expected skips in 13.3m with zero failure/retry/flaky markers; Exhaustive
+# skipped by feature-branch policy. The narrow-access no-transport preflight on
+# this exact source confirms the existing durable quota coordinator is healthy,
+# 24 providers are policy-eligible, and Dinari, Marketstack and Tiingo remain
+# quarantined for their exact account/cost/baseline reasons. It made 0 provider
+# HTTP requests. The earlier sandbox-only read-only result is superseded; do
+# not create a blank ledger. F8u remains a TC-owned local browser failure, and
+# the full 260 functional/104 visual profile and live operation evidence remain
+# open. Checkpoint is pending.
+# Historical receipt — 2026-10-17 09:52Z: pushed workstream commit
 # `2be257d8f6299a57ac61317df9140edccd841cc0` passed exact Actions run
 # `39020467991`: Backend 2,838 unit + 396 integration, combined coverage 82%;
 # Frontend Unit and Branch-declared passed; Playwright E2E 151 passed / 109
@@ -8,10 +21,12 @@ schema: 4
 # upload emitted token-required errors but is configured non-gating; Backend
 # remained successful. This does not clear the local pinned-Noble F8u failure,
 # complete 260 functional/104 strict visuals, or satisfy live operation gates.
-# The latest 09:29 no-transport preflight is blocked because the configured
-# durable SQLite quota ledger was read-only to this process. No provider HTTP
-# or quota was used. Checkpoint remains pending.
-# Current safe execution status — 2026-10-17 09:29Z: an exact-implementation
+# At 09:29Z, ordinary sandbox access to the configured durable SQLite quota
+# ledger was read-only. A later narrow-access preflight on the newer exact
+# source verified the existing coordinator healthy; this historical sandbox
+# restriction is not a current global blocker. No provider HTTP or quota was
+# used. Checkpoint remains pending.
+# Historical safe execution status — 2026-10-17 09:29Z: an exact-implementation
 # `--preflight-only` refresh on pushed source `2be257d8f6299a57ac61317df9140edccd841cc0`
 # evaluated 27 providers and blocked before transport with 0 provider requests.
 # This process sees the configured durable SQLite quota ledger as read-only,
@@ -6496,14 +6511,19 @@ progress:
     source-bound receipts; no paid/trial activation, deployment, integration,
     reset, or cleanup is authorized.
   next_action: >-
-    Commit and push this validated Provider-owned workstream reconciliation,
-    then verify exact-source CI on the resulting head. Continue Provider-owned
-    ICP2/ICP6 contract and operation-disposition work. Preserve the designated
-    146/2/5 pinned functional red, 104/104 visual pass, separate 258/2 complete
-    profile pass, and 162/2/96 host-native red independently. Do not edit TC's
-    randomUUID generators; await its exact browser/CI evidence through the
-    coordinator. No provider calls/quota, data reset, assigned-stack cleanup,
-    staging/sibling mutation, or deployment. Keep the full roadmap.
+    Preserve exact green Actions run 39022815277 on pushed workstream source
+    f480dd9afa5949b49b6420ff56ba1ed8aca7d3eb and the successful no-transport
+    quota-coordinator preflight on that same source. The designated pinned-
+    Noble functional run on implementation source a20766d9920ca91bfbf0b15bedcbf16c11776dd9
+    is red at TC-owned F8u (150 passed, 2 expected skips, 1 failed, retries 0);
+    do not edit TC source. The complete 260 functional and 104 strict visual
+    gates remain incomplete on the current merged source. Continue only
+    Provider-owned ICP2/ICP6 contracts and exact operation dispositions;
+    provider-specific Dinari, Marketstack, and Tiingo operations remain held.
+    No provider calls/quota, data reset, assigned-stack cleanup, staging or
+    sibling mutation, paid/trial activation, or deployment. Keep the full
+    roadmap and checkpoint pending; reconcile the next released common repair
+    only through the coordinator's exact-source direction.
   previous_goal_blocker: >-
     Continued local implementation is not blocked by an owner decision. The
     prior staged candidate is `32dafe227755d7a890bfeb4d96ffc53542af7ba7`; its

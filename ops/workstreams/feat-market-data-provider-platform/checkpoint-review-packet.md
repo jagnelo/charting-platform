@@ -1,5 +1,38 @@
 # Provider integration checkpoint review packet
 
+## Current checkpoint disposition — 2026-10-17 10:29Z
+
+The pushed receipt source is `f480dd9afa5949b49b6420ff56ba1ed8aca7d3eb`.
+Exact Actions run [39022815277](https://github.com/jagnelo/charting-platform/actions/runs/39022815277)
+is green for required feature-branch jobs: Backend 2,838 unit + 396
+integration at 82% combined coverage; Frontend Unit; Branch-declared; and
+Playwright 151 passed / 109 expected skips with no failure/retry/flaky markers.
+The Exhaustive gate was skipped by feature-branch policy, and provider-live
+transport was not part of CI. This is not checkpoint acceptance.
+
+The same-source 10:28Z no-transport preflight reached the existing durable
+quota coordinator successfully through the authorized narrow access path. It
+evaluated 27 providers, showed 24 admission-eligible candidates and three
+provider-specific quarantined groups, no global blockers, zero provider HTTP,
+and no transport. The earlier 09:29 ordinary-sandbox read-only result is
+retained as a sandbox-access limitation, not a current global coordinator
+failure. Do not create a replacement ledger. Dinari remains held pending an
+account-reviewed Sandbox reset/quota/cost profile; Marketstack OHLCV remains
+held below the combined-matrix reservation and universe discovery lacks
+confirmed MIC/page-cost bounds; Tiingo remains held with unreviewed effective
+plan and unknown hourly/daily baselines. Admission eligibility of other
+operations is not live success or transport authorization.
+
+The designated pinned-Noble functional selection on implementation source
+`a20766d9920ca91bfbf0b15bedcbf16c11776dd9` is still red: 150 passed, two
+expected skips, one failed F8u RSI-plot drag, zero retries. The coordinator
+assigns this defect to TC; Provider did not modify TC source. The full 260-case
+functional and 104-case strict visual profiles are incomplete on this merged
+source. Thus ICP7's required full local profile is not satisfied and the
+checkpoint is not `ready_for_human_review`. Preserve the entire roadmap and all
+operation dispositions; keep provider/issuer calls, quota spend, paid/trial,
+unknown/unreviewed/unsafe routes disabled as directed.
+
 ## Workstream integrity and exact CI — 2026-10-17 09:52Z
 
 `make branch-validate` passed all 36 records after the current updates and

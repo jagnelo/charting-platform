@@ -75,13 +75,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "2be257d8f6299a57ac61317df9140edccd841cc0",
+  "head": "f480dd9afa5949b49b6420ff56ba1ed8aca7d3eb",
   "implementation_sha": "a20766d9920ca91bfbf0b15bedcbf16c11776dd9",
   "interrupted": false,
-  "last_checkpoint": "2026-10-17T09:52:00Z",
+  "last_checkpoint": "2026-10-17T10:31:00Z",
   "last_human_progress_update": "2026-10-17T09:52:00+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Record terminal exact Actions run 39020467991 on pushed commit 2be257d8f6299a57ac61317df9140edccd841cc0 (required jobs green; Exhaustive skipped by feature policy), then publish a small workstream-only receipt checkpoint. Do not rerun the local full browser profile until a released TC repair addresses F8u. The current no-transport preflight is blocked because this process sees the configured durable quota SQLite ledger as read-only; keep all provider routes blocked and do not substitute a blank ledger. No provider/issuer HTTP/quota, unsafe/paid/trial activation, data reset/cleanup, staging/sibling writes, or deployment.",
+  "run_id": 39022815277,
+  "next_action": "Commit and push this validated Provider-owned workstream receipt checkpoint, then inspect exact-source Actions for that new tip. Continue Provider-owned ICP2/ICP6 contract and operation-disposition work. The existing durable quota coordinator is healthy when accessed through the authorized narrow path; the earlier ordinary-sandbox read-only result is historical, not a global product blocker. Preserve the designated pinned-Noble 150 passed / 2 expected skips / 1 failed F8u result on implementation source a20766d9920ca91bfbf0b15bedcbf16c11776dd9; F8u is TC-owned. Full 260 functional and 104 strict-visual gates remain incomplete. No provider/issuer HTTP or quota spend, paid/trial/unknown/unreviewed/unsafe activation, data reset/cleanup, staging/sibling writes, or deployment.",
   "parent_branch": "staging",
   "plan_hash": "eeb1170957507fbf7ee2cbf9de5b649f60def13cdc70f166958140e3c951f6a3",
   "planning_required": false,
@@ -113,14 +114,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "Actions run 39020467991 is green on pushed source 2be257d8 (2,838 unit + 396 integration, 82% coverage; Frontend Unit, Branch-declared and E2E 151/109 also green; Exhaustive skipped by policy). Remaining gates: pinned-Noble functional profile is red at TC-owned F8u (150/2/1); full 260 functional and 104 strict visuals remain incomplete; latest no-transport preflight globally blocked all provider admission because the configured durable quota SQLite ledger is read-only to this process. Dinari, Marketstack and Tiingo retain separate provider-specific quarantine reasons.",
+    "current_blocker": "The exact pinned-Noble 153-case functional selection on implementation source a20766d9920ca91bfbf0b15bedcbf16c11776dd9 is red: 150 passed, 2 expected skips, 1 failed (F8u real RSI chart-plot drag), retries 0. Coordinator classifies F8u as TC-owned; Provider must not edit that source. Full 260 functional and 104 strict-visual gates remain incomplete on current source. Exact Actions run 39022815277 on f480dd9afa5949b49b6420ff56ba1ed8aca7d3eb is green for required feature jobs. The durable quota coordinator is healthy via authorized narrow access; Dinari, Marketstack, and Tiingo retain operation-specific holds. No provider call is authorized in the current direction.",
     "current_phase": "provider-checkpoint-evidence-and-exact-ci",
-    "next_action": "Append the terminal Actions receipt to validation.jsonl and commit/push the resulting workstream-only checkpoint. Preserve the red F8u artifacts and wait for a released TC-owned repair before the full browser rerun. Resolve access to the existing durable quota coordinator before any later provider transport; do not substitute a blank ledger. Continue Provider ICP2/ICP6 and operation dispositions.",
+    "next_action": "Append the exact Actions 39022815277 and 10:28Z no-transport preflight evidence to the Provider workstream packet, validate the records, and publish this coherent checkpoint. Continue Provider-owned ICP2/ICP6 contracts and operation dispositions; wait for a released common repair before rerunning the full browser profile. Do not edit TC, ETF, Strategy, or staging. Preserve all provider-specific holds and all retained data; no provider/issuer HTTP, quota spend, paid/trial activation, data reset/cleanup, or deployment.",
     "total": 7,
-    "updated_at": "2026-10-17T09:52:00+00:00"
+    "updated_at": "2026-10-17T10:31:00+00:00"
   },
   "remote": "origin/feat/market-data-provider-platform",
-  "remote_sha": "2be257d8f6299a57ac61317df9140edccd841cc0",
+  "remote_sha": "f480dd9afa5949b49b6420ff56ba1ed8aca7d3eb",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "The fresh pinned-Noble project provider-noble-2734-retry1-20261017 and runner provider-noble-2734-20261017-functional-retry1 remain running/preserved with seeded isolated datasets; the earlier harness-misconfigured project provider-noble-2734-20261017 also remains preserved. Existing charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, provider-playwright-1236-hostaccess-20261016, and assigned Provider/TC stacks remain running/preserved. No stop, reset, prune, or data cleanup occurred."

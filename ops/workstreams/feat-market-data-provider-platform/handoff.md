@@ -1,5 +1,40 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 10:29Z — exact CI and coordinator preflight reconciled; checkpoint pending
+
+- Exact pushed workstream source `f480dd9afa5949b49b6420ff56ba1ed8aca7d3eb`
+  passed Actions run `39022815277`: Backend 2,838 unit + 396 integration,
+  combined coverage 82%; Frontend Unit and Branch-declared passed; Playwright
+  passed 151 with 109 expected skips in 13.3 minutes, with no failure, retry,
+  or flaky markers. Exhaustive was skipped by feature-branch policy. CI did not
+  run provider-live transport and is not Provider checkpoint acceptance.
+- On the same source, the 10:28Z `--preflight-only` run successfully accessed
+  the existing durable quota coordinator through the authorized narrow path:
+  all 27 providers evaluated, 24 policy-eligible candidates, three provider
+  groups quarantined, no global blockers, zero provider HTTP requests, and no
+  transport. The 09:29 ordinary-sandbox read-only result remains historical
+  evidence of the sandbox boundary; it is not a current global product blocker.
+  No blank ledger was created.
+- Current provider-specific holds remain: Dinari lacks an account-reviewed
+  sandbox quota/reset and complete operation-cost profile; Marketstack's
+  monthly OHLCV headroom is below the two-call matrix reservation and its
+  universe-discovery MIC/page cost is unresolved; Tiingo's plan is unreviewed
+  and hourly/daily usage baselines are unknown. The 24 eligible candidates are
+  admission potential only—not live success or authority to call providers.
+- The designated pinned-Noble functional selection on implementation source
+  `a20766d9920ca91bfbf0b15bedcbf16c11776dd9` remains red: 150 passed, two
+  expected live skips, one failed (F8u real RSI chart-plot drag), zero retries.
+  The coordinator assigns F8u to TC; Provider made no TC edit. The full 260-case
+  functional and 104-case strict visual gates have not been completed on this
+  current merged source. Preserve all earlier source-bound runs separately.
+- ICP2/ICP6 producer contracts and operation dispositions remain recorded in
+  `plan.yaml` and the packet. The user-authorized free-only checkpoint boundary
+  remains in force; paid, trial, unknown, unreviewed, unsafe and quota-held
+  routes stay disabled. No Provider/issuer HTTP or quota spend, data reset,
+  cleanup, sibling/staging write, or deployment occurred. Checkpoint remains
+  pending; do not claim `ready_for_human_review` while its required local gates
+  are red/incomplete.
+
 ## 2026-10-17 08:25Z — released chart key-generation repair reconciled
 
 - Re-read the current Provider plan/handoff, canonical orchestration rules,
