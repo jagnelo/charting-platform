@@ -7,6 +7,7 @@ import pytest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.migration_startup import (
     MigrationDecision,
+    MigrationResolution,
     StrategyLabV2MigrationService,
     create_strategy_lab_v2_migration_service,
 )
@@ -29,9 +30,7 @@ async def test_migration_service_runs_off_loop_and_replays_exact_success(tmp_pat
     assert applied.decision is MigrationDecision.APPLIED
     assert replay.decision is MigrationDecision.REPLAY_EXISTING
     assert replay.error_digest is None
-    assert calls == [
-        ("postgresql://user:password@localhost/chartingdb", str(tmp_path), "head")
-    ]
+    assert calls == [("postgresql://user:password@localhost/chartingdb", str(tmp_path), "head")]
 
 
 async def test_migration_service_redacts_failure_to_stable_type_digest(tmp_path: Path) -> None:
@@ -53,8 +52,18 @@ async def test_migration_service_redacts_failure_to_stable_type_digest(tmp_path:
             "version": "strategy-lab.migration-startup.error.v1",
         }
     )
-    assert replay.decision is MigrationDecision.REPLAY_EXISTING
+    assert replay.decision is MigrationDecision.FAILED
     assert replay.error_digest == failed.error_digest
+
+
+def test_migration_resolution_rejects_ambiguous_failed_replay() -> None:
+    with pytest.raises(ValueError, match="non-failed"):
+        MigrationResolution(
+            content_digest("request"),
+            MigrationDecision.REPLAY_EXISTING,
+            "head",
+            content_digest("failure"),
+        )
 
 
 def test_migration_factory_and_configuration_fail_closed(tmp_path: Path) -> None:

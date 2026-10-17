@@ -10,6 +10,7 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.migration_startup import (
     MigrationDecision,
     MigrationResolution,
+    StrategyLabV2MigrationService,
 )
 from app.strategy_lab_v2.redis_application import RedisDispatchRuntime
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
@@ -125,6 +126,45 @@ async def test_failed_startup_migration_never_opens_redis() -> None:
     with pytest.raises(WorkerEntrypointStartupError) as error:
         raise WorkerEntrypointStartupError(result)
     assert error.value.error_digest == content_digest("migration-error")
+
+
+async def test_cached_failed_migration_remains_terminal_before_redis(tmp_path: Path) -> None:
+    migration_calls = 0
+    runtime_calls = 0
+
+    def fail_migration(*_args: str) -> None:
+        nonlocal migration_calls
+        migration_calls += 1
+        raise RuntimeError("database details must remain redacted")
+
+    async def runtime_factory(*_args: Any, **_kwargs: Any) -> Any:
+        nonlocal runtime_calls
+        runtime_calls += 1
+        raise AssertionError("Redis must not open after a cached migration failure")
+
+    migration = StrategyLabV2MigrationService(
+        "postgresql://user:password@localhost/chartingdb",
+        script_location=tmp_path,
+        runner=fail_migration,
+    )
+
+    first = await run_strategy_lab_v2_worker(
+        _config(),
+        migration_service=migration,
+        runtime_factory=runtime_factory,
+    )
+    replay = await run_strategy_lab_v2_worker(
+        _config(),
+        migration_service=migration,
+        runtime_factory=runtime_factory,
+    )
+
+    assert first.decision is replay.decision is WorkerEntrypointDecision.MIGRATION_FAILED
+    assert first.migration == replay.migration
+    assert first.migration is not None
+    assert first.migration.decision is MigrationDecision.FAILED
+    assert migration_calls == 1
+    assert runtime_calls == 0
 
 
 async def test_successful_worker_owns_runtime_close_and_signal_cleanup() -> None:

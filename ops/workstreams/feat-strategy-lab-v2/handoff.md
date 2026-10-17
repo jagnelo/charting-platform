@@ -14876,3 +14876,41 @@ Historical red/flaky evidence, the formal unavailable goal, full roadmap,
 Nautilus/OOS fail-closed guarantees, migration namespace and ambiguity guard,
 tests, thresholds and oracles remain unchanged. No product, runtime, database,
 provider, staging or sibling operation was performed for this receipt.
+
+## 2026-10-17 23:14Z — cached migration failure remains terminal
+
+Closed an independent fail-closed gap shared by the dedicated backtest and
+forward worker startup paths. `StrategyLabV2MigrationService.upgrade()` used to
+turn a cached failed migration into `REPLAY_EXISTING` on the second call. Since
+both worker entrypoints stop only for `FAILED`, reusing that service could open
+Redis and begin worker composition even though the database migration had
+never succeeded.
+
+Cached failures now return the original typed `FAILED` resolution without
+rerunning the migration. Successful cached upgrades still return
+`REPLAY_EXISTING`. `MigrationResolution` rejects the ambiguous combination of
+`REPLAY_EXISTING` plus an error digest. Regressions for both worker entrypoints
+call the same failing migration service twice, prove the migration runner is
+called once, and prove Redis is never opened on either attempt.
+
+The first focused run exposed a test-only missing import (`12 passed, 1
+NameError`); the import was corrected without weakening behavior or assertions.
+The final bounded migration/API/worker/schema slice passed 46 tests. Focused
+Ruff, format, MyPy and `git diff --check` passed. This is package-owned startup
+evidence only: no database, Redis, Docker, browser, provider, quota, staging or
+sibling operation ran, and no unreleased Provider/ETF/TC contract was assumed.
+
+The checkpoint remains `in_progress` and the full roadmap is unchanged. Real
+PostgreSQL upgrade, combined application/worker startup, coordinated exhaustive
+validation and local `full_stack_browser` remain required after the ordered
+Provider → ETF → TC2000 release. Host headroom remains too low for a competing
+heavy profile, so retained services were left untouched.
+
+The preceding exact pushed source
+`21595f86c7253b84715e58f2cac71850cc5d72e1` completed GitHub Actions CI run
+`39077211415` successfully while this substantive change was being prepared.
+Branch-declared, frontend unit, backend unit/integration, and Playwright E2E
+jobs passed; Exhaustive Integration Gate was skipped by feature-branch policy.
+That receipt is exact for the preceding workstream-only tip, not for the current
+migration hardening. Exact-source CI for the enclosing product commit remains
+required and will be inspected once after push without rerunning it.

@@ -52,8 +52,8 @@ class MigrationResolution:
             require_sha256_digest(self.error_digest, field_name="error_digest")
         if self.decision is MigrationDecision.FAILED and self.error_digest is None:
             raise ValueError("failed migration resolutions require an error digest")
-        if self.decision is MigrationDecision.APPLIED and self.error_digest is not None:
-            raise ValueError("successful migration resolutions cannot contain an error digest")
+        if self.decision is not MigrationDecision.FAILED and self.error_digest is not None:
+            raise ValueError("non-failed migration resolutions cannot contain an error digest")
 
     @property
     def fingerprint(self) -> str:
@@ -106,10 +106,12 @@ class StrategyLabV2MigrationService:
         return self._request_fingerprint
 
     async def upgrade(self) -> MigrationResolution:
-        """Apply the configured target or replay the exact result."""
+        """Apply the target once, replay success, and preserve terminal failure."""
 
         async with self._lock:
             if self._resolution is not None:
+                if self._resolution.decision is MigrationDecision.FAILED:
+                    return self._resolution
                 return MigrationResolution(
                     self._resolution.request_fingerprint,
                     MigrationDecision.REPLAY_EXISTING,
