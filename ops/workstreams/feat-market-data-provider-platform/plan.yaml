@@ -1,17 +1,18 @@
 schema: 4
-# Current terminal candidate — 2026-10-17 10:29Z: the final workstream receipt
-# push is clean at `f480dd9afa5949b49b6420ff56ba1ed8aca7d3eb` and exact Actions
-# run `39022815277` is green: Backend 2,838 unit + 396 integration at 82%
-# combined coverage, Frontend Unit and Branch-declared passed, E2E 151 passed /
-# 109 expected skips in 13.3m with zero failure/retry/flaky markers; Exhaustive
-# skipped by feature-branch policy. The narrow-access no-transport preflight on
-# this exact source confirms the existing durable quota coordinator is healthy,
-# 24 providers are policy-eligible, and Dinari, Marketstack and Tiingo remain
-# quarantined for their exact account/cost/baseline reasons. It made 0 provider
-# HTTP requests. The earlier sandbox-only read-only result is superseded; do
-# not create a blank ledger. F8u remains a TC-owned local browser failure, and
-# the full 260 functional/104 visual profile and live operation evidence remain
-# open. Checkpoint is pending.
+# Current terminal candidate — 2026-10-17 11:05Z: workstream receipt commit
+# `3ef5de099fbfb77a80ff1555894a183e50cda91d` passed exact Actions run
+# `39025252923`: Backend 2,838 unit + 396 integration at 82% combined coverage,
+# Frontend Unit and Branch-declared passed, Playwright 151 passed / 109 expected
+# skips in 13.9m with no test retry/flaky markers, Exhaustive skipped by feature
+# policy. The successful no-transport quota preflight is source-bound to
+# `f480dd9afa5949b49b6420ff56ba1ed8aca7d3eb` (the immediately preceding source;
+# only workstream records changed afterward): durable coordinator healthy, 24
+# admission-eligible candidates, three provider-specific quarantines, no
+# global blockers, 0 provider HTTP requests. Do not create a blank ledger.
+# F8u remains a TC-owned local browser failure (150 passed, 2 expected skips,
+# 1 failed, retries 0 on implementation source a20766d9); the full 260
+# functional/104 visual profile and live operation evidence remain open.
+# Checkpoint remains pending.
 # Historical receipt — 2026-10-17 09:52Z: pushed workstream commit
 # `2be257d8f6299a57ac61317df9140edccd841cc0` passed exact Actions run
 # `39020467991`: Backend 2,838 unit + 396 integration, combined coverage 82%;

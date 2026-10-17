@@ -1,5 +1,33 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 11:05Z — exact receipt-commit CI terminal; functional checkpoint still pending
+
+- Receipt commit `3ef5de099fbfb77a80ff1555894a183e50cda91d` passed exact
+  Actions run [39025252923](https://github.com/jagnelo/charting-platform/actions/runs/39025252923).
+  Backend: 2,838 unit + 396 PostgreSQL/Redis integration tests; combined
+  coverage 82% (68,041 statements, 11,985 missing). Frontend Unit,
+  Branch-declared, and Playwright succeeded. Playwright: 151 passed, 109
+  expected skips, no test retry/flaky markers, 13.9 minutes. Exhaustive was
+  skipped under feature-branch policy. Provider-live transport was not part of
+  this CI. This validates exact pushed source `3ef5de0`, not checkpoint
+  acceptance.
+- The no-transport preflight is still exactly bound to `f480dd9` (the code is
+  unchanged between that source and `3ef5de0`; the intervening change only
+  updates workstream records). It reached the existing durable quota
+  coordinator through narrow authorized access, saw no global blockers, 24
+  policy-eligible candidates and three provider-specific quarantine groups,
+  and sent zero provider HTTP requests. Dinari, Marketstack, and Tiingo holds
+  remain unchanged. The 09:29 ordinary-sandbox read-only result was an access
+  limitation, not a global product blocker.
+- The required designated pinned-Noble local selection remains red on
+  implementation source `a20766d9`: 150 passed, 2 expected live skips, 1
+  failed at TC-owned F8u, retries 0. The current merged-source full 260
+  functional and 104 strict-visual local gates are incomplete. Do not edit TC
+  source or call the checkpoint ready. ICP2/ICP6 and operation dispositions
+  remain documented in the plan and packet; no live Provider/issuer request,
+  quota spend, paid/trial activation, reset, cleanup, staging/sibling write,
+  or deployment occurred.
+
 ## 2026-10-17 10:29Z — exact CI and coordinator preflight reconciled; checkpoint pending
 
 - Exact pushed workstream source `f480dd9afa5949b49b6420ff56ba1ed8aca7d3eb`

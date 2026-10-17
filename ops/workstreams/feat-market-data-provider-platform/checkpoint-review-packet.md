@@ -1,5 +1,34 @@
 # Provider integration checkpoint review packet
 
+## Latest exact-source CI — 2026-10-17 11:05Z
+
+Pushed receipt commit `3ef5de099fbfb77a80ff1555894a183e50cda91d` passed exact
+Actions run [39025252923](https://github.com/jagnelo/charting-platform/actions/runs/39025252923).
+Backend passed 2,838 unit + 396 PostgreSQL/Redis integration tests with 82%
+combined coverage (68,041 statements, 11,985 missing); Frontend Unit,
+Branch-declared, and Playwright succeeded. Playwright reports 151 passed, 109
+expected skips, no test retries/flakes observed, 13.9 minutes. Exhaustive was
+skipped by feature policy. The live-provider workflow was not invoked. This
+exact-source CI is not Provider checkpoint acceptance.
+
+The current no-transport quota preflight remains source-bound to the previous
+workstream tip `f480dd9afa5949b49b6420ff56ba1ed8aca7d3eb`; the only subsequent
+changes through `3ef5de0` were Provider workstream records. That preflight
+reached the configured durable coordinator successfully, had no global
+blockers, showed 24 admission-eligible candidates and quarantined Dinari,
+Marketstack, and Tiingo operations, and sent zero provider HTTP requests. The
+ordinary sandbox's earlier read-only result is not a product-wide blocker.
+Provider-specific holds remain as detailed below; no transport authority is
+implied.
+
+Local acceptance remains incomplete: the designated pinned-Noble selection on
+implementation source `a20766d9920ca91bfbf0b15bedcbf16c11776dd9` is red at
+TC-owned F8u (150 passed / 2 expected live skips / 1 failed, retries zero).
+The full 260-case functional and 104-case strict-visual gates have not been
+completed on the current merged source. Therefore the checkpoint is not
+`ready_for_human_review`. Preserve the exact failure and all full-roadmap
+requirements; do not edit TC, spend provider quota, or enable held routes.
+
 ## Current checkpoint disposition — 2026-10-17 10:29Z
 
 The pushed receipt source is `f480dd9afa5949b49b6420ff56ba1ed8aca7d3eb`.
