@@ -1,20 +1,65 @@
 {
-  "schema": 2,
+  "acceptance_criteria": [],
+  "active_session_id": "fc306e07-1bc4-4ba2-84f5-e0361f7c2c2f",
   "branch": "fix/watchlist-plot-live-configuration",
-  "parent_branch": "staging",
-  "implementation_sha": "2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745",
-  "remote_sha": null,
-  "active_session_id": null,
-  "previous_session_ids": [],
-  "goal_state": "not_started",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-watchlist-plot-live-configuration-06f23bb3",
+      "charting-stack-fix-watchlist-plot-live-configuration-06f23bb3"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-watchlist-plot-live-configuration-06f23bb3a3"
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/watchlist-plot-live-configuration: Coordinate the existing Provider \u2192 ETF holdings \u2192 TC2000 \u2192 Strategy Lab v2 feature checkpoints through reconciliation, delegated technical acceptance, sequential guarded merges into persistent staging, and exact-source full validation. Deliver a combined development baseline usable for human testing within the human-approved verified-free-only scope, with quota-held, unreviewed, paid-trial, and unsafe operations disabled and full feature roadmaps retained. No master promotion, deployment, paid activation, or operational trial is authorized.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/watchlist-plot-live-configuration: Coordinate the existing Provider \u2192 ETF holdings \u2192 TC2000 \u2192 Strategy Lab v2 feature checkpoints through reconciliation, delegated technical acceptance, sequential guarded merges into persistent staging, and exact-source full validation. Deliver a combined development baseline usable for human testing within the human-approved verified-free-only scope, with quota-held, unreviewed, paid-trial, and unsafe operations disabled and full feature roadmaps retained. No master promotion, deployment, paid activation, or operational trial is authorized.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "84a1363f5e4ad30fe0480a73720119ac2b0e12fc",
+  "implementation_sha": "2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "a9688a803c49ba07d46b96f0d3c60e3e6791055fefe3f7a435d5b01fa3387a67",
+  "planning_required": true,
   "planning_state": "draft",
+  "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "total": 0,
+    "current_blocker": "none",
     "current_phase": "plan",
-    "current_blocker": "none"
+    "total": 0
   },
-  "next_action": "run make agent-session-start",
-  "retained_docker_resources": []
+  "remote": "84a1363f5e4ad30fe0480a73720119ac2b0e12fc",
+  "remote_sha": null,
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "fc306e07-1bc4-4ba2-84f5-e0361f7c2c2f",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-watchlist-plot-live-configuration/ops/workstreams/fix-watchlist-plot-live-configuration",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-watchlist-plot-live-configuration/ops/workstreams/fix-watchlist-plot-live-configuration/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-watchlist-plot-live-configuration/ops/workstreams/fix-watchlist-plot-live-configuration/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-watchlist-plot-live-configuration/ops/workstreams/fix-watchlist-plot-live-configuration/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-watchlist-plot-live-configuration/ops/workstreams/fix-watchlist-plot-live-configuration/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-watchlist-plot-live-configuration",
+  "worktree_id": "fix-watchlist-plot-live-configuration-06f23bb3a3"
 }
