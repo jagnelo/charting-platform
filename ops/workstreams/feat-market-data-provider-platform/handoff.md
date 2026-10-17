@@ -1,5 +1,26 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 00:10Z — staging baseline reconciled; combined-source gates next
+
+- Merged exact coordinator-released staging `79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b`
+  into the clean Provider branch only. Local merge commit:
+  `b7bbdc8152a604e53355a3f7aaf2959b63453189`. This includes the approved
+  pointer and occurrence-date repairs; no staging/sibling write occurred. It is
+  not Provider checkpoint acceptance. The merge commit is not yet pushed or
+  covered by exact-source CI.
+- Prior candidate commit `d5ac26f193ee1da3a0a95114c4a46df7ae7eae92` has exact
+  CI `38981710549` terminal success: Backend 2,838 unit + 396 integration,
+  combined coverage 82%; Frontend Unit and Branch-declared green; E2E 151
+  passed/109 expected skips with no retries/failures; Exhaustive skipped by
+  feature policy. This is source-bound to d5ac26f only.
+- Existing assigned Provider validation and TC stacks are still running. The
+  standard `validate-integration` trap runs `agent-resource-cleanup`, which
+  would remove current worktree-owned containers/volumes; do not run that
+  destructive cleanup against these retained resources. Continue with an
+  isolated non-destructive profile plan and exact-source CI. Preserve all
+  operation holds; no provider HTTP/quota, paid/trial activation, reset,
+  deployment, or cleanup.
+
 ## 2026-10-16 23:29Z — candidate revalidation complete; ready to publish
 
 - The uncommitted sync-callback candidate (base `056bb211`) passed the broader

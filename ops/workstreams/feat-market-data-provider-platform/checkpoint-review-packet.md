@@ -1,5 +1,27 @@
 # Provider integration checkpoint review packet
 
+## 2026-10-17 00:10Z — released staging reconciled into Provider branch
+
+Exact synchronized, green staging SHA
+`79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b` was merged into this clean
+Provider worktree only, producing merge commit
+`b7bbdc8152a604e53355a3f7aaf2959b63453189`. The merge is recorded in local
+Git and includes the approved chart-template pointer and TC occurrence-date
+hydration repairs; staging and sibling worktrees were not modified. This is
+owner reconciliation, not Provider checkpoint acceptance. The merge commit
+has not yet been pushed or validated by exact-source CI.
+
+The immediately prior Provider candidate `d5ac26f193ee1da3a0a95114c4a46df7ae7eae92`
+has exact Actions run `38981710549` terminal success: Backend 2,838 unit and
+396 integration passed, combined coverage 82%; Frontend Unit, Branch-declared,
+and Playwright succeeded; Playwright was 151 passed/109 expected skips, no
+retries/failures. Exhaustive was skipped by feature policy. This applies to
+`d5ac26f` only. The merge source still needs an isolated local full profile and
+exact-source CI. Existing assigned Provider/TC Compose stacks and their data
+remain running and untouched; standard gate cleanup is not safe against those
+retained resources. Provider HTTP/quota and paid/trial/unreviewed operations
+remain held; no checkpoint acceptance is claimed.
+
 ## 2026-10-16 23:29Z — callback candidate bounded revalidation and publication gate
 
 On the dirty candidate based on `056bb211`, the broader selected regression

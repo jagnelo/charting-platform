@@ -45,11 +45,8 @@
     "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
   },
   "dirty_paths": [
-    "backend/app/services/provider_runtime.py",
-    "backend/tests/unit/services/test_provider_runtime.py",
     "ops/workstreams/feat-market-data-provider-platform/checkpoint-review-packet.md",
     "ops/workstreams/feat-market-data-provider-platform/handoff.md",
-    "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
     "ops/workstreams/feat-market-data-provider-platform/session.json",
     "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
   ],
@@ -77,13 +74,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "056bb2115583456c6dfab2faee3d143661cd1b52",
-  "implementation_sha": "056bb2115583456c6dfab2faee3d143661cd1b52",
+  "head": "b7bbdc8152a604e53355a3f7aaf2959b63453189",
+  "implementation_sha": "b7bbdc8152a604e53355a3f7aaf2959b63453189",
   "interrupted": false,
-  "last_checkpoint": "2026-10-16T23:29:00Z",
+  "last_checkpoint": "2026-10-17T00:10:00Z",
   "last_human_progress_update": "2026-10-16T11:12:47.867964+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "The candidate based on 056bb211 passes bounded validation: 252 selected tests in 121.28s, Ruff and format, JSON/JSONL parsing, diff check, and all 34 workstream records. Exact Actions run 38978777973 is terminal success on base 056bb211 only; it does not cover this candidate. Commit/push the coherent seven-file candidate and obtain its exact-source CI. The coordinator explicitly released synchronized staging 79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b (run 38972891559 green; receipt 20261016T2318Z-staging-release-79c8623fb122.json) for reconciliation after candidate publication/revalidation. Then merge that exact baseline into this Provider worktree only, resolve there, and run the required full profile and exact-source validation. Preserve seeded-browser red, no-FX rule, downstream ownership, all provider holds, and exact source binding. No provider transport/quota spend, paid/trial activation, deployment, reset, cleanup, staging or sibling edits.",
+  "next_action": "The released staging baseline 79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b has been merged into this Provider worktree only at local merge commit b7bbdc8152a604e53355a3f7aaf2959b63453189. Prior candidate d5ac26f has exact CI run 38981710549 terminal green, but that run does not include the staging merge. Record and publish this reconciliation, then obtain exact-source CI for the merged source. Run the full required local profile using isolated resources without stopping/cleaning the retained Provider/TC stacks or datasets and without unapproved provider HTTP/quota. The ordinary validate-integration cleanup is unsafe for these currently running resources; do not run it. Preserve seeded-browser red, no-FX rule, downstream ownership, all provider holds, exact source binding, and checkpoint-not-accepted status.",
   "parent_branch": "staging",
   "plan_hash": "a8875425f88edd353e17890043664f37442479bcd3d7eda2f0134d0d77bf55cd",
   "planning_required": false,
@@ -115,15 +112,15 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "The callback-candidate diff remains uncommitted and has no exact-source CI; its bounded regression suite passed 252/252 with static/workstream checks clean. The prior hosted run 38978777973 is terminal success only for base 056bb211, not for this candidate. Current staging 79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b is explicitly released for reconciliation after the candidate is published/revalidated. The separate seeded-browser red remains unresolved and full profile follows safe source reconciliation. ICP2 currency/denomination and ICP6 downstream wiring remain open; checkpoint not accepted.",
+    "current_blocker": "The exact staging baseline is reconciled into the Provider branch at b7bbdc8152a604e53355a3f7aaf2959b63453189, but this combined source has no exact-source CI yet. The prior candidate d5ac26f CI is green but predates the merge. The standard local full-profile cleanup would delete currently running retained Provider/TC worktree resources, so the full profile must use an isolated non-destructive runner or remain held. The separate seeded-browser red, ICP2 currency/denomination, ICP6 downstream wiring, and provider live-operation holds remain; checkpoint not accepted.",
     "current_phase": "provider-icp2-recurring-cost-and-icp6-contract-refresh",
-    "next_action": "Commit and push the coherent seven-file sync-only callback candidate; run exact-source CI. The completed Actions 38978777973 applies only to base 056bb211. After candidate publication/revalidation, merge exact released staging 79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b into this Provider worktree only, resolve there, and run the required full profile and exact-source validation. Keep full-roadmap gaps, operation holds, exact source bindings, and no-FX-invention explicit; no provider calls/quota, paid/trial activation, deployment, reset, cleanup, or staging/sibling edits.",
+    "next_action": "Publish the staging reconciliation record plus local merge commit b7bbdc8152a604e53355a3f7aaf2959b63453189; obtain exact-source CI on the combined source. Then complete the full local profile using an isolated resource context that preserves all retained Provider/TC services and datasets and avoids unapproved provider HTTP/quota. Verify the safe cleanup scope for any new test resources before running, and retain them rather than removing them if data-loss scope is uncertain. Keep full-roadmap gaps, operation holds, exact source bindings, and no-FX-invention explicit; no paid/trial activation, deployment, reset, or staging/sibling edits.",
     "total": 7,
-    "updated_at": "2026-10-16T23:29:00Z"
+    "updated_at": "2026-10-17T00:10:00Z"
   },
   "remote": "51ebc7d45aa34d2e8790988778ee5e6eec14bdd7",
-  "remote_sha": "056bb2115583456c6dfab2faee3d143661cd1b52",
-  "remote_synchronized": true,
+  "remote_sha": "d5ac26f193ee1da3a0a95114c4a46df7ae7eae92",
+  "remote_synchronized": false,
   "retained_docker_resources": [
     "charting-stack-provider-validation-1236-20261016 and provider-playwright-1236-hostaccess-20261016 remain running/preserved; no stop, reset, prune, or cleanup. Browser runner returned to sleep service after focused checks."
   ],
