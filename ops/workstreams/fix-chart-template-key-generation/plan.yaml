@@ -84,6 +84,6 @@ remaining_gaps:
 progress:
   completed: [KEY1, KEY2, KEY3]
   total: 4
-  current_phase: closure_recorded_waiting_exact_head_ci
-  current_blocker: exact_source_CI_for_closure_tip
-  next_action: publish this closure record, wait for exact-head CI, then use only the guarded staging integration path and require its exact staging Exhaustive Integration Gate
+  current_phase: writer_claim_released_waiting_final_tip_CI
+  current_blocker: exact_source_CI_for_final_handoff_tip
+  next_action: publish the session-handoff metadata, wait for exact-head CI, then use only the guarded staging integration path and require its exact staging Exhaustive Integration Gate

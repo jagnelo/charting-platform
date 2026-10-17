@@ -45,3 +45,24 @@ independently green on its previous source, but its pinned functional profile
 must be rerun after consuming the released fix. No TC feature checkpoint is
 closed. No provider request, quota spend, assigned feature data/runtime change,
 visual-reference/tolerance change, or deployment occurred.
+
+## Coordinator handoff
+
+This coordinator-owned repair did not start a separate feature-session goal.
+The supported interrupted-handoff helper released only this repair branch's
+temporary writer claim and recorded goal_state unavailable while the
+overarching staging goal remains active. The helper did not run Docker cleanup:
+Docker inspection was denied by the socket permission, and this repair created
+no branch-owned runtime resources. The exact next action is to publish this
+session handoff, wait for final-tip CI, then use guarded integration and require
+the exact staging Exhaustive Integration Gate. Do not close the overarching
+staging goal here.
+
+The handoff helper's current porcelain parsing strips the leading status
+whitespace before extracting the first dirty path, so it reports this handoff
+as ps/workstreams/fix-chart-template-key-generation/handoff.md rather than
+ops/workstreams/fix-chart-template-key-generation/handoff.md. Both that exact
+reported path and the session.json path above are recorded for the helper's
+fail-closed interrupted-handoff check. The helper completed with those paths,
+released the claim and recorded no retained Docker resources; no guard was
+bypassed.
