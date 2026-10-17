@@ -1,17 +1,31 @@
 # Provider integration checkpoint review packet
 
-## Current exact-source status — 2026-10-17 20:22Z
+## Current exact-source status — 2026-10-17 21:02Z
 
-Provider HEAD and origin are synchronized at
-`20f8c68678348d0eebcf9fc8eb6fbcab021936db`. Exact Actions run `39063912811`
-is terminal green on that source: Backend, Frontend Unit, Branch-declared,
-and Playwright E2E jobs passed; the Exhaustive Integration Gate was skipped by
-feature-branch policy. The new session-record regression passes, and the full
-workflow suite passes 120/120 locally. The preceding exact-source 252/252
-ICP2/ICP6 no-transport selection and 27-provider no-transport preflight remain
-the current provider-contract evidence (24 eligible candidates; Dinari,
-Marketstack, and Tiingo quarantined; zero requests/reservations/spend). These
-checks are not full local-profile or live-provider acceptance.
+Provider HEAD and origin are synchronized at receipt-only tip
+`486601a8aa542d48022f0a480c419d1b103121da`; implementation source is
+`20f8c68678348d0eebcf9fc8eb6fbcab021936db`. The prior implementation-source
+Actions run `39063912811` was green. The tip-triggered exact run `39066530798`
+is terminal red under strict flaky-test policy: Backend, Frontend Unit, and
+Branch-declared passed; Playwright logged 150 passed, 109 expected skips, and
+one flaky F8u drag test. Its first attempt failed to find the RSI watchlist
+header within 10 seconds after the real drag; retry #1 passed, but the job
+remained red. This is retained as a CI failure, not a clean pass. No F8u source
+was changed; it is TC-owned. The uploaded Playwright report is artifact
+`12114033733` and has not been used to justify a rerun or source change.
+
+A fresh exact-tip `--preflight-only` run at 21:01:39Z evaluated all 27
+providers, made zero HTTP requests, and spent/reserved zero quota. The durable
+quota coordinator was not writable in this process, so all transport was
+blocked before execution; Dinari, Marketstack, and Tiingo also remain
+quarantined by their provider-specific unresolved contracts. This preflight is
+not live acceptance. The bounded ICP2/ICP6 no-transport selection was refreshed
+on current tip `486601a8` and passed 252/252 in 145.23s (5 warnings); it made
+zero provider/issuer requests and no quota reservations/spend. The required
+focused F8u and pinned-Noble 260-functional/104-visual profile remain held
+pending safe host capacity and fixture ownership. Exact CI/backend tests and
+these bounded contract checks do not replace the held local browser gates or
+operation-level live acceptance.
 
 The current no-transport full-matrix preflight evaluated 27 providers; the
 durable coordinator was ready, 24 candidates were eligible, three groups

@@ -66,7 +66,7 @@
       "charting-stack-feat-market-data-provider-platform-c6e40c66-provider-egress-deny-1",
       "charting-stack-feat-market-data-provider-platform-c6e40c66-research-runner-1"
     ],
-    "known_bytes": 4103636508,
+    "known_bytes": 4103648308,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-market-data-provider-platform-c6e40c66",
@@ -77,7 +77,7 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 185115100,
+    "volume_bytes": 185126900,
     "volume_count": 4,
     "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
   },
@@ -101,16 +101,16 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "20f8c68678348d0eebcf9fc8eb6fbcab021936db",
+  "head": "486601a8aa542d48022f0a480c419d1b103121da",
   "implementation_sha": "dc1864a265fc8bbeeb5549b6169b9ffd7ab9745c",
   "interrupted": false,
   "last_checkpoint": "2026-10-17T20:23:00Z",
-  "last_human_progress_update": "2026-10-17T20:23:05.028761+00:00",
+  "last_human_progress_update": "2026-10-17T21:06:25.635236+00:00",
   "latest_no_transport_preflight": "2026-10-17T17:20:00.201164+00:00: source 506c83757ce5239bb1b2eeb7bcba705093d85797; host-accessible durable coordinator was ready, with 11,088 registered receipts already reconciled and no pending reservations; 27 providers evaluated, 24 policy-eligible candidates, quarantined Dinari, Marketstack, Tiingo; zero provider HTTP, quota reservation, or spend; Actions 39052826478 was in progress at 17:20Z.",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Provider HEAD and origin are synchronized at 20f8c68678348d0eebcf9fc8eb6fbcab021936db. Exact Actions run 39063912811 passed Backend, Frontend Unit, Playwright E2E, and Branch-declared; Exhaustive was skipped by feature-branch policy. Continue bounded Provider-owned no-transport ICP2 recurring-cost and ICP6 producer/consumer contract/disposition work. Preserve the 252/252 no-transport suite and 27-provider preflight on prior source 4c6c8ac1fd111f700ed92854f89ac6b24db233de. Keep full pinned-Noble 260-functional/104-visual and focused F8u held until safe capacity and fixture ownership are confirmed. Preserve all prior red/partial-live evidence and operation holds. No provider/issuer requests or quota reservation/spend, staging/sibling changes, data reset/cleanup, deployment, or checkpoint acceptance.",
   "parent_branch": "staging",
-  "plan_hash": "49d79670c3d290a1f47403c2b854b992acdffd57291a8c2a6d82ce7bc6b2e532",
+  "plan_hash": "72668c729529aa5020755fb8a6a20e95dcadae381e277e340b41cb9e14d62aa3",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -140,14 +140,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "The exact-source CI is green, but Provider checkpoint remains open: the required pinned-Noble functional/visual browser profile and focused F8u are held pending safe host capacity and fixture ownership; provider transport/quota reservation/spend remain disabled by current direction; Dinari, Marketstack, and Tiingo stay quarantined.",
+    "current_blocker": "Exact-source Actions 39066530798 is red from one flaky TC-owned F8u drag assertion; focused F8u and full pinned-Noble 260-functional/104-visual local gates remain held pending coordinator-confirmed safe host capacity and fixture ownership. Exact-tip preflight is blocked before transport because durable quota ledger is read-only; Dinari, Marketstack discovery, and Tiingo remain quarantined.",
     "current_phase": "provider-checkpoint-icp2-icp6-and-operation-disposition",
-    "next_action": "Continue Provider-owned no-transport ICP2 recurring-cost and ICP6 producer/consumer contract plus operation-disposition work. Preserve exact CI 39063912811 on source 20f8c68678348d0eebcf9fc8eb6fbcab021936db and all historical red/partial-live evidence. Keep the pinned-Noble 260-functional/104-visual profile and focused F8u held until safe capacity/fixture ownership is confirmed. Make no provider/issuer requests or quota reservations/spend; do not change sibling/staging, reset data, deploy, or claim readiness/acceptance.",
+    "next_action": "Preserve CI 39066530798 and exact-tip preflight receipts. Do not rerun to erase F8u flake or make provider/issuer requests/reservations. Await a safe coordinator-released browser slot and fixture ownership, then run focused F8u and full pinned-Noble 260-functional/104-visual unchanged; keep checkpoint open until exact-source gates pass.",
     "total": 7,
-    "updated_at": "2026-10-17T20:23:05.028744+00:00"
+    "updated_at": "2026-10-17T21:06:25.635218+00:00"
   },
-  "remote": "20f8c68678348d0eebcf9fc8eb6fbcab021936db",
-  "remote_sha": "20f8c68678348d0eebcf9fc8eb6fbcab021936db",
+  "remote": "486601a8aa542d48022f0a480c419d1b103121da",
+  "remote_sha": "486601a8aa542d48022f0a480c419d1b103121da",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "The fresh pinned-Noble project provider-noble-2734-retry1-20261017 and runner provider-noble-2734-20261017-functional-retry1 remain running/preserved with seeded isolated datasets; the earlier harness-misconfigured project provider-noble-2734-20261017 also remains preserved. Existing charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, provider-playwright-1236-hostaccess-20261016, and assigned Provider/TC stacks remain running/preserved. No stop, reset, prune, or data cleanup occurred."

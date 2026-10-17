@@ -28339,6 +28339,36 @@ HTTP, quota spend, paid/trial activation, data reset or assigned-stack mutation
 occurred. Bounded Provider ICP2/ICP6 tests remain 252/252 on `a20766d9`; exact
 post-merge-source Actions and normal full 260 + 104-visual profile remain open.
 
+## 2026-10-17 21:02Z — exact receipt-tip CI flake and fresh preflight
+
+Provider remains synchronized at receipt-only tip
+`486601a8aa542d48022f0a480c419d1b103121da` over implementation source
+`20f8c68678348d0eebcf9fc8eb6fbcab021936db`. Exact Actions run `39066530798`
+is terminal red: Backend, Frontend Unit, and Branch-declared passed; E2E
+reported 150 passed, 109 expected skips, and one flaky F8u. The first real
+plot-drag attempt failed to find the RSI watchlist header at the 10-second
+assertion; retry #1 passed, but strict flaky policy failed the job. The exact
+error context and uploaded report artifact `12114033733` are retained. Do not
+rerun to erase the flake, alter assertions/retry policy, or edit TC-owned code.
+
+Fresh exact-tip `--preflight-only` evaluated 27 providers and recorded zero
+provider HTTP, quota reservations, or quota spend. It was blocked before
+transport because the configured durable quota ledger is read-only to this
+process. Dinari, Marketstack discovery, and Tiingo remain separately
+quarantined for unresolved operation cost/quota/plan evidence. This is not
+live success. The current-source ICP2/ICP6 no-transport selection passed
+252/252 in 145.23s (5 warnings), with zero provider/issuer requests and zero
+quota reservations/spend. No additional Provider-owned no-transport contract
+gap was identified in this pass. Focused F8u and full pinned-Noble
+260-functional/104-visual local gates remain held until the coordinator
+releases safe host capacity and fixture ownership. Preserve all roadmap items,
+queried data, and quota holds; no staging/sibling changes, provider calls, data
+reset, cleanup, or deployment. This evidence is recorded in the branch
+validation journal, checkpoint review packet, handoff, and supported
+`session.json` progress state.
+Plan status remains `in_progress`; checkpoint closure is pending, and no
+`ready_for_human_review` or integration-closure authorization is recorded.
+
 ## 2026-10-17 09:14Z — durable record validation and publication state
 
 The repository `make branch-validate` gate passed all 36 workstream records

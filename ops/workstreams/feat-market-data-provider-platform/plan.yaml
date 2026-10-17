@@ -8571,14 +8571,18 @@ current_gate_checkpoint: >-
       acceptance; the cross-window UI failure remains with its frontend owner,
       and source-bound live evidence/CI status remain to be reconciled.
   next_action: >-
-    Continue Provider-owned ICP2/ICP6 contract and operation-disposition work;
-    retain exact Actions run 39011265706 on branch source
-    d6e00e73874552b3a69547e645ee54f8e4fb178c. Preserve the designated pinned
-    Noble 146/2/5 functional red on application/test source 31007ae8 and wait
-    for the TC owner/coordinator's exact-source repair evidence; do not edit
-    TC source or claim readiness while this required gate is red. Keep the
-    104/104 strict visual pass and distinct 258/2 complete-profile pass as
-    separate receipts. Preserve all quota holds and queried data. The
-    coordinator owns acceptance/staging integration. No provider calls/quota,
-    paid/trial activation, data reset, assigned-stack cleanup, deployment, or
-    ledger reset.
+    Preserve exact Actions run 39066530798 on receipt-only source
+    486601a8aa542d48022f0a480c419d1b103121da as terminal red: its F8u
+    real-drag assertion failed on the first attempt and passed on retry #1,
+    leaving one flaky test under strict policy. Do not rerun to erase the
+    result or edit TC-owned source. The bounded ICP2/ICP6 no-transport suite
+    has now passed 252/252 on this exact current tip; a same-source provider
+    preflight evaluated 27, made zero provider requests/reservations/spend,
+    and was blocked before transport because the durable quota ledger is
+    read-only to this process. Dinari, Marketstack discovery, and Tiingo stay
+    quarantined. Keep focused F8u and pinned-Noble 260-functional/104-visual
+    local gates held until coordinator-confirmed safe host capacity and
+    fixture ownership. Preserve every prior result, quota hold, and full
+    roadmap item; no provider/issuer transport, quota reservation/spend,
+    data reset/cleanup, staging/sibling write, or deployment. The coordinator
+    owns acceptance and staging integration; checkpoint remains open.
