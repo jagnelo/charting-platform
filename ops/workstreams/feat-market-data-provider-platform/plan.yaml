@@ -1,5 +1,16 @@
 schema: 4
-# Current continuation status — 2026-10-17 07:24Z: exact branch source
+# Current continuation status — 2026-10-17 08:03Z: exact source
+# 090f41df782d5f604a909e40c2d46a61afe2914f passed Actions run 39013565817:
+# Backend 2,838 unit + 396 integration, 82% combined coverage; Frontend Unit
+# 938/938; Branch-declared success; Playwright 151 passed/109 expected skips,
+# no failure/retry markers; Exhaustive skipped by feature policy. This does not
+# clear the designated pinned Noble functional red on application/test source
+# 31007ae8: 146/2/5, zero retries. F9e reports `crypto.randomUUID is not a
+# function`; the shared chart-template/column-set key-generator repair is
+# TC-owned. Strict visuals remain 104/104; the distinct full 260-case 258/2/0
+# pass does not clear the designated red result. Continue Provider-owned ICP2/
+# ICP6; no Provider transport/quota or TC source edits. Checkpoint pending.
+# Historical continuation status — 2026-10-17 07:24Z: exact branch source
 # d6e00e73874552b3a69547e645ee54f8e4fb178c passed required Actions run
 # 39011265706 (Backend incl. PostgreSQL integration/combined coverage,
 # Frontend Unit, Branch-declared, Playwright 151 passed/109 expected skips,

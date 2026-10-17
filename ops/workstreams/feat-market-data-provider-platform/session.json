@@ -75,13 +75,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "d6e00e73874552b3a69547e645ee54f8e4fb178c",
+  "head": "090f41df782d5f604a909e40c2d46a61afe2914f",
   "implementation_sha": "31007ae8efe7973e1e8f2819157c64322f356b1b",
   "interrupted": false,
-  "last_checkpoint": "2026-10-17T06:46:30Z",
+  "last_checkpoint": "2026-10-17T08:03:00Z",
   "last_human_progress_update": "2026-10-16T11:12:47.867964+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Record exact-source Actions run 39011265706 on branch source d6e00e73874552b3a69547e645ee54f8e4fb178c: Backend including PostgreSQL integration and combined coverage, Frontend Unit, Branch-declared, and Playwright succeeded; E2E 151 passed/109 expected skips/0 failed/0 retry-passing or flaky; Exhaustive skipped by feature policy. Keep the designated pinned-Noble functional result red on application/test source 31007ae8 (146 passed, 2 expected skips, 5 failed, zero retries: F9c, F9c-template-transform, F9c-template-comparison, F9e, F9f); retained F9e reports `crypto.randomUUID is not a function`. TC owns the shared key-generator repair; do not edit TC source. Provider ICP2/ICP6 bounded regressions passed 252/252 on parent 705082771de7b56cc8efcb15c482663f5d4d2be8. Continue only Provider-owned contract/operation-disposition work; no provider/issuer HTTP or quota spend, paid/trial/unsafe activation, data reset, assigned-stack cleanup, staging/sibling edits, deployment, or checkpoint closure.",
+  "next_action": "Continue Provider-owned ICP2/ICP6 contract and operation-disposition work while preserving the designated red local functional gate and all quota/unsafe-operation holds. Exact branch CI 39013565817 on source 090f41df782d5f604a909e40c2d46a61afe2914f is terminal green for required feature-branch jobs: Backend 2,838 unit + 396 integration, 82% combined coverage; Frontend Unit 938/938; Branch-declared passed; Playwright 151 passed/109 expected skips, no failure/retry markers; Exhaustive skipped by policy. The functional gate remains red on application/test source 31007ae8: 146/2/5, zero retries; TC owns the shared key-generator fix. Do not edit TC source, rerun heavy browser validation before coordinator release, use provider/issuer HTTP or quota, reset data, clean assigned stacks, write staging/siblings, deploy, activate paid/trial, or close the checkpoint.",
   "parent_branch": "staging",
   "plan_hash": "a8875425f88edd353e17890043664f37442479bcd3d7eda2f0134d0d77bf55cd",
   "planning_required": false,
@@ -113,14 +113,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "The designated pinned-Noble functional gate remains red on application/test source 31007ae8: 146 passed, 2 expected skips, 5 failed, zero retries. F9e explicitly reports `crypto.randomUUID is not a function`; coordinator identifies shared chart-template/column-set key generation, owned by TC. Preserve this result and do not edit TC. Exact Actions 39011265706 is green on branch source d6e00e7; strict visuals are 104/104. A distinct full 260-case 258/2/0 run does not clear the designated red selection. Provider bounded ICP2/ICP6 regressions passed 252/252 on parent 7050827. The Provider checkpoint remains pending and is not ready for integration.",
+    "current_blocker": "The designated pinned-Noble functional gate remains red on application/test source 31007ae8: 146 passed, 2 expected skips, 5 failed, zero retries. F9e explicitly reports `crypto.randomUUID is not a function`; coordinator identifies shared chart-template/column-set key generation, owned by TC. Preserve this result and do not edit TC. Exact Actions 39013565817 is green on branch source 090f41df; Backend 2,838 unit + 396 integration, combined coverage 82%; Frontend Unit 938; Branch-declared passed; E2E 151/109 with no failure/retry markers; Exhaustive skipped. Strict visuals are 104/104. A distinct full 260-case 258/2/0 run does not clear the designated red selection. Provider bounded ICP2/ICP6 regressions passed 252/252 on parent 7050827. The Provider checkpoint remains pending and is not ready for integration.",
     "current_phase": "provider-checkpoint-icp2-icp6-and-operation-disposition",
-    "next_action": "Commit and push the validated workstream-only receipt update. Then continue Provider-owned ICP2/ICP6 and operation-disposition work; preserve all evidence and quota holds. Do not edit TC-owned key generators or start another heavy browser profile before coordinator release. No provider calls/quota, data reset, assigned-stack cleanup, staging/sibling writes, deployment, paid/trial activation, or checkpoint closure.",
+    "next_action": "Continue Provider-owned ICP2/ICP6 and operation-disposition work; reconcile only the released staging baseline through the central coordinator. Preserve all evidence and quota holds. Do not edit TC-owned key generators or start another heavy browser profile before coordinator release. No provider calls/quota, data reset, assigned-stack cleanup, staging/sibling writes, deployment, paid/trial activation, or checkpoint closure.",
     "total": 7,
-    "updated_at": "2026-10-17T07:23:38Z"
+    "updated_at": "2026-10-17T08:03:00Z"
   },
   "remote": "origin/feat/market-data-provider-platform",
-  "remote_sha": "d6e00e73874552b3a69547e645ee54f8e4fb178c",
+  "remote_sha": "090f41df782d5f604a909e40c2d46a61afe2914f",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-provider-validation-isolated-20261017 remains running with datasets preserved; charting-stack-provider-validation-1236-20261016, provider-playwright-1236-hostaccess-20261016, and assigned Provider/TC stacks remain running/preserved. No stop, reset, prune, or data cleanup occurred. The exact temporary OneSignal proxy was removed after the completed browser run."

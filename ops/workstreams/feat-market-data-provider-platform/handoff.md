@@ -1,5 +1,34 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 08:03Z — terminal exact-source CI and current checkpoint status
+
+Branch tip `090f41df782d5f604a909e40c2d46a61afe2914f` passed exact Actions
+run [39013565817](https://github.com/jagnelo/charting-platform/actions/runs/39013565817).
+Backend passed 2,838 unit and 396 integration tests; combined coverage was
+82%. Frontend Unit passed 938 tests across 110 files. Branch-declared Tests
+passed. Playwright E2E passed 151 with 109 expected skips in 15.2 minutes;
+the logs showed no retry/flaky/failure markers. Exhaustive was skipped by the
+normal feature-branch policy. The run did not execute live provider acceptance.
+
+The required designated pinned-Noble functional profile remains red on
+application/test source `31007ae8efe7973e1e8f2819157c64322f356b1b`: 146
+passed, 2 expected skips, 5 failed, zero retries (F9c,
+F9c-template-transform, F9c-template-comparison, F9e, F9f). F9e retains
+`crypto.randomUUID is not a function`; the coordinator identifies shared
+chart-template/column-set key generation and TC owns its repair. Do not edit
+TC source. Strict visuals remain 104/104, and the separate full 260-case
+258/2/0 run remains distinct evidence; neither supersedes this designated red
+functional result. Provider checkpoint is not ready for integration.
+
+The previous bounded Provider ICP2/ICP6 selection passed 252/252 on parent
+`705082771de7b56cc8efcb15c482663f5d4d2be8`; no Provider product files changed
+in the workstream receipt commits. Continue Provider-owned contracts and
+operation dispositions, keep paid/trial/unknown/quota-held/unsafe operations
+disabled, and preserve all queried data. No Provider/issuer HTTP, quota spend,
+TC/staging/sibling edits, reset, cleanup, deployment, or checkpoint closure.
+For this record commit, `session.json` records last known source `090f41d`;
+the enclosing commit is verified externally by `git rev-parse` after push.
+
 ## 2026-10-17 07:24Z — exact-source CI receipt and current blocker
 
 The Provider-owned documentation/workstream reconciliation is published at

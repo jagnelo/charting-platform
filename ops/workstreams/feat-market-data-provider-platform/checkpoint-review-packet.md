@@ -1,5 +1,26 @@
 # Provider integration checkpoint review packet
 
+## 2026-10-17 08:03Z — exact branch CI terminal; functional gate remains red
+
+Exact branch source `090f41df782d5f604a909e40c2d46a61afe2914f` passed Actions
+run [39013565817](https://github.com/jagnelo/charting-platform/actions/runs/39013565817):
+Backend 2,838 unit + 396 integration; combined coverage 82%; Frontend Unit
+938/938 across 110 files; Branch-declared passed; and Playwright 151 passed /
+109 expected skips / 0 failures in 15.2 minutes. No retry/flaky/failure
+markers appeared in the E2E log. Exhaustive was skipped under feature-branch
+policy. CI provides no live-provider acceptance.
+
+The required designated pinned-Noble functional gate remains red on unchanged
+application/test source `31007ae8efe7973e1e8f2819157c64322f356b1b`: 146
+passed / 2 expected skips / 5 failed / 0 retries. F9c,
+F9c-template-transform, F9c-template-comparison, F9e, and F9f fail; F9e's
+retained error is `crypto.randomUUID is not a function`. The coordinator
+assigns this shared chart-template/column-set key-generation defect to TC;
+Provider has not edited that source. Pinned strict visuals remain 104/104.
+The separate full 260-case 258/2/0 pass does not clear the designated red
+selection. The checkpoint remains pending.
+
+## 2026-10-17 07:24Z — prior exact-source receipt
 ## 2026-10-17 07:24Z — latest exact-source receipt
 
 Branch source `d6e00e73874552b3a69547e645ee54f8e4fb178c` has terminal green
