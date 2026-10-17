@@ -1,4 +1,28 @@
 schema: 4
+# Latest exact-source CI result — 2026-10-17 18:00Z: Actions `39055558629`
+# is terminal red on pushed `6a44d84c646696118bb8fa22b136bff75cd2b7ef`:
+# Backend 2,837 passed/1 failed (`test_live_preflight_reports_non_routable_safety_controls_without_guessing`, KeyError `tiingo`), Frontend Unit passed, and Branch-declared/Playwright were skipped after the backend failure; Exhaustive was skipped by feature policy. The assertion still used the obsolete generic `tiingo` status key; implementation exposes separate `tiingo provider controls` and `tiingo account plan` entries. The exact first failure is journaled and preserved. Updated the test to assert those explicit fields and set an empty reviewed plan deterministically; focused corrected regression passes 1/1 with no transport. The Robinhood live-matrix no-retry guard and this test correction are uncommitted atop 6a44 and require coherent exact-source CI. No provider requests/quota. Do not run live probes until the corrected source has exact green CI; keep local browser gate held by retained Provider/TC stacks and unsafe host capacity.
+# Safety follow-up — 2026-10-17 17:53Z: the tokenized adapter's Robinhood
+# public-price helper normally retries one 429. Since coordinator-authorized
+# provider validation must stop at the first 401/403/429 and never retry, live
+# matrix mode now constrains that helper to a single attempt while ordinary
+# application behavior retains its existing bounded retry. Focused mocked
+# tests passed 2/2 and the tokenized module passed 97/97, all with zero
+# HTTP/quota. The change is dirty on top of
+# pushed `6a44d84`; Actions `39055558629` validates `6a44d84` only and remains
+# active. Keep provider transport held until this additional safety change is
+# coherently committed/pushed and exact-source CI passes.
+# Latest continuation — 2026-10-17 17:51Z: exact Actions run `39052826478`
+# completed green on pushed parent `506c83757ce5239bb1b2eeb7bcba705093d85797`:
+# Backend 2,838 unit +396 integration, combined coverage enforcement, Frontend
+# Unit, Branch-declared, and Playwright (151 passed, 109 expected skips, 15.7m)
+# succeeded; Exhaustive was skipped by feature-branch policy. Provider HEAD
+# `6a44d84c646696118bb8fa22b136bff75cd2b7ef` is now pushed and synchronized;
+# exact CI `39055558629` is queued/running and must be terminal green before any
+# provider transport. The status-label regression is no-transport only. Current
+# host memory available is about 1.2 GiB with retained Provider/TC validation
+# stacks still active, so focused F8u and full 260-functional/104-visual local
+# browser gates remain held. No provider/issuer request or quota spend occurred.
 # Current continuation — 2026-10-17 14:14Z: current Provider branch HEAD is
 # `50a0fd908d852f32377e1fed8e942cf9c78f0a9a`, synchronized with origin. The
 # requested released staging repair `2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745`

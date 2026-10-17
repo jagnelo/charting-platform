@@ -1,5 +1,47 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 17:53Z — live-matrix 429 retry safety added locally
+
+- Review of provider transport code found Robinhood token price reads normally
+  retry one HTTP 429. This conflicts with the coordinator's live-validation
+  rule to stop immediately on 401/403/429 and make no retries.
+- Added a live-matrix-only guard using the runner's existing
+  `PROVIDER_LIVE_MATRIX_RUN=1` marker: matrix probes now make one attempt and
+  surface a 429 immediately; ordinary app reads retain existing bounded retry
+  behavior. The focused mocked pair passed 2/2, proving both behaviors, with no
+  provider HTTP/quota. The complete tokenized-provider unit module also passed
+  97/97 in 2.84s with zero HTTP/quota.
+- This is a local dirty delta on top of pushed `6a44d84`; run `39055558629`
+  covers only `6a44d84` and is still active. Do not probe providers until this
+  safety delta is committed/pushed and a new exact-source CI is green.
+- Dinari's separate Sandbox 500 retry path remains unused because Dinari is
+  quarantined; no held route is being called. Local browser validation also
+  remains held: about 1.2 GiB memory available with retained Provider/TC stacks
+  running.
+
+## 2026-10-17 17:51Z — parent CI green; current exact-source CI in progress
+
+- Exact Actions run `39052826478` completed green on parent source
+  `506c83757ce5239bb1b2eeb7bcba705093d85797`: Backend 2,838 unit +396
+  integration with combined coverage enforcement, Frontend Unit,
+  Branch-declared, and Playwright succeeded (151 passed/109 expected skips,
+  15.7 minutes); Exhaustive was skipped by feature-branch policy.
+- The coherent Provider update is pushed at exact HEAD
+  `6a44d84c646696118bb8fa22b136bff75cd2b7ef`. Exact-source Actions run
+  `39055558629` is queued/running. The prior run cannot validate this newer
+  source, and no provider transport is authorized until `39055558629` is
+  terminal green.
+- The 17:25 Tiingo preflight-label change has only focused no-transport unit
+  evidence (1/1); it does not establish live provider behavior. After the
+  exact current CI is green, refresh durable coordinator admission and reserve
+  each admitted free operation before transport; do not call unknown, held,
+  paid, trial, unreviewed, quota-held, or unsafe routes.
+- Read-only host checks found about 1.2 GiB memory available and retained
+  Provider and TC stacks active. Do not start local F8u/full browser or Compose
+  validation while this capacity/fixture hold remains. No provider/issuer
+  requests, quota spend, data resets, stack changes, staging/sibling writes,
+  or deployment occurred.
+
 ## 2026-10-17 17:25Z — Tiingo preflight labels now distinguish provider controls from plan
 
 - Current preflight text misleadingly reported `tiingo: routable` beside
@@ -28267,3 +28309,21 @@ success/unavailable producer examples, operation dispositions, and downstream
 ownership are explicit in `plan.yaml` and the checkpoint packet. The exact CI
 receipt is appended to `validation.jsonl`. Checkpoint remains pending and not
 ready for integration.
+
+## 2026-10-17 18:02Z — exact-source CI red preserved; test contract corrected
+
+Actions `39055558629` is terminal red on exact pushed source `6a44d84`:
+Backend 2,837 passed/1 failed, Frontend Unit passed, Branch-declared and
+Playwright skipped after Backend failure, and Exhaustive skipped by feature
+policy. The sole failure was `KeyError: 'tiingo'` in
+`test_live_preflight_reports_non_routable_safety_controls_without_guessing`.
+The preflight contract already emits distinct `tiingo provider controls` and
+`tiingo account plan` keys; the test used a stale generic key. The original CI
+failure remains in the append-only journal. The test now asserts both explicit
+fields and pins an empty reviewed-plan input; the focused regression passes
+1/1. The Robinhood live-matrix 429 no-retry mocked pair passes 2/2 and the full
+tokenized-provider unit module passed 97/97, no provider HTTP/quota. All these
+changes are uncommitted atop 6a44 and require exact-source CI. Do not probe
+providers until that source is green. Local F8u/full browser gates remain held
+under low host memory and retained Provider/TC stacks. No provider transport,
+quota spend, data reset, or service mutation occurred.

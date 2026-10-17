@@ -967,6 +967,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED", "false")
     monkeypatch.setenv("BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE", "")
     monkeypatch.setenv("TIINGO_OPERATION_BYTE_BOUNDS", "{}")
+    monkeypatch.setenv("TIINGO_REVIEWED_PLAN", "")
     monkeypatch.setenv("TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "")
     monkeypatch.setenv("TIINGO_REVIEWED_HOURLY_RESET", "")
     monkeypatch.setenv("TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE", "")
@@ -1017,7 +1018,8 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     ):
         assert missing in statuses["marketstack discovery"]
     assert statuses["marketstack quota"].startswith("non-routable:")
-    assert statuses["tiingo"].startswith("non-routable:")
+    assert statuses["tiingo provider controls"].startswith("non-routable:")
+    assert statuses["tiingo account plan"].startswith("non-routable:")
     assert statuses["fmp"] == (
         "non-routable: missing reviewed controls for FMP_OPERATION_BYTE_BOUNDS is not valid JSON, "
         "FMP_PROVIDER_ARCHIVE_TERMS_AUTHORIZED, FMP_PROVIDER_ARCHIVE_TERMS_EVIDENCE"
@@ -1184,7 +1186,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("FMP_PROVIDER_ARCHIVE_TERMS_AUTHORIZED", "true")
     monkeypatch.setenv("FMP_PROVIDER_ARCHIVE_TERMS_EVIDENCE", "reviewed provider archive terms")
     statuses = routing_safety_preflight()
-    assert statuses["tiingo"] == "routable"
+    assert statuses["tiingo provider controls"] == "routable"
     assert statuses["fmp"] == "routable"
 
     monkeypatch.setenv("TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "calendar_month_est")
@@ -1192,7 +1194,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE", "symbol review")
     monkeypatch.setenv("TIINGO_HOURLY_QUOTA_EVIDENCE", "hourly review")
     statuses = routing_safety_preflight()
-    assert statuses["tiingo"] == "routable"
+    assert statuses["tiingo provider controls"] == "routable"
 
     monkeypatch.setenv("FMP_REVIEWED_DAILY_RESET", "unrecognized_reset")
     statuses = routing_safety_preflight()
@@ -1210,7 +1212,9 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
         '{"fetch_ohlcv": 1, "fetch_latest_ohlcv": 1, "get_current_price": true, "bulk_fetch": 1, "search_instruments": 1, "get_instrument_profile": 1}',
     )
     statuses = routing_safety_preflight()
-    assert statuses["tiingo"].startswith("non-routable: missing reviewed controls for")
+    assert statuses["tiingo provider controls"].startswith(
+        "non-routable: missing reviewed controls for"
+    )
 
     monkeypatch.setenv("MARKETSTACK_DISCOVERY_EXCHANGE", "XNAS")
     monkeypatch.setenv("MARKETSTACK_REVIEWED_MONTHLY_LIMIT", "100")

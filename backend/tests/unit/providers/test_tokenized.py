@@ -440,6 +440,26 @@ def test_robinhood_price_retries_one_bounded_provider_throttle():
     sleep.assert_called_once()
 
 
+def test_robinhood_live_matrix_stops_after_first_rate_limit(monkeypatch):
+    monkeypatch.setenv("PROVIDER_LIVE_MATRIX_RUN", "1")
+    rate_limited = httpx.Response(
+        429,
+        headers={"retry-after": "0"},
+        request=httpx.Request("GET", "https://api.robinhood.com/rhj/prices/AAPLx"),
+    )
+    asset = RobinhoodTokenProvider._record({"id": "rh-aapl", "tokenSymbol": "AAPLx"})
+    with (
+        patch.object(RobinhoodTokenProvider, "get_tokenized_asset", return_value=asset),
+        patch("app.providers.tokenized.httpx.get", return_value=rate_limited) as get,
+        patch("app.providers.tokenized.time.sleep") as sleep,
+    ):
+        with pytest.raises(ProviderRateLimitError):
+            RobinhoodTokenProvider().get_tokenized_price("AAPLx")
+
+    get.assert_called_once()
+    sleep.assert_not_called()
+
+
 @pytest.mark.parametrize(
     ("provider_url", "payload"),
     [

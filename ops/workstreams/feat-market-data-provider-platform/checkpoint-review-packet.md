@@ -1,5 +1,52 @@
 # Provider integration checkpoint review packet
 
+## 2026-10-17 18:02Z — current exact-source CI failed on stale status-key assertion
+
+Run `39055558629` is terminal red on pushed source `6a44d84`: Backend 2,837
+passed/1 failed, Frontend Unit passed, Branch-declared/Playwright skipped after
+Backend failure, Exhaustive skipped by feature policy. The only failure was a
+unit assertion indexing `statuses["tiingo"]`; the current contract intentionally
+separates `tiingo provider controls` from `tiingo account plan`. The failure is
+preserved in `validation.jsonl`. The test is corrected to assert explicit keys
+and pin empty plan input, and its focused rerun passes 1/1. Separately, the
+live-matrix 429 no-retry mocked pair passes 2/2 and tokenized-provider module
+97/97. These local changes remain uncommitted and require exact-source CI; no
+provider transport until green. Browser validation remains held by unsafe
+host capacity and retained Provider/TC stacks. Checkpoint is not ready.
+
+## 2026-10-17 17:53Z — stop-on-429 live-matrix behavior now tested locally
+
+Code review found Robinhood token price reads retry a 429 once in ordinary
+runtime. Because the coordinator requires zero retries and immediate stop on
+401/403/429 for external validation, live matrix mode now forces one attempt
+only, without changing ordinary application retry behavior. The paired mocked
+unit tests passed 2/2 and asserted one request/no sleep in matrix mode versus
+the preserved normal retry; the complete tokenized-provider unit module passed
+97/97. Both ran with zero provider HTTP/quota. This local delta is not
+covered by current run `39055558629` (source `6a44d84`), which must first reach
+terminal. Commit/push the safety delta afterward and require its own exact CI
+before any provider probe. Dinari remains quarantined; its retry path is not
+run. Preserve all other held routes.
+
+## 2026-10-17 17:51Z — parent-source CI green; current HEAD validation running
+
+Run `39052826478` is terminal green on exact parent source
+`506c83757ce5239bb1b2eeb7bcba705093d85797`: Backend 2,838 unit +396
+integration and combined coverage enforcement passed; Frontend Unit,
+Branch-declared, and Playwright passed (151 passed, 109 expected skips, zero
+failures, 15.7 minutes); Exhaustive was skipped by feature-branch policy.
+This receipt is preserved in `validation.jsonl` and validates only that parent.
+
+Current synchronized Provider HEAD is `6a44d84c646696118bb8fa22b136bff75cd2b7ef`;
+its exact Actions run is `39055558629` and must finish green before external
+provider calls. The Tiingo status-label clarification is covered by one
+focused no-transport regression only. Following green CI, perform a fresh
+durable-coordinator admission check and transport only individually admitted
+free operations with exact operation costs/reservations; preserve all held
+routes and stop on access/rate challenges. The host currently has about 1.2
+GiB available and multiple retained Provider/TC stacks, so local browser gates
+remain on hold. Checkpoint is still open.
+
 ## 2026-10-17 17:25Z — preflight label ambiguity fixed locally
 
 The actual no-transport preflight displayed both `tiingo: routable` and

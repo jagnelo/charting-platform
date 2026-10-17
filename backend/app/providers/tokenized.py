@@ -208,7 +208,15 @@ def _http_json_bounded_rate_retry(
     finite retry budget, and every response remains observable telemetry.
     """
 
-    attempts = max(1, min(int(max_attempts), 3))
+    # Provider validation treats every 429 as a terminal safety signal. The
+    # bounded retry remains available to ordinary application reads, but the
+    # explicitly admitted live matrix must not spend another request after a
+    # provider throttle.
+    attempts = (
+        1
+        if os.getenv("PROVIDER_LIVE_MATRIX_RUN", "").strip() == "1"
+        else max(1, min(int(max_attempts), 3))
+    )
     for attempt in range(attempts):
         try:
             return _http_json(url, provider_name=provider_name, params=params, headers=headers)
