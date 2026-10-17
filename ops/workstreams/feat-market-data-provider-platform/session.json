@@ -75,14 +75,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "938b62169d1d1c152c4e3b3f89bc5e180ab7ffd1",
+  "head": "a371360c4a11e24912e7c033bdcc9ee58668a6cc",
   "implementation_sha": "a20766d9920ca91bfbf0b15bedcbf16c11776dd9",
   "interrupted": false,
-  "last_checkpoint": "2026-10-17T11:41:00Z",
+  "last_checkpoint": "2026-10-17T12:27:12Z",
   "last_human_progress_update": "2026-10-17T09:52:00+00:00",
   "local_validation_profile": "full_stack_browser",
-  "run_id": 39027450183,
-  "next_action": "Publish the validated receipt-only workstream update documenting exact green Actions run 39027450183 on source 938b62169d1d1c152c4e3b3f89bc5e180ab7ffd1. It passed Backend 2838 unit + 396 integration tests at 82% coverage, Frontend Unit, Branch-declared and Playwright 151 passed / 109 expected skips; Exhaustive was skipped by feature policy. The successful no-transport preflight remains bound to f480dd9 (the intervening changes through 938b621 were workstream-only). Then continue Provider-owned ICP2/ICP6 work, keep the three provider-specific quarantines intact, and wait for a released common TC repair before rerunning the full pinned-Noble profile. F8u remains red on implementation source a20766d9; full 260/104 local gates are incomplete. No provider/issuer HTTP or quota spend, paid/trial/unknown/unreviewed/unsafe activation, data reset/cleanup, staging/sibling writes, or deployment.",
+  "run_id": 39029780414,
+  "next_action": "Exact Actions run 39029780414 on receipt source a371360c4a11e24912e7c033bdcc9ee58668a6cc is terminal green: Backend 2838 unit +396 integration at 82% combined coverage, Frontend Unit, Branch-declared, and Playwright 151 passed/109 expected skips with no failed/retried/flaky tests; Exhaustive skipped by feature policy. Released staging 2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745 is already merged into implementation source a20766d. The post-merge pinned-Noble profile remains red at TC-owned F8u (150 passed/2 expected skips/1 failed, retries 0); full 260/104 local gates remain open. ICP2/ICP6 bounded selection passed 252/252; operation dispositions are based on the 10:28Z no-transport preflight bound to f480dd9, with Dinari, Marketstack and Tiingo held. Do not edit TC or import unreleased sibling work. Continue safe Provider-owned evidence; await coordinator-released F8u repair before rerunning full local gates. No provider/issuer HTTP or quota spend, paid/trial/unknown/unreviewed/unsafe activation, data reset/cleanup, staging/sibling writes, or deployment.",
   "parent_branch": "staging",
   "plan_hash": "eeb1170957507fbf7ee2cbf9de5b649f60def13cdc70f166958140e3c951f6a3",
   "planning_required": false,
@@ -114,14 +114,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "The exact pinned-Noble 153-case functional selection on implementation source a20766d9920ca91bfbf0b15bedcbf16c11776dd9 is red: 150 passed, 2 expected skips, 1 failed (F8u real RSI chart-plot drag), retries 0. Coordinator classifies F8u as TC-owned; Provider must not edit that source. Full 260 functional and 104 strict-visual gates remain incomplete on current source. Exact Actions run 39022815277 on f480dd9afa5949b49b6420ff56ba1ed8aca7d3eb is green for required feature jobs. The durable quota coordinator is healthy via authorized narrow access; Dinari, Marketstack, and Tiingo retain operation-specific holds. No provider call is authorized in the current direction.",
+    "current_blocker": "The designated seeded pinned-Noble functional selection remains red on implementation source a20766d9920ca91bfbf0b15bedcbf16c11776dd9: 150 passed, 2 expected skips, 1 failed at TC-owned F8u (RSI plot drag), retries zero. Provider must not edit TC source. Full 260 functional and 104 strict-visual gates are incomplete. Exact-source run 39029780414 on a371360 is terminal green for all required feature jobs; Exhaustive is skipped by feature policy. Released staging 2734c6a is already merged. The existing durable quota coordinator is healthy, but Dinari, Marketstack, and Tiingo remain specifically quarantined. No provider/issuer request or quota spend is authorized.",
     "current_phase": "provider-checkpoint-evidence-and-exact-ci",
-    "next_action": "Append the exact Actions 39022815277 and 10:28Z no-transport preflight evidence to the Provider workstream packet, validate the records, and publish this coherent checkpoint. Continue Provider-owned ICP2/ICP6 contracts and operation dispositions; wait for a released common repair before rerunning the full browser profile. Do not edit TC, ETF, Strategy, or staging. Preserve all provider-specific holds and all retained data; no provider/issuer HTTP, quota spend, paid/trial activation, data reset/cleanup, or deployment.",
+    "next_action": "Exact CI 39029780414 and the merged staging ancestry are recorded in the packet and journal. ICP2/ICP6 bounded contracts pass 252/252; operation holds remain explicit from the source-bound no-transport preflight. The post-merge pinned-Noble local profile is red on TC-owned F8u, so full 260/104 local gates remain incomplete; await a coordinator-released F8u repair before rerunning. Do not edit TC, ETF, Strategy, or staging. Preserve provider-specific holds and retained data; no provider/issuer HTTP, quota spend, paid/trial activation, data reset/cleanup, or deployment.",
     "total": 7,
-    "updated_at": "2026-10-17T11:41:00+00:00"
+    "updated_at": "2026-10-17T12:27:12+00:00"
   },
   "remote": "origin/feat/market-data-provider-platform",
-  "remote_sha": "938b62169d1d1c152c4e3b3f89bc5e180ab7ffd1",
+  "remote_sha": "a371360c4a11e24912e7c033bdcc9ee58668a6cc",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "The fresh pinned-Noble project provider-noble-2734-retry1-20261017 and runner provider-noble-2734-20261017-functional-retry1 remain running/preserved with seeded isolated datasets; the earlier harness-misconfigured project provider-noble-2734-20261017 also remains preserved. Existing charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, provider-playwright-1236-hostaccess-20261016, and assigned Provider/TC stacks remain running/preserved. No stop, reset, prune, or data cleanup occurred."

@@ -1,18 +1,17 @@
 schema: 4
-# Current terminal candidate — 2026-10-17 11:41Z: workstream receipt commit
-# `938b62169d1d1c152c4e3b3f89bc5e180ab7ffd1` passed exact Actions run
-# `39027450183`: Backend 2,838 unit + 396 integration at 82% combined coverage,
-# Frontend Unit and Branch-declared passed, Playwright 151 passed / 109 expected
-# skips in 13.1m with no test retry/flaky markers, Exhaustive skipped by feature
-# policy. The successful no-transport quota preflight is source-bound to
-# `f480dd9afa5949b49b6420ff56ba1ed8aca7d3eb` (later changes through this CI
-# source were workstream records only): durable coordinator healthy, 24
-# admission-eligible candidates, three provider-specific quarantines, no
-# global blockers, 0 provider HTTP requests. Do not create a blank ledger.
-# F8u remains a TC-owned local browser failure (150 passed, 2 expected skips,
-# 1 failed, retries 0 on implementation source a20766d9); the full 260
-# functional/104 visual profile and live operation evidence remain open.
-# Checkpoint remains pending.
+# Current terminal candidate — 2026-10-17 12:22Z: receipt commit
+# `a371360c4a11e24912e7c033bdcc9ee58668a6cc` passed exact Actions run
+# `39029780414`: Backend 2,838 unit +396 integration at 82% combined coverage;
+# Frontend Unit and Branch-declared passed; Playwright 151 passed /109 expected
+# skips in 15.5m with no failed/retried/flaky tests; Exhaustive skipped by
+# feature policy. Provider-live did not run. The no-transport preflight is
+# source-bound to `f480dd9` (healthy durable coordinator, 24 eligible
+# candidates, Dinari/Marketstack/Tiingo quarantined, zero provider HTTP).
+# Staging `2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745` is already an ancestor of
+# implementation `a20766d`; the post-merge pinned-Noble run cleared the
+# getRandomValues failures but remains red at TC-owned F8u (150/2/1, retries 0).
+# Full 260/104 local gates and live operation evidence remain open. Checkpoint
+# remains pending.
 # Historical receipt — 2026-10-17 09:52Z: pushed workstream commit
 # `2be257d8f6299a57ac61317df9140edccd841cc0` passed exact Actions run
 # `39020467991`: Backend 2,838 unit + 396 integration, combined coverage 82%;
@@ -548,8 +547,39 @@ integration_checkpoint:
   operational_trial_authorized: false
   operational_trial_timing: "After integration on a separately authorized combined test deployment; this checkpoint does not start the trial. Retain the 30-day duration, daily/final reports, 99% eligible D1 coverage target, discrepancy analysis, and zero silent identity/quota violations as roadmap acceptance gates."
   latest_evidence_snapshot: >-
-    Current evidence as of 2026-10-16 18:01Z supersedes older dated snapshots
-    below. Provider HEAD/origin are `51ebc7d45aa34d2e8790988778ee5e6eec14bdd7`.
+    CURRENT STATUS — 2026-10-17 12:22Z: Provider branch HEAD/origin are
+    `a371360c4a11e24912e7c033bdcc9ee58668a6cc`. Exact Actions `39029780414`
+    is terminal green for required feature jobs: Backend 2,838 unit +396
+    PostgreSQL/Redis integration; combined coverage 82% (68,041 statements,
+    11,986 missing); Frontend Unit and Branch-declared passed; Playwright
+    passed 151/109 expected skips in 15.5m with no failed/retried/flaky tests.
+    Exhaustive was skipped by feature-branch policy; provider-live did not run.
+    This receipt-only source has no product changes after `a20766d`.
+
+    The exact current implementation source is `a20766d9920ca91bfbf0b15bedcbf16c11776dd9`
+    (the released staging repair `2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745`
+    is already merged). The post-merge seeded, provider-egress-denied
+    pinned-Noble functional selection completed with 150 passed, 2 expected
+    skips, and 1 TC-owned F8u failure, retries zero. The getRandomValues fix
+    cleared the prior key-generation failures. The full 260 functional and 104
+    strict visual profile has not completed on this implementation source.
+    Do not edit TC source or import an unreleased sibling repair.
+
+    The latest no-transport preflight is bound to source `f480dd9` (subsequent
+    source changes through `a371360` are workstream records only): the existing
+    durable quota coordinator was healthy, 24 candidates were policy-eligible,
+    Dinari/Marketstack/Tiingo remained quarantined for provider-specific
+    reasons, there were no global blockers, and provider HTTP requests were 0.
+    This is admission evidence only; no live operation success or transport
+    authority is implied. No provider/issuer calls or quota spend are allowed
+    under the current direction. The checkpoint is pending, not
+    `ready_for_human_review`.
+
+    The chronological evidence below is retained as history and must not be
+    read as current branch, CI, staging, or operation status.
+
+    Historical evidence as of 2026-10-16 18:01Z: Provider HEAD/origin were
+    `51ebc7d45aa34d2e8790988778ee5e6eec14bdd7`.
     Hosted Actions `38937321525` is terminal-success for Backend, Frontend
     Unit, Branch-declared, and Playwright E2E; Exhaustive was skipped by the
     feature-push workflow. E2E selected 260 cases (151 passed, 109 skipped);
@@ -6449,6 +6479,20 @@ progress:
   total: 7
   current_phase: provider-checkpoint-icp2-icp6-and-operation-disposition
   current_blocker: >-
+    CURRENT BLOCKER — 2026-10-17 12:22Z: the designated pinned-Noble functional
+    selection remains red on implementation source `a20766d9`: 150 passed, 2
+    expected skips, 1 TC-owned F8u failure, retries zero. The coordinator owns
+    the F8u repair; staging remains at released common repair `2734c6a`, so do
+    not edit TC or import an unmerged sibling fix. Full 260 functional and 104
+    strict-visual local gates remain incomplete. Exact Actions `39029780414`
+    on receipt-only source `a371360` is terminal green for Backend (2,838 unit
+    +396 integration, 82% combined coverage), Frontend Unit, Branch-declared,
+    and Playwright (151 passed/109 expected skips, no failed/retried/flaky
+    tests); Exhaustive was skipped by feature policy. Provider-live did not run.
+    The durable quota coordinator is healthy, with Dinari/Marketstack/Tiingo
+    operation-specific holds. No provider/issuer requests or quota spend are
+    authorized. The dated blocker narrative below is historical.
+
     Current branch HEAD is `705082771de7b56cc8efcb15c482663f5d4d2be8`;
     application/test source is `31007ae8efe7973e1e8f2819157c64322f356b1b`.
     Exact Actions `39001830674` and pinned-Noble strict visuals (104/104)
@@ -6512,19 +6556,19 @@ progress:
     source-bound receipts; no paid/trial activation, deployment, integration,
     reset, or cleanup is authorized.
   next_action: >-
-    Preserve exact green Actions run 39022815277 on pushed workstream source
-    f480dd9afa5949b49b6420ff56ba1ed8aca7d3eb and the successful no-transport
-    quota-coordinator preflight on that same source. The designated pinned-
-    Noble functional run on implementation source a20766d9920ca91bfbf0b15bedcbf16c11776dd9
-    is red at TC-owned F8u (150 passed, 2 expected skips, 1 failed, retries 0);
-    do not edit TC source. The complete 260 functional and 104 strict visual
-    gates remain incomplete on the current merged source. Continue only
-    Provider-owned ICP2/ICP6 contracts and exact operation dispositions;
-    provider-specific Dinari, Marketstack, and Tiingo operations remain held.
-    No provider calls/quota, data reset, assigned-stack cleanup, staging or
-    sibling mutation, paid/trial activation, or deployment. Keep the full
-    roadmap and checkpoint pending; reconcile the next released common repair
-    only through the coordinator's exact-source direction.
+    Record exact green Actions run 39029780414 on `a371360c4a11e24912e7c033bdcc9ee58668a6cc`
+    in the append-only journal and packet. Released staging `2734c6a` is
+    already merged into implementation source `a20766d`; its designated
+    post-merge pinned-Noble run is red at TC-owned F8u (150/2/1, retries 0).
+    Provider ICP2/ICP6 bounded contracts passed 252/252, and current operation
+    dispositions are recorded from the 10:28Z no-transport preflight on
+    `f480dd9`; Dinari, Marketstack, and Tiingo remain held with no provider or
+    issuer request authorized. Do not edit TC or import an unreleased sibling
+    repair. Finish safe Provider-owned evidence and record validation, then
+    await a coordinator-released F8u repair before rerunning the full
+    pinned-Noble functional/visual gates. Preserve the full roadmap and
+    checkpoint pending; no staging/sibling edits, paid/trial activation, data
+    reset/cleanup, or deployment.
   previous_goal_blocker: >-
     Continued local implementation is not blocked by an owner decision. The
     prior staged candidate is `32dafe227755d7a890bfeb4d96ffc53542af7ba7`; its

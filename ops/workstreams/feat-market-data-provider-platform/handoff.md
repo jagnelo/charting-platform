@@ -1,5 +1,32 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 12:22Z — merged repair, terminal CI, and current blocker reconciled
+
+- Re-audited the durable ICP1–ICP7 table and operation inventory. The previous
+  table still described pre-merge source `761fb4cd`, staging `79c8623`, and an
+  obsolete four-provider hold. It is replaced above by the current dispositions;
+  the older tables are explicitly labeled historical rather than silently
+  discarded.
+- Current Provider implementation source remains `a20766d9`; exact released
+  staging `2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745` is already an ancestor.
+  Receipt-only branch source `a371360` passed exact Actions run `39029780414`:
+  Backend 2,838 unit +396 integration, 82% combined coverage; Frontend Unit,
+  Branch-declared, and Playwright passed (151/109 expected skips, no failed,
+  retried, or flaky tests); Exhaustive was skipped by feature policy.
+- The requested post-merge pinned-Noble selection remains red at TC-owned F8u
+  (150 passed, two expected skips, one failure, retries zero); the released
+  getRandomValues fix cleared the former key-generation cases. Full 260
+  functional and 104 strict-visual gates remain incomplete on merged source.
+  Do not edit TC or import an unreleased repair branch.
+- Provider ICP2/ICP6 bounded contracts passed 252/252 on `a20766d9`. The
+  operation preflight remains source-bound to `f480dd9`, with zero provider
+  HTTP and the documented Dinari, Marketstack, and Tiingo holds. No live call
+  or quota spend is authorized. Provider checkpoint remains pending.
+- The 10:28Z source-bound preflight on `f480dd9` reached the existing durable
+  quota coordinator, found no global blockers, 24 eligible candidates, and
+  three quarantined groups (Dinari, Marketstack, Tiingo), and sent zero
+  provider HTTP requests. Current no-transport direction remains in effect.
+
 ## 2026-10-17 11:41Z — latest receipt-tip CI green; functional gate still red
 
 - Exact pushed source `938b62169d1d1c152c4e3b3f89bc5e180ab7ffd1` passed

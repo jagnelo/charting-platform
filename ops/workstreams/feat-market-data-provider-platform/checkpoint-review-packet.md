@@ -1,15 +1,41 @@
 # Provider integration checkpoint review packet
 
-## Latest exact-source CI — 2026-10-17 11:41Z
+## Latest exact-source CI and merged-source profile — 2026-10-17 12:22Z
 
-Exact pushed source `938b62169d1d1c152c4e3b3f89bc5e180ab7ffd1` passed
-[Actions run 39027450183](https://github.com/jagnelo/charting-platform/actions/runs/39027450183).
-Backend passed 2,838 unit + 396 PostgreSQL/Redis integration tests and 82%
-combined coverage (68,041 statements, 11,986 missing); Frontend Unit,
-Branch-declared, and Playwright succeeded (151 passed / 109 expected skips,
-13.1 minutes, no test retry/flaky markers). Exhaustive was skipped by
-feature-branch policy. The provider-live workflow was not invoked. This is
-exact-source branch CI, not Provider checkpoint acceptance.
+Exact pushed receipt source `a371360c4a11e24912e7c033bdcc9ee58668a6cc` passed
+[Actions run 39029780414](https://github.com/jagnelo/charting-platform/actions/runs/39029780414).
+Backend passed 2,838 unit +396 PostgreSQL/Redis integration tests with 82%
+combined coverage (68,041 statements, 11,986 missing); Frontend Unit and
+Branch-declared passed; Playwright passed 151 with 109 expected skips in 15.5
+minutes, with no failed, retried, or flaky tests. Exhaustive was skipped by
+feature-branch policy. The provider-live workflow did not run. This is exact
+branch CI, not Provider checkpoint acceptance.
+
+Released synchronized staging `2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745`
+(green Exhaustive run `39013106548`) is already merged into implementation
+source `a20766d9920ca91bfbf0b15bedcbf16c11776dd9`; Git ancestry confirms it is
+an ancestor of the current Provider branch. The requested post-merge seeded,
+provider-egress-denied pinned-Noble functional selection has run on that source:
+150 passed, 2 expected live skips, 1 failed, retries 0. The released
+`getRandomValues` change cleared the former key-generation/save failures; the
+remaining F8u RSI-plot drag is classified as TC-owned. Provider did not edit TC
+source. This gate remains red. The full 260-case functional and 104-case strict
+visual gates remain incomplete on the merged implementation source.
+At 12:20Z, a read-only host check showed about 1.0 GiB available while
+preserved validation projects were still running. No additional browser stack
+was started, and no retained container, volume, or dataset was stopped or
+cleaned. Rerun the full local profile after the coordinator releases the F8u
+repair and a safe resource window is available.
+
+The Provider bounded ICP2/ICP6 regression selection passed 252/252 on
+`a20766d9`, with no provider or issuer HTTP, quota spend, reset, or assigned
+stack mutation. The latest no-transport operation preflight remains bound to
+`f480dd9afa5949b49b6420ff56ba1ed8aca7d3eb`: durable coordinator healthy, 24
+policy-eligible candidates, Dinari/Marketstack/Tiingo quarantined, zero global
+blockers and zero provider HTTP. Those dispositions and the exact reasons are
+listed in the current operation table below; preflight eligibility is not live
+success or transport authorization. No provider/issuer calls or quota spend
+are authorized. The checkpoint is not `ready_for_human_review`.
 
 The successful no-transport quota-coordinator preflight remains bound to
 `f480dd9afa5949b49b6420ff56ba1ed8aca7d3eb`; changes through the CI source
@@ -1464,22 +1490,46 @@ frontend files remain unchanged.
 
 ## ICP1–ICP7 checkpoint disposition
 
-The table below records the prior validated checkpoint source `761fb4cd` and
-run `38974933778`; it is a historical baseline, not current-source evidence.
-The current pushed documentation source `056bb211` has its own in-progress run
-`38978777973`, while the dirty follow-up based on it now has `138/138` bounded
-ICP2/ICP6 tests and the sync-only callable fix but no hosted exact-source CI.
-Use the dated entries above for current status.
+Current review, 2026-10-17 12:22Z: implementation source is `a20766d9`,
+which includes the released staging repair `2734c6a`. No product source has
+changed since that merge; later commits update Provider workstream records.
+Exact Actions run `39029780414` on receipt source `a371360` is terminal green:
+Backend 2,838 unit +396 integration at 82% combined coverage; Frontend Unit,
+Branch-declared, and Playwright passed (151 passed/109 expected skips, no
+failures/retries/flakes); Exhaustive was skipped by feature policy. The
+designated post-merge pinned-Noble functional selection remains red at TC-owned
+F8u (150 passed, 2 expected skips, 1 failed, retries zero); full 260 functional
+and 104 strict-visual gates are incomplete. Therefore this checkpoint is not
+ready for human review.
 
 | Gate | Evidence / delivered checkpoint contract | Remaining work and owner |
 |---|---|---|
-| ICP1 — identity and lifecycle | Tests cover stable instrument/issuer/listing/provider-symbol identity, provenance and history, ambiguity quarantine, and legacy symbol/API compatibility. See OpenFIGI, instrument-sync, market-data-identity, lifecycle/quarantine migration, and compatibility tests. | Full same-session NMS/OTC/SEC universe reconciliation, all venue mappings, and complete ticker-change/delisting lifecycle remain Provider roadmap work. Partial or stale snapshots must never imply absence or completeness. |
-| ICP2 — provider governance | Shared capability, entitlement, routing and durable multidimensional quota contracts are tested. `PROVIDER_FREE_ONLY_CHECKPOINT=true` denies reviewed paid routes regardless of `ALLOW_PAID_PROVIDER_ROUTING`; trials are denied. Unreviewed routes are denied except the exact reviewed-safe EODHD `/api/user` bootstrap, which has explicit zero daily-credit cost and still reserves its per-minute unit. FMP/Tiingo account plans reconcile against configuration; MarketData.app and Tiingo effective-plan admission is checked in the real live runner for full/provider/case/account-usage modes before lock/subprocess. The 30-case current-source selection proves paid/trial/unknown denial under both paid toggles, reviewed-free and expired-trial-to-Free-Forever positives, and the EODHD exception, with zero transport. Aggregate recurring-cost budget/commitment persistence, admin API, explicit zero no-spend ceiling, conservative period normalization, no-activation boundary, and SQLite/PostgreSQL restart/concurrency/migration evidence are implemented. | The aggregate subsystem remains separate from provider routing/activation and supports one configured currency without FX. The owner-reviewed 20 EUR/USD-equivalent denomination, provider plan evidence/operator configuration, and cost-consumer bridge remain open. No paid route is activated. The bounded ICP2 recurring-cost/runtime and ICP6 coverage/OHLCV tests pass 107/107; live-runner plan admission passes 30/30 on `761fb4cd`. Exact run `38974933778` is terminal green on `761fb4cd` (2,837 unit + 396 integration, 82% combined coverage; Frontend Unit, Branch-declared, E2E 151/109 green; Exhaustive skipped by feature policy). ETF owns post-staging consumer bridge and request/page/retry accounting; no ETF-only ledger. |
-| ICP3 — series, coverage and refresh | Series/provenance, gap planning, session-aware freshness, refresh coalescing/leases, and explicit partial coverage are exercised by backend unit/integration and Strategy Lab tests. Full local backend gate and exact-source hosted backend job passed. | After Provider staging, consumers verify stale, partial, missing, and unavailable states remain distinct and do not trigger hidden provider requests. Downstream owners: ETF, TC2000, Strategy Lab. |
-| ICP4 — provider operations | Fresh durable no-transport preflight admitted 23 manifests; exact staged-tree slices passed 62/62 cases, 151 requests, and 64,552,569 response bytes. The verifier confirms those 23 against tree `592261aa...` and reports `live_acceptance=false` because four held providers have no successful manifest receipt. | Keep Alpha Vantage, Dinari, Marketstack and Tiingo held with their exact reasons below. No quota was spent on these four. Their preflight and existing zero-call tests are separate from successful live evidence. Historical 20/27 evidence stays bound to `1afb896...`; it is not rebound. |
-| ICP5 — migrations, startup and secrets | Additive migration `b6e9a42d1c73` enables explicit zero monthly ceiling; recorded PostgreSQL fresh/upgrade equivalence, zero-accept/negative-reject, retained quota schema/state, and previous-release health 200 evidence remain source-qualified. SQLite/PostgreSQL restart regressions and the exact current branch code source are covered by CI `38974933778` on `761fb4cd`: Backend 2,837 unit +396 integration and combined 82% coverage; standard branch jobs green. | Required full local validation remains held until coordinator releases exact synchronized green staging. Target GitHub/RPi/deployment secret-store verification is roadmap/target onboarding, not an undeclared prerequisite for this Provider checkpoint. No deployment readiness is claimed. |
-| ICP6 — consumers | Producer success/unavailable behavior and callable contract are tested. `execute_provider_call(...)` offloads its synchronous callback to a worker thread with telemetry context and returns `ProviderExecutionResult`; it does not await async callbacks. Unknown/exhausted quota is denied before invoke; no usable provider data raises `ProviderNoDataError`. Local-only D1 returns retained bars or `200 []` without hydration; exhausted non-local provider requests have a separately tested 404 detail response. Coverage/OHLCV and recurring-cost/runtime contract suites pass 107/107 on `761fb4cd`. | The Provider producer contract is discoverable and its success/unavailable paths are tested, but actual ETF holdings bridge/request-page-retry accounting, TC2000 consumer reconciliation, and Strategy Lab consumer wiring remain owned downstream tasks after released green Provider staging. |
-| ICP7 — reviewable source | Current pushed source is `761fb4cd0749a98ae140129236fcc1ba5271c451`; exact run `38974933778` is terminal green for Backend (2,837 unit +396 integration, 82% combined coverage), Frontend Unit, Branch-declared, and E2E (151 passed/109 expected skips; no test retry/failure logged); Exhaustive skipped by feature policy. Staging exact run `38972891559` is green on `79c8623f`, but coordinator release remains pending. | Publish current workstream evidence with exact terminal run, obtain coordinator release before the held full local profile, complete the operation/disabled inventory and required local profile, then require exact terminal CI on the resulting clean pushed candidate. Preserve the prior seeded Provider browser red and no-flake requirements. Do not self-integrate or edit frontend. |
+| ICP1 — identity and lifecycle | Tests cover stable instrument/issuer/listing/provider-symbol identity, provenance/history, ambiguity quarantine, and legacy symbol/API compatibility. | Report known mapping gaps. Complete same-session NMS/OTC/SEC reconciliation and all venue/ticker-change/delisting history remain full-roadmap work, not this checkpoint's ICP1 minimum. |
+| ICP2 — provider governance | Shared capability, entitlement, free-only routing, durable multidimensional quota, reset windows, and cross-session/concurrent admission are tested. Bounded merged-source ICP2/ICP6 selection passed 252/252; the released key-generation component tests passed 78/78. Paid routes remain denied regardless of `ALLOW_PAID_PROVIDER_ROUTING`; trials and unreviewed plans fail closed apart from the reviewed EODHD zero-daily-credit usage observation, which still reserves its per-minute charge. | Single-currency recurring-cost admission is implemented and tested but does not imply paid activation. Owner selection/configuration of the 20 EUR/USD-equivalent ceiling and ETF's post-staging consumer bridge remain explicit remainders; no FX is invented and no ETF-only ledger is permitted. |
+| ICP3 — series, coverage and refresh | Canonical OHLCV/provenance, gap planning, session-aware freshness, refresh coalescing/leases, local-only behavior, and ready/partial/missing responses have unit/integration and consumer-contract tests. `local_only=true` with no retained bars returns `200 []` without provider hydration; provider-backed no-data is distinct. | Downstream ETF, TC2000, and Strategy consumers verify their own stale/partial/missing/unavailable handling after Provider's green staging checkpoint. |
+| ICP4 — provider operations | Latest source-bound no-transport preflight (`f480dd9`, 2026-10-17 10:28Z) reached the durable quota coordinator, evaluated 27 providers, found 24 policy-eligible candidates and three quarantined groups, no global blockers, and zero provider HTTP. This is not live success. Earlier successful live receipts remain bound to their historical exact trees; none is rebound to this source. | Current-source live acceptance is incomplete. Dinari, Marketstack, and Tiingo stay held with the reasons below; all other eligible operations remain uncalled under the current no-transport direction. Preserve explicit unavailable/deferred routes, and do not infer current success from historical receipts or preflight eligibility. |
+| ICP5 — migrations, startup and secrets | Additive migrations, SQLite/PostgreSQL coordinator behavior, fresh/upgrade equivalence, rollback/health, and tested local secret/config boundaries have source-qualified tests. Exact receipt source `a371360` passed required Actions `39029780414`; this run includes backend PostgreSQL/Redis integration and 82% combined coverage. | Target GitHub/RPi/deployment secret-store verification is needed before using those environments, not before Provider integration. No deployment readiness is claimed. Preserve the full migration and operational roadmap. |
+| ICP6 — consumers | Provider producer success/unavailable contracts are discoverable and tested: retained response result, typed quota/entitlement denial before callback, local-only empty result, and provider-backed no-data behavior. | ETF owns post-staging holdings adapter/page/retry wiring and shared-cost consumer integration; TC2000 and Strategy Lab own their consumer wiring/reconciliation. No sibling implementation is claimed here. |
+| ICP7 — reviewable source | Exact run `39029780414` on `a371360` is green for required feature jobs: Backend 2,838 unit +396 integration, 82% combined coverage; Frontend Unit, Branch-declared, and E2E 151 passed/109 expected skips with zero failed/retried/flaky tests; Exhaustive skipped by feature policy. | The designated pinned-Noble local selection remains red at TC-owned F8u (150/2/1, retries 0); full 260 functional and 104 strict-visual local gates are incomplete. Therefore not `ready_for_human_review`. Await the coordinator-released F8u repair, then rerun unchanged local gates and exact-source validation. Do not self-integrate. |
+
+### Current operation-level admission dispositions — preflight source `f480dd9`, 2026-10-17 10:28Z
+
+The existing durable quota coordinator was healthy; the preflight had no global
+blockers and sent no provider HTTP. Admission eligibility below is not a live
+receipt or permission to transport. Under current direction, no provider or
+issuer endpoints may be called and no quota may be spent.
+
+| Current disposition | Provider operations / reason |
+|---|---|
+| Candidate-eligible only; not live-verified and not called | Alpaca, Alpha Vantage, Binance, Bybit xStocks, Coinbase, CoinGecko, CTA Plan, SEC EDGAR, EODHD, Finnhub, FINRA, FINRA OTC Directory, FMP, FRED, Gate TradFi, Kraken, Kraken xStocks, MarketData.app, Massive, Nasdaq, OpenFIGI, Robinhood Tokens, Twelve Data, xStocks. Every future request still needs operation-specific entitlement and a fresh sufficient durable reservation. |
+| Quarantined | Dinari: all nine tokenized discovery/profile/asset/price/quote/history/news/corporate-action/dividend/split operations; account-reviewed Sandbox reset/quota profile and worst-case per-operation costs absent. |
+| Quota-held / non-routable | Marketstack `fetch_ohlcv`: monthly headroom below the two-request matrix reservation. `discover_universe_page`: MIC/venue and maximum page/operation costs unresolved. |
+| Quarantined / non-routable | Tiingo `fetch_ohlcv`, `get_current_price`, `get_instrument_profile`, and `search_instruments`: effective plan unreviewed and current hourly/daily usage baselines unknown. |
+| Explicitly unavailable or user-deferred | CoinGecko Demo `/key` usage endpoint is Pro-only; Finnhub free stock candles and FMP Basic stock-list discovery have historical entitlement denials; FINRA async download remains unadmitted until complete streaming persistence and measured-byte accounting are proven; Tradier, IBKR, and Ondo are user-deferred. These are distinct operation-level dispositions, not current live success. |
+| Always denied by checkpoint scope | Paid/trial routing and unknown, unreviewed, or unsafe entitlements/costs. `PROVIDER_FREE_ONLY_CHECKPOINT=true` cannot be overridden by `ALLOW_PAID_PROVIDER_ROUTING`. |
+
+The following operation tables are historical snapshots and remain source-bound;
+they do not override this current preflight or prove current live success.
 
 ### Coordinator ICP2 review correction (hosted CI validated; local full-profile follow-up remains)
 
@@ -1500,7 +1550,10 @@ Integration Gate was skipped for a feature push. This closes the ICP2
 correction's code/CI evidence, not the broader checkpoint's full local-profile
 or strict visual gate. No provider HTTP call or quota use occurred.
 
-## Most recent no-transport operation holds
+## Historical no-transport operation holds — snapshot 2026-10-16
+
+This section is retained for audit only and is superseded by the
+2026-10-17 current disposition table above.
 
 At 2026-10-16 04:48:53Z, exact-source preflight of `f614621` made zero requests.
 The durable coordinator was ready; 23 full provider manifests were admitted.
@@ -1537,7 +1590,7 @@ async result download remains unavailable until complete streamed persistence
 and measured-byte admission are proven; rows must never be truncated or
 discarded. No provider has been activated or routed through paid credentials.
 
-## Current routing inventory (code posture, not a live receipt)
+## Historical routing inventory snapshot (code posture, not a live receipt)
 
 “Eligible” means existing routing/admission rules permit an operation only
 when its reviewed free entitlement and current durable quota admission pass.
