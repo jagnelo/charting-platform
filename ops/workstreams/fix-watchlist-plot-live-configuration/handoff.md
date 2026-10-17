@@ -85,3 +85,8 @@ The plan now declares each affected Vitest suite as an executable
 separate local full-stack profile; no assertions or environment gates were
 changed. The failed CI receipt remains red, and a fresh exact-source Actions run
 on the corrected plan is required before review or staging integration.
+
+Both corrected branch-declared commands passed locally (89 tests total), and
+the repository validator accepted all 36 workstream records. The corrected
+plan is published; session goal-request/progress metadata is being synchronized
+before the final exact-source CI run.
