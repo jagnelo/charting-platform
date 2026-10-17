@@ -1,0 +1,121 @@
+schema: 4
+branch: fix/watchlist-plot-live-configuration
+base_sha: 2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745
+parent_branch: staging
+parent_sha: 2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "Coordinate the existing Provider \u2192 ETF holdings \u2192 TC2000 \u2192 Strategy Lab v2 feature checkpoints through reconciliation, delegated technical acceptance, sequential guarded merges into persistent staging, and exact-source full validation. Deliver a combined development baseline usable for human testing within the human-approved verified-free-only scope, with quota-held, unreviewed, paid-trial, and unsafe operations disabled and full feature roadmaps retained. No master promotion, deployment, paid activation, or operational trial is authorized."
+planning_state: ready
+human_closure_authorization: >-
+  The human delegated technical-fix review and closure to the coordinator on
+  2026-10-15, saying: "Yes I approve, and you do not need my acceptance to
+  close it off ... do this yourself, with care ... I just want to get to the
+  merged-into-staging state to finally try this out." Applied here only to
+  this narrowly scoped, evidence-backed staging repair. This does not accept
+  any of the four feature checkpoints or authorize promotion, deployment, paid
+  activation, quota spend, an operational trial, or unrelated cleanup.
+  The human's 2026-10-17 instruction to do what is needed to get all of this
+  into staging, together with the explicit delegation to handle checkpoint
+  acceptance, authorizes this coordinator-owned prerequisite repair's closure
+  and guarded staging integration. This remains limited to this narrow repair;
+  it does not waive its exact CI or staging gate.
+closure_summary: >-
+  Coordinator-accepted F8u repair: the watchlist chart-plot drop and configured
+  indicator rendering now use one canonical live workspace configuration
+  snapshot. Validated implementation SHA 103ef8e1899412a5a623e8e587ec718de0458c8c
+  passed the local full_stack_browser profile and exact-source GitHub Actions
+  run 39030047625 (branch-declared, backend, frontend, and Playwright jobs
+  succeeded; the exhaustive gate was skipped under feature-branch policy).
+  The final closure-record commit still requires its own exact-source branch CI
+  before integration. No merge conflicts were observed in this narrow source
+  change; guarded integration must abort on any conflict and resolve only on
+  the source branch. Migration impact: none. Deployment impact: none.
+  integration_capture: exact branch HEAD. This repair does not close Provider,
+  ETF holdings, TC2000, or Strategy Lab v2; their remaining contracts, tests,
+  and roadmap work remain open.
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: full_stack_browser
+local_validation_reason: >-
+  The repair changes shared workstation UI state used by a real chart-plot drag
+  into a watchlist. Validate F8u on isolated, provider-egress-denied runtime,
+  then affected frontend suites, type-check, build, exact-source CI and guarded
+  staging CI. No screenshot or visual oracle change is in scope.
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: >-
+  Fix the staging-derived F8u chart-plot-to-watchlist race so the visible
+  indicator definition and chart-drop configuration update use one canonical
+  live workspace snapshot. Publish a narrow clean repair checkpoint for the
+  coordinator; do not integrate, promote, deploy, or modify feature worktrees.
+scope:
+  - >-
+    Resolve the detached Golden Layout configuration race in the shared
+    WorkstationToolContent watchlist path: both configured indicator rendering
+    and chart-plot drop updates must read the canonical live workspace window.
+  - >-
+    Preserve the current ordinary drag path, F8u assertions and timeout/retry
+    policy, screenshot references/tolerances, retained data, and provider holds.
+owned_paths:
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+dependencies: []
+acceptance_criteria:
+  - id: AC1
+    text: >-
+      Configured indicator rendering and chart-plot drop updates use the same
+      canonical live workspace configuration snapshot; no unrelated feature
+      source or ownership boundary changes.
+  - id: AC2
+    text: >-
+      Existing F8u real pointer-drag flow adds the RSI header to Major US
+      benchmarks on this exact repair source, in a fresh internal-only seeded
+      fixture with provider/OneSignal credentials blank, provider routing/refresh
+      disabled, one worker, and zero retries; repeat the exact flow five times.
+      App and worker provider egress stays denied. Only the public static SDK
+      host cdn.onesignal.com:443 may use the exact-host browser allowlist proxy;
+      no OneSignal API host or credentials are allowed.
+  - id: AC3
+    text: >-
+      Affected watchlist/plot component suites, vue-tsc, production frontend
+      build, branch-declared tests, and exact-source ordinary CI pass without
+      weakened assertions, changed timeouts/retries, external provider traffic,
+      or visual-oracle changes.
+  - id: AC4
+    text: >-
+      The branch is clean and pushed with exact evidence, stops at
+      ready_for_human_review, and leaves integration solely to the coordinator's
+      guarded persistent-staging workflow.
+branch_tests:
+  - cd frontend && npx vitest run tests/unit/components/test_virtual_watchlist_tool.test.ts
+  - cd frontend && npx vitest run tests/unit/components/test_chart_plot_library.test.ts
+branch_tests_reason: >-
+  Branch-declared entries are executable shell commands for the stack-free
+  branch-tests job. The real F8u browser flow, vue-tsc, and production build
+  are validated by the full local profile and ordinary branch CI; they are
+  not file paths or prose entries in this command list.
+live_test_impact: >-
+  No live provider or issuer test is required. Browser validation must use a
+  fresh internal-only fixture with app/worker provider egress denied,
+  credentials blank, and provider routing/refresh disabled. The browser may
+  fetch only the public OneSignal static SDK through a temporary exact-host
+  cdn.onesignal.com:443 allowlist proxy; OneSignal APIs remain unreachable and
+  credentials remain blank.
+migration_impact: none
+deployment_impact: none
+status: ready_for_integration
+remaining_gaps:
+  - >-
+    The closure-record commit must pass exact-source ordinary GitHub Actions
+    branch CI before guarded staging integration; the successful run recorded
+    above covered the validated implementation SHA, not this final receipt.
+  - >-
+    This repair checkpoint does not close Provider, ETF, TC2000, or Strategy
+    Lab v2 feature checkpoints. Provider's full 260-case/104-visual validation,
+    operation dispositions, and current quota preflight remain owner/coordinator
+    gates after this fix is released through staging.
+progress:
+  completed: [AC1, AC2, AC3, AC4]
+  total: 4
+  current_phase: coordinator_closed_checkpoint_exact_ci_pending
+  current_blocker: exact-source CI on the closure-record commit is pending
+  next_action: verify exact-source CI, then integrate through the guarded staging workflow and require the exact staging gate
