@@ -1,11 +1,12 @@
 schema: 4
-# Current exact-source status — 2026-10-17 19:39Z: Provider HEAD and origin
-# are synchronized at 4c6c8ac1fd111f700ed92854f89ac6b24db233de. Coordinator-
-# verified Actions 39060184036 is green on this exact source (Backend 2,840
-# unit +396 integration, 82% combined coverage; Frontend Unit, Branch-declared,
-# Playwright 151 passed/109 expected skips, no failures/retries; Exhaustive
-# skipped by feature policy). Bounded ICP2/ICP6 no-transport regression passed
-# 252/252. Latest no-transport preflight evaluated 27 providers, found 24
+# Current exact-source status — 2026-10-17 20:22Z: Provider HEAD and origin
+# are synchronized at 20f8c68678348d0eebcf9fc8eb6fbcab021936db. Exact Actions
+# 39063912811 is terminal green on this source: Backend, Frontend Unit,
+# Branch-declared, and Playwright E2E passed; Exhaustive skipped by branch
+# policy. The session-record regression passes 18/18 and the full workflow
+# suite 120/120. Bounded ICP2/ICP6 no-transport regression passed 252/252 on
+# prior exact source 4c6c8ac1fd111f700ed92854f89ac6b24db233de. The latest
+# no-transport preflight on that source evaluated 27 providers, found 24
 # eligible and quarantined Dinari, Marketstack, Tiingo; zero requests,
 # reservations, or quota spend. No provider transport/quota reservation is
 # authorized. Full pinned-Noble 260-functional/104-visual profile remains held
@@ -6557,19 +6558,19 @@ progress:
   total: 7
   current_phase: provider-checkpoint-icp2-icp6-and-operation-disposition
   current_blocker: >-
-    CURRENT STATUS — 2026-10-17 19:39Z: exact pushed source
-    `4c6c8ac1fd111f700ed92854f89ac6b24db233de` passed coordinator-verified
-    Actions run `39060184036`: Backend 2,840 unit +396 integration at 82%
-    combined coverage, Frontend Unit, Branch-declared, and Playwright (151
-    passed/109 expected skips, no failure/retry); Exhaustive skipped by feature
-    policy. The bounded ICP2/ICP6 no-transport suite passes 252/252. Current
-    preflight evaluated 27 providers with durable coordinator ready, 24
-    eligible, Dinari/Marketstack/Tiingo quarantined, and zero provider HTTP,
-    reservations, or spend. Full pinned-Noble 260-functional/104-visual and
-    focused F8u remain held for coordinator confirmation of safe host capacity
-    and fixture ownership. No further provider HTTP/quota is authorized; the
-    earlier partial-live responses and missing Alpha aggregate usage entry
-    remain preserved. Keep checkpoint open.
+    CURRENT STATUS — 2026-10-17 20:22Z: exact pushed source
+    `20f8c68678348d0eebcf9fc8eb6fbcab021936db` passed Actions run
+    `39063912811`: Backend, Frontend Unit, Branch-declared, and Playwright E2E
+    succeeded; Exhaustive skipped by feature policy. The session-record
+    regression passed 18/18 and full workflow suite 120/120. The bounded
+    ICP2/ICP6 no-transport suite passes 252/252 on prior exact source
+    `4c6c8ac1fd111f700ed92854f89ac6b24db233de`. Current preflight on that
+    source evaluated 27 providers with durable coordinator ready, 24 eligible,
+    Dinari/Marketstack/Tiingo quarantined, and zero provider HTTP, reservations,
+    or spend. Full pinned-Noble 260-functional/104-visual and focused F8u remain
+    held for safe host capacity and fixture ownership. No further provider
+    HTTP/quota is authorized; preserve earlier partial-live data and the missing
+    Alpha usage entry. Keep checkpoint open.
     CURRENT SAFE PROGRESS — 2026-10-17 17:25Z: fixed ambiguity in the live
     preflight report where `tiingo: routable` could appear beside
     `tiingo account plan: non-routable`; generic controls now read

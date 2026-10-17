@@ -1,15 +1,17 @@
 # Provider integration checkpoint review packet
 
-## Current exact-source status — 2026-10-17 19:39Z
+## Current exact-source status — 2026-10-17 20:22Z
 
 Provider HEAD and origin are synchronized at
-`4c6c8ac1fd111f700ed92854f89ac6b24db233de`. Coordinator-verified Actions
-run `39060184036` is green on that exact source: Backend 2,840 unit +396
-integration at 82% combined coverage, Frontend Unit and Branch-declared
-passed, Playwright 151 passed/109 expected skips with no failures/retries;
-Exhaustive was skipped by feature-branch policy. The bounded ICP2/ICP6
-no-transport selection passed 252/252. Neither result is full local-profile
-or live-provider acceptance.
+`20f8c68678348d0eebcf9fc8eb6fbcab021936db`. Exact Actions run `39063912811`
+is terminal green on that source: Backend, Frontend Unit, Branch-declared,
+and Playwright E2E jobs passed; the Exhaustive Integration Gate was skipped by
+feature-branch policy. The new session-record regression passes, and the full
+workflow suite passes 120/120 locally. The preceding exact-source 252/252
+ICP2/ICP6 no-transport selection and 27-provider no-transport preflight remain
+the current provider-contract evidence (24 eligible candidates; Dinari,
+Marketstack, and Tiingo quarantined; zero requests/reservations/spend). These
+checks are not full local-profile or live-provider acceptance.
 
 The current no-transport full-matrix preflight evaluated 27 providers; the
 durable coordinator was ready, 24 candidates were eligible, three groups
@@ -24,6 +26,9 @@ held due retained Provider/TC resources, unclear fixture ownership, and low
 host capacity. Checkpoint remains open; no readiness/acceptance claim. Next
 bounded work is Provider-owned no-transport ICP2/ICP6 contract and operation
 disposition, preserving all previous red evidence and full-roadmap criteria.
+The newly pushed workflow fix only synchronizes legacy `remote_sha` in the
+session-record builder and adds a regression; it does not change Provider
+runtime behavior or clear the held browser/live gates.
 
 ## 2026-10-17 18:50Z — exact CI reconciled; partial live attempt retained
 

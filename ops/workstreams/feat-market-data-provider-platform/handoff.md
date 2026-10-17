@@ -1,5 +1,25 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 20:22Z — session remote-ref fix pushed; exact CI green
+
+- Committed the supported session-record consistency fix and its regression as
+  `20f8c68678348d0eebcf9fc8eb6fbcab021936db`, then pushed it to the owned
+  Provider branch. `session_record()` now refreshes legacy `remote_sha` from
+  the same observed origin ref as `remote`, preventing a prior stale alias
+  from surviving generated status/checkpoint refreshes.
+- Focused session tests passed 18/18; the full workflow suite passed 120/120.
+  Ruff check/format, workstream validation (37 records), and `git diff --check`
+  passed. No Provider or issuer transport, quota reservation, or spend occurred.
+- Exact Actions run `39063912811` is terminal green on the pushed SHA:
+  Backend Tests, Frontend Unit Tests, Playwright E2E, and Branch-declared Tests
+  succeeded; Exhaustive Integration Gate was skipped under feature-branch
+  policy. This is not Provider checkpoint acceptance.
+- Keep the full pinned-Noble 260-functional/104-visual profile and focused
+  F8u held for coordinator confirmation of safe capacity and fixture
+  ownership. Preserve earlier red and partial-live receipts, all operation
+  holds, and the full roadmap. Do not make more provider requests/reservations,
+  change sibling/staging worktrees, or claim readiness/acceptance.
+
 ## 2026-10-17 19:43Z — session ref refresh bug fixed and exact refs reconciled
 
 - Coordinator identified a real inconsistency in generated session metadata:
