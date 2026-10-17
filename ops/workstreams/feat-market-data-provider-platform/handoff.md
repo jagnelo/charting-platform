@@ -1,5 +1,35 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 15:12Z — current green staging repair back-merged; browser gate held for resources
+
+- Verified GitHub's current `staging` ref is still
+  `6dc178c12498236a2a0060533305e20cf47438b7`; exact run
+  `39033839693` is terminal success, including the Exhaustive Integration Gate.
+  The released F8u implementation is commit
+  `a32bbaf26109ca8e727419e313a0757549692bc1`.
+- Merged that exact staging baseline into this Provider worktree only. Merge
+  commit `dc1864a265fc8bbeeb5549b6169b9ffd7ab9745c` applied without conflicts.
+  The incremental product diff is the live-watchlist configuration fix in
+  `WorkstationToolContent.vue`; the four sibling fix workstream files are
+  upstream staged records and were not edited here. No staging/sibling worktree
+  was modified.
+- On the merged source, the bounded Provider ICP2/ICP6 regression set passed
+  252/252 in 131.28s; five dependency deprecation warnings. No provider/issuer
+  HTTP, quota spend, or data reset.
+- The focused F8u browser flow and full pinned-Noble 260-functional/104-visual
+  profile remain unrun on the merged Provider source. Read-only host check
+  found about 0.9 GiB available and multiple retained Provider Noble plus
+  Provider/TC containers active. Following the coordinator's explicit safety
+  direction, no browser/Compose run was started; all retained containers/data
+  remain untouched.
+- Exact pre-merge receipt CI `39043260471` on `e9c0956` was still running at
+  this checkpoint; it is not post-merge evidence. Post-merge exact-source CI
+  remains required after the coherent Provider receipt is pushed. The previous
+  pre-repair F8u red stays in history; the staging green is not a substitute for
+  the focused Provider-source run or complete local profile. Current-source
+  live provider validation remains absent; keep all held/unreviewed/paid/trial/
+  unknown/unsafe routes disabled. Checkpoint is not ready for review.
+
 ## 2026-10-17 14:59Z — receipt-commit CI green; post-merge local blocker retained
 
 - Current pushed receipt commit `0aafff1b91787eb0ac89933c90f7f1fdaeca2de6`

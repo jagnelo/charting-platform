@@ -6505,6 +6505,29 @@ progress:
   total: 7
   current_phase: provider-checkpoint-icp2-icp6-and-operation-disposition
   current_blocker: >-
+    CURRENT STATUS — 2026-10-17 15:12Z: synchronized staging ref and GitHub API
+    both confirm green baseline `6dc178c12498236a2a0060533305e20cf47438b7`
+    (Exhaustive run `39033839693`, all required jobs green). Its released
+    F8u repair source `a32bbaf26109ca8e727419e313a0757549692bc1` is merged into
+    Provider at `dc1864a265fc8bbeeb5549b6169b9ffd7ab9745c`; no conflict. The
+    released diff from prior staging `2734c6a` is the canonical live-watchlist
+    configuration fix in `WorkstationToolContent.vue` plus the fix branch's
+    staged workstream records. Provider ICP2/ICP6 bounded regression tests pass
+    252/252 on the merged source in 131.28s, with five dependency warnings.
+    A post-merge focused browser flow/full profile is not yet run: host memory
+    availability is about 0.9 GiB and Docker inventory shows multiple retained
+    Provider Noble and Provider/TC stacks still running. Per coordinator safety
+    direction, do not start browser/Compose until a safe slot is available.
+    Earlier F8u red evidence is pre-repair and remains preserved; the released
+    staging green does not replace the required exact-Provider-source focused
+    run or full 260-functional/104-visual profile. Actions run `39043260471`
+    on pre-merge receipt source `e9c09569` remains in progress; post-merge exact
+    CI is still required. No current-source live-provider success exists; latest
+    preflight was blocked before transport by local ledger read access, zero
+    requests. Keep Dinari, Marketstack, Tiingo and all other unreviewed,
+    quota-held, paid/trial, unknown or unsafe routes disabled. Checkpoint remains
+    pending; preserve all data, quota holds, and the complete roadmap.
+  historical_current_blocker_pre_20261017T1512Z: >-
     CURRENT BLOCKER — 2026-10-17 14:14Z: the requested released staging repair
     `2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745` is already an ancestor of current
     branch HEAD `50a0fd908d852f32377e1fed8e942cf9c78f0a9a` through implementation
@@ -6594,6 +6617,17 @@ progress:
     source-bound receipts; no paid/trial activation, deployment, integration,
     reset, or cleanup is authorized.
   next_action: >-
+    Continue only bounded Provider-owned non-browser ICP2/ICP6 and operation
+    contract work while resource constraints remain. Once the coordinator's
+    browser slot is safe, run the unchanged focused F8u flow and then required
+    full pinned-Noble 260-functional/104-visual profile on the exact merged
+    Provider source; preserve every result and artifact. Complete clean pushed
+    exact-source CI and operation-level dispositions. Do not edit TC/ETF/Strategy
+    sources, start browser/Compose under unsafe memory or active fixtures, call
+    providers/issuers, spend quota, reset/clean retained data, activate held
+    routes, write staging, deploy, or reduce any full-roadmap criterion. Stop at
+    `ready_for_human_review` only after all checkpoint gates genuinely pass.
+  historical_next_action_pre_20261017T1512Z: >-
     Reconcile exact green Actions run `39040380183` and preserve prior red
     `39037691098` in the packet, handoff, session and append-only journal. The
     released `2734c6a` repair is already merged. Do not edit TC or import other

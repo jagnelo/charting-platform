@@ -1,5 +1,31 @@
 # Provider integration checkpoint review packet
 
+## 2026-10-17 15:12Z — released F8u repair back-merged; exact Provider browser gate pending
+
+GitHub still reports synchronized staging at
+`6dc178c12498236a2a0060533305e20cf47438b7`; exact run
+[39033839693](https://github.com/jagnelo/charting-platform/actions/runs/39033839693)
+is terminal green, including Exhaustive Integration Gate. Its released F8u
+repair source is `a32bbaf26109ca8e727419e313a0757549692bc1`. Provider merged this
+baseline into its own branch at `dc1864a265fc8bbeeb5549b6169b9ffd7ab9745c`;
+no merge conflict occurred. The only application delta from previous staging
+`2734c6a` is the live-watchlist canonical configuration repair in
+`WorkstationToolContent.vue`; sibling workstream files arrived as part of the
+green staging tree and were not edited.
+
+The Provider-owned bounded ICP2/ICP6 set passes 252/252 on the merged source
+(131.28s, five dependency deprecation warnings). The requested focused F8u
+browser check has not yet run on the merged Provider source. Host availability
+was about 0.9 GiB and multiple retained Provider Noble and Provider/TC stacks
+were active, so the coordinator's no-browser-under-unsafe-resources rule was
+followed. No container, dataset, or quota was modified. Exact Actions run
+`39043260471` is still pre-merge (`e9c0956`) and was in progress at this record;
+it does not validate the merged source. The focused flow and full 260-functional/
+104-visual profile, plus post-merge exact-source CI, remain required. Keep the
+old pre-repair F8u failure visible; do not weaken its drag assertion or retry
+policy. No provider/issuer calls or quota spend occurred. Checkpoint remains
+pending and not ready for human review.
+
 ## 2026-10-17 14:59Z — exact receipt-commit CI green; local full profile remains open
 
 Pushed receipt source `0aafff1b91787eb0ac89933c90f7f1fdaeca2de6` passed exact
