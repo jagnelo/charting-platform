@@ -1,6 +1,6 @@
 import { mount as vueMount } from '@vue/test-utils'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { apiDelete, apiGet, apiPut } = vi.hoisted(() => ({ apiDelete: vi.fn(), apiGet: vi.fn(), apiPut: vi.fn() }))
 vi.mock('@/lib/api', () => ({ api: { delete: apiDelete, get: apiGet, put: apiPut } }))
@@ -20,6 +20,7 @@ describe('ChartTemplateControl', () => {
     apiGet.mockResolvedValue([])
     apiPut.mockResolvedValue({})
   })
+  afterEach(() => { vi.unstubAllGlobals() })
 
   it('persists an immutable indicator stack with chart-local rendering configuration', async () => {
     const wrapper = mount(ChartTemplateControl, {
@@ -45,6 +46,32 @@ describe('ChartTemplateControl', () => {
       }) }),
     }))
     expect(apiPut.mock.calls[0][1].payload.configuration).not.toHaveProperty('symbol')
+  })
+
+  it('saves a chart template when the browser crypto surface has no randomUUID', async () => {
+    const getRandomValues = vi.fn((values: Uint32Array) => {
+      values[0] = 0xdeadbeef
+      return values
+    })
+    vi.stubGlobal('crypto', { getRandomValues } as unknown as Crypto)
+    expect(crypto).not.toHaveProperty('randomUUID')
+
+    const wrapper = mount(ChartTemplateControl, {
+      props: { configuration: { symbol: 'SPY', bar_type: 'candles' } },
+    })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalled())
+    await wrapper.get('button[aria-label="Chart templates"]').trigger('click')
+    await wrapper.get('[aria-label="Chart template name"]').setValue('Trend template')
+    await wrapper.find('.chart-template__save button').trigger('click')
+
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalled())
+    expect(getRandomValues).toHaveBeenCalledOnce()
+    expect(apiPut).toHaveBeenCalledWith('/workspaces/library/items/chart_template/trend-template-deadbeef', expect.objectContaining({
+      kind: 'chart_template',
+      stable_key: 'trend-template-deadbeef',
+      payload: expect.objectContaining({ configuration: expect.objectContaining({ bar_type: 'candles' }) }),
+    }))
+    expect(wrapper.find('.chart-template__error').exists()).toBe(false)
   })
 
   it('publishes a saved indicator stack for the active chart without template identity', async () => {
