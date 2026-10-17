@@ -1,5 +1,33 @@
 # Provider integration checkpoint review packet
 
+## 2026-10-17 14:59Z — exact receipt-commit CI green; local full profile remains open
+
+Pushed receipt source `0aafff1b91787eb0ac89933c90f7f1fdaeca2de6` passed exact
+[Actions run 39040380183](https://github.com/jagnelo/charting-platform/actions/runs/39040380183).
+Backend passed 2,838 unit +396 integration tests with 82% combined coverage
+(68,041 statements, 11,987 missing); Frontend Unit and Branch-declared passed.
+Playwright passed 151 with 109 expected skips in 15.4m; no test retry, flake, or
+failure markers. Exhaustive was skipped by feature-branch policy. Provider-live
+did not run. Codecov's token-required upload errors were non-gating.
+
+Keep the separate preceding exact-source failure visible: run `39037691098` on
+`50a0fd9` failed F8u on the first attempt and retry because the RSI header did
+not appear after the real plot drag. The post-merge pinned-Noble local selection
+on the identical backend/frontend application/test tree (`a20766d..HEAD` has
+no backend/frontend diff) is also red at F8u: 150 passed, 2 expected live skips,
+one failed, zero retries. The 2734c6a `getRandomValues` repair cleared the five
+key-generation failures; it was already merged before this turn. No other
+staging changes were imported. The later hosted pass does not erase the local
+failure or complete the required 260-functional/104-strict-visual local gates.
+
+The latest healthy-ledger preflight remains bound to `0f5a55e`; its 24
+policy-eligible candidates and Dinari/Marketstack/Tiingo quarantine are not
+live-success evidence or a current reservation. The later `50a0fd9` preflight
+could not write the private local ledger and stopped before transport with zero
+provider requests. No provider/issuer HTTP or quota spend occurred; keep all
+held, paid/trial, unknown, unreviewed and unsafe routes disabled. Checkpoint
+remains pending and is not ready for review.
+
 ## 2026-10-17 14:20Z — exact current-source Actions terminal red
 
 Exact Actions run [39037691098](https://github.com/jagnelo/charting-platform/actions/runs/39037691098)

@@ -1,5 +1,34 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 14:59Z — receipt-commit CI green; post-merge local blocker retained
+
+- Current pushed receipt commit `0aafff1b91787eb0ac89933c90f7f1fdaeca2de6`
+  passed exact Actions run `39040380183`: Backend 2,838 unit +396 integration
+  at 82% combined coverage; Frontend Unit and Branch-declared passed; Playwright
+  passed 151 with 109 expected skips in 15.4m, no test retries/flakes/failures;
+  Exhaustive skipped under feature-branch policy. Provider-live did not run.
+  Codecov's missing-token upload errors are non-gating.
+- Preserve the previous exact-source CI failure `39037691098` on parent
+  `50a0fd9`: F8u failed and failed again on retry because the RSI watchlist
+  header did not appear after the drag. The seeded pinned-Noble local selection
+  on identical app/test files `a20766d` is also red at F8u (150 pass, 2
+  expected live skips, 1 fail, retries 0). The later hosted green run does not
+  erase either source-bound failure or substitute for the full local profile.
+- Provider's requested `2734c6a` chart-template/column-set key-generator repair
+  was already an ancestor before this turn. No merge delta existed and no
+  unrelated later staging change was imported. Provider ICP2/ICP6 bounded
+  regressions passed 252/252 on receipt source `50a0fd9` in 125.88s.
+- No live provider/issuer request or quota spend occurred. The latest healthy
+  ledger operation snapshot is source-bound to `0f5a55e` (24 candidate
+  operations, with Dinari, Marketstack and Tiingo quarantined); the later
+  `50a0fd9` preflight was blocked before transport by a read-only local ledger
+  view. Full-current live success is not proven. All unsafe, unreviewed,
+  quota-held, paid/trial routes remain disabled.
+- Full local 260-functional and 104-visual validation remains incomplete. The
+  host had about 0.8 GiB available and all retained isolated browser stacks and
+  test data remain untouched; do not start another local stack under this
+  resource condition. Checkpoint remains pending and not ready for review.
+
 ## 2026-10-17 14:20Z — exact current-source CI terminal red; checkpoint remains open
 
 - Exact Actions run `39037691098` for Provider source

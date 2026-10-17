@@ -18,6 +18,13 @@ schema: 4
 # at TC-owned F8u: 150 passed, 109 expected skips, one failure; the normal
 # retry also failed at the same RSI watchlist-header assertion. Preserve both
 # attempts; do not change retry/oracle or edit TC. No provider-live job ran.
+# Current receipt tip — 2026-10-17 14:59Z: exact Actions run `39040380183` on
+# pushed receipt source `0aafff1b91787eb0ac89933c90f7f1fdaeca2de6` is green:
+# Backend 2,838 unit +396 integration at 82%; Frontend Unit, Branch-declared,
+# and Playwright passed; E2E was 151 passed/109 expected skips in 15.4m, with
+# no test retry/flake/failure. Exhaustive was skipped by feature policy and
+# Provider-live did not run. This does not erase the prior CI/local F8u failure
+# or complete the full local 260/104 profile or live-operation evidence.
 # Current terminal candidate — 2026-10-17 13:03Z: receipt commit
 # `17a64cc6e6d04333caeba89917d72c077b1fddae` passed exact Actions run
 # `39032614793`: Backend 2,838 unit +396 integration at 82% combined coverage;
@@ -6507,19 +6514,22 @@ progress:
     skips, 1 TC-owned F8u failure, zero retries. The coordinator owns F8u;
     Provider must not edit TC source or import an unreleased sibling fix. The
     252-case ICP2/ICP6 regression selection passed on current HEAD in 125.88s.
-    Exact Actions run `39037691098` is terminal failure on exact source
-    `50a0fd908d852f32377e1fed8e942cf9c78f0a9a`: Backend passed 2,838 unit and
-    396 integration tests at 82% combined coverage; Frontend Unit and
-    Branch-declared passed; Exhaustive was skipped by feature policy. E2E failed
-    at TC-owned F8u: 150 passed, 109 expected skips, and one failure; the
-    ordinary retry failed on the same expected RSI watchlist-header assertion.
-    This corroborates the post-merge local 150/2/1 result and is not a Provider
-    payload/quota defect. No provider-live workflow ran. A fresh current-source
-    preflight blocked before transport because this shell's view of the private
-    quota ledger is read-only; zero provider requests were made. Dinari,
-    Marketstack and Tiingo retain their provider-specific holds. Full 260
-    functional and 104 strict-visual local gates remain incomplete. Checkpoint
-    remains pending.
+    Exact Actions run `39040380183` on pushed receipt source
+    `0aafff1b91787eb0ac89933c90f7f1fdaeca2de6` is terminal green: Backend
+    passed 2,838 unit +396 integration at 82% combined coverage; Frontend Unit,
+    Branch-declared and Playwright passed. E2E was 151 passed/109 expected skips
+    in 15.4m with no test retries, flakes or failures; Exhaustive was skipped by
+    feature policy and Provider-live did not run. The immediately previous exact
+    run `39037691098` on parent source `50a0fd9` remains a separately preserved
+    E2E red at F8u (retry also failed); do not erase that evidence. The
+    post-merge seeded pinned-Noble selection on identical backend/frontend
+    app-test source remains red at TC-owned F8u (150/2/1, retries zero). The
+    2734c6a repair is already merged. Full local 260-functional/104-visual
+    gates remain incomplete. A current-source preflight on `50a0fd9` blocked
+    before transport because this shell's private ledger view is read-only;
+    zero provider requests were made. The prior healthy-ledger inventory is
+    source-bound to `0f5a55e`; Dinari, Marketstack and Tiingo remain held. No
+    current-source live-provider acceptance exists. Checkpoint remains pending.
 
     Current branch HEAD is `705082771de7b56cc8efcb15c482663f5d4d2be8`;
     application/test source is `31007ae8efe7973e1e8f2819157c64322f356b1b`.
@@ -6584,17 +6594,17 @@ progress:
     source-bound receipts; no paid/trial activation, deployment, integration,
     reset, or cleanup is authorized.
   next_action: >-
-    Reconcile exact terminal failure run `39037691098` and current bounded
-    ICP2/ICP6 result into the packet, handoff, session, and append-only journal;
-    publish the truthful Provider-owned workstream checkpoint and let its new
-    exact-source Actions run complete. The released `2734c6a` repair is already
-    merged; the post-merge application/test profile is red at TC-owned F8u, so
-    do not edit TC or import an unreleased sibling fix. Do not rerun or overwrite
-    retained browser artifacts or data; host capacity is about 0.8 GiB and
-    existing isolated stacks remain retained. Keep provider/issuer transport
-    disabled, preserve all operation holds and the entire roadmap. Checkpoint
-    remains pending; no staging/sibling writes, paid/trial activation, data
-    reset/cleanup, or deployment.
+    Reconcile exact green Actions run `39040380183` and preserve prior red
+    `39037691098` in the packet, handoff, session and append-only journal. The
+    released `2734c6a` repair is already merged. Do not edit TC or import other
+    staging changes beyond the requested released repair. The post-merge local
+    pinned-Noble profile remains red at TC-owned F8u, while the latest hosted
+    E2E passed; full local 260-functional/104-visual profile is incomplete.
+    Existing isolated browser artifacts and datasets remain retained, and host
+    capacity is about 0.8 GiB; do not start another local stack. Keep all
+    provider/issuer transport disabled and preserve operation holds and the
+    entire roadmap. Checkpoint remains pending; no staging/sibling writes,
+    paid/trial activation, data reset/cleanup, or deployment.
   previous_goal_blocker: >-
     Continued local implementation is not blocked by an owner decision. The
     prior staged candidate is `32dafe227755d7a890bfeb4d96ffc53542af7ba7`; its
