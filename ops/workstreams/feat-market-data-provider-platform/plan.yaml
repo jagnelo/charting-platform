@@ -1,5 +1,22 @@
 schema: 4
-# Current continuation status — 2026-10-17 06:05Z: the designated pinned
+# Current continuation status — 2026-10-17 07:24Z: exact branch source
+# d6e00e73874552b3a69547e645ee54f8e4fb178c passed required Actions run
+# 39011265706 (Backend incl. PostgreSQL integration/combined coverage,
+# Frontend Unit, Branch-declared, Playwright 151 passed/109 expected skips,
+# zero failures/retry-passes); Exhaustive is skipped by feature policy. This
+# does not accept the Provider checkpoint. The required designated pinned
+# Noble functional profile remains red on application/test source
+# 31007ae8efe7973e1e8f2819157c64322f356b1b: 146 passed, 2 expected skips,
+# 5 failed, zero retries, with F9c/F9c-template-transform/
+# F9c-template-comparison/F9e/F9f. F9e says `crypto.randomUUID is not a
+# function`; coordinator identifies shared chart-template/column-set key
+# generation, owned by TC. Strict visuals remain 104/104; separate full 260
+# run 258/2/0 does not clear the designated red selection. The bounded
+# Provider ICP2/ICP6 regression set passed 252/252 on parent 7050827; d6 is
+# workstream-only. Do not edit TC source or claim readiness. Continue Provider
+# contracts/operation dispositions only; no provider HTTP/quota, activation,
+# data reset, stack cleanup, staging/sibling edits, or deployment.
+# Historical continuation status — 2026-10-17 06:05Z: the designated pinned
 # Noble functional profile on source 31007ae8efe7973e1e8f2819157c64322f356b1b
 # remains red: 146 passed, 2 expected skips, 5 failed, zero retries. The
 # coordinator identified `crypto.randomUUID is not a function` in shared
@@ -8159,14 +8176,14 @@ current_gate_checkpoint: >-
       acceptance; the cross-window UI failure remains with its frontend owner,
       and source-bound live evidence/CI status remain to be reconciled.
   next_action: >-
-    Coordinate repair of the three frontend-owned strict Study Lab visual
-    mismatches without editing frontend or sibling-owned files, rerun the
-    declared full local profile, refresh the ICP1-7 packet and
-    enabled-versus-disabled operation
-    inventory, and submit exact evidence to the central coordinator for
-    delegated conditional checkpoint acceptance.
-    Keep provider receipts bound to original source; refresh only operations
-    admitted by reviewed-free contracts and current durable quota evidence.
-    Preserve the complete roadmap and all queried data. The coordinator owns
-    acceptance and staging integration; this branch must not self-integrate.
-    No deployment, paid/trial activation, operational trial or ledger reset.
+    Continue Provider-owned ICP2/ICP6 contract and operation-disposition work;
+    retain exact Actions run 39011265706 on branch source
+    d6e00e73874552b3a69547e645ee54f8e4fb178c. Preserve the designated pinned
+    Noble 146/2/5 functional red on application/test source 31007ae8 and wait
+    for the TC owner/coordinator's exact-source repair evidence; do not edit
+    TC source or claim readiness while this required gate is red. Keep the
+    104/104 strict visual pass and distinct 258/2 complete-profile pass as
+    separate receipts. Preserve all quota holds and queried data. The
+    coordinator owns acceptance/staging integration. No provider calls/quota,
+    paid/trial activation, data reset, assigned-stack cleanup, deployment, or
+    ledger reset.

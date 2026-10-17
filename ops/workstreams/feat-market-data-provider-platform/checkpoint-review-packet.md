@@ -1,5 +1,32 @@
 # Provider integration checkpoint review packet
 
+## 2026-10-17 07:24Z — latest exact-source receipt
+
+Branch source `d6e00e73874552b3a69547e645ee54f8e4fb178c` has terminal green
+Actions run `39011265706`: Backend (unit, PostgreSQL integration, combined
+coverage enforcement), Frontend Unit, Branch-declared, and Playwright all
+succeeded. E2E was 151 passed / 109 expected skips / 0 failed, with no
+retry-passing or flaky tests. Exhaustive was skipped by normal feature-branch
+policy. This exact CI is not checkpoint acceptance.
+
+The designated pinned-Noble functional profile remains red on unchanged
+application/test source `31007ae8efe7973e1e8f2819157c64322f356b1b`: 146
+passed / 2 expected skips / 5 failed / 0 retries (F9c, F9c-template-transform,
+F9c-template-comparison, F9e, F9f). F9e's retained error is
+`crypto.randomUUID is not a function`; coordinator review identifies shared
+chart-template/column-set key generation as the cause. TC owns the generator
+repair; Provider source is untouched. Strict pinned-Noble visuals remain
+104/104 with unchanged references and tolerance. The separate 260-case
+258/2/0 pass is retained independently and does not clear this designated
+red gate.
+
+The Provider-owned bounded ICP2/ICP6 regression selection passed 252/252 on
+`705082771de7b56cc8efcb15c482663f5d4d2be8` (121.52 seconds); the subsequent
+`d6e00e7` commit changes only branch workstream records. No Provider/issuer
+HTTP, quota spend, data reset, or TC source edit occurred. Checkpoint remains
+pending; continue Provider-owned contracts and operation dispositions, keeping
+unknown/quota-held/paid/trial/unsafe operations non-routable.
+
 ## 2026-10-17 06:14Z — current Provider evidence and cross-feature blocker
 
 Provider branch HEAD is `705082771de7b56cc8efcb15c482663f5d4d2be8`;

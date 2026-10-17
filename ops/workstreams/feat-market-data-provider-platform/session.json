@@ -75,13 +75,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "705082771de7b56cc8efcb15c482663f5d4d2be8",
+  "head": "d6e00e73874552b3a69547e645ee54f8e4fb178c",
   "implementation_sha": "31007ae8efe7973e1e8f2819157c64322f356b1b",
   "interrupted": false,
   "last_checkpoint": "2026-10-17T06:46:30Z",
   "last_human_progress_update": "2026-10-16T11:12:47.867964+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Receipt updates on 705082771de7b56cc8efcb15c482663f5d4d2be8 are now validated; exact Actions run 39008799668 is terminal green: Backend including PostgreSQL integration and coverage, Frontend Unit, Branch-declared, and Playwright succeeded; E2E was 151 passed/109 expected skips/0 failed, with no retry-passing/flaky cases; Exhaustive skipped by feature policy. Commit and push the coherent workstream-only update, then validate its new exact SHA/run. Keep the designated pinned-Noble functional red on application/test source 31007ae8 (146 passed, 2 expected skips, 5 failed, zero retries): F9c, F9c-template-transform, F9c-template-comparison, F9e, and F9f fail before expected save/list/PUT results; F9e reports `crypto.randomUUID is not a function`. TC owns the cross-feature key-generation fix; do not edit its files or claim checkpoint readiness before the required full local profile is green on exact source. Preserve the separate 258/2 full-profile pass and 162/2/96 host-native red independently. Provider ICP2/ICP6 bounded regression tests passed 252/252 in 121.52 seconds, with no provider HTTP/quota or reset. Continue Provider-owned contracts and dispositions; no provider calls/quota, browser rerun while another heavy profile is active, reset/cleanup, staging/sibling mutation, deployment, paid/trial activation, or checkpoint closure.",
+  "next_action": "Record exact-source Actions run 39011265706 on branch source d6e00e73874552b3a69547e645ee54f8e4fb178c: Backend including PostgreSQL integration and combined coverage, Frontend Unit, Branch-declared, and Playwright succeeded; E2E 151 passed/109 expected skips/0 failed/0 retry-passing or flaky; Exhaustive skipped by feature policy. Keep the designated pinned-Noble functional result red on application/test source 31007ae8 (146 passed, 2 expected skips, 5 failed, zero retries: F9c, F9c-template-transform, F9c-template-comparison, F9e, F9f); retained F9e reports `crypto.randomUUID is not a function`. TC owns the shared key-generator repair; do not edit TC source. Provider ICP2/ICP6 bounded regressions passed 252/252 on parent 705082771de7b56cc8efcb15c482663f5d4d2be8. Continue only Provider-owned contract/operation-disposition work; no provider/issuer HTTP or quota spend, paid/trial/unsafe activation, data reset, assigned-stack cleanup, staging/sibling edits, deployment, or checkpoint closure.",
   "parent_branch": "staging",
   "plan_hash": "a8875425f88edd353e17890043664f37442479bcd3d7eda2f0134d0d77bf55cd",
   "planning_required": false,
@@ -113,14 +113,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "The designated required pinned-Noble functional profile is red on code/test source 31007ae8: 146 passed, 2 expected skips, 5 failed, zero retries. The exact retained F9e error is `crypto.randomUUID is not a function`; coordinator attributes the five pre-result failures to shared chart-template/column-set key generation, owned by TC. TC's two-generator getRandomValues candidate still needs browser validation and exact-source CI; Provider has not edited it. Exact Actions 39001830674 and pinned-Noble strict visuals 104/104 pass, but do not clear this functional gate. Preserve the distinct 260-case 258/2 pass as separate evidence. On branch HEAD 705082771de7b56cc8efcb15c482663f5d4d2be8, bounded Provider ICP2/ICP6 tests passed 252/252 (121.52 seconds; five dependency warnings). Exact-source Actions run 39008799668 is terminal success: Backend including unit tests, PostgreSQL integration, and combined coverage; Frontend Unit; Branch-declared; and Playwright passed. E2E reports 151 passed, 109 expected skips, 0 failures, and no retry-passing/flaky cases; Exhaustive was skipped by feature policy. No provider/issuer HTTP/quota, no data reset, and no checkpoint acceptance.",
+    "current_blocker": "The designated pinned-Noble functional gate remains red on application/test source 31007ae8: 146 passed, 2 expected skips, 5 failed, zero retries. F9e explicitly reports `crypto.randomUUID is not a function`; coordinator identifies shared chart-template/column-set key generation, owned by TC. Preserve this result and do not edit TC. Exact Actions 39011265706 is green on branch source d6e00e7; strict visuals are 104/104. A distinct full 260-case 258/2/0 run does not clear the designated red selection. Provider bounded ICP2/ICP6 regressions passed 252/252 on parent 7050827. The Provider checkpoint remains pending and is not ready for integration.",
     "current_phase": "provider-checkpoint-icp2-icp6-and-operation-disposition",
-    "next_action": "Commit and push the validated workstream-only reconciliation on top of 705082771de7b56cc8efcb15c482663f5d4d2be8, then record and validate the new exact SHA and Actions run. Continue Provider-owned ICP2/ICP6 and operation-disposition work without provider transport/quota. Preserve the designated 146/2/5 functional red, 104/104 strict-visual pass, separate 258/2 full-profile pass, and 162/2/96 host-native red distinctly. Do not edit TC-owned key generators; require coordinator/TC browser and exact-CI evidence. No additional heavy browser run while one is active, data reset, assigned-stack cleanup, staging/sibling writes, deployment, paid/trial activation, or checkpoint closure.",
+    "next_action": "Commit and push the validated workstream-only receipt update. Then continue Provider-owned ICP2/ICP6 and operation-disposition work; preserve all evidence and quota holds. Do not edit TC-owned key generators or start another heavy browser profile before coordinator release. No provider calls/quota, data reset, assigned-stack cleanup, staging/sibling writes, deployment, paid/trial activation, or checkpoint closure.",
     "total": 7,
-    "updated_at": "2026-10-17T06:46:30Z"
+    "updated_at": "2026-10-17T07:23:38Z"
   },
   "remote": "origin/feat/market-data-provider-platform",
-  "remote_sha": "705082771de7b56cc8efcb15c482663f5d4d2be8",
+  "remote_sha": "d6e00e73874552b3a69547e645ee54f8e4fb178c",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-provider-validation-isolated-20261017 remains running with datasets preserved; charting-stack-provider-validation-1236-20261016, provider-playwright-1236-hostaccess-20261016, and assigned Provider/TC stacks remain running/preserved. No stop, reset, prune, or data cleanup occurred. The exact temporary OneSignal proxy was removed after the completed browser run."
