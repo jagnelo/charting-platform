@@ -14722,3 +14722,97 @@ The branch-owned next action remains exact-tip local full-browser acceptance
 once the parallel frontend is ready and its heavy-validation slot is available.
 The product consumer reconciliation order remains Provider → ETF → TC2000 →
 Strategy; do not import sibling implementations before their accepted releases.
+
+## 2026-10-16 — current-session bounded terminal receipt check
+
+Rechecked the assigned Strategy worktree and refs: branch `feat/strategy-lab-v2`
+and `origin/feat/strategy-lab-v2` are synchronized at
+`bc7d8436ed96899f7e08792c459f6169c6823646`; persistent staging and its origin
+are synchronized at `e0cb269afc8460bdc814c93ec71c640f01b2b31f`, which is
+degraded after exact CI run `38947572686` because the occurrence-date E2E
+failed on its first attempt and passed only on retry. The coordinator has not
+released a repaired synchronized baseline. The existing formal goal remains
+blocked in the goal service (`01a0a4ae-c3eb-7bf0-b3f3-ecc833f2c00b`); no
+resume operation is exposed, so no duplicate goal was created and no active
+goal is claimed.
+
+On the current Strategy source, ran only
+`test_successful_worker_result_identity_is_stable_across_terminal_redelivery`
+and `test_permanent_result_validation_failure_rejects_terminal_entry` from
+`backend/app/strategy_lab_v2/tests/test_nautilus_worker_terminal.py` with an
+isolated `/tmp` uv cache and bounded BLAS thread settings. Result: `2 passed in
+2.24s`. This adds narrow unit evidence for stable terminal replay identity and
+fail-closed permanent result rejection; it does not validate real PostgreSQL,
+Redis, Compose, or the full application profile. The exact hosted CI receipt is
+still run `38907993948` for code source `c9723d2b3718b9d598e0d8d307c9fbbd1d943187`;
+the current `bc7d8436` tip is documentation/workstream-only atop that code and
+has no exact-tip CI receipt recorded here. The historical `54fa13e1` exit 152
+remains unproven and unchanged.
+
+No independent code gap was identified in the active terminal-receipt slice by
+this bounded continuation. Do not start the full-stack/browser profile until
+the coordinator releases the repaired synchronized staging baseline after
+Provider validation and the assigned heavy slot is available. Product
+reconciliation remains Provider → ETF → TC2000 → Strategy; full PostgreSQL and
+combined consumer gates remain open. Continue independent Strategy-owned work
+only when a concrete upstream-independent gap is available.
+
+This is a workstream-only record checkpoint. `session.json` records the last
+known pre-record tip `bc7d8436`; after committing, verify the enclosing commit's
+actual `HEAD`, `origin/feat/strategy-lab-v2`, and clean worktree externally.
+Exact push CI for the resulting workstream-record tip remains required before
+any closure review.
+
+## 2026-10-16 21:13Z — direct same-thread closeout attempt
+
+The existing Strategy conversation was resumed directly for this bounded
+closeout; no message was added to the session queue and no duplicate goal was
+created. The formal goal service still reports the goal as blocked/unavailable;
+the direct follow-up did not change that goal state. The owner-thread validator
+passed all 34 records and `git diff --check` passed with only these four
+workstream files dirty. Its Git write then stopped because the shared index
+`/home/m920q/charting-platform/.git/worktrees/feat-strategy-lab-v2/index.lock`
+is read-only. No product source, tests, Docker, browser, provider, staging, or
+other worktree was changed. The coordinator is closing only these reviewed
+evidence files through the authorized exact-target Git path; exact-tip CI still
+has to run on the resulting pushed record commit.
+
+## 2026-10-17 03:56Z — current common-repair release and Provider wait
+
+Rechecked canonical orchestration guidance, the coordinator's exact release
+receipt, and current refs. Strategy `HEAD` and
+`origin/feat/strategy-lab-v2` are both
+`bc7d8436ed96899f7e08792c459f6169c6823646`. Persistent `staging` and
+`origin/staging` are both `79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b`; the
+canonical receipt `.ai/staging-attempts/20261016T2318Z-staging-release-79c8623fb122.json`
+records exact CI `38972891559` success, including the Exhaustive Integration
+Gate, 154 functional passes, 106 expected skips, and 104 visual passes. This is
+a common repair baseline only. The receipt explicitly records no accepted
+feature checkpoint and no combined product baseline release. It names Provider
+as the next owner.
+
+The coordinator status snapshot as of `2026-10-17T03:44:07Z` records Provider
+checkpoint review as open: exact ordinary CI `38985194577` passed, while the
+local full profile remains unresolved/red with the F8b popout and F8n crosshair
+cases failing locally; ETF and TC2000 remain downstream and unaccepted. This is
+the current wait condition. Follow Provider → ETF → TC2000; only after those
+checkpoints are accepted and the coordinator releases a combined product
+baseline may Strategy merge staging and reconcile shared consumers. Provider
+retains the heavy local validation slot. Do not run a competing full
+backend/browser/Compose profile.
+
+The Strategy migration namespace repair is already complete and present in
+history at `47ea7ba917b48efd545a4dbbb0a8cbb3af6af3eb` (ancestor of current
+`HEAD`). All eight Strategy revisions use `slv2_0001` through `slv2_0008`, with
+unchanged DDL bodies. The existing read-only admission guard rejects ambiguous
+legacy or mixed Strategy histories before DDL/version bookkeeping; its recorded
+28 focused compatibility/startup/schema tests passed. Preserve this guard and
+namespace; do not repeat migration work, stamp or rename applied revisions, or
+alter database contents. No live database was inventoried or changed.
+
+The prior staged Strategy evidence files are retained. The formal Codex goal
+remains blocked/unavailable and the existing writer claim remains in force; no
+duplicate goal was created. Full Strategy roadmap and historical failure
+receipts remain intact. The concrete downstream action is to wait for
+coordinator-confirmed Provider → ETF → TC2000 acceptance and combined-baseline
+release, then reconcile and validate Strategy consumers in this same branch.

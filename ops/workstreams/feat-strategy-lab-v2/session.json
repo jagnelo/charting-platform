@@ -34,7 +34,12 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
+  ],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -53,14 +58,14 @@
   "goal_request_state": "ready",
   "goal_state": "unavailable",
   "goal_unavailable_reason": "The existing goal is blocked in the goal service and no resume/activate operation is exposed; duplicate creation is prohibited. Continue the Strategy branch under its existing writer claim and explicit coordinator direction without claiming the formal goal is active.",
-  "head": "c9723d2b3718b9d598e0d8d307c9fbbd1d943187",
+  "head": "bc7d8436ed96899f7e08792c459f6169c6823646",
   "implementation_sha": "c9723d2b3718b9d598e0d8d307c9fbbd1d943187",
-  "last_checkpoint": "2026-10-16T13:54:24Z",
+  "last_checkpoint": "2026-10-17T03:56:17Z",
   "last_human_progress_update": "2026-10-16T10:17:02.035346+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
-  "plan_hash": "a289776236f5120d63f40784efe926ff5a122b9c611c6be7b020cb99070034e2",
+  "plan_hash": "f027a9780cf59d9edb32709b9832726aa93f2d3504edb23f07e19f725fcba4f7",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -85,14 +90,14 @@
       "SLICP1",
       "SLICP2"
     ],
-    "current_blocker": "Historical exact source 54fa13e1ba17a40de6f242e16d5a96d8217615cb backend CI run 38820638540 exited 152 at 36% with no assertion or coverage summary; cause remains unproven. Current source c9723d2b3718b9d598e0d8d307c9fbbd1d943187 passed hosted CI run 38907993948, with Exhaustive skipped. Provider/ETF/TC product releases, local full_stack_browser, and combined consumer/PostgreSQL validation remain outstanding.",
+    "current_blocker": "Historical exact source 54fa13e1ba17a40de6f242e16d5a96d8217615cb backend CI run 38820638540 exited 152 at 36% with no assertion or coverage summary; cause remains unproven. Strategy code source c9723d2b3718b9d598e0d8d307c9fbbd1d943187 passed hosted CI run 38907993948, with Exhaustive skipped; last source tip bc7d8436ed96899f7e08792c459f6169c6823646 has two bounded terminal-redelivery/rejection tests passing locally. Staging is green at common-repair baseline 79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b, exact CI 38972891559; no product checkpoints are accepted and no combined product baseline is released. Provider remains first/unaccepted: coordinator snapshot 2026-10-17T03:44:07Z records ordinary CI 38985194577 green, but local full profile unresolved/red with F8b popout and F8n crosshair failures. Wait for accepted Provider, then ETF, then TC2000 and explicit combined-baseline release before Strategy staging reconciliation. Full local/combined gates remain open; Provider owns the heavy slot.",
     "current_phase": "current-tip-hosted-ci-green-awaiting-local-and-upstream-gates",
-    "next_action": "Run exact-tip local full_stack_browser after the parallel frontend is ready and the assigned heavy-validation slot is available; after accepted Provider then ETF then TC2000 releases, reconcile combined consumers and PostgreSQL/migration contracts without importing sibling code early.",
+    "next_action": "After accepted Provider -> ETF -> TC2000 checkpoints and coordinator release of their combined product baseline, recheck exact staging/source refs and reconcile Strategy canonical identity/series/coverage, point-in-time ETF membership, immutable TC CodeVersion/Study, shared routers, migrations, configuration, and workers. Then run the required full local and exact-source CI gates in the assigned slot. Preserve migration IDs slv2_0001..slv2_0008 and the fail-closed legacy/mixed-history guard; do not repeat migration repair or change applied data.",
     "total": 5,
-    "updated_at": "2026-10-16T13:54:24Z"
+    "updated_at": "2026-10-17T03:56:17Z"
   },
-  "remote": "c9723d2b3718b9d598e0d8d307c9fbbd1d943187",
-  "remote_sha": "c9723d2b3718b9d598e0d8d307c9fbbd1d943187",
+  "remote": "bc7d8436ed96899f7e08792c459f6169c6823646",
+  "remote_sha": "bc7d8436ed96899f7e08792c459f6169c6823646",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
