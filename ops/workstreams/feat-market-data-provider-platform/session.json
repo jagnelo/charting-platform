@@ -45,15 +45,15 @@
     "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
   },
   "dirty_paths": [
-    "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
     "ops/workstreams/feat-market-data-provider-platform/checkpoint-review-packet.md",
     "ops/workstreams/feat-market-data-provider-platform/handoff.md",
+    "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
     "ops/workstreams/feat-market-data-provider-platform/session.json",
     "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
   ],
   "docker": {
     "available": true,
-    "reason": "Docker engine is available through the explicitly approved narrow escalation path; the unique isolated validation project is active. Default sandbox access remains restricted."
+    "reason": "Docker validation ran through narrowly escalated access; ordinary sandbox access to the daemon socket remains denied."
   },
   "docker_before_cleanup": {
     "available": true,
@@ -75,15 +75,15 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "090f41df782d5f604a909e40c2d46a61afe2914f",
-  "implementation_sha": "31007ae8efe7973e1e8f2819157c64322f356b1b",
+  "head": "a20766d9920ca91bfbf0b15bedcbf16c11776dd9",
+  "implementation_sha": "a20766d9920ca91bfbf0b15bedcbf16c11776dd9",
   "interrupted": false,
-  "last_checkpoint": "2026-10-17T08:03:00Z",
-  "last_human_progress_update": "2026-10-16T11:12:47.867964+00:00",
+  "last_checkpoint": "2026-10-17T09:14:00Z",
+  "last_human_progress_update": "2026-10-17T09:14:00+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue Provider-owned ICP2/ICP6 contract and operation-disposition work while preserving the designated red local functional gate and all quota/unsafe-operation holds. Exact branch CI 39013565817 on source 090f41df782d5f604a909e40c2d46a61afe2914f is terminal green for required feature-branch jobs: Backend 2,838 unit + 396 integration, 82% combined coverage; Frontend Unit 938/938; Branch-declared passed; Playwright 151 passed/109 expected skips, no failure/retry markers; Exhaustive skipped by policy. The functional gate remains red on application/test source 31007ae8: 146/2/5, zero retries; TC owns the shared key-generator fix. Do not edit TC source, rerun heavy browser validation before coordinator release, use provider/issuer HTTP or quota, reset data, clean assigned stacks, write staging/siblings, deploy, activate paid/trial, or close the checkpoint.",
+  "next_action": "Commit and push the validated Provider-owned workstream evidence on merged source a20766d9920ca91bfbf0b15bedcbf16c11776dd9, then record exact-source Actions CI. The designated pinned-Noble profile remains red at 150 passed/2 expected skips/1 failed (F8u real RSI-plot drag); preserve artifacts. F8u is TC-owned; do not edit TC source or rerun the full browser matrix until a released owner repair is available. Continue Provider-owned ICP2/ICP6 and operation dispositions. No provider/issuer transport or quota, paid/trial/unknown/unreviewed/unsafe activation, data reset/cleanup, staging/sibling writes, or deployment.",
   "parent_branch": "staging",
-  "plan_hash": "a8875425f88edd353e17890043664f37442479bcd3d7eda2f0134d0d77bf55cd",
+  "plan_hash": "eeb1170957507fbf7ee2cbf9de5b649f60def13cdc70f166958140e3c951f6a3",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -113,17 +113,17 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "The designated pinned-Noble functional gate remains red on application/test source 31007ae8: 146 passed, 2 expected skips, 5 failed, zero retries. F9e explicitly reports `crypto.randomUUID is not a function`; coordinator identifies shared chart-template/column-set key generation, owned by TC. Preserve this result and do not edit TC. Exact Actions 39013565817 is green on branch source 090f41df; Backend 2,838 unit + 396 integration, combined coverage 82%; Frontend Unit 938; Branch-declared passed; E2E 151/109 with no failure/retry markers; Exhaustive skipped. Strict visuals are 104/104. A distinct full 260-case 258/2/0 run does not clear the designated red selection. Provider bounded ICP2/ICP6 regressions passed 252/252 on parent 7050827. The Provider checkpoint remains pending and is not ready for integration.",
-    "current_phase": "provider-checkpoint-icp2-icp6-and-operation-disposition",
-    "next_action": "Continue Provider-owned ICP2/ICP6 and operation-disposition work; reconcile only the released staging baseline through the central coordinator. Preserve all evidence and quota holds. Do not edit TC-owned key generators or start another heavy browser profile before coordinator release. No provider calls/quota, data reset, assigned-stack cleanup, staging/sibling writes, deployment, paid/trial activation, or checkpoint closure.",
+    "current_blocker": "The designated pinned-Noble functional profile is terminal red on F8u at exact app/test source a20766d9; the test's RSI-plot drag does not create the expected watchlist header and TC owns this UI behavior. Post-merge exact-source CI, full 260-case functional profile, and 104 strict visuals remain pending. Dinari, Marketstack, and Tiingo are quarantined by the exact no-transport preflight.",
+    "current_phase": "provider-checkpoint-evidence-and-exact-ci",
+    "next_action": "Commit/push the branch-owned checkpoint evidence on merged source a20766d9920ca91bfbf0b15bedcbf16c11776dd9, then record exact-source Actions CI. Preserve the red F8u result and artifacts; await a released TC-owned repair before the full pinned-Noble rerun. Continue Provider ICP2/ICP6 and per-operation dispositions.",
     "total": 7,
-    "updated_at": "2026-10-17T08:03:00Z"
+    "updated_at": "2026-10-17T09:14:00+00:00"
   },
   "remote": "origin/feat/market-data-provider-platform",
-  "remote_sha": "090f41df782d5f604a909e40c2d46a61afe2914f",
-  "remote_synchronized": true,
+  "remote_sha": "d5b455795f2823188d4916465b5c132fa4984d7e",
+  "remote_synchronized": false,
   "retained_docker_resources": [
-    "charting-provider-validation-isolated-20261017 remains running with datasets preserved; charting-stack-provider-validation-1236-20261016, provider-playwright-1236-hostaccess-20261016, and assigned Provider/TC stacks remain running/preserved. No stop, reset, prune, or data cleanup occurred. The exact temporary OneSignal proxy was removed after the completed browser run."
+    "The fresh pinned-Noble project provider-noble-2734-retry1-20261017 and runner provider-noble-2734-20261017-functional-retry1 remain running/preserved with seeded isolated datasets; the earlier harness-misconfigured project provider-noble-2734-20261017 also remains preserved. Existing charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, provider-playwright-1236-hostaccess-20261016, and assigned Provider/TC stacks remain running/preserved. No stop, reset, prune, or data cleanup occurred."
   ],
   "roadmap_acceptance_criteria": [
     {

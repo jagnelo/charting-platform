@@ -1,5 +1,143 @@
 # Provider integration checkpoint review packet
 
+## Workstream integrity check — 2026-10-17 09:14Z
+
+`make branch-validate` passed all 36 records after the current updates and
+`git diff --check` passed. This validates the durable records only. Local
+Provider branch `a20766d9920ca91bfbf0b15bedcbf16c11776dd9` is still ahead of
+origin; the only green Actions receipt cited below is on its parent and does
+not close post-merge CI. Full pinned-Noble validation remains red on TC-owned
+F8u, so this packet is not a ready-for-review or integration declaration.
+
+## Current evidence — 2026-10-17 09:11Z; checkpoint still pending
+
+### Released staging merge and bounded Provider contracts
+
+Released synchronized staging `2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745`
+(green Exhaustive run `39013106548`) was merged through the normal Provider
+branch procedure into `a20766d9920ca91bfbf0b15bedcbf16c11776dd9`. The delta is
+the released shared `getRandomValues` chart-template/column-set fix, its two
+component regressions, and its repair workstream record—not an unmerged TC
+feature import. On `a20766d9`, Provider's bounded recurring-cost, runtime,
+coverage/OHLCV and live-runner ICP2/ICP6 regression selection passed `252/252`
+in `120.75s`; the merged component suites passed `78/78`. These results do not
+substitute for the full local profile or exact-source hosted CI.
+
+### Required pinned-Noble functional profile
+
+The first isolated-runner attempt is invalid harness evidence, not a product
+failure: Chrome's resolver rule mapped `localhost` to the relay but Node's
+APIRequestContext resolved it to `::1`. It was stopped at case 23 after
+`ECONNREFUSED`; the original artifacts are retained in
+`/tmp/provider-noble-merged-20261017.nzm1bP/results`.
+
+The corrected profile used a new seeded Compose project, provider egress deny,
+no API credentials, routing disabled, pinned Playwright `1.62.1-noble`, and a
+read-only DejaVu mount. It ran all 153 selected cases with one worker and zero
+retries on app/test source `a20766d9`: **150 passed, 2 expected skips, 1
+failed**. The skips are `F8e.live-membership` and
+`F8e.live-sector-drilldown`, which explicitly require canonical live holdings
+and are intentionally skipped with the deterministic fixture. F8u failed:
+the real RSI-plot drag did not add the RSI watchlist header. The failure
+screenshot shows RSI still inside the chart-plots control while the expected
+`Major US benchmarks` header remains without RSI. Full error context, video and
+trace are retained at
+`/tmp/provider-noble-merged-retry1-20261017.Wvl7IS/results/flows-TC2000-workstation-F-a7985--through-the-real-drag-path-chromium/`.
+This is the known TC-owned cross-feature interaction; Provider made no TC
+source change. The five earlier `crypto.randomUUID` save/restore failures are
+cleared by the released key-generation repair. F8u still makes this required
+browser gate red; the full 260-case and 104 strict-visual profiles have not
+been rerun on current source.
+
+### Current operation-level preflight and dispositions
+
+The source-bound no-transport preflight on `a20766d9` evaluated all 27
+manifested providers; the durable quota coordinator was healthy, with no global
+blockers, 24 admission-eligible candidates, and 3 quarantined provider groups.
+Eligibility is **not** live success, enabled routing, or authorization to
+transport. No provider/issuer HTTP or quota spend occurred.
+
+| Provider operation(s) | Current disposition | Reason |
+|---|---|---|
+| Dinari: `discover_tokenized_assets`, `fetch_tokenized_corporate_actions`, `fetch_tokenized_dividends`, `fetch_tokenized_historical_prices`, `fetch_tokenized_news`, `fetch_tokenized_splits`, `get_tokenized_asset`, `get_tokenized_price`, `get_tokenized_quote` | Quarantined / non-routable | Account-applicable Sandbox reset/quota contract and every operation's costs remain unreviewed; no account-reviewed profile is configured. |
+| Marketstack: `fetch_ohlcv` | Quota-held / non-routable | Current monthly headroom is below the two-request combined-matrix reservation. |
+| Marketstack: `discover_universe_page` | Unreviewed / non-routable | Discovery venue/MIC, per-page maximum cost, and operation cost remain unresolved. |
+| Tiingo: `fetch_ohlcv`, `get_current_price`, `get_instrument_profile`, `search_instruments` | Quarantined / non-routable | Effective plan is unreviewed and both hourly/daily usage baselines are unknown. |
+| CoinGecko `fetch_account_usage` | Explicit unavailable | Demo `/key` is Pro-only; usage remains represented by the private durable application ledger, not an API probe. |
+| Finnhub `fetch_ohlcv` | Explicit unavailable | Existing evidence records the free-stock-candle entitlement denial; no current endpoint call was made. |
+| FMP `discover_universe_page` | Explicit unavailable | Existing evidence records Basic stock-list entitlement denial; no current endpoint call was made. |
+| FINRA async submit/poll/download helper legs | Not applicable to admitted operation | No admitted dataset service invokes these generic async transport legs; required synchronous operations are separately inventoried. |
+| Tradier; IBKR; Ondo operation groups | User-deferred / non-routable | These account/session integrations were explicitly deferred by the user. |
+| Other 24-provider preflight candidates | Admission-eligible only; not current live-verified or activated | Every actual request still requires operation-specific entitlement and a sufficient durable reservation. No transport was authorized or executed in this task. |
+
+The live runner's `LIVE_PROVIDER_CASES`, `LIVE_CASE_OPERATIONS`,
+`LIVE_REQUIRED_OPERATIONS`, and `LIVE_OPERATION_DISPOSITIONS` remain the
+machine-checked operation manifest. Do not promote a historical endpoint
+observation or preflight-only eligibility to current-source live acceptance.
+Paid, trial, unknown, unreviewed, unsafe, and quota-held operations remain
+disabled/non-routable.
+
+### Exact current-source evidence still required
+
+The only currently terminal hosted run found after merge is Actions
+`39016052020` on parent `d5b455795f2823188d4916465b5c132fa4984d7e`; it is green
+for its own source but does **not** validate merged `a20766d9`. Post-merge
+exact-source Actions must run after this workstream update is coherently
+committed and pushed. The normal full local `full_stack_browser` profile
+remains red on F8u; the full 260 functional and 104 strict-visual matrices are
+not yet current-source evidence. Checkpoint status remains pending and not
+`ready_for_integration`; preserve the full roadmap and conditional coordinator
+review boundary.
+
+## 2026-10-17 08:25Z — released staging key-generation repair merged locally
+
+The coordinator-released green staging source `2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745`
+(exact Exhaustive run `39013106548`, success) is now merged into Provider at
+`a20766d9920ca91bfbf0b15bedcbf16c11776dd9`. The first-parent merge base was
+`79c8623`; the released delta contains the shared `getRandomValues` key fix,
+its two component regression updates, and its technical-repair record. This is
+not an unmerged TC feature import or Provider checkpoint acceptance.
+
+On the exact merged source, the bounded recurring-cost/runtime, coverage/OHLCV
+and real live-runner-admission ICP2/ICP6 selection passed `252/252` in 120.75s
+(five dependency deprecation warnings). The required designated pinned-Noble
+functional rerun, exact-source full profile and CI remain pending. Earlier
+`146/2/5` evidence is still bound to its prior application/test source and is
+not counted as a result for `a20766d9`. No provider/issuer HTTP, quota spend,
+data reset or assigned-stack mutation occurred. Keep every paid, trial,
+unknown, unreviewed, unsafe and quota-held operation disabled/held; preserve
+the full roadmap and stop at `ready_for_human_review`.
+
+## 2026-10-17 08:31Z — exact-merged-source operation preflight
+
+The runner's explicit `--preflight-only` mode evaluated all 27 providers on
+exact source `a20766d9920ca91bfbf0b15bedcbf16c11776dd9`. The durable quota
+coordinator was healthy; 24 providers were eligible for individually admitted
+bounded operations and three were quarantined. Dinari lacks a complete
+account-reviewed Sandbox quota/reset/cost profile; Marketstack lacks enough
+monthly headroom for the two-call full-matrix reservation and still lacks
+venue/MIC plus directory page-cost bounds; Tiingo's plan is unreviewed and
+hourly/daily baselines are unknown for OHLCV, price, profile and search. There
+were no global blockers, no transport start, and zero provider HTTP requests.
+This does not prove live success or authorize a call: any individual read still
+requires exact operation, current entitlement and a sufficient durable
+reservation. Preserve all three quarantines and other paid, trial, unknown,
+unreviewed, unsafe and held routes. Full inventory and source-bound machine
+receipt are retained in the validation journal.
+
+## 2026-10-17 08:43Z — parent-source CI is green; merged-source browser pending
+
+GitHub confirms Actions `39016052020` completed successfully on parent
+`d5b455795f2823188d4916465b5c132fa4984d7e`. It is not exact-source CI for the
+Provider source after merge `a20766d9920ca91bfbf0b15bedcbf16c11776dd9` of
+released staging repair `2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745`. The
+designated pinned-Noble 153-case `flows.spec.ts` gate is next, on that exact
+merged application source, seeded and provider-egress-denied in a uniquely
+named isolated project. Preserve the prior red source-bound result; it is not
+cleared until this run is terminal. Current 24/3 preflight remains admission
+and quarantine evidence only. No provider or issuer transport/quota, assigned
+stack/data changes, or activation occurred.
+
 ## 2026-10-17 08:03Z — exact branch CI terminal; functional gate remains red
 
 Exact branch source `090f41df782d5f604a909e40c2d46a61afe2914f` passed Actions

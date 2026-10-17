@@ -1,5 +1,73 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 08:25Z — released chart key-generation repair reconciled
+
+- Re-read the current Provider plan/handoff, canonical orchestration rules,
+  coordinator direction and exact hosted staging receipt. GitHub reports
+  `origin/staging` at `2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745`; exact Actions
+  run `39013106548` is terminal success. No active Provider source freeze was
+  recorded. The local staging worktree also resolves to the exact same SHA.
+- Compared merge base `79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b` to the
+  release: its source delta is limited to the two shared chart-template and
+  column-set key generators using `getRandomValues`, their regression tests,
+  and the technical-repair workstream. This is the released common repair,
+  not an import of the TC feature branch.
+- Normal owner-branch merge completed without conflicts. Provider HEAD is
+  `a20766d9920ca91bfbf0b15bedcbf16c11776dd9`; the source is locally ahead of
+  origin by the merge and workstream changes and has not yet been pushed.
+- On exact `a20766d9`, bounded Provider-owned ICP2/ICP6 regression tests passed
+  252/252 in 120.75s (five third-party deprecation warnings). An initial
+  invocation used a stale coverage-router test path and collected zero tests;
+  the corrected exact selection passed. No provider/issuer HTTP, quota spend,
+  data reset, or assigned-stack mutation occurred.
+- Required pinned-Noble post-merge functional validation and final exact-source
+  CI are still pending. The prior 146 passed / 2 expected skips / 5 failures
+  remains retained against old source `31007ae8`; do not re-label it cleared
+  until the designated no-retry seeded egress-denied functional profile runs
+  on this source. Actions run `39016052020` is still active on parent
+  `d5b4557` and is not evidence for `a20766d9`; wait for its terminal result
+  before pushing a new source event to avoid canceling it.
+- Next: finish the exact-source bounded profile and stage-isolated pinned-Noble
+  functional rerun; record all results, then commit/push this coherent Provider
+  workstream context and require terminal exact-source CI. Preserve all
+  operation dispositions, quota holds and the full roadmap. No staging/sibling
+  writes, provider calls, activation, data cleanup, or deployment.
+
+## 2026-10-17 08:31Z — current-source operation preflight, transport held
+
+On exact merged HEAD `a20766d9920ca91bfbf0b15bedcbf16c11776dd9`, ran the live
+runner's `--preflight-only` mode. Its appended redacted receipt records all 27
+selected providers evaluated, durable quota coordinator healthy, zero global
+blockers, no transport started, and zero provider HTTP requests. It identified
+24 providers as individually admission-eligible and quarantined exactly three:
+
+- Dinari: sandbox quota reset and nine tokenized operation costs remain
+  unreviewed; required account-reviewed quota profile missing.
+- Marketstack: current request-month headroom is below the reserved two-call
+  full matrix. Universe discovery also remains disabled pending a confirmed
+  venue/MIC and per-page cost.
+- Tiingo: effective plan remains unreviewed; hourly/daily usage baselines are
+  unknown for OHLCV, current price, profile and search.
+
+This is a preflight, not provider success or a route authorization. No tests
+were transmitted to providers; existing individually reviewed-free operations
+remain conditional on a fresh operation-specific reservation. The previous
+24-provider availability does not clear current-source live acceptance. All
+three quarantines and every paid/trial/unreviewed/unsafe operation remain held.
+
+## 2026-10-17 08:43Z — parent CI terminal, merged-source browser gate next
+
+GitHub confirms Actions run `39016052020` completed successfully, but its
+`head_sha` is parent `d5b455795f2823188d4916465b5c132fa4984d7e`; it is not
+post-merge evidence for `a20766d9920ca91bfbf0b15bedcbf16c11776dd9`. The
+released staging repair `2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745` remains
+merged locally. Next required validation is the coordinator-designated
+153-case pinned-Noble `flows.spec.ts` profile on the exact merged application
+source, seeded and egress-denied in a uniquely named isolated Compose project.
+The project must publish only its browser relay ports; assigned Provider/TC
+services, volumes and data remain untouched. No provider/issuer HTTP, quota
+spend, paid/trial/unreviewed/unsafe activation, data reset or deployment.
+
 ## 2026-10-17 08:03Z — terminal exact-source CI and current checkpoint status
 
 Branch tip `090f41df782d5f604a909e40c2d46a61afe2914f` passed exact Actions
@@ -27641,3 +27709,59 @@ exact candidate receipts remain separate gates.
   quota-denied-before-callback, unreviewed-entitlement exclusion, and the
   provider-backed no-data `404`. All are included in the exact-source bounded
   test evidence above.
+
+## 2026-10-17 09:11Z — designated pinned-Noble run terminal, F8u remains red
+
+The first runner attempt on merged source `a20766d9920ca91bfbf0b15bedcbf16c11776dd9`
+was a harness misconfiguration: Playwright's browser resolver mapped
+`localhost` to the relay, but Node's API helper resolved it to `::1`; it was
+stopped at case 23 after repeated `ECONNREFUSED`. Its artifacts are retained at
+`/tmp/provider-noble-merged-20261017.nzm1bP/results`.
+
+The corrected run used a fresh isolated seeded project and an isolated runner
+`/etc/hosts` mapping; no app/test source changed. The designated
+`flows.spec.ts` selection completed with retries disabled: 153 selected, 150
+passed, 2 expected canonical-live skips (F8e.live-membership and
+F8e.live-sector-drilldown), 1 failed. F8u's real RSI-plot drag did not create
+the asserted RSI watchlist header. The retained screenshot shows RSI still in
+the chart-plots control while the `Major US benchmarks` header lacks RSI; its
+full error context, video and trace are in
+`/tmp/provider-noble-merged-retry1-20261017.Wvl7IS/results/flows-TC2000-workstation-F-a7985--through-the-real-drag-path-chromium/`.
+This is the known cross-feature TC-owned UI behavior; Provider made no TC edits.
+The released key-generator repair cleared all five prior `crypto.randomUUID`
+failures in the designated selection. The browser gate remains red on F8u.
+
+The exact-source 27-provider no-transport preflight on `a20766d9` remains the
+operation-level status snapshot: 24 are admission-eligible for bounded reads,
+not currently live-verified or activated. Three groups remain quarantined:
+Dinari's nine tokenized operations (reset/cost profile unreviewed); Marketstack
+`fetch_ohlcv` (two-call monthly reservation exceeds current headroom) and
+`discover_universe_page` (MIC, page cost and operation cost unresolved); and
+Tiingo `fetch_ohlcv`, `get_current_price`, `get_instrument_profile`, and
+`search_instruments` (plan unreviewed and hourly/daily baselines unknown).
+CoinGecko `/key`, Finnhub stock candles, and FMP Basic stock-list discovery keep
+their already-recorded explicit entitlement-denial dispositions; Tradier,
+IBKR and Ondo remain user-deferred. Do not convert preflight eligibility or
+historical endpoint observations into current live success. No provider/issuer
+HTTP, quota spend, paid/trial activation, data reset or assigned-stack mutation
+occurred. Bounded Provider ICP2/ICP6 tests remain 252/252 on `a20766d9`; exact
+post-merge-source Actions and normal full 260 + 104-visual profile remain open.
+
+## 2026-10-17 09:14Z — durable record validation and publication state
+
+The repository `make branch-validate` gate passed all 36 workstream records
+after this continuation's updates; `git diff --check` also passed. The command
+printed warnings that the private local quota-ledger directory could not be
+prepared and optional `sed` inputs were absent, but returned success and the
+workstream validator reported all 36 records valid. This is not full
+application/profile evidence. The current source is merged Provider HEAD
+`a20766d9920ca91bfbf0b15bedcbf16c11776dd9`; local `origin/feat/market-data-provider-platform`
+still points to parent `d5b455795f2823188d4916465b5c132fa4984d7e` pending this
+coherent owner publication. Actions `39016052020` validates only that parent;
+post-merge exact-source Actions is still required. The pinned-Noble functional
+profile is red on the separate TC-owned F8u drag interaction at 150 passed, 2
+expected live skips, 1 failed, retries zero. Do not edit TC source or claim
+checkpoint readiness; preserve its screenshot/video/trace and wait for a
+released owner repair before the required final full matrix. No provider or
+issuer requests, quota spend, paid/trial/unreviewed activation, data reset,
+assigned-stack cleanup, sibling/staging mutation, or deployment occurred.

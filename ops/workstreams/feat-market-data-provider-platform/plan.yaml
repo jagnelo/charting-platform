@@ -1,4 +1,59 @@
 schema: 4
+# Current continuation status — 2026-10-17 09:14Z: after the designated
+# post-merge pinned-Noble run, the workstream records now align to exact merged
+# source a20766d9 and preserve the terminal F8u red result/artifacts. The
+# repository branch validator passed all 36 workstream records and
+# `git diff --check` passed; warnings about unavailable private local quota
+# directory and absent optional sed inputs did not fail validation. This is
+# documentation/config validation only, not product or full-profile evidence.
+# The branch-owned evidence is being prepared for push; origin remains at
+# d5b4557 until that push and post-merge Actions are still required. No provider
+# or issuer HTTP/quota was used. Checkpoint remains pending.
+# Current continuation status — 2026-10-17 09:11Z: the designated 153-case
+# pinned-Noble profile ran on exact merged app/test source a20766d9 in a fresh
+# seeded egress-denied project. After correcting a temporary Node localhost
+# mapping (the first harness attempt hit ::1 and was stopped at case 23), the
+# no-retry run finished 150 passed / 2 expected skips / 1 failed. F8u's real
+# RSI-plot drag did not create the expected watchlist header; screenshot/video/
+# trace are retained in /tmp/provider-noble-merged-retry1-20261017.Wvl7IS/results.
+# This is a cross-feature TC-owned UI failure; Provider did not edit TC source.
+# The released getRandomValues change cleared the old five key-generation
+# failures. Bounded ICP2/ICP6 remains 252/252; exact-source CI and the full 260
+# functional + 104 strict-visual profile remain outstanding. The 24/3
+# operation preflight is not live acceptance; no provider/issuer HTTP or quota
+# was used. Checkpoint remains pending.
+# Current continuation status — 2026-10-17 08:25Z: merged exact released
+# staging baseline 2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745 into the clean
+# Provider branch at a20766d9920ca91bfbf0b15bedcbf16c11776dd9. GitHub branch
+# API confirms staging points at that SHA and its exact Exhaustive run
+# 39013106548 is green. The merge-base was 79c8623; the staging-only delta is
+# the reviewed getRandomValues chart-template/column-set key-generator fix,
+# two regression test updates, and its workstream record. Post-merge bounded
+# ICP2/ICP6 selection passed 252/252 in 120.75s on a20766d9; no provider or
+# issuer HTTP, quota spend, data reset, or assigned-stack mutation. The
+# earlier 146/2/5 pinned-Noble failure remains historical until the designated
+# post-merge rerun finishes. Actions run 39016052020 is active on its parent
+# d5b4557 (not the merged source); do not count it as post-merge CI. Checkpoint
+# remains pending, and all paid/trial/unknown/unreviewed/unsafe/quota-held
+# operations remain disabled or held.
+# Current continuation status — 2026-10-17 08:43Z: parent-source Actions run
+# 39016052020 is now terminal success, but it validates only parent d5b4557,
+# not merged source a20766d9. The exact green staging repair remains merged
+# locally; post-merge pinned-Noble functional validation and exact-source CI
+# are outstanding. Proceed with the pinned, seeded, provider-egress-denied
+# flows profile in a uniquely named isolated Compose project; do not touch
+# assigned Provider/TC resources or use provider/issuer transport. Keep the
+# 24/3 preflight as admission/quarantine evidence only, not live acceptance.
+# Current-source no-transport provider preflight 2026-10-17 08:30Z on the
+# merged source reported 24 eligible / 3 quarantined among 27 providers, a
+# healthy durable quota coordinator, no global blockers, transport_started
+# false, 0 provider HTTP requests. Quarantined providers are exactly Dinari
+# (unreviewed sandbox resets/costs), Marketstack (100/month headroom below the
+# two-request reservation plus unresolved directory MIC/page cost), and
+# Tiingo (unreviewed plan and unknown hourly/daily usage baselines). Eligibility
+# is admission potential, not a live receipt or authorization to call. Keep
+# provider-specific per-operation reservations and all exact operations held
+# by these reasons non-routable; no calls were attempted.
 # Current continuation status — 2026-10-17 08:03Z: exact source
 # 090f41df782d5f604a909e40c2d46a61afe2914f passed Actions run 39013565817:
 # Backend 2,838 unit + 396 integration, 82% combined coverage; Frontend Unit
