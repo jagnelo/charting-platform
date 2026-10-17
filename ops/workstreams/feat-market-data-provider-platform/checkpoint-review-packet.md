@@ -1,5 +1,28 @@
 # Provider integration checkpoint review packet
 
+## 2026-10-17 18:50Z — exact CI reconciled; partial live attempt retained
+
+The stale-Tiingo-key failure on `6a44d84` is fixed in the test contract: it
+asserts distinct provider-control and account-plan statuses, with an empty
+reviewed plan. Corrected source `6e594e53f20e73e40cb60b913b0a95ec7a8c913b`
+passed exact Actions run `39056336945`; Backend 2,839 unit +396 integration,
+combined coverage 82%, Frontend Unit 940, Branch-declared, and Playwright
+151 passed/109 expected skips with zero retry/failure; Exhaustive was skipped
+by feature-branch policy. The corrected regression and affected no-transport
+tests pass 182/182 locally.
+
+The authorized partial live run `4ae748ef-6d5a-45d6-a644-5ee928d55978` on
+`6e594e5` made 15 HTTP-200 requests, 8,028,077 bytes (Alpaca 8 / 6,546,397;
+Alpha Vantage 7 / 1,481,680). All raw responses are retained. The Alpha
+aggregate usage row was not flushed before interruption, and a subsequent
+preflight held it for insufficient nine-request minute headroom; do not repeat
+it. No 401/403/429 was observed. A live-only challenge stop, pytest fail-fast,
+and stop-between-provider-batches guard are now tested in a dirty follow-up;
+its exact-source CI is pending. Further provider HTTP and quota reservation/
+spend are currently disabled by the latest direction. No local browser gate is
+running; full functional/visual checks remain pending. No checkpoint is ready
+for integration review.
+
 ## 2026-10-17 18:02Z — current exact-source CI failed on stale status-key assertion
 
 Run `39055558629` is terminal red on pushed source `6a44d84`: Backend 2,837

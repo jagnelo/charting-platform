@@ -71,6 +71,7 @@ from app.providers.telemetry import deactivate as deactivate_provider_telemetry
 from tests.live.live_usage import (
     activate_request_admission,
     archive_response_payloads,
+    challenge_status_code,
     deactivate_request_admission,
     reconcile_native_account_usage,
     record_observation,
@@ -163,7 +164,9 @@ def _observed_read(
     try:
         result = call()
     except BaseException as exc:
-        response_status_code = getattr(exc, "status_code", None)
+        response_status_code = challenge_status_code(
+            measurement.response_metadata, getattr(exc, "status_code", None)
+        ) or getattr(exc, "status_code", None)
         expected_entitlement_denial = response_status_code in (expected_http_statuses or set())
         archive_error = None
         try:
@@ -235,10 +238,16 @@ def _observed_read(
     except BaseException as archive_exc:
         archive_error = archive_exc
     try:
+        response_status_code = challenge_status_code(measurement.response_metadata)
         settle_live_provider_operation(
             reservation,
             http_requests=measurement.http_requests,
             response_bytes=measurement.response_bytes,
+            **(
+                {"response_status_code": response_status_code}
+                if response_status_code is not None
+                else {}
+            ),
         )
     finally:
         record_observation(
@@ -249,6 +258,7 @@ def _observed_read(
             response_headers=measurement.response_headers,
             success=archive_error is None,
             disposition="observed" if archive_error is None else "archive_failure",
+            response_status_code=response_status_code,
             reservation_id=reservation.reservation_id,
         )
     assert measurement.http_requests > 0

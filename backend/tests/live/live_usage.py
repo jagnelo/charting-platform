@@ -497,6 +497,25 @@ def _safe_headers(headers: Mapping[str, object] | None) -> dict[str, str]:
     return result
 
 
+def challenge_status_code(
+    response_metadata: list[Mapping[str, object]] | None,
+    fallback_status_code: int | None = None,
+) -> int | None:
+    """Return a 401/403/429 observed by the current measured operation."""
+
+    stop_statuses = {401, 403, 429}
+    if fallback_status_code in stop_statuses:
+        return int(fallback_status_code)
+    for metadata in response_metadata or []:
+        try:
+            status_code = int(metadata.get("status_code"))
+        except (TypeError, ValueError):
+            continue
+        if status_code in stop_statuses:
+            return status_code
+    return None
+
+
 def record_observation(
     provider: str,
     *,
@@ -574,6 +593,19 @@ def record_observation(
             normalized_reservation_id,
         )
     )
+    if (
+        response_status_code in {401, 403, 429}
+        and os.getenv("RUN_LIVE_PROVIDER_TESTS", "").strip() == "1"
+        and os.getenv("PROVIDER_LIVE_MATRIX_RUN", "").strip() == "1"
+    ):
+        import pytest
+
+        pytest.exit(
+            f"provider live safety stop: HTTP {response_status_code} from "
+            f"{str(provider).strip() or 'unknown'}/{normalized_operation}; "
+            "response was archived and quota settled; no later live cases will run",
+            returncode=2,
+        )
 
 
 def flush_observations(exit_status: int) -> Path | None:

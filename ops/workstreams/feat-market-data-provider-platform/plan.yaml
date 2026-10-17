@@ -1,5 +1,20 @@
 schema: 4
-# Latest exact-source CI result — 2026-10-17 18:00Z: Actions `39055558629`
+# Latest exact-source CI result — 2026-10-17 18:44Z: Actions `39056336945`
+# is terminal green on `6e594e53f20e73e40cb60b913b0a95ec7a8c913b`, which
+# corrected the stale `statuses["tiingo"]` test assertion for the explicit
+# `tiingo provider controls` and `tiingo account plan` statuses. Backend passed
+# 2,839 unit +396 integration at 82% combined coverage; Frontend Unit 940,
+# Branch-declared, and Playwright 151/109 expected skips passed with zero
+# failures/retries; Exhaustive was skipped under feature policy. The corrected
+# test plus affected no-transport files pass 182/182. The exact historical red
+# run `39055558629` on 6a44d84 remains preserved. A later partial authorized
+# live run on 6e594e5 used 15 HTTP-200 calls / 8,028,077 bytes; all raw data is
+# retained, but Alpha Vantage aggregate usage was not flushed. Its preflight
+# now lacks enough minute headroom; do not repeat it. The dirty live fail-fast
+# follow-up is not covered by 39056336945; current direction disables more
+# provider HTTP and quota reservation/spend. Keep browser gate held and do not
+# claim checkpoint readiness.
+# Historical exact-source CI result — 2026-10-17 18:00Z: Actions `39055558629`
 # is terminal red on pushed `6a44d84c646696118bb8fa22b136bff75cd2b7ef`:
 # Backend 2,837 passed/1 failed (`test_live_preflight_reports_non_routable_safety_controls_without_guessing`, KeyError `tiingo`), Frontend Unit passed, and Branch-declared/Playwright were skipped after the backend failure; Exhaustive was skipped by feature policy. The assertion still used the obsolete generic `tiingo` status key; implementation exposes separate `tiingo provider controls` and `tiingo account plan` entries. The exact first failure is journaled and preserved. Updated the test to assert those explicit fields and set an empty reviewed plan deterministically; focused corrected regression passes 1/1 with no transport. The Robinhood live-matrix no-retry guard and this test correction are uncommitted atop 6a44 and require coherent exact-source CI. No provider requests/quota. Do not run live probes until the corrected source has exact green CI; keep local browser gate held by retained Provider/TC stacks and unsafe host capacity.
 # Safety follow-up — 2026-10-17 17:53Z: the tokenized adapter's Robinhood

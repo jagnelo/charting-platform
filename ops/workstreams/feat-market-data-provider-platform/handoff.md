@@ -1,5 +1,40 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 18:50Z — stale Tiingo assertion fixed; fail-fast follow-up prepared
+
+- Historical exact-source run `39055558629` failed on `6a44d84` because
+  `test_live_preflight_reports_non_routable_safety_controls_without_guessing`
+  indexed the removed `statuses["tiingo"]` key. The intended preflight contract
+  exposes separate `tiingo provider controls` and `tiingo account plan` values;
+  the test now asserts both and clears `TIINGO_REVIEWED_PLAN` for deterministic
+  unknown-plan behavior. Focused regression plus live-usage/runner tests pass
+  182/182, with no provider HTTP or quota. Exact corrected source
+  `6e594e53f20e73e40cb60b913b0a95ec7a8c913b` passed Actions `39056336945`
+  (Backend 2,839 unit +396 integration at 82% combined coverage, Frontend
+  Unit 940, Branch-declared and Playwright 151 passed/109 expected skips,
+  zero retries/failures; Exhaustive skipped by feature policy).
+- A separately authorized partial live attempt on exact `6e594e5` was
+  interrupted after its first failing case because the runner did not yet stop
+  provider batches. Its run ID is `4ae748ef-6d5a-45d6-a644-5ee928d55978`;
+  the private response archive retains 15 HTTP-200 responses / 8,028,077 bytes:
+  Alpaca 8 / 6,546,397 bytes and Alpha Vantage 7 / 1,481,680 bytes. No 401,
+  403, or 429 occurred. Alpaca's aggregate usage row was persisted; Alpha's
+  aggregate usage JSONL row was not flushed before interruption, although its
+  raw response records remain archived. The durable coordinator showed no
+  pending/uncertain receipts; a later preflight held Alpha Vantage because the
+  nine-unit live-matrix reservation exceeded current minute headroom. This
+  consumed free quota and is explicitly partial evidence, not acceptance.
+- Added live-matrix-only immediate stop after an observed 401/403/429, archive
+  and quota settlement; the runner now uses pytest `-x` and does not proceed to
+  later provider batches after any failing batch. Ordinary application retry
+  behavior is unchanged except Robinhood token reads make one attempt in matrix
+  mode. Focused fail-fast tests pass; the complete affected no-transport tests
+  pass 182/182. These follow-up files and the partial-live evidence require
+  exact-source CI before further provider transport. Current human direction
+  keeps provider HTTP and quota reservations/spend disabled. Local F8u/full
+  pinned-Noble browser gates remain held by unsafe capacity/fixture ownership;
+  checkpoint remains open.
+
 ## 2026-10-17 17:53Z — live-matrix 429 retry safety added locally
 
 - Review of provider transport code found Robinhood token price reads normally

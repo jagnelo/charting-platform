@@ -24,6 +24,7 @@ from app.providers.tokenized import (
 from tests.live.live_usage import (
     activate_request_admission,
     archive_response_payloads,
+    challenge_status_code,
     deactivate_request_admission,
     reconcile_native_account_usage,
     record_observation,
@@ -100,6 +101,9 @@ def _observed_read(
     try:
         result = call()
     except BaseException as original_exc:
+        response_status_code = challenge_status_code(
+            measurement.response_metadata, getattr(original_exc, "status_code", None)
+        ) or getattr(original_exc, "status_code", None)
         # A rejected request is still useful live evidence: the provider
         # response must have crossed the adapter and been observed before the
         # caller decides whether a bounded retry is allowed.
@@ -125,6 +129,11 @@ def _observed_read(
                 reservation,
                 http_requests=measurement.http_requests,
                 response_bytes=measurement.response_bytes,
+                **(
+                    {"response_status_code": response_status_code}
+                    if response_status_code is not None
+                    else {}
+                ),
             )
         finally:
             record_observation(
@@ -135,6 +144,7 @@ def _observed_read(
                 response_headers=measurement.response_headers,
                 success=False,
                 disposition="archive_failure" if archive_error is not None else "provider_error",
+                response_status_code=response_status_code,
                 reservation_id=reservation.reservation_id,
             )
         # A canary cap can deliberately reject before transport, so zero
@@ -167,10 +177,16 @@ def _observed_read(
     except BaseException as archive_exc:
         archive_error = archive_exc
     try:
+        response_status_code = challenge_status_code(measurement.response_metadata)
         settle_live_provider_operation(
             reservation,
             http_requests=measurement.http_requests,
             response_bytes=measurement.response_bytes,
+            **(
+                {"response_status_code": response_status_code}
+                if response_status_code is not None
+                else {}
+            ),
         )
     finally:
         record_observation(
@@ -181,6 +197,7 @@ def _observed_read(
             response_headers=measurement.response_headers,
             success=archive_error is None,
             disposition="observed" if archive_error is None else "archive_failure",
+            response_status_code=response_status_code,
             reservation_id=reservation.reservation_id,
         )
     assert measurement.http_requests > 0

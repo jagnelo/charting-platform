@@ -5814,6 +5814,7 @@ def main() -> int:
                             *live_test_arguments,
                             "-m",
                             "live",
+                            "-x",
                             "--no-header",
                             "-q",
                             "--no-cov",
@@ -5853,6 +5854,11 @@ def main() -> int:
                         if len(output) > 20000:
                             output = output[:20000] + "\n...[redacted output truncated]"
                         print(output, end="" if output.endswith("\n") else "\n")
+                    if result.returncode:
+                        # A failing case may be an authentication, entitlement,
+                        # or provider-throttle signal. Never continue to later
+                        # tests/providers after that terminal live result.
+                        break
                 if candidate_dir_context is not None:
                     candidate_dir_context.cleanup()
             candidate_unchanged = True

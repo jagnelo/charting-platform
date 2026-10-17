@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from uuid import UUID
 
 import pytest
+from _pytest.outcomes import Exit as PytestExit
 
 from app.config import provider_rate_limit_seed, settings
 from app.providers.base import ProviderAccountUsage, ProviderAccountUsageDimension
@@ -461,6 +462,39 @@ def test_live_usage_records_expected_entitlement_denial_separately(tmp_path, mon
     assert operation["failed_operations"] == 0
     assert operation["dispositions"] == {"expected_entitlement_denial": 1}
     assert operation["response_statuses"] == {"403": 1}
+
+
+def test_live_matrix_stops_after_recording_an_access_or_rate_limit_challenge(tmp_path, monkeypatch):
+    ledger = tmp_path / "provider-live-usage.jsonl"
+    monkeypatch.setenv("PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
+    monkeypatch.setenv("PROVIDER_LIVE_RUN_ID", "challenge-run")
+    monkeypatch.setenv("RUN_LIVE_PROVIDER_TESTS", "1")
+    monkeypatch.setenv("PROVIDER_LIVE_MATRIX_RUN", "1")
+    live_usage._reset_for_test()
+
+    assert (
+        live_usage.challenge_status_code(
+            [{"status_code": 200}, {"status_code": 403}], fallback_status_code=200
+        )
+        == 403
+    )
+    with pytest.raises(PytestExit, match="HTTP 403"):
+        live_usage.record_observation(
+            "eodhd",
+            operation="get_instrument_profile",
+            http_requests=1,
+            response_bytes=12,
+            success=True,
+            disposition="expected_entitlement_denial",
+            response_status_code=403,
+            case_id="tests/live/test_market_data_providers_live.py::"
+            "test_eodhd_free_plan_profile_entitlement_is_explicit",
+        )
+
+    assert live_usage.flush_observations(2) == ledger
+    row = json.loads(ledger.read_text())
+    assert row["process_exit_status"] == 2
+    assert row["operation_usage"]["get_instrument_profile"]["response_statuses"] == {"403": 1}
 
 
 def test_live_usage_blank_ledger_override_uses_private_default(monkeypatch):
