@@ -21083,3 +21083,196 @@ into TC until Provider and then ETF have green product staging baselines. TCP3
 consumer reconciliation, TCP4 combined validation, TCP5 checkpoint review,
 and the broader roadmap remain open.
 
+## 2026-10-17 — Exact current ref and CI reconciliation
+
+The TC local branch, `origin/feat/tc2000-frontend-rework`, and GitHub branch
+API all resolve to `fd681152d831054ce4b440e0ce606b48b6d8d39f`. Exact Actions
+run `38981686587`, attempt 1, matches that SHA and concluded success. Backend
+passed 1,625 unit and 409 integration tests; Frontend passed 135 files / 1,265
+tests; Branch-declared passed; E2E passed 190 with 110 skipped in 15.5 minutes.
+The E2E job log shows no Playwright retry or failure event. The Exhaustive
+Integration Gate was skipped by feature-branch policy. Those skips include
+hosted visual projects and do not satisfy TCP2's full 104-case visual matrix.
+
+The only pre-audit dirty path was this workstream's `session.json`. Its `head`
+and `remote` values were stale at `bcfc553f...`; the branch and origin were
+already synchronized at `fd681152...`. The implementation source remains
+`f06c6788...` (the latest app/test-source commit); `fd681152...` is the later
+workstream-record commit. Reconcile the session snapshot to the exact current
+refs and CI while preserving the active claim, goal ID, acceptance history,
+prior validation receipts, and full roadmap. Append the current run to the
+validation ledger rather than replacing earlier evidence.
+
+TCP2's existing Help local-reference/readability subgate remains narrowly
+valid: the four reviewed image blobs are unchanged, the 112px/7px Help column
+and minimum 8px text separation/clipping checks remain, and the previously
+recorded keyboard/scroll flow and four Help screenshot passes retain the
+original 0.005 tolerance. No browser or visual matrix was run in this audit.
+Provider currently owns the heavy local validation priority and its retained
+local profile remains unresolved; do not touch its runtime/data. The one
+independent TCP2 next action is the full opted-in 104-case visual matrix on
+exact current TC source in the approved deterministic browser/font environment
+after Provider releases that priority. Do not merge staging `79c8623f...`
+before Provider and then ETF have green product staging baselines. Official
+V25 Help parity remains unfinished roadmap work; TCP3–TCP5 and checkpoint
+acceptance remain open.
+
+## 2026-10-17 — Five Provider Noble save failures: TC compatibility repair
+
+Reviewed only immutable Git objects for Provider source
+`31007ae8efe7973e1e8f2819157c64322f356b1b`, current TC `fd681152...`, and the
+completed five failure contexts in
+`/tmp/provider-noble-functional-20261017.dqvnO9/results`. The committed Provider
+handoff was older than this run and was not used as current runtime evidence.
+No live Provider worktree file, stack, process, data or response archive was
+inspected.
+Run-to-source attribution follows the coordinator's stated31007ae8 source;
+the five contexts' test locations125/233/265/553/618 match that immutable test
+file. This review did not verify the run's actual mounted frontend bundle.
+
+| Flow | Retained first failure | Classification |
+| --- | --- | --- |
+| F9c | Newly saved chart-template button never appears | Same TC key-generation defect is reproduced by the component regression; no template runtime exception was captured in this context. |
+| F9c-template-transform | No saved template after Save, before reset/restore | Same pre-save path; TC's later reset-selector difference is not reached. |
+| F9c-template-comparison | `waitForRequest` never observes the template PUT; filled name and no saved templates remain | Key generation runs before the PUT; TC's later stronger populated-pointer assertions are not reached. |
+| F9e Columns/Sets | Visible error: `crypto.randomUUID is not a function`; saved set absent | Directly confirmed TC product compatibility defect triggered by missing runtime API. |
+| F9f | Initial saved template absent, before export/import | Same template save path; no export/import defect is established. |
+
+Both source versions use `crypto.randomUUID().slice(0, 8)` unconditionally in
+ChartTemplateControl.stableKey and VirtualWatchlistTool.columnSetKey. The
+template default parameter evaluates before persist's try/catch or API call;
+the column-set version is caught and displays the exact retained error. The
+current store/API path is not reached on this failure. Source versions differ
+in later accessibility, loading and pointer checks, but those differences do
+not remove this shared defect. The runtime reason for the missing API (origin
+security context versus another runtime configuration) is not established by
+the contexts alone; no provider data or issuer transport cause is indicated.
+
+The narrow TC working fix uses `crypto.getRandomValues(new Uint32Array(1))`
+for the existing eight-hex-digit suffix in both generators, preserving the
+normalized prefix, 32 random bits, API payload and existing references. Two
+new mocked-API component tests remove randomUUID while retaining getRandomValues
+and verify Save reaches PUT and the reloaded saved item becomes available.
+Before the fix both failed with no PUT and the chart test reproduced the
+unhandled TypeError. After the fix, the full two component suites pass107/107
+with no unhandled errors; `vue-tsc --noEmit` passes. An initial new-test payload
+expectation omitted the component's existing empty indicators array; it was
+corrected before the final passing run. All existing E2E assertions, timeouts,
+retry policy, Help references and0.005 visual tolerance remain unchanged.
+
+Candidate app/test files are uncommitted on the existing TC branch; ordinary
+CI38981686587 covers only committed fd681152, not this dirty repair. Required
+next runtime evidence is the unchanged five flows on the candidate, including
+ordinary save, reset/restore, populated comparison controls and export/import,
+after Provider releases browser priority. Full TCP2/TCP4 gates and exact-source
+CI remain required. No browser/app/Docker/full test suite, sibling/staging edit,
+data change, provider request, merge, closure or queued message occurred.
+
+## 2026-10-17 05:21Z — Focused runtime setup unavailable
+
+Human authorized the five unchanged save flows after Provider's pinned run
+finished, using a fresh uniquely named isolated project with provider egress
+denied. Before any creation, `rtk proxy docker version` exited1: `permission
+denied while trying to connect to the docker API at unix:///var/run/docker.sock`.
+The CLI has only its configured default Unix-socket context. No fixture,
+browser, service, account or data was created, used, changed or cleaned.
+
+The exact grep collection selected only F9c, F9c-template-transform,
+F9c-template-comparison, F9e Columns/Sets and F9f:5 tests/1 file. This was
+collection only; runtime result is NOT_RUN. First setup-failure receipt:
+`.ai/runtime/tc-library-key-focus-20261017t052154z/preflight.json`; planned
+project `tc-library-key-focus-20261017t052154z` was never created. Earlier
+107-component-test/typecheck passes remain the candidate's valid evidence.
+
+Next: enable Docker socket access for this same owner execution, repeat the
+read-only preflight, create a uniquely named fresh seeded/egress-denied fixture,
+and run those five unchanged flows with pinned Noble. Preserve reports and
+assertions/timeouts/retry policy; the human's current grant excludes the broad
+260-case and104-visual matrices. Since the focused runtime did not run, the
+conditional commit/push step has not been taken. Candidate and prior dirty
+records remain preserved. Exact-source CI/full roadmap gates remain open.
+
+## 2026-10-17 09:43Z — Strictly local five-flow runtime is red
+
+Executed exactly F9c saved template, F9c-template-transform,
+F9c-template-comparison, F9e Columns/Sets and F9f with the pinned Playwright
+1.62.1 Noble image, one worker and zero retries. The fresh project was
+`tc-library-key-focus-20261017t093209z`. Its only application network was
+Compose `charting` with `internal=true`; no host ports were published. Backend
+and worker had provider routing, availability/account refresh, market-data
+refresh and instrument sync disabled, while provider and OneSignal keys were
+blank. The browser was attached only to that internal network and used
+`STACK_URL=http://frontend`. No Provider artifact/proxy, live endpoint,
+credential, quota, paid service or trial was used.
+
+All five functional bodies reached their unchanged final browser-diagnostics
+assertion, and none reported the repaired `crypto.randomUUID` failure. However,
+the built app still requested
+`https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js`; the internal-only
+network correctly returned `ERR_NAME_NOT_RESOLVED`. The unchanged diagnostics
+therefore failed every case. Exact result: zero passed, five failed, zero
+retries. This is useful isolation evidence but not a validated candidate and
+does not satisfy the conditional commit gate. Screenshots, videos, traces,
+critical-issue attachments and error contexts remain at
+`/tmp/tc-library-key-focus-20261017T093209Z/artifacts/results`; `.last-run.json`
+lists all five failed test IDs.
+
+Before cleanup, all six services were healthy, the network was verified
+internal, only container-local ports were exposed, and the four temporary
+volumes/network carried the exact lowercase worktree/project label. Cleanup
+removed only this project's containers, network and four volumes; post-cleanup
+label queries returned none. The temporary evidence directory remains. No
+assigned TC/Provider service, volume or data was touched. The product/test
+candidate stays dirty and uncommitted. Next diagnose the TC-owned optional
+OneSignal bootstrap behavior with blank keys in a local-only runtime, without
+adding egress/proxying or weakening diagnostics, then repeat the same five
+flows. TCP2-TCP5, full104 visuals, exact-source CI and official V25 parity all
+remain open; no checkpoint readiness, merge or staging integration is claimed.
+
+## 2026-10-17 09:53Z — Opt-in repair and exact five-flow replay pass
+
+The local-only failure was a TC-owned opt-in defect: `frontend/index.html`
+loaded the OneSignal v16 CDN script unconditionally even though no App ID was
+configured. Product commit `977add9f6771337cc3d39124127b8c3fe7449c43`
+removes that static include. `SettingsView` now injects the SDK only after the
+user supplies a non-empty App ID and explicitly selects Enable Push
+Notifications; configured initialization, permission handling, lifecycle
+guards, visible failure reporting and load retry remain supported. The same
+commit contains the previously isolated non-security library-key compatibility
+repair, using `crypto.getRandomValues` instead of unavailable `randomUUID`.
+
+Focused Settings tests pass6/6 and prove both unset and configured behavior:
+mounting or clicking Enable with an empty App ID creates no SDK script, while a
+configured explicit click creates the script and preserves deferred init and
+permission requests. Both library component suites pass107/107, `vue-tsc`
+passes, the production Vite build passes (521 modules; existing bundle-size
+warning only), and its generated `index.html` has no OneSignal CDN/SDK string.
+The CI-equivalent complete Vitest coverage run passes135 files/1268 tests with
+no unhandled rejection (85.45% statements/lines,73.21% branches,75.15%
+functions). Diff whitespace validation passes. No E2E assertion, timeout,
+retry policy, screenshot reference or0.005 tolerance changed.
+
+The exact five authorized flows were replayed in fresh project
+`tc-library-key-focus-20261017t094621z` using cached pinned Noble1.62.1, one
+worker and zero retries. The fixture had one `internal=true` application
+network, no published host ports, blank provider/OneSignal credentials, and
+provider routing/availability/account/market-data refresh plus instrument sync
+disabled. The browser attached only to that network and used
+`STACK_URL=http://frontend`. F9c saved template, F9c template transform, F9c
+template comparison, F9e Columns/Sets and F9f initial saved-template
+export/import all passed:5/5, zero retries. No CDN proxy, Provider artifact,
+external runtime request, credential, quota, paid service or trial was used.
+The result is retained at
+`/tmp/tc-library-key-focus-20261017T094621Z/artifacts/results/.last-run.json`.
+
+After the pass, only the exact project's containers, internal network and four
+volumes were label-verified and removed; post-cleanup project-label queries
+returned none. Assigned TC/Provider services, volumes and retained data were
+untouched. The earlier0/5 run and its complete OneSignal resolution-failure
+artifacts remain preserved as historical evidence. This satisfies only the
+conditional focused repair gate. Fresh exact-source ordinary CI is still
+required, TCP2's full104 visual matrix remains open, TCP3 still awaits actual
+Provider/ETF product baselines and consumer reconciliation, TCP4 combined
+validation and TCP5 review remain open, and official V25 Help parity remains
+unfinished roadmap work. No checkpoint readiness, staging merge or integration
+is claimed.

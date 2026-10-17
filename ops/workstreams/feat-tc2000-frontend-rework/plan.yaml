@@ -30,27 +30,41 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  The latest product-source CI is exact run38964648067 for f06c6788a4b87dc9fb2aaec246a6c07d0b911963:
-  all required feature jobs passed and E2E reported190 passed/110 skipped with
-  zero retries, flakes, or failures. The current tip1e2474708e5f816c6e6956a82bb58bcb4c0e1e02
-  adds only durable records; the hosted visual projects were skipped and do not
-  constitute the full104-case matrix. TCP2 Help-reference authority/readability
-  is closed narrowly: the approved local Linux references still match the four
-  coordinator-reviewed blobs; current Help source retains its112px key column,
-  7px grid gap, and functional minimum8px text-range separation/clipping checks.
-  Existing exact-source evidence records the Help keyboard/scroll flow1/1 and
-  four Help profiles4/4 under the unchanged0.005 tolerance. This turn visually
-  rechecked the four unchanged blobs and source/test contract without starting
-  a browser. Provider run38978777973 still owns the heavy validation slot, so
-  the next TCP2 action is to run the complete opted-in104 visual matrix on an
-  exact current source in the approved deterministic browser/font environment
-  once that slot is released; do not refresh any reference or weaken an oracle.
-  Keep `keyboard_help` and its review `required_missing`: official V25 Help
-  parity remains unfinished roadmap work. Do not merge the released staging
-  repair baseline79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b into TC until
-  Provider and then ETF have green product staging baselines. TCP3 consumer
-  reconciliation, TCP4 combined validation, TCP5 checkpoint review, and full
-  official V25 parity remain open; no whole-TC acceptance is implied.
+  Product commit977add9f6771337cc3d39124127b8c3fe7449c43 makes the OneSignal
+  browser SDK genuinely opt-in and replaces two non-security library-key
+  randomUUID calls with getRandomValues. With OneSignal unset, the built app no
+  longer contains or requests the CDN SDK; an explicitly configured Enable
+  action still loads it and preserves initialization and permission handling.
+  Focused Settings6/6 and library component107/107 suites, vue-tsc, the Vite
+  production build, and the complete coverage run135 files/1268 tests passed.
+  The unchanged five pinned-Noble flows then passed5/5 with one worker and zero
+  retries in fresh project tc-library-key-focus-20261017t094621z. Runtime had a
+  single internal-only Compose network, no published host ports, blank
+  provider/OneSignal credentials and disabled provider routing/refresh; no CDN,
+  provider, issuer or other external request was permitted. The exact project
+  containers, network and four volumes were label-verified and removed after
+  preserving results at /tmp/tc-library-key-focus-20261017T094621Z. The earlier
+  0/5 run and its OneSignal ERR_NAME_NOT_RESOLVED evidence remain historical.
+  This closes only the focused compatibility/opt-in repair condition; exact-tip
+  hosted CI is still required and no whole-TC checkpoint acceptance follows.
+  Last hosted CI38981686587 remains green for prior committed fd681152, not the
+  new product commit. After pushing a coherent evidence checkpoint, require
+  fresh exact-source ordinary CI.
+  TCP2's approved local Help-reference/readability subgate remains narrowly
+  closed: the four Linux image blobs match the coordinator-reviewed hashes;
+  current source keeps the112px key column,7px grid gap, minimum8px label-to-
+  description guard and clipping checks. Existing exact-source Help evidence
+  remains keyboard/scroll1/1 and four visual profiles4/4 at the unchanged0.005
+  tolerance. TCP2 still requires the complete opted-in104-case visual matrix
+  against exact current source in the approved deterministic browser/font
+  environment under a later coordinated full-matrix slot. Do not refresh images
+  or weaken assertions/tolerances. Staging79c8623 is a released repair baseline,
+  not product acceptance; do not merge it into TC until Provider then ETF have
+  green product staging baselines. Keep manifest `keyboard_help` and review
+  `required_missing`; official V25 parity remains unfinished roadmap work.
+  TCP3 consumer reconciliation, TCP4 combined validation, TCP5 checkpoint
+  review, and full official V25 parity remain open; no whole-TC acceptance is
+  implied.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -695,6 +709,12 @@ shared_path_exceptions:
   - path: frontend/src/stores/userSettings.ts
     owners: [TC]
     reason: accept HLC in existing chart preferences for the TC workstation; no provider or ETF settings.
+  - path: frontend/index.html
+    owners: [TC]
+    reason: Remove only the unconditional OneSignal CDN bootstrap so push notifications remain strictly opt-in; no unrelated shell or provider behavior.
+  - path: frontend/src/views/SettingsView.vue
+    owners: [TC]
+    reason: Load the OneSignal SDK only after a configured explicit user action while preserving the existing push-notification settings contract.
   - path: frontend/src/components/workstation/MarketMapTool.vue
     owners: [TC, etf-holdings-constituents]
     reason: workstation consumer display and interactions only.
