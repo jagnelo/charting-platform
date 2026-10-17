@@ -2,10 +2,13 @@
 
 ## Current checkpoint
 
-Coordinator-owned technical repair, created from synchronized green `staging`
-at `2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745` (Exhaustive Integration Gate
-run `39013106548`, success). This does not modify or accept the TC feature
-branch. No product source has been changed yet.
+Coordinator-owned technical repair. The F8u watchlist/live-plot repair is now
+merged into persistent staging at `6dc178c12498236a2a0060533305e20cf47438b7`;
+exact staging Actions run `39033839693` passed, including Playwright and the
+Exhaustive Integration Gate. The TC repair branch has merged that exact green
+staging tip locally in commit `41d5b6bc4eb9ad0ab405280e431dedb2e9119891`.
+The F9c CSS and browser-test candidate is now part of this repair branch but
+remains unverified on the combined source. The feature branch remains untouched.
 
 ## Human authorization
 
@@ -27,10 +30,13 @@ resolves to Remove RSP, and an ordinary non-forced Playwright click is
 intercepted. The independent `390x800` TC Classic layout had separate hits and
 passed normal Plots, menu close and Remove RSP actions.
 
-The target branch currently demonstrates the already-green staging source;
-the coordinator must reproduce the failure here before changing product code.
-The currently running `fix/watchlist-plot-live-configuration` CI is a separate
-F8u issue and must not be claimed as closing this F9c geometry defect.
+The local candidate uses chart-container width rather than viewport width to
+move comparison controls clear of Plots, and makes only the comparison wrapper
+pointer-transparent while keeping its input/buttons interactive. A focused
+ordinary-click browser regression was added for the desktop saved-template
+flow and the existing TC Classic mobile path. Neither the geometry nor these
+new flows have been run against the combined `41d5b6b` source yet; do not claim
+F9c closure from the F8u staging pass.
 
 ## Ownership and validation
 
@@ -41,6 +47,9 @@ F8u issue and must not be claimed as closing this F9c geometry defect.
 - Use fresh internal-only fixtures with seeded local market data; keep provider
   routing/refresh disabled and credentials blank. Do not touch assigned feature
   services, volumes, accounts or data.
+- Last host resource check showed 509 MiB available while unrelated VS Code,
+  Comet, TC and ETF workloads were active. Do not stop those workloads or start
+  a new Compose fixture until there is safe memory headroom.
 - Preserve all browser assertions, retry/timeouts and screenshot references,
   masks and tolerances. The 104-case visual matrix, exact-source ordinary CI and
   exact pushed staging Exhaustive Integration Gate remain required.
@@ -48,6 +57,8 @@ F8u issue and must not be claimed as closing this F9c geometry defect.
   exact synchronized staging SHA and downstream reconciliation instructions;
   retain their full roadmaps.
 
-Next: inspect current chart layout and its existing F9c test, reproduce on this
-branch with ordinary pointer actions, then implement and verify the narrow
-responsive geometry correction.
+Next: run bounded frontend checks on the re-applied candidate when host capacity
+permits; then run the isolated full local functional/visual profile with one
+worker and zero retries. Preserve screenshot references/tolerances. Only after
+that passes should the repair be committed/pushed, exact-source CI observed,
+the branch closure recorded, and the guarded staging workflow run again.

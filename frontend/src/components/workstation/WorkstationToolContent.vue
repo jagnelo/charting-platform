@@ -3433,7 +3433,7 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 </script>
 
 <style scoped>
-.chart-tool { display: flex; height: 100%; min-height: 0; background: #101419; }
+.chart-tool { display: flex; height: 100%; min-height: 0; background: #101419; container-type: inline-size; container-name: chart-tool; }
 .chart-tool__drawing-toolbar { flex: 0 0 40px; max-height: 100%; box-sizing: border-box; overflow-x: hidden; overflow-y: auto; }
 .chart-tool__surface { position: relative; z-index: 2; min-width: 0; min-height: 0; flex: 1 1 auto; padding-top: 24px; box-sizing: border-box; }
 .chart-tool__status { position: absolute; inset: 24px 0 0; z-index: 4; background: rgba(7, 12, 16, 0.72); pointer-events: none; }
@@ -3442,7 +3442,8 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 /* Comparison labels grow when prices arrive. Reserve a separate right-hand
    slot instead of moving their overlap above or below the Plots hit target. */
 .chart-tool__surface--comparisons .chart-tool__plots { left: auto; right: 88px; }
-.chart-tool__compare { position: absolute; top: 3px; left: 4px; z-index: 12; display: flex; align-items: center; gap: 3px; max-width: calc(100% - 290px); overflow: hidden; }
+ .chart-tool__compare { position: absolute; top: 3px; left: 4px; z-index: 12; display: flex; align-items: center; gap: 3px; max-width: calc(100% - 290px); overflow: hidden; pointer-events: none; }
+ .chart-tool__compare input, .chart-tool__compare > button { pointer-events: auto; }
 .chart-tool__compare input { width: 72px; border: 1px solid #42515c; background: #11161b; color: #dce9f2; padding: 2px 4px; font: 10px "Segoe UI", Arial, sans-serif; }
 .chart-tool__compare > button { border: 1px solid #42515c; background: #1b252d; color: #b9c9d3; padding: 1px 4px; font: 10px "Segoe UI", Arial, sans-serif; cursor: pointer; white-space: nowrap; }
 .chart-tool__compare-chip { overflow: hidden; text-overflow: ellipsis; }
@@ -3453,6 +3454,15 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
   .chart-tool__plots { top: 25px; left: 4px; }
   .chart-tool__surface--comparisons .chart-tool__plots { left: 4px; right: auto; }
   .chart-tool__templates { top: 25px; right: 4px; }
+}
+/* A desktop workstation can contain a much narrower chart pane than the
+   viewport. Use the chart container's actual width so comparison chips never
+   cover Plots in dense factory layouts. */
+@container chart-tool (max-width: 560px) {
+  .chart-tool__surface--comparisons { padding-top: 46px; }
+  .chart-tool__surface--comparisons .chart-tool__compare { top: 3px; left: 4px; right: 4px; max-width: none; }
+  .chart-tool__surface--comparisons .chart-tool__plots { top: 25px; left: 4px; right: auto; }
+  .chart-tool__surface--comparisons .chart-tool__templates { top: 25px; right: 4px; }
 }
 .tool-state { display: grid; place-items: center; height: 100%; padding: 12px; color: #98a7b2; font: 11px "Segoe UI", Arial, sans-serif; text-align: center; }
 .tool-state--error { color: #ec8f8f; }

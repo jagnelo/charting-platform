@@ -1,8 +1,8 @@
 schema: 4
 branch: fix/tc2000-desktop-plots-rsp-overlap
-base_sha: 2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745
+base_sha: 6dc178c12498236a2a0060533305e20cf47438b7
 parent_branch: staging
-parent_sha: 2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745
+parent_sha: 6dc178c12498236a2a0060533305e20cf47438b7
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: >-
   The human directed the coordinator to resolve the newly reproduced F9c
@@ -67,19 +67,21 @@ owned_paths:
   - ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/
 dependencies:
   - >-
-    Exact synchronized green staging parent 2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745,
-    Exhaustive Integration Gate run 39013106548. If staging advances before
-    this repair is integrated, reconcile this branch to the latest green
-    staging tip, repeat affected validation and obtain exact-source CI before
-    coordinator integration.
+    Exact synchronized green staging parent 6dc178c12498236a2a0060533305e20cf47438b7,
+    Exhaustive Integration Gate run 39033839693. This baseline includes the
+    F8u watchlist/live-plot repair. The F9c repair branch was reconciled to
+    this exact tip on 2026-10-17; repeat affected validation on the combined
+    source and obtain exact-source CI before coordinator integration.
   - >-
     User-supplied exact runtime evidence at TC source
     389069a32682f97c51c0a6dd5cca99be3bb23c2a: at 1920x1080, Plots rect
     x=1061 y=107.5 w=42.58 h=18 overlaps Remove RSP x=1013 y=107.5 w=91.55
     h=15; elementFromPoint at Plots center returns Remove RSP and ordinary
     Playwright click is intercepted. At 390x800 TC Classic, normal click/menu/
-    close/remove flow succeeds. The current staged source and TC-owned source
-    differ; reproduce against this branch before claiming staged-source closure.
+    close/remove flow succeeds. The TC-supplied source remains the failure
+    evidence; this repair branch now includes the exact green F8u staging
+    baseline. The F9c candidate has not yet been verified on that combined
+    source, so no geometry closure is claimed until focused browser checks pass.
 acceptance_criteria:
   - id: PTRD1
     text: >-
@@ -127,15 +129,25 @@ deployment_impact: none
 status: in_progress
 remaining_gaps:
   - >-
-    Reproduce on this exact staging-derived source and implement the responsive
-    chart-container fix with the new failing-first ordinary-pointer regression.
+    Verify the responsive chart-container candidate on the exact repair source,
+    including the populated-RSP desktop geometry and ordinary-pointer
+    regression; preserve the separate F8u live-configuration change from green
+    staging.
   - >-
-    Complete focused and full local validation, exact-source CI, closure record,
-    then guarded integration and exact pushed staging Exhaustive Integration
-    Gate before releasing the repair to the feature owners.
+    Complete affected frontend tests, type-check and build, then the full local
+    functional/visual profile, exact-source branch CI, closure record, guarded
+    integration and exact pushed staging Exhaustive Integration Gate before
+    releasing the repair to the feature owners.
 progress:
   completed: []
   total: 5
-  current_phase: exact_source_reproduction_and_regression
-  current_blocker: none
-  next_action: reproduce the reported hit-target overlap on the staging-derived branch before editing product code
+  current_phase: post_green_staging_reconciliation_validation
+  current_blocker: >-
+    Full local browser validation is deferred until safe host memory headroom is
+    available. Last observation: 509 MiB available while unrelated VS Code,
+    Comet, TC and ETF workloads were active. Do not stop those workloads or
+    start a new Compose fixture at that resource level.
+  next_action: >-
+    Validate the re-applied F9c candidate on top of green staging with bounded
+    frontend checks; run the isolated full browser profile when host resources
+    permit, then obtain exact branch CI.
