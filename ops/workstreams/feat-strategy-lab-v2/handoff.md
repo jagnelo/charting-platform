@@ -14850,3 +14850,29 @@ This coherent receipt changes only
 `ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
 `ops/workstreams/feat-strategy-lab-v2/session.json`, and
 `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
+## 2026-10-17 22:57Z — terminal receipt and local-runtime hold
+
+The exact pushed Strategy source
+`99d59d52747dce512e525e8d89bc5051e7ea434f` completed GitHub Actions CI run
+`39075636025` successfully. Branch-declared Tests, Frontend Unit Tests, Backend
+Tests (unit and integration), and E2E Tests (Playwright) succeeded. Exhaustive
+Integration Gate was skipped by feature-branch policy. The result is exact-tip
+hosted evidence, not product acceptance, combined exhaustive acceptance, or a
+substitute for the required local `full_stack_browser` profile.
+
+Preserve the existing local-runtime receipt on the same source: the repository
+readiness helper was blocked after 180 seconds by Docker API permission denial.
+It was not retried. Current host headroom is approximately 1.1 GiB and retained
+Provider and TC stacks remain active, so launching a competing heavy profile is
+unsafe. This is an explicit safety hold, not a passing local-profile result and
+not a waiver of the full combined runtime gate.
+
+The checkpoint remains `in_progress` and unaccepted. Provider, ETF and TC2000
+product checkpoints have not all been released through staging, so Strategy
+consumer reconciliation, combined PostgreSQL/application validation,
+coordinated exhaustive validation, and the full local profile remain open.
+Historical red/flaky evidence, the formal unavailable goal, full roadmap,
+Nautilus/OOS fail-closed guarantees, migration namespace and ambiguity guard,
+tests, thresholds and oracles remain unchanged. No product, runtime, database,
+provider, staging or sibling operation was performed for this receipt.
