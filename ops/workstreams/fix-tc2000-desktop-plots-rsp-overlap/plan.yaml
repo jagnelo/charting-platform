@@ -153,11 +153,13 @@ progress:
   current_phase: safe_host_capacity_for_full_stack_browser
   current_blocker: >-
     Exact-source CI is green, but the full local profile is not yet safe to
-    start: the latest human-reported read-only host check (2026-10-17 17:50 UTC)
-    showed about 1.7 GiB available while retained Provider stacks and the
-    assigned TC stack remain running with its backend active; fixture
-    ownership/capacity are still unclear. Do not start a duplicate Compose
-    fixture or competing browser matrix; do not stop or clean services.
+    start: the human-reported read-only host check at 2026-10-17 21:54 UTC
+    showed about 1.7 GiB available, while my direct read-only `free -h` check
+    at 21:56 UTC showed 1.1 GiB available. Docker inventory confirms multiple
+    retained Provider validation projects and the assigned TC project are
+    running, but does not identify active fixture ownership. Capacity and
+    ownership are therefore not safe to assume. Do not start a duplicate
+    Compose fixture or competing browser matrix; do not stop or clean services.
   next_action: >-
     When fixture ownership and host capacity are safe, run the required isolated
     full local functional/visual profile with one worker and zero retries. Keep
