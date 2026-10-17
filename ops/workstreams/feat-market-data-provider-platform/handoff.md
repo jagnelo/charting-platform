@@ -27765,3 +27765,65 @@ checkpoint readiness; preserve its screenshot/video/trace and wait for a
 released owner repair before the required final full matrix. No provider or
 issuer requests, quota spend, paid/trial/unreviewed activation, data reset,
 assigned-stack cleanup, sibling/staging mutation, or deployment occurred.
+
+## 2026-10-17 09:17Z — owned checkpoint pushed; exact CI running
+
+The first coherent Provider workstream checkpoint is committed and pushed as
+`2be257d8f6299a57ac61317df9140edccd841cc0` to
+`origin/feat/market-data-provider-platform`; local and remote refs matched and
+the worktree was clean immediately after push. GitHub Actions run `39020467991`
+was observed running against that exact commit (Backend and Frontend Unit jobs
+had started); do not publish another source commit until it reaches terminal,
+to avoid cancelling this validation run. Its predecessor run
+`39016052020` was green only on parent `d5b4557`, not this merged source. The
+Provider implementation source remains `a20766d9`; this commit changes only
+the branch-owned workstream records. The exact-source bounded ICP2/ICP6 suite
+is 252/252, and the no-transport preflight has no live acceptance. The full
+pinned-Noble gate remains red at F8u (150 passed, two expected skips, one
+failed, no retry); full 260 functional and 104 visual gates are not complete
+on merged source. Keep all recorded quota/provider holds and roadmap gaps.
+
+## 2026-10-17 09:29Z — refreshed no-transport preflight is safely blocked
+
+The exact-source `scripts/run-live-provider-probes.py --preflight-only` was
+run against pushed implementation snapshot `2be257d8f6299a57ac61317df9140edccd841cc0`.
+It exited `2` as `blocked_before_transport`: 27 providers evaluated, zero
+provider HTTP requests, no transport, and `quota_coordinator_ready=false`
+because this process sees the configured durable SQLite quota ledger as
+read-only. It reported 24 policy-eligible provider candidates and the same
+three provider-specific quarantine groups (Dinari, Marketstack, Tiingo), but
+the global coordinator blocker means **none can proceed through this
+preflight**. Do not interpret policy eligibility as current routing admission,
+live success, or quota headroom. Earlier 08:30 preflight with a healthy
+coordinator is retained as historical evidence; the 09:29 status is the
+current local environment result. Do not switch to a blank temporary ledger or
+attempt transport. This no-transport run performed no provider/issuer request
+and consumed no provider quota. Actions `39020467991` for commit `2be257d8` is
+still running; do not push a replacement until terminal. The F8u profile
+failure remains TC-owned and unchanged.
+
+## 2026-10-17 09:52Z — exact-source Actions terminal; checkpoint still open
+
+Actions run `39020467991` is terminal success on exact pushed source
+`2be257d8f6299a57ac61317df9140edccd841cc0`. Backend passed 2,838 unit and 396
+integration tests with 82% combined coverage; Frontend Unit and
+Branch-declared jobs passed; Playwright passed 151 with 109 expected skips in
+15.9 minutes, with no failed/retry-passing/flaky tests. Exhaustive was skipped
+by feature-branch policy. Codecov emitted token-required upload errors, but
+its workflow step is configured non-gating and the Backend job succeeded. The
+provider-live workflow was not part of this push CI.
+
+Do not overstate this as complete Provider acceptance: the exact local
+pinned-Noble selection on implementation source `a20766d9` remains red at F8u
+(150 passed, 2 expected live skips, 1 failure, retries zero); the full 260-case
+functional and 104 strict visual gates are not complete on the merged source.
+The latest 09:29 no-transport provider preflight was blocked globally because
+the configured durable SQLite quota ledger was read-only to this process, in
+addition to the Dinari, Marketstack, and Tiingo operation-specific holds. It
+sent zero provider requests and spent no quota. Do not use a blank temporary
+ledger or transport around that admission failure. ICP2/ICP6 bounded tests
+remain 252/252 on implementation source `a20766d9`; the free-only restriction,
+success/unavailable producer examples, operation dispositions, and downstream
+ownership are explicit in `plan.yaml` and the checkpoint packet. The exact CI
+receipt is appended to `validation.jsonl`. Checkpoint remains pending and not
+ready for integration.

@@ -1,13 +1,21 @@
 # Provider integration checkpoint review packet
 
-## Workstream integrity check — 2026-10-17 09:14Z
+## Workstream integrity and exact CI — 2026-10-17 09:52Z
 
 `make branch-validate` passed all 36 records after the current updates and
-`git diff --check` passed. This validates the durable records only. Local
-Provider branch `a20766d9920ca91bfbf0b15bedcbf16c11776dd9` is still ahead of
-origin; the only green Actions receipt cited below is on its parent and does
-not close post-merge CI. Full pinned-Noble validation remains red on TC-owned
-F8u, so this packet is not a ready-for-review or integration declaration.
+`git diff --check` passed. This validates the durable records only. Provider
+workstream records are pushed at exact branch tip
+`2be257d8f6299a57ac61317df9140edccd841cc0`. Exact Actions run `39020467991`
+on that commit is now terminal success: Backend 2,838 unit + 396 integration,
+82% combined coverage; Frontend Unit, Branch-declared, and Playwright (151
+passed / 109 expected skips, no failures or retry/flaky markers) succeeded;
+Exhaustive was skipped by feature-branch policy. Codecov upload emitted
+token-required errors but is configured non-gating. The underlying
+implementation source is merged Provider SHA
+`a20766d9920ca91bfbf0b15bedcbf16c11776dd9`. The latest no-transport preflight
+was blocked globally by a read-only configured quota ledger in this process.
+Full pinned-Noble validation remains red on TC-owned F8u, so this packet is not
+a ready-for-review or integration declaration.
 
 ## Current evidence — 2026-10-17 09:11Z; checkpoint still pending
 
@@ -22,6 +30,27 @@ feature import. On `a20766d9`, Provider's bounded recurring-cost, runtime,
 coverage/OHLCV and live-runner ICP2/ICP6 regression selection passed `252/252`
 in `120.75s`; the merged component suites passed `78/78`. These results do not
 substitute for the full local profile or exact-source hosted CI.
+
+ICP2/ICP6 contract details are preserved in the plan's
+`consumer_contract_map` and `consumer_contract_examples`. In brief:
+
+- Checkpoint routing is hard free-only when
+  `PROVIDER_FREE_ONLY_CHECKPOINT=true`: reviewed paid market-data plans remain
+  denied under either `ALLOW_PAID_PROVIDER_ROUTING` value, while trial and
+  unreviewed plans fail closed before transport. The documented EODHD
+  `/api/user` zero-daily-credit exception is operation-specific and still
+  reserves its per-minute unit; MarketData.app `/user/` has no such exception.
+- ICP6's producer examples include successful `ProviderExecutionResult` with
+  response retention; quota/entitlement denial before invocation; OHLCV
+  `local_only=true` returning `200 []` without fetching when no bars are
+  retained; and provider-backed no-data mapping to `404`. ETF owns its later
+  adapter/page/retry bridge; TC2000 and Strategy own their consumer wiring.
+  No sibling wiring is claimed in this Provider checkpoint.
+- The shared recurring-cost API and single-currency ceiling have unit/admin
+  and migration coverage; it neither enables routing nor authorizes activation.
+  Selection/configuration of the approved EUR/USD-equivalent ceiling without
+  inventing FX, remaining PostgreSQL/operational evidence, and the ETF consumer
+  bridge stay explicit roadmap work, not a waiver or hidden assumption.
 
 ### Required pinned-Noble functional profile
 
@@ -51,14 +80,22 @@ been rerun on current source.
 
 ### Current operation-level preflight and dispositions
 
-The source-bound no-transport preflight on `a20766d9` evaluated all 27
-manifested providers; the durable quota coordinator was healthy, with no global
-blockers, 24 admission-eligible candidates, and 3 quarantined provider groups.
+The historical source-bound no-transport preflight on `a20766d9` (08:30Z)
+evaluated all 27 manifested providers with a healthy durable quota coordinator,
+no global blockers, 24 policy-eligible candidates, and 3 quarantined provider
+groups. A newer 09:29Z preflight against implementation-equivalent pushed
+source `2be257d8` is the current local status: it evaluated 27 providers and
+exited blocked-before-transport because the configured durable SQLite quota
+ledger was read-only in this process. `quota_coordinator_ready=false` is a
+global blocker, so none of the 24 candidates can proceed through this
+preflight. Both checks sent zero provider requests and spent no quota.
 Eligibility is **not** live success, enabled routing, or authorization to
-transport. No provider/issuer HTTP or quota spend occurred.
+transport. Do not substitute a blank ledger to bypass this global admission
+failure.
 
 | Provider operation(s) | Current disposition | Reason |
 |---|---|---|
+| All provider operations in this local preflight | Globally blocked before quota admission | The configured durable SQLite quota ledger is read-only to this process; `quota_coordinator_ready=false`. No operation is admitted until the existing coordinator can be used safely. |
 | Dinari: `discover_tokenized_assets`, `fetch_tokenized_corporate_actions`, `fetch_tokenized_dividends`, `fetch_tokenized_historical_prices`, `fetch_tokenized_news`, `fetch_tokenized_splits`, `get_tokenized_asset`, `get_tokenized_price`, `get_tokenized_quote` | Quarantined / non-routable | Account-applicable Sandbox reset/quota contract and every operation's costs remain unreviewed; no account-reviewed profile is configured. |
 | Marketstack: `fetch_ohlcv` | Quota-held / non-routable | Current monthly headroom is below the two-request combined-matrix reservation. |
 | Marketstack: `discover_universe_page` | Unreviewed / non-routable | Discovery venue/MIC, per-page maximum cost, and operation cost remain unresolved. |
