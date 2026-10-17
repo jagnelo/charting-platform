@@ -5,30 +5,87 @@ parent_branch: staging
 parent_sha: 2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Coordinate the existing Provider \u2192 ETF holdings \u2192 TC2000 \u2192 Strategy Lab v2 feature checkpoints through reconciliation, delegated technical acceptance, sequential guarded merges into persistent staging, and exact-source full validation. Deliver a combined development baseline usable for human testing within the human-approved verified-free-only scope, with quota-held, unreviewed, paid-trial, and unsafe operations disabled and full feature roadmaps retained. No master promotion, deployment, paid activation, or operational trial is authorized."
-planning_state: draft
-human_closure_authorization: pending
+planning_state: ready
+human_closure_authorization: >-
+  The human delegated technical-fix review and closure to the coordinator on
+  2026-10-15, saying: "Yes I approve, and you do not need my acceptance to
+  close it off ... do this yourself, with care ... I just want to get to the
+  merged-into-staging state to finally try this out." Applied here only to
+  this narrowly scoped, evidence-backed staging repair. This does not accept
+  any of the four feature checkpoints or authorize promotion, deployment, paid
+  activation, quota spend, an operational trial, or unrelated cleanup.
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: full_stack_browser
+local_validation_reason: >-
+  The repair changes shared workstation UI state used by a real chart-plot drag
+  into a watchlist. Validate F8u on isolated, provider-egress-denied runtime,
+  then affected frontend suites, type-check, build, exact-source CI and guarded
+  staging CI. No screenshot or visual oracle change is in scope.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
-goal: "Coordinate the existing Provider \u2192 ETF holdings \u2192 TC2000 \u2192 Strategy Lab v2 feature checkpoints through reconciliation, delegated technical acceptance, sequential guarded merges into persistent staging, and exact-source full validation. Deliver a combined development baseline usable for human testing within the human-approved verified-free-only scope, with quota-held, unreviewed, paid-trial, and unsafe operations disabled and full feature roadmaps retained. No master promotion, deployment, paid activation, or operational trial is authorized."
-scope: []
-owned_paths: []
+goal: >-
+  Fix the staging-derived F8u chart-plot-to-watchlist race so the visible
+  indicator definition and chart-drop configuration update use one canonical
+  live workspace snapshot. Publish a narrow clean repair checkpoint for the
+  coordinator; do not integrate, promote, deploy, or modify feature worktrees.
+scope:
+  - >-
+    Resolve the detached Golden Layout configuration race in the shared
+    WorkstationToolContent watchlist path: both configured indicator rendering
+    and chart-plot drop updates must read the canonical live workspace window.
+  - >-
+    Preserve the current ordinary drag path, F8u assertions and timeout/retry
+    policy, screenshot references/tolerances, retained data, and provider holds.
+owned_paths:
+  - frontend/src/components/workstation/WorkstationToolContent.vue
 dependencies: []
-acceptance_criteria: []
-branch_tests: []
-branch_tests_reason: pending agent assessment
-live_test_impact: none
+acceptance_criteria:
+  - >-
+    Configured indicator rendering and chart-plot drop updates use the same
+    canonical live workspace configuration snapshot; no unrelated feature
+    source or ownership boundary changes.
+  - >-
+    Existing F8u real pointer-drag flow adds the RSI header to Major US
+    benchmarks on this exact repair source, in a fresh internal-only seeded
+    fixture with provider/OneSignal credentials blank, provider routing/refresh
+    disabled, one worker, and zero retries; repeat the exact flow five times.
+  - >-
+    Affected watchlist/plot component suites, vue-tsc, production frontend
+    build, branch-declared tests, and exact-source ordinary CI pass without
+    weakened assertions, changed timeouts/retries, external provider traffic,
+    or visual-oracle changes.
+  - >-
+    The branch is clean and pushed with exact evidence, stops at
+    ready_for_human_review, and leaves integration solely to the coordinator's
+    guarded persistent-staging workflow.
+branch_tests:
+  - frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts
+  - frontend/tests/unit/components/test_chart_plot_library.test.ts
+  - frontend/tests/e2e/flows.spec.ts — F8u chart plots to watchlist
+  - vue-tsc --noEmit and frontend production build
+  - exact-source GitHub Actions branch CI
+branch_tests_reason: >-
+  The existing F8u E2E test exercises the real cross-tool drag and is already
+  present on the staging base. Focused component suites cover its source/target
+  contracts; ordinary CI supplies the branch-wide regression gate.
+live_test_impact: >-
+  No live provider or issuer test is required. Browser validation must use a
+  fresh internal-only fixture with provider and OneSignal egress denied,
+  credentials blank, and provider routing/refresh disabled.
 migration_impact: none
 deployment_impact: none
-status: authorized
-remaining_gaps: []
+status: in_progress
+remaining_gaps:
+  - >-
+    This repair checkpoint does not close Provider, ETF, TC2000, or Strategy
+    Lab v2 feature checkpoints. Provider's full 260-case/104-visual validation,
+    operation dispositions, and current quota preflight remain owner/coordinator
+    gates after this fix is released through staging.
 progress:
   completed: []
-  total: 0
-  current_phase: plan
+  total: 4
+  current_phase: source_repair_and_full_validation
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: implement the minimal live-configuration fix, add evidence, and run the required full integration profile
