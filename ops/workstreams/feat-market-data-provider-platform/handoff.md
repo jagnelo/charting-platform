@@ -1,5 +1,47 @@
 # feat/market-data-provider-platform
 
+## 2026-10-17 06:07Z — Dinari quota-contract documentation research
+
+First-party Dinari material reviewed without contacting its API: the API
+License Agreement last updated June 11, 2024 states a maximum of one million
+API calls in any rolling 30-day period, with no rollover; the current Partner
+Fees guide says sandbox access is free during evaluation/building and paid API
+access starts at $2,000/month. The public documentation confirms a distinct
+Sandbox base URL and documents stock-list, historical-price, news, and quote
+operations. However, the public sources do not establish that the 2024 license
+limit is applicable to this exact sandbox key, the account's current usage or
+reset boundary, or operation-specific costs. No current API rate-limit/429
+policy was found in the reviewed public docs. Therefore no allowance was
+inferred and Dinari remains non-routable pending an account-applicable quota
+profile and complete operation-cost/reset evidence. No API request or quota
+spend occurred. Sources: `https://assets.dinari.com/forms/Dinari_API_License_w_SLA_20240611.pdf`,
+`https://docs.dinari.com/docs/fees`, `https://docs.dinari.com/reference/environments`,
+`https://docs.dinari.com/docs/stock-data`.
+
+## 2026-10-17 06:05Z — receipt-schema correction and current browser blocker
+
+The coordinator's latest exact-source report keeps the designated pinned
+Noble functional profile red on application/test source
+`31007ae8efe7973e1e8f2819157c64322f356b1b`: 146 passed, 2 expected skips,
+5 failed, zero retries. F9c, F9c-template-transform,
+F9c-template-comparison, F9e, and F9f fail before their expected save/list/PUT
+result. The retained F9e error shows `crypto.randomUUID is not a function`.
+This is a shared chart-template/column-set key-generation issue, not a
+provider payload, issuer, or quota failure. TC owns the two-generator
+`getRandomValues` candidate; 107 affected component tests and vue-tsc pass,
+but its browser validation and exact-source CI have not passed. Provider must
+not modify TC-owned source. The earlier complete pinned-Noble 260-case run
+(258 passed, 2 skips) remains recorded separately and does not clear this
+red required functional result or validate the unmerged TC candidate.
+
+The 05:11Z detailed validation entry and 05:20Z follow-up are retained. The
+new append-only correction entry supplies the standard top-level `command`
+and `result` fields and explicitly links the detailed evidence, so no prior
+receipt is rewritten. Current `make branch-validate` passes. The checkpoint
+remains pending; continue Provider-owned ICP2/ICP6 work and exact operation
+dispositions. No provider/issuer HTTP or quota use, no TC edits, data reset,
+assigned-stack cleanup, staging/sibling mutation, or deployment.
+
 ## 2026-10-17 06:00Z — exact-source no-transport preflight
 
 At source `1887d80be992a184b578767f17321d891744531a`, the full live matrix

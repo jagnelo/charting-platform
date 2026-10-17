@@ -1,5 +1,39 @@
 # Provider integration checkpoint review packet
 
+## Dinari quota evidence — 2026-10-17 06:07Z
+
+Public first-party docs reviewed read-only: the June 11, 2024 API License
+states a maximum of one million calls in any rolling 30 days with no rollover;
+the current Partner Fees page says sandbox access is free during evaluation
+and paid API access starts at $2,000/month. This does not establish that the
+older license ceiling applies to this exact sandbox key, its present usage or
+reset boundary, or per-operation costs. No current API rate-limit/429 policy
+was found in reviewed public docs. Dinari therefore remains quarantined; no
+quota allowance is inferred and no API call was made. See handoff for sources
+and exact scope.
+
+## 2026-10-17 06:05Z — current required functional gate remains red
+
+The coordinator's current exact-source status for code/test source
+`31007ae8efe7973e1e8f2819157c64322f356b1b` is a red pinned-Noble functional
+profile: 146 passed, 2 expected skips, 5 failed, zero retries. The failures are
+F9c, F9c-template-transform, F9c-template-comparison, F9e, and F9f; each fails
+before its expected save/list/PUT result. The retained F9e error explicitly
+shows `crypto.randomUUID is not a function`, locating the defect in shared
+chart-template/column-set key generation—not provider payloads, issuer data,
+or quota. TC owns the proposed two-generator `getRandomValues` repair. Its 107
+affected component tests and vue-tsc pass, but browser validation and
+exact-source CI remain outstanding. Provider did not and must not edit TC
+source.
+
+Keep the separate 05:54Z complete 260-case pass (258 passed, 2 expected skips)
+as an independent, source-bound receipt; it does not erase the coordinator's
+red required functional result or validate the unmerged TC candidate. The
+checkpoint is not ready for integration. No new browser run is started while a
+heavy profile is active. Continue only Provider-owned ICP2/ICP6 contracts and
+operation dispositions; no provider/issuer HTTP, quota spend, data reset,
+assigned-stack cleanup, staging/sibling writes, activation, or deployment.
+
 ## 2026-10-17 06:00Z — refreshed no-transport operation dispositions
 
 Current branch source at preflight was `1887d80be992a184b578767f17321d891744531a`;

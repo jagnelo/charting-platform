@@ -75,13 +75,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "1887d80be992a184b578767f17321d891744531a",
+  "head": "9b10fbd08fe3c9eb903bc6c20aea49f7cab96672",
   "implementation_sha": "31007ae8efe7973e1e8f2819157c64322f356b1b",
   "interrupted": false,
-  "last_checkpoint": "2026-10-17T06:00:38Z",
+  "last_checkpoint": "2026-10-17T06:07:00Z",
   "last_human_progress_update": "2026-10-16T11:12:47.867964+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Provider implementation/test source 31007ae8efe7973e1e8f2819157c64322f356b1b has green Actions 39001830674 and a complete pinned-Noble 260-case profile pass (258 passed, 2 expected skips, 0 failed/retried). Preserve prior 146/2/5 pinned-functional and 162/2/96 host-native red receipts. Coordinator identified retained F9e `crypto.randomUUID is not a function` in shared chart-template/column-set generators; TC owns the getRandomValues repair, whose browser validation and exact-source CI remain outstanding. Do not edit TC files. Current branch source 1887d80be992a184b578767f17321d891744531a has a no-transport full preflight: durable coordinator ready, 24 providers individually admissible, three held (Dinari, Marketstack, Tiingo), zero HTTP, zero quota spend. Continue Provider-owned ICP2/ICP6 contract work and reconcile operation-level dispositions. Under the current no-provider-call direction, do not run external cases. No data reset, assigned-stack cleanup, sibling/staging mutation, deployment, paid/trial activation, or checkpoint closure.",
+  "next_action": "Coordinator's current exact-source report keeps the designated pinned-Noble functional profile red on source 31007ae8efe7973e1e8f2819157c64322f356b1b: 146 passed, 2 expected skips, 5 failed, zero retries (F9c, F9c-template-transform, F9c-template-comparison, F9e, F9f). Retained F9e reports `crypto.randomUUID is not a function` in shared chart-template/column-set generators. TC owns its two-generator getRandomValues candidate; 107 component tests and vue-tsc pass, but browser validation and exact-source CI are outstanding. Do not edit TC files. Preserve the separately recorded 05:54Z 260-case 258/2 pass without treating it as clearing this red required functional result. The 05:11Z report-schema gap is repaired by an append-only companion receipt with top-level command/result; branch validation passes. Current source 1887d80be992a184b578767f17321d891744531a has a no-transport full preflight: durable coordinator ready, 24 providers individually admissible, three held (Dinari, Marketstack, Tiingo), zero HTTP, zero quota spend. Continue Provider-owned ICP2/ICP6 contract work and reconcile operation-level dispositions. No provider/issuer calls or quota while current direction holds. No data reset, assigned-stack cleanup, sibling/staging mutation, deployment, paid/trial activation, or checkpoint closure.",
   "parent_branch": "staging",
   "plan_hash": "a8875425f88edd353e17890043664f37442479bcd3d7eda2f0134d0d77bf55cd",
   "planning_required": false,
@@ -113,15 +113,15 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "The complete pinned-Noble 260-case profile passed 258 with 2 expected skips and no failures/retries on application/test source 31007ae; preserve the earlier 146/2/5 and host-native 162/2/96 red receipts. Coordinator identified retained F9e `crypto.randomUUID is not a function` in shared chart-template/column-set key generators. TC owns the getRandomValues repair; browser validation and exact-source CI remain open, and Provider made no TC edits. Fresh no-transport preflight at 1887d80 found the durable coordinator ready, 24 providers individually admissible, and Dinari/Marketstack/Tiingo held; the full matrix remains blocked before transport. ICP2/ICP6 and operation dispositions remain under Provider follow-up; checkpoint acceptance is pending. No provider HTTP/quota or data reset occurred.",
+    "current_blocker": "The coordinator-designated pinned-Noble functional profile remains red on source 31007ae8efe7973e1e8f2819157c64322f356b1b: 146 passed, 2 expected skips, 5 failed, zero retries. Retained F9e reports crypto.randomUUID is not a function in shared chart-template/column-set key generation; TC owns the proposed getRandomValues repair, but browser validation and exact-source CI are outstanding. Provider made no TC edits. Preserve the separate 05:54Z full 260-case 258/2 pass without treating it as clearing the failing required functional receipt. Fresh no-transport preflight at 1887d80 found the durable coordinator ready, 24 providers individually admissible, and Dinari/Marketstack/Tiingo held; the full matrix remains blocked before transport. ICP2/ICP6 and operation dispositions remain under Provider follow-up; checkpoint acceptance is pending. No provider/issuer HTTP/quota or data reset occurred.",
     "current_phase": "provider-checkpoint-icp2-icp6-and-operation-disposition",
-    "next_action": "Continue Provider-owned ICP2 recurring-cost and ICP6 producer/consumer contract work; reconcile the 24 individually admissible versus three held providers from the exact no-transport preflight; prepare clean exact-source review evidence. Preserve the full pinned profile pass and both prior red runs. Do not edit the TC-owned randomUUID generators; require TC's exact browser/CI evidence through the coordinator's normal process. No provider calls/quota, data reset, assigned-stack cleanup, staging/sibling writes, deployment, paid/trial activation, or checkpoint closure.",
+    "next_action": "Continue Provider-owned ICP2 recurring-cost and ICP6 producer/consumer contract work; reconcile the 24 individually admissible versus three held providers from the exact no-transport preflight; prepare clean exact-source review evidence. Preserve the coordinator-designated 146/2/5 red functional receipt, separate 258/2 complete-profile pass, host-native red result, and corrected receipt schema. Do not edit TC-owned key generators; require TC's browser/CI evidence through the coordinator's normal process. No provider/issuer calls or quota, data reset, assigned-stack cleanup, staging/sibling writes, deployment, paid/trial activation, or checkpoint closure.",
     "total": 7,
-    "updated_at": "2026-10-17T06:00:38Z"
+    "updated_at": "2026-10-17T06:07:00Z"
   },
   "remote": "origin/feat/market-data-provider-platform",
-  "remote_sha": "1887d80be992a184b578767f17321d891744531a",
-  "remote_synchronized": true,
+  "remote_sha": "9b10fbd08fe3c9eb903bc6c20aea49f7cab96672",
+  "remote_synchronized": false,
   "retained_docker_resources": [
     "charting-provider-validation-isolated-20261017 remains running with datasets preserved; charting-stack-provider-validation-1236-20261016, provider-playwright-1236-hostaccess-20261016, and assigned Provider/TC stacks remain running/preserved. No stop, reset, prune, or data cleanup occurred. The exact temporary OneSignal proxy was removed after the completed browser run."
   ],

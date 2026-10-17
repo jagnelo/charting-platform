@@ -1,14 +1,29 @@
 schema: 4
-# Current continuation status — 2026-10-17 06:00Z: the full-matrix
+# Current continuation status — 2026-10-17 06:05Z: the designated pinned
+# Noble functional profile on source 31007ae8efe7973e1e8f2819157c64322f356b1b
+# remains red: 146 passed, 2 expected skips, 5 failed, zero retries. The
+# coordinator identified `crypto.randomUUID is not a function` in shared
+# chart-template/column-set key generation as the cross-feature cause. TC owns
+# the two-generator `getRandomValues` candidate; its 107 component tests and
+# vue-tsc pass, but browser validation and exact-source CI remain outstanding.
+# Do not edit TC files or claim the Provider checkpoint ready. The separate
+# 05:54Z 260-case run recorded 258/2/0 remains historical evidence and does not
+# erase this failing required functional result. The append-only receipt
+# companion schema is repaired and both results are retained. Continue
+# Provider-owned ICP2/ICP6.
+# No provider calls/quota, activation, data reset, assigned-stack mutation,
+# staging/sibling edit, or deployment.
+# Historical 06:00Z continuation status: the full-matrix
 # no-transport preflight at branch source 1887d80be992a184b578767f17321d891744531a
 # found the durable quota coordinator ready, 24 individually admissible
 # providers, and three provider groups held (Dinari, Marketstack, Tiingo).
 # It stopped before transport with zero provider HTTP requests and zero quota
 # spend. Exact details are in the checkpoint packet and redacted receipt.
 # Provider implementation/test source remains 31007ae8efe7973e1e8f2819157c64322f356b1b;
-# its exact Actions 39001830674 is green and full pinned-Noble 260-case browser
+# its exact Actions 39001830674 is green and a pinned-Noble 260-case browser
 # profile passed 258 with two expected live skips, no failures/retries. Keep
-# both earlier red profiles. The retained crypto.randomUUID runtime error is
+# this distinct from the designated pinned functional run, which remains red.
+# The retained crypto.randomUUID runtime error is
 # a shared TC-owned key-generator issue; TC's browser and exact-source CI remain
 # outstanding. Do not edit TC files. Provider checkpoint remains pending ICP2,
 # ICP6, current operation dispositions, and exact review evidence. No provider
