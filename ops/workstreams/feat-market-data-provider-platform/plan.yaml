@@ -8585,4 +8585,19 @@ current_gate_checkpoint: >-
     fixture ownership. Preserve every prior result, quota hold, and full
     roadmap item; no provider/issuer transport, quota reservation/spend,
     data reset/cleanup, staging/sibling write, or deployment. The coordinator
-    owns acceptance and staging integration; checkpoint remains open.
+    owns acceptance and staging integration; checkpoint remains in_progress
+    with closure pending. Evidence-only commit
+    `bc45e4b223a4abfd89de15e2c7278ed17d43a698` is synchronized to origin and
+    exact push CI `39070049292` is terminal green (Backend, Frontend Unit,
+    Branch-declared, Playwright; Exhaustive skipped by feature policy). This
+    does not erase the F8u red. The 252/252 bounded ICP2/ICP6 no-transport
+    selection identifies no additional Provider-owned gap. Wait for a
+    coordinator-released safe fixture/resource slot, then run unchanged
+    focused F8u and pinned-Noble 260-functional/104-visual local gates.
+    The historical MD/Tiingo all-mode runner admission and retained FMP/Tiingo
+    reconciliation findings are already implemented in `d9104b3`, `9f9d114`,
+    and `0111cc6`; focused current-source regressions passed 23/23 at
+    `bc45e4b` with zero transport. Do not duplicate those fixes. No further
+    safe Provider-owned no-transport contract gap is identified; checkpoint
+    remains in_progress pending the held local browser gates and operation
+    dispositions.

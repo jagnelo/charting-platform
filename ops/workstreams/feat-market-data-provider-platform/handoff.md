@@ -1,5 +1,68 @@
 # feat/market-data-provider-platform
 
+## 2026-10-18 14:44Z — safe-capacity recheck; full local profile still held
+
+- Read-only `free -h` showed 1.0 GiB available with 13 GiB of swap in use.
+  The read-only Docker inventory showed several retained Provider validation
+  projects plus the assigned Provider and TC stacks still running (some for
+  1–4 days). The Provider worktree's own resource ledger reports its assigned
+  8-container/4-volume stack within its 5 GB project budget, but that does not
+  establish host headroom or ownership of the other retained fixtures.
+- No fixture or browser matrix was started; no container or volume was stopped,
+  reset, or cleaned. No Provider/issuer request, quota reservation, or spend
+  occurred.
+- Keep focused F8u and the pinned-Noble 260-functional/104-visual profile held
+  until a safe host slot and exact fixture ownership are established. The
+  checkpoint remains `in_progress`; hosted green CI and the 23/23 no-transport
+  tests do not replace this local gate.
+
+## 2026-10-18 11:14Z — provider plan gates confirmed delivered; local browser hold remains
+
+- Reconciled exact push CI `39070049292` on source
+  `bc45e4b223a4abfd89de15e2c7278ed17d43a698`: Backend, Frontend Unit,
+  Branch-declared, and Playwright passed; Exhaustive skipped by feature-branch
+  policy. The preceding F8u strict-flaky red (`39066530798` on `486601a8`)
+  remains preserved and is not erased by this receipt-only green CI.
+- Checked historical coordinator findings against current implementation.
+  `d9104b3` already adds shared MarketData.app/Tiingo plan admission before
+  live-run lock/subprocess and focused mode/paid-toggle denial tests.
+  `9f9d114`/`0111cc6` already add reviewed-plan evidence, manual-revision
+  preservation, stale seed refresh, and fail-closed config-mismatch behavior.
+- Focused plan-admission and retained-plan regressions passed 23/23 in 23.96s
+  under the UV-managed Python 3.12 environment. Zero provider/issuer requests,
+  quota reservations, or spend. These gaps are closed in current code; no
+  duplicate code change was made.
+- Continue to preserve the full roadmap and checkpoint `in_progress`. Focused
+  F8u and pinned-Noble 260-functional/104-visual remain held until coordinator
+  confirms fixture ownership and safe host capacity. Next action is to wait
+  for that release, then run those unchanged local gates. No provider HTTP,
+  quota spend, paid/trial/unreviewed activation, data reset/cleanup, staging or
+  sibling mutation, or deployment.
+
+## 2026-10-17 21:40Z — receipt-only checkpoint update CI green; browser gates held
+
+- Committed and pushed only the five branch-owned workstream files as
+  `bc45e4b223a4abfd89de15e2c7278ed17d43a698`; local HEAD and origin are
+  synchronized and the worktree was clean immediately after push.
+- Exact push CI `39070049292` is terminal green on that exact SHA: Backend,
+  Frontend Unit, Branch-declared, and Playwright passed; Exhaustive was
+  skipped by feature-branch policy. This receipt-only update does not clear
+  the prior strict-flaky failure.
+- Preserve run `39066530798` as red on `486601a8`: the first F8u real-drag
+  attempt failed and retry #1 passed, so strict fail-on-flaky kept CI red.
+  Do not rerun to erase it or edit TC-owned source.
+- The bounded no-transport ICP2/ICP6 selection passed 252/252 on `486601a8`;
+  no further concrete Provider-owned no-transport gap was identified. The
+  current preflight made zero provider requests/reservations/spend but the
+  durable quota ledger was read-only; Dinari, Marketstack discovery, and
+  Tiingo remain quarantined.
+- Focused F8u and pinned-Noble 260-functional/104-visual remain held pending
+  coordinator release of safe fixture/resource capacity. Continue preserving
+  all prior evidence and full-roadmap requirements; checkpoint is still
+  `in_progress`, not ready/accepted. No provider/issuer transport, quota
+  reservation/spend, staging/sibling changes, data reset/cleanup, deployment,
+  or paid/trial/unsafe activation.
+
 ## 2026-10-17 20:22Z — session remote-ref fix pushed; exact CI green
 
 - Committed the supported session-record consistency fix and its regression as

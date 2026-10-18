@@ -1,18 +1,38 @@
 # Provider integration checkpoint review packet
 
-## Current exact-source status — 2026-10-17 21:02Z
+## Current exact-source status — 2026-10-18 14:44Z
 
-Provider HEAD and origin are synchronized at receipt-only tip
-`486601a8aa542d48022f0a480c419d1b103121da`; implementation source is
-`20f8c68678348d0eebcf9fc8eb6fbcab021936db`. The prior implementation-source
-Actions run `39063912811` was green. The tip-triggered exact run `39066530798`
-is terminal red under strict flaky-test policy: Backend, Frontend Unit, and
-Branch-declared passed; Playwright logged 150 passed, 109 expected skips, and
-one flaky F8u drag test. Its first attempt failed to find the RSI watchlist
-header within 10 seconds after the real drag; retry #1 passed, but the job
-remained red. This is retained as a CI failure, not a clean pass. No F8u source
-was changed; it is TC-owned. The uploaded Playwright report is artifact
-`12114033733` and has not been used to justify a rerun or source change.
+Provider HEAD and origin are synchronized at evidence tip
+`bc45e4b223a4abfd89de15e2c7278ed17d43a698`; implementation source remains
+`20f8c68678348d0eebcf9fc8eb6fbcab021936db`. The receipt-only commit records
+the prior strict-flaky red run `39066530798` on `486601a8` and the bounded
+252/252 no-transport ICP2/ICP6 suite. Exact push CI `39070049292` is terminal
+green on `bc45e4b`: Backend, Frontend Unit, Branch-declared, and Playwright
+passed; Exhaustive was skipped by feature-branch policy. This receipt-only
+green CI does not erase or replace the prior F8u red result.
+
+Run `39066530798` remains terminal red: its first F8u attempt failed to find
+the RSI watchlist header within 10 seconds after the real drag; retry #1
+passed, but strict flaky policy kept the job red. F8u is TC-owned and was not
+changed or rerun. The uploaded report is artifact `12114033733`.
+
+The historical MarketData.app/Tiingo live-runner effective-plan admission and
+retained FMP/Tiingo plan-reconciliation findings were checked against current
+code and focused tests. The existing shared runner gate blocks nonfree,
+trial, and unrecognized effective plans before the run lock/subprocess across
+full/provider/account-usage/case scopes; paid-toggle tests cover both values.
+Existing runtime seed logic refreshes known stale FMP/Tiingo repository-plan
+labels, preserves manual/API revisions, and fails closed on current-config
+mismatch. Focused current-source tests passed 23/23 with zero provider/issuer
+requests, reservations, or spend. These code gaps are already closed; no
+duplicate implementation was added.
+
+At 14:44Z, a read-only host check showed 1.0 GiB available and 13 GiB swap in
+use. Several retained Provider validation projects and the assigned Provider
+and TC stacks remain running; the Provider-assigned 8-container/4-volume
+project is within its own project budget, but fixture ownership and safe host
+headroom for a new full profile are not established. No service/data change or
+provider/issuer transport occurred. Keep both local browser gates pending.
 
 A fresh exact-tip `--preflight-only` run at 21:01:39Z evaluated all 27
 providers, made zero HTTP requests, and spent/reserved zero quota. The durable
@@ -23,9 +43,9 @@ not live acceptance. The bounded ICP2/ICP6 no-transport selection was refreshed
 on current tip `486601a8` and passed 252/252 in 145.23s (5 warnings); it made
 zero provider/issuer requests and no quota reservations/spend. The required
 focused F8u and pinned-Noble 260-functional/104-visual profile remain held
-pending safe host capacity and fixture ownership. Exact CI/backend tests and
-these bounded contract checks do not replace the held local browser gates or
-operation-level live acceptance.
+pending coordinator confirmation of a safe host slot and fixture ownership.
+Exact CI/backend tests and these bounded contract checks do not replace the
+held local browser gates or operation-level live acceptance.
 
 The current no-transport full-matrix preflight evaluated 27 providers; the
 durable coordinator was ready, 24 candidates were eligible, three groups
@@ -36,13 +56,15 @@ reservation/spend is authorized. Preserve the historical partial-live
 responses and missing Alpha Vantage aggregate usage entry; do not retry.
 
 The local pinned-Noble 260-functional/104-visual profile and focused F8u remain
-held due retained Provider/TC resources, unclear fixture ownership, and low
-host capacity. Checkpoint remains open; no readiness/acceptance claim. Next
-bounded work is Provider-owned no-transport ICP2/ICP6 contract and operation
-disposition, preserving all previous red evidence and full-roadmap criteria.
-The newly pushed workflow fix only synchronizes legacy `remote_sha` in the
-session-record builder and adds a regression; it does not change Provider
-runtime behavior or clear the held browser/live gates.
+held pending coordinator confirmation of fixture ownership and safe host
+capacity. No additional Provider-owned no-transport ICP2/ICP6 gap was
+identified by the 252-case selection. Next action: wait for the coordinator's
+safe-slot release, then run the unchanged focused F8u and full pinned-Noble
+260-functional/104-visual gates. Preserve all prior red evidence, quota holds,
+response data, and full-roadmap criteria.
+The session-ref fix is workflow-only and does not change Provider runtime or
+clear held browser/live gates. Checkpoint remains `in_progress`; closure and
+acceptance are pending.
 
 ## 2026-10-17 18:50Z — exact CI reconciled; partial live attempt retained
 

@@ -30,17 +30,17 @@
     }
   ],
   "active_checkpoint_id": "provider-platform-integration-1",
-  "active_session_id": "65775c69-1572-4bee-8caf-0e890a520718",
+  "active_session_id": "60955b1d-3a9a-4167-a4d6-e0975d9d3fb5",
   "branch": "feat/market-data-provider-platform",
   "checkpoint_authorization_state": "authorized_for_preparation_acceptance_pending",
   "claim": {
     "branch": "feat/market-data-provider-platform",
-    "displaced_session_id": "b73bc18d-8542-4cdf-9047-80b733013aa3",
+    "displaced_session_id": "65775c69-1572-4bee-8caf-0e890a520718",
     "host": "m920q",
-    "session_id": "65775c69-1572-4bee-8caf-0e890a520718",
+    "session_id": "60955b1d-3a9a-4167-a4d6-e0975d9d3fb5",
     "started_at": "2026-10-02T17:09:55.264095+00:00",
-    "taken_over_at": "2026-10-15T06:34:26.918819+00:00",
-    "takeover_request": "Human explicitly instructed: continue working toward the active feat-market-data-provider-platform goal; resume the saved goal autonomously in its assigned worktree.",
+    "taken_over_at": "2026-10-18T14:44:32.746302+00:00",
+    "takeover_request": "Human authorization on 2026-10-18: I authorize taking over and continuing all four feature branches toward staging, without asking again for routine workflow permissions. Take over the current Provider claim 65775c69-1572-4bee-8caf-0e890a520718; preserve all dirty checkpoint receipts, the complete roadmap, quarantines, quota ledger, and the no-provider-request boundary.",
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform",
     "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
   },
@@ -66,7 +66,7 @@
       "charting-stack-feat-market-data-provider-platform-c6e40c66-provider-egress-deny-1",
       "charting-stack-feat-market-data-provider-platform-c6e40c66-research-runner-1"
     ],
-    "known_bytes": 4103648308,
+    "known_bytes": 4103917908,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-market-data-provider-platform-c6e40c66",
@@ -77,7 +77,7 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 185126900,
+    "volume_bytes": 185396500,
     "volume_count": 4,
     "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
   },
@@ -94,23 +94,23 @@
   "finished_at": null,
   "goal_budget_policy": "unbounded_unless_human_authorized",
   "goal_objective": "Advance feat/market-data-provider-platform: Prepare provider-platform-integration-1: a validated backend/data foundation that downstream ETF holdings, TC2000, and Strategy Lab v2 work can consume through explicit identity, series, provider capability/entitlement/quota/health, coverage, and unavailable-operation contracts. Preserve every original market-data requirement as a roadmap item; do not claim full feature completion. Stop at ready_for_human_review; no merge, deployment, provider activation, or 30-day trial is authorized.. Acceptance criteria: ICP1: Checkpoint minimum is tested stable security, issuer, listing, and provider-symbol identity with provenance/history retention, explicit ambiguity quarantine, and legacy symbol/API compatibility; report known mapping gaps. A fresh complete NMS/OTC/SEC universe reconciliation and full venue mapping are full-roadmap work, not pre-integration ICP1 gates.; ICP2: Shared capability, entitlement, quota/usage, health, and routing contracts are usable by consumers and reject unknown or exhausted quotas, with durable cross-session and concurrent-worker accounting tested.; ICP3: Canonical market series, calendars, coverage, refresh jobs, and missing-data behavior are usable by consumers, with provenance, freshness, gaps, lease recovery, and no provider calls hidden in analytic evaluation loops tested.; ICP4: Every checkpoint-enabled provider operation has bounded exact-source live evidence; every excluded operation has explicit, tested unavailable/disabled behavior and an operation-level status. Historical receipts or quota waits do not count as current success; any failing required operation must be fixed or proposed for explicit human-approved deferral.; ICP5: Checkpoint minimum is additive migration/fresh-install and existing-database equivalence, startup/default/caller compatibility, tested local secret/config boundaries, and exact-source branch CI. GitHub, RPi, and deployment secret-store verification is required before using those targets, not before Provider integration; no deployment readiness is implied.; ICP6: Checkpoint minimum is a concrete Provider producer-contract map with tested success/unavailable behavior and a named downstream wiring/test owner for ETF holdings, TC2000, and Strategy Lab v2. Actual sibling wiring/reconciliation and consumer-specific validation occur after Provider is green in staging and remain owned by those branches; no capability is represented as available without producer evidence.; ICP7: The checkpoint is reviewable from a clean, pushed exact source with the normal validation profile and exact-source evidence, a disposition for every original criterion, and a closure summary for later human acceptance; full-roadmap completion remains open.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_recorded_at": "2026-10-15T17:51:08.144688+00:00",
+  "goal_recorded_at": "2026-10-18T14:56:14.377201+00:00",
   "goal_request": {
     "objective": "Prepare provider-platform-integration-1 on feat/market-data-provider-platform to unblock ETF, TC2000 and Strategy Lab integration. Prioritize the shared provider, identity, quota, series, coverage, API and migration contracts needed by those features. Validate the checkpoint, preserve every unfinished original roadmap requirement, and explicitly record remaining gaps and disabled/deferred operations. Follow /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md and its linked provider checkpoint requirements. Finish with a clean, committed, pushed checkpoint and exact validation evidence, ready for human review. The central coordinator owns staging merges; do not integrate other feature branches or modify their worktrees. Full feature completion and the 30-day operational trial are not prerequisites for this checkpoint. Deployment and the post-integration trial require separate authorization."
   },
   "goal_request_state": "ready",
-  "goal_state": "active",
-  "goal_unavailable_reason": null,
-  "head": "486601a8aa542d48022f0a480c419d1b103121da",
+  "goal_state": "unavailable",
+  "goal_unavailable_reason": "The original Provider owner route has no client and its latest turn is terminal; this coordinator now holds the worktree claim for staging preparation. No new prompts were queued. Reactivate the branch goal after the local gates can safely continue.",
+  "head": "bc45e4b223a4abfd89de15e2c7278ed17d43a698",
   "implementation_sha": "dc1864a265fc8bbeeb5549b6169b9ffd7ab9745c",
   "interrupted": false,
-  "last_checkpoint": "2026-10-17T20:23:00Z",
-  "last_human_progress_update": "2026-10-17T21:06:25.635236+00:00",
+  "last_checkpoint": "2026-10-18T14:56:25.308127+00:00",
+  "last_human_progress_update": "2026-10-18T14:55:17.492630+00:00",
   "latest_no_transport_preflight": "2026-10-17T17:20:00.201164+00:00: source 506c83757ce5239bb1b2eeb7bcba705093d85797; host-accessible durable coordinator was ready, with 11,088 registered receipts already reconciled and no pending reservations; 27 providers evaluated, 24 policy-eligible candidates, quarantined Dinari, Marketstack, Tiingo; zero provider HTTP, quota reservation, or spend; Actions 39052826478 was in progress at 17:20Z.",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Provider HEAD and origin are synchronized at 20f8c68678348d0eebcf9fc8eb6fbcab021936db. Exact Actions run 39063912811 passed Backend, Frontend Unit, Playwright E2E, and Branch-declared; Exhaustive was skipped by feature-branch policy. Continue bounded Provider-owned no-transport ICP2 recurring-cost and ICP6 producer/consumer contract/disposition work. Preserve the 252/252 no-transport suite and 27-provider preflight on prior source 4c6c8ac1fd111f700ed92854f89ac6b24db233de. Keep full pinned-Noble 260-functional/104-visual and focused F8u held until safe capacity and fixture ownership are confirmed. Preserve all prior red/partial-live evidence and operation holds. No provider/issuer requests or quota reservation/spend, staging/sibling changes, data reset/cleanup, deployment, or checkpoint acceptance.",
+  "next_action": "Wait for coordinator-confirmed safe host capacity and exact fixture ownership; then run the unchanged focused F8u and pinned-Noble 260-functional/104-visual gates with zero retries.",
   "parent_branch": "staging",
-  "plan_hash": "72668c729529aa5020755fb8a6a20e95dcadae381e277e340b41cb9e14d62aa3",
+  "plan_hash": "b79608232cb8d62f0866ad4de3b46e289292d6b83f13652ebbb7c09b4fe751b0",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -136,18 +136,19 @@
     "45ceef7e-aee3-4b9e-938d-5accafa4311a",
     "8248195a-260c-4c8f-a8d3-b4d4dd7250db",
     "25f98e6d-d0aa-4c03-a01f-18bf771f3cbc",
-    "b73bc18d-8542-4cdf-9047-80b733013aa3"
+    "b73bc18d-8542-4cdf-9047-80b733013aa3",
+    "65775c69-1572-4bee-8caf-0e890a520718"
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "Exact-source Actions 39066530798 is red from one flaky TC-owned F8u drag assertion; focused F8u and full pinned-Noble 260-functional/104-visual local gates remain held pending coordinator-confirmed safe host capacity and fixture ownership. Exact-tip preflight is blocked before transport because durable quota ledger is read-only; Dinari, Marketstack discovery, and Tiingo remain quarantined.",
-    "current_phase": "provider-checkpoint-icp2-icp6-and-operation-disposition",
-    "next_action": "Preserve CI 39066530798 and exact-tip preflight receipts. Do not rerun to erase F8u flake or make provider/issuer requests/reservations. Await a safe coordinator-released browser slot and fixture ownership, then run focused F8u and full pinned-Noble 260-functional/104-visual unchanged; keep checkpoint open until exact-source gates pass.",
+    "current_blocker": "Host has 1.0 GiB available and 13 GiB swap in use; several Provider validation fixtures and assigned Provider/TC stacks remain retained, with fixture ownership unclear. Do not start a duplicate heavy profile.",
+    "current_phase": "provider-full-browser-gate",
+    "next_action": "Wait until host capacity and exact fixture ownership are safe, then run the unchanged focused F8u and pinned-Noble 260-functional/104-visual gates with zero retries. Preserve provider, quota, paid, trial, and unsafe-operation holds.",
     "total": 7,
-    "updated_at": "2026-10-17T21:06:25.635218+00:00"
+    "updated_at": "2026-10-18T14:55:17.492613+00:00"
   },
-  "remote": "486601a8aa542d48022f0a480c419d1b103121da",
-  "remote_sha": "486601a8aa542d48022f0a480c419d1b103121da",
+  "remote": "bc45e4b223a4abfd89de15e2c7278ed17d43a698",
+  "remote_sha": "bc45e4b223a4abfd89de15e2c7278ed17d43a698",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "The fresh pinned-Noble project provider-noble-2734-retry1-20261017 and runner provider-noble-2734-20261017-functional-retry1 remain running/preserved with seeded isolated datasets; the earlier harness-misconfigured project provider-noble-2734-20261017 also remains preserved. Existing charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, provider-playwright-1236-hostaccess-20261016, and assigned Provider/TC stacks remain running/preserved. No stop, reset, prune, or data cleanup occurred."
@@ -251,7 +252,7 @@
   },
   "run_id": 39063912811,
   "schema": 2,
-  "session_id": "65775c69-1572-4bee-8caf-0e890a520718",
+  "session_id": "60955b1d-3a9a-4167-a4d6-e0975d9d3fb5",
   "state": "checkpointed",
   "takeover_history": [
     {
@@ -391,6 +392,12 @@
       "displaced_session_id": "b73bc18d-8542-4cdf-9047-80b733013aa3",
       "new_session_id": "65775c69-1572-4bee-8caf-0e890a520718",
       "reason": "Human explicitly instructed: continue working toward the active feat-market-data-provider-platform goal; resume the saved goal autonomously in its assigned worktree."
+    },
+    {
+      "at": "2026-10-18T14:44:32.746302+00:00",
+      "displaced_session_id": "65775c69-1572-4bee-8caf-0e890a520718",
+      "new_session_id": "60955b1d-3a9a-4167-a4d6-e0975d9d3fb5",
+      "reason": "Human authorization on 2026-10-18: I authorize taking over and continuing all four feature branches toward staging, without asking again for routine workflow permissions. Take over the current Provider claim 65775c69-1572-4bee-8caf-0e890a520718; preserve all dirty checkpoint receipts, the complete roadmap, quarantines, quota ledger, and the no-provider-request boundary."
     }
   ],
   "validation_tier": "full_integration",
