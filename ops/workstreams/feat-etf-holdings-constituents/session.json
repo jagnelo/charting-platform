@@ -30,16 +30,16 @@
     }
   ],
   "active_changeset": {
-    "baseline": "c89c7bfa866c309b9722fcd5c7f8e722783082b4",
-    "intent": "Prepare the exact ETF_HOLDINGS shared-runtime consumer contract, lineage semantics, deterministic test matrix and post-Provider reconciliation checklist without importing unaccepted source or issuing network requests.",
-    "name": "Prepare the ETF shared-runtime bridge reconciliation contract",
+    "baseline": "baabc9bbaa8d0cf7dae6fab5241046d418378272",
+    "intent": "Make persisted ETF capability, cached, historical and point-in-time consumer tests fail closed if they dispatch external holdings work, without importing the unreleased Provider runtime or issuing network requests.",
+    "name": "Harden the persisted ETF consumer no-network contract",
     "owned_paths": [
+      "backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-      "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "state": "published_narrative_repair_8b83948d0b7fc804e2d984f4296db5e86d7f6991; exact_ci39073141277_attempt1_green_backend_frontend_branch_declared_and_e2e; exhaustive_skipped_by_feature_policy; checkpoint_in_progress_not_accepted; provider_bc45e4b_ci39070049292_ordinary_green_but_unaccepted; bridge_waits_for_accepted_green_provider_staging"
+    "state": "implementation_complete_pending_publication; ruff_and_diff_check_pass; historical_PIT_slice_5_pass; complete_14_case_module_collected_then_local_TestClient_stalled_and_was_timeout_terminated_without_residue; fresh_exact_source_CI_required; checkpoint_in_progress_not_accepted; bridge_waits_for_accepted_green_provider_staging"
   },
   "active_session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
   "branch": "feat/etf-holdings-constituents",
@@ -76,8 +76,9 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "current_blocker_latest": "2026-10-17 21:52Z: Persistent staging6dc178c12498236a2a0060533305e20cf47438b7 is exact-exhaustive green. Coordinator-supplied Provider source bc45e4b223a4abfd89de15e2c7278ed17d43a698 has successful ordinary CI39070049292 (151 E2E passed/109 expected skips), but the Provider checkpoint is not accepted or merged and its required local profile/fixture evidence remains open. ETF product code cannot safely consume or test the real shared runtime before the coordinator releases an accepted green Provider staging checkpoint. The exact release/reconciliation checklist, bridge contracts, lineage semantics and deterministic consumer tests are documented. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined with no retained response/row evidence.",
+  "current_blocker_latest": "2026-10-18 11:16Z: The independent persisted-consumer no-network guard is implemented and its direct historical/PIT slice passes, but the complete module remains locally inconclusive because this restricted runner again stalled at the first synchronous TestClient request and was cleanly timeout-terminated. Fresh exact-source CI is required after publication. The actual ETF_HOLDINGS bridge remains blocked on an accepted synchronized green Provider staging release. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined with no retained response/row evidence.",
   "dirty_paths": [
+    "backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
     "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
@@ -106,7 +107,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "8b83948d0b7fc804e2d984f4296db5e86d7f6991",
+  "head": "baabc9bbaa8d0cf7dae6fab5241046d418378272",
   "implementation_sha": "dd9b7a08ce79303638c3951dd937270e97bbff33",
   "integration_checkpoint": {
     "acceptance_authorization": "pending",
@@ -136,13 +137,13 @@
       "branch_tests": "success; default branch-declared tests ran without the explicit live issuer matrix",
       "conclusion": "success",
       "frontend": "success",
-      "id": 38916428694,
+      "id": 39075708864,
       "playwright": "success:151 passed,109 skipped; Exhaustive Integration Gate skipped by feature-branch design",
-      "source_sha": "e23e17d378279c073a7856119ccfeb8f21204556",
+      "source_sha": "baabc9bbaa8d0cf7dae6fab5241046d418378272",
       "status": "completed",
-      "url": "https://github.com/jagnelo/charting-platform/actions/runs/38916428694"
+      "url": "https://github.com/jagnelo/charting-platform/actions/runs/39075708864"
     },
-    "current_published_sha": "e23e17d378279c073a7856119ccfeb8f21204556",
+    "current_published_sha": "baabc9bbaa8d0cf7dae6fab5241046d418378272",
     "dispositions_document": "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "id": "etf-holdings-integration-1",
     "issuer_repair_ci": {
@@ -201,9 +202,9 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-17T22:23:13Z",
+  "last_checkpoint": "2026-10-18T11:16:00Z",
   "last_human_progress_update": "2026-10-15T22:12:26.620198+00:00",
-  "latest_checkpoint": "2026-10-17 22:23Z: Published the evidence-backed ledger narrative repair at exact source 8b83948d0b7fc804e2d984f4296db5e86d7f6991. Exact CI39073141277 completed green on attempt 1: Backend Tests, Frontend Unit Tests, Branch-declared Tests and E2E Tests (Playwright) all succeeded; E2E reported 151 passed and 109 expected skips; Exhaustive Integration Gate was skipped by feature-branch policy. This validates the bounded static preparation and narrative repair only. The ETF checkpoint remains in_progress and not accepted because Provider has not been accepted and released through synchronized green staging. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined. No live request, quota, fixture, merge, sibling/staging write, cleanup or deployment.",
+  "latest_checkpoint": "2026-10-18 11:16Z: Added a fail-closed external-operation guard and per-case zero ProviderRequestLog assertion to the persisted ETF checkpoint-consumer module. Ruff and diff-check pass; five direct historical/PIT cases pass. The complete 14-case module collected then stalled at its first TestClient request in the restricted runner and was terminated by its 120-second process-group timeout with no residual pytest process, so that attempt is inconclusive and fresh exact-source CI is required. The checkpoint remains in_progress/not accepted; the Provider release dependency and MSMR/QQQ plus Militia/GOOG quarantines remain open. No live request, quota, heavy profile, cleanup or cross-worktree write occurred.",
   "local_profile_execution": {
     "cleanup": {
       "host_wide_prune": false,
@@ -297,8 +298,8 @@
     "total": 7,
     "updated_at": "2026-10-17T22:23:13.000000+00:00"
   },
-  "remote": "8b83948d0b7fc804e2d984f4296db5e86d7f6991",
-  "remote_sha": "8b83948d0b7fc804e2d984f4296db5e86d7f6991",
+  "remote": "baabc9bbaa8d0cf7dae6fab5241046d418378272",
+  "remote_sha": "baabc9bbaa8d0cf7dae6fab5241046d418378272",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

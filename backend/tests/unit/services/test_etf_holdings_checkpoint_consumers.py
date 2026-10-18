@@ -11,6 +11,7 @@ from decimal import Decimal
 import pytest
 from sqlalchemy import func, select
 
+import app.routers.etf_holdings as etf_holdings_router
 from app.models.basket import Basket
 from app.models.etf_holdings import (
     ETFHolding,
@@ -23,6 +24,40 @@ from app.models.instrument import Instrument
 from app.models.provider_runtime import ProviderRequestLog
 from app.services.baskets import materialize_etf_holdings_basket
 from tests.unit.conftest import AsyncSessionAdapter
+
+
+@pytest.fixture(autouse=True)
+def reject_external_holdings_operations(monkeypatch, db):
+    """Keep cached, historical, and PIT consumer contracts network-free."""
+
+    def unexpected_external_operation(*args, **kwargs):
+        raise AssertionError("persisted ETF consumer dispatched an external holdings operation")
+
+    for operation in (
+        "backfill_all_sec_legacy_holdings",
+        "backfill_all_sec_nport_holdings",
+        "backfill_sec_legacy_holdings",
+        "backfill_sec_nport_holdings",
+        "bootstrap_etf_holdings_profile",
+        "discover_etf_profiles_from_issuer_feed",
+        "discover_etf_profiles_from_sec_fund_tickers",
+        "probe_etf_holdings_adapter_route",
+        "refresh_all_benchmark_family_holdings_for_date",
+        "refresh_all_benchmark_family_holdings_for_dates",
+        "refresh_all_known_etf_holdings",
+        "refresh_benchmark_family_holdings_for_date",
+        "refresh_benchmark_family_holdings_for_dates",
+        "refresh_etf_holdings_for_date",
+    ):
+        monkeypatch.setattr(
+            etf_holdings_router,
+            operation,
+            unexpected_external_operation,
+        )
+
+    yield
+
+    assert db.scalar(select(func.count()).select_from(ProviderRequestLog)) == 0
 
 
 @pytest.fixture

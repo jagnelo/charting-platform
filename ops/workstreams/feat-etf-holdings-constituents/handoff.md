@@ -11733,3 +11733,28 @@ staging release. MSMR/QQQ and Militia/GOOG remain unresolved and quarantined,
 and the full roadmap remains open. No issuer, SEC, or provider HTTP request,
 quota operation, paid/trial activation, heavy local profile, or cross-worktree
 write occurred.
+
+### Persisted-consumer no-network contract hardening — 2026-10-18 11:16Z
+
+The cached, historical, and point-in-time checkpoint-consumer module now has an
+autouse fail-closed guard for every ETF router operation capable of dispatching
+issuer discovery, adapter probing, refresh, or SEC backfill. Every case also
+asserts that it created zero shared `ProviderRequestLog` records. This advances
+the independent EICP4 requirement that persisted reads remain network-free;
+it does not simulate or accept the future shared Provider transport.
+
+Ruff and `git diff --check` pass. The five direct historical/PIT cases pass in
+2.33 seconds. A bounded run of the complete 14-case module collected normally
+but again stalled at its first synchronous TestClient request in this restricted
+runner and was terminated by the 120-second process-group timeout; no pytest
+process remained. This is recorded as inconclusive local TestClient execution,
+not a pass. The prior exact source `baabc9bbaa8d0cf7dae6fab5241046d418378272`
+remains green in GitHub Actions run `39075708864`; fresh exact-source CI is
+required for this new guard after publication.
+
+The checkpoint remains `in_progress` and not accepted. The actual
+`ETF_HOLDINGS` bridge still waits for an accepted synchronized green Provider
+staging release. MSMR/QQQ and Militia/GOOG remain unresolved and quarantined,
+with no new issuer evidence. No issuer, SEC, or provider HTTP request, quota,
+paid/trial activation, heavy profile, service cleanup, or cross-worktree write
+occurred.
