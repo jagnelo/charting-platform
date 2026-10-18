@@ -1,5 +1,29 @@
 # feat/market-data-provider-platform
 
+## 2026-10-18 20:22Z — exact-source CI reconciled; local browser gates still held
+
+- Provider HEAD and origin are clean and synchronized at
+  `9dfc2c2b09f8acad5d23572fdd22ec2781981c25`. Authenticated Actions run
+  `39157111958` is terminal green on that exact source: Backend, Frontend Unit,
+  Branch-declared, and Playwright passed; Exhaustive was skipped by
+  feature-branch policy. This supersedes `bc45e4b` only as the current source
+  receipt; every earlier red, flaky, partial-live, and quota receipt remains
+  preserved.
+- Read-only host inventory showed 2.7 GiB available and 4.6 GiB swap in use.
+  Active retained Provider projects are `provider-noble-2734-retry1-20261017`,
+  `provider-noble-2734-20261017`,
+  `charting-provider-validation-isolated-20261017`,
+  `charting-stack-provider-validation-1236-20261016`, the assigned
+  `charting-stack-feat-market-data-provider-platform-c6e40c66`, and the
+  three-service `feat-market-data-provider-platform` infrastructure project;
+  the Provider buildkit container also remains active. The assigned
+  `charting-stack-feat-tc2000-frontend-rework-f63d60ae` six-service stack is
+  also active. No exact-current fixture capacity or ownership release exists.
+- No fixture was started and no service, volume, dataset, provider, issuer,
+  quota, staging ref, or sibling worktree was changed. Focused F8u and the
+  complete pinned-Noble 260-functional/104-visual profiles remain explicitly
+  open. The checkpoint stays `in_progress`, not ready or accepted.
+
 ## 2026-10-18 14:44Z — safe-capacity recheck; full local profile still held
 
 - Read-only `free -h` showed 1.0 GiB available with 13 GiB of swap in use.

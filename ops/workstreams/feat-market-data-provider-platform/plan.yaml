@@ -6556,9 +6556,19 @@ progress:
       request was made, and the historical live receipt remains source-bound.
   completed: []
   total: 7
-  current_phase: provider-checkpoint-icp2-icp6-and-operation-disposition
+  current_phase: provider-full-browser-gate
   current_blocker: >-
-    CURRENT STATUS — 2026-10-17 20:22Z: exact pushed source
+    CURRENT STATUS — 2026-10-18 20:22Z: exact clean synchronized source
+    `9dfc2c2b09f8acad5d23572fdd22ec2781981c25` passed authenticated Actions
+    run `39157111958`: Backend, Frontend Unit, Branch-declared, and Playwright
+    succeeded; Exhaustive skipped by feature policy. Read-only inventory found
+    the retained Provider Noble, isolated-validation, assigned Provider, base
+    Provider infrastructure, and assigned TC stacks still active. No
+    exact-current fixture ownership/capacity release exists, so focused F8u and
+    the pinned-Noble 260-functional/104-visual local profiles remain open and
+    must not start. Preserve every historical red/flaky/live/quota receipt and
+    all provider holds; checkpoint remains `in_progress`.
+    PREVIOUS STATUS — 2026-10-17 20:22Z: exact pushed source
     `20f8c68678348d0eebcf9fc8eb6fbcab021936db` passed Actions run
     `39063912811`: Backend, Frontend Unit, Branch-declared, and Playwright E2E
     succeeded; Exhaustive skipped by feature policy. The session-record
@@ -8571,7 +8581,11 @@ current_gate_checkpoint: >-
       acceptance; the cross-window UI failure remains with its frontend owner,
       and source-bound live evidence/CI status remain to be reconciled.
   next_action: >-
-    Preserve exact Actions run 39066530798 on receipt-only source
+    Current exact source is
+    `9dfc2c2b09f8acad5d23572fdd22ec2781981c25`; authenticated Actions run
+    `39157111958` is green for Backend, Frontend Unit, Branch-declared, and
+    Playwright, with Exhaustive skipped by feature policy. Preserve exact
+    Actions run 39066530798 on receipt-only source
     486601a8aa542d48022f0a480c419d1b103121da as terminal red: its F8u
     real-drag assertion failed on the first attempt and passed on retry #1,
     leaving one flaky test under strict policy. Do not rerun to erase the
@@ -8587,7 +8601,7 @@ current_gate_checkpoint: >-
     data reset/cleanup, staging/sibling write, or deployment. The coordinator
     owns acceptance and staging integration; checkpoint remains in_progress
     with closure pending. Evidence-only commit
-    `bc45e4b223a4abfd89de15e2c7278ed17d43a698` is synchronized to origin and
+    `bc45e4b223a4abfd89de15e2c7278ed17d43a698` was synchronized to origin and
     exact push CI `39070049292` is terminal green (Backend, Frontend Unit,
     Branch-declared, Playwright; Exhaustive skipped by feature policy). This
     does not erase the F8u red. The 252/252 bounded ICP2/ICP6 no-transport
@@ -8598,6 +8612,9 @@ current_gate_checkpoint: >-
     reconciliation findings are already implemented in `d9104b3`, `9f9d114`,
     and `0111cc6`; focused current-source regressions passed 23/23 at
     `bc45e4b` with zero transport. Do not duplicate those fixes. No further
-    safe Provider-owned no-transport contract gap is identified; checkpoint
-    remains in_progress pending the held local browser gates and operation
+    safe Provider-owned no-transport contract gap is identified. Retained
+    Provider fixtures and the assigned TC stack are still active and no
+    exact-current fixture capacity/ownership release exists. Do not start or
+    clean a fixture. Checkpoint remains in_progress pending unchanged focused
+    F8u and pinned-Noble 260-functional/104-visual local gates and operation
     dispositions.
