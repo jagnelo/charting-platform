@@ -14914,3 +14914,26 @@ jobs passed; Exhaustive Integration Gate was skipped by feature-branch policy.
 That receipt is exact for the preceding workstream-only tip, not for the current
 migration hardening. Exact-source CI for the enclosing product commit remains
 required and will be inspected once after push without rerunning it.
+
+## 2026-10-18 00:00Z — cached migration failure exact-source CI
+
+Published the already-validated substantive source
+`1a83d44f96ad9ddfa5114e8c83c5b92b415c7be1` to
+`origin/feat/strategy-lab-v2` without changing it. GitHub Actions run
+`39079695078` completed successfully for that exact SHA: Branch-declared Tests,
+Frontend Unit Tests, Backend Tests (unit and testcontainers integration), and
+E2E Tests (Playwright) succeeded. Exhaustive Integration Gate was skipped by
+feature-branch policy.
+
+This closes the exact-source hosted CI gate for the cached-migration-failure
+hardening only. It does not accept the checkpoint or satisfy coordinated
+Exhaustive Integration Gate, real PostgreSQL/combined application validation,
+or local `full_stack_browser`. The existing Docker-permission/low-capacity hold,
+ordered Provider → ETF → TC2000 reconciliation dependency, historical red and
+flaky evidence, full roadmap, Nautilus/OOS fail-closed guarantees, migration
+namespace and ambiguity guard remain unchanged. No rerun, local heavy profile,
+database/runtime, provider/quota, staging/sibling, paid/trial or deployment
+operation was performed.
+
+This receipt is being committed locally after the single requested push; it is
+not pushed again, avoiding a self-referential second CI run.
