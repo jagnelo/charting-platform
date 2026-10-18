@@ -675,6 +675,9 @@ shared_path_exceptions:
   - path: backend/tests/unit/services/test_research_jobs.py
     owners: [TC, market-data-provider-platform]
     reason: TC Research/Study/Strategy behavior tests only; do not expand provider coverage ownership.
+  - path: backend/tests/unit/services/test_visual_manifest.py
+    owners: [TC]
+    reason: TC's REF-HELP-V25 manifest-gap consistency regression for the human-approved local-only interim Help oracle; no official V25 state, threshold, or upstream behavior is changed.
   - path: backend/app/services/strategy_lab.py
     owners: [TC, market-data-provider-platform, etf-holdings-constituents]
     reason: TC-specific Study/Strategy engine and analysis only.

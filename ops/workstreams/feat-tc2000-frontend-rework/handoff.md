@@ -21,6 +21,22 @@ profile remain open until a safe isolated slot is available. Closure of
 `REF-HELP-V25` still requires a permission-cleared, provenance-verifiable V25
 Help capture.
 
+## 2026-10-18 — Exact CI scope guard caught the new manifest test path
+
+The push of `c21c985284f94667f1811e3cacd488072294105d` triggered run
+`39139866016`. Its Branch-declared job `117711885291` failed at the TC scope
+guard because `backend/tests/unit/services/test_visual_manifest.py` was not in
+the declared path scope; the failure occurred before test assertions and is not
+a product/test assertion failure. Preserve this result. Added only that exact
+test path to `shared_path_exceptions`, with TC ownership and a Help-gap-specific
+rationale. Next re-run the TC scope guard, workstream validator, and diff checks,
+then publish the correction for fresh exact-source CI. Frontend/backend CI for
+`c21c985` is still running; no full local browser matrix was started. Available
+host memory was about 0.86 GiB, with retained Provider/TC fixtures still present.
+Acceptance flexibility used remains the human-approved local-only Help oracle
+for this interim staging checkpoint only; `REF-HELP-V25` and official V25
+parity remain open, with screenshot tolerance unchanged.
+
 ## 2026-10-16 — Favorites slice progress and expired visual slot
 
 The latest coordinator receipt (`updated_at` 06:02:51Z) still reports no

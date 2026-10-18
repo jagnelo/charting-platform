@@ -106,7 +106,7 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "9fc98e2d7e829e0c37bbac9614ad967292bc0444",
+  "head": "c21c985284f94667f1811e3cacd488072294105d",
   "implementation_sha": "918b81eb06f1fb2979781946ddbf8b991b580703",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -134,7 +134,7 @@
     "visuals": "No pixel pass inferred; TCP2 full 104-case local visual matrix and official V25 parity remain open."
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the local-only Help checkpoint as an interim baseline with added editor-focus dismissal evidence; keep REF-HELP-V25 official parity and the full normalized 104-case/full_stack_browser gates open. After Provider/ETF green staging, reconcile TC and the desktop plots/RSP repair against staging.",
+  "next_action": "Declare the Help-manifest test path narrowly in the TC scope contract, rerun scope/workstream checks, publish the correction, and monitor fresh exact-source CI. Keep the full normalized 104-case/full_stack_browser gates held for safe host capacity and wait for accepted Provider/ETF staging before consumer reconciliation.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -162,11 +162,11 @@
     "completed": [
       "TCP1"
     ],
-    "current_blocker": "TC source 9fc98e2d7e829e0c37bbac9614ad967292bc0444 has exact branch CI 39026842944 green, but that run does not validate the current dirty Help changes or separate desktop overlap repair. TCP2 still needs exact-source CI and the full normalized 104-case profile; local browser work is held with about 759 MiB available and retained Provider/TC fixtures. TCP3 waits for accepted Provider/ETF green staging. TCP4 combined validation, TCP5 review, and official V25 parity remain open.",
+    "current_blocker": "Exact push source c21c985284f94667f1811e3cacd488072294105d run 39139866016 has Branch-declared job 117711885291 failed at the TC scope guard because the new backend manifest-test path was not yet declared. Preserve that red gate; add only the exact TC shared-path exception and obtain fresh exact-source CI. TCP2 still needs the full normalized 104-case profile, held with about 0.86 GiB available and retained Provider/TC fixtures. TCP3 waits for accepted Provider/ETF green staging; TCP4/TCP5 and official V25 parity remain open.",
     "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_FULL_VISUAL_AND_FUNCTIONAL_GATES_OPEN;TCP3_PROVIDER_ETF_RELEASE_AND_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
-    "next_action": "Run exact-source CI for the Help test and manifest update; once there is a safe isolated browser slot and accepted Provider/ETF green staging, reconcile TC and the desktop overlap repair against current staging, then run the unchanged 104-case and full-stack gates. Preserve the 0.005 screenshot tolerance and official V25 gap.",
+    "next_action": "Run the TC scope guard and workstream validator after the one-path allowlist repair, then publish and monitor the correction's exact CI. Once host capacity is safe and Provider/ETF are accepted in green staging, reconcile TC and the desktop overlap repair, then run the unchanged 104-case and full-stack gates with tolerance 0.005 and official V25 parity still open.",
     "total": 5,
-    "updated_at": "2026-10-18T15:15:25+00:00"
+    "updated_at": "2026-10-18T15:19:00+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
@@ -182,8 +182,8 @@
     "remote_tracking_sha": "aec60070020bf1a181c06103b40fa254352c8a4c",
     "status": "clean synchronized pushed checkpoint; exact CI39024834711 terminal success"
   },
-  "remote": "9fc98e2d7e829e0c37bbac9614ad967292bc0444",
-  "remote_sha": "9fc98e2d7e829e0c37bbac9614ad967292bc0444",
+  "remote": "c21c985284f94667f1811e3cacd488072294105d",
+  "remote_sha": "c21c985284f94667f1811e3cacd488072294105d",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "roadmap_acceptance_criteria": [
