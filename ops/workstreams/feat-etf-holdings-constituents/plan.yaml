@@ -245,24 +245,21 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: Reconcile current PIMCO audit evidence and repair narrative parity
-    state: fix_validated_except_stalled_consumer_suite;fresh_exact_ci_required
-    baseline: 5c8f517cab4140695e113749426ff9b0f3570f8b
+    name: Cover the historical point-in-time basket route without external work
+    state: focused_6_pass;ruff_and_diff_check_pass;fresh_exact_ci_required
+    baseline: 7272e26cb75d5b8abd8641e734871510e84fcac9
     intent: >-
-      Resolve exact CI38906199763 failures from durable evidence: restore the
-      current 15 Tier-0 / 156 Tier-1 inventory phrase in session progress, align
-      MINT and BOND runtime audit dates/details/references with the existing
-      2026-10-15 page-only evidence already retained in the YAML ledger and
-      provider-universe narrative, preserve older route history, then run
-      focused and non-live branch checks and request fresh exact-source CI.
+      Exercise the actual ETF basket route handler for an explicit historical
+      date and prove that a correction learned later is excluded, while the
+      module-wide external-operation guard and zero ProviderRequestLog invariant
+      keep the read network-free. Do not invent or import the unreleased shared
+      Provider interface.
     owned_paths:
-      - backend/app/services/etf_holdings_capability.py
-      - ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml
+      - backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md
       - ops/workstreams/feat-etf-holdings-constituents/session.json
       - ops/workstreams/feat-etf-holdings-constituents/validation.jsonl
-      - ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md
 scope:
   - "Keep branch-owned ETF workstream and provider-universe documentation code-derived; the current reconciled baseline is 496 registered, 422 native/live-backed, and 74 fallback-only providers after the evidence-backed Arin/ATTR route promotion."
   - "Create and maintain a branch-owned exhaustive provider audit ledger covering all 140 current fallback-only adapter keys, with deterministic prioritization, source evidence, attempt dates, route disposition, and next action."
@@ -390,58 +387,23 @@ progress:
   completed:
     - EICP1
   total: 7
-current_phase: transport_surface_mapped_waiting_for_released_provider_staging
+current_phase: independent_point_in_time_consumer_contract_ready_for_publication
 current_blocker: >-
-  Corrected the two failures from exact CI38906199763 on 5c8f517: restored the
-  required 15 Tier-0 and 156 Tier-1 phrase in session progress.current_blocker
-  and aligned runtime MINT/BOND audit dates, facts and evidence refs with the
-  existing 2026-10-15 page-only evidence already present in the YAML ledger and
-  provider-universe document. Preserved the Oct 5 HTTP 401 as historical; no
-  provider HTTP request or quota spend was made. The full adapter suite (611),
-  route-drift suite (23), default no-network live contracts (9 passed / 537
-  opt-in skipped), frontend checks, Ruff and workstream validation pass. The
-  separately declared consumer module reproducibly stalls in TestClient at the
-  first capability GET; a 30-second bounded run collected a stack trace and
-  ended without a test result. Do not represent that suite as passing. Provider
-  owns heavy profile handle 84370; do not run full profile or live matrix. Push
-  this coherent correction and obtain fresh exact-source CI; no staging
-  acceptance is implied.
-  The 15 Tier-0 and 156 Tier-1 outcomes remain accounted for (496/422/74).
-  Workflow commit 5267f11a491795d85ee35b56cabbe550394f3823 was followed by the
-  coordinator's chart-template repair merge. Current staging is
-  82d881e76be8de538abb6ec5c454d96afe0ee56a and CI38805309009 has regular
-  Playwright green (151 passed, 109 declared skips, zero retries/flakes), but
-  Exhaustive Integration Gate remains in progress; this is not a released
-  baseline. Follow-up CI38785967367 was cancelled in Playwright and is not a
-  clean result. Provider source
-  1afb89658d1d84e801069e1f19d7ee4f985c7e1e CI38804214507 is now terminal green
-  across its declared jobs, but Provider checkpoint review and shared aggregate
-  cost admission remain unresolved; no Provider baseline is released. ETF
-  docs-tip CI38805354206 is terminal green across frontend, backend,
-  branch-declared and Playwright jobs; its Playwright log reports151 passed and
-  109 declared skips, and the consumer module passed14 in7.98s. The run covers
-  remote tip ecf92e2; the later local changes are only ETF workstream documents.
-  Earlier CI38773602828 had one visual flake that passed on retry and is not
-  accepted as clean. Provider has no accepted product checkpoint or baseline
-  despite its now-green exact-source CI. The coordinator may technically close
-  validated repairs without
-  per-fix human signoff. ETF's consumer contract and independent tests are in
-  shared-cost-admission.md. No feature import or staging merge before
-  coordinator release; do not start competing heavy gates. Shared identity,
-  entitlement, quota, aggregate-cost and health integration remain open.
-  The ETF source-derived outbound transport inventory and corresponding
-  per-attempt no-transport test requirement are now recorded in
-  integration-checkpoint.md. The coordinator's independent 260-case no-retry
-  chart replay is reported active with one readiness race under review; its
-  focused fixture passes are not terminal acceptance, and ETF has not started a
-  duplicate browser run. A bounded local rerun of the persisted consumer tests
-  stalled inside Starlette TestClient on its first capability request and was
-  interrupted without an assertion result; the exact hosted branch job passed
-  all14 cases in7.98s, so this local interruption is neither a test pass nor a
-  reproduced product failure. Default sandbox Docker status probing returned a
-  socket permission denial; a separately approved read-only Docker info check
-  succeeded at server29.1.3, so this is an execution-permission distinction,
-  not evidence that the host daemon is down. No local full gate was started.
+  The independent point-in-time route regression is implemented and focused
+  validation passes. Current synchronized staging is
+  94c252d6b8767714df2c6c8840a2119f5aa161dd with exact CI39137763218 green, but
+  the coordinator's accepted_product_checkpoints list is empty and
+  combined_product_baseline_released is false. Provider branch
+  9dfc2c2b09f8acad5d23572fdd22ec2781981c25 has exact CI39157111958 green but is
+  not an ancestor of staging and has not been accepted or released. Therefore
+  the actual ETF_HOLDINGS identity, entitlement, durable quota, aggregate-cost,
+  health and transport bridge remains externally gated. This branch must not
+  import Provider directly or guess those interfaces. MSMR/QQQ and Militia/GOOG
+  remain unresolved and quarantined with no retained response or row evidence.
+  The 15 Tier-0 and 156 Tier-1 investigations and the 496/422/74 registry split
+  remain preserved. No issuer, SEC or provider request, quota operation,
+  paid/trial activation, heavy profile, service cleanup or cross-worktree write
+  occurred.
 
 remaining_gaps:
   - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the documented native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, TrimTabs/Abacus FCF, Anydrus/NDOW, M.D. Sass/SASS, Amplius/AAAA, Argent/AMID-ABIG-ALIL, VistaShares/RTOO-AIS-AMMO-QUSA-OMAH-ACKY-DRKY, Baillie Gifford/BGGG-BGIA-BGEG-BGUS, and Arin/ATTR, current code and provider-universe documentation report 496/422/74 and future counts must remain derived."
@@ -1430,60 +1392,16 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Exact push CI38911867173 for ETF SHA
-  1033c2db1e9dff3aa1fd3122d0678e2fe9dedf69 is terminal RED: frontend/backend
-  passed; Branch-declared live matrix 525 passed, 19 skipped, 2 failed (MSMR
-  missing QQQ; Militia missing GOOG); Playwright passed 151/109 skipped; the
-  feature-branch Exhaustive gate was skipped. Static code and deterministic
-  fixtures do not prove a live parser defect or what current page data was
-  served. No run artifacts or live response bodies/rows were retained. Keep both
-  issuer routes unresolved/quarantined; do not weaken, skip, or relabel failures.
-  The safe evidence needed for any fix is an exact retained CI response or a
-  later bounded coordinator-authorized official-page capture, retained under
-  approved policy and compared by final URL, page identity, complete table
-  headers/body and parser row output; stop on challenge, with no retry. The
-  branch push workflow issue is now being corrected by removing only the live
-  command from automatically executed branch_tests and retaining it as an
-  explicit deferred_live_checks opt-in. Before pushing, verify that the resolved
-  workflow command list contains no live-enabled invocation and that the default
-  live-test command skips network probes. Then publish the durable receipt and
-  policy correction and require exact-source CI. No issuer/provider HTTP or
-  quota spend is allowed during verification or publication. No re-run/retry of
-  the live matrix, vendor contact,
-  paid/trial/unknown route activation, data cleanup, staging write, or deploy.
-  Preserve the earlier hosted consumer 14/14 pass and local TestClient no-result.
-  Provider keeps heavy-validation priority. No checkpoint acceptance; preserve
-  the full roadmap and wait for accepted green Provider staging before shared
-  ETF_HOLDINGS implementation.
-  Exact common green staging baseline 0145b65992b8692ce69f82f804f83f6c8e551fea
-  is now reconciled into this branch. The conflict in shared Playwright flows
-  was resolved by using the released popup cleanup helper, keeping the
-  recovery-test assertion that a targeted conflict actually occurred, and
-  retaining page-count/browser-diagnostic assertions. Its two helper/flaky-gate
-  unit files pass 10/10; no browser/full profile was started. Continue bounded
-  ETF preparation that is independent of Provider, without live issuer/SEC
-  calls or a full publisher terms audit. Provider profile handle 84370 owns
-  heavy-validation priority. Wait for the actual accepted Provider product
-  checkpoint before wiring ETF_HOLDINGS or validating shared runtime; do not
-  duplicate Provider admission/quota-ledger mechanics.
-  Provider supplies generic reviewed-policy, admission and durable-ledger
-  mechanics, while ETF owns binding real issuer/host/account/operation contexts
-  and onboarding evidence-backed ETF publisher policies through that runtime
-  after exact green Provider release. Missing evidence remains non-routable; do
-  not create a second ledger or make the complete all-publisher audit a circular
-  Provider pre-merge prerequisite. Cached/historical/PIT reads remain
-  network-free. Continue bounded request-level test preparation as documented in
-  shared-cost-admission.md; do not spend live issuer/SEC quota or guess the
-  Provider interface, request costs, quotas, or currency conversion. Per the
-  coordinator's 2026-10-16 update, Provider is correcting actual admission and
-  runner gates, remains unaccepted, and owns the first heavy local-validation
-  slot. Once the exact green Provider product SHA is released into staging,
-  reconcile that exact source into this ETF worktree, implement/test the real
-  ETF_HOLDINGS bridge and per-attempt transport admission, and run the required
-  combined full_stack_browser and exact-source CI after coordinating capacity.
-  Persist through coordinator technical acceptance/integration to human-usable
-  merged staging; the existing human delegation removes per-checkpoint signoff
-  inside its verified-free-only scope but waives no contract, test, or roadmap
-  requirement. Preserve all fourteen criteria and the later observation gate.
-  Do not import a sibling branch, write staging, activate paid/trial routes,
-  deploy, send unsafe requests, or delete retained data.
+  Publish the point-in-time route regression and coherent workstream update,
+  then require one fresh exact-source CI run. Keep the checkpoint in_progress
+  and not accepted. After the coordinator explicitly accepts Provider and
+  releases its exact synchronized green staging SHA, merge only that staging
+  release into this clean unfrozen ETF branch, verify the staged producer
+  interfaces, and implement the documented ETF_HOLDINGS bridge with exactly-once
+  async completion, per-outbound-attempt shared admission/settlement, canonical
+  identity, aggregate-cost and truthful lineage tests. Then run the required
+  combined full_stack_browser profile and exact-source CI and stop at
+  ready_for_human_review. Until that release, do not import sibling source,
+  issue live requests, guess costs/quotas/FX, create a second ledger, weaken
+  MSMR or Militia quarantines, write staging, deploy or activate paid/trial
+  operations. Preserve the complete roadmap and later observation gate.

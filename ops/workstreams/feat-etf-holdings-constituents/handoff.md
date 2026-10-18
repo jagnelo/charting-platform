@@ -11758,3 +11758,47 @@ staging release. MSMR/QQQ and Militia/GOOG remain unresolved and quarantined,
 with no new issuer evidence. No issuer, SEC, or provider HTTP request, quota,
 paid/trial activation, heavy profile, service cleanup, or cross-worktree write
 occurred.
+
+### Point-in-time route contract and current dependency audit — 2026-10-18 20:03Z
+
+The current branch boundary was synchronized at
+`7272e26cb75d5b8abd8641e734871510e84fcac9`; its exact CI run `39122629491`
+is terminal green across Backend, Frontend Unit, Branch-declared, and Playwright,
+with Exhaustive skipped by feature-branch policy. The resumed writer takeover
+is preserved under session `87f0e599-289e-4ab5-b335-f75e455963f5`. The normal
+`make agent-context` preflight correctly classified this checkout as the ETF
+implementation worktree, while its optional shared runtime allocation refresh
+could not write `/home/m920q/charting-platform/.ai/runtime/allocations.lock`
+inside this sandbox. That sandbox boundary did not alter the existing worktree,
+branch, or claim.
+
+The checkpoint-consumer module now calls the actual ETF basket route handler
+with an explicit historical date and proves that a same-composition correction
+known two days later is excluded. The existing fail-closed external-operation
+guard and per-case zero `ProviderRequestLog` assertion remain active, so this
+advances the independent cached/historical/PIT portion of EICP4 without mocking
+or guessing an unreleased Provider API. The new focused test passes, and the
+six-case historical/PIT slice passes in 2.86 seconds; Ruff and `git diff --check`
+pass.
+
+A first bounded attempt through `httpx.ASGITransport` collected normally but
+stalled in the same restricted-runner dependency handoff as the synchronous
+TestClient cases. A 10-second faulthandler trace showed the main pytest asyncio
+loop idle in selector wait and an AnyIO worker thread waiting on its queue; the
+25-second process-group bound terminated it with no residual pytest process.
+This narrows the local symptom beyond the TestClient portal but does not prove
+a product defect. The deterministic route-handler form avoids that environment
+handoff while retaining the real router-to-service behavior; fresh hosted
+exact-source CI must still run the full branch-declared module.
+
+Current dependency evidence remains external and explicit. Synchronized staging
+is `94c252d6b8767714df2c6c8840a2119f5aa161dd`, exact CI `39137763218` green.
+Provider branch `9dfc2c2b09f8acad5d23572fdd22ec2781981c25` has exact CI
+`39157111958` green, but it is not an ancestor of staging; the coordinator
+record still has no accepted product checkpoint and no combined product release.
+Therefore no Provider merge, ETF_HOLDINGS bridge, shared-runtime claim, or heavy
+profile was started. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined,
+and the 15 Tier-0 / 156 Tier-1 investigations plus 496/422/74 provider split are
+preserved. No issuer, SEC, or provider HTTP request, quota, paid/trial operation,
+service cleanup, staging/sibling write, deployment, or retained-data change
+occurred.

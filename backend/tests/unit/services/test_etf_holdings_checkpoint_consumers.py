@@ -7,6 +7,7 @@ those tests must run against the shared runtime after its staging release.
 
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from inspect import signature
 
 import pytest
 from sqlalchemy import func, select
@@ -195,6 +196,44 @@ def test_denied_refresh_preserves_history_and_rejects_current_analysis(
     assert snapshot.snapshot_hash == original_hash
     assert artifact.payload_text == original_payload
     assert db.scalar(select(func.count()).select_from(ProviderRequestLog)) == 0
+
+
+@pytest.mark.asyncio
+async def test_point_in_time_route_excludes_corrections_not_yet_known(
+    user, db, lineage
+):
+    profile, original, _, _, now = lineage
+    target_date = (now - timedelta(days=10)).date()
+    original.composition_date = target_date - timedelta(days=1)
+    original.known_at = datetime.combine(target_date, datetime.min.time(), tzinfo=UTC)
+    correction = ETFHoldingsSnapshot(
+        etf_profile_id=profile.id,
+        composition_date=original.composition_date,
+        known_at=original.known_at + timedelta(days=2),
+        provenance="issuer_current_holdings",
+        source_provider="ark",
+        source_quality="issuer_current",
+        completeness_status="complete",
+        snapshot_hash="checkpoint-api-late-correction",
+    )
+    db.add(correction)
+    db.flush()
+
+    date_parameter = signature(
+        etf_holdings_router.materialized_holdings_basket
+    ).parameters["date_"]
+    assert date_parameter.default.alias == "date"
+
+    response = await etf_holdings_router.materialized_holdings_basket(
+        "ARKK",
+        snapshot_id=None,
+        date_=target_date,
+        db=AsyncSessionAdapter(db),
+        current_user=user,
+    )
+
+    assert response.source_snapshot_id == original.id
+    assert response.metadata["provenance"] == "issuer_current_holdings"
 
 
 def test_no_snapshot_stays_explicitly_unavailable_after_admission_denial(
