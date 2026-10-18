@@ -109,7 +109,7 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "7272e26cb75d5b8abd8641e734871510e84fcac9",
+  "head": "30af1259fa96d2ca90889823c656c5b19ad4c115",
   "implementation_sha": "dd9b7a08ce79303638c3951dd937270e97bbff33",
   "integration_checkpoint": {
     "acceptance_authorization": "pending",
@@ -139,13 +139,13 @@
       "branch_tests": "success; default branch-declared tests ran without the explicit live issuer matrix",
       "conclusion": "success",
       "frontend": "success",
-      "id": 39122629491,
+      "id": 39162775178,
       "playwright": "success; Exhaustive Integration Gate skipped by feature-branch design",
-      "source_sha": "7272e26cb75d5b8abd8641e734871510e84fcac9",
+      "source_sha": "30af1259fa96d2ca90889823c656c5b19ad4c115",
       "status": "completed",
-      "url": "https://github.com/jagnelo/charting-platform/actions/runs/39122629491"
+      "url": "https://github.com/jagnelo/charting-platform/actions/runs/39162775178"
     },
-    "current_published_sha": "7272e26cb75d5b8abd8641e734871510e84fcac9",
+    "current_published_sha": "30af1259fa96d2ca90889823c656c5b19ad4c115",
     "dispositions_document": "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "id": "etf-holdings-integration-1",
     "issuer_repair_ci": {
@@ -204,9 +204,9 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-18T20:03:23Z",
+  "last_checkpoint": "2026-10-18T20:40:07Z",
   "last_human_progress_update": "2026-10-15T22:12:26.620198+00:00",
-  "latest_checkpoint": "2026-10-18 20:03Z: Added a deterministic regression through the actual ETF basket route handler proving an explicit historical date excludes a correction not yet known at that date. The module-wide external-operation guard and zero ProviderRequestLog teardown assertion remain active. The focused historical/PIT slice passes 6/6; Ruff and diff-check pass. Exact prior source7272e26 has green CI39122629491. Fresh exact-source CI is required after publication. The checkpoint remains in_progress/not accepted; Provider release and MSMR/QQQ plus Militia/GOOG quarantines remain open. No live request, quota, heavy profile, cleanup or cross-worktree write occurred.",
+  "latest_checkpoint": "2026-10-18 20:40Z: Published the point-in-time basket route regression as exact source 30af1259fa96d2ca90889823c656c5b19ad4c115. GitHub Actions run39162775178 completed successfully: Backend, Frontend Unit, Branch-declared and E2E Playwright jobs passed; Exhaustive Integration Gate was skipped by feature-branch policy. The checkpoint remains in_progress/not accepted; the accepted green Provider staging release and current-source full_stack_browser gate remain open. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined. No live request, quota, heavy local fixture, cleanup or cross-worktree write occurred.",
   "local_profile_execution": {
     "cleanup": {
       "host_wide_prune": false,
@@ -242,7 +242,7 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the point-in-time route regression and coherent workstream receipt, then verify its one exact-source CI run. Keep the checkpoint in_progress. After the coordinator accepts Provider and releases its exact green staging SHA, reconcile only that staging release into this ETF branch and implement/test the actual ETF_HOLDINGS bridge; do not import sibling source or issue live requests.",
+  "next_action": "Keep the checkpoint in_progress while waiting for the coordinator's accepted green Provider staging release and a safe full-profile fixture slot. After that release, reconcile only its exact staging SHA into this ETF branch, implement/test the actual ETF_HOLDINGS bridge, and run the required current-source full_stack_browser and exact-source CI gates; do not import sibling source or issue live requests.",
   "plan_hash": "94e0814f4bb059f7e0181ee3fe7ce3073f9e6998bd0871d29462197645c2b18b",
   "planning_required": false,
   "planning_state": "ready",
@@ -301,8 +301,8 @@
     "total": 7,
     "updated_at": "2026-10-17T22:23:13.000000+00:00"
   },
-  "remote": "7272e26cb75d5b8abd8641e734871510e84fcac9",
-  "remote_sha": "7272e26cb75d5b8abd8641e734871510e84fcac9",
+  "remote": "30af1259fa96d2ca90889823c656c5b19ad4c115",
+  "remote_sha": "30af1259fa96d2ca90889823c656c5b19ad4c115",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

@@ -11802,3 +11802,24 @@ and the 15 Tier-0 / 156 Tier-1 investigations plus 496/422/74 provider split are
 preserved. No issuer, SEC, or provider HTTP request, quota, paid/trial operation,
 service cleanup, staging/sibling write, deployment, or retained-data change
 occurred.
+
+### Published point-in-time route contract — 2026-10-18 20:40Z
+
+The route regression and its coherent source context are published at exact ETF
+SHA `30af1259fa96d2ca90889823c656c5b19ad4c115`; local HEAD and
+`origin/feat/etf-holdings-constituents` were independently verified at that SHA.
+Exact-source GitHub Actions run `39162775178` completed successfully on attempt
+1. Backend Tests passed, including unit and Testcontainers integration steps;
+Frontend Unit Tests, Branch-declared Tests, and E2E Playwright passed. The
+Exhaustive Integration Gate was skipped by feature-branch policy and is not
+claimed as an exhaustive checkpoint result.
+
+This closes only the bounded point-in-time route changeset. The integration
+checkpoint remains `in_progress` and is not accepted. The current-source
+`full_stack_browser` profile has not been run for this source, and the actual
+`ETF_HOLDINGS` bridge still requires the coordinator to accept Provider and
+release it through synchronized green staging. MSMR/QQQ and Militia/GOOG remain
+unresolved/quarantined with no retained response or parsed-row evidence. No
+issuer, SEC, or provider HTTP request, quota, paid/trial activation, heavy local
+fixture, data cleanup, staging/sibling write, deployment, or roadmap reduction
+occurred.
