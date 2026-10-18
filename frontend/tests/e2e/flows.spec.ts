@@ -1004,6 +1004,14 @@ test.describe('Chart', () => {
     await page.keyboard.press('Escape')
     await expect(helpDialog).toHaveCount(0)
     await expect(helpTrigger).toBeFocused()
+
+    await helpTrigger.click()
+    await expect(helpDialog).toBeVisible()
+    const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
+    await activeSymbol.focus()
+    await expect(helpDialog).toHaveCount(0)
+    await expect(helpTrigger).toHaveAttribute('aria-expanded', 'false')
+    await expect(activeSymbol).toBeFocused()
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

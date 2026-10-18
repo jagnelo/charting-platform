@@ -100,6 +100,7 @@ def test_manifest_gap_ids_are_documented_and_attached_to_required_surfaces():
     expected_gap_ids = {
         "REF-BREADTH-COMPOSER-V25",
         "REF-SHELL-V25",
+        "REF-HELP-V25",
         "REF-STATE-VARIANTS",
         "REF-LINKING-V25",
         "REF-STUDY-LAB-V25",

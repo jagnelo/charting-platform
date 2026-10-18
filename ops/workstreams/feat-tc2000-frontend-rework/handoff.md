@@ -1,5 +1,26 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-18 — Human-approved local Help oracle reviewed; V25 gap retained
+
+Acceptance flexibility used: the human-approved deterministic local-only Help
+reference, for this staging checkpoint only. I reviewed the existing 1080p/100%,
+1080p/125%, 1440p/100%, and 1440p/125% Linux snapshots. Shortcut labels and
+descriptions are readable in the visible portion; lower rows require scrolling,
+so interim acceptance depends on the unchanged keyboard-scroll and focus tests.
+The existing `F9e-shell-menus-keyboard` flow already proves PageUp/PageDown
+reach the last row and Escape returns focus to Help. This update adds the missing
+check that moving focus into the Active symbol editor dismisses Help. No image,
+mask, screenshot tolerance, V25 source record, or visual threshold is changed.
+
+The new `REF-HELP-V25` gap row and manifest entry keep the official Help
+appearance, wording, and layout `required_missing`. The local oracle is accepted
+only on the documented interim track; it is not V25 parity evidence. Exact-source
+branch CI will validate the added focus-dismissal flow and manifest contract.
+The full normalized 104-case visual matrix and the rest of the required local
+profile remain open until a safe isolated slot is available. Closure of
+`REF-HELP-V25` still requires a permission-cleared, provenance-verifiable V25
+Help capture.
+
 ## 2026-10-16 — Favorites slice progress and expired visual slot
 
 The latest coordinator receipt (`updated_at` 06:02:51Z) still reports no
