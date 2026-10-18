@@ -14937,3 +14937,42 @@ operation was performed.
 
 This receipt is being committed locally after the single requested push; it is
 not pushed again, avoiding a self-referential second CI run.
+
+## 2026-10-18 20:04Z — terminal recovery cross-ledger causality
+
+Resumed the exact Strategy owner worktree under the preflight-taken-over claim
+`7319d459-2838-40e4-bee4-fded78f58e16`; the existing formal goal is active in
+this same thread. Strategy `HEAD` and origin began synchronized at
+`8206d4ac02976e74e48183841e90c0952dd41977`. Exact CI run `39081294103` for
+that source is terminal green for Branch-declared, Frontend Unit, Backend
+unit/integration, and Playwright E2E; Exhaustive was skipped by feature-branch
+policy. Historical `54fa13e1` / `38820638540` exit 152 remains preserved and
+unproven.
+
+Found and closed an upstream-independent fail-closed recovery gap. A completed
+worker result and its capacity/lease settlement are durable in separate
+ledgers. Redelivery authenticated each ledger independently, but it did not
+reject the causally impossible state where the worker slot and lease were
+released before the successful result completion. It also assumed the worker
+pool adapter returned a valid `WorkerPoolState`, so malformed/missing state
+could escape as an exception instead of leaving the Redis entry pending.
+
+`WorkerRecoveryApplication` now returns `RETRY` when settlement predates result
+completion or when the worker pool state is unavailable. Focused regressions
+prove both rejection paths leave the search candidate running, schedule no
+retry dispatch, and create no replacement attempt; the existing complete
+terminal replay path remains green. The four directly adjacent worker modules
+passed 43 tests. Ruff, format, and focused MyPy passed. The first six-test
+invocation ran all six tests successfully but exited nonzero because global
+coverage was only 5.40% for the intentionally narrow module, below the 55%
+package threshold; the same module then passed 6/6 with collection disabled,
+and no threshold was changed or weakened.
+
+Persistent staging and origin are synchronized at
+`94c252d6b8767714df2c6c8840a2119f5aa161dd`, exact CI `39137763218` green,
+but the coordinator records it as shared workflow/repair scope only. Provider,
+ETF, and TC2000 product checkpoints remain unaccepted. Do not merge staging
+into Strategy yet. Combined consumer/PostgreSQL/application, coordinated
+Exhaustive, and local `full_stack_browser` gates remain open; no Docker,
+browser, database, provider/quota, staging/sibling, paid/trial, or deployment
+operation ran in this context.

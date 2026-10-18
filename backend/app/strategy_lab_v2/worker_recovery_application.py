@@ -31,6 +31,7 @@ from app.strategy_lab_v2.worker_recovery import (
 )
 from app.strategy_lab_v2.worker_service import WorkerRecoveryContext
 from app.strategy_lab_v2.worker_settlement import WorkerSettlementLedger
+from app.strategy_lab_v2.workers import WorkerPoolState
 
 SearchDispatchClient = Callable[..., Awaitable[SearchDispatchResolution]]
 
@@ -328,9 +329,13 @@ class WorkerRecoveryApplication:
             or settlement.worker_id != request.admission.worker_id
         ):
             return _retry_entry(entry, "terminal result has no matching worker settlement")
+        if settlement.released_at < completion.completed_at:
+            return _retry_entry(entry, "terminal worker settlement predates its result completion")
 
         worker_state = self._persistence.worker_state
         pool = await worker_state.load_pool(request.worker_pool.profile)
+        if not isinstance(pool, WorkerPoolState):
+            return _retry_entry(entry, "terminal worker pool state is unavailable")
         reservation = next(
             (
                 item

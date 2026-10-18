@@ -464,3 +464,51 @@ async def test_partial_terminal_completion_stays_pending_without_scheduling_retr
     assert calls == []
     assert len(persistence.resources.attempts) == 1
     assert persistence.search_state.state.candidates[0].phase is SearchCandidatePhase.RUNNING
+
+
+@pytest.mark.asyncio
+async def test_terminal_completion_rejects_a_settlement_that_predates_it(
+    tmp_path: Any,
+) -> None:
+    app, context, persistence, calls = _setup(tmp_path)
+    released_at = NOW + timedelta(seconds=2)
+    completion = _persist_terminal_success(
+        context,
+        persistence,
+        released_at=released_at,
+        release_capacity=True,
+    )
+    persistence.result_completion.ledger = ResultCompletionLedger(
+        (replace(completion, completed_at=released_at + timedelta(seconds=1)),)
+    )
+
+    result = await app(replace(context, observed_at=released_at + timedelta(seconds=2)))
+
+    assert result.decision is WorkerHandleDecision.RETRY
+    assert "settlement predates" in (result.rejection_reason or "")
+    assert calls == []
+    assert len(persistence.resources.attempts) == 1
+    assert persistence.search_state.state.candidates[0].phase is SearchCandidatePhase.RUNNING
+
+
+@pytest.mark.asyncio
+async def test_terminal_completion_rejects_an_unavailable_worker_pool(
+    tmp_path: Any,
+) -> None:
+    app, context, persistence, calls = _setup(tmp_path)
+    released_at = NOW + timedelta(seconds=2)
+    _persist_terminal_success(
+        context,
+        persistence,
+        released_at=released_at,
+        release_capacity=True,
+    )
+    persistence.worker_state.pool = None
+
+    result = await app(replace(context, observed_at=released_at + timedelta(seconds=1)))
+
+    assert result.decision is WorkerHandleDecision.RETRY
+    assert "pool state is unavailable" in (result.rejection_reason or "")
+    assert calls == []
+    assert len(persistence.resources.attempts) == 1
+    assert persistence.search_state.state.candidates[0].phase is SearchCandidatePhase.RUNNING
