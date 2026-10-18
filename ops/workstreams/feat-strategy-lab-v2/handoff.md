@@ -14976,3 +14976,46 @@ into Strategy yet. Combined consumer/PostgreSQL/application, coordinated
 Exhaustive, and local `full_stack_browser` gates remain open; no Docker,
 browser, database, provider/quota, staging/sibling, paid/trial, or deployment
 operation ran in this context.
+
+## 2026-10-18 20:31Z — exact terminal-recovery CI receipt
+
+Published substantive source
+`3cefa98e5a2a91b160c24d3fb384ea2144c17282` and monitored only its single
+push-triggered GitHub Actions run `39161804027` through the authenticated
+connector. The run is terminal green: Branch-declared Tests, Frontend Unit
+Tests, Backend Tests (unit and Testcontainers integration), and E2E Tests
+(Playwright) succeeded. Exhaustive Integration Gate was skipped by
+feature-branch policy. No rerun was requested.
+
+This exact-source result closes hosted ordinary CI for the terminal recovery
+causality hardening only. It is not checkpoint acceptance and does not satisfy
+the coordinated Exhaustive, combined PostgreSQL/application consumer, or local
+`full_stack_browser` gates. Provider, ETF, and TC2000 product checkpoints remain
+unaccepted, so Strategy must not merge staging yet. This terminal receipt stays
+as a local four-file workstream update to avoid a self-referential follow-up
+push and duplicate CI run; `HEAD` and origin remain synchronized at the tested
+source.
+
+## 2026-10-18 20:33Z — bind terminal recovery to the exact admission reservation
+
+Continued the independent terminal-recovery audit after exact source
+`3cefa98e5a2a91b160c24d3fb384ea2144c17282` passed run `39161804027`. The
+redelivery path loaded a typed released worker pool but selected capacity by
+reservation ID alone. A malformed or cross-wired pool could therefore expose a
+same-ID released reservation from another attempt or runtime profile and still
+allow the durable terminal result to ACK.
+
+Recovery now requires the loaded pool worker, kind, and runtime profile to
+match the immutable admission. The released reservation must match the exact
+attempt and original admission timestamp in addition to the existing ID and
+release-time checks. New negative tests cover a different runtime profile, a
+different attempt, and a changed acquisition timestamp; each remains `RETRY`,
+leaves the search candidate running, schedules no dispatch, and creates no
+replacement attempt. The adjacent recovery/service/callback/entrypoint slice
+passes 46 tests; focused Ruff, formatting, and MyPy pass.
+
+This is upstream-independent worker safety evidence. It does not consume or
+guess Provider, ETF, or TC2000 contracts, and it does not close the combined
+PostgreSQL/application, coordinated Exhaustive, or local `full_stack_browser`
+gates. No Docker, browser, database, provider/quota, staging/sibling,
+paid/trial, or deployment operation ran.

@@ -336,6 +336,13 @@ class WorkerRecoveryApplication:
         pool = await worker_state.load_pool(request.worker_pool.profile)
         if not isinstance(pool, WorkerPoolState):
             return _retry_entry(entry, "terminal worker pool state is unavailable")
+        if (
+            pool.profile.worker_id != request.admission.worker_id
+            or pool.profile.kind is not request.admission.worker_kind
+            or pool.profile.runtime_profile_fingerprint
+            != request.admission.worker_profile_fingerprint
+        ):
+            return _retry_entry(entry, "terminal worker pool differs from its admission")
         reservation = next(
             (
                 item
@@ -346,6 +353,8 @@ class WorkerRecoveryApplication:
         )
         if (
             reservation is None
+            or reservation.attempt_id != attempt_id
+            or reservation.acquired_at != request.admission.admitted_at
             or reservation.active
             or reservation.released_at != settlement.released_at
         ):

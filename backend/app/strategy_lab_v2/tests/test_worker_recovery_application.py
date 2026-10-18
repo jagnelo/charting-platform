@@ -52,7 +52,7 @@ from app.strategy_lab_v2.worker_settlement import (
     WorkerSettlementLedger,
     WorkerSettlementRecord,
 )
-from app.strategy_lab_v2.workers import release_worker_slot
+from app.strategy_lab_v2.workers import WorkerPoolState, release_worker_slot
 
 
 class _DispatchStore:
@@ -509,6 +509,95 @@ async def test_terminal_completion_rejects_an_unavailable_worker_pool(
 
     assert result.decision is WorkerHandleDecision.RETRY
     assert "pool state is unavailable" in (result.rejection_reason or "")
+    assert calls == []
+    assert len(persistence.resources.attempts) == 1
+    assert persistence.search_state.state.candidates[0].phase is SearchCandidatePhase.RUNNING
+
+
+@pytest.mark.asyncio
+async def test_terminal_completion_rejects_a_pool_for_another_runtime_profile(
+    tmp_path: Any,
+) -> None:
+    app, context, persistence, calls = _setup(tmp_path)
+    released_at = NOW + timedelta(seconds=2)
+    _persist_terminal_success(
+        context,
+        persistence,
+        released_at=released_at,
+        release_capacity=True,
+    )
+    pool = persistence.worker_state.pool
+    persistence.worker_state.pool = WorkerPoolState(
+        replace(
+            pool.profile,
+            runtime_profile_fingerprint=content_digest("other-runtime-profile"),
+        ),
+        pool.reservations,
+    )
+
+    result = await app(replace(context, observed_at=released_at + timedelta(seconds=1)))
+
+    assert result.decision is WorkerHandleDecision.RETRY
+    assert "pool differs from its admission" in (result.rejection_reason or "")
+    assert calls == []
+    assert len(persistence.resources.attempts) == 1
+    assert persistence.search_state.state.candidates[0].phase is SearchCandidatePhase.RUNNING
+
+
+@pytest.mark.asyncio
+async def test_terminal_completion_rejects_a_reservation_for_another_attempt(
+    tmp_path: Any,
+) -> None:
+    app, context, persistence, calls = _setup(tmp_path)
+    released_at = NOW + timedelta(seconds=2)
+    _persist_terminal_success(
+        context,
+        persistence,
+        released_at=released_at,
+        release_capacity=True,
+    )
+    pool = persistence.worker_state.pool
+    persistence.worker_state.pool = WorkerPoolState(
+        pool.profile,
+        (replace(pool.reservations[0], attempt_id="other-attempt"),),
+    )
+
+    result = await app(replace(context, observed_at=released_at + timedelta(seconds=1)))
+
+    assert result.decision is WorkerHandleDecision.RETRY
+    assert "capacity release is not durable" in (result.rejection_reason or "")
+    assert calls == []
+    assert len(persistence.resources.attempts) == 1
+    assert persistence.search_state.state.candidates[0].phase is SearchCandidatePhase.RUNNING
+
+
+@pytest.mark.asyncio
+async def test_terminal_completion_rejects_a_reservation_with_changed_acquisition_time(
+    tmp_path: Any,
+) -> None:
+    app, context, persistence, calls = _setup(tmp_path)
+    released_at = NOW + timedelta(seconds=2)
+    _persist_terminal_success(
+        context,
+        persistence,
+        released_at=released_at,
+        release_capacity=True,
+    )
+    pool = persistence.worker_state.pool
+    persistence.worker_state.pool = WorkerPoolState(
+        pool.profile,
+        (
+            replace(
+                pool.reservations[0],
+                acquired_at=context.request.admission.admitted_at - timedelta(seconds=1),
+            ),
+        ),
+    )
+
+    result = await app(replace(context, observed_at=released_at + timedelta(seconds=1)))
+
+    assert result.decision is WorkerHandleDecision.RETRY
+    assert "capacity release is not durable" in (result.rejection_reason or "")
     assert calls == []
     assert len(persistence.resources.attempts) == 1
     assert persistence.search_state.state.candidates[0].phase is SearchCandidatePhase.RUNNING
