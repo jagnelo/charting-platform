@@ -14,24 +14,29 @@
   credentials, disables routing/refresh jobs, removes service host ports, and
   puts only the browser allowlist proxy/host relay on the host-access network.
   The exact backend, worker, and frontend images built successfully. The
-  chained startup did not create containers; `docker ps -a` for this project
-  is empty, so no browser runner or product assertion started and no result is
-  inferred.
+  chained `up --no-build` then failed terminally with `No such image:
+  provider-a807-browser-20261020-research-runner:latest`. The required
+  `research-runner` service is defined by `docker-compose.yml` with
+  `backend/Dockerfile.research-runner`, `network_mode: none`, and its existing
+  resource/read-only/seccomp limits. `docker ps -a` for this project is empty,
+  so no browser runner or product assertion started and no result is inferred.
 - Read-only inventory still shows the same 55 retained running container IDs
   recorded by hash
   `4a5a5d927532eae2e67ffa097b03a11c1b3f351c0b6f4ccec13b725a4219f52e`;
   no retained Provider/TC service or dataset was stopped, reset, or cleaned.
-- Exact next command: run `docker compose -p provider-a807-browser-20261020
-  -f docker-compose.yml -f docker-compose.e2e.yml -f
-  /tmp/provider-a807-browser-20261020/compose.override.yml up -d --no-build
-  --force-recreate --wait` with the already-recorded `COMPOSE_PROJECT_NAME`,
+- Exact next command: with the already-recorded `COMPOSE_PROJECT_NAME`,
   `WORKTREE_ID`, `PROVIDER_QUOTA_LEDGER_HOST_DIR`,
-  `E2E_SEED_INSTRUMENTS=true`, and `E2E_SEED_MARKET_DATA=true` environment.
-  Then verify health/network isolation, add the temporary Playwright proxy
-  config, and run exactly one pinned Noble 1.62.1 functional/performance plus
-  104 strict-visual sequence with one worker, zero retries, unchanged
-  references/tolerances, and read-only DejaVu fonts. No provider transport or
-  quota action is authorized.
+  `E2E_SEED_INSTRUMENTS=true`, and `E2E_SEED_MARKET_DATA=true` environment,
+  run `docker compose -p provider-a807-browser-20261020 -f
+  docker-compose.yml -f docker-compose.e2e.yml -f
+  /tmp/provider-a807-browser-20261020/compose.override.yml build
+  research-runner`. Confirm the project still has no active startup, then run
+  one normal `up -d --no-build --force-recreate --wait` for that same project.
+  Do not drop the required service or create another fixture. Then verify
+  health/network isolation, add the temporary Playwright proxy config, and run
+  exactly one pinned Noble 1.62.1 functional/performance plus 104 strict-visual
+  sequence with one worker, zero retries, unchanged references/tolerances, and
+  read-only DejaVu fonts. No provider transport or quota action is authorized.
 
 ## 2026-10-20 00:33+01:00 — released geometry reconciled
 
