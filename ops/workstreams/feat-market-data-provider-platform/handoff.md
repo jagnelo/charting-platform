@@ -1,5 +1,37 @@
 # feat/market-data-provider-platform
 
+## 2026-10-19 21:18Z — current-source backend/migration gates green; runtime exclusion gap confirmed
+
+- Exact source `a8440efb82232a8b217df9c7330fab1795b257c9` passed the unchanged
+  `make test-backend-coverage` contract in an isolated UV-managed CPython
+  3.12.11 environment: 2,843 unit tests, 396 PostgreSQL integration tests, and
+  82% combined coverage (68,041 statements / 11,949 missed; 75% required).
+  Live-provider flags stayed disabled; retained Provider/TC services, volumes,
+  and datasets were untouched. The temporary cleanup guard was removed only
+  after the parent EXIT trap completed.
+- Preserve the earlier CPython 3.12.4 signal-11/faulthandler receipt. The exact
+  focused case passed 1/1 in 55.36 seconds on 3.12.11 with the original
+  60-second watchdog. That supports a runtime/watchdog diagnosis but is not a
+  claim that every faulthandler race is fixed.
+- Exact-current migration compatibility passed all 52 changed migrations:
+  fresh and previous-staging schemas/data are equivalent for provider quota and
+  recurring-cost contracts, zero budget is accepted, negative budget is
+  rejected, and the previous-release app returned `/health` 200. Cleanup was
+  limited to the disposable migration resources created by that command.
+- Acceptance-audit review found a real branch-owned gap. EODHD's combined
+  16-call live-matrix reservation hold does not prevent a smaller ordinary
+  price-history call from routing. Add a shared, configurable, operation-level
+  checkpoint hold enforced before transport for every currently excluded
+  provider operation. Preserve the exact reviewed EODHD zero-daily-credit
+  `fetch_account_usage` exception and its minute accounting. Bybit's
+  intentional-no-request disposition must remain non-routable in the ordinary
+  resolver/executor too. Test every held provider under otherwise-admissible
+  conditions and verify zero transport in both paid-toggle states.
+- This pending source fix will move the exact-source boundary. Do not repeat the
+  already-green live matrix or browser/visual gates solely for freshness; retain
+  their source-qualified receipts and require focused/full backend plus exact
+  branch CI for the changed runtime source. Checkpoint remains `in_progress`.
+
 ## 2026-10-19 18:46Z — released F8u staging repair merged into Provider
 
 - Closed the prior three-file evidence context as `8d368aae4`, fetched and

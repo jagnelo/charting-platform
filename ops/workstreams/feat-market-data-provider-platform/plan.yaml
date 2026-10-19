@@ -1,4 +1,23 @@
 schema: 4
+# Acceptance audit — 2026-10-19 21:18Z. Exact source
+# `a8440efb82232a8b217df9c7330fab1795b257c9` passed the repository's unchanged
+# backend coverage gate under an isolated UV-managed CPython 3.12.11 runtime:
+# 2,843 unit tests, 396 PostgreSQL integration tests, and 82% combined coverage
+# (68,041 statements / 11,949 missed; 75% required). The earlier CPython
+# 3.12.4 faulthandler crash remains preserved; one exact focused case passed
+# 1/1 in 55.36s with the original 60-second watchdog on 3.12.11, which supports
+# the runtime diagnosis but does not prove every watchdog race fixed. Fresh and
+# previous-staging migration paths also passed equivalence for all 52 changed
+# migrations, provider quota/recurring-cost data, negative/zero budget behavior,
+# and previous-release `/health` 200. No retained stack/data was cleaned.
+# The operation audit found one real checkpoint gap: the EODHD 16-call live
+# matrix hold is not itself a runtime prohibition on a smaller ordinary data
+# call. Before review, add and test explicit per-operation checkpoint holds for
+# every excluded provider operation while retaining only EODHD's reviewed
+# zero-daily-credit account-usage bootstrap. Bybit's no-request safety
+# disposition must likewise be enforced by normal runtime routing. This source
+# change invalidates exact-source closure evidence until focused/full backend and
+# exact branch CI pass; do not repeat the already-green browser or live gates.
 # Provider reconciliation — 2026-10-19 18:46Z. The prior three-file evidence
 # context is closed in `8d368aae4`. Exact released staging
 # `26443f94c5b9fd3741d28db392fecf9aafe9c699` was merged without conflict into

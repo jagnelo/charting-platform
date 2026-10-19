@@ -60,10 +60,6 @@
     "status": "terminal strict-red: Backend, Frontend Unit, and Branch-declared passed; Playwright had 150 passed, 109 expected skips, F8u first-attempt failure and retry pass; Exhaustive skipped by branch policy"
   },
   "dirty_paths": [
-    "ops/workstreams/feat-market-data-provider-platform/checkpoint-review-packet.md",
-    "ops/workstreams/feat-market-data-provider-platform/handoff.md",
-    "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
-    "ops/workstreams/feat-market-data-provider-platform/session.json",
     "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
   ],
   "docker": {
@@ -90,7 +86,7 @@
   "goal_request_state": "ready",
   "goal_state": "reconciled_candidate_pending_exact_ci",
   "goal_unavailable_reason": "The original Provider owner route returned no-client-found and the coordinator took over the stale claim with human authorization. Exact released staging was merged and focused reconciliation passed. The reconciled Provider source still requires publication and exact-source CI before durable-ledger admission can be refreshed. No prompts are queued.",
-  "head": "f7a898e86d9eab0e98b8a5505a670f87a25df509",
+  "head": "a8440efb82232a8b217df9c7330fab1795b257c9",
   "implementation_sha": "dc1864a265fc8bbeeb5549b6169b9ffd7ab9745c",
   "interrupted": false,
   "last_checkpoint": "2026-10-19T18:46:07+00:00",
@@ -137,9 +133,9 @@
     "total": 7,
     "updated_at": "2026-10-19T18:46:07+00:00"
   },
-  "remote": "bef14e0c14b4c60be4f4d54dc954f8113ef5f2f9",
-  "remote_sha": "bef14e0c14b4c60be4f4d54dc954f8113ef5f2f9",
-  "remote_synchronized": false,
+  "remote": "a8440efb82232a8b217df9c7330fab1795b257c9",
+  "remote_sha": "a8440efb82232a8b217df9c7330fab1795b257c9",
+  "remote_synchronized": true,
   "retained_docker_resources": [
     "Read-only inventory at 2026-10-18T20:22:31Z found provider-noble-2734-retry1-20261017, provider-noble-2734-20261017, charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, charting-stack-feat-market-data-provider-platform-c6e40c66, feat-market-data-provider-platform infrastructure, its buildkit container, and assigned charting-stack-feat-tc2000-frontend-rework-f63d60ae services active. No exact-current fixture capacity/ownership release exists. No service, volume, dataset, or retained artifact was stopped, reset, pruned, or cleaned."
   ],
