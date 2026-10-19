@@ -191,3 +191,29 @@ one-drag readiness guard, inspect fresh exact-source Actions including
 Playwright, then continue guarded integration if green. The focused local
 five-repeat browser profile remains outstanding; do not treat the prior five
 repeats on the earlier test code as proof for this one-attempt change.
+
+## 2026-10-19 — second exact-source F8u failure and refined drag target
+
+Exact-source Actions run `39274378927` on
+`476bb54e419164c0b56cf96b55f7147fa16a1c74` is red under the strict flaky-test
+policy. Backend Tests, Frontend Unit Tests, and Branch-declared Tests passed;
+Playwright had 150 passed, 109 expected skips, and F8u failed its only attempt.
+The run artifact is `12199905708`.
+
+The trace confirms the target was ready (`aria-busy="false"`) and that
+Playwright moved from the visible RSI label to the benchmark watchlist body.
+The RSI header never appeared, and the trace's network record contains no
+drop-driven workspace-snapshot update. This rules out the earlier busy-state
+race but does not yet prove whether the missing step is dragover, drop, or
+payload delivery. The test now uses one stepped pointer path to the watchlist's
+column-header surface rather than its row body, avoiding the row-reorder drop
+listeners while keeping the ordinary native drag and expected-header check.
+No product code, assertion, timeout, retry policy, visual oracle, data, or
+provider configuration changed.
+
+The pinned local five-repeat profile remains unrun on this one-attempt source:
+the retained Provider and TC2000 projects are still active and host available
+memory is approximately 2.1 GiB. Do not start a duplicate Compose project or
+stop/clean retained services. Stack-free tests may run, then publish this
+test-only refinement and require fresh exact-source Actions before any staging
+integration attempt. Staging remains unchanged.

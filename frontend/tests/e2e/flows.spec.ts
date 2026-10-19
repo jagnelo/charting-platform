@@ -4430,7 +4430,10 @@ test.describe('TC2000 workstation', () => {
     // state before the real drop so the drag does not race that refresh.
     await expect(target).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 })
     const droppedHeader = target.locator('.watchlist__header button').filter({ hasText: 'RSI' })
-    await plotDragSource.dragTo(target)
+    // Use a continuous pointer path so Chromium dispatches dragover while the
+    // pointer crosses into the watchlist. Dropping over the header also avoids
+    // the row-reordering drop listener and targets the column-header surface.
+    await plotDragSource.dragTo(target.locator('.watchlist__header'), { steps: 8 })
     await expect(droppedHeader).toBeVisible({ timeout: 10_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })

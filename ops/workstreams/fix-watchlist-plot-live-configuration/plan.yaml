@@ -26,13 +26,16 @@ closure_summary: >-
   Actions run 39260462285 passed on that SHA. The final closure-record source
   326a7cb727d7463a7b8b8a28afd4ba938b5e9293 then failed exact-source Actions run
   39269065093 under strict flaky-test policy: F8u first attempt failed while
-  the target watchlist was aria-busy=true, and the retry passed. That is a red
-  result, not an accepted checkpoint. The current follow-up waits for the
-  existing aria-busy=false state and performs one real drag with no in-test
-  retry; focused validation and a fresh exact-source CI are pending. Provider
-  and TC2000 stacks remain untouched. No migration or deployment impact. This
-  repair does not close Provider, ETF holdings, TC2000, or Strategy Lab v2;
-  their contracts, tests, and roadmaps remain open. integration_capture:
+  the target watchlist was aria-busy=true, and the retry passed. Adding the
+  aria-busy wait and one-drag policy did not close the issue: exact-source run
+  39274378927 on 476bb54e419164c0b56cf96b55f7147fa16a1c74 is also red because
+  the RSI header and drop-driven workspace update were absent after a drag to
+  the ready watchlist body. The current test-only follow-up uses one stepped
+  pointer drag to the column-header strip; it still needs isolated five-repeat
+  validation and fresh exact-source CI. Do not integrate this repair yet.
+  Provider and TC2000 stacks remain untouched. No migration or deployment
+  impact. This repair does not close Provider, ETF holdings, TC2000, or Strategy
+  Lab v2; their contracts, tests, and roadmaps remain open. integration_capture:
   exact branch HEAD.
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
@@ -64,8 +67,9 @@ scope:
   - >-
     Start the F8u pointer drag from the visible RSI label because the draggable
     row center can target its embedded line-width input; wait until the target
-    watchlist reports aria-busy=false, then perform exactly one ordinary drag
-    and keep the expected header assertion unchanged.
+    watchlist reports aria-busy=false, then perform exactly one stepped native
+    pointer drag onto the watchlist column-header surface. Keep the expected RSI
+    header assertion unchanged; do not retry or bypass the drag path.
 owned_paths:
   - frontend/src/components/workstation/WorkstationToolContent.vue
   - frontend/tests/e2e/flows.spec.ts
@@ -80,10 +84,11 @@ acceptance_criteria:
     text: >-
       Existing F8u real pointer-drag flow adds the RSI header to Major US
       benchmarks on this exact repair source, starting from the visible plot
-      label in a fresh internal-only seeded fixture with provider/OneSignal
-      credentials blank, provider routing/refresh disabled, one worker, and
-      zero retries; repeat the exact flow five times. App and worker provider
-      egress stays denied. Only the public static SDK host
+      label and dropping onto the watchlist column-header surface in a fresh
+      internal-only seeded fixture with provider/OneSignal credentials blank,
+      provider routing/refresh disabled, one worker, and zero retries; repeat
+      the exact flow five times. App and worker provider egress stays denied.
+      Only the public static SDK host
       cdn.onesignal.com:443 may use the exact-host browser allowlist proxy; no
       OneSignal API host or credentials are allowed.
   - id: AC3
@@ -117,14 +122,18 @@ deployment_impact: none
 status: in_progress
 remaining_gaps:
   - >-
-    Focused five-repeat Playwright validation has not been rerun after adding
-    the aria-busy readiness wait and removing the in-test second drag. The
-    exact-source branch CI on the published fix must also pass under strict
-    flaky-test policy before guarded staging integration. Keep strict-red runs
-    39254427018 and 39269065093; run 39260462285 validates earlier source.
-    Avoid launching a duplicate local Compose fixture while retained Provider
-    and TC2000 projects are active and host memory is constrained; no service
-    may be stopped or cleaned for this test.
+    Exact-source Actions run 39274378927 on 476bb54e419164c0b56cf96b55f7147fa16a1c74
+    is red: F8u performed its single drag but produced no RSI watchlist header;
+    trace/network evidence shows no drop-driven workspace snapshot update. The
+    target was the watchlist body, which also contains row drop/reorder
+    listeners. The next test-only refinement drops onto the watchlist column-
+    header surface with a stepped pointer path, preserving the ordinary drag
+    and unchanged assertion. A fresh exact-source run and the focused five-repeat
+    zero-retry profile remain required before guarded integration. Keep strict-
+    red runs 39254427018, 39269065093, and 39274378927; run 39260462285 validates
+    earlier source. Do not start a duplicate Compose fixture while retained
+    Provider and TC2000 projects remain active and host memory is constrained;
+    do not stop or clean their services.
   - >-
     This repair checkpoint does not close Provider, ETF, TC2000, or Strategy
     Lab v2 feature checkpoints. Provider's full 260-case/104-visual validation,
@@ -133,12 +142,14 @@ remaining_gaps:
 progress:
   completed: [AC1]
   total: 4
-  current_phase: f8u_busy_state_stabilization
+  current_phase: f8u_drop_target_reliability
   current_blocker: >-
-    Exact-source run 39269065093 is red under strict flaky-test policy: the
-    watchlist target still had aria-busy=true during the drop. The branch must
-    pass focused zero-retry validation and fresh exact-source CI before staging.
+    Exact-source run 39274378927 is red under strict flaky-test policy: the
+    target was ready (aria-busy=false), but the body drop did not deliver a
+    configuration update. The branch must pass focused zero-retry validation
+    and fresh exact-source CI before staging.
   next_action: >-
-    Publish the one-drag readiness-guard repair with focused unit/workstream
-    evidence; verify exact-source branch CI and the full browser job, then
-    continue to guarded persistent-staging integration if green.
+    Validate the single stepped drag onto the actual watchlist column-header
+    surface; inspect exact-source Actions including Playwright, then continue
+    to guarded persistent-staging integration only after all checkpoint gates
+    pass.
