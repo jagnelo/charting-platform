@@ -1,4 +1,13 @@
 schema: 4
+# Checkpoint quota exclusions — 2026-10-19 22:57Z. The separate source
+# correction adds provider-wide default holds for Alpha Vantage and Nasdaq.
+# Otherwise-eligible reviewed-free fixtures prove full-roadmap resolver/mock
+# execution with checkpoint mode false, then checkpoint resolver/executor/status
+# denial under both paid-toggle states with zero transport. The pre-existing
+# Alpha raw-present/adjusted-absent test is explicitly full-roadmap mode and
+# retains both assertions. Focused10/10 and affected modules129/129 passed;
+# Ruff check/format-check and diff-check passed. This is a temporary accepted
+# checkpoint exclusion, not a permanent roadmap deferral or a live claim.
 # Frozen corrected-source gate — 2026-10-19 22:40Z. Provider source/origin
 # `5a372b4ec83a0c84ec15dd7f8593362b9e27cd35` passed 17 focused sentinel/runtime
 # checks and the complete isolated CPython 3.12.11 backend gate: 2,856 unit,

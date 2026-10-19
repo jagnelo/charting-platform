@@ -438,9 +438,11 @@ def test_owner_private_retention_decision_is_consistent_across_runtime_targets()
 def test_checkpoint_operation_holds_are_configurable_across_runtime_targets():
     configured = Settings(_env_file=None)
     assert set(configured.PROVIDER_CHECKPOINT_OPERATION_HOLDS) == {
+        "alpha_vantage",
         "cta_plan",
         "eodhd",
         "marketstack",
+        "nasdaq",
         "tiingo",
         "dinari",
         "bybit_xstocks",

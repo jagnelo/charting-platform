@@ -127,9 +127,9 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "Checkpoint remains in progress: Alpha Vantage and Nasdaq are combined-matrix quota-blocked but not yet runtime-held, so smaller calls or post-reset calls could still route. Geometry staging 281a57bd/39335198284 is not yet released green. Historical a8440 live evidence is not current-source acceptance.",
-    "current_phase": "provider_alpha_nasdaq_checkpoint_hold_correction",
-    "next_action": "After committing the completed 5a372b4e backend/migration/no-transport evidence context, add Alpha Vantage and Nasdaq temporary checkpoint holds with otherwise-eligible resolver/executor/status zero-transport tests as a separate source change. Then require exact-source CI and await coordinator release of green staging before browser/final-source live gates.",
+    "current_blocker": "Checkpoint remains in progress: the Alpha Vantage/Nasdaq runtime-hold correction must be published and pass exact-source CI. Geometry staging 281a57bd/39335198284 is not yet released green. Historical a8440 live evidence is not current-source acceptance.",
+    "current_phase": "provider_alpha_nasdaq_checkpoint_hold_validation",
+    "next_action": "Publish the narrow Alpha Vantage/Nasdaq checkpoint-hold correction once and require exact-source CI; then await the coordinator's actual green geometry staging release before reconciliation, full browser/backend gates, and separately authorized bounded final-source live evidence.",
     "total": 7,
     "updated_at": "2026-10-19T22:43:03.413868+00:00"
   },

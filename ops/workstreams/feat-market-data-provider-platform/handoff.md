@@ -1,5 +1,24 @@
 # feat/market-data-provider-platform
 
+## 2026-10-19 22:57Z — Alpha Vantage and Nasdaq checkpoint seam closed
+
+- The separate correction adds provider-wide `*` checkpoint holds for Alpha
+  Vantage and Nasdaq. Their current full-matrix rejections (7 daily Alpha calls
+  left versus nine required; 0/2 Nasdaq directory calls) can no longer be
+  bypassed by a smaller request or disappear into normal routing after reset.
+- Otherwise-eligible reviewed-free fixtures prove both providers resolve and
+  execute a mock call when checkpoint mode is explicitly disabled. In default
+  checkpoint mode, resolver, explicit executor, and status surfaces deny them
+  under both paid-toggle states before mock transport.
+- The existing Alpha raw-present/adjusted-absent capability test is explicitly
+  full-roadmap mode and retains both assertions. Focused tests passed 10/10;
+  both affected modules passed 129/129; Ruff check/format-check and diff-check
+  passed. Zero provider HTTP, durable reservations, spend, or ledger changes.
+- Publish this source correction once and require its exact CI. It does not
+  revive historical `a8440` acceptance or authorize a live run. Final-source
+  live evidence remains after released geometry reconciliation and full local
+  gates, under a separate coordinator-approved bounded plan.
+
 ## 2026-10-19 22:40Z — corrected frozen source backend and migration gates green
 
 - Provider HEAD/origin are synchronized at

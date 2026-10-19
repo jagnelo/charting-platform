@@ -235,6 +235,9 @@ class Settings(BaseSettings):
     # environment may replace this complete map after the corresponding
     # operations have been reviewed and validated.
     PROVIDER_CHECKPOINT_OPERATION_HOLDS: dict[str, dict[str, str]] = {
+        "alpha_vantage": {
+            "*": "Alpha Vantage daily headroom is below the reviewed checkpoint manifest reservation",
+        },
         "cta_plan": {
             "*": "complete daily CTA directory read is quota-held and unavailable in this checkpoint",
         },
@@ -247,6 +250,9 @@ class Settings(BaseSettings):
         },
         "marketstack": {
             "*": "Marketstack operation cost or monthly headroom is unresolved for this checkpoint",
+        },
+        "nasdaq": {
+            "*": "Nasdaq directory daily headroom is exhausted for this checkpoint",
         },
         "tiingo": {
             "*": "Tiingo plan or active hourly/daily usage baseline is unresolved for this checkpoint",

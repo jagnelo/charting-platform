@@ -1472,6 +1472,11 @@ async def test_provider_routing_emergency_switch_keeps_all_adapters_out_of_chain
 @pytest.mark.asyncio
 async def test_provider_chain_filters_raw_only_provider_for_adjusted_history(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
+    # This is a full-roadmap capability test, not a checkpoint-admission test.
+    # Alpha Vantage is temporarily excluded from the integration checkpoint,
+    # while its raw-only implementation must remain available when checkpoint
+    # mode is deliberately left.
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", False)
     monkeypatch.setattr(settings, "ALPHA_VANTAGE_API_KEY", "configured-key")
     monkeypatch.setattr(settings, "ALPHA_VANTAGE_REVIEWED_RESET", "rolling")
     monkeypatch.setattr(settings, "ALPHA_VANTAGE_QUOTA_EVIDENCE", "reviewed test fixture")
@@ -1770,9 +1775,11 @@ async def test_free_only_checkpoint_boundary_rejects_reviewed_paid_provider(db, 
 @pytest.mark.parametrize(
     ("provider_name", "capability", "operation"),
     (
+        ("alpha_vantage", ProviderCapability.LATEST_PRICE, "get_current_price"),
         ("cta_plan", ProviderCapability.UNIVERSE_DISCOVERY, "discover_universe_page"),
         ("eodhd", ProviderCapability.PRICE_HISTORY, "fetch_ohlcv:D1"),
         ("marketstack", ProviderCapability.PRICE_HISTORY, "fetch_ohlcv:D1"),
+        ("nasdaq", ProviderCapability.UNIVERSE_DISCOVERY, "discover_universe_page"),
         ("tiingo", ProviderCapability.PRICE_HISTORY, "fetch_ohlcv:D1"),
         ("dinari", ProviderCapability.TOKENIZED_ASSETS, "discover_tokenized_assets"),
         ("bybit_xstocks", ProviderCapability.TOKENIZED_ASSETS, "discover_tokenized_assets"),
@@ -1834,6 +1841,32 @@ async def test_checkpoint_operation_holds_deny_resolver_and_transport(
     entitlement.live_probe_status = "passed"
     db.flush()
 
+    # The provider remains a valid full-roadmap implementation when checkpoint
+    # mode is deliberately disabled. This positive control proves the denial
+    # below is caused by the temporary checkpoint hold rather than entitlement,
+    # quota, configuration, or transport setup.
+    if provider_name in {"alpha_vantage", "nasdaq"}:
+        monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", False)
+        full_roadmap_chain = await resolve_provider_chain(
+            async_db,
+            capability,
+            operation=operation,
+            operation_cost_overrides={provider_name: 1},
+        )
+        assert any(item.provider_name == provider_name for item in full_roadmap_chain)
+        full_roadmap_calls = []
+        full_roadmap_result = await execute_provider_call(
+            async_db,
+            capability,
+            operation,
+            provider_name=provider_name,
+            operation_cost_overrides={provider_name: 1},
+            invoke=lambda *_args: full_roadmap_calls.append("called") or "reviewed fixture",
+        )
+        assert full_roadmap_result.result == "reviewed fixture"
+        assert full_roadmap_calls == ["called"]
+
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
     hold_reason = provider_checkpoint_operation_hold_reason(provider_name, operation)
     assert hold_reason
     transport_calls = []

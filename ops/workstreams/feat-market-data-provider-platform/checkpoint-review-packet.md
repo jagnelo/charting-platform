@@ -1,5 +1,26 @@
 # Provider integration checkpoint review packet
 
+## Alpha Vantage and Nasdaq checkpoint holds — 2026-10-19 22:57Z
+
+The separate source correction closes the application-routing seam identified
+after the `5a372b4e` no-transport review. The default checkpoint hold map now
+uses provider-wide `*` exclusions for Alpha Vantage and Nasdaq, so neither a
+smaller request nor a later quota reset can admit an unverified operation.
+These are temporary checkpoint exclusions under the approved quota-held scope,
+not permanent roadmap removals and not live-success claims.
+
+The resolver/executor/status regression uses otherwise-eligible reviewed-free
+fixtures with complete quota contracts. For Alpha Vantage and Nasdaq it first
+turns checkpoint mode off and proves resolution plus mock execution succeed;
+with checkpoint mode restored, both paid-toggle states exclude the provider
+from resolution, explicit execution raises before the mock transport, and
+status reports the hold as non-routable. The pre-existing Alpha raw-history
+versus adjusted-history full-roadmap test now explicitly disables checkpoint
+mode while preserving both original assertions. Focused checks passed 10/10;
+the complete affected runtime/secret modules passed 129/129, and Ruff check,
+Ruff format-check, and `git diff --check` passed. No provider/issuer HTTP,
+durable quota reservation, quota spend, or ledger mutation occurred.
+
 ## Frozen Provider candidate — 2026-10-19 22:40Z
 
 Provider HEAD and origin are clean and synchronized at
@@ -36,7 +57,7 @@ stricter and executes before adapter construction, reservation, or transport.
 
 | Disposition | Providers and exact operations |
 | --- | --- |
-| Hard-held by the normal application runtime | CTA Plan: `discover_universe_page`; Dinari: all nine tokenized-asset operations; Marketstack: `discover_universe_page`, `fetch_ohlcv`, `get_current_price`; Tiingo: `fetch_ohlcv`, `get_current_price`, `get_instrument_profile`, `search_instruments`; Bybit xStocks: `discover_tokenized_assets`, `discover_tokenized_page`, `get_tokenized_asset`, `get_tokenized_price`; EODHD: `discover_universe_page`, `fetch_ohlcv`, `fetch_latest_ohlcv`, `get_current_price`, `get_instrument_profile`, including service aliases `bulk_fetch:*`, `fetch_rfr_ohlcv`, and `reconcile_universe_page:*`. |
+| Hard-held by the normal application runtime | Alpha Vantage: all operations; Nasdaq: all operations; CTA Plan: `discover_universe_page`; Dinari: all nine tokenized-asset operations; Marketstack: `discover_universe_page`, `fetch_ohlcv`, `get_current_price`; Tiingo: `fetch_ohlcv`, `get_current_price`, `get_instrument_profile`, `search_instruments`; Bybit xStocks: `discover_tokenized_assets`, `discover_tokenized_page`, `get_tokenized_asset`, `get_tokenized_price`; EODHD: `discover_universe_page`, `fetch_ohlcv`, `fetch_latest_ohlcv`, `get_current_price`, `get_instrument_profile`, including service aliases `bulk_fetch:*`, `fetch_rfr_ohlcv`, and `reconcile_universe_page:*`. |
 | Exact EODHD exception | `fetch_account_usage` is deliberately not held. It costs zero daily credits but still uses the reviewed minute-request dimension. Its transport evidence is historical rather than part of the `a8440` 66/66 run; current source has exact zero-credit/minute-accounted admission and no-transport regression coverage. No new call is authorized here. |
 | Historical transport evidence, not current acceptance | The retained `a8440` receipt covers Alpaca, Alpha Vantage, Binance, Coinbase, CoinGecko, EDGAR, Finnhub, FINRA, FINRA OTC Directory, FMP, FRED, Gate TradFi, Kraken, Kraken xStocks, MarketData.app, Massive, Nasdaq, OpenFIGI, Robinhood Tokens, Twelve Data, and xStocks operations. The candidate-receipt verifier invalidates prior receipts after any non-append-only operational-path change, so byte-identical adapters/runner/dependencies do not make that receipt current-source acceptance. Alpha Vantage and Nasdaq also have a concrete runtime seam: current combined-matrix quota rejection does not prevent a smaller application call or later routing after reset. They require explicit temporary checkpoint holds before review. |
 | Explicit entitlement/transport unavailable | CoinGecko `fetch_account_usage` (Pro-only); Finnhub `fetch_ohlcv` (observed free-key 403); FMP `discover_universe_page` (observed Basic-plan 402); FINRA generic `submit_async_dataset`, `poll_async_dataset`, and `download_async_result` (no admitted service consumer); unbounded MarketData.app response-priced option-history requests (no reviewed ceiling). |
