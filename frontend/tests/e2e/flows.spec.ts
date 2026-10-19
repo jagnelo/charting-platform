@@ -191,12 +191,24 @@ test.describe('Chart', () => {
 
   test('F9c-transform — alternative chart settings control server transform parameters', async ({ page, browserDiagnostics }) => {
     let releaseRenkoRequest: (() => void) | null = null
+    let markRenkoRequestContinued!: () => void
+    let markRenkoRequestFailed!: (error: unknown) => void
     const renkoRequestHeld = new Promise<void>(resolve => { releaseRenkoRequest = resolve })
+    const renkoRequestContinued = new Promise<void>((resolve, reject) => {
+      markRenkoRequestContinued = resolve
+      markRenkoRequestFailed = reject
+    })
     const transformedPath = /\/api\/v1\/ohlcv(?:\/local)?\/SPY\/D1\/transformed/
     await page.route(transformedPath, async route => {
       if (!route.request().url().includes('bar_type=renko')) return route.continue()
       await renkoRequestHeld
-      await route.continue()
+      try {
+        await route.continue()
+        markRenkoRequestContinued()
+      } catch (error) {
+        markRenkoRequestFailed(error)
+        throw error
+      }
     })
     await page.goto('/chart/SPY')
     const chart = page.locator('.chart-tool').filter({ has: page.getByTitle('Chart settings') }).first()
@@ -212,6 +224,7 @@ test.describe('Chart', () => {
     await expect(brickSize).toBeVisible()
     await expect(chart.locator('canvas')).toHaveCount(0)
     releaseRenkoRequest?.()
+    await renkoRequestContinued
     await page.unroute(transformedPath)
     await expect(chart.locator('canvas')).toHaveCount(2, { timeout: 15_000 })
     await brickSize.fill('12')

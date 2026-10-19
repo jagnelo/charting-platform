@@ -30,26 +30,30 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Exact TC source c8d386d01c65b3eb31e8ddc8f30df1c00822837f is clean and
-  synchronized with ordinary CI39140104361 green. Synchronized staging
-  26443f94c5b9fd3741d28db392fecf9aafe9c699 / CI39294027643 still contains
-  zero product checkpoints. Provider candidate
-  a8440efb82232a8b217df9c7330fab1795b257c9 / CI39305740911 remains
-  unaccepted while its corrected backend, migration and held-operation gates
-  finish. ETF preparation d1c560dc95d681fb5c67bf8916846a2f354bb5f5
-  remains dependency-gated on that release. TC therefore must not wire, import,
-  or merge either producer yet. The exact post-release code/test disposition is
-  recorded in post-release-reconciliation-map.md for execution only after the
-  coordinator releases Provider and then ETF through green staging.
+  Exact TC source 7ded2f7183a3ba4b941983337bad5f82df785dc8 is published and
+  its local-only chart hydration repair made the original strict20-second
+  lifecycle performance case pass. Exact run39331963904 is nevertheless
+  terminal red: Backend, Frontend Unit and Branch-declared passed, while E2E
+  reported189 passed,110 skipped and one hard F9c-transform failure in both
+  attempts. The retained trace proves the test began page.unroute immediately
+  before its released Renko handler reached route.continue, so Playwright
+  handled the pending route during interception removal and the handler then
+  attempted a second continuation. The hydration timing may have exposed this
+  latent harness race; no product failure, timeout increase, swallowed request,
+  retry relaxation or geometry overlap is inferred. A narrow synchronization
+  candidate now awaits the handler's successful ordinary continuation before
+  unregistering it, preserving the pending0-canvas and eventual2-canvas
+  assertions. Fresh exact-source CI is required after stack-free validation.
 
-  TCP2 still requires the complete normalized104-case matrix in a granted
-  isolated slot; the reviewed local-only Help reference is already delivered
-  at unchanged0.005 tolerance and REF-HELP-V25 remains required_missing.
-  Coordinator geometry repair e995d501c56bbd3427d8023a0b14e8ef6e37677b /
-  CI39312017050 is branch-green but lacks its full local profile and green
-  staging delivery, so it is not duplicated or used to broaden TCP1 closure.
-  Provider owns the sole heavy local slot. TCP3, TCP4, TCP5, and all full-roadmap
-  criteria remain open.
+  Provider and ETF product releases remain absent, so TC must not wire, import,
+  or merge either producer. TCP2 still requires the complete normalized104-case
+  matrix in a granted isolated slot; the reviewed local-only Help reference is
+  delivered at unchanged0.005 tolerance and REF-HELP-V25 remains
+  required_missing. Coordinator geometry repair afbb72d6 is merged only into
+  staging281a57bd9fb782c0f85bfb5127c713ea15037f68 whose exact run39335198284
+  is still running and is not a released green baseline. It is not duplicated
+  here. Provider owns the sole heavy local slot. TCP3, TCP4, TCP5, and all
+  full-roadmap criteria remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-

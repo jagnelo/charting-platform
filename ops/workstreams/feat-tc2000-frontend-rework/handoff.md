@@ -21559,3 +21559,43 @@ matrix, TCP3 Provider/ETF reconciliation, TCP4 combined validation, TCP5 review,
 or official `REF-HELP-V25` parity. The next action after this repair's exact CI
 is still the coordinator-released Provider-then-ETF staging boundary described
 in `post-release-reconciliation-map.md`.
+
+## 2026-10-19 22:33Z — Exact-CI transform-route lifecycle repair
+
+The local-only hydration candidate was published as exact source
+`7ded2f7183a3ba4b941983337bad5f82df785dc8`. Automatic run `39331963904`
+confirmed Backend, Frontend Unit and Branch-declared success, and the original
+strict lifecycle-performance case passed. The E2E job `118334654597` remained
+terminal red with `189` passed, `110` skipped, and one hard
+`F9c-transform` failure in both attempts. This is not a retry-flaky pass.
+
+The coordinator artifact
+`/tmp/tc-transform-39331963904-coordinator.zip` is exactly `2923429` bytes,
+SHA-256 `2a196f63d6c060b21a892d6b21d6cf528b502b2d3d0986717d5ff788bd156df4`,
+and passed `unzip -t`. The failed attempts both report
+`route.continue: Route is already handled` followed by the unchanged expected
+two-canvas restoration observing zero canvases. The nested retry trace proves
+the ordering: after the zero-canvas pending-state assertion, `page.unroute`
+began at trace time `46020.855`, while the released handler's ordinary
+`route.continue` began at `46021.883`. Removing the interception pattern
+therefore handled the pending route first; the handler then attempted to
+continue it a second time. The hydration change can account for exposing this
+pre-existing timing window by advancing the chart to the transform step sooner,
+but the evidence does not support a product renderer or request failure.
+
+The narrow candidate keeps the route error observable and changes no product
+source. It resolves the existing hold, awaits successful completion of the
+ordinary Renko request continuation, and only then unregisters the route. The
+pending zero-canvas assertion, eventual two-canvas assertion, 15-second
+convergence timeout, strict 20-second lifecycle budget, retries, diagnostics,
+visual references and `0.005` tolerance remain unchanged. Test collection
+lists all `188` flows and `vue-tsc` passes. No browser, Compose, Docker,
+provider/issuer request, service, retained data, sibling or staging state was
+used or changed.
+
+This repair remains pending stack-free branch validation, one coherent
+publication, and fresh exact-source CI. The coordinator-owned geometry repair
+is not duplicated; staging `281a57bd9fb782c0f85bfb5127c713ea15037f68`
+remains unreleased while run `39335198284` is active. TCP2 full normalized104,
+TCP3 Provider/ETF reconciliation, TCP4 combined validation, TCP5 review, and
+official `REF-HELP-V25` parity remain open.
