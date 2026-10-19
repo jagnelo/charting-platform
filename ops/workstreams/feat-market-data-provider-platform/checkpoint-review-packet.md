@@ -1,5 +1,32 @@
 # Provider integration checkpoint review packet
 
+## Alpha/Nasdaq correction exact gates — 2026-10-19 23:31Z
+
+Exact implementation source `6844a1114164ef992c16731b203ea34cd6235e07`
+is synchronized with origin and passed Actions `39338600482`: Backend,
+Frontend Unit, Branch-declared, and ordinary Playwright succeeded; Exhaustive
+was skipped by feature-branch policy. The unchanged isolated CPython 3.12.11
+backend gate also passed 2,858 unit tests in 58 shards, all 396 Docker-backed
+integration tests, and 82% combined coverage (68,085 statements / 11,953
+missed; 75% required). Slow shard 44 completed in 255.87 seconds inside its
+300-second cap; integration completed in 720.84 seconds inside its 900-second
+cap. Normal mocked routing was enabled, while live-provider probes, account
+refresh, and availability monitors remained disabled.
+
+The preserving cleanup trap ran. All 61 pre-existing container records kept
+the identical sorted-ID hash, including all 55 originally running containers;
+the six additional records were already stopped before the gate. The temporary
+untracked cleanup guard was removed only after terminal success. No provider or
+issuer HTTP, durable quota reservation, quota spend, retained-service stop, or
+dataset cleanup occurred.
+
+The auxiliary geometry repair is now released only through exact clean staging
+`281a57bd9fb782c0f85bfb5127c713ea15037f68`, Actions `39335198284`, including
+green Exhaustive. This receipt closes the pre-merge Provider correction
+context. The next source context merges only that released SHA into Provider,
+then revalidates the combined candidate; neither feature acceptance nor staging
+integration is implied here.
+
 ## Alpha Vantage and Nasdaq checkpoint holds — 2026-10-19 22:57Z
 
 The separate source correction closes the application-routing seam identified

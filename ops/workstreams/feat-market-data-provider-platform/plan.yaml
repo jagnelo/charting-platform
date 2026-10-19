@@ -1,4 +1,12 @@
 schema: 4
+# Alpha/Nasdaq exact gates — 2026-10-19 23:31Z. Exact implementation6844a111
+# passed Actions39338600482. Isolated CPython3.12.11 backend coverage passed
+# 2,858 unit +396 integration at82% (68,085 statements/11,953 missed;75%
+# required), with shard44 at255.87s/300s and integration720.84s/900s. The
+# preserving trap completed; all61 pre-existing container IDs and all55 running
+# containers remained unchanged. Exact green staging281a57bd/39335198284 is
+# released for Provider reconciliation. Merge only that SHA next; this does not
+# confer feature acceptance or authorize final-source provider transport.
 # Checkpoint quota exclusions — 2026-10-19 22:57Z. The separate source
 # correction adds provider-wide default holds for Alpha Vantage and Nasdaq.
 # Otherwise-eligible reviewed-free fixtures prove full-roadmap resolver/mock
