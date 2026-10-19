@@ -34,14 +34,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [
-    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/integration-checkpoint.md",
-    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
-    "ops/workstreams/feat-strategy-lab-v2/post-release-reconciliation.md",
-    "ops/workstreams/feat-strategy-lab-v2/session.json",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -59,7 +52,7 @@
   },
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
-  "head": "b6f1e48670a74aee669e9b80330fec836770fad1",
+  "head": "1b8ab2d103ace110a674aba37473c09fc373f368",
   "implementation_sha": "b6f1e48670a74aee669e9b80330fec836770fad1",
   "last_checkpoint": "2026-10-19T20:30:13Z",
   "last_human_progress_update": "2026-10-16T10:17:02.035346+00:00",
@@ -99,7 +92,7 @@
     "total": 5,
     "updated_at": "2026-10-19T20:30:13Z"
   },
-  "remote": "b6f1e48670a74aee669e9b80330fec836770fad1",
+  "remote": "1b8ab2d103ace110a674aba37473c09fc373f368",
   "remote_sha": "b6f1e48670a74aee669e9b80330fec836770fad1",
   "remote_synchronized": true,
   "retained_docker_resources": [],
