@@ -78,8 +78,8 @@ watch(() => props.configuration.bar_type, requested => {
 
 function stableKey(seed: string) {
   const normalized = seed.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'chart-template'
-  const id = globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2, 10)
-  return `${normalized}-${id.slice(0, 8)}`
+  const suffix = crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8, '0')
+  return `${normalized}-${suffix}`
 }
 
 function templateConfiguration(value: Record<string, unknown>) {

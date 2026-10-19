@@ -11879,3 +11879,50 @@ quota operation, heavy fixture, service cleanup, staging/sibling write,
 deployment or paid/trial activation occurred. The checkpoint remains
 `in_progress`; wait for the coordinator's explicit accepted synchronized green
 Provider staging SHA before consumer reconciliation.
+
+### Released common baseline reconciled — 2026-10-19 23:17Z
+
+The coordinator explicitly released common staging
+`281a57bd9fb782c0f85bfb5127c713ea15037f68`, backed by exact exhaustive Actions
+run `39335198284` and canonical receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261019T230653Z-281a57bd9fb7.json`.
+Both the persistent staging checkout and `origin/staging` resolved to that exact
+SHA. The pre-merge ETF source and origin were clean and synchronized at
+`d1c560dc95d681fb5c67bf8916846a2f354bb5f5`; existing claim
+`f206bbc5-abbf-473a-a44f-fb5706c81282` was preserved.
+
+The authorized non-fast-forward backmerge brought only the released
+workflow/F8u/F9c common repairs and their staging-authoritative workstream
+records. Three content conflicts occurred:
+
+- `frontend/src/components/workstation/ChartTemplateControl.vue`
+- `frontend/src/components/workstation/VirtualWatchlistTool.vue`
+- `frontend/tests/unit/components/test_chart_template_control.test.ts`
+
+All three represented the same superseded fallback-key implementation versus
+the released Web Crypto contract. They were resolved exactly to staging's
+`crypto.getRandomValues` eight-hex-digit suffix and its deterministic
+no-`randomUUID` assertion. The resolved files are byte-identical to released
+staging. Automatic merge results preserve the upstream ordinary pointer, plot,
+template and workspace assertions alongside existing ETF workstation behavior.
+Foreign repair workstream records were accepted unchanged from staging; no
+sibling source was imported directly.
+
+Permitted stack-free validation passed: the repository validator accepted all
+38 workstream records; `git diff --check` passed; the three affected frontend
+unit files passed 153/153 in 7.43 seconds; and Playwright `--list` discovered all
+154 flows, including F8u and the F9c family, without launching a browser or
+fixture. No Compose stack, production build, heavy typecheck, backend/frontend
+matrix, issuer/provider/SEC request, quota operation, reservation, service
+cleanup or data mutation occurred. The current-source `full_stack_browser`
+profile remains mandatory after actual Provider reconciliation and is not
+claimed by these checks.
+
+This common baseline is not a Provider product checkpoint. Provider source
+`6844a111` still owns backend gate `33845`; no accepted Provider source has been
+released through staging. Consequently no `ETF_HOLDINGS` enum, migration,
+governance transport bridge or producer-dependent test was added. The complete
+prepared per-attempt bridge map and all 14 roadmap criteria remain intact.
+MSMR/QQQ and Militia/GOOG remain unresolved/quarantined. This receipt is inside
+the enclosing merge commit by design; verify that merge SHA and its one normal
+exact-source branch CI after publication, without a self-hash metadata commit.

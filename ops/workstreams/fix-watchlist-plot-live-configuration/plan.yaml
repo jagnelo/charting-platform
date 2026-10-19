@@ -1,0 +1,148 @@
+schema: 4
+branch: fix/watchlist-plot-live-configuration
+base_sha: 2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745
+parent_branch: staging
+parent_sha: 2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "Coordinate the existing Provider \u2192 ETF holdings \u2192 TC2000 \u2192 Strategy Lab v2 feature checkpoints through reconciliation, delegated technical acceptance, sequential guarded merges into persistent staging, and exact-source full validation. Deliver a combined development baseline usable for human testing within the human-approved verified-free-only scope, with quota-held, unreviewed, paid-trial, and unsafe operations disabled and full feature roadmaps retained. No master promotion, deployment, paid activation, or operational trial is authorized."
+planning_state: ready
+human_closure_authorization: >-
+  The human delegated technical-fix review and closure to the coordinator on
+  2026-10-15, saying: "Yes I approve, and you do not need my acceptance to
+  close it off ... do this yourself, with care ... I just want to get to the
+  merged-into-staging state to finally try this out." Applied here only to
+  this narrowly scoped, evidence-backed staging repair. This does not accept
+  any of the four feature checkpoints or authorize promotion, deployment, paid
+  activation, quota spend, an operational trial, or unrelated cleanup.
+  The human's 2026-10-17 instruction to do what is needed to get all of this
+  into staging, together with the explicit delegation to handle checkpoint
+  acceptance, authorizes this coordinator-owned prerequisite repair's closure
+  and guarded staging integration. This remains limited to this narrow repair;
+  it does not waive its exact CI or staging gate.
+closure_summary: >-
+  The historical strict-red runs 39254427018, 39269065093, and 39274378927
+  remain preserved. Native-event diagnosis established that the header-target
+  drop delivered the correct RSI payload; the missing update was caused by
+  configuredColumnKeys reading detached props.tool.configuration while the
+  drop handler and indicator renderer read the canonical live workspace
+  configuration. The repair now derives visible column keys from that same
+  canonical snapshot at implementation SHA
+  dfa7f558e3b1a7c998b86b57f2609091ffd5f7c0. On 2026-10-19, the affected
+  suites passed 89/89; vue-tsc and the production frontend build passed; the
+  focused pinned Playwright 1.62.1 Noble F8u flow passed five fresh zero-retry
+  repetitions; the full functional profile passed 154 tests with 2 expected
+  live-data skips and zero failures/retries; and the unchanged visual profile
+  passed 104/104. Exact-source Actions run 39282882919 on the implementation
+  SHA completed green: Backend, Frontend Unit, Branch-declared, and Playwright
+  jobs succeeded; Exhaustive Integration Gate was skipped as required for
+  branch CI. The disposable provider-denied fixture and its four generated
+  volumes/two networks were removed; retained Provider and TC2000 stacks
+  remain running. No staging or feature worktree was modified. This narrow
+  repair does not close Provider, ETF holdings, TC2000, or Strategy Lab v2;
+  their contracts, gates, and roadmaps remain open. Migration/deployment
+  impact: none. Integration must capture the final clean pushed source tip via
+  the guarded workflow. integration_capture: exact branch HEAD.
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: full_stack_browser
+local_validation_reason: >-
+  The repair changes shared workstation UI state used by a real chart-plot drag
+  into a watchlist. Validate F8u on isolated, provider-egress-denied runtime,
+  then affected frontend suites, type-check, build, exact-source CI and guarded
+  staging CI. No screenshot or visual oracle change is in scope.
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: >-
+  Fix the staging-derived F8u chart-plot-to-watchlist race so the visible
+  indicator definition and chart-drop configuration update use one canonical
+  live workspace snapshot, and make the existing real-drag test start from the
+  visible plot label rather than an embedded control. Publish a narrow clean
+  repair checkpoint for the coordinator; do not integrate, promote, deploy, or
+  modify feature worktrees.
+scope:
+  - >-
+    Resolve the detached Golden Layout configuration race in the shared
+    WorkstationToolContent watchlist path: both configured indicator rendering
+    and chart-plot drop updates must read the canonical live workspace window.
+  - >-
+    Preserve the current ordinary drag path, F8u assertions and timeout values,
+    screenshot references/tolerances, retained data, and provider holds. Wait
+    for the watchlist's existing aria-busy state to clear before dropping, and
+    use exactly one drag attempt with no in-test retry.
+  - >-
+    Start the F8u pointer drag from the visible RSI label because the draggable
+    row center can target its embedded line-width input; wait until the target
+    watchlist reports aria-busy=false, then perform exactly one stepped native
+    pointer drag onto the watchlist column-header surface. Keep the expected RSI
+    header assertion unchanged; do not retry or bypass the drag path.
+owned_paths:
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/tests/e2e/flows.spec.ts
+dependencies: []
+acceptance_criteria:
+  - id: AC1
+    text: >-
+      Configured indicator rendering and chart-plot drop updates use the same
+      canonical live workspace configuration snapshot; no unrelated feature
+      source or ownership boundary changes.
+  - id: AC2
+    text: >-
+      Existing F8u real pointer-drag flow adds the RSI header to Major US
+      benchmarks on this exact repair source, starting from the visible plot
+      label and dropping onto the watchlist column-header surface in a fresh
+      internal-only seeded fixture with provider/OneSignal credentials blank,
+      provider routing/refresh disabled, one worker, and zero retries; repeat
+      the exact flow five times. App and worker provider egress stays denied.
+      Only the public static SDK host
+      cdn.onesignal.com:443 may use the exact-host browser allowlist proxy; no
+      OneSignal API host or credentials are allowed.
+  - id: AC3
+    text: >-
+      Affected watchlist/plot component suites, vue-tsc, production frontend
+      build, branch-declared tests, and exact-source ordinary CI pass without
+      weakened assertions, changed configured Playwright timeout/retry values,
+      external provider traffic, or visual-oracle changes.
+  - id: AC4
+    text: >-
+      The branch is clean and pushed with exact evidence, stops at
+      ready_for_human_review, and leaves integration solely to the coordinator's
+      guarded persistent-staging workflow.
+branch_tests:
+  - cd frontend && npx vitest run tests/unit/components/test_virtual_watchlist_tool.test.ts
+  - cd frontend && npx vitest run tests/unit/components/test_chart_plot_library.test.ts
+branch_tests_reason: >-
+  Branch-declared entries are executable shell commands for the stack-free
+  branch-tests job. The real F8u browser flow, vue-tsc, and production build
+  are validated by the full local profile and ordinary branch CI; they are
+  not file paths or prose entries in this command list.
+live_test_impact: >-
+  No live provider or issuer test is required. Browser validation must use a
+  fresh internal-only fixture with app/worker provider egress denied,
+  credentials blank, and provider routing/refresh disabled. The browser may
+  fetch only the public OneSignal static SDK through a temporary exact-host
+  cdn.onesignal.com:443 allowlist proxy; OneSignal APIs remain unreachable and
+  credentials remain blank.
+migration_impact: none
+deployment_impact: none
+status: ready_for_integration
+remaining_gaps:
+  - >-
+    The narrow repair still needs its guarded merge into persistent staging and
+    the exact pushed staging Exhaustive Integration Gate. Do not count this as
+    acceptance of any of the four feature checkpoints.
+  - >-
+    This repair checkpoint does not close Provider, ETF, TC2000, or Strategy
+    Lab v2 feature checkpoints. Provider's full 260-case/104-visual validation,
+    operation dispositions, and current quota preflight remain owner/coordinator
+    gates after this fix is released through staging.
+progress:
+  completed: [AC1, AC2, AC3, AC4]
+  total: 4
+  current_phase: ready_for_integration
+  current_blocker: >-
+    No repair-checkpoint gate remains open. Persistent staging integration and
+    its exact Exhaustive Integration Gate remain coordinator-owned next steps.
+  next_action: >-
+    Commit and push this closure receipt, verify final exact-source CI, then
+    invoke the guarded persistent-staging integration workflow. Preserve the
+    four feature roadmaps and all provider/quota restrictions.

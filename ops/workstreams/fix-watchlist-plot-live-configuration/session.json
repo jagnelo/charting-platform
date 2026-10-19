@@ -1,0 +1,78 @@
+{
+  "acceptance_criteria": [],
+  "active_session_id": "fc306e07-1bc4-4ba2-84f5-e0361f7c2c2f",
+  "branch": "fix/watchlist-plot-live-configuration",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-watchlist-plot-live-configuration-06f23bb3",
+      "charting-stack-fix-watchlist-plot-live-configuration-06f23bb3"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-watchlist-plot-live-configuration-06f23bb3a3"
+  },
+  "docker_ready": {
+    "ready": true,
+    "started_desktop": false,
+    "wait_seconds": 0
+  },
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/watchlist-plot-live-configuration: Fix the staging-derived F8u chart-plot-to-watchlist race so the visible indicator definition and chart-drop configuration update use one canonical live workspace snapshot. Publish a narrow clean repair checkpoint for the coordinator; do not integrate, promote, deploy, or modify feature worktrees.. Acceptance criteria: AC1: Configured indicator rendering and chart-plot drop updates use the same canonical live workspace configuration snapshot; no unrelated feature source or ownership boundary changes.; AC2: Existing F8u real pointer-drag flow adds the RSI header to Major US benchmarks on this exact repair source, in a fresh internal-only seeded fixture with provider/OneSignal credentials blank, provider routing/refresh disabled, one worker, and zero retries; repeat the exact flow five times. App and worker provider egress stays denied. Only the public static SDK host cdn.onesignal.com:443 may use the exact-host browser allowlist proxy; no OneSignal API host or credentials are allowed.; AC3: Affected watchlist/plot component suites, vue-tsc, production frontend build, branch-declared tests, and exact-source ordinary CI pass without weakened assertions, changed timeouts/retries, external provider traffic, or visual-oracle changes.; AC4: The branch is clean and pushed with exact evidence, stops at ready_for_human_review, and leaves integration solely to the coordinator's guarded persistent-staging workflow.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-10-17T11:41:30.638441+00:00",
+  "goal_request": {
+    "objective": "Advance fix/watchlist-plot-live-configuration: Fix the staging-derived F8u chart-plot-to-watchlist race so the visible indicator definition and chart-drop configuration update use one canonical live workspace snapshot. Publish a narrow clean repair checkpoint for the coordinator; do not integrate, promote, deploy, or modify feature worktrees.. Acceptance criteria: AC1: Configured indicator rendering and chart-plot drop updates use the same canonical live workspace configuration snapshot; no unrelated feature source or ownership boundary changes.; AC2: Existing F8u real pointer-drag flow adds the RSI header to Major US benchmarks on this exact repair source, in a fresh internal-only seeded fixture with provider/OneSignal credentials blank, provider routing/refresh disabled, one worker, and zero retries; repeat the exact flow five times. App and worker provider egress stays denied. Only the public static SDK host cdn.onesignal.com:443 may use the exact-host browser allowlist proxy; no OneSignal API host or credentials are allowed.; AC3: Affected watchlist/plot component suites, vue-tsc, production frontend build, branch-declared tests, and exact-source ordinary CI pass without weakened assertions, changed timeouts/retries, external provider traffic, or visual-oracle changes.; AC4: The branch is clean and pushed with exact evidence, stops at ready_for_human_review, and leaves integration solely to the coordinator's guarded persistent-staging workflow.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "requested",
+  "goal_unavailable_reason": "No separate branch-local Codex goal created because the central four-feature integration goal is already active in this thread; this narrow repair executes under that goal.",
+  "head": "8b9dc144195fc5195ca6bc5d0d62842d020af784",
+  "implementation_sha": "8b9dc144195fc5195ca6bc5d0d62842d020af784",
+  "last_human_progress_update": "2026-10-19T13:54:26+00:00",
+  "local_validation_profile": "full_stack_browser",
+  "next_action": "Publish the required integration_capture: exact branch HEAD closure declaration and preflight receipt, then wait for exact-source CI on that final metadata tip before retrying guarded staging integration",
+  "parent_branch": "staging",
+  "plan_hash": "2cc3be8cbdbb6638228b10eb9e3a5ac448e5de07b16854188ec059b0401f122b",
+  "planning_required": false,
+  "planning_state": "ready",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [
+      "AC1"
+    ],
+    "current_blocker": "Exact-source run 39269065093 is red under strict flaky-test policy: the watchlist target still had aria-busy=true during the drop. The branch must pass focused zero-retry validation and fresh exact-source CI before staging.",
+    "current_phase": "f8u_busy_state_stabilization",
+    "next_action": "Wait for target aria-busy=false, make one real drag, validate focused tests and workstream, publish repair, then require green exact-source CI before guarded staging integration",
+    "total": 4,
+    "updated_at": "2026-10-19T14:58:55+00:00"
+  },
+  "remote": "8b9dc144195fc5195ca6bc5d0d62842d020af784",
+  "remote_sha": "8b9dc144195fc5195ca6bc5d0d62842d020af784",
+  "remote_synchronized": true,
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "fc306e07-1bc4-4ba2-84f5-e0361f7c2c2f",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-watchlist-plot-live-configuration/ops/workstreams/fix-watchlist-plot-live-configuration",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-watchlist-plot-live-configuration/ops/workstreams/fix-watchlist-plot-live-configuration/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-watchlist-plot-live-configuration/ops/workstreams/fix-watchlist-plot-live-configuration/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-watchlist-plot-live-configuration/ops/workstreams/fix-watchlist-plot-live-configuration/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-watchlist-plot-live-configuration/ops/workstreams/fix-watchlist-plot-live-configuration/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-watchlist-plot-live-configuration",
+  "worktree_id": "fix-watchlist-plot-live-configuration-06f23bb3a3"
+}

@@ -3,8 +3,8 @@ branch: feat/etf-holdings-constituents
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
-latest_staging_merge_sha: 9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4
-latest_staging_parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
+latest_staging_merge_sha: enclosing_common_baseline_merge_commit
+latest_staging_parent_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: >-
   Continue the existing ETF holdings provider coverage goal from current green
@@ -313,6 +313,32 @@ owned_paths:
   - ops/workstreams/feat-etf-holdings-constituents/validation.jsonl
   - ops/workstreams/feat-etf-holdings-constituents/session.json
   - ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md
+common_baseline_reconciliation:
+  recorded_at: "2026-10-19T23:17:00Z"
+  pre_merge_etf_sha: d1c560dc95d681fb5c67bf8916846a2f354bb5f5
+  released_staging_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
+  staging_exact_ci: 39335198284
+  coordinator_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261019T230653Z-281a57bd9fb7.json
+  source_scope: workflow_F8u_F9c_common_repairs_only
+  merge_commit_convention: >-
+    This record is committed inside the non-fast-forward merge itself; verify
+    the enclosing commit and exact branch CI after publication rather than
+    creating a recursive metadata-only self-hash commit.
+  semantic_resolution: >-
+    Retain released staging's Web Crypto getRandomValues key generation and its
+    exact no-randomUUID assertion in ChartTemplateControl and
+    VirtualWatchlistTool. Preserve the ordinary pointer, plot, template and ETF
+    workstation behavior carried by the automatic merge. Foreign repair
+    workstream records remain byte-for-byte authoritative from staging.
+  product_boundary: >-
+    This baseline contains no accepted Provider product checkpoint. Do not add
+    ETF_HOLDINGS, migrations, governance wiring or direct sibling imports until
+    the coordinator releases accepted Provider source through green staging.
+  validation: >-
+    Pre-publication stack-free checks passed: all 38 workstreams validated,
+    git diff --check passed, the three affected frontend unit files passed
+    153/153, and Playwright discovery listed 154/154 flows including F8u and
+    the F9c family without launching a browser. Exact branch CI remains required.
 dependencies:
   - "Reviewed public, free, or already-entitled first-party issuer routes; no new paid entitlement is implied."
   - "feat/market-data-provider-platform must first reach staging; its shared provider runtime is the owner of generic capability, entitlement, quota, cost, health, and shadow contracts."
@@ -387,25 +413,23 @@ progress:
   completed:
     - EICP1
   total: 7
-current_phase: provider_candidate_contract_mapped_release_pending
+current_phase: common_baseline_281a57_validated_pending_publication
 current_blocker: >-
-  Current synchronized staging is 26443f94c5b9fd3741d28db392fecf9aafe9c699
-  with exact exhaustive CI39294027643 green, but it still contains no accepted
-  product checkpoint. Exact Provider candidate
-  a8440efb82232a8b217df9c7330fab1795b257c9 has CI39305740911 green plus 154
-  functional passes with 2 expected skips, 104 strict visuals and one 66/66
-  admitted live pass; it is not accepted or released while its corrected full
-  backend gate, migration equivalence and held-operation posture remain open.
-  Read-only inspection confirms that the candidate has shared identity,
-  admission, durable quota/settlement, health and recurring-cost contracts but
-  no ProviderCapability.ETF_HOLDINGS. Its async execute_provider_call requires
-  a synchronous non-awaitable callback. The exact per-attempt ETF bridge is now
-  mapped but must not be implemented or imported before the coordinator releases
-  Provider through synchronized green staging. MSMR/QQQ and Militia/GOOG remain
-  unresolved and quarantined with no retained response or row evidence. The 15
-  Tier-0 and 156 Tier-1 investigations and 496/422/74 registry split remain
-  preserved. No issuer, SEC or provider request, quota operation, paid/trial
-  activation, heavy profile, service cleanup or cross-worktree write occurred.
+  Released common staging 281a57bd9fb782c0f85bfb5127c713ea15037f68 with
+  exact exhaustive CI39335198284 is being reconciled into this ETF branch under
+  the coordinator's explicit auxiliary-backmerge authorization. It contains
+  workflow/F8u/F9c common repairs, not an accepted Provider checkpoint. The
+  three merge conflicts were limited to chart-template/watchlist key generation
+  and its unit assertion and are resolved to released staging's Web Crypto
+  getRandomValues contract. Stack-free checks pass: 38 workstreams, diff-check,
+  153 affected unit cases and 154 Playwright-discovered flows. Provider source
+  6844a111 still owns backend gate
+  33845 and is not released through green staging, so the prepared ETF_HOLDINGS
+  bridge remains gated. MSMR/QQQ and Militia/GOOG remain unresolved and
+  quarantined with no retained response or row evidence. The 15 Tier-0 and 156
+  Tier-1 investigations and 496/422/74 registry split remain preserved. No
+  issuer, SEC or provider request, quota operation, paid/trial activation,
+  heavy profile, service cleanup or cross-worktree write occurred.
 
 remaining_gaps:
   - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the documented native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, TrimTabs/Abacus FCF, Anydrus/NDOW, M.D. Sass/SASS, Amplius/AAAA, Argent/AMID-ABIG-ALIL, VistaShares/RTOO-AIS-AMMO-QUSA-OMAH-ACKY-DRKY, Baillie Gifford/BGGG-BGIA-BGEG-BGUS, and Arin/ATTR, current code and provider-universe documentation report 496/422/74 and future counts must remain derived."
@@ -1394,8 +1418,11 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Wait for the coordinator's explicit accepted Provider release in an exact
-  synchronized green staging SHA. Then verify the release/CI/acceptance record,
+  Publish the validated enclosing common-baseline merge commit once, and retain
+  its exact-source branch CI receipt without a
+  metadata-only follow-up loop. Then wait for the coordinator's explicit
+  accepted Provider release in an exact synchronized green staging SHA. Verify
+  the release/CI/acceptance record,
   merge only that SHA into this clean unfrozen ETF branch, record source and
   migration heads, and execute the documented bridge checklist: additive
   ETF_HOLDINGS enum/schema/seed/availability reconciliation; evidence-backed

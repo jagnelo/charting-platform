@@ -312,6 +312,11 @@ const ctrlWheelHeld = ref(false)
 // intent wins so a late initial SPY request cannot restore an older selection.
 let symbolSelectionGeneration = 0
 let drilldownSelectionGeneration = 0
+let componentMounted = false
+let resolveComponentMountSettled: (() => void) | null = null
+const componentMountSettled = new Promise<void>(resolve => {
+  resolveComponentMountSettled = resolve
+})
 const preserveDrilldownSymbol = ref<string | null>(null)
 // SPX is a logical benchmark identity. When an official SPX series is not
 // entitled or cannot be resolved, keep the requested workflow usable through
@@ -918,7 +923,7 @@ async function selectSymbol(raw: string, timestamp?: string, allowNavigationFall
   // selection from a constituent list may itself have no holdings endpoint, but
   // its relevant ratio denominator is still the list's active ETF.
   const comparisonETF = workspaceStore.constituentETF
-  workspaceStore.publishSymbol({
+  const explicitTimestampToken = workspaceStore.publishSymbol({
     symbol,
     ...(typeof canonicalInstrumentId === 'number' ? { instrumentId: canonicalInstrumentId } : {}),
     timestamp,
@@ -928,17 +933,22 @@ async function selectSymbol(raw: string, timestamp?: string, allowNavigationFall
   // Update linked ratio state at publish time. Data hydration can take much
   // longer than the user's next click and must not delay the visible target.
   updateAutoRatioExpression(symbol, comparisonETF)
-  await loadSymbolData(symbol, comparisonETF, false)
-  if (generation !== symbolSelectionGeneration) return
-  if (timestamp) {
-    // A historical occurrence is an explicit user intent. The chart renderer
-    // may rebuild asynchronously after bars arrive and publish its initial
-    // cursor in the meantime; republish the requested point after two paint
-    // turns so that late renderer setup cannot replace it with the latest bar.
-    await nextTick()
-    await new Promise<void>(resolve => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())))
-    if (generation === symbolSelectionGeneration) {
-      workspaceStore.publishTimestamp(timestamp, 'blue', 'workstation')
+  try {
+    await loadSymbolData(symbol, comparisonETF, false)
+    if (generation !== symbolSelectionGeneration) return
+    if (timestamp) {
+      // The store holds this explicit intent against stale cursor publications
+      // while the chart is rebuilding. Republish after the bars and renderer
+      // have settled, then release the hold so normal chart navigation resumes.
+      await nextTick()
+      await new Promise<void>(resolve => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())))
+      if (generation === symbolSelectionGeneration) {
+        workspaceStore.publishTimestamp(timestamp, 'blue', 'workstation')
+      }
+    }
+  } finally {
+    if (timestamp && explicitTimestampToken != null) {
+      workspaceStore.clearExplicitLinkedTimestamp(timestamp, explicitTimestampToken, 'blue')
     }
   }
 }
@@ -1088,6 +1098,15 @@ async function selectIndustryProxy(symbol: string, instrumentId?: number | null)
 }
 
 async function openTool(tool: OpenableToolDefinition, configurationOverride: Record<string, unknown> = {}) {
+  // A shell click can arrive before the asynchronous onMounted hook marks the
+  // component live. Wait for that lifecycle boundary instead of yielding one
+  // render turn and accidentally dropping the first Add-tool action on a cold
+  // /chart navigation. Unmount resolves the same signal so teardown still
+  // cancels the command.
+  if (!componentMounted) {
+    await componentMountSettled
+    if (!componentMounted) return
+  }
   // The dock can already expose a fully usable active tab while the initial
   // workspace promise is still settling (notably after Golden Layout restores
   // a persisted snapshot). Do not strand an Add-tool click behind that promise
@@ -1915,6 +1934,10 @@ watch(() => workspaceStore.workspace?.id, (workspaceId, previousWorkspaceId) => 
 })
 
 onMounted(async () => {
+  componentMounted = true
+  const resolveMount = resolveComponentMountSettled
+  resolveComponentMountSettled = null
+  resolveMount?.()
   const mountSelectionGeneration = symbolSelectionGeneration
   // Capture before chart/uPlot gesture handlers can stop propagation. The
   // workstation-level Ctrl+wheel traversal is a shell command and must remain
@@ -2010,6 +2033,10 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  componentMounted = false
+  const resolveMount = resolveComponentMountSettled
+  resolveComponentMountSettled = null
+  resolveMount?.()
   endTabDrag()
   window.removeEventListener('wheel', handleWheel, { capture: true })
   ctrlWheelHeld.value = false
