@@ -1,19 +1,54 @@
 schema: 4
-# Coordinator status — 2026-10-19 12:40Z. The current pushed app/test baseline
-# is 36f3f80100c33828820129a6badb72cae1180b96. Exact push CI 39163456324 is
-# green; pinned-Noble F8u passed 1/1, functional passed 154 with 106 expected
-# skips, and strict visual passed 104/104 after mounting the host DejaVu font
-# directory read-only into the browser runner; references/tolerances stayed
-# unchanged. A 24-provider live run stopped after 35 passes because the
-# harness stopped on its own explicitly expected EODHD free-plan 403. The
-# response was archived and quota settled; Dinari, Marketstack, and Tiingo
-# remained quarantined. A dirty test-harness correction now continues only
-# for 403 explicitly labeled expected_entitlement_denial; unexpected
-# 401/403/429 still stop. Full backend unit passes 2,843, all 184 focused
-# provider-runner/usage tests pass, Ruff and diff checks pass. The harness fix
-# is not yet pushed or source-CI validated; the full live matrix must be rerun
-# only after fresh durable-ledger admission. Preserve held providers, full
-# roadmap, and conditional coordinator-only staging authority.
+# Coordinator release — 2026-10-19 18:26Z. Exact clean synchronized staging
+# `26443f94c5b9fd3741d28db392fecf9aafe9c699` passed Actions `39294027643`,
+# including Exhaustive, and contains the completed F8u label-origin repair.
+# Its isolated repair fixture is released; pre-existing Provider/TC services
+# and datasets remain retained. Preserve Provider's strict-red
+# `bef14e0c`/`39254427018` receipt. Close this evidence context, merge only that
+# released staging SHA into Provider, reconcile, validate, commit/push and
+# require exact-source CI before refreshing durable-ledger admission or making
+# at most one internally admitted verified-free subset run. Keep CTA Plan,
+# EODHD, Dinari, Marketstack and Tiingo held; no reset, paid/trial activation,
+# deployment, operational trial, sibling write or self-integration.
+# Coordinator status — 2026-10-19 13:32Z. Current Provider source
+# bef14e0c14b4c60be4f4d54dc954f8113ef5f2f9 has terminal exact CI
+# 39254427018 with strict-red F8u: 150 passed, 109 expected skips, and the RSI
+# header was absent after the real drag on the first attempt; the retry passed,
+# but the run remains red. Backend, Frontend Unit, and Branch-declared passed.
+# The exact failed screenshot is retained in artifact 12188857004. The
+# coordinator diagnosed the default row-center drag origin as overlapping the
+# embedded line-width input and published a label-origin correction on the
+# existing repair branch at 8b9dc144195fc5195ca6bc5d0d62842d020af784; exact CI
+# 39260462285 is running. Preserve the red run and existing app-source browser
+# evidence (F8u 1/1, functional 154/106 expected skips, strict visual 104/104,
+# with unchanged references and tolerance); frontend source is unchanged from
+# 36f3f801 to bef14e0c. The fresh no-transport preflight admits 22 providers and
+# quarantines five (CTA Plan/EODHD headroom, Dinari quota contract, Marketstack
+# cost/MIC/monthly headroom, Tiingo plan/usage baseline); no request,
+# reservation, or quota spend occurred. After green staging releases the repair,
+# reconcile staging into Provider, require exact Provider CI, then run only the
+# freshly admitted subset once if its internal reservation is admitted. Preserve
+# all holds and the full roadmap.
+# Coordinator status — 2026-10-19 12:58Z. Current pushed source is
+# bef14e0c14b4c60be4f4d54dc954f8113ef5f2f9. Exact Actions run 39254427018 is
+# in progress: Backend and Frontend Unit passed; Branch-declared and Playwright
+# are running; Exhaustive is skipped by feature-branch policy. The preceding
+# app source 36f3f801 has a green exact CI plus pinned-Noble F8u 1/1, functional
+# 154 passed / 106 expected skips, and strict visual 104/104; visual
+# references/tolerances were unchanged after a read-only DejaVu font mount.
+# The 24-eligible live run stopped after 35 passes because the harness stopped
+# on its own expected EODHD free-plan 403; that response was archived and quota
+# settled. The pushed harness fix continues only for 403 explicitly labeled
+# expected_entitlement_denial; unexpected 401/403/429 still fail closed.
+# Full backend unit passes 2,843, focused provider-runner/usage tests 184,
+# Ruff, diff checks, and all 37 workstream validations pass. The exact-source
+# 12:45Z preflight on this new commit found 22 eligible providers and five
+# quarantines: CTA Plan and EODHD lack full-matrix daily headroom, Dinari lacks
+# reviewed sandbox quota controls, Marketstack cost/MIC/monthly headroom remain
+# unresolved, and Tiingo plan/baselines remain unreviewed. The durable
+# coordinator is ready, with zero global blockers and zero provider requests.
+# After exact CI, rerun only the admitted subset and preserve all five holds.
+# Keep the full roadmap and coordinator-only staging authority.
 # Current exact-source status — 2026-10-17 20:22Z: Provider HEAD and origin
 # are synchronized at 20f8c68678348d0eebcf9fc8eb6fbcab021936db. Exact Actions
 # 39063912811 is terminal green on this source: Backend, Frontend Unit,
@@ -6571,17 +6606,27 @@ progress:
       request was made, and the historical live receipt remains source-bound.
   completed: []
   total: 7
-  current_phase: provider-full-browser-gate
+  current_phase: provider_f8u_reconciliation_and_live_checkpoint
   current_blocker: >-
-    CURRENT STATUS — 2026-10-18 21:04Z: exact clean synchronized receipt source
-    `36f3f80100c33828820129a6badb72cae1180b96` passed authenticated Actions
-    run `39163456324`: Backend 2,840 unit + 396 integration tests and 82%
-    combined coverage, Frontend Unit, Branch-declared, and Playwright 151 passed
-    / 109 expected skips / zero failures all succeeded; Exhaustive skipped by
-    feature policy. The coordinator independently recorded this receipt but
-    has not released exact-current fixture ownership/capacity. Focused F8u and
-    the pinned-Noble 260-functional/104-visual local profiles remain open and
-    must not start. Checkpoint remains `in_progress`.
+    CURRENT STATUS — 2026-10-19 18:26Z: synchronized green staging
+    `26443f94c5b9fd3741d28db392fecf9aafe9c699` passed exact Actions
+    `39294027643`, including Exhaustive, and contains the completed F8u repair.
+    The repair fixture is released. Provider remains at pushed `bef14e0c` with
+    strict-red exact CI `39254427018` and three dirty evidence files. Close the
+    evidence context, merge the exact released staging SHA into Provider,
+    reconcile and require exact Provider CI before any provider transport.
+    PREVIOUS STATUS — 2026-10-19 13:32Z:
+    Provider run 39254427018 is terminal
+    strict-red solely at flaky F8u; the retry passed but does not make the job
+    green. A test-only label-origin correction is pushed on the existing repair
+    branch at 8b9dc144195fc5195ca6bc5d0d62842d020af784 and exact CI 39260462285
+    is running. Existing local browser evidence on app source 36f3f801 remains
+    green; frontend source is unchanged through Provider commit bef14e0. After
+    the repair's exact-source CI and guarded staging gate pass, merge that green
+    staging baseline into Provider and run its exact CI. Only then use the
+    fresh 22-eligible/5-held no-transport admission for one bounded live subset
+    if its internal reservation is admitted. Provider remains `in_progress`.
+    No human action is pending.
     PREVIOUS STATUS — 2026-10-18 20:22Z: exact clean synchronized source
     `9dfc2c2b09f8acad5d23572fdd22ec2781981c25` passed authenticated Actions
     run `39157111958`: Backend, Frontend Unit, Branch-declared, and Playwright
@@ -6791,15 +6836,14 @@ progress:
     source-bound receipts; no paid/trial activation, deployment, integration,
     reset, or cleanup is authorized.
   next_action: >-
-    Continue bounded Provider-owned no-transport ICP2 recurring-cost and ICP6
-    producer/consumer contract and operation-disposition work. Keep provider
-    HTTP and quota reservation/spend disabled; do not retry the prior partial
-    live matrix. Preserve the full pinned-Noble 260-functional/104-visual and
-    focused F8u gates as pending until safe capacity/fixture ownership is
-    confirmed. Preserve earlier red/partial-live evidence, queried data, and
-    all unknown/quota-held/paid/trial/unreviewed/unsafe holds. Do not touch
-    staging/sibling worktrees, reset/clean retained data, deploy, or mark the
-    checkpoint ready/accepted before every required gate passes.
+    Close the current three-file evidence context, then merge exact released
+    staging `26443f94c5b9fd3741d28db392fecf9aafe9c699` into Provider without
+    writing staging. Reconcile and run focused checks, commit/push, and require
+    exact-source Provider CI. After green CI, refresh no-transport admission
+    against the existing durable ledger and run at most one internally admitted
+    verified-free subset. Preserve strict-red Provider run `39254427018`, all
+    five provider holds, zero retries, unchanged visual references/tolerances,
+    retained services/datasets, full roadmap and coordinator-only integration.
     Exact Actions run `39049956683` on source
     `f9e27c759da44d6883412f3ebecd60eb6664c016` is terminal green. The exact
     252-case bounded ICP2/ICP6 no-transport regression also passes on this
@@ -8609,13 +8653,13 @@ current_gate_checkpoint: >-
     entitlement-denial 403s may be recorded and continue the matrix; every
     unexpected 401/403/429 remains a fail-closed stop. The full backend unit
     suite (2,843 passed), provider runner/usage suite (184 passed), Ruff, and
-    diff checks are green on dirty source based on 36f3f801. Commit and push
-    the source correction with current workstream evidence, then wait for
-    exact-source branch CI. After CI is green, refresh no-transport admission
-    using the durable quota coordinator. Only if the full reservation is
-    admitted, rerun the current-source 24-eligible-provider matrix once;
-    Dinari, Marketstack, and Tiingo remain quarantined, and any unexpected
-    auth/rate-limit response ends the run. The prior matrix is incomplete
+    diff checks passed on source correction commit `bef14e0`. Exact-source
+    Actions `39254427018` is now running. After it is terminal-green, rely on
+    the fresh 12:45Z durable preflight and its internal reservation check; run
+    only the admitted 22-provider subset once. Keep CTA Plan and EODHD held
+    for daily headroom, plus Dinari, Marketstack, and Tiingo for their reviewed
+    safety gaps. Any unexpected auth/rate-limit response ends the run. The
+    prior matrix is incomplete
     after 35 passes and the expected EODHD profile 403; it is not acceptance.
     Browser gates on app source 36f3 are now green (F8u 1/1, functional 154
     passed / 106 expected skipped, visual 104/104 with unchanged references
