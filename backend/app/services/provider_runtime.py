@@ -397,6 +397,22 @@ def _operation_family(operation: str) -> str:
     return operation.split(":", 1)[0].strip() or operation
 
 
+# Application services sometimes name a workload rather than the provider
+# method it delegates to.  Quota accounting deliberately keeps those original
+# names, but checkpoint safety must evaluate the upstream-equivalent operation
+# so a service label cannot bypass an explicit provider hold.
+PROVIDER_SERVICE_OPERATION_ALIASES = {
+    "bulk_fetch": "fetch_ohlcv",
+    "fetch_rfr_ohlcv": "fetch_ohlcv",
+    "reconcile_universe_page": "discover_universe_page",
+}
+
+
+def _checkpoint_operation_family(operation: str) -> tuple[str, str]:
+    service_family = _operation_family(operation)
+    return service_family, PROVIDER_SERVICE_OPERATION_ALIASES.get(service_family, service_family)
+
+
 def provider_checkpoint_operation_hold_reason(
     provider_name: str,
     operation: str | None,
@@ -411,11 +427,32 @@ def provider_checkpoint_operation_hold_reason(
 
     if not settings.PROVIDER_FREE_ONLY_CHECKPOINT:
         return None
-    provider_holds = settings.PROVIDER_CHECKPOINT_OPERATION_HOLDS.get(provider_name, {})
+    hold_config = settings.PROVIDER_CHECKPOINT_OPERATION_HOLDS
+    if not isinstance(hold_config, dict):
+        return "checkpoint operation hold configuration is invalid"
+    provider_holds = hold_config.get(provider_name, {})
     if not isinstance(provider_holds, dict):
         return "checkpoint operation hold configuration is invalid"
-    normalized_operation = _operation_family(operation) if operation else None
-    reason = provider_holds.get(normalized_operation) if normalized_operation else None
+    if any(
+        not isinstance(key, str)
+        or not key.strip()
+        or not isinstance(value, str)
+        or not value.strip()
+        for key, value in provider_holds.items()
+    ):
+        return "checkpoint operation hold configuration is invalid"
+    if operation is not None and (not isinstance(operation, str) or not operation.strip()):
+        return "checkpoint operation name is invalid"
+    service_operation: str | None = None
+    upstream_operation: str | None = None
+    if operation is not None:
+        service_operation, upstream_operation = _checkpoint_operation_family(operation)
+    reason = provider_holds.get(upstream_operation) if upstream_operation else None
+    if not reason and service_operation != upstream_operation:
+        # Accept an explicitly configured service-level hold too.  The
+        # canonical upstream lookup comes first so the reviewed default map
+        # covers every equivalent application call site.
+        reason = provider_holds.get(service_operation)
     if not reason:
         reason = provider_holds.get("*")
     normalized_reason = str(reason or "").strip()

@@ -4,6 +4,8 @@ import json
 import re
 from pathlib import Path
 
+import pytest
+
 from app.config import Settings, provider_required_operation_byte_bounds
 from app.providers.registry import _PROVIDERS
 
@@ -448,6 +450,11 @@ def test_checkpoint_operation_holds_are_configurable_across_runtime_targets():
         _env_file=None,
         PROVIDER_CHECKPOINT_OPERATION_HOLDS='{"eodhd":{"fetch_ohlcv":"review hold"}}',
     ).PROVIDER_CHECKPOINT_OPERATION_HOLDS == {"eodhd": {"fetch_ohlcv": "review hold"}}
+    with pytest.raises(ValueError, match="operation and reason must be non-empty"):
+        Settings(
+            _env_file=None,
+            PROVIDER_CHECKPOINT_OPERATION_HOLDS='{"eodhd":{"fetch_ohlcv":""}}',
+        )
     for relative_path in ("docker-compose.yml", "deploy/rpi/compose.yml"):
         compose = (ROOT / relative_path).read_text()
         backend = _service_environment(compose, "backend")

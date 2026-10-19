@@ -8697,23 +8697,18 @@ current_gate_checkpoint: >-
       acceptance; the cross-window UI failure remains with its frontend owner,
       and source-bound live evidence/CI status remain to be reconciled.
   next_action: >-
-    Finish the live-matrix harness correction in this same branch: expected
-    entitlement-denial 403s may be recorded and continue the matrix; every
-    unexpected 401/403/429 remains a fail-closed stop. The full backend unit
-    suite (2,843 passed), provider runner/usage suite (184 passed), Ruff, and
-    diff checks passed on source correction commit `bef14e0`. Exact-source
-    Actions `39254427018` is now running. After it is terminal-green, rely on
-    the fresh 12:45Z durable preflight and its internal reservation check; run
-    only the admitted 22-provider subset once. Keep CTA Plan and EODHD held
-    for daily headroom, plus Dinari, Marketstack, and Tiingo for their reviewed
-    safety gaps. Any unexpected auth/rate-limit response ends the run. The
-    prior matrix is incomplete
-    after 35 passes and the expected EODHD profile 403; it is not acceptance.
-    Browser gates on app source 36f3 are now green (F8u 1/1, functional 154
-    passed / 106 expected skipped, visual 104/104 with unchanged references
-    and tolerance). Preserve the earlier strict flaky TC-owned CI receipt;
-    do not edit TC-owned source. Once exact source CI, live operation evidence,
-    and four-feature consumer contracts pass, the central coordinator may
-    record conditional checkpoint acceptance and integrate Provider first.
-    Keep the full roadmap open and all held, paid, trial, unsafe, deployment,
-    and operational-trial scopes closed.
+    Publish one coherent correction that canonicalizes service operations at
+    the checkpoint hold boundary without changing quota/accounting labels,
+    preserves the EODHD zero-credit usage exception, and isolates the two
+    Marketstack history-bound tests from the temporary checkpoint hold. The
+    focused resolver/executor/config selection passes 14/14 with zero
+    transport. Preserve exact CI 39326545665 as red on f04ed26e (2 failed,
+    2,850 passed) and require one exact-source hosted CI for the corrected
+    pushed tip. Central currently owns the sole heavy slot for F9c geometry;
+    do not start backend coverage, migration, Compose, or browser gates until
+    central returns the slot and names the released green staging SHA. Then
+    reconcile that release and run all required exact-current non-live gates.
+    Make no further provider calls or quota mutations. Keep CTA Plan, EODHD
+    data operations, Dinari, Marketstack, Tiingo, and Bybit xStocks held;
+    paid, trial, unknown, unreviewed, unsafe, deployment, and operational-trial
+    scopes remain closed. Central alone accepts and integrates the checkpoint.

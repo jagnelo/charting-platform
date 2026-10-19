@@ -36,6 +36,7 @@ from app.services.provider_quota_coordinator import (
     provider_quota_coordinator_summary,
 )
 from app.services.provider_runtime import (
+    PROVIDER_SERVICE_OPERATION_ALIASES,
     ProviderQuotaUnknownError,
     ResolvedProvider,
     TokenBucket,
@@ -1868,12 +1869,146 @@ async def test_checkpoint_operation_holds_deny_resolver_and_transport(
 
 def test_checkpoint_operation_holds_preserve_eodhd_zero_credit_usage_exception(monkeypatch):
     monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    assert PROVIDER_SERVICE_OPERATION_ALIASES == {
+        "bulk_fetch": "fetch_ohlcv",
+        "fetch_rfr_ohlcv": "fetch_ohlcv",
+        "reconcile_universe_page": "discover_universe_page",
+    }
     assert provider_checkpoint_operation_hold_reason("eodhd", "fetch_ohlcv:D1")
     assert provider_checkpoint_operation_hold_reason("eodhd", "fetch_latest_ohlcv:D1")
+    assert provider_checkpoint_operation_hold_reason("eodhd", "bulk_fetch:D1")
+    assert provider_checkpoint_operation_hold_reason("eodhd", "fetch_rfr_ohlcv")
     assert provider_checkpoint_operation_hold_reason("eodhd", "fetch_account_usage") is None
+    # Capability discovery without an operation is diagnostic only. Actual
+    # transport always supplies an operation and is checked at execution.
+    assert provider_checkpoint_operation_hold_reason("eodhd", None) is None
+    assert provider_checkpoint_operation_hold_reason("cta_plan", "reconcile_universe_page:nasdaq:0")
 
     monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", False)
     assert provider_checkpoint_operation_hold_reason("eodhd", "fetch_ohlcv:D1") is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operation", ("bulk_fetch:D1", "fetch_rfr_ohlcv"))
+async def test_eodhd_history_service_aliases_are_held_before_transport(
+    db,
+    monkeypatch,
+    operation,
+):
+    """Service aliases cannot bypass a canonical EODHD history hold."""
+
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    monkeypatch.setattr(settings, "EODHD_PROVIDER_DISPLAY_TERMS_AUTHORIZED", True)
+    monkeypatch.setattr(
+        settings,
+        "EODHD_PROVIDER_DISPLAY_TERMS_EVIDENCE",
+        "unit-test provider terms exception",
+    )
+    monkeypatch.setattr(
+        "app.services.provider_runtime.provider_is_configured",
+        lambda *_args, **_kwargs: True,
+    )
+    monkeypatch.setattr(
+        "app.services.provider_runtime.provider_missing_routing_controls",
+        lambda *_args, **_kwargs: [],
+    )
+    await seed_provider_runtime(async_db)
+
+    source = db.execute(select(DataSource).where(DataSource.name == "eodhd")).scalar_one()
+    policy = db.execute(
+        select(ProviderPolicy).where(
+            ProviderPolicy.data_source_id == source.id,
+            ProviderPolicy.capability == ProviderCapability.PRICE_HISTORY,
+        )
+    ).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == source.id,
+            ProviderEntitlement.capability == ProviderCapability.PRICE_HISTORY,
+        )
+    ).scalar_one()
+    policy.is_enabled = True
+    policy.quota_scope = "api_key"
+    policy.quota_source = "unit-test small-headroom quota contract"
+    policy.quota_contract = {
+        "reset": "rolling",
+        "operation_costs": {operation.split(":", 1)[0]: 1},
+        "dimensions": [
+            {
+                "name": "calls_per_day",
+                "limit": 2,
+                "window_seconds": 86_400,
+                "unit": "requests",
+                "scope": "api_key",
+                "source": "unit-test small-headroom quota contract",
+                "reset": "rolling",
+            }
+        ],
+    }
+    entitlement.configured_plan = "reviewed-checkpoint-free-fixture"
+    entitlement.is_free = True
+    entitlement.authentication_required = False
+    entitlement.live_probe_status = "passed"
+    entitlement.usage_terms = "unit-test reviewed private use"
+    entitlement.enabled_environments = [settings.APP_ENV]
+    entitlement.review_due_at = datetime.now(UTC) + timedelta(days=1)
+    db.flush()
+
+    reviewed_holds = settings.PROVIDER_CHECKPOINT_OPERATION_HOLDS
+    monkeypatch.setattr(settings, "PROVIDER_CHECKPOINT_OPERATION_HOLDS", {})
+    unheld_chain = await resolve_provider_chain(
+        async_db,
+        ProviderCapability.PRICE_HISTORY,
+        operation=operation,
+        operation_cost_overrides={"eodhd": 1},
+        adjusted=False,
+    )
+    assert any(item.provider_name == "eodhd" for item in unheld_chain)
+
+    monkeypatch.setattr(settings, "PROVIDER_CHECKPOINT_OPERATION_HOLDS", reviewed_holds)
+    assert provider_checkpoint_operation_hold_reason("eodhd", operation)
+    held_chain = await resolve_provider_chain(
+        async_db,
+        ProviderCapability.PRICE_HISTORY,
+        operation=operation,
+        operation_cost_overrides={"eodhd": 1},
+        adjusted=False,
+    )
+    assert all(item.provider_name != "eodhd" for item in held_chain)
+
+    transport_calls = []
+    for allow_paid in (False, True):
+        monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", allow_paid)
+        with pytest.raises(RuntimeError, match="No enabled providers available"):
+            await execute_provider_call(
+                async_db,
+                ProviderCapability.PRICE_HISTORY,
+                operation,
+                provider_name="eodhd",
+                operation_cost_overrides={"eodhd": 1},
+                adjusted=False,
+                invoke=lambda *_args: transport_calls.append("called"),
+            )
+    assert transport_calls == []
+
+
+def test_checkpoint_operation_holds_fail_closed_for_malformed_runtime_map(monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    monkeypatch.setattr(settings, "PROVIDER_CHECKPOINT_OPERATION_HOLDS", None)
+    assert (
+        provider_checkpoint_operation_hold_reason("eodhd", "bulk_fetch:D1")
+        == "checkpoint operation hold configuration is invalid"
+    )
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_CHECKPOINT_OPERATION_HOLDS",
+        {"eodhd": {"fetch_ohlcv": ""}},
+    )
+    assert (
+        provider_checkpoint_operation_hold_reason("eodhd", "bulk_fetch:D1")
+        == "checkpoint operation hold configuration is invalid"
+    )
 
 
 def test_checkpoint_operation_holds_can_be_replaced_only_as_a_complete_map(monkeypatch):
@@ -2604,6 +2739,10 @@ async def test_history_route_enforces_seeded_provider_lookback_bound(db, monkeyp
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr(settings, "MARKETSTACK_API_KEY", "configured-key")
     monkeypatch.setattr(settings, "PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK", True)
+    # This test isolates the provider's full-roadmap lookback contract. The
+    # default integration checkpoint independently holds all Marketstack
+    # transport and has dedicated no-transport coverage above.
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", False)
     await seed_provider_runtime(async_db)
 
     now = datetime.now(UTC)
@@ -2631,6 +2770,9 @@ async def test_history_route_evaluates_provider_specific_start_factory(db, monke
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr(settings, "MARKETSTACK_API_KEY", "configured-key")
     monkeypatch.setattr(settings, "PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK", True)
+    # Exercise provider-specific history bounds outside the temporary
+    # checkpoint hold; the hold behavior remains covered separately.
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", False)
     await seed_provider_runtime(async_db)
 
     now = datetime.now(UTC)

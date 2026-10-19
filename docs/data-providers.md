@@ -1848,8 +1848,13 @@ development, protected CI, and production.
 
 The checkpoint also has an operation-level exclusion map,
 `PROVIDER_CHECKPOINT_OPERATION_HOLDS`. It is a JSON object keyed first by
-provider and then by exact operation name; `*` holds every operation for that
-provider. The in-code default keeps CTA Plan, EODHD data operations,
+provider and then by canonical upstream operation name; `*` holds every
+operation for that provider. Service workload labels are canonicalized only
+for this safety decision: `bulk_fetch:*` and `fetch_rfr_ohlcv` are checked as
+`fetch_ohlcv`, while `reconcile_universe_page:*` is checked as
+`discover_universe_page`. Their original operation names remain unchanged for
+quota costing, request logs, and live-evidence provenance. The in-code default
+keeps CTA Plan, EODHD data operations,
 Marketstack, Tiingo, Dinari Sandbox, and Bybit xStocks unavailable for the
 current checkpoint reasons while deliberately leaving only EODHD's reviewed
 zero-daily-credit `fetch_account_usage` bootstrap available. These holds run in
@@ -1860,7 +1865,9 @@ complete map per environment only after each removed operation has reviewed
 entitlement, cost/quota headroom, and exact-source live evidence. Setting
 `PROVIDER_FREE_ONLY_CHECKPOINT=false` leaves checkpoint mode and disables this
 temporary exclusion layer; the normal entitlement, quota, cost, and routing
-controls continue to apply.
+controls continue to apply. Capability discovery with no operation is
+diagnostic and does not claim that every operation is transport-eligible;
+every real executor call supplies and checks its concrete operation.
 Quant/Prime plans use a different per-minute contract and remain outside this
 daily-plan gate until their dimensions are modeled explicitly.
 

@@ -1759,7 +1759,9 @@ all callers during the integration checkpoint),
 `PROVIDER_CHECKPOINT_OPERATION_HOLDS` (JSON provider-to-operation reason map;
 the code default preserves every current checkpoint exclusion and is enforced
 by normal resolver/executor paths before transport, independently of whether a
-smaller call could fit current quota),
+smaller call could fit current quota; service labels `bulk_fetch:*`,
+`fetch_rfr_ohlcv`, and `reconcile_universe_page:*` are evaluated against their
+canonical upstream operations without changing quota or evidence labels),
 `ALLOW_PAID_PROVIDER_ROUTING` (defaults false; true permits only separately
 reviewed paid plans only after checkpoint mode is deliberately disabled; it
 does not satisfy aggregate cost admission or authorize paid activation),

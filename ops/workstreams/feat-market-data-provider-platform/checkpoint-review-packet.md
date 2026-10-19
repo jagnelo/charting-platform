@@ -2584,3 +2584,24 @@ Once Provider gates and dependent consumer contracts pass, integrate
 Provider → ETF → TC2000 → Strategy Lab v2 through the guarded persistent
 staging workflow, with exact staging CI after each source. Full roadmap and
 visual/oracle standards remain intact. No deployment or operational trial.
+
+## 2026-10-19 checkpoint hold correction
+
+The runtime checkpoint exclusion is now evaluated against the canonical
+provider-facing operation for all three application service aliases present in
+the live-evidence contract. This closes the EODHD `bulk_fetch:*` and
+`fetch_rfr_ohlcv` bypass and the equivalent universe-reconciliation alias
+without changing provider-native quota/accounting labels. Focused evidence is
+14/14, including otherwise-eligible low-headroom positives and executor-level
+zero-transport negatives under both paid-toggle states. EODHD's exact
+zero-credit daily-usage bootstrap remains available; all EODHD data operations
+remain held. Capability-only diagnostics do not claim transport eligibility.
+
+Actions `39326545665` remains an honest red receipt for `f04ed26e`: 2,850 unit
+tests passed and two Marketstack full-roadmap history tests failed because the
+new default checkpoint hold intercepted their positive fixtures. Those tests
+now explicitly isolate full-roadmap history semantics while separate default
+checkpoint tests retain the Marketstack no-transport assertion. Final
+exact-source CI is required after the coherent correction is pushed. Heavy
+local gates await the coordinator's released F9c staging repair and returned
+resource slot; no acceptance or integration is inferred.

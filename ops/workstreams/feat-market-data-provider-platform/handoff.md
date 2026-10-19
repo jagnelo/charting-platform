@@ -28719,3 +28719,34 @@ After exact live evidence and cross-feature consumer contracts are green, the
 central coordinator owns conditional acceptance and the Provider-first
 staging merge. No deployment, paid/trial routing, operational trial, quota
 reset, dataset cleanup, or sibling worktree modification is authorized.
+
+## 2026-10-19 — checkpoint operation aliases closed; heavy slot released
+
+- Exact Actions `39326545665` on `f04ed26e` is preserved red: Backend had
+  exactly 2 failures and 2,850 passes; Frontend Unit passed and downstream
+  branch-declared/Playwright jobs were skipped. Both failures were existing
+  Marketstack history-bound tests whose intended full-roadmap positive case
+  was newly intercepted by the default checkpoint-wide Marketstack hold.
+- The tests now explicitly leave checkpoint mode only for their isolated
+  lookback/provider-specific-start contract. The real default Marketstack
+  hold retains resolver/executor zero-transport coverage; neither assertion
+  nor product hold was removed.
+- The shared hold boundary now canonicalizes the actual service workload
+  aliases already recorded by live evidence: `bulk_fetch:*` and
+  `fetch_rfr_ohlcv` map to `fetch_ohlcv`, and
+  `reconcile_universe_page:*` maps to `discover_universe_page`. Original
+  operation names remain unchanged for quota costs, logs, and receipt
+  provenance.
+- A reviewed otherwise-eligible EODHD fixture with two calls/day of headroom
+  proves both history aliases would route without the hold, then proves the
+  default hold denies resolver and executor under both paid-toggle states with
+  zero callback/transport. The exact `fetch_account_usage` exception remains
+  unheld. Malformed hold maps fail closed; operation-less capability lookup is
+  documented as diagnostic rather than a blanket transport claim.
+- The focused selection passed 14/14. No provider/issuer HTTP request,
+  reservation, quota spend, data change, service cleanup, Compose, browser,
+  migration, or backend-coverage gate occurred.
+- Provider has no heavy gate or fixture running. Central owns the sole heavy
+  slot for the independent F9c geometry profile. Provider will stay on narrow
+  code/focused tests and final hosted CI until central returns the slot with an
+  exact released green staging SHA; no unmerged geometry is imported.

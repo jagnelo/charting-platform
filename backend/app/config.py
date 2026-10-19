@@ -3324,6 +3324,21 @@ class Settings(BaseSettings):
             return json.loads(v)
         return v
 
+    @field_validator("PROVIDER_CHECKPOINT_OPERATION_HOLDS")
+    @classmethod
+    def validate_provider_checkpoint_operation_holds(cls, value):
+        """Reject ambiguous hold maps at startup instead of failing open."""
+
+        for provider_name, operation_holds in value.items():
+            if not str(provider_name).strip() or not isinstance(operation_holds, dict):
+                raise ValueError("provider checkpoint hold entries must be named mappings")
+            for operation, reason in operation_holds.items():
+                if not str(operation).strip() or not str(reason).strip():
+                    raise ValueError(
+                        "provider checkpoint hold operation and reason must be non-empty"
+                    )
+        return value
+
     model_config = SettingsConfigDict(
         env_file=os.environ.get("ENV_FILE", ".env.dev"),
         case_sensitive=True,
