@@ -1,6 +1,40 @@
 # fix/tc2000-desktop-plots-rsp-overlap
 
-## Current checkpoint
+## Current continuation — 2026-10-19
+
+This remains a subtask of the active root four-feature coordinator goal, under
+its existing repair writer claim `227b57d7-4d91-4440-9545-067aa62cbbde`.
+That UUID is a repository claim, not a separate native Codex thread. No second
+writer or duplicate goal is created. UV-managed context and session preflight
+verify the exact assigned repair worktree; Docker accounting is available and
+reports no currently attributable repair containers/volumes. The prior dirty
+session metadata is preserved as this operational receipt context. Owned paths
+are this branch's plan, handoff, session and validation journal.
+
+Current repair HEAD and origin are `21cc43f7cfc1b0b5c4aaca61fba098bb08e62640`;
+exact branch CI `39079109518` is independently confirmed terminal green.
+The implementation and ordinary-click regression remain source-qualified by
+the earlier receipts below. The mandatory full local functional/visual profile
+has not run, so this repair is not accepted or staging-ready.
+
+Current synchronized green staging is
+`26443f94c5b9fd3741d28db392fecf9aafe9c699`, exact Actions `39294027643`
+passed including Exhaustive. Provider's owner has reconciled that staging at
+published candidate `a8440efb82232a8b217df9c7330fab1795b257c9` and passed
+exact CI `39305740911`; its local functional/visual run owns the sole heavy
+browser slot. This repair must not launch a competing fixture or stop/clean
+any retained service or dataset. No product feature checkpoint is staged yet.
+
+Next: commit/push this coherent operational context, then merge that exact
+green staging SHA into this repair branch. Review the combined F9c geometry and
+F8u live configuration semantics, run the affected checks, and publish a clean
+candidate. The repair's full local profile follows the actual Provider slot
+release and a fresh capacity check. All original assertions, reference images,
+masks, tolerances and retry policy remain unchanged. Guarded staging integration
+and its exact Exhaustive gate follow only after required local acceptance.
+The dated checkpoint below is historical evidence, not the current release.
+
+## Historical checkpoint — 2026-10-17
 
 Coordinator-owned technical repair. The F8u watchlist/live-plot repair is
 merged into persistent staging at `6dc178c12498236a2a0060533305e20cf47438b7`;

@@ -136,9 +136,11 @@ remaining_gaps:
   - >-
     Run the complete isolated local functional/visual profile on the exact
     repair source with one worker and zero retries, preserving all existing
-    assertions, screenshot references and tolerances. Wait until fixture
-    ownership and host capacity are safe; do not start a duplicate Compose
-    fixture or stop/clean retained services.
+    assertions, screenshot references and tolerances. Provider currently owns
+    the sole heavy browser slot on source a8440efb; this coordinator-owned
+    repair may prepare its green-staging reconciliation without starting a
+    competing fixture. Await that exact slot release and safe capacity before
+    the full browser profile; do not stop or clean retained services.
   - >-
     After local validation, record closure and use the guarded staging
     integration workflow; the exact pushed staging source must then pass its
@@ -150,20 +152,22 @@ progress:
       d5aac522b144d57d93df817be2a1699e0ac6e568, including the splitter-based
       F9c regression and ordinary pointer flows.
   total: 5
-  current_phase: safe_host_capacity_for_full_stack_browser
+  current_phase: green_staging_reconciliation_preparation
   current_blocker: >-
-    Exact-source CI is green, but the full local profile is not yet safe to
-    start: the latest human-reported read-only host check showed about 1.7 GiB
-    available, while my direct `free -h` recheck at 2026-10-17 23:25 UTC showed
-    1.1 GiB available with 12 GiB swap in use. A read-only Docker inventory at
-    23:27 UTC found seven running charting projects, including five
-    Provider/validation stacks and the assigned TC project (6 containers);
-    several Provider fixture containers have been running about 15 hours.
-    Labels/stats do not identify active fixture owners. Capacity and ownership
-    are therefore not safe to assume. Do not start a duplicate Compose fixture
-    or competing browser matrix; do not stop or clean services.
+    Current repair source 21cc43f7 has exact terminal-green branch CI
+    39079109518, but full local functional/visual validation remains unrun.
+    Current clean green staging is 26443f94, exact CI39294027643 passed
+    including Exhaustive. Provider a8440efb owns the sole active local browser
+    slot; its exact branch CI39305740911 is green. This coordinator retains
+    its existing repair claim and may perform stack-free reconciliation
+    preparation now. No competing browser fixture or retained-service cleanup
+    is authorized. The prior capacity observations remain historical evidence.
   next_action: >-
-    When fixture ownership and host capacity are safe, run the required isolated
-    full local functional/visual profile with one worker and zero retries. Keep
-    every assertion and visual reference/tolerance unchanged; only then record
-    closure and proceed through guarded staging integration and exact staging CI.
+    Close the existing branch-owned operational receipt context, then merge
+    exact green staging 26443f94c5b9fd3741d28db392fecf9aafe9c699 into this
+    repair branch. Preserve both the F9c geometry regression and the released
+    F8u live-configuration repair. Validate and publish the reconciled source;
+    run the full local functional/104-visual profile only after Provider releases
+    the heavy slot and headroom is verified. Retain one worker, zero retries,
+    all assertions and visual oracles. Close only after every required gate,
+    then use guarded staging integration and exact staging Exhaustive CI.

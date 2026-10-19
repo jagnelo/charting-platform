@@ -32,14 +32,31 @@
     "worktree_id": "fix-tc2000-desktop-plots-rsp-overlap-0933a1719a"
   },
   "dirty_paths": [
-    "ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/handoff.md",
     "ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/plan.yaml",
+    "ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/handoff.md",
     "ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/session.json",
     "ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/validation.jsonl"
   ],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-tc2000-desktop-plots-rsp-overlap-0933a171",
+      "charting-stack-fix-tc2000-desktop-plots-rsp-overlap-0933a171"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-tc2000-desktop-plots-rsp-overlap-0933a1719a"
   },
   "docker_ready": {
     "ready": true,
@@ -55,13 +72,13 @@
   "goal_request_state": "ready",
   "goal_state": "unavailable",
   "goal_unavailable_reason": "The root four-feature coordinator goal is already active and this repair is its current subtask; do not create a duplicate branch-local goal.",
-  "head": "d5aac522b144d57d93df817be2a1699e0ac6e568",
+  "head": "21cc43f7cfc1b0b5c4aaca61fba098bb08e62640",
   "implementation_sha": "d5aac522b144d57d93df817be2a1699e0ac6e568",
-  "last_human_progress_update": "2026-10-17T18:06:41.249162+00:00",
+  "last_human_progress_update": "2026-10-19T19:25:43Z",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Wait until fixture ownership and host capacity are safe, then run the isolated full local functional/visual profile with one worker and zero retries; do not stop or clean retained services or weaken references/tolerances.",
+  "next_action": "Close this operational receipt context, merge exact green staging 26443f94c5b9fd3741d28db392fecf9aafe9c699 into this repair branch, preserve F9c geometry and F8u live configuration, then validate/publish. Full local profile waits for Provider's actual heavy-slot release; no competing fixture or retained-service cleanup.",
   "parent_branch": "staging",
-  "plan_hash": "807a6a897b3a1c104552094f1334b1f61e130b1078ed5e49e2bcf8eafe85cd89",
+  "plan_hash": "e1a3c7386bf82c8c1e10e24fca1090643a1060d2eaef7f5864119d470e1a25b0",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
@@ -71,14 +88,14 @@
       "PTRD2",
       "PTRD3"
     ],
-    "current_blocker": "Exact-source CI is green, but the local full profile remains deferred: retained Provider/TC stacks are active and ownership/capacity for a separate fixture are unclear; human-reported availability is about 1.7 GiB.",
-    "current_phase": "safe_host_capacity_for_full_stack_browser",
-    "next_action": "Wait until fixture ownership and host capacity are safe, then run the full isolated functional/visual profile with one worker and zero retries; preserve assertions and references, and do not stop or clean retained services.",
+    "current_blocker": "Repair exact source 21cc43f7 has green CI39079109518, but full local profile is unrun. Provider a8440efb owns the sole heavy browser slot; stack-free current-green-staging preparation is permitted under this coordinator's existing repair claim.",
+    "current_phase": "green_staging_reconciliation_preparation",
+    "next_action": "Close this operational receipt context, merge exact green staging 26443f94c5b9fd3741d28db392fecf9aafe9c699 into this repair branch, preserve F9c geometry and F8u live configuration, then validate/publish. Full local profile waits for Provider's actual heavy-slot release; no competing fixture or retained-service cleanup.",
     "total": 5,
-    "updated_at": "2026-10-17T18:06:41.249143+00:00"
+    "updated_at": "2026-10-19T19:25:43Z"
   },
-  "remote": "d5aac522b144d57d93df817be2a1699e0ac6e568",
-  "remote_sha": "d5aac522b144d57d93df817be2a1699e0ac6e568",
+  "remote": "21cc43f7cfc1b0b5c4aaca61fba098bb08e62640",
+  "remote_sha": "21cc43f7cfc1b0b5c4aaca61fba098bb08e62640",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
@@ -92,5 +109,7 @@
     "/home/m920q/charting-platform/.ai/worktrees/fix-tc2000-desktop-plots-rsp-overlap/ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/session.json"
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-tc2000-desktop-plots-rsp-overlap",
-  "worktree_id": "fix-tc2000-desktop-plots-rsp-overlap-0933a1719a"
+  "worktree_id": "fix-tc2000-desktop-plots-rsp-overlap-0933a1719a",
+  "last_checkpoint": "2026-10-19T19:25:43Z",
+  "record_boundary": "HEAD/origin fields name the last verified pre-record snapshot; the enclosing receipt commit is verified externally after push, without a self-referential hash update."
 }
