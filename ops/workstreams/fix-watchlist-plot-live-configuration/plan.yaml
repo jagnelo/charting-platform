@@ -20,27 +20,20 @@ human_closure_authorization: >-
   and guarded staging integration. This remains limited to this narrow repair;
   it does not waive its exact CI or staging gate.
 closure_summary: >-
-  Coordinator-accepted F8u repair: configured indicator rendering and chart
-  drop updates use the canonical live workspace configuration snapshot. The
-  test-only follow-up on 8b9dc144195fc5195ca6bc5d0d62842d020af784 starts the
-  unchanged real pointer drag from the visible RSI label. The exact F8u flow
-  passed five independent local repetitions with zero retries on a fresh
-  isolated fixture. Provider/OneSignal credentials were blank; app/worker
-  provider routing was disabled and egress denied; the browser could use only
-  the exact-host cdn.onesignal.com:443 proxy. Five attempted api.openfigi.com
-  connections were rejected by the deny proxy; zero reached an external
-  provider or used quota. The disposable project was removed and retained
-  feature stacks were verified intact. Exact-source ordinary Actions run
-  39260462285 on that same SHA passed Branch-declared, Backend, Frontend Unit,
-  and Playwright jobs; Playwright reported 151 passed and 109 expected skips,
-  with no failures. Exhaustive Integration Gate was skipped under branch policy.
-  Strict-red run 39254427018 remains preserved and is not erased by this pass.
-  This narrow repair is ready for guarded staging integration only after this
-  closure-record commit itself passes exact-source CI. No merge conflicts were
-  observed; abort and resolve on the source branch if guarded integration finds
-  one. Migration impact: none. Deployment impact: none. This repair does not
-  close Provider, ETF holdings, TC2000, or Strategy Lab v2; their contracts,
-  tests, and roadmaps remain open. integration_capture: exact branch HEAD.
+  The earlier implementation and local five-repeat evidence are preserved in
+  the handoff: source 8b9dc144195fc5195ca6bc5d0d62842d020af784 passed the
+  focused flow five times on an isolated provider-denied fixture, and exact
+  Actions run 39260462285 passed on that SHA. The final closure-record source
+  326a7cb727d7463a7b8b8a28afd4ba938b5e9293 then failed exact-source Actions run
+  39269065093 under strict flaky-test policy: F8u first attempt failed while
+  the target watchlist was aria-busy=true, and the retry passed. That is a red
+  result, not an accepted checkpoint. The current follow-up waits for the
+  existing aria-busy=false state and performs one real drag with no in-test
+  retry; focused validation and a fresh exact-source CI are pending. Provider
+  and TC2000 stacks remain untouched. No migration or deployment impact. This
+  repair does not close Provider, ETF holdings, TC2000, or Strategy Lab v2;
+  their contracts, tests, and roadmaps remain open. integration_capture:
+  exact branch HEAD.
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
@@ -64,12 +57,15 @@ scope:
     WorkstationToolContent watchlist path: both configured indicator rendering
     and chart-plot drop updates must read the canonical live workspace window.
   - >-
-    Preserve the current ordinary drag path, F8u assertions and timeout/retry
-    policy, screenshot references/tolerances, retained data, and provider holds.
+    Preserve the current ordinary drag path, F8u assertions and timeout values,
+    screenshot references/tolerances, retained data, and provider holds. Wait
+    for the watchlist's existing aria-busy state to clear before dropping, and
+    use exactly one drag attempt with no in-test retry.
   - >-
     Start the F8u pointer drag from the visible RSI label because the draggable
-    row center can target its embedded line-width input; keep the expected
-    header assertion and retry policy unchanged.
+    row center can target its embedded line-width input; wait until the target
+    watchlist reports aria-busy=false, then perform exactly one ordinary drag
+    and keep the expected header assertion unchanged.
 owned_paths:
   - frontend/src/components/workstation/WorkstationToolContent.vue
   - frontend/tests/e2e/flows.spec.ts
@@ -94,8 +90,8 @@ acceptance_criteria:
     text: >-
       Affected watchlist/plot component suites, vue-tsc, production frontend
       build, branch-declared tests, and exact-source ordinary CI pass without
-      weakened assertions, changed timeouts/retries, external provider traffic,
-      or visual-oracle changes.
+      weakened assertions, changed configured Playwright timeout/retry values,
+      external provider traffic, or visual-oracle changes.
   - id: AC4
     text: >-
       The branch is clean and pushed with exact evidence, stops at
@@ -118,25 +114,31 @@ live_test_impact: >-
   credentials remain blank.
 migration_impact: none
 deployment_impact: none
-status: ready_for_integration
+status: in_progress
 remaining_gaps:
   - >-
-    Exact-source ordinary GitHub Actions CI on this final closure-record commit
-    must complete green before guarded staging integration. Keep strict-red run
-    39254427018 visible; run 39260462285 validates the tested implementation
-    SHA, not this closure receipt.
+    Focused five-repeat Playwright validation has not been rerun after adding
+    the aria-busy readiness wait and removing the in-test second drag. The
+    exact-source branch CI on the published fix must also pass under strict
+    flaky-test policy before guarded staging integration. Keep strict-red runs
+    39254427018 and 39269065093; run 39260462285 validates earlier source.
+    Avoid launching a duplicate local Compose fixture while retained Provider
+    and TC2000 projects are active and host memory is constrained; no service
+    may be stopped or cleaned for this test.
   - >-
     This repair checkpoint does not close Provider, ETF, TC2000, or Strategy
     Lab v2 feature checkpoints. Provider's full 260-case/104-visual validation,
     operation dispositions, and current quota preflight remain owner/coordinator
     gates after this fix is released through staging.
 progress:
-  completed: [AC1, AC2, AC3, AC4]
+  completed: [AC1]
   total: 4
-  current_phase: coordinator_closed_checkpoint_exact_ci_pending
+  current_phase: f8u_busy_state_stabilization
   current_blocker: >-
-    Exact-source CI on the final closure-record commit is pending; do not
-    integrate this branch until that exact pushed SHA is green.
+    Exact-source run 39269065093 is red under strict flaky-test policy: the
+    watchlist target still had aria-busy=true during the drop. The branch must
+    pass focused zero-retry validation and fresh exact-source CI before staging.
   next_action: >-
-    Publish the clean closure record, inspect its exact-source CI, then run the
-    guarded persistent-staging integration and require its exact green gate.
+    Publish the one-drag readiness-guard repair with focused unit/workstream
+    evidence; verify exact-source branch CI and the full browser job, then
+    continue to guarded persistent-staging integration if green.

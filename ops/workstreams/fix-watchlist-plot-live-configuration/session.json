@@ -50,16 +50,13 @@
   "previous_session_ids": [],
   "progress": {
     "completed": [
-      "AC1",
-      "AC2",
-      "AC3",
-      "AC4"
+      "AC1"
     ],
-    "current_blocker": "The guarded integration preflight rejected the closure record before staging mutation because integration_capture: exact branch HEAD was missing; this has been corrected and the resulting metadata tip now needs exact-source CI",
-    "current_phase": "closure_record_corrected_exact_ci_pending",
-    "next_action": "Publish the required exact-branch-HEAD capture declaration and preflight receipt, then verify exact-source CI before guarded staging integration",
+    "current_blocker": "Exact-source run 39269065093 is red under strict flaky-test policy: the watchlist target still had aria-busy=true during the drop. The branch must pass focused zero-retry validation and fresh exact-source CI before staging.",
+    "current_phase": "f8u_busy_state_stabilization",
+    "next_action": "Wait for target aria-busy=false, make one real drag, validate focused tests and workstream, publish repair, then require green exact-source CI before guarded staging integration",
     "total": 4,
-    "updated_at": "2026-10-19T14:25:30+00:00"
+    "updated_at": "2026-10-19T14:58:55+00:00"
   },
   "remote": "8b9dc144195fc5195ca6bc5d0d62842d020af784",
   "remote_sha": "8b9dc144195fc5195ca6bc5d0d62842d020af784",

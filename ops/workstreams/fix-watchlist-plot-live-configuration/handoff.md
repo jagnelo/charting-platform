@@ -164,3 +164,30 @@ required `integration_capture: exact branch HEAD` declaration. The workstream
 is being corrected on this source branch. Staging remains unchanged at
 `94c252d6b8767714df2c6c8840a2119f5aa161dd`. The corrected closure-record tip
 must pass exact-source CI before retrying guarded integration.
+
+## 2026-10-19 — strict F8u refresh-race diagnosis
+
+Exact-source Actions run `39269065093` on
+`326a7cb727d7463a7b8b8a28afd4ba938b5e9293` is red under the strict flaky-test
+policy. The other branch jobs passed; Playwright reported 150 passed, 109
+expected skips, and an F8u first-attempt failure followed by a passing retry.
+The receipt is red and does not qualify for staging.
+
+The trace shows the Major US benchmarks watchlist had `aria-busy="true"` when
+the pointer drag landed. The test previously began dragging as soon as the
+region was visible and made a second drag attempt when the first did not create
+the RSI header. The focused correction waits for the existing public
+`aria-busy="false"` readiness state and makes one ordinary drag only. It keeps
+the real label-to-watchlist pointer path, target, header assertion, timeout
+values, screenshots, and visual tolerance unchanged. This follow-up is in
+progress; do not integrate until focused validation and exact-source CI pass.
+
+A duplicate local full-stack fixture has not been started: retained Provider
+and TC2000 stacks remain owned elsewhere and their containers are active; host
+available memory is about 2.2 GiB. No services were stopped or cleaned. The
+stack-free watchlist suite passed 68 tests, the chart-plot suite passed 21 tests,
+and the workstream validator accepted all 36 records. Next: publish this
+one-drag readiness guard, inspect fresh exact-source Actions including
+Playwright, then continue guarded integration if green. The focused local
+five-repeat browser profile remains outstanding; do not treat the prior five
+repeats on the earlier test code as proof for this one-attempt change.
