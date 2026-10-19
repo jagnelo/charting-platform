@@ -1009,7 +1009,8 @@ async function createPythonConditionAlert() {
 
 function columnSetKey(name: string) {
   const normalized = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'column-set'
-  return `${normalized}-${crypto.randomUUID().slice(0, 8)}`
+  const suffix = crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8, '0')
+  return `${normalized}-${suffix}`
 }
 
 function columnSetConfiguration() {

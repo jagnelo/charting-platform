@@ -2959,8 +2959,18 @@ const proxyColumns: WatchlistColumn[] = [
   { key: 'freshness', label: 'Freshness', width: '74px' },
   { key: 'provenance', label: 'Provenance', width: '92px' },
 ]
+// Golden Layout may keep a detached virtual-tool root alive briefly after the
+// canonical workspace window has changed. Read its current configuration so
+// column visibility, indicator rendering, and chart-drop updates share one
+// workspace snapshot.
+const liveToolConfiguration = computed(() => {
+  const canonical = workspaceStore.workspace?.tabs
+    .flatMap(tab => tab.windows)
+    .find(window => window.instance_key === props.tool.instance_key)
+  return canonical?.configuration ?? props.tool.configuration
+})
 const configuredColumnKeys = computed(() => {
-  const keys = props.tool.configuration.column_keys
+  const keys = liveToolConfiguration.value.column_keys
   return Array.isArray(keys) && keys.every(key => typeof key === 'string') ? keys as string[] : []
 })
 const configuredFilterText = computed(() => typeof props.tool.configuration.filter_text === 'string' ? props.tool.configuration.filter_text : '')
@@ -2995,8 +3005,8 @@ const configuredPythonColumns = computed(() => Array.isArray(props.tool.configur
 type IndicatorColumnConfiguration = { key: string; name: string; indicator: string; params: Record<string, unknown>; timeframe: string; output?: string }
 const pendingIndicatorColumns = ref<IndicatorColumnConfiguration[]>([])
 const configuredIndicatorColumns = computed<IndicatorColumnConfiguration[]>(() => {
-  const persisted = Array.isArray(props.tool.configuration.indicator_columns)
-    ? props.tool.configuration.indicator_columns.filter((column): column is IndicatorColumnConfiguration => Boolean(column) && typeof column === 'object' && typeof (column as Record<string, unknown>).key === 'string' && typeof (column as Record<string, unknown>).name === 'string' && typeof (column as Record<string, unknown>).indicator === 'string' && typeof (column as Record<string, unknown>).params === 'object' && typeof (column as Record<string, unknown>).timeframe === 'string')
+  const persisted = Array.isArray(liveToolConfiguration.value.indicator_columns)
+    ? liveToolConfiguration.value.indicator_columns.filter((column): column is IndicatorColumnConfiguration => Boolean(column) && typeof column === 'object' && typeof (column as Record<string, unknown>).key === 'string' && typeof (column as Record<string, unknown>).name === 'string' && typeof (column as Record<string, unknown>).indicator === 'string' && typeof (column as Record<string, unknown>).params === 'object' && typeof (column as Record<string, unknown>).timeframe === 'string')
     : []
   const persistedKeys = new Set(persisted.map(column => column.key))
   return [...persisted, ...pendingIndicatorColumns.value.filter(column => !persistedKeys.has(column.key))]
@@ -3033,10 +3043,11 @@ function addPlotColumn(payload: ChartAnalysisDragPayload) {
   }
   if (payload.kind !== 'chart-plot') return
   const column = indicatorColumnFromPlot(payload)
-  const columns = Array.isArray(props.tool.configuration.indicator_columns) ? props.tool.configuration.indicator_columns : []
+  const configuration = liveToolConfiguration.value
+  const columns = Array.isArray(configuration.indicator_columns) ? configuration.indicator_columns : []
   const hasColumn = columns.some(candidate => Boolean(candidate) && typeof candidate === 'object' && (candidate as Record<string, unknown>).key === column.key)
-  const configuredKeys = Array.isArray(props.tool.configuration.column_keys)
-    ? props.tool.configuration.column_keys.filter((key): key is string => typeof key === 'string')
+  const configuredKeys = Array.isArray(configuration.column_keys)
+    ? configuration.column_keys.filter((key): key is string => typeof key === 'string')
     : []
   // A configured column list is authoritative for a customized watchlist. A
   // dropped plot must therefore both register the definition and make it
@@ -3044,7 +3055,7 @@ function addPlotColumn(payload: ChartAnalysisDragPayload) {
   const nextKeys = configuredKeys.includes(column.key) ? configuredKeys : [...configuredKeys, column.key]
   pendingIndicatorColumns.value = [...pendingIndicatorColumns.value.filter(existing => existing.key !== column.key), column]
   emit('configuration', props.tool.instance_key, {
-    ...props.tool.configuration,
+    ...configuration,
     column_keys: nextKeys,
     indicator_columns: hasColumn ? columns : [...columns, column],
   })
@@ -3423,7 +3434,7 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 </script>
 
 <style scoped>
-.chart-tool { display: flex; height: 100%; min-height: 0; background: #101419; }
+.chart-tool { display: flex; height: 100%; min-height: 0; background: #101419; container-type: inline-size; container-name: chart-tool; }
 .chart-tool__drawing-toolbar { flex: 0 0 40px; max-height: 100%; box-sizing: border-box; overflow-x: hidden; overflow-y: auto; }
 .chart-tool__surface { position: relative; z-index: 2; min-width: 0; min-height: 0; flex: 1 1 auto; padding-top: 24px; box-sizing: border-box; }
 .chart-tool__status { position: absolute; inset: 24px 0 0; z-index: 4; background: rgba(7, 12, 16, 0.72); pointer-events: none; }
@@ -3432,7 +3443,8 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 /* Comparison labels grow when prices arrive. Reserve a separate right-hand
    slot instead of moving their overlap above or below the Plots hit target. */
 .chart-tool__surface--comparisons .chart-tool__plots { left: auto; right: 88px; }
-.chart-tool__compare { position: absolute; top: 3px; left: 4px; z-index: 12; display: flex; align-items: center; gap: 3px; max-width: calc(100% - 290px); overflow: hidden; }
+ .chart-tool__compare { position: absolute; top: 3px; left: 4px; z-index: 12; display: flex; align-items: center; gap: 3px; max-width: calc(100% - 290px); overflow: hidden; pointer-events: none; }
+ .chart-tool__compare input, .chart-tool__compare > button { pointer-events: auto; }
 .chart-tool__compare input { width: 72px; border: 1px solid #42515c; background: #11161b; color: #dce9f2; padding: 2px 4px; font: 10px "Segoe UI", Arial, sans-serif; }
 .chart-tool__compare > button { border: 1px solid #42515c; background: #1b252d; color: #b9c9d3; padding: 1px 4px; font: 10px "Segoe UI", Arial, sans-serif; cursor: pointer; white-space: nowrap; }
 .chart-tool__compare-chip { overflow: hidden; text-overflow: ellipsis; }
@@ -3443,6 +3455,15 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
   .chart-tool__plots { top: 25px; left: 4px; }
   .chart-tool__surface--comparisons .chart-tool__plots { left: 4px; right: auto; }
   .chart-tool__templates { top: 25px; right: 4px; }
+}
+/* A desktop workstation can contain a much narrower chart pane than the
+   viewport. Use the chart container's actual width so comparison chips never
+   cover Plots in dense factory layouts. */
+@container chart-tool (max-width: 560px) {
+  .chart-tool__surface--comparisons { padding-top: 46px; }
+  .chart-tool__surface--comparisons .chart-tool__compare { top: 3px; left: 4px; right: 4px; max-width: none; }
+  .chart-tool__surface--comparisons .chart-tool__plots { top: 25px; left: 4px; right: auto; }
+  .chart-tool__surface--comparisons .chart-tool__templates { top: 25px; right: 4px; }
 }
 .tool-state { display: grid; place-items: center; height: 100%; padding: 12px; color: #98a7b2; font: 11px "Segoe UI", Arial, sans-serif; text-align: center; }
 .tool-state--error { color: #ec8f8f; }

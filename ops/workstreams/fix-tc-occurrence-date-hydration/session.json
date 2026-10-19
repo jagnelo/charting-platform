@@ -1,0 +1,91 @@
+{
+  "acceptance_criteria": [
+    {
+      "id": "OCCURRENCE1",
+      "text": "Repair branch remains based directly on the exact degraded staging SHA and contains only the timestamp-race repair/regression plus its own workstream record, not the full TC feature."
+    },
+    {
+      "id": "OCCURRENCE2",
+      "text": "Regression coverage proves explicit historical occurrence intent is protected from stale cursor publications during hydration, an older same-date selection cannot clear a newer hold, superseding selections remain authoritative, and normal cursor publication resumes after the owning hold clears."
+    },
+    {
+      "id": "OCCURRENCE3",
+      "text": "Exact repair branch CI is fully successful without flaky tests; the guarded remediation merge preserves the exact degraded base and the exact resulting staging SHA passes Exhaustive Integration Gate before the marker is cleared."
+    }
+  ],
+  "active_session_id": null,
+  "branch": "fix/tc-occurrence-date-hydration",
+  "claim": {
+    "branch": "fix/tc-occurrence-date-hydration",
+    "host": "m920q",
+    "session_id": "fbbdcd40-d65d-4462-80ba-774945e93ced",
+    "started_at": "2026-10-16T19:57:10.142030+00:00",
+    "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-tc-occurrence-date-hydration",
+    "worktree_id": "fix-tc-occurrence-date-hydration-5fe4d495a2"
+  },
+  "dirty_paths": [
+    "ops/workstreams/fix-tc-occurrence-date-hydration/handoff.md",
+    "ops/workstreams/fix-tc-occurrence-date-hydration/session.json",
+    "ops/workstreams/fix-tc-occurrence-date-hydration/validation.jsonl"
+  ],
+  "docker": {
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+  },
+  "docker_before_cleanup": {
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+  },
+  "docker_ready": {
+    "ready": true,
+    "started_desktop": false,
+    "wait_seconds": 0
+  },
+  "finished": true,
+  "finished_at": "2026-10-16T21:36:07.234914+00:00",
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/tc-occurrence-date-hydration: Repair the exact degraded staging failure at e0cb269afc8460bdc814c93ec71c640f01b2b31f by transplanting only TC2000 fix 957216a1bbb0727dc7f5f26f644d84df911e5522 for preserving explicitly selected occurrence timestamps during chart hydration, then validate and guarded-integrate this narrow repair under the active four-feature staging goal; no deployment, paid activation, operational trial, or master promotion.. Acceptance criteria: OCCURRENCE1: Repair branch remains based directly on the exact degraded staging SHA and contains only the timestamp-race repair/regression plus its own workstream record, not the full TC feature.; OCCURRENCE2: Regression coverage proves explicit historical occurrence intent is protected from stale cursor publications during hydration, an older same-date selection cannot clear a newer hold, superseding selections remain authoritative, and normal cursor publication resumes after the owning hold clears.; OCCURRENCE3: Exact repair branch CI is fully successful without flaky tests; the guarded remediation merge preserves the exact degraded base and the exact resulting staging SHA passes Exhaustive Integration Gate before the marker is cleared.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-10-16T19:59:54.188896+00:00",
+  "goal_request": {
+    "objective": "Advance fix/tc-occurrence-date-hydration: Repair the exact degraded staging failure at e0cb269afc8460bdc814c93ec71c640f01b2b31f by transplanting only TC2000 fix 957216a1bbb0727dc7f5f26f644d84df911e5522 for preserving explicitly selected occurrence timestamps during chart hydration, then validate and guarded-integrate this narrow repair under the active four-feature staging goal; no deployment, paid activation, operational trial, or master promotion.. Acceptance criteria: OCCURRENCE1: Repair branch remains based directly on the exact degraded staging SHA and contains only the reviewed timestamp fix plus its own workstream record.; OCCURRENCE2: Regression coverage proves explicit historical occurrence intent is protected from stale cursor publications during hydration, superseding selections remain authoritative, and normal chart cursor publication resumes after the hold clears.; OCCURRENCE3: Exact repair branch CI is fully successful without flaky tests; the guarded remediation merge preserves the exact degraded base and the exact resulting staging SHA passes Exhaustive Integration Gate before the marker is cleared.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "active",
+  "goal_unavailable_reason": null,
+  "head": "48d86d7f677f3c4e4b414a8838c5e42b14c44082",
+  "implementation_sha": "0794384a9c431732376a00a947bd42912afbb5fc",
+  "interrupted": true,
+  "local_validation_profile": "full_stack_browser",
+  "next_action": "Coordinator handoff: exact repair CI run 38967256911 passed on 48d86d7f677f3c4e4b414a8838c5e42b14c44082 with 151 passed, 109 skipped, zero retries/flakes/failures. Commit and push this session handoff record, require exact-tip branch CI, then use canonical make integrate BRANCH=fix/tc-occurrence-date-hydration REMEDIATE_DEGRADED=1 from clean synchronized degraded staging e0cb269afc8460bdc814c93ec71c640f01b2b31f. Keep the degraded marker until exact merged staging passes Exhaustive Integration Gate.",
+  "parent_branch": "staging",
+  "plan_hash": "f3a7fe9fd027e94b65d7e108b5c5ea68c67cc95dcc7a70f0d1a936b2917f1069",
+  "planning_required": true,
+  "planning_state": "ready",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [
+      "OCCURRENCE1",
+      "OCCURRENCE2"
+    ],
+    "current_blocker": "Exact source CI run 38963802695 passed on 7a5af939b034179ff055e296a3a43baeaffb91bd; the closure-record commit must pass its own exact-source CI before guarded staging integration.",
+    "current_phase": "closure_record_ci",
+    "total": 3
+  },
+  "remote": "48d86d7f677f3c4e4b414a8838c5e42b14c44082",
+  "remote_sha": "48d86d7f677f3c4e4b414a8838c5e42b14c44082",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "fbbdcd40-d65d-4462-80ba-774945e93ced",
+  "state": "interrupted",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-tc-occurrence-date-hydration/ops/workstreams/fix-tc-occurrence-date-hydration",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-tc-occurrence-date-hydration/ops/workstreams/fix-tc-occurrence-date-hydration/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-tc-occurrence-date-hydration/ops/workstreams/fix-tc-occurrence-date-hydration/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-tc-occurrence-date-hydration/ops/workstreams/fix-tc-occurrence-date-hydration/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-tc-occurrence-date-hydration/ops/workstreams/fix-tc-occurrence-date-hydration/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-tc-occurrence-date-hydration",
+  "worktree_id": "fix-tc-occurrence-date-hydration-5fe4d495a2"
+}

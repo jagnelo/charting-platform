@@ -1,0 +1,78 @@
+{
+  "acceptance_criteria": [],
+  "active_session_id": null,
+  "branch": "fix/chart-template-key-generation",
+  "dirty_paths": [
+    "ps/workstreams/fix-chart-template-key-generation/handoff.md",
+    "ops/workstreams/fix-chart-template-key-generation/session.json"
+  ],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-chart-template-key-generation-4751cf13",
+      "charting-stack-fix-chart-template-key-generation-4751cf13"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-chart-template-key-generation-4751cf1310"
+  },
+  "docker_before_cleanup": {
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+  },
+  "finished": true,
+  "finished_at": "2026-10-17T06:52:23.015534+00:00",
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/chart-template-key-generation: Human-authorized narrow browser repair: replace unsupported crypto.randomUUID calls in chart-template and column-set key generation with crypto.getRandomValues, preserving the eight-hex key suffix and adding regressions. This unblocks Provider validation; do not bring in the full TC2000 feature or alter its roadmap.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-10-17T06:51:51.438699+00:00",
+  "goal_request": {
+    "objective": "Advance fix/chart-template-key-generation: Human-authorized narrow browser repair: replace unsupported crypto.randomUUID calls in chart-template and column-set key generation with crypto.getRandomValues, preserving the eight-hex key suffix and adding regressions. This unblocks Provider validation; do not bring in the full TC2000 feature or alter its roadmap.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "unavailable",
+  "goal_unavailable_reason": "A separate feature-session Codex goal was not started for this coordinator-owned repair; the active central staging goal continues it. Hand off the validated repair for guarded integration.",
+  "head": "fa1889b0571f38b5851e6f0315e0b3b77ff51836",
+  "implementation_sha": "79c8623fb122ccdd7c86e4b45e03b7e2c6708e7b",
+  "interrupted": true,
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "Coordinator waits for exact-head CI, commits the session handoff, then runs guarded make integrate for this narrow repair and requires exact staging EIG before any downstream feature merge.",
+  "parent_branch": "staging",
+  "plan_hash": "e20bbaa0af77b4a224e8632a756911b7a84c80266322b9d9338c962aa51b53f8",
+  "planning_required": true,
+  "planning_state": "draft",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [],
+    "current_blocker": "none",
+    "current_phase": "plan",
+    "total": 0
+  },
+  "remote": "fa1889b0571f38b5851e6f0315e0b3b77ff51836",
+  "remote_sha": null,
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "85a9b1cd-906e-44ec-be20-8104c71fba7a",
+  "state": "interrupted",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-chart-template-key-generation/ops/workstreams/fix-chart-template-key-generation",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-chart-template-key-generation/ops/workstreams/fix-chart-template-key-generation/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-chart-template-key-generation/ops/workstreams/fix-chart-template-key-generation/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-chart-template-key-generation/ops/workstreams/fix-chart-template-key-generation/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-chart-template-key-generation/ops/workstreams/fix-chart-template-key-generation/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-chart-template-key-generation",
+  "worktree_id": "fix-chart-template-key-generation-4751cf1310"
+}

@@ -202,7 +202,10 @@ def queue() -> list[dict[str, object]]:
         branch = record.get("branch", "")
         if not branch.startswith(("feat/", "fix/", "chore/", "docs/", "test/")):
             continue
-        path = Path(record["path"])
+        # `git worktree list` may report a symlink/alias while `agent-session.py`
+        # resolves the checkout root before deriving its worktree ID. Normalize
+        # here so queue claim/resource lookups use the same stable identity.
+        path = Path(record["path"]).resolve()
         plan_path = path / "ops" / "workstreams" / slug(branch) / "plan.yaml"
         plan = values(plan_path)
         head = git("rev-parse", "HEAD", cwd=path, check=False)

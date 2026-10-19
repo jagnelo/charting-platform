@@ -6,6 +6,72 @@
  */
 import { test, expect, LoginPage, ChartPage, ScreenerPage, DashboardPage, RadarPage } from './helpers'
 import { closePopupWhenOpen } from './popup_cleanup'
+import type { Locator, Page } from '@playwright/test'
+
+async function findNarrowVisibleChart(page: Page): Promise<Locator> {
+  const charts = page.locator('.chart-tool:visible')
+  await expect.poll(() => charts.count(), { timeout: 15_000 }).toBeGreaterThan(0)
+  const count = await charts.count()
+  for (let index = 0; index < count; index += 1) {
+    const chart = charts.nth(index)
+    const surfaceWidth = await chart.locator('.chart-tool__surface').evaluate(surface => surface.getBoundingClientRect().width)
+    if (surfaceWidth > 0 && surfaceWidth < 520) return chart
+  }
+  throw new Error('The active workstation layout has no visible chart surface narrower than 520 CSS pixels')
+}
+
+async function resizeRightmostDesktopDockToNarrowChart(page: Page): Promise<void> {
+  const host = page.locator('.workspace-layout-host')
+  const hostBox = await host.boundingBox()
+  expect(hostBox).not.toBeNull()
+
+  // The factory US Top Down layout has three side-by-side columns. Keep the
+  // browser at desktop size and use its actual rightmost Golden Layout
+  // splitter to reproduce the narrow dock a user can create at 1920x1080.
+  const splitters = host.locator('.lm_splitter.lm_horizontal:visible')
+  await expect(splitters).toHaveCount(2)
+  const rightmostSplitter = splitters.nth(1)
+  const splitterBox = await rightmostSplitter.boundingBox()
+  expect(splitterBox).not.toBeNull()
+
+  const targetX = hostBox!.x + hostBox!.width - 480
+  expect(targetX).toBeGreaterThan(splitterBox!.x + splitterBox!.width / 2)
+  expect(targetX).toBeLessThan(hostBox!.x + hostBox!.width)
+
+  await page.mouse.move(splitterBox!.x + splitterBox!.width / 2, splitterBox!.y + splitterBox!.height / 2)
+  await page.mouse.down()
+  try {
+    await page.mouse.move(targetX, splitterBox!.y + splitterBox!.height / 2, { steps: 12 })
+  } finally {
+    await page.mouse.up()
+  }
+
+  await expect.poll(async () => {
+    const widths = await host.locator('.chart-tool:visible .chart-tool__surface').evaluateAll(
+      surfaces => surfaces.map(surface => surface.getBoundingClientRect().width).filter(width => width > 0),
+    )
+    return widths.some(width => width < 520)
+  }, { timeout: 10_000 }).toBe(true)
+}
+
+async function expectF9cComparisonAndPlotsHitTargets(chart: Locator) {
+  const geometry = await chart.evaluate(root => {
+    const plots = root.querySelector('.chart-tool__plots button') as HTMLElement | null
+    const comparison = root.querySelector('.chart-tool__compare-chip[title="Remove RSP"]') as HTMLElement | null
+    if (!plots || !comparison) throw new Error('Expected Plots and Remove RSP controls to coexist')
+    const plotsRect = plots.getBoundingClientRect()
+    const comparisonRect = comparison.getBoundingClientRect()
+    const centerHit = (target: HTMLElement, rect: DOMRect) => target.contains(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2))
+    return {
+      overlap: plotsRect.left < comparisonRect.right && plotsRect.right > comparisonRect.left && plotsRect.top < comparisonRect.bottom && plotsRect.bottom > comparisonRect.top,
+      plotsCenterHitsPlots: centerHit(plots, plotsRect),
+      comparisonCenterHitsRemove: centerHit(comparison, comparisonRect),
+    }
+  })
+  expect(geometry.overlap).toBe(false)
+  expect(geometry.plotsCenterHitsPlots).toBe(true)
+  expect(geometry.comparisonCenterHitsRemove).toBe(true)
+}
 
 
 // ── Auth flows ─────────────────────────────────────────────────────────────────
@@ -298,6 +364,75 @@ test.describe('Chart', () => {
     await saved.click()
     await expect(comparisonChip).toHaveCount(1, { timeout: 15_000 })
     await expect(comparisonChip).toContainText(/[+-]\d+\.\d{2}%/, { timeout: 15_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F9c-default-topdown-hit-targets — populated comparisons do not cover Plots in a narrow desktop chart', async ({ page, browserDiagnostics }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 })
+    await page.goto('/chart')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('.workstation__workspace-name')).toHaveText('US Top Down', { timeout: 15_000 })
+    expect(await page.evaluate(() => window.innerWidth)).toBe(1920)
+    await resizeRightmostDesktopDockToNarrowChart(page)
+    const chart = await findNarrowVisibleChart(page)
+    const templateName = `Narrow comparison ${Date.now()}`
+
+    await chart.getByTitle('Chart templates').click()
+    const menu = chart.locator('.chart-template__menu:visible').last()
+    await menu.getByRole('combobox', { name: 'Chart bar type' }).selectOption('line')
+    await chart.getByRole('textbox', { name: 'Comparison symbol', exact: true }).fill('RSP')
+    await chart.getByTitle('Add comparison').click()
+    const removeRSP = chart.getByTitle('Remove RSP')
+    await expect(removeRSP).toContainText(/[+-]\d+\.\d{2}%/, { timeout: 15_000 })
+    await menu.getByRole('textbox', { name: 'Chart template name' }).fill(templateName)
+    const saveRequest = page.waitForRequest(request => request.url().includes('/workspaces/library/items/chart_template/') && request.method() === 'PUT')
+    await menu.getByRole('button', { name: 'Save', exact: true }).click()
+    const savePayload = (await saveRequest).postDataJSON() as { payload?: { configuration?: Record<string, unknown> } }
+    expect(savePayload.payload?.configuration?.comparison_symbols).toEqual(['RSP'])
+    const saved = menu.locator('.chart-template__apply').filter({ hasText: templateName })
+    await expect(saved).toBeVisible({ timeout: 15_000 })
+    await menu.getByRole('button', { name: 'Close chart templates' }).click()
+
+    await expect(removeRSP).toContainText(/[+-]\d+\.\d{2}%/, { timeout: 15_000 })
+    await expectF9cComparisonAndPlotsHitTargets(chart)
+    await chart.getByRole('button', { name: 'Chart plot library' }).click()
+    const plotsMenu = chart.locator('.chart-plots__menu:visible')
+    await expect(plotsMenu).toBeVisible()
+    await plotsMenu.getByRole('button', { name: 'Close chart plot library' }).click()
+    await removeRSP.click()
+    await expect(removeRSP).toHaveCount(0)
+
+    await chart.getByTitle('Chart templates').click()
+    const restoredMenu = chart.locator('.chart-template__menu:visible').last()
+    const restored = restoredMenu.locator('.chart-template__apply').filter({ hasText: templateName })
+    await expect(restored).toBeVisible({ timeout: 15_000 })
+    await restored.click()
+    await expect(removeRSP).toBeVisible({ timeout: 15_000 })
+    await expect(removeRSP).toContainText(/[+-]\d+\.\d{2}%/, { timeout: 15_000 })
+    await expectF9cComparisonAndPlotsHitTargets(chart)
+    await chart.getByRole('button', { name: 'Chart plot library' }).click()
+    await expect(plotsMenu).toBeVisible()
+    await plotsMenu.getByRole('button', { name: 'Close chart plot library' }).click()
+    await removeRSP.click()
+    await expect(removeRSP).toHaveCount(0)
+
+    await page.setViewportSize({ width: 390, height: 800 })
+    const tcClassic = page.getByRole('tab', { name: 'TC Classic', exact: true }).first()
+    await expect(tcClassic).toBeVisible({ timeout: 15_000 })
+    await tcClassic.click()
+    await expect(tcClassic).toHaveClass(/workstation__tab--active/)
+    const mobileChart = await findNarrowVisibleChart(page)
+    await mobileChart.getByRole('textbox', { name: 'Comparison symbol', exact: true }).fill('RSP')
+    await mobileChart.getByTitle('Add comparison').click()
+    const mobileRemoveRSP = mobileChart.getByTitle('Remove RSP')
+    await expect(mobileRemoveRSP).toContainText(/[+-]\d+\.\d{2}%/, { timeout: 15_000 })
+    await expectF9cComparisonAndPlotsHitTargets(mobileChart)
+    await mobileChart.getByRole('button', { name: 'Chart plot library' }).click()
+    const mobilePlotsMenu = mobileChart.locator('.chart-plots__menu:visible')
+    await expect(mobilePlotsMenu).toBeVisible()
+    await mobilePlotsMenu.getByRole('button', { name: 'Close chart plot library' }).click()
+    await mobileRemoveRSP.click()
+    await expect(mobileRemoveRSP).toHaveCount(0)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -1478,6 +1613,8 @@ test.describe('TC2000 workstation', () => {
     })
 
     let conflictPending = true
+    let injectedNotesConflicts = 0
+    let recoveryCopyCreated = false
     const baselineWindowKeys = new Set(
       (baseline.tabs as Array<{ windows?: Array<{ instance_key?: string }> }>).flatMap(tab =>
         (tab.windows ?? []).map(window => window.instance_key).filter((key): key is string => Boolean(key)),
@@ -1487,9 +1624,11 @@ test.describe('TC2000 workstation', () => {
       if (route.request().method() !== 'PUT' || !conflictPending) return route.continue()
       // A previous pop-out can still be finishing a legitimate geometry
       // snapshot when this page starts. Inject the conflict only for the
-      // mutation under test: the newly added Notes window. Otherwise the
-      // setup races a bootstrap/cleanup write and the actual user mutation
-      // never exercises the recovery branch.
+      // mutation under test: the newly added Notes window. Keep it active
+      // across superseded snapshot retries: saveSnapshot intentionally defers
+      // conflict reconciliation when a newer local generation exists, so a
+      // one-shot 409 can let the retry succeed without exercising recovery.
+      // Stop injecting only after the recovery copy is actually created.
       const payload = route.request().postDataJSON() as {
         tabs?: Array<{ windows?: Array<{ instance_key?: string; tool_type?: string; title?: string }> }>
       }
@@ -1501,7 +1640,7 @@ test.describe('TC2000 workstation', () => {
         }),
       )
       if (!hasLocalWindowAddition) return route.continue()
-      conflictPending = false
+      injectedNotesConflicts += 1
       await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ detail: { code: 'workspace_revision_conflict', message: 'conflict' } }) })
     })
     await page.route(/\/api\/v1\/workspaces\/\d+$/, async route => {
@@ -1514,6 +1653,10 @@ test.describe('TC2000 workstation', () => {
     await page.route(/\/api\/v1\/workspaces$/, async route => {
       if (route.request().method() !== 'POST') return route.continue()
       const payload = route.request().postDataJSON() as { name?: string }
+      if (/recovery/i.test(payload.name ?? '')) {
+        conflictPending = false
+        recoveryCopyCreated = true
+      }
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 9910, revision: 1, name: payload.name ?? 'US Top Down Recovery', tabs: [], settings: {} }) })
     })
 
@@ -1521,6 +1664,8 @@ test.describe('TC2000 workstation', () => {
     await page.getByRole('menuitem', { name: 'Notes', exact: true }).click()
     const notes = page.locator('.tool-window:visible').filter({ has: page.locator('.note-tool') })
     await expect(notes.last()).toBeVisible({ timeout: 10_000 })
+    await expect.poll(() => injectedNotesConflicts).toBeGreaterThan(0)
+    await expect.poll(() => recoveryCopyCreated).toBe(true)
     await expect(page.locator('.workstation__footer')).toContainText(/recovery/i, { timeout: 15_000 })
     await expect(page.locator('.workstation__footer')).toContainText('local changes were preserved', { timeout: 15_000 })
     await browserDiagnostics.expectNoCriticalIssues()
@@ -3641,7 +3786,9 @@ test.describe('TC2000 workstation', () => {
     ]
     const familyByKey = new Map(families.map(family => [family.key, family]))
     const selectedSources: string[] = []
+    let benchmarkRootFixtureHits = 0
     await page.route('**/api/v1/market-groups/us-benchmarks*', async route => {
+      benchmarkRootFixtureHits += 1
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
         stable_key: 'us-benchmarks',
         group_type: 'benchmark',
@@ -3667,7 +3814,10 @@ test.describe('TC2000 workstation', () => {
       const pathname = new URL(route.request().url()).pathname
       const familyKey = pathname.match(/\/market-groups\/([^/]+)$/)?.[1]
       const family = familyKey ? familyByKey.get(decodeURIComponent(familyKey)) : undefined
-      if (!family) return route.continue()
+      // This broad family handler is registered after the exact root fixture.
+      // Fall through so Playwright can offer unmatched requests to that earlier
+      // handler; continue() would send the root request to the real endpoint.
+      if (!family) return route.fallback()
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ stable_key: family.key, name: family.name, group_type: 'benchmark_family', members: [{ instrument: { id: 1, symbol: family.proxy, name: `${family.name} proxy` } }], provenance: { benchmark_family: family.key } }) })
     })
     await page.route('**/api/v1/analysis/groups/*/snapshot*', async route => {
@@ -3712,6 +3862,7 @@ test.describe('TC2000 workstation', () => {
     await page.goto('/chart/SPY')
     const benchmarkSurface = page.locator('.benchmark-surface').first()
     await expect(benchmarkSurface).toBeVisible({ timeout: 15_000 })
+    await expect.poll(() => benchmarkRootFixtureHits, { timeout: 15_000 }).toBeGreaterThan(0)
     const familySelect = benchmarkSurface.getByRole('combobox', { name: 'Benchmark family', exact: true })
     for (const family of families) {
       await familySelect.selectOption(family.key)
@@ -4403,15 +4554,21 @@ test.describe('TC2000 workstation', () => {
     const plot = chart.locator('.chart-plots li').filter({ hasText: 'RSI' }).last()
     await expect.poll(() => plot.count(), { timeout: 10_000 }).toBeGreaterThan(0)
     await expect(plot).toBeVisible({ timeout: 10_000 })
+    // Start from the user-facing label, not the row center: the center can
+    // land on a line-width input and prevent Chromium from starting a native
+    // drag from the draggable plot row.
+    const plotDragSource = plot.locator('span').filter({ hasText: /^RSI/ }).first()
+    await expect(plotDragSource).toBeVisible({ timeout: 10_000 })
     const target = page.getByRole('region', { name: 'Major US benchmarks' })
+    // The benchmark watchlist can still be replacing its initial analysis
+    // rows after it becomes visible. Wait for the component's public busy
+    // state before the real drop so the drag does not race that refresh.
+    await expect(target).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 })
     const droppedHeader = target.locator('.watchlist__header button').filter({ hasText: 'RSI' })
-    // Chromium occasionally loses the custom MIME payload when a fixed,
-    // teleported plot menu closes during drag. Repeat the same real drag once
-    // after the drop target has remained mounted; never bypass the DnD path.
-    for (let attempt = 0; attempt < 2 && !(await droppedHeader.count()); attempt += 1) {
-      await plot.dragTo(target)
-      if (!(await droppedHeader.count())) await page.waitForTimeout(150)
-    }
+    // Use a continuous pointer path so Chromium dispatches dragover while the
+    // pointer crosses into the watchlist. Dropping over the header also avoids
+    // the row-reordering drop listener and targets the column-header surface.
+    await plotDragSource.dragTo(target.locator('.watchlist__header'), { steps: 8 })
     await expect(droppedHeader).toBeVisible({ timeout: 10_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })

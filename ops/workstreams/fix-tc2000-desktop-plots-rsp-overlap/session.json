@@ -1,0 +1,162 @@
+{
+  "acceptance_criteria": [
+    {
+      "id": "PTRD1",
+      "text": "On the exact repair source at 1920x1080 in default US Top Down, the populated RSP comparison and Plots target do not overlap; elementFromPoint at each button center resolves to its intended control, including after chart-template save/remove/restore with RSP percentage populated."
+    },
+    {
+      "id": "PTRD2",
+      "text": "The unchanged ordinary Playwright Plots click opens the menu, ordinary close succeeds, and ordinary Remove RSP click removes the comparison; no trial/force click, percentage blanking, test weakening, retry change, or timeout increase is used."
+    },
+    {
+      "id": "PTRD3",
+      "text": "The 390x800 TC Classic chart remains visible and its comparison/Plots hit targets, menu, close and remove path continue to work. Default no-comparison and wide-chart control geometry remain unchanged."
+    },
+    {
+      "id": "PTRD4",
+      "text": "Affected frontend tests, type-check and production build pass; the full local functional/visual profile passes first attempt with existing assertions, screenshot references and 0.5%/1px/DeltaE2000 tolerances unchanged; exact-source branch CI and exact pushed staging Exhaustive Integration Gate pass."
+    },
+    {
+      "id": "PTRD5",
+      "text": "The repair is cleanly published with exact evidence and closure receipt; no TC/Provider/ETF/Strategy worktree, assigned data, provider quota, live route, paid operation, operational trial or deployment is changed."
+    }
+  ],
+  "active_changeset_context": {
+    "implementation_published": true,
+    "implementation_sha": "e995d501c56bbd3427d8023a0b14e8ef6e37677b",
+    "name": "geometry-merged-source-validation-20261019",
+    "owned_paths": [
+      "ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/plan.yaml",
+      "ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/handoff.md",
+      "ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/session.json",
+      "ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/validation.jsonl"
+    ],
+    "reason": "Full exact-source local gates and delegated technical acceptance are complete; publish this coherent closure receipt once and verify its enclosing HEAD externally, then exact branch CI and guarded staging/EIG."
+  },
+  "active_session_id": "227b57d7-4d91-4440-9545-067aa62cbbde",
+  "active_validation": {
+    "fixture_project": "geometry-e995-browser-20261019",
+    "fixture_source": "e995d501c56bbd3427d8023a0b14e8ef6e37677b",
+    "build_terminal": 10791,
+    "build_exit_code": 0,
+    "functional_container": "geometry-e995-browser-runner-functional",
+    "functional_container_id": "30cfd0deafd47b92082339408a5316de2fba47866d4e6de7ac9d71465be5ad88",
+    "functional_started_at": "2026-10-19T21:22:45.72878179Z",
+    "functional_status": "passed",
+    "functional_exit_code": 0,
+    "functional_passed": 155,
+    "functional_expected_skips": 2,
+    "functional_finished_at": "2026-10-19T21:38:18.925964173Z",
+    "functional_cases_selected": 157,
+    "workers": 1,
+    "retries": 0,
+    "visual_status": "passed",
+    "visual_exit_code": 0,
+    "visual_passed": 104,
+    "visual_finished_at": "2026-10-19T21:50:46.19123805Z",
+    "visual_duration": "11.6m",
+    "visual_oom_killed": false,
+    "functional_oom_killed": false,
+    "cleanup_verified": true,
+    "cleanup_scope": "Only both exited runners and exact project eight services/four fresh volumes/two networks; no labeled resources remain. All55pre-existing running identities independently matched. Exported logs/source images retained.",
+    "provider_egress_denied_attempts": 202,
+    "browser_sdk_allowed_connects": 260,
+    "browser_other_denied_requests": 919,
+    "backend_error_traceback_matches": 0,
+    "visual_cases_selected": 104,
+    "visual_container": "geometry-e995-browser-runner-visual",
+    "visual_container_id": "e954ed3d54c938eb1cd34ed6bbc4948b3d0ab6916e7fb9301ebefdcf4c30da1a",
+    "visual_started_at": "2026-10-19T21:39:07.383241146Z",
+    "artifact_root": "/tmp/geometry-e995-browser-20261019/artifacts",
+    "retained_baseline": "/tmp/geometry-e995-browser-20261019/retained-containers-before.json",
+    "next_action": "Local gates passed and owned fixture cleanup verified. Preserve artifacts; publish coherent closure,require exact closure-source branch CI,then guarded staging integration and exact Exhaustive. Do not restart passed suites or claim future staging success."
+  },
+  "branch": "fix/tc2000-desktop-plots-rsp-overlap",
+  "claim": {
+    "branch": "fix/tc2000-desktop-plots-rsp-overlap",
+    "host": "m920q",
+    "session_id": "227b57d7-4d91-4440-9545-067aa62cbbde",
+    "started_at": "2026-10-17T12:02:07.208940+00:00",
+    "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-tc2000-desktop-plots-rsp-overlap",
+    "worktree_id": "fix-tc2000-desktop-plots-rsp-overlap-0933a1719a"
+  },
+  "current_exact_ci": {
+    "conclusion": "success",
+    "head_sha": "e995d501c56bbd3427d8023a0b14e8ef6e37677b",
+    "run_id": 39312017050,
+    "scope_note": "Exact implementation hosted green,152passes/109expected skips with ordinary F9c as case15 and no retry. Full local155functional/two expected skips and104visuals now pass; enclosing closure-source CI and staging Exhaustive remain open.",
+    "status": "completed"
+  },
+  "dirty_paths": [
+    "ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/handoff.md",
+    "ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/plan.yaml",
+    "ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/session.json",
+    "ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/validation.jsonl"
+  ],
+  "docker": {
+    "available": true,
+    "reason": "Verified through approved read-only Docker queries; sandbox-only status cannot access the daemon. Exact geometry project has no existing containers, volumes or networks."
+  },
+  "docker_ready": {
+    "ready": true,
+    "started_desktop": false,
+    "wait_seconds": 0
+  },
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/tc2000-desktop-plots-rsp-overlap: Eliminate the reproduced F9c desktop Plots/Remove RSP hit-target overlap at narrow chart-container widths while retaining the default wide layout and mobile TC Classic behavior. Publish a narrow validated repair for coordinator integration; do not edit the TC feature worktree, other feature worktrees, staging directly, or deployment configuration.. Acceptance criteria: PTRD1: On the exact repair source at 1920x1080 in default US Top Down, the populated RSP comparison and Plots target do not overlap; elementFromPoint at each button center resolves to its intended control, including after chart-template save/remove/restore with RSP percentage populated.; PTRD2: The unchanged ordinary Playwright Plots click opens the menu, ordinary close succeeds, and ordinary Remove RSP click removes the comparison; no trial/force click, percentage blanking, test weakening, retry change, or timeout increase is used.; PTRD3: The 390x800 TC Classic chart remains visible and its comparison/Plots hit targets, menu, close and remove path continue to work. Default no-comparison and wide-chart control geometry remain unchanged.; PTRD4: Affected frontend tests, type-check and production build pass; the full local functional/visual profile passes first attempt with existing assertions, screenshot references and 0.5%/1px/DeltaE2000 tolerances unchanged; exact-source branch CI and exact pushed staging Exhaustive Integration Gate pass.; PTRD5: The repair is cleanly published with exact evidence and closure receipt; no TC/Provider/ETF/Strategy worktree, assigned data, provider quota, live route, paid operation, operational trial or deployment is changed.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-10-17T12:06:58.884679+00:00",
+  "goal_request": {
+    "objective": "Advance fix/tc2000-desktop-plots-rsp-overlap: Eliminate the reproduced F9c desktop Plots/Remove RSP hit-target overlap at narrow chart-container widths while retaining the default wide layout and mobile TC Classic behavior. Publish a narrow validated repair for coordinator integration; do not edit the TC feature worktree, other feature worktrees, staging directly, or deployment configuration.. Acceptance criteria: PTRD1: On the exact repair source at 1920x1080 in default US Top Down, the populated RSP comparison and Plots target do not overlap; elementFromPoint at each button center resolves to its intended control, including after chart-template save/remove/restore with RSP percentage populated.; PTRD2: The unchanged ordinary Playwright Plots click opens the menu, ordinary close succeeds, and ordinary Remove RSP click removes the comparison; no trial/force click, percentage blanking, test weakening, retry change, or timeout increase is used.; PTRD3: The 390x800 TC Classic chart remains visible and its comparison/Plots hit targets, menu, close and remove path continue to work. Default no-comparison and wide-chart control geometry remain unchanged.; PTRD4: Affected frontend tests, type-check and production build pass; the full local functional/visual profile passes first attempt with existing assertions, screenshot references and 0.5%/1px/DeltaE2000 tolerances unchanged; exact-source branch CI and exact pushed staging Exhaustive Integration Gate pass.; PTRD5: The repair is cleanly published with exact evidence and closure receipt; no TC/Provider/ETF/Strategy worktree, assigned data, provider quota, live route, paid operation, operational trial or deployment is changed.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "ready",
+  "goal_state": "unavailable",
+  "goal_unavailable_reason": "The root four-feature coordinator goal is already active and this repair is its current subtask; do not create a duplicate branch-local goal.",
+  "head": "e995d501c56bbd3427d8023a0b14e8ef6e37677b",
+  "historical_exact_ci": {
+    "conclusion": "success",
+    "head_sha": "21cc43f7cfc1b0b5c4aaca61fba098bb08e62640",
+    "run_id": 39079109518,
+    "scope_note": "Historical pre-reconciliation receipt; not rebound to e995d501."
+  },
+  "implementation_sha": "e995d501c56bbd3427d8023a0b14e8ef6e37677b",
+  "last_checkpoint": "2026-10-19T22:01:00Z",
+  "last_human_progress_update": "2026-10-19T22:00:00Z",
+  "local_validation_profile": "full_stack_browser",
+  "next_action": "Publish this coherent delegated technical-closure receipt once,verify clean enclosing HEAD/origin externally,require exact branch CI,then guarded persistent-staging integration and exact Exhaustive. Only then release synchronized staging to original owners. Provider has the sole heavy backend-only slot; no unstaged geometry import. Four FEATURE order remains Provider,ETF,TC,Strategy.",
+  "parent_branch": "staging",
+  "plan_hash": "f2334bd71c933bcd65f5006e82f49109f71639dcea1c784406905fcfd9660c23",
+  "planning_required": false,
+  "planning_state": "ready",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [
+      "PTRD1",
+      "PTRD2",
+      "PTRD3"
+    ],
+    "current_blocker": "No local gate or human-decision blocker:155functional/two expected live skips and104strict visuals passed first attempt,exit0,no OOM,original tolerances. Exact implementation CI39312017050,940frontend tests,126focused,type/build pass. Owned cleanup verified and55retained identities running. Enclosing closure-source publication/CI and guarded staging/EIG remain mandatory.",
+    "current_phase": "local_acceptance_complete_closure_publication",
+    "next_action": "Validate/publish four owned receipt files once; capture exact clean pushed HEAD externally,observe exact branch CI,then guarded staging/Exhaustive. Release only synchronized green staging to existing owners; do not mark PTRD4 postmerge gate complete prematurely.",
+    "total": 5,
+    "updated_at": "2026-10-19T22:01:00Z"
+  },
+  "record_boundary": "HEAD/origin fields name the last verified pre-record snapshot; the enclosing receipt commit is verified externally after push, without a self-referential hash update.",
+  "remote": "e995d501c56bbd3427d8023a0b14e8ef6e37677b",
+  "remote_sha": "e995d501c56bbd3427d8023a0b14e8ef6e37677b",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "technical_acceptance": "accepted under recorded human delegation,local gates complete; final-source branch CI and postmerge Exhaustive mandatory",
+  "workstream_status": "ready_for_integration",
+  "session_id": "227b57d7-4d91-4440-9545-067aa62cbbde",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-tc2000-desktop-plots-rsp-overlap/ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-tc2000-desktop-plots-rsp-overlap/ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-tc2000-desktop-plots-rsp-overlap/ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-tc2000-desktop-plots-rsp-overlap/ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-tc2000-desktop-plots-rsp-overlap/ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-tc2000-desktop-plots-rsp-overlap",
+  "worktree_id": "fix-tc2000-desktop-plots-rsp-overlap-0933a1719a"
+}

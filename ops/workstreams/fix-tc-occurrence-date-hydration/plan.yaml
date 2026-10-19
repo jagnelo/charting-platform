@@ -1,0 +1,95 @@
+schema: 4
+branch: fix/tc-occurrence-date-hydration
+base_sha: e0cb269afc8460bdc814c93ec71c640f01b2b31f
+parent_branch: staging
+parent_sha: e0cb269afc8460bdc814c93ec71c640f01b2b31f
+dependency_authorization: "Human authorized the four-feature staging checkpoint and delegated technical acceptance: Yes I approve, and you do not need my acceptance to close it off; do this yourself, with care. Use a narrow branch based directly on exact degraded staging, preserve all tests and gates, and do not deploy, activate paid behavior, run a trial, or promote master."
+human_intent_authorization: "Repair the exact degraded staging failure at e0cb269afc8460bdc814c93ec71c640f01b2b31f by transplanting only TC2000 fix 957216a1bbb0727dc7f5f26f644d84df911e5522 for preserving explicitly selected occurrence timestamps during chart hydration, then validate and guarded-integrate this narrow repair under the active four-feature staging goal; no deployment, paid activation, operational trial, or master promotion."
+planning_state: ready
+human_closure_authorization: >-
+  The human activated central four-feature staging integration and delegated
+  technical acceptance of necessary repairs: "Yes I approve, and you do not
+  need my acceptance to close it off, it's a waste of time for me to
+  individually verify each individual fix in all the 4 parallel development
+  branches - do this yourself, with care, I just want to get to the
+  merged-into-staging state to finally try this out". This repair is limited to
+  fixing the exact stale-linked-timestamp E2E failure on degraded staging; it
+  does not accept or close the full TC2000 feature roadmap.
+closure_summary: >-
+  Narrow coordinator-owned repair of the exact staging occurrence-date race
+  reproduced by run 38947572686: product implementation commit
+  0794384a9c431732376a00a947bd42912afbb5fc preserves explicitly selected
+  linked-occurrence timestamps while chart hydration emits stale cursor
+  publications; per-selection identity prevents an older same-date request
+  from clearing a newer hold. The repair is based directly on degraded staging
+  e0cb269afc8460bdc814c93ec71c640f01b2b31f and keeps staging UPlotChart intact.
+  Exact full-stack local regression passed 1/1; focused store tests passed
+  75/75; frontend production build passed; isolated repair Compose resources
+  were removed and verified absent. Exact branch CI run 38963802695 on tested
+  source 7a5af939b034179ff055e296a3a43baeaffb91bd passed Frontend Unit,
+  Backend, Branch-declared, and Playwright jobs. Playwright reported 151
+  passed, 109 skipped, no retries/flakes/failures; feature Exhaustive was
+  skipped by branch policy. No migration, deployment, paid-provider, live
+  quota, or operational-trial impact. The only code conflict with the original
+  TC repair was UPlotChart and was intentionally not ported because its hooks
+  do not exist on degraded staging. Remaining gates are exact CI on this
+  closure-record commit and the Exhaustive Integration Gate on the exact
+  guarded staging merge before removing the degraded marker. This does not
+  close the full TC roadmap. integration_capture: exact branch HEAD
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: full_stack_browser
+local_validation_reason: >-
+  This frontend store/view/chart fix addresses an end-to-end timestamp race.
+  The required isolated full-stack/browser tier ran from this exact repair
+  source in its assigned Compose project with E2E_SEED_MARKET_DATA=true; the
+  targeted F8s-breadth-family-ratio regression passed 1/1. Its containers,
+  network, volumes, and repair-specific builder were removed and verified
+  absent, with the shared default Docker builder restored. Exact-source branch
+  CI run 38963802695 on 7a5af939b034179ff055e296a3a43baeaffb91bd passed all
+  required branch jobs; its Playwright suite reported 151 passed, 109 skipped,
+  and no retry/flaky/failing tests. The closure-record commit still requires
+  its own exact-source CI, and the resulting staging SHA must pass the
+  Exhaustive Integration Gate before the degraded marker can clear.
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "Repair the exact degraded staging failure at e0cb269afc8460bdc814c93ec71c640f01b2b31f by transplanting only TC2000 fix 957216a1bbb0727dc7f5f26f644d84df911e5522 for preserving explicitly selected occurrence timestamps during chart hydration, then validate and guarded-integrate this narrow repair under the active four-feature staging goal; no deployment, paid activation, operational trial, or master promotion."
+scope:
+  - Port the occurrence-timestamp hold and post-hydration republish from TC2000 fix commit 957216a1bbb0727dc7f5f26f644d84df911e5522 onto exact degraded staging e0cb269afc8460bdc814c93ec71c640f01b2b31f.
+  - Give each explicit timestamp hold an identity token so an older asynchronous selection cannot release a newer same-date hold.
+  - Keep staging's UPlotChart implementation intact; the TC commit's additional programmatic-cursor guard depends on full TC branch hooks absent from degraded staging, while the store gate rejects stale cursor timestamps for this failure.
+  - Preserve the full TC2000 feature roadmap and all normal cursor, chart, integration, and visual checks.
+owned_paths:
+  - frontend/src/stores/workspace.ts
+  - frontend/src/views/WorkstationView.vue
+  - frontend/tests/unit/stores/test_workspace_store.test.ts
+dependencies:
+  - TC2000 fix commit 957216a1bbb0727dc7f5f26f644d84df911e5522 passed exact-source CI run 38954608461.
+  - Persistent staging is degraded only at exact synchronized SHA e0cb269afc8460bdc814c93ec71c640f01b2b31f under marker .ai/staging-degraded.json; its E2E failure is recorded by run 38947572686.
+acceptance_criteria:
+  - id: OCCURRENCE1
+    text: Repair branch remains based directly on the exact degraded staging SHA and contains only the timestamp-race repair/regression plus its own workstream record, not the full TC feature.
+  - id: OCCURRENCE2
+    text: Regression coverage proves explicit historical occurrence intent is protected from stale cursor publications during hydration, an older same-date selection cannot clear a newer hold, superseding selections remain authoritative, and normal cursor publication resumes after the owning hold clears.
+  - id: OCCURRENCE3
+    text: Exact repair branch CI is fully successful without flaky tests; the guarded remediation merge preserves the exact degraded base and the exact resulting staging SHA passes Exhaustive Integration Gate before the marker is cleared.
+branch_tests:
+  []
+branch_tests_reason: >-
+  No additional branch-specific shell command is needed: exact-source CI
+  independently runs frontend unit tests, backend tests, and the Playwright
+  suite including F8s-breadth-family-ratio. This field only accepts executable
+  commands. The guarded staging merge must still pass the exhaustive gate.
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: ready_for_integration
+remaining_gaps:
+  - Pass exact-source branch CI on this final closure-record commit.
+  - Guarded-integrate while preserving the exact degraded base, then pass the Exhaustive Integration Gate on the synchronized staging SHA before the degraded marker is cleared.
+progress:
+  completed: [OCCURRENCE1, OCCURRENCE2]
+  total: 3
+  current_phase: closure_record_ci
+  current_blocker: Exact branch CI run 38963802695 passed on tested source 7a5af939b034179ff055e296a3a43baeaffb91bd. The final closure-record commit must receive its own green exact-source CI before guarded degraded remediation integration.
+  next_action: Commit and push the closure record, verify exact-source CI on that tip, then invoke the canonical guarded degraded remediation workflow and keep the marker until staging Exhaustive Integration Gate passes.
