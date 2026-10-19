@@ -21413,3 +21413,98 @@ The exact next independent TC action is the normalized full104 run after that
 slot is released and host headroom is safe. TCP2 full visual acceptance, TCP3
 Provider/ETF consumers, TCP4 combined validation, TCP5 review and the complete
 official V25 roadmap remain open.
+
+## 2026-10-18 20:04Z — Current green boundary and retained-runtime hold
+
+Local and remote TC resolve to exact source
+`c8d386d01c65b3eb31e8ddc8f30df1c00822837f`. Coordinator-confirmed run
+`39140104361` is terminal green for all required ordinary feature jobs; the
+feature Exhaustive gate remains skipped by branch policy. This supersedes the
+earlier `c21c985` scope-guard blocker: the exact Help-manifest test path is now
+narrowly declared and the current Branch-declared job passes. The historical
+red run remains preserved.
+
+Stack-free revalidation on the current source passed the Help manifest tests
+`10/10`, the visual acceptance policy `26/26`, the TC scope guard for all 23
+changed paths, all 34 workstream records, JSON parsing and `git diff --check`.
+The reviewed local-only Help reference remains the authorized interim oracle;
+no screenshot, mask, skip or tolerance changed, and the tolerance remains
+`0.005`. Official V25 Help parity is still unfinished roadmap work.
+
+Do not start the full visual profile yet. A coordinator read-only audit reports
+five Provider Compose projects plus assigned TC project
+`charting-stack-feat-tc2000-frontend-rework-f63d60ae` still running, with about
+2.8 GiB host memory available. None was stopped, cleaned or inspected deeply,
+and no new Compose project, browser, provider request or network operation was
+started. TCP2 still requires the complete normalized 104-case matrix in a
+coordinator-granted isolated slot. TCP3 remains gated on accepted Provider then
+ETF product staging; TCP4, TCP5 and official V25 parity remain open.
+
+Direct Git ancestry checks against the current local remote refs confirm that
+Provider `9dfc2c2b…` and ETF `7272e26c…` are not ancestors of staging
+`94c252d6…`; that staging tip is also not yet an ancestor of TC `c8d386d…`.
+Therefore neither TCP3 consumer reconciliation nor a staging back-merge is
+eligible. The manifest still classifies exact-build captures as targeted
+gap-closure evidence and retains `REF-HELP-V25` as `required_missing`; static
+inspection provides no honest substitute for the held matrix or missing V25
+authority.
+
+The saved execution goal is now formally blocked after the same condition was
+confirmed on three consecutive resumed turns. This is not feature completion:
+resume the existing goal when the coordinator releases a safe isolated browser
+slot or publishes accepted Provider then ETF product baselines through staging.
+Do not create another goal, worktree or writer claim.
+
+## 2026-10-19 20:54Z — Upstream-independent reconciliation preparation
+
+Resumed the existing writer claim
+`c7beca8d-84a3-4382-97e4-4854dca50b8c` without takeover or a second goal.
+Local and remote TC remain synchronized at exact source
+`c8d386d01c65b3eb31e8ddc8f30df1c00822837f`; its current ordinary feature CI
+receipt is terminal-green run `39140104361`. The canonical preflight's shared
+allocator inspection remains read-only in this restricted environment, but the
+session status resolved the existing claim, worktree, branch, source, and four
+pre-existing dirty owner-record files. Those files were classified as the
+unfinished coordinator-takeover record and preserved rather than discarded.
+
+Read-only inspection used exact Git objects only. Current synchronized staging
+is `26443f94c5b9fd3741d28db392fecf9aafe9c699` / CI `39294027643` with zero
+accepted product checkpoints. Provider
+`a8440efb82232a8b217df9c7330fab1795b257c9` / CI `39305740911` remains a
+candidate pending its corrected backend, migration, and held-operation gates.
+ETF `d1c560dc95d681fb5c67bf8916846a2f354bb5f5` is preparation only and remains
+gated on the Provider release. No sibling commit was imported or cherry-picked.
+
+The new `post-release-reconciliation-map.md` turns those exact producer shapes
+into an owner-side execution plan. It identifies producer authority, TC consumer
+paths, negative cases, and focused proof for canonical identity; market-series
+scope, coverage and derived bars; corporate-action factors; current/stale/
+unavailable and point-in-time ETF WatchList/constituent lineage; additive
+migration heads and fresh/existing equivalence; Favorites/API/router/config/
+default/caller compatibility; and immutable Code/Study outputs consumed by
+Strategy. It expressly requires coordinator-released Provider then ETF staging,
+actual graph inspection, and additive merge revisions only when the released
+graph still has multiple heads. Reparenting, stamping, applied-history edits,
+and speculative sibling DDL remain forbidden.
+
+Coordinator geometry repair
+`e995d501c56bbd3427d8023a0b14e8ef6e37677b` / CI `39312017050` is recorded as
+branch-green but still awaiting its full local profile and green staging
+delivery. No duplicate geometry source or broad pointer-closure claim was made.
+Once delivered through staging, its ordinary populated-RSP desktop and narrow
+Plots/Remove proof can update TCP1 only.
+
+The reviewed local-only Help reference remains exactly as delivered in
+`c8d386d`: no image, mask, skip, assertion, or `0.005` tolerance changed.
+Keyboard, scrolling, focus, readability, and clipping requirements remain.
+`REF-HELP-V25` remains `required_missing`. No browser, Compose, Docker,
+TestClient, migration, provider/issuer request, quota operation, fixture,
+service action, or retained-data cleanup was performed. TCP2 full104, TCP3
+producer reconciliation, TCP4 combined validation, TCP5 review, and the full
+roadmap remain open.
+
+The single gated next action is to wait for the coordinator to publish accepted
+Provider and then ETF through synchronized green staging. At that boundary,
+inspect the named exact staging object, merge only that staging SHA into this
+branch, and execute the prepared map. Central coordination retains checkpoint
+acceptance and integration ownership.

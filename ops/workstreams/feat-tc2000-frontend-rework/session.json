@@ -21,16 +21,16 @@
       "text": "Publish a clean pushed checkpoint and complete roadmap dispositions at ready_for_human_review; retain pending human acceptance and coordinator-only staging integration/freeze release."
     }
   ],
-  "active_session_id": "9dffc01c-3c8b-4580-9e17-84148e8878e7",
+  "active_session_id": "c7beca8d-84a3-4382-97e4-4854dca50b8c",
   "branch": "feat/tc2000-frontend-rework",
   "claim": {
     "branch": "feat/tc2000-frontend-rework",
-    "displaced_session_id": "e7ed8602-bc49-4daa-be2c-7cc01bf37f6b",
+    "displaced_session_id": "9dffc01c-3c8b-4580-9e17-84148e8878e7",
     "host": "m920q",
-    "session_id": "40277689-45a1-4b10-b129-2435358ad9d2",
+    "session_id": "c7beca8d-84a3-4382-97e4-4854dca50b8c",
     "started_at": "2026-09-24T22:32:09.683908+00:00",
-    "taken_over_at": "2026-10-05T03:31:26.784847+00:00",
-    "takeover_request": "User confirmed this is the only session working in the exact TC2000 frontend worktree and authorized taking over its writer claim.",
+    "taken_over_at": "2026-10-19T00:02:35.058961+00:00",
+    "takeover_request": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging.",
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
@@ -38,29 +38,29 @@
   "current_exact_ci": {
     "attempt": 1,
     "conclusion": "success",
-    "e2e_summary": "E2E job117374968753 succeeded on exact current source under CI fail-on-flaky policy; ordinary hosted CI is not visual-matrix evidence",
-    "head_sha": "aec60070020bf1a181c06103b40fa254352c8a4c",
+    "e2e_summary": "The coordinator reports the required ordinary E2E job green on exact source c8d386d; ordinary hosted CI is not the 104-case visual matrix and provides no official V25 acceptance.",
+    "head_sha": "c8d386d01c65b3eb31e8ddc8f30df1c00822837f",
     "jobs": {
-      "backend": "success; job117373672291",
-      "branch_declared": "success; job117373672135",
-      "e2e": "success; job117374968753; failOnFlakyTests enabled in CI",
+      "backend": "success",
+      "branch_declared": "success; the narrow Help-manifest shared-path declaration is accepted",
+      "e2e": "success",
       "exhaustive_feature_branch": "skipped by branch policy",
-      "frontend_unit": "success; job117373672331"
+      "frontend_unit": "success"
     },
-    "run_id": 39024834711,
-    "status": "terminal success on clean synchronized exact sourceaec600700; all required ordinary jobs passed",
+    "run_id": 39140104361,
+    "status": "terminal success on clean synchronized exact source c8d386d01c65b3eb31e8ddc8f30df1c00822837f; all required ordinary jobs passed",
     "visuals": "No pixel pass inferred; TCP2 full 104-case matrix and official V25 parity remain open."
   },
   "dirty_paths": [
-    "ops/workstreams/feat-tc2000-frontend-rework/checkpoint-runtime-validation.md",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/post-release-reconciliation-map.md",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
     "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
   "docker": {
-    "available": true,
-    "reason": null
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -91,7 +91,7 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "docker_ready": {
-    "ready": true,
+    "ready": false,
     "started_desktop": false,
     "wait_seconds": 0
   },
@@ -106,7 +106,7 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "c21c985284f94667f1811e3cacd488072294105d",
+  "head": "c8d386d01c65b3eb31e8ddc8f30df1c00822837f",
   "implementation_sha": "918b81eb06f1fb2979781946ddbf8b991b580703",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -114,27 +114,51 @@
     "id": "tc2000-workstation-integration-1",
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
+  "upstream_release_preparation": {
+    "accepted_product_checkpoints": 0,
+    "coordinator_geometry": {
+      "ci_run": 39312017050,
+      "disposition": "branch_green_pending_full_local_profile_and_green_staging_delivery",
+      "sha": "e995d501c56bbd3427d8023a0b14e8ef6e37677b"
+    },
+    "etf": {
+      "disposition": "preparation_only_pending_provider_release",
+      "sha": "d1c560dc95d681fb5c67bf8916846a2f354bb5f5"
+    },
+    "map": "ops/workstreams/feat-tc2000-frontend-rework/post-release-reconciliation-map.md",
+    "prepared_at": "2026-10-19T20:54:35Z",
+    "provider": {
+      "ci_run": 39305740911,
+      "disposition": "candidate_pending_corrected_backend_migration_and_held_operation_gates",
+      "sha": "a8440efb82232a8b217df9c7330fab1795b257c9"
+    },
+    "staging": {
+      "ci_run": 39294027643,
+      "disposition": "green_common_baseline_not_product_acceptance",
+      "sha": "26443f94c5b9fd3741d28db392fecf9aafe9c699"
+    }
+  },
   "interrupted": false,
-  "last_checkpoint": "2026-10-17T10:55:30+00:00",
+  "last_checkpoint": "2026-10-19T20:54:35+00:00",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
     "conclusion": "success",
-    "e2e_summary": "190 passed, 110 skipped in 15.5 minutes; no Playwright retry or failure event observed in exact E2E job log",
-    "head_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
+    "e2e_summary": "Coordinator-confirmed ordinary E2E success; no 104-case screenshot execution or official V25 acceptance inferred",
+    "head_sha": "c8d386d01c65b3eb31e8ddc8f30df1c00822837f",
     "jobs": {
-      "backend": "success; unit 1625 and integration 409 passed",
+      "backend": "success",
       "branch_declared": "success",
-      "e2e": "success; 190 passed, 110 skipped, no retry/failure event observed",
+      "e2e": "success",
       "exhaustive_feature_branch": "skipped_by_branch_policy",
-      "frontend_unit": "success; 135 files and 1265 tests passed"
+      "frontend_unit": "success"
     },
-    "run_id": 38981686587,
-    "scope": "Exact current branch/origin source fd681152d831054ce4b440e0ce606b48b6d8d39f; required ordinary jobs passed. The 110 E2E skips are not passes, and the exhaustive gate was skipped.",
+    "run_id": 39140104361,
+    "scope": "Exact branch/origin source c8d386d01c65b3eb31e8ddc8f30df1c00822837f; all required ordinary jobs passed per the coordinator's exact-source audit. Exhaustive remains skipped by feature-branch policy.",
     "visuals": "No pixel pass inferred; TCP2 full 104-case local visual matrix and official V25 parity remain open."
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Declare the Help-manifest test path narrowly in the TC scope contract, rerun scope/workstream checks, publish the correction, and monitor fresh exact-source CI. Keep the full normalized 104-case/full_stack_browser gates held for safe host capacity and wait for accepted Provider/ETF staging before consumer reconciliation.",
+  "next_action": "Wait for coordinator-released Provider then ETF green staging. At that boundary inspect the named staging object, merge only that exact staging SHA into this TC branch, and execute post-release-reconciliation-map.md; do not import sibling objects directly.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -147,7 +171,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "47085dfa310b372afd98775f2b719087011599eaad16e421e635f1174309151f",
+  "plan_hash": "82193a10bbcd2b8d8a34c2a9546e2cad88a57cfe753f375ecbb484550d4493da",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -156,36 +180,40 @@
     "c6f8279b-7b20-46a5-97a5-3fc128f832ae",
     "9b1fe115-af11-4e05-b633-356c4d5c18f1",
     "e7ed8602-bc49-4daa-be2c-7cc01bf37f6b",
-    "40277689-45a1-4b10-b129-2435358ad9d2"
+    "40277689-45a1-4b10-b129-2435358ad9d2",
+    "9dffc01c-3c8b-4580-9e17-84148e8878e7"
   ],
   "progress": {
     "completed": [
       "TCP1"
     ],
-    "current_blocker": "Exact push source c21c985284f94667f1811e3cacd488072294105d run 39139866016 has Branch-declared job 117711885291 failed at the TC scope guard because the new backend manifest-test path was not yet declared. Preserve that red gate; add only the exact TC shared-path exception and obtain fresh exact-source CI. TCP2 still needs the full normalized 104-case profile, held with about 0.86 GiB available and retained Provider/TC fixtures. TCP3 waits for accepted Provider/ETF green staging; TCP4/TCP5 and official V25 parity remain open.",
+    "current_blocker": "Exact TC source c8d386d01c65b3eb31e8ddc8f30df1c00822837f has green ordinary CI39140104361. Staging26443f94/CI39294027643 has zero product checkpoints; Providera8440efb/CI39305740911 remains unaccepted pending corrected gates and ETFd1c560dc is preparation-only. Provider owns the heavy slot. TCP2 full104, TCP3-TCP5 and REF-HELP-V25 remain open; geometry e995d501/CI39312017050 is unstaged and is not duplicated.",
     "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_FULL_VISUAL_AND_FUNCTIONAL_GATES_OPEN;TCP3_PROVIDER_ETF_RELEASE_AND_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
-    "next_action": "Run the TC scope guard and workstream validator after the one-path allowlist repair, then publish and monitor the correction's exact CI. Once host capacity is safe and Provider/ETF are accepted in green staging, reconcile TC and the desktop overlap repair, then run the unchanged 104-case and full-stack gates with tolerance 0.005 and official V25 parity still open.",
+    "next_action": "Use post-release-reconciliation-map.md only after the coordinator releases accepted Provider and then ETF through green staging. Preserve the reviewed Help oracle and 0.005 tolerance; do not start a browser/Compose profile while Provider owns the slot.",
     "total": 5,
-    "updated_at": "2026-10-18T15:19:00+00:00"
+    "updated_at": "2026-10-19T20:54:35+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "aec60070020bf1a181c06103b40fa254352c8a4c",
+    "current_local_head": "c8d386d01c65b3eb31e8ddc8f30df1c00822837f",
     "current_pending_range": null,
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
-    "last_attempted_local_head": "aec60070020bf1a181c06103b40fa254352c8a4c",
-    "last_attempted_range": "137250816ebc6587c4895b2293d8b565c69e56e5..aec60070020bf1a181c06103b40fa254352c8a4c",
+    "last_attempted_local_head": "c8d386d01c65b3eb31e8ddc8f30df1c00822837f",
+    "last_attempted_range": "c21c985284f94667f1811e3cacd488072294105d..c8d386d01c65b3eb31e8ddc8f30df1c00822837f",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "aec60070020bf1a181c06103b40fa254352c8a4c",
-    "status": "clean synchronized pushed checkpoint; exact CI39024834711 terminal success"
+    "remote_tracking_sha": "c8d386d01c65b3eb31e8ddc8f30df1c00822837f",
+    "status": "clean synchronized pushed source boundary; exact CI39140104361 terminal success; local owner-record reconciliation is not yet committed"
   },
-  "remote": "c21c985284f94667f1811e3cacd488072294105d",
-  "remote_sha": "c21c985284f94667f1811e3cacd488072294105d",
+  "remote": "c8d386d01c65b3eb31e8ddc8f30df1c00822837f",
+  "remote_sha": "c8d386d01c65b3eb31e8ddc8f30df1c00822837f",
   "remote_synchronized": true,
-  "retained_docker_resources": [],
+  "retained_docker_resources": [
+    "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
+    "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"
+  ],
   "roadmap_acceptance_criteria": [
     {
       "id": "AC1",
@@ -225,8 +253,8 @@
     }
   ],
   "schema": 2,
-  "session_id": "40277689-45a1-4b10-b129-2435358ad9d2",
-  "state": "checkpointed",
+  "session_id": "c7beca8d-84a3-4382-97e4-4854dca50b8c",
+  "state": "active",
   "takeover_history": [
     {
       "at": "2026-09-09T12:31:34.588751+00:00",
@@ -257,6 +285,12 @@
       "displaced_session_id": "40277689-45a1-4b10-b129-2435358ad9d2",
       "new_session_id": "9dffc01c-3c8b-4580-9e17-84148e8878e7",
       "reason": "Human authorization on 2026-10-18: take over the current TC2000 claim 40277689-45a1-4b10-b129-2435358ad9d2 and continue this exact feature checkpoint toward staging acceptance. Preserve the full roadmap and all screenshot assertions, sources, tolerances, fixtures, and validation boundaries."
+    },
+    {
+      "at": "2026-10-19T00:02:35.058961+00:00",
+      "displaced_session_id": "9dffc01c-3c8b-4580-9e17-84148e8878e7",
+      "new_session_id": "c7beca8d-84a3-4382-97e4-4854dca50b8c",
+      "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
   "validation_tier": "full_integration",

@@ -30,43 +30,26 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Current clean synchronized TC tip
-  aec60070020bf1a181c06103b40fa254352c8a4c contains product commit
-  918b81eb06f1fb2979781946ddbf8b991b580703 and its F8u/OneSignal/library
-  evidence. Exact-source ordinary CI39024834711 attempt1 is terminal green:
-  Backend117373672291, Frontend117373672331, Branch-declared117373672135 and
-  E2E117374968753 succeeded; Exhaustive117374969778 was skipped by feature
-  policy. This closes the fresh exact-CI requirement for those independent
-  repairs, not TCP2 or the whole checkpoint.
+  Exact TC source c8d386d01c65b3eb31e8ddc8f30df1c00822837f is clean and
+  synchronized with ordinary CI39140104361 green. Synchronized staging
+  26443f94c5b9fd3741d28db392fecf9aafe9c699 / CI39294027643 still contains
+  zero product checkpoints. Provider candidate
+  a8440efb82232a8b217df9c7330fab1795b257c9 / CI39305740911 remains
+  unaccepted while its corrected backend, migration and held-operation gates
+  finish. ETF preparation d1c560dc95d681fb5c67bf8916846a2f354bb5f5
+  remains dependency-gated on that release. TC therefore must not wire, import,
+  or merge either producer yet. The exact post-release code/test disposition is
+  recorded in post-release-reconciliation-map.md for execution only after the
+  coordinator releases Provider and then ETF through green staging.
 
-  Live coordinator state still contains zero accepted product checkpoints.
-  Synchronized green staging2734c6a57f79c7c6a3c5a2c6a8cad99d29e43745 /
-  run39013106548 adds only the independently accepted chart-template key
-  generation repair to prior green79c8623; it is not a Provider/ETF product
-  baseline. Current remote Provider3ef5de0 and ETFc89c7bf are therefore not
-  available to TC through staging, so TCP3 reconciliation remains dependency-
-  gated and no sibling source may be imported.
-
-  TCP2's approved local Help-reference/readability subgate remains narrowly
-  closed: the four Linux image blobs match the coordinator-reviewed hashes;
-  current source keeps the112px key column,7px grid gap, minimum8px label-to-
-  description guard and clipping checks. Existing exact-source Help evidence
-  remains keyboard/scroll1/1 and four visual profiles4/4 at the unchanged0.005
-  tolerance. The stack-free visual-policy validator currently passes26
-  screenshot assertions at0.5%/1px/DeltaE2000=2, and all four reviewed Help
-  blobs still match their accepted identities. TCP2 still requires a complete
-  normalized104-case run from start with pinned Noble1.62.1, the verified
-  read-only DejaVu mount, one worker and zero retries. At the latest audit the
-  host had only928MiB available and an active coordinator-owned
-  fix-watchlist-plot-live-configuration browser fixture, so a competing heavy
-  matrix would violate the resource policy. The branch-owned fixture recipe is
-  corrected to stay internal-only now that OneSignal is truly opt-in; no host
-  networking, relay or CDN proxy is permitted. Do not refresh images or weaken
-  assertions/tolerances. Keep manifest `keyboard_help` and review
-  `required_missing`; official V25 parity remains unfinished roadmap work.
-  TCP3 consumer reconciliation, TCP4 combined validation, TCP5 checkpoint
-  review, and full official V25 parity remain open; no whole-TC acceptance is
-  implied.
+  TCP2 still requires the complete normalized104-case matrix in a granted
+  isolated slot; the reviewed local-only Help reference is already delivered
+  at unchanged0.005 tolerance and REF-HELP-V25 remains required_missing.
+  Coordinator geometry repair e995d501c56bbd3427d8023a0b14e8ef6e37677b /
+  CI39312017050 is branch-green but lacks its full local profile and green
+  staging delivery, so it is not duplicated or used to broaden TCP1 closure.
+  Provider owns the sole heavy local slot. TCP3, TCP4, TCP5, and all full-roadmap
+  criteria remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -499,6 +482,29 @@ active_changeset_context:
     map only at a genuine green-staging reconciliation boundary. Do not reconcile
     Provider/ETF before synchronized released staging, claim TCP2 visual
     completion, or alter screenshot references/tolerances.
+upstream_release_preparation:
+  prepared_at: 2026-10-19T20:54:35Z
+  map: ops/workstreams/feat-tc2000-frontend-rework/post-release-reconciliation-map.md
+  tc_source: c8d386d01c65b3eb31e8ddc8f30df1c00822837f
+  tc_ci: 39140104361
+  staging_source: 26443f94c5b9fd3741d28db392fecf9aafe9c699
+  staging_ci: 39294027643
+  accepted_product_checkpoints: 0
+  provider_candidate: a8440efb82232a8b217df9c7330fab1795b257c9
+  provider_ci: 39305740911
+  provider_disposition: candidate_pending_corrected_backend_migration_and_held_operation_gates
+  etf_preparation: d1c560dc95d681fb5c67bf8916846a2f354bb5f5
+  etf_disposition: preparation_only_pending_provider_release
+  geometry_candidate: e995d501c56bbd3427d8023a0b14e8ef6e37677b
+  geometry_ci: 39312017050
+  geometry_disposition: branch_green_pending_full_local_profile_and_green_staging_delivery
+  next_action: >-
+    Wait for the coordinator to release accepted Provider and then ETF through
+    synchronized green staging. At that boundary inspect the exact released
+    objects, merge only the named staging SHA into this branch, and execute the
+    prepared canonical identity, series/coverage/derived-lineage,
+    corporate-action, ETF PIT/freshness, migration, compatibility, and immutable
+    Code/Study consumer map. Do not import sibling feature objects directly.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -972,6 +978,18 @@ progress:
     were skipped. Next diagnose F8m without relaxing the ordinary click or final
     chart-state assertions. TCP1 only accepted; TCP2-TCP5 and V25 parity open.
 current_checkpoint_status: >-
+  Superseding current boundary (2026-10-19): TC is synchronized at
+  c8d386d01c65b3eb31e8ddc8f30df1c00822837f with ordinary CI39140104361
+  green. Staging26443f94/CI39294027643 has zero accepted product checkpoints;
+  Providera8440efb/CI39305740911 is still a candidate pending corrected gates,
+  and ETFd1c560dc is preparation only. The exact post-release execution map is
+  post-release-reconciliation-map.md. No producer import, product wiring, merge,
+  checkpoint acceptance, or full-roadmap completion is claimed. Provider owns
+  the heavy slot; TCP2 full104, TCP3, TCP4, TCP5, and REF-HELP-V25 remain open.
+  The e995d501/CI39312017050 geometry repair is pending full local validation
+  and green staging delivery and is not duplicated here. Historical entries
+  below remain append-only evidence and do not override this boundary.
+
   TCP1 is coordinator-accepted narrowly: common green staging
   82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009 was reconciled by
   merge d4274a9fa3119c212a9aaf2c0006c20d921812e8; implementation
@@ -1484,6 +1502,8 @@ historical_implementation_records_continued:
   - "Product commit 721b0efbea486361fa0632b2f874353ca7802127 connects the Boolean watchlist header's `aria-controls` to its conditional pin menu, with regression coverage for regular and stacked headers and detached watchlist roots. It also replaces Code Library `useId()` form IDs with a component-instance UID after a two-root test exposed duplicate `code-library-create-v-0` IDs. Focused watchlist tests passed 81/81; Code Library tests passed 12/12; full serial frontend Vitest passed 129 files / 1,206 tests; production type-check/build passed; authenticated F8u-boolean passed 1/1 (the browser flow predates the separate Code Library ID correction). The 10 protected visual diffs were reviewed without finding a justified source or oracle change: workspace-floating references predate the current five-row fixture assertion; Study structured-result references predate current promotion controls; two 1080p sandbox-error comparisons remain pixel-only with state assertions passing. No reference, mask, threshold, skip, or policy changed. Exact stack cleanup and resource audit left zero attributable Docker resources. Current direct refs: TC `721b0efbea486361fa0632b2f874353ca7802127`, staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, ETF `26d9f84b5ac35ed0fe0b31b196caae1a6ee05139`; neither dependency is in staging. The current full authenticated and visual matrices are not yet rerun at 721b0ef."
   - "At product source 721b0efbea486361fa0632b2f874353ca7802127, three complete pinned serial authenticated Chromium runs executed 182 cases each. Results were 177 passed / 3 documented skipped / 2 failed; then 176 passed / 3 skipped / 3 failed on fresh volumes; then 178 passed / 3 skipped / 1 failed on fresh volumes. Six distinct failures were F8r-breadth-narrow, F8s-market-map-python-output, the two all-family readiness presentation cases, F8x-library, and F8r-python-library-narrow. Every unchanged focused replay passed 1/1 (readiness pair 2/2); no test or acceptance rule was changed. The latest full result remains 178/182 with one intermittent narrow Python Library window-mount failure and is not a green full gate. Exact-tip four-project visual Playwright 1.62.1 matrix: 94/104; 10 screenshot differences after interaction/state checks: workspace-floating at all four viewports (8,995 / 9,825 / 8,995 / 9,825 pixels), Study structured-result at all four (109,320 / 105,698 / 22,035 / 21,352), and Study sandbox-error at 1080p/100 and 1080p/125 (13,360 / 11,188). These exactly match the protected prior categories/counts. No reference, mask, threshold, skip, fallback, or acceptance policy changed. Full serial frontend Vitest passed 129 files / 1,206 tests; production type-check/build passed. Visual manifest validated. Assigned test stack cleanup removed its containers, volumes, network, and four generated image tags; final resource audit reported zero containers, volumes, unique image bytes, test sessions, or unknown resources. Current direct refs remain staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, ETF `26d9f84b5ac35ed0fe0b31b196caae1a6ee05139`; neither dependency is in staging."
 remaining_gaps:
+  - "Current preparation boundary (2026-10-19): exact TC source c8d386d/CI39140104361 is ordinary-green; staging26443f94/CI39294027643 has zero product checkpoints; Providera8440efb remains unaccepted and ETFd1c560dc remains preparation-only. post-release-reconciliation-map.md now provides the actionable identity, series/coverage/derived-lineage, corporate-action, ETF PIT/freshness, migration, compatibility, and immutable Code/Study consumer plan. Execution waits for Provider then ETF green staging releases. Geometry e995d501 remains unstaged and is not duplicated. TCP2 full104, TCP3-TCP5, and REF-HELP-V25 remain open."
+  - "Current pushed source c8d386d01c65b3eb31e8ddc8f30df1c00822837f has coordinator-confirmed green ordinary CI39140104361 and the narrow Help-manifest path declaration now passes. Stack-free Help manifest10/10, visual-policy26/26, scope23 paths, workstream34 records, JSON and diff checks pass. This does not execute the104 visual cases or establish official V25 parity. Five Provider Compose projects and the assigned TC stack remain running with about2.8GiB available, so the normalized pinned-Noble full104 matrix stays queued for a coordinator-granted isolated slot; no service was touched. Provider then ETF product staging acceptance still gates TCP3, and TCP4/TCP5 remain open."
   - "At product source d413d845939e68e9738b621329fa8d63a419ddf8, the first seeded 177-case flows.spec.ts run passed 174, skipped 2, and had one F8m link-menu timeout; its unchanged focused replay and second unchanged full run passed (175/177, 2 skips, zero failures). The exact-tip visual run remains 94/104 with the same ten protected screenshot diffs. The initial default workstation performance suite passed 3/4, then the complete isolated performance file passed 4/4 with the opt-in 10k-row fixture enabled. Full frontend Vitest passed 1,208 tests / 129 files. Preserve both functional-run outcomes alongside the older raw gate history."
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
   - "ETF dependency: its branch is waiting for provider-platform staging integration; TC holdings consumer integration and final owner reconciliation remain pending."
