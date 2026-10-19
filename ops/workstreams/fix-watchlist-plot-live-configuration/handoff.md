@@ -260,7 +260,34 @@ Validation on 2026-10-19:
   Provider and TC2000 stacks remained up. No sibling worktree or staging
   mutation occurred.
 
-All prior strict-red CI receipts remain retained. The new exact-source branch CI
-has not yet run; commit/push this repair and do not integrate it unless the
-exact pushed SHA passes. Provider, ETF, TC2000, and Strategy Lab v2 acceptance
-gates and roadmaps remain open.
+## 2026-10-19 — full local gates and exact-source CI green
+
+On exact implementation SHA `dfa7f558e3b1a7c998b86b57f2609091ffd5f7c0`, the
+corrected isolated Playwright fixture completed its full local profiles with
+one worker and zero retries:
+
+- Functional/performance profile: 154 passed, 2 expected live-data skips, zero
+  failures, zero retries.
+- Visual-only matrix: 104/104 passed. Screenshot references and the 0.5%
+  threshold are unchanged; the runner used only the existing read-only DejaVu
+  font mount. The human-approved local Help reference remains an interim
+  reference disposition; official V25 parity remains roadmap work.
+- The exact-source GitHub Actions run `39282882919` completed green on the same
+  SHA. Backend Tests, Frontend Unit Tests, Branch-declared Tests, and E2E
+  Playwright all succeeded. Exhaustive Integration Gate was skipped as expected
+  for branch CI; it remains mandatory on the pushed staging merge.
+
+The fixture used blank provider/OneSignal credentials, provider routing off,
+an egress-denied app/worker, an internal-only test network, and only an
+exact-host `cdn.onesignal.com:443` browser allowlist proxy. No live provider
+route, quota reservation/spend, screenshot-oracle change, or feature-worktree
+change was in scope. Cleanup targeted only project
+`charting-stack-f8u-safe-research-runner-20261019-1740`: its 9 containers,
+4 generated volumes, and 2 networks are absent. Read-only checks confirmed the
+retained Provider and TC2000 stacks remain up. Staging remains unchanged at
+this checkpoint.
+
+The narrow repair is now `ready_for_integration`; preserve all earlier strict
+red CI receipts. The final closure-record commit must itself pass exact-source
+CI before `make integrate` is invoked. Provider, ETF, TC2000, and Strategy Lab
+v2 acceptance gates and full roadmaps remain open.

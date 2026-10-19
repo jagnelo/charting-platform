@@ -26,18 +26,22 @@ closure_summary: >-
   configuredColumnKeys reading detached props.tool.configuration while the
   drop handler and indicator renderer read the canonical live workspace
   configuration. The repair now derives visible column keys from that same
-  canonical snapshot. On 2026-10-19, the affected suites passed 89/89; the
-  production frontend build passed vue-tsc and Vite; and the pinned Playwright
-  1.62.1 Noble F8u flow passed five fresh zero-retry repetitions on an isolated
-  provider-denied fixture. Exact-source Actions for this product repair are
-  still pending; do not integrate until the pushed repair SHA passes its
-  branch CI, then use the guarded persistent-staging workflow and exact staging
-  gate. The temporary fixture and its generated volumes/networks were removed;
-  retained Provider and TC2000 stacks remain running. Staging and feature
-  worktrees were not modified. This repair does not close Provider, ETF
-  holdings, TC2000, or Strategy Lab v2; their contracts, gates, and roadmaps
-  remain open. No migration/deployment impact. integration_capture: exact
-  branch HEAD.
+  canonical snapshot at implementation SHA
+  dfa7f558e3b1a7c998b86b57f2609091ffd5f7c0. On 2026-10-19, the affected
+  suites passed 89/89; vue-tsc and the production frontend build passed; the
+  focused pinned Playwright 1.62.1 Noble F8u flow passed five fresh zero-retry
+  repetitions; the full functional profile passed 154 tests with 2 expected
+  live-data skips and zero failures/retries; and the unchanged visual profile
+  passed 104/104. Exact-source Actions run 39282882919 on the implementation
+  SHA completed green: Backend, Frontend Unit, Branch-declared, and Playwright
+  jobs succeeded; Exhaustive Integration Gate was skipped as required for
+  branch CI. The disposable provider-denied fixture and its four generated
+  volumes/two networks were removed; retained Provider and TC2000 stacks
+  remain running. No staging or feature worktree was modified. This narrow
+  repair does not close Provider, ETF holdings, TC2000, or Strategy Lab v2;
+  their contracts, gates, and roadmaps remain open. Migration/deployment
+  impact: none. Integration must capture the final clean pushed source tip via
+  the guarded workflow. integration_capture: exact branch HEAD.
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
@@ -120,28 +124,25 @@ live_test_impact: >-
   credentials remain blank.
 migration_impact: none
 deployment_impact: none
-status: in_progress
+status: ready_for_integration
 remaining_gaps:
   - >-
-    Push the product repair with updated evidence, inspect terminal exact-source
-    Actions including Playwright, and retain all prior strict-red runs. The
-    current repair tree passed the focused F8u five-repeat zero-retry profile,
-    affected component suites, and production frontend build. The exact new
-    commit's hosted CI remains mandatory before guarded staging integration.
+    The narrow repair still needs its guarded merge into persistent staging and
+    the exact pushed staging Exhaustive Integration Gate. Do not count this as
+    acceptance of any of the four feature checkpoints.
   - >-
     This repair checkpoint does not close Provider, ETF, TC2000, or Strategy
     Lab v2 feature checkpoints. Provider's full 260-case/104-visual validation,
     operation dispositions, and current quota preflight remain owner/coordinator
     gates after this fix is released through staging.
 progress:
-  completed: [AC1, AC2]
+  completed: [AC1, AC2, AC3, AC4]
   total: 4
-  current_phase: exact_source_ci_refresh
+  current_phase: ready_for_integration
   current_blocker: >-
-    The live-configuration visibility gap is fixed and the local focused flow
-    passed five times. The new pushed source SHA still needs terminal-green
-    exact-source branch CI before the coordinator can use guarded staging.
+    No repair-checkpoint gate remains open. Persistent staging integration and
+    its exact Exhaustive Integration Gate remain coordinator-owned next steps.
   next_action: >-
-    Commit and push the narrow canonical-configuration fix and durable receipts;
-    inspect exact-source Actions including Playwright, then continue to guarded
-    persistent-staging integration only after its required gate passes.
+    Commit and push this closure receipt, verify final exact-source CI, then
+    invoke the guarded persistent-staging integration workflow. Preserve the
+    four feature roadmaps and all provider/quota restrictions.
