@@ -15054,3 +15054,43 @@ remain open. ETF and TC2000 follow. The precise wait condition is therefore the
 coordinator's explicit synchronized green Provider -> ETF -> TC2000 staging
 release. Until then, no combined adapter implementation, staging merge, heavy
 profile, provider call, broker/capital operation, or deployment is permitted.
+
+## 2026-10-19 23:17Z — released auxiliary baseline reconciled
+
+Closed the inherited post-push session publication context first. The only
+dirty path was Strategy-owned `session.json`; the canonical status helper
+briefly represented its own path as malformed `ps/workstreams/...`, so the
+coordinator-confirmed empty dirty-path state was restored. Workstream, JSON and
+diff validation passed, and the operational resync was published as
+`dc5ac50b3092aed8abfdcab605749c678ce27da3` before starting the merge context.
+
+Verified released staging
+`281a57bd9fb782c0f85bfb5127c713ea15037f68` against canonical receipt
+`20261019T230653Z-281a57bd9fb7.json` and exact Actions run `39335198284`.
+Backend, Frontend Unit, E2E Playwright and Exhaustive Integration Gate all
+completed successfully; Branch-declared was skipped on staging. Its scope is
+the common workflow/F8u/F9c repair release only, with zero product checkpoints.
+
+Merged only that exact staging object into the Strategy branch at
+`01735f607d3051e3ebe569762ee65d5aa5b99c82`. The merge was conflict-free and
+introduced the released workstation geometry/template/timestamp and workflow
+queue repairs plus their frozen workstream evidence. It did not modify Strategy
+source or migrations. `slv2_0001` through `slv2_0008`, the legacy/mixed-history
+fail-closed guard, terminal recovery admission/reservation causality, immutable
+Study/Code references and scope-qualified Nautilus authority remain intact.
+
+Cheap stack-free validation passed: Python syntax compilation for the changed
+workflow queue source/test, bounded pytest discovery (one workflow test
+collected), merge diff check, workstream validation and JSON parsing. No
+Compose, browser fixture, backend/frontend matrix, production build, heavy
+typecheck, database/runtime, provider/issuer HTTP, quota, broker/capital,
+paid/trial, cleanup, staging/sibling write or deployment operation ran.
+
+The checkpoint remains `in_progress`. Publish this coherent merge/record once
+and inspect the single push-triggered exact-source CI without a receipt-only
+follow-up. The next product action is still gated on the coordinator's accepted
+green Provider -> ETF -> TC2000 release: verify those exact staged producer
+SHAs, then implement the existing canonical identity/series/coverage, PIT ETF,
+immutable Study/Code, additive migration and worker reconciliation map. Full
+combined PostgreSQL/application, coordinated exhaustive, current-source CI and
+local `full_stack_browser` gates remain mandatory and open.
