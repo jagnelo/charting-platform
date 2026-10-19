@@ -1,5 +1,25 @@
 # Provider integration checkpoint review packet
 
+## Released geometry reconciliation — 2026-10-20 00:33+01:00
+
+Provider merged only released staging
+`281a57bd9fb782c0f85bfb5127c713ea15037f68` without conflict, producing merge
+source `d5e462dc159a93283858c22b675f005aa2339223`. The imported application delta
+is limited to `WorkstationToolContent.vue` and its F8u/F9c browser regression;
+backend application code, backend/frontend dependency locks, migrations, and
+workflow/provider scripts are byte-identical to the green `6844a111` source.
+The 2,858-unit/396-integration/82%-coverage backend proof therefore remains
+component-applicable, while the combined candidate still requires its own exact
+hosted CI and local browser profile.
+
+The affected workstation/popout unit module passed 23/23 and the production
+Vue type-check/Vite build passed. All 38 workstream records and `git diff
+--check` passed. No browser fixture, provider/issuer transport, quota action,
+or retained-resource mutation occurred during reconciliation. The next gate is
+publication and exact-source CI, followed by the required isolated pinned-Noble
+functional/performance and 104-visual profile with the unchanged zero-retry
+oracles.
+
 ## Alpha/Nasdaq correction exact gates — 2026-10-19 23:31Z
 
 Exact implementation source `6844a1114164ef992c16731b203ea34cd6235e07`

@@ -1,5 +1,22 @@
 # feat/market-data-provider-platform
 
+## 2026-10-20 00:33+01:00 — released geometry reconciled
+
+- Merged only exact green staging `281a57bd9fb782c0f85bfb5127c713ea15037f68`
+  into Provider without conflict at merge source `d5e462dc159a93283858c22b675f005aa2339223`.
+- The imported application delta is frontend-only: `WorkstationToolContent.vue`
+  plus the F8u/F9c browser regression. Backend source, dependency locks,
+  migrations, and workflow/provider scripts are unchanged from `6844a111`, so
+  its complete backend proof remains component-applicable rather than rebound
+  as a new whole-candidate claim.
+- The affected workstation/popout module passed 23/23; Vue type-check and Vite
+  production build passed; all38 workstreams and diff-check passed. No browser
+  fixture, provider HTTP, quota action, or retained-resource mutation occurred.
+- Publish this combined candidate and require exact-source CI, then run the
+  isolated pinned-Noble1.62.1 functional/performance and104 strict visual gates
+  with one worker, zero retries, unchanged oracles, read-only DejaVu, and the
+  reviewed browser-only SDK allowlist. Final-source live work remains held.
+
 ## 2026-10-19 23:31Z — hold correction backend and exact CI green
 
 - Exact pushed source `6844a1114164ef992c16731b203ea34cd6235e07`

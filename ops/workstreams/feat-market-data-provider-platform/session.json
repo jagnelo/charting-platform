@@ -127,9 +127,9 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "Checkpoint remains in progress: the Alpha Vantage/Nasdaq correction is green, and released staging 281a57bd must now be reconciled into Provider before combined full local/browser gates and final-source live evidence. Historical a8440 live evidence is not current-source acceptance.",
-    "current_phase": "provider_merge_released_geometry_baseline",
-    "next_action": "Commit the terminal 6844a111 backend/CI evidence locally, merge only released staging 281a57bd into Provider, compare backend/dependency/migration/script identities, publish the combined candidate, then run exact-source CI and the isolated pinned-Noble functional/104-visual profile before any separately authorized bounded final-source live evidence.",
+    "current_blocker": "Checkpoint remains in progress: the released geometry baseline is reconciled, but the combined candidate still needs exact-source CI and the isolated pinned-Noble functional/performance plus 104-visual profile. Historical a8440 live evidence is not current-source acceptance and final-source live work remains held.",
+    "current_phase": "provider_combined_candidate_publication_and_browser_gates",
+    "next_action": "Publish the combined Provider plus released-geometry candidate and require exact-source CI; then use the sole heavy slot for one isolated seeded provider-egress-denied pinned-Noble1.62.1 functional/performance and 104-visual profile with one worker, zero retries, unchanged references/tolerances, and preserved retained services/data.",
     "total": 7,
     "updated_at": "2026-10-19T22:43:03.413868+00:00"
   },

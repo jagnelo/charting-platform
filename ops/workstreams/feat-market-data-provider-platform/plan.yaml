@@ -1,4 +1,12 @@
 schema: 4
+# Released geometry reconciliation — 2026-10-20 00:33+01:00. Exact green
+# staging281a57bd merged without conflict at Provider merge sourced5e462dc.
+# The imported application delta is only WorkstationToolContent.vue plus F8u/F9c
+# browser regression. Backend/dependency/migration/workflow-provider-script
+# identities match green6844a111. Affected frontend unit23/23,type/build,
+# 38workstream validation and diff-check pass. Publish the combined candidate,
+# require exact CI, then run the unchanged isolated pinned-Noble functional/104
+# visual profile. No provider transport/quota or retained resource changed.
 # Alpha/Nasdaq exact gates — 2026-10-19 23:31Z. Exact implementation6844a111
 # passed Actions39338600482. Isolated CPython3.12.11 backend coverage passed
 # 2,858 unit +396 integration at82% (68,085 statements/11,953 missed;75%
