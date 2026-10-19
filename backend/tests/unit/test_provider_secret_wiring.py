@@ -467,6 +467,33 @@ def test_checkpoint_operation_holds_are_configurable_across_runtime_targets():
             ) in service
 
 
+def test_checkpoint_operation_hold_sentinel_and_json_parse_from_env_and_dotenv(
+    tmp_path,
+    monkeypatch,
+):
+    default_holds = Settings(_env_file=None).PROVIDER_CHECKPOINT_OPERATION_HOLDS
+
+    monkeypatch.setenv("PROVIDER_CHECKPOINT_OPERATION_HOLDS", "__CODE_DEFAULT__")
+    assert Settings(_env_file=None).PROVIDER_CHECKPOINT_OPERATION_HOLDS == default_holds
+
+    monkeypatch.setenv(
+        "PROVIDER_CHECKPOINT_OPERATION_HOLDS",
+        '{"eodhd":{"fetch_ohlcv":"reviewed environment hold"}}',
+    )
+    assert Settings(_env_file=None).PROVIDER_CHECKPOINT_OPERATION_HOLDS == {
+        "eodhd": {"fetch_ohlcv": "reviewed environment hold"}
+    }
+
+    monkeypatch.delenv("PROVIDER_CHECKPOINT_OPERATION_HOLDS")
+    dotenv_path = tmp_path / "provider.env"
+    dotenv_path.write_text("PROVIDER_CHECKPOINT_OPERATION_HOLDS=__CODE_DEFAULT__\n")
+    assert Settings(_env_file=dotenv_path).PROVIDER_CHECKPOINT_OPERATION_HOLDS == default_holds
+
+    dotenv_path.write_text('PROVIDER_CHECKPOINT_OPERATION_HOLDS={"eodhd":{"fetch_ohlcv":""}}\n')
+    with pytest.raises(ValueError, match="operation and reason must be non-empty"):
+        Settings(_env_file=dotenv_path)
+
+
 def test_provider_chain_examples_match_backend_tokenized_history_contract():
     """Keep public configuration examples aligned with backend defaults."""
 

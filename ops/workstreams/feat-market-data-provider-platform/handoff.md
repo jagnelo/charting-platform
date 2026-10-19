@@ -28750,3 +28750,32 @@ reset, dataset cleanup, or sibling worktree modification is authorized.
   slot for the independent F9c geometry profile. Provider will stay on narrow
   code/focused tests and final hosted CI until central returns the slot with an
   exact released green staging SHA; no unmerged geometry is imported.
+
+## 2026-10-19 — exact CI startup failure and settings-source correction
+
+- Exact Actions `39329199059` is terminal red on `d8b18acd`. Backend,
+  Frontend Unit, and Branch-declared passed; E2E failed before any browser
+  assertion because the backend container never became healthy. No Playwright
+  report was produced. Exhaustive was skipped by feature-branch policy.
+- Root cause: Compose supplies
+  `PROVIDER_CHECKPOINT_OPERATION_HOLDS=__CODE_DEFAULT__`, and the field had a
+  before-validator but was missing from `_JSON_SEED_OVERRIDE_FIELDS`.
+  Pydantic settings therefore attempted eager JSON decoding and failed before
+  `parse_jsonish` could raise `PydanticUseDefault`.
+- The field is now registered with the shared environment/dotenv sentinel
+  source. The exact isolated CPython 3.12.11 startup reproduction using
+  `ENV_FILE=/dev/null` passes. Tests cover environment and dotenv sentinels,
+  explicit valid JSON, malformed blank-reason fail-closed behavior, and the
+  existing JSON-seed sentinel paths. The complete focused selection passes
+  17/17.
+- Central returned the heavy slot. A backend gate on obsolete `d8b18acd` was
+  intentionally interrupted after unit shards 1-10 passed (500 tests); shard
+  11 had just started. The temporary GNUmakefile guard visibly handled the
+  parent EXIT trap, no test process remains, and all 55 retained container IDs
+  are byte-for-byte unchanged. Integration and coverage never ran, so this is
+  partial diagnostic evidence only.
+- Geometry repair `afbb72d6` is published with CI `39332070613` still running
+  but is not staged. Accepted staging remains `26443f94`. Provider must not
+  import it directly or start browser/Compose validation. After this narrow
+  fix is published, run exact CI and the full backend gate; later reconcile
+  only the released green staging SHA and re-evaluate source identities.

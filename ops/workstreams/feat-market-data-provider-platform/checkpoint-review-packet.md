@@ -2605,3 +2605,21 @@ checkpoint tests retain the Marketstack no-transport assertion. Final
 exact-source CI is required after the coherent correction is pushed. Heavy
 local gates await the coordinator's released F9c staging repair and returned
 resource slot; no acceptance or integration is inferred.
+
+### Settings-source startup follow-up
+
+Actions `39329199059` on `d8b18acd` is preserved red even though Backend,
+Frontend Unit, and Branch-declared passed: the E2E backend container exited
+unhealthy before browser assertions because the new hold-map sentinel was not
+registered with the custom environment/dotenv settings source. The correction
+adds that exact field to the sentinel source; it does not alter the default
+holds or their runtime meaning. Isolated CPython 3.12.11 tests pass 17/17 for
+environment and dotenv sentinels, valid JSON override, malformed fail-closed
+configuration, aliases, zero transport, and full-roadmap test isolation.
+
+The first local backend attempt on the obsolete source is recorded only as
+partial: 500 unit tests passed across 10 shards before intentional interruption,
+with no integration/coverage result. All 55 retained containers survived
+unchanged. Exact-source CI and the complete backend gate must pass on the
+corrected source; browser reconciliation still waits for the coordinator's
+actual green geometry staging release.

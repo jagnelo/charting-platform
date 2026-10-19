@@ -8697,18 +8697,19 @@ current_gate_checkpoint: >-
       acceptance; the cross-window UI failure remains with its frontend owner,
       and source-bound live evidence/CI status remain to be reconciled.
   next_action: >-
-    Publish one coherent correction that canonicalizes service operations at
-    the checkpoint hold boundary without changing quota/accounting labels,
-    preserves the EODHD zero-credit usage exception, and isolates the two
-    Marketstack history-bound tests from the temporary checkpoint hold. The
-    focused resolver/executor/config selection passes 14/14 with zero
-    transport. Preserve exact CI 39326545665 as red on f04ed26e (2 failed,
-    2,850 passed) and require one exact-source hosted CI for the corrected
-    pushed tip. Central currently owns the sole heavy slot for F9c geometry;
-    do not start backend coverage, migration, Compose, or browser gates until
-    central returns the slot and names the released green staging SHA. Then
-    reconcile that release and run all required exact-current non-live gates.
-    Make no further provider calls or quota mutations. Keep CTA Plan, EODHD
-    data operations, Dinari, Marketstack, Tiingo, and Bybit xStocks held;
-    paid, trial, unknown, unreviewed, unsafe, deployment, and operational-trial
-    scopes remain closed. Central alone accepts and integrates the checkpoint.
+    Publish the settings-source sentinel correction together with its focused
+    tests and exact red-CI/partial-backend receipts, then require exact-source
+    hosted CI and rerun the complete isolated CPython 3.12.11 backend
+    unit/integration/coverage gate on the corrected frozen candidate. Actions
+    39329199059 is red because backend/worker startup could not parse the
+    `__CODE_DEFAULT__` hold-map sentinel; its backend/frontend/branch jobs
+    passed but E2E never reached a browser assertion. The obsolete local gate
+    was safely interrupted after 10/58 unit shards (500 passes), with all 55
+    retained container IDs unchanged. Keep the heavy slot for this final
+    backend gate only; do not start Compose/browser validation. When central
+    releases the green geometry staging SHA, reconcile it and re-evaluate all
+    source identities before final browser/affected/full gates and CI. Make no
+    provider calls or quota mutations. CTA Plan, EODHD data operations,
+    Dinari, Marketstack, Tiingo, and Bybit xStocks remain held; paid, trial,
+    unknown, unreviewed, unsafe, deployment, and operational-trial scopes stay
+    closed. Central alone accepts and integrates the checkpoint.
