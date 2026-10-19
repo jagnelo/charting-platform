@@ -1,5 +1,38 @@
 # feat/market-data-provider-platform
 
+## 2026-10-20 00:37+01:00 — continuity checkpoint before browser fixture start
+
+- Provider HEAD and origin are clean and synchronized at
+  `a8070a21127fee2868120eefbe1fad7678635151`. Exact Actions
+  `39342294773` is still in progress for that exact SHA; do not rerun it.
+- The released geometry merge remains `d5e462dc159a93283858c22b675f005aa2339223`.
+  No source changed after the already-recorded reconciliation checks.
+- Prepared the uniquely named isolated project
+  `provider-a807-browser-20261020` under
+  `/tmp/provider-a807-browser-20261020`. Its reviewed override keeps
+  backend/worker provider egress denied, blanks provider and OneSignal
+  credentials, disables routing/refresh jobs, removes service host ports, and
+  puts only the browser allowlist proxy/host relay on the host-access network.
+  The exact backend, worker, and frontend images built successfully. The
+  chained startup did not create containers; `docker ps -a` for this project
+  is empty, so no browser runner or product assertion started and no result is
+  inferred.
+- Read-only inventory still shows the same 55 retained running container IDs
+  recorded by hash
+  `4a5a5d927532eae2e67ffa097b03a11c1b3f351c0b6f4ccec13b725a4219f52e`;
+  no retained Provider/TC service or dataset was stopped, reset, or cleaned.
+- Exact next command: run `docker compose -p provider-a807-browser-20261020
+  -f docker-compose.yml -f docker-compose.e2e.yml -f
+  /tmp/provider-a807-browser-20261020/compose.override.yml up -d --no-build
+  --force-recreate --wait` with the already-recorded `COMPOSE_PROJECT_NAME`,
+  `WORKTREE_ID`, `PROVIDER_QUOTA_LEDGER_HOST_DIR`,
+  `E2E_SEED_INSTRUMENTS=true`, and `E2E_SEED_MARKET_DATA=true` environment.
+  Then verify health/network isolation, add the temporary Playwright proxy
+  config, and run exactly one pinned Noble 1.62.1 functional/performance plus
+  104 strict-visual sequence with one worker, zero retries, unchanged
+  references/tolerances, and read-only DejaVu fonts. No provider transport or
+  quota action is authorized.
+
 ## 2026-10-20 00:33+01:00 — released geometry reconciled
 
 - Merged only exact green staging `281a57bd9fb782c0f85bfb5127c713ea15037f68`
