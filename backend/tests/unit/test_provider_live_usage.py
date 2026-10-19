@@ -464,7 +464,9 @@ def test_live_usage_records_expected_entitlement_denial_separately(tmp_path, mon
     assert operation["response_statuses"] == {"403": 1}
 
 
-def test_live_matrix_stops_after_recording_an_access_or_rate_limit_challenge(tmp_path, monkeypatch):
+def test_live_matrix_continues_after_an_explicit_expected_entitlement_denial(
+    tmp_path, monkeypatch
+):
     ledger = tmp_path / "provider-live-usage.jsonl"
     monkeypatch.setenv("PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
     monkeypatch.setenv("PROVIDER_LIVE_RUN_ID", "challenge-run")
@@ -478,23 +480,53 @@ def test_live_matrix_stops_after_recording_an_access_or_rate_limit_challenge(tmp
         )
         == 403
     )
-    with pytest.raises(PytestExit, match="HTTP 403"):
+    live_usage.record_observation(
+        "eodhd",
+        operation="get_instrument_profile",
+        http_requests=1,
+        response_bytes=12,
+        success=True,
+        disposition="expected_entitlement_denial",
+        response_status_code=403,
+        case_id="tests/live/test_market_data_providers_live.py::"
+        "test_eodhd_free_plan_profile_entitlement_is_explicit",
+    )
+
+    assert live_usage.flush_observations(0) == ledger
+    row = json.loads(ledger.read_text())
+    assert row["process_exit_status"] == 0
+    assert row["operation_usage"]["get_instrument_profile"]["response_statuses"] == {"403": 1}
+
+
+@pytest.mark.parametrize("status_code", [401, 403, 429])
+def test_live_matrix_stops_after_an_unexpected_access_or_rate_limit_challenge(
+    tmp_path, monkeypatch, status_code
+):
+    ledger = tmp_path / "provider-live-usage.jsonl"
+    monkeypatch.setenv("PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
+    monkeypatch.setenv("PROVIDER_LIVE_RUN_ID", f"challenge-run-{status_code}")
+    monkeypatch.setenv("RUN_LIVE_PROVIDER_TESTS", "1")
+    monkeypatch.setenv("PROVIDER_LIVE_MATRIX_RUN", "1")
+    live_usage._reset_for_test()
+
+    with pytest.raises(PytestExit, match=f"HTTP {status_code}"):
         live_usage.record_observation(
             "eodhd",
             operation="get_instrument_profile",
             http_requests=1,
             response_bytes=12,
-            success=True,
-            disposition="expected_entitlement_denial",
-            response_status_code=403,
-            case_id="tests/live/test_market_data_providers_live.py::"
-            "test_eodhd_free_plan_profile_entitlement_is_explicit",
+            success=False,
+            disposition="provider_error",
+            response_status_code=status_code,
+            case_id="tests/live/test_market_data_providers_live.py::unexpected_challenge",
         )
 
     assert live_usage.flush_observations(2) == ledger
     row = json.loads(ledger.read_text())
     assert row["process_exit_status"] == 2
-    assert row["operation_usage"]["get_instrument_profile"]["response_statuses"] == {"403": 1}
+    assert row["operation_usage"]["get_instrument_profile"]["response_statuses"] == {
+        str(status_code): 1
+    }
 
 
 def test_live_usage_blank_ledger_override_uses_private_default(monkeypatch):

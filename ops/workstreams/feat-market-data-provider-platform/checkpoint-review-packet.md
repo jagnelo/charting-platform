@@ -1,5 +1,24 @@
 # Provider integration checkpoint review packet
 
+## Current receipt-source status — 2026-10-18 21:04Z
+
+Provider HEAD and origin are clean and synchronized at
+`36f3f80100c33828820129a6badb72cae1180b96`. Exact Actions run
+`39163456324` is terminal green: Backend passed 2,840 unit and 396 integration
+tests with 82% combined coverage; Frontend Unit and Branch-declared passed;
+Playwright passed 151 with 109 expected skips and zero failures in 13.6 minutes;
+Exhaustive was skipped by feature-branch policy. The Codecov upload emitted a
+non-gating tokenless-upload error only after the repository's combined coverage
+gate passed.
+
+This supersedes the earlier source/run below only as the current hosted receipt.
+It does not erase any historical red, flaky, partial-live, quota, or held-route
+evidence and does not replace the required focused F8u or complete pinned-Noble
+260-functional/104-visual local profiles. The central coordinator has not
+released exact-current fixture ownership or safe capacity. No provider/issuer
+transport, quota reservation/spend, fixture mutation, data cleanup, staging
+write, or sibling mutation occurred. Checkpoint status remains `in_progress`.
+
 ## Current exact-source status — 2026-10-18 14:44Z
 
 Provider HEAD and origin are synchronized at evidence tip
@@ -2518,3 +2537,32 @@ generated browser artifacts were not reset or removed.
 - Keep the earlier Provider full browser failure source-bound and unchanged.
   No repair source was imported, no Provider browser rerun was started, and no
   provider HTTP/quota spend occurred.
+## Coordinator refresh — 2026-10-19 12:40Z
+
+Application/browser profile evidence is green on pushed source
+`36f3f80100c33828820129a6badb72cae1180b96`: F8u 1/1; functional 154 passed,
+106 expected skips, zero failures; strict visual 104/104 with unchanged
+references and 0.5% tolerance. The visual pass used only a read-only mount of
+the host DejaVu font directory into the pinned Noble browser to align font
+fallback; no CSS, snapshots, masks, or tests were changed. Exact branch CI
+`39163456324` is green for that source.
+
+The 24-eligible-provider live matrix on that source is incomplete: 35 cases
+passed before the runner stopped on the EODHD free-plan profile case's
+explicitly expected HTTP 403. That response is archived and quota-settled;
+the case verifies a reviewed unavailable capability, not free profile data.
+Dinari, Marketstack, and Tiingo remain quarantined. The current dirty harness
+change exempts only a 403 labeled `expected_entitlement_denial`; unexpected
+401/403 and every 429 continue to abort immediately. The full backend unit
+suite passed 2,843; targeted provider-runner and usage suites passed 184;
+Ruff and diff checks passed. This fix is not yet pushed, source-CI validated,
+or live-run validated. Do not relabel the incomplete live run as accepted.
+
+Coordinator next steps: push this narrow fix and workstream receipt; require
+terminal-green exact-source CI; refresh durable quota admission without
+changing ledgers; then rerun the full matrix only if its reservation is
+admitted. Keep paid, trial, held, unreviewed, and unsafe operations disabled.
+Once Provider gates and dependent consumer contracts pass, integrate
+Provider → ETF → TC2000 → Strategy Lab v2 through the guarded persistent
+staging workflow, with exact staging CI after each source. Full roadmap and
+visual/oracle standards remain intact. No deployment or operational trial.

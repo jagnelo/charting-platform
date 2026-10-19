@@ -1,5 +1,51 @@
 # feat/market-data-provider-platform
 
+## 2026-10-19 — focused F8u reaches the interaction assertion; browser environment blocks final diagnostics
+
+- The coordinator resumed this exact Provider worktree after the installed Codex
+  owner route returned `no-client-found`; claim is `f093caba-0194-4527-b22b-0bfa26344c34`.
+- Read-only checks confirmed the running `provider-noble-2734-20261017` stack
+  mounts current Provider source `36f3f80100c33828820129a6badb72cae1180b96`,
+  reports `e2e_seed_market_data=true`, uses the internal egress-denied app
+  network, and had no active browser runner. Existing services and volumes
+  were left running and untouched.
+- A pinned Playwright 1.62.1/Noble run of only F8u used one worker and zero
+  retries. Its first setup attempt was rejected by the API because the
+  synthetic `.invalid` email domain is reserved; no account was created. The
+  corrected run provisioned a unique isolated E2E account and passed the real
+  RSI drag/drop assertion (the RSI column appeared in the watchlist), then
+  failed the unchanged browser-diagnostics assertion because the internal-only
+  browser could not resolve `cdn.onesignal.com`. No provider/issuer HTTP or
+  quota use occurred; no pre-existing account, dataset, service, or volume was
+  reset or cleaned. The new test account remains isolated in the retained test
+  database.
+- A rerun through an external browser network was rejected by the environment's
+  safety review before execution because it would expose the browser session to
+  the untrusted OneSignal CDN. No external request was made. Do not route around
+  that decision. The local F8u run is therefore diagnostic evidence, not a
+  passing gate; focused F8u and the full pinned-Noble 260-functional/104-visual
+  profiles remain open, and Provider is not ready for staging integration.
+
+## 2026-10-18 21:04Z — receipt-source CI terminal green; local gates remain held
+
+- Provider HEAD and origin are clean and synchronized at
+  `36f3f80100c33828820129a6badb72cae1180b96`. Authenticated Actions run
+  `39163456324` is terminal green on that exact source: Backend passed 2,840
+  unit and 396 PostgreSQL/Redis integration tests with 82% combined coverage;
+  Frontend Unit and Branch-declared passed; Playwright passed 151 with 109
+  expected skips and zero failures in 13.6 minutes. Exhaustive was skipped by
+  feature-branch policy. The non-gating Codecov upload reported missing
+  tokenless-upload credentials after repository coverage enforcement had
+  already passed.
+- The central coordinator independently recorded the same exact source/run and
+  has not released exact-current fixture ownership or safe capacity. Focused
+  F8u and the complete pinned-Noble 260-functional/104-visual local profiles
+  therefore remain open. Hosted Playwright does not replace either local gate.
+- No fixture, service, volume, dataset, provider, issuer, quota, staging ref, or
+  sibling worktree was changed. No additional safe Provider-owned no-transport
+  contract gap is identified. The checkpoint remains `in_progress`, not ready
+  or accepted; do not create another receipt-only CI loop.
+
 ## 2026-10-18 20:22Z — exact-source CI reconciled; local browser gates still held
 
 - Provider HEAD and origin are clean and synchronized at
@@ -28554,3 +28600,37 @@ changes are uncommitted atop 6a44 and require exact-source CI. Do not probe
 providers until that source is green. Local F8u/full browser gates remain held
 under low host memory and retained Provider/TC stacks. No provider transport,
 quota spend, data reset, or service mutation occurred.
+## 2026-10-19 12:40Z — local product profile green; live harness fix awaits exact CI
+
+The exact pushed app/test source `36f3f80100c33828820129a6badb72cae1180b96`
+has terminal-green branch CI `39163456324` (Backend 2,840 unit + 396
+integration, Frontend Unit, Branch-declared, and Playwright 151 passed / 109
+expected skips; Exhaustive is correctly skipped on a feature branch). The
+coordinator's pinned-Noble local profile also passed on this app source:
+F8u 1/1, full functional 154 passed / 106 expected skips, and strict visual
+104/104. The visual run first exposed only Noble's fallback font mismatch for
+Study Lab; replay with the host DejaVu font directory mounted read-only into
+the browser restored the host font mapping. References, masks, tolerances,
+assertions, and retry count were unchanged. The browser/backend fixture
+boundary was preserved; no provider endpoint was reachable from the backend.
+
+The current-source live-provider matrix was safely stopped after 35 passed
+cases at EODHD's test that explicitly expects a free-plan HTTP 403 for
+`get_instrument_profile`. The response was archived and quota settled; the
+runner incorrectly treated this expected denial as a global stop. Its receipt
+is `incomplete_preflight`, not live acceptance. Dinari, Marketstack, and
+Tiingo were quarantined and remain so. A narrow dirty harness correction now
+continues after a 403 only when its observation is explicitly labeled
+`expected_entitlement_denial`; unexpected 401/403 and all 429 responses still
+stop. The provider usage/runner unit modules pass 184/184; the full backend
+unit suite passes 2,843/2,843 in 592.29s; Ruff and `git diff --check` pass.
+The correction changes test/live-runner behavior only, not application runtime.
+
+Next: commit/push the source correction with this durable evidence, obtain
+terminal-green exact-source Actions, then refresh durable quota admission.
+Rerun the full matrix only if the coordinator admits its full reservation.
+Do not infer this run passed or repeat provider calls before that admission.
+After exact live evidence and cross-feature consumer contracts are green, the
+central coordinator owns conditional acceptance and the Provider-first
+staging merge. No deployment, paid/trial routing, operational trial, quota
+reset, dataset cleanup, or sibling worktree modification is authorized.
