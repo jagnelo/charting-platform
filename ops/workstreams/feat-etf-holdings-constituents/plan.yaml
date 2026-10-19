@@ -387,23 +387,25 @@ progress:
   completed:
     - EICP1
   total: 7
-current_phase: independent_point_in_time_consumer_contract_ready_for_publication
+current_phase: provider_candidate_contract_mapped_release_pending
 current_blocker: >-
-  The independent point-in-time route regression is implemented and focused
-  validation passes. Current synchronized staging is
-  94c252d6b8767714df2c6c8840a2119f5aa161dd with exact CI39137763218 green, but
-  the coordinator's accepted_product_checkpoints list is empty and
-  combined_product_baseline_released is false. Provider branch
-  9dfc2c2b09f8acad5d23572fdd22ec2781981c25 has exact CI39157111958 green but is
-  not an ancestor of staging and has not been accepted or released. Therefore
-  the actual ETF_HOLDINGS identity, entitlement, durable quota, aggregate-cost,
-  health and transport bridge remains externally gated. This branch must not
-  import Provider directly or guess those interfaces. MSMR/QQQ and Militia/GOOG
-  remain unresolved and quarantined with no retained response or row evidence.
-  The 15 Tier-0 and 156 Tier-1 investigations and the 496/422/74 registry split
-  remain preserved. No issuer, SEC or provider request, quota operation,
-  paid/trial activation, heavy profile, service cleanup or cross-worktree write
-  occurred.
+  Current synchronized staging is 26443f94c5b9fd3741d28db392fecf9aafe9c699
+  with exact exhaustive CI39294027643 green, but it still contains no accepted
+  product checkpoint. Exact Provider candidate
+  a8440efb82232a8b217df9c7330fab1795b257c9 has CI39305740911 green plus 154
+  functional passes with 2 expected skips, 104 strict visuals and one 66/66
+  admitted live pass; it is not accepted or released while its corrected full
+  backend gate, migration equivalence and held-operation posture remain open.
+  Read-only inspection confirms that the candidate has shared identity,
+  admission, durable quota/settlement, health and recurring-cost contracts but
+  no ProviderCapability.ETF_HOLDINGS. Its async execute_provider_call requires
+  a synchronous non-awaitable callback. The exact per-attempt ETF bridge is now
+  mapped but must not be implemented or imported before the coordinator releases
+  Provider through synchronized green staging. MSMR/QQQ and Militia/GOOG remain
+  unresolved and quarantined with no retained response or row evidence. The 15
+  Tier-0 and 156 Tier-1 investigations and 496/422/74 registry split remain
+  preserved. No issuer, SEC or provider request, quota operation, paid/trial
+  activation, heavy profile, service cleanup or cross-worktree write occurred.
 
 remaining_gaps:
   - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the documented native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, TrimTabs/Abacus FCF, Anydrus/NDOW, M.D. Sass/SASS, Amplius/AAAA, Argent/AMID-ABIG-ALIL, VistaShares/RTOO-AIS-AMMO-QUSA-OMAH-ACKY-DRKY, Baillie Gifford/BGGG-BGIA-BGEG-BGUS, and Arin/ATTR, current code and provider-universe documentation report 496/422/74 and future counts must remain derived."
@@ -1392,16 +1394,19 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Publish the point-in-time route regression and coherent workstream update,
-  then require one fresh exact-source CI run. Keep the checkpoint in_progress
-  and not accepted. After the coordinator explicitly accepts Provider and
-  releases its exact synchronized green staging SHA, merge only that staging
-  release into this clean unfrozen ETF branch, verify the staged producer
-  interfaces, and implement the documented ETF_HOLDINGS bridge with exactly-once
-  async completion, per-outbound-attempt shared admission/settlement, canonical
-  identity, aggregate-cost and truthful lineage tests. Then run the required
-  combined full_stack_browser profile and exact-source CI and stop at
-  ready_for_human_review. Until that release, do not import sibling source,
-  issue live requests, guess costs/quotas/FX, create a second ledger, weaken
-  MSMR or Militia quarantines, write staging, deploy or activate paid/trial
-  operations. Preserve the complete roadmap and later observation gate.
+  Wait for the coordinator's explicit accepted Provider release in an exact
+  synchronized green staging SHA. Then verify the release/CI/acceptance record,
+  merge only that SHA into this clean unfrozen ETF branch, record source and
+  migration heads, and execute the documented bridge checklist: additive
+  ETF_HOLDINGS enum/schema/seed/availability reconciliation; evidence-backed
+  issuer/account/host/operation bindings; shared recurring-cost onboarding;
+  synchronous non-awaitable one-attempt callbacks inside async shared admission;
+  separate admission for every redirect/retry/page/client fallback/SEC request;
+  exact settlement and raw-artifact lineage; fail-closed zero-transport negative
+  tests; truthful current/degraded/stale/partial/unavailable and historical/PIT
+  consumers. Then run focused/database validation, current-source
+  full_stack_browser and exact-source CI and stop at ready_for_human_review.
+  Until release, do not import sibling source, issue live requests, guess
+  costs/quotas/FX, create a second ledger, weaken MSMR or Militia quarantines,
+  write staging, deploy or activate paid/trial operations. Preserve the complete
+  fourteen-criterion roadmap and later observation gate.

@@ -391,3 +391,82 @@ first merge. The full symbol-level and issuer/publisher evidence roadmap stays
 open and must be completed in ETF-owned continuation. Cached, historical, and
 point-in-time reads remain network- and reservation-free. This clarification
 does not accept either source, authorize live requests, or reduce ETF criteria.
+
+### Exact candidate interface audit and executable post-release map — 2026-10-19
+
+Read-only inspection of exact Provider candidate
+`a8440efb82232a8b217df9c7330fab1795b257c9` confirms a materially newer generic
+producer contract than the historical 2026-10-15 snapshot, but not a released
+one. Its 22-value `ProviderCapability` enum still lacks `ETF_HOLDINGS`. Runtime
+seeding derives policy rows from registered provider capabilities and disables
+stale rows. `execute_provider_call` performs provider resolution, operation and
+dimension validation, routing admission, durable quota reservation, optional
+token-bucket admission, request logging, telemetry, health recording and quota
+settlement. It is async because it owns an `AsyncSession`, but it requires a
+synchronous `invoke`; the callback is executor-run and a coroutine function or
+awaitable return is rejected and never awaited. Provider telemetry observes an
+already-admitted call and is not itself an admission boundary.
+
+Shared recurring-cost governance is present separately through
+`ProviderRecurringCostBudget`, budget revisions, commitments and commitment
+revisions plus `configure_provider_recurring_cost_budget`,
+`admit_provider_recurring_cost` and `provider_recurring_cost_status`. It uses
+explicit evidence, a single currency, account/environment deduplication and
+shared locking. It neither invents FX nor enables a provider; paid activation
+remains false. `execute_provider_call` does not invoke this recurring-cost API.
+ETF onboarding must therefore require an evidence-backed shared commitment or
+verified zero-cost policy before enabling a route, rather than adding an ETF
+ledger or performing a recurring-cost mutation per request.
+
+Immediately after the coordinator releases an accepted Provider checkpoint in
+an exact synchronized green staging SHA, execute this sequence:
+
+1. Verify the release SHA/CI/acceptance record and a clean, unfrozen ETF source;
+   merge only that staging SHA and record both migration heads and conflicts.
+2. Add `ProviderCapability.ETF_HOLDINGS` and an additive PostgreSQL enum
+   migration based on the actual released Provider head. Update every persisted
+   enum-bearing model/seed/registry/availability completeness contract and test
+   both fresh install and upgrade from the released staging schema. Do not
+   reparent, stamp, reset or rewrite Provider migration history.
+3. Add a narrow ETF provider facade over existing issuer adapters. Bind each
+   enabled operation to canonical `ETFProfile.instrument_id`, provider symbol,
+   issuer product ID, publisher/account/environment, actual host and semantic
+   operation. Register only evidence-reviewed routes; fallback and quarantined
+   identities remain disabled/unavailable.
+4. Route each real outbound attempt through the shared execution runtime. Keep
+   `AsyncSession` on its owning loop. Supply a synchronous worker callback that
+   completes exactly one transport attempt and returns a concrete non-awaitable
+   result: an attempt-local async HTTPX client may run to completion inside the
+   worker thread, while a requests fallback runs synchronously there. Never
+   share an async client across loops or pass a coroutine to Provider.
+5. Disable automatic redirects. Re-admit every redirect hop, retry, page, token
+   fetch, product page, artifact fetch, HTTP-client fallback and SEC
+   submissions/index/archive/document request independently. A denied second
+   attempt must invoke no second transport. Curl receives an equivalent
+   governed wrapper or remains non-routable.
+6. Require reviewed shared policy, entitlement, exact operation cost, quota and
+   recurring-cost commitment state before transport. Unknown, expired,
+   exhausted, quota-held, paid, trial or unsafe state denies before any HTTPX,
+   requests or curl call. No batch-wide reservation and no duplicate ledger.
+7. Only after a concrete result and shared settlement, persist/link the request,
+   reservation, entitlement and health references to the raw artifact and ETF
+   snapshot. Transport success and content identity/completeness/freshness stay
+   separate. Current, degraded, stale, partial, unavailable and historical/PIT
+   states remain truthful; SEC remains fallback/degraded and never
+   issuer-current.
+8. Prove the contract with negative zero-transport tests, exact-once completion
+   and cancellation/timeout settlement, HTTPX-403-to-requests denial, per-hop
+   redirect and pagination/retry admission, SEC no-bypass, concurrent quota and
+   idempotent settlement, raw-artifact/request lineage, application/worker
+   startup, and network-free cached/historical/PIT reads. Then run focused and
+   database suites, the required current-source `full_stack_browser` profile,
+   and exact-source branch CI.
+
+The current staging baseline `26443f94c5b9fd3741d28db392fecf9aafe9c699`
+and CI `39294027643` are green but contain no accepted product checkpoint.
+Provider candidate CI `39305740911`, 154 functional passes plus two expected
+skips, 104 strict visuals and one 66/66 admitted live pass do not release the
+producer while its corrected backend gate, migration equivalence and held-route
+review remain open. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined with
+no retained body or row evidence. No request or quota operation was made for
+this audit.

@@ -42,7 +42,7 @@
     ],
     "state": "implementation_complete_pending_publication; focused_historical_PIT_slice_6_pass; ruff_and_diff_check_pass; fresh_exact_source_CI_required; checkpoint_in_progress_not_accepted; bridge_waits_for_accepted_green_provider_staging"
   },
-  "active_session_id": "87f0e599-289e-4ab5-b335-f75e455963f5",
+  "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
   "browser_repair_validation": {
     "popup_log": ".ai/validation/etf-popup-focused-20261015.log",
@@ -68,21 +68,22 @@
   },
   "claim": {
     "branch": "feat/etf-holdings-constituents",
-    "displaced_session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
+    "displaced_session_id": "87f0e599-289e-4ab5-b335-f75e455963f5",
     "host": "m920q",
-    "session_id": "87f0e599-289e-4ab5-b335-f75e455963f5",
+    "session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
     "started_at": "2026-09-24T22:32:53.705278+00:00",
-    "taken_over_at": "2026-10-18T14:41:07.206572+00:00",
-    "takeover_request": "Human authorization on 2026-10-18: take over the current ETF claim bb0f68af-76ab-45c0-83f1-52d805be699f and continue this exact feature checkpoint toward staging acceptance. Preserve the full roadmap and all provider/quota/trial/validation boundaries.",
+    "taken_over_at": "2026-10-19T00:02:34.623980+00:00",
+    "takeover_request": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for ETF returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging.",
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "current_blocker_latest": "2026-10-18 20:03Z: The independent point-in-time route regression is implemented and focused validation passes. Staging94c252d6b8767714df2c6c8840a2119f5aa161dd/CI39137763218 is green, but accepted_product_checkpoints remains empty. Provider9dfc2c2b09f8acad5d23572fdd22ec2781981c25/CI39157111958 is green but is not an ancestor of staging and is not accepted/released. The actual ETF_HOLDINGS shared-runtime bridge therefore remains externally gated. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined with no retained response/row evidence.",
+  "current_blocker_latest": "2026-10-19 20:28Z: Staging26443f94c5b9fd3741d28db392fecf9aafe9c699/CI39294027643 is green but has no accepted product checkpoint. Provider candidate a8440efb82232a8b217df9c7330fab1795b257c9/CI39305740911 has the reported functional, visual and admitted-live evidence but is not accepted/released while its corrected backend gate, migration equivalence and held-operation posture remain open. Read-only source inspection mapped the exact shared contracts and sync non-awaitable invoke boundary, but ProviderCapability.ETF_HOLDINGS is absent. The bridge remains externally gated. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined with no retained response/row evidence.",
   "dirty_paths": [
-    "backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py",
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md",
+    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/shared-cost-admission.md",
     "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
   ],
   "docker": {
@@ -109,7 +110,7 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "30af1259fa96d2ca90889823c656c5b19ad4c115",
+  "head": "2eec09cbf9c188e1c1e61fb27ead3eb86e54e66a",
   "implementation_sha": "dd9b7a08ce79303638c3951dd937270e97bbff33",
   "integration_checkpoint": {
     "acceptance_authorization": "pending",
@@ -204,9 +205,9 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-18T20:40:07Z",
+  "last_checkpoint": "2026-10-19T20:28:09Z",
   "last_human_progress_update": "2026-10-15T22:12:26.620198+00:00",
-  "latest_checkpoint": "2026-10-18 20:40Z: Published the point-in-time basket route regression as exact source 30af1259fa96d2ca90889823c656c5b19ad4c115. GitHub Actions run39162775178 completed successfully: Backend, Frontend Unit, Branch-declared and E2E Playwright jobs passed; Exhaustive Integration Gate was skipped by feature-branch policy. The checkpoint remains in_progress/not accepted; the accepted green Provider staging release and current-source full_stack_browser gate remain open. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined. No live request, quota, heavy local fixture, cleanup or cross-worktree write occurred.",
+  "latest_checkpoint": "2026-10-19 20:28Z: Canonical preflight verified synchronized ETF source 2eec09cbf9c188e1c1e61fb27ead3eb86e54e66a and preserved claim f206bbc5-abbf-473a-a44f-fb5706c81282. Read-only inspection mapped exact Provider candidate a8440efb82232a8b217df9c7330fab1795b257c9: shared admission/quota/health and recurring-cost contracts exist, ETF_HOLDINGS remains absent, and execute_provider_call requires a synchronous non-awaitable invoke. The actionable per-attempt bridge/migration/test map is recorded without Provider import or product changes. Provider remains unaccepted/unreleased; checkpoint remains in_progress. MSMR/QQQ and Militia/GOOG remain quarantined. No HTTP, quota, heavy fixture, cleanup or cross-worktree write occurred.",
   "local_profile_execution": {
     "cleanup": {
       "host_wide_prune": false,
@@ -242,8 +243,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Keep the checkpoint in_progress while waiting for the coordinator's accepted green Provider staging release and a safe full-profile fixture slot. After that release, reconcile only its exact staging SHA into this ETF branch, implement/test the actual ETF_HOLDINGS bridge, and run the required current-source full_stack_browser and exact-source CI gates; do not import sibling source or issue live requests.",
-  "plan_hash": "94e0814f4bb059f7e0181ee3fe7ce3073f9e6998bd0871d29462197645c2b18b",
+  "next_action": "Wait for the coordinator's explicit accepted Provider release in an exact synchronized green staging SHA. Then verify the release, CI and acceptance record; merge only that staging SHA into this clean unfrozen ETF branch; record actual migration heads; and execute the documented ETF_HOLDINGS capability/migration, reviewed route binding, shared recurring-cost onboarding, per-attempt synchronous non-awaitable transport, settlement/lineage and fail-closed test checklist. Keep MSMR/QQQ and Militia/GOOG quarantined and stop at ready_for_human_review after focused/database, current-source full_stack_browser and exact-source CI gates.",
+  "plan_hash": "ecf2d5e43c2e29bef6cff6a95c93f658fb2a4ad896e34f37f05f8bba00a8767b",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -254,7 +255,8 @@
     "2fcd05d8-12db-42ac-8cb6-83d9db9efafa",
     "2adafcab-638d-45ad-ab31-e3c6c7ef135a",
     "0bd23cfe-9271-4e5e-8621-db8985e62c75",
-    "bb0f68af-76ab-45c0-83f1-52d805be699f"
+    "bb0f68af-76ab-45c0-83f1-52d805be699f",
+    "87f0e599-289e-4ab5-b335-f75e455963f5"
   ],
   "prior_goal_request_at_checkpoint_adoption": {
     "objective": "Advance feat/etf-holdings-constituents: Make ETF constituent availability truthful, cost-governed, resilient, and observable per symbol; integrate ETF holdings with the shared provider platform after it reaches staging; remediate the full fallback inventory in relevance order; and deliver tested monitoring and user-visible degradation behavior without silently treating SEC, stale, partial, or unverified data as current support.. Acceptance criteria: AC1: Durable ETF workstream state is current and internally consistent: the plan, handoff, provider-universe document, registry counts, audit counts, and next action agree at every checkpoint.; AC2: A complete provider-audit ledger accounts for every current fallback-only adapter key exactly once, uses the approved deterministic ranking, and records issuer-specific dated source evidence, disposition, and next action.; AC3: Every provider counted as native has a concrete provider-owned holdings route, provider-specific fetch entry point, strict parsing/mapping, truthful provenance and freshness, deterministic tests, and concrete opt-in live coverage.; AC4: Every provider remaining fallback-only has a current issuer-specific audit disposition; no fallback is silently promoted through SEC data and no generic unattempted discovery note is accepted as final evidence.; AC5: All 140 providers in the starting fallback population have been processed to either a verified native promotion or a defensible dated terminal/blocked disposition, with no missing, duplicate, or stale ledger entries.; AC6: ISSUER_ADAPTER_CONFIGS, FALLBACK_ISSUER_AUDITS, native/fallback counts, native adapter ownership, deterministic tests, live-provider coverage, documentation, and the provider-audit ledger satisfy exhaustive matrix invariants.; AC7: Focused checks, the complete deterministic adapter suite, default live contracts, the complete opt-in live provider matrix, Ruff, the Docker-backed full-integration gate, and exact-SHA CI are green or any genuine external outage is narrowly evidenced without misrepresenting validation.; AC8: The feature branch is clean and synchronized at an exact reviewed SHA, durable handoff and validation records are complete, and the workstream stops at ready_for_human_review without integration, promotion, deployment, or cross-worktree mutation.; AC9: Every tracked ETF symbol exposes an additive capability outcome; only complete, fresh, identity-verified current or successor-native data is marked usable_for_current_analysis, while SEC, stale, partial, failed, unreviewed, and unknown routes are explicit.; AC10: ETF holdings consumes the shared provider-platform entitlement, quota, health, availability, and aggregate 20 EUR/USD-equivalent monthly budget contracts; no duplicate generic provider runtime or unapproved paid activation exists.; AC11: The 75 current fallback identities are reassessed at symbol level in relevance order, with Tier 0 US ETFs receiving a completed free/zero-cost/cheap-source investigation and an explicit current, degraded, stale, unavailable, successor, or not-applicable outcome.; AC12: Bounded opt-in ETF canaries persist source, transport, schema, completeness, freshness, latency, failure-streak, circuit, and recovery evidence; route drift and stale data cannot silently serve as current holdings.; AC13: ETF API and UI surfaces distinguish current, degraded, stale, unavailable, not-applicable, and unknown holdings; historical snapshots remain inspectable with provenance and current-analysis flows reject non-current data unless a user explicitly selects historical evidence.; AC14: A 30-day production shadow gate is documented as a post-integration/deployment acceptance step, targeting at least 95% eligible Tier 0 checks, no two consecutive missed freshness deadlines, and zero silent identity/schema/completeness violations.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
@@ -295,14 +297,14 @@
     "completed": [
       "EICP1"
     ],
-    "current_blocker": "Provider source bc45e4b223a4abfd89de15e2c7278ed17d43a698 has successful ordinary CI39070049292, but its checkpoint is not accepted or merged into green staging and its required local profile/fixture evidence remains open. The ETF branch therefore cannot yet reconcile or test the actual shared capability, identity, entitlement, quota/settlement, aggregate-cost/free-only, health and availability runtime. The evidence-backed symbol ledgers retain 15 Tier-0 and 156 Tier-1 investigations. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined because CI38911867173 retained no response body or parsed-row evidence. Unknown/quota-held/paid/trial/unsafe operations remain disabled.",
-    "current_phase": "provider_release_pending_after_static_bridge_preparation",
-    "next_action": "Wait for the coordinator's explicit accepted Provider product release in exact green staging. Then verify the accepted source/CI and concrete shared capability, identity, policy/admission, entitlement, quota/settlement, aggregate-cost or accepted free-only, health and availability interfaces; merge only that released staging SHA into this ETF worktree; record conflicts/migration heads; recompute the route-to-operation inventory; implement the documented ETF_HOLDINGS bridge and deterministic no-network consumer tests; then run the required focused, database, full_stack_browser and exact-source CI gates. Keep MSMR/QQQ and Militia/GOOG quarantined until retained evidence supports a separately reviewed change. Stop at ready_for_human_review.",
+    "current_blocker": "Staging 26443f94c5b9fd3741d28db392fecf9aafe9c699 has green exhaustive CI39294027643 but no accepted product checkpoint. Provider candidate a8440efb82232a8b217df9c7330fab1795b257c9 has green CI39305740911 and reported functional, strict-visual and admitted-live evidence, but remains unaccepted/unreleased while its corrected full backend gate, migration equivalence and held-operation posture remain open. Exact read-only inspection mapped its shared identity, admission, durable quota/settlement, health and recurring-cost contracts and confirmed execute_provider_call requires a synchronous non-awaitable invoke, but ProviderCapability.ETF_HOLDINGS is absent. The ETF bridge therefore remains externally gated. The evidence-backed symbol ledgers retain 15 Tier-0 and 156 Tier-1 investigations. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined because no retained response body or parsed-row evidence exists. Unknown/quota-held/paid/trial/unsafe operations remain disabled.",
+    "current_phase": "provider_candidate_contract_mapped_release_pending",
+    "next_action": "Wait for the coordinator's explicit accepted Provider release in an exact synchronized green staging SHA. Then verify the release/CI/acceptance record, merge only that SHA, record actual migration heads, and execute the documented ETF_HOLDINGS additive capability/migration, reviewed route binding, shared recurring-cost onboarding, per-attempt synchronous non-awaitable transport, settlement/lineage and negative-test checklist. Keep MSMR/QQQ and Militia/GOOG quarantined. Run focused/database, current-source full_stack_browser and exact-source CI gates and stop at ready_for_human_review.",
     "total": 7,
-    "updated_at": "2026-10-17T22:23:13.000000+00:00"
+    "updated_at": "2026-10-19T20:28:09.000000+00:00"
   },
-  "remote": "30af1259fa96d2ca90889823c656c5b19ad4c115",
-  "remote_sha": "30af1259fa96d2ca90889823c656c5b19ad4c115",
+  "remote": "2eec09cbf9c188e1c1e61fb27ead3eb86e54e66a",
+  "remote_sha": "2eec09cbf9c188e1c1e61fb27ead3eb86e54e66a",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
@@ -384,7 +386,7 @@
     "updated_at": "2026-10-07T16:05:00+00:00"
   },
   "schema": 2,
-  "session_id": "87f0e599-289e-4ab5-b335-f75e455963f5",
+  "session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "state": "in_progress",
   "structural_skip_diagnostics": {
     "DFTT": "1 unverified skip;issuer403/503;SEC mismatched-series rejected;no current/native guarantee",
@@ -438,6 +440,12 @@
       "displaced_session_id": "bb0f68af-76ab-45c0-83f1-52d805be699f",
       "new_session_id": "87f0e599-289e-4ab5-b335-f75e455963f5",
       "reason": "Human authorization on 2026-10-18: take over the current ETF claim bb0f68af-76ab-45c0-83f1-52d805be699f and continue this exact feature checkpoint toward staging acceptance. Preserve the full roadmap and all provider/quota/trial/validation boundaries."
+    },
+    {
+      "at": "2026-10-19T00:02:34.623980+00:00",
+      "displaced_session_id": "87f0e599-289e-4ab5-b335-f75e455963f5",
+      "new_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
+      "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for ETF returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
   "validation_tier": "full_integration",

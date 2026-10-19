@@ -152,13 +152,16 @@ Provider's reserved first heavy-validation slot and accepted producer contract.
 - Baseline registry is 496 providers / 422 native / 74 fallback; preserve the
   15 Tier-0 and 156 Tier-1 symbol investigations and every dated issuer audit.
   Recompute using the exhaustive source tests before publishing this context.
-- Existing writer claim: `bb0f68af-76ab-45c0-83f1-52d805be699f`. Resume this
+- Existing writer claim: `f206bbc5-abbf-473a-a44f-fb5706c81282`. Resume this
   claim; do not create a second writer or transfer it implicitly.
 
 ## Concrete interface map
 
-Locations below are authoritative source names, not promises about unstaged
-interfaces. Provider ref inspected during preparation: `65a467b43`.
+Locations below are authoritative source names, not promises that an unstaged
+candidate is released. The current read-only preparation inspected exact
+Provider candidate `a8440efb82232a8b217df9c7330fab1795b257c9`; coordinator
+reviews explicitly do not accept or release it. The earlier `65a467b43`
+inspection remains historical evidence above.
 
 | Contract | ETF source now | Provider source inspected | Required reconciliation |
 | --- | --- | --- | --- |
@@ -166,7 +169,7 @@ interfaces. Provider ref inspected during preparation: `65a467b43`.
 | Capability | No `ETF_HOLDINGS` enum member | `ProviderCapability`, `providers.registry._capability_names`, runtime seed order | ETF owns enum, additive migration, native registry facade and capability seed after staged import. Verify every persisted enum-bearing table; do not create fake generic providers merely to make discovery green. |
 | Admission | `_refresh_adapter_route` and dated refresh call issuer adapter directly | `provider_runtime.resolve_provider_chain` and `execute_provider_call` | Bind to the exact reviewed issuer/provider and operation before any network call. Retain environment, terms, authentication, live-verification, instrument-support and review-expiry exclusions. |
 | Quota | ETF canary bounds and route-specific retries; no shared reservation | `provider_quota_coordinator.reserve_provider_quota_async` / `settle_provider_quota_async`, shared private ledger; runtime operation/dimension cost checks | Reserve/settle actual outbound requests, redirects/pages/retries as the reviewed contract requires. Unknown quota/reset/account baseline or unknown operation cost must deny before transport. Never assume an entire multi-request holdings fetch costs one request. |
-| Monthly cost | No located shared monthly-budget contract | No aggregate recurring-cost admission API located in inspected runtime/config/models | Required shared repair: aggregate all active provider subscriptions, currency/equivalence policy and reviewed incremental cost; keep total at or below 20 EUR/USD-equivalent monthly. Free/already-entitled sources first; paid activation still requires explicit approval. Implement in the shared governance owner after central coordination, never as an ETF-only budget ledger. |
+| Monthly cost | No ETF-owned budget ledger, by design | Shared `ProviderRecurringCostBudget`, revision and commitment models plus `configure_provider_recurring_cost_budget`, `admit_provider_recurring_cost` and `provider_recurring_cost_status`; single-currency, evidence-revisioned, account/environment-deduplicated, and paid activation remains false | Consume the released shared commitment/admission state during ETF policy onboarding/startup validation. Do not charge recurring cost per request, invent FX, assume `execute_provider_call` performs recurring-cost admission, or add an ETF ledger. Missing/unknown commitment evidence keeps the route disabled. |
 | Health and availability | `ETFHoldingsAdapterState` plus bounded canary history and circuit evidence | `ProviderHealthState`, `ProviderRequestLog`, `provider_availability` observations | Persist shared transport health/admission outcome and ETF content health separately with linked lineage. A successful HTTP request cannot make stale/partial/unverified holdings current. |
 | Retention | `ETFHoldingsRawArtifact`, immutable versioned snapshots/rows, composition/known/published/fetched time | Shared request logs and retained response payloads | Preserve raw artifacts and request/entitlement/quota references, including failed parse/schema evidence. Do not discard already queried pages or overwrite an older snapshot with a correction. |
 | Consumer truth | `holdings_capability_for_profile/symbol`, basket current gate, explicit historical selection, API capability schema | Shared routing availability and canonical identity | Denied refresh: no prior data means unavailable; prior usable data is last-known/degraded, or stale after its deadline. Keep source-tier, failure classification, identity and snapshot lineage visible. Reads must not spend quota. |
@@ -435,18 +438,50 @@ and is retained as historical evidence rather than current acceptance. The
 14-case persisted consumer suite tests stored API/basket outcomes and explicitly
 does not prove shared Provider transport or admission.
 
-Current-source review confirms that the checked-out Provider runtime still has
-nine capabilities and no `ETF_HOLDINGS`; its resolver/call path does not provide
-durable ETF request reservation/settlement or aggregate recurring-subscription
-cost admission, its usage cost defaults to one for missing/malformed values,
-and its invocation path runs synchronous callbacks in an executor while ETF
-adapters are async. No such contract is to be inferred from the old Provider
-candidate snapshot. Therefore the real bridge and transport-negative tests
-cannot safely be implemented against this source. Next: preserve the full
-roadmap and consumer matrix, wait only for a reviewed green Provider producer
-checkpoint (not the full Provider feature or 30-day trial), reconcile its exact
-synchronized staging SHA into this same branch, then implement and validate the
-actual bridge. Exact-source CI and current-source `full_stack_browser` remain
-required before ETF checkpoint review. Human acceptance, staging integration,
-promotion, deployment, paid activation, trial activation and data cleanup are
-not authorized.
+Current read-only review of exact Provider candidate `a8440efb82232a8b217df9c7330fab1795b257c9`
+supersedes the old present-tense snapshot while preserving it as history. The
+candidate has 22 `ProviderCapability` values but still no `ETF_HOLDINGS`; its
+seed path derives capabilities from the registered provider adapters and
+disables stale policy rows. `execute_provider_call` is async and owns its
+`AsyncSession`, admission, durable quota reservation/settlement, request log,
+telemetry and health updates, but its `invoke` callback must be synchronous. It
+runs that callback in an executor and rejects/does not await either a coroutine
+function or an awaitable return. Shared recurring-cost budget and commitment
+contracts now exist separately from `execute_provider_call`; they are not an
+implicit per-request budget check and paid activation remains prohibited.
+
+The post-release implementation must therefore keep `AsyncSession` on its
+owning event loop and pass only a synchronous, complete one-attempt transport
+callback. For an async HTTPX route, that worker callback runs an attempt-local
+coroutine and client to completion in its worker thread and returns a concrete,
+non-awaitable response snapshot. A `requests` fallback executes synchronously
+in the same admitted worker boundary. Clients are never shared across event
+loops. Automatic redirects are disabled: each redirect target, retry, page,
+token request, product page, artifact request, client fallback and SEC request
+re-enters shared admission before transport. Any denied/unknown/exhausted
+decision must leave HTTPX, requests and curl call counts at zero for that
+attempt. Curl must receive an equivalent governed one-attempt wrapper or remain
+disabled.
+
+After the coordinator releases an accepted Provider checkpoint through an
+exact green synchronized staging SHA, the ETF owner will: verify and merge only
+that release; record pre/post source and migration heads; add the additive
+`ETF_HOLDINGS` enum migration from the released Provider head and update every
+enum-bearing seed/registry/availability contract; bind reviewed issuer,
+publisher/account/environment/host/operation and canonical instrument/product
+identity to the shared runtime; validate shared recurring-cost commitment state
+without a second ledger; and link request/reservation/entitlement/health facts
+to ETF raw artifacts and snapshots only after settlement. Tests will cover
+fresh and upgrade migrations, application/worker startup, exact-once concrete
+transport completion and settlement/cancellation, per-hop redirect and
+per-attempt fallback/page/retry admission, SEC no-bypass behavior, fail-closed
+unknown/paid/trial/expired/exhausted states, concurrent quota/idempotent
+settlement, content lineage, and zero-governance-work cached/historical/PIT
+reads. Current/degraded/stale/partial/unavailable and historical/PIT outcomes
+remain distinct; SEC is never issuer-current.
+
+Until that explicit release, the real bridge and transport-negative integration
+tests cannot safely be implemented. Exact-source CI and current-source
+`full_stack_browser` remain required before ETF checkpoint review. Human
+acceptance, feature-worker staging integration, promotion, deployment, paid or
+trial activation, operational observation and data cleanup are not authorized.

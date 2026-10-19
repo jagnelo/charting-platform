@@ -11823,3 +11823,59 @@ unresolved/quarantined with no retained response or parsed-row evidence. No
 issuer, SEC, or provider HTTP request, quota, paid/trial activation, heavy local
 fixture, data cleanup, staging/sibling write, deployment, or roadmap reduction
 occurred.
+
+### Provider candidate contract mapped without import — 2026-10-19 20:28Z
+
+Canonical UV context/status preflight verified the assigned ETF worktree,
+branch, existing writer claim `f206bbc5-abbf-473a-a44f-fb5706c81282`, and
+synchronized pre-preparation source
+`2eec09cbf9c188e1c1e61fb27ead3eb86e54e66a`. The optional shared runtime
+allocation refresh could not write the root-owned allocation lock in this
+sandbox; that did not alter the established claim or source. No takeover was
+performed.
+
+Read-only coordinator evidence says synchronized staging
+`26443f94c5b9fd3741d28db392fecf9aafe9c699` / exhaustive CI `39294027643` is
+green but contains no accepted product checkpoint. Provider candidate
+`a8440efb82232a8b217df9c7330fab1795b257c9` / CI `39305740911` has the reported
+functional, strict visual and admitted-live evidence, but remains unaccepted
+while its corrected full backend gate, migration equivalence and held-operation
+posture are open. The two coordinator audit files are reviews, not a release.
+
+Exact candidate source inspection corrected obsolete present-tense handoff
+claims. Provider now has 22 capability values, durable shared admission and
+quota settlement, request/health/telemetry lineage, and separate shared
+recurring-cost budgets/commitments. It still has no `ETF_HOLDINGS` capability.
+Its `execute_provider_call` is async to retain `AsyncSession` ownership, but the
+executor-run `invoke` must be synchronous and return a non-awaitable; coroutine
+callbacks are explicitly rejected and never awaited. Recurring-cost admission
+is not automatically performed by `execute_provider_call` and must be consumed
+as reviewed shared onboarding state, never duplicated or mutated per request.
+
+The immediate post-release implementation is now executable rather than
+aspirational: merge only the coordinator-released staging SHA; base an additive
+ETF capability migration on its actual Provider migration head; update all
+enum-bearing seeds/registry/availability contracts; bind canonical ETF,
+publisher/account/environment/host and semantic operation identities; and
+admit each concrete outbound attempt independently. HTTPX work completes inside
+an attempt-local worker-thread loop and returns a concrete result; requests runs
+synchronously in that admitted worker. Auto-redirect is disabled so every hop,
+retry, page, token/product/artifact fetch, transport fallback and SEC request is
+separately admitted. Curl is governed equivalently or remains disabled.
+Unknown, denied, exhausted, unreviewed, paid/trial or unsafe state must produce
+zero transport calls.
+
+The test map covers fresh/upgrade migrations, app and worker startup,
+non-awaitable exact-once completion, cancellation/timeout settlement,
+HTTPX-to-requests and redirect second-attempt denial, pagination/retry/SEC
+no-bypass, concurrency/idempotent settlement, shared request-to-raw-artifact
+lineage and network-free cached/historical/PIT reads. Transport health remains
+separate from ETF identity/completeness/freshness, preserving distinct current,
+degraded, stale, partial, unavailable and historical/PIT states. MSMR/QQQ and
+Militia/GOOG remain unresolved/quarantined, the 15 Tier-0 and 156 Tier-1 ledgers
+plus 496/422/74 split remain unchanged, and all 14 roadmap criteria remain open
+as previously recorded. No Provider import, merge, product edit, HTTP request,
+quota operation, heavy fixture, service cleanup, staging/sibling write,
+deployment or paid/trial activation occurred. The checkpoint remains
+`in_progress`; wait for the coordinator's explicit accepted synchronized green
+Provider staging SHA before consumer reconciliation.
