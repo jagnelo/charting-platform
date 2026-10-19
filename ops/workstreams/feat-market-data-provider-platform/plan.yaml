@@ -1,4 +1,16 @@
 schema: 4
+# Provider reconciliation — 2026-10-19 18:46Z. The prior three-file evidence
+# context is closed in `8d368aae4`. Exact released staging
+# `26443f94c5b9fd3741d28db392fecf9aafe9c699` was merged without conflict into
+# Provider as `f7a898e86d9eab0e98b8a5505a670f87a25df509`. Exact merged-source
+# reconciliation passed 186 Provider admission/live-runner/workflow tests, 89
+# affected frontend component tests, and the production frontend type/build
+# gate. No provider/issuer HTTP, quota reservation/spend, fixture/service/data
+# mutation, retry/reference/tolerance change, staging write, or sibling write
+# occurred. Publish this reconciled candidate and require its exact CI before
+# refreshing durable-ledger admission or making at most one internally admitted
+# verified-free subset run. CTA Plan, EODHD, Dinari, Marketstack and Tiingo
+# remain held; preserve the historical strict-red `bef14e0c`/`39254427018`.
 # Coordinator release — 2026-10-19 18:26Z. Exact clean synchronized staging
 # `26443f94c5b9fd3741d28db392fecf9aafe9c699` passed Actions `39294027643`,
 # including Exhaustive, and contains the completed F8u label-origin repair.
@@ -6608,13 +6620,19 @@ progress:
   total: 7
   current_phase: provider_f8u_reconciliation_and_live_checkpoint
   current_blocker: >-
-    CURRENT STATUS — 2026-10-19 18:26Z: synchronized green staging
+    CURRENT STATUS — 2026-10-19 18:46Z: the prior evidence context is closed
+    in `8d368aae4`, and exact released staging
+    `26443f94c5b9fd3741d28db392fecf9aafe9c699` is merged without conflict into
+    Provider at `f7a898e86d9eab0e98b8a5505a670f87a25df509`. Merged-source
+    reconciliation passed 186 backend/workflow cases, 89 affected frontend
+    component cases, and the production frontend type/build gate. The current
+    blocker is publication and exact-source Provider CI; no provider transport
+    is allowed before that CI is green. Five provider groups remain held.
+    PREVIOUS STATUS — 2026-10-19 18:26Z: synchronized green staging
     `26443f94c5b9fd3741d28db392fecf9aafe9c699` passed exact Actions
     `39294027643`, including Exhaustive, and contains the completed F8u repair.
-    The repair fixture is released. Provider remains at pushed `bef14e0c` with
-    strict-red exact CI `39254427018` and three dirty evidence files. Close the
-    evidence context, merge the exact released staging SHA into Provider,
-    reconcile and require exact Provider CI before any provider transport.
+    The repair fixture is released. Provider remained at pushed `bef14e0c` with
+    strict-red exact CI `39254427018` and three dirty evidence files.
     PREVIOUS STATUS — 2026-10-19 13:32Z:
     Provider run 39254427018 is terminal
     strict-red solely at flaky F8u; the retry passed but does not make the job
@@ -6836,10 +6854,9 @@ progress:
     source-bound receipts; no paid/trial activation, deployment, integration,
     reset, or cleanup is authorized.
   next_action: >-
-    Close the current three-file evidence context, then merge exact released
-    staging `26443f94c5b9fd3741d28db392fecf9aafe9c699` into Provider without
-    writing staging. Reconcile and run focused checks, commit/push, and require
-    exact-source Provider CI. After green CI, refresh no-transport admission
+    Commit and push the coherent reconciled Provider evidence based on merge
+    `f7a898e86d9eab0e98b8a5505a670f87a25df509`, verify exact synchronization,
+    and require exact-source Provider CI. After green CI, refresh no-transport admission
     against the existing durable ledger and run at most one internally admitted
     verified-free subset. Preserve strict-red Provider run `39254427018`, all
     five provider holds, zero retries, unchanged visual references/tolerances,

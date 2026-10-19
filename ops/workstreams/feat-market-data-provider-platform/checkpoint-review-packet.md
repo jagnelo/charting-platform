@@ -1,5 +1,23 @@
 # Provider integration checkpoint review packet
 
+## Reconciled Provider candidate — 2026-10-19 18:46Z
+
+The prior Provider evidence context is committed as `8d368aae4`. Exact green
+staging `26443f94c5b9fd3741d28db392fecf9aafe9c699` was verified and merged
+without conflict into Provider at
+`f7a898e86d9eab0e98b8a5505a670f87a25df509`. This incorporates the completed
+F8u repair while preserving the historical strict-red Provider run
+`39254427018` on `bef14e0c`.
+
+Focused exact-merge reconciliation passed 186 Provider
+admission/live-runner/workflow tests, 89 affected frontend component tests, and
+the production frontend type/build gate. No external provider/issuer request,
+quota reservation/spend, fixture/service/data mutation, screenshot/reference,
+tolerance, retry-policy, staging, or sibling change occurred. The reconciled
+Provider source still requires commit/push and its own exact branch CI before a
+fresh durable-ledger preflight and at most one internally admitted verified-free
+subset run. CTA Plan, EODHD, Dinari, Marketstack and Tiingo remain held.
+
 ## Current receipt-source status — 2026-10-18 21:04Z
 
 Provider HEAD and origin are clean and synchronized at

@@ -1,5 +1,25 @@
 # feat/market-data-provider-platform
 
+## 2026-10-19 18:46Z — released F8u staging repair merged into Provider
+
+- Closed the prior three-file evidence context as `8d368aae4`, fetched and
+  verified exact released staging
+  `26443f94c5b9fd3741d28db392fecf9aafe9c699`, then merged it without conflicts
+  into this Provider branch as `f7a898e86d9eab0e98b8a5505a670f87a25df509`.
+  Staging and sibling worktrees were not written.
+- Exact merged-source focused reconciliation passed: 186 Provider
+  admission/live-runner/workflow cases, 89 affected watchlist/plot component
+  cases, and the production frontend `vue-tsc` plus Vite build. No provider or
+  issuer HTTP, quota reservation/spend, fixture startup, service/data change,
+  retry-policy change, visual-reference change, or tolerance change occurred.
+- Preserve Provider's prior strict-red `bef14e0c` / `39254427018` F8u receipt.
+  The released repair's local 154-functional/2-expected-skip and 104/104 strict
+  visual evidence remains source-qualified to its repair source. Next publish
+  the reconciled Provider source and require its own exact CI before refreshing
+  durable-ledger admission or making at most one internally admitted
+  verified-free subset run. CTA Plan, EODHD, Dinari, Marketstack, and Tiingo
+  remain held.
+
 ## 2026-10-19 — focused F8u reaches the interaction assertion; browser environment blocks final diagnostics
 
 - The coordinator resumed this exact Provider worktree after the installed Codex
