@@ -152,3 +152,15 @@ for feature-branch CI. The earlier strict-red run remains preserved. The
 closure record now marks this narrow repair ready for guarded integration, but
 the final closure-record commit must itself pass exact-source CI before the
 coordinator invokes `make integrate`.
+
+## 2026-10-19 — guarded integration preflight
+
+Exact-source Actions run `39264635908` completed green on
+`0fa2abafa91d50750c4c848eedbc6e8decc7788c`: Backend, Frontend Unit,
+Branch-declared, and Playwright all succeeded; Exhaustive Integration Gate was
+skipped under feature-branch policy. The normal `make integrate` guard refused
+to start before mutating staging because this closure summary omitted the
+required `integration_capture: exact branch HEAD` declaration. The workstream
+is being corrected on this source branch. Staging remains unchanged at
+`94c252d6b8767714df2c6c8840a2119f5aa161dd`. The corrected closure-record tip
+must pass exact-source CI before retrying guarded integration.

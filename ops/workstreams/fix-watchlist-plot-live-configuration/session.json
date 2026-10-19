@@ -42,7 +42,7 @@
   "implementation_sha": "8b9dc144195fc5195ca6bc5d0d62842d020af784",
   "last_human_progress_update": "2026-10-19T13:54:26+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Wait for exact-source CI on the final closure-record commit; if green, run guarded staging integration and require the exact staging gate",
+  "next_action": "Publish the required integration_capture: exact branch HEAD closure declaration and preflight receipt, then wait for exact-source CI on that final metadata tip before retrying guarded staging integration",
   "parent_branch": "staging",
   "plan_hash": "2cc3be8cbdbb6638228b10eb9e3a5ac448e5de07b16854188ec059b0401f122b",
   "planning_required": false,
@@ -55,11 +55,11 @@
       "AC3",
       "AC4"
     ],
-    "current_blocker": "Exact-source CI on the final closure-record commit is pending; do not integrate until that exact SHA is green",
-    "current_phase": "coordinator_closed_checkpoint_exact_ci_pending",
-    "next_action": "Wait for exact-source CI on the final closure-record commit; if green, run guarded staging integration and require the exact staging gate",
+    "current_blocker": "The guarded integration preflight rejected the closure record before staging mutation because integration_capture: exact branch HEAD was missing; this has been corrected and the resulting metadata tip now needs exact-source CI",
+    "current_phase": "closure_record_corrected_exact_ci_pending",
+    "next_action": "Publish the required exact-branch-HEAD capture declaration and preflight receipt, then verify exact-source CI before guarded staging integration",
     "total": 4,
-    "updated_at": "2026-10-19T13:54:26+00:00"
+    "updated_at": "2026-10-19T14:25:30+00:00"
   },
   "remote": "8b9dc144195fc5195ca6bc5d0d62842d020af784",
   "remote_sha": "8b9dc144195fc5195ca6bc5d0d62842d020af784",

@@ -40,7 +40,7 @@ closure_summary: >-
   observed; abort and resolve on the source branch if guarded integration finds
   one. Migration impact: none. Deployment impact: none. This repair does not
   close Provider, ETF holdings, TC2000, or Strategy Lab v2; their contracts,
-  tests, and roadmaps remain open.
+  tests, and roadmaps remain open. integration_capture: exact branch HEAD.
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
