@@ -4419,15 +4419,21 @@ test.describe('TC2000 workstation', () => {
     const plot = chart.locator('.chart-plots li').filter({ hasText: 'RSI' }).last()
     await expect.poll(() => plot.count(), { timeout: 10_000 }).toBeGreaterThan(0)
     await expect(plot).toBeVisible({ timeout: 10_000 })
+    // Start from the user-facing label, not the row center: the center can
+    // land on a line-width input and prevent Chromium from starting a native
+    // drag from the draggable plot row.
+    const plotDragSource = plot.locator('span').filter({ hasText: /^RSI/ }).first()
+    await expect(plotDragSource).toBeVisible({ timeout: 10_000 })
     const target = page.getByRole('region', { name: 'Major US benchmarks' })
+    // The benchmark watchlist can still be replacing its initial analysis
+    // rows after it becomes visible. Wait for the component's public busy
+    // state before the real drop so the drag does not race that refresh.
+    await expect(target).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 })
     const droppedHeader = target.locator('.watchlist__header button').filter({ hasText: 'RSI' })
-    // Chromium occasionally loses the custom MIME payload when a fixed,
-    // teleported plot menu closes during drag. Repeat the same real drag once
-    // after the drop target has remained mounted; never bypass the DnD path.
-    for (let attempt = 0; attempt < 2 && !(await droppedHeader.count()); attempt += 1) {
-      await plot.dragTo(target)
-      if (!(await droppedHeader.count())) await page.waitForTimeout(150)
-    }
+    // Use a continuous pointer path so Chromium dispatches dragover while the
+    // pointer crosses into the watchlist. Dropping over the header also avoids
+    // the row-reordering drop listener and targets the column-header surface.
+    await plotDragSource.dragTo(target.locator('.watchlist__header'), { steps: 8 })
     await expect(droppedHeader).toBeVisible({ timeout: 10_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })

@@ -2959,8 +2959,18 @@ const proxyColumns: WatchlistColumn[] = [
   { key: 'freshness', label: 'Freshness', width: '74px' },
   { key: 'provenance', label: 'Provenance', width: '92px' },
 ]
+// Golden Layout may keep a detached virtual-tool root alive briefly after the
+// canonical workspace window has changed. Read its current configuration so
+// column visibility, indicator rendering, and chart-drop updates share one
+// workspace snapshot.
+const liveToolConfiguration = computed(() => {
+  const canonical = workspaceStore.workspace?.tabs
+    .flatMap(tab => tab.windows)
+    .find(window => window.instance_key === props.tool.instance_key)
+  return canonical?.configuration ?? props.tool.configuration
+})
 const configuredColumnKeys = computed(() => {
-  const keys = props.tool.configuration.column_keys
+  const keys = liveToolConfiguration.value.column_keys
   return Array.isArray(keys) && keys.every(key => typeof key === 'string') ? keys as string[] : []
 })
 const configuredFilterText = computed(() => typeof props.tool.configuration.filter_text === 'string' ? props.tool.configuration.filter_text : '')
@@ -2994,15 +3004,6 @@ const configuredPythonColumns = computed(() => Array.isArray(props.tool.configur
   : [])
 type IndicatorColumnConfiguration = { key: string; name: string; indicator: string; params: Record<string, unknown>; timeframe: string; output?: string }
 const pendingIndicatorColumns = ref<IndicatorColumnConfiguration[]>([])
-// Golden Layout may keep a detached virtual-tool root alive briefly after the
-// canonical workspace window has changed. Read its current configuration so
-// chart-plot promotion and the rendered indicator columns share one snapshot.
-const liveToolConfiguration = computed(() => {
-  const canonical = workspaceStore.workspace?.tabs
-    .flatMap(tab => tab.windows)
-    .find(window => window.instance_key === props.tool.instance_key)
-  return canonical?.configuration ?? props.tool.configuration
-})
 const configuredIndicatorColumns = computed<IndicatorColumnConfiguration[]>(() => {
   const persisted = Array.isArray(liveToolConfiguration.value.indicator_columns)
     ? liveToolConfiguration.value.indicator_columns.filter((column): column is IndicatorColumnConfiguration => Boolean(column) && typeof column === 'object' && typeof (column as Record<string, unknown>).key === 'string' && typeof (column as Record<string, unknown>).name === 'string' && typeof (column as Record<string, unknown>).indicator === 'string' && typeof (column as Record<string, unknown>).params === 'object' && typeof (column as Record<string, unknown>).timeframe === 'string')

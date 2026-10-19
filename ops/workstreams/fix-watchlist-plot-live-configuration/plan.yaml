@@ -20,19 +20,28 @@ human_closure_authorization: >-
   and guarded staging integration. This remains limited to this narrow repair;
   it does not waive its exact CI or staging gate.
 closure_summary: >-
-  Coordinator-accepted F8u repair: the watchlist chart-plot drop and configured
-  indicator rendering now use one canonical live workspace configuration
-  snapshot. Validated implementation SHA 103ef8e1899412a5a623e8e587ec718de0458c8c
-  passed the local full_stack_browser profile and exact-source GitHub Actions
-  run 39030047625 (branch-declared, backend, frontend, and Playwright jobs
-  succeeded; the exhaustive gate was skipped under feature-branch policy).
-  The final closure-record commit still requires its own exact-source branch CI
-  before integration. No merge conflicts were observed in this narrow source
-  change; guarded integration must abort on any conflict and resolve only on
-  the source branch. Migration impact: none. Deployment impact: none.
-  integration_capture: exact branch HEAD. This repair does not close Provider,
-  ETF holdings, TC2000, or Strategy Lab v2; their remaining contracts, tests,
-  and roadmap work remain open.
+  The historical strict-red runs 39254427018, 39269065093, and 39274378927
+  remain preserved. Native-event diagnosis established that the header-target
+  drop delivered the correct RSI payload; the missing update was caused by
+  configuredColumnKeys reading detached props.tool.configuration while the
+  drop handler and indicator renderer read the canonical live workspace
+  configuration. The repair now derives visible column keys from that same
+  canonical snapshot at implementation SHA
+  dfa7f558e3b1a7c998b86b57f2609091ffd5f7c0. On 2026-10-19, the affected
+  suites passed 89/89; vue-tsc and the production frontend build passed; the
+  focused pinned Playwright 1.62.1 Noble F8u flow passed five fresh zero-retry
+  repetitions; the full functional profile passed 154 tests with 2 expected
+  live-data skips and zero failures/retries; and the unchanged visual profile
+  passed 104/104. Exact-source Actions run 39282882919 on the implementation
+  SHA completed green: Backend, Frontend Unit, Branch-declared, and Playwright
+  jobs succeeded; Exhaustive Integration Gate was skipped as required for
+  branch CI. The disposable provider-denied fixture and its four generated
+  volumes/two networks were removed; retained Provider and TC2000 stacks
+  remain running. No staging or feature worktree was modified. This narrow
+  repair does not close Provider, ETF holdings, TC2000, or Strategy Lab v2;
+  their contracts, gates, and roadmaps remain open. Migration/deployment
+  impact: none. Integration must capture the final clean pushed source tip via
+  the guarded workflow. integration_capture: exact branch HEAD.
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
@@ -46,18 +55,29 @@ human_goal_budget_authorization: none
 goal: >-
   Fix the staging-derived F8u chart-plot-to-watchlist race so the visible
   indicator definition and chart-drop configuration update use one canonical
-  live workspace snapshot. Publish a narrow clean repair checkpoint for the
-  coordinator; do not integrate, promote, deploy, or modify feature worktrees.
+  live workspace snapshot, and make the existing real-drag test start from the
+  visible plot label rather than an embedded control. Publish a narrow clean
+  repair checkpoint for the coordinator; do not integrate, promote, deploy, or
+  modify feature worktrees.
 scope:
   - >-
     Resolve the detached Golden Layout configuration race in the shared
     WorkstationToolContent watchlist path: both configured indicator rendering
     and chart-plot drop updates must read the canonical live workspace window.
   - >-
-    Preserve the current ordinary drag path, F8u assertions and timeout/retry
-    policy, screenshot references/tolerances, retained data, and provider holds.
+    Preserve the current ordinary drag path, F8u assertions and timeout values,
+    screenshot references/tolerances, retained data, and provider holds. Wait
+    for the watchlist's existing aria-busy state to clear before dropping, and
+    use exactly one drag attempt with no in-test retry.
+  - >-
+    Start the F8u pointer drag from the visible RSI label because the draggable
+    row center can target its embedded line-width input; wait until the target
+    watchlist reports aria-busy=false, then perform exactly one stepped native
+    pointer drag onto the watchlist column-header surface. Keep the expected RSI
+    header assertion unchanged; do not retry or bypass the drag path.
 owned_paths:
   - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/tests/e2e/flows.spec.ts
 dependencies: []
 acceptance_criteria:
   - id: AC1
@@ -68,18 +88,20 @@ acceptance_criteria:
   - id: AC2
     text: >-
       Existing F8u real pointer-drag flow adds the RSI header to Major US
-      benchmarks on this exact repair source, in a fresh internal-only seeded
-      fixture with provider/OneSignal credentials blank, provider routing/refresh
-      disabled, one worker, and zero retries; repeat the exact flow five times.
-      App and worker provider egress stays denied. Only the public static SDK
-      host cdn.onesignal.com:443 may use the exact-host browser allowlist proxy;
-      no OneSignal API host or credentials are allowed.
+      benchmarks on this exact repair source, starting from the visible plot
+      label and dropping onto the watchlist column-header surface in a fresh
+      internal-only seeded fixture with provider/OneSignal credentials blank,
+      provider routing/refresh disabled, one worker, and zero retries; repeat
+      the exact flow five times. App and worker provider egress stays denied.
+      Only the public static SDK host
+      cdn.onesignal.com:443 may use the exact-host browser allowlist proxy; no
+      OneSignal API host or credentials are allowed.
   - id: AC3
     text: >-
       Affected watchlist/plot component suites, vue-tsc, production frontend
       build, branch-declared tests, and exact-source ordinary CI pass without
-      weakened assertions, changed timeouts/retries, external provider traffic,
-      or visual-oracle changes.
+      weakened assertions, changed configured Playwright timeout/retry values,
+      external provider traffic, or visual-oracle changes.
   - id: AC4
     text: >-
       The branch is clean and pushed with exact evidence, stops at
@@ -105,9 +127,9 @@ deployment_impact: none
 status: ready_for_integration
 remaining_gaps:
   - >-
-    The closure-record commit must pass exact-source ordinary GitHub Actions
-    branch CI before guarded staging integration; the successful run recorded
-    above covered the validated implementation SHA, not this final receipt.
+    The narrow repair still needs its guarded merge into persistent staging and
+    the exact pushed staging Exhaustive Integration Gate. Do not count this as
+    acceptance of any of the four feature checkpoints.
   - >-
     This repair checkpoint does not close Provider, ETF, TC2000, or Strategy
     Lab v2 feature checkpoints. Provider's full 260-case/104-visual validation,
@@ -116,6 +138,11 @@ remaining_gaps:
 progress:
   completed: [AC1, AC2, AC3, AC4]
   total: 4
-  current_phase: coordinator_closed_checkpoint_exact_ci_pending
-  current_blocker: exact-source CI on the closure-record commit is pending
-  next_action: verify exact-source CI, then integrate through the guarded staging workflow and require the exact staging gate
+  current_phase: ready_for_integration
+  current_blocker: >-
+    No repair-checkpoint gate remains open. Persistent staging integration and
+    its exact Exhaustive Integration Gate remain coordinator-owned next steps.
+  next_action: >-
+    Commit and push this closure receipt, verify final exact-source CI, then
+    invoke the guarded persistent-staging integration workflow. Preserve the
+    four feature roadmaps and all provider/quota restrictions.
