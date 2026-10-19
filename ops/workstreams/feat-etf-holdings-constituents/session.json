@@ -30,19 +30,18 @@
     }
   ],
   "active_changeset": {
-    "baseline": "d1c560dc95d681fb5c67bf8916846a2f354bb5f5",
-    "intent": "Merge exact released common staging 281a57bd9fb782c0f85bfb5127c713ea15037f68 into this ETF branch, preserve its workflow/F8u/F9c behavior and assertions, and retain the unreleased Provider bridge boundary.",
-    "name": "Reconcile released common baseline 281a57bd into ETF",
+    "baseline": "4fd48056c3fb7d54678f9ba7741fa5fd06b0c473",
+    "intent": "Reconcile the latest published but unreleased Provider operation-hold semantics into the ETF post-release bridge and consumer-test map without importing sibling code or issuing network requests.",
+    "name": "Map Provider operation holds into ETF bridge preparation",
     "owned_paths": [
-      "frontend/src/components/workstation/ChartTemplateControl.vue",
-      "frontend/src/components/workstation/VirtualWatchlistTool.vue",
-      "frontend/tests/unit/components/test_chart_template_control.test.ts",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
-      "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+      "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
+      "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md",
+      "ops/workstreams/feat-etf-holdings-constituents/shared-cost-admission.md"
     ],
-    "state": "merge_conflicts_resolved_to_released_staging_semantics; workstream_38_pass; diff_check_pass; affected_frontend_units_153_pass; playwright_discovery_154_listed; one_enclosing_merge_commit_and_exact_source_CI_required; checkpoint_in_progress_not_accepted; bridge_waits_for_accepted_green_provider_staging"
+    "state": "common_merge_4fd48056_published_and_exact_CI39340838524_green; Provider_023d30c_operation_hold_delta_mapped_read_only; workstream_38_pass; JSON_JSONL_plan_hash_diff_check_pass; branch_tests_9_no_live_enabled_invocation; no_product_code_or_http; checkpoint_in_progress_not_accepted; bridge_waits_for_accepted_green_provider_staging"
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -79,7 +78,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "current_blocker_latest": "2026-10-19 20:28Z: Staging26443f94c5b9fd3741d28db392fecf9aafe9c699/CI39294027643 is green but has no accepted product checkpoint. Provider candidate a8440efb82232a8b217df9c7330fab1795b257c9/CI39305740911 has the reported functional, visual and admitted-live evidence but is not accepted/released while its corrected backend gate, migration equivalence and held-operation posture remain open. Read-only source inspection mapped the exact shared contracts and sync non-awaitable invoke boundary, but ProviderCapability.ETF_HOLDINGS is absent. The bridge remains externally gated. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined with no retained response/row evidence.",
+  "current_blocker_latest": "2026-10-19 23:44Z: ETF common-baseline merge 4fd48056c3fb7d54678f9ba7741fa5fd06b0c473 is synchronized and exact CI39340838524 is green, but staging281a57bd9fb782c0f85bfb5127c713ea15037f68 contains common repairs only and product checkpoints remain 0/4. Provider candidate 023d30c615ae1bfea3a79f90d4d814242cd5711e adds shared operation-level checkpoint holds before adapter construction/reservation/transport, but is unaccepted/unreleased while its combined profile and operation review continue. ProviderCapability.ETF_HOLDINGS is absent. The bridge remains externally gated. The 15 Tier-0 and 156 Tier-1 investigations remain preserved; MSMR/QQQ and Militia/GOOG remain unresolved/quarantined with no retained response/row evidence.",
   "dirty_paths": [],
   "docker": {
     "available": false,
@@ -105,7 +104,7 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "d1c560dc95d681fb5c67bf8916846a2f354bb5f5",
+  "head": "4fd48056c3fb7d54678f9ba7741fa5fd06b0c473",
   "implementation_sha": "dd9b7a08ce79303638c3951dd937270e97bbff33",
   "integration_checkpoint": {
     "acceptance_authorization": "pending",
@@ -200,9 +199,9 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-19T23:17:00Z",
+  "last_checkpoint": "2026-10-19T23:44:19Z",
   "last_human_progress_update": "2026-10-15T22:12:26.620198+00:00",
-  "latest_checkpoint": "2026-10-19 23:17Z: Verified released common staging 281a57bd9fb782c0f85bfb5127c713ea15037f68 and canonical receipt/CI39335198284, then reconciled its authorized non-fast-forward merge into synchronized ETF source d1c560dc95d681fb5c67bf8916846a2f354bb5f5. Three conflicts were limited to chart-template/watchlist Web Crypto key generation and its unit assertion and were resolved exactly to released staging semantics. All 38 workstreams validate, diff-check passes, the three affected frontend unit files pass 153/153, and Playwright discovery lists all 154 flows without launching a browser. One enclosing merge publication and exact branch CI remain. This baseline contains no Provider product acceptance; ETF_HOLDINGS stays gated. No live request, quota, heavy fixture, cleanup or cross-worktree write occurred.",
+  "latest_checkpoint": "2026-10-19 23:44Z: Common-baseline merge 4fd48056c3fb7d54678f9ba7741fa5fd06b0c473 is published/synchronized and exact CI39340838524 passed Backend, Frontend Unit, Branch-declared and Playwright. Read-only comparison of Provider 023d30c615ae1bfea3a79f90d4d814242cd5711e against a8440efb mapped the new shared operation-hold boundary: provider/operation and wildcard holds deny before adapter construction, reservation and transport; service aliases normalize only for hold lookup; malformed maps fail closed; the concrete operation remains the quota identity. ETF post-release tests now explicitly cover held/wildcard/aliased/malformed/unknown zero-transport behavior. Provider is still unaccepted/unreleased, ETF_HOLDINGS remains absent, and no product code, HTTP, quota, heavy fixture or cross-worktree write occurred.",
   "local_profile_execution": {
     "cleanup": {
       "host_wide_prune": false,
@@ -238,8 +237,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the validated enclosing common-baseline merge once and preserve its exact-source CI without a metadata-only follow-up. Then wait for the coordinator's explicit accepted Provider release in green staging before implementing the documented ETF_HOLDINGS capability/migration, reviewed route binding, shared recurring-cost onboarding, per-attempt transport, settlement/lineage and fail-closed tests. Keep MSMR/QQQ and Militia/GOOG quarantined; the current-source full_stack_browser gate remains required later.",
-  "plan_hash": "35c8033497d7695b7514e4978666e68e84b7037d5b6d192b0cdcf1df8c3db7e1",
+  "next_action": "Wait for the coordinator's explicit accepted Provider release in green staging. Verify the exact release/CI/acceptance record, merge only that staging SHA, then implement the documented ETF_HOLDINGS capability/migration, reviewed route binding, shared recurring-cost onboarding, released operation-hold mapping, per-attempt synchronous concrete transport, settlement/lineage and fail-closed tests. Keep MSMR/QQQ and Militia/GOOG quarantined; the current-source full_stack_browser gate remains required later.",
+  "plan_hash": "994b4e7c18235302fdbe48d38f0cb6068bef82f07e8a9fd1da89accec217ccdd",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -292,14 +291,14 @@
     "completed": [
       "EICP1"
     ],
-    "current_blocker": "Released common staging 281a57bd9fb782c0f85bfb5127c713ea15037f68 with exhaustive CI39335198284 is reconciled locally, with three Web Crypto/template conflicts resolved to released staging semantics. All 38 workstreams validate, diff-check passes, affected frontend units pass 153/153 and Playwright discovery lists 154 flows. One merge publication and exact branch CI remain. The baseline contains no accepted Provider product checkpoint; Provider source 6844a111 still owns backend gate33845 and has not been released through staging. The prepared ETF_HOLDINGS bridge remains gated. The evidence-backed ledgers retain 15 Tier-0 and 156 Tier-1 investigations; MSMR/QQQ and Militia/GOOG remain unresolved/quarantined with no retained response body or parsed-row evidence. Unknown/quota-held/paid/trial/unsafe operations remain disabled.",
-    "current_phase": "common_baseline_281a57_validated_pending_publication",
-    "next_action": "Publish the validated enclosing 281a57bd common-baseline merge once and retain its exact-source CI. Then wait for the coordinator's accepted Provider release in green staging before implementing the documented ETF_HOLDINGS bridge. Keep MSMR/QQQ and Militia/GOOG quarantined; full_stack_browser remains a later mandatory gate.",
+    "current_blocker": "Common staging 281a57bd9fb782c0f85bfb5127c713ea15037f68 is published in ETF merge 4fd48056c3fb7d54678f9ba7741fa5fd06b0c473 with exact CI39340838524 green, but it contains common repairs only and product checkpoints remain 0/4. Provider candidate 023d30c615ae1bfea3a79f90d4d814242cd5711e adds operation-level checkpoint holds before adapter construction/reservation/transport but remains unaccepted/unreleased; ProviderCapability.ETF_HOLDINGS is absent. The bridge remains gated. The evidence-backed ledgers retain 15 Tier-0 and 156 Tier-1 investigations; MSMR/QQQ and Militia/GOOG remain unresolved/quarantined with no retained response body or parsed-row evidence. Unknown/quota-held/paid/trial/unsafe operations remain disabled, and full_stack_browser remains open.",
+    "current_phase": "common_baseline_published_green_waiting_accepted_provider_release",
+    "next_action": "Wait for the coordinator's accepted Provider release in exact green staging, merge only that SHA, then implement the documented ETF_HOLDINGS bridge including released operation-hold zero-transport tests. Keep MSMR/QQQ and Militia/GOOG quarantined; full_stack_browser remains a mandatory later gate.",
     "total": 7,
-    "updated_at": "2026-10-19T23:17:00.000000+00:00"
+    "updated_at": "2026-10-19T23:44:19.000000+00:00"
   },
-  "remote": "d1c560dc95d681fb5c67bf8916846a2f354bb5f5",
-  "remote_sha": "d1c560dc95d681fb5c67bf8916846a2f354bb5f5",
+  "remote": "4fd48056c3fb7d54678f9ba7741fa5fd06b0c473",
+  "remote_sha": "4fd48056c3fb7d54678f9ba7741fa5fd06b0c473",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

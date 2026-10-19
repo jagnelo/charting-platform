@@ -450,6 +450,56 @@ function or an awaitable return. Shared recurring-cost budget and commitment
 contracts now exist separately from `execute_provider_call`; they are not an
 implicit per-request budget check and paid activation remains prohibited.
 
+### Unreleased Provider operation-hold delta — 2026-10-19 23:44Z
+
+Read-only comparison of the newer published Provider candidate
+`023d30c615ae1bfea3a79f90d4d814242cd5711e` against the previously mapped
+`a8440efb82232a8b217df9c7330fab1795b257c9` found five backend paths changed:
+configuration, the shared runtime, their unit/secret-wiring tests and the
+example environment. The candidate remains unreleased and still has the same
+22 `ProviderCapability` values with no `ETF_HOLDINGS`. Its synchronous,
+non-awaitable `execute_provider_call` invocation contract is unchanged.
+
+The material new consumer contract is `PROVIDER_CHECKPOINT_OPERATION_HOLDS`.
+While the shared free-only checkpoint is active, the resolver evaluates an
+explicit provider/operation hold after entitlement admission but before adapter
+construction, durable quota reservation or transport. A wildcard can hold an
+entire provider. The service labels `bulk_fetch` and `fetch_rfr_ohlcv` normalize
+to `fetch_ohlcv`, and `reconcile_universe_page` normalizes to
+`discover_universe_page`, for hold lookup only; the original operation remains
+the quota-accounting identity. Malformed hold maps fail closed. The current
+candidate deliberately leaves EODHD `fetch_account_usage` outside its ordinary
+market-data holds, preserving its separate reviewed bootstrap exception.
+
+This strengthens but does not replace ETF onboarding. A hold is a checkpoint
+safety exclusion, not proof of publisher identity, entitlement, terms, quota,
+retention rights, recurring cost or live success. After an accepted Provider
+release, ETF must map every issuer operation to the released operation catalogue
+and verify that any absent or inadequate evidence remains non-routable through
+the shared policy plus hold boundary. ETF must not mutate the Provider default
+hold map to make a route pass, duplicate it in an ETF ledger, or treat the
+absence of a hold as admission.
+
+The combined-runtime test set must therefore add these exact cases:
+
+1. A held ETF operation and each released service alias are rejected before
+   adapter construction, reservation, request logging and every transport.
+2. The original concrete operation/attempt identity still reaches shared quota
+   accounting when an operation is admitted; alias normalization is not allowed
+   to collapse request, page, retry or redirect costs.
+3. Wildcard and operation-specific holds, malformed runtime configuration and
+   an unknown ETF operation fail closed with zero HTTPX, requests, curl or SEC
+   fallback calls.
+4. The documented account-usage exception cannot authorize ETF holdings or
+   issuer discovery, and disabling checkpoint mode is never an ETF-owned escape
+   from entitlement, recurring-cost or quota admission.
+
+Provider Actions `39342948219` and its combined browser/operation review were
+still active at this audit boundary. Persistent staging remained the common
+repair release `281a57bd9fb782c0f85bfb5127c713ea15037f68`; product checkpoints
+remained 0/4. These source facts are preparation evidence only, not Provider or
+ETF acceptance.
+
 The post-release implementation must therefore keep `AsyncSession` on its
 owning event loop and pass only a synchronous, complete one-attempt transport
 callback. For an async HTTPX route, that worker callback runs an attempt-local

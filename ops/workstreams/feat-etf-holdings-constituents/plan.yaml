@@ -338,7 +338,45 @@ common_baseline_reconciliation:
     Pre-publication stack-free checks passed: all 38 workstreams validated,
     git diff --check passed, the three affected frontend unit files passed
     153/153, and Playwright discovery listed 154/154 flows including F8u and
-    the F9c family without launching a browser. Exact branch CI remains required.
+    the F9c family without launching a browser. The enclosing merge was
+    published as 4fd48056c3fb7d54678f9ba7741fa5fd06b0c473 and exact Actions
+    39340838524 passed Backend, Frontend Unit, Branch-declared and Playwright;
+    Exhaustive was skipped by feature-branch policy. This does not satisfy the
+    later required current-source full_stack_browser profile.
+latest_provider_candidate_audit:
+  recorded_at: "2026-10-19T23:44:19Z"
+  inspected_source: 023d30c615ae1bfea3a79f90d4d814242cd5711e
+  prior_mapped_source: a8440efb82232a8b217df9c7330fab1795b257c9
+  release_state: unreleased_unaccepted
+  staging_state: 281a57bd9fb782c0f85bfb5127c713ea15037f68_common_repairs_only_0_of_4_product_checkpoints
+  material_delta: >-
+    Provider adds shared free-checkpoint operation holds evaluated after
+    entitlement but before adapter construction, durable quota reservation and
+    transport. Wildcard and operation-specific holds are supported; malformed
+    maps fail closed. Service aliases bulk_fetch/fetch_rfr_ohlcv normalize to
+    fetch_ohlcv and reconcile_universe_page normalizes to
+    discover_universe_page for hold lookup only, while quota accounting keeps
+    the original operation identity. The 22-value capability enum still lacks
+    ETF_HOLDINGS and execute_provider_call still requires a synchronous
+    concrete non-awaitable callback.
+  consumer_reconciliation: >-
+    After exact green Provider release, bind each ETF route to the released
+    operation catalogue and prove held, wildcard, aliased, malformed and
+    unknown operations deny before adapter construction, reservation and every
+    HTTPX/requests/curl/SEC transport. Absence of a hold is not admission; ETF
+    does not duplicate or weaken the shared hold/policy/ledger boundary. The
+    account-usage bootstrap exception cannot authorize holdings or discovery.
+  evidence_boundary: >-
+    Read-only static source comparison only. Provider Actions39342948219 and
+    its combined browser/operation review were still active. No Provider,
+    issuer or SEC request, quota operation, sibling write or heavy fixture was
+    performed.
+  validation: >-
+    All 38 workstreams validate; session JSON and every validation JSONL row
+    parse; session plan hash matches plan.yaml; git diff --check passes; branch
+    test resolution lists nine default commands and no live-enabled invocation.
+    No product test matrix or external request was run for this documentation
+    preparation.
 dependencies:
   - "Reviewed public, free, or already-entitled first-party issuer routes; no new paid entitlement is implied."
   - "feat/market-data-provider-platform must first reach staging; its shared provider runtime is the owner of generic capability, entitlement, quota, cost, health, and shadow contracts."
@@ -413,23 +451,22 @@ progress:
   completed:
     - EICP1
   total: 7
-current_phase: common_baseline_281a57_validated_pending_publication
+current_phase: common_baseline_published_green_waiting_accepted_provider_release
 current_blocker: >-
-  Released common staging 281a57bd9fb782c0f85bfb5127c713ea15037f68 with
-  exact exhaustive CI39335198284 is being reconciled into this ETF branch under
-  the coordinator's explicit auxiliary-backmerge authorization. It contains
-  workflow/F8u/F9c common repairs, not an accepted Provider checkpoint. The
-  three merge conflicts were limited to chart-template/watchlist key generation
-  and its unit assertion and are resolved to released staging's Web Crypto
-  getRandomValues contract. Stack-free checks pass: 38 workstreams, diff-check,
-  153 affected unit cases and 154 Playwright-discovered flows. Provider source
-  6844a111 still owns backend gate
-  33845 and is not released through green staging, so the prepared ETF_HOLDINGS
-  bridge remains gated. MSMR/QQQ and Militia/GOOG remain unresolved and
-  quarantined with no retained response or row evidence. The 15 Tier-0 and 156
-  Tier-1 investigations and 496/422/74 registry split remain preserved. No
-  issuer, SEC or provider request, quota operation, paid/trial activation,
-  heavy profile, service cleanup or cross-worktree write occurred.
+  Common staging 281a57bd9fb782c0f85bfb5127c713ea15037f68 is published in
+  the ETF branch as merge 4fd48056c3fb7d54678f9ba7741fa5fd06b0c473;
+  exact Actions39340838524 is green for Backend, Frontend Unit,
+  Branch-declared and Playwright. The baseline contains common workflow/F8u/F9c
+  repairs only and product checkpoints remain 0/4. Provider candidate
+  023d30c615ae1bfea3a79f90d4d814242cd5711e adds operation-level checkpoint
+  holds but remains unaccepted and unreleased while its combined profile and
+  operation review continue. ProviderCapability still lacks ETF_HOLDINGS, so
+  implementation remains gated on an exact accepted green staging release.
+  The 15 Tier-0 and 156 Tier-1 investigations and 496/422/74 registry split are
+  preserved. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined with no
+  retained response body or parsed-row evidence. Unknown/quota-held/paid/trial/
+  unsafe operations remain disabled. The required combined full_stack_browser
+  gate remains open.
 
 remaining_gaps:
   - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the documented native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, TrimTabs/Abacus FCF, Anydrus/NDOW, M.D. Sass/SASS, Amplius/AAAA, Argent/AMID-ABIG-ALIL, VistaShares/RTOO-AIS-AMMO-QUSA-OMAH-ACKY-DRKY, Baillie Gifford/BGGG-BGIA-BGEG-BGUS, and Arin/ATTR, current code and provider-universe documentation report 496/422/74 and future counts must remain derived."
@@ -1418,15 +1455,15 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Publish the validated enclosing common-baseline merge commit once, and retain
-  its exact-source branch CI receipt without a
-  metadata-only follow-up loop. Then wait for the coordinator's explicit
-  accepted Provider release in an exact synchronized green staging SHA. Verify
+  Wait for the coordinator's explicit accepted Provider release in an exact
+  synchronized green staging SHA. Verify
   the release/CI/acceptance record,
   merge only that SHA into this clean unfrozen ETF branch, record source and
   migration heads, and execute the documented bridge checklist: additive
   ETF_HOLDINGS enum/schema/seed/availability reconciliation; evidence-backed
   issuer/account/host/operation bindings; shared recurring-cost onboarding;
+  released operation-hold mapping with zero-adapter/zero-reservation/
+  zero-transport tests for wildcard, aliased, malformed and unknown operations;
   synchronous non-awaitable one-attempt callbacks inside async shared admission;
   separate admission for every redirect/retry/page/client fallback/SEC request;
   exact settlement and raw-artifact lineage; fail-closed zero-transport negative

@@ -11926,3 +11926,57 @@ prepared per-attempt bridge map and all 14 roadmap criteria remain intact.
 MSMR/QQQ and Militia/GOOG remain unresolved/quarantined. This receipt is inside
 the enclosing merge commit by design; verify that merge SHA and its one normal
 exact-source branch CI after publication, without a self-hash metadata commit.
+
+### Current Provider hold contract mapped — 2026-10-19 23:44Z
+
+The common-baseline merge is published and synchronized as
+`4fd48056c3fb7d54678f9ba7741fa5fd06b0c473`. Exact Actions `39340838524`
+passed Backend, Frontend Unit, Branch-declared and Playwright; Exhaustive was
+skipped by feature-branch policy. This closes the auxiliary reconciliation
+publication only. The ETF product checkpoint remains `in_progress`, and its
+current-source `full_stack_browser` profile remains required after the real
+shared-runtime bridge exists.
+
+Read-only comparison of Provider candidate
+`023d30c615ae1bfea3a79f90d4d814242cd5711e` with the previously mapped
+`a8440efb82232a8b217df9c7330fab1795b257c9` found a new shared
+`PROVIDER_CHECKPOINT_OPERATION_HOLDS` boundary. In free-checkpoint mode it
+rejects configured provider/operation or wildcard holds after entitlement but
+before adapter construction, durable quota reservation and transport. It maps
+`bulk_fetch` and `fetch_rfr_ohlcv` to `fetch_ohlcv`, and
+`reconcile_universe_page` to `discover_universe_page`, for hold lookup only;
+the original operation remains the quota-accounting identity. Malformed maps
+fail closed. The current EODHD account-usage bootstrap exception remains
+separate and cannot authorize holdings or discovery.
+
+The Provider candidate still exposes 22 capabilities without `ETF_HOLDINGS`,
+and `execute_provider_call` still rejects coroutine functions or awaitable
+results rather than awaiting them. ETF therefore retains its prepared
+synchronous one-attempt worker boundary and adds post-release tests proving
+held/wildcard/aliased/malformed/unknown ETF operations cause zero adapter
+construction, reservation, request log and HTTPX/requests/curl/SEC transport.
+Absence of a hold is not permission; shared entitlement, terms, account,
+quota/cost, recurring-cost and retention evidence remain independently
+required. ETF will not add a second hold map or ledger.
+
+At this boundary, Provider Actions `39342948219` and its combined local
+browser/operation review were still active. Persistent staging remains
+`281a57bd9fb782c0f85bfb5127c713ea15037f68`, a common-repair release with
+0/4 product checkpoints accepted. No Provider source was imported and no
+issuer, SEC or Provider request, quota operation, paid/trial activation, heavy
+fixture, service cleanup, staging/sibling write or deployment occurred.
+MSMR/QQQ and Militia/GOOG remain unresolved and quarantined; all fourteen
+roadmap criteria and the later observation gate remain open as recorded.
+
+Bounded validation passed: all 38 workstreams validate, session JSON and every
+validation JSONL row parse, the plan hash matches, `git diff --check` passes,
+and branch-test resolution still lists nine default commands with no
+live-enabled issuer invocation. No product test matrix was repeated for this
+documentation-only contract preparation.
+
+Next action: wait for the coordinator's explicit accepted, synchronized green
+Provider staging SHA. Then merge only that staging release into this branch and
+execute the documented capability/migration, identity, admission, operation
+hold, per-attempt transport, settlement, lineage, startup and combined-profile
+test checklist. Do not infer release from Provider branch CI or candidate
+publication.

@@ -470,3 +470,31 @@ producer while its corrected backend gate, migration equivalence and held-route
 review remain open. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined with
 no retained body or row evidence. No request or quota operation was made for
 this audit.
+
+### Candidate operation-hold contract delta — 2026-10-19 23:44Z
+
+The later published but still unaccepted Provider candidate
+`023d30c615ae1bfea3a79f90d4d814242cd5711e` adds shared, free-checkpoint
+operation holds. The resolver applies them before adapter construction,
+reservation and transport. Provider-wide wildcards and operation-specific
+reasons are supported; malformed maps fail closed. Hold lookup normalizes
+application service labels (`bulk_fetch` and `fetch_rfr_ohlcv` to
+`fetch_ohlcv`, `reconcile_universe_page` to `discover_universe_page`) without
+changing the concrete operation used for quota accounting. The synchronous
+non-awaitable callback contract and absence of `ETF_HOLDINGS` are unchanged.
+
+ETF must consume this as one layer of the released shared decision, never as a
+replacement for entitlement, terms, account, exact quota/cost, recurring-cost
+or retention evidence. Absence of a hold is not an allow. A hold cannot be
+removed or bypassed merely because a smaller request fits current quota, a paid
+routing flag is enabled, or an account-usage bootstrap exception exists. The
+post-release matrix must prove held/wildcard/aliased/malformed/unknown ETF
+operations produce zero adapter construction, reservation and transport, while
+admitted operations keep their exact per-attempt accounting identity. ETF adds
+no parallel hold map or ledger.
+
+At this review boundary, Provider Actions `39342948219` and its combined local
+profile/operation review were unfinished; staging
+`281a57bd9fb782c0f85bfb5127c713ea15037f68` remained a common-repair release
+with 0/4 product checkpoints accepted. No Provider, issuer or SEC request was
+made for this audit.
