@@ -51,12 +51,7 @@
     "status": "terminal green on exact published source 57d1767926eb96d98909712bf22c74ee9be6d443; transform-route lifecycle repair context closed",
     "visuals": "No pixel pass inferred; TCP2 full 104-case matrix and official V25 parity remain open."
   },
-  "dirty_paths": [
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -105,7 +100,7 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "57d1767926eb96d98909712bf22c74ee9be6d443",
+  "head": "enclosing_merge_commit_for_281a57bd9fb782c0f85bfb5127c713ea15037f68",
   "implementation_sha": "918b81eb06f1fb2979781946ddbf8b991b580703",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -138,7 +133,7 @@
     }
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-19T23:07:13+00:00",
+  "last_checkpoint": "2026-10-19T23:20:11+00:00",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
@@ -170,7 +165,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "4cc8ff6857e276bfd5885b8bdd1baa1206fa498210969fb17bf46c3a2eb5f2d6",
+  "plan_hash": "2620cee88304392d227e3e9e5bfcc3b5f23b2e080097b315d3798412d359a078",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -186,29 +181,29 @@
     "completed": [
       "TCP1"
     ],
-    "current_blocker": "Exact TC source57d17679 is clean, synchronized and green in CI39336228008 with190 passed/110 expected skips and zero retry/flaky/failure. TCP2 full104 awaits a coordinator-granted heavy browser slot. TCP3 awaits accepted Provider then ETF product releases; Provider5a372b4e is CI-green but not accepted while held-operation posture/final evidence remain open, and ETF is still gated. TCP4-TCP5 and REF-HELP-V25 remain open.",
+    "current_blocker": "The enclosing merge reconciles exact green common staging281a57bd/CI39335198284 while preserving TC hydration, route-lifecycle, mount-cleanup and plot-drop behavior plus staging tokenized occurrence ownership and F9c geometry. Exact branch CI is pending. TCP2 full104 awaits a coordinator-granted heavy browser slot; TCP3 awaits accepted Provider then ETF product releases. TCP4-TCP5 and REF-HELP-V25 remain open.",
     "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_FULL_VISUAL_AND_FUNCTIONAL_GATES_OPEN;TCP3_PROVIDER_ETF_RELEASE_AND_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
-    "next_action": "Use the next coordinator-granted heavy browser slot for the unchanged full104 TCP2 matrix, or consume only the later accepted Provider-then-ETF green staging release for TCP3. Preserve the reviewed Help oracle and0.005 tolerance.",
+    "next_action": "Publish this exact common-baseline merge after stack-free checks and observe its automatic exact-source CI once. Then use the next coordinator-granted heavy browser slot for TCP2 or consume only later accepted Provider-then-ETF product staging for TCP3.",
     "total": 5,
-    "updated_at": "2026-10-19T23:07:13+00:00"
+    "updated_at": "2026-10-19T23:20:11+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "57d1767926eb96d98909712bf22c74ee9be6d443",
-    "current_pending_range": "owner-record closure for exact green implementation 57d1767926eb96d98909712bf22c74ee9be6d443",
+    "current_local_head": "enclosing_merge_commit_for_281a57bd9fb782c0f85bfb5127c713ea15037f68",
+    "current_pending_range": "f9dd0d3febd34f0274303671d673d63939d1fa10 plus exact staging parent 281a57bd9fb782c0f85bfb5127c713ea15037f68",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
-    "last_attempted_local_head": "57d1767926eb96d98909712bf22c74ee9be6d443",
-    "last_attempted_range": "7ded2f7183a3ba4b941983337bad5f82df785dc8..57d1767926eb96d98909712bf22c74ee9be6d443",
+    "last_attempted_local_head": "f9dd0d3febd34f0274303671d673d63939d1fa10",
+    "last_attempted_range": "57d1767926eb96d98909712bf22c74ee9be6d443..f9dd0d3febd34f0274303671d673d63939d1fa10",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "57d1767926eb96d98909712bf22c74ee9be6d443",
-    "status": "implementation source synchronized and exact CI39336228008 green; owner-record closure pending one separate checkpoint commit/push"
+    "remote_tracking_sha": "f9dd0d3febd34f0274303671d673d63939d1fa10",
+    "status": "owner-record closure f9dd0d3f is synchronized; exact common-staging backmerge is pending enclosing commit, push and automatic CI"
   },
-  "remote": "57d1767926eb96d98909712bf22c74ee9be6d443",
-  "remote_sha": "57d1767926eb96d98909712bf22c74ee9be6d443",
-  "remote_synchronized": true,
+  "remote": "f9dd0d3febd34f0274303671d673d63939d1fa10",
+  "remote_sha": "f9dd0d3febd34f0274303671d673d63939d1fa10",
+  "remote_synchronized": false,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"

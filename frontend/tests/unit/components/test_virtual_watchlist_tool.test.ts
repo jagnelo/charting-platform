@@ -20,7 +20,7 @@ const rows = [
 ]
 
 beforeEach(() => { apiGet.mockResolvedValue([]); apiPost.mockReset(); apiPut.mockReset(); apiDelete.mockReset() })
-afterEach(() => { apiGet.mockReset(); apiPost.mockReset(); apiPut.mockReset(); apiDelete.mockReset() })
+afterEach(() => { apiGet.mockReset(); apiPost.mockReset(); apiPut.mockReset(); apiDelete.mockReset(); vi.unstubAllGlobals() })
 
 describe('VirtualWatchlistTool', () => {
   it('launches the exact canonical source in Market Map, including locked universes', async () => {
@@ -1332,6 +1332,34 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('update:pinnedBooleanKeys')?.at(-1)).toEqual([['above_ma50']])
     expect(wrapper.emitted('update:columnGroups')?.at(-1)).toEqual([{ rsi14: 'Momentum' }])
     expect(wrapper.emitted('update:stackedColumnKeys')?.at(-1)).toEqual([['rsi14']])
+  })
+
+  it('saves a column set when the browser crypto surface has no randomUUID', async () => {
+    const getRandomValues = vi.fn((values: Uint32Array) => {
+      values[0] = 0xdeadbeef
+      return values
+    })
+    vi.stubGlobal('crypto', { getRandomValues } as unknown as Crypto)
+    apiPut.mockResolvedValue({})
+    expect(crypto).not.toHaveProperty('randomUUID')
+
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: { label: 'Sectors', rows, visibleColumnKeys: ['symbol'] },
+    })
+    await vi.waitFor(() => expect(wrapper.get('button[aria-label="Column sets"]').exists()).toBe(true))
+    await wrapper.get('button[aria-label="Column sets"]').trigger('click')
+    await wrapper.get('input[aria-label="Column set name"]').setValue('Momentum Set')
+    await wrapper.findAll('button').find(button => button.text() === 'Save set')!.trigger('click')
+
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalled())
+    expect(getRandomValues).toHaveBeenCalledOnce()
+    expect(apiPut).toHaveBeenCalledWith('/workspaces/library/items/column_set/momentum-set-deadbeef', expect.objectContaining({
+      kind: 'column_set',
+      stable_key: 'momentum-set-deadbeef',
+      name: 'Momentum Set',
+      payload: expect.objectContaining({ configuration: expect.objectContaining({ column_keys: ['symbol'] }) }),
+    }))
+    expect(wrapper.find('.watchlist__column-set-error').exists()).toBe(false)
   })
 
   it('adds a saved Python column and renders isolated batch cells', async () => {

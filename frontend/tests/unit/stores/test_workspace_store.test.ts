@@ -1170,18 +1170,25 @@ describe('workspace store layout tabs', () => {
   it('keeps an explicit occurrence date ahead of stale chart cursors during symbol hydration', () => {
     const store = useWorkspaceStore()
 
-    store.publishSymbol({ symbol: 'SPY', timestamp: '2026-06-27T00:00:00Z', group: 'blue', sourceWindowKey: 'workstation' })
+    const firstToken = store.publishSymbol({ symbol: 'SPY', timestamp: '2026-06-27T00:00:00Z', group: 'blue', sourceWindowKey: 'workstation' })!
     store.publishTimestamp('2025-12-29T21:00:00Z', 'blue', 'chart-panel')
 
     expect(store.linkedTimestamp).toBe('2026-06-27T00:00:00Z')
 
-    store.publishSymbol({ symbol: 'SPY', timestamp: '2026-06-28T00:00:00Z', group: 'blue', sourceWindowKey: 'workstation' })
-    store.clearExplicitLinkedTimestamp('2026-06-27T00:00:00Z', 'blue')
+    const sameDateToken = store.publishSymbol({ symbol: 'QQQ', timestamp: '2026-06-27T00:00:00Z', group: 'blue', sourceWindowKey: 'workstation' })!
+    expect(sameDateToken).not.toBe(firstToken)
+    store.clearExplicitLinkedTimestamp('2026-06-27T00:00:00Z', firstToken, 'blue')
+    store.publishTimestamp('2025-12-29T21:00:00Z', 'blue', 'chart-panel')
+
+    expect(store.linkedTimestamp).toBe('2026-06-27T00:00:00Z')
+
+    const newerToken = store.publishSymbol({ symbol: 'SPY', timestamp: '2026-06-28T00:00:00Z', group: 'blue', sourceWindowKey: 'workstation' })!
+    store.clearExplicitLinkedTimestamp('2026-06-27T00:00:00Z', sameDateToken, 'blue')
     store.publishTimestamp('2025-12-29T21:00:00Z', 'blue', 'chart-panel')
 
     expect(store.linkedTimestamp).toBe('2026-06-28T00:00:00Z')
 
-    store.clearExplicitLinkedTimestamp('2026-06-28T00:00:00Z', 'blue')
+    store.clearExplicitLinkedTimestamp('2026-06-28T00:00:00Z', newerToken, 'blue')
     store.publishTimestamp('2025-12-29T21:00:00Z', 'blue', 'chart-panel')
 
     expect(store.linkedTimestamp).toBe('2025-12-29T21:00:00Z')

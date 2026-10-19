@@ -1030,7 +1030,7 @@ async function selectSymbol(raw: string, timestamp?: string, allowNavigationFall
   // selection from a constituent list may itself have no holdings endpoint, but
   // its relevant ratio denominator is still the list's active ETF.
   const comparisonETF = workspaceStore.constituentETF
-  workspaceStore.publishSymbol({
+  const explicitTimestampToken = workspaceStore.publishSymbol({
     symbol,
     ...(typeof canonicalInstrumentId === 'number' ? { instrumentId: canonicalInstrumentId } : {}),
     timestamp,
@@ -1054,7 +1054,9 @@ async function selectSymbol(raw: string, timestamp?: string, allowNavigationFall
       }
     }
   } finally {
-    if (timestamp) workspaceStore.clearExplicitLinkedTimestamp(timestamp, 'blue')
+    if (timestamp && explicitTimestampToken != null) {
+      workspaceStore.clearExplicitLinkedTimestamp(timestamp, explicitTimestampToken, 'blue')
+    }
   }
 }
 

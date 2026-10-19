@@ -409,3 +409,83 @@ publish its session state, verify clean matching HEAD/origin, then open the
 product-geometry context. Use only assigned resources and preserve exact
 before/after evidence. The session-local goal uses the concise plan goal without
 a token budget; the helper's expanded goal request is guidance, not a replacement.
+
+## 2026-10-16 — Provider-first browser repair
+
+The already-released chart-template pointer/workspace repair remains preserved
+in synchronized staging. The active delta on this coordinator-owned repair line
+is now limited to two TC-owned changes that unblock Provider's required browser
+profile: wait for the actual WorkstationView mount-settled lifecycle before
+processing a cold-navigation Add Tool command, and let the F8s broad route
+fallback reach the earlier deterministic `us-benchmarks` fixture while
+asserting that fixture was used. The eight family identity/source assertions
+are unchanged; no live endpoint, provider, quota, Help reference, screenshot
+oracle, retained dataset, or sibling worktree is touched.
+
+The source changes were copied from TC's pushed, exact-tested source at
+`32e9c48` and `0c7bc1b`, excluding TC-owned workstream metadata. TC's exact run
+`38930779878` passed all required branch jobs, including both F9e/F8s source
+paths; it is supporting evidence, not this repair branch's own CI. Local
+validation here passes Vue type-check, all 937 frontend unit tests, production
+build, workstream validation (33 records), and collection of the 11 targeted
+F9e/F8s tests. No browser was launched locally because this host cannot access
+Docker; exact repair-branch CI and staging Exhaustive gate remain mandatory.
+
+Next: publish this clean, narrowly scoped candidate; audit exact branch CI and
+no-retry F9e/F8s results; then use only guarded persistent-staging integration
+and wait for its exact exhaustive green receipt. After release, Provider may
+rerun its own full 260-case profile against synchronized green staging. This
+does not accept the TC feature checkpoint or alter Provider's quota/operation
+holds, and it authorizes no deployment, paid activation, trial, or cleanup.
+
+## 2026-10-16 — exact-CI F8j conflict-fixture flake and correction
+
+Exact branch CI run `38936986127` for source
+`878a0acf5c00135a56b6e51dee04245356beeced` passed Branch-declared, Backend,
+and Frontend Unit jobs, and executed the 260-case Playwright profile. F9e
+EasyScan readiness and F8s family-matrix fallback passed. The profile had 150
+passes, 109 expected skips, and one retry-passing F8j conflict-flow flake; the
+no-retry repair gate therefore remains red. The failure was the recovery-copy
+assertion timing out with the normal `Current · canonical` footer.
+
+The cause is test-fixture behavior: it disabled its simulated 409 after the
+first Notes snapshot. If that request is superseded by a newer local workspace
+generation while in flight, `saveSnapshot` correctly defers recovery and
+schedules another save. The one-shot fixture then let that retry succeed, so
+the recovery path was never exercised. The test fixture now keeps returning
+409 only for the newly added Notes window until the recovery-copy POST occurs,
+then stops injecting conflicts. It asserts that both the conflict and recovery
+copy occurred and retains both original user-visible recovery assertions. No
+product conflict behavior or assertion was weakened. Playwright collection of
+the focused F8j case and `git diff --check` pass locally; no local browser or
+Docker stack was launched because this host cannot access Docker.
+
+Next: publish this test-only correction and require a fresh exact-source full
+branch run with no retries or flakes. If green, record delegated technical
+closure, use only the guarded persistent-staging merge, and require the exact
+staging Exhaustive Integration Gate before releasing Provider's held 260-case
+profile. No provider request, quota spend, staging mutation, or dataset cleanup
+occurred in this correction step.
+
+## 2026-10-16 — Exact-source repair CI green and delegated closure
+
+The exact pushed repair tip `c9127042fa25aaed687dc59787bff607e68338f4`
+completed CI run `38940886651`, attempt 1. Branch-declared, Backend, Frontend
+Unit, and E2E jobs passed. Playwright executed 260 cases: 151 passed, 109
+expected skips, zero failures/retries/flakes, in 14.3 minutes. The complete log
+shows F9e-easyscan-builder-keyboard, F8j/F8j-conflict, and F8s-family-matrix
+each in the first attempt. Isolated runner teardown passed. Exhaustive
+Integration Gate was skipped as expected on a feature branch; it remains
+mandatory for the resulting staging SHA. The run validates the mount-settled
+Add Tool command, deterministic F8s local fixture fallback, and persistent F8j
+conflict fixture without weakening product/identity assertions. It does not
+claim the 104 visual cases; prior full visual evidence remains in the earlier
+repair receipt and the staging gate must repeat visual validation.
+
+The repair workstream is recorded ready for guarded integration under the
+human-delegated narrow technical-fix review. Staging acceptance remains pending,
+and no feature checkpoint is accepted. Next: exact CI on this closure-record commit, guarded
+integration into persistent staging, then exact staging Exhaustive success.
+Only after that green staging release may Provider rerun its held 260-case
+profile. No provider HTTP/quota, dataset cleanup, visual oracle/tolerance,
+deployment, paid/trial activation, or sibling source change occurred.

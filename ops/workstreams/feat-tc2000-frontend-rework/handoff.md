@@ -21635,3 +21635,47 @@ after the coordinator grants the heavy browser slot, or TCP3 reconciliation
 after accepted Provider then ETF staging releases. The reviewed local-only Help
 reference remains unchanged and official `REF-HELP-V25` remains
 `required_missing`. TCP2-TCP5 and the complete V25 roadmap stay open.
+
+## 2026-10-19 23:20Z — Exact green common baseline reconciled
+
+The route-lifecycle context first closed cleanly in owner commit `f9dd0d3f`,
+which was pushed with local/remote parity. The coordinator then explicitly
+released synchronized common staging
+`281a57bd9fb782c0f85bfb5127c713ea15037f68`; its canonical receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/20261019T230653Z-281a57bd9fb7.json`
+and records state `green` for exact Actions run `39335198284`. This common
+workflow/F8u/F9c baseline contains auxiliary source `afbb72d6`, passed the
+Exhaustive gate, `155` functional cases with `106` expected skips, and all
+`104` strict common-baseline visuals. It is not a Provider, ETF, TC, or Strategy
+product-checkpoint acceptance.
+
+The enclosing merge reconciles that exact staging commit into this TC branch.
+Six overlapping paths were resolved semantically. TC retains local OHLC
+hydration concurrency, successful-transform-continuation-before-unroute,
+pop-out mount/unmount cleanup, explicit multi-output plot-drop rejection, and
+bidirectional template keyboard coverage. The merge accepts staging's
+tokenized explicit occurrence-date ownership (including same-date supersession
+protection), accepted F8u live-configuration behavior, the separate right-hand
+Plots geometry slot, and the populated-comparison desktop/narrow ordinary-hit
+regression. The crypto-without-randomUUID unit proof retains deterministic
+staging assertions plus TC's explicit component/global cleanup. Frozen foreign
+workstream records are preserved from staging.
+
+Only stack-free merge checks are permitted before publication because Provider
+owns the sole heavy local slot. No local browser, Compose, backend/frontend
+matrix, production build, heavy typecheck, provider/issuer request, service or
+retained-data action is part of this reconciliation. Exact branch CI is still
+required after the merge is pushed. The reviewed local-only Help references,
+all functional assertions, retries, diagnostics and the `0.005` screenshot
+tolerance are unchanged. TCP2's complete normalized `104`-case TC matrix,
+TCP3 Provider/ETF product-consumer reconciliation, TCP4 combined validation,
+TCP5 review, and official `REF-HELP-V25` parity all remain open.
+
+The ownership guard remains anchored at approved checkpoint `2b92c642`. The
+merge adds only `22` exact shared-path exceptions for frozen coordinator files;
+there are no wildcards or Provider/ETF exclusions relaxed. Explicit blob
+comparison proved all `22/22` files match staging `281a57bd` byte-for-byte in
+both the staged index and working tree. The scope guard then passed all `48`
+changed paths and all six fail-closed self-tests. Any later drift in those
+frozen paths requires explicit ownership reconciliation rather than a broader
+exception.

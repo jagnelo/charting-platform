@@ -2,9 +2,9 @@ schema: 4
 branch: feat/tc2000-frontend-rework
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
-parent_sha: 0145b65992b8692ce69f82f804f83f6c8e551fea
-latest_staging_parent_sha: 0145b65992b8692ce69f82f804f83f6c8e551fea
-latest_staging_merge_sha: 2b92c642237ce2abde40a84ee98383d4ee4285d1
+parent_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
+latest_staging_parent_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
+latest_staging_merge_sha: enclosing_merge_commit
 dependency_authorization: "Human-approved consumer dependency on feat/market-data-provider-platform and feat/etf-holdings-constituents; consume only after their work reaches staging."
 human_intent_authorization: >-
   The human approved implementation of the TC2000 V25-inspired workstation roadmap
@@ -30,27 +30,24 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Exact TC source 57d1767926eb96d98909712bf22c74ee9be6d443 is clean and
-  synchronized. Exact run39336228008 passed Backend, Frontend Unit,
-  Branch-declared and Playwright on attempt1. The terminal browser log reports
-  190 passed and110 expected skips in16.7m with no retry, flaky or failure;
-  F9c-transform executed once with its pending0-canvas and eventual2-canvas
-  assertions unchanged. The strict20-second lifecycle performance test also
-  passed. This closes the transform-route lifecycle repair context without
-  changing product source, timeouts, retries, diagnostics or visual policy.
+  The enclosing merge reconciles exact synchronized green common staging
+  281a57bd9fb782c0f85bfb5127c713ea15037f68 / run39335198284 into the TC
+  branch under the coordinator's bounded authorization. It preserves TC's
+  local-chart hydration optimization, transform-route continuation ordering,
+  mount cleanup and plot-drop validation while accepting staging's tokenized
+  occurrence-date ownership, F8u common repair, F9c geometry and ordinary
+  populated-comparison regression. This common baseline is not Provider, ETF,
+  TC or Strategy product-checkpoint acceptance.
 
-  Auxiliary geometry repair afbb72d6 is now present in synchronized staging
-  281a57bd9fb782c0f85bfb5127c713ea15037f68, whose exact run39335198284 has
-  all jobs green including Exhaustive. This remains a common repair baseline,
-  not a Provider, ETF or TC product-checkpoint acceptance. Provider exact source
-  5a372b4ec83a0c84ec15dd7f8593362b9e27cd35 / run39332553099 is green, but
-  its coordinator acceptance remains open while held-operation runtime posture
-  and final-source evidence are reconciled. ETF remains gated on the accepted
-  Provider staging release. TC therefore must not merge or wire either producer
-  yet. TCP2 still requires the complete normalized104-case matrix in a granted
-  isolated slot; the reviewed local-only Help reference stays at unchanged0.005
-  tolerance and REF-HELP-V25 remains required_missing. Provider owns the heavy
-  local slot. TCP3, TCP4, TCP5 and every full-roadmap criterion remain open.
+  Cheap exact-merge scope, workstream, syntax/diff and Playwright-discovery
+  checks remain required before publication, followed by normal exact-source
+  CI. Provider owns the heavy local slot, so no local browser, Compose, build,
+  typecheck or full matrix runs are authorized here. TCP2 still requires the
+  complete normalized104-case matrix in a granted isolated slot. TCP3 remains
+  gated on later accepted Provider then ETF product staging releases; TCP4,
+  TCP5 and every full-roadmap criterion remain open. The reviewed local-only
+  Help reference and unchanged0.005 tolerance remain intact, and
+  REF-HELP-V25 remains required_missing.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -488,19 +485,20 @@ upstream_release_preparation:
   map: ops/workstreams/feat-tc2000-frontend-rework/post-release-reconciliation-map.md
   tc_source: c8d386d01c65b3eb31e8ddc8f30df1c00822837f
   tc_ci: 39140104361
-  staging_source: 26443f94c5b9fd3741d28db392fecf9aafe9c699
-  staging_ci: 39294027643
+  staging_source: 281a57bd9fb782c0f85bfb5127c713ea15037f68
+  staging_ci: 39335198284
   accepted_product_checkpoints: 0
   provider_candidate: a8440efb82232a8b217df9c7330fab1795b257c9
   provider_ci: 39305740911
   provider_disposition: candidate_pending_corrected_backend_migration_and_held_operation_gates
   etf_preparation: d1c560dc95d681fb5c67bf8916846a2f354bb5f5
   etf_disposition: preparation_only_pending_provider_release
-  geometry_candidate: e995d501c56bbd3427d8023a0b14e8ef6e37677b
-  geometry_ci: 39312017050
-  geometry_disposition: branch_green_pending_full_local_profile_and_green_staging_delivery
+  geometry_candidate: afbb72d6f718007421d99f8418c7f33d97c75ba3
+  geometry_ci: 39332070613
+  geometry_disposition: merged_to_exact_green_common_staging_281a57bd_and_reconciled_by_enclosing_tc_merge
   next_action: >-
-    Wait for the coordinator to release accepted Provider and then ETF through
+    After this exact common-baseline merge passes branch CI, wait for the
+    coordinator to release accepted Provider and then ETF through
     synchronized green staging. At that boundary inspect the exact released
     objects, merge only the named staging SHA into this branch, and execute the
     prepared canonical identity, series/coverage/derived-lineage,
@@ -768,6 +766,50 @@ shared_path_exceptions:
     reason: Shared staging integration implementation carried by the released 0145 common-repair merge; coordinator-owned workflow behavior.
   - path: tests/workflow/test_staging_workflow.py
     reason: Shared staging workflow regression tests carried by the released 0145 common-repair merge; coordinator-owned test infrastructure.
+  - path: ops/workflow-validation.jsonl
+    reason: Append-only coordinator workflow-validation evidence carried unchanged by released common staging281a57bd.
+  - path: ops/workstreams/fix-chart-template-key-generation/handoff.md
+    reason: Frozen coordinator repair handoff carried unchanged by released common staging281a57bd.
+  - path: ops/workstreams/fix-chart-template-key-generation/plan.yaml
+    reason: Frozen coordinator repair plan carried unchanged by released common staging281a57bd.
+  - path: ops/workstreams/fix-chart-template-key-generation/session.json
+    reason: Frozen coordinator repair session record carried unchanged by released common staging281a57bd.
+  - path: ops/workstreams/fix-chart-template-key-generation/validation.jsonl
+    reason: Frozen coordinator repair validation journal carried unchanged by released common staging281a57bd.
+  - path: ops/workstreams/fix-chart-template-pointer-interaction/handoff.md
+    reason: Frozen coordinator pointer-repair handoff carried unchanged by released common staging281a57bd.
+  - path: ops/workstreams/fix-chart-template-pointer-interaction/plan.yaml
+    reason: Frozen coordinator pointer-repair plan carried unchanged by released common staging281a57bd.
+  - path: ops/workstreams/fix-chart-template-pointer-interaction/validation.jsonl
+    reason: Frozen coordinator pointer-repair journal carried unchanged by released common staging281a57bd.
+  - path: ops/workstreams/fix-tc-occurrence-date-hydration/handoff.md
+    reason: Frozen coordinator occurrence-date repair handoff carried unchanged by released common staging281a57bd.
+  - path: ops/workstreams/fix-tc-occurrence-date-hydration/plan.yaml
+    reason: Frozen coordinator occurrence-date repair plan carried unchanged by released common staging281a57bd.
+  - path: ops/workstreams/fix-tc-occurrence-date-hydration/session.json
+    reason: Frozen coordinator occurrence-date repair session carried unchanged by released common staging281a57bd.
+  - path: ops/workstreams/fix-tc-occurrence-date-hydration/validation.jsonl
+    reason: Frozen coordinator occurrence-date repair journal carried unchanged by released common staging281a57bd.
+  - path: ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/handoff.md
+    reason: Frozen coordinator F9c geometry handoff carried unchanged by released common staging281a57bd.
+  - path: ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/plan.yaml
+    reason: Frozen coordinator F9c geometry plan carried unchanged by released common staging281a57bd.
+  - path: ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/session.json
+    reason: Frozen coordinator F9c geometry session carried unchanged by released common staging281a57bd.
+  - path: ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/validation.jsonl
+    reason: Frozen coordinator F9c geometry journal carried unchanged by released common staging281a57bd.
+  - path: ops/workstreams/fix-watchlist-plot-live-configuration/handoff.md
+    reason: Frozen coordinator F8u repair handoff carried unchanged by released common staging281a57bd.
+  - path: ops/workstreams/fix-watchlist-plot-live-configuration/plan.yaml
+    reason: Frozen coordinator F8u repair plan carried unchanged by released common staging281a57bd.
+  - path: ops/workstreams/fix-watchlist-plot-live-configuration/session.json
+    reason: Frozen coordinator F8u repair session carried unchanged by released common staging281a57bd.
+  - path: ops/workstreams/fix-watchlist-plot-live-configuration/validation.jsonl
+    reason: Frozen coordinator F8u repair journal carried unchanged by released common staging281a57bd.
+  - path: scripts/integration_queue.py
+    reason: Coordinator-owned guarded integration-queue implementation carried unchanged by released common staging281a57bd.
+  - path: tests/workflow/test_integration_queue.py
+    reason: Coordinator-owned guarded integration-queue regression carried unchanged by released common staging281a57bd.
 dependencies:
   - "feat/market-data-provider-platform (provider-neutral identifiers/listings, OHLCV, capability/entitlement/health, evaluator preflight, coverage state, and durable refresh handoff); dependency is not yet in staging."
   - "feat/etf-holdings-constituents (ETF holdings capability, audit, and source lineage); currently waits on provider-platform staging integration."
@@ -986,17 +1028,17 @@ progress:
     were skipped. Next diagnose F8m without relaxing the ordinary click or final
     chart-state assertions. TCP1 only accepted; TCP2-TCP5 and V25 parity open.
 current_checkpoint_status: >-
-  Superseding current boundary (2026-10-19): TC is synchronized at
-  c8d386d01c65b3eb31e8ddc8f30df1c00822837f with ordinary CI39140104361
-  green. Staging26443f94/CI39294027643 has zero accepted product checkpoints;
-  Providera8440efb/CI39305740911 is still a candidate pending corrected gates,
-  and ETFd1c560dc is preparation only. The exact post-release execution map is
-  post-release-reconciliation-map.md. No producer import, product wiring, merge,
-  checkpoint acceptance, or full-roadmap completion is claimed. Provider owns
-  the heavy slot; TCP2 full104, TCP3, TCP4, TCP5, and REF-HELP-V25 remain open.
-  The e995d501/CI39312017050 geometry repair is pending full local validation
-  and green staging delivery and is not duplicated here. Historical entries
-  below remain append-only evidence and do not override this boundary.
+  Superseding current boundary (2026-10-19T23:20Z): the enclosing merge brings
+  exact green common staging281a57bd9fb782c0f85bfb5127c713ea15037f68 / CI
+  39335198284 into the TC branch. This is the coordinator-released common
+  workflow/F8u/F9c repair only; product checkpoints remain0/4. TC hydration and
+  route-lifecycle fixes are preserved, as are staging's geometry, tokenized
+  occurrence ownership and frozen foreign workstream records. Exact branch CI
+  is still required after stack-free merge checks. No Provider/ETF product
+  import or wiring, checkpoint acceptance, or full-roadmap completion is
+  claimed. Provider owns the heavy slot; TCP2 full104, TCP3, TCP4, TCP5 and
+  REF-HELP-V25 remain open. Historical entries below remain append-only evidence
+  and do not override this boundary.
 
   TCP1 is coordinator-accepted narrowly: common green staging
   82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009 was reconciled by

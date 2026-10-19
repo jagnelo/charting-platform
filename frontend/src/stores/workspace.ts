@@ -1057,7 +1057,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   // An explicit historical selection wins over cursor publications from a
   // chart that is still rebuilding for the newly selected symbol. The owner
   // releases this intent after its data hydration and final cursor publish.
+  // Tokens ensure an older same-date selection cannot release a newer hold.
   const explicitLinkedTimestamps = ref<Partial<Record<LinkGroup, string>>>({})
+  const explicitLinkedTimestampTokens = ref<Partial<Record<LinkGroup, number>>>({})
+  let explicitLinkedTimestampSequence = 0
   const wildcardTimestamp = ref<string | null>(null)
   const linkedTimeframe = ref('D1')
   const linkedTimeframes = ref<Partial<Record<LinkGroup, string>>>({ blue: 'D1' })
@@ -1474,12 +1477,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     isPersistenceLeader.value = false
   }
 
-  function publishSymbol(event: LinkEvent) {
-    if (event.group === 'grey') return
+  function publishSymbol(event: LinkEvent): number | undefined {
+    if (event.group === 'grey') return undefined
     const explicitTimestamps = { ...explicitLinkedTimestamps.value }
-    if (event.timestamp) explicitTimestamps[event.group] = event.timestamp
-    else delete explicitTimestamps[event.group]
+    const explicitTokens = { ...explicitLinkedTimestampTokens.value }
+    const explicitToken = event.timestamp ? ++explicitLinkedTimestampSequence : undefined
+    if (event.timestamp && explicitToken != null) {
+      explicitTimestamps[event.group] = event.timestamp
+      explicitTokens[event.group] = explicitToken
+    } else {
+      delete explicitTimestamps[event.group]
+      delete explicitTokens[event.group]
+    }
     explicitLinkedTimestamps.value = explicitTimestamps
+    explicitLinkedTimestampTokens.value = explicitTokens
     if (event.sourceWindowKey === 'workstation') {
       latestWorkstationSymbol.value = event.symbol
       latestWorkstationInstrumentId.value = typeof event.instrumentId === 'number' ? event.instrumentId : null
@@ -1533,6 +1544,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
     channel?.postMessage({ ...event, type: 'symbol' })
     safeStorageSet(CHANNEL_NAME + ':symbol', JSON.stringify(event))
+    return explicitToken
   }
 
   function symbolForLinkGroup(group: LinkGroup, isolatedSymbol?: string | null) {
@@ -1578,11 +1590,18 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
-  function clearExplicitLinkedTimestamp(timestamp: string, group: LinkGroup = 'blue') {
-    if (!timestamp || explicitLinkedTimestamps.value[group] !== timestamp) return
+  function clearExplicitLinkedTimestamp(timestamp: string, token: number, group: LinkGroup = 'blue') {
+    if (
+      !timestamp
+      || explicitLinkedTimestamps.value[group] !== timestamp
+      || explicitLinkedTimestampTokens.value[group] !== token
+    ) return
     const explicitTimestamps = { ...explicitLinkedTimestamps.value }
+    const explicitTokens = { ...explicitLinkedTimestampTokens.value }
     delete explicitTimestamps[group]
+    delete explicitTokens[group]
     explicitLinkedTimestamps.value = explicitTimestamps
+    explicitLinkedTimestampTokens.value = explicitTokens
   }
 
   function hasExplicitLinkedTimestamp(group: LinkGroup) {
