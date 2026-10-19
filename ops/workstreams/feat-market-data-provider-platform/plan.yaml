@@ -1,4 +1,16 @@
 schema: 4
+# Operation exclusion correction — 2026-10-19 21:48Z. Exact implementation
+# `516285eb0f5be7204781a101514d6d1f70b4f389` adds configurable provider/operation
+# checkpoint holds enforced by the shared resolver before adapter construction,
+# quota reservation, or transport. CTA Plan, EODHD ordinary data operations,
+# Marketstack, Tiingo, Dinari Sandbox, and Bybit xStocks remain unavailable;
+# EODHD's exact reviewed zero-daily-credit `fetch_account_usage` exception and
+# minute accounting remain available. Six provider scenarios were tested under
+# both paid-toggle states with zero transport; EODHD operation-family and
+# configuration-propagation controls also pass. Exact Actions `39326236410` is
+# pending. The coordinator owns the heavy slot for the independent F9c geometry
+# profile; do not start full local backend/migration/Compose/browser validation
+# until central returns the slot with an actual released green staging SHA.
 # Acceptance audit — 2026-10-19 21:18Z. Exact source
 # `a8440efb82232a8b217df9c7330fab1795b257c9` passed the repository's unchanged
 # backend coverage gate under an isolated UV-managed CPython 3.12.11 runtime:

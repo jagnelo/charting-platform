@@ -1,5 +1,38 @@
 # feat/market-data-provider-platform
 
+## 2026-10-19 21:48Z — operation-level checkpoint exclusions fixed and pushed
+
+- Exact implementation `516285eb0f5be7204781a101514d6d1f70b4f389` is pushed and
+  clean. It adds `PROVIDER_CHECKPOINT_OPERATION_HOLDS`, a configurable
+  provider-to-operation reason map enforced by the ordinary resolver before
+  adapter construction, durable reservation, or transport. The map is exposed
+  in provider-status diagnostics and propagated to local and RPi backend/worker
+  services. It is disabled only when deliberately leaving free-only checkpoint
+  mode; all ordinary entitlement/quota/cost controls still remain.
+- Default holds preserve every current exclusion: CTA Plan; EODHD ordinary
+  history/latest/profile/discovery; Marketstack; Tiingo; Dinari Sandbox; and
+  Bybit xStocks. EODHD `fetch_account_usage` is intentionally absent from the
+  hold map, preserving only its reviewed zero-daily-credit bootstrap and normal
+  minute-request accounting.
+- Focused no-transport evidence is green: six held-provider resolver/executor
+  scenarios pass in both paid-toggle states, EODHD operation-family and
+  complete-map replacement tests pass, deployment/example propagation passes,
+  and the original full-roadmap EODHD entitlement test passes after explicitly
+  leaving checkpoint mode. Combined focused result: 10 passed; Ruff check and
+  format, diff check, and workstream validation pass. An attempted broader
+  module run exposed the expected old assertion before it was correctly scoped;
+  that exact test now passes. No provider/issuer HTTP, reservation, or quota
+  change occurred.
+- Exact hosted Actions run `39326236410` is pending on source `516285eb0`.
+  Keep the checkpoint `in_progress` until it is terminal green and all final
+  current-source gates are reconciled.
+- Central has borrowed the now-free heavy local slot for the independent F9c
+  geometry profile. Do not start full backend, migration, Compose, or browser
+  validation until central returns the slot and names the actual released green
+  staging SHA. Then reconcile that release into Provider and repeat the required
+  exact-current non-live gates; do not repeat provider live/browser evidence
+  merely for freshness.
+
 ## 2026-10-19 21:18Z — current-source backend/migration gates green; runtime exclusion gap confirmed
 
 - Exact source `a8440efb82232a8b217df9c7330fab1795b257c9` passed the unchanged
