@@ -15019,3 +15019,38 @@ guess Provider, ETF, or TC2000 contracts, and it does not close the combined
 PostgreSQL/application, coordinated Exhaustive, or local `full_stack_browser`
 gates. No Docker, browser, database, provider/quota, staging/sibling,
 paid/trial, or deployment operation ran.
+
+## 2026-10-19 20:30Z — published recovery receipt and post-release map
+
+Strategy `HEAD` and `origin/feat/strategy-lab-v2` are synchronized at
+`b6f1e48670a74aee669e9b80330fec836770fad1`. Its single push-triggered GitHub
+Actions run `39164386651` is terminal green for Branch-declared Tests, Frontend
+Unit Tests, Backend Tests (unit and Testcontainers integration), and E2E Tests
+(Playwright). Exhaustive Integration Gate was skipped by feature-branch policy.
+This closes ordinary exact-source CI for the admission/reservation binding
+hardening; it is not combined or checkpoint acceptance. Historical
+`54fa13e1`/`38820638540` exit 152 evidence remains preserved and unproven.
+
+The current writer claim is the human-authorized takeover
+`02d5ffaa-53b5-4dec-b39c-0f36612b5436`. Canonical preflight succeeded with an
+isolated UV cache; its optional runtime allocation probe could not write the
+shared read-only `allocations.lock`, so no runtime allocation or heavy test was
+attempted. The inherited `session.json` takeover metadata was retained.
+
+Read-only published-object inspection produced
+`post-release-reconciliation.md`: exact Provider identity/series/coverage,
+ETF point-in-time membership, TC immutable CodeVersion/Study output, Strategy
+host-adapter and worker terminal seams; positive, unavailable, restart and
+owner-isolation assertions; and the additive migration/full-test sequence.
+No sibling working tree or unpublished implementation was consumed.
+
+Persistent staging `26443f94c5b9fd3741d28db392fecf9aafe9c699`, exhaustive
+CI `39294027643`, is green only for shared repairs/workflow and contains zero of
+four product checkpoints. Provider candidate `a8440efb...` has green exact CI
+`39305740911`, 154 functional plus two expected skips, 104 strict visuals, and
+66/66 admitted live cases, but its corrected current-source local backend gate,
+migration/held-operation review, coordinator acceptance and staging release
+remain open. ETF and TC2000 follow. The precise wait condition is therefore the
+coordinator's explicit synchronized green Provider -> ETF -> TC2000 staging
+release. Until then, no combined adapter implementation, staging merge, heavy
+profile, provider call, broker/capital operation, or deployment is permitted.

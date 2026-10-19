@@ -21,24 +21,24 @@
       "text": "Publish a clean pushed checkpoint with tested source, impacts, limitations and outstanding roadmap; stop at ready_for_human_review, closure pending human acceptance."
     }
   ],
-  "active_session_id": "7319d459-2838-40e4-bee4-fded78f58e16",
+  "active_session_id": "02d5ffaa-53b5-4dec-b39c-0f36612b5436",
   "branch": "feat/strategy-lab-v2",
   "claim": {
     "branch": "feat/strategy-lab-v2",
-    "displaced_session_id": "35f63909-6dea-4459-9682-dc8eecc9c720",
+    "displaced_session_id": "7319d459-2838-40e4-bee4-fded78f58e16",
     "host": "m920q",
-    "session_id": "7319d459-2838-40e4-bee4-fded78f58e16",
+    "session_id": "02d5ffaa-53b5-4dec-b39c-0f36612b5436",
     "started_at": "2026-10-02T10:58:52.537175+00:00",
-    "taken_over_at": "2026-10-18T14:41:14.791793+00:00",
-    "takeover_request": "Human authorization on 2026-10-18: take over the current Strategy Lab v2 claim 35f63909-6dea-4459-9682-dc8eecc9c720 and continue this exact feature checkpoint toward staging acceptance. Preserve the full roadmap, trading safety, disabled-operation boundaries, and full validation requirements.",
+    "taken_over_at": "2026-10-19T00:02:35.411892+00:00",
+    "takeover_request": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for Strategy Lab v2 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging.",
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "backend/app/strategy_lab_v2/tests/test_worker_recovery_application.py",
-    "backend/app/strategy_lab_v2/worker_recovery_application.py",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/integration-checkpoint.md",
     "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
+    "ops/workstreams/feat-strategy-lab-v2/post-release-reconciliation.md",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
@@ -58,15 +58,15 @@
     "objective": "Advance feat/strategy-lab-v2: Prepare strategy-lab-v2-integration-1 for human review, preserving the complete original roadmap. Prepare independent consumer evidence now, then reconcile synchronized green staging after Provider, ETF and TC2000 integration and validate the combined application. Stop at ready_for_human_review.. Acceptance criteria: SLICP1: Preserve original goal and all 18 criterion IDs/texts, exhaustive dispositions and pending human acceptance; reconcile stale session progress with later evidence.; SLICP2: Prepare independent API/migration/worker and immutable-input consumer success/rejection evidence without importing unstaged implementations.; SLICP3: After Provider, ETF and TC2000 reach synchronized green staging and this source is unfrozen, merge staging here and reconcile canonical identity/series/coverage, known-at ETF membership and immutable CodeVersion/Study outputs.; SLICP4: Reconcile routers, migrations, configuration and Compose workers; pass full application and exact-source CI gates with unsupported scopes explicit and Nautilus RC results qualified by exact build and scope.; SLICP5: Publish a clean pushed checkpoint with tested source, impacts, limitations and outstanding roadmap; stop at ready_for_human_review, closure pending human acceptance.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "ready",
-  "goal_state": "active",
-  "head": "3cefa98e5a2a91b160c24d3fb384ea2144c17282",
-  "implementation_sha": "3cefa98e5a2a91b160c24d3fb384ea2144c17282",
-  "last_checkpoint": "2026-10-18T20:33:34Z",
+  "goal_state": "resumed_after_takeover",
+  "head": "b6f1e48670a74aee669e9b80330fec836770fad1",
+  "implementation_sha": "b6f1e48670a74aee669e9b80330fec836770fad1",
+  "last_checkpoint": "2026-10-19T20:30:13Z",
   "last_human_progress_update": "2026-10-16T10:17:02.035346+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "publish the bounded terminal-recovery admission/reservation binding hardening with the prior exact CI receipt, then inspect its single exact-source CI without rerun",
+  "next_action": "Wait for the coordinator's explicit synchronized green Provider -> ETF -> TC2000 staging release, then verify exact producer SHAs and implement the published post-release reconciliation map without enabling provider or broker traffic.",
   "parent_branch": "staging",
-  "plan_hash": "71c65c9aa90c2a275c2b42b3014183f3627c9080227237aa14aa481c535107fe",
+  "plan_hash": "1aa81e134d7fce40dac8e5ff3af692b7a4ab7d499076acd11d0fe6d14fe7d6a5",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -85,25 +85,26 @@
     "30f90c6b-6811-445f-803f-c3cf92312244",
     "37c1903b-49d2-4458-be7c-2dd5fa1b1f3f",
     "08c08eb6-dc6c-4327-b960-fa027e9e3c8a",
-    "35f63909-6dea-4459-9682-dc8eecc9c720"
+    "35f63909-6dea-4459-9682-dc8eecc9c720",
+    "7319d459-2838-40e4-bee4-fded78f58e16"
   ],
   "progress": {
     "completed": [
       "SLICP1",
       "SLICP2"
     ],
-    "current_blocker": "Historical exact source 54fa13e1ba17a40de6f242e16d5a96d8217615cb backend CI run 38820638540 exited 152 at 36% with no assertion or coverage summary; cause remains unproven. Exact pushed terminal-recovery causality source 3cefa98e5a2a91b160c24d3fb384ea2144c17282 passed hosted CI run 39161804027 with Branch-declared, Frontend Unit, Backend unit/integration and Playwright E2E green; Exhaustive was skipped by feature policy. Current admission/reservation binding hardening has bounded local evidence but no exact-source hosted CI yet. Staging 94c252d6b8767714df2c6c8840a2119f5aa161dd is green at exact CI 39137763218 for shared workflow/repair scope only; Provider, ETF and TC2000 product checkpoints remain unaccepted. The local full_stack_browser, combined PostgreSQL/application and coordinated exhaustive gates remain open and must not run while the retained-stack capacity hold applies.",
-    "current_phase": "terminal-recovery-admission-reservation-binding-awaiting-exact-ci",
-    "next_action": "Publish this bounded terminal-recovery admission/reservation binding hardening with the prior exact CI receipt and inspect its single exact-source CI without rerun. Continue only upstream-independent Strategy work until accepted Provider -> ETF -> TC2000 releases permit combined consumer reconciliation.",
+    "current_blocker": "Exact published Strategy source b6f1e48670a74aee669e9b80330fec836770fad1 passed hosted CI run 39164386651 with Branch-declared, Frontend Unit, Backend unit/integration and Playwright E2E green; Exhaustive was skipped by feature policy. Historical exact source 54fa13e1ba17a40de6f242e16d5a96d8217615cb backend CI run 38820638540 exit 152 remains unproven. Staging 26443f94c5b9fd3741d28db392fecf9aafe9c699 and exhaustive CI 39294027643 cover shared repairs/workflow only, with product checkpoints merged 0/4. Provider candidate a8440efb82232a8b217df9c7330fab1795b257c9 remains unaccepted while its corrected current-source local backend, migration and held-operation gates finish; ETF and TC2000 releases follow. Combined consumer wiring, PostgreSQL/application, coordinated exhaustive and local full_stack_browser gates therefore remain open, and Provider owns the sole heavy local slot.",
+    "current_phase": "post-release-reconciliation-prepared-awaiting-provider-etf-tc-release",
+    "next_action": "On explicit coordinator release, verify exact staged Provider, ETF and TC2000 SHAs; merge that synchronized green staging source through the owner workflow; implement and test the recorded identity/series/coverage, PIT membership, immutable Code/Study, migration and worker reconciliation map.",
     "total": 5,
-    "updated_at": "2026-10-18T20:33:34Z"
+    "updated_at": "2026-10-19T20:30:13Z"
   },
-  "remote": "3cefa98e5a2a91b160c24d3fb384ea2144c17282",
-  "remote_sha": "3cefa98e5a2a91b160c24d3fb384ea2144c17282",
+  "remote": "b6f1e48670a74aee669e9b80330fec836770fad1",
+  "remote_sha": "b6f1e48670a74aee669e9b80330fec836770fad1",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
-  "session_id": "7319d459-2838-40e4-bee4-fded78f58e16",
+  "session_id": "02d5ffaa-53b5-4dec-b39c-0f36612b5436",
   "state": "checkpointed",
   "takeover_history": [
     {
@@ -195,6 +196,12 @@
       "displaced_session_id": "35f63909-6dea-4459-9682-dc8eecc9c720",
       "new_session_id": "7319d459-2838-40e4-bee4-fded78f58e16",
       "reason": "Human authorization on 2026-10-18: take over the current Strategy Lab v2 claim 35f63909-6dea-4459-9682-dc8eecc9c720 and continue this exact feature checkpoint toward staging acceptance. Preserve the full roadmap, trading safety, disabled-operation boundaries, and full validation requirements."
+    },
+    {
+      "at": "2026-10-19T00:02:35.411892+00:00",
+      "displaced_session_id": "7319d459-2838-40e4-bee4-fded78f58e16",
+      "new_session_id": "02d5ffaa-53b5-4dec-b39c-0f36612b5436",
+      "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for Strategy Lab v2 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
   "validation_tier": "full_integration",

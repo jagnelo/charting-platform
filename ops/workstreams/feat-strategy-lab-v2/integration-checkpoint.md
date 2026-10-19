@@ -22,6 +22,11 @@ These are consumer-side contracts and independent tests, not proof of the future
 combined adapters. Required consumer behavior remains open until tested against
 the actual staged implementations. No provider, ETF or TC code is imported here.
 
+The exact callable/API/schema/worker reconciliation and assertion sequence is
+now recorded in `post-release-reconciliation.md`. It was derived from published
+producer Git objects only and remains prospective until the coordinator releases
+the accepted Provider -> ETF -> TC2000 staging chain.
+
 The capability service also has repeated-request evidence: after an earlier
 rigorous result, removed host coverage rejects a later identical request;
 coverage/engine resolver outages propagate failure without reusing prior success;

@@ -5,10 +5,10 @@ goal: Prepare strategy-lab-v2-integration-1 for human review, preserving the com
 integration_checkpoint:
   id: strategy-lab-v2-integration-1
   active_changeset:
-    name: strategy-common-repair-baseline-reconciliation
+    name: strategy-post-release-reconciliation-preparation
     status: in_progress
-    source_commit: 1fca3ec0b0f14d8e4f33ab25b0ce209847bd22de
-    intent: Reconcile the released common repair baseline into this same branch, preserve exact chart workspace semantics and Strategy migration safety, and make the standard backend coverage run include the existing Strategy v2 unit suite without lowering its threshold.
+    source_commit: b6f1e48670a74aee669e9b80330fec836770fad1
+    intent: Prepare exact published-producer adapter, migration and test steps while waiting for the coordinator's accepted Provider -> ETF -> TC2000 staging release; do not import or implement against unreleased feature sources.
     owned_paths:
       - backend/alembic/env.py
       - backend/alembic/versions/*strategy_lab*.py
@@ -25,6 +25,14 @@ integration_checkpoint:
       - frontend/tests/e2e/tc2000_visual.spec.ts
       - frontend/tests/unit/stores/test_workspace_store.test.ts
       - ops/workstreams/feat-strategy-lab-v2/
+  post_release_reconciliation_map: ops/workstreams/feat-strategy-lab-v2/post-release-reconciliation.md
+  current_coordination_boundary:
+    staging_sha: 26443f94c5b9fd3741d28db392fecf9aafe9c699
+    exhaustive_ci_run: 39294027643
+    scope: Shared repair/workflow baseline only; product checkpoints merged 0/4.
+    provider_candidate_sha: a8440efb82232a8b217df9c7330fab1795b257c9
+    provider_exact_ci_run: 39305740911
+    status: Provider acceptance and current-source local backend/migration/held-operation gates remain open; ETF and TC2000 releases follow in order.
   migration_collision_authorization: >-
     Central staging integration coordination authorizes auditing and resolving
     Strategy Alembic identifier collisions now. Preserve upstream-owned migrations
@@ -102,14 +110,15 @@ integration_checkpoint:
         cause. Do not rerun blindly or alter limits/thresholds; retain exact log
         and investigate boundedly after upstream green release.
     latest_exact_source_success:
-      sha: c9723d2b3718b9d598e0d8d307c9fbbd1d943187
-      run_id: 38907993948
+      sha: b6f1e48670a74aee669e9b80330fec836770fad1
+      run_id: 39164386651
       conclusion: success
       jobs: Branch-declared Tests, Frontend Unit Tests, Backend Tests, and E2E Tests (Playwright) succeeded; Exhaustive Integration Gate was skipped.
       scope_limit: >-
-        This is exact-source hosted CI, not the required local full_stack_browser
-        profile or post-Provider/ETF/TC combined consumer and PostgreSQL acceptance.
-        The historical 54fa13e1 exit-152 cause remains unproven.
+        This is exact-source hosted CI for terminal recovery admission/reservation
+        binding, not the required local full_stack_browser profile, coordinated
+        Exhaustive gate, or post-Provider/ETF/TC combined consumer and PostgreSQL
+        acceptance. The historical 54fa13e1 exit-152 cause remains unproven.
     previous_exact_source_success:
       sha: 9dd9a56251643275f285b8639403ed20a2acace4
       run_id: 38904567468
