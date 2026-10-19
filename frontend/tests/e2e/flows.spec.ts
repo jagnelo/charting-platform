@@ -6,6 +6,72 @@
  */
 import { test, expect, LoginPage, ChartPage, ScreenerPage, DashboardPage, RadarPage } from './helpers'
 import { closePopupWhenOpen } from './popup_cleanup'
+import type { Locator, Page } from '@playwright/test'
+
+async function findNarrowVisibleChart(page: Page): Promise<Locator> {
+  const charts = page.locator('.chart-tool:visible')
+  await expect.poll(() => charts.count(), { timeout: 15_000 }).toBeGreaterThan(0)
+  const count = await charts.count()
+  for (let index = 0; index < count; index += 1) {
+    const chart = charts.nth(index)
+    const surfaceWidth = await chart.locator('.chart-tool__surface').evaluate(surface => surface.getBoundingClientRect().width)
+    if (surfaceWidth > 0 && surfaceWidth < 520) return chart
+  }
+  throw new Error('The active workstation layout has no visible chart surface narrower than 520 CSS pixels')
+}
+
+async function resizeRightmostDesktopDockToNarrowChart(page: Page): Promise<void> {
+  const host = page.locator('.workspace-layout-host')
+  const hostBox = await host.boundingBox()
+  expect(hostBox).not.toBeNull()
+
+  // The factory US Top Down layout has three side-by-side columns. Keep the
+  // browser at desktop size and use its actual rightmost Golden Layout
+  // splitter to reproduce the narrow dock a user can create at 1920x1080.
+  const splitters = host.locator('.lm_splitter.lm_horizontal:visible')
+  await expect(splitters).toHaveCount(2)
+  const rightmostSplitter = splitters.nth(1)
+  const splitterBox = await rightmostSplitter.boundingBox()
+  expect(splitterBox).not.toBeNull()
+
+  const targetX = hostBox!.x + hostBox!.width - 480
+  expect(targetX).toBeGreaterThan(splitterBox!.x + splitterBox!.width / 2)
+  expect(targetX).toBeLessThan(hostBox!.x + hostBox!.width)
+
+  await page.mouse.move(splitterBox!.x + splitterBox!.width / 2, splitterBox!.y + splitterBox!.height / 2)
+  await page.mouse.down()
+  try {
+    await page.mouse.move(targetX, splitterBox!.y + splitterBox!.height / 2, { steps: 12 })
+  } finally {
+    await page.mouse.up()
+  }
+
+  await expect.poll(async () => {
+    const widths = await host.locator('.chart-tool:visible .chart-tool__surface').evaluateAll(
+      surfaces => surfaces.map(surface => surface.getBoundingClientRect().width).filter(width => width > 0),
+    )
+    return widths.some(width => width < 520)
+  }, { timeout: 10_000 }).toBe(true)
+}
+
+async function expectF9cComparisonAndPlotsHitTargets(chart: Locator) {
+  const geometry = await chart.evaluate(root => {
+    const plots = root.querySelector('.chart-tool__plots button') as HTMLElement | null
+    const comparison = root.querySelector('.chart-tool__compare-chip[title="Remove RSP"]') as HTMLElement | null
+    if (!plots || !comparison) throw new Error('Expected Plots and Remove RSP controls to coexist')
+    const plotsRect = plots.getBoundingClientRect()
+    const comparisonRect = comparison.getBoundingClientRect()
+    const centerHit = (target: HTMLElement, rect: DOMRect) => target.contains(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2))
+    return {
+      overlap: plotsRect.left < comparisonRect.right && plotsRect.right > comparisonRect.left && plotsRect.top < comparisonRect.bottom && plotsRect.bottom > comparisonRect.top,
+      plotsCenterHitsPlots: centerHit(plots, plotsRect),
+      comparisonCenterHitsRemove: centerHit(comparison, comparisonRect),
+    }
+  })
+  expect(geometry.overlap).toBe(false)
+  expect(geometry.plotsCenterHitsPlots).toBe(true)
+  expect(geometry.comparisonCenterHitsRemove).toBe(true)
+}
 
 
 // ── Auth flows ─────────────────────────────────────────────────────────────────
@@ -298,6 +364,75 @@ test.describe('Chart', () => {
     await saved.click()
     await expect(comparisonChip).toHaveCount(1, { timeout: 15_000 })
     await expect(comparisonChip).toContainText(/[+-]\d+\.\d{2}%/, { timeout: 15_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F9c-default-topdown-hit-targets — populated comparisons do not cover Plots in a narrow desktop chart', async ({ page, browserDiagnostics }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 })
+    await page.goto('/chart')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('.workstation__workspace-name')).toHaveText('US Top Down', { timeout: 15_000 })
+    expect(await page.evaluate(() => window.innerWidth)).toBe(1920)
+    await resizeRightmostDesktopDockToNarrowChart(page)
+    const chart = await findNarrowVisibleChart(page)
+    const templateName = `Narrow comparison ${Date.now()}`
+
+    await chart.getByTitle('Chart templates').click()
+    const menu = chart.locator('.chart-template__menu:visible').last()
+    await menu.getByRole('combobox', { name: 'Chart bar type' }).selectOption('line')
+    await chart.getByRole('textbox', { name: 'Comparison symbol', exact: true }).fill('RSP')
+    await chart.getByTitle('Add comparison').click()
+    const removeRSP = chart.getByTitle('Remove RSP')
+    await expect(removeRSP).toContainText(/[+-]\d+\.\d{2}%/, { timeout: 15_000 })
+    await menu.getByRole('textbox', { name: 'Chart template name' }).fill(templateName)
+    const saveRequest = page.waitForRequest(request => request.url().includes('/workspaces/library/items/chart_template/') && request.method() === 'PUT')
+    await menu.getByRole('button', { name: 'Save', exact: true }).click()
+    const savePayload = (await saveRequest).postDataJSON() as { payload?: { configuration?: Record<string, unknown> } }
+    expect(savePayload.payload?.configuration?.comparison_symbols).toEqual(['RSP'])
+    const saved = menu.locator('.chart-template__apply').filter({ hasText: templateName })
+    await expect(saved).toBeVisible({ timeout: 15_000 })
+    await menu.getByRole('button', { name: 'Close chart templates' }).click()
+
+    await expect(removeRSP).toContainText(/[+-]\d+\.\d{2}%/, { timeout: 15_000 })
+    await expectF9cComparisonAndPlotsHitTargets(chart)
+    await chart.getByRole('button', { name: 'Chart plot library' }).click()
+    const plotsMenu = chart.locator('.chart-plots__menu:visible')
+    await expect(plotsMenu).toBeVisible()
+    await plotsMenu.getByRole('button', { name: 'Close chart plot library' }).click()
+    await removeRSP.click()
+    await expect(removeRSP).toHaveCount(0)
+
+    await chart.getByTitle('Chart templates').click()
+    const restoredMenu = chart.locator('.chart-template__menu:visible').last()
+    const restored = restoredMenu.locator('.chart-template__apply').filter({ hasText: templateName })
+    await expect(restored).toBeVisible({ timeout: 15_000 })
+    await restored.click()
+    await expect(removeRSP).toBeVisible({ timeout: 15_000 })
+    await expect(removeRSP).toContainText(/[+-]\d+\.\d{2}%/, { timeout: 15_000 })
+    await expectF9cComparisonAndPlotsHitTargets(chart)
+    await chart.getByRole('button', { name: 'Chart plot library' }).click()
+    await expect(plotsMenu).toBeVisible()
+    await plotsMenu.getByRole('button', { name: 'Close chart plot library' }).click()
+    await removeRSP.click()
+    await expect(removeRSP).toHaveCount(0)
+
+    await page.setViewportSize({ width: 390, height: 800 })
+    const tcClassic = page.getByRole('tab', { name: 'TC Classic', exact: true }).first()
+    await expect(tcClassic).toBeVisible({ timeout: 15_000 })
+    await tcClassic.click()
+    await expect(tcClassic).toHaveClass(/workstation__tab--active/)
+    const mobileChart = await findNarrowVisibleChart(page)
+    await mobileChart.getByRole('textbox', { name: 'Comparison symbol', exact: true }).fill('RSP')
+    await mobileChart.getByTitle('Add comparison').click()
+    const mobileRemoveRSP = mobileChart.getByTitle('Remove RSP')
+    await expect(mobileRemoveRSP).toContainText(/[+-]\d+\.\d{2}%/, { timeout: 15_000 })
+    await expectF9cComparisonAndPlotsHitTargets(mobileChart)
+    await mobileChart.getByRole('button', { name: 'Chart plot library' }).click()
+    const mobilePlotsMenu = mobileChart.locator('.chart-plots__menu:visible')
+    await expect(mobilePlotsMenu).toBeVisible()
+    await mobilePlotsMenu.getByRole('button', { name: 'Close chart plot library' }).click()
+    await mobileRemoveRSP.click()
+    await expect(mobileRemoveRSP).toHaveCount(0)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
