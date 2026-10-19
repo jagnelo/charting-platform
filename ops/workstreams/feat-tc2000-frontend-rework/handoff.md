@@ -21508,3 +21508,54 @@ Provider and then ETF through synchronized green staging. At that boundary,
 inspect the named exact staging object, merge only that staging SHA into this
 branch, and execute the prepared map. Central coordination retains checkpoint
 acceptance and integration ownership.
+
+## 2026-10-19 21:54Z — Cold local-chart recovery diagnosis and candidate repair
+
+Automatic exact-source run `39323667928` on published source
+`375104a799acc969932a504d87f041816ad95066` is terminal red despite Backend,
+Frontend Unit, and Branch-declared success. E2E job `118307852149` reported
+`189` passed, `110` skipped, and one retry-flaky performance case. The first
+attempt of `workstation_performance.spec.ts:55` completed the two-popout
+lifecycle in `21529.5ms`, exceeding the unchanged strict `<20000ms` assertion;
+the retry passed. The red attempt and retry classification remain historical
+evidence and are not relabelled green.
+
+The coordinator-supplied artifact
+`/tmp/tc-performance-39323667928-coordinator.zip` is exactly `5904579` bytes,
+SHA-256 `55ec12d97c2ea8a002a88d60e61d42eafb71533a847ee954ae9f2778360b4da7`,
+and belongs to that source/run. Bounded read-only extraction kept the failed
+first-attempt screenshot/videos separate from the nested successful-retry
+trace. The first attempt returned the source tool count immediately after both
+popups closed but spent `12822ms` waiting for the source page to recover its
+exact canvas baseline. The successful retry recovered the same baseline in
+`1881ms`.
+
+The retry network trace establishes the lifecycle cause rather than merely a
+slow assertion: local-only XLB hydration was serialized as canonical
+instrument lookup, indicator lookup, and only then `/ohlcv/local/XLB/D1`.
+`UPlotChart` intentionally destroys the numerical renderer and drawing canvases
+while that chain is loading, so a cold serial chain directly prolongs the
+observed two-canvas loss. Popup geometry and Golden Layout fingerprint review
+did not support an unconditional full-layout reinstall explanation.
+
+The narrow candidate starts only the already-local-only OHLC database read in
+parallel with canonical instrument lookup. Indicator hydration remains gated on
+the resolved instrument, and non-local/provider-capable OHLC continues to start
+only after successful canonical resolution. It does not retain stale numerical
+renderers, raise the 20-second budget, change the 15-second convergence bound,
+alter retries/assertions, touch provider routing, or duplicate the coordinator's
+independent F9c geometry repair. Focused chart-store coverage passes `40/40`,
+including positive local concurrency and negative provider-capable ordering;
+`vue-tsc` and whitespace checks pass. No browser, Compose, Docker, migration,
+provider/issuer request, service action, data cleanup, screenshot, oracle, mask,
+skip, or `0.005` tolerance change occurred.
+
+Stack-free branch validation also passes: the production build, TC scope guard
+for all 26 changed paths, six scope self-tests, workstream validator, session
+JSON, append-only validation JSONL, plan YAML, and whitespace checks are green.
+This remains a candidate pending publication and fresh exact-source CI. It does
+not close TCP2's full normalized 104-case visual
+matrix, TCP3 Provider/ETF reconciliation, TCP4 combined validation, TCP5 review,
+or official `REF-HELP-V25` parity. The next action after this repair's exact CI
+is still the coordinator-released Provider-then-ETF staging boundary described
+in `post-release-reconciliation-map.md`.

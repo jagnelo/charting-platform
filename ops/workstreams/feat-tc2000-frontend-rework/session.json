@@ -37,24 +37,25 @@
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "current_exact_ci": {
     "attempt": 1,
-    "conclusion": "success",
-    "e2e_summary": "The coordinator reports the required ordinary E2E job green on exact source c8d386d; ordinary hosted CI is not the 104-case visual matrix and provides no official V25 acceptance.",
-    "head_sha": "c8d386d01c65b3eb31e8ddc8f30df1c00822837f",
+    "conclusion": "failure",
+    "e2e_summary": "E2E job 118307852149 reported 189 passed, 110 skipped, and one retry-flaky performance case: the first two-popout lifecycle attempt took 21529.5ms against the unchanged strict 20000ms budget; retry passed and fail-on-flaky correctly kept the run red.",
+    "head_sha": "375104a799acc969932a504d87f041816ad95066",
     "jobs": {
       "backend": "success",
-      "branch_declared": "success; the narrow Help-manifest shared-path declaration is accepted",
-      "e2e": "success",
+      "branch_declared": "success",
+      "e2e": "failure; 189 passed, 110 skipped, 1 retry-flaky performance case",
       "exhaustive_feature_branch": "skipped by branch policy",
       "frontend_unit": "success"
     },
-    "run_id": 39140104361,
-    "status": "terminal success on clean synchronized exact source c8d386d01c65b3eb31e8ddc8f30df1c00822837f; all required ordinary jobs passed",
+    "run_id": 39323667928,
+    "status": "terminal red on exact published source 375104a799acc969932a504d87f041816ad95066; a source-backed local-only chart hydration concurrency repair is pending publication",
     "visuals": "No pixel pass inferred; TCP2 full 104-case matrix and official V25 parity remain open."
   },
   "dirty_paths": [
+    "frontend/src/stores/chart.ts",
+    "frontend/tests/unit/stores/test_stores.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/post-release-reconciliation-map.md",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
     "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
@@ -106,7 +107,7 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "c8d386d01c65b3eb31e8ddc8f30df1c00822837f",
+  "head": "375104a799acc969932a504d87f041816ad95066",
   "implementation_sha": "918b81eb06f1fb2979781946ddbf8b991b580703",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -139,26 +140,26 @@
     }
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-19T20:54:35+00:00",
+  "last_checkpoint": "2026-10-19T21:54:41+00:00",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
-    "conclusion": "success",
-    "e2e_summary": "Coordinator-confirmed ordinary E2E success; no 104-case screenshot execution or official V25 acceptance inferred",
-    "head_sha": "c8d386d01c65b3eb31e8ddc8f30df1c00822837f",
+    "conclusion": "failure",
+    "e2e_summary": "189 passed, 110 skipped, one retry-flaky workstation performance case; first attempt 21529.5ms, retry passed, run remained red",
+    "head_sha": "375104a799acc969932a504d87f041816ad95066",
     "jobs": {
       "backend": "success",
       "branch_declared": "success",
-      "e2e": "success",
+      "e2e": "failure_retry_flaky_performance_budget",
       "exhaustive_feature_branch": "skipped_by_branch_policy",
       "frontend_unit": "success"
     },
-    "run_id": 39140104361,
-    "scope": "Exact branch/origin source c8d386d01c65b3eb31e8ddc8f30df1c00822837f; all required ordinary jobs passed per the coordinator's exact-source audit. Exhaustive remains skipped by feature-branch policy.",
+    "run_id": 39323667928,
+    "scope": "Exact published source 375104a799acc969932a504d87f041816ad95066. Backend, Frontend Unit, and Branch-declared passed; E2E stayed red because failOnFlaky preserved the first-attempt 20-second performance-budget violation. Exhaustive remained skipped by feature-branch policy.",
     "visuals": "No pixel pass inferred; TCP2 full 104-case local visual matrix and official V25 parity remain open."
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Wait for coordinator-released Provider then ETF green staging. At that boundary inspect the named staging object, merge only that exact staging SHA into this TC branch, and execute post-release-reconciliation-map.md; do not import sibling objects directly.",
+  "next_action": "Publish the narrow local-only chart hydration concurrency repair once after stack-free validation and require fresh exact-source CI. If green, resume waiting for coordinator-released Provider then ETF staging before executing post-release-reconciliation-map.md; do not import sibling objects directly.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -171,7 +172,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "82193a10bbcd2b8d8a34c2a9546e2cad88a57cfe753f375ecbb484550d4493da",
+  "plan_hash": "16b711e4ffde0a06e123138f4d965c49662792b9273d43c70d9cce65d716d339",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -187,28 +188,28 @@
     "completed": [
       "TCP1"
     ],
-    "current_blocker": "Exact TC source c8d386d01c65b3eb31e8ddc8f30df1c00822837f has green ordinary CI39140104361. Staging26443f94/CI39294027643 has zero product checkpoints; Providera8440efb/CI39305740911 remains unaccepted pending corrected gates and ETFd1c560dc is preparation-only. Provider owns the heavy slot. TCP2 full104, TCP3-TCP5 and REF-HELP-V25 remain open; geometry e995d501/CI39312017050 is unstaged and is not duplicated.",
+    "current_blocker": "Published TC source375104a7 has terminal-red CI39323667928 solely from one retry-flaky cold two-popout performance attempt. Artifact evidence supports a narrow local-only chart hydration concurrency repair; browser confirmation waits on fresh hosted exact-source CI because Provider/coordinator owns the sole heavy local slot. Provider/ETF releases remain absent, TCP2 full104, TCP3-TCP5 and REF-HELP-V25 remain open, and geometry e995d501 is not duplicated.",
     "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_FULL_VISUAL_AND_FUNCTIONAL_GATES_OPEN;TCP3_PROVIDER_ETF_RELEASE_AND_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
-    "next_action": "Use post-release-reconciliation-map.md only after the coordinator releases accepted Provider and then ETF through green staging. Preserve the reviewed Help oracle and 0.005 tolerance; do not start a browser/Compose profile while Provider owns the slot.",
+    "next_action": "Finish stack-free validation, publish the narrow local-only chart hydration repair once, and observe its fresh exact-source CI. Preserve the reviewed Help oracle and 0.005 tolerance; do not start a browser/Compose profile while the coordinator owns the slot.",
     "total": 5,
-    "updated_at": "2026-10-19T20:54:35+00:00"
+    "updated_at": "2026-10-19T21:54:41+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "c8d386d01c65b3eb31e8ddc8f30df1c00822837f",
-    "current_pending_range": null,
+    "current_local_head": "375104a799acc969932a504d87f041816ad95066",
+    "current_pending_range": "dirty local-only chart hydration repair based on 375104a799acc969932a504d87f041816ad95066",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
-    "last_attempted_local_head": "c8d386d01c65b3eb31e8ddc8f30df1c00822837f",
-    "last_attempted_range": "c21c985284f94667f1811e3cacd488072294105d..c8d386d01c65b3eb31e8ddc8f30df1c00822837f",
+    "last_attempted_local_head": "375104a799acc969932a504d87f041816ad95066",
+    "last_attempted_range": "c8d386d01c65b3eb31e8ddc8f30df1c00822837f..375104a799acc969932a504d87f041816ad95066",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "c8d386d01c65b3eb31e8ddc8f30df1c00822837f",
-    "status": "clean synchronized pushed source boundary; exact CI39140104361 terminal success; local owner-record reconciliation is not yet committed"
+    "remote_tracking_sha": "375104a799acc969932a504d87f041816ad95066",
+    "status": "published predecessor synchronized; CI39323667928 terminal red; narrow source-backed repair and owner evidence pending one coherent commit/push"
   },
-  "remote": "c8d386d01c65b3eb31e8ddc8f30df1c00822837f",
-  "remote_sha": "c8d386d01c65b3eb31e8ddc8f30df1c00822837f",
+  "remote": "375104a799acc969932a504d87f041816ad95066",
+  "remote_sha": "375104a799acc969932a504d87f041816ad95066",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",

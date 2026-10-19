@@ -207,6 +207,62 @@ describe('useChartStore', () => {
     expect(api.get).not.toHaveBeenCalledWith('/ohlcv/SPY/D1', expect.anything())
   })
 
+  it('starts local workstation bars while canonical instrument metadata is resolving', async () => {
+    let releaseInstrument!: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
+    let localBarsRequested = false
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/XLB') {
+        return new Promise(resolve => { releaseInstrument = resolve }) as any
+      }
+      if (path === '/ohlcv/local/XLB/D1') {
+        localBarsRequested = true
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+        ]) as any
+      }
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    const loading = store.loadBars('XLB', 'D1', 'candles', true)
+
+    await vi.waitFor(() => expect(localBarsRequested).toBe(true))
+    expect(api.get).not.toHaveBeenCalledWith('/instrument-indicators/42')
+    releaseInstrument({ id: 42, symbol: 'XLB', stats: { week52_high: 1 } })
+    await loading
+
+    expect(store.bars).toHaveLength(1)
+    expect(api.get).toHaveBeenCalledWith('/instrument-indicators/42')
+  })
+
+  it('keeps provider-capable bars behind canonical instrument resolution', async () => {
+    let releaseInstrument!: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/XLU') {
+        return new Promise(resolve => { releaseInstrument = resolve }) as any
+      }
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      if (path === '/ohlcv/XLU/D1') {
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+        ]) as any
+      }
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    const loading = store.loadBars('XLU', 'D1', 'candles', false)
+
+    await vi.waitFor(() => expect(releaseInstrument).toBeTypeOf('function'))
+    expect(api.get).not.toHaveBeenCalledWith('/ohlcv/XLU/D1', expect.anything())
+    releaseInstrument({ id: 42, symbol: 'XLU', stats: { week52_high: 1 } })
+    await loading
+
+    expect(api.get).toHaveBeenCalledWith('/ohlcv/XLU/D1', expect.anything())
+    expect(store.bars).toHaveLength(1)
+  })
+
   it('passes alternative-bar transform parameters and refetches when they change', async () => {
     ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
       if (path === '/instruments/SPY') return Promise.resolve({ id: 42, symbol: 'SPY', stats: { week52_high: 1 } }) as any

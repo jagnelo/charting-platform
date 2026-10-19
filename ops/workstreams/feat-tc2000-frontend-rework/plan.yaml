@@ -720,6 +720,13 @@ shared_path_exceptions:
   - path: frontend/src/stores/userSettings.ts
     owners: [TC]
     reason: accept HLC in existing chart preferences for the TC workstation; no provider or ETF settings.
+  - path: frontend/src/stores/chart.ts
+    owners: [TC, market-data-provider-platform]
+    reason: >-
+      Overlap only the TC workstation's already local-only OHLC read with
+      canonical instrument resolution; keep provider-capable reads gated on
+      successful identity resolution and do not change provider routing,
+      acquisition, fallback, quota, or entitlement behavior.
   - path: frontend/index.html
     owners: [TC]
     reason: Remove only the unconditional OneSignal CDN bootstrap so push notifications remain strictly opt-in; no unrelated shell or provider behavior.

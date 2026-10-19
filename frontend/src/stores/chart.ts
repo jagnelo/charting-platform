@@ -218,6 +218,22 @@ function createChartStore(storeId: string) {
         return
       }
 
+      // Workstation charts are explicitly local-only. Start that database read
+      // alongside canonical instrument resolution so a cold instrument lookup
+      // cannot serialize the two slowest parts of a symbol switch. Keep the
+      // provider-capable legacy path ordered behind instrument validation: this
+      // optimization must never turn an unresolved symbol into provider work.
+      const localBarsPromise: Promise<{ mapped: OHLCVBar[] | null; error: unknown | null }> | null = localOnly
+        ? fetchBarsPage(sym, tf, {
+            type: nextBarType,
+            localOnly: true,
+            transformParams: normalizedTransformParams,
+          }).then(
+            mapped => ({ mapped, error: null }),
+            error => ({ mapped: null, error }),
+          )
+        : null
+
       const loadedInstrument = await fetchInstrument(sym)
       if (!isCurrent()) return
       instrument.value = loadedInstrument
@@ -236,12 +252,20 @@ function createChartStore(storeId: string) {
         return
       }
 
-      const loadedIndicators = await fetchIndicatorsForInstrument(loadedInstrument.id)
+      const [loadedIndicators, prefetchedBars] = await Promise.all([
+        fetchIndicatorsForInstrument(loadedInstrument.id),
+        localBarsPromise ?? Promise.resolve(null),
+      ])
       if (!isCurrent()) return
       if (!preserveIndicatorsDuringDrag && !indicatorsDirty) indicators.value = loadedIndicators
 
       try {
-        const mapped = await fetchBarsPage(sym, tf, { type: nextBarType, localOnly, transformParams: normalizedTransformParams })
+        if (prefetchedBars?.error) throw prefetchedBars.error
+        const mapped = prefetchedBars?.mapped ?? await fetchBarsPage(sym, tf, {
+          type: nextBarType,
+          localOnly,
+          transformParams: normalizedTransformParams,
+        })
         if (!isCurrent()) return
         bars.value = mapped
         // A short initial page can mean either "brand-new listing" or "cache is
