@@ -24,7 +24,29 @@ human_closure_authorization: >-
   the TC feature checkpoint or authorize master promotion, deployment, paid
   activation, quota spend, an operational trial, or changes to another
   worktree.
-closure_summary: pending
+closure_summary: >-
+  Coordinator technical acceptance under the recorded human delegation, limited
+  to the F9c chart-container hit-target repair. Implemented and reconciled source
+  e995d501c56bbd3427d8023a0b14e8ef6e37677b contains green staging26443f94
+  and preserves F8u behavior. Desktop1920x1080 actual splitter/save/remove/
+  restore ordinary hit-target clicks and390x800 TC Classic pass. Complete
+  frontend940tests,focused126tests,type-check,production build and exact-source
+  Actions39312017050 pass. Fresh exact-source isolated pinned-Noble1.62.1 local
+  profile passed155functional cases/two expected live-data skips at21:38:18Z
+  and104strict visual cases at21:50:46Z,one worker,zero retries. Existing
+  assertions,reference images,masks,0.5%/1px/DeltaE2000 tolerances unchanged.
+  Backend log has no ERROR/CRITICAL/Traceback matches. Network guards blocked
+  202application outbound attempts and919non-allowlisted browser proxy requests;
+  only260browser CONNECTs to the approved cdn.onesignal.com host were allowed.
+  No provider credentials,routing,quota or data activation occurred. Both test
+  runners and only the exact temporary eight-service/four-volume/two-network
+  project were removed; all55pre-existing running identities remain running.
+  Evidence is retained under /tmp/geometry-e995-browser-20261019/artifacts.
+  No migration,deployment,target or feature-worktree changes. All full feature
+  roadmaps and official TC Help parity remain unfinished. Exact enclosing
+  closure-source branch CI and exact postmerge staging Exhaustive gate remain
+  mandatory; this acceptance does not claim either future gate already passed.
+  integration_capture: exact branch HEAD
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
@@ -131,43 +153,36 @@ live_test_impact: >-
   exact repair-project labels; assigned feature services/data remain untouched.
 migration_impact: none
 deployment_impact: none
-status: in_progress
+status: ready_for_integration
 remaining_gaps:
   - >-
-    Run the complete isolated local functional/visual profile on the exact
-    repair source with one worker and zero retries, preserving all existing
-    assertions, screenshot references and tolerances. Provider currently owns
-    the sole heavy browser slot on source a8440efb; this coordinator-owned
-    repair may prepare its green-staging reconciliation without starting a
-    competing fixture. Await that exact slot release and safe capacity before
-    the full browser profile; do not stop or clean retained services.
+    Publish this coherent local-validation and delegated technical-acceptance
+    receipt once,verify the clean synchronized exact enclosing HEAD,and require
+    its exact-source branch CI. No metadata-only self-hash update loop.
   - >-
-    After local validation, record closure and use the guarded staging
-    integration workflow; the exact pushed staging source must then pass its
-    Exhaustive Integration Gate before the repair is released to feature owners.
+    Use the guarded persistent-staging integration workflow. The exact pushed
+    staging source must pass its Exhaustive Integration Gate before release to
+    feature owners. PTRD4/PTRD5 retain this postmerge/publication evidence gap;
+    local technical acceptance does not invent a future staging receipt.
 progress:
-  completed:
-    - >-
-      Exact-source branch CI run 39039551432 passed on
-      d5aac522b144d57d93df817be2a1699e0ac6e568, including the splitter-based
-      F9c regression and ordinary pointer flows.
+  completed: [PTRD1, PTRD2, PTRD3]
   total: 5
-  current_phase: green_staging_reconciliation_preparation
+  current_phase: local_acceptance_complete_closure_publication
   current_blocker: >-
-    Current repair source 21cc43f7 has exact terminal-green branch CI
-    39079109518, but full local functional/visual validation remains unrun.
-    Current clean green staging is 26443f94, exact CI39294027643 passed
-    including Exhaustive. Provider a8440efb owns the sole active local browser
-    slot; its exact branch CI39305740911 is green. This coordinator retains
-    its existing repair claim and may perform stack-free reconciliation
-    preparation now. No competing browser fixture or retained-service cleanup
-    is authorized. The prior capacity observations remain historical evidence.
+    No human decision or local validation blocker remains for this repair.
+    Exact-e995d501 local functional155passed/two expected live skips and all
+    104strict visuals passed first attempt; both runners exited0 without OOM.
+    Full940frontend tests,126focused,type/build and exact39312017050 CI pass.
+    Owned fixture cleanup is verified; all55retained identities remain running.
+    Only closure publication,its exact CI and guarded staging/Exhaustive remain.
+    Provider has been directly returned the sole heavy slot for backend-only
+    current-source validation while this repair's publication/CI proceeds;
+    no unstaged geometry import or retained-service cleanup is authorized.
   next_action: >-
-    Close the existing branch-owned operational receipt context, then merge
-    exact green staging 26443f94c5b9fd3741d28db392fecf9aafe9c699 into this
-    repair branch. Preserve both the F9c geometry regression and the released
-    F8u live-configuration repair. Validate and publish the reconciled source;
-    run the full local functional/104-visual profile only after Provider releases
-    the heavy slot and headroom is verified. Retain one worker, zero retries,
-    all assertions and visual oracles. Close only after every required gate,
-    then use guarded staging integration and exact staging Exhaustive CI.
+    Validate and publish the four owned operational files as one coherent
+    technical-closure receipt. Capture its exact HEAD externally,verify clean
+    origin parity,observe its exact branch CI,then invoke guarded make integrate
+    for this auxiliary repair and require exact staging Exhaustive success.
+    Only then release the synchronized green staging SHA to the existing owners.
+    Feature checkpoint order remains Provider,ETF,TC,Strategy; no deployment,
+    paid activation,trial,source/oracle waiver or feature-roadmap closure.
