@@ -217,3 +217,50 @@ memory is approximately 2.1 GiB. Do not start a duplicate Compose project or
 stop/clean retained services. Stack-free tests may run, then publish this
 test-only refinement and require fresh exact-source Actions before any staging
 integration attempt. Staging remains unchanged.
+
+## 2026-10-19 — live configuration visibility repair and local F8u pass
+
+The latest browser trace proved the real stepped drag to the watchlist header
+fires `dragstart`, `dragover`, and `drop`, with a valid RSI plot payload. The
+remaining product defect was a split configuration snapshot: `addPlotColumn`
+and `configuredIndicatorColumns` read the canonical live workspace window, but
+`configuredColumnKeys` still read the detached `props.tool.configuration`.
+Because the explicit `column_keys` list is authoritative, the RSI definition
+was persisted but remained hidden. The narrow product fix makes
+`configuredColumnKeys` read `liveToolConfiguration.value.column_keys`, so the
+visibility list, definition renderer, and drop handler share one snapshot.
+The existing pointer path and assertions were not changed in this repair.
+
+Validation on 2026-10-19:
+
+- `npx vitest run tests/unit/components/test_virtual_watchlist_tool.test.ts
+  tests/unit/components/test_chart_plot_library.test.ts`: 89/89 passed.
+- Isolated production frontend build: `vue-tsc` and Vite passed.
+- Pinned `mcr.microsoft.com/playwright:v1.62.1-noble`, one worker, zero retries:
+  focused F8u passed once, then five fresh repetitions passed (5/5, 54.2s).
+- The exact fixture used a seeded internal-only network, blank provider and
+  OneSignal credentials, provider routing disabled, and the app/worker deny
+  proxy. The browser had no direct internet route; the only allowed outbound
+  browser connections were six `CONNECT cdn.onesignal.com:443` requests
+  (focused pass plus five repeats). The provider-deny log recorded seven
+  blocked `CONNECT api.openfigi.com` attempts; none reached an external
+  provider. There were no quota reservations or spend, and no visual oracle or
+  assertion changes.
+- The first focused attempt reached the F8u assertion but failed the final
+  diagnostics check because the temporary runner used a Docker DNS alias that
+  was unavailable on its internal-only network. Pointing the temporary runner
+  at the same proxy's internal-network address fixed the route; no direct
+  browser egress was enabled. An initial Compose recovery omitted the fixture's
+  original environment variables; Compose was cancelled before confirming any
+  volume recreation, then restored with the original environment. The existing
+  fixture volumes were preserved through recovery and removed only during
+  final cleanup.
+- The unique test fixture's containers, networks, and four generated volumes
+  were removed. Read-only post-cleanup inspection confirmed all pre-existing
+  Provider and TC2000 stacks remained up. No sibling worktree or staging
+  mutation occurred.
+
+All prior strict-red CI receipts remain retained. The new exact-source branch CI
+has not yet run; commit/push this repair and do not integrate it unless the
+exact pushed SHA passes. Provider, ETF, TC2000, and Strategy Lab v2 acceptance
+gates and roadmaps remain open.

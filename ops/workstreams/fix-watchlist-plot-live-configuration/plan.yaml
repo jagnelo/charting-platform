@@ -20,23 +20,24 @@ human_closure_authorization: >-
   and guarded staging integration. This remains limited to this narrow repair;
   it does not waive its exact CI or staging gate.
 closure_summary: >-
-  The earlier implementation and local five-repeat evidence are preserved in
-  the handoff: source 8b9dc144195fc5195ca6bc5d0d62842d020af784 passed the
-  focused flow five times on an isolated provider-denied fixture, and exact
-  Actions run 39260462285 passed on that SHA. The final closure-record source
-  326a7cb727d7463a7b8b8a28afd4ba938b5e9293 then failed exact-source Actions run
-  39269065093 under strict flaky-test policy: F8u first attempt failed while
-  the target watchlist was aria-busy=true, and the retry passed. Adding the
-  aria-busy wait and one-drag policy did not close the issue: exact-source run
-  39274378927 on 476bb54e419164c0b56cf96b55f7147fa16a1c74 is also red because
-  the RSI header and drop-driven workspace update were absent after a drag to
-  the ready watchlist body. The current test-only follow-up uses one stepped
-  pointer drag to the column-header strip; it still needs isolated five-repeat
-  validation and fresh exact-source CI. Do not integrate this repair yet.
-  Provider and TC2000 stacks remain untouched. No migration or deployment
-  impact. This repair does not close Provider, ETF holdings, TC2000, or Strategy
-  Lab v2; their contracts, tests, and roadmaps remain open. integration_capture:
-  exact branch HEAD.
+  The historical strict-red runs 39254427018, 39269065093, and 39274378927
+  remain preserved. Native-event diagnosis established that the header-target
+  drop delivered the correct RSI payload; the missing update was caused by
+  configuredColumnKeys reading detached props.tool.configuration while the
+  drop handler and indicator renderer read the canonical live workspace
+  configuration. The repair now derives visible column keys from that same
+  canonical snapshot. On 2026-10-19, the affected suites passed 89/89; the
+  production frontend build passed vue-tsc and Vite; and the pinned Playwright
+  1.62.1 Noble F8u flow passed five fresh zero-retry repetitions on an isolated
+  provider-denied fixture. Exact-source Actions for this product repair are
+  still pending; do not integrate until the pushed repair SHA passes its
+  branch CI, then use the guarded persistent-staging workflow and exact staging
+  gate. The temporary fixture and its generated volumes/networks were removed;
+  retained Provider and TC2000 stacks remain running. Staging and feature
+  worktrees were not modified. This repair does not close Provider, ETF
+  holdings, TC2000, or Strategy Lab v2; their contracts, gates, and roadmaps
+  remain open. No migration/deployment impact. integration_capture: exact
+  branch HEAD.
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
@@ -122,34 +123,25 @@ deployment_impact: none
 status: in_progress
 remaining_gaps:
   - >-
-    Exact-source Actions run 39274378927 on 476bb54e419164c0b56cf96b55f7147fa16a1c74
-    is red: F8u performed its single drag but produced no RSI watchlist header;
-    trace/network evidence shows no drop-driven workspace snapshot update. The
-    target was the watchlist body, which also contains row drop/reorder
-    listeners. The next test-only refinement drops onto the watchlist column-
-    header surface with a stepped pointer path, preserving the ordinary drag
-    and unchanged assertion. A fresh exact-source run and the focused five-repeat
-    zero-retry profile remain required before guarded integration. Keep strict-
-    red runs 39254427018, 39269065093, and 39274378927; run 39260462285 validates
-    earlier source. Do not start a duplicate Compose fixture while retained
-    Provider and TC2000 projects remain active and host memory is constrained;
-    do not stop or clean their services.
+    Push the product repair with updated evidence, inspect terminal exact-source
+    Actions including Playwright, and retain all prior strict-red runs. The
+    current repair tree passed the focused F8u five-repeat zero-retry profile,
+    affected component suites, and production frontend build. The exact new
+    commit's hosted CI remains mandatory before guarded staging integration.
   - >-
     This repair checkpoint does not close Provider, ETF, TC2000, or Strategy
     Lab v2 feature checkpoints. Provider's full 260-case/104-visual validation,
     operation dispositions, and current quota preflight remain owner/coordinator
     gates after this fix is released through staging.
 progress:
-  completed: [AC1]
+  completed: [AC1, AC2]
   total: 4
-  current_phase: f8u_drop_target_reliability
+  current_phase: exact_source_ci_refresh
   current_blocker: >-
-    Exact-source run 39274378927 is red under strict flaky-test policy: the
-    target was ready (aria-busy=false), but the body drop did not deliver a
-    configuration update. The branch must pass focused zero-retry validation
-    and fresh exact-source CI before staging.
+    The live-configuration visibility gap is fixed and the local focused flow
+    passed five times. The new pushed source SHA still needs terminal-green
+    exact-source branch CI before the coordinator can use guarded staging.
   next_action: >-
-    Validate the single stepped drag onto the actual watchlist column-header
-    surface; inspect exact-source Actions including Playwright, then continue
-    to guarded persistent-staging integration only after all checkpoint gates
-    pass.
+    Commit and push the narrow canonical-configuration fix and durable receipts;
+    inspect exact-source Actions including Playwright, then continue to guarded
+    persistent-staging integration only after its required gate passes.
