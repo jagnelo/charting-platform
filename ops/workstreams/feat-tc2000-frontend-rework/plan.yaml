@@ -30,30 +30,27 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Exact TC source 7ded2f7183a3ba4b941983337bad5f82df785dc8 is published and
-  its local-only chart hydration repair made the original strict20-second
-  lifecycle performance case pass. Exact run39331963904 is nevertheless
-  terminal red: Backend, Frontend Unit and Branch-declared passed, while E2E
-  reported189 passed,110 skipped and one hard F9c-transform failure in both
-  attempts. The retained trace proves the test began page.unroute immediately
-  before its released Renko handler reached route.continue, so Playwright
-  handled the pending route during interception removal and the handler then
-  attempted a second continuation. The hydration timing may have exposed this
-  latent harness race; no product failure, timeout increase, swallowed request,
-  retry relaxation or geometry overlap is inferred. A narrow synchronization
-  candidate now awaits the handler's successful ordinary continuation before
-  unregistering it, preserving the pending0-canvas and eventual2-canvas
-  assertions. Fresh exact-source CI is required after stack-free validation.
+  Exact TC source 57d1767926eb96d98909712bf22c74ee9be6d443 is clean and
+  synchronized. Exact run39336228008 passed Backend, Frontend Unit,
+  Branch-declared and Playwright on attempt1. The terminal browser log reports
+  190 passed and110 expected skips in16.7m with no retry, flaky or failure;
+  F9c-transform executed once with its pending0-canvas and eventual2-canvas
+  assertions unchanged. The strict20-second lifecycle performance test also
+  passed. This closes the transform-route lifecycle repair context without
+  changing product source, timeouts, retries, diagnostics or visual policy.
 
-  Provider and ETF product releases remain absent, so TC must not wire, import,
-  or merge either producer. TCP2 still requires the complete normalized104-case
-  matrix in a granted isolated slot; the reviewed local-only Help reference is
-  delivered at unchanged0.005 tolerance and REF-HELP-V25 remains
-  required_missing. Coordinator geometry repair afbb72d6 is merged only into
-  staging281a57bd9fb782c0f85bfb5127c713ea15037f68 whose exact run39335198284
-  is still running and is not a released green baseline. It is not duplicated
-  here. Provider owns the sole heavy local slot. TCP3, TCP4, TCP5, and all
-  full-roadmap criteria remain open.
+  Auxiliary geometry repair afbb72d6 is now present in synchronized staging
+  281a57bd9fb782c0f85bfb5127c713ea15037f68, whose exact run39335198284 has
+  all jobs green including Exhaustive. This remains a common repair baseline,
+  not a Provider, ETF or TC product-checkpoint acceptance. Provider exact source
+  5a372b4ec83a0c84ec15dd7f8593362b9e27cd35 / run39332553099 is green, but
+  its coordinator acceptance remains open while held-operation runtime posture
+  and final-source evidence are reconciled. ETF remains gated on the accepted
+  Provider staging release. TC therefore must not merge or wire either producer
+  yet. TCP2 still requires the complete normalized104-case matrix in a granted
+  isolated slot; the reviewed local-only Help reference stays at unchanged0.005
+  tolerance and REF-HELP-V25 remains required_missing. Provider owns the heavy
+  local slot. TCP3, TCP4, TCP5 and every full-roadmap criterion remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
