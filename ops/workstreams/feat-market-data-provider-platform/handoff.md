@@ -1,5 +1,48 @@
 # feat/market-data-provider-platform
 
+## 2026-10-19 22:40Z — corrected frozen source backend and migration gates green
+
+- Provider HEAD/origin are synchronized at
+  `5a372b4ec83a0c84ec15dd7f8593362b9e27cd35`; exact Actions
+  `39332553099` is terminal green: Backend, Frontend Unit, Branch-declared, and
+  Playwright passed; Exhaustive was skipped by feature policy. Preserve
+  `d8b18acd` / `39329199059` as
+  red before browser assertions because the backend could not decode the
+  hold-map sentinel.
+- The corrected source passed 17/17 focused sentinel/runtime checks, then the
+  complete isolated CPython 3.12.11 backend gate: 2,856 unit +396 integration,
+  82% combined coverage (68,085 statements /11,956 missed; threshold 75%).
+  Normal mocked routing was not forced off. The parent preserving trap ran,
+  all 55 retained container IDs were unchanged, and only the temporary guard
+  was removed after terminal exit.
+- Migration compatibility against accepted staging `26443f94` passed all 52
+  changed migrations, quota/recurring-cost fresh-upgrade equivalence, the
+  zero/negative budget constraint, and previous-app `/health` 200.
+- A fresh durable-ledger `--preflight-only` review made zero provider HTTP or
+  reservations. It found 20 live-runner candidates and quarantined Alpha
+  Vantage, CTA Plan, Dinari, EODHD, Marketstack, Nasdaq, and Tiingo for the
+  current combined matrix. Normal runtime independently hard-holds CTA Plan,
+  every Dinari/Marketstack/Tiingo/Bybit operation, and all ordinary EODHD data
+  operations plus their service aliases. Only EODHD `fetch_account_usage`
+  remains unheld, with zero daily-credit and minute-accounting controls.
+- The retained `a8440` 66/66 receipt remains historical evidence only. The
+  candidate-receipt verifier invalidates it after non-append-only operational
+  changes even where adapters, runner/tests, and dependency locks are
+  byte-identical. It is not current-source acceptance and must not be rebound.
+- The fresh preflight exposed a runtime seam: Alpha Vantage has only 7/25 daily
+  requests available versus the nine-unit full manifest, and Nasdaq has 0/2,
+  but neither provider is hard-held. A smaller call (or a call after reset)
+  could still route. The next separate source context must hard-hold both under
+  checkpoint mode and prove resolver/executor/status denial with normal
+  full-roadmap positives explicitly outside checkpoint mode.
+- Accepted staging remains `26443f94`. Geometry is merged to staging candidate
+  `281a57bd` but staging Actions `39335198284` is not yet released green. Do
+  not import it or start browser/Compose validation until central supplies the
+  exact released SHA. Final-source live evidence remains pending and requires
+  separate authorization after the final source is frozen. No provider call,
+  quota mutation, retained-resource
+  cleanup, deployment, paid/trial activation, or self-integration is allowed.
+
 ## 2026-10-19 21:48Z — operation-level checkpoint exclusions fixed and pushed
 
 - Exact implementation `516285eb0f5be7204781a101514d6d1f70b4f389` is pushed and

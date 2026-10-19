@@ -1,4 +1,28 @@
 schema: 4
+# Frozen corrected-source gate — 2026-10-19 22:40Z. Provider source/origin
+# `5a372b4ec83a0c84ec15dd7f8593362b9e27cd35` passed 17 focused sentinel/runtime
+# checks and the complete isolated CPython 3.12.11 backend gate: 2,856 unit,
+# 396 integration, and 82% combined coverage (68,085 statements /11,956 missed;
+# 75% required). The parent preserving trap completed and all 55 retained
+# container IDs were unchanged. Migration compatibility against accepted
+# staging26443f94 passed 52 changed migrations, quota/recurring-cost
+# fresh/upgrade equivalence, zero/negative budget behavior, and previous-app
+# /health200. Exact Actions39332553099 is terminal green: Backend, Frontend
+# Unit, Branch-declared and Playwright passed; Exhaustive skipped by feature
+# policy. A current
+# durable-ledger preflight made zero HTTP/reservations and reports20 candidate
+# provider groups with seven full-matrix quarantines. Runtime holds remain
+# stricter: CTA Plan, Dinari, Marketstack, Tiingo, Bybit and ordinary EODHD
+# operations/aliases are non-routable; only EODHD fetch_account_usage retains
+# its zero-daily-credit/minute-accounted exception. Adapters, live runner/tests,
+# and dependency locks are unchanged from the retained a8440 66/66 receipt,
+# but candidate-receipt validation invalidates that historical receipt after
+# operational-path changes; it is not current-source acceptance. Alpha Vantage
+# and Nasdaq are full-matrix quota-blocked but not runtime-held, so a smaller
+# request or later reset could make them routable. The next separate source
+# context adds explicit temporary checkpoint holds and zero-transport tests.
+# Await an actually released green geometry staging SHA before
+# reconciliation/browser gates or separately authorized final-source live work.
 # Operation exclusion correction — 2026-10-19 21:48Z. Exact implementation
 # `516285eb0f5be7204781a101514d6d1f70b4f389` adds configurable provider/operation
 # checkpoint holds enforced by the shared resolver before adapter construction,

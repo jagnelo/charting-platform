@@ -1,5 +1,88 @@
 # Provider integration checkpoint review packet
 
+## Frozen Provider candidate — 2026-10-19 22:40Z
+
+Provider HEAD and origin are clean and synchronized at
+`5a372b4ec83a0c84ec15dd7f8593362b9e27cd35`. Exact Actions run
+`39332553099` is terminal green on that exact SHA: Backend, Frontend Unit,
+Branch-declared, and Playwright passed; Exhaustive was skipped by normal
+feature-branch policy. Preserve the preceding
+`d8b18acd` / `39329199059` red receipt: its E2E job never reached a browser
+assertion because Compose supplied the `__CODE_DEFAULT__` hold-map sentinel to
+a settings source that still attempted eager JSON decoding. The narrow fix adds
+that field to the shared sentinel registry and covers environment, dotenv,
+explicit-JSON, and malformed fail-closed paths; focused validation passed
+17/17 under isolated CPython 3.12.11.
+
+The unchanged full backend gate is now terminal green on `5a372b4e`: 2,856
+unit tests and 396 Docker-backed integration tests passed, with 82% combined
+coverage (68,085 statements / 11,956 missed; 75% required). The gate used
+normal mocked runtime routing; live probes, account refresh, and availability
+monitors stayed disabled. All 55 retained container IDs were identical before
+and after the gate, the preserving parent cleanup trap completed, and its
+temporary untracked guard was then removed. Migration compatibility against
+accepted staging `26443f94c5b9fd3741d28db392fecf9aafe9c699` also passed all
+52 changed migrations: fresh/existing quota and recurring-cost state are
+equivalent, zero recurring budget is accepted, negative is rejected, and the
+previous application returned `/health` 200.
+
+### Current operation posture
+
+The fresh `--preflight-only` review evaluated 27 providers, used the existing
+durable coordinator, and made zero provider requests or quota reservations.
+It found 20 live-runner candidates and seven full-matrix quarantines. That
+runner result is not application routing authority: the shared runtime hold is
+stricter and executes before adapter construction, reservation, or transport.
+
+| Disposition | Providers and exact operations |
+| --- | --- |
+| Hard-held by the normal application runtime | CTA Plan: `discover_universe_page`; Dinari: all nine tokenized-asset operations; Marketstack: `discover_universe_page`, `fetch_ohlcv`, `get_current_price`; Tiingo: `fetch_ohlcv`, `get_current_price`, `get_instrument_profile`, `search_instruments`; Bybit xStocks: `discover_tokenized_assets`, `discover_tokenized_page`, `get_tokenized_asset`, `get_tokenized_price`; EODHD: `discover_universe_page`, `fetch_ohlcv`, `fetch_latest_ohlcv`, `get_current_price`, `get_instrument_profile`, including service aliases `bulk_fetch:*`, `fetch_rfr_ohlcv`, and `reconcile_universe_page:*`. |
+| Exact EODHD exception | `fetch_account_usage` is deliberately not held. It costs zero daily credits but still uses the reviewed minute-request dimension. Its transport evidence is historical rather than part of the `a8440` 66/66 run; current source has exact zero-credit/minute-accounted admission and no-transport regression coverage. No new call is authorized here. |
+| Historical transport evidence, not current acceptance | The retained `a8440` receipt covers Alpaca, Alpha Vantage, Binance, Coinbase, CoinGecko, EDGAR, Finnhub, FINRA, FINRA OTC Directory, FMP, FRED, Gate TradFi, Kraken, Kraken xStocks, MarketData.app, Massive, Nasdaq, OpenFIGI, Robinhood Tokens, Twelve Data, and xStocks operations. The candidate-receipt verifier invalidates prior receipts after any non-append-only operational-path change, so byte-identical adapters/runner/dependencies do not make that receipt current-source acceptance. Alpha Vantage and Nasdaq also have a concrete runtime seam: current combined-matrix quota rejection does not prevent a smaller application call or later routing after reset. They require explicit temporary checkpoint holds before review. |
+| Explicit entitlement/transport unavailable | CoinGecko `fetch_account_usage` (Pro-only); Finnhub `fetch_ohlcv` (observed free-key 403); FMP `discover_universe_page` (observed Basic-plan 402); FINRA generic `submit_async_dataset`, `poll_async_dataset`, and `download_async_result` (no admitted service consumer); unbounded MarketData.app response-priced option-history requests (no reviewed ceiling). |
+| Human-deferred and non-routable for this checkpoint | Tradier, IBKR, and Ondo Global Markets, covering every operation in their manifests. |
+
+The retained `a8440` invocation remains its original source-qualified receipt:
+66/66 cases, 22 provider groups, 22 ledger rows, and complete live evidence.
+Nothing has been rebound or relabelled as current-candidate live evidence.
+Because operational hold enforcement changed after `a8440`, the receipt is
+historical transport/schema evidence only and does not satisfy current-source
+live acceptance. Bybit's retained
+transport observation is historical only because the current application
+runtime now hard-holds every Bybit operation. EODHD account usage is the only
+unheld operation not covered by that `a8440` invocation; its older response
+and current no-transport contract evidence remain explicit rather than being
+presented as exact-current transport validation.
+
+### Read-only quota snapshot
+
+At `2026-10-19T22:39:39Z`, verified finite headroom was: Alpha Vantage 7/25
+daily requests; CoinGecko 9,605/10,000 monthly credits; CTA Plan 0/2 daily
+directory requests; EODHD 14/20 daily calls (ordinary operations still
+hard-held); FINRA/FINRA OTC 9,083,771,399/10,000,000,000 monthly bytes remaining
+after 6,000,000 reserved; FMP 243/250 daily requests and 396,723,055/500,000,000
+rolling-30-day bytes; MarketData.app 71/100 daily credits; Marketstack 0/100
+monthly requests; Nasdaq 0/2 daily directory requests; Tiingo
+1,999,986,952/2,000,000,000 monthly bytes and 499/500 monthly symbols; Twelve
+Data 794/800 daily requests. Tiingo hourly/daily counters remain unknown.
+Alpaca minute, Binance weight, EODHD minute, Finnhub minute, OpenFIGI minute,
+Twelve Data minute, and xStocks minute baselines are conservatively reported
+unknown unless their exact reviewed bootstrap/application-only rule applies.
+No baseline, reservation, hold, or ledger counter was reset by this review.
+
+Checkpoint status remains `in_progress`. The next separate source context adds
+temporary checkpoint holds for all Alpha Vantage and Nasdaq operations, with
+otherwise-eligible resolver/executor/status no-transport tests and explicit
+full-roadmap positive controls outside checkpoint mode. The human-authorized
+checkpoint treats those quota-held operations as unavailable; this is neither a
+permanent roadmap deferral nor a passed live claim. Remaining boundaries are
+release of the independently green geometry staging merge,
+Provider reconciliation to that released SHA, and the resulting exact-source
+functional/visual plus affected full gates, followed by separately authorized
+bounded final-source live evidence. The full roadmap, operational
+trial, deployment, paid/trial routing, and coordinator-only staging integration
+remain outside this checkpoint closure.
+
 ## Reconciled Provider candidate — 2026-10-19 18:46Z
 
 The prior Provider evidence context is committed as `8d368aae4`. Exact green
