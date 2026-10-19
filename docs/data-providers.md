@@ -1845,6 +1845,22 @@ activation. The approved 20 EUR/USD-equivalent shared cost contract remains
 Provider-owned ICP2 work before paid activation can be proposed. Plan/limit
 configuration remains provider-specific and may be set separately for local
 development, protected CI, and production.
+
+The checkpoint also has an operation-level exclusion map,
+`PROVIDER_CHECKPOINT_OPERATION_HOLDS`. It is a JSON object keyed first by
+provider and then by exact operation name; `*` holds every operation for that
+provider. The in-code default keeps CTA Plan, EODHD data operations,
+Marketstack, Tiingo, Dinari Sandbox, and Bybit xStocks unavailable for the
+current checkpoint reasons while deliberately leaving only EODHD's reviewed
+zero-daily-credit `fetch_account_usage` bootstrap available. These holds run in
+the shared resolver before adapter construction, quota reservation, or
+transport and are shown in provider-status diagnostics. They are not quota
+estimates and cannot be bypassed by `ALLOW_PAID_PROVIDER_ROUTING`. Replace the
+complete map per environment only after each removed operation has reviewed
+entitlement, cost/quota headroom, and exact-source live evidence. Setting
+`PROVIDER_FREE_ONLY_CHECKPOINT=false` leaves checkpoint mode and disables this
+temporary exclusion layer; the normal entitlement, quota, cost, and routing
+controls continue to apply.
 Quant/Prime plans use a different per-minute contract and remain outside this
 daily-plan gate until their dimensions are modeled explicitly.
 

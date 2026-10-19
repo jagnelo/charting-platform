@@ -226,6 +226,37 @@ class Settings(BaseSettings):
     # switch is enabled. Set false only when intentionally leaving the
     # checkpoint mode; paid plans still require ALLOW_PAID_PROVIDER_ROUTING.
     PROVIDER_FREE_ONLY_CHECKPOINT: bool = True
+    # Operation-level checkpoint exclusions are independent from provider
+    # entitlement and quota math. They keep an operation non-routable when the
+    # accepted checkpoint has no exact-source live evidence for it, even if a
+    # smaller request could fit the provider's current quota. Reasons are
+    # operator-visible; ``*`` holds every operation for that provider. An
+    # environment may replace this complete map after the corresponding
+    # operations have been reviewed and validated.
+    PROVIDER_CHECKPOINT_OPERATION_HOLDS: dict[str, dict[str, str]] = {
+        "cta_plan": {
+            "*": "complete daily CTA directory read is quota-held and unavailable in this checkpoint",
+        },
+        "eodhd": {
+            "fetch_ohlcv": "ordinary EODHD history is not live-verified for this checkpoint",
+            "fetch_latest_ohlcv": "ordinary EODHD history is not live-verified for this checkpoint",
+            "get_current_price": "ordinary EODHD quote data is not live-verified for this checkpoint",
+            "get_instrument_profile": "EODHD Free does not entitle Fundamentals/profile data",
+            "discover_universe_page": "ordinary EODHD discovery is not live-verified for this checkpoint",
+        },
+        "marketstack": {
+            "*": "Marketstack operation cost or monthly headroom is unresolved for this checkpoint",
+        },
+        "tiingo": {
+            "*": "Tiingo plan or active hourly/daily usage baseline is unresolved for this checkpoint",
+        },
+        "dinari": {
+            "*": "Dinari Sandbox quota resets and operation costs are unreviewed; canary-only data is excluded from normal routing",
+        },
+        "bybit_xstocks": {
+            "*": "Bybit deployment-egress eligibility is unresolved for this checkpoint",
+        },
+    }
     # A reviewed paid entitlement participates only when explicitly enabled.
     # This opt-in is not an aggregate recurring-subscription cost budget; paid
     # activation still requires separate authorization and cost governance.
@@ -3269,6 +3300,7 @@ class Settings(BaseSettings):
         "PROVIDER_RATE_LIMIT_SEEDS",
         "PROVIDER_FRESHNESS_SEEDS",
         "PROVIDER_USAGE_PROFILE_SEEDS",
+        "PROVIDER_CHECKPOINT_OPERATION_HOLDS",
         "DINARI_SANDBOX_QUOTA_PROFILE",
         "PROVIDER_QUOTA_ACCOUNT_SCOPES",
         "PROVIDER_QUOTA_EXCLUSIVE_ACCOUNT_SCOPES",

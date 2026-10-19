@@ -397,6 +397,31 @@ def _operation_family(operation: str) -> str:
     return operation.split(":", 1)[0].strip() or operation
 
 
+def provider_checkpoint_operation_hold_reason(
+    provider_name: str,
+    operation: str | None,
+) -> str | None:
+    """Return the explicit checkpoint hold for one provider operation.
+
+    These holds are evaluated only while the shared free-only checkpoint is
+    active. They are deliberately separate from quota admission: a provider
+    can have enough capacity for one small call while the operation still
+    lacks the exact evidence required by the accepted checkpoint.
+    """
+
+    if not settings.PROVIDER_FREE_ONLY_CHECKPOINT:
+        return None
+    provider_holds = settings.PROVIDER_CHECKPOINT_OPERATION_HOLDS.get(provider_name, {})
+    if not isinstance(provider_holds, dict):
+        return "checkpoint operation hold configuration is invalid"
+    normalized_operation = _operation_family(operation) if operation else None
+    reason = provider_holds.get(normalized_operation) if normalized_operation else None
+    if not reason:
+        reason = provider_holds.get("*")
+    normalized_reason = str(reason or "").strip()
+    return normalized_reason or None
+
+
 def _is_positive_operation_cost(value: Any) -> bool:
     if isinstance(value, bool):
         return False
@@ -2468,6 +2493,11 @@ async def resolve_provider_chain(
             )["allowed"]
         ):
             continue
+        if provider_checkpoint_operation_hold_reason(data_source.name, operation):
+            # Checkpoint exclusions precede adapter construction, durable quota
+            # reservation, and transport. They cannot be bypassed by the paid
+            # routing flag or by a smaller call fitting current headroom.
+            continue
         if data_source.name == "dinari":
             # This credential is Sandbox-only. Sandbox records are live-canary
             # evidence, never application routing candidates; do not let a
@@ -3183,16 +3213,44 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
         )
     ).all()
     status_rows = []
+    capability_diagnostic_operations = {
+        ProviderCapability.ACCOUNT_USAGE: "fetch_account_usage",
+        ProviderCapability.INSTRUMENT_SEARCH: "search_instruments",
+        ProviderCapability.INSTRUMENT_METADATA: "get_instrument_profile",
+        ProviderCapability.PRICE_HISTORY: "fetch_ohlcv",
+        ProviderCapability.LATEST_PRICE: "get_current_price",
+        ProviderCapability.INSTRUMENT_EVENTS: "fetch_instrument_events",
+        ProviderCapability.INSTRUMENT_IDENTIFIERS: "fetch_stable_identifiers",
+        ProviderCapability.UNIVERSE_DISCOVERY: "discover_universe_page",
+        ProviderCapability.OPTION_CHAIN: "fetch_option_chain",
+        ProviderCapability.OPTION_QUOTE_HISTORY: "fetch_option_quote_history",
+        ProviderCapability.CORPORATE_ACTIONS: "fetch_corporate_actions",
+        ProviderCapability.EARNINGS: "fetch_earnings_calendar",
+        ProviderCapability.FUNDAMENTALS: "fetch_fundamental_facts",
+        ProviderCapability.SHORT_INTEREST: "fetch_short_interest",
+        ProviderCapability.MARKET_CALENDAR: "fetch_market_holidays",
+        ProviderCapability.FUTURES_HISTORY: "fetch_futures_history",
+        ProviderCapability.CRYPTO_HISTORY: "fetch_ohlcv",
+        ProviderCapability.OPTIONS_CURRENT: "fetch_option_chain",
+        ProviderCapability.MARKET_EVENTS: "fetch_market_events",
+        ProviderCapability.TOKENIZED_ASSETS: "discover_tokenized_assets",
+        ProviderCapability.TOKENIZED_HISTORICAL_PRICES: ("fetch_tokenized_historical_prices"),
+        ProviderCapability.TOKENIZED_CORPORATE_ACTIONS: ("fetch_tokenized_corporate_actions"),
+    }
     for policy, health, data_source, entitlement in rows:
         # Keep operation-specific controls accurate in diagnostics as well as
         # in resolver admission. Cursor continuation is durable state, not a
         # routing control; use a non-event marker for unrelated capability rows.
-        diagnostic_operation = (
-            "fetch_instrument_events"
-            if policy.capability == ProviderCapability.INSTRUMENT_EVENTS
-            else "fetch_account_usage"
-            if policy.capability == ProviderCapability.ACCOUNT_USAGE
-            else "__capability__"
+        diagnostic_operation = capability_diagnostic_operations.get(
+            policy.capability,
+            "__capability__",
+        )
+        checkpoint_operation_holds = dict(
+            settings.PROVIDER_CHECKPOINT_OPERATION_HOLDS.get(data_source.name, {})
+        )
+        checkpoint_hold_reason = provider_checkpoint_operation_hold_reason(
+            data_source.name,
+            diagnostic_operation,
         )
         routing_control_settings = provider_routing_control_settings(
             data_source.name, diagnostic_operation
@@ -3250,6 +3308,8 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
                     else "reviewed"
                 ),
                 "entitlement_admission": entitlement_admission,
+                "checkpoint_operation_holds": checkpoint_operation_holds,
+                "checkpoint_hold_reason": checkpoint_hold_reason,
                 "live_probe_status": entitlement.live_probe_status,
                 "routing_eligible": bool(
                     policy.is_enabled
@@ -3259,6 +3319,7 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
                     and str(entitlement.live_probe_status or "not_run").strip().lower()
                     in _POSITIVE_LIVE_PROBE_STATUSES
                     and entitlement_admission["allowed"]
+                    and checkpoint_hold_reason is None
                     and provider_contract_operation_costs_configured(policy, data_source)
                 ),
                 "freshness_seconds": policy.freshness_seconds,

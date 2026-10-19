@@ -208,6 +208,8 @@ PROVIDER_CONFIGURATION_SETTINGS = {
     "MARKETSTACK_DISCOVERY_EXCHANGE",
     "IBKR_READ_ONLY_URL",
     "ALLOW_PAID_PROVIDER_ROUTING",
+    "PROVIDER_FREE_ONLY_CHECKPOINT",
+    "PROVIDER_CHECKPOINT_OPERATION_HOLDS",
     "OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY",
     "PROVIDER_RATE_LIMIT_SEEDS",
     "PROVIDER_FRESHNESS_SEEDS",
@@ -429,6 +431,33 @@ def test_owner_private_retention_decision_is_consistent_across_runtime_targets()
         ) in compose
     workflow = (ROOT / ".github/workflows/provider-live.yml").read_text()
     assert 'PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK: "true"' in workflow
+
+
+def test_checkpoint_operation_holds_are_configurable_across_runtime_targets():
+    configured = Settings(_env_file=None)
+    assert set(configured.PROVIDER_CHECKPOINT_OPERATION_HOLDS) == {
+        "cta_plan",
+        "eodhd",
+        "marketstack",
+        "tiingo",
+        "dinari",
+        "bybit_xstocks",
+    }
+    assert "fetch_account_usage" not in configured.PROVIDER_CHECKPOINT_OPERATION_HOLDS["eodhd"]
+    assert Settings(
+        _env_file=None,
+        PROVIDER_CHECKPOINT_OPERATION_HOLDS='{"eodhd":{"fetch_ohlcv":"review hold"}}',
+    ).PROVIDER_CHECKPOINT_OPERATION_HOLDS == {"eodhd": {"fetch_ohlcv": "review hold"}}
+    for relative_path in ("docker-compose.yml", "deploy/rpi/compose.yml"):
+        compose = (ROOT / relative_path).read_text()
+        backend = _service_environment(compose, "backend")
+        worker = _service_environment(compose, "worker")
+        for service in (backend, worker):
+            assert "PROVIDER_FREE_ONLY_CHECKPOINT:" in service
+            assert (
+                "PROVIDER_CHECKPOINT_OPERATION_HOLDS: "
+                "${PROVIDER_CHECKPOINT_OPERATION_HOLDS:-__CODE_DEFAULT__}"
+            ) in service
 
 
 def test_provider_chain_examples_match_backend_tokenized_history_contract():

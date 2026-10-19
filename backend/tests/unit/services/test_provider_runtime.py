@@ -51,6 +51,7 @@ from app.services.provider_runtime import (
     list_provider_status,
     policy_allows_account_usage_bootstrap,
     policy_allows_unreviewed_account_usage_checkpoint,
+    provider_checkpoint_operation_hold_reason,
     provider_entitlement_admission,
     provider_runtime_quota_admission_active,
     quota_contract_missing_dimensions,
@@ -1642,6 +1643,9 @@ async def test_eodhd_free_plan_migrates_and_requires_entitlement_and_provider_te
         "EODHD_PROVIDER_DISPLAY_TERMS_EVIDENCE",
         "unit-test provider terms exception",
     )
+    # This test's final assertion covers the full-roadmap entitlement path.
+    # The checkpoint-specific operation hold is exercised independently below.
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", False)
     granted_history_chain = await resolve_provider_chain(
         async_db,
         ProviderCapability.PRICE_HISTORY,
@@ -1759,6 +1763,131 @@ async def test_free_only_checkpoint_boundary_rejects_reviewed_paid_provider(db, 
         assert paid_status["routing_eligible"] is False
         assert paid_status["entitlement_admission"]["reason_code"] == "checkpoint_free_only"
     assert transport_calls == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("provider_name", "capability", "operation"),
+    (
+        ("cta_plan", ProviderCapability.UNIVERSE_DISCOVERY, "discover_universe_page"),
+        ("eodhd", ProviderCapability.PRICE_HISTORY, "fetch_ohlcv:D1"),
+        ("marketstack", ProviderCapability.PRICE_HISTORY, "fetch_ohlcv:D1"),
+        ("tiingo", ProviderCapability.PRICE_HISTORY, "fetch_ohlcv:D1"),
+        ("dinari", ProviderCapability.TOKENIZED_ASSETS, "discover_tokenized_assets"),
+        ("bybit_xstocks", ProviderCapability.TOKENIZED_ASSETS, "discover_tokenized_assets"),
+    ),
+)
+async def test_checkpoint_operation_holds_deny_resolver_and_transport(
+    db,
+    monkeypatch,
+    provider_name,
+    capability,
+    operation,
+):
+    """Every checkpoint exclusion remains unavailable under idealized inputs."""
+
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    monkeypatch.setattr(
+        "app.services.provider_runtime.provider_is_configured",
+        lambda *_args, **_kwargs: True,
+    )
+    monkeypatch.setattr(
+        "app.services.provider_runtime.provider_missing_routing_controls",
+        lambda *_args, **_kwargs: [],
+    )
+    await seed_provider_runtime(async_db)
+
+    source = db.execute(select(DataSource).where(DataSource.name == provider_name)).scalar_one()
+    policy = db.execute(
+        select(ProviderPolicy).where(
+            ProviderPolicy.data_source_id == source.id,
+            ProviderPolicy.capability == capability,
+        )
+    ).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == source.id,
+            ProviderEntitlement.capability == capability,
+        )
+    ).scalar_one()
+    policy.is_enabled = True
+    policy.quota_scope = "api_key"
+    policy.quota_source = "unit-test complete quota contract"
+    policy.quota_contract = {
+        "reset": "rolling",
+        "dimensions": [
+            {
+                "name": "requests_per_minute",
+                "limit": 100,
+                "window_seconds": 60,
+                "unit": "requests",
+                "scope": "api_key",
+                "source": "unit-test complete quota contract",
+            }
+        ],
+    }
+    entitlement.configured_plan = "reviewed-checkpoint-free-fixture"
+    entitlement.is_free = True
+    entitlement.authentication_required = False
+    entitlement.live_probe_status = "passed"
+    db.flush()
+
+    hold_reason = provider_checkpoint_operation_hold_reason(provider_name, operation)
+    assert hold_reason
+    transport_calls = []
+    for allow_paid in (False, True):
+        monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", allow_paid)
+        chain = await resolve_provider_chain(
+            async_db,
+            capability,
+            operation=operation,
+            operation_cost_overrides={provider_name: 1},
+        )
+        assert all(item.provider_name != provider_name for item in chain)
+        with pytest.raises(RuntimeError, match="No enabled providers available"):
+            await execute_provider_call(
+                async_db,
+                capability,
+                operation,
+                provider_name=provider_name,
+                operation_cost_overrides={provider_name: 1},
+                invoke=lambda *_args: transport_calls.append("called"),
+            )
+        assert transport_calls == []
+
+    status = next(
+        row
+        for row in await list_provider_status(async_db)
+        if row["provider"] == provider_name and row["capability"] == capability.value
+    )
+    assert status["checkpoint_hold_reason"]
+    assert status["checkpoint_operation_holds"]
+    assert status["routing_eligible"] is False
+
+
+def test_checkpoint_operation_holds_preserve_eodhd_zero_credit_usage_exception(monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    assert provider_checkpoint_operation_hold_reason("eodhd", "fetch_ohlcv:D1")
+    assert provider_checkpoint_operation_hold_reason("eodhd", "fetch_latest_ohlcv:D1")
+    assert provider_checkpoint_operation_hold_reason("eodhd", "fetch_account_usage") is None
+
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", False)
+    assert provider_checkpoint_operation_hold_reason("eodhd", "fetch_ohlcv:D1") is None
+
+
+def test_checkpoint_operation_holds_can_be_replaced_only_as_a_complete_map(monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_CHECKPOINT_OPERATION_HOLDS",
+        {"eodhd": {"get_current_price": "operator-reviewed temporary hold"}},
+    )
+    assert (
+        provider_checkpoint_operation_hold_reason("eodhd", "get_current_price")
+        == "operator-reviewed temporary hold"
+    )
+    assert provider_checkpoint_operation_hold_reason("eodhd", "fetch_ohlcv:D1") is None
 
 
 @pytest.mark.asyncio

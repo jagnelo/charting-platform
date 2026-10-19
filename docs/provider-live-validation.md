@@ -1756,6 +1756,10 @@ requires a separate durable dashboard/native baseline),
 provider-reviewed native boundary also requires quota evidence), and
 `PROVIDER_FREE_ONLY_CHECKPOINT` (defaults true; denies paid and trial plans to
 all callers during the integration checkpoint),
+`PROVIDER_CHECKPOINT_OPERATION_HOLDS` (JSON provider-to-operation reason map;
+the code default preserves every current checkpoint exclusion and is enforced
+by normal resolver/executor paths before transport, independently of whether a
+smaller call could fit current quota),
 `ALLOW_PAID_PROVIDER_ROUTING` (defaults false; true permits only separately
 reviewed paid plans only after checkpoint mode is deliberately disabled; it
 does not satisfy aggregate cost admission or authorize paid activation),
