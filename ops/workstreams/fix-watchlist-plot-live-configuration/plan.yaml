@@ -20,24 +20,27 @@ human_closure_authorization: >-
   and guarded staging integration. This remains limited to this narrow repair;
   it does not waive its exact CI or staging gate.
 closure_summary: >-
-  Coordinator-accepted F8u repair: the watchlist chart-plot drop and configured
-  indicator rendering now use one canonical live workspace configuration
-  snapshot. Validated implementation SHA 103ef8e1899412a5a623e8e587ec718de0458c8c
-  passed the local full_stack_browser profile and exact-source GitHub Actions
-  run 39030047625 (branch-declared, backend, frontend, and Playwright jobs
-  succeeded; the exhaustive gate was skipped under feature-branch policy).
-  The final closure-record commit still requires its own exact-source branch CI
-  before integration. No merge conflicts were observed in this narrow source
-  change; guarded integration must abort on any conflict and resolve only on
-  the source branch. Migration impact: none. Deployment impact: none.
-  integration_capture: exact branch HEAD. This repair does not close Provider,
-  ETF holdings, TC2000, or Strategy Lab v2; their remaining contracts, tests,
-  and roadmap work remain open. It was reopened after exact Provider CI
-  39254427018 recorded a strict F8u flaky attempt; a retry passed, but the red
-  result is preserved. The follow-up changes only the real drag origin to the
-  visible plot label, keeping the assertion, timeout, retry policy, screenshots,
-  and tolerances unchanged. Re-close only after focused and exact-source gates
-  pass.
+  Coordinator-accepted F8u repair: configured indicator rendering and chart
+  drop updates use the canonical live workspace configuration snapshot. The
+  test-only follow-up on 8b9dc144195fc5195ca6bc5d0d62842d020af784 starts the
+  unchanged real pointer drag from the visible RSI label. The exact F8u flow
+  passed five independent local repetitions with zero retries on a fresh
+  isolated fixture. Provider/OneSignal credentials were blank; app/worker
+  provider routing was disabled and egress denied; the browser could use only
+  the exact-host cdn.onesignal.com:443 proxy. Five attempted api.openfigi.com
+  connections were rejected by the deny proxy; zero reached an external
+  provider or used quota. The disposable project was removed and retained
+  feature stacks were verified intact. Exact-source ordinary Actions run
+  39260462285 on that same SHA passed Branch-declared, Backend, Frontend Unit,
+  and Playwright jobs; Playwright reported 151 passed and 109 expected skips,
+  with no failures. Exhaustive Integration Gate was skipped under branch policy.
+  Strict-red run 39254427018 remains preserved and is not erased by this pass.
+  This narrow repair is ready for guarded staging integration only after this
+  closure-record commit itself passes exact-source CI. No merge conflicts were
+  observed; abort and resolve on the source branch if guarded integration finds
+  one. Migration impact: none. Deployment impact: none. This repair does not
+  close Provider, ETF holdings, TC2000, or Strategy Lab v2; their contracts,
+  tests, and roadmaps remain open.
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
@@ -115,26 +118,25 @@ live_test_impact: >-
   credentials remain blank.
 migration_impact: none
 deployment_impact: none
-status: in_progress
+status: ready_for_integration
 remaining_gaps:
   - >-
-    The corrected label-origin F8u drag has not yet passed the focused zero-retry
-    profile five times or exact-source ordinary GitHub Actions branch CI. Keep
-    run 39254427018 visibly red/flaky; a new pass does not erase that history.
+    Exact-source ordinary GitHub Actions CI on this final closure-record commit
+    must complete green before guarded staging integration. Keep strict-red run
+    39254427018 visible; run 39260462285 validates the tested implementation
+    SHA, not this closure receipt.
   - >-
     This repair checkpoint does not close Provider, ETF, TC2000, or Strategy
     Lab v2 feature checkpoints. Provider's full 260-case/104-visual validation,
     operation dispositions, and current quota preflight remain owner/coordinator
     gates after this fix is released through staging.
 progress:
-  completed: [AC1]
+  completed: [AC1, AC2, AC3, AC4]
   total: 4
-  current_phase: f8u_drag_origin_reliability_repair
+  current_phase: coordinator_closed_checkpoint_exact_ci_pending
   current_blocker: >-
-    Exact Provider CI 39254427018 is strict-red because F8u did not find the RSI
-    header on its first attempt; the corrected label-origin source still needs
-    focused zero-retry validation and exact-source CI.
+    Exact-source CI on the final closure-record commit is pending; do not
+    integrate this branch until that exact pushed SHA is green.
   next_action: >-
-    Validate the visible-label real drag without changing assertions or retry
-    policy, publish the exact evidence, require clean exact-source CI, then
-    re-close and use guarded persistent-staging integration.
+    Publish the clean closure record, inspect its exact-source CI, then run the
+    guarded persistent-staging integration and require its exact green gate.

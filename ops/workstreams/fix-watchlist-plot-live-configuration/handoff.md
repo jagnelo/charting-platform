@@ -131,3 +131,24 @@ was satisfied. The follow-up starts the same ordinary drag from the visible
 RSI label; it does not change the drag target, header assertion, timeout,
 retries, visual references, or tolerance. The repair checkpoint is reopened
 until the focused zero-retry profile and exact-source CI pass.
+
+The corrected source passed the focused pinned Playwright 1.62.1 Noble F8u
+flow five times with one worker and zero retries on 2026-10-19. Each repeat
+used a distinct fixture user/workspace. Provider/OneSignal credentials were
+blank; provider routing was disabled; app/worker provider egress was denied;
+the browser had no direct internet route and could use only the exact-host
+`cdn.onesignal.com:443` proxy. The deny proxy recorded five blocked
+`api.openfigi.com` CONNECT attempts; none reached an external provider, and
+there were no provider requests, quota reservations, or spend. The exact
+disposable project and generated data were removed; the retained Provider and
+TC2000 stacks remained intact. Receipt:
+`/tmp/f8u-repair-evidence-20261019.7I4Vv9/f8u-five-run-receipt.md`.
+
+Exact-source Actions run `39260462285` on
+`8b9dc144195fc5195ca6bc5d0d62842d020af784` passed Branch-declared Tests,
+Backend Tests, Frontend Unit Tests, and Playwright (151 passed, 109 expected
+skips, no failures). The Exhaustive Integration Gate was skipped as required
+for feature-branch CI. The earlier strict-red run remains preserved. The
+closure record now marks this narrow repair ready for guarded integration, but
+the final closure-record commit must itself pass exact-source CI before the
+coordinator invokes `make integrate`.
