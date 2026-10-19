@@ -112,3 +112,22 @@ integration finds one, abort and resolve on this source branch before retrying.
 There is no migration or deployment impact. Provider's remaining full
 validation, operation dispositions, quota preflight, and all four feature
 roadmaps remain open.
+
+## 2026-10-19 — strict F8u follow-up
+
+Provider exact-source Actions run `39254427018` on `bef14e0c14b4c60be4f4d54dc954f8113ef5f2f9`
+is red under the strict flaky-test policy: Backend, Frontend Unit, and
+Branch-declared passed; Playwright had 150 passed, 109 expected skips, and one
+F8u first-attempt failure. Its normal retry passed, but this remains a red
+receipt. The failing screenshot/trace is retained in Actions artifact
+`12188857004`.
+
+The failure screenshot shows the plot-library row contains a line-width input
+and several controls. The test called `dragTo` on the whole row, whose default
+pointer origin is its center; by the row's grid layout that can hit the
+line-width input rather than the plot label and fail to start a native drag.
+This is a test-origin diagnosis, not a claim that the product drop assertion
+was satisfied. The follow-up starts the same ordinary drag from the visible
+RSI label; it does not change the drag target, header assertion, timeout,
+retries, visual references, or tolerance. The repair checkpoint is reopened
+until the focused zero-retry profile and exact-source CI pass.

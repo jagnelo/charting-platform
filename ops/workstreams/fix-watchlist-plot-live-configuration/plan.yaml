@@ -32,7 +32,12 @@ closure_summary: >-
   the source branch. Migration impact: none. Deployment impact: none.
   integration_capture: exact branch HEAD. This repair does not close Provider,
   ETF holdings, TC2000, or Strategy Lab v2; their remaining contracts, tests,
-  and roadmap work remain open.
+  and roadmap work remain open. It was reopened after exact Provider CI
+  39254427018 recorded a strict F8u flaky attempt; a retry passed, but the red
+  result is preserved. The follow-up changes only the real drag origin to the
+  visible plot label, keeping the assertion, timeout, retry policy, screenshots,
+  and tolerances unchanged. Re-close only after focused and exact-source gates
+  pass.
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
@@ -46,8 +51,10 @@ human_goal_budget_authorization: none
 goal: >-
   Fix the staging-derived F8u chart-plot-to-watchlist race so the visible
   indicator definition and chart-drop configuration update use one canonical
-  live workspace snapshot. Publish a narrow clean repair checkpoint for the
-  coordinator; do not integrate, promote, deploy, or modify feature worktrees.
+  live workspace snapshot, and make the existing real-drag test start from the
+  visible plot label rather than an embedded control. Publish a narrow clean
+  repair checkpoint for the coordinator; do not integrate, promote, deploy, or
+  modify feature worktrees.
 scope:
   - >-
     Resolve the detached Golden Layout configuration race in the shared
@@ -56,8 +63,13 @@ scope:
   - >-
     Preserve the current ordinary drag path, F8u assertions and timeout/retry
     policy, screenshot references/tolerances, retained data, and provider holds.
+  - >-
+    Start the F8u pointer drag from the visible RSI label because the draggable
+    row center can target its embedded line-width input; keep the expected
+    header assertion and retry policy unchanged.
 owned_paths:
   - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/tests/e2e/flows.spec.ts
 dependencies: []
 acceptance_criteria:
   - id: AC1
@@ -68,12 +80,13 @@ acceptance_criteria:
   - id: AC2
     text: >-
       Existing F8u real pointer-drag flow adds the RSI header to Major US
-      benchmarks on this exact repair source, in a fresh internal-only seeded
-      fixture with provider/OneSignal credentials blank, provider routing/refresh
-      disabled, one worker, and zero retries; repeat the exact flow five times.
-      App and worker provider egress stays denied. Only the public static SDK
-      host cdn.onesignal.com:443 may use the exact-host browser allowlist proxy;
-      no OneSignal API host or credentials are allowed.
+      benchmarks on this exact repair source, starting from the visible plot
+      label in a fresh internal-only seeded fixture with provider/OneSignal
+      credentials blank, provider routing/refresh disabled, one worker, and
+      zero retries; repeat the exact flow five times. App and worker provider
+      egress stays denied. Only the public static SDK host
+      cdn.onesignal.com:443 may use the exact-host browser allowlist proxy; no
+      OneSignal API host or credentials are allowed.
   - id: AC3
     text: >-
       Affected watchlist/plot component suites, vue-tsc, production frontend
@@ -102,20 +115,26 @@ live_test_impact: >-
   credentials remain blank.
 migration_impact: none
 deployment_impact: none
-status: ready_for_integration
+status: in_progress
 remaining_gaps:
   - >-
-    The closure-record commit must pass exact-source ordinary GitHub Actions
-    branch CI before guarded staging integration; the successful run recorded
-    above covered the validated implementation SHA, not this final receipt.
+    The corrected label-origin F8u drag has not yet passed the focused zero-retry
+    profile five times or exact-source ordinary GitHub Actions branch CI. Keep
+    run 39254427018 visibly red/flaky; a new pass does not erase that history.
   - >-
     This repair checkpoint does not close Provider, ETF, TC2000, or Strategy
     Lab v2 feature checkpoints. Provider's full 260-case/104-visual validation,
     operation dispositions, and current quota preflight remain owner/coordinator
     gates after this fix is released through staging.
 progress:
-  completed: [AC1, AC2, AC3, AC4]
+  completed: [AC1]
   total: 4
-  current_phase: coordinator_closed_checkpoint_exact_ci_pending
-  current_blocker: exact-source CI on the closure-record commit is pending
-  next_action: verify exact-source CI, then integrate through the guarded staging workflow and require the exact staging gate
+  current_phase: f8u_drag_origin_reliability_repair
+  current_blocker: >-
+    Exact Provider CI 39254427018 is strict-red because F8u did not find the RSI
+    header on its first attempt; the corrected label-origin source still needs
+    focused zero-retry validation and exact-source CI.
+  next_action: >-
+    Validate the visible-label real drag without changing assertions or retry
+    policy, publish the exact evidence, require clean exact-source CI, then
+    re-close and use guarded persistent-staging integration.

@@ -4419,13 +4419,18 @@ test.describe('TC2000 workstation', () => {
     const plot = chart.locator('.chart-plots li').filter({ hasText: 'RSI' }).last()
     await expect.poll(() => plot.count(), { timeout: 10_000 }).toBeGreaterThan(0)
     await expect(plot).toBeVisible({ timeout: 10_000 })
+    // Start from the user-facing label, not the row center: the center can
+    // land on a line-width input and prevent Chromium from starting a native
+    // drag from the draggable plot row.
+    const plotDragSource = plot.locator('span').filter({ hasText: /^RSI/ }).first()
+    await expect(plotDragSource).toBeVisible({ timeout: 10_000 })
     const target = page.getByRole('region', { name: 'Major US benchmarks' })
     const droppedHeader = target.locator('.watchlist__header button').filter({ hasText: 'RSI' })
     // Chromium occasionally loses the custom MIME payload when a fixed,
     // teleported plot menu closes during drag. Repeat the same real drag once
     // after the drop target has remained mounted; never bypass the DnD path.
     for (let attempt = 0; attempt < 2 && !(await droppedHeader.count()); attempt += 1) {
-      await plot.dragTo(target)
+      await plotDragSource.dragTo(target)
       if (!(await droppedHeader.count())) await page.waitForTimeout(150)
     }
     await expect(droppedHeader).toBeVisible({ timeout: 10_000 })
