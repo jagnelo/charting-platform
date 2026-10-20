@@ -31,24 +31,24 @@ human_interim_help_reference_authorization: >-
   source repair.
 current_blocker: >-
   Published renderer-refresh source30529fae090624220cec06fc0796082a0386b3a2
-  is clean and synchronized with origin. Exact Actions39394689368 passed
-  Backend, Frontend Unit and Branch-declared; E2E reported190 passed,110
-  declared skips and one retry-passing flake, so strict policy correctly keeps
-  the workflow red. The unchanged F8n-gesture case ran once and passed without
-  retry or failure, providing exact hosted runtime evidence for renderer
-  identity. The sole flake is the distinct chart-template hotkey flow: after an
-  ordinary Save, the first attempt could not find the saved-template dialog
-  button `F5 line template v1` within its existing5-second contract; retry
-  passed. This occurs before F5 assignment or keypress, so the current defect is
-  save/list hydration readiness until evidence proves otherwise.
+  has exact hosted F8n runtime proof, while strict Actions39394689368 remains
+  red on the independent chart-template save/list retry flake. The exact first-
+  attempt screenshot/error context shows `F5 line template v1` absent after
+  ordinary Save; the archive's detailed network trace is the successful retry
+  and is not used as first-attempt causality evidence. A deterministic unit
+  regression proved that a pre-save mount/open hydration was reused after the
+  PUT, leaving the stale list rendered with only one GET. The narrow candidate
+  now lets that pre-mutation hydration settle, then invalidates and issues a
+  distinct post-mutation read for save and delete. The baseline regression,
+  full component suite, adjacent popout bindings and locked type-check pass
+  (66 unit tests plus vue-tsc).
 
-  Preserve the renderer repair, strict zero-flake policy, existing timeout,
-  ordinary interaction and identity oracle. Diagnose the separate template
-  save/list lifecycle from the exact artifact and add a deterministic baseline-
-  red unit regression before any narrow TC-owned product correction. Provider
-  owns the active heavy slot; no TC browser/Compose/full matrix now. TCP2 full104,
-  TCP3 released Provider/ETF consumers, TCP4, TCP5 and official REF-HELP-V25
-  parity remain open; exact305 is not whole-checkpoint or staging acceptance.
+  Runtime proof for this candidate remains pending; preserve the strict zero-
+  flake policy, existing5-second assertion, ordinary interactions and all
+  visual oracles. Provider owns the active heavy slot, so no TC browser/Compose/
+  full matrix now. TCP2 full104, TCP3 released Provider/ETF consumers, TCP4,
+  TCP5 and official REF-HELP-V25 parity remain open; neither exact305 nor this
+  bounded candidate is whole-checkpoint or staging acceptance.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-

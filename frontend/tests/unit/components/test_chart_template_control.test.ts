@@ -79,6 +79,32 @@ describe('ChartTemplateControl', () => {
     }
   })
 
+  it('reloads the saved template after a pre-save hydration settles stale', async () => {
+    let releaseInitialLoad!: (value: unknown[]) => void
+    apiGet
+      .mockImplementationOnce(() => new Promise(resolve => { releaseInitialLoad = resolve }))
+      .mockResolvedValueOnce([{
+        stable_key: 'f5-line-template',
+        name: 'F5 line template',
+        version: 1,
+        payload: { configuration: { bar_type: 'line' } },
+      }])
+    const wrapper = mount(ChartTemplateControl, {
+      props: { configuration: { symbol: 'SPY', bar_type: 'line' } },
+    })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(1))
+
+    await wrapper.get('button[aria-label="Chart templates"]').trigger('click')
+    await wrapper.get('[aria-label="Chart template name"]').setValue('F5 line template')
+    await wrapper.find('.chart-template__save button').trigger('click')
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledOnce())
+
+    releaseInitialLoad([])
+
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(2))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('F5 line template'))
+  })
+
   it('publishes a saved indicator stack for the active chart without template identity', async () => {
     apiGet.mockResolvedValueOnce([{
       stable_key: 'trend-20', name: 'Trend 20', version: 3,

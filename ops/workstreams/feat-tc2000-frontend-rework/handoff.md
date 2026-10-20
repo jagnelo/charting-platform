@@ -22087,3 +22087,33 @@ context is bounded artifact/source analysis of template save/list hydration and
 a deterministic baseline-red unit regression before a minimal product fix.
 Provider retains the heavy slot; no TC browser, Compose or full build is
 authorized now. TCP2-TCP5 and official `REF-HELP-V25` remain open.
+
+## 2026-10-20 09:32Z — Chart-template save/list stale-hydration regression and correction
+
+The exact run `39394689368` artifact is preserved at
+`/tmp/coordinator-tc-30529-ci-39394689368-playwright.zip` (3,557,011 bytes,
+SHA-256 `d46142d6ceac7047d8dbcb65ffbb2895465694807e592ac7051716d3c7e7582a`;
+archive integrity passes). Its first-attempt screenshot and error context show
+the saved-template button absent after ordinary Save. The only detailed network
+trace in the archive records the successful retry, so it is not treated as
+proof of first-attempt request ordering.
+
+Static source review exposed a deterministic race. Mount/open hydration is
+coalesced through `templateLoadPromise`. If that hydration predates a save and
+remains pending through the PUT, the mutation reload can join the pre-save read
+and render its stale list. A new unit regression holds the initial hydration,
+saves `F5 line template`, resolves the old read empty and requires a distinct
+second GET containing the saved item. It failed on the published baseline with
+one GET instead of two. An intermediate wait-after-invalidate correction also
+failed, proving invalidation had to occur after the stale request settled.
+
+The narrow candidate now waits only the exact pre-mutation hydration, checks
+that the component remains mounted, invalidates the template-list query and
+starts a distinct read. Save and delete share this ordering. The corrected
+regression passes; the complete ChartTemplateControl and adjacent popout-
+binding suites pass `66/66`, and locked `npm run type-check` exits zero. No
+browser, Compose, full build, external request, timeout, retry, assertion,
+reference or `0.005` tolerance changed. The workstream validator, all `29`
+scope-guard self-tests, the actual `57`-path scope guard, structured JSON and
+`git diff --check` also pass. Runtime proof and exact-source CI remain
+required. Full104, TCP3-TCP5 and official `REF-HELP-V25` parity remain open.

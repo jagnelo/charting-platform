@@ -52,6 +52,8 @@
     "visuals": "No pixel pass inferred; TCP2 full 104-case matrix and official V25 parity remain open."
   },
   "dirty_paths": [
+    "frontend/src/components/workstation/ChartTemplateControl.vue",
+    "frontend/tests/unit/components/test_chart_template_control.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
@@ -105,7 +107,7 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "30529fae090624220cec06fc0796082a0386b3a2",
+  "head": "6cc70f2088d8ee33e1fa2d9f4d2093fdc2413137",
   "implementation_sha": "30529fae090624220cec06fc0796082a0386b3a2",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -217,28 +219,28 @@
     "completed": [
       "TCP1"
     ],
-    "current_blocker": "Exact30529fae Actions39394689368 proves unchanged F8n renderer identity once without retry, but strict CI remains red on one independent chart-template save/list retry flake before F5 assignment. Diagnose that lifecycle with artifact/source and a deterministic unit regression; do not weaken the5s assertion or retry policy. Provider owns the heavy slot. TCP2 full104, TCP3 accepted Provider/ETF releases, TCP4-TCP5 and REF-HELP-V25 remain open.",
-    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_RENDERER_FIX_EXACT_F8N_PASS_TEMPLATE_SAVE_LIST_FLAKE_DIAGNOSIS_NEXT_FULL104_OPEN;TCP3_PROVIDER_ETF_RELEASE_AND_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
-    "next_action": "Publish the one exact-CI receipt, then open a distinct static/unit chart-template save/list hydration diagnosis; no browser/full104 until capacity release.",
+    "current_blocker": "The deterministic chart-template save/list stale-hydration regression and narrow post-mutation reload correction pass66 bounded unit tests and locked type-check. Runtime proof remains pending because Provider owns the heavy slot; preserve the5s assertion and strict zero-flake policy. TCP2 full104, TCP3 accepted Provider/ETF releases, TCP4-TCP5 and REF-HELP-V25 remain open.",
+    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_RENDERER_EXACT_F8N_PASS_TEMPLATE_SAVE_LIST_UNIT_FIX_PENDING_PUBLICATION_AND_RUNTIME_FULL104_OPEN;TCP3_PROVIDER_ETF_RELEASE_AND_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
+    "next_action": "Publish the coherent chart-template save/list hydration repair after staged-diff review, then require exact-source CI and unchanged runtime proof when capacity is released; no browser/full104 while Provider owns the slot.",
     "total": 5,
-    "updated_at": "2026-10-20T09:05:19+00:00"
+    "updated_at": "2026-10-20T09:32:43+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "30529fae090624220cec06fc0796082a0386b3a2",
-    "current_pending_range": "30529fae090624220cec06fc0796082a0386b3a2 plus one uncommitted post-publication operational receipt",
+    "current_local_head": "6cc70f2088d8ee33e1fa2d9f4d2093fdc2413137",
+    "current_pending_range": "6cc70f2088d8ee33e1fa2d9f4d2093fdc2413137 plus the uncommitted chart-template save/list hydration source, regression and owner evidence",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "30529fae090624220cec06fc0796082a0386b3a2",
-    "status": "local/origin renderer-refresh source30529fae are clean and equal; exact F8n passes once, exact CI remains red on the separate chart-template save/list retry flake; one operational receipt is dirty pending publication"
+    "remote_tracking_sha": "6cc70f2088d8ee33e1fa2d9f4d2093fdc2413137",
+    "status": "local/origin receipt source6cc70f20 are equal; bounded chart-template hydration repair and regression are dirty pending staged review/publication; runtime proof remains open"
   },
-  "remote": "30529fae090624220cec06fc0796082a0386b3a2",
-  "remote_sha": "30529fae090624220cec06fc0796082a0386b3a2",
+  "remote": "6cc70f2088d8ee33e1fa2d9f4d2093fdc2413137",
+  "remote_sha": "6cc70f2088d8ee33e1fa2d9f4d2093fdc2413137",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",

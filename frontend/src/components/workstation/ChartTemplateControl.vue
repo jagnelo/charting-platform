@@ -240,6 +240,17 @@ function requestLoad() {
   return templateLoadPromise
 }
 
+async function requestLoadAfterMutation() {
+  // A mount/open hydration can predate the mutation and resolve with a stale
+  // list. Let that exact request settle, then issue a distinct invalidated
+  // read so the just-saved/deleted library state is the rendered state.
+  const pendingBeforeMutation = templateLoadPromise
+  if (pendingBeforeMutation) await pendingBeforeMutation
+  if (!mounted) return
+  await queryClient.invalidateQueries({ queryKey: ['workstation', 'library-items', 'chart_template'] })
+  await requestLoad()
+}
+
 async function persist(templateName: string, configuration: Record<string, unknown>, key = stableKey(templateName), functionKey?: string) {
   busy.value = true
   error.value = ''
@@ -249,8 +260,7 @@ async function persist(templateName: string, configuration: Record<string, unkno
       payload: { configuration: templateConfiguration(configuration), schema_version: 1, ...(functionKey ? { function_key: functionKey } : {}) },
       dependency_metadata: { contract: 'workstation_chart_template_v1' },
     })
-    await queryClient.invalidateQueries({ queryKey: ['workstation', 'library-items', 'chart_template'] })
-    await requestLoad()
+    await requestLoadAfterMutation()
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to save chart template' }
   finally { busy.value = false }
 }
@@ -282,8 +292,7 @@ async function remove(item: TemplateItem) {
   busy.value = true; error.value = ''
   try {
     await api.delete(`/workspaces/library/items/chart_template/${encodeURIComponent(item.stable_key)}`)
-    await queryClient.invalidateQueries({ queryKey: ['workstation', 'library-items', 'chart_template'] })
-    await requestLoad()
+    await requestLoadAfterMutation()
   }
   catch (cause: any) { error.value = cause?.message ?? 'Unable to delete chart template' }
   finally { busy.value = false }
