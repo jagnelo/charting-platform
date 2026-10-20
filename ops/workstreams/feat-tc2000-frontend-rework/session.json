@@ -92,66 +92,6 @@
   },
   "finished": false,
   "finished_at": null,
-  "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance feat/tc2000-frontend-rework: Prepare tc2000-workstation-integration-1: repair independent chart-template pointer interception and functional/visual blockers; consume synchronized green Provider+ETF staging, reconcile real consumer contracts, validate the combined workstation and publish a clean checkpoint for human review.. Acceptance criteria: TCP1: COMPLETE (narrow coordinator technical acceptance only): green staging 82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009 merged by d4274a9fa3119c212a9aaf2c0006c20d921812e8; implementation 7f33b07dfc7ffa57d5285e04981448732e3eb727 verified by exact attempt-1 CI 38835330075. This is not whole-checkpoint acceptance or staging-integration authority.; TCP2: Resolve TC-owned functional/visual failures without weakening checks; review and adopt only the human-authorized local Help reference after all four profiles pass, while keeping official V25 Help parity as unfinished roadmap work.; TCP3: After Provider and ETF reach synchronized green staging, merge that staging into this clean unfrozen source and reconcile all shared paths and actual provider coverage/preflight and ETF lineage/freshness consumers.; TCP4: Validate usable combined workstation and immutable Study consumers, success and unavailable paths, with the required full integration/browser profile and exact-source branch CI.; TCP5: Publish a clean pushed checkpoint and complete roadmap dispositions at ready_for_human_review; retain pending human acceptance and coordinator-only staging integration/freeze release.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_recorded_at": "2026-10-15T20:07:26.302468+00:00",
-  "goal_request": {
-    "objective": "Advance feat/tc2000-frontend-rework: Prepare tc2000-workstation-integration-1: repair independent chart-template pointer interception and functional/visual blockers; consume synchronized green Provider+ETF staging, reconcile real consumer contracts, validate the combined workstation and publish a clean checkpoint for human review.. Acceptance criteria: TCP1: Diagnose and fix chart-template pointer interception with browser regression evidence and a coordinator-readable narrow repair proposal.; TCP2: Resolve required functional/visual failures without weakening reference policy; document missing reference evidence and proposed checkpoint limitations for human review.; TCP3: After Provider and ETF reach synchronized green staging, merge that staging into this clean unfrozen source and reconcile all shared paths and actual provider coverage/preflight and ETF lineage/freshness consumers.; TCP4: Validate usable combined workstation and immutable Study consumers, success and unavailable paths, with the required full integration/browser profile and exact-source branch CI.; TCP5: Publish a clean pushed checkpoint and complete roadmap dispositions at ready_for_human_review; retain pending human acceptance and coordinator-only staging integration/freeze release.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
-  },
-  "goal_request_state": "ready",
-  "goal_state": "resumed_after_takeover",
-  "goal_unavailable_reason": null,
-  "head": "35ee3c0263c5255ecd8d9dafee4cd48c8e46c163",
-  "implementation_sha": "35ee3c0263c5255ecd8d9dafee4cd48c8e46c163",
-  "integration_checkpoint": {
-    "acceptance": "pending",
-    "coordinator_guidance": "/home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md",
-    "id": "tc2000-workstation-integration-1",
-    "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
-  },
-  "upstream_release_preparation": {
-    "accepted_product_checkpoints": 0,
-    "coordinator_geometry": {
-      "ci_run": 39332070613,
-      "disposition": "merged_to_exact_green_common_staging_281a57bd_not_product_acceptance",
-      "sha": "afbb72d6"
-    },
-    "etf": {
-      "disposition": "preparation_only_pending_provider_release",
-      "sha": "d1c560dc95d681fb5c67bf8916846a2f354bb5f5"
-    },
-    "map": "ops/workstreams/feat-tc2000-frontend-rework/post-release-reconciliation-map.md",
-    "prepared_at": "2026-10-19T20:54:35Z",
-    "provider": {
-      "ci_run": 39332553099,
-      "disposition": "exact_ci_green_but_checkpoint_acceptance_open_for_held_operation_posture_and_final_evidence",
-      "sha": "5a372b4ec83a0c84ec15dd7f8593362b9e27cd35"
-    },
-    "staging": {
-      "ci_run": 39335198284,
-      "disposition": "exact_green_common_repair_baseline_not_product_acceptance",
-      "sha": "281a57bd9fb782c0f85bfb5127c713ea15037f68"
-    }
-  },
-  "interrupted": false,
-  "last_checkpoint": "2026-10-20T02:28:14+00:00",
-  "last_human_progress_update": "2026-10-17T03:56:02+00:00",
-  "latest_exact_ci_audit": {
-    "attempt": 1,
-    "conclusion": "success",
-    "e2e_summary": "191 passed, 110 declared skips, zero retries or flaky markers",
-    "head_sha": "35ee3c0263c5255ecd8d9dafee4cd48c8e46c163",
-    "jobs": {
-      "backend": "success",
-      "branch_declared": "success",
-      "e2e": "success_191_passed_110_declared_skips_zero_retries_or_flakes",
-      "exhaustive_feature_branch": "skipped_by_branch_policy",
-      "frontend_unit": "success"
-    },
-    "run_id": 39432030348,
-    "scope": "Exact product source35ee3c0263c5255ecd8d9dafee4cd48c8e46c163; Backend, Frontend Unit, Branch-declared and E2E succeeded. E2E job118663396931 reports191 passed and110 declared skips with no retries/flaky markers. Exhaustive was skipped by feature-branch policy.",
-    "visuals": "Hosted CI skipped visual cases; separate same-source local pinned-Noble matrix passed104/104 under original0.005 tolerance. Official V25 parity remains required_missing."
-  },
   "frozen_upstream_import_guard": {
     "approved_snapshot": "281a57bd9fb782c0f85bfb5127c713ea15037f68",
     "baseline": "2b92c642237ce2abde40a84ee98383d4ee4285d1",
@@ -183,8 +123,44 @@
     "state": "exact4525_rejected;duplicate_identical_hydration_published85ceed62_runtime_pending;deferred_presets_layout_fix_dirty_stack_free_green_runtime_pending",
     "visual_followup": "Full104 remains deferred until F8n and F8m close and the coordinator separately releases capacity."
   },
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance feat/tc2000-frontend-rework: Prepare tc2000-workstation-integration-1: repair independent chart-template pointer interception and functional/visual blockers; consume synchronized green Provider+ETF staging, reconcile real consumer contracts, validate the combined workstation and publish a clean checkpoint for human review.. Acceptance criteria: TCP1: COMPLETE (narrow coordinator technical acceptance only): green staging 82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009 merged by d4274a9fa3119c212a9aaf2c0006c20d921812e8; implementation 7f33b07dfc7ffa57d5285e04981448732e3eb727 verified by exact attempt-1 CI 38835330075. This is not whole-checkpoint acceptance or staging-integration authority.; TCP2: Resolve TC-owned functional/visual failures without weakening checks; review and adopt only the human-authorized local Help reference after all four profiles pass, while keeping official V25 Help parity as unfinished roadmap work.; TCP3: After Provider and ETF reach synchronized green staging, merge that staging into this clean unfrozen source and reconcile all shared paths and actual provider coverage/preflight and ETF lineage/freshness consumers.; TCP4: Validate usable combined workstation and immutable Study consumers, success and unavailable paths, with the required full integration/browser profile and exact-source branch CI.; TCP5: Publish a clean pushed checkpoint and complete roadmap dispositions at ready_for_human_review; retain pending human acceptance and coordinator-only staging integration/freeze release.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-10-15T20:07:26.302468+00:00",
+  "goal_request": {
+    "objective": "Advance feat/tc2000-frontend-rework: Prepare tc2000-workstation-integration-1: repair independent chart-template pointer interception and functional/visual blockers; consume synchronized green Provider+ETF staging, reconcile real consumer contracts, validate the combined workstation and publish a clean checkpoint for human review.. Acceptance criteria: TCP1: Diagnose and fix chart-template pointer interception with browser regression evidence and a coordinator-readable narrow repair proposal.; TCP2: Resolve required functional/visual failures without weakening reference policy; document missing reference evidence and proposed checkpoint limitations for human review.; TCP3: After Provider and ETF reach synchronized green staging, merge that staging into this clean unfrozen source and reconcile all shared paths and actual provider coverage/preflight and ETF lineage/freshness consumers.; TCP4: Validate usable combined workstation and immutable Study consumers, success and unavailable paths, with the required full integration/browser profile and exact-source branch CI.; TCP5: Publish a clean pushed checkpoint and complete roadmap dispositions at ready_for_human_review; retain pending human acceptance and coordinator-only staging integration/freeze release.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "ready",
+  "goal_state": "resumed_after_takeover",
+  "goal_unavailable_reason": null,
+  "head": "7a3aa2d87f43c0cc69a758750da14eae08e75f6b",
+  "implementation_sha": "35ee3c0263c5255ecd8d9dafee4cd48c8e46c163",
+  "integration_checkpoint": {
+    "acceptance": "pending",
+    "coordinator_guidance": "/home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md",
+    "id": "tc2000-workstation-integration-1",
+    "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
+  },
+  "interrupted": false,
+  "last_checkpoint": "2026-10-20T02:28:14+00:00",
+  "last_human_progress_update": "2026-10-17T03:56:02+00:00",
+  "latest_exact_ci_audit": {
+    "attempt": 1,
+    "conclusion": "success",
+    "e2e_summary": "191 passed, 110 declared skips, zero retries or flaky markers",
+    "head_sha": "35ee3c0263c5255ecd8d9dafee4cd48c8e46c163",
+    "jobs": {
+      "backend": "success",
+      "branch_declared": "success",
+      "e2e": "success_191_passed_110_declared_skips_zero_retries_or_flakes",
+      "exhaustive_feature_branch": "skipped_by_branch_policy",
+      "frontend_unit": "success"
+    },
+    "run_id": 39432030348,
+    "scope": "Exact product source35ee3c0263c5255ecd8d9dafee4cd48c8e46c163; Backend, Frontend Unit, Branch-declared and E2E succeeded. E2E job118663396931 reports191 passed and110 declared skips with no retries/flaky markers. Exhaustive was skipped by feature-branch policy.",
+    "visuals": "Hosted CI skipped visual cases; separate same-source local pinned-Noble matrix passed104/104 under original0.005 tolerance. Official V25 parity remains required_missing."
+  },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the deterministic initial-bars-before-indicator-hydration fix with its baseline-red unit regression and exact first-failure evidence; obtain exact-source CI and ordinary date-pointer runtime proof when coordinator capacity is released.",
+  "next_action": "Complete the bounded Provider-only reconciliation of released staging9b230 in this TC merge: validate the six exact additive contract adaptations and immutable-import manifest, record the stale ETF history-import collection boundary, then publish once and obtain exact-source CI. ETF consumer reconciliation, TCP4/TCP5 and full-roadmap gates stay open.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -197,7 +173,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "7b66c306a749a3e5804b9666811de799deb5120c1802b8d446676c4f3410bc90",
+  "plan_hash": "3f38f986b48172cd34d4133bf10205b6c1c1fd548aa4d5731e471384097354a0",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -214,11 +190,11 @@
       "TCP1",
       "TCP2"
     ],
-    "current_blocker": "TCP2 local functional/visual technical acceptance is recorded for exact product source35ee3c02: exact Actions39432030348 is green and the unchanged pinned-Noble four-profile matrix passed104/104 at0.005 with zero retries. Remaining blockers are accepted Provider then ETF green staging, real consumer reconciliation, TCP4 combined profile, TCP5 final review, and official REF-HELP-V25 parity.",
-    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_ETF_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN",
-    "next_action": "Publish this coherent owned-record update once and verify its exact-source CI; then wait for accepted Provider followed by ETF staging before TC consumer reconciliation. Do not rerun the unchanged matrix or infer whole-checkpoint acceptance.",
+    "current_blocker": "TCP1/TCP2 remain narrowly accepted as recorded. Provider-only TCP3 reconciliation is active against released9b230 with six coordinator-approved exact adaptations; merge publication, exact-source CI and a bounded watchlist-history collection blocked before assertions by the later ETF import are outstanding. Alpaca public endpoint reference does not declare adjustment_factor, so its optional legacy-key parser support is not native-feed proof. ETF reconciliation, TCP4, TCP5, complete roadmap and official REF-HELP-V25 remain open.",
+    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_ONLY_RECONCILIATION_ACTIVE_ETF_GATED;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN",
+    "next_action": "Finish exact scope/workstream/structured/diff checks, publish the single Provider reconciliation merge through normal TC ownership, and obtain exact-source CI; do not import or repair ETF-owned code in this phase.",
     "total": 5,
-    "updated_at": "2026-10-20T14:42:10+00:00"
+    "updated_at": "2026-10-20T21:52:10+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
@@ -234,9 +210,9 @@
     "remote_tracking_sha": "a8e5dbce34012b6edbb85315fe60d37987465acc",
     "status": "local/origin a8e5dbce are equal; date-pointer initial-bars readiness repair and regression are dirty pending staged review/publication; ordinary runtime proof remains open"
   },
-  "remote": "a8e5dbce34012b6edbb85315fe60d37987465acc",
-  "remote_sha": "a8e5dbce34012b6edbb85315fe60d37987465acc",
-  "remote_synchronized": true,
+  "remote": "ba744412355f424df944177d31f0686f0e09f1b4",
+  "remote_sha": "7a3aa2d87f43c0cc69a758750da14eae08e75f6b",
+  "remote_synchronized": false,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"
@@ -320,6 +296,30 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
+  "upstream_release_preparation": {
+    "accepted_product_checkpoints": 0,
+    "coordinator_geometry": {
+      "ci_run": 39332070613,
+      "disposition": "merged_to_exact_green_common_staging_281a57bd_not_product_acceptance",
+      "sha": "afbb72d6"
+    },
+    "etf": {
+      "disposition": "preparation_only_pending_provider_release",
+      "sha": "d1c560dc95d681fb5c67bf8916846a2f354bb5f5"
+    },
+    "map": "ops/workstreams/feat-tc2000-frontend-rework/post-release-reconciliation-map.md",
+    "prepared_at": "2026-10-19T20:54:35Z",
+    "provider": {
+      "ci_run": 39332553099,
+      "disposition": "exact_ci_green_but_checkpoint_acceptance_open_for_held_operation_posture_and_final_evidence",
+      "sha": "5a372b4ec83a0c84ec15dd7f8593362b9e27cd35"
+    },
+    "staging": {
+      "ci_run": 39335198284,
+      "disposition": "exact_green_common_repair_baseline_not_product_acceptance",
+      "sha": "281a57bd9fb782c0f85bfb5127c713ea15037f68"
+    }
+  },
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework",
   "workstream_files": [

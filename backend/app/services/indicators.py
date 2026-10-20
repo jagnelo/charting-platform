@@ -978,6 +978,84 @@ for _field in ("open", "high", "low", "close"):
     )
 
 
+# Numeric indicator parameters are not all history windows.  For example,
+# ``anchor_timestamp`` and Parabolic-SAR acceleration factors must not turn
+# into absurd bar requirements merely because they are numeric.  Keep the
+# window vocabulary explicit so evaluator readiness follows the indicator
+# contract rather than guessing from arbitrary parameter values.
+_LOOKBACK_PARAMETER_NAMES = frozenset(
+    {
+        "period",
+        "fast",
+        "slow",
+        "signal",
+        "k_period",
+        "smooth_k",
+        "d_period",
+        "tenkan",
+        "kijun",
+        "senkou_b",
+        "displacement",
+        "atr_period",
+    }
+)
+
+
+def required_bars_for_indicator(indicator_type: str, params: dict | None = None) -> int:
+    """Return the minimum local bars needed for current/previous evaluation.
+
+    The result is a readiness floor, not a replacement for the indicator
+    implementation's NaN handling.  Composite indicators add their relevant
+    windows; non-window parameters are deliberately ignored.
+    """
+
+    definition = INDICATOR_REGISTRY.get(indicator_type)
+    if definition is None:
+        return 2
+    supplied = normalize_indicator_params(indicator_type, params) if params else {}
+
+    def _window(name: str) -> int:
+        value = supplied.get(name)
+        if value is None:
+            parameter = next((item for item in definition.params if item.name == name), None)
+            value = parameter.default if parameter is not None else 1
+        return max(1, int(value)) if isinstance(value, int | float) else 1
+
+    # These composite formulas mirror the actual rolling/recursive stages in
+    # the functions above, including one extra observation for a crossing's
+    # previous value.
+    if indicator_type == "macd":
+        return max(2, max(_window("fast"), _window("slow")) + _window("signal"))
+    if indicator_type == "ppo":
+        return max(2, max(_window("fast"), _window("slow")) + 1)
+    if indicator_type == "stoch":
+        return max(2, _window("k_period") + _window("smooth_k") + _window("d_period"))
+    if indicator_type == "ichimoku":
+        return max(
+            2,
+            max(_window("tenkan"), _window("kijun"), _window("senkou_b"))
+            + _window("displacement")
+            + 1,
+        )
+    if indicator_type == "keltner":
+        return max(2, max(_window("period"), _window("atr_period")) + 1)
+    if indicator_type == "hma":
+        period = _window("period")
+        return max(2, period + int(period**0.5))
+    if indicator_type == "aroon":
+        return max(2, _window("period") + 2)
+    if indicator_type in {"dema", "tema", "trix"}:
+        stages = {"dema": 2, "tema": 3, "trix": 3}[indicator_type]
+        return max(2, stages * _window("period"))
+
+    windows = [
+        _window(parameter.name)
+        for parameter in definition.params
+        if parameter.name in _LOOKBACK_PARAMETER_NAMES
+    ]
+    return max(2, (max(windows) + 1) if windows else 2)
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 _PARAM_ALIASES = {
@@ -1009,29 +1087,6 @@ def normalize_indicator_params(indicator_type: str, params: dict | None = None) 
         normalized["k_period"] = normalized["period"]
 
     return normalized
-
-
-def resolve_indicator_output(indicator_type: str, params: dict | None = None) -> str | None:
-    """Resolve a declared output without guessing for multi-output indicators.
-
-    The chart, screener, and alert contracts all carry the selected output in
-    the indicator parameter object.  Single-output indicators remain
-    backwards-compatible when the field is absent; multi-output indicators
-    must name one explicitly.  ``None`` means the indicator is unknown, the
-    requested output is invalid, or the output is ambiguous.
-    """
-    definition = INDICATOR_REGISTRY.get(indicator_type)
-    if definition is None:
-        return None
-
-    requested = (params or {}).get("output")
-    if requested is not None and requested != "":
-        return (
-            requested
-            if isinstance(requested, str) and requested in definition.output_keys
-            else None
-        )
-    return definition.output_keys[0] if len(definition.output_keys) == 1 else None
 
 
 def _coerce_series(data: OHLCVSeries | list) -> OHLCVSeries:

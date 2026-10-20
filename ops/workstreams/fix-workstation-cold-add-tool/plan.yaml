@@ -1,0 +1,87 @@
+schema: 4
+branch: fix/workstation-cold-add-tool
+base_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
+parent_branch: staging
+parent_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "Human-authorized central four-feature integration with delegated technical repair acceptance recorded in docs/feature-integration-coordination.md. Diagnose and repair the shared cold Add tool to Study Results failure blocking exact Provider CI39342948219, preserving ordinary clicks, queued intent, ready-tab fast behavior, teardown, all existing assertions and tolerances. Use a narrow staging-based coordinator repair; do not edit feature worktrees, provider controls or data, staging product files directly, deployments or paid/trial operations."
+planning_state: ready
+human_closure_authorization: >-
+  The human delegated validated technical repair closure to this central
+  coordinator: "you do not need my acceptance to close it off" and requested
+  progression of the four feature checkpoints through staging. Exercised only
+  for this narrow command acknowledgement/teardown repair, with the original
+  full validation requirements retained. This does not accept any feature
+  checkpoint or authorize deployment, paid activation, provider transport,
+  an operational trial, sibling edits, or any tolerance change.
+closure_summary: >-
+  Coordinator technical acceptance of the independently reproduced cold-command
+  acknowledgement and post-teardown store-mutation defects. Implementation
+  d12a730a4f98009fecf585e80daa9a66e23d2410, tested complete source
+  299b075cd6dfb1f9974a38003f3b66f7539d15f6, preserves immediate usable-tab
+  behavior and concrete Golden Layout activation. Two baseline-red regressions
+  become green in the unchanged26-case harness. Full frontend943/943tests and
+  original coverage thresholds pass; vue-tsc and production build pass. Exact
+  source299 Actions39349429658 succeeds,152passed109expectedskips,zero flakes
+  or failures. Fresh isolated pinned-Noble1.62.1/read-onlyDejaVu local profile
+  passes155functional cases/two existing canonical-live skips in16.5minutes
+  and104visual cases in13.9minutes,one worker,zero retries. Ordinary F8t Study
+  Results, F9c hit targets, F8n gestures and existing performance guards pass.
+  All assertions, timeouts, references, masks and0.005tolerance remain unchanged.
+  Both .last-run reports pass with no failedTests; backend/worker logs have
+  zero ERROR/CRITICAL/Traceback lines. Only the exact temporary8service,
+  4generatedvolume,2network fixture and4unique unused image tags were removed;
+  all55retained running identities remain intact. Evidence artifacts remain
+  in /tmp/cold-tool-299-browser-20261020/artifacts. No migration/deployment or
+  provider control/quota/data change. The cause of Provider's original hosted
+  first-attempt F8t failure remains unproven; this is not a permanent-flake
+  claim. Exact enclosing closure-source branch CI and guarded staging
+  Exhaustive remain mandatory before release; neither future result is
+  invented by this acceptance. integration_capture: exact branch HEAD
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: full_stack_browser
+local_validation_reason: Workstation command and Vue lifecycle behavior require frontend unit/type/build and ordinary functional/visual browser proof; no backend, dependency, migration or deployment change is planned.
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "Human-authorized central four-feature integration with delegated technical repair acceptance recorded in docs/feature-integration-coordination.md. Diagnose and repair the shared cold Add tool to Study Results failure blocking exact Provider CI39342948219, preserving ordinary clicks, queued intent, ready-tab fast behavior, teardown, all existing assertions and tolerances. Use a narrow staging-based coordinator repair; do not edit feature worktrees, provider controls or data, staging product files directly, deployments or paid/trial operations."
+scope:
+  - Reproduce the cold ordinary Add tool command failure with deterministic lifecycle and workspace-readiness tests before claiming a cause.
+  - Repair only the shared command boundary needed for accepted tool intent to execute exactly once when a usable target exists, retaining the fast usable-tab path and cancellation after teardown.
+  - Preserve the existing ordinary menu interaction, exact Study Results visibility and ARIA outcomes, existing timeouts, retries, screenshot references and tolerances.
+  - Publish a narrow validated repair for coordinator acceptance and guarded staging integration; leave the four full feature checkpoints and roadmaps separate.
+owned_paths:
+  - frontend/src/views/WorkstationView.vue
+  - frontend/tests/unit/views/test_workstation_tool_commands.test.ts
+  - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
+  - ops/workstreams/fix-workstation-cold-add-tool/
+dependencies:
+  - Synchronized green staging281a57bd9fb782c0f85bfb5127c713ea15037f68 and exact Exhaustive run39335198284; no unaccepted feature source import.
+  - Provider run39342948219/job118375170657 and verified artifact12231332082 prove an actual first-attempt missing Study Results tool, but do not distinguish a lost DOM click from a pending command barrier.
+  - TC owns the current single heavy diagnostic slot. This repair must remain source/unit-only until a safe explicit resource handoff; preserve all55retained running services and datasets.
+acceptance_criteria:
+  - id: COLD1
+    text: A deterministic regression demonstrates a concrete cold-command lifecycle or readiness failure on the unchanged baseline; any unproven explanation remains explicitly unproven.
+  - id: COLD2
+    text: Accepted ordinary tool commands execute exactly once when their usable target becomes available, preserve the already-usable-tab fast path and keyboard behavior, and do not mutate after component teardown.
+  - id: COLD3
+    text: The unchanged ordinary Add tool to Study Results flow reveals the actual tool within its original15s and exact ARIA contract; no forced click, retry acceptance, hydration-wait workaround, timeout increase or weaker result oracle hides a failure.
+  - id: COLD4
+    text: Before branch acceptance, affected and complete frontend unit tests, type/build, the required zero-retry full functional/104visual profile and exact-source branch CI pass with references and tolerances unchanged. After the guarded merge, exact staging Exhaustive must pass before coordinator release; this post-merge gate is mandatory but cannot be a circular pre-merge source criterion.
+  - id: COLD5
+    text: Clean synchronized publication and explicit delegated technical closure preserve exact implementation/evidence and integration_capture exact branch HEAD; no feature worktree, protected branch product file, provider control/quota/data, paid/trial operation or deployment is changed by implementation.
+branch_tests: []
+branch_tests_reason: Existing complete frontend Vitest discovers the owned regression tests; existing ordinary Playwright F8t-results-open and full functional/visual profiles remain the unchanged external behavior oracle. No standalone workflow test command is necessary.
+live_test_impact: No provider or issuer HTTP is needed. Any eventual browser fixture must use one frozen own-source export, blank credentials, physical application egress denial, pinned Playwright1.62.1Noble, read-only DejaVu, one worker and zero retries after explicit resource handoff; clean only its exact new resources and preserve all retained ones.
+migration_impact: none
+deployment_impact: none
+status: ready_for_integration
+remaining_gaps:
+  - Two deterministic lifecycle defects are fixed with baseline-red/fixed-green tests, but their relationship to the hosted F8t failure is unproven. The failed-attempt trace is absent; the successful retry cannot prove the failed action worked.
+  - Local full validation and narrow delegated technical acceptance are complete. Publish the coherent closure, verify clean synchronized exact enclosing HEAD and require its exact-source branch CI, followed by guarded staging integration and exact staging Exhaustive before release.
+progress:
+  completed: [COLD1, COLD2, COLD3]
+  total: 5
+  current_phase: technical_acceptance_closure_publication
+  current_blocker: none
+  next_action: Publish the completed own full_validation and delegated technical closure context, refresh required session planning state against the committed plan, verify clean origin parity and exact final branch CI, then use guarded persistent staging integration and wait for exact staging Exhaustive before release. No local fixture remains.

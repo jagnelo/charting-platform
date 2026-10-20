@@ -11987,7 +11987,7 @@ changed.
 - There were no unstaged same-file hunks to split. Existing unpushed commits are
   already separated by context: native provider implementation/repair commits
   are separate from discovery, validation, package, and handoff commits.
-- Push failed because GitHub authenticated SSH as `jagnelo-symbiotech` and
+- Push failed because GitHub authenticated SSH as `an account without repository access` and
   denied access to `jagnelo/charting-platform`. A refreshed pending-push package
   is saved at `/private/tmp/charting-platform-pending-push-20260727T123221Z`.
 - No backend source changed. Strict state remains `345` registered, `326`
@@ -12121,7 +12121,7 @@ changed.
 - Current branch remains clean but ahead of origin by two local commits:
   `3e31f36 feat(etf): expand native holdings provider coverage` and
   `3606a2b chore(ops): checkpoint ETF holdings live matrix`. The previous push
-  failed because SSH authenticated as `jagnelo-symbiotech`, which is denied for
+  failed because SSH authenticated as `an account without repository access`, which is denied for
   `jagnelo/charting-platform`.
 - Recomputed the fallback-only matrix from code: `345` registered, `325`
   native/live-backed, `20` fallback-only. Fallback buckets are

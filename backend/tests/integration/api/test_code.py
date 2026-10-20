@@ -226,302 +226,6 @@ def test_code_asset_kind_and_declared_output_contract_must_match(client, auth_he
     assert selected.status_code == 201
     assert selected.json()["versions"][0]["output_name"] == "trend"
 
-    selected_range = client.post(
-        "/api/v1/code/assets",
-        headers=auth_headers,
-        json={
-            "stable_key": "selected-study-range-center",
-            "name": "Selected study range center",
-            "kind": "plot",
-            "initial_version": {
-                "source": "output.range('band', [1, 2], [3, 4], [2, 3])",
-                "output_contract": "series",
-                "output_name": "band",
-                "lineage": {
-                    "source_run_id": 91,
-                    "source_code_version_id": 43,
-                    "target": "plot",
-                    "output_adapter": "range_center_to_series",
-                    "semantics": "study_range_center_result_as_chart_plot",
-                },
-            },
-        },
-    )
-    assert selected_range.status_code == 201, selected_range.text
-    range_version = selected_range.json()["versions"][0]
-    assert range_version["output_contract"] == "series"
-    assert range_version["output_name"] == "band"
-    range_lineage = next(
-        item for item in range_version["diagnostics"] if item["code"] == "promotion_lineage"
-    )
-    assert range_lineage["lineage"]["output_adapter"] == "range_center_to_series"
-
-    selected_range_column = client.post(
-        "/api/v1/code/assets",
-        headers=auth_headers,
-        json={
-            "stable_key": "selected-study-range-center-column",
-            "name": "Selected study range center column",
-            "kind": "column",
-            "initial_version": {
-                "source": "output.range('band', [1, 2], [3, 4], [2, 3])",
-                "output_contract": "scalar",
-                "output_name": "band",
-                "lineage": {
-                    "source_run_id": 94,
-                    "source_code_version_id": 46,
-                    "target": "column",
-                    "output_adapter": "range_center_to_scalar",
-                    "semantics": "study_range_center_result_as_latest_watchlist_column",
-                },
-            },
-        },
-    )
-    assert selected_range_column.status_code == 201, selected_range_column.text
-    range_column_version = selected_range_column.json()["versions"][0]
-    assert range_column_version["output_contract"] == "scalar"
-    assert range_column_version["output_name"] == "band"
-    range_column_lineage = next(
-        item for item in range_column_version["diagnostics"] if item["code"] == "promotion_lineage"
-    )
-    assert range_column_lineage["lineage"]["output_adapter"] == "range_center_to_scalar"
-
-    selected_series_column = client.post(
-        "/api/v1/code/assets",
-        headers=auth_headers,
-        json={
-            "stable_key": "selected-study-series-column",
-            "name": "Selected study series column",
-            "kind": "column",
-            "initial_version": {
-                "source": "output.scalar('sample', 1)\noutput.series('trend', [1, 2])",
-                "output_contract": "scalar",
-                "output_name": "trend",
-                "lineage": {
-                    "source_run_id": 92,
-                    "source_code_version_id": 44,
-                    "target": "column",
-                    "output_adapter": "latest_series_to_scalar",
-                    "semantics": "study_series_latest_result_as_watchlist_column",
-                },
-            },
-        },
-    )
-    assert selected_series_column.status_code == 201, selected_series_column.text
-    series_column_version = selected_series_column.json()["versions"][0]
-    assert series_column_version["output_contract"] == "scalar"
-    assert series_column_version["output_name"] == "trend"
-    series_column_lineage = next(
-        item for item in series_column_version["diagnostics"] if item["code"] == "promotion_lineage"
-    )
-    assert series_column_lineage["lineage"]["output_adapter"] == "latest_series_to_scalar"
-
-    selected_aggregate_series_plot = client.post(
-        "/api/v1/code/assets",
-        headers=auth_headers,
-        json={
-            "stable_key": "selected-study-aggregate-series-plot",
-            "name": "Selected aggregate study series plot",
-            "kind": "plot",
-            "initial_version": {
-                "source": "output.scalar('sample', 1)\noutput.series('aggregate', {'timestamps': ['2024-01-01'], 'values': [0.5]})",
-                "output_contract": "series",
-                "output_name": "aggregate",
-                "lineage": {
-                    "source_run_id": 94,
-                    "source_code_version_id": 46,
-                    "target": "plot",
-                    "output_adapter": "study_series_to_series",
-                    "semantics": "study_cross_sectional_aggregate_series_as_chart_plot",
-                },
-            },
-        },
-    )
-    assert selected_aggregate_series_plot.status_code == 201, selected_aggregate_series_plot.text
-    aggregate_plot_version = selected_aggregate_series_plot.json()["versions"][0]
-    assert aggregate_plot_version["output_contract"] == "series"
-    assert aggregate_plot_version["output_name"] == "aggregate"
-    aggregate_plot_lineage = next(
-        item
-        for item in aggregate_plot_version["diagnostics"]
-        if item["code"] == "promotion_lineage"
-    )
-    assert aggregate_plot_lineage["lineage"]["output_adapter"] == "study_series_to_series"
-
-    selected_series_condition = client.post(
-        "/api/v1/code/assets",
-        headers=auth_headers,
-        json={
-            "stable_key": "selected-study-series-condition",
-            "name": "Selected study series condition",
-            "kind": "condition",
-            "initial_version": {
-                "source": "output.scalar('sample', 1)\noutput.series('trend', [1, 2])",
-                "output_contract": "boolean",
-                "output_name": "trend",
-                "lineage": {
-                    "source_run_id": 93,
-                    "source_code_version_id": 45,
-                    "target": "filter",
-                    "output_adapter": "series_target_to_boolean",
-                    "series_target": {"operator": "gte", "threshold": 1.5},
-                    "semantics": "study_series_threshold_as_boolean",
-                },
-            },
-        },
-    )
-    assert selected_series_condition.status_code == 201, selected_series_condition.text
-    series_condition_version = selected_series_condition.json()["versions"][0]
-    assert series_condition_version["output_contract"] == "boolean"
-    assert series_condition_version["output_name"] == "trend"
-    series_condition_lineage = next(
-        item
-        for item in series_condition_version["diagnostics"]
-        if item["code"] == "promotion_lineage"
-    )
-    assert series_condition_lineage["lineage"]["output_adapter"] == "series_target_to_boolean"
-    assert series_condition_lineage["lineage"]["series_target"] == {
-        "operator": "gte",
-        "threshold": 1.5,
-    }
-
-    selected_scalar_condition = client.post(
-        "/api/v1/code/assets",
-        headers=auth_headers,
-        json={
-            "stable_key": "selected-study-scalar-condition",
-            "name": "Selected study scalar condition",
-            "kind": "condition",
-            "initial_version": {
-                "source": "output.scalar('score', market.close()[-1])",
-                "output_contract": "boolean",
-                "output_name": "score",
-                "lineage": {
-                    "source_run_id": 96,
-                    "source_code_version_id": 48,
-                    "target": "filter",
-                    "output_adapter": "scalar_target_to_boolean",
-                    "series_target": {"operator": "gte", "threshold": 100},
-                    "semantics": "study_scalar_threshold_as_boolean",
-                },
-            },
-        },
-    )
-    assert selected_scalar_condition.status_code == 201, selected_scalar_condition.text
-    scalar_condition_version = selected_scalar_condition.json()["versions"][0]
-    assert scalar_condition_version["output_contract"] == "boolean"
-    assert scalar_condition_version["output_name"] == "score"
-    scalar_condition_lineage = next(
-        item
-        for item in scalar_condition_version["diagnostics"]
-        if item["code"] == "promotion_lineage"
-    )
-    assert scalar_condition_lineage["lineage"]["output_adapter"] == "scalar_target_to_boolean"
-    assert scalar_condition_lineage["lineage"]["series_target"] == {
-        "operator": "gte",
-        "threshold": 100,
-    }
-
-    invalid_scalar_condition = client.post(
-        "/api/v1/code/assets",
-        headers=auth_headers,
-        json={
-            "stable_key": "selected-study-invalid-scalar-condition",
-            "name": "Selected study invalid scalar condition",
-            "kind": "condition",
-            "initial_version": {
-                "source": "output.scalar('score', 1)",
-                "output_contract": "boolean",
-                "output_name": "score",
-                "lineage": {
-                    "output_adapter": "scalar_target_to_boolean",
-                    "series_target": {"operator": "between", "threshold": 1.5},
-                },
-            },
-        },
-    )
-    assert invalid_scalar_condition.status_code == 422
-    assert invalid_scalar_condition.json()["detail"]["code"] == "invalid_scalar_target"
-
-    selected_range_condition = client.post(
-        "/api/v1/code/assets",
-        headers=auth_headers,
-        json={
-            "stable_key": "selected-study-range-center-condition",
-            "name": "Selected study range center condition",
-            "kind": "condition",
-            "initial_version": {
-                "source": "output.scalar('sample', 1)\noutput.range('band', [1, 2], [3, 4], [2, 3])",
-                "output_contract": "boolean",
-                "output_name": "band",
-                "lineage": {
-                    "source_run_id": 95,
-                    "source_code_version_id": 47,
-                    "target": "filter",
-                    "output_adapter": "range_center_target_to_boolean",
-                    "series_target": {"operator": "gte", "threshold": 2.5},
-                    "semantics": "study_range_center_threshold_as_boolean",
-                },
-            },
-        },
-    )
-    assert selected_range_condition.status_code == 201, selected_range_condition.text
-    range_condition_version = selected_range_condition.json()["versions"][0]
-    assert range_condition_version["output_contract"] == "boolean"
-    assert range_condition_version["output_name"] == "band"
-    range_condition_lineage = next(
-        item
-        for item in range_condition_version["diagnostics"]
-        if item["code"] == "promotion_lineage"
-    )
-    assert range_condition_lineage["lineage"]["output_adapter"] == "range_center_target_to_boolean"
-    assert range_condition_lineage["lineage"]["series_target"] == {
-        "operator": "gte",
-        "threshold": 2.5,
-    }
-
-    invalid_range_condition = client.post(
-        "/api/v1/code/assets",
-        headers=auth_headers,
-        json={
-            "stable_key": "selected-study-invalid-range-center-condition",
-            "name": "Selected study invalid range center condition",
-            "kind": "condition",
-            "initial_version": {
-                "source": "output.range('band', [1, 2], [3, 4], [2, 3])",
-                "output_contract": "boolean",
-                "output_name": "band",
-                "lineage": {
-                    "output_adapter": "range_center_target_to_boolean",
-                    "series_target": {"operator": "between", "threshold": 1.5},
-                },
-            },
-        },
-    )
-    assert invalid_range_condition.status_code == 422
-    assert invalid_range_condition.json()["detail"]["code"] == "invalid_range_center_target"
-
-    invalid_series_condition = client.post(
-        "/api/v1/code/assets",
-        headers=auth_headers,
-        json={
-            "stable_key": "selected-study-invalid-series-condition",
-            "name": "Selected study invalid series condition",
-            "kind": "condition",
-            "initial_version": {
-                "source": "output.series('trend', [1, 2])",
-                "output_contract": "boolean",
-                "output_name": "trend",
-                "lineage": {
-                    "output_adapter": "series_target_to_boolean",
-                    "series_target": {"operator": "between", "threshold": 1.5},
-                },
-            },
-        },
-    )
-    assert invalid_series_condition.status_code == 422
-    assert invalid_series_condition.json()["detail"]["code"] == "invalid_series_target"
-
     invalid_selected = client.post(
         "/api/v1/code/assets",
         headers=auth_headers,
@@ -619,12 +323,14 @@ def test_research_run_is_queued_for_isolated_runner(client, auth_headers, tmp_pa
     )
     assert response.status_code == 202
     assert response.json()["status"] == "queued"
+    assert response.json()["evaluation_status"] == "queued"
     assert (tmp_path / "jobs" / f"{response.json()['id']}.json").exists()
     canceled = client.post(
         f"/api/v1/research/runs/{response.json()['id']}/cancel", headers=auth_headers
     )
     assert canceled.status_code == 200
     assert canceled.json()["status"] == "canceled"
+    assert canceled.json()["evaluation_status"] == "canceled"
 
 
 def test_research_run_job_preserves_json_parameters_for_isolated_runner(
@@ -822,6 +528,7 @@ def test_research_result_is_collected_as_structured_artifact(
     collected = client.get(f"/api/v1/research/runs/{run['id']}", headers=auth_headers)
     assert collected.status_code == 200
     assert collected.json()["status"] == "completed"
+    assert collected.json()["evaluation_status"] == "completed"
     assert collected.json()["reproducibility_hash"] == "abc"
 
 
@@ -1158,6 +865,7 @@ def test_column_batch_run_materializes_declared_universe_and_returns_typed_cells
     cells = client.get(f"/api/v1/research/runs/{payload['id']}/batch-results", headers=auth_headers)
     assert cells.status_code == 200
     assert cells.json()["output_contract"] == "scalar"
+    assert cells.json()["evaluation_status"] == "partial"
     assert cells.json()["cells"] == [
         {
             "instrument_id": instrument.id,
@@ -1247,6 +955,45 @@ def test_research_materialization_expands_batch_history_for_code_lookback(
     )
     assert response.status_code == 202
     assert response.json()["dataset_manifest"]["batch_history_limit"] == 601
+
+
+def test_research_materialization_defers_short_single_history_before_runner(
+    client, auth_headers, tmp_path, monkeypatch, instrument, ohlcv_bars
+):
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")
+    )
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results")
+    )
+    asset = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "short-history-study",
+            "name": "Short history study",
+            "kind": "study",
+            "initial_version": {
+                "source": "series = ta.sma(market.close(), 600)\noutput.scalar('value', series[-1])",
+                "output_contract": "study",
+            },
+        },
+    ).json()
+    response = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={
+            "code_version_id": asset["versions"][0]["id"],
+            "run_config": {"symbol": instrument.symbol},
+        },
+    )
+    assert response.status_code == 202
+    manifest = response.json()["dataset_manifest"]
+    assert manifest["coverage_preflight"]["evaluator"] == "research_dataset"
+    assert manifest["coverage_preflight"]["status"] == "deferred"
+    assert manifest["coverage_preflight"]["items"][0]["status"] == "partial"
+    assert manifest["exclusions"][0]["code"] == "declared_history_incomplete"
+    assert len(manifest["closes"]) == len(ohlcv_bars)
 
 
 def test_research_materialization_rejects_unbounded_code_lookback(

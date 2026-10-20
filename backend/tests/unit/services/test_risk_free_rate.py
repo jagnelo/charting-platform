@@ -36,6 +36,7 @@ async def test_fetch_from_provider_persists_bars_via_market_data_helper(monkeypa
     calls: dict[str, object] = {}
 
     async def _fake_execute_provider_call(*args, **kwargs):
+        calls["execute_kwargs"] = kwargs
         return _ExecutionStub(
             provider_name="yfinance",
             data_source=type("DataSourceStub", (), {"id": 9})(),
@@ -46,7 +47,12 @@ async def test_fetch_from_provider_persists_bars_via_market_data_helper(monkeypa
         calls["instrument"] = instrument_arg
         calls["kwargs"] = kwargs
 
+    async def _fake_attach(_db, _instrument, _timeframe, _adjusted, _execution, **kwargs):
+        calls["attach_kwargs"] = kwargs
+        return bars
+
     monkeypatch.setattr(risk_free_rate, "execute_provider_call", _fake_execute_provider_call)
+    monkeypatch.setattr(risk_free_rate, "_attach_provider_series", _fake_attach)
     monkeypatch.setattr(risk_free_rate, "persist_price_history_bars", _fake_persist)
 
     rate = await risk_free_rate._fetch_from_provider(None, instrument)  # type: ignore[arg-type]
@@ -56,7 +62,5 @@ async def test_fetch_from_provider_persists_bars_via_market_data_helper(monkeypa
     assert calls["kwargs"]["data_source_id"] == 9
     assert calls["kwargs"]["timeframe"] == Timeframe.D1
     assert calls["kwargs"]["bars"] == bars
-    # A historical provider bar must not make the newly fetched dataset look
-    # stale.  The cache helper receives the request timestamp as observation
-    # time, not the bar's market-session timestamp.
-    assert calls["kwargs"]["observed_at"] > bars[0].ts
+    assert calls["attach_kwargs"] == {}
+    assert calls["execute_kwargs"]["history_start"].tzinfo == UTC

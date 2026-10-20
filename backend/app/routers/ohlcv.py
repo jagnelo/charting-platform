@@ -1,5 +1,4 @@
-from datetime import datetime
-from typing import Literal
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
@@ -12,107 +11,49 @@ from app.models.data_source import DataSource
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.user import User
-from app.schemas.ohlcv import LocalSplitMaterializationOut, OHLCVBarOut
-from app.services.adjustment_factors import (
-    materialize_local_provider_adjusted_view,
-    materialize_local_split_adjusted_view,
-)
+from app.schemas.ohlcv import OHLCVBarOut
 from app.services.bar_transforms import TRANSFORM_REGISTRY, apply_transform
-from app.services.derived_timeframes import materialize_derived_timeframes
+from app.services.distributed_locks import DistributedLockError
 from app.services.market_data import fetch_ohlcv, fetch_ohlcv_latest, fetch_ohlcv_page_before
-from app.services.ohlcv_coverage import _as_utc
-from app.services.provider_runtime import ProviderNoDataError
+from app.services.provider_runtime import ProviderNoDataError, ProviderRateLimitError
 
 router = APIRouter(prefix="/ohlcv", tags=["ohlcv"])
+
+
+def _provider_capacity_http_error(exc: ProviderRateLimitError) -> HTTPException:
+    headers: dict[str, str] = {"X-Provider": exc.provider_name}
+    if exc.retry_at is not None:
+        seconds = max(0, int((exc.retry_at - datetime.now(UTC)).total_seconds()))
+        headers["Retry-After"] = str(seconds)
+    return HTTPException(
+        status_code=503,
+        detail={
+            "code": "provider_capacity_unavailable",
+            "provider": exc.provider_name,
+            "message": str(exc),
+            "retry_at": exc.retry_at,
+            "scope": exc.scope,
+        },
+        headers=headers,
+    )
+
+
+def _distributed_lock_http_error(exc: DistributedLockError) -> HTTPException:
+    """Expose cross-host refresh coordination failures as a retryable 503."""
+
+    return HTTPException(
+        status_code=503,
+        detail={
+            "code": "refresh_coordination_unavailable",
+            "message": str(exc),
+        },
+        headers={"Retry-After": "5"},
+    )
+
 
 # Number of bars returned in one page. Chosen to be comfortable for rendering
 # while giving enough history context for indicators (e.g. 200-period SMA).
 PAGE_SIZE = 500
-OhlcvView = Literal["canonical", "provider", "derived"]
-
-
-def _filter_ohlcv_view(bars: list[OHLCVBar], view: OhlcvView) -> list[OHLCVBar]:
-    """Select an explicit persisted lineage view without changing canonical defaults."""
-
-    if view == "provider":
-        return [bar for bar in bars if bar.is_derived is False]
-    if view == "derived":
-        return [bar for bar in bars if bar.is_derived is True]
-    return bars
-
-
-@router.post(
-    "/{symbol:path}/{timeframe}/materialize-local-split",
-    response_model=LocalSplitMaterializationOut,
-)
-async def materialize_local_split(
-    symbol: str,
-    timeframe: Timeframe,
-    start: datetime | None = Query(None),
-    end: datetime | None = Query(None),
-    db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
-):
-    """Build a persisted local split-adjusted view from canonical raw bars."""
-
-    start = _as_utc(start) if start is not None else None
-    end = _as_utc(end) if end is not None else None
-    if start is not None and end is not None and end < start:
-        raise HTTPException(
-            422,
-            detail={"code": "invalid_ohlcv_range", "message": "end must be on or after start"},
-        )
-    instrument = (
-        await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
-    ).scalar_one_or_none()
-    if instrument is None:
-        raise HTTPException(404, f"Instrument '{symbol}' not found.")
-    result = await materialize_local_split_adjusted_view(
-        db,
-        instrument_id=instrument.id,
-        timeframe=timeframe,
-        start=start,
-        end=end,
-    )
-    await db.commit()
-    return result
-
-
-@router.post(
-    "/{symbol:path}/{timeframe}/materialize-local-provider",
-    response_model=LocalSplitMaterializationOut,
-)
-async def materialize_local_provider(
-    symbol: str,
-    timeframe: Timeframe,
-    start: datetime | None = Query(None),
-    end: datetime | None = Query(None),
-    db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
-):
-    """Build a local adjusted view from explicit provider adjustment factors."""
-
-    start = _as_utc(start) if start is not None else None
-    end = _as_utc(end) if end is not None else None
-    if start is not None and end is not None and end < start:
-        raise HTTPException(
-            422,
-            detail={"code": "invalid_ohlcv_range", "message": "end must be on or after start"},
-        )
-    instrument = (
-        await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
-    ).scalar_one_or_none()
-    if instrument is None:
-        raise HTTPException(404, f"Instrument '{symbol}' not found.")
-    result = await materialize_local_provider_adjusted_view(
-        db,
-        instrument_id=instrument.id,
-        timeframe=timeframe,
-        start=start,
-        end=end,
-    )
-    await db.commit()
-    return result
 
 
 @router.get("/local/{symbol:path}/{timeframe}", response_model=list[OHLCVBarOut])
@@ -121,13 +62,6 @@ async def get_local_ohlcv(
     timeframe: Timeframe,
     limit: int = Query(PAGE_SIZE, ge=1, le=5000),
     adjusted: bool = Query(True),
-    view: OhlcvView = Query(
-        "canonical",
-        description=(
-            "Persisted lineage view: canonical merges provider and derived rows; "
-            "provider or derived isolates one lineage."
-        ),
-    ),
     before: datetime | None = Query(
         None, description="Return the local page strictly before this timestamp."
     ),
@@ -135,7 +69,6 @@ async def get_local_ohlcv(
     _: User = Depends(get_current_user),
 ):
     """Canonical local read path; never triggers provider fan-out."""
-    before = _as_utc(before) if before is not None else None
     instrument = (
         await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
     ).scalar_one_or_none()
@@ -147,11 +80,9 @@ async def get_local_ohlcv(
         OHLCVBar.is_adjusted.is_(adjusted),
     ]
     if before is not None:
+        if before.tzinfo is None:
+            before = before.replace(tzinfo=UTC)
         predicates.append(OHLCVBar.ts < before)
-    if view == "provider":
-        predicates.append(OHLCVBar.is_derived.is_(False))
-    elif view == "derived":
-        predicates.append(OHLCVBar.is_derived.is_(True))
     if settings.E2E_SEED_MARKET_DATA:
         predicates.append(
             OHLCVBar.data_source_id
@@ -166,54 +97,6 @@ async def get_local_ohlcv(
         .scalars()
         .all()
     )
-    # Local reads never call providers, but a real canonical cache may contain
-    # only adjusted D1 evidence when W1/MN were unavailable upstream.  Build
-    # those coarse rows from the shared provider-neutral materializer so chart
-    # and watchlist consumers see the same explicit lineage as normal reads.
-    # Seeded browser fixtures intentionally remain source-scoped and must not
-    # receive provider-neutral rows during deterministic visual runs.
-    if (
-        view in {"canonical", "derived"}
-        and not settings.E2E_SEED_MARKET_DATA
-        and timeframe in (Timeframe.W1, Timeframe.MN)
-    ):
-        d1_exists = await db.execute(
-            select(OHLCVBar.id)
-            .where(
-                OHLCVBar.instrument_id == instrument.id,
-                OHLCVBar.timeframe == Timeframe.D1,
-                OHLCVBar.is_adjusted.is_(adjusted),
-            )
-            .limit(1)
-        )
-        if d1_exists.scalar_one_or_none() is not None:
-            derived_exists = await db.execute(
-                select(OHLCVBar.id)
-                .where(
-                    OHLCVBar.instrument_id == instrument.id,
-                    OHLCVBar.timeframe == timeframe,
-                    OHLCVBar.is_adjusted.is_(adjusted),
-                    OHLCVBar.is_derived.is_(True),
-                )
-                .limit(1)
-            )
-            if derived_exists.scalar_one_or_none() is None:
-                await materialize_derived_timeframes(db, instrument.id, adjusted=adjusted)
-                await db.commit()
-            # Re-read even when provider rows were already present: a partial
-            # provider series must be merged with derived periods from D1.
-            bars = (
-                (
-                    await db.execute(
-                        select(OHLCVBar)
-                        .where(*predicates)
-                        .order_by(OHLCVBar.ts.desc())
-                        .limit(limit)
-                    )
-                )
-                .scalars()
-                .all()
-            )
     return list(reversed(bars))
 
 
@@ -235,13 +118,6 @@ async def get_ohlcv_transformed(
     ),
     limit: int | None = Query(None, ge=1),
     adjusted: bool = Query(True),
-    view: OhlcvView = Query(
-        "canonical",
-        description=(
-            "Persisted lineage view: canonical merges provider and derived rows; "
-            "provider or derived isolates one lineage before transformation."
-        ),
-    ),
     local_only: bool = Query(
         False,
         description="Read only the canonical local cache; never hydrate from providers.",
@@ -259,10 +135,6 @@ async def get_ohlcv_transformed(
             400, f"Unknown bar_type '{bar_type}'. Valid: {list(TRANSFORM_REGISTRY)}"
         )
 
-    start = _as_utc(start) if start is not None else None
-    end = _as_utc(end) if end is not None else None
-    before = _as_utc(before) if before is not None else None
-
     result = await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
     instrument = result.scalar_one_or_none()
     if instrument is None:
@@ -273,6 +145,8 @@ async def get_ohlcv_transformed(
     # Fetch enough raw bars to feed the transform (transforms may collapse bars)
     fetch_limit = PAGE_SIZE * 3
     if before is not None:
+        if before.tzinfo is None:
+            before = before.replace(tzinfo=UTC)
         try:
             raw_bars = await fetch_ohlcv_page_before(
                 db,
@@ -283,11 +157,19 @@ async def get_ohlcv_transformed(
                 adjusted,
                 allow_provider_fetch=not local_only,
             )
+        except ProviderRateLimitError as exc:
+            raise _provider_capacity_http_error(exc) from exc
+        except DistributedLockError as exc:
+            raise _distributed_lock_http_error(exc) from exc
         except ProviderNoDataError as exc:
             raise HTTPException(
                 404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}."
             ) from exc
     elif start is not None:
+        if start.tzinfo is None:
+            start = start.replace(tzinfo=UTC)
+        if end and end.tzinfo is None:
+            end = end.replace(tzinfo=UTC)
         try:
             raw_bars = await fetch_ohlcv(
                 db,
@@ -298,6 +180,10 @@ async def get_ohlcv_transformed(
                 adjusted,
                 allow_provider_fetch=not local_only,
             )
+        except ProviderRateLimitError as exc:
+            raise _provider_capacity_http_error(exc) from exc
+        except DistributedLockError as exc:
+            raise _distributed_lock_http_error(exc) from exc
         except ProviderNoDataError as exc:
             raise HTTPException(
                 404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}."
@@ -312,6 +198,10 @@ async def get_ohlcv_transformed(
                 adjusted,
                 allow_provider_fetch=not local_only,
             )
+        except ProviderRateLimitError as exc:
+            raise _provider_capacity_http_error(exc) from exc
+        except DistributedLockError as exc:
+            raise _distributed_lock_http_error(exc) from exc
         except ProviderNoDataError as exc:
             raise HTTPException(
                 404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}."
@@ -328,7 +218,6 @@ async def get_ohlcv_transformed(
     if reversal is not None:
         params["reversal"] = reversal
 
-    raw_bars = _filter_ohlcv_view(raw_bars, view)
     transformed = apply_transform(bar_type, raw_bars, params or None)
     if limit:
         transformed = transformed[-limit:]
@@ -346,13 +235,6 @@ async def get_ohlcv(
     ),
     limit: int | None = Query(None, ge=1, description="Cap the number of bars returned"),
     adjusted: bool = Query(True),
-    view: OhlcvView = Query(
-        "canonical",
-        description=(
-            "Persisted lineage view: canonical merges provider and derived rows; "
-            "provider or derived isolates one lineage."
-        ),
-    ),
     local_only: bool = Query(
         False,
         description="Read only the canonical local cache; never hydrate from providers.",
@@ -360,9 +242,6 @@ async def get_ohlcv(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    start = _as_utc(start) if start is not None else None
-    end = _as_utc(end) if end is not None else None
-    before = _as_utc(before) if before is not None else None
     result = await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
     instrument = result.scalar_one_or_none()
     if instrument is None:
@@ -374,6 +253,8 @@ async def get_ohlcv(
 
     if before is not None:
         # Paginated: return the PAGE_SIZE bars immediately before `before`
+        if before.tzinfo is None:
+            before = before.replace(tzinfo=UTC)
         try:
             bars = await fetch_ohlcv_page_before(
                 db,
@@ -384,15 +265,22 @@ async def get_ohlcv(
                 adjusted,
                 allow_provider_fetch=not local_only,
             )
+        except ProviderRateLimitError as exc:
+            raise _provider_capacity_http_error(exc) from exc
+        except DistributedLockError as exc:
+            raise _distributed_lock_http_error(exc) from exc
         except ProviderNoDataError as exc:
             raise HTTPException(
                 404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}."
             ) from exc
-        bars = _filter_ohlcv_view(bars, view)
         return bars[-limit:] if limit else bars
 
     if start is not None:
         # Explicit range query (used by alert engine, screener, sparklines, etc.)
+        if start.tzinfo is None:
+            start = start.replace(tzinfo=UTC)
+        if end and end.tzinfo is None:
+            end = end.replace(tzinfo=UTC)
         try:
             bars = await fetch_ohlcv(
                 db,
@@ -403,17 +291,20 @@ async def get_ohlcv(
                 adjusted,
                 allow_provider_fetch=not local_only,
             )
+        except ProviderRateLimitError as exc:
+            raise _provider_capacity_http_error(exc) from exc
+        except DistributedLockError as exc:
+            raise _distributed_lock_http_error(exc) from exc
         except ProviderNoDataError as exc:
             raise HTTPException(
                 404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}."
             ) from exc
-        bars = _filter_ohlcv_view(bars, view)
         return bars[-limit:] if limit else bars
 
     # Default: initial load — return the latest N bars (capped at PAGE_SIZE)
     page = min(limit, PAGE_SIZE) if limit else PAGE_SIZE
     try:
-        bars = await fetch_ohlcv_latest(
+        return await fetch_ohlcv_latest(
             db,
             instrument,
             timeframe,
@@ -421,7 +312,10 @@ async def get_ohlcv(
             adjusted,
             allow_provider_fetch=not local_only,
         )
-        return _filter_ohlcv_view(bars, view)
+    except ProviderRateLimitError as exc:
+        raise _provider_capacity_http_error(exc) from exc
+    except DistributedLockError as exc:
+        raise _distributed_lock_http_error(exc) from exc
     except ProviderNoDataError as exc:
         raise HTTPException(
             404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}."

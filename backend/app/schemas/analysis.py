@@ -50,6 +50,7 @@ class RelativeStrengthOut(AnalysisResponseMetadata):
     overlap_start: datetime | None
     overlap_end: datetime | None
     coverage: float = Field(ge=0, le=1)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     warnings: list[AnalysisWarning] = Field(default_factory=list)
 
 
@@ -89,6 +90,7 @@ class RelativeRotationOut(AnalysisResponseMetadata):
     history_length: int = Field(default=0, ge=0, le=5_000)
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     rows: list[RelativeRotationRow]
 
 
@@ -130,6 +132,7 @@ class BenchmarkFamilyRotationOut(AnalysisResponseMetadata):
     history_length: int = Field(default=0, ge=0, le=5_000)
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     roles: list[BenchmarkFamilyRotationRoleOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
@@ -176,6 +179,7 @@ class BenchmarkFamilyConcentrationRoleOut(AnalysisContractModel):
     p90_return: float | None = None
     positive_percentage: float | None = Field(default=None, ge=0, le=1)
     negative_percentage: float | None = Field(default=None, ge=0, le=1)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     members: list[BenchmarkFamilyConcentrationMemberOut] = Field(default_factory=list)
     warnings: list[AnalysisWarning] = Field(default_factory=list)
 
@@ -190,6 +194,7 @@ class BenchmarkFamilyConcentrationOut(AnalysisResponseMetadata):
     as_of: datetime | None = None
     rank_period: str
     top_n: int = Field(ge=1, le=25)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     roles: list[BenchmarkFamilyConcentrationRoleOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
@@ -233,6 +238,7 @@ class BenchmarkFamilyConcentrationHistoryRoleOut(AnalysisContractModel):
     verification_state: str
     available: bool
     membership_semantics: str | None = None
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     points: list[BenchmarkFamilyConcentrationHistoryPointOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
@@ -248,6 +254,7 @@ class BenchmarkFamilyConcentrationHistoryOut(AnalysisResponseMetadata):
     rank_period: str
     top_n: int = Field(ge=1, le=25)
     limit: int = Field(ge=1, le=5_000)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     roles: list[BenchmarkFamilyConcentrationHistoryRoleOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
@@ -277,6 +284,7 @@ class GroupSnapshotOut(AnalysisResponseMetadata):
     adjustment: str
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     coverage: float = Field(ge=0, le=1)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
     rows: list[GroupSnapshotRow]
@@ -481,6 +489,7 @@ class BenchmarkFamilyOverviewOut(AnalysisResponseMetadata):
     as_of: datetime | None = None
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     coverage: float = Field(ge=0, le=1)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
     mappings: list[BenchmarkFamilyMappingOut] = Field(default_factory=list)
@@ -499,6 +508,7 @@ class BenchmarkFamilyDerivedEqualWeightOut(AnalysisResponseMetadata):
     as_of: datetime | None = None
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     method: str
     member_count: int = Field(ge=0)
     covered_member_count: int = Field(ge=0)
@@ -533,6 +543,7 @@ class BenchmarkFamilyRatiosOut(AnalysisResponseMetadata):
     as_of: datetime | None = None
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     ratios: list[BenchmarkFamilyRatioOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
@@ -554,6 +565,7 @@ class BenchmarkFamilyTechnicalRoleOut(AnalysisContractModel):
     position_52w: float | None = None
     volume_ratio_50: float | None = None
     freshness: str = "unavailable"
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     warnings: list[AnalysisWarning] = Field(default_factory=list)
 
 
@@ -597,6 +609,7 @@ class BenchmarkFamilyBreadthRoleOut(AnalysisContractModel):
     new_high: BenchmarkFamilyBreadthMetricOut | None = None
     trend_up: BenchmarkFamilyBreadthMetricOut | None = None
     relative_strength_to_cap: BenchmarkFamilyBreadthMetricOut | None = None
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
@@ -612,6 +625,7 @@ class BenchmarkFamilyBreadthOut(AnalysisResponseMetadata):
     new_high_lookback: int = Field(ge=2, le=252)
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     roles: list[BenchmarkFamilyBreadthRoleOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
@@ -686,6 +700,7 @@ class IndustrySnapshotOut(AnalysisResponseMetadata):
     known_at: datetime | None = None
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     coverage: float = Field(ge=0, le=1)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
     rows: list[IndustrySnapshotRow]
@@ -698,7 +713,10 @@ class BreadthOut(AnalysisResponseMetadata):
     as_of: datetime | None
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     evaluated_count: int
+    missing_count: int = 0
+    stale_count: int = 0
     coverage: float = Field(ge=0, le=1)
     coverage_detail: dict[str, float] = Field(default_factory=dict)
     member_metrics: dict[str, dict[str, float | int | None]] = Field(default_factory=dict)
@@ -725,6 +743,7 @@ class BreadthHistoryOut(AnalysisResponseMetadata):
     adjustment: str
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     points: list[BreadthHistoryPoint]
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
@@ -746,6 +765,7 @@ class BenchmarkFamilyBreadthHistoryRoleOut(AnalysisContractModel):
     analysis_ready_percent: float = Field(default=0.0, ge=0, le=100)
     required_bar_count: int | None = Field(default=None, ge=1)
     analysis_ready_status: Literal["ready", "partial", "pending", "unavailable"] = "unavailable"
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     points: list[BreadthHistoryPoint] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
@@ -759,6 +779,7 @@ class BenchmarkFamilyBreadthHistoryOut(AnalysisResponseMetadata):
     adjustment: str
     as_of: datetime | None = None
     limit: int = Field(ge=1, le=5_000)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     roles: list[BenchmarkFamilyBreadthHistoryRoleOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
@@ -787,6 +808,7 @@ class BenchmarkFamilyRankingOut(AnalysisResponseMetadata):
     adjustment: str
     as_of: datetime | None = None
     rank_period: str
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     roles: list[BenchmarkFamilyRankingRoleOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
@@ -814,6 +836,7 @@ class CrossFamilyRankingOut(AnalysisResponseMetadata):
     as_of: datetime | None = None
     benchmark: str | None = None
     rank_period: str
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     rows: list[CrossFamilyRankingRowOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
@@ -850,6 +873,7 @@ class CrossFamilyRankingHistoryOut(AnalysisResponseMetadata):
     benchmark: str | None = None
     rank_period: str
     limit: int = Field(ge=1, le=5_000)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     rows: list[CrossFamilyRankingHistoryRowOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
@@ -946,6 +970,7 @@ class BreadthDefinitionOut(AnalysisResponseMetadata):
     excluded_count: int = Field(ge=0)
     percentage: float | None = Field(default=None, ge=0, le=1)
     coverage: float = Field(ge=0, le=1)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     members: list[BreadthMemberResultOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
@@ -995,6 +1020,7 @@ class BreadthDefinitionHistoryOut(AnalysisResponseMetadata):
     timeframe: str
     adjustment: str
     as_of: datetime | None = None
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     points: list[BreadthDefinitionHistoryPointOut] = Field(default_factory=list)
     occurrences: list[BreadthDefinitionHistoryOccurrenceOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
@@ -1134,6 +1160,7 @@ class IndicatorBatchOut(AnalysisResponseMetadata):
     requested_count: int = Field(ge=0)
     evaluated_count: int = Field(ge=0)
     coverage: float = Field(ge=0, le=1)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
@@ -1149,6 +1176,7 @@ class TechnicalSnapshotOut(AnalysisResponseMetadata):
     sma200: float | None
     position_52w: float | None
     volume_ratio_50: float | None
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     warnings: list[AnalysisWarning] = Field(default_factory=list)
 
 

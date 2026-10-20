@@ -144,6 +144,7 @@ class MarketMapOut(BaseModel):
     area_field: MarketMapNumericAreaField | None = None
     color_metric: MarketMapColorMetric
     condition: dict[str, object] | None = None
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     python_run_id: int | None = None
     python_code_version_id: int | None = None
     python_output_name: str | None = None
@@ -154,7 +155,7 @@ class MarketMapOut(BaseModel):
     reference_membership_version: str | None = None
     reference_series_method: str | None = None
     membership_version: str | None = None
-    calculation_version: str = "market-map-v1"
+    calculation_version: str = "market-map-v2"
     cache_key: str
     cache_hit: bool = False
     cached_at: datetime | None = None

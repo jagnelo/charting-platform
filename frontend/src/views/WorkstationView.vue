@@ -1209,6 +1209,10 @@ async function selectIndustryProxy(symbol: string, instrumentId?: number | null)
 }
 
 async function openTool(tool: OpenableToolDefinition, configurationOverride: Record<string, unknown> = {}) {
+  // Acknowledge the accepted command before hydration can suspend it. Keeping
+  // the menu open makes a queued ordinary click indistinguishable from a lost
+  // click and invites a second activation of the same command.
+  toolLibraryOpen.value = false
   // A shell click can arrive before the asynchronous onMounted hook marks the
   // component live. Wait for that lifecycle boundary instead of yielding one
   // render turn and accidentally dropping the first Add-tool action on a cold
@@ -1228,6 +1232,7 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
       await workspaceLoadPromise
       if (!componentMounted) return
     }
+    if (!componentMounted) return
     // The click can arrive in the same turn as component mount, before the
     // onMounted callback has assigned its load promise. Wait on the explicit
     // readiness signal instead of silently dropping the user's command after
@@ -1238,13 +1243,15 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
       if (!componentMounted) return
     }
   }
+  // The user may have left this workstation while its snapshot was loading.
+  // The old view must never apply a pending command to the shared store after
+  // teardown (including a tab now owned by the replacement view).
   if (!componentMounted) return
   if (!workspaceStore.activeTab) {
     workspaceStore.error = 'The workstation layout is not available yet; please retry the tool action.'
     return
   }
   const opened = workspaceStore.openTool(tool, configurationOverride)
-  toolLibraryOpen.value = false
   if (!opened) return
   await nextTick()
   if (!componentMounted) return

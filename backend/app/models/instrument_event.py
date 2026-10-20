@@ -2,7 +2,18 @@ import enum
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -53,6 +64,8 @@ class InstrumentEvent(Base, TimestampMixin):
     eps_surprise_pct: Mapped[Decimal | None] = mapped_column(Numeric(20, 8), nullable=True)
     dividend_amount: Mapped[Decimal | None] = mapped_column(Numeric(20, 8), nullable=True)
     split_ratio: Mapped[Decimal | None] = mapped_column(Numeric(20, 8), nullable=True)
+    # Optional explicit factor evidence; the existing ff2a migration already
+    # created this nullable column. It is never inferred from amount or split.
     adjustment_factor: Mapped[Decimal | None] = mapped_column(Numeric(24, 12), nullable=True)
     currency: Mapped[str | None] = mapped_column(String(10), nullable=True)
 
@@ -84,8 +97,47 @@ class InstrumentEventFetchState(Base, TimestampMixin):
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     event_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     earnings_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    fetch_version: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+    fetch_version: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
+    continuation_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    query_fingerprint: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    query_start_date: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    query_end_date: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    page_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    complete: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     __table_args__ = (
         UniqueConstraint("instrument_id", "source", name="uq_instrument_event_fetch_state_source"),
+    )
+
+
+class InstrumentEventPageSnapshot(Base, TimestampMixin):
+    """Immutable raw provider page retained for replay and audit.
+
+    Normalized event rows are intentionally not the sole copy of provider
+    data.  This table preserves every successful page envelope, including
+    corporate-action families that do not yet have a canonical event type.
+    """
+
+    __tablename__ = "instrument_event_page_snapshot"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    instrument_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("instrument.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    source: Mapped[str] = mapped_column(String(50), nullable=False)
+    query_fingerprint: Mapped[str] = mapped_column(String(128), nullable=False)
+    request_page_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    next_page_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    page_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+    __table_args__ = (
+        Index(
+            "ix_instrument_event_page_snapshot_progress",
+            "instrument_id",
+            "source",
+            "query_fingerprint",
+            "page_number",
+        ),
     )

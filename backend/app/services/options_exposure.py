@@ -22,8 +22,7 @@ from decimal import Decimal
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.lib.bs_greeks import estimate_greeks
-from app.lib.time_utils import wire_datetime
+from app.lib.quantlib_greeks import calculate_greeks
 from app.models.instrument import Instrument, OptionDetail, OptionRight
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import OptionQuotePoint
@@ -300,9 +299,17 @@ def _compute_exposure(
             tte = max(0.0, (q.expiry_date - today).days / 365.25)
             if tte > 0:
                 is_call = q.right == OptionRight.CALL
-                est_delta, est_gamma = estimate_greeks(
-                    spot, strike_f, tte, iv_f, rfr, is_call=is_call
+                estimated = calculate_greeks(
+                    spot=spot,
+                    strike=strike_f,
+                    expiry=q.expiry_date,
+                    implied_vol=iv_f,
+                    risk_free_rate=rfr,
+                    is_call=is_call,
+                    valuation_date=today,
                 )
+                est_delta = float(estimated["delta"])
+                est_gamma = float(estimated["gamma"])
                 if q.gamma is None:
                     gamma_f = est_gamma
                 if q.delta is None:
@@ -501,7 +508,7 @@ async def get_options_exposure(
             spot=spot,
             expirations=provider_expirations,
             active_expirations=[] if expiration is None else [expiration.isoformat()],
-            computed_at=wire_datetime(datetime.now(UTC)) or "",
+            computed_at=datetime.now(UTC).isoformat(),
             ladder=[],
             key_levels=KeyLevels(),
             pcr_oi=None,
@@ -532,7 +539,7 @@ async def get_options_exposure(
         spot=spot,
         expirations=provider_expirations,
         active_expirations=active_expirations,
-        computed_at=wire_datetime(datetime.now(UTC)) or "",
+        computed_at=datetime.now(UTC).isoformat(),
         ladder=ladder,
         key_levels=key_levels,
         pcr_oi=pcr_oi,

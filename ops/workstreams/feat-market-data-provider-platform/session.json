@@ -1,0 +1,442 @@
+{
+  "acceptance_criteria": [
+    {
+      "id": "ICP1",
+      "text": "Checkpoint minimum is tested stable security, issuer, listing, and provider-symbol identity with provenance/history retention, explicit ambiguity quarantine, and legacy symbol/API compatibility; report known mapping gaps. A fresh complete NMS/OTC/SEC universe reconciliation and full venue mapping are full-roadmap work, not pre-integration ICP1 gates."
+    },
+    {
+      "id": "ICP2",
+      "text": "Shared capability, entitlement, quota/usage, health, and routing contracts are usable by consumers and reject unknown or exhausted quotas, with durable cross-session and concurrent-worker accounting tested."
+    },
+    {
+      "id": "ICP3",
+      "text": "Canonical market series, calendars, coverage, refresh jobs, and missing-data behavior are usable by consumers, with provenance, freshness, gaps, lease recovery, and no provider calls hidden in analytic evaluation loops tested."
+    },
+    {
+      "id": "ICP4",
+      "text": "Every checkpoint-enabled provider operation has bounded exact-source live evidence; every excluded operation has explicit, tested unavailable/disabled behavior and an operation-level status. Historical receipts or quota waits do not count as current success; any failing required operation must be fixed or proposed for explicit human-approved deferral."
+    },
+    {
+      "id": "ICP5",
+      "text": "Checkpoint minimum is additive migration/fresh-install and existing-database equivalence, startup/default/caller compatibility, tested local secret/config boundaries, and exact-source branch CI. GitHub, RPi, and deployment secret-store verification is required before using those targets, not before Provider integration; no deployment readiness is implied."
+    },
+    {
+      "id": "ICP6",
+      "text": "Checkpoint minimum is a concrete Provider producer-contract map with tested success/unavailable behavior and a named downstream wiring/test owner for ETF holdings, TC2000, and Strategy Lab v2. Actual sibling wiring/reconciliation and consumer-specific validation occur after Provider is green in staging and remain owned by those branches; no capability is represented as available without producer evidence."
+    },
+    {
+      "id": "ICP7",
+      "text": "The checkpoint is reviewable from a clean, pushed exact source with the normal validation profile and exact-source evidence, a disposition for every original criterion, and a closure summary for later human acceptance; full-roadmap completion remains open."
+    }
+  ],
+  "active_checkpoint_id": "provider-platform-integration-1",
+  "active_session_id": "f093caba-0194-4527-b22b-0bfa26344c34",
+  "branch": "feat/market-data-provider-platform",
+  "checkpoint_authorization_state": "authorized_for_preparation_acceptance_pending",
+  "claim": {
+    "branch": "feat/market-data-provider-platform",
+    "displaced_session_id": "60955b1d-3a9a-4167-a4d6-e0975d9d3fb5",
+    "host": "m920q",
+    "session_id": "f093caba-0194-4527-b22b-0bfa26344c34",
+    "started_at": "2026-10-02T17:09:55.264095+00:00",
+    "taken_over_at": "2026-10-18T23:55:49.676767+00:00",
+    "takeover_request": "Human-authorized coordinator takeover on 2026-10-19: take over the stale Provider writer claim after the local Codex owner route returned no-client-found. Continue the existing Provider integration checkpoint toward conditional acceptance; preserve all prior evidence, full roadmap, provider/quota/trial holds, retained datasets, and do not stop or clean services.",
+    "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform",
+    "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
+  },
+  "current_exact_ci": {
+    "attempt": 1,
+    "conclusion": "success",
+    "head_sha": "389b8ce912ee04c59024467632b339442673fd82",
+    "jobs": {
+      "backend": "success",
+      "branch_declared": "success",
+      "e2e": "success",
+      "exhaustive_feature_branch": "skipped by branch policy",
+      "frontend_unit": "success"
+    },
+    "run_id": 39350853804,
+    "scope_note": "Exact-source Actions run 39350853804 is terminal green on source 389b8ce912ee04c59024467632b339442673fd82. This validates the Finnhub denial-transport accounting correction and ordinary branch gates; it does not authorize provider transport or complete the final staged-candidate proof.",
+    "status": "terminal green: Backend, Frontend Unit, Branch-declared, and Playwright passed; Exhaustive skipped by feature-branch policy"
+  },
+  "dirty_paths": [
+    "ops/workstreams/feat-market-data-provider-platform/checkpoint-review-packet.md",
+    "ops/workstreams/feat-market-data-provider-platform/handoff.md",
+    "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
+    "ops/workstreams/feat-market-data-provider-platform/session.json",
+    "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
+  ],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": 3613000000,
+    "container_count": 8,
+    "containers": [
+      "charting-stack-feat-market-data-provider-platform-c6e40c66-host-port-relay-1",
+      "charting-stack-feat-market-data-provider-platform-c6e40c66-worker-1",
+      "charting-stack-feat-market-data-provider-platform-c6e40c66-frontend-1",
+      "charting-stack-feat-market-data-provider-platform-c6e40c66-backend-1",
+      "charting-stack-feat-market-data-provider-platform-c6e40c66-postgres-1",
+      "charting-stack-feat-market-data-provider-platform-c6e40c66-redis-1",
+      "charting-stack-feat-market-data-provider-platform-c6e40c66-provider-egress-deny-1",
+      "charting-stack-feat-market-data-provider-platform-c6e40c66-research-runner-1"
+    ],
+    "known_bytes": 3801011208,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-market-data-provider-platform-c6e40c66",
+      "charting-stack-feat-market-data-provider-platform-c6e40c66"
+    ],
+    "testcontainer_sessions": [
+      "7e61d933-c00b-4256-892e-cff0e1d98780",
+      "82adae2f-2869-4c78-84c1-78911aa49dc4",
+      "efb3887f-15ac-425e-9d06-03092bb9e7f1"
+    ],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 182489800,
+    "volume_count": 4,
+    "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
+  },
+  "docker_before_cleanup": {
+    "available": true,
+    "reason": "Worktree-scoped cleanup after make test-backend-coverage removed no containers or images, retained no volumes, and used no host-wide prune."
+  },
+  "docker_ready": {
+    "ready": true,
+    "started_desktop": false,
+    "wait_seconds": 0
+  },
+  "finished": false,
+  "finished_at": null,
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance feat/market-data-provider-platform: Prepare provider-platform-integration-1: a validated backend/data foundation that downstream ETF holdings, TC2000, and Strategy Lab v2 work can consume through explicit identity, series, provider capability/entitlement/quota/health, coverage, and unavailable-operation contracts. Preserve every original market-data requirement as a roadmap item; do not claim full feature completion. Stop at ready_for_human_review; no merge, deployment, provider activation, or 30-day trial is authorized.. Acceptance criteria: ICP1: Checkpoint minimum is tested stable security, issuer, listing, and provider-symbol identity with provenance/history retention, explicit ambiguity quarantine, and legacy symbol/API compatibility; report known mapping gaps. A fresh complete NMS/OTC/SEC universe reconciliation and full venue mapping are full-roadmap work, not pre-integration ICP1 gates.; ICP2: Shared capability, entitlement, quota/usage, health, and routing contracts are usable by consumers and reject unknown or exhausted quotas, with durable cross-session and concurrent-worker accounting tested.; ICP3: Canonical market series, calendars, coverage, refresh jobs, and missing-data behavior are usable by consumers, with provenance, freshness, gaps, lease recovery, and no provider calls hidden in analytic evaluation loops tested.; ICP4: Every checkpoint-enabled provider operation has bounded exact-source live evidence; every excluded operation has explicit, tested unavailable/disabled behavior and an operation-level status. Historical receipts or quota waits do not count as current success; any failing required operation must be fixed or proposed for explicit human-approved deferral.; ICP5: Checkpoint minimum is additive migration/fresh-install and existing-database equivalence, startup/default/caller compatibility, tested local secret/config boundaries, and exact-source branch CI. GitHub, RPi, and deployment secret-store verification is required before using those targets, not before Provider integration; no deployment readiness is implied.; ICP6: Checkpoint minimum is a concrete Provider producer-contract map with tested success/unavailable behavior and a named downstream wiring/test owner for ETF holdings, TC2000, and Strategy Lab v2. Actual sibling wiring/reconciliation and consumer-specific validation occur after Provider is green in staging and remain owned by those branches; no capability is represented as available without producer evidence.; ICP7: The checkpoint is reviewable from a clean, pushed exact source with the normal validation profile and exact-source evidence, a disposition for every original criterion, and a closure summary for later human acceptance; full-roadmap completion remains open.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-10-20T00:59:41.364325+00:00",
+  "goal_request": {
+    "objective": "Advance feat/market-data-provider-platform: Prepare provider-platform-integration-1: a validated backend/data foundation that downstream ETF holdings, TC2000, and Strategy Lab v2 work can consume through explicit identity, series, provider capability/entitlement/quota/health, coverage, and unavailable-operation contracts. Preserve every original market-data requirement as a roadmap item; do not claim full feature completion. Stop at ready_for_human_review; no merge, deployment, provider activation, or 30-day trial is authorized.. Acceptance criteria: ICP1: Checkpoint minimum is tested stable security, issuer, listing, and provider-symbol identity with provenance/history retention, explicit ambiguity quarantine, and legacy symbol/API compatibility; report known mapping gaps. A fresh complete NMS/OTC/SEC universe reconciliation and full venue mapping are full-roadmap work, not pre-integration ICP1 gates.; ICP2: Shared capability, entitlement, quota/usage, health, and routing contracts are usable by consumers and reject unknown or exhausted quotas, with durable cross-session and concurrent-worker accounting tested.; ICP3: Canonical market series, calendars, coverage, refresh jobs, and missing-data behavior are usable by consumers, with provenance, freshness, gaps, lease recovery, and no provider calls hidden in analytic evaluation loops tested.; ICP4: Every checkpoint-enabled provider operation has bounded exact-source live evidence; every excluded operation has explicit, tested unavailable/disabled behavior and an operation-level status. Historical receipts or quota waits do not count as current success; any failing required operation must be fixed or proposed for explicit human-approved deferral.; ICP5: Checkpoint minimum is additive migration/fresh-install and existing-database equivalence, startup/default/caller compatibility, tested local secret/config boundaries, and exact-source branch CI. GitHub, RPi, and deployment secret-store verification is required before using those targets, not before Provider integration; no deployment readiness is implied.; ICP6: Checkpoint minimum is a concrete Provider producer-contract map with tested success/unavailable behavior and a named downstream wiring/test owner for ETF holdings, TC2000, and Strategy Lab v2. Actual sibling wiring/reconciliation and consumer-specific validation occur after Provider is green in staging and remain owned by those branches; no capability is represented as available without producer evidence.; ICP7: The checkpoint is reviewable from a clean, pushed exact source with the normal validation profile and exact-source evidence, a disposition for every original criterion, and a closure summary for later human acceptance; full-roadmap completion remains open.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "ready",
+  "goal_state": "active",
+  "goal_unavailable_reason": null,
+  "head": "389b8ce912ee04c59024467632b339442673fd82",
+  "implementation_sha": "389b8ce912ee04c59024467632b339442673fd82",
+  "interrupted": false,
+  "last_checkpoint": "2026-10-20T00:59:49.046458+00:00",
+  "last_human_progress_update": "2026-10-20T01:39:28+00:00",
+  "latest_no_transport_preflight": "2026-10-19T12:45:16Z on exact pushed source bef14e0c14b4c60be4f4d54dc954f8113ef5f2f9: durable coordinator reachable; 27 providers evaluated, 22 eligible and five quarantined (CTA Plan and EODHD lack full-matrix daily quota headroom; Dinari quota/cost contract unresolved; Marketstack monthly capacity/discovery cost/MIC unresolved; Tiingo plan/usage baseline unreviewed); zero provider requests, reservations, or spend. Global admission is ready; this is the currently admitted free-only candidate scope, not full 27-provider acceptance.",
+  "local_validation_profile": "full_stack_browser",
+  "next_action": "Publish the coherent operational evidence context, then await coordinator review of the private 99-transport execution plan and proof-to-closure ordering before any staged candidate or provider transport.",
+  "parent_branch": "staging",
+  "plan_hash": "6530f39638f094552f21269252dac4f862d7466fd575a81dea49922c69b77b83",
+  "planning_required": false,
+  "planning_state": "ready",
+  "previous_session_ids": [
+    "3761b3fd-d526-4630-a0e4-47d630f3d50c",
+    "f8c05214-15b2-4724-af76-e65b53440639",
+    "768bc956-eb4c-4ed1-a844-46d841f15691",
+    "aa664de0-4e83-4d70-91f2-4352e3d4fbac",
+    "2d683fe6-c28c-4164-b66e-7dcc57cd03d5",
+    "1664f75d-6049-4ac2-9753-c2d250b4bc70",
+    "3195eb08-dd5e-482a-9302-72014881965c",
+    "8239c502-5358-4d07-b4f6-9d1ad61f70ea",
+    "fe3f744c-db07-4750-873d-6ca8cb1b8947",
+    "47213513-557f-4ecd-966b-daeeb83af588",
+    "64d07e85-6599-4cca-8643-4d361fa75939",
+    "c2ea862f-bb10-40ba-928b-774bd0e002d6",
+    "307b846d-4dbe-4eaf-ab20-4f526a7d8488",
+    "615d6d97-c417-4b90-87a7-c3f7ad00a377",
+    "56190dea-f410-48f1-981f-1a20b4d6a00c",
+    "22bc7cef-e002-4d9a-ac08-5708f1549942",
+    "89149218-b873-480a-8865-b8869482731a",
+    "5b79a350-2f28-4215-a3bb-79120c4a3eda",
+    "23459052-040c-4fb6-9bdd-75160aad4d1e",
+    "45ceef7e-aee3-4b9e-938d-5accafa4311a",
+    "8248195a-260c-4c8f-a8d3-b4d4dd7250db",
+    "25f98e6d-d0aa-4c03-a01f-18bf771f3cbc",
+    "b73bc18d-8542-4cdf-9047-80b733013aa3",
+    "65775c69-1572-4bee-8caf-0e890a520718",
+    "60955b1d-3a9a-4167-a4d6-e0975d9d3fb5"
+  ],
+  "progress": {
+    "completed": [
+      "ICP2",
+      "ICP6"
+    ],
+    "current_blocker": "none",
+    "current_phase": "Finnhub denial transport accounting and exact-source CI green; bounded final-operation plan and private proof-to-closure ordering prepared",
+    "next_action": "Close and publish this operational evidence context, then await coordinator review of the private 99-transport plan and proof-to-closure ordering before any staged candidate or provider transport. Preserve all holds and do not import unaccepted UI source.",
+    "total": 7,
+    "updated_at": "2026-10-20T01:39:28+00:00"
+  },
+  "remote": "389b8ce912ee04c59024467632b339442673fd82",
+  "remote_sha": "389b8ce912ee04c59024467632b339442673fd82",
+  "remote_synchronized": true,
+  "retained_docker_resources": [
+    "Read-only inventory at 2026-10-18T20:22:31Z found provider-noble-2734-retry1-20261017, provider-noble-2734-20261017, charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, charting-stack-feat-market-data-provider-platform-c6e40c66, feat-market-data-provider-platform infrastructure, its buildkit container, and assigned charting-stack-feat-tc2000-frontend-rework-f63d60ae services active. No exact-current fixture capacity/ownership release exists. No service, volume, dataset, or retained artifact was stopped, reset, pruned, or cleaned."
+  ],
+  "roadmap_acceptance_criteria": [
+    {
+      "id": "AC-IDENTITY",
+      "text": "New and reconciled US-listed securities use stable FIGI-domain keys where applicable, issuer identity is separate from security identity, effective-dated listing/provider-symbol history is retained, and unresolved candidates are quarantined without silent merges."
+    },
+    {
+      "id": "AC-SERIES",
+      "text": "Canonical bars distinguish instrument, market/feed scope, session, timeframe, adjustment basis/version, and provenance; existing OHLCV reads remain compatible through a default series mapping."
+    },
+    {
+      "id": "AC-CALENDAR",
+      "text": "Exchange sessions, timezones, holidays, early closes, overnight trade-date rules, and user-local projections are versioned and used by freshness and daily-completion logic."
+    },
+    {
+      "id": "AC-ROUTING",
+      "text": "Provider routing filters by capability, asset/venue/session/interval/history/feed/terms entitlement, health, quota, and workload budget; quota reservations are safe across workers and every decision is observable."
+    },
+    {
+      "id": "AC-REFRESH",
+      "text": "Whole-universe core-session D1 refresh, tiered intraday polling, local rollups, exact missing-slice repair, request coalescing, deferred broad-evaluator runs, and automatic retry are implemented without provider calls inside evaluation loops."
+    },
+    {
+      "id": "AC-DATA",
+      "text": "Provider adapters cover the approved practical roster, with US identity/lifecycle, OHLCV, corporate actions, market events, SEC facts/core fundamentals, earnings, FINRA short interest, crypto, current options, and optional futures paths represented honestly by capability and provenance."
+    },
+    {
+      "id": "AC-OPTIONS",
+      "text": "Current option chains and quotes are retained; QuantLib-backed American-option Greeks and the existing fallback are labeled with model/version/input provenance and tested against numerical edge cases."
+    },
+    {
+      "id": "AC-OPS",
+      "text": "Backend-only admin and diagnostic APIs expose capabilities, entitlements, quota/cost usage, routing decisions, coverage, identity quarantine, sessions, queue/degradation state, anomalies, and detailed shadow reports."
+    },
+    {
+      "id": "AC-SHADOW",
+      "text": "New routing defaults remain disabled until a separately approved deployed 30-day shadow run produces automated daily/final reports, at least 99% eligible core-session D1 coverage before the next regular session, no silent identity/license/quota violations, and AI-readable discrepancy evidence."
+    },
+    {
+      "id": "AC-COMPAT",
+      "text": "Existing symbol-based API aliases and legacy yfinance-dependent paths remain functional only through explicit compatibility behavior; yfinance is absent from default and acceptance routing."
+    },
+    {
+      "id": "AC-TEST",
+      "text": "Focused unit, adapter-fixture, migration, PostgreSQL/Redis integration, worker, API, numerical, point-in-time, and full backend integration validation pass; every live-enabled provider has either bounded keyless evidence or an explicit credential preflight failure; no frontend files are modified."
+    },
+    {
+      "id": "AC-QUOTA-SAFETY",
+      "text": "No provider policy contains a generic 60/min, 15-burst, 2-concurrency, or 30-second fallback. Unknown limits are represented as NULL/unknown, excluded from routing, and surfaced with the exact missing contract dimensions."
+    },
+    {
+      "id": "AC-RATE-FAILURE",
+      "text": "429/418/quota responses parse provider reset headers where present, stop the affected provider scope, persist a typed capacity event, defer work until the reset (or operator decision), and do not create a retry storm or unsafe fallback."
+    },
+    {
+      "id": "AC-LIVE-EVIDENCE",
+      "text": "The manifest-driven live matrix covers keyless and credentialed providers separately. Missing credentials identify exact environment variables and block ready-for-review; no live skip is represented as proof."
+    },
+    {
+      "id": "AC-SECRET-DISTRIBUTION",
+      "text": "Local development, GitHub staging validation, GitHub master validation, and live/production each use separate explicit secret stores; current local keys are never copied to CI; no credential is tracked or exposed in routine PR CI/artifacts/logs; provider credentials reach only trusted backend/worker processes."
+    },
+    {
+      "id": "AC-PROVIDER-CONTRACT-AUDIT",
+      "text": "Every registered external provider capability has a source-backed, versioned contract for plan, authentication scope, exact quota units/windows/resets/shared pools, operation costs, pagination, response bytes, history/venue/freshness, and data-use rights; provider documentation, account endpoints, and live headers are reconciled, and verified limits are not left unknown or incorrectly gated."
+    },
+    {
+      "id": "AC-DURABLE-DATA-RIGHTS",
+      "text": "The owner has granted blanket approval for private durable storage of data returned by all providers; do not request per-provider owner approval again. Provider authentication, account entitlements, quotas, and any explicit provider or embedded third-party restrictions remain separate provider facts and must be reported accurately rather than described as missing owner consent."
+    },
+    {
+      "id": "AC-DURABLE-CROSS-SESSION-USAGE",
+      "text": "Provider usage reservations survive process/session restart and coordinate all workers sharing the same account scope; local worktrees share an owner-only local ledger, deployments use shared durable runtime storage, and CI attempts reconcile prior redacted receipts and worst-case interrupted usage before spending shared credentials."
+    },
+    {
+      "id": "AC-UNIVERSE-COMPLETE",
+      "text": "Complete US-listed equity/ETF reconciliation must cover distinct official listing-source scopes rather than treating Nasdaq Trader's two files as the whole market. Include CTA Plan's daily Tape A/B symbol file (preserve prior symbols and every source row; parse instrument type and primary listing participant code) and Nasdaq's Nasdaq-listed/Tape C roster; retain Nasdaq Trader's two files as valuable supplementary/cross-check evidence, not sole whole-NMS authority. Verify each source's full pagination/file integrity, date/generation evidence, participant-code-to-MIC mappings, and venue coverage before it can contribute absence evidence. Combine only same-session, individually complete source scopes for universe-wide lifecycle decisions; partial or stale source runs may add observations but may not count absence. Preserve every OTC source row/page from FINRA's official Query API otcSecurityMaster dataset, live-verified against the public Symbol Directory, plus FINRA Daily List lifecycle deltas. Commit each SEC issuer response, candidate, failure-retry state, and next cursor atomically per CIK so a restart never re-fetches completed CIKs; test totals, cursor completion, duplicate detection, stable partition dates, ticker changes, and three-distinct-complete-snapshot-day deactivation evidence. A partial snapshot is never authoritative and no relevant provider row may be silently discarded."
+    },
+    {
+      "id": "AC-SEC-PRELISTING-POLICY",
+      "text": "SEC directory scans first stage a complete report with issuer creation disabled; after that exact clean report is reviewed, a bounded no-refetch operation materializes only validated missing CIK/name issuer rows from retained source payloads, while likely future listings become inactive provisional instruments only on strong unambiguous evidence and all ambiguous evidence is quarantined."
+    },
+    {
+      "id": "AC-INTEGRATION-WORKFLOW",
+      "text": "External-service code changes are enforced by repository workflow checks requiring provider/capability declaration, contract evidence, fixture tests, bounded current-source live tests, secret scope, usage impact, and explicit deferral status; future changes cannot silently bypass the live-validation policy."
+    },
+    {
+      "id": "AC-DINARI-SANDBOX-ISOLATION",
+      "text": "Dinari Sandbox may run only through a separately capped canary; every returned response payload is retained in the owner-private redacted response archive, while Sandbox observations never enter canonical production data, usage, alert, or analytics tables. Dinari production routing remains disabled under the approved free-only budget."
+    },
+    {
+      "id": "AC-SHADOW-FINAL-PHASE",
+      "text": "The 30-day deployed shadow run remains disabled and is not part of the current implementation phase; after every other controllable acceptance gate is complete, it will be planned and authorized as the final gate before human closure and staging integration."
+    }
+  ],
+  "roadmap_goal_request": {
+    "objective": "Advance feat/market-data-provider-platform: Implement the approved US-first multi-provider market-data platform plan: canonical FIGI-based identity and issuer model; exchange/session calendars; market-series scoped raw/canonical OHLCV with local rollups and adjustments; provider capability/entitlement/quota routing; US universe/lifecycle, events, SEC fundamentals, FINRA short interest, current options with local high-fidelity Greeks, optional futures and crypto providers; backend admin/diagnostic APIs; and disabled 30-day shadow monitoring. Backend/data only; do not modify frontend or ETF constituent provider work.. Acceptance criteria: AC-IDENTITY: New and reconciled US-listed securities use stable FIGI-domain keys where applicable, issuer identity is separate from security identity, effective-dated listing/provider-symbol history is retained, and unresolved candidates are quarantined without silent merges.; AC-SERIES: Canonical bars distinguish instrument, market/feed scope, session, timeframe, adjustment basis/version, and provenance; existing OHLCV reads remain compatible through a default series mapping.; AC-CALENDAR: Exchange sessions, timezones, holidays, early closes, overnight trade-date rules, and user-local projections are versioned and used by freshness and daily-completion logic.; AC-ROUTING: Provider routing filters by capability, asset/venue/session/interval/history/feed/terms entitlement, health, quota, and workload budget; quota reservations are safe across workers and every decision is observable.; AC-REFRESH: Whole-universe core-session D1 refresh, tiered intraday polling, local rollups, exact missing-slice repair, request coalescing, deferred broad-evaluator runs, and automatic retry are implemented without provider calls inside evaluation loops.; AC-DATA: Provider adapters cover the approved practical roster, with US identity/lifecycle, OHLCV, corporate actions, market events, SEC facts/core fundamentals, earnings, FINRA short interest, crypto, current options, and optional futures paths represented honestly by capability and provenance.; AC-OPTIONS: Current option chains and quotes are retained; QuantLib-backed American-option Greeks and the existing fallback are labeled with model/version/input provenance and tested against numerical edge cases.; AC-OPS: Backend-only admin and diagnostic APIs expose capabilities, entitlements, quota/cost usage, routing decisions, coverage, identity quarantine, sessions, queue/degradation state, anomalies, and detailed shadow reports.; AC-SHADOW: New routing defaults remain disabled until a separately approved deployed 30-day shadow run produces automated daily/final reports, at least 99% eligible core-session D1 coverage before the next regular session, no silent identity/license/quota violations, and AI-readable discrepancy evidence.; AC-COMPAT: Existing symbol-based API aliases and legacy yfinance-dependent paths remain functional only through explicit compatibility behavior; yfinance is absent from default and acceptance routing.; AC-TEST: Focused unit, adapter-fixture, migration, PostgreSQL/Redis integration, worker, API, numerical, point-in-time, and full backend integration validation pass; every live-enabled provider has either bounded keyless evidence or an explicit credential preflight failure; no frontend files are modified.; AC-QUOTA-SAFETY: No provider policy contains a generic 60/min, 15-burst, 2-concurrency, or 30-second fallback. Unknown limits are represented as NULL/unknown, excluded from routing, and surfaced with the exact missing contract dimensions.; AC-RATE-FAILURE: 429/418/quota responses parse provider reset headers where present, stop the affected provider scope, persist a typed capacity event, defer work until the reset (or operator decision), and do not create a retry storm or unsafe fallback.; AC-LIVE-EVIDENCE: The manifest-driven live matrix covers keyless and credentialed providers separately. Missing credentials identify exact environment variables and block ready-for-review; no live skip is represented as proof.; AC-SECRET-DISTRIBUTION: Local development, GitHub staging validation, GitHub master validation, and live/production each use separate explicit secret stores; current local keys are never copied to CI; no credential is tracked or exposed in routine PR CI/artifacts/logs; provider credentials reach only trusted backend/worker processes.; AC-PROVIDER-CONTRACT-AUDIT: Every registered external provider capability has a source-backed, versioned contract for plan, authentication scope, exact quota units/windows/resets/shared pools, operation costs, pagination, response bytes, history/venue/freshness, and data-use rights; provider documentation, account endpoints, and live headers are reconciled, and verified limits are not left unknown or incorrectly gated.; AC-DURABLE-CROSS-SESSION-USAGE: Provider usage reservations survive process/session restart and coordinate all workers sharing the same account scope; local worktrees share an owner-only local ledger, deployments use shared durable runtime storage, and CI attempts reconcile prior redacted receipts and worst-case interrupted usage before spending shared credentials.; AC-UNIVERSE-COMPLETE: Complete US NMS snapshots use official Nasdaq Trader files with daily conditional requests; complete OTC snapshots use a currently documented and authorized complete source (FINRA otcSecurityMaster only if its availability/current status and use rights are established) plus Daily List lifecycle deltas; totals, venue coverage, cursor completion, duplicate detection, identifier ambiguity, ticker changes, and three-complete-day deactivation evidence are reported and tested.; AC-SEC-PRELISTING-POLICY: SEC directory scans first stage a complete report with issuer creation disabled; after that clean scan, only validated missing CIK/name issuers may be created, while likely future listings become inactive provisional instruments only on strong unambiguous evidence and all ambiguous evidence is quarantined.; AC-INTEGRATION-WORKFLOW: External-service code changes are enforced by repository workflow checks requiring provider/capability declaration, contract evidence, fixture tests, bounded current-source live tests, secret scope, usage impact, and explicit deferral status; future changes cannot silently bypass the live-validation policy.; AC-DINARI-SANDBOX-ISOLATION: Dinari Sandbox may run as a live-environment canary only through a separate non-persisting path; sandbox payloads never enter canonical production data, usage, alert, or analytics tables, and Dinari production routing remains disabled under the approved free-only budget.; AC-SHADOW-FINAL-PHASE: The 30-day deployed shadow run remains disabled and is not part of the current implementation phase; after every other controllable acceptance gate is complete, it will be planned and authorized as the final gate before human closure and staging integration.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "run_id": 39254427018,
+  "schema": 2,
+  "session_id": "f093caba-0194-4527-b22b-0bfa26344c34",
+  "state": "checkpointed",
+  "takeover_history": [
+    {
+      "at": "2026-09-04T16:15:49.067134+00:00",
+      "displaced_session_id": "3761b3fd-d526-4630-a0e4-47d630f3d50c",
+      "new_session_id": "f8c05214-15b2-4724-af76-e65b53440639",
+      "reason": "Human authorized implementation in the current request: proceed with the approved market-data-provider-platform plan in this exact feature worktree."
+    },
+    {
+      "at": "2026-09-05T13:28:49.402039+00:00",
+      "displaced_session_id": "f8c05214-15b2-4724-af76-e65b53440639",
+      "new_session_id": "768bc956-eb4c-4ed1-a844-46d841f15691",
+      "reason": "Human explicitly authorized implementation of the approved corrective market-data provider plan in this exact feature worktree; resume the interrupted session and quarantine unverified providers before further promotion."
+    },
+    {
+      "at": "2026-09-08T16:15:10.922676+00:00",
+      "displaced_session_id": "768bc956-eb4c-4ed1-a844-46d841f15691",
+      "new_session_id": "aa664de0-4e83-4d70-91f2-4352e3d4fbac",
+      "reason": "Human authorized continuation of implementation after model switch, using the currently configured provider keys, under the approved market-data-provider-platform plan."
+    },
+    {
+      "at": "2026-09-09T03:15:36.450988+00:00",
+      "displaced_session_id": "aa664de0-4e83-4d70-91f2-4352e3d4fbac",
+      "new_session_id": "1a479499-0009-43f6-9115-76c8f4edb0b1",
+      "reason": "Human-authorized continuation of the active market-data-provider-platform implementation goal after the latest model/session boundary; continue provider-specific quota accounting and live validation in this exact feature worktree."
+    },
+    {
+      "at": "2026-09-15T21:42:49.871469+00:00",
+      "displaced_session_id": "2d683fe6-c28c-4164-b66e-7dcc57cd03d5",
+      "new_session_id": "1664f75d-6049-4ac2-9753-c2d250b4bc70",
+      "reason": "Human approved the plan and explicitly instructed continuation of this interrupted market-data-provider-platform implementation after changing models."
+    },
+    {
+      "at": "2026-09-15T22:48:26.964795+00:00",
+      "displaced_session_id": "1664f75d-6049-4ac2-9753-c2d250b4bc70",
+      "new_session_id": "62b81e1a-9f89-48cb-bf20-2aed81a9bae4",
+      "reason": "Human explicitly approved proceeding with the agreed market-data provider implementation after the extension/model switch; resume the interrupted implementation in this exact assigned worktree."
+    },
+    {
+      "at": "2026-10-02T19:08:30.922531+00:00",
+      "displaced_session_id": "3195eb08-dd5e-482a-9302-72014881965c",
+      "new_session_id": "8239c502-5358-4d07-b4f6-9d1ad61f70ea",
+      "reason": "Resume the existing goal now and continue autonomously in its assigned worktree."
+    },
+    {
+      "at": "2026-10-04T00:53:25.392884+00:00",
+      "displaced_session_id": "8239c502-5358-4d07-b4f6-9d1ad61f70ea",
+      "new_session_id": "fe3f744c-db07-4750-873d-6ca8cb1b8947",
+      "reason": "Human instruction on 2026-10-04: Resume the existing saved goal now and continue autonomously in its assigned worktree. Continue independently until completion or a genuine external dependency."
+    },
+    {
+      "at": "2026-10-06T00:18:03.951229+00:00",
+      "displaced_session_id": "fe3f744c-db07-4750-873d-6ca8cb1b8947",
+      "new_session_id": "47213513-557f-4ecd-966b-daeeb83af588",
+      "reason": "Human instruction: resume the existing saved goal now and continue autonomously in its assigned worktree until completion or a genuine external dependency. Current task: proceed with FINRA ORF."
+    },
+    {
+      "at": "2026-10-06T15:02:15.871946+00:00",
+      "displaced_session_id": "47213513-557f-4ecd-966b-daeeb83af588",
+      "new_session_id": "64d07e85-6599-4cca-8643-4d361fa75939",
+      "reason": "Human instruction: resume the existing saved market-data provider platform goal and continue autonomously in its assigned worktree until completion or a genuine external dependency."
+    },
+    {
+      "at": "2026-10-06T17:57:05.183251+00:00",
+      "displaced_session_id": "64d07e85-6599-4cca-8643-4d361fa75939",
+      "new_session_id": "c2ea862f-bb10-40ba-928b-774bd0e002d6",
+      "reason": "Human authorization: resume the existing saved goal and continue autonomously in the assigned worktree, as explicitly requested."
+    },
+    {
+      "at": "2026-10-06T20:02:57.026678+00:00",
+      "displaced_session_id": "c2ea862f-bb10-40ba-928b-774bd0e002d6",
+      "new_session_id": "307b846d-4dbe-4eaf-ab20-4f526a7d8488",
+      "reason": "Human instruction: Resume the existing saved goal now and continue autonomously in its assigned worktree."
+    },
+    {
+      "at": "2026-10-07T11:09:21.504399+00:00",
+      "displaced_session_id": "307b846d-4dbe-4eaf-ab20-4f526a7d8488",
+      "new_session_id": "615d6d97-c417-4b90-87a7-c3f7ad00a377",
+      "reason": "Human authorization on 2026-10-07: continue the FINRA investigation and proceed rather than stopping after browser installation."
+    },
+    {
+      "at": "2026-10-07T12:43:25.018418+00:00",
+      "displaced_session_id": "615d6d97-c417-4b90-87a7-c3f7ad00a377",
+      "new_session_id": "56190dea-f410-48f1-981f-1a20b4d6a00c",
+      "reason": "Human instruction: Ok then continue the FINRA investigation, no point in stopping short just to tell me that - just freaking proceed"
+    },
+    {
+      "at": "2026-10-08T17:01:58.338074+00:00",
+      "displaced_session_id": "56190dea-f410-48f1-981f-1a20b4d6a00c",
+      "new_session_id": "22bc7cef-e002-4d9a-ac08-5708f1549942",
+      "reason": "Human authorization: Resume existing saved goal now and continue autonomously in its assigned worktree."
+    },
+    {
+      "at": "2026-10-09T16:39:46.394035+00:00",
+      "displaced_session_id": "22bc7cef-e002-4d9a-ac08-5708f1549942",
+      "new_session_id": "89149218-b873-480a-8865-b8869482731a",
+      "reason": "Human authorization: Resume the existing saved goal and continue autonomously in its assigned worktree."
+    },
+    {
+      "at": "2026-10-09T21:21:40.805965+00:00",
+      "displaced_session_id": "89149218-b873-480a-8865-b8869482731a",
+      "new_session_id": "5b79a350-2f28-4215-a3bb-79120c4a3eda",
+      "reason": "Human instruction: Resume the existing saved goal now and continue autonomously in its assigned worktree."
+    },
+    {
+      "at": "2026-10-12T04:48:31.599212+00:00",
+      "displaced_session_id": "5b79a350-2f28-4215-a3bb-79120c4a3eda",
+      "new_session_id": "23459052-040c-4fb6-9bdd-75160aad4d1e",
+      "reason": "User explicitly directed resuming the existing saved goal in the assigned worktree and continuing autonomously."
+    },
+    {
+      "at": "2026-10-13T20:03:09.408536+00:00",
+      "displaced_session_id": "23459052-040c-4fb6-9bdd-75160aad4d1e",
+      "new_session_id": "45ceef7e-aee3-4b9e-938d-5accafa4311a",
+      "reason": "Human explicitly requested resuming the existing saved goal and continuing autonomously in this assigned worktree."
+    },
+    {
+      "at": "2026-10-14T13:06:48.423141+00:00",
+      "displaced_session_id": "45ceef7e-aee3-4b9e-938d-5accafa4311a",
+      "new_session_id": "8248195a-260c-4c8f-a8d3-b4d4dd7250db",
+      "reason": "Human explicitly requested resuming the existing saved goal and continuing autonomously in the assigned worktree."
+    },
+    {
+      "at": "2026-10-14T19:18:37.734710+00:00",
+      "displaced_session_id": "8248195a-260c-4c8f-a8d3-b4d4dd7250db",
+      "new_session_id": "25f98e6d-d0aa-4c03-a01f-18bf771f3cbc",
+      "reason": "Human explicitly instructed: Resume the existing saved goal and continue autonomously in its assigned worktree."
+    },
+    {
+      "at": "2026-10-15T01:30:55.883412+00:00",
+      "displaced_session_id": "25f98e6d-d0aa-4c03-a01f-18bf771f3cbc",
+      "new_session_id": "b73bc18d-8542-4cdf-9047-80b733013aa3",
+      "reason": "Human explicitly authorized resuming the existing market-data-provider-platform goal and continuing autonomously; take over its interrupted dirty implementation session."
+    },
+    {
+      "at": "2026-10-15T06:34:26.918819+00:00",
+      "displaced_session_id": "b73bc18d-8542-4cdf-9047-80b733013aa3",
+      "new_session_id": "65775c69-1572-4bee-8caf-0e890a520718",
+      "reason": "Human explicitly instructed: continue working toward the active feat-market-data-provider-platform goal; resume the saved goal autonomously in its assigned worktree."
+    },
+    {
+      "at": "2026-10-18T14:44:32.746302+00:00",
+      "displaced_session_id": "65775c69-1572-4bee-8caf-0e890a520718",
+      "new_session_id": "60955b1d-3a9a-4167-a4d6-e0975d9d3fb5",
+      "reason": "Human authorization on 2026-10-18: I authorize taking over and continuing all four feature branches toward staging, without asking again for routine workflow permissions. Take over the current Provider claim 65775c69-1572-4bee-8caf-0e890a520718; preserve all dirty checkpoint receipts, the complete roadmap, quarantines, quota ledger, and the no-provider-request boundary."
+    },
+    {
+      "at": "2026-10-18T23:55:49.676767+00:00",
+      "displaced_session_id": "60955b1d-3a9a-4167-a4d6-e0975d9d3fb5",
+      "new_session_id": "f093caba-0194-4527-b22b-0bfa26344c34",
+      "reason": "Human-authorized coordinator takeover on 2026-10-19: take over the stale Provider writer claim after the local Codex owner route returned no-client-found. Continue the existing Provider integration checkpoint toward conditional acceptance; preserve all prior evidence, full roadmap, provider/quota/trial holds, retained datasets, and do not stop or clean services."
+    }
+  ],
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform",
+  "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
+}

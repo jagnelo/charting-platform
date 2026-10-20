@@ -32,6 +32,7 @@ from app.routers.analysis import (
     _role_readiness,
     _rotation_state,
     _sample_aligned_points,
+    _stale_instrument_ids,
     _technical_cells_for_series,
     _truncate_bars_at,
     _volume_ratio_50,
@@ -630,6 +631,56 @@ def test_current_bar_truncation_excludes_derived_period_that_reaches_into_future
     truncated = _truncate_bars_at({7: [incomplete]}, None)
 
     assert truncated[7] == []
+
+
+@pytest.mark.asyncio
+async def test_stale_instrument_ids_honor_expiry_and_current_fresh_precedence():
+    from datetime import timedelta
+
+    from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+    now = datetime.now(UTC)
+    states = [
+        InstrumentDatasetState(
+            instrument_id=7,
+            dataset_type="ohlcv",
+            dataset_key="D1:adj",
+            status=DatasetStatus.STALE,
+        ),
+        InstrumentDatasetState(
+            instrument_id=8,
+            dataset_type="ohlcv",
+            dataset_key="D1:adj",
+            status=DatasetStatus.FRESH,
+            stale_after=now - timedelta(minutes=1),
+        ),
+        InstrumentDatasetState(
+            instrument_id=9,
+            dataset_type="ohlcv",
+            dataset_key="D1:adj",
+            status=DatasetStatus.FRESH,
+            stale_after=now + timedelta(minutes=1),
+        ),
+        InstrumentDatasetState(
+            instrument_id=9,
+            dataset_type="ohlcv",
+            dataset_key="D1:raw",
+            status=DatasetStatus.STALE,
+        ),
+    ]
+
+    class Result:
+        def scalars(self):
+            return self
+
+        def all(self):
+            return states
+
+    class Database:
+        async def execute(self, _statement):
+            return Result()
+
+    assert await _stale_instrument_ids(Database(), [7, 8, 9], Timeframe.D1, adjusted=True) == {7, 8}
 
 
 def test_industry_aggregate_helpers_return_complete_periods_and_transparent_technicals():

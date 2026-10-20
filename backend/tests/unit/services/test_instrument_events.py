@@ -1,24 +1,28 @@
 from datetime import UTC, datetime, timedelta
-from decimal import Decimal
 
 import pytest
 
-from app.models.adjustment_factor import AdjustmentFactorObservation
 from app.models.data_source import DataSource
 from app.models.instrument_event import (
     EventTimeHint,
     InstrumentEvent,
     InstrumentEventFetchState,
+    InstrumentEventPageSnapshot,
     InstrumentEventType,
 )
-from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
-from app.providers.base import InstrumentEventRecord
+from app.providers.base import InstrumentEventPage, InstrumentEventRecord
+from app.providers.errors import ProviderRateLimitError, ProviderResponseError
+from app.services import instrument_events
 from app.services.instrument_events import (
     EVENT_FETCH_VERSION,
-    _materialize_provider_adjusted_views,
     ensure_instrument_events_loaded,
-    query_instrument_events,
+    fetch_and_store_instrument_events,
+)
+from app.services.provider_runtime import (
+    ProviderExecutionResult,
+    ProviderNoDataError,
+    ProviderQuotaUnknownError,
 )
 from tests.unit.conftest import AsyncSessionAdapter
 
@@ -78,127 +82,201 @@ async def test_ensure_instrument_events_loaded_handles_multiple_provider_states(
 
 
 @pytest.mark.asyncio
-async def test_query_instrument_events_normalizes_offset_aware_range(db, instrument):
+async def test_ensure_instrument_events_loaded_degrades_when_no_provider_is_routable(
+    db, instrument, monkeypatch
+):
     async_db = AsyncSessionAdapter(db)
-    db.add_all(
-        [
-            InstrumentEvent(
-                instrument_id=instrument.id,
-                event_type=InstrumentEventType.EARNINGS,
-                event_time=datetime(2026, 1, 1, tzinfo=UTC),
-                time_hint=EventTimeHint.UNKNOWN,
-                title="Q1 earnings",
-                source="test",
-                source_event_key="q1",
-                fetched_at=datetime(2026, 1, 2, tzinfo=UTC),
-            ),
-            InstrumentEvent(
-                instrument_id=instrument.id,
-                event_type=InstrumentEventType.DIVIDEND,
-                event_time=datetime(2026, 1, 2, tzinfo=UTC),
-                time_hint=EventTimeHint.UNKNOWN,
-                title="Dividend",
-                source="test",
-                source_event_key="dividend",
-                fetched_at=datetime(2026, 1, 3, tzinfo=UTC),
-            ),
-        ]
-    )
-    db.commit()
 
-    events = await query_instrument_events(
-        async_db,
-        instrument,
-        start=datetime.fromisoformat("2026-01-01T02:00:00+02:00"),
-        end=datetime.fromisoformat("2026-01-02T02:00:00+02:00"),
+    async def _no_provider(*_args, **_kwargs):
+        raise ProviderNoDataError("no reviewed provider is routable")
+
+    monkeypatch.setattr(
+        "app.services.instrument_events.fetch_and_store_instrument_events", _no_provider
     )
 
-    assert [event.source_event_key for event in events] == ["dividend", "q1"]
+    await ensure_instrument_events_loaded(async_db, instrument)
 
 
 @pytest.mark.asyncio
-async def test_event_refresh_materializes_explicit_provider_factor_for_cached_raw_bars(
-    db, instrument
+@pytest.mark.parametrize(
+    "provider_error",
+    [
+        ProviderResponseError("edgar", "provider unavailable"),
+        ProviderRateLimitError("edgar", "rate limited"),
+        ProviderQuotaUnknownError("provider operation charge is unknown"),
+    ],
+)
+async def test_ensure_instrument_events_loaded_serves_cache_on_provider_failure(
+    db, instrument, monkeypatch, provider_error
 ):
-    """A factor-bearing event refresh completes the local adjusted view."""
+    async_db = AsyncSessionAdapter(db)
 
-    source = DataSource(name="provider-factor-events")
+    async def _failed_fetch(*_args, **_kwargs):
+        raise provider_error
+
+    monkeypatch.setattr(
+        "app.services.instrument_events.fetch_and_store_instrument_events", _failed_fetch
+    )
+
+    await ensure_instrument_events_loaded(async_db, instrument)
+
+
+@pytest.mark.asyncio
+async def test_alpaca_corporate_actions_charge_one_durable_page(db, instrument, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    captured = {}
+
+    async def _no_provider(*_args, **kwargs):
+        captured.update(kwargs)
+        raise ProviderNoDataError("no reviewed provider is routable")
+
+    monkeypatch.setattr(instrument_events, "execute_provider_call", _no_provider)
+    monkeypatch.setattr(instrument_events.settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", 3)
+
+    with pytest.raises(ProviderNoDataError):
+        await fetch_and_store_instrument_events(async_db, instrument)
+
+    assert captured["operation_cost_overrides"] == {"alpaca": 1}
+
+
+@pytest.mark.asyncio
+async def test_event_refresh_does_not_use_local_page_limits_as_quota_costs(
+    db, instrument, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    captured = {}
+
+    async def _no_provider(*_args, **kwargs):
+        captured.update(kwargs)
+        raise ProviderNoDataError("no reviewed provider is routable")
+
+    monkeypatch.setattr(instrument_events, "execute_provider_call", _no_provider)
+    monkeypatch.setattr(instrument_events.settings, "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", 3)
+
+    with pytest.raises(ProviderNoDataError):
+        await fetch_and_store_instrument_events(async_db, instrument)
+
+    assert captured["operation_cost_overrides"] == {"alpaca": 1}
+
+
+@pytest.mark.asyncio
+async def test_event_pages_are_persisted_and_resumed_without_refetching_page_one(
+    db, instrument, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(name="alpaca", is_active=True)
     db.add(source)
     db.flush()
-    before = datetime(2024, 6, 7, 21, tzinfo=UTC)
-    after = datetime(2024, 6, 10, 21, tzinfo=UTC)
-    db.add_all(
-        [
-            OHLCVBar(
-                instrument_id=instrument.id,
-                data_source_id=source.id,
-                timeframe=Timeframe.D1,
-                ts=before,
-                open=Decimal("99"),
-                high=Decimal("101"),
-                low=Decimal("98"),
-                close=Decimal("100"),
-                volume=Decimal("100"),
-                is_adjusted=False,
-                is_derived=False,
-            ),
-            OHLCVBar(
-                instrument_id=instrument.id,
-                data_source_id=source.id,
-                timeframe=Timeframe.D1,
-                ts=after,
-                open=Decimal("99"),
-                high=Decimal("101"),
-                low=Decimal("98"),
-                close=Decimal("100"),
-                volume=Decimal("100"),
-                is_adjusted=False,
-                is_derived=False,
-            ),
-        ]
-    )
-    db.flush()
-    event = InstrumentEventRecord(
-        event_type=InstrumentEventType.DIVIDEND,
-        event_time=after,
-        time_hint=EventTimeHint.UNKNOWN,
-        title="Provider dividend",
-        source_event_key="dividend:provider-factor-events",
-        fetched_at=datetime(2024, 6, 11, tzinfo=UTC),
-        dividend_amount=Decimal("0.25"),
-        adjustment_factor=Decimal("0.9975"),
-    )
+    calls: list[str | None] = []
+    fetched = datetime.now(UTC)
 
-    db.add(
-        AdjustmentFactorObservation(
-            instrument_id=instrument.id,
-            data_source_id=source.id,
-            factor_type=InstrumentEventType.DIVIDEND.value,
-            effective_at=after,
-            factor=Decimal("0.9975"),
-            factor_kind="provider_supplied",
-            amount=Decimal("0.25"),
-            source_event_key=event.source_event_key,
-            observed_at=event.fetched_at,
-            factor_version="afv1-provider-factor-events",
+    def _event(key: str) -> InstrumentEventRecord:
+        return InstrumentEventRecord(
+            event_type=InstrumentEventType.DIVIDEND,
+            event_time=datetime(2025, 1, 1, tzinfo=UTC),
+            time_hint=EventTimeHint.UNKNOWN,
+            title=key,
+            source_event_key=key,
+            fetched_at=fetched,
+            dividend_amount=1,
+            raw_payload=f'{{"id": "{key}"}}',
         )
-    )
+
+    pages = {
+        None: InstrumentEventPage(
+            events=[_event("one")],
+            next_page_token="page-2",
+            request_page_token=None,
+            raw_payload={
+                "corporate_actions": {"cash_dividends": [{"id": "one"}]},
+                "next_page_token": "page-2",
+            },
+        ),
+        "page-2": InstrumentEventPage(
+            events=[_event("two")],
+            next_page_token=None,
+            request_page_token="page-2",
+            raw_payload={"corporate_actions": {"cash_dividends": [{"id": "two"}]}},
+        ),
+    }
+
+    class _Provider:
+        name = "alpaca"
+
+        def fetch_instrument_events_page(self, symbol, page_token=None, **_kwargs):
+            calls.append(page_token)
+            return pages[page_token]
+
+    provider = _Provider()
+
+    async def _execute(_db, _capability, _operation, **kwargs):
+        page = kwargs["invoke"](provider, "AAPL")
+        return ProviderExecutionResult(
+            provider_name="alpaca",
+            data_source=source,
+            policy=object(),
+            health=object(),
+            result=page,
+        )
+
+    monkeypatch.setattr(instrument_events, "execute_provider_call", _execute)
+
+    await fetch_and_store_instrument_events(async_db, instrument)
+    state = db.query(InstrumentEventFetchState).one()
+    assert state.complete is False
+    assert state.continuation_token == "page-2"
+    assert state.page_count == 1
+    assert db.query(InstrumentEventPageSnapshot).count() == 1
+
+    await fetch_and_store_instrument_events(async_db, instrument)
+    db.expire_all()
+    state = db.query(InstrumentEventFetchState).one()
+    assert state.complete is True
+    assert state.continuation_token is None
+    assert state.page_count == 2
+    assert db.query(InstrumentEvent).count() == 2
+    assert db.query(InstrumentEventPageSnapshot).count() == 2
+    assert calls == [None, "page-2"]
+
+    # A later refresh of the same query is a new raw observation, not a
+    # replacement that may erase the earlier page envelope.
+    await fetch_and_store_instrument_events(async_db, instrument)
+    assert db.query(InstrumentEventPageSnapshot).count() == 3
+    assert calls == [None, "page-2", None]
+
+
+@pytest.mark.asyncio
+async def test_empty_successful_event_page_is_retained_as_raw_evidence(db, instrument, monkeypatch):
+    """An empty provider envelope is still a successful, quota-consuming read."""
+
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(name="alpaca", is_active=True)
+    db.add(source)
     db.flush()
 
-    await _materialize_provider_adjusted_views(AsyncSessionAdapter(db), instrument, [event])
+    class _Provider:
+        name = "alpaca"
 
-    derived = (
-        db.query(OHLCVBar)
-        .filter(
-            OHLCVBar.instrument_id == instrument.id,
-            OHLCVBar.timeframe == Timeframe.D1,
-            OHLCVBar.is_adjusted.is_(True),
-            OHLCVBar.is_derived.is_(True),
+        def fetch_instrument_events_page(self, _symbol, page_token=None, **_kwargs):
+            return InstrumentEventPage(
+                events=[],
+                next_page_token=None,
+                request_page_token=page_token,
+                raw_payload={},
+            )
+
+    async def _execute(_db, _capability, _operation, **kwargs):
+        return ProviderExecutionResult(
+            provider_name="alpaca",
+            data_source=source,
+            policy=object(),
+            health=object(),
+            result=kwargs["invoke"](_Provider(), "AAPL"),
         )
-        .order_by(OHLCVBar.ts)
-        .all()
-    )
-    assert len(derived) == 2
-    assert derived[0].close == Decimal("99.75000000")
-    assert derived[0].derivation_method == "provider_adjustment_factor"
-    assert derived[1].close == Decimal("100.00000000")
+
+    monkeypatch.setattr(instrument_events, "execute_provider_call", _execute)
+
+    await fetch_and_store_instrument_events(async_db, instrument)
+
+    snapshot = db.query(InstrumentEventPageSnapshot).one()
+    assert snapshot.payload == {}

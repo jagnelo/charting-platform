@@ -110,6 +110,7 @@ class ResearchRunOut(BaseModel):
     code_version_id: int
     output_contract: str | None = None
     status: str
+    evaluation_status: str = "unknown"
     run_config: dict
     dataset_manifest: dict
     reproducibility_hash: str | None
@@ -135,6 +136,7 @@ class ResearchBatchResultOut(BaseModel):
     code_version_id: int
     output_contract: str
     status: str
+    evaluation_status: str = "unknown"
     cells: list[ResearchBatchCellOut] = Field(default_factory=list)
     dataset_manifest: dict
     progress: dict = Field(default_factory=dict)

@@ -9,7 +9,7 @@ observation/detail fields but are not guessed into a canonical exchange.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.exchange import Exchange
 from app.models.instrument import Instrument
 from app.models.listing import InstrumentListing
+from app.models.market_data_foundation import ExchangeSessionRule
 
 
 @dataclass(frozen=True)
@@ -31,6 +32,10 @@ class ExchangeDefinition:
 
 
 _DEFINITIONS: dict[str, ExchangeDefinition] = {
+    "24EQ": ExchangeDefinition("24EQ", "24X National Exchange"),
+    "XADF": ExchangeDefinition("XADF", "FINRA Alternative Display Facility"),
+    "XBOS": ExchangeDefinition("XBOS", "Nasdaq Texas (formerly Nasdaq BX)"),
+    "XCIS": ExchangeDefinition("XCIS", "NYSE National"),
     "XNAS": ExchangeDefinition(
         "XNAS",
         "Nasdaq",
@@ -39,10 +44,21 @@ _DEFINITIONS: dict[str, ExchangeDefinition] = {
     "ARCX": ExchangeDefinition("ARCX", "NYSE Arca"),
     "XASE": ExchangeDefinition("XASE", "NYSE American"),
     "BATS": ExchangeDefinition("BATS", "Cboe BZX"),
+    "BATY": ExchangeDefinition("BATY", "Cboe BYX"),
+    "CBSX": ExchangeDefinition("CBSX", "Cboe Stock Exchange"),
+    "EDGA": ExchangeDefinition("EDGA", "Cboe EDGA"),
+    "EDGX": ExchangeDefinition("EDGX", "Cboe EDGX"),
+    "EPRL": ExchangeDefinition("EPRL", "MIAX Pearl Equities"),
+    "LTSE": ExchangeDefinition("LTSE", "Long-Term Stock Exchange"),
+    "MEMX": ExchangeDefinition("MEMX", "Members Exchange"),
+    "TXSE": ExchangeDefinition("TXSE", "Texas Stock Exchange"),
+    "XPSX": ExchangeDefinition("XPSX", "Nasdaq PSX"),
+    "XISX": ExchangeDefinition("XISX", "Nasdaq ISE"),
+    "XISE": ExchangeDefinition("XISE", "Nasdaq ISE Equities"),
     "XCBO": ExchangeDefinition("XCBO", "Cboe C2"),
     "IEXG": ExchangeDefinition("IEXG", "Investors Exchange"),
     "OTCM": ExchangeDefinition("OTCM", "OTC Markets"),
-    "XCHI": ExchangeDefinition("XCHI", "Chicago Stock Exchange"),
+    "XCHI": ExchangeDefinition("XCHI", "NYSE Texas"),
 }
 
 _ALIASES: dict[str, str] = {
@@ -50,6 +66,7 @@ _ALIASES: dict[str, str] = {
     "NASDAQ GLOBAL SELECT MARKET": "XNAS",
     "NASDAQ GLOBAL MARKET": "XNAS",
     "NASDAQ CAPITAL MARKET": "XNAS",
+    "NASDAQ NMS - GLOBAL MARKET": "XNAS",
     "NMS": "XNAS",
     "NAS": "XNAS",
     "NYSE": "XNYS",
@@ -66,6 +83,10 @@ _ALIASES: dict[str, str] = {
     "CBOE BZX": "BATS",
     "IEX": "IEXG",
     "IEXG": "IEXG",
+    "TXSE": "TXSE",
+    "TEXAS STOCK EXCHANGE": "TXSE",
+    "NASDAQ TEXAS": "XBOS",
+    "NYSE TEXAS": "XCHI",
     "OTC": "OTCM",
     "OTCQX": "OTCM",
     "OTCQB": "OTCM",
@@ -115,7 +136,49 @@ async def ensure_exchange(db: AsyncSession, value: str | None) -> Exchange | Non
         exchange.market_open = definition.market_open
         exchange.market_close = definition.market_close
         exchange.currency = definition.currency
+    await ensure_default_session_rules(db, exchange)
     return exchange
+
+
+async def ensure_default_session_rules(db: AsyncSession, exchange: Exchange) -> None:
+    """Seed the versioned weekday regular session for a known US venue.
+
+    Holidays and early closes are separate exception rows and must be supplied
+    by a reviewed exchange-calendar source; this helper only establishes the
+    baseline rule needed for session-aware coverage calculations.
+    """
+
+    valid_from = date(1970, 1, 1)
+    existing = (
+        (
+            await db.execute(
+                select(ExchangeSessionRule).where(
+                    ExchangeSessionRule.exchange_id == exchange.id,
+                    ExchangeSessionRule.session_code == "regular",
+                    ExchangeSessionRule.valid_from == valid_from,
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    weekdays = {row.weekday for row in existing}
+    for weekday in range(5):
+        if weekday in weekdays:
+            continue
+        db.add(
+            ExchangeSessionRule(
+                exchange_id=exchange.id,
+                session_code="regular",
+                weekday=weekday,
+                opens_at=time(9, 30),
+                closes_at=time(16, 0),
+                valid_from=valid_from,
+                provenance={"source": "exchange_catalog_default", "review_required": True},
+            )
+        )
+    if len(weekdays) < 5:
+        await db.flush()
 
 
 async def upsert_instrument_listing(
@@ -130,6 +193,8 @@ async def upsert_instrument_listing(
     effective_at: datetime | None = None,
     known_at: datetime | None = None,
     delisted_at: datetime | None = None,
+    source: str | None = None,
+    provenance: dict | None = None,
 ) -> InstrumentListing:
     """Create/update one canonical listing without merging venue-distinct rows.
 
@@ -170,6 +235,9 @@ async def upsert_instrument_listing(
             effective_at=effective_at,
             known_at=known_at,
             delisted_at=delisted_at,
+            last_verified_at=datetime.now(UTC),
+            source=source,
+            provenance=provenance or {},
         )
         db.add(listing)
     else:
@@ -185,6 +253,11 @@ async def upsert_instrument_listing(
             listing.known_at = known_at
         if delisted_at is not None:
             listing.delisted_at = delisted_at
+        listing.last_verified_at = datetime.now(UTC)
+        if source:
+            listing.source = source
+        if provenance:
+            listing.provenance = {**(listing.provenance or {}), **provenance}
     return listing
 
 

@@ -879,6 +879,65 @@ It is only done when:
 - browser console and backend logs were checked when applicable
 - handoff/state/report files were updated
 
+### External-service integration acceptance
+
+Any change that adds or modifies an external-service adapter, provider
+capability, authentication/configuration wiring, quota/usage accounting,
+pagination, entitlement, or data-use policy is an integration change. Before
+human review, the workstream must identify the affected provider and
+capability, cite current authoritative contract evidence, and cover operation
+costs, quota units/windows/reset and shared scope, pagination/response-size
+behavior, history/venue/freshness entitlement, and data-use restrictions. Add
+provider-specific fixtures and a bounded live case to the manifest; a
+registry entry without a live case or a concrete documented exclusion fails
+the workflow checks.
+
+Every direct external request made by an opt-in live case must be preceded by
+a durable provider-specific quota reservation. The live pytest harness guards
+both synchronous and asynchronous HTTPX sends so an unwrapped call is rejected
+before transport, not merely flagged after the case. An empty durable ledger
+is not a zero-usage attestation: finite dimensions require a current-window
+baseline from provider-native usage or explicit operator evidence. Preserve
+provider-specific units, reset windows, account scopes, and cumulative
+snapshot semantics; never infer credits, bytes, weights, or identity-pool usage
+from request counts. A new transport library
+is not permitted in provider adapters/live tests until an equivalent
+reservation-aware pre-send guard and unit regression are added.
+
+Before committing provider source changes, stage the complete implementation
+candidate and run the complete lock-protected provider live matrix with
+`--allow-staged-candidate`. That mode accepts only an exact Git index snapshot:
+all tracked changes must be staged, the working tree must match the index, no
+untracked files may remain, credential-bearing paths are rejected, and staged
+additions are scanned for configured credentials and credential-shaped values.
+The
+runner prints the candidate tree ID and a redacted receipt but does not append
+that receipt to the workstream while the candidate is uncommitted. The live
+tests execute from a temporary checkout exported directly from the Git index,
+not from the mutable working directory. Candidate mode rejects focused runs,
+missing provider credentials, usage scope, and unreviewed source prerequisites
+before making network calls, and redacts captured test output. Commit only
+after the full matrix passes with no missing credentials, failures, or skips
+(except providers explicitly deferred by the human and kept non-routable).
+Immediately verify `git rev-parse HEAD^{tree}` equals the tested candidate tree
+ID, then append the receipt with both the resulting commit SHA and tree ID.
+Any mismatch or provider-related source change invalidates the proof and
+requires a new full matrix. A focused `--provider` probe, fixture, successful
+HTTP status alone, or skipped test is never full-matrix evidence. Exhausted
+quotas, provider errors, and unresolved terms are recorded as blockers and
+cannot be described as a passing integration. Providers with a missing source
+or authorization gate stay non-routable and block acceptance until resolved
+or explicitly deferred by the human.
+
+Live validation may consume the same account quota as other environments. Use
+the provider-live lock, record the environment scope, and never pass
+local-development secrets to routine CI or another deployment. A provider's
+own account/device/IP restrictions take precedence over the repository's
+separate-secret-store convention; where one account is limited to one egress
+IP, do not use that account concurrently from different environments. Record
+the unresolved account/egress arrangement as a deployment gate instead of
+assuming separate keys solve it.
+
 ## Validation requirements
 
 When relevant, the orchestrator must be able to run:

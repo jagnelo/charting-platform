@@ -1,298 +1,55 @@
-from datetime import UTC, datetime, timedelta
-from decimal import Decimal
+from datetime import UTC, datetime
 from types import SimpleNamespace
 
-from app.models.ohlcv import OHLCVBar, Timeframe
-from app.schemas.ohlcv import OHLCVBarOut
+from app.models.ohlcv import Timeframe
+from app.services.distributed_locks import DistributedLockError
 from app.services.provider_runtime import ProviderNoDataError
 
 
 class TestOHLCVRouter:
-    def test_ohlcv_bar_schema_serializes_timestamps_as_canonical_utc_z(self):
-        bar = SimpleNamespace(
-            ts=datetime(2026, 9, 12, 14, 30, tzinfo=UTC),
-            open=100,
-            high=105,
-            low=95,
-            close=104,
-            volume=10,
-            vwap=None,
-            is_adjusted=True,
-            is_derived=True,
-            source_timeframe="D1",
-            derivation_method="d1_ohlcv_xnys_calendar_aggregation",
-            derived_at=datetime(2026, 9, 12, 15, 30),
-            source_bar_count=5,
-            source_start=datetime(2026, 9, 8, 14, 30, tzinfo=UTC),
-            source_end=datetime(2026, 9, 12, 16, 30),
-        )
-
-        payload = OHLCVBarOut.model_validate(bar).model_dump(mode="json")
-
-        assert payload["ts"] == "2026-09-12T14:30:00Z"
-        assert payload["derived_at"] == "2026-09-12T15:30:00Z"
-        assert payload["source_start"] == "2026-09-08T14:30:00Z"
-        assert payload["source_end"] == "2026-09-12T16:30:00Z"
-
-    def test_materialize_local_split_endpoint_returns_explicit_unavailable_receipt(
-        self, client, auth_headers, instrument
-    ):
-        response = client.post(
-            f"/api/v1/ohlcv/{instrument.symbol}/D1/materialize-local-split",
-            headers=auth_headers,
-        )
-
-        assert response.status_code == 200
-        assert response.json() == {
-            "status": "not_observed",
-            "factor_version": None,
-            "raw_bar_count": 0,
-            "persisted_bar_count": 0,
-            "updated_bar_count": 0,
-            "skipped_provider_bar_count": 0,
-            "reason": "no_unadjusted_provider_bars_for_requested_view",
-        }
-
-    def test_materialize_local_provider_endpoint_returns_explicit_unavailable_receipt(
-        self, client, auth_headers, instrument
-    ):
-        response = client.post(
-            f"/api/v1/ohlcv/{instrument.symbol}/D1/materialize-local-provider",
-            headers=auth_headers,
-        )
-
-        assert response.status_code == 200
-        assert response.json() == {
-            "status": "not_observed",
-            "factor_version": None,
-            "raw_bar_count": 0,
-            "persisted_bar_count": 0,
-            "updated_bar_count": 0,
-            "skipped_provider_bar_count": 0,
-            "reason": "no_unadjusted_provider_bars_for_requested_view",
-        }
-
-    def test_local_shape_exposes_derived_lineage(self, client, auth_headers, db, instrument):
-        db.add(
-            OHLCVBar(
-                instrument_id=instrument.id,
-                timeframe=Timeframe.W1,
-                ts=datetime(2025, 1, 2, tzinfo=UTC),
-                open=Decimal("10"),
-                high=Decimal("12"),
-                low=Decimal("9"),
-                close=Decimal("11"),
-                is_adjusted=True,
-                is_derived=True,
-                source_timeframe="D1",
-                derivation_method="d1_ohlcv_xnys_calendar_aggregation",
-                source_bar_count=4,
-                source_start=datetime(2024, 12, 30, tzinfo=UTC),
-                source_end=datetime(2025, 1, 2, tzinfo=UTC),
-            )
-        )
-        db.flush()
-
-        response = client.get(f"/api/v1/ohlcv/local/{instrument.symbol}/W1", headers=auth_headers)
-
-        assert response.status_code == 200
-        assert response.json()[0]["is_derived"] is True
-        assert response.json()[0]["source_timeframe"] == "D1"
-        assert response.json()[0]["source_bar_count"] == 4
-
-    def test_local_coarse_read_materializes_from_canonical_d1(
-        self, client, auth_headers, instrument, ohlcv_bars
-    ):
-        """Provider-free local reads derive W1 from persisted D1 evidence."""
-        response = client.get(
-            f"/api/v1/ohlcv/local/{instrument.symbol}/W1",
-            headers=auth_headers,
-        )
-
-        assert response.status_code == 200
-        payload = response.json()
-        assert payload
-        assert all(row["is_derived"] is True for row in payload)
-        assert all(row["source_timeframe"] == "D1" for row in payload)
-
-    def test_local_coarse_read_merges_partial_provider_rows_with_derived_periods(
-        self, client, auth_headers, db, instrument, ohlcv_bars
-    ):
-        """A partial provider series must not hide D1-derived coarse periods."""
-        db.add(
-            OHLCVBar(
-                instrument_id=instrument.id,
-                timeframe=Timeframe.W1,
-                ts=datetime(2024, 1, 1, tzinfo=UTC),
-                open=Decimal("999"),
-                high=Decimal("1001"),
-                low=Decimal("998"),
-                close=Decimal("1000"),
-                volume=Decimal("1"),
-                is_adjusted=True,
-                is_derived=False,
-            )
-        )
-        db.flush()
-
-        response = client.get(
-            f"/api/v1/ohlcv/local/{instrument.symbol}/W1",
-            headers=auth_headers,
-        )
-
-        assert response.status_code == 200
-        payload = response.json()
-        assert any(row["is_derived"] is False and row["close"] == 1000.0 for row in payload)
-        assert any(row["is_derived"] is True for row in payload)
-
-    def test_local_view_selector_isolates_persisted_provider_and_derived_lineage(
-        self, client, auth_headers, db, instrument
-    ):
-        """The explicit view contract must not conflate persisted lineage."""
-        timestamp = datetime(2025, 1, 2, tzinfo=UTC)
-        db.add_all(
-            [
-                OHLCVBar(
-                    instrument_id=instrument.id,
-                    timeframe=Timeframe.W1,
-                    ts=timestamp,
-                    open=Decimal("10"),
-                    high=Decimal("12"),
-                    low=Decimal("9"),
-                    close=Decimal("11"),
-                    is_adjusted=True,
-                    is_derived=False,
-                    data_source_id=None,
-                ),
-                OHLCVBar(
-                    instrument_id=instrument.id,
-                    timeframe=Timeframe.W1,
-                    ts=timestamp + timedelta(days=7),
-                    open=Decimal("20"),
-                    high=Decimal("22"),
-                    low=Decimal("19"),
-                    close=Decimal("21"),
-                    is_adjusted=True,
-                    is_derived=True,
-                    source_timeframe="D1",
-                    derivation_method="d1_ohlcv_xnys_calendar_aggregation",
-                ),
-            ]
-        )
-        db.flush()
-
-        provider = client.get(
-            f"/api/v1/ohlcv/local/{instrument.symbol}/W1",
-            params={"view": "provider"},
-            headers=auth_headers,
-        )
-        derived = client.get(
-            f"/api/v1/ohlcv/local/{instrument.symbol}/W1",
-            params={"view": "derived"},
-            headers=auth_headers,
-        )
-
-        assert provider.status_code == 200
-        assert provider.json() and all(row["is_derived"] is False for row in provider.json())
-        assert derived.status_code == 200
-        assert derived.json() and all(row["is_derived"] is True for row in derived.json())
-
-    def test_local_before_normalizes_offset_aware_boundary(
-        self, client, auth_headers, db, instrument
-    ):
-        """Direct local pagination compares an offset-aware cutoff on UTC storage."""
-        db.add_all(
-            [
-                OHLCVBar(
-                    instrument_id=instrument.id,
-                    timeframe=Timeframe.D1,
-                    ts=datetime(2040, 1, 1, tzinfo=UTC),
-                    open=Decimal("10"),
-                    high=Decimal("12"),
-                    low=Decimal("9"),
-                    close=Decimal("11"),
-                    is_adjusted=True,
-                    is_derived=False,
-                ),
-                OHLCVBar(
-                    instrument_id=instrument.id,
-                    timeframe=Timeframe.D1,
-                    ts=datetime(2040, 1, 2, tzinfo=UTC),
-                    open=Decimal("20"),
-                    high=Decimal("22"),
-                    low=Decimal("19"),
-                    close=Decimal("21"),
-                    is_adjusted=True,
-                    is_derived=False,
-                ),
-            ]
-        )
-        db.flush()
-
-        response = client.get(
-            f"/api/v1/ohlcv/local/{instrument.symbol}/D1",
-            params={"before": "2040-01-02T02:00:00+02:00"},
-            headers=auth_headers,
-        )
-
-        assert response.status_code == 200
-        assert [row["close"] for row in response.json()] == [11.0]
-
-    def test_chart_range_normalizes_offset_aware_boundaries(
+    def test_local_only_returns_retained_bars_in_consumer_shape(
         self, client, auth_headers, instrument, monkeypatch
     ):
-        calls: list[tuple] = []
-
-        async def _range(*args, **_kwargs):
-            calls.append(args)
-            return []
-
-        monkeypatch.setattr("app.routers.ohlcv.fetch_ohlcv", _range)
-        response = client.get(
-            f"/api/v1/ohlcv/{instrument.symbol}/D1",
-            params={
-                "start": "2040-01-01T02:00:00+02:00",
-                "end": "2040-01-02T02:00:00+02:00",
-                "local_only": "true",
-            },
-            headers=auth_headers,
-        )
-
-        assert response.status_code == 200
-        assert calls
-        assert calls[0][3] == datetime(2040, 1, 1, tzinfo=UTC)
-        assert calls[0][4] == datetime(2040, 1, 2, tzinfo=UTC)
-
-    def test_chart_coarse_local_read_merges_partial_provider_rows(
-        self, client, auth_headers, db, instrument, ohlcv_bars
-    ):
-        """The chart service path applies the same mixed-source contract."""
-        db.add(
-            OHLCVBar(
-                instrument_id=instrument.id,
-                timeframe=Timeframe.W1,
-                ts=datetime(2024, 1, 1, tzinfo=UTC),
-                open=Decimal("999"),
-                high=Decimal("1001"),
-                low=Decimal("998"),
-                close=Decimal("1000"),
-                volume=Decimal("1"),
+        ts = datetime(2026, 10, 15, 20, 0, tzinfo=UTC)
+        bars = [
+            SimpleNamespace(
+                ts=ts,
+                open=100.0,
+                high=105.0,
+                low=99.0,
+                close=104.0,
+                volume=12345.0,
+                vwap=102.5,
                 is_adjusted=True,
-                is_derived=False,
             )
-        )
-        db.flush()
+        ]
+        calls: list[dict] = []
 
+        async def _local_read(*_args, **kwargs):
+            calls.append(kwargs)
+            return bars
+
+        monkeypatch.setattr("app.routers.ohlcv.fetch_ohlcv_latest", _local_read)
         response = client.get(
-            f"/api/v1/ohlcv/{instrument.symbol}/W1",
+            f"/api/v1/ohlcv/{instrument.symbol}/{Timeframe.D1.value}",
             params={"local_only": "true"},
             headers=auth_headers,
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 200, response.text
         payload = response.json()
-        assert any(row["is_derived"] is False and row["close"] == 1000.0 for row in payload)
-        assert any(row["is_derived"] is True for row in payload)
+        assert len(payload) == 1
+        assert payload[0] == {
+            "ts": "2026-10-15T20:00:00Z",
+            "open": 100.0,
+            "high": 105.0,
+            "low": 99.0,
+            "close": 104.0,
+            "volume": 12345.0,
+            "vwap": 102.5,
+            "is_adjusted": True,
+        }
+        assert calls == [{"allow_provider_fetch": False}]
 
     def test_transformed_chart_types_return_server_shape(
         self, client, auth_headers, instrument, monkeypatch
@@ -335,21 +92,6 @@ class TestOHLCVRouter:
                 for row in payload
             )
 
-    def test_transformed_local_coarse_read_materializes_from_canonical_d1(
-        self, client, auth_headers, instrument, ohlcv_bars
-    ):
-        """Transformed local reads use the same provider-free coarse seam."""
-        response = client.get(
-            f"/api/v1/ohlcv/{instrument.symbol}/W1/transformed",
-            params={"bar_type": "heikin_ashi", "local_only": "true"},
-            headers=auth_headers,
-        )
-
-        assert response.status_code == 200
-        payload = response.json()
-        assert payload
-        assert all(set(("ts", "open", "high", "low", "close")).issubset(row) for row in payload)
-
     def test_transformed_chart_ignores_parameters_for_other_types(
         self, client, auth_headers, instrument, monkeypatch
     ):
@@ -388,7 +130,26 @@ class TestOHLCVRouter:
         )
 
         assert res.status_code == 404
-        assert "No OHLCV data available" in res.json()["detail"]
+        assert res.json() == {
+            "detail": f"No OHLCV data available for instrument '{instrument.symbol}' on D1."
+        }
+
+    def test_refresh_coordination_failure_returns_retryable_503(
+        self, client, auth_headers, instrument, monkeypatch
+    ):
+        async def _raise_lock_error(*_args, **_kwargs):
+            raise DistributedLockError("Redis distributed lock acquisition timed out")
+
+        monkeypatch.setattr("app.routers.ohlcv.fetch_ohlcv_latest", _raise_lock_error)
+
+        res = client.get(
+            f"/api/v1/ohlcv/{instrument.symbol}/{Timeframe.D1.value}",
+            headers=auth_headers,
+        )
+
+        assert res.status_code == 503
+        assert res.headers["Retry-After"] == "5"
+        assert res.json()["detail"]["code"] == "refresh_coordination_unavailable"
 
     def test_local_only_skips_provider_hydration(
         self, client, auth_headers, instrument, monkeypatch
@@ -407,7 +168,7 @@ class TestOHLCVRouter:
         )
 
         assert res.status_code == 200
-        assert isinstance(res.json(), list)
+        assert res.json() == []
         assert calls == [{"allow_provider_fetch": False}]
 
     def test_transformed_local_only_skips_provider_hydration(

@@ -4,8 +4,8 @@ Provider-agnostic risk-free rate service.
 Strategy (in priority order):
   1. In-memory cache (1-hour TTL) — avoids DB round-trips on hot paths.
   2. Latest daily close from ohlcv_bar for the canonical RFR instrument.
-  3. Live fetch via the active PRICE_HISTORY provider chain, persisted through the
-     canonical OHLCV cache helper so freshness and provenance remain visible.
+  3. Live fetch via the active PRICE_HISTORY provider chain (no OHLCV persistence —
+     bars are read-only so we stay inside the caller's transaction boundary).
   4. Hardcoded fallback (0.05).
 
 The canonical instrument symbol is settings.RFR_INSTRUMENT_SYMBOL (default "^IRX").
@@ -34,7 +34,7 @@ from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
-from app.services.market_data import persist_price_history_bars
+from app.services.market_data import _attach_provider_series, persist_price_history_bars
 from app.services.provider_runtime import execute_provider_call
 
 _FALLBACK_RFR = 0.05
@@ -138,9 +138,8 @@ async def _read_from_db(db: AsyncSession, instrument_id: int) -> float | None:
 async def _fetch_from_provider(db: AsyncSession, instrument: Instrument) -> float | None:
     """
     Trigger a live PRICE_HISTORY fetch for the RFR instrument.
-    Persist the returned bars through the canonical cache helper and return the
-    latest close.  The fetch timestamp, rather than the historical bar timestamp,
-    is the observation time used for dataset freshness and provenance.
+    Returns the latest close without persisting bars — the caller's transaction
+    is not touched beyond provider runtime log writes (which are fine).
     """
     end = datetime.now(UTC)
     start = end - timedelta(days=30)
@@ -150,6 +149,11 @@ async def _fetch_from_provider(db: AsyncSession, instrument: Instrument) -> floa
             ProviderCapability.PRICE_HISTORY,
             "fetch_rfr_ohlcv",
             instrument_id=instrument.id,
+            usage_identity=lambda provider_name: provider_symbol_for_instrument(
+                instrument, provider_name
+            ),
+            adjusted=True,
+            history_start=start,
             invoke=lambda provider, _sym: provider.fetch_ohlcv(
                 provider_symbol_for_instrument(instrument, provider.name),
                 Timeframe.D1,
@@ -165,9 +169,13 @@ async def _fetch_from_provider(db: AsyncSession, instrument: Instrument) -> floa
         bars = execution.result
         if not bars:
             return None
-        for bar in bars:
-            bar.instrument_id = instrument.id
-            bar.data_source_id = execution.data_source.id
+        bars = await _attach_provider_series(
+            db,
+            instrument,
+            Timeframe.D1,
+            True,
+            execution,
+        )
         await persist_price_history_bars(
             db,
             instrument,
@@ -176,11 +184,7 @@ async def _fetch_from_provider(db: AsyncSession, instrument: Instrument) -> floa
             timeframe=Timeframe.D1,
             adjusted=True,
             bars=bars,
-            # Provider bar timestamps describe market observations and can be
-            # weeks or months old.  Dataset freshness must describe this fetch,
-            # so retain the wall-clock request timestamp for cache state and
-            # provider-observation lineage.
-            observed_at=end,
+            observed_at=max((bar.ts for bar in bars), default=end),
             use_upsert=True,
         )
         most_recent = max(bars, key=lambda b: b.ts)

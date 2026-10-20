@@ -1,0 +1,2496 @@
+from __future__ import annotations
+
+import json
+from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
+from unittest.mock import MagicMock, patch
+
+import httpx
+import pytest
+
+import app.config as app_config
+from app.config import settings
+from app.models.ohlcv import Timeframe
+from app.providers.errors import (
+    ProviderNotConfiguredError,
+    ProviderRateLimitError,
+    ProviderResponseError,
+)
+from app.providers.optional_market_data import (
+    EODHDProvider,
+    FinnhubProvider,
+    FMPProvider,
+    MarketDataAppProvider,
+    MarketstackProvider,
+    TiingoProvider,
+    TradierProvider,
+    TwelveDataProvider,
+    estimate_fmp_ohlcv_request_count,
+    estimate_marketdata_app_latest_ohlcv_credit_count,
+    estimate_marketdata_app_ohlcv_credit_count,
+    estimate_marketdata_app_option_quote_history_credit_count,
+    estimate_marketstack_latest_ohlcv_request_count,
+    estimate_marketstack_ohlcv_request_count,
+    estimate_tiingo_ohlcv_request_count,
+)
+from app.providers.registry import list_provider_capabilities
+from app.providers.telemetry import activate, deactivate
+
+
+@pytest.fixture(autouse=True)
+def _configure_test_response_byte_bounds(monkeypatch):
+    """Use explicit test-only bounds for FMP/Tiingo transport cases."""
+
+    monkeypatch.setattr(app_config.settings, "FMP_STOCK_LIST_ENTITLED", True)
+
+    for provider in ("fmp", "tiingo"):
+        operations = app_config.provider_required_operation_byte_bounds(provider)
+        monkeypatch.setattr(
+            app_config.settings,
+            f"{provider.upper()}_OPERATION_BYTE_BOUNDS",
+            {operation: 10_000_000 for operation in operations},
+        )
+
+
+def _response(payload):
+    response = MagicMock()
+    response.json.return_value = payload
+    response.raise_for_status.return_value = None
+    return response
+
+
+def test_optional_adapters_are_concrete_and_capability_visible():
+    assert {
+        "tiingo",
+        "twelve_data",
+        "finnhub",
+        "marketstack",
+        "eodhd",
+        "fmp",
+    } <= {
+        "tiingo",
+        "twelve_data",
+        "finnhub",
+        "marketstack",
+        "eodhd",
+        "fmp",
+    }
+    assert "price_history" in list_provider_capabilities("twelve_data")
+    assert "account_usage" in list_provider_capabilities("twelve_data")
+    assert "adjusted_price_history" not in list_provider_capabilities("twelve_data")
+    assert "instrument_metadata" in list_provider_capabilities("finnhub")
+    assert "instrument_search" in list_provider_capabilities("tiingo")
+    assert "universe_discovery" in list_provider_capabilities("eodhd")
+    assert "instrument_events" in list_provider_capabilities("finnhub")
+    assert "market_events" in list_provider_capabilities("finnhub")
+    assert "earnings" in list_provider_capabilities("finnhub")
+    assert "option_chain" in list_provider_capabilities("tradier")
+    assert "option_chain" in list_provider_capabilities("marketdata_app")
+    assert "option_quote_history" in list_provider_capabilities("marketdata_app")
+    assert "account_usage" in list_provider_capabilities("fmp")
+
+
+@pytest.mark.parametrize(
+    "provider_cls",
+    [
+        TiingoProvider,
+        TwelveDataProvider,
+        TradierProvider,
+        MarketDataAppProvider,
+        FinnhubProvider,
+        MarketstackProvider,
+        EODHDProvider,
+        FMPProvider,
+    ],
+)
+def test_raw_only_rest_adapters_reject_adjusted_history_before_transport(provider_cls):
+    provider = provider_cls()
+    with patch.object(provider, "_get") as get:
+        with pytest.raises(ProviderResponseError, match="historical bars are raw"):
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 1, 2, tzinfo=UTC),
+                adjusted=True,
+            )
+    get.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "provider_cls",
+    [
+        TiingoProvider,
+        TwelveDataProvider,
+        MarketDataAppProvider,
+        FinnhubProvider,
+        MarketstackProvider,
+        EODHDProvider,
+        FMPProvider,
+    ],
+)
+def test_optional_history_adapters_reject_calendar_year_latest_windows(provider_cls):
+    with pytest.raises(ProviderResponseError, match="does not support timeframe Y1"):
+        provider_cls().latest_window_start(Timeframe.Y1, 1)
+
+
+@pytest.mark.parametrize(
+    "provider_cls",
+    [
+        TiingoProvider,
+        TwelveDataProvider,
+        TradierProvider,
+        MarketDataAppProvider,
+        FinnhubProvider,
+        MarketstackProvider,
+        EODHDProvider,
+        FMPProvider,
+    ],
+)
+def test_optional_history_adapters_reject_calendar_year_history_before_transport(provider_cls):
+    provider = provider_cls()
+    with patch.object(provider, "_get") as get:
+        with pytest.raises(ProviderResponseError, match="does not support timeframe Y1"):
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.Y1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2025, 1, 1, tzinfo=UTC),
+                adjusted=False,
+            )
+    get.assert_not_called()
+
+
+def test_twelve_data_parses_intraday_values():
+    provider = TwelveDataProvider()
+    payload = {
+        "meta": {"symbol": "AAPL", "exchange_timezone": "America/New_York"},
+        "values": [
+            {
+                "datetime": "2024-01-02 14:30:00",
+                "open": "185.0",
+                "high": "186.0",
+                "low": "184.5",
+                "close": "185.5",
+                "volume": "1000",
+            }
+        ],
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.TWELVE_DATA_API_KEY = "demo"
+        bars = provider.fetch_ohlcv(
+            "AAPL",
+            Timeframe.M5,
+            datetime(2024, 1, 2, 14, tzinfo=UTC),
+            datetime(2024, 1, 2, 15, tzinfo=UTC),
+            adjusted=False,
+        )
+    assert len(bars) == 1
+    assert bars[0].close == 185.5
+    assert bars[0].is_adjusted is False
+    assert bars[0].ts == datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
+    assert get.call_args.kwargs["params"]["timezone"] == "UTC"
+
+
+def test_twelve_data_parses_daily_exchange_local_timestamp_as_utc():
+    provider = TwelveDataProvider()
+    payload = {
+        "meta": {"symbol": "AAPL", "exchange_timezone": "America/New_York"},
+        "values": [
+            {
+                "datetime": "2024-01-02 16:00:00",
+                "open": "185.0",
+                "high": "186.0",
+                "low": "184.5",
+                "close": "185.5",
+                "volume": "1000",
+            }
+        ],
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.providers.optional_market_data.httpx.get", return_value=_response(payload)),
+    ):
+        configured.TWELVE_DATA_API_KEY = "demo"
+        bars = provider.fetch_ohlcv(
+            "AAPL",
+            Timeframe.D1,
+            datetime(2024, 1, 2, 20, tzinfo=UTC),
+            datetime(2024, 1, 3, tzinfo=UTC),
+            adjusted=False,
+        )
+
+    assert len(bars) == 1
+    assert bars[0].ts == datetime(2024, 1, 2, 21, tzinfo=UTC)
+
+
+def test_twelve_data_discovery_requests_explicit_bounded_pages():
+    provider = TwelveDataProvider()
+    payload = {
+        "count": 501,
+        "data": [
+            {
+                "symbol": "AAPL",
+                "name": "Apple Inc",
+                "exchange": "NASDAQ",
+                "currency": "USD",
+                "type": "Common Stock",
+            }
+        ],
+        "status": "ok",
+    }
+    with patch.object(provider, "_get", return_value=payload) as get:
+        page = provider.discover_universe_page("EQUITY", 500)
+
+    assert page["total"] == 501
+    assert page["quotes"][0]["symbol"] == "AAPL"
+    get.assert_called_once_with(
+        "stocks",
+        {
+            "country": "United States",
+            "type": "Common Stock",
+            "page": 2,
+            "outputsize": 500,
+        },
+    )
+
+
+def test_twelve_data_fetches_documented_minute_account_usage_headers():
+    provider = TwelveDataProvider()
+    response = _response(
+        {
+            "status": "ok",
+            "plan_category": "Basic",
+            "current_usage": 3,
+            "plan_limit": 8,
+            "daily_usage": 12,
+            "plan_daily_limit": 800,
+        }
+    )
+    response.status_code = 200
+    response.headers = {
+        "api-credits-used": "3",
+        "api-credits-left": "5",
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=response,
+        ) as get,
+    ):
+        configured.TWELVE_DATA_API_KEY = "demo"
+        usage = provider.fetch_account_usage()
+
+    assert usage is not None
+    assert usage.provider == "twelve_data"
+    assert usage.account_plan == "Basic"
+    assert usage.dimensions[0].name == "credits_per_minute"
+    assert usage.dimensions[0].limit == 8
+    assert usage.dimensions[0].consumed == 3
+    assert usage.dimensions[0].remaining == 5
+    assert usage.dimensions[0].reset_at is not None
+    assert usage.dimensions[0].reset_at.second == 0
+    assert usage.dimensions[0].reset_at > usage.observed_at
+    daily = next(item for item in usage.dimensions if item.name == "requests_per_day")
+    assert daily.unit == "requests"
+    assert daily.limit == 800
+    assert daily.consumed == 12
+    assert daily.remaining == 788
+    assert daily.reset_at is not None and daily.reset_at > usage.observed_at
+    assert daily.reset_at.hour == daily.reset_at.minute == daily.reset_at.second == 0
+    assert usage.raw_payload["plan_category"] == "Basic"
+    assert usage.response_headers == {
+        "api-credits-used": "3",
+        "api-credits-left": "5",
+    }
+    assert get.call_args.args[0] == "https://api.twelvedata.com/api_usage"
+    assert get.call_args.kwargs["params"] == {"apikey": "demo"}
+
+
+def test_twelve_data_account_usage_requires_documented_credit_headers():
+    provider = TwelveDataProvider()
+    response = _response({"status": "ok", "plan": "Basic"})
+    response.status_code = 200
+    response.headers = {}
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.providers.optional_market_data.httpx.get", return_value=response),
+    ):
+        configured.TWELVE_DATA_API_KEY = "demo"
+        with pytest.raises(ProviderResponseError, match="api-credits-used/api-credits-left"):
+            provider.fetch_account_usage()
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("datetime", "not-a-date"),
+        ("open", "Infinity"),
+        ("high", "NaN"),
+        ("close", "not-a-number"),
+        ("volume", "Infinity"),
+        ("vwap", "NaN"),
+    ],
+)
+def test_optional_ohlcv_rejects_invalid_or_nonfinite_values(field, value):
+    provider = TwelveDataProvider()
+    row = {
+        "datetime": "2024-01-02 14:30:00",
+        "open": "185.0",
+        "high": "186.0",
+        "low": "184.5",
+        "close": "185.5",
+        "volume": "1000",
+        "vwap": "185.2",
+    }
+    row[field] = value
+    payload = {
+        "meta": {"symbol": "AAPL", "exchange_timezone": "America/New_York"},
+        "values": [row],
+    }
+    with patch.object(provider, "_get", return_value=payload):
+        with pytest.raises(ProviderResponseError, match="OHLCV"):
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 1, 3, tzinfo=UTC),
+                adjusted=False,
+            )
+
+
+def test_finnhub_parses_parallel_candle_arrays():
+    provider = FinnhubProvider()
+    start = int(datetime(2024, 1, 2, tzinfo=UTC).timestamp())
+    payload = {
+        "s": "ok",
+        "t": [start],
+        "o": [100],
+        "h": [102],
+        "l": [99],
+        "c": [101],
+        "v": [1234],
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.providers.optional_market_data.httpx.get", return_value=_response(payload)),
+    ):
+        configured.FINNHUB_API_KEY = "demo"
+        bars = provider.fetch_ohlcv(
+            "AAPL",
+            Timeframe.D1,
+            datetime(2024, 1, 1, tzinfo=UTC),
+            datetime(2024, 1, 3, tzinfo=UTC),
+            adjusted=False,
+        )
+    assert [(bar.open, bar.close) for bar in bars] == [(100.0, 101.0)]
+
+
+def test_finnhub_current_price_uses_native_quote_endpoint():
+    provider = FinnhubProvider()
+    with patch.object(provider, "_get", return_value={"c": 123.45}) as get:
+        assert provider.get_current_price("aapl") == 123.45
+    get.assert_called_once_with("quote", {"symbol": "AAPL"})
+
+
+def test_finnhub_account_usage_uses_native_rate_headers_and_rolling_fallback():
+    provider = FinnhubProvider()
+    headers = {"x-ratelimit-limit": "60", "x-ratelimit-remaining": "58"}
+    with patch.object(provider, "_get_with_headers", return_value=({"c": 123.45}, headers)) as get:
+        usage = provider.fetch_account_usage()
+
+    get.assert_called_once_with("quote", {"symbol": "AAPL"}, operation="fetch_account_usage")
+    assert usage.provider == "finnhub"
+    assert usage.limit == 60
+    assert usage.remaining == 58
+    assert usage.consumed == 2
+    assert usage.dimensions[0].name == "calls_per_minute"
+    assert usage.dimensions[0].reset_at == usage.observed_at + timedelta(seconds=60)
+    assert usage.response_headers == headers
+
+
+def test_finnhub_account_usage_rejects_missing_or_impossible_native_counters():
+    provider = FinnhubProvider()
+    with patch.object(
+        provider,
+        "_get_with_headers",
+        return_value=({"c": 123.45}, {"x-ratelimit-limit": "60"}),
+    ):
+        with pytest.raises(ProviderResponseError, match="minute rate-limit headers"):
+            provider.fetch_account_usage()
+
+    with patch.object(
+        provider,
+        "_get_with_headers",
+        return_value=(
+            {"c": 123.45},
+            {"x-ratelimit-limit": "60", "x-ratelimit-remaining": "61"},
+        ),
+    ):
+        with pytest.raises(ProviderResponseError, match="minute rate-limit headers"):
+            provider.fetch_account_usage()
+
+
+def test_finnhub_current_price_treats_zero_as_no_quote_and_rejects_malformed_data():
+    provider = FinnhubProvider()
+    with patch.object(provider, "_get", return_value={"c": 0}):
+        assert provider.get_current_price("AAPL") is None
+    with patch.object(provider, "_get", return_value={"c": "bad"}):
+        with pytest.raises(ProviderResponseError, match="quote price"):
+            provider.get_current_price("AAPL")
+    with patch.object(provider, "_get", return_value=[]):
+        with pytest.raises(ProviderResponseError, match="quote object"):
+            provider.get_current_price("AAPL")
+
+
+def test_finnhub_us_symbol_directory_follows_provider_signed_file_redirect():
+    provider = FinnhubProvider()
+    rows = [
+        {"symbol": "AAPL", "description": "Apple Inc", "type": "Common Stock", "mic": "XNAS"},
+        {"symbol": "SPY", "description": "SPDR S&P 500 ETF", "type": "ETF", "mic": "ARCX"},
+    ]
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(rows),
+        ) as get,
+    ):
+        configured.FINNHUB_API_KEY = "demo"
+        result = provider.discover_universe_page("EQUITY", 0)
+
+    assert [row["symbol"] for row in result["quotes"]] == ["AAPL"]
+    assert get.call_args.kwargs["follow_redirects"] is True
+
+
+def test_finnhub_universe_returns_complete_directory_without_synthetic_refetch_pages():
+    provider = FinnhubProvider()
+    rows = [
+        {
+            "symbol": f"SYM{index:04d}",
+            "description": f"Company {index}",
+            "type": "Common Stock",
+            "mic": "XNAS",
+        }
+        for index in range(1_201)
+    ]
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(rows),
+        ) as get,
+    ):
+        configured.FINNHUB_API_KEY = "demo"
+        page = provider.discover_universe_page("EQUITY", 0)
+
+    assert page["total"] == 1_201
+    assert len(page["quotes"]) == 1_201
+    assert page["quotes"][0]["symbol"] == "SYM0000"
+    assert page["quotes"][-1]["symbol"] == "SYM1200"
+    get.assert_called_once()
+
+
+def test_finnhub_invalid_candle_status_is_typed():
+    provider = FinnhubProvider()
+    payload = {"s": "unexpected", "t": [], "o": [], "h": [], "l": [], "c": [], "v": []}
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ),
+    ):
+        configured.FINNHUB_API_KEY = "demo"
+        with pytest.raises(ProviderResponseError) as exc_info:
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 1, 3, tzinfo=UTC),
+                adjusted=False,
+            )
+    assert exc_info.value.provider_name == "finnhub"
+
+
+def test_marketdata_app_mismatched_candle_arrays_are_typed():
+    provider = MarketDataAppProvider()
+    payload = {"s": "ok", "t": [1], "o": [100], "h": [], "l": [99], "c": [101], "v": [10]}
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ),
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        with pytest.raises(ProviderResponseError) as exc_info:
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 1, 3, tzinfo=UTC),
+                adjusted=False,
+            )
+    assert exc_info.value.provider_name == "marketdata_app"
+
+
+def test_finnhub_parses_documented_earnings_actual_and_estimate_fields():
+    provider = FinnhubProvider()
+    payload = [
+        {
+            "symbol": "AAPL",
+            "period": "2024-01-01",
+            "actual": 2.18,
+            "estimate": 2.10,
+            "surprise": 0.08,
+            "surprisePercent": 3.81,
+        }
+    ]
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ),
+    ):
+        configured.FINNHUB_API_KEY = "demo"
+        events = provider.fetch_instrument_events("AAPL")
+
+    assert len(events) == 1
+    assert events[0].eps_actual == Decimal("2.18")
+    assert events[0].eps_estimate == Decimal("2.10")
+    assert events[0].eps_surprise == Decimal("0.08")
+
+
+def test_finnhub_parses_documented_forward_earnings_calendar():
+    provider = FinnhubProvider()
+    payload = {
+        "earningsCalendar": [
+            {
+                "date": "2024-01-02",
+                "symbol": "AAPL",
+                "hour": "amc",
+                "epsEstimate": 2.10,
+                "revenueEstimate": 117000000000,
+            }
+        ]
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.FINNHUB_API_KEY = "demo"
+        events = provider.fetch_market_events(start=date(2024, 1, 1), end=date(2024, 1, 3))
+
+    assert len(events) == 1
+    assert events[0].event_type == "earnings"
+    assert events[0].effective_date == date(2024, 1, 2)
+    assert events[0].raw_payload["hour"] == "amc"
+    assert get.call_args.kwargs["params"] == {
+        "from": "2024-01-01",
+        "to": "2024-01-03",
+        "token": "demo",
+    }
+
+
+def test_fmp_parses_and_pages_documented_stable_earnings_calendar():
+    provider = FMPProvider()
+    payload = [
+        {
+            "date": "2024-01-02",
+            "symbol": "AAPL",
+            "epsActual": 2.18,
+            "epsEstimated": 2.10,
+            "revenueActual": 119000000000,
+            "revenueEstimated": 117000000000,
+        }
+    ]
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            side_effect=[_response(payload), _response(payload)],
+        ) as get,
+    ):
+        configured.FMP_API_KEY = "demo"
+        configured.FMP_OPERATION_BYTE_BOUNDS = {"fetch_market_events": 8_000_000}
+        first_page = provider.fetch_market_events_page(start=date(2024, 1, 1), end=date(2024, 1, 3))
+        second_page = provider.fetch_market_events_page(
+            start=date(2024, 1, 1), end=date(2024, 1, 3), cursor="1"
+        )
+
+    assert len(first_page["events"]) == len(second_page["events"]) == 1
+    assert first_page["events"][0].event_type == "earnings"
+    assert first_page["events"][0].event_key == "fmp:earnings_calendar:AAPL:2024-01-02"
+    assert first_page["events"][0].effective_date == date(2024, 1, 2)
+    assert first_page["events"][0].raw_payload["epsEstimated"] == 2.10
+    assert first_page["complete"] is True
+    assert first_page["next_cursor"] is None
+    assert get.call_args_list[0].kwargs["params"] == {
+        "from": "2024-01-01",
+        "to": "2024-01-03",
+        "page": 0,
+        "apikey": "demo",
+    }
+    assert get.call_args_list[1].kwargs["params"] == {
+        "from": "2024-01-01",
+        "to": "2024-01-03",
+        "page": 1,
+        "apikey": "demo",
+    }
+
+
+def test_fmp_earnings_calendar_uses_documented_page_size_without_dropping_continuation():
+    provider = FMPProvider()
+    full_page = [
+        {"date": "2024-01-02", "symbol": f"TICKER{index}", "epsEstimated": 1.0}
+        for index in range(FMPProvider._EARNINGS_PAGE_SIZE)
+    ]
+    with patch.object(provider, "_get", return_value=full_page) as get:
+        page = provider.fetch_market_events_page(start=date(2024, 1, 1), end=date(2024, 1, 3))
+        assert page["complete"] is False
+        assert page["next_cursor"] == "1"
+        with pytest.raises(ProviderResponseError, match="use durable market-event pagination"):
+            provider.fetch_market_events(start=date(2024, 1, 1), end=date(2024, 1, 3))
+    assert get.call_count == 2
+
+
+@pytest.mark.parametrize(
+    ("start", "end", "cursor"),
+    [
+        (None, date(2024, 1, 3), None),
+        (date(2024, 1, 1), date(2024, 4, 2), None),
+        (date(2024, 1, 3), date(2024, 1, 1), None),
+        (date(2024, 1, 1), date(2024, 1, 3), "-1"),
+        (date(2024, 1, 1), date(2024, 1, 3), "1.5"),
+    ],
+)
+def test_fmp_earnings_calendar_rejects_invalid_page_bounds_before_transport(start, end, cursor):
+    provider = FMPProvider()
+    with patch.object(provider, "_get") as get:
+        with pytest.raises(ProviderResponseError):
+            provider.fetch_market_events_page(start=start, end=end, cursor=cursor)
+    get.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("provider", "payload", "operation"),
+    [
+        (TiingoProvider(), [{}], "search"),
+        (TwelveDataProvider(), {"data": [{}]}, "search"),
+        (TradierProvider(), {"securities": {"security": [{}]}}, "search"),
+        (FinnhubProvider(), {"result": [{}]}, "search"),
+        (
+            MarketstackProvider(),
+            {"pagination": {"total": 1}, "data": {"mic": "XNAS", "tickers": [{}]}},
+            "discovery",
+        ),
+        (EODHDProvider(), [{}], "discovery"),
+        (FMPProvider(), [{}], "discovery"),
+    ],
+)
+def test_optional_identity_rows_are_not_silently_dropped(provider, payload, operation):
+    with patch.object(provider, "_get", return_value=payload):
+        with pytest.raises(ProviderResponseError, match="required") as exc_info:
+            if operation == "search":
+                provider.search_instruments("Apple")
+            else:
+                with patch(
+                    "app.providers.optional_market_data.settings.MARKETSTACK_DISCOVERY_EXCHANGE",
+                    "XNAS",
+                ):
+                    provider.discover_universe_page("EQUITY", 0)
+    assert exc_info.value.provider_name == provider.name
+
+
+@pytest.mark.parametrize(
+    ("provider", "payload", "operation"),
+    [
+        (FinnhubProvider(), [{"period": "not-a-date"}], "instrument"),
+        (
+            FinnhubProvider(),
+            {"earningsCalendar": [{"date": "not-a-date", "symbol": "AAPL"}]},
+            "market",
+        ),
+        (FinnhubProvider(), {"earningsCalendar": [{"date": "2024-01-02"}]}, "market"),
+        (FMPProvider(), [{"date": "not-a-date", "symbol": "AAPL"}], "market"),
+        (FMPProvider(), [{"date": "2024-01-02"}], "market"),
+    ],
+)
+def test_optional_earnings_rows_are_not_silently_dropped(provider, payload, operation):
+    with patch.object(provider, "_get", return_value=payload):
+        with pytest.raises(ProviderResponseError):
+            if operation == "instrument":
+                provider.fetch_instrument_events("AAPL")
+            else:
+                provider.fetch_market_events(start=date(2024, 1, 1), end=date(2024, 1, 3))
+
+
+def test_daily_adapters_parse_common_rows():
+    row = {
+        "date": "2024-01-02",
+        "open": "10",
+        "high": "11",
+        "low": "9",
+        "close": "10.5",
+        "volume": "42",
+    }
+    for provider, setting, payload in (
+        (TiingoProvider(), "TIINGO_API_KEY", [row]),
+        (
+            MarketstackProvider(),
+            "MARKETSTACK_API_KEY",
+            {
+                "data": [row],
+                "pagination": {"limit": 100, "offset": 0, "count": 1, "total": 1},
+            },
+        ),
+        (EODHDProvider(), "EODHD_API_KEY", [row]),
+        (FMPProvider(), "FMP_API_KEY", [row]),
+    ):
+        with (
+            patch("app.providers.optional_market_data.settings") as configured,
+            patch("app.providers.optional_market_data.httpx.get", return_value=_response(payload)),
+        ):
+            setattr(configured, setting, "demo")
+            bars = provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 1, 3, tzinfo=UTC),
+                adjusted=False,
+            )
+        assert len(bars) == 1
+        assert bars[0].close == 10.5
+
+
+def test_tiingo_parses_single_object_metadata_response():
+    provider = TiingoProvider()
+    payload = {
+        "ticker": "AAPL",
+        "name": "Apple Inc.",
+        "exchangeCode": "NASDAQ",
+        "description": "Technology company",
+        "currency": "USD",
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.TIINGO_API_KEY = "demo"
+        profile = provider.get_instrument_profile("AAPL")
+
+    assert profile is not None
+    assert profile.symbol == "AAPL"
+    assert profile.name == "Apple Inc."
+    assert profile.exchange == "NASDAQ"
+    assert get.call_args.args[0] == "https://api.tiingo.com/tiingo/daily/AAPL"
+
+
+def test_tiingo_history_chunks_calendar_years_without_gaps():
+    provider = TiingoProvider()
+    first = {
+        "date": "2024-12-31T00:00:00Z",
+        "open": 10,
+        "high": 11,
+        "low": 9,
+        "close": 10.5,
+        "volume": 100,
+    }
+    second = {
+        "date": "2025-01-01T00:00:00Z",
+        "open": 10.5,
+        "high": 12,
+        "low": 10,
+        "close": 11.5,
+        "volume": 120,
+    }
+    start = datetime(2024, 12, 31, tzinfo=UTC)
+    end = datetime(2025, 1, 2, tzinfo=UTC)
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch.object(provider, "_get", side_effect=[[first], [second]]) as get,
+    ):
+        configured.TIINGO_API_KEY = "fixture-key"
+        bars = provider.fetch_ohlcv("AAPL", Timeframe.D1, start, end, adjusted=False)
+
+    assert [bar.ts.date().isoformat() for bar in bars] == ["2024-12-31", "2025-01-01"]
+    assert get.call_count == 2
+    assert get.call_args_list[0].args[0] == "tiingo/daily/AAPL/prices"
+    assert get.call_args_list[0].args[1] == {
+        "startDate": "2024-12-31",
+        "endDate": "2024-12-31",
+        "resampleFreq": "daily",
+    }
+    assert get.call_args_list[1].args[1] == {
+        "startDate": "2025-01-01",
+        "endDate": "2025-01-01",
+        "resampleFreq": "daily",
+    }
+    assert estimate_tiingo_ohlcv_request_count(Timeframe.D1, start, end) == 2
+    assert (
+        estimate_tiingo_ohlcv_request_count(
+            Timeframe.D1,
+            datetime(2024, 12, 31, tzinfo=UTC),
+            datetime(2025, 1, 1, tzinfo=UTC),
+        )
+        == 1
+    )
+
+
+@pytest.mark.parametrize(
+    ("timeframe", "period"),
+    [(Timeframe.W1, "w"), (Timeframe.MN, "m")],
+)
+def test_eodhd_uses_documented_weekly_and_monthly_periods(timeframe, period):
+    provider = EODHDProvider()
+    payload = [
+        {
+            "date": "2024-01-02",
+            "open": 10,
+            "high": 11,
+            "low": 9,
+            "close": 10.5,
+            "volume": 42,
+        }
+    ]
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.EODHD_API_KEY = "demo"
+        bars = provider.fetch_ohlcv(
+            "AAPL",
+            timeframe,
+            datetime(2024, 1, 1, tzinfo=UTC),
+            datetime(2024, 2, 1, tzinfo=UTC),
+            adjusted=False,
+        )
+
+    assert bars and bars[0].close == 10.5
+    assert get.call_args.kwargs["params"]["period"] == period
+
+
+def test_eodhd_current_price_uses_documented_real_time_quote_shape():
+    provider = EODHDProvider()
+    payload = {
+        "code": "AAPL.US",
+        "timestamp": 1_760_000_000,
+        "open": 10,
+        "high": 12,
+        "low": 9,
+        "close": 11.5,
+        "volume": 42,
+        "previousClose": 10.5,
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch.object(provider, "_get", return_value=payload) as get,
+    ):
+        configured.EODHD_API_KEY = "demo"
+        assert provider.get_current_price("aapl") == 11.5
+
+    get.assert_called_once_with("real-time/AAPL.US", {"fmt": "json"}, operation="get_current_price")
+
+
+@pytest.mark.parametrize(
+    ("symbol", "payload"),
+    [
+        ("AAPL", {"code": "MSFT.US", "close": 10}),
+        ("BRK.B", {"code": "BRK.B.US", "close": 0}),
+    ],
+)
+def test_eodhd_current_price_rejects_mismatched_or_invalid_delayed_quote(symbol, payload):
+    provider = EODHDProvider()
+    with patch.object(provider, "_get", return_value=payload):
+        with pytest.raises(ProviderResponseError):
+            provider.get_current_price(symbol)
+
+
+def test_eodhd_fetches_documented_daily_usage_and_current_reset_boundary():
+    provider = EODHDProvider()
+    response = _response(
+        {
+            "subscriptionType": "monthly",
+            "apiRequests": 7,
+            "apiRequestsDate": datetime.now(UTC).date().isoformat(),
+            "dailyRateLimit": 20,
+            "extraLimit": 125,
+        }
+    )
+    response.status_code = 200
+    response.headers = {
+        "X-RateLimit-Limit": "20",
+        "X-RateLimit-Remaining": "19",
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=response,
+        ) as get,
+    ):
+        configured.EODHD_API_KEY = "demo"
+        usage = provider.fetch_account_usage()
+
+    assert usage is not None
+    assert usage.provider == "eodhd"
+    assert usage.account_plan == "monthly"
+    assert usage.limit == 20
+    assert usage.consumed == 7
+    assert usage.remaining == 13
+    dimensions = {dimension.name: dimension for dimension in usage.dimensions}
+    assert dimensions["calls_per_day"].reset_at is not None
+    assert dimensions["calls_per_day"].reset_at > usage.observed_at
+    assert dimensions["extra_calls"].unit == "calls"
+    assert dimensions["extra_calls"].limit is None
+    assert dimensions["extra_calls"].remaining == 125
+    assert dimensions["extra_calls"].reset_at is None
+    assert dimensions["requests_per_minute"].limit == 20
+    assert dimensions["requests_per_minute"].consumed == 1
+    assert dimensions["requests_per_minute"].reset_at is not None
+    assert dimensions["requests_per_minute"].reset_at > usage.observed_at
+    assert get.call_args.args[0] == "https://eodhd.com/api/user"
+    assert get.call_args.kwargs["params"] == {"api_token": "demo"}
+
+
+def test_eodhd_stale_usage_date_keeps_history_and_proves_zero_current_day_use():
+    provider = EODHDProvider()
+    response = _response(
+        {
+            "apiRequests": 7,
+            "apiRequestsDate": (datetime.now(UTC) - timedelta(days=1)).date().isoformat(),
+            "dailyRateLimit": 20,
+        }
+    )
+    response.status_code = 200
+    response.headers = {}
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.providers.optional_market_data.httpx.get", return_value=response),
+    ):
+        configured.EODHD_API_KEY = "demo"
+        usage = provider.fetch_account_usage()
+
+    assert usage is not None
+    assert usage.consumed == 0
+    assert usage.remaining == 20
+    dimensions = {dimension.name: dimension for dimension in usage.dimensions}
+    assert dimensions["calls_per_day"].consumed == 0
+    assert dimensions["calls_per_day"].remaining == 20
+    assert dimensions["calls_per_day"].reset_at is not None
+    assert dimensions["calls_per_day"].reset_at > usage.observed_at
+    assert dimensions["calls_per_day_last_active"].consumed == 7
+    assert dimensions["calls_per_day_last_active"].remaining == 13
+    assert dimensions["calls_per_day_last_active"].reset_at is None
+
+
+def test_eodhd_rejects_invalid_extra_call_balance():
+    provider = EODHDProvider()
+    response = _response(
+        {
+            "apiRequests": 7,
+            "apiRequestsDate": datetime.now(UTC).date().isoformat(),
+            "dailyRateLimit": 20,
+            "extraLimit": "not-a-number",
+        }
+    )
+    response.status_code = 200
+    response.headers = {}
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.providers.optional_market_data.httpx.get", return_value=response),
+    ):
+        configured.EODHD_API_KEY = "demo"
+        with pytest.raises(ProviderResponseError, match="extra API-call balance"):
+            provider.fetch_account_usage()
+
+
+def test_fmp_account_usage_parses_counters_without_retaining_credential_key():
+    provider = FMPProvider()
+    response = _response(
+        {
+            "demo-secret": {
+                "currentAPICount": 7,
+                "rateLimit": 250,
+                "dataUsage": 1.25,
+                "dataUsageLimit": 512,
+            }
+        }
+    )
+    response.status_code = 200
+    response.headers = {}
+    response.content = b"usage"
+    measurement, token = activate(capture_response_payloads=True)
+    try:
+        with (
+            patch("app.providers.optional_market_data.settings") as configured,
+            patch("app.providers.optional_market_data.httpx.get", return_value=response) as get,
+        ):
+            configured.FMP_API_KEY = "demo-secret"
+            configured.FMP_REVIEWED_PLAN = "basic"
+            configured.FMP_OPERATION_BYTE_BOUNDS = {"fetch_account_usage": 65_536}
+            usage = provider.fetch_account_usage()
+    finally:
+        deactivate(token)
+
+    assert usage is not None
+    assert usage.provider == "fmp"
+    assert usage.account_plan == "basic"
+    assert usage.limit == 250 and usage.consumed == 7 and usage.remaining == 243
+    dimensions = {dimension.name: dimension for dimension in usage.dimensions}
+    assert dimensions["calls_per_day"].reset_at > usage.observed_at
+    bandwidth = dimensions["bandwidth_bytes_per_30_days"]
+    assert bandwidth.limit == 512 * 1_048_576
+    assert bandwidth.consumed == 1_310_720
+    assert bandwidth.reset_at > usage.observed_at
+    assert "demo-secret" not in str(usage.raw_payload)
+    assert "demo-secret" not in str(measurement.response_payloads)
+    assert measurement.response_payloads == [usage.raw_payload]
+    assert measurement.http_requests == 1
+    assert get.call_args.args[0] == (
+        "https://cloud.financialmodelingprep.com/statistics/my-api-usage"
+    )
+    assert get.call_args.kwargs["params"] == {"apikey": "demo-secret"}
+
+
+@pytest.mark.parametrize(
+    "envelope",
+    [
+        {
+            "wrong-secret": {
+                "currentAPICount": 0,
+                "rateLimit": 250,
+                "dataUsage": 0,
+                "dataUsageLimit": 512,
+            }
+        },
+        {
+            "demo-secret": {
+                "currentAPICount": True,
+                "rateLimit": 250,
+                "dataUsage": 0,
+                "dataUsageLimit": 512,
+            }
+        },
+        {
+            "demo-secret": {
+                "currentAPICount": 0,
+                "rateLimit": 249,
+                "dataUsage": 0,
+                "dataUsageLimit": 512,
+            }
+        },
+        {
+            "demo-secret": {
+                "currentAPICount": 0,
+                "rateLimit": 250,
+                "dataUsage": -1,
+                "dataUsageLimit": 512,
+            }
+        },
+        {
+            "demo-secret": {
+                "currentAPICount": 0,
+                "rateLimit": 250,
+                "dataUsage": 0,
+                "dataUsageLimit": 499,
+            }
+        },
+    ],
+)
+def test_fmp_account_usage_rejects_invalid_or_mismatched_counters(envelope):
+    response = _response(envelope)
+    response.status_code = 200
+    response.headers = {}
+    response.content = b"usage"
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.providers.optional_market_data.httpx.get", return_value=response),
+    ):
+        configured.FMP_API_KEY = "demo-secret"
+        configured.FMP_REVIEWED_PLAN = "basic"
+        configured.FMP_OPERATION_BYTE_BOUNDS = {"fetch_account_usage": 65_536}
+        with pytest.raises(ProviderResponseError):
+            FMPProvider().fetch_account_usage()
+
+
+def test_eodhd_fundamentals_uses_documented_v11_endpoint():
+    provider = EODHDProvider()
+    payload = {
+        "General": {
+            "Code": "AAPL",
+            "Name": "Apple Inc.",
+            "CurrencyCode": "USD",
+            "Exchange": "NASDAQ",
+        }
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.EODHD_API_KEY = "demo"
+        profile = provider.get_instrument_profile("AAPL")
+
+    assert profile is not None
+    assert profile.symbol == "AAPL"
+    assert profile.exchange == "NASDAQ"
+    assert get.call_args.args[0] == ("https://eodhd.com/api/v1.1/fundamentals/AAPL.US")
+
+
+def test_marketstack_follows_response_pagination_and_reserves_each_page():
+    provider = MarketstackProvider()
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    end = datetime(2024, 6, 1, tzinfo=UTC)
+    first_payload = {
+        "pagination": {"limit": 100, "offset": 0, "count": 100, "total": 150},
+        "data": [
+            {
+                "date": "2024-01-02T00:00:00+0000",
+                "open": "10",
+                "high": "11",
+                "low": "9",
+                "close": "10.5",
+                "volume": "42",
+            }
+        ],
+    }
+    second_payload = {
+        "pagination": {"limit": 100, "offset": 100, "count": 50, "total": 150},
+        "data": [
+            {
+                "date": "2024-05-31T00:00:00+0000",
+                "open": "20",
+                "high": "21",
+                "low": "19",
+                "close": "20.5",
+                "volume": "84",
+            }
+        ],
+    }
+    with patch.object(provider, "_get", side_effect=[first_payload, second_payload]) as get:
+        bars = provider.fetch_ohlcv("AAPL", Timeframe.D1, start, end, adjusted=False)
+
+    assert get.call_count == 2
+    assert get.call_args_list[0].args[1]["offset"] == 0
+    assert get.call_args_list[1].args[1]["offset"] == 100
+    assert [bar.close for bar in bars] == [10.5, 20.5]
+    assert estimate_marketstack_ohlcv_request_count(Timeframe.D1, start, end) == 2
+    assert estimate_marketstack_latest_ohlcv_request_count(Timeframe.D1, 100) == 2
+
+
+def test_marketstack_invalid_pagination_is_typed_instead_of_truncating_history():
+    provider = MarketstackProvider()
+    with patch.object(
+        provider,
+        "_get",
+        return_value={"pagination": {"offset": 0, "count": "many", "total": 1}, "data": []},
+    ):
+        with pytest.raises(ProviderResponseError) as exc_info:
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 2, 1, tzinfo=UTC),
+                adjusted=False,
+            )
+    assert exc_info.value.provider_name == "marketstack"
+
+
+@pytest.mark.parametrize(
+    "pagination",
+    [
+        {"offset": 0, "count": 0, "total": 0},
+        {"offset": 0, "count": 0},
+    ],
+)
+def test_marketstack_accepts_explicit_empty_terminal_page(pagination):
+    provider = MarketstackProvider()
+    with patch.object(provider, "_get", return_value={"pagination": pagination, "data": []}):
+        bars = provider.fetch_ohlcv(
+            "AAPL",
+            Timeframe.D1,
+            datetime(2024, 1, 1, tzinfo=UTC),
+            datetime(2024, 2, 1, tzinfo=UTC),
+            adjusted=False,
+        )
+    assert bars == []
+
+
+def test_marketstack_rejects_empty_page_before_positive_declared_total():
+    provider = MarketstackProvider()
+    payload = {"pagination": {"offset": 0, "count": 0, "total": 1}, "data": []}
+    with patch.object(provider, "_get", return_value=payload):
+        with pytest.raises(ProviderResponseError, match="empty EOD page"):
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 2, 1, tzinfo=UTC),
+                adjusted=False,
+            )
+
+
+@pytest.mark.parametrize(
+    "pagination",
+    [
+        {"offset": True, "count": 1, "total": 1},
+        {"offset": 0, "count": 1.5, "total": 1},
+        {"offset": 0, "count": 1, "total": "1"},
+        {"offset": 0, "count": 1, "total": 0},
+    ],
+)
+def test_marketstack_pagination_counters_require_strict_integer_metadata(pagination):
+    provider = MarketstackProvider()
+    payload = {
+        "pagination": pagination,
+        "data": [
+            {
+                "date": "2024-01-02T00:00:00+0000",
+                "open": "10",
+                "high": "11",
+                "low": "9",
+                "close": "10.5",
+                "volume": "42",
+            }
+        ],
+    }
+    with patch.object(provider, "_get", return_value=payload):
+        with pytest.raises(ProviderResponseError, match="pagination"):
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 2, 1, tzinfo=UTC),
+                adjusted=False,
+            )
+
+
+def test_marketstack_discovery_requires_explicit_exchange_and_preserves_scope():
+    provider = MarketstackProvider()
+    with patch("app.providers.optional_market_data.settings") as configured:
+        configured.MARKETSTACK_DISCOVERY_EXCHANGE = ""
+        with pytest.raises(ProviderNotConfiguredError, match="MARKETSTACK_DISCOVERY_EXCHANGE"):
+            provider.discover_universe_page("EQUITY", 0)
+
+    payload = {
+        "pagination": {"limit": 1000, "offset": 0, "count": 1, "total": 1},
+        "data": {
+            "mic": "XNAS",
+            "tickers": [{"symbol": "AAPL", "name": "Apple Inc.", "has_eod": True}],
+        },
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch.object(provider, "_get", return_value=payload) as get,
+    ):
+        configured.MARKETSTACK_DISCOVERY_EXCHANGE = "xnas"
+        page = provider.discover_universe_page("EQUITY", 0)
+
+    assert page["quotes"][0]["exchange"] == "XNAS"
+    assert page["raw_payload"] == payload
+    assert get.call_args.args[0] == "exchanges/XNAS/tickers"
+    assert get.call_args.args[1] == {"limit": 1000, "offset": 0}
+
+
+def test_marketstack_discovery_advances_by_raw_page_count_when_filtering_quote_type():
+    provider = MarketstackProvider()
+    payload = {
+        "pagination": {"offset": 0, "count": 3, "total": 5},
+        "data": {
+            "mic": "XNAS",
+            "tickers": [
+                {"symbol": "AAPL", "name": "Apple Inc."},
+                {"symbol": "SPY", "name": "SPDR S&P 500 ETF"},
+                {"symbol": "MSFT", "name": "Microsoft Corp."},
+            ],
+        },
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch.object(provider, "_get", return_value=payload),
+    ):
+        configured.MARKETSTACK_DISCOVERY_EXCHANGE = "XNAS"
+        page = provider.discover_universe_page("EQUITY", 0)
+
+    assert [quote["symbol"] for quote in page["quotes"]] == ["AAPL", "MSFT"]
+    assert page["total"] == 5
+    assert page["total_scope"] == "raw"
+    assert page["next_offset"] == 3
+    assert page["complete"] is False
+
+
+def test_marketstack_discovery_rejects_undocumented_top_level_ticker_array():
+    provider = MarketstackProvider()
+    payload = {
+        "pagination": {"limit": 1000, "offset": 0, "count": 1, "total": 1},
+        "data": [{"symbol": "AAPL", "name": "Apple Inc."}],
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch.object(provider, "_get", return_value=payload),
+    ):
+        configured.MARKETSTACK_DISCOVERY_EXCHANGE = "XNAS"
+        with pytest.raises(ProviderResponseError, match="exchange tickers data object"):
+            provider.discover_universe_page("EQUITY", 0)
+
+
+@pytest.mark.parametrize(
+    "pagination",
+    [
+        {},
+        {"total": "many"},
+        {"total": -1},
+        {"total": True},
+        {"offset": 1, "count": 1, "total": 2},
+        {"offset": 0, "count": 2, "total": 1},
+        {"offset": 0, "count": 0, "total": 1},
+    ],
+)
+def test_marketstack_discovery_requires_strict_provider_total(pagination):
+    provider = MarketstackProvider()
+    payload = {
+        "pagination": pagination,
+        "data": {
+            "mic": "XNAS",
+            "tickers": [{"symbol": "AAPL", "name": "Apple Inc.", "currency": "USD"}],
+        },
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch.object(provider, "_get", return_value=payload),
+    ):
+        configured.MARKETSTACK_DISCOVERY_EXCHANGE = "XNAS"
+        with pytest.raises(ProviderResponseError, match="tickers pagination"):
+            provider.discover_universe_page("EQUITY", 0)
+
+
+def test_eodhd_full_catalogue_is_reused_across_reconciliation_pages(monkeypatch):
+    provider = EODHDProvider()
+    rows = [
+        {"Code": "AAA", "Name": "Alpha", "Exchange": "NASDAQ", "Type": "Common Stock"},
+        {"Code": "BBB", "Name": "Beta", "Exchange": "NYSE", "Type": "Common Stock"},
+    ]
+    monkeypatch.setattr(settings, "EODHD_API_KEY", "eodhd-cache-key")
+    with (
+        patch("app.providers.optional_market_data._FULL_DISCOVERY_CACHE", {}),
+        patch.object(provider, "_get", return_value=rows) as get,
+    ):
+        first = provider.discover_universe_page("EQUITY", 0)
+        rows[1]["Name"] = "Mutated after fetch"
+        second = provider.discover_universe_page("EQUITY", 1)
+
+    assert first["quotes"][0]["symbol"] == "AAA"
+    assert second["quotes"][0]["symbol"] == "BBB"
+    assert second["quotes"][0]["longName"] == "Beta"
+    get.assert_called_once_with("exchange-symbol-list/US", {"fmt": "json"})
+
+
+def test_fmp_full_catalogue_cache_is_scoped_to_credentials(monkeypatch):
+    provider = FMPProvider()
+    first_rows = [{"symbol": "AAA", "name": "Alpha", "assetType": "EQUITY"}]
+    second_rows = [{"symbol": "BBB", "name": "Beta", "assetType": "EQUITY"}]
+    monkeypatch.setattr(settings, "FMP_API_KEY", "fmp-first-key")
+    with (
+        patch("app.providers.optional_market_data._FULL_DISCOVERY_CACHE", {}),
+        patch.object(provider, "_get", side_effect=[first_rows, second_rows]) as get,
+    ):
+        first = provider.discover_universe_page("EQUITY", 0)
+        monkeypatch.setattr(settings, "FMP_API_KEY", "fmp-second-key")
+        second = provider.discover_universe_page("EQUITY", 0)
+
+    assert first["quotes"][0]["symbol"] == "AAA"
+    assert second["quotes"][0]["symbol"] == "BBB"
+    assert get.call_count == 2
+
+
+def test_fmp_stock_list_requires_explicit_account_entitlement(monkeypatch):
+    provider = FMPProvider()
+    monkeypatch.setattr(settings, "FMP_STOCK_LIST_ENTITLED", False)
+    with (
+        patch.object(provider, "_get") as get,
+        pytest.raises(ProviderNotConfiguredError, match="entitlement is confirmed"),
+    ):
+        provider.discover_universe_page("EQUITY", 0)
+    get.assert_not_called()
+
+
+def test_fmp_uses_current_stable_history_endpoint():
+    provider = FMPProvider()
+    payload = [
+        {
+            "date": "2024-01-02",
+            "open": 10,
+            "high": 11,
+            "low": 9,
+            "close": 10.5,
+            "volume": 42,
+        }
+    ]
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.FMP_API_KEY = "demo"
+        rows = provider.fetch_ohlcv(
+            "AAPL",
+            Timeframe.D1,
+            datetime(2024, 1, 1, tzinfo=UTC),
+            datetime(2024, 1, 3, tzinfo=UTC),
+            adjusted=False,
+        )
+
+    assert rows and rows[0].close == 10.5
+    assert get.call_args.args[0] == (
+        "https://financialmodelingprep.com/stable/historical-price-eod/full"
+    )
+    assert get.call_args.kwargs["params"]["symbol"] == "AAPL"
+
+
+def test_fmp_eod_history_partitions_long_ranges_and_preserves_each_page():
+    provider = FMPProvider()
+    start = datetime(2000, 1, 1, tzinfo=UTC)
+    end = datetime(2015, 1, 1, tzinfo=UTC)
+    payloads = [
+        [{"date": "2000-01-01", "open": 1, "high": 2, "low": 1, "close": 2}],
+        [{"date": "2014-12-31", "open": 3, "high": 4, "low": 3, "close": 4}],
+    ]
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            side_effect=[_response(payload) for payload in payloads],
+        ) as get,
+    ):
+        configured.FMP_API_KEY = "demo"
+        bars = provider.fetch_ohlcv("AAPL", Timeframe.D1, start, end, adjusted=False)
+
+    assert [bar.ts.date().isoformat() for bar in bars] == ["2000-01-01", "2014-12-31"]
+    assert get.call_count == 2
+    first_params = get.call_args_list[0].kwargs["params"]
+    second_params = get.call_args_list[1].kwargs["params"]
+    assert first_params["from"] == "2000-01-01"
+    assert first_params["to"] == (start.date() + timedelta(days=4499)).isoformat()
+    assert second_params["from"] == (start.date() + timedelta(days=4500)).isoformat()
+    assert second_params["to"] == "2015-01-01"
+
+
+def test_fmp_eod_history_rejects_a_response_at_the_documented_row_cap():
+    provider = FMPProvider()
+    capped_rows = [
+        {"date": "2024-01-01", "open": 1, "high": 2, "low": 1, "close": 2} for _ in range(5000)
+    ]
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(capped_rows),
+        ),
+    ):
+        configured.FMP_API_KEY = "demo"
+        with pytest.raises(ProviderResponseError, match="reached the provider row cap"):
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 1, 3, tzinfo=UTC),
+                adjusted=False,
+            )
+
+
+@pytest.mark.parametrize(
+    ("start_days", "expected"),
+    [(4500, 1), (4501, 2)],
+)
+def test_fmp_eod_history_cost_estimate_matches_request_partition(start_days, expected):
+    start = datetime(2000, 1, 1, tzinfo=UTC)
+    end = start + timedelta(days=start_days - 1)
+    assert estimate_fmp_ohlcv_request_count(Timeframe.D1, start, end) == expected
+
+
+def test_fmp_current_price_uses_stable_quote_endpoint_and_matches_symbol():
+    provider = FMPProvider()
+    with patch.object(
+        provider,
+        "_get",
+        return_value=[{"symbol": "AAPL", "price": 123.45}],
+    ) as get:
+        assert provider.get_current_price("aapl") == 123.45
+    get.assert_called_once_with("quote", {"symbol": "AAPL"}, operation="get_current_price")
+
+
+@pytest.mark.parametrize(
+    ("provider", "credential_name", "bounds_name", "operation", "payload"),
+    [
+        (
+            FMPProvider(),
+            "FMP_API_KEY",
+            "FMP_OPERATION_BYTE_BOUNDS",
+            "get_current_price",
+            [{"symbol": "AAPL", "price": 123.45}],
+        ),
+        (
+            TiingoProvider(),
+            "TIINGO_API_KEY",
+            "TIINGO_OPERATION_BYTE_BOUNDS",
+            "get_instrument_profile",
+            {"ticker": "AAPL", "name": "Apple Inc."},
+        ),
+    ],
+)
+def test_fmp_and_tiingo_reject_oversized_complete_responses_without_truncation(
+    provider, credential_name, bounds_name, operation, payload
+):
+    response = _response(payload)
+    response.content = json.dumps(payload).encode("utf-8")
+    bound = len(response.content) - 1
+    measurement, token = activate(capture_response_payloads=True)
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.config.settings", configured),
+        patch("app.providers.optional_market_data.httpx.get", return_value=response) as get,
+    ):
+        setattr(configured, credential_name, "fixture-key")
+        setattr(configured, bounds_name, {operation: bound})
+        try:
+            with pytest.raises(
+                ProviderResponseError,
+                match="complete response was rejected without truncation",
+            ):
+                if operation == "get_current_price":
+                    provider.get_current_price("AAPL")
+                else:
+                    provider.get_instrument_profile("AAPL")
+        finally:
+            deactivate(token)
+
+    get.assert_called_once()
+    assert measurement.response_bytes == len(response.content)
+    assert measurement.response_payloads == [payload]
+
+
+@pytest.mark.parametrize(
+    ("provider", "credential_name", "bounds_name", "operation", "path"),
+    [
+        (FMPProvider(), "FMP_API_KEY", "FMP_OPERATION_BYTE_BOUNDS", "get_current_price", "quote"),
+        (
+            TiingoProvider(),
+            "TIINGO_API_KEY",
+            "TIINGO_OPERATION_BYTE_BOUNDS",
+            "get_instrument_profile",
+            "tiingo/daily/AAPL",
+        ),
+    ],
+)
+def test_fmp_and_tiingo_missing_operation_bound_fail_before_transport(
+    provider, credential_name, bounds_name, operation, path
+):
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.config.settings", configured),
+        patch("app.providers.optional_market_data.httpx.get") as get,
+    ):
+        setattr(configured, credential_name, "fixture-key")
+        setattr(configured, bounds_name, {})
+        with pytest.raises(ProviderNotConfiguredError, match="positive configured bound"):
+            provider._get(path, operation=operation)
+
+    get.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        ([], None),
+        ([{"symbol": "MSFT", "price": 100}], "omitted the requested symbol"),
+        ([{"symbol": "AAPL", "price": 0}], "invalid quote price"),
+        ([{"symbol": "AAPL", "price": "bad"}], "invalid quote price"),
+    ],
+)
+def test_fmp_current_price_rejects_invalid_or_unavailable_quote(payload, message):
+    provider = FMPProvider()
+    with patch.object(provider, "_get", return_value=payload):
+        if message is None:
+            assert provider.get_current_price("AAPL") is None
+        else:
+            with pytest.raises(ProviderResponseError, match=message):
+                provider.get_current_price("AAPL")
+
+
+def test_marketdata_app_uses_documented_v1_root_and_parses_candles():
+    provider = MarketDataAppProvider()
+    payload = {
+        "s": "ok",
+        "t": [int(datetime(2024, 1, 2, tzinfo=UTC).timestamp())],
+        "o": [100],
+        "h": [102],
+        "l": [99],
+        "c": [101],
+        "v": [1234],
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        bars = provider.fetch_ohlcv(
+            "AAPL",
+            Timeframe.D1,
+            datetime(2024, 1, 1, tzinfo=UTC),
+            datetime(2024, 1, 3, tzinfo=UTC),
+            adjusted=False,
+        )
+
+    assert provider.base_url == "https://api.marketdata.app/v1"
+    assert get.call_args.args[0] == "https://api.marketdata.app/v1/stocks/candles/D/AAPL/"
+    assert get.call_args.kwargs["headers"] == {"Authorization": "Bearer demo"}
+    assert [(bar.open, bar.close) for bar in bars] == [(100.0, 101.0)]
+
+
+def test_marketdata_app_candle_credit_estimate_is_date_granular_and_response_bounded():
+    same_day = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
+    # One M1 request is date-granular, so the conservative upper bound is a
+    # full day (1,440 candles), not merely the five minutes requested.
+    assert (
+        estimate_marketdata_app_ohlcv_credit_count(
+            Timeframe.M1,
+            same_day,
+            same_day + timedelta(minutes=5),
+        )
+        == 2
+    )
+    assert (
+        estimate_marketdata_app_ohlcv_credit_count(
+            Timeframe.D1,
+            datetime(2020, 1, 1, tzinfo=UTC),
+            datetime(2023, 1, 1, tzinfo=UTC),
+        )
+        == 2
+    )
+    assert (
+        estimate_marketdata_app_ohlcv_credit_count(
+            Timeframe.W1,
+            datetime(2024, 1, 1, tzinfo=UTC),
+            datetime(2024, 1, 7, tzinfo=UTC),
+        )
+        == 1
+    )
+    assert (
+        estimate_marketdata_app_ohlcv_credit_count(
+            Timeframe.MN,
+            datetime(2024, 1, 1, tzinfo=UTC),
+            datetime(2024, 2, 1, tzinfo=UTC),
+        )
+        is None
+    )
+
+
+def test_marketdata_app_latest_credit_estimate_uses_provider_date_window():
+    now = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
+
+    assert estimate_marketdata_app_latest_ohlcv_credit_count(Timeframe.D1, 1001, now=now) == 2
+    assert estimate_marketdata_app_latest_ohlcv_credit_count(Timeframe.M1, 1, now=now) == 2
+    assert estimate_marketdata_app_latest_ohlcv_credit_count(Timeframe.MN, 1, now=now) is None
+
+
+def test_marketdata_app_current_price_uses_documented_delayed_quote_endpoint():
+    provider = MarketDataAppProvider()
+    payload = {
+        "s": "ok",
+        "symbol": ["AAPL"],
+        "bid": [100],
+        "ask": [102],
+        "mid": [101],
+        "last": [101.5],
+        "updated": [int(datetime(2024, 1, 2, tzinfo=UTC).timestamp())],
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        assert provider.get_current_price("AAPL") == 101.5
+
+    assert get.call_args.args[0] == "https://api.marketdata.app/v1/stocks/quotes/AAPL/"
+
+
+def test_marketdata_app_current_price_falls_back_to_bid_ask_midpoint():
+    provider = MarketDataAppProvider()
+    payload = {"s": "ok", "symbol": ["AAPL"], "bid": [100], "ask": [102]}
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ),
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        assert provider.get_current_price("AAPL") == 101.0
+
+
+def test_marketdata_app_current_price_rejects_mismatched_quote_arrays():
+    provider = MarketDataAppProvider()
+    payload = {"s": "ok", "symbol": ["AAPL"], "last": [101], "bid": [100, 99]}
+    with patch.object(provider, "_get", return_value=payload):
+        with pytest.raises(ProviderResponseError, match="mismatched stock-quote bid"):
+            provider.get_current_price("AAPL")
+
+
+def test_marketdata_app_fetches_account_usage_from_unversioned_user_endpoint():
+    provider = MarketDataAppProvider()
+    response = _response(
+        {
+            "x-ratelimit-requests-limit": 10000,
+            "x-ratelimit-requests-remaining": 9876,
+            "x-options-data-permissions": "OPRA data delayed 15 minutes",
+        }
+    )
+    response.status_code = 200
+    response.headers = {
+        "X-Api-Ratelimit-Limit": "10000",
+        "X-Api-Ratelimit-Remaining": "9876",
+        # This header is the credit cost of the current /user/ request, not
+        # cumulative account usage; cumulative usage is limit - remaining.
+        "X-Api-Ratelimit-Consumed": "1",
+        "X-Api-Ratelimit-Reset": "1789306200",
+        "Authorization": "Bearer must-not-be-retained",
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=response,
+        ) as get,
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        usage = provider.fetch_account_usage()
+
+    assert usage is not None
+    assert usage.provider == "marketdata_app"
+    assert usage.unit == "credits"
+    assert usage.limit == 10000
+    assert usage.remaining == 9876
+    assert usage.consumed == 124
+    assert usage.reset_at == datetime.fromtimestamp(1789306200, tz=UTC)
+    assert usage.options_data_permissions == "OPRA data delayed 15 minutes"
+    assert usage.raw_payload["x-options-data-permissions"] == "OPRA data delayed 15 minutes"
+    assert usage.response_headers["X-Api-Ratelimit-Limit"] == "10000"
+    assert usage.response_headers["X-Api-Ratelimit-Consumed"] == "1"
+    assert get.call_args.args[0] == "https://api.marketdata.app/user/"
+    assert get.call_args.kwargs["headers"] == {"Authorization": "Bearer demo"}
+
+
+def test_marketdata_app_account_usage_honors_documented_not_found_response():
+    provider = MarketDataAppProvider()
+    response = MagicMock(status_code=404, headers={})
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=response,
+        ),
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        assert provider.fetch_account_usage() is None
+    response.raise_for_status.assert_not_called()
+
+
+def test_marketdata_app_account_usage_rejects_missing_documented_fields():
+    provider = MarketDataAppProvider()
+    response = _response({})
+    response.status_code = 200
+    response.headers = {}
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=response,
+        ),
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        with pytest.raises(ProviderResponseError, match="account-usage fields"):
+            provider.fetch_account_usage()
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["x-ratelimit-requests-limit", "x-ratelimit-requests-remaining"],
+)
+def test_marketdata_app_account_usage_rejects_fractional_counters(field):
+    provider = MarketDataAppProvider()
+    response = _response({field: 10.5, "x-options-data-permissions": ""})
+    response.status_code = 200
+    response.headers = {}
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=response,
+        ),
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        with pytest.raises(ProviderResponseError, match="invalid account"):
+            provider.fetch_account_usage()
+
+
+def test_marketdata_app_parses_documented_option_expirations():
+    provider = MarketDataAppProvider()
+    payload = {
+        "s": "ok",
+        "expirations": ["2024-01-19", "2024-01-05", "2024-01-19"],
+        "updated": 1700000000,
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        expirations = provider.list_option_expirations("AAPL")
+
+    assert expirations == [date(2024, 1, 5), date(2024, 1, 19)]
+    assert get.call_args.args[0] == "https://api.marketdata.app/v1/options/expirations/AAPL/"
+    assert get.call_args.kwargs["headers"] == {"Authorization": "Bearer demo"}
+
+
+def test_marketdata_app_parses_parallel_option_chain_arrays_and_greeks():
+    provider = MarketDataAppProvider()
+    updated = int(datetime(2024, 1, 2, 21, tzinfo=UTC).timestamp())
+    payload = {
+        "s": "ok",
+        "optionSymbol": ["AAPL240119C00100000"],
+        "underlying": ["AAPL"],
+        "expiration": [int(datetime(2024, 1, 19, 21, tzinfo=UTC).timestamp())],
+        "side": ["call"],
+        "strike": [100],
+        "bid": [5.15],
+        "ask": [5.25],
+        "mid": [5.2],
+        "last": [5.25],
+        "volume": [977],
+        "openInterest": [61289],
+        "iv": [0.3468],
+        "delta": [0.347],
+        "gamma": [0.015],
+        "theta": [-0.05],
+        "vega": [0.264],
+        "updated": [updated],
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        contracts = provider.fetch_option_chain("AAPL", expiration=date(2024, 1, 19))
+
+    assert len(contracts) == 1
+    contract = contracts[0]
+    assert contract.provider_symbol == "AAPL240119C00100000"
+    assert contract.expiry_date == date(2024, 1, 19)
+    assert contract.strike == Decimal("100")
+    assert contract.right == "call"
+    assert contract.mark == Decimal("5.2")
+    assert contract.delta == Decimal("0.347")
+    assert contract.observed_at == datetime(2024, 1, 2, 21, tzinfo=UTC)
+    assert get.call_args.args[0] == "https://api.marketdata.app/v1/options/chain/AAPL/"
+    assert get.call_args.kwargs["params"] == {"expiration": "2024-01-19"}
+
+
+def test_marketdata_app_mismatched_option_arrays_are_typed():
+    provider = MarketDataAppProvider()
+    payload = {
+        "s": "ok",
+        "optionSymbol": ["AAPL240119C00100000"],
+        "underlying": ["AAPL"],
+        "expiration": [1705698000],
+        "side": ["call"],
+        "strike": [100],
+        "bid": [],
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ),
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        with pytest.raises(ProviderResponseError, match="mismatched option bid array"):
+            provider.fetch_option_chain("AAPL", expiration=date(2024, 1, 19))
+
+
+def test_marketdata_app_applies_reviewed_option_chain_symbol_bound():
+    provider = MarketDataAppProvider()
+    payload = {
+        "s": "ok",
+        "optionSymbol": ["AAPL240119C00100000", "AAPL240119P00100000"],
+        "underlying": ["AAPL", "AAPL"],
+        "expiration": [1705698000, 1705698000],
+        "side": ["call", "put"],
+        "strike": [100, 100],
+        "updated": [1704229200, 1704229200],
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        contracts = provider.fetch_option_chain("AAPL", expiration=date(2024, 1, 19), max_symbols=4)
+
+    assert len(contracts) == 2
+    assert get.call_args.kwargs["params"] == {
+        "expiration": "2024-01-19",
+        "strikeLimit": 2,
+    }
+
+
+def test_marketdata_app_rejects_option_chain_bound_below_two_symbols():
+    provider = MarketDataAppProvider()
+    with patch("app.providers.optional_market_data.settings") as configured:
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        with pytest.raises(ProviderResponseError, match="symbol bound"):
+            provider.fetch_option_chain("AAPL", max_symbols=1)
+
+
+def test_marketdata_app_option_quote_history_estimator_is_inclusive_and_fail_closed():
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    assert estimate_marketdata_app_option_quote_history_credit_count(start, start) == 1
+    assert (
+        estimate_marketdata_app_option_quote_history_credit_count(
+            start, start + timedelta(days=999)
+        )
+        == 1
+    )
+    assert (
+        estimate_marketdata_app_option_quote_history_credit_count(
+            start, start + timedelta(days=1000)
+        )
+        == 2
+    )
+    assert (
+        estimate_marketdata_app_option_quote_history_credit_count(start, start - timedelta(days=1))
+        is None
+    )
+
+
+def test_marketdata_app_parses_historical_option_quote_arrays():
+    provider = MarketDataAppProvider()
+    updated = int(datetime(2024, 1, 2, 21, tzinfo=UTC).timestamp())
+    payload = {
+        "s": "ok",
+        "optionSymbol": ["AAPL240119C00100000"],
+        "updated": [updated],
+        "bid": [5.15],
+        "ask": [5.25],
+        "mid": [5.2],
+        "last": [5.25],
+        "volume": [977],
+        "openInterest": [61289],
+        # MarketData.app documents historical Greeks as null.
+        "iv": [None],
+        "delta": [None],
+        "gamma": [None],
+        "theta": [None],
+        "vega": [None],
+    }
+    with patch.object(provider, "_get", return_value=payload) as get:
+        points = provider.fetch_option_quote_history(
+            "AAPL240119C00100000",
+            start=datetime(2024, 1, 1, tzinfo=UTC),
+            end=datetime(2024, 1, 3, tzinfo=UTC),
+        )
+
+    assert len(points) == 1
+    point = points[0]
+    assert point.provider_symbol == "AAPL240119C00100000"
+    assert point.observed_at == datetime(2024, 1, 2, 21, tzinfo=UTC)
+    assert point.bid == Decimal("5.15")
+    assert point.mark == Decimal("5.2")
+    assert point.open_interest == Decimal("61289")
+    assert point.delta is None
+    assert get.call_args.args[0] == "options/quotes/AAPL240119C00100000/"
+    assert get.call_args.args[1] == {
+        "from": "2024-01-01",
+        "to": "2024-01-03",
+    }
+
+
+def test_marketdata_app_option_history_treats_documented_404_no_data_as_empty(monkeypatch):
+    provider = MarketDataAppProvider()
+    monkeypatch.setattr(settings, "MARKETDATA_APP_API_KEY", "demo-key")
+    response = httpx.Response(
+        404,
+        json={"s": "no_data", "errmsg": "No option found for the requested period."},
+        request=httpx.Request(
+            "GET", "https://api.marketdata.app/v1/options/quotes/AAPL240119C00100000/"
+        ),
+    )
+    with patch("app.providers.optional_market_data.httpx.get", return_value=response) as get:
+        points = provider.fetch_option_quote_history(
+            "AAPL240119C00100000",
+            start=datetime(2024, 1, 1, tzinfo=UTC),
+            end=datetime(2024, 1, 3, tzinfo=UTC),
+        )
+
+    assert points == []
+    assert get.call_args.kwargs["params"] == {
+        "from": "2024-01-01",
+        "to": "2024-01-03",
+    }
+
+
+def test_marketdata_app_option_history_does_not_hide_unrecognized_404(monkeypatch):
+    provider = MarketDataAppProvider()
+    monkeypatch.setattr(settings, "MARKETDATA_APP_API_KEY", "demo-key")
+    response = httpx.Response(
+        404,
+        json={"s": "error", "errmsg": "Unknown route."},
+        request=httpx.Request(
+            "GET", "https://api.marketdata.app/v1/options/quotes/AAPL240119C00100000/"
+        ),
+    )
+    with patch("app.providers.optional_market_data.httpx.get", return_value=response):
+        with pytest.raises(ProviderResponseError) as exc_info:
+            provider.fetch_option_quote_history(
+                "AAPL240119C00100000",
+                start=datetime(2024, 1, 1, tzinfo=UTC),
+                end=datetime(2024, 1, 3, tzinfo=UTC),
+            )
+
+    assert exc_info.value.status_code == 404
+
+
+def test_marketdata_app_mismatched_option_quote_arrays_are_typed():
+    provider = MarketDataAppProvider()
+    payload = {
+        "s": "ok",
+        "optionSymbol": ["AAPL240119C00100000"],
+        "updated": [1704229200],
+        "bid": [5.15, 5.2],
+    }
+    with patch.object(provider, "_get", return_value=payload):
+        with pytest.raises(ProviderResponseError, match="mismatched option-quote bid array"):
+            provider.fetch_option_quote_history(
+                "AAPL240119C00100000",
+                start=datetime(2024, 1, 1, tzinfo=UTC),
+                end=datetime(2024, 1, 3, tzinfo=UTC),
+            )
+
+
+def test_tradier_parses_documented_nested_history_and_singleton_quote_search_shapes():
+    provider = TradierProvider()
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    end = datetime(2024, 1, 3, tzinfo=UTC)
+    history = {
+        "history": {
+            "day": {
+                "date": "2024-01-02",
+                "open": "100",
+                "high": "102",
+                "low": "99",
+                "close": "101",
+                "volume": "1234",
+            }
+        }
+    }
+    with patch.object(provider, "_get", return_value=history):
+        bars = provider.fetch_ohlcv("AAPL", Timeframe.D1, start, end, adjusted=False)
+    assert len(bars) == 1
+    assert bars[0].close == 101.0
+
+    with patch.object(
+        provider,
+        "_get",
+        return_value={"quotes": {"quote": {"symbol": "AAPL", "last": "101.5"}}},
+    ):
+        assert provider.get_current_price("AAPL") == 101.5
+
+    with patch.object(
+        provider,
+        "_get",
+        return_value={
+            "securities": {
+                "security": {
+                    "symbol": "AAPL",
+                    "description": "Apple Inc.",
+                    "exchange": "Q",
+                    "type": "stock",
+                }
+            }
+        },
+    ):
+        rows = provider.search_instruments("Apple")
+    assert rows and rows[0].symbol == "AAPL"
+    assert rows[0].name == "Apple Inc."
+
+
+def test_tradier_invalid_nested_wrapper_is_typed():
+    provider = TradierProvider()
+    with patch.object(provider, "_get", return_value={"history": {"day": "invalid"}}):
+        with pytest.raises(ProviderResponseError) as exc_info:
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 1, 3, tzinfo=UTC),
+                adjusted=False,
+            )
+    assert exc_info.value.provider_name == "tradier"
+
+
+def test_tradier_mixed_nested_rows_are_typed():
+    provider = TradierProvider()
+    payload = {"history": {"day": [{"date": "2024-01-02"}, "invalid"]}}
+    with patch.object(provider, "_get", return_value=payload):
+        with pytest.raises(ProviderResponseError) as exc_info:
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 1, 3, tzinfo=UTC),
+                adjusted=False,
+            )
+    assert exc_info.value.provider_name == "tradier"
+
+
+def test_tradier_invalid_option_expiration_is_typed():
+    provider = TradierProvider()
+    with patch.object(
+        provider,
+        "_get",
+        return_value={"expirations": {"date": ["2024-01-19", "not-a-date"]}},
+    ):
+        with pytest.raises(ProviderResponseError) as exc_info:
+            provider.list_option_expirations("AAPL")
+    assert exc_info.value.provider_name == "tradier"
+
+
+@pytest.mark.parametrize(
+    "row",
+    [
+        {"expiration_date": "2024-01-19", "option_type": "call", "strike": "100"},
+        {
+            "symbol": "AAPL240119C00100000",
+            "expiration_date": "2024-01-19",
+            "option_type": "call",
+            "strike": "0",
+        },
+        {
+            "symbol": "AAPL240119C00100000",
+            "expiration_date": "2024-01-19",
+            "option_type": "call",
+            "strike": "100",
+            "greeks": {"delta": "NaN"},
+        },
+        {
+            "symbol": "AAPL240119C00100000",
+            "expiration_date": "2024-01-19",
+            "option_type": "call",
+            "strike": "100",
+            "greeks": "invalid",
+        },
+    ],
+)
+def test_tradier_option_chain_rejects_malformed_contracts(row):
+    provider = TradierProvider()
+    with patch.object(provider, "_get", return_value={"options": {"option": [row]}}):
+        with pytest.raises(ProviderResponseError, match="option") as exc_info:
+            provider.fetch_option_chain("AAPL", expiration=date(2024, 1, 19))
+    assert exc_info.value.provider_name == "tradier"
+
+
+def test_optional_documented_row_endpoints_reject_malformed_containers():
+    calls = (
+        ("tiingo", TiingoProvider(), {"data": "invalid"}, "history"),
+        ("twelve_data", TwelveDataProvider(), {"values": "invalid"}, "history"),
+        ("eodhd", EODHDProvider(), {"data": "invalid"}, "history"),
+        ("fmp", FMPProvider(), {"historical": "invalid"}, "history"),
+        (
+            "finnhub",
+            FinnhubProvider(),
+            {"earningsCalendar": "invalid"},
+            "calendar",
+        ),
+        (
+            "marketstack",
+            MarketstackProvider(),
+            {
+                "data": "invalid",
+                "pagination": {"offset": 0, "count": 0, "total": 0},
+            },
+            "discovery",
+        ),
+    )
+    for provider_name, provider, payload, operation in calls:
+        with patch.object(provider, "_get", return_value=payload):
+            with pytest.raises(ProviderResponseError) as exc_info:
+                if operation == "history":
+                    provider.fetch_ohlcv(
+                        "AAPL",
+                        Timeframe.D1,
+                        datetime(2024, 1, 1, tzinfo=UTC),
+                        datetime(2024, 1, 3, tzinfo=UTC),
+                        adjusted=False,
+                    )
+                elif operation == "calendar":
+                    provider.fetch_market_events(start=date(2024, 1, 1), end=date(2024, 1, 3))
+                else:
+                    with patch(
+                        "app.providers.optional_market_data.settings.MARKETSTACK_DISCOVERY_EXCHANGE",
+                        "XNAS",
+                    ):
+                        provider.discover_universe_page("EQUITY", 0)
+        assert exc_info.value.provider_name == provider_name
+
+
+def test_tradier_parses_option_expirations_and_chain_greeks():
+    provider = TradierProvider()
+    expiration = date(2024, 1, 19)
+    with patch.object(
+        provider,
+        "_get",
+        side_effect=[
+            {"expirations": {"date": [expiration.isoformat()]}},
+            {
+                "options": {
+                    "option": [
+                        {
+                            "symbol": "AAPL240119C00100000",
+                            "underlying": "AAPL",
+                            "expiration_date": expiration.isoformat(),
+                            "option_type": "call",
+                            "strike": "100",
+                            "contract_size": "100",
+                            "bid": "2.00",
+                            "ask": "2.20",
+                            "last": "2.10",
+                            "volume": "42",
+                            "open_interest": "1000",
+                            "greeks": {
+                                "mid_iv": "0.25",
+                                "delta": "0.70",
+                                "gamma": "0.03",
+                                "theta": "-0.02",
+                                "vega": "0.11",
+                                "rho": "0.04",
+                            },
+                        }
+                    ]
+                }
+            },
+        ],
+    ) as get:
+        expirations = provider.list_option_expirations("AAPL")
+        contracts = provider.fetch_option_chain("AAPL", expiration=expirations[0])
+
+    assert expirations == [expiration]
+    assert len(contracts) == 1
+    contract = contracts[0]
+    assert contract.provider_symbol == "AAPL240119C00100000"
+    assert contract.right == "call"
+    assert contract.mark == Decimal("2.10")
+    assert contract.implied_vol == Decimal("0.25")
+    assert contract.delta == Decimal("0.70")
+    assert get.call_args_list[1].args[0].endswith("markets/options/chains")
+    assert get.call_args_list[1].args[1]["greeks"] == "true"
+
+
+def test_missing_credentials_never_make_optional_call():
+    provider = TwelveDataProvider()
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.providers.optional_market_data.httpx.get") as get,
+    ):
+        configured.TWELVE_DATA_API_KEY = ""
+        with pytest.raises(ProviderNotConfiguredError):
+            provider.get_current_price("AAPL")
+    get.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("provider", "setting", "payload"),
+    [
+        (
+            TwelveDataProvider(),
+            "TWELVE_DATA_API_KEY",
+            {"status": "error", "message": "invalid symbol"},
+        ),
+        (
+            FMPProvider(),
+            "FMP_API_KEY",
+            {"Error Message": "legacy endpoint is unavailable"},
+        ),
+        (
+            MarketDataAppProvider(),
+            "MARKETDATA_APP_API_KEY",
+            {"s": "error", "errmsg": "invalid token"},
+        ),
+    ],
+)
+def test_http_success_error_envelopes_do_not_become_empty_data(provider, setting, payload):
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ),
+    ):
+        setattr(configured, setting, "demo")
+        with pytest.raises(ProviderResponseError):
+            provider.get_current_price("AAPL")
+
+
+def test_malformed_json_is_a_typed_provider_failure():
+    provider = TwelveDataProvider()
+    response = _response({})
+    response.json.side_effect = ValueError("not json")
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.providers.optional_market_data.httpx.get", return_value=response),
+    ):
+        configured.TWELVE_DATA_API_KEY = "demo"
+        with pytest.raises(ProviderResponseError) as exc_info:
+            provider.get_current_price("AAPL")
+    assert exc_info.value.provider_name == "twelve_data"
+
+
+def test_scalar_json_success_payload_is_a_typed_provider_failure():
+    provider = TwelveDataProvider()
+    response = _response("not an object or array")
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.providers.optional_market_data.httpx.get", return_value=response),
+    ):
+        configured.TWELVE_DATA_API_KEY = "demo"
+        with pytest.raises(ProviderResponseError) as exc_info:
+            provider.get_current_price("AAPL")
+    assert exc_info.value.provider_name == "twelve_data"
+
+
+def test_http_success_rate_limit_envelope_is_typed_capacity_failure():
+    provider = FinnhubProvider()
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response({"error": "API rate limit exceeded"}),
+        ),
+    ):
+        configured.FINNHUB_API_KEY = "demo"
+        with pytest.raises(ProviderRateLimitError) as exc_info:
+            provider.get_instrument_profile("AAPL")
+    assert exc_info.value.provider_name == "finnhub"
+
+
+def test_http_status_failure_redacts_query_credentials_and_preserves_status():
+    provider = EODHDProvider()
+    response = MagicMock(status_code=403, headers={})
+    request = httpx.Request(
+        "GET", "https://eodhd.com/api/fundamentals/AAPL.US?api_token=demo-secret"
+    )
+    failure = httpx.HTTPStatusError(
+        "Client error '403 Forbidden' for url 'https://eodhd.com/api/fundamentals/AAPL.US?api_token=demo-secret'",
+        request=request,
+        response=response,
+    )
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.providers.optional_market_data.httpx.get", side_effect=failure),
+    ):
+        configured.EODHD_API_KEY = "demo-secret"
+        with pytest.raises(ProviderResponseError) as exc_info:
+            provider.get_instrument_profile("AAPL")
+    assert exc_info.value.status_code == 403
+    assert "demo-secret" not in str(exc_info.value)
+    assert "<redacted>" in str(exc_info.value)
+
+
+def test_http_status_rate_limit_preserves_reset_header():
+    provider = FinnhubProvider()
+    response = MagicMock(
+        status_code=429,
+        headers={"Retry-After": "7", "Authorization": "must-not-be-retained"},
+    )
+    request = httpx.Request("GET", "https://finnhub.io/api/v1/profile2?token=demo-secret")
+    failure = httpx.HTTPStatusError("429 Too Many Requests", request=request, response=response)
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.providers.optional_market_data.httpx.get", side_effect=failure),
+    ):
+        configured.FINNHUB_API_KEY = "demo-secret"
+        with pytest.raises(ProviderRateLimitError) as exc_info:
+            provider.get_instrument_profile("AAPL")
+    assert exc_info.value.status_code == 429
+    assert exc_info.value.retry_at is not None
+    assert "demo-secret" not in str(exc_info.value)
+    assert exc_info.value.headers == {"Retry-After": "7"}
+
+
+def test_marketdata_app_rate_limit_parses_native_reset_header():
+    provider = MarketDataAppProvider()
+    response = MagicMock(
+        status_code=429,
+        headers={
+            "X-Api-Ratelimit-Reset": "1700000000",
+            "X-Api-Ratelimit-Remaining": "0",
+            "Authorization": "Bearer must-not-be-retained",
+        },
+    )
+    request = httpx.Request("GET", "https://api.marketdata.app/v1/stocks/candles/AAPL/")
+    failure = httpx.HTTPStatusError("429 Too Many Requests", request=request, response=response)
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.providers.optional_market_data.httpx.get", side_effect=failure),
+    ):
+        configured.MARKETDATA_APP_API_KEY = "marketdata-secret"
+        with pytest.raises(ProviderRateLimitError) as exc_info:
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2026, 1, 1, tzinfo=UTC),
+                datetime(2026, 1, 2, tzinfo=UTC),
+                adjusted=False,
+            )
+    assert exc_info.value.status_code == 429
+    assert exc_info.value.retry_at == datetime.fromtimestamp(1700000000, tz=UTC)
+    assert exc_info.value.headers == {
+        "X-Api-Ratelimit-Reset": "1700000000",
+        "X-Api-Ratelimit-Remaining": "0",
+    }

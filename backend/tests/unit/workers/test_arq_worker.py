@@ -1,9 +1,11 @@
-import json
-from datetime import date
+import importlib
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
 
 from app.config import settings
+from app.models.ohlcv import Timeframe
 from app.tasks import data_tasks
 from app.workers import arq_worker
 
@@ -37,6 +39,37 @@ class _RefreshRunSession:
         self.commits += 1
 
 
+class _RefreshQueueSession:
+    def __init__(self):
+        self.commits = 0
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *_args):
+        return None
+
+    async def get(self, _model, _instrument_id):
+        return SimpleNamespace(id=_instrument_id, symbol="AAPL")
+
+    async def commit(self):
+        self.commits += 1
+
+
+def test_refresh_queue_batch_limit_uses_configured_bound(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_QUEUE_BATCH_SIZE", 240)
+
+    assert data_tasks._refresh_queue_batch_limit() == 240
+    assert data_tasks._refresh_queue_batch_limit(0) == 1
+    assert data_tasks._refresh_queue_batch_limit(900) == 500
+
+
+def test_refresh_queue_batch_limit_falls_back_for_invalid_configuration(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_QUEUE_BATCH_SIZE", "invalid")
+
+    assert data_tasks._refresh_queue_batch_limit() == 100
+
+
 @pytest.mark.asyncio
 async def test_daily_history_refresh_is_explicitly_disabled_by_default(monkeypatch):
     monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_SCHEDULE_ENABLED", False)
@@ -51,79 +84,481 @@ async def test_daily_history_refresh_delegates_to_canonical_batch_task(monkeypat
     monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_SCHEDULE_ENABLED", True)
     calls = []
 
-    async def fake_refresh(ctx):
+    async def fake_enqueue(ctx):
         calls.append(ctx)
-        return {"instruments_refreshed": 3, "total_bars": 12}
+        return {"queued": 3, "mode": "enqueue_only"}
 
-    monkeypatch.setattr(data_tasks, "fetch_all_instruments_history", fake_refresh)
+    monkeypatch.setattr(data_tasks, "enqueue_core_refresh_jobs", fake_enqueue)
 
     result = await arq_worker.scheduled_daily_history_refresh({"redis": "test"})
 
-    assert result == {"instruments_refreshed": 3, "total_bars": 12}
+    assert result == {"queued": 3, "mode": "enqueue_only"}
     assert calls == [{"redis": "test"}]
 
 
 @pytest.mark.asyncio
-async def test_bulk_history_worker_eager_loads_provider_bindings(monkeypatch):
+async def test_refresh_queue_process_delegates_to_bounded_worker_task(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_SCHEDULE_ENABLED", True)
     calls = []
-    instrument = type("Instrument", (), {"symbol": "AAPL"})()
 
-    class Session:
-        async def __aenter__(self):
-            return self
+    async def fake_process(ctx):
+        calls.append(ctx)
+        return {"claimed": 4, "completed": 3, "retried": 1}
 
-        async def __aexit__(self, *_args):
-            return None
+    monkeypatch.setattr(data_tasks, "process_refresh_jobs", fake_process)
 
-        async def get(self, _model, _instrument_id, *, options=None):
-            calls.append(options)
-            return instrument
+    result = await arq_worker.scheduled_refresh_queue_process({"redis": "test"})
 
-    async def fake_bulk_fetch(db, loaded, timeframes, *, redis, cancel_key, end):
-        assert db is not None
-        assert loaded is instrument
-        return {"D1": 1}
-
-    monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: Session())
-    monkeypatch.setattr("app.services.bulk_fetch.bulk_fetch_instrument", fake_bulk_fetch)
-
-    result = await arq_worker.task_bulk_fetch_instrument(
-        {"redis": "redis"},
-        42,
-        timeframes=["D1"],
-        end="2025-12-31T00:00:00+00:00",
-    )
-
-    assert result == {"D1": 1}
-    assert calls and len(calls[0]) == 2
+    assert result == {"claimed": 4, "completed": 3, "retried": 1}
+    assert calls == [{"redis": "test"}]
 
 
 @pytest.mark.asyncio
-async def test_batch_history_worker_preserves_inclusive_end_bound(monkeypatch):
+async def test_refresh_queue_does_not_retry_after_lease_is_lost(monkeypatch):
+    from app.services.market_refresh_queue import RefreshLeaseLostError
+
+    session = _RefreshQueueSession()
+    job = SimpleNamespace(
+        id=7,
+        instrument_id=42,
+        timeframe="D1",
+        start_at=None,
+        end_at=None,
+    )
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", lambda: session)
+    monkeypatch.setattr(data_tasks, "claim_refresh_jobs", AsyncMock(return_value=[job]))
+    monkeypatch.setattr(data_tasks, "fetch_ohlcv", AsyncMock(return_value=[]))
+    complete = AsyncMock(side_effect=RefreshLeaseLostError("reclaimed"))
+    retry = AsyncMock()
+    monkeypatch.setattr(data_tasks, "complete_refresh_job", complete)
+    monkeypatch.setattr(data_tasks, "retry_refresh_job", retry)
+
+    result = await data_tasks.process_refresh_jobs({})
+
+    assert result == {"claimed": 1, "completed": 0, "retried": 0, "lease_lost": 1}
+    complete.assert_awaited_once()
+    summary = complete.await_args.kwargs["result_summary"]
+    assert summary["instrument_id"] == 42
+    assert summary["timeframe"] == "D1"
+    assert summary["requested_end"] is None
+    assert summary["bars_observed"] == 0
+    assert summary["data_status"] == "empty"
+    retry.assert_not_awaited()
+    assert session.commits == 1
+
+
+@pytest.mark.asyncio
+async def test_single_instrument_refresh_forwards_worker_redis_to_canonical_fetch(monkeypatch):
+    session = _RefreshQueueSession()
+    redis = object()
     calls = []
 
-    async def fake_bulk_fetch(ctx, instrument_id, *, timeframes=None, end=None):
-        calls.append((ctx, instrument_id, timeframes, end))
-        return {"D1": 1}
+    async def fake_fetch(db, instrument, timeframe, start, **kwargs):
+        calls.append((db, instrument.id, timeframe, start, kwargs))
+        return ["bar-1", "bar-2"]
 
-    monkeypatch.setattr(arq_worker, "task_bulk_fetch_instrument", fake_bulk_fetch)
+    monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: session)
+    monkeypatch.setattr("app.services.market_data.fetch_ohlcv", fake_fetch)
 
-    result = await arq_worker.task_refresh_benchmark_family_history(
-        {"redis": "redis"},
-        [10, 20],
-        ["D1", "W1"],
-        end="2024-01-31T23:59:59.999999+00:00",
+    result = await arq_worker.task_refresh_instrument_data({"redis": redis}, 42, "D1")
+
+    assert result == {"bars_fetched": 2}
+    assert len(calls) == 1
+    assert calls[0][1:3] == (42, Timeframe.D1)
+    assert calls[0][4] == {"redis": redis}
+
+
+@pytest.mark.asyncio
+async def test_tokenized_asset_refresh_is_explicitly_disabled_by_default(monkeypatch):
+    monkeypatch.setattr(settings, "TOKENIZED_ASSET_REFRESH_ENABLED", False)
+
+    result = await arq_worker.scheduled_tokenized_asset_refresh({})
+
+    assert result == {"skipped": True, "reason": "tokenized refresh disabled"}
+
+
+@pytest.mark.asyncio
+async def test_tokenized_asset_refresh_delegates_to_bounded_task(monkeypatch):
+    monkeypatch.setattr(settings, "TOKENIZED_ASSET_REFRESH_ENABLED", True)
+    calls = []
+
+    async def fake_refresh(ctx):
+        calls.append(ctx)
+        return {"status": "refreshed", "refreshed": 2}
+
+    monkeypatch.setattr(data_tasks, "refresh_tokenized_asset_prices", fake_refresh)
+    result = await arq_worker.scheduled_tokenized_asset_refresh({"redis": "test"})
+
+    assert result == {"status": "refreshed", "refreshed": 2}
+    assert calls == [{"redis": "test"}]
+
+
+@pytest.mark.asyncio
+async def test_tokenized_catalog_refresh_is_explicitly_disabled_by_default(monkeypatch):
+    monkeypatch.setattr(settings, "TOKENIZED_CATALOG_REFRESH_ENABLED", False)
+
+    result = await arq_worker.scheduled_tokenized_catalog_refresh({})
+
+    assert result == {"skipped": True, "reason": "tokenized catalog refresh disabled"}
+
+
+@pytest.mark.asyncio
+async def test_tokenized_catalog_refresh_delegates_to_bounded_task(monkeypatch):
+    monkeypatch.setattr(settings, "TOKENIZED_CATALOG_REFRESH_ENABLED", True)
+    calls = []
+
+    async def fake_refresh(ctx):
+        calls.append(ctx)
+        return {"status": "partial", "assets": 2}
+
+    monkeypatch.setattr(data_tasks, "refresh_tokenized_asset_catalog", fake_refresh)
+    result = await arq_worker.scheduled_tokenized_catalog_refresh({"redis": "test"})
+
+    assert result == {"status": "partial", "assets": 2}
+    assert calls == [{"redis": "test"}]
+
+
+@pytest.mark.asyncio
+async def test_tokenized_historical_refresh_is_explicitly_disabled_by_default(monkeypatch):
+    monkeypatch.setattr(settings, "TOKENIZED_HISTORICAL_REFRESH_ENABLED", False)
+
+    result = await arq_worker.scheduled_tokenized_historical_refresh({})
+
+    assert result == {
+        "skipped": True,
+        "reason": "tokenized historical refresh disabled",
+    }
+
+
+@pytest.mark.asyncio
+async def test_tokenized_historical_refresh_delegates_to_bounded_task(monkeypatch):
+    monkeypatch.setattr(settings, "TOKENIZED_HISTORICAL_REFRESH_ENABLED", True)
+    calls = []
+
+    async def fake_refresh(ctx):
+        calls.append(ctx)
+        return {"status": "refreshed", "refreshed": 1}
+
+    monkeypatch.setattr(data_tasks, "refresh_tokenized_historical_asset_prices", fake_refresh)
+    result = await arq_worker.scheduled_tokenized_historical_refresh({"redis": "test"})
+
+    assert result == {"status": "refreshed", "refreshed": 1}
+    assert calls == [{"redis": "test"}]
+
+
+@pytest.mark.asyncio
+async def test_tokenized_event_refresh_is_explicitly_disabled_by_default(monkeypatch):
+    monkeypatch.setattr(settings, "TOKENIZED_EVENT_REFRESH_ENABLED", False)
+
+    result = await arq_worker.scheduled_tokenized_event_refresh({})
+
+    assert result == {"skipped": True, "reason": "tokenized event refresh disabled"}
+
+
+@pytest.mark.asyncio
+async def test_tokenized_event_refresh_delegates_to_bounded_task(monkeypatch):
+    monkeypatch.setattr(settings, "TOKENIZED_EVENT_REFRESH_ENABLED", True)
+    calls = []
+
+    async def fake_refresh(ctx):
+        calls.append(ctx)
+        return {"status": "refreshed", "events": 3}
+
+    monkeypatch.setattr(data_tasks, "refresh_tokenized_corporate_actions", fake_refresh)
+    result = await arq_worker.scheduled_tokenized_event_refresh({"redis": "test"})
+
+    assert result == {"status": "refreshed", "events": 3}
+    assert calls == [{"redis": "test"}]
+
+
+@pytest.mark.asyncio
+async def test_market_event_prelisting_is_explicitly_disabled_by_default(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_PRELISTING_ENABLED", False)
+
+    result = await arq_worker.scheduled_market_event_prelisting({})
+
+    assert result == {"skipped": True, "reason": "pre-listing materialization disabled"}
+
+
+@pytest.mark.asyncio
+async def test_market_event_prelisting_delegates_to_bounded_task(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_PRELISTING_ENABLED", True)
+    calls = []
+
+    async def fake_materialize(ctx):
+        calls.append(ctx)
+        return {"materialized": {"created": 2}, "promoted": {"promoted": 1}}
+
+    monkeypatch.setattr(data_tasks, "materialize_market_event_prelisting", fake_materialize)
+
+    result = await arq_worker.scheduled_market_event_prelisting({"redis": "test"})
+
+    assert result == {"materialized": {"created": 2}, "promoted": {"promoted": 1}}
+    assert calls == [{"redis": "test"}]
+
+
+@pytest.mark.asyncio
+async def test_edgar_issuer_universe_scan_is_explicitly_disabled_by_default(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED", False)
+
+    result = await arq_worker.scheduled_edgar_ipo_universe_scan({})
+
+    assert result == {"skipped": True, "reason": "EDGAR issuer-universe scan disabled"}
+
+
+@pytest.mark.asyncio
+async def test_edgar_issuer_universe_scan_delegates_to_bounded_task(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED", True)
+    calls = []
+
+    async def fake_scan(ctx):
+        calls.append(ctx)
+        return {"status": "partial", "issuers_considered": 50}
+
+    monkeypatch.setattr(data_tasks, "refresh_edgar_ipo_pipeline_for_issuer_universe", fake_scan)
+
+    result = await arq_worker.scheduled_edgar_ipo_universe_scan({"redis": "test"})
+
+    assert result == {"status": "partial", "issuers_considered": 50}
+    assert calls == [{"redis": "test"}]
+
+
+def test_edgar_issuer_universe_scan_is_registered_in_worker_functions():
+    assert arq_worker.scheduled_edgar_ipo_universe_scan in arq_worker.WorkerSettings.functions
+
+
+@pytest.mark.asyncio
+async def test_edgar_directory_scan_is_explicitly_disabled_by_default(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED", False)
+
+    result = await arq_worker.scheduled_edgar_ipo_directory_scan({})
+
+    assert result == {"skipped": True, "reason": "EDGAR SEC directory scan disabled"}
+
+
+@pytest.mark.asyncio
+async def test_edgar_directory_scan_delegates_to_bounded_task(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED", True)
+    calls = []
+
+    async def fake_scan(ctx):
+        calls.append(ctx)
+        return {"status": "partial", "directory_offset": 50}
+
+    monkeypatch.setattr(data_tasks, "refresh_edgar_ipo_pipeline_for_sec_directory", fake_scan)
+
+    result = await arq_worker.scheduled_edgar_ipo_directory_scan({"redis": "test"})
+
+    assert result == {"status": "partial", "directory_offset": 50}
+    assert calls == [{"redis": "test"}]
+
+
+@pytest.mark.asyncio
+async def test_edgar_scan_tasks_are_mutually_exclusive(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED", True)
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED", True)
+
+    issuer_result = await data_tasks.refresh_edgar_ipo_pipeline_for_issuer_universe({})
+    directory_result = await data_tasks.refresh_edgar_ipo_pipeline_for_sec_directory({})
+
+    assert issuer_result == {
+        "skipped": True,
+        "reason": "EDGAR issuer and SEC directory scans are mutually exclusive",
+    }
+    assert directory_result == issuer_result
+
+
+@pytest.mark.asyncio
+async def test_edgar_directory_scan_requires_reviewed_submissions_budget(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED", True)
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED", False)
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS", 0)
+
+    result = await data_tasks.refresh_edgar_ipo_pipeline_for_sec_directory({})
+
+    assert result == {
+        "skipped": True,
+        "reason": "EDGAR SEC directory submissions request budget not reviewed",
+    }
+
+
+@pytest.mark.asyncio
+async def test_edgar_directory_scan_rejects_unknown_materialization_mode(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED", True)
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED", False)
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS", 1)
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS", 1)
+    monkeypatch.setattr(
+        settings,
+        "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE",
+        "update_existing",
     )
 
-    assert result == {"instrument_count": 2, "results": [{"D1": 1}, {"D1": 1}]}
-    assert calls == [
-        ({"redis": "redis"}, 10, ["D1", "W1"], "2024-01-31T23:59:59.999999+00:00"),
-        ({"redis": "redis"}, 20, ["D1", "W1"], "2024-01-31T23:59:59.999999+00:00"),
-    ]
+    result = await data_tasks.refresh_edgar_ipo_pipeline_for_sec_directory({})
+
+    assert result == {
+        "skipped": True,
+        "reason": "EDGAR SEC directory issuer materialization mode is invalid",
+    }
+
+
+@pytest.mark.asyncio
+async def test_edgar_directory_scan_passes_exact_reviewed_cycle_count(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED", True)
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED", False)
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS", 3)
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS", 2)
+    monkeypatch.setattr(
+        settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE", "create_missing"
+    )
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_REVIEWED_CYCLE_COUNT", 17)
+    calls = []
+
+    class FakeSessionContext:
+        async def __aenter__(self):
+            return object()
+
+        async def __aexit__(self, *_args):
+            return False
+
+    async def fake_refresh(db, **kwargs):
+        calls.append((db, kwargs))
+        return {"status": "blocked", "completed_cycle_count": 17}
+
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", FakeSessionContext)
+    monkeypatch.setattr(
+        "app.services.market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory",
+        fake_refresh,
+    )
+    result = await data_tasks.refresh_edgar_ipo_pipeline_for_sec_directory({})
+
+    assert result == {"status": "blocked", "completed_cycle_count": 17}
+    assert calls[0][1]["issuer_materialization_reviewed_cycle_count"] == 17
+    assert calls[0][1]["issuer_materialization_mode"] == "create_missing"
+
+
+def test_edgar_directory_scan_is_registered_in_worker_functions():
+    assert arq_worker.scheduled_edgar_ipo_directory_scan in arq_worker.WorkerSettings.functions
+
+
+def test_market_event_prelisting_is_registered_in_worker_functions():
+    assert arq_worker.scheduled_market_event_prelisting in arq_worker.WorkerSettings.functions
+
+
+@pytest.mark.asyncio
+async def test_market_universe_reconciliation_skips_when_disabled(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_UNIVERSE_RECONCILIATION_ENABLED", False)
+    calls = []
+
+    async def fake_reconcile(ctx):
+        calls.append(ctx)
+        return {"status": "reconciled"}
+
+    monkeypatch.setattr(data_tasks, "reconcile_market_universe", fake_reconcile)
+
+    result = await arq_worker.scheduled_market_universe_reconciliation({"redis": "test"})
+
+    assert result == {"skipped": True, "reason": "market-universe reconciliation disabled"}
+    assert calls == []
+
+
+@pytest.mark.asyncio
+async def test_market_universe_reconciliation_delegates_when_enabled(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_UNIVERSE_RECONCILIATION_ENABLED", True)
+    calls = []
+
+    async def fake_reconcile(ctx):
+        calls.append(ctx)
+        return {"status": "complete", "coverage": {"completed": 2}}
+
+    monkeypatch.setattr(data_tasks, "reconcile_market_universe", fake_reconcile)
+
+    result = await arq_worker.scheduled_market_universe_reconciliation({"redis": "test"})
+
+    assert result == {"status": "complete", "coverage": {"completed": 2}}
+    assert calls == [{"redis": "test"}]
+
+
+def test_market_universe_reconciliation_cron_is_daily_and_flag_guarded(monkeypatch):
+    schedule_flags = (
+        "INSTRUMENT_SYNC_SCHEDULE_ENABLED",
+        "MARKET_DATA_REFRESH_SCHEDULE_ENABLED",
+        "ETF_HOLDINGS_REFRESH_ENABLED",
+        "ETF_HOLDINGS_SEC_BACKFILL_ENABLED",
+        "ETF_HOLDINGS_CLASSIFICATION_REFRESH_ENABLED",
+        "BENCHMARK_FAMILY_HOLDINGS_REFRESH_ENABLED",
+        "CORE_WORKSTATION_BOOTSTRAP_ENABLED",
+        "PROVIDER_AVAILABILITY_MONITOR_ENABLED",
+        "TOKENIZED_ASSET_REFRESH_ENABLED",
+        "TOKENIZED_CATALOG_REFRESH_ENABLED",
+        "TOKENIZED_HISTORICAL_REFRESH_ENABLED",
+        "TOKENIZED_EVENT_REFRESH_ENABLED",
+        "MARKET_EVENTS_REFRESH_ENABLED",
+        "MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED",
+        "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED",
+        "MARKET_EVENTS_PRELISTING_ENABLED",
+        "MARKET_UNIVERSE_RECONCILIATION_ENABLED",
+        "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED",
+    )
+    original_values = {name: getattr(settings, name) for name in schedule_flags}
+    try:
+        for name in schedule_flags:
+            monkeypatch.setattr(settings, name, False)
+        monkeypatch.setattr(settings, "MARKET_UNIVERSE_RECONCILIATION_ENABLED", False)
+        importlib.reload(arq_worker)
+        assert not any(
+            job.coroutine is arq_worker.scheduled_market_universe_reconciliation
+            for job in arq_worker.WorkerSettings.cron_jobs
+        )
+
+        monkeypatch.setattr(settings, "MARKET_UNIVERSE_RECONCILIATION_ENABLED", True)
+        importlib.reload(arq_worker)
+        matching_jobs = [
+            job
+            for job in arq_worker.WorkerSettings.cron_jobs
+            if job.coroutine is arq_worker.scheduled_market_universe_reconciliation
+        ]
+
+        assert len(matching_jobs) == 1
+        assert matching_jobs[0].hour == 21
+        assert matching_jobs[0].minute == 0
+    finally:
+        for name, value in original_values.items():
+            monkeypatch.setattr(settings, name, value)
+        importlib.reload(arq_worker)
+
+
+@pytest.mark.asyncio
+async def test_market_events_refresh_skips_when_disabled(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_REFRESH_ENABLED", False)
+    result = await arq_worker.scheduled_market_events_refresh({"redis": "test"})
+    assert result == {"skipped": True, "reason": "market-events refresh disabled"}
+
+
+@pytest.mark.asyncio
+async def test_market_events_refresh_delegates_to_bounded_task(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_REFRESH_ENABLED", True)
+    calls = []
+
+    async def fake_refresh(ctx):
+        calls.append(ctx)
+        return {"status": "refreshed", "events": 4}
+
+    monkeypatch.setattr(data_tasks, "refresh_market_events", fake_refresh)
+    result = await arq_worker.scheduled_market_events_refresh({"redis": "test"})
+
+    assert result == {"status": "refreshed", "events": 4}
+    assert calls == [{"redis": "test"}]
 
 
 def test_worker_registers_history_refresh_function():
     assert arq_worker.scheduled_daily_history_refresh in arq_worker.WorkerSettings.functions
+    assert arq_worker.scheduled_refresh_queue_process in arq_worker.WorkerSettings.functions
+    assert arq_worker.scheduled_tokenized_asset_refresh in arq_worker.WorkerSettings.functions
+    assert arq_worker.scheduled_tokenized_catalog_refresh in arq_worker.WorkerSettings.functions
+    assert arq_worker.scheduled_tokenized_historical_refresh in arq_worker.WorkerSettings.functions
+    assert arq_worker.scheduled_tokenized_event_refresh in arq_worker.WorkerSettings.functions
+    assert arq_worker.scheduled_market_events_refresh in arq_worker.WorkerSettings.functions
 
 
 @pytest.mark.asyncio
@@ -154,9 +589,6 @@ def test_worker_registers_benchmark_family_dated_refresh_function():
 @pytest.mark.asyncio
 async def test_scheduled_family_unit_refreshes_one_family_and_queues_history(monkeypatch):
     class Session:
-        def __init__(self):
-            self.commits = 0
-
         async def __aenter__(self):
             return self
 
@@ -167,9 +599,7 @@ async def test_scheduled_family_unit_refreshes_one_family_and_queues_history(mon
             return _AsyncNested()
 
         async def commit(self):
-            self.commits += 1
-
-    session = Session()
+            return None
 
     refresh_calls = []
     queue_calls = []
@@ -186,13 +616,11 @@ async def test_scheduled_family_unit_refreshes_one_family_and_queues_history(mon
             "legs": [{"status": "refreshed", "snapshot_id": 12}],
         }
 
-    async def fake_queue(_db, redis, snapshot_ids, *, max_instruments, end):
-        assert max_instruments == 5000
-        assert session.commits == 1
-        queue_calls.append((redis, snapshot_ids, end))
+    async def fake_queue(_db, redis, snapshot_ids):
+        queue_calls.append((redis, snapshot_ids))
         return {"status": "queued", "queued": 4, "already_queued": 0}
 
-    monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: session)
+    monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: Session())
     monkeypatch.setattr(
         "app.services.etf_holdings_refresh.refresh_benchmark_family_holdings_for_date",
         fake_refresh,
@@ -207,82 +635,10 @@ async def test_scheduled_family_unit_refreshes_one_family_and_queues_history(mon
     )
 
     assert refresh_calls == [("sp500", "2026-07-31", ["cap_weight", "equal_weight"])]
-    assert queue_calls == [
-        (
-            "redis",
-            [12],
-            arq_worker.datetime(2026, 7, 31, 23, 59, 59, 999999, tzinfo=arq_worker.UTC),
-        )
-    ]
+    assert queue_calls == [("redis", [12])]
     assert result["requested_date"] == "2026-07-31"
     assert result["snapshot_ids"] == [12]
     assert result["history_queue"]["queued"] == 4
-    assert result["completed_at"].endswith("Z")
-    assert "+00:00" not in result["completed_at"]
-    assert session.commits == 2
-
-
-@pytest.mark.asyncio
-async def test_scheduled_family_unit_retains_history_queue_failure_evidence(monkeypatch):
-    class Session:
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, *_args):
-            return None
-
-        def begin_nested(self):
-            return _AsyncNested()
-
-        async def commit(self):
-            return None
-
-    async def fake_refresh(_db, *, family_key, requested_date, roles):
-        return {
-            "family_key": family_key,
-            "requested_date": requested_date,
-            "roles": roles,
-            "refreshed": 1,
-            "unavailable": 0,
-            "failed": 0,
-            "legs": [{"status": "refreshed", "snapshot_id": 13}],
-        }
-
-    async def failed_queue(*_args, **_kwargs):
-        raise RuntimeError("history worker unavailable")
-
-    monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: Session())
-    monkeypatch.setattr(
-        "app.services.etf_holdings_refresh.refresh_benchmark_family_holdings_for_date",
-        fake_refresh,
-    )
-    monkeypatch.setattr(
-        "app.services.benchmark_family_history.queue_snapshot_member_history",
-        failed_queue,
-    )
-
-    result = await arq_worker.task_refresh_scheduled_benchmark_family_holdings_unit(
-        {"redis": "redis"}, "sp500", "2026-07-31", ["cap_weight"]
-    )
-
-    assert result["refreshed"] == 1
-    assert result["snapshot_ids"] == [13]
-    assert result["history_queue"] == {
-        "status": "queue_error",
-        "snapshot_ids": [13],
-        "queued": 0,
-        "already_queued": 0,
-        "queue_errors": [
-            {
-                "status": "queue_error",
-                "snapshot_ids": [13],
-                "error": "history worker unavailable",
-            }
-        ],
-        "queue_error_count": 1,
-        "history_end": "2026-07-31T23:59:59.999999Z",
-        "error": "history worker unavailable",
-    }
 
 
 def test_worker_registers_scheduled_family_unit_function():
@@ -440,10 +796,8 @@ async def test_family_holdings_refresh_worker_handoffs_refreshed_snapshots_to_me
             "legs": [{"role": "cap_weight", "status": "refreshed", "snapshot_id": 101}],
         }
 
-    async def fake_queue(_db, redis, snapshot_ids, *, max_instruments, end):
-        assert max_instruments == 5000
-        assert session.commits == 2
-        queue_calls.append((redis, snapshot_ids, end))
+    async def fake_queue(_db, redis, snapshot_ids):
+        queue_calls.append((redis, snapshot_ids))
         return {"status": "queued", "queued": 3, "already_queued": 1}
 
     monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: session)
@@ -460,144 +814,11 @@ async def test_family_holdings_refresh_worker_handoffs_refreshed_snapshots_to_me
     result = await arq_worker.task_refresh_benchmark_family_holdings_run({"redis": redis}, run.id)
 
     assert result["status"] == "completed"
-    assert queue_calls == [
-        (
-            redis,
-            [101],
-            arq_worker.datetime(2026, 6, 30, 23, 59, 59, 999999, tzinfo=arq_worker.UTC),
-        )
-    ]
+    assert queue_calls == [(redis, [101])]
     assert run.progress["units"][0]["history_queue"] == {
         "status": "queued",
         "queued": 3,
         "already_queued": 1,
-    }
-
-
-@pytest.mark.asyncio
-async def test_family_holdings_refresh_worker_json_encodes_leg_provenance(monkeypatch):
-    """Persisted progress must remain JSON-safe when adapters return date fields."""
-
-    from types import SimpleNamespace
-
-    run = SimpleNamespace(
-        id=11,
-        family_keys=["sp500"],
-        roles=["cap_weight"],
-        requested_dates=["2026-06-30"],
-        total_units=1,
-        completed_units=0,
-        refreshed_count=0,
-        unavailable_count=0,
-        failed_count=0,
-        status="queued",
-        cancel_requested=False,
-        progress={"units": []},
-        started_at=None,
-        finished_at=None,
-    )
-    session = _RefreshRunSession(run)
-
-    async def fake_refresh(_db, **_kwargs):
-        return {
-            "refreshed": 1,
-            "unavailable": 0,
-            "failed": 0,
-            "legs": [
-                {
-                    "role": "cap_weight",
-                    "status": "refreshed",
-                    "snapshot_id": 103,
-                    "composition_date": date(2026, 6, 30),
-                }
-            ],
-        }
-
-    async def fake_queue(*_args):
-        return {"status": "queued", "queued": 1, "already_queued": 0}
-
-    monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: session)
-    monkeypatch.setattr(
-        "app.services.etf_holdings_refresh.refresh_benchmark_family_holdings_for_date",
-        fake_refresh,
-    )
-    monkeypatch.setattr(
-        "app.services.benchmark_family_history.queue_snapshot_member_history",
-        fake_queue,
-    )
-
-    result = await arq_worker.task_refresh_benchmark_family_holdings_run(
-        {"redis": object()}, run.id
-    )
-
-    assert result["status"] == "completed"
-    assert run.progress["units"][0]["legs"][0]["composition_date"] == "2026-06-30"
-    json.dumps(run.progress)
-
-
-@pytest.mark.asyncio
-async def test_family_holdings_refresh_worker_retains_history_queue_error_shape(monkeypatch):
-    from types import SimpleNamespace
-
-    run = SimpleNamespace(
-        id=10,
-        family_keys=["sp500"],
-        roles=["cap_weight"],
-        requested_dates=["2026-06-30"],
-        total_units=1,
-        completed_units=0,
-        refreshed_count=0,
-        unavailable_count=0,
-        failed_count=0,
-        status="queued",
-        cancel_requested=False,
-        progress={"units": []},
-        started_at=None,
-        finished_at=None,
-    )
-    session = _RefreshRunSession(run)
-
-    async def fake_refresh(_db, **_kwargs):
-        return {
-            "refreshed": 1,
-            "unavailable": 0,
-            "failed": 0,
-            "legs": [{"status": "refreshed", "snapshot_id": 102}],
-        }
-
-    async def failed_queue(*_args, **_kwargs):
-        raise RuntimeError("history queue unavailable")
-
-    monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: session)
-    monkeypatch.setattr(
-        "app.services.etf_holdings_refresh.refresh_benchmark_family_holdings_for_date",
-        fake_refresh,
-    )
-    monkeypatch.setattr(
-        "app.services.benchmark_family_history.queue_snapshot_member_history",
-        failed_queue,
-    )
-
-    result = await arq_worker.task_refresh_benchmark_family_holdings_run(
-        {"redis": object()}, run.id
-    )
-
-    assert result["status"] == "completed"
-    assert run.progress["units"][0]["history_queue"] == {
-        "status": "queue_error",
-        "snapshot_ids": [102],
-        "queued": 0,
-        "already_queued": 0,
-        "queue_errors": [
-            {
-                "status": "queue_error",
-                "snapshot_ids": [102],
-                "error": "history queue unavailable",
-            }
-        ],
-        "queue_error_count": 1,
-        "history_end": "2026-06-30T23:59:59.999999Z",
-        "error": "history queue unavailable",
     }
 
 
@@ -695,20 +916,8 @@ async def test_worker_startup_does_not_fail_when_redis_is_unavailable(monkeypatc
     await arq_worker.worker_startup({})
 
 
-@pytest.mark.asyncio
-async def test_worker_startup_survives_bootstrap_queue_failure(monkeypatch):
-    monkeypatch.setattr(settings, "CORE_WORKSTATION_BOOTSTRAP_ENABLED", True)
-
-    class FailingRedis:
-        async def enqueue_job(self, *_args, **_kwargs):
-            raise RuntimeError("temporary Redis outage")
-
-    await arq_worker.worker_startup({"redis": FailingRedis()})
-
-
 def test_worker_registers_core_bootstrap_and_startup_hook():
     assert arq_worker.task_bootstrap_core_workstation in arq_worker.WorkerSettings.functions
-    assert arq_worker.scheduled_core_workstation_bootstrap in arq_worker.WorkerSettings.functions
     assert arq_worker.WorkerSettings.on_startup is arq_worker.worker_startup
 
 
@@ -721,6 +930,123 @@ async def test_provider_availability_schedules_are_disabled_without_explicit_liv
 
     assert await arq_worker.scheduled_daily_provider_availability({}) == {"status": "disabled"}
     assert await arq_worker.scheduled_weekly_provider_availability({}) == {"status": "disabled"}
+
+
+@pytest.mark.asyncio
+async def test_provider_account_usage_refresh_is_disabled_by_default(monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED", False)
+
+    assert await arq_worker.scheduled_provider_account_usage_refresh({}) == {
+        "skipped": True,
+        "reason": "provider account-usage refresh disabled",
+    }
+
+
+@pytest.mark.asyncio
+async def test_provider_account_usage_refresh_task_uses_only_explicit_deduplicated_providers(
+    monkeypatch,
+):
+    monkeypatch.setattr(settings, "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED", True)
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS",
+        ["marketdata_app", " marketdata_app ", ""],
+    )
+    calls = []
+
+    class SessionContext:
+        async def __aenter__(self):
+            return "db"
+
+        async def __aexit__(self, *_args):
+            return None
+
+    async def fake_refresh(db, *, provider_name):
+        calls.append((db, provider_name))
+        return {"status": "refreshed", "providers": [provider_name]}
+
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", lambda: SessionContext())
+    monkeypatch.setattr(
+        "app.services.provider_account_usage.refresh_provider_account_usage",
+        fake_refresh,
+    )
+
+    result = await data_tasks.refresh_provider_account_usage_snapshots({})
+
+    assert result == {
+        "providers": ["marketdata_app"],
+        "results": [{"status": "refreshed", "providers": ["marketdata_app"]}],
+    }
+    assert calls == [("db", "marketdata_app")]
+
+
+@pytest.mark.asyncio
+async def test_provider_account_usage_refresh_continues_after_one_provider_failure(monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED", True)
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS",
+        ["first_provider", "second_provider"],
+    )
+
+    class SessionContext:
+        async def __aenter__(self):
+            return "db"
+
+        async def __aexit__(self, *_args):
+            return None
+
+    calls = []
+
+    async def fake_refresh(_db, *, provider_name):
+        calls.append(provider_name)
+        if provider_name == "first_provider":
+            raise RuntimeError("provider credential rejected")
+        return {"status": "refreshed", "providers": [provider_name]}
+
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", lambda: SessionContext())
+    monkeypatch.setattr(
+        "app.services.provider_account_usage.refresh_provider_account_usage",
+        fake_refresh,
+    )
+
+    result = await data_tasks.refresh_provider_account_usage_snapshots({})
+
+    assert calls == ["first_provider", "second_provider"]
+    assert result["results"][0]["status"] == "failed"
+    assert result["results"][0]["failures"][0]["provider"] == "first_provider"
+    assert result["results"][1] == {
+        "status": "refreshed",
+        "providers": ["second_provider"],
+    }
+
+
+def test_provider_account_usage_refresh_is_registered_only_as_an_opt_in_cron(monkeypatch):
+    original_enabled = settings.PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED
+    try:
+        monkeypatch.setattr(settings, "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED", False)
+        importlib.reload(arq_worker)
+        assert (
+            arq_worker.scheduled_provider_account_usage_refresh
+            in arq_worker.WorkerSettings.functions
+        )
+        assert not any(
+            job.coroutine is arq_worker.scheduled_provider_account_usage_refresh
+            for job in arq_worker.WorkerSettings.cron_jobs
+        )
+        monkeypatch.setattr(settings, "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED", True)
+        importlib.reload(arq_worker)
+        matching_jobs = [
+            job
+            for job in arq_worker.WorkerSettings.cron_jobs
+            if job.coroutine is arq_worker.scheduled_provider_account_usage_refresh
+        ]
+        assert len(matching_jobs) == 1
+        assert matching_jobs[0].hour == 15
+        assert matching_jobs[0].minute == 0
+    finally:
+        monkeypatch.setattr(settings, "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED", original_enabled)
+        importlib.reload(arq_worker)
 
 
 @pytest.mark.asyncio

@@ -91,7 +91,10 @@ const harness = vi.hoisted(() => {
 })
 const routeState = vi.hoisted(() => ({ path: '/popout/benchmark-list', params: { windowKey: 'benchmark-list' }, query: {} as Record<string, string> }))
 const apiGet = vi.hoisted(() => vi.fn().mockResolvedValue([]))
-const openableTools = vi.hoisted(() => [{ tool_type: 'notes', title: 'Notes', instance_prefix: 'notes', configuration: { scope: 'active-instrument' } }])
+const openableTools = vi.hoisted(() => [
+  { tool_type: 'research_results', title: 'Study Results', instance_prefix: 'research-results', configuration: {} },
+  { tool_type: 'notes', title: 'Notes', instance_prefix: 'notes', configuration: { scope: 'active-instrument' } },
+])
 
 vi.mock('@/stores/workspace', () => ({
   OPENABLE_WORKSTATION_TOOLS: openableTools,
@@ -174,6 +177,8 @@ describe('WorkstationView pop-out bindings', () => {
     harness.workspace.linkedTimeframe = 'D1'
     harness.workspace.publishTimeframe = vi.fn()
     harness.workspace.loadDefault = vi.fn().mockResolvedValue(undefined)
+    harness.workspace.activeTab = harness.workspace.workspace.tabs[0]
+    harness.workspace.openTool.mockReset()
     harness.workspace.marketGroups = { 'us-benchmarks': { members: [] }, 'sp500-sectors': { members: [] } }
     harness.workspace.groupSnapshots = {}
     harness.workspace.breadth = {}
@@ -181,6 +186,76 @@ describe('WorkstationView pop-out bindings', () => {
     harness.recent.recent = [{ symbol: 'XLK', name: 'Technology Select Sector SPDR Fund', viewedAt: 2 }]
     harness.drawings.activeToolType = null
     harness.drawings.setActiveTool.mockClear()
+  })
+
+  it('acknowledges a cold tool command immediately and applies it exactly once after hydration', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    const tab = harness.workspace.activeTab
+    ;(harness.workspace as { activeTab: typeof tab | null }).activeTab = null
+    let finishLoad!: () => void
+    harness.workspace.loadDefault.mockImplementation(() => new Promise<void>(resolve => { finishLoad = resolve }))
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await wrapper.get('.workstation__tool-library > button').trigger('click')
+      await wrapper.get('.workstation__tool-library-menu [role="menuitem"]').trigger('click')
+      expect(harness.workspace.openTool).not.toHaveBeenCalled()
+      expect(wrapper.find('.workstation__tool-library-menu').exists()).toBe(false)
+    } finally {
+      harness.workspace.activeTab = tab
+      finishLoad()
+      await flushPromises()
+      wrapper.unmount()
+    }
+    expect(harness.workspace.openTool).toHaveBeenCalledTimes(1)
+    expect(harness.workspace.openTool).toHaveBeenCalledWith(
+      expect.objectContaining({ tool_type: 'research_results', title: 'Study Results' }),
+      {},
+    )
+  })
+
+  it('cancels an accepted cold tool command when its workstation unmounts before hydration', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    const tab = harness.workspace.activeTab
+    ;(harness.workspace as { activeTab: typeof tab | null }).activeTab = null
+    let finishLoad!: () => void
+    harness.workspace.loadDefault.mockImplementation(() => new Promise<void>(resolve => { finishLoad = resolve }))
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    await wrapper.get('.workstation__tool-library > button').trigger('click')
+    await wrapper.get('.workstation__tool-library-menu [role="menuitem"]').trigger('click')
+    expect(harness.workspace.openTool).not.toHaveBeenCalled()
+    wrapper.unmount()
+    harness.workspace.activeTab = tab
+    finishLoad()
+    await flushPromises()
+    expect(harness.workspace.openTool).not.toHaveBeenCalled()
+  })
+
+  it('opens a tool immediately if a usable tab exists while initial loading remains pending', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    let finishLoad!: () => void
+    harness.workspace.loadDefault.mockImplementation(() => new Promise<void>(resolve => { finishLoad = resolve }))
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await wrapper.get('.workstation__tool-library > button').trigger('click')
+      await wrapper.get('.workstation__tool-library-menu [role="menuitem"]').trigger('click')
+      expect(harness.workspace.openTool).toHaveBeenCalledTimes(1)
+      expect(wrapper.find('.workstation__tool-library-menu').exists()).toBe(false)
+      finishLoad()
+      await flushPromises()
+      expect(harness.workspace.openTool).toHaveBeenCalledTimes(1)
+    } finally {
+      finishLoad()
+      wrapper.unmount()
+    }
   })
 
   it('forwards watchlist persistence and proxy events from a floated tool to the shell', async () => {

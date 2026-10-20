@@ -32,6 +32,7 @@ from app.providers import ensure_data_source
 from app.providers.base import InstrumentProfile
 from app.schemas.instrument import InstrumentMembership, InstrumentOut, InstrumentSearchResult
 from app.services.bulk_fetch import get_fetch_progress
+from app.services.evaluator_preflight import preflight_ohlcv
 from app.services.expression_engine import (
     ExpressionError,
     extract_tickers,
@@ -52,16 +53,6 @@ from app.services.market_data import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/instruments", tags=["instruments"])
-
-
-def _wire_datetime(value: datetime | None) -> str | None:
-    """Serialize persisted provenance timestamps on one canonical UTC timeline."""
-
-    if value is None:
-        return None
-    normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
-    return normalized.astimezone(UTC).isoformat().replace("+00:00", "Z")
-
 
 # A symbol can be hydrated by several linked workstation tools at once.  Keep
 # the one-to-one stats row creation serialized inside a worker, while the
@@ -172,6 +163,8 @@ async def search_instruments(
             exchange=_instrument_search_exchange(i),
             type=i.instrument_type.name if i.instrument_type else "",
             instrument_id=i.id,
+            domain_key=i.domain_key,
+            identity_status=i.identity_status,
         )
         for i in local
     ]:
@@ -283,6 +276,8 @@ async def browse_instruments(
                 "id": inst.id,
                 "symbol": inst.symbol,
                 "name": inst.name,
+                "domain_key": inst.domain_key,
+                "identity_status": inst.identity_status,
                 "currency": inst.currency,
                 "type": inst.instrument_type.name if inst.instrument_type else None,
                 "sector": eq.sector if eq else None,
@@ -405,6 +400,7 @@ class SeasonalityMonth(BaseModel):
 class SeasonalityResponse(BaseModel):
     symbol: str
     months: list[SeasonalityMonth]
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
 
 
 class ResolveExpressionBody(BaseModel):
@@ -616,28 +612,79 @@ async def get_heatmap_data(
     for bar in bars_result.scalars().all():
         bars_by_id[bar.instrument_id].append(bar)
 
-    # ── 2b. Fetch selected timeframe bars through the normal OHLCV cache path.
-    # This keeps heatmap sparklines DB-first but still populates missing W1/MN
-    # bars instead of silently reusing daily data.
+    daily_preflight = await preflight_ohlcv(
+        db,
+        evaluator="instrument_heatmap_daily",
+        instrument_ids=instrument_ids,
+        timeframe=Timeframe.D1,
+        date_from=None,
+        date_to=None,
+        adjusted=True,
+        cached_bars=bars_by_id,
+        minimum_bars=252,
+    )
+
+    # ── 2b. Read selected-timeframe bars from the local cache only.
+    # Broad evaluators must not fan out to providers while rendering a request.
+    # Missing sparkline history remains explicit in the per-row preflight report
+    # and is repaired by the normal refresh queue/worker path.
     sparkline_bars_by_id: dict[int, list[OHLCVBar]] = defaultdict(list)
+    raw_sparkline_bars_by_id: dict[int, list[OHLCVBar]] = defaultdict(list)
     if body.include_sparklines:
-        for instr_id in instrument_ids:
-            inst = instruments.get(instr_id)
-            if inst is None:
-                continue
-            try:
-                sparkline_bars_by_id[instr_id] = await fetch_ohlcv_latest(
-                    db,
-                    inst,
-                    body.timeframe,
-                    body.sparkline_bars,
-                    True,
+        if body.timeframe == Timeframe.D1:
+            raw_sparkline_bars_by_id.update(bars_by_id)
+        else:
+            sparkline_ranked = (
+                select(
+                    OHLCVBar.id.label("bar_id"),
+                    func.row_number()
+                    .over(
+                        partition_by=OHLCVBar.instrument_id,
+                        order_by=OHLCVBar.ts.desc(),
+                    )
+                    .label("row_number"),
                 )
-            except Exception:
-                if body.timeframe == Timeframe.D1:
-                    sparkline_bars_by_id[instr_id] = bars_by_id.get(instr_id, [])[
-                        -body.sparkline_bars :
-                    ]
+                .where(
+                    OHLCVBar.instrument_id.in_(instrument_ids),
+                    OHLCVBar.timeframe == body.timeframe,
+                    OHLCVBar.is_adjusted.is_(True),
+                )
+                .subquery()
+            )
+            sparkline_result = await db.execute(
+                select(OHLCVBar)
+                .join(sparkline_ranked, OHLCVBar.id == sparkline_ranked.c.bar_id)
+                .where(sparkline_ranked.c.row_number <= body.sparkline_bars)
+                .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
+            )
+            for bar in sparkline_result.scalars().all():
+                raw_sparkline_bars_by_id[bar.instrument_id].append(bar)
+        for instr_id in instrument_ids:
+            sparkline_bars_by_id[instr_id] = raw_sparkline_bars_by_id.get(instr_id, [])[
+                -body.sparkline_bars :
+            ]
+
+    sparkline_preflight = (
+        await preflight_ohlcv(
+            db,
+            evaluator="instrument_heatmap_sparkline",
+            instrument_ids=instrument_ids,
+            timeframe=body.timeframe,
+            date_from=None,
+            date_to=None,
+            adjusted=True,
+            cached_bars=raw_sparkline_bars_by_id,
+            minimum_bars=1,
+        )
+        if body.include_sparklines
+        else None
+    )
+    daily_items = {item.instrument_id: item.to_dict() for item in daily_preflight.items}
+    sparkline_items = (
+        {item.instrument_id: item.to_dict() for item in sparkline_preflight.items}
+        if sparkline_preflight is not None
+        else {}
+    )
 
     # ── 3. Compute metrics per instrument ─────────────────────────────────────
     today_utc = datetime.now(UTC).date()
@@ -674,6 +721,10 @@ async def get_heatmap_data(
         eq = inst.equity_detail
         stats = inst.stats
         n = len(bars)
+        coverage_preflight = {
+            "daily": daily_items.get(instr_id),
+            "sparkline": sparkline_items.get(instr_id) if body.include_sparklines else None,
+        }
 
         # Base metadata
         market_cap = float(stats.market_cap) if stats and stats.market_cap else None
@@ -681,7 +732,7 @@ async def get_heatmap_data(
         week52_high = float(stats.week52_high) if stats and stats.week52_high else None
         week52_low = float(stats.week52_low) if stats and stats.week52_low else None
 
-        if not bars:
+        if not bars or instr_id not in daily_preflight.ready_instrument_ids:
             rows.append(
                 {
                     "instrument_id": instr_id,
@@ -703,6 +754,7 @@ async def get_heatmap_data(
                     "dist_52w_high": None,
                     "dist_52w_low": None,
                     "sparkline": _sparkline_for(instr_id),
+                    "coverage_preflight": coverage_preflight,
                 }
             )
             continue
@@ -769,6 +821,7 @@ async def get_heatmap_data(
                 "dist_52w_high": dist_52w_high,
                 "dist_52w_low": dist_52w_low,
                 "sparkline": _sparkline_for(instr_id),
+                "coverage_preflight": coverage_preflight,
             }
         )
 
@@ -805,7 +858,30 @@ async def get_monthly_seasonality(
         raise HTTPException(404, f"Instrument '{symbol}' not found")
     await db.refresh(instrument, ["listings"])
 
-    bars = await fetch_ohlcv_latest(db, instrument, Timeframe.MN, limit, True)
+    # Seasonality is an evaluator, so it must never turn a user request into
+    # a provider fan-out.  A refresh worker can populate the canonical monthly
+    # series; this request only evaluates what is already local and reports
+    # whether the requested sample is complete.
+    bars = await fetch_ohlcv_latest(
+        db,
+        instrument,
+        Timeframe.MN,
+        limit,
+        True,
+        allow_provider_fetch=False,
+    )
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="instrument_seasonality",
+        instrument_ids=[instrument.id],
+        timeframe=Timeframe.MN,
+        date_from=None,
+        date_to=None,
+        mode="historical",
+        adjusted=True,
+        cached_bars={instrument.id: bars},
+        minimum_bars=limit,
+    )
     records_by_month: dict[int, list[SeasonalityRecord]] = {m: [] for m in range(1, 13)}
 
     previous_volume: float | None = None
@@ -868,7 +944,11 @@ async def get_monthly_seasonality(
             )
         )
 
-    return SeasonalityResponse(symbol=instrument.symbol, months=months)
+    return SeasonalityResponse(
+        symbol=instrument.symbol,
+        months=months,
+        coverage_preflight=coverage_preflight.to_dict(),
+    )
 
 
 @router.get("/{instrument_id}/membership", response_model=InstrumentMembership)
@@ -926,7 +1006,7 @@ async def get_instrument_membership(
             {
                 "id": sd.id,
                 "name": sd.name,
-                "last_run_at": _wire_datetime(latest_result.run_at) if latest_result else None,
+                "last_run_at": latest_result.run_at.isoformat() if latest_result else None,
                 "in_current_results": in_current,
             }
         )
@@ -960,8 +1040,8 @@ async def get_data_coverage(
 
     coverage = {
         row.timeframe.value: {
-            "oldest": _wire_datetime(row.oldest) if row.oldest else None,
-            "newest": _wire_datetime(row.newest) if row.newest else None,
+            "oldest": row.oldest.isoformat() if row.oldest else None,
+            "newest": row.newest.isoformat() if row.newest else None,
             "bar_count": row.bar_count,
         }
         for row in rows
@@ -1085,9 +1165,9 @@ async def get_instrument_provenance(
                 "currency": row.currency,
                 "is_primary": row.is_primary,
                 "is_active": row.is_active,
-                "effective_at": _wire_datetime(row.effective_at),
-                "known_at": _wire_datetime(row.known_at),
-                "delisted_at": _wire_datetime(row.delisted_at),
+                "effective_at": row.effective_at,
+                "known_at": row.known_at,
+                "delisted_at": row.delisted_at,
                 "exchange": (
                     {
                         "id": row.exchange.id,
@@ -1108,8 +1188,8 @@ async def get_instrument_provenance(
         "profile_snapshots": [
             {
                 "provider_symbol": row.provider_symbol,
-                "observed_at": _wire_datetime(row.observed_at),
-                "fetched_at": _wire_datetime(row.fetched_at),
+                "observed_at": row.observed_at,
+                "fetched_at": row.fetched_at,
                 "profile_hash": row.profile_hash,
                 "payload": row.payload,
             }
@@ -1118,8 +1198,8 @@ async def get_instrument_provenance(
         "identifier_snapshots": [
             {
                 "provider_symbol": row.provider_symbol,
-                "observed_at": _wire_datetime(row.observed_at),
-                "fetched_at": _wire_datetime(row.fetched_at),
+                "observed_at": row.observed_at,
+                "fetched_at": row.fetched_at,
                 "snapshot_hash": row.snapshot_hash,
                 "payload": row.payload,
             }
@@ -1128,8 +1208,8 @@ async def get_instrument_provenance(
         "latest_price_snapshots": [
             {
                 "provider_symbol": row.provider_symbol,
-                "observed_at": _wire_datetime(row.observed_at),
-                "fetched_at": _wire_datetime(row.fetched_at),
+                "observed_at": row.observed_at,
+                "fetched_at": row.fetched_at,
                 "price": float(row.price),
                 "payload": row.payload,
             }
@@ -1140,11 +1220,11 @@ async def get_instrument_provenance(
                 "dataset_type": row.dataset_type,
                 "dataset_key": row.dataset_key,
                 "status": row.status.value,
-                "coverage_start": _wire_datetime(row.coverage_start),
-                "coverage_end": _wire_datetime(row.coverage_end),
-                "observed_at": _wire_datetime(row.observed_at),
-                "fetched_at": _wire_datetime(row.fetched_at),
-                "stale_after": _wire_datetime(row.stale_after),
+                "coverage_start": row.coverage_start,
+                "coverage_end": row.coverage_end,
+                "observed_at": row.observed_at,
+                "fetched_at": row.fetched_at,
+                "stale_after": row.stale_after,
                 "extra_data": row.extra_data,
             }
             for row in dataset_states
@@ -1344,7 +1424,7 @@ async def _ensure_52w_stats(instrument: Instrument, db: AsyncSession) -> Instrum
         week52_low_time = low_row.week52_low_time
 
         async with _52w_stats_lock(instrument.id):
-            fetched_at = _wire_datetime(datetime.now(UTC))
+            fetched_at = datetime.now(UTC).isoformat()
             stats = (
                 await db.execute(
                     select(InstrumentStats).where(InstrumentStats.instrument_id == instrument.id)

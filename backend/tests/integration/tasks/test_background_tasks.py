@@ -7,9 +7,11 @@ Integration tests for background tasks:
 These tests patch provider-facing market data calls and OneSignal while using a real DB.
 """
 
-from datetime import date
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 
 class AsyncSessionAdapter:
@@ -50,6 +52,90 @@ class AsyncSessionContext:
 
     async def __aexit__(self, exc_type, exc, tb):
         return False
+
+
+@pytest.mark.asyncio
+async def test_refresh_job_lease_token_blocks_stale_worker_mutation(db, instrument):
+    """A reclaimed PostgreSQL job cannot be completed by its prior worker."""
+
+    from app.services.market_refresh_queue import (
+        RefreshLeaseLostError,
+        claim_refresh_jobs,
+        complete_refresh_job,
+        enqueue_refresh_job,
+    )
+
+    async_db = AsyncSessionAdapter(db)
+    now = datetime(2026, 9, 12, 12, tzinfo=UTC)
+    await enqueue_refresh_job(
+        async_db,
+        request_key=f"integration-lease:{instrument.id}",
+        capability="price_history",
+        instrument_id=instrument.id,
+        timeframe="D1",
+        now=now,
+    )
+    first_claim = (await claim_refresh_jobs(async_db, now=now, lease_seconds=30))[0]
+    first_token = first_claim.lease_token
+    assert first_token
+
+    first_claim.leased_until = now - timedelta(seconds=1)
+    await async_db.flush()
+    second_claim = (await claim_refresh_jobs(async_db, now=now, lease_seconds=30))[0]
+    assert second_claim.lease_token
+    assert second_claim.lease_token != first_token
+
+    with pytest.raises(RefreshLeaseLostError):
+        await complete_refresh_job(async_db, second_claim, now=now, lease_token=first_token)
+
+    await complete_refresh_job(async_db, second_claim, now=now)
+    assert second_claim.status == "completed"
+
+
+@pytest.mark.asyncio
+async def test_redis_refresh_lock_coordinates_independent_worker_clients(redis_url):
+    """Independent worker clients contend on one shared Redis lock safely."""
+
+    from redis.asyncio import Redis
+
+    from app.services.distributed_locks import DistributedLockError, redis_distributed_lock
+
+    first = Redis.from_url(redis_url, decode_responses=False)
+    second = Redis.from_url(redis_url, decode_responses=False)
+    try:
+        async with redis_distributed_lock(
+            first,
+            namespace="integration-refresh",
+            identity="same-refresh",
+            ttl_seconds=30,
+            blocking_timeout_seconds=0.01,
+            retry_interval_seconds=0.005,
+        ):
+            with pytest.raises(DistributedLockError, match="timed out"):
+                async with redis_distributed_lock(
+                    second,
+                    namespace="integration-refresh",
+                    identity="same-refresh",
+                    ttl_seconds=30,
+                    blocking_timeout_seconds=0.01,
+                    retry_interval_seconds=0.005,
+                ):
+                    raise AssertionError("a contended refresh lock must not enter its operation")
+
+        # Ownership is released only by the client that acquired the token;
+        # the second independent client can acquire after the first exits.
+        async with redis_distributed_lock(
+            second,
+            namespace="integration-refresh",
+            identity="same-refresh",
+            ttl_seconds=30,
+            blocking_timeout_seconds=0.01,
+            retry_interval_seconds=0.005,
+        ):
+            pass
+    finally:
+        await first.aclose()
+        await second.aclose()
 
 
 # ── Alert engine ───────────────────────────────────────────────────────────────
@@ -300,170 +386,3 @@ class TestDataPipeline:
 
         assert result["instruments_refreshed"] >= 2
         assert mock_fetch.call_count >= 2
-
-    @patch("app.tasks.data_tasks.materialize_derived_timeframes", new_callable=AsyncMock)
-    @patch("app.tasks.data_tasks.fetch_ohlcv")
-    async def test_nightly_refresh_materializes_missing_coarse_history_from_d1(
-        self, mock_fetch, mock_materialize, db, instrument
-    ):
-        from app.tasks.data_tasks import fetch_all_instruments_history
-
-        mock_fetch.return_value = []
-        mock_materialize.return_value = {"W1": 52, "MN": 24}
-        newest = instrument.created_at
-
-        with (
-            patch(
-                "app.tasks.data_tasks.AsyncSessionLocal",
-                return_value=AsyncSessionContext(db),
-            ),
-            patch(
-                "app.tasks.data_tasks._get_newest_bar_ts",
-                new_callable=AsyncMock,
-                side_effect=lambda *_args, **_kwargs: newest,
-            ),
-        ):
-            result = await fetch_all_instruments_history({})
-
-        assert result["derived_bars"] == {"W1": 52, "MN": 24}
-        assert mock_materialize.await_count == 1
-        materialize_session, materialize_instrument_id = mock_materialize.await_args.args
-        assert isinstance(materialize_session, AsyncSessionAdapter)
-        assert materialize_session._session is db
-        assert materialize_instrument_id == instrument.id
-
-
-class TestBenchmarkFamilyHistoryBackfill:
-    async def test_backfill_uses_persisted_canonical_snapshot_and_excludes_fixture(
-        self, db, instrument, instrument_type, monkeypatch
-    ):
-        """The scheduled handoff must plan real canonical rows, not fixture snapshots."""
-
-        from app.config import settings
-        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
-        from app.models.instrument import Instrument
-        from app.tasks.etf_holdings_tasks import backfill_benchmark_family_member_history_task
-
-        benchmark = Instrument(
-            symbol="SPY",
-            name="SPDR S&P 500 ETF Trust",
-            currency="USD",
-            instrument_type_id=instrument_type.id,
-            is_active=True,
-        )
-        db.add(benchmark)
-        db.flush()
-        profile = ETFProfile(
-            instrument_id=benchmark.id, adapter_key="spdr", adapter_status="resolved"
-        )
-        db.add(profile)
-        db.flush()
-
-        canonical = ETFHoldingsSnapshot(
-            etf_profile_id=profile.id,
-            composition_date=date(2026, 6, 30),
-            provenance="sec_nport",
-            source_provider="sec",
-            source_quality="sec_disclosed",
-            completeness_status="complete",
-            row_count=1,
-            resolved_count=1,
-            unresolved_count=0,
-            snapshot_hash="integration-history-canonical",
-        )
-        fixture = ETFHoldingsSnapshot(
-            etf_profile_id=profile.id,
-            composition_date=date(2026, 7, 31),
-            provenance="controlled_fixture",
-            source_provider="e2e_reference",
-            source_quality="fixture",
-            completeness_status="complete",
-            row_count=1,
-            resolved_count=1,
-            unresolved_count=0,
-            snapshot_hash="integration-history-fixture",
-        )
-        non_equity = ETFHoldingsSnapshot(
-            etf_profile_id=profile.id,
-            composition_date=date(2026, 8, 31),
-            provenance="sec_nport",
-            source_provider="sec",
-            source_quality="sec_disclosed",
-            completeness_status="complete",
-            row_count=1,
-            resolved_count=1,
-            unresolved_count=0,
-            snapshot_hash="integration-history-non-equity",
-        )
-        db.add_all([canonical, fixture, non_equity])
-        db.flush()
-        db.add(
-            ETFHolding(
-                snapshot_id=canonical.id,
-                constituent_instrument_id=instrument.id,
-                position=1,
-                reported_symbol=instrument.symbol,
-                reported_name=instrument.name,
-                holding_type="equity",
-                row_type="security",
-                source_row_hash="integration-history-member",
-                is_resolved=True,
-            )
-        )
-        db.add(
-            ETFHolding(
-                snapshot_id=non_equity.id,
-                constituent_instrument_id=instrument.id,
-                position=1,
-                reported_symbol=instrument.symbol,
-                reported_name=instrument.name,
-                holding_type="cash",
-                row_type="security",
-                source_row_hash="integration-history-non-equity-member",
-                is_resolved=True,
-            )
-        )
-        db.flush()
-
-        class Redis:
-            def __init__(self):
-                self.calls = []
-
-            async def enqueue_job(self, *args, **kwargs):
-                self.calls.append((args, kwargs))
-                return object()
-
-        redis = Redis()
-        monkeypatch.setattr(settings, "BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_ENABLED", True)
-        monkeypatch.setattr(settings, "BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_MAX_SNAPSHOTS", 8)
-        monkeypatch.setattr(
-            settings, "BENCHMARK_FAMILY_MEMBER_HISTORY_MAX_INSTRUMENTS_PER_SNAPSHOT", 7
-        )
-        with patch(
-            "app.database.AsyncSessionLocal",
-            return_value=AsyncSessionContext(db),
-        ):
-            result = await backfill_benchmark_family_member_history_task({"redis": redis})
-
-        assert result["available_snapshot_count"] == 1
-        assert result["selected_snapshot_count"] == 1
-        assert result["limited"] is False
-        assert result["queued"] == 1
-        assert result["unresolved_count"] == 0
-        assert redis.calls == [
-            (
-                (
-                    "task_bulk_fetch_instrument",
-                    instrument.id,
-                    ["MN", "W1", "D1"],
-                    None,
-                    "2026-06-30T23:59:59.999999Z",
-                ),
-                {
-                    "_job_id": (
-                        f"watchlist-source-history:{instrument.id}:D1,W1,MN:"
-                        "end=2026-06-30T23:59:59.999999Z"
-                    )
-                },
-            )
-        ]

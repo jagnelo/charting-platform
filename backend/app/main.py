@@ -23,6 +23,7 @@ from app.routers import (
     indicators,
     instrument_indicators,
     instruments,
+    market_data_admin,
     market_groups,
     notes,
     ohlcv,
@@ -39,11 +40,8 @@ from app.routers import (
     workspaces,
 )
 from app.services.alert_engine import run_alert_check
-from app.services.e2e_seed import (
-    seed_e2e_instruments,
-    seed_e2e_large_universe,
-    seed_e2e_market_data,
-)
+from app.services.distributed_locks import close_shared_redis_lock_client
+from app.services.e2e_seed import seed_e2e_instruments, seed_e2e_large_universe, seed_e2e_market_data
 from app.services.provider_runtime import seed_provider_runtime
 from app.services.workstation_bootstrap import ensure_core_workstation_identities
 
@@ -61,10 +59,10 @@ async def lifespan(app: FastAPI):
         await seed_provider_runtime(db)
         if settings.E2E_SEED_INSTRUMENTS:
             await seed_e2e_instruments(db)
-        if settings.E2E_SEED_LARGE_UNIVERSE:
-            await seed_e2e_large_universe(db, settings.E2E_SEED_LARGE_UNIVERSE_COUNT)
         if settings.E2E_SEED_MARKET_DATA:
             await seed_e2e_market_data(db)
+        if settings.E2E_SEED_LARGE_UNIVERSE:
+            await seed_e2e_large_universe(db, settings.E2E_SEED_LARGE_UNIVERSE_COUNT)
         # The curated identity bootstrap is not market-data or holdings
         # fixture data. It makes a clean deployment's immutable US Top Down
         # layout immediately navigable while provider-backed bars and
@@ -85,6 +83,7 @@ async def lifespan(app: FastAPI):
     logger.info("Backend ready ✓")
     yield
     scheduler.shutdown(wait=False)
+    await close_shared_redis_lock_client()
 
 
 app = FastAPI(
@@ -132,6 +131,7 @@ app.include_router(code.router, prefix=PREFIX)
 app.include_router(research.router, prefix=PREFIX)
 app.include_router(workspaces.router, prefix=PREFIX)
 app.include_router(market_groups.router, prefix=PREFIX)
+app.include_router(market_data_admin.router, prefix=PREFIX)
 app.include_router(notes.router, prefix=PREFIX)
 
 

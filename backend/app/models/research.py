@@ -89,6 +89,16 @@ class ResearchRun(Base, TimestampMixin):
         back_populates="run", cascade="all, delete-orphan"
     )
 
+    @property
+    def evaluation_status(self) -> str:
+        """Return evaluator readiness separately from runner transport status."""
+
+        usage = self.resource_usage if isinstance(self.resource_usage, dict) else {}
+        evaluation = usage.get("evaluation")
+        if isinstance(evaluation, dict) and isinstance(evaluation.get("status"), str):
+            return evaluation["status"]
+        return "unknown"
+
 
 class ResearchArtifact(Base, TimestampMixin):
     __tablename__ = "research_artifact"

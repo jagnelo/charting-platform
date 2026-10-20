@@ -1,23 +1,41 @@
 from __future__ import annotations
 
 import asyncio
+import contextvars
+import inspect
+import json
 import logging
 import random
 import time
 from collections.abc import Callable
+from copy import deepcopy
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
+from datetime import time as wall_time
 from decimal import Decimal
 from typing import Any, TypeVar
 
-from sqlalchemy import select
+import httpx
+from sqlalchemy import and_, or_, select
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
-from app.lib.time_utils import wire_datetime
+from app.config import (
+    marketdata_app_reviewed_plan,
+    provider_positive_integer,
+    provider_quota_admission_reset,
+    provider_quota_reset_is_admission_safe,
+    provider_quota_reset_is_known,
+    provider_rate_limit_seed,
+    settings,
+)
+from app.models.asset_class import AssetClass, InstrumentType
 from app.models.data_source import DataSource
+from app.models.instrument import Instrument
 from app.models.provider_runtime import (
     ProviderCapability,
+    ProviderCapacityEvent,
     ProviderEntitlement,
     ProviderEntitlementRevision,
     ProviderHealthState,
@@ -28,8 +46,24 @@ from app.providers import (
     ensure_data_source,
     get_provider,
     list_provider_capabilities,
+    provider_configuration_required,
+    provider_is_configured,
+    provider_missing_routing_controls,
+    provider_missing_settings,
+    provider_required_settings,
+    provider_routing_control_settings,
+    provider_supports_adjustment,
+    provider_supports_instrument,
     supported_provider_names,
 )
+from app.providers.errors import (
+    ProviderNotConfiguredError,
+    ProviderRateLimitError,
+    bounded_redact_provider_message,
+    provider_retry_at_from_headers,
+)
+from app.providers.telemetry import activate as activate_provider_telemetry
+from app.providers.telemetry import deactivate as deactivate_provider_telemetry
 from app.services.provider_support import (
     SUPPORT_STATUS_SUPPORTED,
     SUPPORT_STATUS_UNKNOWN,
@@ -42,6 +76,17 @@ from app.services.provider_support import (
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+HistoryStartSpec = datetime | Callable[[str], datetime | None]
+_ACTIVE_PROVIDER_QUOTA_ADMISSION: contextvars.ContextVar[bool] = contextvars.ContextVar(
+    "provider_runtime_quota_admission", default=False
+)
+
+
+def provider_runtime_quota_admission_active() -> bool:
+    """Return whether the current adapter call holds its durable quota reservation."""
+
+    return _ACTIVE_PROVIDER_QUOTA_ADMISSION.get()
+
 
 _ALPHA = Decimal("0.2")
 _token_buckets: dict[tuple[str, str], tuple[tuple[int, int], TokenBucket]] = {}
@@ -49,6 +94,7 @@ _semaphores: dict[tuple[str, str], tuple[int, asyncio.Semaphore]] = {}
 _DEFAULT_SCORE_FLOOR = Decimal("0")
 _DEFAULT_SCORE_CEILING = Decimal("100")
 _DEFAULT_LEARNED_WEIGHT = Decimal("0")
+_POSITIVE_LIVE_PROBE_STATUSES = frozenset({"passed", "not_required", "credentialed_live_verified"})
 _DEFAULT_EFFECTIVE_SCORE = Decimal("0")
 _DEFAULT_BASE_PRIORITY = 100
 
@@ -89,10 +135,10 @@ async def record_entitlement_revision(
     if existing is not None:
         return existing
 
-    snapshot = ProviderEntitlementRevision(
-        data_source_id=entitlement.data_source_id,
-        capability=entitlement.capability,
-        revision=revision,
+    snapshot_values = {
+        "data_source_id": entitlement.data_source_id,
+        "capability": entitlement.capability,
+        "revision": revision,
         **{
             field_name: (
                 dict(getattr(entitlement, field_name) or {})
@@ -103,16 +149,136 @@ async def record_entitlement_revision(
             )
             for field_name in _ENTITLEMENT_FIELDS
         },
-        change_reason=change_reason,
-    )
-    db.add(snapshot)
-    await db.flush()
-    return snapshot
+        "change_reason": change_reason,
+    }
+    dialect_name = db.get_bind().dialect.name
+    insert_statement = {
+        "postgresql": postgresql_insert,
+        "sqlite": sqlite_insert,
+    }.get(dialect_name)
+    if insert_statement is not None:
+        # Backend and worker startup, or simultaneous first resolutions, can
+        # snapshot the same immutable revision concurrently. Let the unique
+        # key arbitrate that race instead of poisoning one caller's session.
+        await db.execute(
+            insert_statement(ProviderEntitlementRevision)
+            .values(**snapshot_values)
+            .on_conflict_do_nothing(
+                index_elements=[
+                    ProviderEntitlementRevision.data_source_id,
+                    ProviderEntitlementRevision.capability,
+                    ProviderEntitlementRevision.revision,
+                ]
+            )
+        )
+    else:
+        db.add(ProviderEntitlementRevision(**snapshot_values))
+        await db.flush()
+    recorded = (
+        await db.execute(
+            select(ProviderEntitlementRevision).where(
+                ProviderEntitlementRevision.data_source_id == entitlement.data_source_id,
+                ProviderEntitlementRevision.capability == entitlement.capability,
+                ProviderEntitlementRevision.revision == revision,
+            )
+        )
+    ).scalar_one_or_none()
+    if recorded is None:
+        raise RuntimeError("provider entitlement revision snapshot was not persisted")
+    return recorded
 
 
 def _as_utc(value: datetime) -> datetime:
     """Normalize SQLite's naive datetimes before entitlement comparisons."""
     return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+
+def provider_history_entitlement_matches(
+    entitlement: ProviderEntitlement,
+    history_start: datetime | None,
+    *,
+    now: datetime | None = None,
+) -> tuple[bool, str | None]:
+    """Check a provider's explicit historical lookback contract.
+
+    ``history_depth`` is intentionally descriptive and cannot safely answer a
+    routing question. A provider that wants to admit a bounded historical
+    request must therefore publish a machine-readable ``history_constraints``
+    object in its entitlement ``quota_policy``. The supported bounds are a
+    fixed provider-advertised ``earliest_date``, calendar years (for plans
+    documented as "N years"), and calendar days.
+    Missing, ambiguous, or malformed constraints remain non-routable rather
+    than becoming an invented allowance.
+    """
+
+    if history_start is None:
+        return True, None
+    if not isinstance(history_start, datetime):
+        return False, "history_start_invalid"
+    policy = dict(entitlement.quota_policy or {})
+    constraints = policy.get("history_constraints")
+    if not isinstance(constraints, dict):
+        return False, "history_depth_unknown"
+
+    current = _as_utc(now or datetime.now(UTC))
+    requested = _as_utc(history_start)
+    if requested > current:
+        return False, "history_start_invalid"
+    earliest, reason = provider_history_bound_start(constraints, now=current)
+    if earliest is None:
+        return False, reason or "history_depth_invalid"
+    if requested < earliest:
+        return False, "history_depth_exceeded"
+    return True, None
+
+
+def provider_history_bound_start(
+    constraints: dict[str, Any], *, now: datetime
+) -> tuple[datetime | None, str | None]:
+    """Resolve one reviewed history constraint to its earliest timestamp.
+
+    Exactly one bound form is accepted. A fixed ``earliest_date`` is used for
+    providers that publish a calendar start instead of a relative lookback;
+    malformed or future values fail closed rather than becoming an unlimited
+    request.
+    """
+
+    current = _as_utc(now)
+    raw_earliest = constraints.get("earliest_date")
+    raw_years = constraints.get("max_lookback_years")
+    raw_days = constraints.get("max_lookback_days")
+    present = [
+        raw_earliest is not None,
+        raw_years is not None,
+        raw_days is not None,
+    ]
+    if sum(present) != 1:
+        return None, "history_depth_invalid"
+    if raw_earliest is not None:
+        if not isinstance(raw_earliest, str) or not raw_earliest.strip():
+            return None, "history_depth_invalid"
+        try:
+            parsed = date.fromisoformat(raw_earliest.strip())
+        except ValueError:
+            return None, "history_depth_invalid"
+        earliest = datetime.combine(parsed, wall_time.min, tzinfo=UTC)
+        if earliest > current:
+            return None, "history_depth_invalid"
+        return earliest, None
+
+    raw_value = raw_years if raw_years is not None else raw_days
+    if isinstance(raw_value, bool) or not isinstance(raw_value, int) or raw_value <= 0:
+        return None, "history_depth_invalid"
+    if raw_years is not None:
+        try:
+            earliest = current.replace(year=current.year - raw_value)
+        except ValueError:
+            # A leap-day request has no same-day representation in the target
+            # year; the last valid day of February is the conservative bound.
+            earliest = current.replace(year=current.year - raw_value, month=2, day=28)
+    else:
+        earliest = current - timedelta(days=raw_value)
+    return earliest, None
 
 
 @dataclass(slots=True)
@@ -124,6 +290,7 @@ class ResolvedProvider:
     health: ProviderHealthState
     support_status: str = SUPPORT_STATUS_UNKNOWN
     has_symbol_binding: bool = False
+    entitlement: ProviderEntitlement | None = None
 
 
 @dataclass(slots=True)
@@ -133,14 +300,232 @@ class ProviderExecutionResult:
     policy: ProviderPolicy
     health: ProviderHealthState
     result: Any
+    response_payloads: tuple[Any, ...] = ()
+
+
+def provider_entitlement_admission(
+    entitlement: ProviderEntitlement,
+    *,
+    provider_name: str | None = None,
+    capability: ProviderCapability | None = None,
+    checkpoint_free_only: bool | None = None,
+    allow_paid: bool | None = None,
+) -> dict[str, Any]:
+    """Return the shared, transport-independent plan admission decision.
+
+    The checkpoint accepts only explicitly reviewed free plans. Temporary
+    trials are denied even when represented as free because their post-trial
+    cost is not a durable zero-cost entitlement. Review evidence is either an
+    exact match to the current provider/capability seed or an explicit
+    ``reviewed-`` / ``-operator-reviewed`` plan label; a truthy free flag or
+    arbitrary non-empty label is not evidence. Outside checkpoint mode,
+    reviewed paid plans retain the separate full-roadmap opt-in.
+    """
+
+    free_only = (
+        settings.PROVIDER_FREE_ONLY_CHECKPOINT
+        if checkpoint_free_only is None
+        else checkpoint_free_only
+    )
+    paid_enabled = settings.ALLOW_PAID_PROVIDER_ROUTING if allow_paid is None else allow_paid
+    plan = str(entitlement.configured_plan or "").strip().lower()
+    is_free = entitlement.is_free is True
+    plan_markers = set(plan.replace("_", "-").split("-"))
+    plan_is_unreviewed = not plan or bool(plan_markers.intersection({"unreviewed", "unknown"}))
+    normalized_plan = plan.replace("_", "-")
+    explicit_review_label = normalized_plan.startswith("reviewed-") or normalized_plan.endswith(
+        "-operator-reviewed"
+    )
+    configured_plan_match = False
+    if provider_name is not None and capability is not None:
+        configured_seed = _entitlement_seed(provider_name, capability)
+        seeded_plan = str(configured_seed.get("configured_plan") or "").strip().lower()
+        seeded_markers = set(seeded_plan.replace("_", "-").split("-"))
+        configured_plan_match = bool(
+            seeded_plan
+            and seeded_plan == plan
+            and not seeded_markers.intersection({"unreviewed", "unknown"})
+            and configured_seed.get("is_free") is is_free
+        )
+    has_reviewed_plan_evidence = explicit_review_label or configured_plan_match
+    plan_mismatch = False
+    if provider_name in {"fmp", "tiingo"} and capability is not None:
+        configured_seed = _entitlement_seed(provider_name, capability)
+        configured_plan = str(configured_seed.get("configured_plan") or "").strip().lower()
+        configured_is_free = configured_seed.get("is_free") is True
+        if configured_plan and (plan != configured_plan or is_free != configured_is_free):
+            # Database rows can outlive an environment plan change. Do not let
+            # an old free classification continue to authorize transport while
+            # the account is configured for a paid, trial, or unknown plan.
+            # Keep the persisted review intact for diagnostics; fail closed
+            # until the seed refresh or operator configuration is reconciled.
+            plan_mismatch = True
+    if plan_is_unreviewed:
+        allowed, reason = False, "entitlement_unreviewed"
+    elif plan_mismatch:
+        allowed, reason = False, "provider_plan_config_mismatch"
+    elif not has_reviewed_plan_evidence:
+        allowed, reason = False, "entitlement_unreviewed"
+    elif "trial" in plan:
+        allowed, reason = False, "trial_cost_not_admissible"
+    elif free_only and not is_free:
+        allowed, reason = False, "checkpoint_free_only"
+    elif not is_free and not paid_enabled:
+        allowed, reason = False, "paid_routing_disabled"
+    else:
+        allowed, reason = True, "reviewed_free_plan" if is_free else "reviewed_paid_opt_in"
+    return {
+        "allowed": allowed,
+        "reason_code": reason,
+        "configured_plan": plan or None,
+        "is_free": is_free,
+        "checkpoint_free_only": free_only,
+        "basis": "reviewed_provider_entitlement",
+        "plan_configuration_matches": not plan_mismatch,
+    }
 
 
 class ProviderNoDataError(LookupError):
     """Raised when providers resolve successfully but none return usable data."""
 
 
+class ProviderQuotaUnknownError(RuntimeError):
+    """Raised when no documentation-backed quota contract is available."""
+
+
 def _operation_family(operation: str) -> str:
     return operation.split(":", 1)[0].strip() or operation
+
+
+# Application services sometimes name a workload rather than the provider
+# method it delegates to.  Quota accounting deliberately keeps those original
+# names, but checkpoint safety must evaluate the upstream-equivalent operation
+# so a service label cannot bypass an explicit provider hold.
+PROVIDER_SERVICE_OPERATION_ALIASES = {
+    "bulk_fetch": "fetch_ohlcv",
+    "fetch_rfr_ohlcv": "fetch_ohlcv",
+    "reconcile_universe_page": "discover_universe_page",
+}
+
+
+def _checkpoint_operation_family(operation: str) -> tuple[str, str]:
+    service_family = _operation_family(operation)
+    return service_family, PROVIDER_SERVICE_OPERATION_ALIASES.get(service_family, service_family)
+
+
+def provider_checkpoint_operation_hold_reason(
+    provider_name: str,
+    operation: str | None,
+) -> str | None:
+    """Return the explicit checkpoint hold for one provider operation.
+
+    These holds are evaluated only while the shared free-only checkpoint is
+    active. They are deliberately separate from quota admission: a provider
+    can have enough capacity for one small call while the operation still
+    lacks the exact evidence required by the accepted checkpoint.
+    """
+
+    if not settings.PROVIDER_FREE_ONLY_CHECKPOINT:
+        return None
+    hold_config = settings.PROVIDER_CHECKPOINT_OPERATION_HOLDS
+    if not isinstance(hold_config, dict):
+        return "checkpoint operation hold configuration is invalid"
+    provider_holds = hold_config.get(provider_name, {})
+    if not isinstance(provider_holds, dict):
+        return "checkpoint operation hold configuration is invalid"
+    if any(
+        not isinstance(key, str)
+        or not key.strip()
+        or not isinstance(value, str)
+        or not value.strip()
+        for key, value in provider_holds.items()
+    ):
+        return "checkpoint operation hold configuration is invalid"
+    if operation is not None and (not isinstance(operation, str) or not operation.strip()):
+        return "checkpoint operation name is invalid"
+    service_operation: str | None = None
+    upstream_operation: str | None = None
+    if operation is not None:
+        service_operation, upstream_operation = _checkpoint_operation_family(operation)
+    reason = provider_holds.get(upstream_operation) if upstream_operation else None
+    if not reason and service_operation != upstream_operation:
+        # Accept an explicitly configured service-level hold too.  The
+        # canonical upstream lookup comes first so the reviewed default map
+        # covers every equivalent application call site.
+        reason = provider_holds.get(service_operation)
+    if not reason:
+        reason = provider_holds.get("*")
+    normalized_reason = str(reason or "").strip()
+    return normalized_reason or None
+
+
+def _is_positive_operation_cost(value: Any) -> bool:
+    if isinstance(value, bool):
+        return False
+    try:
+        parsed = Decimal(str(value))
+    except (TypeError, ValueError, ArithmeticError):
+        return False
+    return parsed.is_finite() and parsed > 0 and parsed == parsed.to_integral_value()
+
+
+def _positive_integer_cost(value: Any) -> int | None:
+    """Return a positive integral reservation amount, otherwise ``None``."""
+
+    if isinstance(value, bool):
+        return None
+    try:
+        parsed = Decimal(str(value))
+    except (TypeError, ValueError, ArithmeticError):
+        return None
+    if not parsed.is_finite() or parsed <= 0 or parsed != parsed.to_integral_value():
+        return None
+    return int(parsed)
+
+
+def _json_safe_response_payload(value: Any) -> Any:
+    """Copy a decoded provider body into JSON-column-safe values."""
+
+    if value is None or isinstance(value, str | int | float | bool):
+        return value
+    if isinstance(value, dict):
+        return {str(key): _json_safe_response_payload(item) for key, item in value.items()}
+    if isinstance(value, list | tuple | set):
+        return [_json_safe_response_payload(item) for item in value]
+    try:
+        json.dumps(value)
+    except (TypeError, ValueError, OverflowError):
+        return str(value)
+    return value
+
+
+def _persist_response_payloads(log_row: ProviderRequestLog, payloads: list[Any]) -> None:
+    """Attach all ordered response bodies to the immutable request log."""
+
+    if payloads:
+        log_row.response_payloads = [_json_safe_response_payload(payload) for payload in payloads]
+
+
+def _nonnegative_integer(value: Any) -> int | None:
+    """Return a strict non-negative integer, preserving malformed values."""
+
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        return None
+    return value
+
+
+_DIMENSION_RATE_UNITS = {
+    "request",
+    "requests",
+    "credit",
+    "credits",
+    "weight",
+    "symbol",
+    "symbols",
+    "unique_symbol",
+    "unique_symbols",
+}
+_IN_FLIGHT_UNITS = {"concurrent_requests", "concurrency"}
 
 
 def _entitlement_seed(provider_name: str, capability: ProviderCapability) -> dict[str, Any]:
@@ -154,6 +539,57 @@ def _entitlement_seed(provider_name: str, capability: ProviderCapability) -> dic
         override = capability_overrides.get(capability.value)
         if isinstance(override, dict):
             base.update(override)
+    if provider_name == "marketdata_app":
+        reviewed_plan = marketdata_app_reviewed_plan()
+        if reviewed_plan is None:
+            base["configured_plan"] = "unreviewed"
+            base["usage_terms"] = (
+                "MarketData.app plan, credits, and licensing terms require explicit account review."
+            )
+        else:
+            plan, _ = reviewed_plan
+            base["configured_plan"] = f"marketdata-{plan}-operator-reviewed"
+            base["is_free"] = plan in {"free_forever", "starter_trial", "trader_trial"}
+            base["usage_terms"] = (
+                f"MarketData.app {plan} account plan; provider credits, single-IP, concurrency, "
+                "data-age, and licensing terms apply."
+            )
+    if provider_name == "tiingo":
+        plan = str(getattr(settings, "TIINGO_REVIEWED_PLAN", "starter") or "").strip().lower()
+        quota_seed = provider_rate_limit_seed("tiingo")
+        contract = quota_seed.get("quota_contract")
+        custom_profile_incomplete = plan == "custom" and (
+            not isinstance(contract, dict)
+            or not contract.get("dimensions")
+            or "custom_account_quota_values_or_evidence"
+            in (contract.get("unknown_dimensions") or [])
+        )
+        if plan not in {"starter", "power", "custom"} or custom_profile_incomplete:
+            base["configured_plan"] = "unreviewed"
+            base["usage_terms"] = "Tiingo account plan quota profile is incomplete or unrecognized."
+        else:
+            base["configured_plan"] = f"tiingo-{plan}-operator-reviewed"
+            base["is_free"] = plan == "starter"
+            base["usage_terms"] = (
+                f"Tiingo {plan} plan; provider-specific request, symbol, and bandwidth quotas apply."
+            )
+    if provider_name == "fmp":
+        plan = str(getattr(settings, "FMP_REVIEWED_PLAN", "basic") or "").strip().lower()
+        if plan not in {"basic", "starter", "premium", "ultimate"}:
+            base["configured_plan"] = "unreviewed"
+            base["is_free"] = False
+            base["usage_terms"] = "FMP account plan is unrecognized and must be reviewed."
+        else:
+            base["configured_plan"] = f"fmp-{plan}-operator-reviewed"
+            base["is_free"] = plan == "basic"
+            base["usage_terms"] = (
+                f"FMP {plan} personal-use plan; provider request and rolling bandwidth "
+                "quotas apply."
+            )
+    base.setdefault(
+        "live_probe_status",
+        settings.PROVIDER_LIVE_PROBE_STATUS_SEEDS.get(provider_name, "not_run"),
+    )
     return {
         key: value
         for key, value in base.items()
@@ -182,39 +618,735 @@ def _usage_tracking_config(data_source: DataSource) -> dict[str, Any]:
     return tracking if isinstance(tracking, dict) else {}
 
 
-def _usage_cost_for_operation(data_source: DataSource, operation: str) -> tuple[str, str, Decimal]:
+def _dimension_applies_to_operation(dimension: dict[str, Any], operation: str) -> bool:
+    """Return whether a reviewed quota dimension covers this operation.
+
+    Provider contracts occasionally contain an application-control dimension
+    for one control-plane operation (for example a serialized account-usage
+    bootstrap probe).  The declaration is explicit and operation-scoped; no
+    caller may infer that a missing dimension map means zero usage.
+    """
+
+    applies_to = dimension.get("applies_to_operations")
+    if applies_to is None:
+        return True
+    if not isinstance(applies_to, list) or not applies_to:
+        return False
+    family = _operation_family(operation)
+    return operation in {str(item) for item in applies_to} or family in {
+        str(item) for item in applies_to
+    }
+
+
+def _usage_cost_for_operation(
+    data_source: DataSource,
+    operation: str,
+    policy: ProviderPolicy | None = None,
+    *,
+    operation_cost_override: int | Decimal | None = None,
+) -> tuple[str, str, Decimal]:
     tracking = _usage_tracking_config(data_source)
     mode = str(tracking.get("mode") or "call_count")
     unit_label = str(tracking.get("unit_label") or "requests")
-    operation_costs = tracking.get("operation_costs") or {}
+    contract = dict(policy.quota_contract or {}) if policy is not None else {}
+    operation_costs = tracking.get("operation_costs") or contract.get("operation_costs") or {}
     family = _operation_family(operation)
-    raw_cost = 1
-    if isinstance(operation_costs, dict):
-        raw_cost = operation_costs.get(family, operation_costs.get(operation, 1))
-    try:
-        cost = Decimal(str(raw_cost))
-    except Exception:
-        cost = Decimal("1")
-    if cost <= 0:
-        cost = Decimal("1")
+    if operation_cost_override is not None:
+        raw_cost = operation_cost_override
+    elif isinstance(operation_costs, dict):
+        raw_cost = operation_costs.get(family, operation_costs.get(operation))
+    else:
+        raw_cost = None
+    if not _is_positive_operation_cost(raw_cost):
+        raise ProviderQuotaUnknownError(
+            f"No valid reviewed operation cost for {data_source.name}/{operation}"
+        )
+    cost = Decimal(str(raw_cost))
     return mode, unit_label, cost
+
+
+def _dimension_costs_for_operation(
+    policy: ProviderPolicy,
+    data_source: DataSource,
+    operation: str,
+    default_units: Decimal,
+) -> dict[str, int]:
+    """Return conservative per-dimension reservation units for one call.
+
+    Request/credit/weight dimensions use the operation's ordinary cost. A
+    provider may declare dimensions with a different unit (for example bytes)
+    and provide an explicit operation-specific upper bound in
+    ``usage_tracking.dimension_costs``. Missing bounds are rejected by
+    ``provider_contract_operation_cost_known`` rather than guessed here.
+    """
+    tracking = _usage_tracking_config(data_source)
+    contract = dict(policy.quota_contract or {})
+    explicit = tracking.get("dimension_costs") or contract.get("dimension_costs")
+    default_cost = _positive_integer_cost(default_units)
+    if default_cost is None:
+        raise ProviderQuotaUnknownError(
+            f"No valid reviewed operation cost for {data_source.name}/{operation}"
+        )
+    result: dict[str, int] = {}
+    family = _operation_family(operation)
+    for dimension in quota_dimensions(policy):
+        name = str(dimension["name"])
+        if not _dimension_applies_to_operation(dimension, operation):
+            result[name] = 0
+            continue
+        unit = str(dimension.get("unit") or "").strip().lower()
+        raw_map = explicit.get(name) if isinstance(explicit, dict) else None
+        if unit in {"concurrent_requests", "concurrency"} and raw_map is None:
+            result[name] = 1
+            continue
+        if raw_map is not None:
+            if not isinstance(raw_map, dict):
+                raise ProviderQuotaUnknownError(
+                    f"No valid reviewed dimension cost for {data_source.name}/{operation}/{name}"
+                )
+            if not raw_map:
+                # An explicitly empty map means that the dimension does not
+                # apply to this operation (for example IBKR's historical
+                # concurrency budget on a metadata lookup, or FINRA's async
+                # download budget on a synchronous POST). Never infer a unit
+                # for a dimension the reviewed contract explicitly excludes.
+                result[name] = 0
+                continue
+            else:
+                raw_value = raw_map.get(family, raw_map.get(operation))
+                if isinstance(raw_value, dict):
+                    if not raw_value:
+                        result[name] = 0
+                        continue
+                    raise ProviderQuotaUnknownError(
+                        f"No valid reviewed dimension cost for {data_source.name}/{operation}/{name}"
+                    )
+                if raw_value is not None:
+                    parsed = _positive_integer_cost(raw_value)
+                    if parsed is None:
+                        raise ProviderQuotaUnknownError(
+                            f"No valid reviewed dimension cost for {data_source.name}/{operation}/{name}"
+                        )
+                    if unit in {"byte", "bytes"} and str(data_source.name).strip().lower() in {
+                        "fmp",
+                        "tiingo",
+                    }:
+                        # These providers' configured byte bounds are per
+                        # HTTP response. Their history adapters can partition
+                        # one logical fetch into multiple requests, with the
+                        # exact request count supplied as the operation cost.
+                        # Reserve the per-response ceiling for every planned
+                        # request so aggregate bandwidth cannot be
+                        # under-reserved before transport begins.
+                        parsed *= default_cost
+                    result[name] = parsed
+                    continue
+                if unit in {"concurrent_requests", "concurrency"}:
+                    # Concurrency is a release-only unit and always reserves
+                    # one in-flight slot per invocation, independent of a
+                    # multi-request operation's ordinary usage cost.
+                    result[name] = 1
+                    continue
+                if contract.get("dimension_costs_required") and unit not in _DIMENSION_RATE_UNITS:
+                    raise ProviderQuotaUnknownError(
+                        f"No valid reviewed dimension cost for {data_source.name}/{operation}/{name}"
+                    )
+        result[name] = default_cost
+    if contract.get("dimension_costs_required") and not explicit:
+        return {}
+    return result
+
+
+def _account_usage_bootstrap_dimension_costs(
+    *,
+    provider_name: str,
+    capability: str,
+    operation: str,
+    policy: ProviderPolicy,
+    data_source: DataSource,
+    default_units: Decimal,
+) -> dict[str, int] | None:
+    """Build a safe first-snapshot plan for explicitly reconciled quota pools.
+
+    Only finite dimensions whose native account-usage response is explicitly
+    mapped may be omitted from the pre-call debit: that response establishes
+    the post-call baseline, including the usage probe itself. Every other
+    finite pool must already have a usable baseline (or an explicit local-zero
+    baseline). An unreported pool cannot be made safe by calling an endpoint
+    that does not report it.
+    """
+
+    if operation != "fetch_account_usage":
+        return None
+    contract = dict(policy.quota_contract or {})
+    bootstrap = contract.get("account_usage_bootstrap")
+    if not isinstance(bootstrap, dict) or bootstrap.get("enabled") is not True:
+        return None
+    dimensions = quota_dimensions(policy)
+    finite = [
+        dimension
+        for dimension in dimensions
+        if _dimension_applies_to_operation(dimension, operation)
+        and str(dimension.get("unit") or "").strip().lower()
+        not in {"concurrent_requests", "concurrency"}
+    ]
+    if not finite:
+        return None
+    from app.services.provider_quota_coordinator import (
+        ProviderQuotaAdmissionError,
+        ProviderQuotaCoordinatorError,
+        provider_quota_baseline_status,
+    )
+
+    reconciled = account_usage_reconciled_dimensions(policy, operation)
+    bootstrap_unknown: set[str] = set()
+    for dimension in finite:
+        name = str(dimension["name"])
+        try:
+            status = provider_quota_baseline_status(
+                provider_name=provider_name,
+                capability=capability,
+                policy=policy,
+                dimension_name=name,
+            )
+        except ProviderQuotaUnknownError:
+            if name in reconciled:
+                bootstrap_unknown.add(name)
+                continue
+            raise ProviderQuotaUnknownError(
+                f"provider account-usage probe cannot safely charge unreported "
+                f"quota dimension {provider_name}/{name}"
+            ) from None
+        except (
+            ProviderQuotaAdmissionError,
+            ProviderQuotaCoordinatorError,
+            ValueError,
+            TypeError,
+        ) as exc:
+            raise ProviderQuotaUnknownError(
+                f"provider account-usage baseline status is unavailable for "
+                f"{provider_name}/{name}"
+            ) from exc
+        if status.get("status") == "initializable":
+            continue
+        if status.get("status") != "verified":
+            if name in reconciled:
+                bootstrap_unknown.add(name)
+                continue
+            raise ProviderQuotaUnknownError(
+                f"provider account-usage probe cannot safely charge unreported "
+                f"quota dimension {provider_name}/{name}"
+            )
+    if not bootstrap_unknown:
+        return None
+    costs = _dimension_costs_for_operation(
+        policy,
+        data_source,
+        operation,
+        default_units,
+    )
+    for name in bootstrap_unknown:
+        costs[name] = 0
+    return costs
+
+
+def _consumed_dimension_costs(
+    policy: ProviderPolicy,
+    measurement: Any,
+    reserved_units: dict[str, int],
+) -> dict[str, int]:
+    """Settle byte dimensions from observed transport, conservatively otherwise."""
+    consumed: dict[str, int] = {}
+    headers = {
+        str(key).lower(): str(value)
+        for key, value in (getattr(measurement, "response_headers", {}) or {}).items()
+    }
+    for dimension in quota_dimensions(policy):
+        name = str(dimension["name"])
+        unit = str(dimension.get("unit") or "").lower()
+        if name not in reserved_units:
+            raise ProviderQuotaUnknownError(
+                f"Missing reserved dimension cost for {name} during settlement"
+            )
+        raw_reserved_int = _nonnegative_integer(reserved_units[name])
+        if raw_reserved_int is None:
+            raise ProviderQuotaUnknownError(
+                f"Invalid reserved dimension cost for {name} during settlement"
+            )
+        # An explicit zero means this dimension is not applicable to the
+        # operation (for example an async-download budget on a synchronous
+        # call). Preserve that decision during settlement instead of charging
+        # the compatibility default of one unit.
+        if raw_reserved_int <= 0:
+            consumed[name] = 0
+            continue
+        reserved = raw_reserved_int
+        if unit in {"byte", "bytes"}:
+            # If an adapter did not emit telemetry, retain the full
+            # reservation rather than under-reporting a bandwidth budget.
+            observed_requests = _nonnegative_integer(getattr(measurement, "http_requests", 0) or 0)
+            observed_bytes = _nonnegative_integer(getattr(measurement, "response_bytes", 0) or 0)
+            if observed_requests is None or observed_bytes is None:
+                raise ProviderQuotaUnknownError(
+                    f"Invalid transport measurement for {name} during settlement"
+                )
+            consumed[name] = max(0, observed_bytes) if observed_requests else reserved
+        elif (
+            unit in {"credit", "credits"}
+            and int(dimension.get("window_seconds", 0) or 0) == 86400
+            and "marketdata.app" in str(dimension.get("source") or "").lower()
+        ):
+            # MarketData.app reports the charge for this response explicitly.
+            # Use it when it is a non-negative integer; otherwise retain the
+            # pre-call reservation rather than guessing from response size.
+            try:
+                observed = int(headers["x-api-ratelimit-consumed"])
+            except (KeyError, TypeError, ValueError):
+                observed = None
+            consumed[name] = observed if observed is not None and observed >= 0 else reserved
+        else:
+            consumed[name] = reserved
+    return consumed
+
+
+def _usage_unit_kind(value: Any) -> str:
+    """Normalize a profile label or quota unit for settlement matching."""
+
+    normalized = "".join(
+        character for character in str(value or "").strip().lower() if character.isalnum()
+    )
+    if normalized in {"request", "requests", "call", "calls"}:
+        return "requests"
+    if normalized in {"weight", "weights", "requestweight"}:
+        return "weight"
+    if normalized in {"credit", "credits"}:
+        return "credits"
+    if normalized in {"byte", "bytes"}:
+        return "bytes"
+    if normalized in {"symbol", "symbols", "uniquesymbol", "uniquesymbols"}:
+        return "symbols"
+    return normalized
+
+
+def _settled_usage_units(
+    policy: ProviderPolicy,
+    *,
+    usage_unit_label: str,
+    reserved_dimension_units: dict[str, int],
+    consumed_dimension_units: dict[str, int],
+) -> Decimal | None:
+    """Return the settled amount for the profile's primary usage unit.
+
+    A provider may expose several simultaneous dimensions (for example a
+    minute and daily credit pool, or request plus byte budgets). Only a
+    dimension whose reviewed unit matches the profile label and participated
+    in this operation is eligible. If matching dimensions disagree, the
+    primary amount is ambiguous and remains NULL rather than being guessed.
+    """
+
+    target = _usage_unit_kind(usage_unit_label)
+    if not target:
+        return None
+    values: set[int] = set()
+    for dimension in quota_dimensions(policy):
+        name = str(dimension["name"])
+        if _usage_unit_kind(dimension.get("unit")) != target:
+            continue
+        reserved = reserved_dimension_units.get(name, 0)
+        consumed = consumed_dimension_units.get(name, 0)
+        if isinstance(reserved, bool) or not isinstance(reserved, int) or reserved <= 0:
+            if isinstance(consumed, bool) or not isinstance(consumed, int) or consumed <= 0:
+                continue
+        if isinstance(consumed, bool) or not isinstance(consumed, int) or consumed < 0:
+            return None
+        values.add(consumed)
+    if len(values) != 1:
+        return None
+    return Decimal(str(values.pop()))
+
+
+def _observed_dimension_totals(policy: ProviderPolicy, measurement: Any) -> dict[str, int]:
+    """Translate provider-native cumulative credit headers into safe totals.
+
+    Twelve Data returns the current credit usage and remaining credits after
+    each request. Tradier returns an allowed/used/available token-window
+    snapshot, and Binance returns cumulative one-minute request weight. Each
+    observation is restricted to its provider-specific contract shape; a
+    header that does not prove the configured limit is kept as telemetry but
+    cannot safely alter quota accounting.
+    """
+
+    headers = {
+        str(key).lower(): str(value)
+        for key, value in (getattr(measurement, "response_headers", {}) or {}).items()
+    }
+    try:
+        used = int(headers["api-credits-used"])
+        left = int(headers["api-credits-left"])
+    except (KeyError, TypeError, ValueError):
+        used = left = None
+    if used is not None and (used < 0 or left is None or left < 0):
+        used = left = None
+    totals: dict[str, int] = {}
+    for dimension in quota_dimensions(policy):
+        name = str(dimension["name"])
+        source = str(dimension.get("source") or "").lower()
+        unit = str(dimension.get("unit") or "").lower()
+        limit = int(dimension["limit"])
+        window_seconds = int(dimension["window_seconds"])
+        if unit in {"credit", "credits"} and window_seconds == 60 and "twelvedata.com" in source:
+            if used is not None and left is not None and used + left == limit:
+                totals[name] = min(used, limit)
+            continue
+        if unit in {"request", "requests"} and window_seconds == 60 and "tradier.com" in source:
+            try:
+                allowed = int(headers["x-ratelimit-allowed"])
+                token_used = int(headers["x-ratelimit-used"])
+                available = int(headers["x-ratelimit-available"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if (
+                allowed == limit
+                and token_used >= 0
+                and available >= 0
+                and token_used + available == allowed
+            ):
+                totals[name] = min(token_used, limit)
+            continue
+        if unit == "weight" and window_seconds == 60 and "binance.com" in source:
+            try:
+                weight_used = int(headers["x-mbx-used-weight-1m"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if 0 <= weight_used <= limit:
+                totals[name] = weight_used
+            continue
+        if unit in {"request", "requests"} and window_seconds == 60 and "docs.xstocks.fi" in source:
+            # The xStocks public API currently returns a shared limit/remaining
+            # snapshot on anonymous public endpoints. Reconcile only the exact
+            # observed contract; missing or changed headers remain telemetry
+            # and cannot silently redefine this reviewed quota.
+            try:
+                header_limit = int(headers["x-ratelimit-limit"])
+                remaining = int(headers["x-ratelimit-remaining"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if header_limit == limit and 0 <= remaining <= header_limit:
+                totals[name] = header_limit - remaining
+            continue
+        if (
+            unit in {"request", "requests"}
+            and window_seconds == 60
+            and "about-market-data-api" in source
+            and "alpaca.markets" in source
+        ):
+            # Alpaca's market-data responses expose the current request
+            # window on X-RateLimit-Limit/Remaining/Reset. Reconcile only
+            # when the response proves the exact reviewed Basic/Algo limit;
+            # Broker API correspondent limits are deliberately excluded from
+            # this market-data contract because Alpaca does not publish a
+            # fixed numeric Broker API allowance.
+            try:
+                header_limit = int(headers["x-ratelimit-limit"])
+                remaining = int(headers["x-ratelimit-remaining"])
+                reset_epoch = int(headers["x-ratelimit-reset"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            # Alpaca's native counter is only useful as a current-window
+            # observation when the response also proves the provider's reset
+            # boundary.  Do not turn a limit/remaining pair from a different
+            # endpoint, stale cache, or changed contract into durable usage.
+            if header_limit == limit and 0 <= remaining <= header_limit and reset_epoch > 0:
+                totals[name] = header_limit - remaining
+            continue
+        if unit in {"credit", "credits"} and window_seconds == 86400 and "marketdata.app" in source:
+            try:
+                header_limit = int(headers["x-api-ratelimit-limit"])
+                remaining = int(headers["x-api-ratelimit-remaining"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            # Remaining credits may be negative after a provider permits a
+            # request with only one credit left but the response costs more.
+            # Preserve that overspend as cumulative usage; never let a stale
+            # or mismatched limit alter the local window.
+            if header_limit == limit and remaining <= header_limit:
+                totals[name] = max(0, header_limit - remaining)
+            continue
+        if (
+            unit in {"request", "requests"}
+            and "gate.com/docs/developers/apiv4/en/" in source
+            and window_seconds == 1
+        ):
+            # Gate documents a 5-qps/IP limit for each public TradFi stock
+            # endpoint. The durable capability window intentionally applies
+            # the same limit across the read-only stock capability, which is
+            # conservative when multiple documented endpoints are polled at
+            # once. Response counters are observational only; they are not a
+            # prerequisite because the published contract is static.
+            try:
+                header_limit = int(headers["x-ratelimit-limit"])
+                remaining = int(headers["x-ratelimit-remaining"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if header_limit == limit and 0 <= remaining <= header_limit:
+                totals[name] = header_limit - remaining
+    return totals
+
+
+def _coordinator_settlement(
+    policy: ProviderPolicy,
+    measurement: Any,
+    reserved_units: dict[str, int],
+    *,
+    provider_name: str | None = None,
+    operation: str | None = None,
+    error: Exception | None = None,
+) -> tuple[dict[str, int], set[str]]:
+    """Use exact transport evidence; retain worst-case debit when ambiguous."""
+
+    requests = _nonnegative_integer(getattr(measurement, "http_requests", 0) or 0)
+    response_bytes = _nonnegative_integer(getattr(measurement, "response_bytes", 0) or 0)
+    if requests is None or response_bytes is None or requests <= 0:
+        return {}, set(reserved_units)
+    observed: dict[str, int] = {}
+    unknown: set[str] = set()
+    dimensions_by_name = {str(item.get("name")): item for item in quota_dimensions(policy)}
+    for name, reserved in reserved_units.items():
+        unit = str(dimensions_by_name.get(name, {}).get("unit") or "").lower()
+        if unit in {"concurrent_requests", "concurrency"}:
+            continue
+        if unit in {"byte", "bytes"}:
+            # Transport instrumentation observes full response bodies. A
+            # timeout without a complete response leaves the reservation
+            # ambiguous; it is not converted into a smaller guessed debit.
+            observed[name] = response_bytes
+        else:
+            # Operation-specific request/credit/weight costs are the reviewed
+            # provider contract. A received response proves the operation ran.
+            observed[name] = reserved
+    # Marketstack's FAQ documents that API errors do not count toward its
+    # monthly request allowance. The HTTP attempt still consumes the
+    # independent requests-per-second budget, and response bytes remain measured.
+    _apply_marketstack_api_error_usage(provider_name, error, observed)
+    # EODHD explicitly returns HTTP 403 when a valid token lacks access to an
+    # endpoint. A credentialed account-usage snapshot after this exact
+    # Fundamentals denial showed that its weighted daily-call counter did not
+    # move, while the request still counts toward the separate minute request
+    # limit (per EODHD's API Limits documentation). Do not charge the 10-call
+    # Fundamentals daily debit for that denied operation; retain all other
+    # reserved dimensions conservatively. Keep this narrow to the operation
+    # actually verified rather than generalizing to arbitrary provider errors.
+    if (
+        provider_name == "eodhd"
+        and operation == "get_instrument_profile"
+        and getattr(error, "status_code", None) == 403
+    ):
+        observed["calls_per_day"] = 0
+    return observed, unknown
+
+
+def _provider_http_status(error: Exception | None) -> int | None:
+    """Return a valid HTTP status carried by a typed provider error."""
+
+    status = getattr(error, "status_code", None)
+    if isinstance(status, bool) or not isinstance(status, int) or not 100 <= status <= 599:
+        return None
+    return status
+
+
+def _apply_marketstack_api_error_usage(
+    provider_name: str | None,
+    error: Exception | None,
+    consumed_dimension_units: dict[str, int],
+) -> None:
+    """Apply Marketstack's documented no-monthly-debit rule to API errors."""
+
+    status = _provider_http_status(error)
+    if (
+        provider_name == "marketstack"
+        and status is not None
+        and status >= 400
+        and "requests_per_month" in consumed_dimension_units
+    ):
+        # The separate requests-per-second window still counts the attempt.
+        consumed_dimension_units["requests_per_month"] = 0
+
+
+async def _settle_coordinator_best_effort(
+    reservation: Any,
+    *,
+    policy: ProviderPolicy,
+    measurement: Any | None,
+    reserved_units: dict[str, int],
+    not_sent: bool = False,
+    provider_name: str | None = None,
+    operation: str | None = None,
+    error: Exception | None = None,
+) -> None:
+    # Provider-native cumulative headers are intentionally not copied into the
+    # independent durable coordinator here. They may include calls from other
+    # clients and can overlap the coordinator's own settled reservations;
+    # applying a total as a per-call debit would either double-count or erase
+    # an active baseline. Exact native snapshots use the explicit
+    # account-usage reconciliation path instead; this settlement records only
+    # the reviewed operation cost and measured bytes for this reservation.
+    from app.services.provider_quota_coordinator import (
+        ProviderQuotaCoordinatorError,
+        settle_provider_quota_async,
+    )
+
+    if reservation is None:
+        return
+    if not_sent:
+        observed = {name: 0 for name in reserved_units}
+        unknown: set[str] = set()
+    else:
+        observed, unknown = _coordinator_settlement(
+            policy,
+            measurement,
+            reserved_units,
+            provider_name=provider_name,
+            operation=operation,
+            error=error,
+        )
+    try:
+        await settle_provider_quota_async(
+            reservation,
+            observed_dimension_units=observed,
+            unknown_dimensions=unknown,
+            release_identities=not_sent,
+        )
+    except ProviderQuotaCoordinatorError as exc:
+        # The independent reservation remains charged after a settlement
+        # outage. Do not undo a successful provider response or risk releasing
+        # capacity that may already have been consumed remotely.
+        logger.error("provider quota settlement unavailable: %s", exc)
+
+
+def provider_contract_operation_cost_known(
+    policy: ProviderPolicy,
+    data_source: DataSource,
+    operation: str | None = None,
+    operation_cost_override: int | Decimal | None = None,
+    usage_identity: str | None = None,
+) -> bool:
+    """Return whether a quota contract can be safely charged for this call.
+
+    Every routable provider operation must have an explicit reviewed cost (or
+    a caller-supplied estimate). Providers whose allowance is weighted per
+    endpoint, whose contract explicitly requires credit costs, or whose
+    operation map is incomplete must not silently fall back to one request ==
+    one unit. They remain visible to operators but are non-routable until the
+    operation-cost map is populated.
+    """
+
+    contract = dict(policy.quota_contract or {})
+    tracking = _usage_tracking_config(data_source)
+    costs = tracking.get("operation_costs") or contract.get("operation_costs")
+    # A dimension-cost contract is also operation-specific: a request may
+    # reserve a different unit count for a byte/record budget than for the
+    # request-rate dimension. Do not infer a one-request charge for any
+    # provider just because its contract happens to use a simple request unit.
+    if operation_cost_override is None and (not isinstance(costs, dict) or not costs):
+        return False
+    if operation is None:
+        # A provider may have a cost table while the caller has not named the
+        # operation.  Selecting it anyway would silently charge one request
+        # for an unknown endpoint weight, so generic workload selection stays
+        # fail-closed.
+        return False
+    family = _operation_family(operation)
+    if operation_cost_override is not None:
+        if not _is_positive_operation_cost(operation_cost_override):
+            return False
+    else:
+        cost_key = family if family in costs else operation if operation in costs else None
+        if cost_key is None or not _is_positive_operation_cost(costs[cost_key]):
+            return False
+    if contract.get("dimension_costs_required"):
+        dimension_costs = tracking.get("dimension_costs") or contract.get("dimension_costs")
+        if not isinstance(dimension_costs, dict):
+            return False
+        for dimension in quota_dimensions(policy):
+            if not _dimension_applies_to_operation(dimension, operation):
+                continue
+            raw = dimension_costs.get(str(dimension["name"]))
+            unit = str(dimension.get("unit") or "").lower()
+            if unit in {"concurrent_requests", "concurrency"}:
+                continue
+            if raw is None:
+                if unit in _DIMENSION_RATE_UNITS:
+                    continue
+                return False
+            if not isinstance(raw, dict):
+                return False
+            if not raw:
+                if unit in _DIMENSION_RATE_UNITS:
+                    continue
+                return False
+            if family in raw:
+                dimension_cost = raw[family]
+            elif operation in raw:
+                dimension_cost = raw[operation]
+            else:
+                if unit in _DIMENSION_RATE_UNITS:
+                    continue
+                return False
+            if isinstance(dimension_cost, dict):
+                if not dimension_cost and unit in _DIMENSION_RATE_UNITS:
+                    continue
+                return False
+            if _positive_integer_cost(dimension_cost) is None:
+                return False
+    if (
+        any(
+            str(dimension.get("unit") or "").lower()
+            in {"symbol", "symbols", "unique_symbol", "unique_symbols"}
+            for dimension in quota_dimensions(policy)
+        )
+        and not str(usage_identity or "").strip()
+    ):
+        return False
+    return True
 
 
 class TokenBucket:
     def __init__(self, rate_per_minute: int, burst_capacity: int):
-        self.rate_per_second = max(rate_per_minute, 1) / 60.0
-        self.capacity = max(burst_capacity, 1)
+        # A zero/negative value is an invalid provider contract, not a signal
+        # to invent a one-token fallback.  Normal policy admission validates
+        # these fields, but this guard also protects direct/stale policy rows.
+        if (
+            isinstance(rate_per_minute, bool)
+            or not isinstance(rate_per_minute, int)
+            or rate_per_minute <= 0
+            or isinstance(burst_capacity, bool)
+            or not isinstance(burst_capacity, int)
+            or burst_capacity <= 0
+        ):
+            raise ProviderQuotaUnknownError(
+                "provider minute bucket requires positive integer rate and burst limits"
+            )
+        self.rate_per_second = rate_per_minute / 60.0
+        self.capacity = burst_capacity
         self.tokens = float(self.capacity)
         self.last_refill = time.monotonic()
 
-    def try_acquire(self) -> bool:
+    def try_acquire(self, units: int = 1) -> bool:
+        # Request/weight units are part of the reviewed provider contract.
+        # Never coerce a malformed value (including zero, booleans, or a
+        # fractional quantity) into one token, because that would silently
+        # under-account the provider's actual charge.
+        if isinstance(units, bool) or not isinstance(units, int) or units <= 0:
+            raise ProviderQuotaUnknownError(
+                "provider minute bucket requires positive integer acquisition units"
+            )
         now = time.monotonic()
         elapsed = now - self.last_refill
         self.last_refill = now
         self.tokens = min(self.capacity, self.tokens + elapsed * self.rate_per_second)
-        if self.tokens < 1:
+        if self.tokens < units:
             return False
-        self.tokens -= 1
+        self.tokens -= units
         return True
 
 
@@ -238,6 +1370,10 @@ def _capability_seed_order() -> dict[ProviderCapability, list[str]]:
             settings.OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY
         )
         or [settings.DEFAULT_OPTIONS_PROVIDER],
+        ProviderCapability.TOKENIZED_ASSETS: list(settings.TOKENIZED_PROVIDER_PRIORITY),
+        ProviderCapability.TOKENIZED_HISTORICAL_PRICES: list(
+            settings.PROVIDER_CHAIN_SEEDS.get("tokenized_historical_prices", [])
+        ),
     }
     for key, providers in settings.PROVIDER_CHAIN_SEEDS.items():
         try:
@@ -295,19 +1431,83 @@ def _apply_policy_defaults(
     provider_name: str,
     providers: list[str],
     freshness_seconds: int,
-    rate_seed: dict[str, int],
+    rate_seed: dict[str, Any],
 ) -> None:
     if not policy.is_pinned:
         policy.base_priority = _base_priority(provider_name, providers)
-    policy.max_concurrency = _int_or(
-        policy.max_concurrency,
-        rate_seed.get("max_concurrency", settings.PROVIDER_MAX_CONCURRENCY),
-    )
-    policy.tokens_per_minute = _int_or(
-        policy.tokens_per_minute, rate_seed.get("tokens_per_minute", 60)
-    )
-    policy.burst_capacity = _int_or(policy.burst_capacity, rate_seed.get("burst_capacity", 15))
-    policy.cooldown_seconds = _int_or(policy.cooldown_seconds, 30)
+    # Quota and concurrency values are external-provider facts, not local
+    # tuning defaults.  Leave them NULL when the seed does not explicitly
+    # declare a documented value; the resolver will then fail closed.
+    for field_name in (
+        "max_concurrency",
+        "tokens_per_minute",
+        "burst_capacity",
+        "cooldown_seconds",
+    ):
+        if getattr(policy, field_name) is None and rate_seed.get(field_name) is not None:
+            setattr(policy, field_name, rate_seed[field_name])
+    # Migrate only the exact prior repository-owned EODHD 1,000/minute seed
+    # back to the stricter Free-plan 20/minute cap. The pricing card's Free
+    # row conflicts with the broad API-limits page; never change a pinned or
+    # operator-customized policy row based only on a code-seed update.
+    if (
+        provider_name == "eodhd"
+        and not policy.is_pinned
+        and policy.tokens_per_minute == 1000
+        and policy.quota_source == rate_seed.get("quota_source")
+        and isinstance(policy.quota_contract, dict)
+        and not policy.quota_contract.get("unknown_dimensions")
+        and "source_conflicts" not in policy.quota_contract
+        and any(
+            isinstance(dimension, dict)
+            and dimension.get("name") == "requests_per_minute"
+            and dimension.get("limit") == 1000
+            and dimension.get("source") == "https://eodhd.com/financial-apis/api-limits"
+            and dimension.get("limit_basis") == "documented all-plan request ceiling"
+            for dimension in policy.quota_contract.get("dimensions") or []
+        )
+        and rate_seed.get("tokens_per_minute") == 20
+    ):
+        policy.tokens_per_minute = 20
+    seeded_contract = rate_seed.get("quota_contract")
+    if seeded_contract:
+        # Refresh contracts generated from the same repository/provider source
+        # when deployment configuration changes (for example a reviewed
+        # Tiingo byte-bound map is added). Never overwrite a contract whose
+        # provenance differs or whose policy is explicitly pinned for manual
+        # operator control.
+        same_seed_source = policy.quota_source == rate_seed.get("quota_source")
+        # New rows receive the seed contract at construction time below. Do
+        # not treat an existing NULL contract as a missing default: an
+        # operator may have deliberately removed it to quarantine routing,
+        # and diagnostics must not silently restore admission on the next
+        # seed pass. Existing, seed-owned contracts may still refresh when
+        # deployment configuration changes.
+        contract_refreshed = (
+            policy.quota_contract is not None
+            and same_seed_source
+            and not policy.is_pinned
+            and policy.quota_contract != seeded_contract
+        )
+        if contract_refreshed:
+            policy.quota_contract = dict(seeded_contract)
+            policy.quota_verified_at = (
+                datetime.now(UTC) if not quota_contract_missing_dimensions(policy) else None
+            )
+    # Do not backfill missing policy-level provenance on an existing row. A
+    # scope/source removal may be an intentional operator quarantine, and
+    # restoring the seed here would make a subsequent diagnostics read appear
+    # verified again without an explicit replacement contract. New rows get
+    # both fields in ``seed_provider_runtime`` when they are created.
+    if policy.quota_contract:
+        contract_missing = quota_contract_missing_dimensions(policy)
+        if contract_missing:
+            # Existing rows may predate the explicit contract gate and carry
+            # a stale timestamp. Unknown/untracked dimensions are evidence of
+            # an unresolved contract, never a verified admission record.
+            policy.quota_verified_at = None
+        elif policy.quota_verified_at is None:
+            policy.quota_verified_at = datetime.now(UTC)
     policy.freshness_seconds = _int_or(policy.freshness_seconds, freshness_seconds)
     if policy.score_floor is None:
         policy.score_floor = _DEFAULT_SCORE_FLOOR
@@ -319,12 +1519,63 @@ def _apply_policy_defaults(
         policy.effective_score = _DEFAULT_EFFECTIVE_SCORE
 
 
-def _bucket_key(provider_name: str, capability: ProviderCapability) -> tuple[str, str]:
-    return (provider_name, capability.value)
+def _local_control_group(policy: ProviderPolicy, *, include_concurrency: bool = False) -> str:
+    """Return the reviewed scope used by process-local admission controls.
+
+    Durable reservations are authoritative, but the in-process token bucket and
+    semaphore are still useful as an early back-pressure layer. They must use
+    the same explicitly reviewed grouping as the durable contract; otherwise a
+    provider-wide allowance would be multiplied once per capability inside one
+    worker process. Request/credit/weight dimensions participate in the token
+    bucket, while callers creating a semaphore may also include concurrent-
+    request dimensions. A contract without a relevant dimension retains the
+    capability compatibility key and therefore cannot accidentally share an
+    unrelated local limiter.
+    """
+
+    capability = str(getattr(policy.capability, "value", policy.capability))
+    groups: set[str] = set()
+    for dimension in quota_dimensions(policy):
+        unit = str(dimension.get("unit") or "").strip().lower()
+        if unit not in _DIMENSION_RATE_UNITS and not (
+            include_concurrency and unit in _IN_FLIGHT_UNITS
+        ):
+            continue
+        if unit in _IN_FLIGHT_UNITS:
+            configured = str(dimension.get("quota_group") or "").strip()
+            groups.add(configured or capability)
+            continue
+        # ``tokens_per_minute`` is the legacy process-local bucket. Prefer a
+        # provider dimension that represents that same short rate window and
+        # avoid using a monthly/rolling identity or bandwidth pool as a token
+        # bucket key.
+        try:
+            window_seconds = int(dimension.get("window_seconds") or 0)
+        except (TypeError, ValueError):
+            continue
+        if window_seconds <= 60:
+            configured = str(dimension.get("quota_group") or "").strip()
+            groups.add(configured or capability)
+    return "|".join(sorted(groups)) or capability
+
+
+def _bucket_key(provider_name: str, policy: ProviderPolicy) -> tuple[str, str]:
+    return (provider_name, _local_control_group(policy))
 
 
 def _get_bucket(policy: ProviderPolicy, provider_name: str) -> TokenBucket:
-    key = _bucket_key(provider_name, policy.capability)
+    if (
+        policy.tokens_per_minute is None
+        or policy.burst_capacity is None
+        or isinstance(policy.tokens_per_minute, bool)
+        or isinstance(policy.burst_capacity, bool)
+        or policy.tokens_per_minute <= 0
+        or policy.burst_capacity <= 0
+    ):
+        raise ProviderQuotaUnknownError(
+            f"{provider_name}/{policy.capability.value} has no verified positive minute bucket"
+        )
+    key = _bucket_key(provider_name, policy)
     config = (policy.tokens_per_minute, policy.burst_capacity)
     cached = _token_buckets.get(key)
     if cached is None or cached[0] != config:
@@ -336,14 +1587,562 @@ def _get_bucket(policy: ProviderPolicy, provider_name: str) -> TokenBucket:
 
 
 def _get_semaphore(policy: ProviderPolicy, provider_name: str) -> asyncio.Semaphore:
-    key = _bucket_key(provider_name, policy.capability)
+    # Serialising an unknown-concurrency provider is a local safety measure,
+    # not a claim about the vendor's entitlement.  The external quota contract
+    # remains the source of truth for admission and is never populated with 1.
+    configured_concurrency = (
+        policy.max_concurrency if policy.max_concurrency and policy.max_concurrency > 0 else 1
+    )
+    key = (provider_name, _local_control_group(policy, include_concurrency=True))
     cached = _semaphores.get(key)
-    if cached is None or cached[0] != max(1, policy.max_concurrency):
-        sem = asyncio.Semaphore(max(1, policy.max_concurrency))
-        _semaphores[key] = (max(1, policy.max_concurrency), sem)
+    if cached is None or cached[0] != configured_concurrency:
+        sem = asyncio.Semaphore(configured_concurrency)
+        _semaphores[key] = (configured_concurrency, sem)
         return sem
     sem = cached[1]
     return sem
+
+
+def quota_dimensions(policy: ProviderPolicy) -> list[dict[str, Any]]:
+    """Return only complete, positive, explicitly documented dimensions.
+
+    A partial contract is not safer than an unknown contract: silently
+    discarding one malformed dimension could admit requests that exceed the
+    provider's real allowance. Require reset semantics plus source/scope/unit
+    evidence for every declared dimension before routing.
+    """
+
+    contract = policy.quota_contract or {}
+    if not isinstance(contract, dict) or not provider_quota_reset_is_known(contract.get("reset")):
+        return []
+    dimensions = contract.get("dimensions")
+    if not isinstance(dimensions, list) or not dimensions:
+        return []
+    result: list[dict[str, Any]] = []
+    for item in dimensions:
+        if not isinstance(item, dict):
+            return []
+        limit = provider_positive_integer(item.get("limit"))
+        window_seconds = provider_positive_integer(item.get("window_seconds"))
+        if limit is None or window_seconds is None:
+            return []
+        if (
+            not str(item.get("name") or "").strip()
+            or not str(item.get("unit") or "").strip()
+            or not str(item.get("source") or "").strip()
+            or not str(item.get("scope") or policy.quota_scope or "").strip()
+        ):
+            return []
+        if "reset" in item and not provider_quota_reset_is_known(item.get("reset")):
+            return []
+        if "safety_reset" in item and not provider_quota_reset_is_known(item.get("safety_reset")):
+            return []
+        # A quota group is optional for backward compatibility, but an
+        # explicitly supplied value must be non-blank.  Blank grouping would
+        # silently collapse unrelated capabilities into an ambiguous bucket.
+        if "quota_group" in item and not str(item.get("quota_group") or "").strip():
+            return []
+        result.append(
+            {
+                **item,
+                "name": str(item["name"]),
+                "limit": limit,
+                "window_seconds": window_seconds,
+                "unit": str(item.get("unit") or "requests"),
+                "scope": str(item.get("scope") or policy.quota_scope or "unknown"),
+            }
+        )
+    return result
+
+
+def quota_contract_missing_dimensions(policy: ProviderPolicy) -> list[str]:
+    """Return exact quota-contract fields that prevent safe admission."""
+
+    contract = policy.quota_contract
+    if not isinstance(contract, dict):
+        return ["quota_contract", "quota_scope", "quota_source"]
+
+    missing: list[str] = []
+    # The policy-level provenance is part of the reviewed replacement
+    # contract.  Dimension-level sources alone do not establish which
+    # account/entitlement scope the policy represents, nor which reviewed
+    # contract the runtime is allowed to enforce.  Keep this check in the
+    # runtime admission path as well as the admin PATCH validator so policies
+    # restored from an older database or edited outside the API fail closed.
+    if not str(policy.quota_scope or "").strip():
+        missing.append("quota_scope")
+    if not str(policy.quota_source or "").strip():
+        missing.append("quota_source")
+    bootstrap = contract.get("account_usage_bootstrap")
+    if isinstance(bootstrap, dict) and bootstrap.get("enabled") is True:
+        if not account_usage_reconciled_dimensions(policy):
+            missing.append("quota_contract.account_usage_bootstrap.reconciled_dimensions")
+    unknown_dimensions = contract.get("unknown_dimensions")
+    if isinstance(unknown_dimensions, list):
+        safety_resolved: set[str] = set()
+        dimensions = contract.get("dimensions")
+        if isinstance(dimensions, list):
+            for dimension in dimensions:
+                if not isinstance(dimension, dict):
+                    continue
+                primary_reset = dimension.get("reset", contract.get("reset"))
+                admission_reset = provider_quota_admission_reset(
+                    primary_reset, dimension.get("safety_reset")
+                )
+                if admission_reset != str(
+                    primary_reset or ""
+                ).strip() and provider_quota_reset_is_admission_safe(admission_reset):
+                    dimension_name = str(dimension.get("name") or "").strip()
+                    explicit_names = {
+                        str(item or "").strip()
+                        for item in (dimension.get("safety_resolves_unknown_dimensions") or [])
+                        if str(item or "").strip()
+                    }
+                    if dimension_name:
+                        explicit_names.update(
+                            item
+                            for item in unknown_dimensions
+                            if str(item).startswith(f"{dimension_name}_")
+                        )
+                        safety_resolved.update(explicit_names & set(unknown_dimensions))
+        for item in unknown_dimensions:
+            name = str(item or "unknown").strip()
+            if name and name not in safety_resolved:
+                missing.append(f"quota_contract.unknown_dimensions.{name}")
+    untracked = contract.get("untracked_constraints")
+    if isinstance(untracked, list):
+        for item in untracked:
+            if isinstance(item, dict):
+                name = str(item.get("name") or "unknown").strip()
+            else:
+                name = str(item or "unknown").strip()
+            missing.append(f"quota_contract.untracked_constraints.{name}")
+    if not provider_quota_reset_is_known(contract.get("reset")):
+        missing.append(
+            "quota_contract.reset"
+            if not str(contract.get("reset") or "").strip()
+            else "quota_contract.reset.unknown"
+        )
+    dimensions = contract.get("dimensions")
+    if not isinstance(dimensions, list) or not dimensions:
+        missing.append("quota_contract.dimensions")
+        return missing
+
+    for index, item in enumerate(dimensions):
+        prefix = f"quota_contract.dimensions[{index}]"
+        if not isinstance(item, dict):
+            missing.append(prefix)
+            continue
+        for field_name in ("name", "limit", "window_seconds", "unit", "scope", "source"):
+            value = item.get(field_name)
+            if field_name in {"limit", "window_seconds"}:
+                valid = provider_positive_integer(value) is not None
+            else:
+                valid = bool(str(value or "").strip())
+            if not valid:
+                missing.append(f"{prefix}.{field_name}")
+        baseline_mode = str(
+            item.get("baseline_mode") or contract.get("baseline_mode") or ""
+        ).strip()
+        if baseline_mode == "local_zero" and item.get("application_usage_only") is not True:
+            missing.append(f"{prefix}.application_usage_only")
+        effective_reset = item.get("reset", contract.get("reset"))
+        admission_reset = provider_quota_admission_reset(effective_reset, item.get("safety_reset"))
+        if not provider_quota_reset_is_admission_safe(admission_reset):
+            suffix = (
+                "unknown" if not provider_quota_reset_is_known(admission_reset) else "unresolved"
+            )
+            missing.append(f"{prefix}.reset.{suffix}")
+    return missing
+
+
+def account_usage_reconciled_dimensions(
+    policy: ProviderPolicy, operation: str = "fetch_account_usage"
+) -> set[str]:
+    """Return the finite quota pools a native usage probe explicitly maps.
+
+    A bootstrap declaration is a narrow control-plane exception, not a
+    blanket waiver for every unresolved provider pool.  Keep the mapping
+    machine-checkable: it must be a non-empty list of unique names, every name
+    must identify a finite dimension that applies to the usage operation, and
+    concurrency leases can never be reconciled from an account counter.
+    """
+
+    contract = dict(getattr(policy, "quota_contract", None) or {})
+    bootstrap = contract.get("account_usage_bootstrap")
+    if not isinstance(bootstrap, dict) or bootstrap.get("enabled") is not True:
+        return set()
+    raw_names = bootstrap.get("reconciled_dimensions")
+    if not isinstance(raw_names, list) or not raw_names:
+        return set()
+    names = [str(item).strip() for item in raw_names]
+    if any(not item for item in names) or len(set(names)) != len(names):
+        return set()
+    declared_finite: set[str] = set()
+    dimensions = contract.get("dimensions")
+    if not isinstance(dimensions, list):
+        return set()
+    for dimension in dimensions:
+        if not isinstance(dimension, dict) or not _dimension_applies_to_operation(
+            dimension, operation
+        ):
+            continue
+        unit = str(dimension.get("unit") or "").strip().lower()
+        if unit in _IN_FLIGHT_UNITS:
+            continue
+        name = str(dimension.get("name") or "").strip()
+        if name:
+            declared_finite.add(name)
+    mapped = set(names)
+    return mapped if mapped <= declared_finite else set()
+
+
+def provider_contract_operation_costs_configured(
+    policy: ProviderPolicy, data_source: DataSource
+) -> bool:
+    """Whether a weighted/credit contract has an operation-cost map."""
+
+    contract = dict(policy.quota_contract or {})
+    if contract.get("dimension_costs_required"):
+        tracking = _usage_tracking_config(data_source)
+        dimension_costs = tracking.get("dimension_costs") or contract.get("dimension_costs")
+        operation_costs = tracking.get("operation_costs") or contract.get("operation_costs")
+        return bool(
+            isinstance(operation_costs, dict)
+            and operation_costs
+            and isinstance(dimension_costs, dict)
+        )
+    if not (contract.get("dynamic_endpoint_weights") or contract.get("operation_costs_required")):
+        return True
+    tracking = _usage_tracking_config(data_source)
+    costs = tracking.get("operation_costs") or contract.get("operation_costs")
+    return bool(isinstance(costs, dict) and costs)
+
+
+def policy_has_known_quota(policy: ProviderPolicy) -> bool:
+    """Whether this policy has a complete contract suitable for routing."""
+
+    # Keep the single completeness predicate authoritative.  In particular,
+    # this includes policy-level scope/source provenance and prevents a
+    # complete-looking JSON contract loaded from an older or externally edited
+    # row from bypassing the same fail-closed checks used by admin updates.
+    dimensions = quota_dimensions(policy)
+    if quota_contract_missing_dimensions(policy) or not dimensions:
+        return False
+    contract = dict(policy.quota_contract or {})
+    return all(
+        provider_quota_reset_is_admission_safe(
+            provider_quota_admission_reset(
+                item.get("reset", contract.get("reset")), item.get("safety_reset")
+            )
+        )
+        for item in dimensions
+    )
+
+
+def policy_allows_account_usage_bootstrap(policy: ProviderPolicy, operation: str | None) -> bool:
+    """Allow only a native usage snapshot when the provider pool is unresolved.
+
+    This exception is deliberately narrower than normal quota admission.  A
+    provider must opt in with ``account_usage_bootstrap``, expose at least one
+    finite usage dimension plus a separate concurrency lease for the snapshot,
+    and have no untracked constraints.  The finite pool is reserved at zero
+    until its native counters are observed; ordinary data operations still
+    require ``policy_has_known_quota``.
+    """
+
+    if operation != "fetch_account_usage":
+        return False
+    contract = dict(getattr(policy, "quota_contract", None) or {})
+    bootstrap = contract.get("account_usage_bootstrap")
+    if not isinstance(bootstrap, dict) or bootstrap.get("enabled") is not True:
+        return False
+    if not str(bootstrap.get("source") or "").strip():
+        return False
+    # The provider-specific native endpoint must say exactly which finite
+    # pools it reports.  Missing, duplicated, or unknown names are not an
+    # authorization to bootstrap every unresolved dimension.
+    if not account_usage_reconciled_dimensions(policy, operation):
+        return False
+    unknown_dimensions = {
+        str(item or "").strip()
+        for item in (contract.get("unknown_dimensions") or [])
+        if str(item or "").strip()
+    }
+    allowed_unknown_dimensions = {
+        str(item or "").strip()
+        for item in (bootstrap.get("allowed_unknown_dimensions") or [])
+        if str(item or "").strip()
+    }
+    # A provider may explicitly authorize a native usage probe to run while
+    # one named pool remains unresolved. This exception is exact-name
+    # allow-listed and never makes ordinary data operations routable.
+    if unknown_dimensions - allowed_unknown_dimensions:
+        return False
+    if contract.get("untracked_constraints"):
+        return False
+    dimensions = quota_dimensions(policy)
+    if not dimensions:
+        return False
+    finite = False
+    concurrency = False
+    for dimension in dimensions:
+        if not _dimension_applies_to_operation(dimension, operation):
+            continue
+        unit = str(dimension.get("unit") or "").strip().lower()
+        if unit in {"concurrent_requests", "concurrency"}:
+            concurrency = True
+        else:
+            finite = True
+    return finite and concurrency
+
+
+def policy_allows_unreviewed_account_usage_checkpoint(
+    policy: ProviderPolicy,
+    data_source: DataSource,
+    operation: str | None,
+) -> bool:
+    """Allow an unreviewed plan only for a reviewed, exactly zero-credit probe.
+
+    This does not waive request/rate quota or bootstrap validation. The
+    provider contract must name the exact operation and billable dimension,
+    cite first-party evidence, and explicitly exclude that operation from the
+    dimension cost map. Other dimensions (for example requests/minute) remain
+    charged through the normal coordinator.
+    """
+
+    if operation != "fetch_account_usage":
+        return False
+    contract = dict(policy.quota_contract or {})
+    bootstrap = contract.get("account_usage_bootstrap")
+    if not isinstance(bootstrap, dict) or not policy_allows_account_usage_bootstrap(
+        policy, operation
+    ):
+        return False
+    exception = bootstrap.get("checkpoint_unreviewed_zero_billing")
+    if not isinstance(exception, dict):
+        return False
+    if exception.get("operation") != operation:
+        return False
+    zero_cost = exception.get("cost")
+    if isinstance(zero_cost, bool) or not isinstance(zero_cost, int) or zero_cost != 0:
+        return False
+    source = str(exception.get("source") or "").strip()
+    evidence = str(exception.get("evidence") or "").strip()
+    if not source.startswith("https://") or not evidence:
+        return False
+    dimension_name = str(exception.get("dimension") or "").strip()
+    if not dimension_name or dimension_name not in account_usage_reconciled_dimensions(
+        policy, operation
+    ):
+        return False
+    billing_dimension = next(
+        (
+            dimension
+            for dimension in quota_dimensions(policy)
+            if str(dimension.get("name") or "").strip() == dimension_name
+            and _dimension_applies_to_operation(dimension, operation)
+        ),
+        None,
+    )
+    if billing_dimension is None or str(billing_dimension.get("unit") or "").lower() not in {
+        "call",
+        "calls",
+        "api_call",
+        "api_calls",
+        "credit",
+        "credits",
+        "api_credit",
+        "api_credits",
+    }:
+        return False
+    dimension_costs = _usage_tracking_config(data_source).get("dimension_costs") or {}
+    operation_costs = (
+        dimension_costs.get(dimension_name) if isinstance(dimension_costs, dict) else None
+    )
+    # An explicit empty operation map is the only supported zero-cost
+    # representation. Missing entries and numeric zero are not interpreted as
+    # free because provider cost contracts otherwise require positive costs.
+    return (
+        isinstance(operation_costs, dict)
+        and operation in operation_costs
+        and operation_costs[operation] == {}
+    )
+
+
+def _retry_at_from_headers(headers: Any, *, now: datetime | None = None) -> datetime | None:
+    """Parse standard retry/reset headers without inventing a provider delay."""
+
+    return provider_retry_at_from_headers(headers, now=now)
+
+
+def provider_rate_limit_error(
+    provider_name: str, exc: Exception, *, scope: str | None = None
+) -> ProviderRateLimitError | None:
+    """Convert an HTTP 429/418/quota response to a typed capacity error."""
+
+    if isinstance(exc, ProviderRateLimitError):
+        if exc.scope is None:
+            exc.scope = scope
+        if exc.retry_at is None:
+            # Some adapters construct the typed error before deriving the
+            # reset timestamp. The headers have already been filtered by the
+            # error type, so recover a provider-declared reset here rather
+            # than silently dropping it. Missing or malformed values remain
+            # unknown; this never invents a cooldown.
+            exc.retry_at = _retry_at_from_headers(exc.headers)
+        if exc.retry_at is None and provider_name.lower() == "edgar":
+            # SEC's current security policy says a rate-limited user may
+            # resume only after remaining below the threshold for ten
+            # minutes. Do not retry a blocked SEC scope immediately when its
+            # response omits Retry-After.
+            exc.retry_at = datetime.now(UTC) + timedelta(minutes=10)
+        return exc
+    response = exc.response if isinstance(exc, httpx.HTTPStatusError) else None
+    status_code = getattr(response, "status_code", None)
+    message = str(exc)
+    lower = message.lower()
+    edgar_rate_block = False
+    if provider_name.lower() == "edgar" and status_code == 403 and response is not None:
+        # SEC website rate blocks may be returned as an IP-level 403 rather
+        # than a conventional 429. Inspect only a short response prefix and
+        # retain no body text in durable telemetry.
+        response_prefix = bytes(getattr(response, "content", b"") or b"")[:8192].lower()
+        edgar_rate_block = b"rate" in response_prefix and any(
+            marker in response_prefix for marker in (b"threshold", b"limit", b"exceed")
+        )
+    is_quota = (
+        status_code in {418, 429}
+        or any(
+            marker in lower
+            for marker in (
+                "rate limit",
+                "rate_limit",
+                "too many requests",
+                "quota exceeded",
+                "quota limit",
+            )
+        )
+        or edgar_rate_block
+    )
+    if not is_quota:
+        return None
+    headers = dict(getattr(response, "headers", {}) or {})
+    retry_at = _retry_at_from_headers(headers)
+    if retry_at is None and provider_name.lower() == "edgar":
+        retry_at = datetime.now(UTC) + timedelta(minutes=10)
+    return ProviderRateLimitError(
+        provider_name,
+        message or f"{provider_name} rate limit exceeded",
+        retry_at=retry_at,
+        status_code=status_code,
+        scope=scope,
+        headers=headers,
+    )
+
+
+async def _apply_provider_capacity_hold(
+    db: AsyncSession,
+    *,
+    data_source_id: int,
+    policy: ProviderPolicy,
+    error: ProviderRateLimitError,
+) -> None:
+    """Hold the affected quota scope until reset or an explicit operator choice.
+
+    A provider rejection without a trustworthy reset cannot be converted into
+    an invented cooldown. Disable policies sharing that account/quota scope;
+    the admin policy endpoint is the explicit operator decision that can
+    re-enable them after external usage is reconciled. When a reset is known,
+    use persistent per-capability circuits for the same scope instead.
+    """
+
+    scope = str(error.scope or policy.quota_scope or "").strip()
+    policies_query = select(ProviderPolicy).where(ProviderPolicy.data_source_id == data_source_id)
+    if scope:
+        policies_query = policies_query.where(ProviderPolicy.quota_scope == scope)
+    policies = list((await db.execute(policies_query)).scalars().all())
+    if not policies:
+        policies = [policy]
+
+    if error.retry_at is None:
+        for affected_policy in policies:
+            affected_policy.is_enabled = False
+        await db.flush()
+        return
+
+    affected_capabilities = [item.capability for item in policies]
+    health_rows = (
+        (
+            await db.execute(
+                select(ProviderHealthState).where(
+                    ProviderHealthState.data_source_id == data_source_id,
+                    ProviderHealthState.capability.in_(affected_capabilities),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for health in health_rows:
+        if health.circuit_open_until is None or health.circuit_open_until < error.retry_at:
+            health.circuit_open_until = error.retry_at
+    await db.flush()
+
+
+def _capacity_response_headers(headers: dict[str, str] | None) -> dict[str, str]:
+    """Keep only non-sensitive rate-limit headers in durable capacity evidence."""
+
+    if not headers:
+        return {}
+    allowed = {
+        "retry-after",
+        "api-credits-request",
+        "api-credits-used",
+        "api-credits-left",
+        "x-api-ratelimit-limit",
+        "x-api-ratelimit-remaining",
+        "x-api-ratelimit-reset",
+        "x-api-ratelimit-consumed",
+        "x-ratelimit-limit",
+        "x-ratelimit-remaining",
+        "x-ratelimit-reset",
+        "x-ratelimit-allowed",
+        "x-ratelimit-used",
+        "x-ratelimit-available",
+        "x-ratelimit-expiry",
+        "x-ratelimit-limit-second",
+        "x-ratelimit-remaining-second",
+        "x-ratelimit-reset-second",
+        "x-ratelimit-limit-minute",
+        "x-ratelimit-remaining-minute",
+        "x-ratelimit-reset-minute",
+        "x-ratelimit-limit-hour",
+        "x-ratelimit-remaining-hour",
+        "x-ratelimit-reset-hour",
+        "x-ratelimit-limit-day",
+        "x-ratelimit-remaining-day",
+        "x-ratelimit-reset-day",
+        "x-ratelimit-limit-month",
+        "x-ratelimit-remaining-month",
+        "x-ratelimit-reset-month",
+        "x-rate-limit-limit",
+        "x-rate-limit-remaining",
+        "x-rate-limit-reset",
+        "x-mbx-used-weight-1m",
+        "x-mbx-order-count-1m",
+        "x-bapi-limit",
+        "x-bapi-limit-status",
+        "x-bapi-limit-reset-timestamp",
+        "ratelimit-limit",
+        "ratelimit-remaining",
+        "ratelimit-reset",
+    }
+    return {
+        str(key).lower(): str(value)[:240]
+        for key, value in headers.items()
+        if str(key).lower() in allowed
+    }
 
 
 async def seed_provider_runtime(db: AsyncSession) -> None:
@@ -393,7 +2192,7 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                     )
                 )
             ).scalar_one_or_none()
-            rate_seed = settings.PROVIDER_RATE_LIMIT_SEEDS.get(provider_name, {})
+            rate_seed = provider_rate_limit_seed(provider_name)
             freshness = settings.PROVIDER_FRESHNESS_SEEDS.get(
                 capability.value,
                 3600
@@ -407,13 +2206,20 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                     capability=capability,
                     is_enabled=True,
                     base_priority=_base_priority(provider_name, providers),
-                    max_concurrency=rate_seed.get(
-                        "max_concurrency", settings.PROVIDER_MAX_CONCURRENCY
-                    ),
-                    tokens_per_minute=rate_seed.get("tokens_per_minute", 60),
-                    burst_capacity=rate_seed.get("burst_capacity", 15),
+                    max_concurrency=rate_seed.get("max_concurrency"),
+                    tokens_per_minute=rate_seed.get("tokens_per_minute"),
+                    burst_capacity=rate_seed.get("burst_capacity"),
+                    cooldown_seconds=rate_seed.get("cooldown_seconds"),
+                    quota_contract=rate_seed.get("quota_contract"),
+                    quota_scope=rate_seed.get("quota_scope"),
+                    quota_source=rate_seed.get("quota_source"),
+                    quota_verified_at=None,
                     freshness_seconds=freshness,
                 )
+                if rate_seed.get("quota_contract") and not quota_contract_missing_dimensions(
+                    policy
+                ):
+                    policy.quota_verified_at = datetime.now(UTC)
                 db.add(policy)
             entitlement = (
                 await db.execute(
@@ -423,6 +2229,15 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                     )
                 )
             ).scalar_one_or_none()
+            entitlement_was_new = entitlement is None
+            entitlement_revision_before = 1
+            entitlement_values_before = None
+            if entitlement is not None:
+                entitlement_revision_before = int(entitlement.revision or 1)
+                entitlement_values_before = {
+                    field_name: deepcopy(getattr(entitlement, field_name))
+                    for field_name in _ENTITLEMENT_FIELDS
+                }
             if entitlement is None:
                 entitlement = ProviderEntitlement(
                     data_source_id=data_source.id,
@@ -450,23 +2265,136 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                 )
                 db.add(entitlement)
                 await db.flush()
-            elif entitlement.configured_plan == "unreviewed" and entitlement_seed:
+            if rate_seed.get("quota_contract"):
+                quota_policy = dict(entitlement.quota_policy or {})
+                configured_contract = dict(rate_seed["quota_contract"])
+                if provider_name == "marketdata_app" and entitlement_was_new:
+                    quota_policy["contract"] = configured_contract
+                else:
+                    quota_policy.setdefault("contract", configured_contract)
+                entitlement.quota_policy = quota_policy
+            seed_quota_policy = entitlement_seed.get("quota_policy")
+            if isinstance(seed_quota_policy, dict):
+                quota_policy = dict(entitlement.quota_policy or {})
+                for key, value in seed_quota_policy.items():
+                    # Code-owned structured constraints fill rows created by
+                    # older builds, but never overwrite an operator-reviewed
+                    # entitlement or quota contract.
+                    quota_policy.setdefault(key, value)
+                entitlement.quota_policy = quota_policy
+            repository_seed_plans = {
+                "unreviewed",
+                "free-forever",
+                "account-plan-review-required",
+                # EODHD's repository-managed free-plan seed also contains
+                # capability-specific endpoint entitlements. Refresh rows
+                # created before that distinction was recorded.
+                "free-20-calls-day",
+                # Existing installations may still have the pre-audit name;
+                # it was a repository seed, not an operator-selected plan.
+                "free-20-day",
+            }
+            if provider_name == "marketdata_app":
+                repository_seed_plans.update(
+                    {
+                        f"marketdata-{plan}-operator-reviewed"
+                        for plan in (
+                            "free_forever",
+                            "starter_trial",
+                            "trader_trial",
+                            "starter",
+                            "trader",
+                        )
+                    }
+                )
+            if provider_name == "fmp":
+                repository_seed_plans.update(
+                    {
+                        # Legacy static seed and every plan label generated
+                        # from FMP_REVIEWED_PLAN by previous/current runtimes.
+                        "basic-free",
+                        *{
+                            f"fmp-{plan}-operator-reviewed"
+                            for plan in ("basic", "starter", "premium", "ultimate")
+                        },
+                    }
+                )
+            if provider_name == "tiingo":
+                repository_seed_plans.update(
+                    {
+                        # Legacy static seed and every plan label generated
+                        # from TIINGO_REVIEWED_PLAN by previous/current runtimes.
+                        "starter-free",
+                        *{
+                            f"tiingo-{plan}-operator-reviewed"
+                            for plan in ("starter", "power", "custom")
+                        },
+                    }
+                )
+            preserve_manual_plan_review = False
+            if (
+                not entitlement_was_new
+                and provider_name in {"fmp", "tiingo"}
+                and str(entitlement.configured_plan or "").strip().lower() in repository_seed_plans
+            ):
+                current_revision = (
+                    await db.execute(
+                        select(ProviderEntitlementRevision).where(
+                            ProviderEntitlementRevision.data_source_id == data_source.id,
+                            ProviderEntitlementRevision.capability == capability,
+                            ProviderEntitlementRevision.revision == entitlement_revision_before,
+                        )
+                    )
+                ).scalar_one_or_none()
+                preserve_manual_plan_review = bool(
+                    current_revision
+                    and current_revision.change_reason not in {None, "runtime_seed"}
+                )
+            if (
+                not entitlement_was_new
+                and str(entitlement.configured_plan or "").strip().lower() in repository_seed_plans
+                and entitlement_seed
+                and not preserve_manual_plan_review
+            ):
                 # Upgrade rows created by older builds without overwriting an
                 # operator-reviewed entitlement.
-                prior_values = {
-                    field_name: getattr(entitlement, field_name) for field_name in entitlement_seed
-                }
                 for field_name, value in entitlement_seed.items():
                     setattr(entitlement, field_name, value)
-                if any(
-                    prior_values[field_name] != value
-                    for field_name, value in entitlement_seed.items()
-                ):
-                    entitlement.revision = int(entitlement.revision or 1) + 1
+            elif (
+                not entitlement_was_new
+                and str(entitlement.live_probe_status or "not_run").strip().lower()
+                not in _POSITIVE_LIVE_PROBE_STATUSES
+                and str(entitlement_seed.get("live_probe_status") or "not_run")
+                in _POSITIVE_LIVE_PROBE_STATUSES
+            ):
+                # Promote only repository-recorded positive evidence. Never
+                # downgrade or overwrite an operator-managed passing status.
+                entitlement.live_probe_status = str(entitlement_seed["live_probe_status"])
             elif entitlement.revision is None or entitlement.revision < 1:
                 entitlement.revision = 1
+            if (
+                provider_name == "marketdata_app"
+                and rate_seed.get("quota_contract")
+                and str(entitlement.configured_plan or "").startswith("marketdata-")
+                and str(entitlement.configured_plan or "").endswith("-operator-reviewed")
+            ):
+                # Environment-reviewed MarketData.app plans (including an
+                # expired trial's Free Forever fallback) are dynamic. Apply
+                # their active quota after the repository seed merge above so
+                # a static seed cannot restore an outdated daily allowance.
+                quota_policy = dict(entitlement.quota_policy or {})
+                quota_policy["contract"] = dict(rate_seed["quota_contract"])
+                entitlement.quota_policy = quota_policy
             if entitlement.revision is None or entitlement.revision < 1:
                 entitlement.revision = 1
+            if entitlement_values_before is not None:
+                entitlement_values_after = {
+                    field_name: deepcopy(getattr(entitlement, field_name))
+                    for field_name in _ENTITLEMENT_FIELDS
+                }
+                entitlement.revision = entitlement_revision_before + int(
+                    entitlement_values_after != entitlement_values_before
+                )
             await record_entitlement_revision(db, entitlement, change_reason="runtime_seed")
             _apply_policy_defaults(
                 policy,
@@ -514,8 +2442,34 @@ async def resolve_provider_chain(
     capability: ProviderCapability,
     *,
     instrument_id: int | None = None,
+    operation: str | None = None,
+    operation_cost_overrides: dict[str, int] | None = None,
+    adjusted: bool | None = None,
+    history_start: HistoryStartSpec | None = None,
 ) -> list[ResolvedProvider]:
     await seed_provider_runtime(db)
+    if not settings.PROVIDER_ROUTING_ENABLED:
+        return []
+    entitlement_candidate_filter = or_(
+        ProviderEntitlement.is_free.is_(True),
+        settings.ALLOW_PAID_PROVIDER_ROUTING,
+    )
+    if (
+        settings.PROVIDER_FREE_ONLY_CHECKPOINT
+        and capability == ProviderCapability.ACCOUNT_USAGE
+        and operation == "fetch_account_usage"
+    ):
+        # Include only the exact unreviewed native-usage candidate so the
+        # provider-specific zero-billing contract can be checked below. This
+        # is not entitlement admission: every other unreviewed plan is still
+        # rejected before transport by provider_entitlement_admission().
+        entitlement_candidate_filter = or_(
+            entitlement_candidate_filter,
+            and_(
+                ProviderEntitlement.configured_plan == "unreviewed",
+                ProviderPolicy.capability == ProviderCapability.ACCOUNT_USAGE,
+            ),
+        )
     rows = (
         await db.execute(
             select(ProviderPolicy, ProviderHealthState, DataSource, ProviderEntitlement)
@@ -533,7 +2487,7 @@ async def resolve_provider_chain(
             .where(
                 ProviderPolicy.capability == capability,
                 ProviderPolicy.is_enabled.is_(True),
-                ProviderEntitlement.is_free.is_(True),
+                entitlement_candidate_filter,
             )
         )
     ).all()
@@ -546,9 +2500,93 @@ async def resolve_provider_chain(
     binding_ids = (
         await get_provider_binding_ids(db, instrument_id) if instrument_id is not None else set()
     )
+    instrument_routing: tuple[str, str] | None = None
+    if instrument_id is not None:
+        instrument_routing = (
+            await db.execute(
+                select(AssetClass.name, InstrumentType.name)
+                .join(InstrumentType, InstrumentType.asset_class_id == AssetClass.id)
+                .join(Instrument, Instrument.instrument_type_id == InstrumentType.id)
+                .where(Instrument.id == instrument_id)
+            )
+        ).one_or_none()
     resolved: list[ResolvedProvider] = []
     current_environment = settings.APP_ENV.strip().lower()
     for policy, health, data_source, entitlement in rows:
+        account_usage_probe = (
+            capability == ProviderCapability.ACCOUNT_USAGE and operation == "fetch_account_usage"
+        )
+        configured_plan = str(entitlement.configured_plan or "").strip().lower()
+        unreviewed_usage_bootstrap = (
+            settings.PROVIDER_FREE_ONLY_CHECKPOINT
+            and account_usage_probe
+            and configured_plan == "unreviewed"
+            and policy_allows_unreviewed_account_usage_checkpoint(policy, data_source, operation)
+        )
+        if (
+            not unreviewed_usage_bootstrap
+            and not provider_entitlement_admission(
+                entitlement, provider_name=data_source.name, capability=capability
+            )["allowed"]
+        ):
+            continue
+        if provider_checkpoint_operation_hold_reason(data_source.name, operation):
+            # Checkpoint exclusions precede adapter construction, durable quota
+            # reservation, and transport. They cannot be bypassed by the paid
+            # routing flag or by a smaller call fitting current headroom.
+            continue
+        if data_source.name == "dinari":
+            # This credential is Sandbox-only. Sandbox records are live-canary
+            # evidence, never application routing candidates; do not let a
+            # paid-routing flag, custom quota seed, or stale database policy
+            # admit synthetic provider responses to normal persistence paths.
+            continue
+        if capability == ProviderCapability.PRICE_HISTORY and not provider_supports_adjustment(
+            data_source.name, adjusted
+        ):
+            continue
+        if capability == ProviderCapability.PRICE_HISTORY and history_start is not None:
+            try:
+                provider_history_start = (
+                    history_start(data_source.name) if callable(history_start) else history_start
+                )
+            except Exception:  # noqa: BLE001 - a failed bound must fail closed.
+                continue
+            history_allowed, _history_reason = provider_history_entitlement_matches(
+                entitlement, provider_history_start, now=now
+            )
+            if not history_allowed:
+                continue
+        # This check is also enforced above for all runtime callers. Keep the
+        # plan review check here for the account-usage bootstrap path.
+        if (not configured_plan or configured_plan == "unreviewed") and not account_usage_probe:
+            continue
+        if (
+            str(entitlement.live_probe_status or "not_run").strip().lower()
+            not in _POSITIVE_LIVE_PROBE_STATUSES
+        ):
+            continue
+        if (
+            provider_configuration_required(data_source.name)
+            and not provider_is_configured(data_source.name, operation=operation)
+        ) or (
+            entitlement.authentication_required
+            and not provider_is_configured(data_source.name, operation=operation)
+        ):
+            continue
+        # Non-secret provider safety controls (reviewed byte bounds, operation
+        # costs, terms/polling gates, and similar provider-specific admission
+        # inputs) are part of routing eligibility. Diagnostics still expose
+        # the exact missing names, but a configured credential/source alone
+        # must never bypass these controls.
+        routing_controls = provider_missing_routing_controls(data_source.name, operation)
+        # An operation-less chain is used by capability discovery and ordering
+        # tests; it cannot claim a response-priced endpoint. Defer Alpaca's
+        # event-only page-bound gate until the named operation is resolved.
+        if operation is None and data_source.name == "alpaca":
+            routing_controls = []
+        if routing_controls:
+            continue
         if (
             data_source.name == "yfinance"
             and capability
@@ -568,12 +2606,42 @@ async def resolve_provider_chain(
             continue
         if capability.value not in list_provider_capabilities(data_source.name):
             continue
+        if instrument_routing is not None and not provider_supports_instrument(
+            data_source.name,
+            asset_class=instrument_routing[0],
+            instrument_type=instrument_routing[1],
+        ):
+            # Method-level compatibility (for example ``fetch_ohlcv``) does
+            # not imply that the provider understands this instrument.  Keep
+            # routing class-aware so equity symbols cannot fall through to a
+            # crypto-only exchange adapter.
+            continue
         allowed_environments = {
             str(value).strip().lower() for value in entitlement.enabled_environments
         }
         if allowed_environments and current_environment not in allowed_environments:
             continue
         if entitlement.review_due_at and _as_utc(entitlement.review_due_at) <= now:
+            continue
+        if not policy_has_known_quota(policy):
+            # A provider-native account snapshot may be the mechanism that
+            # establishes the first exact usage observation.  Permit only the
+            # explicit zero-cost bootstrap contract; ordinary data operations
+            # remain fail-closed while the provider reset semantics are
+            # unresolved.
+            if not (
+                capability == ProviderCapability.ACCOUNT_USAGE
+                and policy_allows_account_usage_bootstrap(policy, operation)
+            ):
+                continue
+        if operation is not None and not provider_contract_operation_cost_known(
+            policy,
+            data_source,
+            operation,
+            (operation_cost_overrides or {}).get(data_source.name),
+        ):
+            # Weighted/credit providers are not candidates until this exact
+            # operation has a documented charge in the local usage profile.
             continue
         if health.circuit_open_until and health.circuit_open_until > now:
             continue
@@ -594,6 +2662,7 @@ async def resolve_provider_chain(
                 health=health,
                 support_status=effective_support,
                 has_symbol_binding=data_source.id in binding_ids,
+                entitlement=entitlement,
             )
         )
     resolved.sort(
@@ -618,7 +2687,6 @@ async def _record_result(
     latency_ms: int,
     response_items: int | None = None,
     error: Exception | None = None,
-    update_health: bool = True,
 ) -> None:
     health = resolved.health
     policy = resolved.policy
@@ -630,16 +2698,7 @@ async def _record_result(
     log_row.response_items = response_items
     if error is not None:
         log_row.error_type = error.__class__.__name__
-        log_row.error_message = str(error)
-
-    # A provider can legitimately return no rows for one symbol, timeframe, or
-    # historical range while remaining healthy for the capability overall (for
-    # example, Nasdaq is D1-only). Keep that request failure auditable in the
-    # log, but do not let an expected coverage gap trip the shared circuit or
-    # distort capability-wide health scoring.
-    if not update_health:
-        await db.flush()
-        return
+        log_row.error_message = bounded_redact_provider_message(error, max_length=4000)
 
     health.ewma_latency_ms = _ewma(health.ewma_latency_ms, Decimal(str(latency_ms)))
     health.ewma_success_rate = _ewma(
@@ -663,9 +2722,11 @@ async def _record_result(
         health.failure_streak += 1
         health.last_failure_at = now
         health.last_error_type = error.__class__.__name__ if error else "ProviderError"
-        health.last_error_message = str(error) if error else "Provider call failed"
+        health.last_error_message = (
+            bounded_redact_provider_message(error) if error else "Provider call failed"
+        )
         policy.learned_weight = _ewma(policy.learned_weight, Decimal("-4"))
-        if health.failure_streak >= 3:
+        if health.failure_streak >= 3 and policy.cooldown_seconds:
             health.circuit_open_until = now + timedelta(seconds=policy.cooldown_seconds)
 
     policy.effective_score = _effective_score(policy, health)
@@ -680,47 +2741,265 @@ async def execute_provider_call(
     *,
     instrument_id: int | None = None,
     provider_symbol: str | None = None,
+    usage_identity: str | Callable[[str], str | None] | None = None,
     provider_name: str | None = None,
+    operation_cost_overrides: dict[str, int] | None = None,
+    adjusted: bool | None = None,
+    history_start: HistoryStartSpec | None = None,
     invoke: Callable[[Any, str | None], T],
     response_items: Callable[[T], int | None] | None = None,
     treat_empty_as_failure: bool = False,
+    capture_response_payloads: bool = True,
 ) -> ProviderExecutionResult:
-    chain = await resolve_provider_chain(db, capability, instrument_id=instrument_id)
+    if inspect.iscoroutinefunction(invoke):
+        raise TypeError(
+            "provider invoke callback must be synchronous; async callbacks are not awaited"
+        )
+
+    chain = await resolve_provider_chain(
+        db,
+        capability,
+        instrument_id=instrument_id,
+        operation=operation,
+        operation_cost_overrides=operation_cost_overrides,
+        adjusted=adjusted,
+        history_start=history_start,
+    )
     if provider_name is not None:
         chain = [resolved for resolved in chain if resolved.provider_name == provider_name]
     loop = asyncio.get_event_loop()
     last_error: Exception | None = None
+    admission_denied: set[str] = set()
 
     for resolved in chain:
-        if not _get_bucket(resolved.policy, resolved.provider_name).try_acquire():
+        resolved_usage_identity = (
+            usage_identity(resolved.provider_name) if callable(usage_identity) else usage_identity
+        )
+        if resolved_usage_identity is None:
+            resolved_usage_identity = provider_symbol
+        if not provider_contract_operation_cost_known(
+            resolved.policy,
+            resolved.data_source,
+            operation,
+            (operation_cost_overrides or {}).get(resolved.provider_name),
+            resolved_usage_identity,
+        ):
             continue
-
+        override = (operation_cost_overrides or {}).get(resolved.provider_name)
         usage_mode, usage_unit_label, usage_units = _usage_cost_for_operation(
             resolved.data_source,
             operation,
+            resolved.policy,
+            operation_cost_override=override,
         )
-        log_row = ProviderRequestLog(
-            data_source_id=resolved.data_source.id,
-            capability=capability,
+        dimension_units = _account_usage_bootstrap_dimension_costs(
+            provider_name=resolved.provider_name,
+            capability=capability.value,
             operation=operation,
-            operation_family=_operation_family(operation),
-            instrument_id=instrument_id,
-            provider_symbol=provider_symbol,
-            requested_at=datetime.now(UTC),
-            usage_mode=usage_mode,
-            usage_unit_label=usage_unit_label,
-            usage_units=usage_units,
+            policy=resolved.policy,
+            data_source=resolved.data_source,
+            default_units=usage_units,
         )
-        db.add(log_row)
-        await db.flush()
+        if dimension_units is None:
+            dimension_units = _dimension_costs_for_operation(
+                resolved.policy,
+                resolved.data_source,
+                operation,
+                usage_units,
+            )
+        if quota_dimensions(resolved.policy) and not dimension_units:
+            continue
+        distinct_dimensions = {
+            str(dimension["name"])
+            for dimension in quota_dimensions(resolved.policy)
+            if str(dimension.get("unit") or "").lower()
+            in {"symbol", "symbols", "unique_symbol", "unique_symbols"}
+        }
+        release_only_dimensions = {
+            str(dimension["name"])
+            for dimension in quota_dimensions(resolved.policy)
+            if str(dimension.get("unit") or "").lower() in {"concurrent_requests", "concurrency"}
+        }
+        # A runtime call participates in the same durable multi-dimensional
+        # budget used by queued workloads.  This prevents concurrent workers
+        # from multiplying a provider/IP/key allowance in process-local
+        # buckets.  The import is intentionally lazy because provider_routing
+        # imports the resolver for its candidate selection.
+        from app.services.provider_routing import (
+            reserve_provider_contract,
+            settle_provider_contract,
+        )
 
+        operation_units = _positive_integer_cost(usage_units)
+        if operation_units is None:
+            raise ProviderQuotaUnknownError(
+                f"No valid integral operation cost for " f"{resolved.data_source.name}/{operation}"
+            )
         semaphore = _get_semaphore(resolved.policy, resolved.provider_name)
+        await semaphore.acquire()
+        try:
+            reservations = await reserve_provider_contract(
+                db,
+                resolved=resolved,
+                capability=capability.value,
+                units=operation_units,
+                dimension_units=dimension_units,
+                usage_identity=resolved_usage_identity,
+                now=datetime.now(UTC),
+            )
+        except BaseException:
+            semaphore.release()
+            raise
+        if reservations is None:
+            semaphore.release()
+            admission_denied.add(resolved.provider_name)
+            continue
+        from app.services.provider_quota_coordinator import reserve_provider_quota_async
+
+        try:
+            coordinator_reservation = await reserve_provider_quota_async(
+                provider_name=resolved.provider_name,
+                capability=capability.value,
+                operation=operation,
+                policy=resolved.policy,
+                dimension_units=dimension_units,
+                usage_identity=resolved_usage_identity,
+                now=datetime.now(UTC),
+            )
+        except BaseException:
+            settle_provider_contract(
+                reservations,
+                units=operation_units,
+                success=False,
+                reserved_dimension_units=dimension_units,
+                consumed_dimension_units={name: 0 for name in dimension_units},
+                release_only_dimensions=release_only_dimensions,
+            )
+            semaphore.release()
+            raise
+        if coordinator_reservation is None:
+            settle_provider_contract(
+                reservations,
+                units=operation_units,
+                success=False,
+                reserved_dimension_units=dimension_units,
+                consumed_dimension_units={name: 0 for name in dimension_units},
+                release_only_dimensions=release_only_dimensions,
+            )
+            semaphore.release()
+            admission_denied.add(resolved.provider_name)
+            continue
+        if (
+            resolved.policy.tokens_per_minute is not None
+            and resolved.policy.burst_capacity is not None
+        ):
+            if not _get_bucket(resolved.policy, resolved.provider_name).try_acquire(
+                operation_units
+            ):
+                settle_provider_contract(
+                    reservations,
+                    units=operation_units,
+                    success=False,
+                    reserved_dimension_units=dimension_units,
+                    consumed_dimension_units={name: 0 for name in dimension_units},
+                    release_only_dimensions=release_only_dimensions,
+                )
+                await _settle_coordinator_best_effort(
+                    coordinator_reservation,
+                    policy=resolved.policy,
+                    measurement=None,
+                    reserved_units=dimension_units,
+                    not_sent=True,
+                )
+                semaphore.release()
+                admission_denied.add(resolved.provider_name)
+                continue
+        try:
+            log_row = ProviderRequestLog(
+                data_source_id=resolved.data_source.id,
+                capability=capability,
+                operation=operation,
+                operation_family=_operation_family(operation),
+                instrument_id=instrument_id,
+                provider_symbol=provider_symbol,
+                requested_at=datetime.now(UTC),
+                usage_mode=usage_mode,
+                usage_unit_label=usage_unit_label,
+                usage_units=usage_units,
+            )
+            db.add(log_row)
+            await db.flush()
+        except BaseException:
+            settle_provider_contract(
+                reservations,
+                units=operation_units,
+                success=False,
+                reserved_dimension_units=dimension_units,
+                consumed_dimension_units={name: 0 for name in dimension_units},
+                release_only_dimensions=release_only_dimensions,
+            )
+            await _settle_coordinator_best_effort(
+                coordinator_reservation,
+                policy=resolved.policy,
+                measurement=None,
+                reserved_units=dimension_units,
+                not_sent=True,
+            )
+            semaphore.release()
+            raise
         started = time.perf_counter()
         try:
-            async with semaphore:
+            measurement, measurement_token = activate_provider_telemetry(
+                capture_response_payloads=capture_response_payloads
+            )
+        except BaseException:
+            settle_provider_contract(
+                reservations,
+                units=operation_units,
+                success=False,
+                reserved_dimension_units=dimension_units,
+                consumed_dimension_units={name: 0 for name in dimension_units},
+                release_only_dimensions=release_only_dimensions,
+            )
+            await _settle_coordinator_best_effort(
+                coordinator_reservation,
+                policy=resolved.policy,
+                measurement=None,
+                reserved_units=dimension_units,
+                not_sent=True,
+            )
+            semaphore.release()
+            raise
+        try:
+            # ``run_in_executor`` does not propagate ContextVar state by
+            # itself. Copy it after activation so synchronous adapters can
+            # report transport bytes without changing their return types.
+            admission_token = _ACTIVE_PROVIDER_QUOTA_ADMISSION.set(True)
+            try:
+                invocation_context = contextvars.copy_context()
                 result = await loop.run_in_executor(
-                    None, lambda: invoke(resolved.provider, provider_symbol)
+                    None,
+                    invocation_context.run,
+                    lambda: invoke(resolved.provider, provider_symbol),
                 )
+            finally:
+                _ACTIVE_PROVIDER_QUOTA_ADMISSION.reset(admission_token)
+            if inspect.isawaitable(result):
+                if inspect.iscoroutine(result):
+                    result.close()
+                raise TypeError(
+                    "provider invoke callback returned an awaitable; async results are not awaited"
+                )
+            log_row.http_requests = measurement.http_requests
+            log_row.response_bytes = measurement.response_bytes
+            log_row.response_headers = dict(measurement.response_headers)
+            _persist_response_payloads(log_row, measurement.response_payloads)
+            await _settle_coordinator_best_effort(
+                coordinator_reservation,
+                policy=resolved.policy,
+                measurement=measurement,
+                reserved_units=dimension_units,
+            )
             count = response_items(result) if response_items is not None else None
             is_empty = result is None or count == 0
             if treat_empty_as_failure and is_empty:
@@ -728,6 +3007,15 @@ async def execute_provider_call(
                     f"{resolved.provider_name} returned no usable data for {operation}"
                 )
             latency_ms = int((time.perf_counter() - started) * 1000)
+            consumed_dimension_units = _consumed_dimension_costs(
+                resolved.policy, measurement, dimension_units
+            )
+            log_row.settled_usage_units = _settled_usage_units(
+                resolved.policy,
+                usage_unit_label=usage_unit_label,
+                reserved_dimension_units=dimension_units,
+                consumed_dimension_units=consumed_dimension_units,
+            )
             await _record_result(
                 db,
                 resolved=resolved,
@@ -735,6 +3023,16 @@ async def execute_provider_call(
                 success=True,
                 latency_ms=latency_ms,
                 response_items=count,
+            )
+            settle_provider_contract(
+                reservations,
+                units=operation_units,
+                success=True,
+                reserved_dimension_units=dimension_units,
+                consumed_dimension_units=consumed_dimension_units,
+                consume_on_failure_dimensions=distinct_dimensions,
+                observed_dimension_totals=_observed_dimension_totals(resolved.policy, measurement),
+                release_only_dimensions=release_only_dimensions,
             )
             if instrument_id is not None:
                 await record_provider_support(
@@ -751,9 +3049,96 @@ async def execute_provider_call(
                 policy=resolved.policy,
                 health=resolved.health,
                 result=result,
+                response_payloads=tuple(measurement.response_payloads),
             )
         except Exception as exc:
+            log_row.http_requests = measurement.http_requests
+            log_row.response_bytes = measurement.response_bytes
+            log_row.response_headers = dict(measurement.response_headers)
+            _persist_response_payloads(log_row, measurement.response_payloads)
+            await _settle_coordinator_best_effort(
+                coordinator_reservation,
+                policy=resolved.policy,
+                measurement=measurement,
+                reserved_units=dimension_units,
+                provider_name=resolved.provider_name,
+                operation=operation,
+                error=exc,
+            )
+            rate_error = provider_rate_limit_error(
+                resolved.provider_name,
+                exc,
+                scope=resolved.policy.quota_scope,
+            )
+            if rate_error is not None:
+                exc = rate_error
+                last_error = rate_error
+                db.add(
+                    ProviderCapacityEvent(
+                        data_source_id=resolved.data_source.id,
+                        capability=capability,
+                        operation=operation,
+                        scope=rate_error.scope or resolved.policy.quota_scope,
+                        status_code=rate_error.status_code,
+                        error_type=rate_error.__class__.__name__,
+                        message=bounded_redact_provider_message(rate_error, max_length=4000),
+                        retry_at=rate_error.retry_at,
+                        response_headers=_capacity_response_headers(rate_error.headers),
+                        observed_at=datetime.now(UTC),
+                        request_log_id=log_row.id,
+                    )
+                )
+                await db.flush()
+                # Persist the reset hold across every capability sharing this
+                # provider quota scope. If the provider omitted a trustworthy
+                # reset, fail closed until an administrator explicitly
+                # reconciles usage and re-enables the policy; never invent a
+                # generic cooldown.
+                await _apply_provider_capacity_hold(
+                    db,
+                    data_source_id=resolved.data_source.id,
+                    policy=resolved.policy,
+                    error=rate_error,
+                )
             last_error = exc
+            consumed_dimension_units = _consumed_dimension_costs(
+                resolved.policy, measurement, dimension_units
+            )
+            _apply_marketstack_api_error_usage(
+                resolved.provider_name, exc, consumed_dimension_units
+            )
+            # Once a provider response is observed, the request may have
+            # consumed request/credit/weight/bandwidth quota even if parsing,
+            # validation, or stream completion fails. Preserve those reviewed
+            # operation debits on the policy windows as well as the durable
+            # coordinator; only concurrency leases are always released.
+            failure_dimensions = set(distinct_dimensions)
+            if measurement.http_requests:
+                failure_dimensions.update(
+                    str(dimension["name"])
+                    for dimension in quota_dimensions(resolved.policy)
+                    if str(dimension.get("unit") or "").lower()
+                    not in {"concurrent_requests", "concurrency"}
+                )
+            settled_dimension_units = {
+                name: (value if name in failure_dimensions else 0)
+                for name, value in consumed_dimension_units.items()
+            }
+            log_row.settled_usage_units = _settled_usage_units(
+                resolved.policy,
+                usage_unit_label=usage_unit_label,
+                reserved_dimension_units=dimension_units,
+                consumed_dimension_units=settled_dimension_units,
+            )
+            settle_provider_contract(
+                reservations,
+                units=operation_units,
+                success=False,
+                reserved_dimension_units=dimension_units,
+                consumed_dimension_units=consumed_dimension_units,
+                consume_on_failure_dimensions=failure_dimensions,
+                release_only_dimensions=release_only_dimensions,
+            )
             latency_ms = int((time.perf_counter() - started) * 1000)
             await _record_result(
                 db,
@@ -763,24 +3148,14 @@ async def execute_provider_call(
                 latency_ms=latency_ms,
                 response_items=0,
                 error=exc,
-                update_health=not (
-                    capability == ProviderCapability.PRICE_HISTORY
-                    and isinstance(exc, ProviderNoDataError)
-                ),
             )
-            # Price-history support is capability-wide, while provider
-            # coverage is often timeframe- or range-specific (for example,
-            # Nasdaq is D1-only).  A no-data result from one history request
-            # must therefore not poison the instrument's capability status and
-            # hide a provider from later timeframe requests in the same queue.
-            # Keep the dynamic downgrade for non-history capabilities and
-            # latest-price probes, whose operation is not a range repair.
             should_mark_unsupported = (
                 instrument_id is not None
                 and isinstance(exc, ProviderNoDataError)
                 and (
                     capability != ProviderCapability.PRICE_HISTORY
                     or operation.startswith("fetch_latest_ohlcv:")
+                    or operation.startswith("bulk_fetch:")
                 )
             )
             if should_mark_unsupported:
@@ -792,7 +3167,7 @@ async def execute_provider_call(
                     status=SUPPORT_STATUS_UNSUPPORTED,
                     provider_symbol=provider_symbol,
                     error_type=exc.__class__.__name__,
-                    error_message=str(exc),
+                    error_message=bounded_redact_provider_message(exc),
                 )
             remaining = [
                 r.provider_name for r in chain if r.provider_name != resolved.provider_name
@@ -803,7 +3178,7 @@ async def execute_provider_call(
                     resolved.provider_name,
                     capability.value,
                     operation,
-                    exc,
+                    bounded_redact_provider_message(exc),
                     ", ".join(remaining),
                 )
             else:
@@ -812,12 +3187,16 @@ async def execute_provider_call(
                     resolved.provider_name,
                     capability.value,
                     operation,
-                    exc,
+                    bounded_redact_provider_message(exc),
                 )
-            await asyncio.sleep(
-                min(1.0, 0.2 * (resolved.health.failure_streak + 1)) + random.random() * 0.15
-            )
+            if not isinstance(exc, ProviderRateLimitError | ProviderNotConfiguredError):
+                await asyncio.sleep(
+                    min(1.0, 0.2 * (resolved.health.failure_streak + 1)) + random.random() * 0.15
+                )
             continue
+        finally:
+            deactivate_provider_telemetry(measurement_token)
+            semaphore.release()
 
     if not chain and instrument_id is not None:
         raise ProviderNoDataError(
@@ -833,9 +3212,21 @@ async def execute_provider_call(
             "provider_runtime: all providers exhausted for %s/%s — last error: %s",
             capability.value,
             operation,
-            last_error,
+            bounded_redact_provider_message(last_error),
         )
         raise last_error
+    if admission_denied:
+        # A candidate was eligible when routing was evaluated, but its
+        # reservation was refused by the durable quota coordinator before
+        # transport. Keep this distinct from "no enabled providers": callers
+        # can defer and retry after the provider-specific window resets without
+        # counting the provider as faulty or recording a failed data fetch.
+        from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
+
+        names = ", ".join(sorted(admission_denied))
+        raise ProviderQuotaAdmissionError(
+            f"durable provider quota admission denied for {capability.value}/{operation}: {names}"
+        )
     raise RuntimeError(f"No enabled providers available for capability '{capability.value}'")
 
 
@@ -843,8 +3234,13 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
     await seed_provider_runtime(db)
     rows = (
         await db.execute(
-            select(ProviderPolicy, ProviderHealthState, DataSource)
+            select(ProviderPolicy, ProviderHealthState, DataSource, ProviderEntitlement)
             .join(DataSource, DataSource.id == ProviderPolicy.data_source_id)
+            .join(
+                ProviderEntitlement,
+                (ProviderEntitlement.data_source_id == ProviderPolicy.data_source_id)
+                & (ProviderEntitlement.capability == ProviderPolicy.capability),
+            )
             .join(
                 ProviderHealthState,
                 (ProviderHealthState.data_source_id == ProviderPolicy.data_source_id)
@@ -853,33 +3249,128 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
             .order_by(DataSource.name, ProviderPolicy.capability)
         )
     ).all()
-    return [
-        {
-            "provider": data_source.name,
-            "capability": policy.capability.value,
-            "supported_capabilities": data_source.supported_capabilities or [],
-            "is_enabled": policy.is_enabled,
-            "is_pinned": policy.is_pinned,
-            "auto_weight_enabled": policy.auto_weight_enabled,
-            "base_priority": policy.base_priority,
-            "effective_score": float(policy.effective_score),
-            "learned_weight": float(policy.learned_weight),
-            "max_concurrency": policy.max_concurrency,
-            "tokens_per_minute": policy.tokens_per_minute,
-            "burst_capacity": policy.burst_capacity,
-            "cooldown_seconds": policy.cooldown_seconds,
-            "freshness_seconds": policy.freshness_seconds,
-            "failure_streak": health.failure_streak,
-            "last_success_at": wire_datetime(health.last_success_at),
-            "last_failure_at": wire_datetime(health.last_failure_at),
-            "circuit_open_until": wire_datetime(health.circuit_open_until),
-            "ewma_latency_ms": float(health.ewma_latency_ms),
-            "ewma_success_rate": float(health.ewma_success_rate),
-            "ewma_completeness": float(health.ewma_completeness),
-            "ewma_freshness": float(health.ewma_freshness),
-            "ewma_consistency": float(health.ewma_consistency),
-            "last_error_type": health.last_error_type,
-            "last_error_message": health.last_error_message,
-        }
-        for policy, health, data_source in rows
-    ]
+    status_rows = []
+    capability_diagnostic_operations = {
+        ProviderCapability.ACCOUNT_USAGE: "fetch_account_usage",
+        ProviderCapability.INSTRUMENT_SEARCH: "search_instruments",
+        ProviderCapability.INSTRUMENT_METADATA: "get_instrument_profile",
+        ProviderCapability.PRICE_HISTORY: "fetch_ohlcv",
+        ProviderCapability.LATEST_PRICE: "get_current_price",
+        ProviderCapability.INSTRUMENT_EVENTS: "fetch_instrument_events",
+        ProviderCapability.INSTRUMENT_IDENTIFIERS: "fetch_stable_identifiers",
+        ProviderCapability.UNIVERSE_DISCOVERY: "discover_universe_page",
+        ProviderCapability.OPTION_CHAIN: "fetch_option_chain",
+        ProviderCapability.OPTION_QUOTE_HISTORY: "fetch_option_quote_history",
+        ProviderCapability.CORPORATE_ACTIONS: "fetch_corporate_actions",
+        ProviderCapability.EARNINGS: "fetch_earnings_calendar",
+        ProviderCapability.FUNDAMENTALS: "fetch_fundamental_facts",
+        ProviderCapability.SHORT_INTEREST: "fetch_short_interest",
+        ProviderCapability.MARKET_CALENDAR: "fetch_market_holidays",
+        ProviderCapability.FUTURES_HISTORY: "fetch_futures_history",
+        ProviderCapability.CRYPTO_HISTORY: "fetch_ohlcv",
+        ProviderCapability.OPTIONS_CURRENT: "fetch_option_chain",
+        ProviderCapability.MARKET_EVENTS: "fetch_market_events",
+        ProviderCapability.TOKENIZED_ASSETS: "discover_tokenized_assets",
+        ProviderCapability.TOKENIZED_HISTORICAL_PRICES: ("fetch_tokenized_historical_prices"),
+        ProviderCapability.TOKENIZED_CORPORATE_ACTIONS: ("fetch_tokenized_corporate_actions"),
+    }
+    for policy, health, data_source, entitlement in rows:
+        # Keep operation-specific controls accurate in diagnostics as well as
+        # in resolver admission. Cursor continuation is durable state, not a
+        # routing control; use a non-event marker for unrelated capability rows.
+        diagnostic_operation = capability_diagnostic_operations.get(
+            policy.capability,
+            "__capability__",
+        )
+        checkpoint_operation_holds = dict(
+            settings.PROVIDER_CHECKPOINT_OPERATION_HOLDS.get(data_source.name, {})
+        )
+        checkpoint_hold_reason = provider_checkpoint_operation_hold_reason(
+            data_source.name,
+            diagnostic_operation,
+        )
+        routing_control_settings = provider_routing_control_settings(
+            data_source.name, diagnostic_operation
+        )
+        missing_routing_controls = provider_missing_routing_controls(
+            data_source.name, diagnostic_operation
+        )
+        quota_known = policy_has_known_quota(policy)
+        bootstrap_only = (
+            not quota_known
+            and policy.capability == ProviderCapability.ACCOUNT_USAGE
+            and policy_allows_account_usage_bootstrap(policy, "fetch_account_usage")
+        )
+        entitlement_admission = provider_entitlement_admission(
+            entitlement,
+            provider_name=data_source.name,
+            capability=policy.capability,
+        )
+        status_rows.append(
+            {
+                "provider": data_source.name,
+                "capability": policy.capability.value,
+                "supported_capabilities": data_source.supported_capabilities or [],
+                "is_enabled": policy.is_enabled,
+                "is_pinned": policy.is_pinned,
+                "auto_weight_enabled": policy.auto_weight_enabled,
+                "base_priority": policy.base_priority,
+                "effective_score": float(policy.effective_score),
+                "learned_weight": float(policy.learned_weight),
+                "max_concurrency": policy.max_concurrency,
+                "tokens_per_minute": policy.tokens_per_minute,
+                "burst_capacity": policy.burst_capacity,
+                "cooldown_seconds": policy.cooldown_seconds,
+                "quota_contract": policy.quota_contract,
+                "quota_scope": policy.quota_scope,
+                "quota_source": policy.quota_source,
+                "quota_verified_at": policy.quota_verified_at,
+                "quota_state": (
+                    "known" if quota_known else "bootstrap_only" if bootstrap_only else "unknown"
+                ),
+                "quota_missing_dimensions": quota_contract_missing_dimensions(policy),
+                "operation_costs_configured": provider_contract_operation_costs_configured(
+                    policy, data_source
+                ),
+                "credentials_configured": provider_is_configured(data_source.name),
+                "required_environment_variables": list(
+                    provider_required_settings(data_source.name)
+                ),
+                "missing_environment_variables": provider_missing_settings(data_source.name),
+                "required_routing_control_variables": list(routing_control_settings),
+                "missing_routing_control_variables": missing_routing_controls,
+                "entitlement_state": (
+                    "unreviewed"
+                    if entitlement_admission["reason_code"] == "entitlement_unreviewed"
+                    else "reviewed"
+                ),
+                "entitlement_admission": entitlement_admission,
+                "checkpoint_operation_holds": checkpoint_operation_holds,
+                "checkpoint_hold_reason": checkpoint_hold_reason,
+                "live_probe_status": entitlement.live_probe_status,
+                "routing_eligible": bool(
+                    policy.is_enabled
+                    and (quota_known or bootstrap_only)
+                    and provider_is_configured(data_source.name)
+                    and not missing_routing_controls
+                    and str(entitlement.live_probe_status or "not_run").strip().lower()
+                    in _POSITIVE_LIVE_PROBE_STATUSES
+                    and entitlement_admission["allowed"]
+                    and checkpoint_hold_reason is None
+                    and provider_contract_operation_costs_configured(policy, data_source)
+                ),
+                "freshness_seconds": policy.freshness_seconds,
+                "failure_streak": health.failure_streak,
+                "last_success_at": health.last_success_at,
+                "last_failure_at": health.last_failure_at,
+                "circuit_open_until": health.circuit_open_until,
+                "ewma_latency_ms": float(health.ewma_latency_ms),
+                "ewma_success_rate": float(health.ewma_success_rate),
+                "ewma_completeness": float(health.ewma_completeness),
+                "ewma_freshness": float(health.ewma_freshness),
+                "ewma_consistency": float(health.ewma_consistency),
+                "last_error_type": health.last_error_type,
+                "last_error_message": health.last_error_message,
+            }
+        )
+    return status_rows

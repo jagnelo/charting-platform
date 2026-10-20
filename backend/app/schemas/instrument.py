@@ -1,13 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, field_serializer
-
-from app.lib.time_utils import wire_datetime
-
-
-def _wire_datetime_or_text(value: datetime | str | None) -> str | None:
-    return wire_datetime(value) if isinstance(value, datetime) else value
+from pydantic import BaseModel, ConfigDict
 
 
 class ExchangeOut(BaseModel):
@@ -48,10 +42,6 @@ class InstrumentStatsOut(BaseModel):
     computed_at: datetime | None = None
     field_provenance: dict | None = None
 
-    @field_serializer("computed_at")
-    def serialize_timestamp(self, value: datetime | None) -> str | None:
-        return wire_datetime(value)
-
 
 class FieldProvenanceOut(BaseModel):
     source: str
@@ -62,10 +52,6 @@ class FieldProvenanceOut(BaseModel):
     quality_score: float | None = None
     note: str | None = None
 
-    @field_serializer("fetched_at", "observed_at")
-    def serialize_timestamps(self, value: datetime | str | None) -> str | None:
-        return _wire_datetime_or_text(value)
-
 
 class InstrumentIdentifierOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -73,6 +59,9 @@ class InstrumentIdentifierOut(BaseModel):
     identifier_value: str
     is_primary: bool
     is_active: bool
+    effective_at: datetime | None = None
+    known_at: datetime | None = None
+    retired_at: datetime | None = None
     extra_data: dict | None = None
 
 
@@ -86,10 +75,6 @@ class InstrumentListingOut(BaseModel):
     known_at: datetime | None = None
     delisted_at: datetime | None = None
     exchange: ExchangeOut | None = None
-
-    @field_serializer("effective_at", "known_at", "delisted_at")
-    def serialize_timestamps(self, value: datetime | None) -> str | None:
-        return wire_datetime(value)
 
 
 class OptionDetailOut(BaseModel):
@@ -125,6 +110,9 @@ class InstrumentOut(BaseModel):
     description: str | None = None
     currency: str | None = None
     is_active: bool
+    domain_key: str | None = None
+    identity_status: str = "provisional"
+    issuer_id: int | None = None
     is_synthetic: bool = False
     expression: str | None = None
     primary_identifier_type: str | None = None
@@ -153,6 +141,8 @@ class InstrumentSearchResult(BaseModel):
     type: str
     is_synthetic: bool = False
     instrument_id: int | None = None
+    domain_key: str | None = None
+    identity_status: str | None = None
 
 
 class InstrumentMembership(BaseModel):

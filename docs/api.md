@@ -8,6 +8,41 @@ All endpoints except `/auth/register` and `/auth/login` require a valid JWT acce
 Authorization: Bearer <access_token>
 ```
 
+## Market calendar
+
+### GET /calendar/market-events
+
+Return persisted, provider-normalized market-wide events. The read path is
+database-only and accepts inclusive `start`/`end` dates plus optional
+`event_type`, `source`, `instrument_id`, `issuer_id`, and `limit` filters.
+Each row includes provider provenance, provisional status, and (when the
+bounded reconciliation pass found a safe candidate group) `consensus_id` and
+`consensus_status`. Missing target/date evidence is retained as ungrouped
+rather than guessed onto a security.
+
+### GET /market-data/event-consensus (admin)
+
+List durable cross-provider event candidate groups. Filter by `status`
+(`single_source`, `corroborated`, `conflicted`, or an operator-resolved
+status), `event_type`, `instrument_id`, `issuer_id`, and `limit`. Conflicts
+include the compared field values and source event identifiers; source rows
+remain available through the normal event endpoints.
+
+### GET /market-data/prelisting-candidates (admin)
+
+List auditable future-listing candidates produced from IPO/IPO-pipeline events.
+Filter by `status`, `instrument_id`, and `limit`. Rows include proposed
+symbol/name, venue MIC, stable identifiers, provider sources, lifecycle status,
+promotion resolution, and provenance. Pending rows may point to an inactive
+provisional instrument; quarantined rows require operator review.
+
+### GET /market-data/event-scan-state (admin)
+
+List durable cursors for bounded provider-wide event scans. The EDGAR
+`ipo_pipeline` scan exposes its provider/operation, last issuer cursor, cycle
+status, batch counts, failures, and bounded provenance so operators can tell a
+partial issuer cycle from a complete pass.
+
 ---
 
 ## Authentication
@@ -276,11 +311,15 @@ Return recent radar scan executions.
 
 ### POST /radar/run
 Trigger a synchronous radar scan over the current active instrument universe.
+The evaluator reads local bars only. Set `queue_repairs` to `true` to enqueue
+bounded, durable `price_history` repairs for missing or stale members; queued
+work is processed by the worker's normal provider/quota admission path.
 
 **Request body**
 ```json
 {
-  "timeframe": "H4"
+  "timeframe": "H4",
+  "queue_repairs": false
 }
 ```
 
@@ -295,6 +334,11 @@ Trigger a synchronous radar scan over the current active instrument universe.
   "completed_at": "2026-05-04T10:00:04Z",
   "evaluated_count": 842,
   "detection_count": 37,
+  "coverage_status": "full",
+  "coverage_total_count": 842,
+  "coverage_missing_count": 0,
+  "coverage_stale_count": 0,
+  "coverage_summary": {},
   "error_summary": null
 }
 ```

@@ -343,6 +343,63 @@ def validate_frozen_imports(
     return frozen
 
 
+def validate_provider_contract_adaptations(
+    plan: dict[str, Any], *, frozen: dict[str, str], root: Path = ROOT
+) -> dict[str, str]:
+    """Admit only coordinator-pinned additive TC adaptations of Provider files.
+
+    These exact files stay excluded from ordinary TC ownership and are omitted
+    from immutable-import manifests. The record binds each adaptation to the
+    accepted source blob; the staged index and worktree must agree so review
+    never mistakes an unstaged variant for the recorded adaptation.
+    """
+
+    entries = plan.get("approved_provider_contract_adaptations", [])
+    if not isinstance(entries, list):
+        raise ValueError("approved_provider_contract_adaptations must be a list")
+    approved = approved_frozen_snapshots(plan, root=root)
+    baseline = str(plan.get("scope_guard_baseline_sha", "")).strip()
+    adaptations: dict[str, str] = {}
+    expected_keys = {"path", "source_sha", "accepted_blob", "delta", "rationale"}
+    for entry in entries:
+        if not isinstance(entry, dict) or set(entry) != expected_keys:
+            raise ValueError("Provider contract adaptation entries must use the exact schema")
+        path = exact_repo_path(entry.get("path"), label="Provider adaptation path")
+        source = str(entry.get("source_sha", ""))
+        accepted_blob = str(entry.get("accepted_blob", ""))
+        delta = str(entry.get("delta", "")).strip()
+        rationale = str(entry.get("rationale", "")).strip()
+        if path in adaptations:
+            raise ValueError(f"Provider adaptation path appears more than once: {path}")
+        if path in frozen:
+            raise ValueError(f"adapted Provider path also appears in immutable imports: {path}")
+        if authorized(path, plan)[0]:
+            raise ValueError(f"Provider adaptation overlaps ordinary TC write authority: {path}")
+        if source not in approved or not HEX40.fullmatch(accepted_blob):
+            raise ValueError(f"Provider adaptation lacks an approved pinned source: {path}")
+        if not delta or not rationale:
+            raise ValueError(f"Provider adaptation must state its exact delta and rationale: {path}")
+        if not has_import_merge_provenance(root, baseline, source):
+            raise ValueError(f"Provider adaptation source is not merged from approved staging: {path}")
+        source_entry = tree_entry(root, source, path)
+        if source_entry is None or source_entry[1] != accepted_blob:
+            raise ValueError(f"Provider adaptation accepted blob does not match source: {path}")
+        staged_entry = index_entry(root, path)
+        target = root / path
+        if (
+            staged_entry is None
+            or not target.is_file()
+            or target.is_symlink()
+        ):
+            raise ValueError(f"Provider adaptation must remain a regular staged file: {path}")
+        worktree_blob = git_at(root, "hash-object", "--no-filters", "--", path)
+        worktree_mode = "100755" if target.stat().st_mode & 0o111 else "100644"
+        if staged_entry != (worktree_mode, worktree_blob):
+            raise ValueError(f"Provider adaptation index/worktree drifted: {path}")
+        adaptations[path] = f"approved TC contract adaptation from {source}: {delta}"
+    return adaptations
+
+
 def matches(path: str, pattern: str) -> bool:
     normalized = pattern.rstrip("/")
     if pattern.endswith("/"):
@@ -545,6 +602,72 @@ def self_test() -> int:
             "unknown.txt" not in frozen
             and not authorized("unknown.txt", fixture_plan)[0]
         )
+
+        adapted_manifest = deep_copy(valid_manifest)
+        adapted_manifest["paths"] = [
+            entry for entry in adapted_manifest["paths"] if entry["path"] != "foreign.txt"
+        ]
+        write_yaml(reference, adapted_manifest)
+        adaptation = {
+            "path": "foreign.txt",
+            "source_sha": source,
+            "accepted_blob": foreign_blob,
+            "delta": "add a TC-owned typed contract field without changing Provider governance",
+            "rationale": "synthetic exact-path adaptation proof",
+        }
+        adaptation_plan = deep_copy(fixture_plan)
+        adaptation_plan["approved_provider_contract_adaptations"] = [adaptation]
+        adapted_frozen = validate_frozen_imports(adaptation_plan, root=root)
+        adapted_paths = validate_provider_contract_adaptations(
+            adaptation_plan, frozen=adapted_frozen, root=root
+        )
+        checks["exact approved Provider adaptation accepts pinned source blob"] = (
+            set(adapted_paths) == {"foreign.txt"} and not authorized("foreign.txt", adaptation_plan)[0]
+        )
+
+        wrong_adaptation = deep_copy(adaptation_plan)
+        wrong_adaptation["approved_provider_contract_adaptations"][0]["accepted_blob"] = "b" * 40
+        try:
+            validate_provider_contract_adaptations(
+                wrong_adaptation, frozen=adapted_frozen, root=root
+            )
+        except (OSError, RuntimeError, ValueError):
+            checks["adaptation with wrong accepted blob fails closed"] = True
+        else:
+            checks["adaptation with wrong accepted blob fails closed"] = False
+
+        broad_adaptation = deep_copy(adaptation_plan)
+        broad_adaptation["approved_provider_contract_adaptations"][0]["path"] = "foreign*.txt"
+        try:
+            validate_provider_contract_adaptations(
+                broad_adaptation, frozen=adapted_frozen, root=root
+            )
+        except (OSError, RuntimeError, ValueError):
+            checks["broad Provider adaptation path fails closed"] = True
+        else:
+            checks["broad Provider adaptation path fails closed"] = False
+
+        (root / "foreign.txt").write_text("worktree-only adaptation drift\n")
+        try:
+            validate_provider_contract_adaptations(
+                adaptation_plan, frozen=adapted_frozen, root=root
+            )
+        except (OSError, RuntimeError, ValueError) as exc:
+            checks["Provider adaptation worktree drift fails closed"] = "drifted" in str(exc)
+        else:
+            checks["Provider adaptation worktree drift fails closed"] = False
+        fixture_git("restore", "--worktree", "foreign.txt")
+
+        overlap_plan = deep_copy(adaptation_plan)
+        overlap_plan["approved_provider_contract_adaptations"][0]["path"] = "gone.txt"
+        try:
+            validate_provider_contract_adaptations(
+                overlap_plan, frozen=adapted_frozen, root=root
+            )
+        except (OSError, RuntimeError, ValueError) as exc:
+            checks["adaptation cannot overlap immutable import manifest"] = "also appears" in str(exc)
+        else:
+            checks["adaptation cannot overlap immutable import manifest"] = False
 
         (root / "foreign.txt").write_text("index drift\n")
         fixture_git("add", "foreign.txt")
@@ -785,12 +908,17 @@ def main() -> int:
         git("cat-file", "-e", f"{baseline}^{{commit}}")
         validate_ledger()
         frozen_imports = validate_frozen_imports(plan)
+        contract_adaptations = validate_provider_contract_adaptations(
+            plan, frozen=frozen_imports
+        )
         paths = sorted(changed_paths(baseline))
         rejected: list[tuple[str, str]] = []
         for path in paths:
             allowed, reason = authorized(path, plan)
             if not allowed and path in frozen_imports:
                 allowed, reason = True, frozen_imports[path]
+            if not allowed and path in contract_adaptations:
+                allowed, reason = True, contract_adaptations[path]
             if not allowed:
                 rejected.append((path, reason))
         if rejected:
@@ -801,7 +929,8 @@ def main() -> int:
         print(
             f"TC scope guard passed: {len(paths)} changed paths since {baseline}; "
             f"all are TC-owned, documented shared seams, or one of "
-            f"{len(frozen_imports)} byte-verified immutable imports."
+            f"{len(frozen_imports)} byte-verified immutable imports and "
+            f"{len(contract_adaptations)} exact approved Provider contract adaptations."
         )
         return 0
     except (OSError, RuntimeError, ValueError, yaml.YAMLError) as exc:

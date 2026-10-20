@@ -7,7 +7,15 @@ Capabilities:
   - DiscoveryProvider         : market-cap-ordered crypto universe
 
 Auth: COINGECKO_API_KEY (free Demo key — register at coingecko.com/en/api).
-Rate limits: ~30 requests/minute on free Demo tier.
+Rate limits: Current Demo pricing documents 100 calls/minute and 10,000
+calls/month. An older public-API support article says 30 calls/minute for Demo;
+the current plan pricing page is the checked-in quota source. Monthly credits
+reset on the first UTC calendar day.
+
+The Demo plan is described as testing/exploration with required attribution.
+This adapter therefore refuses transport unless current written authority
+explicitly covers automated archival, audience, attribution, and retention or
+deletion when provider access ends.
 
 CoinGecko uses its own slug-based IDs (e.g. "bitcoin") rather than ticker
 symbols.  A module-level coin list cache handles the symbol→id resolution
@@ -21,25 +29,32 @@ CoinGecko's role here is universe discovery and rich metadata.
 from __future__ import annotations
 
 import logging
-import time
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
 
-from app.config import settings
-from app.providers.base import InstrumentProfile, ListingRecord, ProviderSearchResult
+from app.config import coingecko_market_data_use_authority_missing, settings
+from app.providers.base import (
+    InstrumentProfile,
+    ListingRecord,
+    ProviderAccountUsage,
+    ProviderAccountUsageDimension,
+    ProviderSearchResult,
+)
+from app.providers.errors import (
+    ProviderNotConfiguredError,
+    ProviderRateLimitError,
+    ProviderResponseError,
+    provider_response_headers,
+    raise_for_provider_error_envelope,
+)
+from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
 
 _BASE = "https://api.coingecko.com/api/v3"
 _PAGE_SIZE = 250
-_COIN_LIST_TTL = 3600 * 12  # 12 hours (list rarely changes)
-_COIN_LIST_SLEEP = 1.0  # polite delay between coin-list fetch and first use
-
-# Module-level coin list cache  {symbol_lower → [{id, symbol, name}]}
-_coin_list: dict[str, list[dict]] = {}
-_coin_list_ts: float = 0.0
-_coin_list_all: list[dict] = []  # ordered list for discovery pagination
 
 
 class CoinGeckoProvider:
@@ -57,44 +72,156 @@ class CoinGeckoProvider:
         self._warned_no_key = False
 
     def _headers(self) -> dict[str, str]:
-        if settings.COINGECKO_API_KEY:
-            return {"x-cg-demo-api-key": settings.COINGECKO_API_KEY}
-        if not self._warned_no_key:
-            logger.warning(
-                "coingecko: COINGECKO_API_KEY is not set — running unauthenticated (~30 req/min "
-                "vs 500 req/min with a free Demo key). Get one at coingecko.com/en/api and set "
-                "COINGECKO_API_KEY in .env.dev."
+        if not settings.COINGECKO_API_KEY:
+            raise ProviderNotConfiguredError(
+                "coingecko requires COINGECKO_API_KEY for the Demo plan"
             )
-            self._warned_no_key = True
-        return {}
+        missing_authority = coingecko_market_data_use_authority_missing(source=settings)
+        if missing_authority:
+            raise ProviderNotConfiguredError(
+                "coingecko durable market-data use is not authorized; missing controls: "
+                + ", ".join(missing_authority)
+            )
+        return {"x-cg-demo-api-key": settings.COINGECKO_API_KEY}
 
     def _get(self, path: str, params: dict | None = None) -> Any:
-        r = httpx.get(
-            f"{_BASE}{path}",
-            params=params or {},
-            headers=self._headers(),
-            timeout=20,
+        try:
+            r = httpx.get(
+                f"{_BASE}{path}",
+                params=params or {},
+                headers=self._headers(),
+                timeout=20,
+            )
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, str(exc)) from exc
+        observe_response(r)
+        try:
+            r.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            if r.status_code in {418, 429}:
+                raise ProviderRateLimitError(
+                    self.name,
+                    f"CoinGecko request rejected for capacity (HTTP {r.status_code})",
+                    status_code=r.status_code,
+                    headers=provider_response_headers(r),
+                ) from exc
+            raise ProviderResponseError(
+                self.name,
+                f"CoinGecko request failed with HTTP {r.status_code}",
+                status_code=r.status_code,
+            ) from exc
+        try:
+            payload = r.json()
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "CoinGecko returned invalid JSON") from exc
+        raise_for_provider_error_envelope(
+            self.name, payload, r.status_code, headers=provider_response_headers(r)
         )
-        r.raise_for_status()
-        return r.json()
+        if not isinstance(payload, dict | list):
+            raise ProviderResponseError(
+                self.name, "CoinGecko returned an invalid response container"
+            )
+        return payload
+
+    def fetch_account_usage(self) -> ProviderAccountUsage:
+        """Read CoinGecko's documented ``/key`` usage snapshot.
+
+        The account endpoint reports monthly credit totals/remaining and the
+        plan's per-minute limit. It does not report active minute consumption,
+        so this observation can seed only the monthly quota baseline. The
+        successful call itself consumes one credit and also occupies the
+        normal per-minute request window.
+        """
+
+        reviewed_plan = str(getattr(settings, "COINGECKO_REVIEWED_PLAN", "demo") or "demo")
+        if reviewed_plan.strip().lower() in {"demo", "free-demo"}:
+            raise ProviderNotConfiguredError(
+                "CoinGecko /key account usage is Pro-only; the configured Demo plan "
+                "uses the durable application request ledger"
+            )
+
+        data = self._get("/key")
+        if not isinstance(data, dict):
+            raise ProviderResponseError(self.name, "CoinGecko usage returned an invalid object")
+
+        def counter(field: str) -> int:
+            value = data.get(field)
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise ProviderResponseError(
+                    self.name, f"CoinGecko usage omitted or invalidated {field}"
+                )
+            return value
+
+        plan = data.get("plan")
+        if not isinstance(plan, str) or not plan.strip():
+            raise ProviderResponseError(self.name, "CoinGecko usage omitted the account plan")
+        # The quota contract is scoped to this API key. The endpoint also
+        # returns account-wide counters, which may include other keys; never
+        # use those to seed this key's durable baseline.
+        limit = counter("api_key_monthly_call_credit")
+        consumed = counter("api_key_current_total_monthly_calls")
+        requests_per_minute = counter("api_key_rate_limit_request_per_minute")
+        remaining = limit - consumed
+        if limit <= 0 or requests_per_minute <= 0 or remaining < 0:
+            raise ProviderResponseError(
+                self.name, "CoinGecko usage returned inconsistent API-key counters"
+            )
+        # CoinGecko documents that monthly credits reset at the beginning of
+        # each UTC calendar month; derive the next boundary, not a fixed 30d.
+        observed_at = datetime.now(UTC)
+        next_month = observed_at.replace(day=28) + timedelta(days=4)
+        reset_at = next_month.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        return ProviderAccountUsage(
+            provider=self.name,
+            observed_at=observed_at,
+            unit="credits",
+            limit=limit,
+            remaining=remaining,
+            consumed=consumed,
+            reset_at=reset_at,
+            account_plan=plan.strip(),
+            dimensions=(
+                ProviderAccountUsageDimension(
+                    name="calls_per_month",
+                    unit="credits",
+                    limit=limit,
+                    remaining=remaining,
+                    consumed=consumed,
+                    reset_at=reset_at,
+                ),
+                ProviderAccountUsageDimension(
+                    name="calls_per_minute",
+                    unit="requests_per_minute",
+                    limit=requests_per_minute,
+                ),
+            ),
+            raw_payload=data,
+        )
 
     # ── Search ────────────────────────────────────────────────────────────────
 
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
-        try:
-            data = self._get("/search", {"query": query})
-        except Exception as exc:
-            logger.warning("coingecko search '%s': %s", query, exc)
-            return []
+        data = self._get("/search", {"query": query})
+        if not isinstance(data, dict):
+            raise ProviderResponseError(self.name, "CoinGecko search returned an invalid object")
+        coins = data.get("coins", [])
+        if not isinstance(coins, list) or any(not isinstance(coin, dict) for coin in coins):
+            raise ProviderResponseError(self.name, "CoinGecko search returned malformed coin rows")
         results: list[ProviderSearchResult] = []
-        for coin in (data.get("coins") or [])[:limit]:
-            sym = coin.get("symbol", "").upper()
+        for coin in coins[:limit]:
+            sym = str(coin.get("symbol") or "").strip().upper()
+            name = str(coin.get("name") or "").strip()
+            if not sym or not name or not str(coin.get("id") or "").strip():
+                raise ProviderResponseError(
+                    self.name, "CoinGecko search returned an incomplete coin row"
+                )
             results.append(
                 ProviderSearchResult(
                     symbol=f"{sym}-USD",
-                    name=coin.get("name", sym),
+                    name=name,
                     exchange="CoinGecko",
                     instrument_type="CRYPTOCURRENCY",
+                    raw_payload=dict(coin),
                 )
             )
         return results
@@ -105,32 +232,48 @@ class CoinGeckoProvider:
         coin_id = _resolve_id(symbol, self._headers())
         if coin_id is None:
             return None
-        try:
-            data = self._get(
-                f"/coins/{coin_id}",
-                {
-                    "localization": "false",
-                    "tickers": "false",
-                    "market_data": "true",
-                    "community_data": "false",
-                    "developer_data": "false",
-                },
-            )
-        except Exception as exc:
-            logger.warning("coingecko get_instrument_profile %s (%s): %s", symbol, coin_id, exc)
-            return None
+        data = self._get(
+            f"/coins/{coin_id}",
+            {
+                "localization": "false",
+                "tickers": "false",
+                "market_data": "true",
+                "community_data": "false",
+                "developer_data": "false",
+            },
+        )
+        if not isinstance(data, dict):
+            raise ProviderResponseError(self.name, "CoinGecko profile returned an invalid object")
 
-        sym = (data.get("symbol") or "").upper()
-        name = data.get("name") or sym
-        market = data.get("market_data") or {}
-        platforms = data.get("platforms") or {}
+        sym = str(data.get("symbol") or "").strip().upper()
+        name = str(data.get("name") or "").strip()
+        market = data.get("market_data", {})
+        platforms = data.get("platforms", {})
+        description = data.get("description", {})
+        links = data.get("links", {})
+        if not sym or not name or not isinstance(market, dict) or not isinstance(platforms, dict):
+            raise ProviderResponseError(self.name, "CoinGecko profile returned incomplete metadata")
+        if not isinstance(description, dict) or not isinstance(links, dict):
+            raise ProviderResponseError(
+                self.name, "CoinGecko profile returned malformed nested metadata"
+            )
+        market_cap = market.get("market_cap", {})
+        circulating = market.get("circulating_supply")
+        total_supply = market.get("total_supply")
+        if not isinstance(market_cap, dict):
+            raise ProviderResponseError(
+                self.name, "CoinGecko profile returned an invalid market-data object"
+            )
+        homepage = links.get("homepage", [])
+        if not isinstance(homepage, list):
+            raise ProviderResponseError(self.name, "CoinGecko profile returned invalid links")
 
         return InstrumentProfile(
             provider="coingecko",
             symbol=f"{sym}-USD",
             canonical_symbol=f"{sym}-USD",
             name=name,
-            description=_strip_html(data.get("description", {}).get("en")),
+            description=_strip_html(description.get("en")),
             currency="USD",
             quote_type="CRYPTOCURRENCY",
             exchange="",
@@ -145,11 +288,11 @@ class CoinGeckoProvider:
             raw_payload={
                 "id": coin_id,
                 "symbol": sym,
-                "market_cap_usd": market.get("market_cap", {}).get("usd"),
-                "circulating_supply": data.get("market_data", {}).get("circulating_supply"),
-                "total_supply": data.get("market_data", {}).get("total_supply"),
+                "market_cap_usd": market_cap.get("usd"),
+                "circulating_supply": circulating,
+                "total_supply": total_supply,
                 "platforms": list(platforms.keys()),
-                "homepage": (data.get("links") or {}).get("homepage", [None])[0],
+                "homepage": homepage[0] if homepage else None,
                 "coingecko_rank": data.get("market_cap_rank"),
             },
             extra={
@@ -166,26 +309,29 @@ class CoinGeckoProvider:
             return {"total": 0, "quotes": []}
 
         page_num = offset // _PAGE_SIZE + 1
-        try:
-            data = self._get(
-                "/coins/markets",
-                {
-                    "vs_currency": "usd",
-                    "order": "market_cap_desc",
-                    "per_page": _PAGE_SIZE,
-                    "page": page_num,
-                    "sparkline": "false",
-                    "price_change_percentage": "",
-                },
-            )
-        except Exception as exc:
-            logger.warning("coingecko discover_universe_page page=%d: %s", page_num, exc)
-            return {"total": 0, "quotes": []}
-
-        quotes = [_market_to_quote(c) for c in (data or []) if c.get("symbol")]
+        data = self._get(
+            "/coins/markets",
+            {
+                "vs_currency": "usd",
+                "order": "market_cap_desc",
+                "per_page": _PAGE_SIZE,
+                "page": page_num,
+                "sparkline": "false",
+                "price_change_percentage": "",
+            },
+        )
+        if not isinstance(data, list) or any(not isinstance(coin, dict) for coin in data):
+            raise ProviderResponseError(self.name, "CoinGecko markets returned malformed coin rows")
+        quotes = [_market_to_quote(coin) for coin in data]
+        next_offset = offset + len(quotes) if len(quotes) == _PAGE_SIZE else None
         return {
-            "total": 10_000,  # CoinGecko does not surface exact count on this endpoint
+            # The endpoint does not expose an exact total. Keep requesting
+            # provider pages until it returns a short/empty terminal page;
+            # never invent a total or stop at a client-side catalog ceiling.
+            "total": None,
             "quotes": quotes,
+            "next_offset": next_offset,
+            "complete": next_offset is None,
         }
 
     def supported_discovery_types(self) -> list[str]:
@@ -196,47 +342,83 @@ class CoinGeckoProvider:
 
 
 def _resolve_id(platform_symbol: str, headers: dict) -> str | None:
-    """Resolve a platform symbol like BTC-USD to a CoinGecko coin ID."""
+    """Resolve a platform symbol like BTC-USD to a CoinGecko coin ID.
+
+    ``/coins/list`` is not ordered by market relevance, so choosing the first
+    row for an ambiguous ticker can map BTC to an unrelated small token.  The
+    provider's ranked search endpoint returns the canonical result first; an
+    exact-symbol match is still required before accepting that result.
+    """
     base = platform_symbol.split("-")[0].lower()
-    _ensure_coin_list(headers)
-    candidates = _coin_list.get(base)
+    try:
+        r = httpx.get(
+            f"{_BASE}/search",
+            params={"query": base},
+            headers=headers,
+            timeout=20,
+        )
+    except httpx.RequestError as exc:
+        raise ProviderResponseError("coingecko", str(exc)) from exc
+    observe_response(r)
+    try:
+        r.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        if r.status_code in {418, 429}:
+            raise ProviderRateLimitError(
+                "coingecko",
+                f"CoinGecko request rejected for capacity (HTTP {r.status_code})",
+                status_code=r.status_code,
+                headers=provider_response_headers(r),
+            ) from exc
+        raise ProviderResponseError(
+            "coingecko",
+            f"CoinGecko request failed with HTTP {r.status_code}",
+            status_code=r.status_code,
+        ) from exc
+    try:
+        payload = r.json()
+    except (TypeError, ValueError) as exc:
+        raise ProviderResponseError("coingecko", "CoinGecko returned invalid JSON") from exc
+    raise_for_provider_error_envelope(
+        "coingecko", payload, r.status_code, headers=provider_response_headers(r)
+    )
+    if not isinstance(payload, dict):
+        raise ProviderResponseError("coingecko", "CoinGecko search returned an invalid object")
+    coins = payload.get("coins", [])
+    if not isinstance(coins, list) or any(not isinstance(item, dict) for item in coins):
+        raise ProviderResponseError("coingecko", "CoinGecko search returned malformed coin rows")
+    candidates = [item for item in coins if str(item.get("symbol") or "").lower() == base]
     if not candidates:
         return None
-    # Prefer exact symbol match; take first candidate
-    return candidates[0]["id"]
-
-
-def _ensure_coin_list(headers: dict) -> None:
-    global _coin_list, _coin_list_ts, _coin_list_all
-    now = time.monotonic()
-    if _coin_list and (now - _coin_list_ts) < _COIN_LIST_TTL:
-        return
-    try:
-        r = httpx.get(f"{_BASE}/coins/list", headers=headers, timeout=30)
-        r.raise_for_status()
-        coins = r.json()
-        mapping: dict[str, list[dict]] = {}
-        for c in coins:
-            sym = (c.get("symbol") or "").lower()
-            if sym:
-                mapping.setdefault(sym, []).append(c)
-        _coin_list = mapping
-        _coin_list_all = coins
-        _coin_list_ts = now
-    except Exception as exc:
-        logger.warning("coingecko _ensure_coin_list: %s", exc)
+    coin_id = str(candidates[0].get("id") or "").strip()
+    if not coin_id:
+        raise ProviderResponseError("coingecko", "CoinGecko search returned a coin without an id")
+    return coin_id
 
 
 def _market_to_quote(coin: dict) -> dict[str, Any]:
-    sym = (coin.get("symbol") or "").upper()
+    if not isinstance(coin, dict):
+        raise ProviderResponseError("coingecko", "CoinGecko markets returned a malformed coin row")
+    sym = str(coin.get("symbol") or "").strip().upper()
+    name = str(coin.get("name") or "").strip()
+    coin_id = str(coin.get("id") or "").strip()
+    if not sym or not name or not coin_id:
+        raise ProviderResponseError(
+            "coingecko", "CoinGecko markets returned an incomplete coin identity/metadata row"
+        )
     return {
         "symbol": f"{sym}-USD",
-        "shortName": coin.get("name", sym),
-        "displayName": coin.get("name", sym),
+        "coingecko_id": coin_id,
+        "shortName": name,
+        "displayName": name,
         "quoteType": "CRYPTOCURRENCY",
         "exchange": "CoinGecko",
         "currency": "USD",
         "marketCap": coin.get("market_cap"),
+        # Discovery snapshots are the durable copy of quota-consuming pages.
+        # Keep the complete provider row here instead of throwing away fields
+        # that are not yet represented by the canonical instrument schema.
+        "raw_payload": dict(coin),
     }
 
 

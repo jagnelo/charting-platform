@@ -1,5 +1,8 @@
+import json
+from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 
+from app.config import settings
 from app.models.data_source import DataSource
 from app.models.provider_observation import (
     DatasetStatus,
@@ -15,9 +18,18 @@ class TestProvidersRouter:
         assert client.get("/api/v1/providers/observations/summary").status_code == 401
         assert client.get("/api/v1/providers/datasets/stale").status_code == 401
         assert client.get("/api/v1/providers/usage").status_code == 401
+        assert client.get("/api/v1/providers/usage/account").status_code == 401
+        assert client.post("/api/v1/providers/usage/account/refresh").status_code == 401
         assert client.get("/api/v1/providers/reconciliation/issues").status_code == 401
 
     def test_provider_governance_requires_admin(self, client, auth_headers):
+        assert (
+            client.get("/api/v1/providers/usage/account", headers=auth_headers).status_code == 403
+        )
+        assert (
+            client.post("/api/v1/providers/usage/account/refresh", headers=auth_headers).status_code
+            == 403
+        )
         assert (
             client.get(
                 "/api/v1/providers/reconciliation/issues",
@@ -73,7 +85,6 @@ class TestProvidersRouter:
         assert listed.status_code == 200
         assert listed.json()[0]["provider_symbol"] == "ABC"
         assert listed.json()[0]["provider"] == "edgar"
-        assert listed.json()[0]["observed_at"].endswith("Z")
 
         updated = client.patch(
             f"/api/v1/providers/reconciliation/issues/{issue.id}",
@@ -82,7 +93,6 @@ class TestProvidersRouter:
         )
         assert updated.status_code == 200
         assert updated.json()["status"] == "resolved"
-        assert updated.json()["resolved_at"].endswith("Z")
         assert updated.json()["resolved_by"]["username"]
 
         resolved = client.get(
@@ -92,22 +102,55 @@ class TestProvidersRouter:
         resolved_issue = next(row for row in resolved.json() if row["provider_symbol"] == "ABC")
         assert resolved_issue["resolution"]["canonical_cik"] == "1"
 
-    def test_list_and_patch_policy(self, client, admin_headers):
+    def test_list_and_patch_policy(self, client, admin_headers, monkeypatch):
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "finra_otc_query_api")
+        monkeypatch.setattr(
+            settings,
+            "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+            "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster",
+        )
+        monkeypatch.setattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 86400)
         res = client.get("/api/v1/providers/policies", headers=admin_headers)
         assert res.status_code == 200
         rows = res.json()
         assert rows
 
-        providers = client.get("/api/v1/providers", headers=admin_headers)
-        assert providers.status_code == 200
-        assert providers.json()[0]["updated_at"].endswith("Z")
-
-        health = client.get("/api/v1/providers/health", headers=admin_headers)
-        assert health.status_code == 200
-        assert all(
-            row["last_success_at"] is None or row["last_success_at"].endswith("Z")
-            for row in health.json()
+        unreviewed = next(
+            row
+            for row in rows
+            if row["provider"] == "finnhub" and row["capability"] == "price_history"
         )
+        assert unreviewed["entitlement_state"] == "unreviewed"
+        assert unreviewed["routing_eligible"] is False
+        assert unreviewed["live_probe_status"] == "passed"
+        assert unreviewed["required_environment_variables"]
+        assert all(
+            value.isupper() and " " not in value
+            for value in unreviewed["required_environment_variables"]
+        )
+        assert all(
+            value.isupper() and " " not in value
+            for value in unreviewed["missing_environment_variables"]
+        )
+        assert "required_routing_control_variables" in unreviewed
+        assert "missing_routing_control_variables" in unreviewed
+        assert all(
+            value.isupper() and " " not in value
+            for value in unreviewed["missing_routing_control_variables"]
+        )
+
+        otc = next(
+            row
+            for row in rows
+            if row["provider"] == "finra_otc_directory"
+            and row["capability"] == "universe_discovery"
+        )
+        assert otc["routing_eligible"] is False
+        assert "FINRA_OTC_SYMBOL_DIRECTORY_URL" in otc["required_routing_control_variables"]
+        assert "FINRA_OTC_POLL_INTERVAL_SECONDS" in otc["required_routing_control_variables"]
+        assert "FINRA_OTC_OPERATION_COSTS" not in otc["missing_routing_control_variables"]
 
         target = rows[0]
         provider = target["provider"]
@@ -132,6 +175,131 @@ class TestProvidersRouter:
             r for r in refreshed if r["provider"] == provider and r["capability"] == capability
         )
         assert changed["auto_weight_enabled"] is False
+
+        quota_target = next(
+            row
+            for row in refreshed
+            if row["provider"] == "finnhub" and row["capability"] == "price_history"
+        )
+        quota_url = "/api/v1/providers/policies/finnhub/price_history"
+        missing_contract = client.patch(
+            quota_url,
+            headers=admin_headers,
+            json={"tokens_per_minute": 60},
+        )
+        assert missing_contract.status_code == 400
+        assert "explicit replacement" in missing_contract.json()["detail"]
+
+        reviewed_replacement = deepcopy(quota_target["quota_contract"])
+        # The seeded Finnhub policy intentionally keeps its minute/second
+        # reset boundary provider-defined. A complete admin replacement must
+        # supply an explicit boundary for every dimension before admission.
+        for dimension in reviewed_replacement["dimensions"]:
+            dimension["reset"] = "rolling"
+        complete_contract = client.patch(
+            quota_url,
+            headers=admin_headers,
+            json={
+                "tokens_per_minute": 60,
+                "quota_contract": reviewed_replacement,
+                "quota_source": quota_target["quota_source"],
+            },
+        )
+        assert complete_contract.status_code == 200
+
+        clear_scope = client.patch(
+            quota_url,
+            headers=admin_headers,
+            json={"quota_scope": None},
+        )
+        assert clear_scope.status_code == 200
+        cleared_row = next(
+            row
+            for row in client.get("/api/v1/providers/policies", headers=admin_headers).json()
+            if row["provider"] == "finnhub" and row["capability"] == "price_history"
+        )
+        assert cleared_row["quota_verified_at"] is None
+        assert cleared_row["routing_eligible"] is False
+
+        clear_contract = client.patch(
+            quota_url,
+            headers=admin_headers,
+            json={"quota_contract": None},
+        )
+        assert clear_contract.status_code == 200
+        cleared_contract_row = next(
+            row
+            for row in client.get("/api/v1/providers/policies", headers=admin_headers).json()
+            if row["provider"] == "finnhub" and row["capability"] == "price_history"
+        )
+        assert cleared_contract_row["quota_contract"] is None
+        assert cleared_contract_row["quota_verified_at"] is None
+        assert cleared_contract_row["routing_eligible"] is False
+
+        restore_contract = client.patch(
+            quota_url,
+            headers=admin_headers,
+            json={
+                "quota_contract": reviewed_replacement,
+                "quota_scope": quota_target["quota_scope"],
+                "quota_source": quota_target["quota_source"],
+            },
+        )
+        assert restore_contract.status_code == 200
+
+        invalid_contract = client.patch(
+            quota_url,
+            headers=admin_headers,
+            json={
+                "tokens_per_minute": 60,
+                "quota_contract": {"dimensions": []},
+                "quota_source": "test",
+            },
+        )
+        assert invalid_contract.status_code == 400
+        assert "quota_contract is incomplete" in invalid_contract.json()["detail"]
+
+        missing_scope_contract = client.patch(
+            quota_url,
+            headers=admin_headers,
+            json={
+                "quota_contract": quota_target["quota_contract"],
+                "quota_scope": None,
+                "quota_source": quota_target["quota_source"],
+            },
+        )
+        assert missing_scope_contract.status_code == 400
+        assert "quota_scope" in missing_scope_contract.json()["detail"]
+
+        unverified_contract = client.patch(
+            quota_url,
+            headers=admin_headers,
+            json={
+                "quota_contract": {
+                    "reset": "provider_defined",
+                    "unknown_dimensions": ["provider_terms"],
+                    "dimensions": [
+                        {
+                            "name": "requests_per_minute",
+                            "limit": 60,
+                            "window_seconds": 60,
+                            "unit": "requests",
+                            "scope": "account",
+                            "source": "https://provider.example/limits",
+                        }
+                    ],
+                },
+                "quota_source": "provider documentation pending terms review",
+            },
+        )
+        assert unverified_contract.status_code == 200
+        unverified_row = next(
+            row
+            for row in client.get("/api/v1/providers/policies", headers=admin_headers).json()
+            if row["provider"] == "finnhub" and row["capability"] == "price_history"
+        )
+        assert unverified_row["quota_verified_at"] is None
+        assert unverified_row["routing_eligible"] is False
 
     def test_entitlements_are_seeded_and_patchable(self, client, admin_headers):
         rows = client.get("/api/v1/providers/entitlements", headers=admin_headers)
@@ -159,8 +327,6 @@ class TestProvidersRouter:
         assert changed["freshness_semantics"] == "delayed"
         assert changed["effective_at"].startswith("2026-01-01T00:00:00")
         assert changed["review_due_at"].startswith("2030-01-01T00:00:00")
-        assert changed["effective_at"].endswith("Z")
-        assert changed["review_due_at"].endswith("Z")
         assert changed["revision"] == target["revision"] + 1
 
         history = client.get(
@@ -175,7 +341,6 @@ class TestProvidersRouter:
         assert revisions[0]["revision"] == changed["revision"]
         assert revisions[0]["change_reason"] == "api_patch"
         assert revisions[-1]["revision"] == target["revision"]
-        assert revisions[0]["created_at"].endswith("Z")
 
     def test_observation_summary_and_prune(self, client, auth_headers, db, instrument):
         data_source = DataSource(name="yfinance", is_active=True)
@@ -202,7 +367,8 @@ class TestProvidersRouter:
 
         prune = client.post("/api/v1/providers/maintenance/prune", headers=auth_headers)
         assert prune.status_code == 200
-        assert prune.json()["deleted"]["latest_price_snapshot"] >= 1
+        assert prune.json()["deleted"]["latest_price_snapshot"] == 0
+        assert db.get(LatestPriceSnapshot, old_snapshot.id) is not None
 
     def test_stale_datasets_and_health_reset(self, client, auth_headers, db, instrument):
         data_source = DataSource(name="yfinance", is_active=True)
@@ -233,10 +399,6 @@ class TestProvidersRouter:
         stale = client.get("/api/v1/providers/datasets/stale", headers=auth_headers)
         assert stale.status_code == 200
         assert any(row["symbol"] == "AAPL" for row in stale.json())
-        stale_row = next(row for row in stale.json() if row["symbol"] == "AAPL")
-        assert stale_row["stale_after"].endswith("Z")
-        assert stale_row["observed_at"].endswith("Z")
-        assert stale_row["fetched_at"].endswith("Z")
 
         reset = client.post(
             "/api/v1/providers/health/yfinance/price_history/reset",
@@ -248,7 +410,7 @@ class TestProvidersRouter:
         assert health.circuit_open_until is None
         assert health.last_error_type is None
 
-    def test_provider_usage_summary(self, client, auth_headers, db):
+    def test_provider_usage_summary(self, client, auth_headers, db, monkeypatch, tmp_path):
         data_source = DataSource(
             name="yfinance",
             is_active=True,
@@ -281,9 +443,29 @@ class TestProvidersRouter:
             )
         )
         db.commit()
+        ledger = tmp_path / "provider-live-usage.jsonl"
+        ledger.write_text(
+            json.dumps(
+                {
+                    "at": now.isoformat(),
+                    "provider": "yfinance",
+                    "operations": 1,
+                    "http_requests": 2,
+                    "response_bytes": 128,
+                    "exit_status": 0,
+                }
+            )
+            + "\n"
+        )
+        monkeypatch.setattr(settings, "PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
 
         usage = client.get("/api/v1/providers/usage", headers=auth_headers)
         assert usage.status_code == 200
         row = next(item for item in usage.json() if item["provider"] == "yfinance")
         assert row["requests_24h"] >= 1
         assert row["usage_unit_label"] == "requests"
+        assert "live_usage_ledger" in row
+        assert "live_test_usage" in row
+        assert row["live_usage_ledger"]["status"] == "available"
+        assert row["live_test_usage"]["http_requests"] == 2
+        assert row["live_test_usage"]["response_bytes"] == 128

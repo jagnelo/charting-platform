@@ -1,0 +1,15 @@
+{
+  "state": "green",
+  "created_at": "2026-10-20T20:51:01.617252+00:00",
+  "starting_staging_sha": "ca2602328195e20895e29802e3000ae584b44289",
+  "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
+  "sources": [
+    {
+      "branch": "fix/provider-deferral-contract-context",
+      "sha": "dc3a2b62b7208a9c29852c0d56746774dfd993ac"
+    }
+  ],
+  "github_run": "https://github.com/jagnelo/charting-platform/actions/runs/39484176087",
+  "reconciled_interrupted_watch": true,
+  "previous_watch_failure": "GitHub CI is not green for exact staging commit 9b230ba4c97126a2937667138c6eb2a0aa297baf: https://github.com/jagnelo/charting-platform/actions/runs/39484176087 attempts=[{'attempt': 1, 'url': 'https://github.com/jagnelo/charting-platform/actions/runs/39484176087', 'status': 'in_progress', 'conclusion': None}]"
+}

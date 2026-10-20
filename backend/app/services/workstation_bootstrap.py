@@ -10,8 +10,8 @@ The registry is an identity bootstrap, not a market-data fixture:
 
 * every field is labelled as curated registry provenance;
 * no price, volume, membership, exchange, or holdings facts are fabricated;
-* Nasdaq is registered only as a provider-symbol binding for its public EOD
-  price-history adapter;
+* Nasdaq is registered only as a provider-symbol binding for official NMS
+  directory evidence; it is not a price-history adapter;
 * bars and holdings continue to come from their normal provider services.
 """
 
@@ -30,6 +30,7 @@ from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentProviderSymbol
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.providers.errors import bounded_redact_provider_message
 from app.services.etf_holdings import ensure_etf_profile
 from app.services.etf_holdings_adapters import known_etf_route_metadata
 from app.services.etf_holdings_refresh import (
@@ -188,7 +189,7 @@ async def ensure_core_workstation_identities(db: AsyncSession) -> dict:
             currency="USD",
             is_primary=False,
             extra_data={
-                "source_role": "public_us_eod_price_history",
+                "source_role": "official_us_nms_directory_evidence",
                 "identity_bootstrap": CORE_WORKSTATION_REGISTRY,
                 "exchange_claim": "not asserted",
             },
@@ -366,8 +367,9 @@ async def bootstrap_core_workstation_data(db: AsyncSession, redis=None) -> dict:
             history[symbol] = {"status": "ready", "bars": int(existing_bars)}
             continue
         try:
+            fetch_kwargs = {"redis": redis} if redis is not None else {}
             bars = await asyncio.wait_for(
-                fetch_ohlcv(db, instrument, Timeframe.D1, history_start),
+                fetch_ohlcv(db, instrument, Timeframe.D1, history_start, **fetch_kwargs),
                 timeout=settings.CORE_WORKSTATION_BOOTSTRAP_TIMEOUT_SECONDS,
             )
             history[symbol] = {"status": "loaded" if bars else "unavailable", "bars": len(bars)}
@@ -376,7 +378,7 @@ async def bootstrap_core_workstation_data(db: AsyncSession, redis=None) -> dict:
             history[symbol] = {
                 "status": "error",
                 "error_type": type(exc).__name__,
-                "message": str(exc)[:300],
+                "message": bounded_redact_provider_message(exc, max_length=300),
             }
 
     for symbol, _, quote_type in CORE_WORKSTATION_INSTRUMENTS:
@@ -432,7 +434,7 @@ async def bootstrap_core_workstation_data(db: AsyncSession, redis=None) -> dict:
             holdings[symbol] = {
                 "status": "error",
                 "error_type": type(exc).__name__,
-                "message": str(exc)[:300],
+                "message": bounded_redact_provider_message(exc, max_length=300),
             }
 
     # Once the provider-backed ETF snapshots above are committed, queue the same
@@ -445,7 +447,7 @@ async def bootstrap_core_workstation_data(db: AsyncSession, redis=None) -> dict:
     except Exception as exc:  # noqa: BLE001 - retain bounded bootstrap outcome
         family_history = {
             "status": "queue_error",
-            "message": str(exc)[:300],
+            "message": bounded_redact_provider_message(exc, max_length=300),
         }
     return {
         "skipped": False,

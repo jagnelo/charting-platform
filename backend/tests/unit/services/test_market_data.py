@@ -1,38 +1,25 @@
-from datetime import UTC, datetime, timedelta, timezone
-from decimal import Decimal
+import asyncio
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
+from sqlalchemy.dialects import postgresql
 
-from app.models.ohlcv import TIMEFRAME_SECONDS, Timeframe
+from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
+from app.services import market_data
 from app.services.market_data import (
-    _as_utc,
-    _bar_visible_through,
+    _bar_as_dict,
     _historical_repair_start,
     _is_positive_repair_slice,
     _is_recoverable_provider_gap,
     _needs_fetch_for_range,
-    _touch_ohlcv_dataset_state,
-    fetch_ohlcv,
-    fetch_ohlcv_latest,
-    fetch_ohlcv_page_before,
-    persist_price_history_bars,
 )
 from app.services.ohlcv_coverage import (
     CoverageStatus,
-    assess_observed_ohlcv_cadence,
     assess_ohlcv_coverage,
     missing_range_slices,
 )
 from app.services.provider_runtime import ProviderNoDataError
-from tests.unit.conftest import AsyncSessionAdapter
-
-
-def test_market_data_timestamp_normalization_converts_offset_aware_values_to_utc():
-    assert _as_utc(datetime(2026, 1, 2, 1, 30, tzinfo=timezone(timedelta(hours=2)))) == datetime(
-        2026, 1, 1, 23, 30, tzinfo=UTC
-    )
-    assert _as_utc(datetime(2026, 1, 2, 1, 30)) == datetime(2026, 1, 2, 1, 30, tzinfo=UTC)
 
 
 def test_historical_repair_start_is_bounded_to_the_missing_tail():
@@ -66,7 +53,261 @@ def test_cached_ranges_tolerate_expected_provider_availability_failures():
         )
         is True
     )
+
+
+def _semantic_bar() -> OHLCVBar:
+    return OHLCVBar(
+        instrument_id=42,
+        data_source_id=7,
+        market_series_id=99,
+        timeframe=Timeframe.D1,
+        ts=datetime(2026, 1, 2, tzinfo=UTC),
+        session="regular",
+        open=100,
+        high=102,
+        low=99,
+        close=101,
+        volume=1234,
+        vwap=100.5,
+        is_adjusted=True,
+        adjustment_basis="provider_adjusted",
+        adjustment_version="alpaca-all",
+        provenance={"provider": "alpaca", "provider_payload": {"t": "2026-01-02"}},
+    )
+
+
+def test_bar_insert_mapping_preserves_series_adjustment_and_provenance():
+    mapped = _bar_as_dict(_semantic_bar())
+
+    assert mapped == {
+        "instrument_id": 42,
+        "data_source_id": 7,
+        "market_series_id": 99,
+        "timeframe": Timeframe.D1,
+        "ts": datetime(2026, 1, 2, tzinfo=UTC),
+        "session": "regular",
+        "scope_key": "series:99:regular",
+        "open": 100,
+        "high": 102,
+        "low": 99,
+        "close": 101,
+        "volume": 1234,
+        "vwap": 100.5,
+        "is_adjusted": True,
+        "adjustment_basis": "provider_adjusted",
+        "adjustment_version": "alpaca-all",
+        "provenance": {"provider": "alpaca", "provider_payload": {"t": "2026-01-02"}},
+    }
+
+
+@pytest.mark.asyncio
+async def test_observation_insert_mapping_preserves_series_adjustment_and_payload():
+    class _Db:
+        def __init__(self):
+            self.parameters = None
+
+        async def execute(self, _statement, parameters):
+            self.parameters = parameters
+
+    db = _Db()
+    await market_data._record_bar_observations(
+        db,
+        [_semantic_bar()],
+        data_source_id=7,
+        provider_symbol="AAPL",
+        observed_at=datetime(2026, 1, 3, tzinfo=UTC),
+    )
+
+    assert db.parameters == [
+        {
+            "instrument_id": 42,
+            "data_source_id": 7,
+            "market_series_id": 99,
+            "provider_symbol": "AAPL",
+            "timeframe": Timeframe.D1,
+            "session": "regular",
+            "scope_key": "series:99:regular",
+            "ts": datetime(2026, 1, 2, tzinfo=UTC),
+            "observed_at": datetime(2026, 1, 3, tzinfo=UTC),
+            "open": 100,
+            "high": 102,
+            "low": 99,
+            "close": 101,
+            "volume": 1234,
+            "vwap": 100.5,
+            "is_adjusted": True,
+            "adjustment_basis": "provider_adjusted",
+            "adjustment_version": "alpaca-all",
+            "source_payload": {"provider": "alpaca", "provider_payload": {"t": "2026-01-02"}},
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_bar_observation_insert_is_append_only_for_same_observation_timestamp():
+    class _Db:
+        def __init__(self):
+            self.statement = None
+
+        async def execute(self, statement, _parameters):
+            self.statement = statement
+
+    db = _Db()
+    await market_data._record_bar_observations(
+        db,
+        [_semantic_bar()],
+        data_source_id=7,
+        provider_symbol="AAPL",
+        observed_at=datetime(2026, 1, 3, tzinfo=UTC),
+    )
+
+    assert "DO NOTHING" in str(db.statement.compile(dialect=postgresql.dialect()))
     assert _is_recoverable_provider_gap(RuntimeError("unexpected programming failure")) is False
+
+
+@pytest.mark.asyncio
+async def test_provider_refresh_assigns_scoped_market_series(monkeypatch):
+    bar = _semantic_bar()
+    execution = SimpleNamespace(
+        provider_name="alpaca",
+        data_source=SimpleNamespace(id=17),
+        result=[bar],
+    )
+    captured: dict[str, object] = {}
+
+    async def fake_execute(*_args, **_kwargs):
+        captured["execute_kwargs"] = _kwargs
+        return execution
+
+    async def fake_get_or_create(_db, scope, **kwargs):
+        captured["scope"] = scope
+        captured["kwargs"] = kwargs
+        return SimpleNamespace(id=123)
+
+    async def fake_record(*_args, **_kwargs):
+        return None
+
+    async def fake_touch(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(market_data, "get_or_create_series", fake_get_or_create)
+    monkeypatch.setattr(market_data, "provider_symbol_for_instrument", lambda *_args: "AAPL")
+    monkeypatch.setattr(market_data, "_record_bar_observations", fake_record)
+    monkeypatch.setattr(market_data, "_touch_ohlcv_dataset_state", fake_touch)
+
+    instrument = SimpleNamespace(id=42)
+    result = await market_data._fetch_provider(
+        object(),
+        instrument,
+        Timeframe.D1,
+        datetime(2020, 1, 1, tzinfo=UTC),
+        datetime(2023, 1, 1, tzinfo=UTC),
+        True,
+    )
+
+    scope = captured["scope"]
+    assert scope.instrument_id == 42
+    assert scope.data_source_id == 17
+    assert scope.feed_scope == "provider_native"
+    assert scope.session_code == "regular"
+    assert scope.timeframe == "D1"
+    assert scope.adjustment_basis.value == "provider_adjusted"
+    assert scope.adjustment_version == "alpaca-all"
+    assert captured["kwargs"]["canonical"] is True
+    assert captured["execute_kwargs"]["operation_cost_overrides"]["marketdata_app"] == 2
+    assert captured["execute_kwargs"]["operation_cost_overrides"]["fmp"] == 1
+    assert result[0].market_series_id == 123
+
+
+@pytest.mark.asyncio
+async def test_latest_provider_refresh_assigns_scoped_market_series(monkeypatch):
+    bar = _semantic_bar()
+    execution = SimpleNamespace(
+        provider_name="alpaca",
+        data_source=SimpleNamespace(id=17),
+        result=[bar],
+    )
+    captured: dict[str, object] = {}
+
+    async def fake_execute(*_args, **_kwargs):
+        captured["execute_kwargs"] = _kwargs
+        return execution
+
+    async def fake_get_or_create(_db, scope, **kwargs):
+        captured["scope"] = scope
+        captured["kwargs"] = kwargs
+        return SimpleNamespace(id=456)
+
+    async def fake_record(*_args, **_kwargs):
+        return None
+
+    async def fake_touch(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
+    expected_history_start = datetime(2025, 12, 1, tzinfo=UTC)
+    monkeypatch.setattr(
+        market_data,
+        "get_provider",
+        lambda _provider_name: SimpleNamespace(
+            latest_window_start=lambda _timeframe, _limit: expected_history_start
+        ),
+    )
+    monkeypatch.setattr(market_data, "get_or_create_series", fake_get_or_create)
+    monkeypatch.setattr(market_data, "provider_symbol_for_instrument", lambda *_args: "AAPL")
+    monkeypatch.setattr(market_data, "_record_bar_observations", fake_record)
+    monkeypatch.setattr(market_data, "_touch_ohlcv_dataset_state", fake_touch)
+
+    result = await market_data._fetch_provider_latest(
+        object(),
+        SimpleNamespace(id=42),
+        Timeframe.D1,
+        10,
+        True,
+    )
+
+    scope = captured["scope"]
+    assert scope.instrument_id == 42
+    assert scope.data_source_id == 17
+    assert scope.timeframe == "D1"
+    assert captured["kwargs"]["canonical"] is True
+    assert captured["execute_kwargs"]["history_start"]("alpaca") == expected_history_start
+    assert captured["execute_kwargs"]["operation_cost_overrides"]["fmp"] == 1
+    assert result[0].market_series_id == 456
+
+
+@pytest.mark.asyncio
+async def test_provider_refresh_splits_mixed_sessions_into_distinct_series(monkeypatch):
+    regular = _semantic_bar()
+    extended = _semantic_bar()
+    extended.session = "extended"
+    extended.provenance = {"provider": "alpaca", "feed": "iex"}
+    execution = SimpleNamespace(
+        provider_name="alpaca",
+        data_source=SimpleNamespace(id=17),
+        result=[regular, extended],
+    )
+    scopes = []
+
+    async def fake_get_or_create(_db, scope, **_kwargs):
+        scopes.append(scope)
+        return SimpleNamespace(id=100 + len(scopes))
+
+    monkeypatch.setattr(market_data, "get_or_create_series", fake_get_or_create)
+    monkeypatch.setattr(market_data, "provider_symbol_for_instrument", lambda *_args: "AAPL")
+
+    result = await market_data._attach_provider_series(
+        object(),
+        SimpleNamespace(id=42),
+        Timeframe.D1,
+        True,
+        execution,
+    )
+
+    assert len(scopes) == 2
+    assert {scope.session_code for scope in scopes} == {"regular", "extended"}
+    assert {bar.market_series_id for bar in result} == {101, 102}
 
 
 def _bar(ts: datetime, timeframe: Timeframe = Timeframe.D1):
@@ -160,792 +401,344 @@ def test_coverage_planner_reports_cold_range_and_bounded_slice():
     assert assessment.bar_count == 0
 
 
-def test_observed_ohlcv_cadence_uses_distinct_returned_timestamps():
+@pytest.mark.asyncio
+async def test_identical_provider_refreshes_are_coalesced_per_process(monkeypatch):
+    active = 0
+    max_active = 0
+    provider_calls = 0
+    cache_ready = False
+
+    async def fake_impl(*_args, **_kwargs):
+        nonlocal active, max_active, provider_calls, cache_ready
+        if cache_ready:
+            return ["cached"]
+        provider_calls += 1
+        active += 1
+        max_active = max(max_active, active)
+        await asyncio.sleep(0)
+        active -= 1
+        cache_ready = True
+        return ["fresh"]
+
+    monkeypatch.setattr(market_data, "_fetch_ohlcv_impl", fake_impl)
+    instrument = SimpleNamespace(id=42, is_synthetic=False)
     start = datetime(2026, 1, 1, tzinfo=UTC)
-    bars = [
-        SimpleNamespace(ts=start),
-        SimpleNamespace(ts=start + timedelta(days=1)),
-        SimpleNamespace(ts=start + timedelta(days=9)),
-        SimpleNamespace(ts=start + timedelta(days=9)),
-    ]
 
-    assessment = assess_observed_ohlcv_cadence(bars)
+    results = await asyncio.gather(
+        market_data.fetch_ohlcv(object(), instrument, Timeframe.D1, start),
+        market_data.fetch_ohlcv(object(), instrument, Timeframe.D1, start),
+    )
 
-    assert assessment.status == "observed_cadence"
-    assert assessment.sample_count == 2
-    assert assessment.median_interval_days == 4.5
-    assert assessment.min_interval_days == 1.0
-    assert assessment.max_interval_days == 8.0
-
-
-def test_observed_ohlcv_cadence_reports_empty_and_single_ranges():
-    assert assess_observed_ohlcv_cadence([]).status == "no_observation"
-    bar = SimpleNamespace(ts=datetime(2026, 1, 1))
-    assert assess_observed_ohlcv_cadence([bar]).status == "single_observation"
+    assert results == [["fresh"], ["cached"]]
+    assert provider_calls == 1
+    assert max_active == 1
 
 
 @pytest.mark.asyncio
-async def test_provider_dataset_state_marks_opaque_adjustment_factors_explicitly(db, instrument):
-    from app.models.data_source import DataSource
-    from app.models.ohlcv import OHLCVBar
-    from app.models.provider_observation import InstrumentDatasetState
+@pytest.mark.parametrize("operation", ["latest", "page_before"])
+async def test_implicit_ohlcv_refresh_paths_are_coalesced_per_process(monkeypatch, operation):
+    active = 0
+    provider_calls = 0
+    cache_ready = False
 
-    source = DataSource(name="opaque-factor-provider")
-    db.add(source)
-    db.flush()
-    bar = OHLCVBar(
-        instrument_id=instrument.id,
-        timeframe=Timeframe.D1,
-        ts=datetime(2026, 1, 2, tzinfo=UTC),
-        open=Decimal("10"),
-        high=Decimal("11"),
-        low=Decimal("9"),
-        close=Decimal("10"),
-        is_adjusted=True,
-    )
-    db.add(bar)
-    db.flush()
+    async def fake_impl(*_args, **_kwargs):
+        nonlocal active, provider_calls, cache_ready
+        if cache_ready:
+            return ["cached"]
+        provider_calls += 1
+        active += 1
+        assert active == 1
+        await asyncio.sleep(0)
+        active -= 1
+        cache_ready = True
+        return ["fresh"]
 
-    await _touch_ohlcv_dataset_state(
-        AsyncSessionAdapter(db),
-        instrument,
-        data_source_id=source.id,
-        timeframe=Timeframe.D1,
-        adjusted=True,
-        bars=[bar],
-        fetched_at=datetime(2026, 1, 3, tzinfo=UTC),
-    )
-
-    state = (
-        db.query(InstrumentDatasetState)
-        .filter(
-            InstrumentDatasetState.instrument_id == instrument.id,
-            InstrumentDatasetState.data_source_id == source.id,
-            InstrumentDatasetState.dataset_key == "D1:adj",
-        )
-        .one()
-    )
-    assert state.extra_data["adjustment_provenance"] == {
-        "mode": "split_adjusted",
-        "source_kind": "provider_observation",
-        "factor_status": "provider_native_opaque",
-        "factor_version": None,
-        "contract_version": 1,
-    }
-
-
-@pytest.mark.asyncio
-async def test_provider_dataset_state_preserves_union_of_incremental_coverage(db, instrument):
-    from app.models.data_source import DataSource
-    from app.models.ohlcv import OHLCVBar
-    from app.models.provider_observation import InstrumentDatasetState
-
-    source = DataSource(name="incremental-coverage-provider")
-    db.add(source)
-    db.flush()
-
-    def bar(ts: datetime) -> OHLCVBar:
-        return OHLCVBar(
-            instrument_id=instrument.id,
-            data_source_id=source.id,
-            timeframe=Timeframe.D1,
-            ts=ts,
-            open=Decimal("10"),
-            high=Decimal("11"),
-            low=Decimal("9"),
-            close=Decimal("10"),
-            is_adjusted=True,
-        )
-
-    # A recent slice is fetched first, then an older bounded backfill arrives.
-    # The state must retain the complete persisted range rather than the last
-    # response's narrow bounds.
-    await _touch_ohlcv_dataset_state(
-        AsyncSessionAdapter(db),
-        instrument,
-        data_source_id=source.id,
-        timeframe=Timeframe.D1,
-        adjusted=True,
-        bars=[bar(datetime(2026, 1, 10, tzinfo=UTC))],
-        fetched_at=datetime(2026, 1, 11, tzinfo=UTC),
-    )
-    await _touch_ohlcv_dataset_state(
-        AsyncSessionAdapter(db),
-        instrument,
-        data_source_id=source.id,
-        timeframe=Timeframe.D1,
-        adjusted=True,
-        bars=[bar(datetime(2025, 1, 2, tzinfo=UTC))],
-        fetched_at=datetime(2026, 1, 12, tzinfo=UTC),
-    )
-
-    state = (
-        db.query(InstrumentDatasetState)
-        .filter(
-            InstrumentDatasetState.instrument_id == instrument.id,
-            InstrumentDatasetState.data_source_id == source.id,
-            InstrumentDatasetState.dataset_key == "D1:adj",
-        )
-        .one()
-    )
-    assert _as_utc(state.coverage_start) == datetime(2025, 1, 2, tzinfo=UTC)
-    assert _as_utc(state.coverage_end) == datetime(2026, 1, 10, tzinfo=UTC)
-    assert _as_utc(state.fetched_at) == datetime(2026, 1, 12, tzinfo=UTC)
-
-
-@pytest.mark.asyncio
-async def test_provider_dataset_state_records_rebuildable_split_factor_version(db, instrument):
-    from app.models.data_source import DataSource
-    from app.models.instrument_event import EventTimeHint, InstrumentEvent, InstrumentEventType
-    from app.models.ohlcv import OHLCVBar
-    from app.models.provider_observation import InstrumentDatasetState
-
-    source = DataSource(name="rebuildable-factor-provider")
-    db.add(source)
-    db.flush()
-    event_time = datetime(2025, 6, 10, tzinfo=UTC)
-    db.add(
-        InstrumentEvent(
-            instrument_id=instrument.id,
-            event_type=InstrumentEventType.SPLIT,
-            event_time=event_time,
-            time_hint=EventTimeHint.UNKNOWN,
-            title="Fixture split",
-            source=source.name,
-            source_event_key="split:2025-06-10",
-            split_ratio=Decimal("2"),
-            fetched_at=event_time,
-        )
-    )
-    bar = OHLCVBar(
-        instrument_id=instrument.id,
-        timeframe=Timeframe.D1,
-        ts=datetime(2026, 1, 2, tzinfo=UTC),
-        open=Decimal("10"),
-        high=Decimal("11"),
-        low=Decimal("9"),
-        close=Decimal("10"),
-        is_adjusted=True,
-    )
-    db.add(bar)
-    db.flush()
-
-    await _touch_ohlcv_dataset_state(
-        AsyncSessionAdapter(db),
-        instrument,
-        data_source_id=source.id,
-        timeframe=Timeframe.D1,
-        adjusted=True,
-        bars=[bar],
-        fetched_at=datetime(2026, 1, 3, tzinfo=UTC),
-    )
-
-    state = (
-        db.query(InstrumentDatasetState)
-        .filter(
-            InstrumentDatasetState.instrument_id == instrument.id,
-            InstrumentDatasetState.data_source_id == source.id,
-            InstrumentDatasetState.dataset_key == "D1:adj",
-        )
-        .one()
-    )
-    provenance = state.extra_data["adjustment_provenance"]
-    assert provenance["factor_status"] == "rebuildable_split_factors"
-    assert provenance["factor_version"].startswith("afv1-")
-
-
-@pytest.mark.asyncio
-async def test_provider_dataset_state_prefers_durable_factor_observation_provenance(db, instrument):
-    from app.models.adjustment_factor import AdjustmentFactorObservation
-    from app.models.data_source import DataSource
-    from app.models.ohlcv import OHLCVBar
-    from app.models.provider_observation import InstrumentDatasetState
-
-    source = DataSource(name="durable-factor-provider")
-    db.add(source)
-    db.flush()
-    event_time = datetime(2025, 6, 10, tzinfo=UTC)
-    db.add(
-        AdjustmentFactorObservation(
-            instrument_id=instrument.id,
-            data_source_id=source.id,
-            provider_symbol="TEST",
-            factor_type="split",
-            effective_at=event_time,
-            factor=Decimal("2"),
-            source_event_key="split:2025-06-10",
-            observed_at=event_time,
-            factor_version="afv1-durable",
-        )
-    )
-    bar = OHLCVBar(
-        instrument_id=instrument.id,
-        timeframe=Timeframe.D1,
-        ts=datetime(2026, 1, 2, tzinfo=UTC),
-        open=Decimal("10"),
-        high=Decimal("11"),
-        low=Decimal("9"),
-        close=Decimal("10"),
-        is_adjusted=True,
-    )
-    db.add(bar)
-    db.flush()
-
-    await _touch_ohlcv_dataset_state(
-        AsyncSessionAdapter(db),
-        instrument,
-        data_source_id=source.id,
-        timeframe=Timeframe.D1,
-        adjusted=True,
-        bars=[bar],
-        fetched_at=datetime(2026, 1, 3, tzinfo=UTC),
-    )
-
-    state = (
-        db.query(InstrumentDatasetState)
-        .filter(
-            InstrumentDatasetState.instrument_id == instrument.id,
-            InstrumentDatasetState.data_source_id == source.id,
-            InstrumentDatasetState.dataset_key == "D1:adj",
-        )
-        .one()
-    )
-    assert state.extra_data["adjustment_provenance"] == {
-        "mode": "split_adjusted",
-        "source_kind": "provider_observation",
-        "factor_status": "rebuildable_split_factors",
-        "factor_version": "afv1-durable",
-        "contract_version": 1,
-        "factor_observation_count": 1,
-        "factor_rebuildable_observation_count": 1,
-        "factor_opaque_observation_count": 0,
-        "factor_kinds": ["split_ratio"],
-    }
-
-
-@pytest.mark.asyncio
-async def test_provider_dataset_state_applies_provider_dividend_factor_provenance(db, instrument):
-    from app.models.adjustment_factor import AdjustmentFactorObservation
-    from app.models.data_source import DataSource
-    from app.models.ohlcv import OHLCVBar
-    from app.models.provider_observation import InstrumentDatasetState
-
-    source = DataSource(name="provider-dividend-factor-state")
-    db.add(source)
-    db.flush()
-    event_time = datetime(2025, 6, 10, tzinfo=UTC)
-    db.add(
-        AdjustmentFactorObservation(
-            instrument_id=instrument.id,
-            data_source_id=source.id,
-            provider_symbol="TEST",
-            factor_type="dividend",
-            effective_at=event_time,
-            factor=Decimal("0.9975"),
-            factor_kind="provider_supplied",
-            amount=Decimal("0.25"),
-            source_event_key="dividend:2025-06-10",
-            observed_at=event_time,
-            factor_version="afv1-provider-dividend",
-        )
-    )
-    bar = OHLCVBar(
-        instrument_id=instrument.id,
-        timeframe=Timeframe.D1,
-        ts=datetime(2026, 1, 2, tzinfo=UTC),
-        open=Decimal("10"),
-        high=Decimal("11"),
-        low=Decimal("9"),
-        close=Decimal("10"),
-        is_adjusted=True,
-    )
-    db.add(bar)
-    db.flush()
-
-    await _touch_ohlcv_dataset_state(
-        AsyncSessionAdapter(db),
-        instrument,
-        data_source_id=source.id,
-        timeframe=Timeframe.D1,
-        adjusted=True,
-        bars=[bar],
-        fetched_at=datetime(2026, 1, 3, tzinfo=UTC),
-    )
-
-    state = (
-        db.query(InstrumentDatasetState)
-        .filter(
-            InstrumentDatasetState.instrument_id == instrument.id,
-            InstrumentDatasetState.data_source_id == source.id,
-            InstrumentDatasetState.dataset_key == "D1:adj",
-        )
-        .one()
-    )
-    assert state.extra_data["adjustment_provenance"] == {
-        "mode": "split_adjusted",
-        "source_kind": "provider_observation",
-        "factor_status": "rebuildable_provider_factors",
-        "factor_version": "afv1-provider-dividend",
-        "contract_version": 1,
-        "factor_observation_count": 1,
-        "factor_rebuildable_observation_count": 1,
-        "factor_opaque_observation_count": 0,
-        "factor_kinds": ["provider_supplied"],
-    }
-
-
-@pytest.mark.asyncio
-async def test_provider_dataset_state_limits_factor_provenance_to_coverage_end(db, instrument):
-    from app.models.adjustment_factor import AdjustmentFactorObservation
-    from app.models.data_source import DataSource
-    from app.models.ohlcv import OHLCVBar
-    from app.models.provider_observation import InstrumentDatasetState
-
-    source = DataSource(name="point-in-time-factor-provider")
-    db.add(source)
-    db.flush()
-    db.add_all(
-        [
-            AdjustmentFactorObservation(
-                instrument_id=instrument.id,
-                data_source_id=source.id,
-                provider_symbol="TEST",
-                factor_type="split",
-                effective_at=datetime(2025, 6, 10, tzinfo=UTC),
-                factor=Decimal("2"),
-                source_event_key="split:2025-06-10",
-                observed_at=datetime(2025, 6, 11, tzinfo=UTC),
-                factor_version="afv1-past",
-            ),
-            AdjustmentFactorObservation(
-                instrument_id=instrument.id,
-                data_source_id=source.id,
-                provider_symbol="TEST",
-                factor_type="split",
-                effective_at=datetime(2026, 6, 10, tzinfo=UTC),
-                factor=Decimal("3"),
-                source_event_key="split:2026-06-10",
-                observed_at=datetime(2026, 6, 11, tzinfo=UTC),
-                factor_version="afv1-future",
-            ),
-            AdjustmentFactorObservation(
-                instrument_id=instrument.id,
-                data_source_id=source.id,
-                provider_symbol="TEST",
-                factor_type="split",
-                effective_at=datetime(2025, 6, 20, tzinfo=UTC),
-                factor=Decimal("4"),
-                source_event_key="split:2025-06-20-late",
-                observed_at=datetime(2026, 1, 3, tzinfo=UTC),
-                factor_version="afv1-late",
-            ),
+    instrument = SimpleNamespace(id=43, is_synthetic=False)
+    before = datetime(2026, 2, 1, tzinfo=UTC)
+    if operation == "latest":
+        monkeypatch.setattr(market_data, "_fetch_ohlcv_latest_impl", fake_impl)
+        calls = [
+            market_data.fetch_ohlcv_latest(object(), instrument, Timeframe.D1, 10),
+            market_data.fetch_ohlcv_latest(object(), instrument, Timeframe.D1, 10),
         ]
-    )
-    bar = OHLCVBar(
-        instrument_id=instrument.id,
-        timeframe=Timeframe.D1,
-        ts=datetime(2026, 1, 2, tzinfo=UTC),
-        open=Decimal("10"),
-        high=Decimal("11"),
-        low=Decimal("9"),
-        close=Decimal("10"),
-        is_adjusted=True,
-    )
-    db.add(bar)
-    db.flush()
-
-    await _touch_ohlcv_dataset_state(
-        AsyncSessionAdapter(db),
-        instrument,
-        data_source_id=source.id,
-        timeframe=Timeframe.D1,
-        adjusted=True,
-        bars=[bar],
-        fetched_at=datetime(2026, 1, 3, tzinfo=UTC),
-    )
-
-    state = (
-        db.query(InstrumentDatasetState)
-        .filter(
-            InstrumentDatasetState.instrument_id == instrument.id,
-            InstrumentDatasetState.data_source_id == source.id,
-            InstrumentDatasetState.dataset_key == "D1:adj",
-        )
-        .one()
-    )
-    provenance = state.extra_data["adjustment_provenance"]
-    assert provenance["factor_status"] == "rebuildable_split_factors"
-    assert provenance["factor_version"] == "afv1-past"
-    assert provenance["factor_observation_count"] == 1
-
-
-@pytest.mark.asyncio
-async def test_provider_dataset_state_limits_legacy_event_fallback_to_coverage_end(db, instrument):
-    from app.models.data_source import DataSource
-    from app.models.instrument_event import EventTimeHint, InstrumentEvent, InstrumentEventType
-    from app.models.ohlcv import OHLCVBar
-    from app.models.provider_observation import InstrumentDatasetState
-
-    source = DataSource(name="point-in-time-legacy-factor-provider")
-    db.add(source)
-    db.flush()
-    db.add_all(
-        [
-            InstrumentEvent(
-                instrument_id=instrument.id,
-                event_type=InstrumentEventType.SPLIT,
-                event_time=datetime(2025, 6, 10, tzinfo=UTC),
-                time_hint=EventTimeHint.UNKNOWN,
-                title="Past split",
-                source=source.name,
-                source_event_key="split:2025-06-10",
-                split_ratio=Decimal("2"),
-                fetched_at=datetime(2025, 6, 11, tzinfo=UTC),
-            ),
-            InstrumentEvent(
-                instrument_id=instrument.id,
-                event_type=InstrumentEventType.SPLIT,
-                event_time=datetime(2026, 6, 10, tzinfo=UTC),
-                time_hint=EventTimeHint.UNKNOWN,
-                title="Future split",
-                source=source.name,
-                source_event_key="split:2026-06-10",
-                split_ratio=Decimal("3"),
-                fetched_at=datetime(2026, 6, 11, tzinfo=UTC),
-            ),
-            InstrumentEvent(
-                instrument_id=instrument.id,
-                event_type=InstrumentEventType.SPLIT,
-                event_time=datetime(2025, 6, 20, tzinfo=UTC),
-                time_hint=EventTimeHint.UNKNOWN,
-                title="Late-discovered split",
-                source=source.name,
-                source_event_key="split:2025-06-20-late",
-                split_ratio=Decimal("4"),
-                fetched_at=datetime(2026, 1, 3, tzinfo=UTC),
-            ),
+    else:
+        monkeypatch.setattr(market_data, "_fetch_ohlcv_page_before_impl", fake_impl)
+        calls = [
+            market_data.fetch_ohlcv_page_before(object(), instrument, Timeframe.D1, before, 10),
+            market_data.fetch_ohlcv_page_before(object(), instrument, Timeframe.D1, before, 10),
         ]
-    )
-    bar = OHLCVBar(
-        instrument_id=instrument.id,
-        timeframe=Timeframe.D1,
-        ts=datetime(2026, 1, 2, tzinfo=UTC),
-        open=Decimal("10"),
-        high=Decimal("11"),
-        low=Decimal("9"),
-        close=Decimal("10"),
-        is_adjusted=True,
-    )
-    db.add(bar)
-    db.flush()
 
-    await _touch_ohlcv_dataset_state(
-        AsyncSessionAdapter(db),
-        instrument,
-        data_source_id=source.id,
-        timeframe=Timeframe.D1,
-        adjusted=True,
-        bars=[bar],
-        fetched_at=datetime(2026, 1, 3, tzinfo=UTC),
-    )
-
-    state = (
-        db.query(InstrumentDatasetState)
-        .filter(
-            InstrumentDatasetState.instrument_id == instrument.id,
-            InstrumentDatasetState.data_source_id == source.id,
-            InstrumentDatasetState.dataset_key == "D1:adj",
-        )
-        .one()
-    )
-    provenance = state.extra_data["adjustment_provenance"]
-    assert provenance["factor_status"] == "rebuildable_split_factors"
-    assert provenance["factor_observation_count"] == 1
+    assert await asyncio.gather(*calls) == [["fresh"], ["cached"]]
+    assert provider_calls == 1
 
 
 @pytest.mark.asyncio
-async def test_provider_upsert_promotes_a_matching_derived_bar_to_provider_lineage(
-    db, instrument, monkeypatch
-):
-    from app.models.data_source import DataSource
-    from app.models.ohlcv import OHLCVBar
+async def test_postgres_refresh_lock_uses_transaction_scoped_advisory_lock():
+    executed = []
 
-    async def _skip_observation_record(*_args, **_kwargs):
+    class _Db:
+        bind = SimpleNamespace(dialect=SimpleNamespace(name="postgresql"))
+
+        async def execute(self, statement):
+            executed.append(statement)
+
+    key = (42, Timeframe.D1.value, datetime(2026, 1, 1, tzinfo=UTC), None, True)
+    await market_data._acquire_database_refresh_lock(_Db(), key)
+
+    assert len(executed) == 1
+
+
+@pytest.mark.asyncio
+async def test_non_postgres_refresh_lock_is_a_noop():
+    class _Db:
+        bind = SimpleNamespace(dialect=SimpleNamespace(name="sqlite"))
+
+        async def execute(self, _statement):
+            raise AssertionError("SQLite must not receive PostgreSQL advisory SQL")
+
+    key = (42, Timeframe.D1.value, datetime(2026, 1, 1, tzinfo=UTC), None, True)
+    await market_data._acquire_database_refresh_lock(_Db(), key)
+
+
+@pytest.mark.asyncio
+async def test_redis_refresh_lock_wraps_operation_and_releases_ownership(monkeypatch):
+    calls: list[tuple] = []
+
+    class _Lock:
+        async def acquire(self):
+            calls.append(("acquire",))
+            return True
+
+        async def release(self):
+            calls.append(("release",))
+
+    class _Redis:
+        def lock(self, *args, **kwargs):
+            calls.append(("lock", args, kwargs))
+            return _Lock()
+
+    monkeypatch.setattr(market_data.settings, "OHLCV_DISTRIBUTED_LOCK_ENABLED", True)
+    instrument = SimpleNamespace(id=44, is_synthetic=False)
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+
+    async def operation():
+        calls.append(("operation",))
+        return ["fresh"]
+
+    result = await market_data._with_ohlcv_refresh_gate(
+        instrument,
+        Timeframe.D1,
+        start,
+        None,
+        True,
+        allow_provider_fetch=True,
+        redis=_Redis(),
+        operation=operation,
+    )
+
+    assert result == ["fresh"]
+    assert [call[0] for call in calls] == ["lock", "acquire", "operation", "release"]
+    assert calls[0][2]["timeout"] == market_data.settings.OHLCV_DISTRIBUTED_LOCK_TTL_SECONDS
+
+
+@pytest.mark.asyncio
+async def test_redis_refresh_lock_timeout_fails_closed_without_operation(monkeypatch):
+    called = False
+
+    class _Lock:
+        async def acquire(self):
+            return False
+
+        async def release(self):
+            raise AssertionError("a lock not acquired must not be released")
+
+    class _Redis:
+        def lock(self, *_args, **_kwargs):
+            return _Lock()
+
+    monkeypatch.setattr(market_data.settings, "OHLCV_DISTRIBUTED_LOCK_ENABLED", True)
+    instrument = SimpleNamespace(id=45, is_synthetic=False)
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+
+    async def operation():
+        nonlocal called
+        called = True
+        return ["unsafe"]
+
+    from app.services.distributed_locks import DistributedLockError
+
+    with pytest.raises(DistributedLockError, match="timed out"):
+        await market_data._with_ohlcv_refresh_gate(
+            instrument,
+            Timeframe.D1,
+            start,
+            None,
+            True,
+            allow_provider_fetch=True,
+            redis=_Redis(),
+            operation=operation,
+        )
+    assert called is False
+
+
+@pytest.mark.asyncio
+async def test_redis_refresh_lock_is_not_used_until_explicitly_enabled(monkeypatch):
+    class _Redis:
+        def lock(self, *_args, **_kwargs):
+            raise AssertionError("disabled mode must not contact Redis")
+
+    monkeypatch.setattr(market_data.settings, "OHLCV_DISTRIBUTED_LOCK_ENABLED", False)
+    instrument = SimpleNamespace(id=46, is_synthetic=False)
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+
+    async def operation():
+        return ["local"]
+
+    assert await market_data._with_ohlcv_refresh_gate(
+        instrument,
+        Timeframe.D1,
+        start,
+        None,
+        True,
+        allow_provider_fetch=True,
+        redis=_Redis(),
+        operation=operation,
+    ) == ["local"]
+
+
+@pytest.mark.asyncio
+async def test_latest_price_refresh_rechecks_cache_inside_process_gate(monkeypatch):
+    instrument = SimpleNamespace(
+        id=47,
+        symbol="AAPL",
+        listings=[],
+        provider_symbols=[],
+    )
+    state = {"price": None}
+    execute_calls = 0
+    stored_payloads: list[object] = []
+    stored_response_sets: list[object] = []
+
+    async def fake_cache(_db, _instrument):
+        return state["price"]
+
+    async def fake_execute(*_args, **_kwargs):
+        nonlocal execute_calls
+        execute_calls += 1
+        await asyncio.sleep(0)
+        return SimpleNamespace(
+            provider_name="yfinance",
+            data_source=SimpleNamespace(id=1),
+            result=123.45,
+            response_payloads=({"price": 123.45, "symbol": "AAPL"},),
+        )
+
+    async def fake_store(*_args, **_kwargs):
+        state["price"] = 123.45
+        stored_payloads.append(_kwargs["payload"])
+        stored_response_sets.append(_kwargs["payloads"])
+
+    monkeypatch.setattr(market_data.settings, "OHLCV_DISTRIBUTED_LOCK_ENABLED", False)
+    monkeypatch.setattr(market_data, "_fresh_latest_price_from_cache", fake_cache)
+    monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(market_data, "store_latest_price_snapshot", fake_store)
+
+    results = await asyncio.gather(
+        market_data.get_current_price_async(object(), instrument),
+        market_data.get_current_price_async(object(), instrument),
+    )
+
+    assert results == [123.45, 123.45]
+    assert execute_calls == 1
+    assert stored_payloads == [{"price": 123.45, "symbol": "AAPL"}]
+    assert stored_response_sets == [({"price": 123.45, "symbol": "AAPL"},)]
+
+
+@pytest.mark.asyncio
+async def test_latest_price_refresh_uses_opt_in_redis_gate(monkeypatch):
+    calls: list[tuple] = []
+    instrument = SimpleNamespace(
+        id=48,
+        symbol="MSFT",
+        listings=[],
+        provider_symbols=[],
+    )
+    state = {"price": None}
+
+    class _Lock:
+        async def acquire(self):
+            calls.append(("acquire",))
+            return True
+
+        async def release(self):
+            calls.append(("release",))
+
+    class _Redis:
+        def lock(self, *args, **kwargs):
+            calls.append(("lock", args, kwargs))
+            return _Lock()
+
+    async def fake_cache(_db, _instrument):
+        return state["price"]
+
+    async def fake_execute(*_args, **_kwargs):
+        calls.append(("provider",))
+        return SimpleNamespace(
+            provider_name="yfinance",
+            data_source=SimpleNamespace(id=1),
+            result=234.56,
+        )
+
+    async def fake_store(*_args, **_kwargs):
+        state["price"] = 234.56
+
+    monkeypatch.setattr(market_data.settings, "OHLCV_DISTRIBUTED_LOCK_ENABLED", True)
+    monkeypatch.setattr(market_data, "_fresh_latest_price_from_cache", fake_cache)
+    monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(market_data, "store_latest_price_snapshot", fake_store)
+
+    result = await market_data.get_current_price_async(object(), instrument, redis=_Redis())
+
+    assert result == 234.56
+    assert [call[0] for call in calls] == ["lock", "acquire", "provider", "release"]
+    assert calls[0][2]["timeout"] == market_data.settings.OHLCV_DISTRIBUTED_LOCK_TTL_SECONDS
+
+
+@pytest.mark.asyncio
+async def test_latest_price_refresh_redis_timeout_fails_closed_without_provider(monkeypatch):
+    instrument = SimpleNamespace(
+        id=49,
+        symbol="NVDA",
+        listings=[],
+        provider_symbols=[],
+    )
+    provider_called = False
+
+    class _Lock:
+        async def acquire(self):
+            return False
+
+        async def release(self):
+            raise AssertionError("a lock not acquired must not be released")
+
+    class _Redis:
+        def lock(self, *_args, **_kwargs):
+            return _Lock()
+
+    async def fake_cache(_db, _instrument):
         return None
 
-    monkeypatch.setattr(
-        "app.services.market_data._record_bar_observations", _skip_observation_record
-    )
-    source = DataSource(name="provider-lineage-source")
-    db.add(source)
-    db.flush()
-    ts = datetime(2026, 1, 5, tzinfo=UTC)
-    db.add(
-        OHLCVBar(
-            instrument_id=instrument.id,
-            timeframe=Timeframe.W1,
-            ts=ts,
-            open=Decimal("90"),
-            high=Decimal("95"),
-            low=Decimal("89"),
-            close=Decimal("92"),
-            volume=Decimal("100"),
-            is_adjusted=True,
-            is_derived=True,
-            source_timeframe=Timeframe.D1.value,
-            derivation_method="d1_ohlcv_xnys_calendar_aggregation",
-            derived_at=datetime(2026, 1, 6, tzinfo=UTC),
-            source_bar_count=5,
-            source_start=datetime(2026, 1, 1, tzinfo=UTC),
-            source_end=datetime(2026, 1, 5, tzinfo=UTC),
-        )
-    )
-    db.flush()
+    async def fake_execute(*_args, **_kwargs):
+        nonlocal provider_called
+        provider_called = True
+        raise AssertionError("provider must not run when latest-price lock times out")
 
-    await persist_price_history_bars(
-        AsyncSessionAdapter(db),
-        instrument,
-        data_source_id=source.id,
-        provider_symbol="AAPL",
-        timeframe=Timeframe.W1,
-        adjusted=True,
-        bars=[
-            OHLCVBar(
-                instrument_id=instrument.id,
-                data_source_id=source.id,
-                timeframe=Timeframe.W1,
-                ts=ts,
-                open=Decimal("100"),
-                high=Decimal("110"),
-                low=Decimal("99"),
-                close=Decimal("105"),
-                volume=Decimal("200"),
-                is_adjusted=True,
-            )
-        ],
-    )
-    row = (
-        db.query(OHLCVBar)
-        .filter(
-            OHLCVBar.instrument_id == instrument.id,
-            OHLCVBar.timeframe == Timeframe.W1,
-            OHLCVBar.ts == ts,
-        )
-        .one()
-    )
+    monkeypatch.setattr(market_data.settings, "OHLCV_DISTRIBUTED_LOCK_ENABLED", True)
+    monkeypatch.setattr(market_data, "_fresh_latest_price_from_cache", fake_cache)
+    monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
 
-    assert row.close == Decimal("105")
-    assert row.data_source_id == source.id
-    assert row.is_derived is False
-    assert row.source_timeframe is None
-    assert row.derivation_method is None
-    assert row.derived_at is None
-    assert row.source_bar_count is None
-    assert row.source_start is None
-    assert row.source_end is None
+    from app.services.distributed_locks import DistributedLockError
 
-
-def _provider_coarse_bar(instrument_id: int, ts: datetime):
-    from app.models.ohlcv import OHLCVBar
-
-    return OHLCVBar(
-        instrument_id=instrument_id,
-        timeframe=Timeframe.W1,
-        ts=ts,
-        open=Decimal("999"),
-        high=Decimal("1001"),
-        low=Decimal("998"),
-        close=Decimal("1000"),
-        volume=Decimal("1"),
-        is_adjusted=True,
-        is_derived=False,
-    )
-
-
-@pytest.mark.asyncio
-async def test_provider_enabled_range_merges_partial_coarse_rows_with_derived_history(
-    db, instrument, ohlcv_bars, monkeypatch
-):
-    from app.models.ohlcv import OHLCVBar
-
-    provider_ts = datetime(2024, 1, 1, tzinfo=UTC)
-    db.add(_provider_coarse_bar(instrument.id, provider_ts))
-    db.flush()
-    monkeypatch.setattr(
-        "app.services.market_data._needs_fetch_for_range", lambda *_args, **_kwargs: False
-    )
-
-    rows = await fetch_ohlcv(
-        AsyncSessionAdapter(db),
-        instrument,
-        Timeframe.W1,
-        datetime(2024, 1, 1, 2, tzinfo=timezone(timedelta(hours=2))),
-        datetime(2024, 1, 31, 2, tzinfo=timezone(timedelta(hours=2))),
-        allow_provider_fetch=True,
-    )
-
-    assert any(row.is_derived is False and row.close == Decimal("1000") for row in rows)
-    assert any(row.is_derived is True for row in rows)
-    assert (
-        db.query(OHLCVBar)
-        .filter(
-            OHLCVBar.instrument_id == instrument.id,
-            OHLCVBar.timeframe == Timeframe.W1,
-            OHLCVBar.is_derived.is_(True),
-        )
-        .count()
-        > 0
-    )
-
-
-@pytest.mark.asyncio
-async def test_historical_coarse_read_excludes_derived_period_not_closed_at_cutoff(
-    db, instrument, ohlcv_bars
-):
-    """A W1 aggregate must not expose D1 sessions after a historical cutoff."""
-
-    cutoff = datetime(2024, 1, 10, 12, tzinfo=UTC)
-    rows = await fetch_ohlcv(
-        AsyncSessionAdapter(db),
-        instrument,
-        Timeframe.W1,
-        datetime(2024, 1, 1, tzinfo=UTC),
-        cutoff,
-        allow_provider_fetch=False,
-    )
-
-    assert rows
-    assert all(_bar_visible_through(row, cutoff) for row in rows)
-    assert all(not row.is_derived or row.source_end.replace(tzinfo=UTC) <= cutoff for row in rows)
-    assert all(not (row.is_derived and row.source_end.replace(tzinfo=UTC) > cutoff) for row in rows)
-
-
-@pytest.mark.asyncio
-async def test_provider_enabled_latest_merges_partial_coarse_rows_with_derived_history(
-    db, instrument, ohlcv_bars, monkeypatch
-):
-    provider_ts = datetime(2024, 1, 1, tzinfo=UTC)
-    db.add(_provider_coarse_bar(instrument.id, provider_ts))
-    db.flush()
-
-    async def _no_provider_data(*_args, **_kwargs):
-        raise ProviderNoDataError("coarse provider unavailable")
-
-    monkeypatch.setattr("app.services.market_data._fetch_provider", _no_provider_data)
-    monkeypatch.setattr("app.services.market_data._needs_fetch", lambda *_args: False)
-
-    async def _repair_start(*_args):
-        return provider_ts - timedelta(days=7)
-
-    monkeypatch.setattr("app.services.market_data._latest_window_start", _repair_start)
-
-    rows = await fetch_ohlcv_latest(
-        AsyncSessionAdapter(db),
-        instrument,
-        Timeframe.W1,
-        500,
-        allow_provider_fetch=True,
-    )
-
-    assert any(row.is_derived is False and row.close == Decimal("1000") for row in rows)
-    assert any(row.is_derived is True for row in rows)
-    assert rows == sorted(rows, key=lambda row: row.ts)
-
-
-@pytest.mark.asyncio
-async def test_latest_coarse_read_excludes_derived_period_not_closed_at_now(
-    db, instrument, ohlcv_bars
-):
-    """Latest coarse reads must not expose a derived row whose source extends into the future."""
-
-    from app.models.ohlcv import OHLCVBar
-
-    future = datetime.now(UTC) + timedelta(days=1)
-    closed = datetime.now(UTC) - timedelta(days=30)
-    db.add(
-        OHLCVBar(
-            instrument_id=instrument.id,
-            data_source_id=None,
-            timeframe=Timeframe.W1,
-            ts=closed,
-            open=Decimal("99"),
-            high=Decimal("101"),
-            low=Decimal("98"),
-            close=Decimal("100"),
-            volume=Decimal("1"),
-            is_adjusted=True,
-            is_derived=True,
-            source_timeframe=Timeframe.D1.value,
-            derivation_method="aggregate_d1",
-            source_bar_count=1,
-            source_start=closed,
-            source_end=closed + timedelta(days=4),
-            derived_at=closed + timedelta(days=4),
-        )
-    )
-    db.add(
-        OHLCVBar(
-            instrument_id=instrument.id,
-            data_source_id=None,
-            timeframe=Timeframe.W1,
-            ts=future,
-            open=Decimal("999"),
-            high=Decimal("1001"),
-            low=Decimal("998"),
-            close=Decimal("1000"),
-            volume=Decimal("1"),
-            is_adjusted=True,
-            is_derived=True,
-            source_timeframe=Timeframe.D1.value,
-            derivation_method="aggregate_d1",
-            source_bar_count=1,
-            source_start=future,
-            source_end=future,
-            derived_at=future,
-        )
-    )
-    db.flush()
-
-    rows = await fetch_ohlcv_latest(
-        AsyncSessionAdapter(db),
-        instrument,
-        Timeframe.W1,
-        500,
-        allow_provider_fetch=False,
-    )
-
-    assert rows
-    assert all(_bar_visible_through(row, datetime.now(UTC)) for row in rows)
-    assert all(_as_utc(row.ts) < future for row in rows)
-
-
-@pytest.mark.asyncio
-async def test_provider_enabled_historical_page_merges_partial_coarse_rows_with_derived_history(
-    db, instrument, ohlcv_bars, monkeypatch
-):
-    provider_ts = datetime(2024, 1, 1, tzinfo=UTC)
-    db.add(_provider_coarse_bar(instrument.id, provider_ts))
-    db.flush()
-
-    async def _no_provider_data(*_args, **_kwargs):
-        raise ProviderNoDataError("coarse provider unavailable")
-
-    monkeypatch.setattr("app.services.market_data._fetch_provider", _no_provider_data)
-
-    rows = await fetch_ohlcv_page_before(
-        AsyncSessionAdapter(db),
-        instrument,
-        Timeframe.W1,
-        datetime(2024, 6, 1, 2, tzinfo=timezone(timedelta(hours=2))),
-        500,
-        allow_provider_fetch=True,
-    )
-
-    assert any(row.is_derived is False and row.close == Decimal("1000") for row in rows)
-    assert any(row.is_derived is True for row in rows)
-    assert all(
-        row.ts.replace(tzinfo=UTC)
-        < datetime(2024, 6, 1, tzinfo=timezone(timedelta(hours=2))).astimezone(UTC)
-        for row in rows
-    )
-    assert rows == sorted(rows, key=lambda row: row.ts)
+    with pytest.raises(DistributedLockError, match="timed out"):
+        await market_data.get_current_price_async(object(), instrument, redis=_Redis())
+    assert provider_called is False

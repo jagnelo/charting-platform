@@ -9,7 +9,6 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.lib.time_utils import wire_datetime
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.instrument import EquityDetail, ForexDetail, FutureDetail, Instrument
 from app.models.instrument_identity import (
@@ -18,11 +17,17 @@ from app.models.instrument_identity import (
     InstrumentProviderSymbol,
 )
 from app.models.instrument_stats import InstrumentStats
+from app.models.market_data_foundation import Issuer
 from app.models.provider_observation import InstrumentProfileSnapshot
 from app.models.provider_runtime import ProviderCapability
 from app.providers import ensure_data_source, provider_symbol_for_instrument
 from app.providers.base import IdentifierRecord, InstrumentProfile
-from app.services.exchange_catalog import coerce_listing_lifecycle_at, upsert_instrument_listing
+from app.services.exchange_catalog import (
+    coerce_listing_lifecycle_at,
+    normalize_exchange_mic,
+    upsert_instrument_listing,
+)
+from app.services.market_data_identity import apply_domain_identity
 from app.services.provider_observations import store_identifier_snapshot
 from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
 
@@ -55,8 +60,8 @@ def _provenance_entry(
 ) -> dict[str, Any]:
     entry: dict[str, Any] = {
         "source": source,
-        "fetched_at": wire_datetime(fetched_at) or "",
-        "observed_at": wire_datetime(observed_at or fetched_at) or "",
+        "fetched_at": fetched_at.isoformat(),
+        "observed_at": (observed_at or fetched_at).isoformat(),
     }
     if provider_symbol:
         entry["provider_symbol"] = provider_symbol
@@ -98,20 +103,7 @@ def _mark_field_provenance(
     setattr(target, "field_provenance", provenance)
 
 
-_EXCHANGE_CODE_RE = re.compile(r"^[A-Z0-9.\-]{2,10}$")
 _CURRENCY_CODE_RE = re.compile(r"^[A-Z]{3}$")
-
-
-def _normalize_exchange_code(value: str | None) -> str | None:
-    text = str(value or "").strip().upper()
-    if not text:
-        return None
-    if _EXCHANGE_CODE_RE.fullmatch(text):
-        return text
-    lead = re.split(r"[\s(/]", text, maxsplit=1)[0].strip().upper()
-    if _EXCHANGE_CODE_RE.fullmatch(lead):
-        return lead
-    return None
 
 
 def _normalize_currency_code(value: str | None) -> str | None:
@@ -148,9 +140,9 @@ def build_profile_snapshot_payload(profile: InstrumentProfile) -> dict[str, Any]
                 "currency": listing.currency,
                 "provider_instrument_type": listing.provider_instrument_type,
                 "is_primary": listing.is_primary,
-                "effective_at": wire_datetime(listing.effective_at),
-                "known_at": wire_datetime(listing.known_at),
-                "delisted_at": wire_datetime(listing.delisted_at),
+                "effective_at": listing.effective_at.isoformat() if listing.effective_at else None,
+                "known_at": listing.known_at.isoformat() if listing.known_at else None,
+                "delisted_at": listing.delisted_at.isoformat() if listing.delisted_at else None,
                 "extra_data": listing.extra_data,
             }
             for listing in profile.listings
@@ -178,22 +170,6 @@ async def store_profile_snapshot(
     payload = build_profile_snapshot_payload(profile)
     profile_hash = _payload_hash(payload)
     data_source = await ensure_data_source(db, profile.provider)
-    existing = (
-        await db.execute(
-            select(InstrumentProfileSnapshot).where(
-                InstrumentProfileSnapshot.instrument_id == instrument.id,
-                InstrumentProfileSnapshot.data_source_id == data_source.id,
-                InstrumentProfileSnapshot.profile_hash == profile_hash,
-            )
-        )
-    ).scalar_one_or_none()
-    if existing is not None:
-        existing.observed_at = observed_at
-        existing.fetched_at = fetched_at
-        existing.provider_symbol = profile.symbol
-        existing.payload = payload
-        return existing
-
     snapshot = InstrumentProfileSnapshot(
         instrument_id=instrument.id,
         data_source_id=data_source.id,
@@ -270,6 +246,7 @@ async def reconcile_instrument_profile(
                     is_primary=bool(item.get("is_primary")),
                     source=item.get("source"),
                     extra_data=item.get("extra_data"),
+                    raw_payload=item.get("raw_payload"),
                 )
             )
         for item in snapshot.payload.get("listings") or []:
@@ -372,6 +349,51 @@ def _identifier_enum(identifier_type: str) -> InstrumentIdentifierType:
         return InstrumentIdentifierType.INTERNAL
 
 
+def _normalize_cik(value: Any) -> str | None:
+    digits = "".join(character for character in str(value or "") if character.isdigit())
+    if not digits or len(digits) > 10:
+        return None
+    return digits.zfill(10)
+
+
+async def ensure_profile_issuer(
+    db: AsyncSession,
+    instrument: Instrument,
+    profile: InstrumentProfile,
+) -> None:
+    """Attach SEC CIK evidence to the issuer domain, never the security key."""
+
+    cik = _normalize_cik((profile.extra or {}).get("cik"))
+    if cik is None:
+        return
+
+    issuer = (await db.execute(select(Issuer).where(Issuer.cik == cik))).scalar_one_or_none()
+    if issuer is None:
+        issuer = (
+            await db.execute(select(Issuer).where(Issuer.domain_key == f"cik:{cik}"))
+        ).scalar_one_or_none()
+    if issuer is None:
+        issuer = Issuer(
+            domain_key=f"cik:{cik}",
+            legal_name=profile.name or profile.canonical_symbol or profile.symbol,
+            cik=cik,
+            country_code="US",
+            provenance={
+                "source": profile.provider,
+                "provider_symbol": profile.symbol,
+                "observed_at": _now_utc().isoformat(),
+            },
+        )
+        db.add(issuer)
+        await db.flush()
+
+    # A security can be linked to one issuer, but an issuer can own many
+    # share classes/listings. Never silently reassign an already-linked
+    # security when conflicting provider evidence arrives.
+    if instrument.issuer_id is None or instrument.issuer_id == issuer.id:
+        instrument.issuer_id = issuer.id
+
+
 async def ensure_instrument_type(
     db: AsyncSession,
     asset_class_name: str,
@@ -454,8 +476,20 @@ async def register_provider_symbol(
     existing.provider_instrument_type = (
         provider_instrument_type or existing.provider_instrument_type
     )
-    if reactivate_existing:
+    if delisted_at is not None:
+        existing.is_active = False
+        existing.retired_at = delisted_at
+    elif reactivate_existing:
         existing.is_active = True
+        # A provider can re-list or restore a symbol after a prior observed
+        # retirement.  The append-only universe/lifecycle observations retain
+        # the earlier retirement evidence; this binding represents the
+        # currently active association again.
+        existing.retired_at = None
+    if effective_at is not None and existing.effective_at is None:
+        existing.effective_at = effective_at
+    if known_at is not None and existing.known_at is None:
+        existing.known_at = known_at
     existing.is_primary = is_primary or existing.is_primary
     existing.extra_data = {
         **(existing.extra_data or {}),
@@ -474,6 +508,8 @@ async def register_provider_symbol(
         effective_at=effective_at,
         known_at=known_at,
         delisted_at=delisted_at,
+        source=provider_name,
+        provenance={"provider_instrument_type": provider_instrument_type},
     )
 
 
@@ -483,6 +519,13 @@ async def register_identifier(
     provider_name: str,
     identifier: IdentifierRecord,
 ) -> None:
+    # SEC CIK identifies the issuer/legal entity, not a tradeable security.
+    # Profile ingestion records it on ``Issuer``; legacy instrument rows may
+    # still contain CIK records for lookup compatibility, but new writes must
+    # never create another security-level CIK key.
+    if _identifier_enum(identifier.identifier_type) == InstrumentIdentifierType.CIK:
+        return
+
     data_source = await ensure_data_source(db, provider_name)
     existing = (
         await db.execute(
@@ -500,18 +543,13 @@ async def register_identifier(
         previous_instrument = (
             await db.execute(select(Instrument).where(Instrument.id == existing.instrument_id))
         ).scalar_one_or_none()
+        existing.instrument_id = instrument.id
         if (
             previous_instrument is not None
             and existing.identifier_type == InstrumentIdentifierType.ISIN
             and previous_instrument.isin == existing.identifier_value
         ):
-            # PostgreSQL enforces the unique instrument.isin index per statement.
-            # Release the old ownership before assigning the same internal ISIN to
-            # the reconciled instrument, otherwise a provider refresh can roll back
-            # the whole family leg on an otherwise safe alias correction.
             previous_instrument.isin = None
-            await db.flush()
-        existing.instrument_id = instrument.id
 
     if existing is None:
         existing = InstrumentIdentifier(
@@ -622,6 +660,17 @@ async def ensure_external_identifier(
     instrument: Instrument,
 ) -> bool:
     if has_external_identifier(instrument):
+        if not instrument.domain_key:
+            await apply_domain_identity(
+                db,
+                instrument,
+                provider_name="existing_identifier",
+                provider_symbol=instrument.symbol,
+                candidate_payload={
+                    "identifier_type": instrument.primary_identifier_type,
+                    "identifier_value": instrument.primary_identifier_value,
+                },
+            )
         return False
 
     def _symbol_for_provider(provider_name: str) -> str:
@@ -636,6 +685,7 @@ async def ensure_external_identifier(
             "fetch_stable_identifiers",
             instrument_id=instrument.id,
             provider_symbol=instrument.symbol,
+            usage_identity=_symbol_for_provider,
             invoke=lambda provider, _ignored_provider_symbol: provider.fetch_stable_identifiers(
                 _symbol_for_provider(provider.name)
             ),
@@ -660,6 +710,22 @@ async def ensure_external_identifier(
     for identifier in identifiers:
         await register_identifier(db, instrument, execution.provider_name, identifier)
         identifier_added = True
+    await apply_domain_identity(
+        db,
+        instrument,
+        provider_name=execution.provider_name,
+        provider_symbol=provider_symbol,
+        candidate_payload={
+            "identifiers": [
+                {
+                    "identifier_type": item.identifier_type,
+                    "identifier_value": item.identifier_value,
+                    "source": item.source,
+                }
+                for item in identifiers
+            ]
+        },
+    )
     if has_external_identifier(instrument):
         _mark_field_provenance(
             instrument,
@@ -811,11 +877,21 @@ async def apply_profile_to_instrument(
             is_primary=True,
         )
 
+    await ensure_profile_issuer(db, instrument, profile)
+
     for identifier in profile.identifiers:
         await register_identifier(db, instrument, profile.provider, identifier)
 
     await ensure_internal_identifier(db, instrument)
     await ensure_external_identifier(db, instrument)
+    await apply_domain_identity(
+        db,
+        instrument,
+        provider_name=profile.provider,
+        provider_symbol=profile.symbol,
+        exchange_mic=normalize_exchange_mic(profile.exchange),
+        candidate_payload=build_profile_snapshot_payload(profile),
+    )
     await upsert_instrument_stats(
         db,
         instrument,
@@ -834,7 +910,7 @@ async def apply_profile_to_instrument(
         if detail is None:
             detail = EquityDetail(instrument_id=instrument.id)
             db.add(detail)
-        normalized_exchange = _normalize_exchange_code(profile.exchange)
+        normalized_exchange = normalize_exchange_mic(profile.exchange)
         detail.sector = profile.extra.get("sector") or detail.sector
         detail.industry = profile.extra.get("industry") or detail.industry
         detail.country = profile.extra.get("country") or detail.country

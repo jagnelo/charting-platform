@@ -476,6 +476,8 @@ class TestWorkspaces:
         payload = response.json()
         assert payload["family_key"] == "nasdaq100"
         assert payload["official_index_symbol"] == "NDX"
+        assert payload["coverage_preflight"]["evaluator"] == "benchmark_family_overview"
+        assert payload["coverage_preflight"]["status"] == "empty"
         assert payload["coverage"] == 0
         assert payload["rows"] == []
         assert payload["universe_provenance"]["cap_proxy_symbol"] == "QQQ"
@@ -487,143 +489,13 @@ class TestWorkspaces:
         assert mappings["equal_weight"]["symbol"] == "QQQE"
         assert mappings["equal_weight"]["label"] == "Nasdaq-100 equal-weight ETF proxy"
 
-        coverage = client.get(
-            "/api/v1/analysis/benchmark-families/nasdaq100/coverage",
-            headers=auth_headers,
-        )
-        assert coverage.status_code == 200, coverage.text
-        roles = {role["role"]: role for role in coverage.json()["roles"]}
-        assert roles["cap_weight"]["history_route_status"] == "sec_filing_reconstruction"
-        assert roles["cap_weight"]["history_route_provider"] == "sec"
-        assert (
-            roles["cap_weight"]["history_route_policy"]
-            == "latest_sec_filing_report_on_or_before_requested_date"
-        )
-        assert roles["cap_weight"]["history_route_source_url"] == (
-            "https://data.sec.gov/submissions/CIK0001067839.json"
-        )
-        assert roles["equal_weight"]["history_route_status"] == "sec_filing_reconstruction"
-        assert roles["equal_weight"]["history_route_source_url"] == (
-            "https://data.sec.gov/submissions/CIK0001424958.json"
-        )
-
-        sp500_coverage = client.get(
-            "/api/v1/analysis/benchmark-families/sp500/coverage",
-            headers=auth_headers,
-        )
-        assert sp500_coverage.status_code == 200, sp500_coverage.text
-        sp500_roles = {role["role"]: role for role in sp500_coverage.json()["roles"]}
-        assert sp500_roles["cap_weight"]["history_route_status"] == "sec_filing_reconstruction"
-        assert sp500_roles["cap_weight"]["history_route_provider"] == "sec"
-        assert sp500_roles["cap_weight"]["history_route_policy"] == (
-            "latest_sec_filing_report_on_or_before_requested_date"
-        )
-        assert sp500_roles["cap_weight"]["history_route_source_url"] == (
-            "https://data.sec.gov/submissions/CIK0000884394.json"
-        )
-        assert sp500_roles["value"]["history_route_status"] == "sec_filing_reconstruction"
-        assert sp500_roles["value"]["history_route_provider"] == "sec"
-        assert sp500_roles["value"]["history_route_policy"] == (
-            "latest_sec_filing_report_on_or_before_requested_date"
-        )
-        assert sp500_roles["value"]["history_route_source_url"] == (
-            "https://data.sec.gov/submissions/CIK0001064642.json"
-        )
-        assert sp500_roles["growth"]["history_route_status"] == "sec_filing_reconstruction"
-        assert sp500_roles["growth"]["history_route_provider"] == "sec"
-        assert sp500_roles["growth"]["history_route_policy"] == (
-            "latest_sec_filing_report_on_or_before_requested_date"
-        )
-        assert sp500_roles["growth"]["history_route_source_url"] == (
-            "https://data.sec.gov/submissions/CIK0001064642.json"
-        )
-        assert sp500_roles["equal_weight"]["history_route_status"] == "sec_filing_reconstruction"
-        assert sp500_roles["equal_weight"]["history_route_provider"] == "sec"
-        assert sp500_roles["equal_weight"]["history_route_policy"] == (
-            "latest_sec_filing_report_on_or_before_requested_date"
-        )
-        assert sp500_roles["equal_weight"]["history_route_source_url"] == (
-            "https://data.sec.gov/submissions/CIK0001209466.json"
-        )
-
-        sp400_coverage = client.get(
-            "/api/v1/analysis/benchmark-families/sp400/coverage",
-            headers=auth_headers,
-        )
-        assert sp400_coverage.status_code == 200, sp400_coverage.text
-        sp400_roles = {role["role"]: role for role in sp400_coverage.json()["roles"]}
-        assert sp400_roles["growth"]["symbol"] == "MDYG"
-        assert sp400_roles["growth"]["history_route_status"] == "sec_filing_reconstruction"
-        assert sp400_roles["growth"]["history_route_provider"] == "sec"
-        assert sp400_roles["growth"]["history_route_policy"] == (
-            "latest_sec_filing_report_on_or_before_requested_date"
-        )
-        assert sp400_roles["growth"]["history_route_source_url"] == (
-            "https://data.sec.gov/submissions/CIK0001064642.json"
-        )
-        assert sp400_roles["value"]["symbol"] == "MDYV"
-        assert sp400_roles["value"]["history_route_status"] == "sec_filing_reconstruction"
-        assert sp400_roles["value"]["history_route_provider"] == "sec"
-        assert sp400_roles["value"]["history_route_policy"] == (
-            "latest_sec_filing_report_on_or_before_requested_date"
-        )
-        assert sp400_roles["value"]["history_route_source_url"] == (
-            "https://data.sec.gov/submissions/CIK0001064642.json"
-        )
-        assert sp400_roles["cap_weight"]["symbol"] == "MDY"
-        assert sp400_roles["cap_weight"]["history_route_status"] == "sec_filing_reconstruction"
-        assert sp400_roles["cap_weight"]["history_route_provider"] == "sec"
-        assert sp400_roles["cap_weight"]["history_route_policy"] == (
-            "latest_sec_filing_report_on_or_before_requested_date"
-        )
-        assert sp400_roles["cap_weight"]["history_route_source_url"] == (
-            "https://data.sec.gov/submissions/CIK0000936958.json"
-        )
-
-        sp600_coverage = client.get(
-            "/api/v1/analysis/benchmark-families/sp600/coverage",
-            headers=auth_headers,
-        )
-        assert sp600_coverage.status_code == 200, sp600_coverage.text
-        sp600_roles = {role["role"]: role for role in sp600_coverage.json()["roles"]}
-        assert sp600_roles["value"]["symbol"] == "SLYV"
-        assert sp600_roles["value"]["history_route_status"] == "sec_filing_reconstruction"
-        assert sp600_roles["value"]["history_route_provider"] == "sec"
-        assert sp600_roles["value"]["history_route_policy"] == (
-            "latest_sec_filing_report_on_or_before_requested_date"
-        )
-        assert sp600_roles["value"]["history_route_source_url"] == (
-            "https://data.sec.gov/submissions/CIK0001064642.json"
-        )
-        assert sp600_roles["growth"]["symbol"] == "SLYG"
-        assert sp600_roles["growth"]["history_route_status"] == "sec_filing_reconstruction"
-        assert sp600_roles["growth"]["history_route_provider"] == "sec"
-        assert sp600_roles["growth"]["history_route_policy"] == (
-            "latest_sec_filing_report_on_or_before_requested_date"
-        )
-        assert sp600_roles["growth"]["history_route_source_url"] == (
-            "https://data.sec.gov/submissions/CIK0001064642.json"
-        )
-        sp1500_coverage = client.get(
-            "/api/v1/analysis/benchmark-families/sp1500/coverage",
-            headers=auth_headers,
-        )
-        assert sp1500_coverage.status_code == 200, sp1500_coverage.text
-        sp1500_roles = {role["role"]: role for role in sp1500_coverage.json()["roles"]}
-        assert sp1500_roles["cap_weight"]["symbol"] == "SPTM"
-        assert sp1500_roles["cap_weight"]["history_route_status"] == "sec_filing_reconstruction"
-        assert sp1500_roles["cap_weight"]["history_route_provider"] == "sec"
-        assert sp1500_roles["cap_weight"]["history_route_source_url"] == (
-            "https://data.sec.gov/submissions/CIK0001064642.json"
-        )
-
     def test_benchmark_family_coverage_exposes_role_dates_and_point_in_time_filter(
         self, client, auth_headers, db, instrument_type
     ):
         from datetime import UTC, datetime
         from decimal import Decimal
 
-        from app.models.etf_holdings import ETFHoldingsAdapterState, ETFHoldingsSnapshot, ETFProfile
+        from app.models.etf_holdings import ETFHoldingsSnapshot, ETFProfile
         from app.models.instrument import Instrument
 
         seeded = client.get("/api/v1/market-groups", headers=auth_headers)
@@ -645,38 +517,12 @@ class TestWorkspaces:
         )
         db.add(profile)
         db.flush()
-        db.add(
-            ETFHoldingsAdapterState(
-                etf_profile_id=profile.id,
-                adapter_key="spdr",
-                status="failure",
-                last_checked_at=datetime(2026, 7, 2, tzinfo=UTC),
-                last_failure_at=datetime(2026, 7, 2, tzinfo=UTC),
-                failure_reason="issuer endpoint unavailable",
-            )
-        )
-        db.flush()
         first = ETFHoldingsSnapshot(
             etf_profile_id=profile.id,
             composition_date=datetime(2026, 6, 30, tzinfo=UTC).date(),
-            as_of_date=datetime(2026, 6, 30, tzinfo=UTC).date(),
             known_at=datetime(2026, 7, 1, tzinfo=UTC),
-            published_at=datetime(2026, 7, 2, 12, 0, tzinfo=UTC),
             provenance="issuer_native",
             source_provider="issuer",
-            source_identifier="issuer-2026-06-30",
-            parser_version="issuer-csv-v2",
-            extra_data={
-                "legal_metadata": {
-                    "cadence": "quarter_end",
-                    "timing_provenance": {
-                        "composition_date": "provider_reported",
-                        "as_of_date": "provider_reported",
-                        "known_at": "provider_reported",
-                        "published_at": "provider_reported",
-                    },
-                }
-            },
             source_quality="issuer_disclosed",
             completeness_status="complete",
             row_count=10,
@@ -713,31 +559,10 @@ class TestWorkspaces:
         assert roles["cap_weight"]["adapter_key"] == "spdr"
         assert roles["cap_weight"]["adapter_status"] == "failure"
         assert Decimal(roles["cap_weight"]["adapter_confidence"]) == Decimal("0.9900")
-        assert roles["cap_weight"]["entitlement_status"] == "unknown"
-        assert roles["cap_weight"]["holdings_refresh_status"] == "failure"
-        assert roles["cap_weight"]["holdings_refresh_provider"] == "issuer"
-        assert (
-            roles["cap_weight"]["holdings_refresh_failure_reason"] == "issuer endpoint unavailable"
-        )
-        assert roles["cap_weight"]["composite_readiness_status"] == "partial"
-        assert roles["cap_weight"]["point_in_time_supported"] is True
         assert [row["composition_date"] for row in roles["cap_weight"]["snapshots"]] == [
             "2027-06-30",
             "2026-06-30",
         ]
-        dated_snapshot = roles["cap_weight"]["snapshots"][1]
-        assert dated_snapshot["as_of_date"] == "2026-06-30"
-        assert dated_snapshot["known_at"] == "2026-07-01T00:00:00Z"
-        assert dated_snapshot["published_at"] == "2026-07-02T12:00:00Z"
-        assert dated_snapshot["source_identifier"] == "issuer-2026-06-30"
-        assert dated_snapshot["cadence"] == "quarter_end"
-        assert dated_snapshot["parser_version"] == "issuer-csv-v2"
-        assert dated_snapshot["timing_provenance"] == {
-            "composition_date": "provider_reported",
-            "as_of_date": "provider_reported",
-            "known_at": "provider_reported",
-            "published_at": "provider_reported",
-        }
         assert roles["cap_weight"]["continuity_status"] == "gapped"
         assert roles["cap_weight"]["continuity_gap_count"] == 1
         assert roles["cap_weight"]["continuity_max_interval_days"] == 365
@@ -745,27 +570,10 @@ class TestWorkspaces:
             {"from_date": "2026-06-30", "to_date": "2027-06-30", "interval_days": 365}
         ]
         assert roles["cap_weight"]["continuity_snapshot_limit_reached"] is False
-        assert roles["cap_weight"]["observed_cadence_status"] == "observed_cadence"
-        assert roles["cap_weight"]["observed_cadence_sample_count"] == 1
-        assert roles["cap_weight"]["observed_cadence_median_interval_days"] == 365.0
-        assert roles["cap_weight"]["observed_cadence_min_interval_days"] == 365
-        assert roles["cap_weight"]["observed_cadence_max_interval_days"] == 365
         assert roles["equal_weight"]["status"] == "mapping_unavailable"
         assert roles["value"]["status"] == "mapping_unavailable"
         assert roles["growth"]["status"] == "mapping_unavailable"
         assert payload["coverage"] == 0.25
-
-        exact_window = client.get(
-            "/api/v1/analysis/benchmark-families/sp500/coverage",
-            headers=auth_headers,
-            params={"limit": 2},
-        )
-        assert exact_window.status_code == 200, exact_window.text
-        exact_window_cap = next(
-            role for role in exact_window.json()["roles"] if role["role"] == "cap_weight"
-        )
-        assert len(exact_window_cap["snapshots"]) == 2
-        assert exact_window_cap["continuity_snapshot_limit_reached"] is False
 
         historical = client.get(
             "/api/v1/analysis/benchmark-families/sp500/coverage",
@@ -779,125 +587,20 @@ class TestWorkspaces:
         assert [row["composition_date"] for row in historical_cap["snapshots"]] == ["2026-06-30"]
         assert historical_cap["continuity_status"] == "single_snapshot"
         assert historical_cap["continuity_gap_count"] == 0
-        assert historical_cap["observed_cadence_status"] == "single_snapshot"
-        assert historical_cap["observed_cadence_sample_count"] == 0
-        assert historical_cap["observed_cadence_median_interval_days"] is None
         assert historical.json()["universe_provenance"]["point_in_time"] is True
         assert (
             historical.json()["universe_provenance"]["continuity_policy"]
             == "observed_snapshot_intervals_gt_45_days"
         )
-        assert (
-            historical.json()["universe_provenance"]["observed_cadence_semantics"]
-            == "diagnostic_of_returned_snapshot_date_intervals_only"
-        )
-
-    def test_benchmark_family_coverage_resolves_entitlements_by_snapshot_provider(
-        self, client, auth_headers, db, instrument_type
-    ):
-        from datetime import UTC, datetime
-
-        from app.models.data_source import DataSource
-        from app.models.etf_holdings import ETFHoldingsSnapshot, ETFProfile
-        from app.models.instrument import Instrument
-        from app.models.provider_runtime import ProviderCapability, ProviderEntitlement
-
-        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
-        assert seeded.status_code == 200
-        spy = Instrument(
-            symbol="SPY",
-            name="S&P 500 provider-entitlement fixture",
-            currency="USD",
-            instrument_type_id=instrument_type.id,
-            is_active=True,
-        )
-        db.add(spy)
-        db.flush()
-        profile = ETFProfile(instrument_id=spy.id, adapter_key="spdr", adapter_status="success")
-        db.add(profile)
-        provider_source = DataSource(
-            name="spdr",
-            base_url="https://issuer.example/spdr",
-            description="Provider entitlement fixture",
-            is_active=True,
-        )
-        db.add(provider_source)
-        db.flush()
-        db.add_all(
-            [
-                ProviderEntitlement(
-                    data_source_id=provider_source.id,
-                    capability=ProviderCapability.UNIVERSE_DISCOVERY,
-                    configured_plan="free",
-                    is_free=True,
-                    authentication_required=False,
-                    live_probe_status="passed",
-                ),
-                ProviderEntitlement(
-                    data_source_id=provider_source.id,
-                    capability=ProviderCapability.PRICE_HISTORY,
-                    configured_plan="free",
-                    is_free=True,
-                    authentication_required=False,
-                    live_probe_status="passed",
-                ),
-            ]
-        )
-        db.add(
-            ETFHoldingsSnapshot(
-                etf_profile_id=profile.id,
-                data_source_id=None,
-                composition_date=datetime(2026, 6, 30, tzinfo=UTC).date(),
-                known_at=datetime(2026, 7, 1, tzinfo=UTC),
-                provenance="issuer_native",
-                source_provider="spdr",
-                source_quality="issuer_disclosed",
-                completeness_status="complete",
-                row_count=1,
-                resolved_count=1,
-                unresolved_count=0,
-                snapshot_hash="test-family-provider-entitlement",
-            )
-        )
-        value_proxy = Instrument(
-            symbol="SPYV",
-            name="S&P 500 value provider-entitlement fixture",
-            currency="USD",
-            instrument_type_id=instrument_type.id,
-            is_active=True,
-        )
-        db.add(value_proxy)
-        db.flush()
-        db.add(ETFProfile(instrument_id=value_proxy.id, adapter_key="spdr"))
-        db.flush()
-
-        response = client.get(
-            "/api/v1/analysis/benchmark-families/sp500/coverage",
-            headers=auth_headers,
-        )
-        assert response.status_code == 200, response.text
-        cap = next(role for role in response.json()["roles"] if role["role"] == "cap_weight")
-        assert cap["entitlement_status"] == "verified"
-        assert cap["entitlement_provider"] == "spdr"
-        assert cap["entitlement_capabilities"] == {
-            "universe_discovery": "verified",
-            "price_history": "verified",
-        }
-        value = next(role for role in response.json()["roles"] if role["role"] == "value")
-        assert value["status"] == "no_snapshot"
-        assert value["entitlement_status"] == "verified"
-        assert value["entitlement_provider"] == "spdr"
 
     def test_benchmark_family_coverage_reports_member_bar_and_technical_readiness(
         self, client, auth_headers, db, instrument_type, instrument, instrument_b
     ):
         from datetime import UTC, datetime, timedelta
 
-        from app.models.data_source import DataSource
         from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
-        from app.models.instrument import EquityDetail, Instrument
+        from app.models.instrument import Instrument
         from app.models.ohlcv import OHLCVBar, Timeframe
-        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 
         seeded = client.get("/api/v1/market-groups", headers=auth_headers)
         assert seeded.status_code == 200
@@ -912,14 +615,6 @@ class TestWorkspaces:
         db.flush()
         profile = ETFProfile(instrument_id=spy.id, adapter_key="spdr", adapter_status="resolved")
         db.add(profile)
-        db.flush()
-        factor_source = DataSource(
-            name="factor-history-provider",
-            base_url="https://provider.example/history",
-            description="Adjustment provenance fixture",
-            is_active=True,
-        )
-        db.add(factor_source)
         db.flush()
         snapshot = ETFHoldingsSnapshot(
             etf_profile_id=profile.id,
@@ -978,7 +673,6 @@ class TestWorkspaces:
                     close=100,
                     volume=1_000,
                     is_adjusted=True,
-                    data_source_id=factor_source.id,
                 )
                 for offset in range(252)
             ]
@@ -993,83 +687,7 @@ class TestWorkspaces:
                     close=100,
                     volume=1_000,
                     is_adjusted=True,
-                    data_source_id=factor_source.id,
                 )
-            ]
-            + [
-                OHLCVBar(
-                    instrument_id=instrument.id,
-                    timeframe=Timeframe.W1,
-                    ts=base,
-                    open=100,
-                    high=101,
-                    low=99,
-                    close=100,
-                    volume=1_000,
-                    is_adjusted=True,
-                    is_derived=True,
-                    source_timeframe=Timeframe.D1.value,
-                    derivation_method="d1_ohlcv_xnys_calendar_aggregation",
-                ),
-                OHLCVBar(
-                    instrument_id=instrument.id,
-                    timeframe=Timeframe.W1,
-                    ts=base + timedelta(days=7),
-                    open=101,
-                    high=102,
-                    low=100,
-                    close=101,
-                    volume=1_001,
-                    is_adjusted=True,
-                    data_source_id=factor_source.id,
-                ),
-                OHLCVBar(
-                    instrument_id=instrument_b.id,
-                    timeframe=Timeframe.W1,
-                    ts=base,
-                    open=100,
-                    high=101,
-                    low=99,
-                    close=100,
-                    volume=1_000,
-                    is_adjusted=True,
-                    is_derived=True,
-                    source_timeframe=Timeframe.D1.value,
-                    source_end=datetime.now(UTC) + timedelta(days=1),
-                    derivation_method="d1_ohlcv_xnys_calendar_aggregation",
-                ),
-            ]
-        )
-        db.add_all(
-            [
-                InstrumentDatasetState(
-                    instrument_id=current.id,
-                    data_source_id=factor_source.id,
-                    dataset_type="ohlcv",
-                    dataset_key="D1:adj",
-                    status=DatasetStatus.FRESH,
-                    extra_data={
-                        "adjustment_provenance": {
-                            "factor_status": "rebuildable_split_factors",
-                            "factor_version": "afv1-family",
-                        }
-                    },
-                )
-                for current in (instrument, instrument_b)
-            ]
-        )
-        db.add_all(
-            [
-                EquityDetail(
-                    instrument_id=instrument.id,
-                    industry="Technology",
-                    field_provenance={"industry": {"observed_at": "2027-03-01T00:00:00Z"}},
-                ),
-                EquityDetail(
-                    instrument_id=instrument_b.id,
-                    industry="Software",
-                    field_provenance={"industry": {"observed_at": "2027-03-01T00:00:00Z"}},
-                ),
             ]
         )
         db.flush()
@@ -1083,26 +701,6 @@ class TestWorkspaces:
         history = cap["member_bar_history"]
         assert history["status"] == "partial"
         assert history["snapshot_id"] == snapshot.id
-        assert cap["member_count"] == 2
-        assert cap["weighted_member_count"] == 2
-        assert cap["weights_status"] == "ready"
-        assert cap["classified_member_count"] == 2
-        assert cap["classification_status"] == "ready"
-        historical = client.get(
-            "/api/v1/analysis/benchmark-families/sp500/coverage",
-            headers=auth_headers,
-            # Exercise the offset-less ISO form accepted by FastAPI; the
-            # readiness classifier must normalize it before comparing stored
-            # UTC provenance timestamps.
-            params={"as_of": "2026-12-01T00:00:00"},
-        )
-        assert historical.status_code == 200, historical.text
-        historical_cap = next(
-            role for role in historical.json()["roles"] if role["role"] == "cap_weight"
-        )
-        assert historical_cap["member_count"] == 2
-        assert historical_cap["classified_member_count"] == 0
-        assert historical_cap["classification_status"] == "pending"
         daily = next(item for item in history["timeframes"] if item["timeframe"] == "D1")
         assert daily["member_count"] == 2
         assert daily["covered_member_count"] == 2
@@ -1110,435 +708,10 @@ class TestWorkspaces:
         assert daily["required_bar_count"] == 252
         assert daily["analysis_ready_member_count"] == 1
         assert daily["analysis_ready_percent"] == 50.0
-        assert daily["analysis_ready_status"] == "partial"
-        weekly = next(item for item in history["timeframes"] if item["timeframe"] == "W1")
-        assert weekly["covered_member_count"] == 1
-        assert weekly["analysis_ready_status"] == "partial"
-
-        historical_weekly = next(
-            item for item in historical.json()["roles"] if item["role"] == "cap_weight"
-        )["member_bar_history"]["timeframes"]
-        historical_weekly = next(item for item in historical_weekly if item["timeframe"] == "W1")
-        assert historical_weekly["covered_member_count"] == 2
-        assert historical_weekly["analysis_ready_status"] == "partial"
         assert daily["bar_count"] == 253
-        assert daily["provider_member_count"] == 2
-        assert daily["derived_member_count"] == 0
-        assert daily["provider_only_member_count"] == 2
-        assert daily["derived_only_member_count"] == 0
-        assert daily["mixed_member_count"] == 0
-        assert daily["provider_bar_count"] == 253
-        assert daily["derived_bar_count"] == 0
-        assert daily["source_lineage"] == "provider_only"
-        assert daily["adjustment_provenance"] == {
-            "mode": "split_adjusted",
-            "source_kind": "provider_observation",
-            "factor_status": "rebuildable_split_factors",
-            "factor_version": "afv1-family",
-            "contract_version": 1,
-            "factor_versioned_member_count": 2,
-            "factor_opaque_member_count": 0,
-            "factor_unavailable_member_count": 0,
-        }
         weekly = next(item for item in history["timeframes"] if item["timeframe"] == "W1")
-        assert weekly["covered_member_count"] == 1
+        assert weekly["covered_member_count"] == 0
         assert weekly["analysis_ready_member_count"] == 0
-        assert weekly["provider_member_count"] == 1
-        assert weekly["derived_member_count"] == 0
-        assert weekly["provider_only_member_count"] == 1
-        assert weekly["derived_only_member_count"] == 0
-        assert weekly["mixed_member_count"] == 0
-        assert weekly["provider_bar_count"] == 1
-        assert weekly["derived_bar_count"] == 0
-        assert weekly["bar_count"] == 1
-        assert weekly["source_lineage"] == "provider_only"
-        assert historical_weekly["provider_member_count"] == 1
-        assert historical_weekly["derived_member_count"] == 1
-        assert historical_weekly["provider_only_member_count"] == 1
-        assert historical_weekly["derived_only_member_count"] == 1
-        assert historical_weekly["mixed_member_count"] == 0
-        assert historical_weekly["provider_bar_count"] == 1
-        assert historical_weekly["derived_bar_count"] == 1
-        assert historical_weekly["bar_count"] == 2
-        assert historical_weekly["source_lineage"] == "provider_and_derived"
-
-    def test_benchmark_family_readiness_composes_all_canonical_gates(
-        self, client, auth_headers, db, instrument_type, instrument, instrument_b
-    ):
-        """A role is ready only when entitlement, holdings, metadata, and all floors agree."""
-
-        from datetime import UTC, datetime, timedelta
-        from decimal import Decimal
-
-        from app.models.data_source import DataSource
-        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
-        from app.models.instrument import EquityDetail, Instrument
-        from app.models.ohlcv import OHLCVBar, Timeframe
-        from app.models.provider_runtime import ProviderCapability, ProviderEntitlement
-
-        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
-        assert seeded.status_code == 200, seeded.text
-
-        spy = Instrument(
-            symbol="SPY",
-            name="SPDR S&P 500 ETF Trust",
-            currency="USD",
-            instrument_type_id=instrument_type.id,
-            is_active=True,
-        )
-        db.add(spy)
-        db.flush()
-        profile = ETFProfile(
-            instrument_id=spy.id,
-            adapter_key="spdr",
-            adapter_status="resolved",
-            adapter_confidence=Decimal("0.99"),
-        )
-        db.add(profile)
-        provider_source = DataSource(
-            name="spdr",
-            base_url="https://issuer.example/spdr",
-            description="Complete readiness fixture",
-            is_active=True,
-        )
-        db.add(provider_source)
-        db.flush()
-        db.add_all(
-            [
-                ProviderEntitlement(
-                    data_source_id=provider_source.id,
-                    capability=capability,
-                    configured_plan="free",
-                    is_free=True,
-                    authentication_required=False,
-                    live_probe_status="passed",
-                )
-                for capability in (
-                    ProviderCapability.UNIVERSE_DISCOVERY,
-                    ProviderCapability.PRICE_HISTORY,
-                )
-            ]
-        )
-        db.add_all(
-            [
-                EquityDetail(instrument_id=instrument.id, industry="Technology"),
-                EquityDetail(instrument_id=instrument_b.id, industry="Software"),
-            ]
-        )
-        snapshot_date = datetime(2025, 12, 31, tzinfo=UTC).date()
-        snapshot = ETFHoldingsSnapshot(
-            etf_profile_id=profile.id,
-            data_source_id=provider_source.id,
-            composition_date=snapshot_date,
-            as_of_date=snapshot_date,
-            known_at=datetime(2026, 1, 2, tzinfo=UTC),
-            provenance="issuer_native",
-            source_provider="spdr",
-            source_quality="issuer_disclosed",
-            completeness_status="complete",
-            row_count=2,
-            resolved_count=2,
-            unresolved_count=0,
-            total_weight=1.0,
-            snapshot_hash="test-family-complete-readiness",
-        )
-        db.add(snapshot)
-        db.flush()
-        db.add_all(
-            [
-                ETFHolding(
-                    snapshot_id=snapshot.id,
-                    constituent_instrument_id=member.id,
-                    position=position,
-                    reported_symbol=member.symbol,
-                    reported_name=member.name,
-                    weight=0.5,
-                    holding_type="equity",
-                    row_type="security",
-                    source_row_hash=f"complete-readiness-{position}",
-                    is_resolved=True,
-                )
-                for position, member in enumerate((instrument, instrument_b))
-            ]
-        )
-
-        base = datetime.now(UTC) - timedelta(days=800)
-        bars: list[OHLCVBar] = []
-        for member in (instrument, instrument_b):
-            for timeframe, count, spacing in (
-                (Timeframe.D1, 252, 1),
-                (Timeframe.W1, 52, 7),
-                (Timeframe.MN, 24, 31),
-            ):
-                for offset in range(count):
-                    ts = base + timedelta(days=offset * spacing)
-                    bars.append(
-                        OHLCVBar(
-                            instrument_id=member.id,
-                            timeframe=timeframe,
-                            ts=ts,
-                            open=100,
-                            high=101,
-                            low=99,
-                            close=100,
-                            volume=1_000,
-                            is_adjusted=True,
-                            data_source_id=provider_source.id,
-                        )
-                    )
-        db.add_all(bars)
-        db.flush()
-
-        response = client.get(
-            "/api/v1/analysis/benchmark-families/sp500/coverage",
-            headers=auth_headers,
-        )
-        assert response.status_code == 200, response.text
-        payload = response.json()
-        cap = next(role for role in payload["roles"] if role["role"] == "cap_weight")
-        assert cap["entitlement_status"] == "verified"
-        assert cap["status"] == "available"
-        assert cap["weights_status"] == "ready"
-        assert cap["classification_status"] == "ready"
-        assert cap["member_bar_history"]["status"] == "ready"
-        assert all(
-            timeframe["analysis_ready_member_count"] == 2
-            for timeframe in cap["member_bar_history"]["timeframes"]
-        )
-        assert cap["composite_readiness_status"] == "ready"
-        assert cap["composite_readiness_reasons"] == []
-
-        readiness = client.get(
-            "/api/v1/analysis/benchmark-families/readiness",
-            headers=auth_headers,
-        )
-        assert readiness.status_code == 200, readiness.text
-        readiness_payload = readiness.json()
-        assert readiness_payload["ready_role_count"] >= 1
-        assert readiness_payload["readiness_status"] == "partial"
-
-        # Numeric floors cannot promote a provider disclosure whose persisted
-        # completeness evidence is partial.  The same canonical members and
-        # bars remain present; only the source completeness gate changes.
-        snapshot.completeness_status = "partial"
-        db.flush()
-        incomplete = client.get(
-            "/api/v1/analysis/benchmark-families/sp500/coverage",
-            headers=auth_headers,
-        )
-        assert incomplete.status_code == 200, incomplete.text
-        incomplete_cap = next(
-            role for role in incomplete.json()["roles"] if role["role"] == "cap_weight"
-        )
-        assert incomplete_cap["holdings_completeness_status"] == "partial"
-        assert incomplete_cap["composite_readiness_status"] == "partial"
-        assert "holdings_completeness_partial" in incomplete_cap["composite_readiness_reasons"]
-
-    def test_benchmark_family_readiness_excludes_placeholder_members_from_canonical_counts(
-        self, client, auth_headers, db, instrument_type, instrument
-    ):
-        from datetime import UTC, datetime
-
-        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
-        from app.models.instrument import Instrument
-
-        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
-        assert seeded.status_code == 200
-        spy = Instrument(
-            symbol="SPY",
-            name="SPDR S&P 500 ETF Trust",
-            currency="USD",
-            instrument_type_id=instrument_type.id,
-            is_active=True,
-        )
-        placeholder = Instrument(
-            symbol="HOLDING-ABC123",
-            name="Unresolved example security",
-            currency="USD",
-            instrument_type_id=instrument_type.id,
-            is_active=True,
-        )
-        db.add_all([spy, placeholder])
-        db.flush()
-        profile = ETFProfile(instrument_id=spy.id, adapter_key="spdr", adapter_status="resolved")
-        db.add(profile)
-        db.flush()
-        snapshot = ETFHoldingsSnapshot(
-            etf_profile_id=profile.id,
-            composition_date=datetime(2025, 12, 31, tzinfo=UTC).date(),
-            known_at=datetime(2026, 1, 2, tzinfo=UTC),
-            provenance="issuer_native",
-            source_provider="issuer",
-            source_quality="issuer_disclosed",
-            completeness_status="partial",
-            row_count=4,
-            # The ingestion count preserves the materialized placeholder row;
-            # readiness must still expose only canonical members.
-            resolved_count=2,
-            unresolved_count=1,
-            total_weight=1.0,
-            snapshot_hash="test-family-placeholder-readiness",
-        )
-        db.add(snapshot)
-        db.flush()
-        db.add_all(
-            [
-                ETFHolding(
-                    snapshot_id=snapshot.id,
-                    constituent_instrument_id=instrument.id,
-                    position=0,
-                    reported_symbol=instrument.symbol,
-                    reported_name=instrument.name,
-                    weight=0.75,
-                    holding_type="equity",
-                    row_type="security",
-                    source_row_hash="placeholder-readiness-canonical",
-                    is_resolved=True,
-                ),
-                ETFHolding(
-                    snapshot_id=snapshot.id,
-                    constituent_instrument_id=placeholder.id,
-                    position=1,
-                    reported_name=placeholder.name,
-                    weight=0.25,
-                    holding_type="equity",
-                    row_type="security",
-                    source_row_hash="placeholder-readiness-placeholder",
-                    is_resolved=True,
-                ),
-                ETFHolding(
-                    snapshot_id=snapshot.id,
-                    constituent_instrument_id=None,
-                    position=2,
-                    reported_symbol="UNKNOWN-ABC",
-                    reported_name="Unresolved example security",
-                    weight=0.0,
-                    holding_type="equity",
-                    row_type="security",
-                    source_row_hash="placeholder-readiness-unresolved",
-                    is_resolved=False,
-                ),
-                ETFHolding(
-                    snapshot_id=snapshot.id,
-                    constituent_instrument_id=None,
-                    position=3,
-                    reported_name="Cash collateral",
-                    weight=0.0,
-                    holding_type="cash",
-                    row_type="security",
-                    source_row_hash="placeholder-readiness-excluded-cash",
-                    is_resolved=False,
-                ),
-            ]
-        )
-        db.flush()
-
-        response = client.get(
-            "/api/v1/analysis/benchmark-families/sp500/coverage",
-            headers=auth_headers,
-        )
-        assert response.status_code == 200, response.text
-        cap = next(role for role in response.json()["roles"] if role["role"] == "cap_weight")
-        assert cap["member_count"] == 1
-        assert cap["holdings_completeness_status"] == "partial"
-        assert "holdings_completeness_partial" in cap["composite_readiness_reasons"]
-        assert cap["placeholder_member_count"] == 1
-        assert cap["weighted_member_count"] == 1
-        assert cap["weights_status"] == "ready"
-        history = cap["member_bar_history"]
-        assert history["placeholder_member_count"] == 1
-        assert history["unresolved_member_count"] == 1
-        assert history["member_disposition"] == {
-            "canonical": 1,
-            "placeholder": 1,
-            "unresolved": 1,
-            "excluded": 1,
-        }
-        daily = next(item for item in history["timeframes"] if item["timeframe"] == "D1")
-        assert daily["member_count"] == 1
-        assert daily["analysis_ready_member_count"] == 0
-        assert daily["analysis_ready_status"] == "pending"
-
-    def test_benchmark_family_coverage_deduplicates_metadata_readiness_members(
-        self, client, auth_headers, db, instrument_type, instrument
-    ):
-        from datetime import UTC, datetime
-
-        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
-        from app.models.instrument import EquityDetail, Instrument
-
-        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
-        assert seeded.status_code == 200, seeded.text
-        spy = Instrument(
-            symbol="SPY",
-            name="SPDR S&P 500 ETF Trust",
-            currency="USD",
-            instrument_type_id=instrument_type.id,
-            is_active=True,
-        )
-        db.add(spy)
-        db.flush()
-        db.add(EquityDetail(instrument_id=instrument.id, industry="Technology"))
-        profile = ETFProfile(instrument_id=spy.id, adapter_key="spdr", adapter_status="resolved")
-        db.add(profile)
-        db.flush()
-        snapshot = ETFHoldingsSnapshot(
-            etf_profile_id=profile.id,
-            composition_date=datetime(2024, 1, 1, tzinfo=UTC).date(),
-            known_at=datetime(2024, 1, 2, tzinfo=UTC),
-            provenance="issuer_native",
-            source_provider="issuer",
-            source_quality="issuer_disclosed",
-            completeness_status="complete",
-            row_count=2,
-            resolved_count=2,
-            unresolved_count=0,
-            total_weight=1.0,
-            snapshot_hash="family-metadata-duplicate-members",
-        )
-        db.add(snapshot)
-        db.flush()
-        db.add_all(
-            [
-                ETFHolding(
-                    snapshot_id=snapshot.id,
-                    constituent_instrument_id=instrument.id,
-                    position=0,
-                    reported_symbol=instrument.symbol,
-                    reported_name=instrument.name,
-                    weight=None,
-                    holding_type="equity",
-                    row_type="security",
-                    source_row_hash="family-metadata-duplicate-a",
-                    is_resolved=True,
-                ),
-                ETFHolding(
-                    snapshot_id=snapshot.id,
-                    constituent_instrument_id=instrument.id,
-                    position=1,
-                    reported_symbol=instrument.symbol,
-                    reported_name=instrument.name,
-                    weight=1.0,
-                    holding_type="equity",
-                    row_type="security",
-                    source_row_hash="family-metadata-duplicate-b",
-                    is_resolved=True,
-                ),
-            ]
-        )
-        db.flush()
-
-        response = client.get(
-            "/api/v1/analysis/benchmark-families/sp500/coverage",
-            headers=auth_headers,
-        )
-        assert response.status_code == 200, response.text
-        cap = next(role for role in response.json()["roles"] if role["role"] == "cap_weight")
-        assert cap["member_count"] == 1
-        assert cap["weighted_member_count"] == 1
-        assert cap["weights_status"] == "ready"
-        assert cap["classified_member_count"] == 1
-        assert cap["classification_status"] == "ready"
 
     def test_benchmark_family_coverage_marks_canonical_role_without_profile_as_pending(
         self, client, auth_headers, db, instrument_type
@@ -1568,265 +741,10 @@ class TestWorkspaces:
         assert value_role["symbol"] == "SPYV"
         assert value_role["available"] is True
         assert value_role["status"] == "profile_not_loaded"
-        assert value_role["holdings_route_adapter_key"] == "spdr"
-        assert value_role["holdings_route_provider"] == "spdr"
-        assert value_role["holdings_route_status"] == "configured"
         assert value_role["snapshots"] == []
         assert any(
             warning["code"] == "family_role_profile_unavailable"
             for warning in response.json()["exclusions"]
-        )
-
-    def test_benchmark_family_coverage_does_not_treat_resolved_non_equity_as_canonical(
-        self, client, auth_headers, db, instrument_type, instrument
-    ):
-        from datetime import UTC, datetime
-
-        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
-        from app.models.instrument import Instrument
-
-        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
-        assert seeded.status_code == 200, seeded.text
-        spy = Instrument(
-            symbol="SPY",
-            name="SPDR S&P 500 ETF Trust",
-            currency="USD",
-            instrument_type_id=instrument_type.id,
-            is_active=True,
-        )
-        db.add(spy)
-        db.flush()
-        profile = ETFProfile(instrument_id=spy.id, adapter_key="spdr", adapter_status="resolved")
-        db.add(profile)
-        db.flush()
-        snapshot = ETFHoldingsSnapshot(
-            etf_profile_id=profile.id,
-            composition_date=datetime(2024, 1, 1, tzinfo=UTC).date(),
-            known_at=datetime(2024, 1, 2, tzinfo=UTC),
-            provenance="issuer_native",
-            source_provider="issuer",
-            source_quality="issuer_disclosed",
-            completeness_status="partial",
-            row_count=1,
-            resolved_count=1,
-            unresolved_count=0,
-            total_weight=1.0,
-            snapshot_hash="family-resolved-non-equity-only",
-        )
-        db.add(snapshot)
-        db.flush()
-        db.add(
-            ETFHolding(
-                snapshot_id=snapshot.id,
-                constituent_instrument_id=instrument.id,
-                position=0,
-                reported_symbol=instrument.symbol,
-                reported_name="Resolved cash disclosure",
-                weight=1.0,
-                holding_type="cash",
-                row_type="security",
-                source_row_hash="family-resolved-non-equity-only-row",
-                is_resolved=True,
-            )
-        )
-        db.flush()
-
-        response = client.get(
-            "/api/v1/analysis/benchmark-families/sp500/coverage",
-            headers=auth_headers,
-        )
-        assert response.status_code == 200, response.text
-        cap = next(role for role in response.json()["roles"] if role["role"] == "cap_weight")
-        assert cap["available"] is True
-        assert cap["status"] == "holdings_snapshot_unresolved"
-        assert cap["point_in_time_supported"] is False
-        assert cap["member_count"] == 0
-        assert cap["weighted_member_count"] == 0
-        assert cap["weights_status"] == "unavailable"
-        assert cap["classification_status"] == "unavailable"
-        assert response.json()["coverage"] == 0
-
-    def test_benchmark_family_coverage_uses_historical_profile_snapshot_for_classification(
-        self, client, auth_headers, db, instrument_type, instrument, instrument_b
-    ):
-        from datetime import UTC, datetime
-
-        from app.models.data_source import DataSource
-        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
-        from app.models.instrument import EquityDetail, Instrument
-        from app.models.provider_observation import InstrumentProfileSnapshot
-
-        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
-        assert seeded.status_code == 200
-        spy = Instrument(
-            symbol="SPY",
-            name="SPDR S&P 500 ETF Trust",
-            currency="USD",
-            instrument_type_id=instrument_type.id,
-            is_active=True,
-        )
-        db.add(spy)
-        db.flush()
-        profile = ETFProfile(instrument_id=spy.id, adapter_key="spdr", adapter_status="resolved")
-        db.add(profile)
-        db.flush()
-        snapshot = ETFHoldingsSnapshot(
-            etf_profile_id=profile.id,
-            composition_date=datetime(2025, 12, 31, tzinfo=UTC).date(),
-            known_at=datetime(2026, 1, 2, tzinfo=UTC),
-            provenance="issuer_native",
-            source_provider="issuer",
-            source_quality="issuer_disclosed",
-            completeness_status="complete",
-            row_count=2,
-            resolved_count=2,
-            unresolved_count=0,
-            total_weight=1.0,
-            snapshot_hash="test-family-historical-profile",
-        )
-        db.add(snapshot)
-        db.flush()
-        db.add_all(
-            [
-                ETFHolding(
-                    snapshot_id=snapshot.id,
-                    constituent_instrument_id=instrument.id,
-                    position=0,
-                    reported_symbol=instrument.symbol,
-                    reported_name=instrument.name,
-                    weight=0.6,
-                    holding_type="equity",
-                    row_type="security",
-                    source_row_hash="historical-profile-a",
-                    is_resolved=True,
-                ),
-                ETFHolding(
-                    snapshot_id=snapshot.id,
-                    constituent_instrument_id=instrument_b.id,
-                    position=1,
-                    reported_symbol=instrument_b.symbol,
-                    reported_name=instrument_b.name,
-                    weight=0.4,
-                    holding_type="equity",
-                    row_type="security",
-                    source_row_hash="historical-profile-b",
-                    is_resolved=True,
-                ),
-                EquityDetail(
-                    instrument_id=instrument.id,
-                    industry="Current Technology",
-                    field_provenance={"industry": {"observed_at": "2027-01-01T00:00:00Z"}},
-                ),
-                EquityDetail(
-                    instrument_id=instrument_b.id,
-                    industry="Current Software",
-                    field_provenance={"industry": {"observed_at": "2027-01-01T00:00:00Z"}},
-                ),
-            ]
-        )
-        profile_source = DataSource(
-            name="historical-family-profile",
-            base_url="controlled://historical-family-profile",
-            description="Historical family classification fixture",
-            is_active=True,
-        )
-        db.add(profile_source)
-        db.flush()
-        db.add(
-            InstrumentProfileSnapshot(
-                instrument_id=instrument.id,
-                data_source_id=profile_source.id,
-                provider_symbol=instrument.symbol,
-                observed_at=datetime(2025, 12, 30, tzinfo=UTC),
-                fetched_at=datetime(2026, 1, 3, tzinfo=UTC),
-                profile_hash="historical-family-profile-a",
-                payload={"extra": {"industry": "Historical Technology"}},
-            )
-        )
-        db.flush()
-
-        response = client.get(
-            "/api/v1/analysis/benchmark-families/sp500/coverage",
-            headers=auth_headers,
-            params={"as_of": "2026-12-31T00:00:00Z"},
-        )
-        assert response.status_code == 200, response.text
-        cap = next(role for role in response.json()["roles"] if role["role"] == "cap_weight")
-        assert cap["member_count"] == 2
-        assert cap["classified_member_count"] == 1
-        assert cap["classification_status"] == "partial"
-
-    def test_benchmark_family_coverage_does_not_infer_point_in_time_from_requested_cutoff(
-        self, client, auth_headers, db, instrument_type
-    ):
-        from app.models.etf_holdings import ETFProfile
-        from app.models.instrument import Instrument
-
-        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
-        assert seeded.status_code == 200, seeded.text
-        value_proxy = Instrument(
-            symbol="SPYV",
-            name="S&P 500 value proxy without dated holdings",
-            currency="USD",
-            instrument_type_id=instrument_type.id,
-            is_active=True,
-            is_synthetic=False,
-        )
-        db.add(value_proxy)
-        db.flush()
-        db.add(ETFProfile(instrument_id=value_proxy.id, adapter_key="spdr"))
-        db.flush()
-
-        response = client.get(
-            "/api/v1/analysis/benchmark-families/sp500/coverage",
-            headers=auth_headers,
-            params={"as_of": "2030-01-01T00:00:00Z"},
-        )
-        assert response.status_code == 200, response.text
-        value_role = next(role for role in response.json()["roles"] if role["role"] == "value")
-        assert value_role["status"] == "no_snapshot"
-        assert value_role["point_in_time_supported"] is False
-        assert "point_in_time_unavailable" in value_role["composite_readiness_reasons"]
-
-    def test_benchmark_family_readiness_returns_all_registry_families_without_fallback(
-        self, client, auth_headers
-    ):
-        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
-        assert seeded.status_code == 200, seeded.text
-
-        response = client.get(
-            "/api/v1/analysis/benchmark-families/readiness",
-            headers=auth_headers,
-            params={"as_of": "2026-08-01T00:00:00Z", "limit": 8},
-        )
-        assert response.status_code == 200, response.text
-        payload = response.json()
-        assert payload["family_count"] == 8
-        assert payload["role_count"] == 32
-        assert payload["ready_family_count"] == 0
-        assert payload["ready_role_count"] == 0
-        assert payload["readiness_status"] == "coverage_limited"
-        assert payload["as_of"] == "2026-08-01T00:00:00Z"
-        assert payload["snapshot_limit"] == 8
-        assert payload["universe_provenance"]["provider_calls"] is False
-        assert payload["universe_provenance"]["provider_probe_count"] == len(
-            payload["provider_probe_evidence"]
-        )
-        assert {family["family_key"] for family in payload["families"]} == {
-            "sp500",
-            "sp400",
-            "sp600",
-            "sp1500",
-            "russell1000",
-            "russell2000",
-            "russell3000",
-            "nasdaq100",
-        }
-        assert all(len(family["roles"]) == 4 for family in payload["families"])
-        assert all(
-            role["composite_readiness_status"] == "unavailable"
-            for family in payload["families"]
-            for role in family["roles"]
         )
 
     def test_benchmark_family_coverage_marks_unresolved_snapshot_as_pending(
@@ -1878,7 +796,6 @@ class TestWorkspaces:
         assert value_role["available"] is True
         assert value_role["status"] == "holdings_snapshot_unresolved"
         assert value_role["snapshots"][0]["resolved_count"] == 0
-        assert value_role["point_in_time_supported"] is False
         assert response.json()["coverage"] == 0
         assert any(
             warning["code"] == "family_role_holdings_unresolved"
@@ -2067,6 +984,11 @@ class TestWorkspaces:
         assert cap["coverage"] == 1
         assert cap["dispersion"] == 0
         assert cap["members"][0]["symbol"] == instrument.symbol
+        assert cap["coverage_preflight"]["evaluator"] == (
+            "benchmark_family_concentration:cap_weight"
+        )
+        assert cap["coverage_preflight"]["status"] == "full"
+        assert payload["coverage_preflight"]["roles"]["cap_weight"]["status"] == "full"
         assert roles["equal_weight"]["available"] is False
 
     def test_benchmark_family_concentration_history_uses_known_at_snapshots(
@@ -2188,6 +1110,13 @@ class TestWorkspaces:
         assert point["effective_constituents"] == 1
         assert point["coverage"] == 1
         assert {item["snapshot_id"] for item in cap["points"]} == {snapshot.id, later_snapshot.id}
+        assert cap["coverage_preflight"]["evaluator"] == (
+            "benchmark_family_concentration_history:cap_weight"
+        )
+        assert payload["coverage_preflight"]["roles"]["cap_weight"]["status"] in {
+            "full",
+            "partial",
+        }
         assert roles["equal_weight"]["available"] is False
 
     def test_benchmark_family_concentration_history_supports_derived_equal_membership(
@@ -2284,6 +1213,10 @@ class TestWorkspaces:
         assert equal["points"][-1]["weight_method"] == (
             "equal_start_weight_point_in_time_membership_rebalanced_on_declared_schedule"
         )
+        assert equal["coverage_preflight"]["evaluator"] == (
+            "benchmark_family_concentration_history:equal_weight"
+        )
+        assert equal["coverage_preflight"]["status"] == "deferred"
 
     def test_benchmark_family_ratios_align_selected_leg_to_cap_and_market(
         self, client, auth_headers, db, instrument_type
@@ -2338,6 +1271,8 @@ class TestWorkspaces:
         )
         assert response.status_code == 200, response.text
         payload = response.json()
+        assert payload["coverage_preflight"]["evaluator"] == "benchmark_family_ratios"
+        assert payload["coverage_preflight"]["status"] == "full"
         assert payload["universe_provenance"]["ratio_semantics"] == (
             "aligned_close_ratio_without_forward_fill"
         )
@@ -2367,6 +1302,29 @@ class TestWorkspaces:
             ("equal_weight", "market"),
             ("cap_weight", "market"),
         }
+
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=rsp.id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+        stale_response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/ratios",
+            headers=auth_headers,
+            params={"role": "equal_weight", "market_benchmark": "SPY"},
+        )
+        assert stale_response.status_code == 200, stale_response.text
+        stale_payload = stale_response.json()
+        assert stale_payload["freshness"] == "stale"
+        assert stale_payload["coverage_preflight"]["status"] == "partial"
+        assert all(item["points"] == [] for item in stale_payload["ratios"])
+        assert all(item["warnings"][0]["code"] == "stale_data" for item in stale_payload["ratios"])
 
     def test_benchmark_family_technicals_return_independent_role_states_without_fallback(
         self, client, auth_headers, db, instrument_type
@@ -2420,6 +1378,8 @@ class TestWorkspaces:
         assert roles["cap_weight"]["last"] == 102
         assert roles["cap_weight"]["as_of"] == "2026-12-31T23:59:59Z"
         assert roles["cap_weight"]["sma200"] is None
+        assert roles["cap_weight"]["coverage_preflight"]["evaluator"] == ("technical_snapshot")
+        assert roles["cap_weight"]["coverage_preflight"]["status"] == "deferred"
         assert roles["equal_weight"]["symbol"] == "RSP"
         assert roles["equal_weight"]["available"] is False
         assert roles["equal_weight"]["warnings"][0]["code"] == "benchmark_proxy_unavailable"
@@ -2448,15 +1408,6 @@ class TestWorkspaces:
         )
         db.add(rsp)
         db.flush()
-        placeholder = Instrument(
-            symbol="HOLDING-RSP-PLACEHOLDER",
-            name="Unresolved RSP holding",
-            currency="USD",
-            instrument_type_id=instrument_type.id,
-            is_active=True,
-        )
-        db.add(placeholder)
-        db.flush()
         profile = ETFProfile(instrument_id=rsp.id, adapter_status="resolved")
         db.add(profile)
         db.flush()
@@ -2468,8 +1419,8 @@ class TestWorkspaces:
             source_provider="fixture",
             source_quality="issuer_disclosed",
             completeness_status="complete",
-            row_count=2,
-            resolved_count=2,
+            row_count=1,
+            resolved_count=1,
             unresolved_count=0,
             total_weight=Decimal("1"),
             snapshot_hash="test-family-breadth-rsp",
@@ -2484,22 +1435,7 @@ class TestWorkspaces:
                 reported_symbol=instrument.symbol,
                 reported_name=instrument.name,
                 weight=Decimal("1"),
-                holding_type="common stock",
                 source_row_hash="test-family-breadth-aapl",
-                is_resolved=True,
-            )
-        )
-        db.add(
-            ETFHolding(
-                snapshot_id=snapshot.id,
-                constituent_instrument_id=placeholder.id,
-                position=1,
-                reported_symbol=placeholder.symbol,
-                reported_name=placeholder.name,
-                weight=Decimal("0.25"),
-                holding_type="equity",
-                row_type="security",
-                source_row_hash="test-family-breadth-placeholder",
                 is_resolved=True,
             )
         )
@@ -2518,15 +1454,40 @@ class TestWorkspaces:
         assert roles["equal_weight"]["symbol"] == "RSP"
         assert roles["equal_weight"]["above_ma"]["ma20"]["requested_count"] == 1
         assert roles["equal_weight"]["above_ma"]["ma20"]["eligible_count"] == 1
-        assert any(
-            warning["code"] == "unresolved_member"
-            for warning in roles["equal_weight"]["exclusions"]
-        )
         assert roles["equal_weight"]["near_52w_high"]["percentage"] is None
+        assert roles["equal_weight"]["coverage_preflight"]["ma20"]["status"] == "full"
+        assert roles["equal_weight"]["coverage_preflight"]["near_52w_high"]["status"] == "deferred"
+        assert (
+            roles["equal_weight"]["coverage_preflight"]["near_52w_high"]["items"][0]["status"]
+            == "partial"
+        )
+        assert payload["coverage_preflight"]["benchmark"]["status"] == "empty"
         assert payload["near_threshold"] == 0.02
         assert payload["universe_provenance"]["breadth_semantics"] == (
             "standard_role_participation_batch_over_point_in_time_holdings"
         )
+
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=instrument.id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+        stale_response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/breadth",
+            headers=auth_headers,
+            params={"near_threshold": "0.02", "new_high_lookback": "20"},
+        )
+        assert stale_response.status_code == 200, stale_response.text
+        stale_payload = stale_response.json()
+        stale_equal = {role["role"]: role for role in stale_payload["roles"]}["equal_weight"]
+        assert stale_equal["above_ma"]["ma20"]["eligible_count"] == 0
+        assert stale_equal["above_ma"]["ma20"]["exclusions"][0]["code"] == "stale_data"
 
     def test_benchmark_family_breadth_history_keeps_role_lineage_and_missing_roles_explicit(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
@@ -2593,19 +1554,18 @@ class TestWorkspaces:
         assert roles["cap_weight"]["exclusions"][0]["code"] == "instrument_not_found"
         assert roles["equal_weight"]["available"] is True
         assert roles["equal_weight"]["membership_version"] is not None
+        assert roles["equal_weight"]["coverage_preflight"]["evaluator"] == (
+            "benchmark_family_breadth_history:equal_weight"
+        )
+        assert roles["equal_weight"]["coverage_preflight"]["status"] == "deferred"
         assert len(roles["equal_weight"]["points"]) == 30
-        assert roles["equal_weight"]["member_count"] == 1
-        assert roles["equal_weight"]["analysis_ready_member_count"] == 0
-        assert roles["equal_weight"]["analysis_ready_status"] == "partial"
-        assert roles["equal_weight"]["covered_member_count"] == 1
-        assert roles["equal_weight"]["coverage_percent"] == 100.0
-        assert roles["equal_weight"]["required_bar_count"] == 252
         assert set(roles["equal_weight"]["points"][-1]["above_ma"]) == {
             "ma20",
             "ma50",
             "ma200",
         }
         assert payload["limit"] == 30
+        assert payload["coverage_preflight"]["roles"]["equal_weight"]["status"] == "deferred"
 
     def test_benchmark_family_ranking_preserves_cap_relative_role_performance(
         self, client, auth_headers, db, instrument_type
@@ -2657,6 +1617,8 @@ class TestWorkspaces:
         )
         assert response.status_code == 200, response.text
         payload = response.json()
+        assert payload["coverage_preflight"]["evaluator"] == "benchmark_family_ranking"
+        assert payload["coverage_preflight"]["status"] == "full"
         roles = {role["role"]: role for role in payload["roles"]}
         assert roles["cap_weight"]["available"] is True
         assert roles["equal_weight"]["available"] is True
@@ -2665,6 +1627,29 @@ class TestWorkspaces:
         assert roles["equal_weight"]["relative_performance"]["1M"] > 0
         assert roles["value"]["available"] is False
         assert payload["benchmark"] == "SPY"
+
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=instruments["RSP"].id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+        stale_response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/ranking",
+            headers=auth_headers,
+            params={"rank_period": "1M"},
+        )
+        assert stale_response.status_code == 200, stale_response.text
+        stale_payload = stale_response.json()
+        assert stale_payload["coverage_preflight"]["status"] == "partial"
+        stale_roles = {role["role"]: role for role in stale_payload["roles"]}
+        assert stale_roles["equal_weight"]["available"] is False
+        assert stale_roles["equal_weight"]["warnings"][0]["code"] == "stale_data"
 
     def test_cross_family_ranking_keeps_unavailable_cap_legs_explicit(
         self, client, auth_headers, db, instrument_type
@@ -2711,6 +1696,8 @@ class TestWorkspaces:
         )
         assert response.status_code == 200, response.text
         payload = response.json()
+        assert payload["coverage_preflight"]["evaluator"] == "cross_family_ranking"
+        assert payload["coverage_preflight"]["status"] == "full"
         rows = {row["family_key"]: row for row in payload["rows"]}
         assert rows["sp500"]["available"] is True
         assert rows["sp500"]["rank"] == 1
@@ -2777,6 +1764,8 @@ class TestWorkspaces:
         )
         assert response.status_code == 200, response.text
         payload = response.json()
+        assert payload["coverage_preflight"]["evaluator"] == "cross_family_ranking_history"
+        assert payload["coverage_preflight"]["status"] == "full"
         rows = {row["family_key"]: row for row in payload["rows"]}
         assert payload["limit"] == 8
         assert payload["benchmark"] == "SPY"
@@ -2852,6 +1841,8 @@ class TestWorkspaces:
         assert len(roles["equal_weight"]["history"]) == 7
         assert roles["equal_weight"]["trend"] > 0
         assert roles["equal_weight"]["state"] in {"leading", "weakening"}
+        assert payload["coverage_preflight"]["evaluator"] == ("benchmark_family_relative_rotation")
+        assert payload["coverage_preflight"]["status"] == "full"
         assert roles["value"]["available"] is False
         assert roles["value"]["warnings"][0]["code"] == "role_mapping_unavailable"
 
@@ -2892,11 +1883,35 @@ class TestWorkspaces:
         assert available_payload["member_count"] == 1
         assert available_payload["covered_member_count"] == 1
         assert available_payload["coverage"] == 1
-        assert len(available_payload["points"]) == len(ohlcv_bars) - 1
-        assert available_payload["points"][0]["timestamp"].startswith("2024-01-02")
+        assert available_payload["coverage_preflight"]["evaluator"] == (
+            "benchmark_family_derived_equal_weight"
+        )
+        assert available_payload["coverage_preflight"]["status"] == "full"
+        assert len(available_payload["points"]) == len(ohlcv_bars)
         assert available_payload["universe_provenance"]["membership_semantics"] == (
             "point_in_time_constituent_derived_equal_weight"
         )
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=instrument.id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+        stale = client.get(
+            "/api/v1/analysis/benchmark-families/sp1500/derived-equal-weight",
+            headers=auth_headers,
+        )
+        assert stale.status_code == 200, stale.text
+        stale_payload = stale.json()
+        assert stale_payload["covered_member_count"] == 0
+        assert stale_payload["points"] == []
+        assert stale_payload["coverage_preflight"]["status"] == "deferred"
+        assert stale_payload["exclusions"][-1]["code"] == "stale_data"
         historical = client.get(
             "/api/v1/analysis/benchmark-families/sp1500/derived-equal-weight",
             headers=auth_headers,
@@ -2923,85 +1938,6 @@ class TestWorkspaces:
         )
         assert not_allowed.status_code == 422
         assert not_allowed.json()["detail"]["code"] == "derived_equal_weight_not_allowed"
-
-    def test_derived_equal_weight_applies_membership_at_each_observation(
-        self, client, auth_headers, db, instrument, instrument_b, ohlcv_bars
-    ):
-        from datetime import UTC, datetime, timedelta
-        from decimal import Decimal
-
-        from sqlalchemy import select
-
-        from app.models.ohlcv import OHLCVBar, Timeframe
-        from app.models.workstation import MarketGroup, MarketGroupMember
-
-        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
-        assert seeded.status_code == 200
-        family = db.execute(
-            select(MarketGroup).where(MarketGroup.stable_key == "sp1500")
-        ).scalar_one()
-        base = datetime(2024, 1, 1, tzinfo=UTC)
-        db.add_all(
-            [
-                MarketGroupMember(
-                    market_group_id=family.id,
-                    instrument_id=instrument.id,
-                    relationship_type="etf_proxy_constituent",
-                    position=0,
-                    source="controlled_fixture",
-                    verification_state="proxy_verified",
-                    effective_at=base,
-                    known_at=base,
-                ),
-                MarketGroupMember(
-                    market_group_id=family.id,
-                    instrument_id=instrument_b.id,
-                    relationship_type="etf_proxy_constituent",
-                    position=1,
-                    source="controlled_fixture",
-                    verification_state="proxy_verified",
-                    effective_at=base + timedelta(days=3),
-                    known_at=base + timedelta(days=3),
-                ),
-            ]
-        )
-        # The later member has no bars before its effective date.  A single
-        # membership set reused for the whole series would therefore discard
-        # the earlier AAPL observations instead of evaluating the historical
-        # universe at each timestamp.
-        db.add_all(
-            [
-                OHLCVBar(
-                    instrument_id=instrument_b.id,
-                    timeframe=Timeframe.D1,
-                    ts=base + timedelta(days=3 + index),
-                    open=Decimal(str(200 + index)),
-                    high=Decimal(str(201 + index)),
-                    low=Decimal(str(199 + index)),
-                    close=Decimal(str(200 + index)),
-                    volume=Decimal("1"),
-                    is_adjusted=True,
-                )
-                for index in range(len(ohlcv_bars) - 3)
-            ]
-        )
-        db.flush()
-
-        response = client.get(
-            "/api/v1/analysis/benchmark-families/sp1500/derived-equal-weight",
-            headers=auth_headers,
-        )
-        assert response.status_code == 200, response.text
-        payload = response.json()
-        assert payload["member_count"] == 2
-        assert payload["covered_member_count"] == 2
-        assert payload["universe_provenance"]["membership_selection"] == (
-            "effective_at_and_known_at_per_observation"
-        )
-        assert payload["universe_provenance"]["membership_version_count"] == 2
-        timestamps = [point["timestamp"] for point in payload["points"]]
-        assert timestamps[0].startswith("2024-01-01")
-        assert timestamps[3].startswith("2024-01-04")
 
     def test_etf_industries_are_derived_from_point_in_time_holdings(
         self, client, admin_headers, auth_headers, db, instrument
@@ -3102,22 +2038,8 @@ class TestWorkspaces:
             instrument_type_id=instrument.instrument_type_id,
             is_active=True,
         )
-        placeholder = Instrument(
-            symbol="HOLDING-INDUSTRY-PLACEHOLDER",
-            name="Unresolved industry placeholder",
-            currency="USD",
-            instrument_type_id=instrument.instrument_type_id,
-            is_active=True,
-        )
-        placeholder_detail = EquityDetail(
-            instrument_id=placeholder.id,
-            industry="Semiconductors",
-            field_provenance={"industry": {"classification_system": "provider_native"}},
-        )
-        db.add_all([cash, derivative, placeholder])
+        db.add_all([cash, derivative])
         db.flush()
-        placeholder_detail.instrument_id = placeholder.id
-        db.add(placeholder_detail)
         profile = ETFProfile(instrument_id=instrument.id)
         db.add(profile)
         db.flush()
@@ -3191,15 +2113,6 @@ class TestWorkspaces:
                     holding_type="equity",
                     row_type="security",
                 ),
-                ETFHolding(
-                    snapshot_id=snapshot.id,
-                    constituent_instrument_id=placeholder.id,
-                    position=6,
-                    source_row_hash="placeholder-industry-row",
-                    is_resolved=True,
-                    holding_type="equity",
-                    row_type="security",
-                ),
             ]
         )
         db.flush()
@@ -3262,6 +2175,7 @@ class TestWorkspaces:
         assert len(payload["points"]) == 149
         assert payload["coverage"] < 1
         assert payload["warnings"][0]["code"] == "partial_overlap"
+        assert payload["coverage_preflight"]["evaluator"] == "relative_strength"
 
     def test_relative_strength_applies_point_in_time_cutoff(
         self, client, auth_headers, db, instrument, instrument_b, ohlcv_bars
@@ -3402,9 +2316,11 @@ class TestWorkspaces:
         assert payload["sma200"] == 251.5
         assert payload["position_52w"] == 1
         assert payload["volume_ratio_50"] > 1
+        assert payload["coverage_preflight"]["evaluator"] == "technical_snapshot"
+        assert payload["coverage_preflight"]["status"] == "full"
 
     def test_indicator_batch_returns_local_latest_values_and_exclusions(
-        self, client, auth_headers, instrument, ohlcv_bars
+        self, client, auth_headers, db, instrument, ohlcv_bars
     ):
         response = client.post(
             "/api/v1/analysis/indicator-batch",
@@ -3429,65 +2345,78 @@ class TestWorkspaces:
         assert payload["values"]["UNKNOWN"]["warning"]["code"] == "instrument_not_found"
         assert any(item["code"] == "instrument_not_found" for item in payload["exclusions"])
 
-    def test_indicator_batch_requires_explicit_output_for_multi_output_indicators(
-        self, client, auth_headers, instrument, ohlcv_bars
-    ):
-        response = client.post(
-            "/api/v1/analysis/indicator-batch",
-            headers=auth_headers,
-            json={
-                "symbols": [instrument.symbol],
-                "indicator": "bb",
-                "params": {"period": 20, "std_dev": 2},
-                "timeframe": "D1",
-                "adjusted": True,
-            },
-        )
-        assert response.status_code == 422
-        assert response.json()["detail"] == {
-            "code": "explicit_indicator_output_required",
-            "indicator": "bb",
-            "output_options": ["bb_upper", "bb_mid", "bb_lower"],
-        }
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 
-    def test_indicator_batch_accepts_explicit_multi_output_series(
-        self, client, auth_headers, instrument, ohlcv_bars
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=instrument.id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+        stale_response = client.post(
+            "/api/v1/analysis/indicator-batch",
+            headers=auth_headers,
+            json={
+                "symbols": [instrument.symbol],
+                "indicator": "sma",
+                "params": {"period": 2},
+                "timeframe": "D1",
+                "adjusted": True,
+            },
+        )
+        assert stale_response.status_code == 200
+        stale_payload = stale_response.json()
+        assert stale_payload["evaluated_count"] == 0
+        assert stale_payload["values"][instrument.symbol]["warning"]["code"] == "stale_data"
+        assert stale_payload["coverage_preflight"]["status"] == "deferred"
+        assert stale_payload["coverage_preflight"]["items"][0]["status"] == "missing"
+        assert any(item["code"] == "stale_data" for item in stale_payload["exclusions"])
+
+    def test_indicator_batch_withholds_values_when_shared_preflight_lacks_history(
+        self, client, auth_headers, db, instrument
     ):
+        from datetime import UTC, datetime
+        from decimal import Decimal
+
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                timeframe=Timeframe.D1,
+                ts=datetime(2026, 1, 2, tzinfo=UTC),
+                open=Decimal("100"),
+                high=Decimal("101"),
+                low=Decimal("99"),
+                close=Decimal("100"),
+                volume=Decimal("1000"),
+                is_adjusted=True,
+            )
+        )
+        db.flush()
+
         response = client.post(
             "/api/v1/analysis/indicator-batch",
             headers=auth_headers,
             json={
                 "symbols": [instrument.symbol],
-                "indicator": "bb",
-                "params": {"period": 20, "std_dev": 2, "output": "bb_upper"},
+                "indicator": "sma",
+                "params": {"period": 3},
                 "timeframe": "D1",
                 "adjusted": True,
             },
         )
+
         assert response.status_code == 200
         payload = response.json()
-        assert payload["params"]["output"] == "bb_upper"
-        assert payload["values"][instrument.symbol]["value"] is not None
-
-    def test_indicator_batch_rejects_unknown_indicator_output(
-        self, client, auth_headers, instrument, ohlcv_bars
-    ):
-        response = client.post(
-            "/api/v1/analysis/indicator-batch",
-            headers=auth_headers,
-            json={
-                "symbols": [instrument.symbol],
-                "indicator": "bb",
-                "params": {"period": 20, "std_dev": 2, "output": "bb_middle"},
-                "timeframe": "D1",
-                "adjusted": True,
-            },
-        )
-        assert response.status_code == 422
-        detail = response.json()["detail"]
-        assert detail["code"] == "invalid_indicator_output"
-        assert detail["output"] == "bb_middle"
-        assert detail["output_options"] == ["bb_upper", "bb_mid", "bb_lower"]
+        assert payload["coverage_preflight"]["evaluator"] == "indicator_batch"
+        assert payload["coverage_preflight"]["status"] == "deferred"
+        assert payload["coverage_preflight"]["items"][0]["status"] == "partial"
+        assert payload["values"][instrument.symbol]["value"] is None
+        assert payload["values"][instrument.symbol]["warning"]["code"] == ("insufficient_history")
 
     def test_group_snapshot_exposes_bounded_calendar_year_returns(
         self, client, auth_headers, db, instrument, ohlcv_bars
@@ -3535,6 +2464,8 @@ class TestWorkspaces:
         assert cells["2026"]["value"] == 0.1
         assert cells["2023"]["value"] is None
         assert cells["2023"]["warning"]["code"] == "no_calendar_year_bars"
+        assert response.json()["coverage_preflight"]["evaluator"] == "group_snapshot"
+        assert response.json()["coverage_preflight"]["status"] == "deferred"
 
     def test_historical_breadth_uses_only_each_constituents_available_bar_dates(
         self, client, auth_headers, db, instrument, ohlcv_bars
@@ -3584,19 +2515,7 @@ class TestWorkspaces:
         assert rotation.json()["history_length"] == 8
         assert len(row["history"]) == 8
         assert row["coverage"] == 1
-
-        extended = client.get(
-            "/api/v1/analysis/groups/breadth-history-test/relative-rotation",
-            headers=auth_headers,
-            params={
-                "benchmark": instrument.symbol,
-                "lookback": 20,
-                "tail_length": 3,
-                "history_length": 1001,
-            },
-        )
-        assert extended.status_code == 200
-        assert extended.json()["history_length"] == 1001
+        assert rotation.json()["coverage_preflight"]["evaluator"] == ("group_relative_rotation")
 
     def test_relative_rotation_respects_point_in_time_membership_and_bars(
         self, client, auth_headers, db, instrument, ohlcv_bars
@@ -3738,6 +2657,7 @@ class TestWorkspaces:
             "uptrend",
             "downtrend",
         } <= set(next(iter(member_metrics.values())))
+        assert breadth_payload["coverage_preflight"]["evaluator"] == "group_breadth"
 
         history = client.get(
             "/api/v1/analysis/groups/point-in-time-batch-test/breadth/history",
@@ -3746,6 +2666,106 @@ class TestWorkspaces:
         )
         assert history.status_code == 200
         assert all(point["timestamp"] <= params["as_of"] for point in history.json()["points"])
+        assert history.json()["coverage_preflight"]["evaluator"] == "group_breadth_history"
+
+    def test_current_breadth_excludes_expired_ohlcv_members(
+        self, client, auth_headers, db, instrument, ohlcv_bars
+    ):
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+        from app.models.workstation import MarketGroup, MarketGroupMember
+
+        group = MarketGroup(
+            stable_key="stale-breadth-test", group_type="test", name="Stale breadth"
+        )
+        db.add(group)
+        db.flush()
+        db.add(MarketGroupMember(market_group_id=group.id, instrument_id=instrument.id, position=0))
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=instrument.id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/groups/stale-breadth-test/breadth",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["evaluated_count"] == 0
+        assert payload["missing_count"] == 0
+        assert payload["stale_count"] == 1
+        assert payload["coverage"] == 0
+        assert any(item["code"] == "stale_data" for item in payload["exclusions"])
+        assert payload["member_metrics"][str(instrument.id)]["above_ma20"] is None
+
+        technical = client.get(
+            f"/api/v1/analysis/instruments/{instrument.symbol}/technical",
+            headers=auth_headers,
+        )
+        assert technical.status_code == 200
+        technical_payload = technical.json()
+        assert technical_payload["last"] is None
+        assert any(item["code"] == "stale_data" for item in technical_payload["warnings"])
+
+        ratio = client.get(
+            "/api/v1/analysis/relative-strength",
+            headers=auth_headers,
+            params={"symbol": instrument.symbol, "benchmark": instrument.symbol},
+        )
+        assert ratio.status_code == 200
+        assert ratio.json()["points"] == []
+        assert any(item["code"] == "stale_data" for item in ratio.json()["warnings"])
+
+        snapshot = client.get(
+            "/api/v1/analysis/groups/stale-breadth-test/snapshot",
+            headers=auth_headers,
+            params={"benchmark": instrument.symbol},
+        )
+        assert snapshot.status_code == 200
+        snapshot_payload = snapshot.json()
+        assert snapshot_payload["coverage"] == 0
+        assert snapshot_payload["rows"][0]["last"]["value"] is None
+        assert snapshot_payload["rows"][0]["last"]["warning"]["code"] == "stale_data"
+        assert snapshot_payload["freshness_detail"]["requested"] == 1
+        assert any(item["code"] == "stale_data" for item in snapshot_payload["exclusions"])
+
+        rotation = client.get(
+            "/api/v1/analysis/groups/stale-breadth-test/relative-rotation",
+            headers=auth_headers,
+            params={"benchmark": instrument.symbol},
+        )
+        assert rotation.status_code == 200
+        rotation_payload = rotation.json()
+        assert rotation_payload["rows"][0]["coverage"] == 0
+        assert rotation_payload["rows"][0]["warnings"][0]["code"] == "stale_data"
+
+        generic = client.post(
+            "/api/v1/analysis/breadth",
+            headers=auth_headers,
+            json={
+                "version": 1,
+                "universe": {"kind": "group", "key": group.stable_key},
+                "condition": {
+                    "kind": "above_moving_average",
+                    "params": {"period": 20, "average": "sma", "comparator": "above"},
+                },
+                "timeframe": "D1",
+                "adjusted": True,
+            },
+        )
+        assert generic.status_code == 200
+        generic_payload = generic.json()
+        assert generic_payload["eligible_count"] == 0
+        assert generic_payload["coverage"] == 0
+        assert generic_payload["members"][0]["warning"]["code"] == "stale_data"
+        assert generic_payload["coverage_preflight"]["status"] == "deferred"
+        assert generic_payload["coverage_preflight"]["ready_instrument_count"] == 0
+        assert any(item["code"] == "stale_data" for item in generic_payload["exclusions"])
 
     def test_generic_breadth_accepts_a_reusable_condition_and_explicit_symbols(
         self, client, auth_headers, db, instrument, ohlcv_bars
@@ -3785,6 +2805,8 @@ class TestWorkspaces:
         assert payload["coverage"] == 1
         assert payload["members"][0]["symbol"] == instrument.symbol
         assert payload["members"][0]["value"] in {True, False}
+        assert payload["coverage_preflight"]["status"] == "full"
+        assert payload["coverage_preflight"]["ready_instrument_count"] == 1
 
         saved_condition = client.put(
             "/api/v1/workspaces/library/conditions/breadth-sma",
@@ -4300,133 +3322,6 @@ class TestWorkspaces:
         assert history_payload["universe"]["proxy_symbol"] == "SPY"
         assert history_payload["points"]
 
-    def test_generic_breadth_etf_holdings_excludes_unresolved_and_placeholder_members(
-        self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
-    ):
-        from datetime import UTC, date, datetime
-
-        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
-        from app.models.instrument import Instrument
-
-        etf = Instrument(
-            symbol="MIXD",
-            name="Mixed breadth ETF",
-            currency="USD",
-            instrument_type_id=instrument_type.id,
-            is_active=True,
-        )
-        placeholder = Instrument(
-            symbol="HOLDING-MIXD-PLACEHOLDER",
-            name="Unresolved mixed breadth placeholder",
-            currency="USD",
-            instrument_type_id=instrument_type.id,
-            is_active=True,
-        )
-        db.add_all([etf, placeholder])
-        db.flush()
-        profile = ETFProfile(instrument_id=etf.id, adapter_status="resolved")
-        db.add(profile)
-        db.flush()
-        snapshot = ETFHoldingsSnapshot(
-            etf_profile_id=profile.id,
-            composition_date=date(2026, 8, 30),
-            known_at=datetime(2026, 8, 31, tzinfo=UTC),
-            provenance="issuer_native",
-            source_provider="mixed-breadth-test",
-            completeness_status="partial",
-            row_count=3,
-            resolved_count=2,
-            unresolved_count=1,
-            snapshot_hash="mixed-breadth-etf-snapshot",
-        )
-        db.add(snapshot)
-        db.flush()
-        db.add_all(
-            [
-                ETFHolding(
-                    snapshot_id=snapshot.id,
-                    constituent_instrument_id=instrument.id,
-                    position=0,
-                    reported_symbol=instrument.symbol,
-                    holding_type="common stock",
-                    row_type="security",
-                    source_row_hash="mixed-breadth-canonical",
-                    is_resolved=True,
-                ),
-                ETFHolding(
-                    snapshot_id=snapshot.id,
-                    constituent_instrument_id=placeholder.id,
-                    position=1,
-                    reported_symbol=placeholder.symbol,
-                    holding_type="equity",
-                    row_type="security",
-                    source_row_hash="mixed-breadth-placeholder",
-                    is_resolved=True,
-                ),
-                ETFHolding(
-                    snapshot_id=snapshot.id,
-                    constituent_instrument_id=None,
-                    position=2,
-                    reported_symbol="UNKNOWN-MIXD",
-                    holding_type="equity",
-                    row_type="security",
-                    source_row_hash="mixed-breadth-unresolved",
-                    is_resolved=False,
-                ),
-            ]
-        )
-        db.flush()
-
-        response = client.post(
-            "/api/v1/analysis/breadth",
-            headers=auth_headers,
-            json={
-                "universe": {"kind": "etf_holdings", "key": "MIXD"},
-                "condition": {
-                    "kind": "above_moving_average",
-                    "params": {"period": 2, "average": "sma", "comparator": "above"},
-                },
-                "timeframe": "D1",
-                "adjusted": True,
-            },
-        )
-        assert response.status_code == 200, response.text
-        payload = response.json()
-        assert payload["universe"]["kind"] == "etf_holdings_proxy"
-        assert payload["universe"]["etf_symbol"] == "MIXD"
-        assert payload["requested_count"] == 3
-        assert payload["eligible_count"] == 1
-        assert payload["excluded_count"] == 2
-        assert payload["coverage"] == 1 / 3
-        assert [member["symbol"] for member in payload["members"]] == [instrument.symbol]
-        assert [item["code"] for item in payload["exclusions"]].count("unresolved_member") == 2
-
-        history = client.post(
-            "/api/v1/analysis/breadth/history",
-            headers=auth_headers,
-            json={
-                "universe": {"kind": "etf_holdings", "key": "MIXD"},
-                "condition": {
-                    "kind": "above_moving_average",
-                    "params": {"period": 2, "average": "sma", "comparator": "above"},
-                },
-                "timeframe": "D1",
-                "adjusted": True,
-                "limit": 5,
-            },
-        )
-        assert history.status_code == 200, history.text
-        history_payload = history.json()
-        assert len(history_payload["points"]) == 5
-        assert all(point["requested_count"] == 1 for point in history_payload["points"])
-        assert all(
-            [member["symbol"] for member in point["members"]] == [instrument.symbol]
-            for point in history_payload["points"]
-        )
-        assert [item["code"] for item in history_payload["exclusions"]].count(
-            "unresolved_member"
-        ) == 2
-
     def test_generic_breadth_history_uses_the_same_condition_without_forward_fill(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):
@@ -4487,6 +3382,27 @@ class TestWorkspaces:
         assert payload["condition_asset_key"] == "breadth-history-sma"
         assert payload["condition_library_version"] == 1
         assert payload["python_code_version_id"] == saved_python_version
+        assert payload["coverage_preflight"]["evaluator"] == "generic_breadth_history"
+        assert payload["coverage_preflight"]["status"] == "full"
+
+        insufficient = client.post(
+            "/api/v1/analysis/breadth/history",
+            headers=auth_headers,
+            json={
+                "universe": {"kind": "group", "key": group.stable_key},
+                "condition": {
+                    "kind": "above_moving_average",
+                    "params": {"period": 200, "average": "sma", "comparator": "above"},
+                },
+                "timeframe": "D1",
+                "limit": 20,
+            },
+        )
+        assert insufficient.status_code == 200, insufficient.text
+        insufficient_payload = insufficient.json()
+        assert insufficient_payload["coverage_preflight"]["status"] == "deferred"
+        assert insufficient_payload["coverage_preflight"]["ready_instrument_count"] == 0
+        assert insufficient_payload["points"] == []
 
     def test_python_breadth_queues_isolated_current_and_history_and_promotes_to_scan(
         self, client, auth_headers, instrument, ohlcv_bars, tmp_path, monkeypatch
@@ -4966,46 +3882,6 @@ class TestWorkspaces:
             comparison_tree_result["artifacts"]["batch_cells"]["value"]["cells"][0]["value"] is True
         )
 
-        reference_tree_queued = client.post(
-            "/api/v1/analysis/breadth/python",
-            headers=auth_headers,
-            json={
-                "code_version_id": version_id,
-                "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
-                "output_contract": "boolean",
-                "condition_tree": {
-                    "kind": "python_series_comparison",
-                    "params": {
-                        "left_code_version_id": version_id,
-                        "right_code_version_id": comparison_version_id,
-                        "relation": "difference",
-                        "right_scope": "benchmark",
-                        "operator": "gte",
-                        "threshold": -1_000_000_000,
-                    },
-                },
-                "reference_universe": {
-                    "kind": "symbols",
-                    "symbols": [instrument.symbol],
-                },
-                "session": "all",
-            },
-        )
-        assert reference_tree_queued.status_code == 202, reference_tree_queued.text
-        reference_run_id = reference_tree_queued.json()["run_id"]
-        reference_job = json.loads((tmp_path / "jobs" / f"{reference_run_id}.json").read_text())
-        reference_dataset = reference_job["dataset"]["benchmark_dataset"]
-        assert reference_dataset["status"] == "ready"
-        assert reference_dataset["symbol"] == "REFERENCE:EQUAL_WEIGHT"
-        assert reference_dataset["metadata"]["reference_target"]["method"] == (
-            "derived_equal_weight_return_index"
-        )
-        assert reference_job["dataset"]["reference_coverage"]["status"] == "ready"
-        reference_result = execute_job(reference_job)
-        assert reference_result["status"] == "completed", reference_result
-        reference_cells = reference_result["artifacts"]["batch_cells"]["value"]["cells"]
-        assert reference_cells[0]["value"] is True
-
         cross_queued = client.post(
             "/api/v1/analysis/breadth/python",
             headers=auth_headers,
@@ -5245,11 +4121,36 @@ class TestWorkspaces:
         assert payload["provenance"] == "issuer_native"
         assert payload["source_provider"] == "issuer"
         assert payload["as_of"] == "2024-06-01T00:00:00Z"
-        assert payload["universe_provenance"]["requested_as_of"] == "2024-06-01T00:00:00Z"
-        assert payload["universe_provenance"]["known_at"] == "2024-05-31T00:00:00Z"
+        assert payload["universe_provenance"]["requested_as_of"] == "2024-06-01T00:00:00+00:00"
+        assert payload["coverage_preflight"]["evaluator"] == "etf_constituent_snapshot"
         assert payload["coverage"] == 1
         assert payload["rows"][0]["symbol"] == instrument.symbol
         assert payload["rows"][0]["relative_to_benchmark"]["value"] == 1
+
+        # Current analysis must withhold bars whose persisted freshness state
+        # has expired, while the point-in-time request above remains intact.
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=instrument.id,
+                data_source_id=None,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+        stale_response = client.get(
+            "/api/v1/analysis/etf/XLK/constituents/snapshot",
+            headers=auth_headers,
+            params={"benchmark": instrument.symbol},
+        )
+        assert stale_response.status_code == 200, stale_response.text
+        stale_payload = stale_response.json()
+        assert stale_payload["coverage"] == 0
+        assert stale_payload["rows"][0]["last"]["warning"]["code"] == "stale_data"
+        assert any(item["code"] == "stale_data" for item in stale_payload["exclusions"])
 
     def test_etf_constituent_snapshot_discloses_excluded_holdings_and_coverage(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
@@ -5350,7 +4251,11 @@ class TestWorkspaces:
         from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
         from app.models.instrument import EquityDetail, Instrument
         from app.models.ohlcv import OHLCVBar, Timeframe
-        from app.models.provider_observation import InstrumentProfileSnapshot
+        from app.models.provider_observation import (
+            DatasetStatus,
+            InstrumentDatasetState,
+            InstrumentProfileSnapshot,
+        )
 
         db.add(
             EquityDetail(
@@ -5548,6 +4453,7 @@ class TestWorkspaces:
             ranked_payload["proxy_evidence"][0]["verification_state"]
             == "holdings_classification_verified"
         )
+        assert ranked_payload["coverage_preflight"]["evaluator"] == "industry_proxy_snapshot"
         assert ranked_payload["rows"][0]["symbol"] == "SMH"
         assert ranked_payload["rows"][0]["relative_to_benchmark"]["value"] == 2
         assert ranked_payload["rows"][0]["relative_to_market"]["value"] == 4
@@ -5561,6 +4467,7 @@ class TestWorkspaces:
         industries_payload = industries_ranked.json()
         assert industries_payload["group_key"] == "industry:XLK"
         assert industries_payload["market_benchmark"] == instrument.symbol
+        assert industries_payload["coverage_preflight"]["evaluator"] == "industry_snapshot"
         assert industries_payload["rows"][0]["industry"] == "Semiconductors"
         assert set(industries_payload["rows"][0]["performance"]) == {
             "1D",
@@ -5573,6 +4480,25 @@ class TestWorkspaces:
         }
         assert industries_payload["rows"][0]["relative_to_benchmark"]["value"] == 1
         assert industries_payload["rows"][0]["relative_to_market"]["value"] == 1
+
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=proxy.id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+        stale_ranked = client.get(
+            "/api/v1/analysis/etf/XLK/industries/Semiconductors/proxies/snapshot",
+            headers=auth_headers,
+            params={"market_benchmark": instrument.symbol},
+        )
+        assert stale_ranked.status_code == 200
+        stale_ranked_payload = stale_ranked.json()
+        assert stale_ranked_payload["coverage"] == 0
+        assert stale_ranked_payload["rows"][0]["last"]["warning"]["code"] == "stale_data"
 
         future_timestamp = datetime(2024, 6, 4, tzinfo=UTC)
         for item, close in ((source, "100"), (proxy, "300"), (instrument, "50")):

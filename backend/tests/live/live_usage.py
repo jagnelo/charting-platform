@@ -1,0 +1,918 @@
+"""Quota admission and external usage receipts for direct live provider probes.
+
+Live adapters reserve their reviewed provider-specific quota in the durable
+coordinator before transport. This owner-managed ledger separately records
+observed provider/request/byte counts and bounded operation names; response
+bodies are kept in a separate owner-private archive and neither file is itself
+quota admission.
+"""
+
+from __future__ import annotations
+
+import fcntl
+import json
+import os
+import stat
+import threading
+import time
+from collections import defaultdict
+from collections.abc import Mapping
+from contextvars import ContextVar, Token
+from datetime import UTC, datetime
+from pathlib import Path
+from types import SimpleNamespace
+from typing import Any
+from uuid import uuid4
+
+DEFAULT_LEDGER = Path.home() / ".config" / "charting-platform" / "provider-live-usage.jsonl"
+DEFAULT_RESPONSE_ARCHIVE = (
+    Path.home() / ".config" / "charting-platform" / "provider-live-responses.jsonl"
+)
+_CAPACITY_HEADERS = {
+    "api-credits-left",
+    "api-credits-request",
+    "api-credits-used",
+    "x-api-ratelimit-limit",
+    "x-api-ratelimit-remaining",
+    "x-api-ratelimit-reset",
+    "x-api-ratelimit-consumed",
+    "content-length",
+    "record-limit",
+    "record-max-limit",
+    "record-offset",
+    "record-total",
+    "total-records-on-page",
+    "response-payload-max-size",
+    "retry-after",
+    "x-bapi-limit",
+    "x-bapi-limit-reset-timestamp",
+    "x-bapi-limit-status",
+    "x-mbx-order-count-1m",
+    "x-mbx-used-weight-1m",
+    "x-rate-limit-limit",
+    "x-rate-limit-remaining",
+    "x-rate-limit-reset",
+    "x-ratelimit-allowed",
+    "x-ratelimit-available",
+    "x-ratelimit-expiry",
+    "x-ratelimit-limit",
+    "x-ratelimit-limit-day",
+    "x-ratelimit-limit-month",
+    "x-ratelimit-remaining",
+    "x-ratelimit-remaining-day",
+    "x-ratelimit-remaining-month",
+    "x-ratelimit-reset",
+    "x-ratelimit-used",
+}
+_observations: list[
+    tuple[
+        str,
+        str,
+        int,
+        int,
+        dict[str, str],
+        bool,
+        str,
+        str,
+        int | None,
+        str | None,
+    ]
+] = []
+_PROCESS_RUN_ID = str(uuid4())
+_CURRENT_CASE_ID: ContextVar[str] = ContextVar("provider_live_case_id", default="")
+_ACTIVE_REQUEST_ADMISSION: ContextVar[bool] = ContextVar(
+    "provider_live_request_admission", default=False
+)
+_TRANSPORT_BUDGET_LOCK = threading.Lock()
+_TRANSPORT_BUDGET_USED = 0
+_TRANSPORT_BUDGET_ENV = "PROVIDER_LIVE_MAX_HTTP_REQUESTS"
+_TRANSPORT_BUDGET_FILE_ENV = "PROVIDER_LIVE_TRANSPORT_BUDGET_FILE"
+_DINARI_CANARY_REQUESTS = 0
+_PROVIDER_LIVE_MINIMUM_INTERVAL_SECONDS = {
+    "alpha_vantage": 13.0,
+    # Massive Basic documents five requests/minute per asset class. Live
+    # probes do not encode the asset class in this pacing helper, so use one
+    # stricter provider-wide start interval; the durable coordinator remains
+    # authoritative for the provider's separate account buckets.
+    "massive": 20.0,
+    "kraken": 1.1,
+}
+_PROVIDER_LIVE_START_LOCK = threading.Lock()
+_PROVIDER_LIVE_LAST_START: dict[str, float] = {}
+
+
+def wait_for_provider_start_window(provider_name: str) -> float:
+    """Pace known provider ceilings before a durable reservation is created.
+
+    Alpha Vantage's documented five-per-minute ceiling is enforced with a
+    13-second minimum start interval; Massive's five-per-minute ceiling uses a
+    20-second interval to leave margin for rolling-window boundaries; Kraken's
+    public safe frequency is at most one request/second. These in-process
+    pacers leave margin around provider windows. The shared coordinator still
+    performs the authoritative cross-process/account reservation immediately
+    afterward.
+    """
+
+    interval = _PROVIDER_LIVE_MINIMUM_INTERVAL_SECONDS.get(provider_name)
+    if interval is None:
+        return 0.0
+    waited = 0.0
+    with _PROVIDER_LIVE_START_LOCK:
+        now = time.monotonic()
+        previous = _PROVIDER_LIVE_LAST_START.get(provider_name)
+        if previous is not None:
+            waited = max(0.0, interval - (now - previous))
+            if waited:
+                time.sleep(waited)
+        _PROVIDER_LIVE_LAST_START[provider_name] = time.monotonic()
+    return waited
+
+
+def reserve_dinari_sandbox_canary_request() -> int:
+    """Consume one operator-configured Dinari Sandbox canary allowance.
+
+    Dinari does not publish a numeric Sandbox quota. The process-local cap is
+    an additional backstop to the shared-ledger application policy of one
+    catalogue request per UTC day; neither value is represented as Dinari's
+    quota. Every attempted request consumes the slot, including failures.
+    """
+
+    if os.getenv("DINARI_SANDBOX_CANARY_RUN", "") != "1":
+        raise RuntimeError(
+            "Dinari Sandbox canary admission is disabled; use the explicit "
+            "--dinari-sandbox-canary runner mode"
+        )
+    raw_limit = os.getenv("DINARI_SANDBOX_CANARY_MAX_REQUESTS", "").strip()
+    try:
+        limit = int(raw_limit)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError("DINARI_SANDBOX_CANARY_MAX_REQUESTS must be exactly 1") from exc
+    if limit != 1:
+        raise RuntimeError("DINARI_SANDBOX_CANARY_MAX_REQUESTS must be exactly 1")
+    global _DINARI_CANARY_REQUESTS
+    if _DINARI_CANARY_REQUESTS >= limit:
+        from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
+
+        raise ProviderQuotaAdmissionError(
+            "Dinari Sandbox canary request cap exhausted before live operation"
+        )
+    _DINARI_CANARY_REQUESTS += 1
+    return _DINARI_CANARY_REQUESTS
+
+
+def reconcile_native_account_usage(
+    provider_name: str,
+    usage: Any,
+) -> list[dict[str, Any]]:
+    """Reconcile exact native account snapshots observed by live probes.
+
+    The normal application path persists account-usage observations through
+    ``refresh_provider_account_usage``.  Direct live tests intentionally call
+    provider adapters without an application database session, so they need a
+    small equivalent handoff into the same durable quota coordinator.  This
+    helper reuses the production allow-list/validation logic and only seeds a
+    baseline when the provider-specific contract, limit, unit, and reset are
+    all proven.  A stale EODHD date, for example, is retained as observation
+    telemetry and produces no reconciliation rather than an invented window.
+    """
+
+    from app.config import provider_rate_limit_seed
+    from app.services.provider_account_usage import (
+        _native_baseline_candidate,
+        _usage_dimensions,
+    )
+    from app.services.provider_quota_coordinator import (
+        reconcile_provider_quota_baseline,
+    )
+
+    seed = provider_rate_limit_seed(provider_name)
+    contract = seed.get("quota_contract")
+    if not isinstance(contract, dict):
+        return [{"status": "not_reconciled", "reason": "missing quota contract"}]
+    policy = SimpleNamespace(
+        quota_contract=contract,
+        quota_scope=seed.get("quota_scope") or "api_key",
+    )
+    execution = SimpleNamespace(provider_name=provider_name, policy=policy)
+    dimensions = _usage_dimensions(usage, provider_name)
+    results: list[dict[str, Any]] = []
+    for dimension in dimensions:
+        candidate = _native_baseline_candidate(execution, dimension, usage.observed_at)
+        if candidate is None:
+            results.append(
+                {
+                    "status": "not_reconciled",
+                    "dimension": str(dimension.name),
+                    "reason": "provider snapshot did not prove the reviewed active window",
+                }
+            )
+            continue
+        dimension_name, capability, used_units, observed_at, evidence_reference = candidate
+        reconciliation = reconcile_provider_quota_baseline(
+            provider_name=provider_name,
+            capability=capability,
+            policy=policy,
+            dimension_name=dimension_name,
+            used_units=used_units,
+            observed_at=observed_at,
+            evidence_reference=evidence_reference,
+            source="provider_account_observation",
+            native_snapshot_includes_prior_local_activity=(
+                (provider_name == "marketdata_app" and dimension_name == "credits_per_day")
+                or (provider_name == "eodhd" and dimension_name == "calls_per_day")
+                or (provider_name == "finnhub" and dimension_name == "calls_per_minute")
+                or (provider_name == "xstocks" and dimension_name == "public_requests_per_minute")
+            ),
+        )
+        results.append(
+            {
+                "status": "reconciled",
+                "dimension": dimension_name,
+                "used_units": used_units,
+                "window_started_at": reconciliation.get("window_started_at"),
+            }
+        )
+    return results
+
+
+def ledger_path() -> Path:
+    """Return the owner-managed live-usage ledger path."""
+
+    configured = os.getenv("PROVIDER_LIVE_USAGE_LEDGER", "").strip()
+    return Path(configured or DEFAULT_LEDGER).expanduser()
+
+
+def response_archive_path() -> Path:
+    """Return the private archive path for redacted live response bodies."""
+
+    configured = os.getenv("PROVIDER_LIVE_RESPONSE_ARCHIVE", "").strip()
+    return Path(configured or DEFAULT_RESPONSE_ARCHIVE).expanduser()
+
+
+def _validate_response_archive_path(path: Path) -> Path:
+    """Reject response payload destinations inside the checked-out repository."""
+
+    repository_root = Path(__file__).resolve().parents[3]
+    resolved = path.resolve()
+    if resolved == repository_root or repository_root in resolved.parents:
+        raise RuntimeError("provider live response archive must be outside the repository")
+    return resolved
+
+
+def ensure_response_archive_writable() -> Path:
+    """Preflight the private response archive before any provider request."""
+
+    path = response_archive_path()
+    _validate_response_archive_path(path)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        descriptor = _open_private_response_archive(path)
+        os.close(descriptor)
+    except OSError as exc:
+        raise RuntimeError(f"provider live response archive is not writable: {path}") from exc
+    return path
+
+
+def _open_private_response_archive(path: Path) -> int:
+    """Open an owner-owned regular file without following a symlink."""
+
+    flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND
+    if not hasattr(os, "O_NOFOLLOW"):
+        raise OSError("the response archive requires no-follow open support")
+    descriptor = os.open(path, flags | os.O_NOFOLLOW, 0o600)
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_uid != os.geteuid():
+            raise OSError("the response archive must be an owner-owned regular file")
+        os.fchmod(descriptor, 0o600)
+    except BaseException:
+        os.close(descriptor)
+        raise
+    return descriptor
+
+
+def archive_response_payloads(
+    provider: str,
+    operation: str,
+    payloads: list[Any],
+    *,
+    response_bytes: int,
+    response_metadata: list[dict[str, Any]] | None = None,
+    case_id: str | None = None,
+) -> Path | None:
+    """Durably append every captured, redacted live response body and headers.
+
+    The usage ledger intentionally contains aggregates only. This separate
+    owner-private archive preserves provider payloads for replay/audit without
+    adding them to GitHub artifacts or tracked workstream receipts.
+    """
+
+    if not payloads:
+        return None
+    if response_metadata is not None and len(response_metadata) != len(payloads):
+        raise RuntimeError(
+            "provider live response metadata mismatch: "
+            f"{len(response_metadata)} responses, {len(payloads)} captured bodies"
+        )
+    from app.providers.errors import redact_provider_payload
+
+    path = response_archive_path()
+    _validate_response_archive_path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    run_id = os.getenv("PROVIDER_LIVE_RUN_ID", "").strip() or _PROCESS_RUN_ID
+    now = datetime.now(UTC).isoformat()
+    normalized_case_id = str(case_id if case_id is not None else _CURRENT_CASE_ID.get())
+    rows = [
+        {
+            "at": now,
+            "run_id": run_id,
+            "provider": str(provider).strip() or "unknown",
+            "operation": str(operation).strip() or "unspecified",
+            "case_id": normalized_case_id,
+            "response_index": index,
+            "response_count": len(payloads),
+            "operation_response_bytes": max(0, int(response_bytes)),
+            "response_metadata": (
+                response_metadata[index] if response_metadata is not None else None
+            ),
+            "payload": redact_provider_payload(payload),
+        }
+        for index, payload in enumerate(payloads)
+    ]
+    try:
+        descriptor = _open_private_response_archive(path)
+        with os.fdopen(descriptor, "a", encoding="utf-8") as handle:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            try:
+                for row in rows:
+                    handle.write(json.dumps(row, sort_keys=True) + "\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+    except OSError as exc:
+        raise RuntimeError(f"provider live response archive write failed: {path}") from exc
+    return path
+
+
+def activate_case(case_id: str) -> Token[str]:
+    """Attach observations to the currently executing pytest node."""
+
+    return _CURRENT_CASE_ID.set(str(case_id).strip())
+
+
+def deactivate_case(token: Token[str]) -> None:
+    """Restore the previous pytest node context."""
+
+    _CURRENT_CASE_ID.reset(token)
+
+
+def activate_request_admission() -> Token[bool]:
+    """Mark the current operation as durably admitted for outbound HTTP."""
+
+    return _ACTIVE_REQUEST_ADMISSION.set(True)
+
+
+def deactivate_request_admission(token: Token[bool]) -> None:
+    """Restore the previous live-request admission context."""
+
+    _ACTIVE_REQUEST_ADMISSION.reset(token)
+
+
+def require_request_admission() -> None:
+    """Reject a live HTTP request unless its operation reserved quota first."""
+
+    runtime_admission_active = False
+    try:
+        from app.services.provider_runtime import provider_runtime_quota_admission_active
+
+        runtime_admission_active = provider_runtime_quota_admission_active()
+    except ImportError:
+        # Some isolated guard tests deliberately load this helper without the
+        # application package on sys.path; direct-test admission still works.
+        pass
+    admitted = _ACTIVE_REQUEST_ADMISSION.get() or runtime_admission_active
+    if os.getenv("RUN_LIVE_PROVIDER_TESTS") == "1" and not admitted:
+        raise RuntimeError(
+            "live provider HTTP request blocked: no active durable quota reservation"
+        )
+    if (
+        os.getenv("RUN_LIVE_PROVIDER_TESTS") == "1"
+        and os.getenv("DINARI_SANDBOX_CANARY_RUN") == "1"
+        and admitted
+    ):
+        # Count the additional run-level canary cap at the transport guard so
+        # one durably reserved adapter operation that fans out to several HTTP
+        # requests consumes several cap units.
+        reserve_dinari_sandbox_canary_request()
+
+
+class LiveTransportBudgetExceeded(RuntimeError):
+    """A live test attempted an HTTP transport beyond its explicit run cap."""
+
+
+def configured_transport_budget() -> int | None:
+    """Read the optional non-negative HTTPX transport cap from the environment.
+
+    The canonical runner requires this value before an actual live run. It is
+    optional in isolated unit tests and preflight-only invocations. Zero is a
+    valid cap and blocks the first transport.
+    """
+
+    raw = os.getenv(_TRANSPORT_BUDGET_ENV)
+    if raw is None:
+        return None
+    if not raw or not raw.isascii() or not raw.isdecimal():
+        raise RuntimeError(f"{_TRANSPORT_BUDGET_ENV} must be a non-negative base-10 integer")
+    return int(raw, 10)
+
+
+def _budget_counter_file() -> Path | None:
+    raw = os.getenv(_TRANSPORT_BUDGET_FILE_ENV, "").strip()
+    if not raw:
+        return None
+    return Path(raw).expanduser()
+
+
+def ensure_transport_budget_configured() -> int:
+    """Validate the run cap and optional shared counter before live tests."""
+
+    maximum = configured_transport_budget()
+    if maximum is None:
+        raise RuntimeError(f"{_TRANSPORT_BUDGET_ENV} is required for canonical live transport")
+    counter_file = _budget_counter_file()
+    if counter_file is not None:
+        try:
+            stat_result = counter_file.lstat()
+            if not stat.S_ISREG(stat_result.st_mode) or stat_result.st_mode & 0o077:
+                raise RuntimeError("transport budget counter must be a private regular file")
+            raw_count = counter_file.read_text(encoding="ascii")
+            if not raw_count.isascii() or not raw_count.isdecimal():
+                raise RuntimeError("transport budget counter is malformed")
+        except OSError as exc:
+            raise RuntimeError("transport budget counter is unavailable") from exc
+    return maximum
+
+
+def transport_budget_used() -> int:
+    """Return the number of transport attempts admitted by this run budget."""
+
+    counter_file = _budget_counter_file()
+    if counter_file is None:
+        with _TRANSPORT_BUDGET_LOCK:
+            return _TRANSPORT_BUDGET_USED
+    try:
+        flags = os.O_RDONLY | (getattr(os, "O_NOFOLLOW", 0))
+        descriptor = os.open(counter_file, flags)
+        with os.fdopen(descriptor, "r", encoding="ascii") as handle:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_SH)
+            try:
+                raw_count = handle.read()
+                if not raw_count or not raw_count.isascii() or not raw_count.isdecimal():
+                    raise RuntimeError("transport budget counter is malformed")
+                return int(raw_count, 10)
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+    except OSError as exc:
+        raise RuntimeError("transport budget counter is unavailable") from exc
+
+
+def _consume_transport_budget() -> int:
+    """Atomically consume one unit immediately before an HTTPX transport."""
+
+    maximum = configured_transport_budget()
+    if maximum is None:
+        return 0
+    counter_file = _budget_counter_file()
+    if counter_file is None:
+        global _TRANSPORT_BUDGET_USED
+        with _TRANSPORT_BUDGET_LOCK:
+            if _TRANSPORT_BUDGET_USED >= maximum:
+                raise LiveTransportBudgetExceeded(
+                    f"live HTTP transport budget exhausted ({maximum} maximum)"
+                )
+            _TRANSPORT_BUDGET_USED += 1
+            return _TRANSPORT_BUDGET_USED
+
+    try:
+        flags = os.O_RDWR | (getattr(os, "O_NOFOLLOW", 0))
+        descriptor = os.open(counter_file, flags)
+        with os.fdopen(descriptor, "r+", encoding="ascii") as handle:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            try:
+                raw_count = handle.read()
+                if not raw_count or not raw_count.isascii() or not raw_count.isdecimal():
+                    raise RuntimeError("transport budget counter is malformed")
+                used = int(raw_count, 10)
+                if used >= maximum:
+                    raise LiveTransportBudgetExceeded(
+                        f"live HTTP transport budget exhausted ({maximum} maximum)"
+                    )
+                handle.seek(0)
+                handle.truncate()
+                handle.write(str(used + 1))
+                handle.flush()
+                os.fsync(handle.fileno())
+                return used + 1
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+    except OSError as exc:
+        raise RuntimeError("transport budget counter is unavailable") from exc
+
+
+def install_httpx_quota_admission_guard(*, patcher=None) -> None:
+    """Guard sync and async HTTPX transports before any request is sent.
+
+    Every registered market-data adapter currently uses HTTPX. Installing this
+    at pytest session start means a future direct/unwrapped HTTPX call is blocked
+    before transport instead of being discovered only by missing receipt data.
+    A supplied pytest monkeypatch object makes the same guard directly testable
+    and automatically reversible in unit tests.
+    """
+
+    import httpx
+
+    def set_attribute(target, name: str, value) -> None:
+        if patcher is None:
+            setattr(target, name, value)
+        else:
+            patcher.setattr(target, name, value)
+
+    sync_send = httpx.Client.send
+    if not getattr(sync_send, "_provider_live_quota_guard", False):
+
+        def guarded_sync_send(self, request, *args, **kwargs):
+            require_request_admission()
+            return sync_send(self, request, *args, **kwargs)
+
+        guarded_sync_send._provider_live_quota_guard = True
+        set_attribute(httpx.Client, "send", guarded_sync_send)
+
+    async_send = httpx.AsyncClient.send
+    if not getattr(async_send, "_provider_live_quota_guard", False):
+
+        async def guarded_async_send(self, request, *args, **kwargs):
+            require_request_admission()
+            return await async_send(self, request, *args, **kwargs)
+
+        guarded_async_send._provider_live_quota_guard = True
+        set_attribute(httpx.AsyncClient, "send", guarded_async_send)
+
+    # HTTPX follows redirects inside _send_handling_redirects and calls
+    # _send_single_request for each hop. Guarding only Client.send would count
+    # the logical call once and miss those additional network transports.
+    sync_single = httpx.Client._send_single_request
+    if not getattr(sync_single, "_provider_live_transport_budget_guard", False):
+
+        def guarded_sync_single(self, request, *args, **kwargs):
+            _consume_transport_budget()
+            return sync_single(self, request, *args, **kwargs)
+
+        guarded_sync_single._provider_live_transport_budget_guard = True
+        set_attribute(httpx.Client, "_send_single_request", guarded_sync_single)
+
+    async_single = httpx.AsyncClient._send_single_request
+    if not getattr(async_single, "_provider_live_transport_budget_guard", False):
+
+        async def guarded_async_single(self, request, *args, **kwargs):
+            _consume_transport_budget()
+            return await async_single(self, request, *args, **kwargs)
+
+        guarded_async_single._provider_live_transport_budget_guard = True
+        set_attribute(httpx.AsyncClient, "_send_single_request", guarded_async_single)
+
+
+def ensure_ledger_writable() -> Path:
+    """Verify the live ledger can be opened before any provider calls run.
+
+    Direct live tests consume external quota outside the application runtime.
+    A teardown-only write check can otherwise allow calls to happen and then
+    lose their usage receipt to a permissions error.  This preflight performs
+    only a zero-byte append/open and never writes credentials or payloads.
+    """
+
+    path = ledger_path()
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8"):
+            pass
+        # Usage receipts can contain provider-native capacity observations.
+        # Keep the owner-managed file private even when it pre-existed with a
+        # permissive mode or was created under a different umask.
+        os.chmod(path, 0o600)
+    except OSError as exc:
+        raise RuntimeError(f"provider live usage ledger is not writable: {path}") from exc
+    return path
+
+
+def ensure_usage_scope_configured() -> str:
+    """Require a bounded non-secret scope label for live usage attribution."""
+
+    scope = os.getenv("PROVIDER_LIVE_USAGE_SCOPE", "").strip()
+    if not scope or len(scope) > 128 or not scope.isprintable():
+        raise RuntimeError(
+            "provider live usage scope is missing or invalid; set "
+            "PROVIDER_LIVE_USAGE_SCOPE before running live tests"
+        )
+    return scope
+
+
+def _safe_headers(headers: Mapping[str, object] | None) -> dict[str, str]:
+    """Keep only bounded provider-capacity headers, never auth/payload data."""
+
+    if not headers:
+        return {}
+    result: dict[str, str] = {}
+    for raw_name, raw_value in headers.items():
+        name = str(raw_name).strip().lower()
+        value = str(raw_value).strip()
+        if (
+            name in _CAPACITY_HEADERS
+            and name.isprintable()
+            and value
+            and len(value) <= 256
+            and value.isprintable()
+        ):
+            result[name] = value
+    return result
+
+
+def challenge_status_code(
+    response_metadata: list[Mapping[str, object]] | None,
+    fallback_status_code: int | None = None,
+) -> int | None:
+    """Return a 401/403/429 observed by the current measured operation."""
+
+    stop_statuses = {401, 403, 429}
+    if fallback_status_code in stop_statuses:
+        return int(fallback_status_code)
+    for metadata in response_metadata or []:
+        try:
+            status_code = int(metadata.get("status_code"))
+        except (TypeError, ValueError):
+            continue
+        if status_code in stop_statuses:
+            return status_code
+    return None
+
+
+def record_observation(
+    provider: str,
+    *,
+    operation: str = "unspecified",
+    http_requests: int,
+    response_bytes: int,
+    response_headers: Mapping[str, object] | None = None,
+    success: bool = True,
+    disposition: str | None = None,
+    response_status_code: int | None = None,
+    case_id: str | None = None,
+    reservation_id: str | None = None,
+) -> None:
+    """Accumulate one measured live operation without retaining payload data.
+
+    ``success`` is operation/provider scoped. It must not be inferred from
+    pytest's process-wide exit status because one expected credential or quota
+    failure must not mark unrelated successful provider rows as failed.
+    """
+
+    normalized_operation = str(operation).strip() or "unspecified"
+    if len(normalized_operation) > 128 or not normalized_operation.isprintable():
+        raise ValueError("provider live usage operation is invalid")
+    normalized_case_id = str(case_id if case_id is not None else _CURRENT_CASE_ID.get()).strip()
+    if len(normalized_case_id) > 512 or not normalized_case_id.isprintable():
+        raise ValueError("provider live usage case ID is invalid")
+    normalized_disposition = str(
+        disposition or ("observed" if success else "provider_error")
+    ).strip()
+    if normalized_disposition not in {
+        "observed",
+        "provider_error",
+        "expected_entitlement_denial",
+        "archive_failure",
+    }:
+        raise ValueError("provider live usage disposition is invalid")
+    normalized_reservation_id = None
+    if reservation_id is not None:
+        normalized_reservation_id = str(reservation_id).strip()
+        if len(normalized_reservation_id) > 64 or not normalized_reservation_id.isprintable():
+            raise ValueError("provider live reservation ID is invalid")
+        run_id = os.getenv("PROVIDER_LIVE_RUN_ID", "").strip()
+        usage_scope = os.getenv("PROVIDER_LIVE_USAGE_SCOPE", "").strip()
+        if not run_id or not usage_scope:
+            raise RuntimeError(
+                "provider live reservation receipts require PROVIDER_LIVE_RUN_ID and "
+                "PROVIDER_LIVE_USAGE_SCOPE"
+            )
+        from app.services.provider_quota_coordinator import (
+            QuotaReservation,
+            register_live_receipt_reservation,
+        )
+
+        register_live_receipt_reservation(
+            QuotaReservation(
+                reservation_id=normalized_reservation_id,
+                provider_name=str(provider).strip() or "unknown",
+                account_scope="receipt",
+            ),
+            run_id=run_id,
+            usage_scope=usage_scope,
+            receipt_status=normalized_disposition,
+        )
+    _observations.append(
+        (
+            str(provider).strip() or "unknown",
+            normalized_operation,
+            max(0, int(http_requests)),
+            max(0, int(response_bytes)),
+            _safe_headers(response_headers),
+            bool(success),
+            normalized_case_id,
+            normalized_disposition,
+            (int(response_status_code) if response_status_code is not None else None),
+            normalized_reservation_id,
+        )
+    )
+    if (
+        response_status_code in {401, 403, 429}
+        and not (
+            response_status_code == 403 and normalized_disposition == "expected_entitlement_denial"
+        )
+        and os.getenv("RUN_LIVE_PROVIDER_TESTS", "").strip() == "1"
+        and os.getenv("PROVIDER_LIVE_MATRIX_RUN", "").strip() == "1"
+    ):
+        import pytest
+
+        pytest.exit(
+            f"provider live safety stop: HTTP {response_status_code} from "
+            f"{str(provider).strip() or 'unknown'}/{normalized_operation}; "
+            "response was archived and quota settled; no later live cases will run",
+            returncode=2,
+        )
+
+
+def flush_observations(exit_status: int) -> Path | None:
+    """Append this pytest process's aggregate usage receipt and clear memory."""
+
+    if not _observations:
+        return None
+    path = ledger_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    grouped: dict[str, dict[str, object]] = defaultdict(
+        lambda: {
+            "http_requests": 0,
+            "response_bytes": 0,
+            "operations": 0,
+            "failed_operations": 0,
+            "response_headers": {},
+            "operation_usage": {},
+            "case_usage": {},
+        }
+    )
+    for (
+        provider,
+        operation,
+        requests,
+        response_bytes,
+        response_headers,
+        success,
+        case_id,
+        disposition,
+        response_status_code,
+        reservation_id,
+    ) in _observations:
+        grouped[provider]["http_requests"] += requests
+        grouped[provider]["response_bytes"] += response_bytes
+        grouped[provider]["operations"] += 1
+        grouped[provider]["failed_operations"] += int(not success)
+        grouped[provider]["response_headers"].update(response_headers)
+        operation_rows = grouped[provider]["operation_usage"]
+        operation_row = operation_rows.setdefault(
+            operation,
+            {
+                "operations": 0,
+                "http_requests": 0,
+                "response_bytes": 0,
+                "failed_operations": 0,
+                "dispositions": {},
+                "response_statuses": {},
+            },
+        )
+        operation_row["operations"] += 1
+        operation_row["http_requests"] += requests
+        operation_row["response_bytes"] += response_bytes
+        operation_row["failed_operations"] += int(not success)
+        operation_row.setdefault("dispositions", {})[disposition] = (
+            operation_row.setdefault("dispositions", {}).get(disposition, 0) + 1
+        )
+        if response_status_code is not None:
+            operation_row.setdefault("response_statuses", {})[str(response_status_code)] = (
+                operation_row.setdefault("response_statuses", {}).get(str(response_status_code), 0)
+                + 1
+            )
+        if reservation_id:
+            reservation_row = {
+                "reservation_id": reservation_id,
+                "operation": operation,
+                "status": disposition,
+            }
+            reservations = grouped[provider].setdefault("reservations", [])
+            if reservation_row not in reservations:
+                reservations.append(reservation_row)
+        if case_id:
+            case_row = grouped[provider]["case_usage"].setdefault(
+                case_id,
+                {
+                    "http_requests": 0,
+                    "response_bytes": 0,
+                    "operations": {},
+                },
+            )
+            case_row["http_requests"] += requests
+            case_row["response_bytes"] += response_bytes
+            case_operation = case_row["operations"].setdefault(
+                operation,
+                {
+                    "http_requests": 0,
+                    "response_bytes": 0,
+                    "failed_operations": 0,
+                    "dispositions": {},
+                    "response_statuses": {},
+                },
+            )
+            case_operation["http_requests"] += requests
+            case_operation["response_bytes"] += response_bytes
+            case_operation["failed_operations"] += int(not success)
+            case_operation["dispositions"][disposition] = (
+                case_operation["dispositions"].get(disposition, 0) + 1
+            )
+            if response_status_code is not None:
+                status_key = str(response_status_code)
+                case_operation["response_statuses"][status_key] = (
+                    case_operation["response_statuses"].get(status_key, 0) + 1
+                )
+
+    # The wrapper supplies an explicit run ID for CI/local manifest runs. A
+    # direct pytest invocation must still get a fresh identity: process IDs can
+    # be reused across sessions, and merging those rows would corrupt cross-day
+    # usage attribution. Keep the generated value process-local and never
+    # derive it from a credential or filesystem path.
+    run_id = os.getenv("PROVIDER_LIVE_RUN_ID", "").strip() or _PROCESS_RUN_ID
+    now = datetime.now(UTC).isoformat()
+    usage_scope = os.getenv("PROVIDER_LIVE_USAGE_SCOPE", "").strip() or "unspecified"
+    admission_mode = os.getenv("PROVIDER_LIVE_ADMISSION_MODE", "").strip()
+    rows = [
+        {
+            "at": now,
+            "run_id": run_id,
+            "usage_scope": usage_scope,
+            "provider": provider,
+            "operations": values["operations"],
+            "http_requests": values["http_requests"],
+            "response_bytes": values["response_bytes"],
+            # This is the provider-row status, not pytest's process-wide
+            # result. Keep the latter separately for matrix diagnostics.
+            "exit_status": int(values["failed_operations"] > 0),
+            "failed_operations": values["failed_operations"],
+            "process_exit_status": max(0, int(exit_status)),
+            "response_headers": dict(values["response_headers"]),
+            "operation_usage": {
+                operation: dict(operation_values)
+                for operation, operation_values in sorted(values["operation_usage"].items())
+            },
+            **({"admission_mode": admission_mode} if admission_mode else {}),
+            **({"case_usage": values["case_usage"]} if values["case_usage"] else {}),
+            **({"reservations": values["reservations"]} if values.get("reservations") else {}),
+        }
+        for provider, values in sorted(grouped.items())
+    ]
+    with path.open("a", encoding="utf-8") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        try:
+            for row in rows:
+                handle.write(json.dumps(row, sort_keys=True) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+    try:
+        os.chmod(path, 0o600)
+    except OSError:
+        # The write itself succeeded; a mode change failure must not erase the
+        # durable usage receipt. The startup preflight still reports mode/path
+        # failures before provider calls in normal live-test operation.
+        pass
+    _observations.clear()
+    return path
+
+
+def _reset_for_test() -> None:
+    """Clear process-local observations for unit tests."""
+
+    _observations.clear()
+    _CURRENT_CASE_ID.set("")
+    global _DINARI_CANARY_REQUESTS, _TRANSPORT_BUDGET_USED
+    _DINARI_CANARY_REQUESTS = 0
+    _TRANSPORT_BUDGET_USED = 0
+    with _PROVIDER_LIVE_START_LOCK:
+        _PROVIDER_LIVE_LAST_START.clear()

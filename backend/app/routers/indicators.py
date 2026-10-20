@@ -12,10 +12,12 @@ from app.database import get_db
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.user import User
+from app.services.evaluator_preflight import preflight_ohlcv
 from app.services.indicators import (
     OHLCVSeries,
     compute_indicator,
     list_indicators,
+    required_bars_for_indicator,
 )
 
 router = APIRouter(prefix="/indicators", tags=["indicators"])
@@ -70,6 +72,29 @@ async def compute_for_chart(
     bars = list((await db.execute(stmt)).scalars().all())
     bars.reverse()
 
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="indicator_compute",
+        instrument_ids=[instrument.id],
+        timeframe=timeframe,
+        date_from=None,
+        date_to=None,
+        adjusted=None,
+        cached_bars={instrument.id: bars},
+        minimum_bars=required_bars_for_indicator(indicator, parsed_params),
+    )
+    coverage_payload = coverage_preflight.to_dict()
+    if instrument.id not in coverage_preflight.ready_instrument_ids:
+        return {
+            "symbol": symbol.upper(),
+            "timeframe": timeframe.value,
+            "indicator": indicator,
+            "params": parsed_params,
+            "timestamps": [],
+            "values": {},
+            "coverage_preflight": coverage_payload,
+        }
+
     data = OHLCVSeries.from_orm_bars(bars)
     try:
         result = compute_indicator(indicator, data, parsed_params)
@@ -80,6 +105,7 @@ async def compute_for_chart(
             "indicator": indicator,
             "params": parsed_params,
             "error": str(exc),
+            "coverage_preflight": coverage_payload,
         }
 
     # Convert numpy arrays to lists, replacing NaN with null
@@ -92,4 +118,5 @@ async def compute_for_chart(
         "values": {
             k: [None if np.isnan(v) else float(v) for v in arr] for k, arr in result.items()
         },
+        "coverage_preflight": coverage_payload,
     }

@@ -21,7 +21,7 @@ from app.services.indicators import (
     get_latest_value,
     list_indicators,
     normalize_indicator_params,
-    resolve_indicator_output,
+    required_bars_for_indicator,
 )
 
 
@@ -169,6 +169,17 @@ class TestParamNormalisation:
         assert params["smooth_k"] == 5
 
 
+class TestIndicatorHistoryRequirements:
+    def test_window_parameters_drive_history_floor(self):
+        assert required_bars_for_indicator("sma", {"period": 20}) == 21
+        assert required_bars_for_indicator("macd", {"slow": 26, "signal": 9}) == 35
+        assert required_bars_for_indicator("stoch", {"period": 21, "smoothK": 5}) == 29
+
+    def test_non_window_numeric_parameters_do_not_expand_history(self):
+        assert required_bars_for_indicator("avwap", {"anchor_timestamp": 2_000_000_000}) == 2
+        assert required_bars_for_indicator("psar", {"af_start": 0.02, "af_max": 0.2}) == 2
+
+
 class TestIndicatorComputation:
     def test_unknown_indicator_raises_key_error(self):
         with pytest.raises(KeyError):
@@ -288,12 +299,6 @@ class TestIndicatorComputation:
 
 
 class TestGetLatestValue:
-    def test_resolves_single_and_named_outputs_without_guessing(self):
-        assert resolve_indicator_output("rsi", {}) == "rsi"
-        assert resolve_indicator_output("bb", {}) is None
-        assert resolve_indicator_output("bb", {"output": "bb_upper"}) == "bb_upper"
-        assert resolve_indicator_output("bb", {"output": "bb_middle"}) is None
-
     def test_returns_latest_non_nan_value(self):
         series = make_series(rising_closes(60))
         latest = get_latest_value("sma", series, {"period": 20})

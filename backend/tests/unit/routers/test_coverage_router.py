@@ -3,97 +3,88 @@ from decimal import Decimal
 
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
-from app.schemas.coverage import (
-    DatasetCoverageStateOut,
-    InstrumentCoverageOut,
-    LocalCoverageRangeOut,
-    OhlcvCoverageOut,
-    OhlcvCoverageSliceOut,
-)
 
 
 class TestCoverageRouter:
-    def test_coverage_response_schemas_serialize_timestamps_as_canonical_utc_z(self):
-        naive = datetime(2026, 9, 12, 14, 30)
-        aware = datetime(2026, 9, 12, 16, 30, tzinfo=UTC)
-
-        local = LocalCoverageRangeOut(oldest=naive, newest=aware, bar_count=2)
-        state = DatasetCoverageStateOut(
-            dataset_type="ohlcv",
-            dataset_key="D1:adj",
-            status="ready",
-            coverage_start=naive,
-            coverage_end=aware,
-            observed_at=naive,
-            fetched_at=aware,
-            stale_after=naive,
-            version=1,
-        )
-        instrument = InstrumentCoverageOut(
-            instrument_id=7,
-            symbol="SPY",
-            adjustment="split_adjusted",
-            local_coverage={"D1": local},
-            dataset_states=[state],
-            refreshed_at=aware,
-        )
-        missing = OhlcvCoverageSliceOut(start=naive, end=aware)
-        coverage = OhlcvCoverageOut(
-            instrument_id=7,
-            symbol="SPY",
-            timeframe="D1",
-            adjusted=True,
-            mode="historical",
-            requested_start=naive,
-            requested_end=aware,
-            status="partial",
-            covered_start=naive,
-            covered_end=aware,
-            bar_count=2,
-            missing_slices=[missing],
-            explanation="partial local coverage",
-            lineage={
-                "provider_bar_count": 2,
-                "derived_bar_count": 0,
-                "unknown_bar_count": 0,
-                "source_lineage": "provider_only",
+    def test_exposes_missing_range_without_provider_routing(self, client, auth_headers, instrument):
+        response = client.get(
+            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
+            params={
+                "timeframe": "D1",
+                "start": "2026-01-02T00:00:00Z",
+                "end": "2026-01-02T00:00:00Z",
+                "mode": "historical",
             },
-            adjustment_provenance={
-                "mode": "split_adjusted",
-                "source_kind": "provider_observation",
-                "factor_status": "provider_native_opaque",
-                "contract_version": 1,
-            },
-            storage_evidence={
-                "status": "matched",
-                "provider_bar_count": 2,
-                "observation_count": 2,
-                "matched_observation_count": 2,
-                "missing_observation_count": 0,
-                "mismatched_observation_count": 0,
-                "orphan_observation_count": 0,
-            },
-            observed_cadence={"status": "observed_cadence"},
+            headers=auth_headers,
         )
 
-        local_payload = local.model_dump(mode="json")
-        state_payload = state.model_dump(mode="json")
-        instrument_payload = instrument.model_dump(mode="json")
-        missing_payload = missing.model_dump(mode="json")
-        coverage_payload = coverage.model_dump(mode="json")
-
-        assert local_payload["oldest"] == "2026-09-12T14:30:00Z"
-        assert local_payload["newest"] == "2026-09-12T16:30:00Z"
-        assert state_payload["coverage_start"] == "2026-09-12T14:30:00Z"
-        assert state_payload["fetched_at"] == "2026-09-12T16:30:00Z"
-        assert instrument_payload["refreshed_at"] == "2026-09-12T16:30:00Z"
-        assert missing_payload == {
-            "start": "2026-09-12T14:30:00Z",
-            "end": "2026-09-12T16:30:00Z",
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body == {
+            "instrument_id": instrument.id,
+            "symbol": instrument.symbol,
+            "timeframe": "D1",
+            "adjusted": True,
+            "mode": "historical",
+            "requested_start": "2026-01-02T00:00:00Z",
+            "requested_end": "2026-01-02T00:00:00Z",
+            "status": "missing",
+            "covered_start": None,
+            "covered_end": None,
+            "bar_count": 0,
+            "missing_slices": [{"start": "2026-01-02T00:00:00Z", "end": "2026-01-02T00:00:00Z"}],
+            "explanation": "No local bars cover the requested range.",
+            "provenance": "canonical_local_database",
         }
-        assert coverage_payload["requested_start"] == "2026-09-12T14:30:00Z"
-        assert coverage_payload["covered_end"] == "2026-09-12T16:30:00Z"
-        assert coverage_payload["missing_slices"][0] == missing_payload
+
+    def test_exposes_fully_covered_range_without_provider_routing(
+        self, client, auth_headers, db, instrument
+    ):
+        session = datetime(2026, 1, 2, tzinfo=UTC)
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                timeframe=Timeframe.D1,
+                ts=session,
+                open=Decimal("10"),
+                high=Decimal("11"),
+                low=Decimal("9"),
+                close=Decimal("10"),
+                volume=Decimal("100"),
+                is_adjusted=True,
+            )
+        )
+        db.flush()
+
+        response = client.get(
+            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
+            params={
+                "timeframe": "D1",
+                "start": "2026-01-02T00:00:00Z",
+                "end": "2026-01-02T00:00:00Z",
+                "mode": "historical",
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body == {
+            "instrument_id": instrument.id,
+            "symbol": instrument.symbol,
+            "timeframe": "D1",
+            "adjusted": True,
+            "mode": "historical",
+            "requested_start": "2026-01-02T00:00:00Z",
+            "requested_end": "2026-01-02T00:00:00Z",
+            "status": "ready",
+            "covered_start": "2026-01-02T00:00:00Z",
+            "covered_end": "2026-01-02T00:00:00Z",
+            "bar_count": 1,
+            "missing_slices": [],
+            "explanation": "The requested range is locally covered.",
+            "provenance": "canonical_local_database",
+        }
 
     def test_returns_canonical_local_coverage_without_provider_routing(
         self, client, auth_headers, db, instrument
@@ -132,20 +123,6 @@ class TestCoverageRouter:
                     coverage_start=start,
                     coverage_end=start + timedelta(days=1),
                     version=2,
-                    extra_data={
-                        "bar_count": 2,
-                        "adjusted": True,
-                        "adjustment": "split_adjusted",
-                        "source_kind": "provider_observation",
-                        "provider_source_id": 1,
-                        "adjustment_provenance": {
-                            "mode": "split_adjusted",
-                            "source_kind": "provider_observation",
-                            "factor_status": "provider_native_opaque",
-                            "factor_version": None,
-                            "contract_version": 1,
-                        },
-                    },
                 ),
             ]
         )
@@ -165,15 +142,6 @@ class TestCoverageRouter:
         assert state["dataset_key"] == "D1"
         assert state["status"] == "stale"
         assert state["version"] == 2
-        assert state["extra_data"]["adjustment"] == "split_adjusted"
-        assert state["extra_data"]["source_kind"] == "provider_observation"
-        assert state["extra_data"]["adjustment_provenance"] == {
-            "mode": "split_adjusted",
-            "source_kind": "provider_observation",
-            "factor_status": "provider_native_opaque",
-            "factor_version": None,
-            "contract_version": 1,
-        }
         assert "provider" not in body
 
     def test_requires_auth(self, client, instrument):
@@ -234,110 +202,21 @@ class TestCoverageRouter:
 
         assert response.status_code == 200
         body = response.json()
-        assert body["status"] == "partial"
-        assert body["bar_count"] == 3
-        assert body["missing_slices"] == [
-            {"start": "2026-01-05T00:00:00Z", "end": "2026-01-09T00:00:00Z"}
-        ]
-        assert body["provenance"] == "canonical_local_database"
-        assert body["lineage"] == {
-            "provider_bar_count": 3,
-            "derived_bar_count": 0,
-            "unknown_bar_count": 0,
-            "source_lineage": "provider_only",
-            "source_timeframes": [],
-        }
-        assert body["adjustment_provenance"] == {
-            "mode": "split_adjusted",
-            "source_kind": "provider_observation",
-            "factor_status": "provider_native_opaque",
-            "factor_version": None,
-            "contract_version": 1,
-        }
-        assert body["observed_cadence"] == {
-            "status": "observed_cadence",
-            "sample_count": 2,
-            "median_interval_days": 4.5,
-            "min_interval_days": 1.0,
-            "max_interval_days": 8.0,
-            "semantics": "diagnostic_of_returned_bar_timestamps_only",
-        }
-        assert "provider" not in body
-
-    def test_range_coverage_exposes_verified_adjustment_factor_version(
-        self, client, auth_headers, db, instrument
-    ):
-        from app.models.data_source import DataSource
-        from app.models.ohlcv import OHLCVBar, Timeframe
-        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
-
-        source = DataSource(name="coverage-factor-provider")
-        db.add(source)
-        db.flush()
-        start = datetime(2026, 1, 2, tzinfo=UTC)
-        db.add_all(
-            [
-                OHLCVBar(
-                    instrument_id=instrument.id,
-                    data_source_id=source.id,
-                    timeframe=Timeframe.D1,
-                    ts=start,
-                    open=Decimal("10"),
-                    high=Decimal("11"),
-                    low=Decimal("9"),
-                    close=Decimal("10"),
-                    is_adjusted=True,
-                ),
-                InstrumentDatasetState(
-                    instrument_id=instrument.id,
-                    data_source_id=source.id,
-                    dataset_type="ohlcv",
-                    dataset_key="D1:adj",
-                    status=DatasetStatus.FRESH,
-                    observed_at=start,
-                    fetched_at=start,
-                    coverage_start=start,
-                    coverage_end=start,
-                    version=1,
-                    extra_data={
-                        "adjustment_provenance": {
-                            "mode": "split_adjusted",
-                            "source_kind": "provider_observation",
-                            "factor_status": "rebuildable_split_factors",
-                            "factor_version": "afv1-test-version",
-                            "factor_observation_count": 2,
-                            "factor_rebuildable_observation_count": 2,
-                            "factor_opaque_observation_count": 0,
-                            "factor_kinds": ["split_ratio"],
-                            "contract_version": 1,
-                        }
-                    },
-                ),
-            ]
-        )
-        db.flush()
-
-        response = client.get(
-            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
-            params={
-                "timeframe": "D1",
-                "start": start.isoformat(),
-                "end": start.isoformat(),
-            },
-            headers=auth_headers,
-        )
-
-        assert response.status_code == 200
-        assert response.json()["adjustment_provenance"] == {
-            "mode": "split_adjusted",
-            "source_kind": "provider_observation",
-            "factor_status": "rebuildable_split_factors",
-            "factor_version": "afv1-test-version",
-            "factor_observation_count": 2,
-            "factor_rebuildable_observation_count": 2,
-            "factor_opaque_observation_count": 0,
-            "factor_kinds": ["split_ratio"],
-            "contract_version": 1,
+        assert body == {
+            "instrument_id": instrument.id,
+            "symbol": instrument.symbol,
+            "timeframe": "D1",
+            "adjusted": True,
+            "mode": "historical",
+            "requested_start": "2026-01-01T00:00:00Z",
+            "requested_end": "2026-01-10T00:00:00Z",
+            "status": "partial",
+            "covered_start": "2026-01-01T00:00:00Z",
+            "covered_end": "2026-01-10T00:00:00Z",
+            "bar_count": 3,
+            "missing_slices": [{"start": "2026-01-05T00:00:00Z", "end": "2026-01-09T00:00:00Z"}],
+            "explanation": "Local bars leave one or more bounded range slices unavailable.",
+            "provenance": "canonical_local_database",
         }
 
     def test_rejects_reversed_coverage_ranges(self, client, auth_headers, instrument):
@@ -352,433 +231,3 @@ class TestCoverageRouter:
 
         assert response.status_code == 422
         assert response.json()["detail"]["code"] == "invalid_coverage_range"
-
-    def test_range_coverage_normalizes_offset_aware_request_boundaries(
-        self, client, auth_headers, db, instrument
-    ):
-        start = datetime(2026, 1, 2, tzinfo=UTC)
-        db.add(
-            OHLCVBar(
-                instrument_id=instrument.id,
-                timeframe=Timeframe.D1,
-                ts=start,
-                open=Decimal("10"),
-                high=Decimal("11"),
-                low=Decimal("9"),
-                close=Decimal("10"),
-                is_adjusted=True,
-            )
-        )
-        db.flush()
-
-        response = client.get(
-            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
-            params={
-                "timeframe": "D1",
-                # These are the same instants as 2026-01-02T00:00:00Z and
-                # 2026-01-03T00:00:00Z, expressed with a non-UTC offset.
-                "start": "2026-01-02T02:00:00+02:00",
-                "end": "2026-01-03T02:00:00+02:00",
-            },
-            headers=auth_headers,
-        )
-
-        assert response.status_code == 200
-        body = response.json()
-        assert body["requested_start"] == "2026-01-02T00:00:00Z"
-        assert body["requested_end"] == "2026-01-03T00:00:00Z"
-        assert body["covered_start"] == "2026-01-02T00:00:00Z"
-        assert body["bar_count"] == 1
-
-    def test_range_coverage_excludes_derived_period_not_closed_at_cutoff(
-        self, client, auth_headers, db, instrument
-    ):
-        start = datetime(2026, 2, 2, tzinfo=UTC)
-        end = start + timedelta(days=8)
-        db.add_all(
-            [
-                OHLCVBar(
-                    instrument_id=instrument.id,
-                    timeframe=Timeframe.W1,
-                    ts=start,
-                    open=Decimal("10"),
-                    high=Decimal("11"),
-                    low=Decimal("9"),
-                    close=Decimal("10"),
-                    is_adjusted=True,
-                    is_derived=True,
-                    source_timeframe="D1",
-                    source_end=start + timedelta(days=4),
-                ),
-                OHLCVBar(
-                    instrument_id=instrument.id,
-                    timeframe=Timeframe.W1,
-                    ts=start + timedelta(days=7),
-                    open=Decimal("11"),
-                    high=Decimal("12"),
-                    low=Decimal("10"),
-                    close=Decimal("11"),
-                    is_adjusted=True,
-                    is_derived=True,
-                    source_timeframe="D1",
-                    source_end=end + timedelta(days=1),
-                ),
-            ]
-        )
-        db.flush()
-
-        response = client.get(
-            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
-            params={
-                "timeframe": "W1",
-                "start": start.isoformat(),
-                "end": end.isoformat(),
-                "mode": "historical",
-            },
-            headers=auth_headers,
-        )
-
-        assert response.status_code == 200
-        body = response.json()
-        assert body["bar_count"] == 1
-        assert body["covered_start"] == start.isoformat().replace("+00:00", "Z")
-        assert body["covered_end"] == start.isoformat().replace("+00:00", "Z")
-        assert body["lineage"]["derived_bar_count"] == 1
-
-    def test_range_coverage_exposes_derived_factor_version(
-        self, client, auth_headers, db, instrument
-    ):
-        from app.models.ohlcv import OHLCVBar, Timeframe
-        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
-
-        start = datetime(2026, 2, 2, tzinfo=UTC)
-        db.add_all(
-            [
-                OHLCVBar(
-                    instrument_id=instrument.id,
-                    timeframe=Timeframe.W1,
-                    ts=start,
-                    open=Decimal("10"),
-                    high=Decimal("11"),
-                    low=Decimal("9"),
-                    close=Decimal("10"),
-                    is_adjusted=True,
-                    is_derived=True,
-                    source_timeframe="D1",
-                    source_end=start,
-                ),
-                InstrumentDatasetState(
-                    instrument_id=instrument.id,
-                    data_source_id=None,
-                    dataset_type="ohlcv",
-                    dataset_key="W1:adj",
-                    status=DatasetStatus.FRESH,
-                    observed_at=start,
-                    fetched_at=start,
-                    coverage_start=start,
-                    coverage_end=start,
-                    version=1,
-                    extra_data={
-                        "adjustment_provenance": {
-                            "mode": "split_adjusted",
-                            "source_kind": "derived_from_canonical_d1",
-                            "factor_status": "inherited_from_canonical_d1",
-                            "factor_version": "afv1-derived-version",
-                            "contract_version": 1,
-                        }
-                    },
-                ),
-            ]
-        )
-        db.flush()
-
-        response = client.get(
-            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
-            params={
-                "timeframe": "W1",
-                "start": start.isoformat(),
-                "end": start.isoformat(),
-            },
-            headers=auth_headers,
-        )
-
-        assert response.status_code == 200
-        assert response.json()["adjustment_provenance"] == {
-            "mode": "split_adjusted",
-            "source_kind": "derived_from_canonical_d1",
-            "factor_status": "inherited_from_canonical_d1",
-            "factor_version": "afv1-derived-version",
-            "contract_version": 1,
-        }
-
-    def test_range_coverage_prefers_lineage_specific_state_over_generic_state(
-        self, client, auth_headers, db, instrument
-    ):
-        from app.models.ohlcv import OHLCVBar, Timeframe
-        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
-
-        start = datetime(2026, 2, 3, tzinfo=UTC)
-        provenance = {
-            "mode": "split_adjusted",
-            "source_kind": "local_split_ratio",
-            "factor_status": "rebuildable_split_factors",
-            "factor_version": "afv1-local-specific",
-            "contract_version": 1,
-        }
-        generic_provenance = {
-            **provenance,
-            "factor_version": "afv1-generic-fallback",
-        }
-        db.add_all(
-            [
-                OHLCVBar(
-                    instrument_id=instrument.id,
-                    timeframe=Timeframe.D1,
-                    ts=start,
-                    open=Decimal("10"),
-                    high=Decimal("11"),
-                    low=Decimal("9"),
-                    close=Decimal("10"),
-                    is_adjusted=True,
-                    is_derived=True,
-                    derivation_method="local_split_ratio",
-                    source_timeframe="D1",
-                    source_end=start,
-                ),
-                InstrumentDatasetState(
-                    instrument_id=instrument.id,
-                    data_source_id=None,
-                    dataset_type="ohlcv",
-                    dataset_key="D1:adj",
-                    status=DatasetStatus.FRESH,
-                    observed_at=start,
-                    fetched_at=start,
-                    coverage_start=start,
-                    coverage_end=start,
-                    version=1,
-                    extra_data={"adjustment_provenance": generic_provenance},
-                ),
-                InstrumentDatasetState(
-                    instrument_id=instrument.id,
-                    data_source_id=None,
-                    dataset_type="ohlcv",
-                    dataset_key="D1:adj:local_split_ratio",
-                    status=DatasetStatus.FRESH,
-                    observed_at=start,
-                    fetched_at=start,
-                    coverage_start=start,
-                    coverage_end=start,
-                    version=2,
-                    extra_data={"adjustment_provenance": provenance},
-                ),
-            ]
-        )
-        db.flush()
-
-        response = client.get(
-            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
-            params={
-                "timeframe": "D1",
-                "start": start.isoformat(),
-                "end": start.isoformat(),
-            },
-            headers=auth_headers,
-        )
-
-        assert response.status_code == 200
-        assert response.json()["adjustment_provenance"]["factor_version"] == ("afv1-local-specific")
-
-    def test_range_coverage_does_not_project_future_factor_state(
-        self, client, auth_headers, db, instrument
-    ):
-        from app.models.data_source import DataSource
-
-        source = DataSource(name="coverage-future-factor-provider")
-        db.add(source)
-        db.flush()
-        start = datetime(2026, 1, 2, tzinfo=UTC)
-        cutoff = start + timedelta(days=1)
-        db.add(
-            OHLCVBar(
-                instrument_id=instrument.id,
-                data_source_id=source.id,
-                timeframe=Timeframe.D1,
-                ts=start,
-                open=Decimal("10"),
-                high=Decimal("11"),
-                low=Decimal("9"),
-                close=Decimal("10"),
-                is_adjusted=True,
-            )
-        )
-        db.add(
-            InstrumentDatasetState(
-                instrument_id=instrument.id,
-                data_source_id=source.id,
-                dataset_type="ohlcv",
-                dataset_key="D1:adj",
-                status=DatasetStatus.FRESH,
-                observed_at=start,
-                fetched_at=cutoff + timedelta(days=1),
-                coverage_start=start,
-                coverage_end=cutoff + timedelta(days=1),
-                version=1,
-                extra_data={
-                    "adjustment_provenance": {
-                        "mode": "split_adjusted",
-                        "source_kind": "provider_observation",
-                        "factor_status": "rebuildable_split_factors",
-                        "factor_version": "future-factor-version",
-                    }
-                },
-            )
-        )
-        db.flush()
-
-        response = client.get(
-            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
-            params={
-                "timeframe": "D1",
-                "start": start.isoformat(),
-                "end": cutoff.isoformat(),
-            },
-            headers=auth_headers,
-        )
-
-        assert response.status_code == 200
-        assert response.json()["adjustment_provenance"] == {
-            "mode": "split_adjusted",
-            "source_kind": "provider_observation",
-            "factor_status": "provider_native_opaque",
-            "factor_version": None,
-            "contract_version": 1,
-        }
-
-    def test_range_coverage_exposes_provider_factor_derived_version(
-        self, client, auth_headers, db, instrument
-    ):
-        from app.models.ohlcv import OHLCVBar, Timeframe
-        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
-
-        start = datetime(2026, 2, 2, tzinfo=UTC)
-        db.add_all(
-            [
-                OHLCVBar(
-                    instrument_id=instrument.id,
-                    timeframe=Timeframe.D1,
-                    ts=start,
-                    open=Decimal("10"),
-                    high=Decimal("11"),
-                    low=Decimal("9"),
-                    close=Decimal("10"),
-                    is_adjusted=True,
-                    is_derived=True,
-                    derivation_method="provider_adjustment_factor",
-                    source_timeframe="D1",
-                    source_end=start,
-                ),
-                InstrumentDatasetState(
-                    instrument_id=instrument.id,
-                    data_source_id=None,
-                    dataset_type="ohlcv",
-                    dataset_key="D1:adj:provider_adjustment_factor",
-                    status=DatasetStatus.FRESH,
-                    observed_at=start,
-                    fetched_at=start,
-                    coverage_start=start,
-                    coverage_end=start,
-                    version=1,
-                    extra_data={
-                        "adjustment_provenance": {
-                            "mode": "provider_adjusted",
-                            "source_kind": "provider_adjustment_factor",
-                            "factor_status": "rebuildable_provider_factors",
-                            "factor_version": "afv1-provider-derived-version",
-                            "contract_version": 1,
-                        }
-                    },
-                ),
-            ]
-        )
-        db.flush()
-
-        response = client.get(
-            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
-            params={
-                "timeframe": "D1",
-                "start": start.isoformat(),
-                "end": start.isoformat(),
-            },
-            headers=auth_headers,
-        )
-
-        assert response.status_code == 200
-        assert response.json()["adjustment_provenance"] == {
-            "mode": "split_adjusted",
-            "source_kind": "provider_adjustment_factor",
-            "factor_status": "rebuildable_provider_factors",
-            "factor_version": "afv1-provider-derived-version",
-            "contract_version": 1,
-        }
-
-    def test_range_readiness_reports_mixed_provider_and_derived_lineage(
-        self, client, auth_headers, db, instrument
-    ):
-        start = datetime(2026, 2, 2, tzinfo=UTC)
-        db.add_all(
-            [
-                OHLCVBar(
-                    instrument_id=instrument.id,
-                    timeframe=Timeframe.W1,
-                    ts=start,
-                    open=Decimal("10"),
-                    high=Decimal("11"),
-                    low=Decimal("9"),
-                    close=Decimal("10"),
-                    is_adjusted=True,
-                    is_derived=False,
-                ),
-                OHLCVBar(
-                    instrument_id=instrument.id,
-                    timeframe=Timeframe.W1,
-                    ts=start + timedelta(days=7),
-                    open=Decimal("11"),
-                    high=Decimal("12"),
-                    low=Decimal("10"),
-                    close=Decimal("11"),
-                    is_adjusted=True,
-                    is_derived=True,
-                    source_timeframe="D1",
-                    source_end=start + timedelta(days=7),
-                ),
-            ]
-        )
-        db.flush()
-
-        response = client.get(
-            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
-            params={
-                "timeframe": "W1",
-                "start": "2026-02-02T00:00:00Z",
-                "end": "2026-02-09T00:00:00Z",
-                "mode": "historical",
-            },
-            headers=auth_headers,
-        )
-
-        assert response.status_code == 200
-        body = response.json()
-        assert body["lineage"] == {
-            "provider_bar_count": 1,
-            "derived_bar_count": 1,
-            "unknown_bar_count": 0,
-            "source_lineage": "provider_and_derived",
-            "source_timeframes": ["D1"],
-        }
-        assert body["adjustment_provenance"] == {
-            "mode": "split_adjusted",
-            "source_kind": "mixed_provider_and_derived",
-            "factor_status": "mixed_provider_native_opaque_and_inherited_from_canonical_d1",
-            "factor_version": None,
-            "contract_version": 1,
-        }

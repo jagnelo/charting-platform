@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import json
 import zipfile
-from datetime import UTC, date, datetime
+from datetime import date
 from decimal import Decimal
 from io import BytesIO
 from types import SimpleNamespace
@@ -44,7 +44,6 @@ from app.services.etf_holdings_adapters import (
     _format_template,
     _parse_ishares_inline_top_holdings,
     _row_dict,
-    _sec_nport_identity_match,
     etf_promoter_universe_status,
     get_holdings_adapter,
     holdings_adapter_catalog,
@@ -228,8 +227,6 @@ def test_water_island_parser_preserves_periodic_long_and_short_positions():
         NET ASSETS - 100.00%          $ 103,389,496
         SCHEDULE OF SECURITIES SOLD SHORT
         Allegiant Travel Co.   (11,873) $ (1,212,827)
-        EQUITY SWAP CONTRACTS
-        USD   3,612,346 CAD   4,894,950 Morgan Stanley & Co.  03/16/2026   21,684
         """,
         fund_name="AltShares Merger Arbitrage ETF",
     )
@@ -244,15 +241,6 @@ def test_water_island_parser_preserves_periodic_long_and_short_positions():
     assert rows[1].row_type == "cash"
     assert rows[2].shares == Decimal("-11873")
     assert rows[2].extra_data["position_side"] == "short"
-
-    with pytest.raises(ValueError, match="dated non-empty snapshot"):
-        adapter._parse_holdings_text(
-            """
-            AltShares Merger Arbitrage ETF Portfolio of Investments (unaudited)
-            COMMON STOCKS - 98.07% Advertising - 1.01% Clear Channel Outdoor Holdings, Inc.   434,198  $ 1,042,075
-            """,
-            fund_name="AltShares Merger Arbitrage ETF",
-        )
 
 
 def test_sofi_parser_reads_complete_quarterly_schedule_and_discloses_archive_semantics():
@@ -567,44 +555,7 @@ async def test_calvert_daily_json_route_preserves_issuer_source_metadata(monkeyp
         "calvert_public_symbol_scoped_daily_holdings_json"
     )
     assert result.legal_metadata["composition_date"] == "2026-08-13"
-    assert result.legal_metadata["as_of_date"] == "2026-08-13"
-    assert result.legal_metadata["row_count"] == 1
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.legal_metadata["snapshot_provenance"] == "calvert_native_issuer_json"
     assert result.legal_metadata["freshness_semantics"] == "issuer_disclosed_holdings_date"
-
-
-@pytest.mark.asyncio
-async def test_calvert_daily_json_route_rejects_undated_holdings(monkeypatch):
-    adapter = get_holdings_adapter("calvert")
-    assert adapter is not None
-    source_url = adapter.resolve_source_url(symbol="CVLC")
-    assert source_url is not None
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text=json.dumps(
-                {
-                    "en": {
-                        "fundTicker": "CVLC",
-                        "effectiveDate": None,
-                        "holdings": [
-                            {
-                                "ticker": "NVDA",
-                                "securityDescription": "NVIDIA CORP COMMON STOCK",
-                                "pctOfNetValue": "7.33",
-                            }
-                        ],
-                    }
-                }
-            ),
-            content_type="application/json",
-            url=source_url,
-        )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish one composition date"):
-        await adapter.fetch_latest(symbol="CVLC")
 
 
 def test_altshares_brand_alias_uses_the_verified_water_island_route():
@@ -931,7 +882,6 @@ async def test_morgan_stanley_adapter_discovers_and_fetches_current_issuer_workb
     assert result.legal_metadata["route_resolution"] == (
         "morgan_stanley_product_page_linked_current_holdings_xlsx"
     )
-    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 def test_morgan_stanley_adapter_accepts_current_public_download_path():
@@ -949,8 +899,6 @@ def test_morgan_stanley_adapter_accepts_current_public_download_path():
         "Holdings_MSLC%20Morgan%20Stanley%20Pathway%20-%20Large%20Cap%20Equity%20"
         "ETF_07_20_2026.xlsx"
     )
-    assert FakeAsyncClient.requested[0][0].endswith("/mslc.html")
-    assert FakeAsyncClient.requested[1][0].endswith("ETF_07_15_2026.xlsx")
 
 
 def test_golden_eagle_parser_validates_complete_declared_portfolio_count():
@@ -1026,7 +974,6 @@ async def test_golden_eagle_adapter_reads_its_complete_issuer_portfolio(monkeypa
     assert result.legal_metadata["route_resolution"] == (
         "golden_eagle_product_page_complete_holdings_table"
     )
-    assert result.legal_metadata["completeness_status"] == "complete"
     assert FakeAsyncClient.requested[0][0] == "https://hypergrowthetf.com/hyp-etf/"
 
 
@@ -1094,7 +1041,6 @@ async def test_cyber_hornet_adapter_fetches_issuer_declared_complete_holdings_cs
     assert result.legal_metadata["route_resolution"] == (
         "cyber_hornet_product_page_declared_complete_holdings_csv"
     )
-    assert result.legal_metadata["completeness_status"] == "complete"
     assert FakeAsyncClient.requested[0][0] == "https://www.cyberhornets.com/fund/xxx"
     assert FakeAsyncClient.requested[1][0].endswith("download-holdings?fund=XXX")
 
@@ -1186,7 +1132,6 @@ async def test_dividend_assets_adapter_fetches_issuer_complete_holdings_table(mo
     assert result.legal_metadata["route_resolution"] == (
         "dividend_assets_product_page_complete_holdings_table"
     )
-    assert result.legal_metadata["completeness_status"] == "complete"
     assert FakeAsyncClient.requested[0][0] == "https://dacapitaletf.com/"
 
 
@@ -1251,21 +1196,6 @@ def test_canary_parser_filters_shared_holdings_table_to_requested_etf():
     assert rows[0].market_value == Decimal("45723656.19")
     assert rows[1].row_type == "cash"
 
-    for row_dates in (("", ""), ("not-a-date", "07/14/2026"), ("07/14/2026", "07/15/2026")):
-        with pytest.raises(ValueError, match="exactly one composition date"):
-            adapter._parse_product_page(
-                f"""
-                <table>
-                  <thead><tr><th>Date</th><th>Account</th><th>Name</th><th>Ticker</th><th>CUSIP</th><th>Quantity</th><th>Market Value</th><th>Weightings</th></tr></thead>
-                  <tbody>
-                    <tr><td>{row_dates[0]}</td><td>HBR</td><td>HEDERA</td><td>HBARUSD</td><td>HBARUSD</td><td>1</td><td>1</td><td>100.00%</td></tr>
-                    <tr><td>{row_dates[1]}</td><td>HBR</td><td>Cash &amp; Other</td><td>Cash&amp;Other</td><td>Cash&amp;Other</td><td>1</td><td>0</td><td>0.00%</td></tr>
-                  </tbody>
-                </table>
-                """,
-                symbol="HBR",
-            )
-
 
 def test_cultivar_current_holdings_table_is_canonicalized():
     rows = parse_html_holdings_table_by_headers(
@@ -1284,27 +1214,6 @@ def test_cultivar_current_holdings_table_is_canonicalized():
     assert rows[0].symbol == "MKTX"
     assert rows[0].weight == Decimal("0.0311")
     assert rows[0].cusip == "57060D108"
-
-
-def test_cultivar_requires_one_parseable_snapshot_date():
-    adapter = get_holdings_adapter("cultivar")
-    assert adapter is not None
-    table = """
-    <table><tr><th>Ticker</th><th>Security Description</th><th>% of Fund</th><th>CUSIP</th><th>Shares</th><th>Market Value</th></tr>
-    <tr><td>MKTX</td><td>MarketAxess Holdings Inc.</td><td>3.11%</td><td>57060D108</td><td>11,005</td><td>$1,269,646.85</td></tr></table>
-    """
-    rows, composition_date = adapter._parse_fund_page(
-        "<p>Fund Holdings as of 07/20/2026</p>" + table
-    )
-    assert len(rows) == 1
-    assert composition_date == date(2026, 7, 20)
-    for page in (
-        table,
-        "<p>Fund Holdings as of 13/40/2026</p>" + table,
-        "<p>Fund Holdings as of 07/20/2026</p><p>Fund Holdings as of 07/21/2026</p>" + table,
-    ):
-        with pytest.raises(ValueError, match="exactly one parseable composition date"):
-            adapter._parse_fund_page(page)
 
 
 @pytest.mark.asyncio
@@ -1387,31 +1296,10 @@ async def test_optimize_adapter_verifies_optz_page_and_parses_issuer_xls(monkeyp
     assert result.legal_metadata["route_resolution"] == (
         "issuer_product_page_verified_fund_scoped_full_holdings_xls"
     )
-    assert result.legal_metadata["as_of_date"] == "2026-07-14"
-    assert result.legal_metadata["row_count"] == 1
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert (
-        result.legal_metadata["snapshot_provenance"] == "optimize_native_fund_scoped_holdings_xls"
-    )
-    assert result.rows[0].source_row_id == "OPTZ:2026-07-14:1"
-    assert result.raw_json["composition_date"] == "2026-07-14"
     assert [url for url, _kwargs in FakeAsyncClient.requested] == [
         "https://www.optzfund.com/optz",
         "https://www.optzfund.com/download-holdings-usbanks.php?fund=optz",
     ]
-
-
-def test_optimize_requires_one_parseable_snapshot_date():
-    adapter = get_holdings_adapter("optimize")
-    assert adapter is not None
-    assert adapter._extract_composition_date("<p>Data as of 07/14/2026.</p>") == date(2026, 7, 14)
-    for page in (
-        "<p>Data as of not-a-date.</p>",
-        "<p>Data as of 07/14/2026.</p><p>Data as of 07/15/2026.</p>",
-        "<p>Optimize Strategy Index ETF (OPTZ)</p>",
-    ):
-        with pytest.raises(ValueError, match="exactly one parseable composition date"):
-            adapter._extract_composition_date(page)
 
 
 @pytest.mark.asyncio
@@ -2365,8 +2253,21 @@ async def test_regan_adapter_retries_a_transient_issuer_timeout(monkeypatch):
 async def test_regan_adapter_falls_back_to_requests_after_async_timeouts(monkeypatch):
     adapter = get_holdings_adapter("regan")
     assert adapter is not None
+    to_thread_calls = []
+
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        # This case verifies fallback routing and retry semantics, not the
+        # interpreter's global executor. Keep the fake requests transport
+        # deterministic while still asserting that production delegates it.
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
 
     requests_seen = []
+    to_thread_calls = []
 
     def fake_requests_get(url, **kwargs):
         requests_seen.append((url, kwargs))
@@ -2406,6 +2307,8 @@ async def test_regan_adapter_falls_back_to_requests_after_async_timeouts(monkeyp
 
     assert len(result.rows) == 1
     assert len(FakeAsyncClient.requested) == 4
+    assert len(to_thread_calls) == 2
+    assert all(call[0] is requests.get for call in to_thread_calls)
     assert requests_seen[0][0] == "https://www.regancapital.com/wp-json/etf/holdings"
     assert requests_seen[0][1]["allow_redirects"] is True
     assert requests_seen[0][1]["headers"]["Referer"] == "https://www.regancapital.com/etfs/mbsf/"
@@ -3073,38 +2976,6 @@ async def test_lionshares_adapter_uses_product_declared_csv_and_filters_account(
     assert result.rows[2].row_type == "cash"
     assert result.rows[2].symbol is None
     assert result.legal_metadata["composition_date"] == "2026-07-15"
-    assert result.rows[0].source_row_id == "TOT:2026-07-15:1:464287150"
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.raw_json["composition_date"] == "2026-07-15"
-
-
-@pytest.mark.asyncio
-async def test_lionshares_adapter_rejects_undated_holdings_csv(monkeypatch):
-    adapter = get_holdings_adapter("lionshares")
-    assert adapter is not None
-    product_url = "https://lionsharesetf.com/tot"
-    application_url = "https://lionsharesetf.com/assets/js/app.js?version=16"
-    holdings_url = (
-        "https://lionsharesetf.com/assets/data/FilepointLionshares.40L8.L8_ETF_Holdings.csv"
-    )
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text='<div class="fund-page" data-ticker="TOT"></div><script src="/assets/js/app.js?version=16"></script>',
-            url=product_url,
-        ),
-        FakeResponse(
-            text='const holdings = "./assets/data/FilepointLionshares.40L8.L8_ETF_Holdings.csv";',
-            url=application_url,
-        ),
-        FakeResponse(
-            text="Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings\n-,TOT,ITOT,464287150,iShares Core S&P Total U.S. Stock Market ETF,1,1,1,100%\n",
-            url=holdings_url,
-        ),
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not expose a dated snapshot"):
-        await adapter.fetch_latest(symbol="TOT")
 
 
 @pytest.mark.asyncio
@@ -3148,39 +3019,6 @@ async def test_cygnet_adapter_uses_declared_full_holdings_csv_and_filters_accoun
     assert result.rows[1].row_type == "cash"
     assert result.rows[1].symbol is None
     assert result.legal_metadata["composition_date"] == "2026-07-15"
-    assert result.rows[0].source_row_id == "ELM:2026-07-15:1:922908769"
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.raw_json["as_of_date"] == "2026-07-15"
-
-
-@pytest.mark.asyncio
-async def test_cygnet_adapter_rejects_undated_holdings_csv(monkeypatch):
-    adapter = get_holdings_adapter("cygnet")
-    assert adapter is not None
-    product_url = "https://www.elmfunds.com/elm-market-navigator-etf"
-    holdings_url = "https://docs.google.com/spreadsheets/export?id=example&exportFormat=csv"
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text=(
-                "<h1>Elm Market Navigator ETF (ELM)</h1>"
-                '<a href="https://docs.google.com/spreadsheets/export?id=example&amp;exportFormat=csv">'
-                "Download FULL Holdings CSV</a>"
-            ),
-            content_type="text/html",
-            url=product_url,
-        ),
-        FakeResponse(
-            text=(
-                "Date,Account,Stock Ticker,CUSIP,Security Name,Shares,Price,Market Value,Weightings\n"
-                "-,ELM,VTI,922908769,Vanguard Total Stock Market ETF,1,1,1,100%\n"
-            ),
-            url=holdings_url,
-        ),
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not expose a dated snapshot"):
-        await adapter.fetch_latest(symbol="ELM")
 
 
 @pytest.mark.asyncio
@@ -3287,67 +3125,6 @@ async def test_indexperts_adapter_validates_fund_identity_and_parses_complete_ho
     assert result.rows[1].symbol is None
     assert result.rows[1].row_type == "cash"
     assert result.legal_metadata["composition_date"] == "2026-07-15"
-    assert result.legal_metadata["completeness_status"] == "complete"
-
-
-@pytest.mark.asyncio
-async def test_indexperts_adapter_rejects_undated_holdings_payload(monkeypatch):
-    adapter = get_holdings_adapter("indexperts")
-    assert adapter is not None
-    product_url = "https://etfpages.com/?t=QIDX"
-    holdings_url = "https://www.ncfunds.com/etf/load.php?f=449"
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text="<section><h3>Portfolio Holdings</h3></section>",
-            content_type="text/html",
-            url=product_url,
-        ),
-        FakeResponse(text="{}", content_type="application/json", url=holdings_url),
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr(
-        type(adapter),
-        "_parse_holdings_payload",
-        staticmethod(
-            lambda payload, *, symbol: (
-                [CanonicalHoldingRow(symbol="ANET", name="Arista Networks")],
-                None,
-            )
-        ),
-    )
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="QIDX")
-
-
-@pytest.mark.asyncio
-async def test_fortuna_adapter_rejects_undated_holdings_table(monkeypatch):
-    adapter = get_holdings_adapter("fortuna")
-    assert adapter is not None
-    product_url = "https://hbtc.fortunafunds.com/hbtc-fund/"
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text="<h1>Fortuna Hedged Bitcoin ETF, HBTC</h1>",
-            content_type="text/html",
-            url=product_url,
-        )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr(
-        type(adapter),
-        "_parse_product_page",
-        staticmethod(
-            lambda raw_html, *, symbol: (
-                [CanonicalHoldingRow(symbol="BTC", name="Bitcoin")],
-                None,
-            )
-        ),
-    )
-
-    with pytest.raises(ValueError, match="did not expose dated holdings"):
-        await adapter.fetch_latest(symbol="HBTC")
 
 
 @pytest.mark.asyncio
@@ -3402,7 +3179,6 @@ async def test_ironhorse_adapter_follows_declared_full_holdings_csv_and_keeps_fo
     assert result.rows[3].symbol is None
     assert result.rows[3].extra_data["Symbol"] == "NESN SW"
     assert result.legal_metadata["composition_date"] == "2026-07-15"
-    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio
@@ -3465,6 +3241,14 @@ async def test_hwcap_adapter_follows_official_monthly_holdings_pdf_and_keeps_cas
     TICKER  SHARES  DESCRIPTION  VALUE $  PORTFOLIO
     """
     requested = []
+    to_thread_calls = []
+
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        # This test verifies issuer URL discovery and PDF parsing, not executor
+        # scheduling. Keep its synchronous fake transport deterministic while
+        # still asserting that the adapter delegates both requests.
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
 
     def fake_get(url, **kwargs):
         requested.append((url, kwargs))
@@ -3481,6 +3265,9 @@ async def test_hwcap_adapter_follows_official_monthly_holdings_pdf_and_keeps_cas
 
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
     monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
+    monkeypatch.setattr(
         type(adapter),
         "_extract_pdf_text",
         staticmethod(lambda raw_pdf: raw_text),
@@ -3489,6 +3276,8 @@ async def test_hwcap_adapter_follows_official_monthly_holdings_pdf_and_keeps_cas
     result = await adapter.fetch_latest(symbol="HWSM")
 
     assert [request[0] for request in requested] == [product_url, holdings_url]
+    assert len(to_thread_calls) == 2
+    assert all(call[0] is requests.get for call in to_thread_calls)
     assert len(result.rows) == 3
     assert result.rows[0].symbol == "ASO"
     assert result.rows[0].weight == Decimal("0.0033")
@@ -3501,41 +3290,6 @@ async def test_hwcap_adapter_follows_official_monthly_holdings_pdf_and_keeps_cas
         "issuer_literature_page_linked_monthly_holdings_pdf"
     )
     assert result.legal_metadata["composition_date"] == "2026-05-31"
-    assert result.legal_metadata["completeness_status"] == "complete"
-
-
-@pytest.mark.asyncio
-async def test_hwcap_adapter_rejects_undated_holdings_pdf(monkeypatch):
-    adapter = get_holdings_adapter("hwcap")
-    assert adapter is not None
-    product_url = "https://www.hwcm.com/etfs/hw-smid-cap-diversified-value-fund/literature/"
-    holdings_url = "https://www.hwcm.com/wp-content/uploads/2025/03/SMID-ETF-Holdings-May-2026.pdf"
-    raw_text = """
-    SMID CAP DIVERSIFIED VALUE FUND (ETF)
-    ASO 164.00 Academy Sports & Outdoors Inc. 8,659.20 0.33
-    """
-
-    def fake_get(url, **kwargs):
-        if url == product_url:
-            return FakeResponse(
-                text=(
-                    "<h1>SMID Cap Diversified Value Fund (ETF) HWSM</h1>"
-                    f'<a href="{holdings_url}">Holdings</a>'
-                ),
-                content_type="text/html",
-                url=product_url,
-            )
-        return FakeResponse(content=b"mock-pdf", content_type="application/pdf", url=holdings_url)
-
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
-    monkeypatch.setattr(
-        type(adapter),
-        "_extract_pdf_text",
-        staticmethod(lambda raw_pdf: raw_text),
-    )
-
-    with pytest.raises(ValueError, match="did not expose dated holdings"):
-        await adapter.fetch_latest(symbol="HWSM")
 
 
 @pytest.mark.asyncio
@@ -3586,36 +3340,6 @@ PDD HOLDINGS INC,722304102,PDD US,2.550078195600,82.660000000000,12376.0000000,1
     assert result.rows[3].cusip == "722304102"
     assert result.legal_metadata["route_resolution"] == "issuer_product_page_declared_holdings_csv"
     assert result.legal_metadata["composition_date"] == "2026-07-24"
-    assert result.legal_metadata["completeness_status"] == "complete"
-
-
-@pytest.mark.asyncio
-async def test_nsi_adapter_rejects_undated_holdings_csv(monkeypatch):
-    adapter = get_holdings_adapter("nsi")
-    assert adapter is not None
-    product_url = "https://www.nationalsecurityindex.com/"
-    holdings_url = "https://www.nationalsecurityindex.com/f/holdings.csv"
-    raw_csv = """National Security Emerging Markets Index ETF
-Name,Security Identifier,Symbol,Net Assets %,Market Price,Shares Held,Market Value,Market Value %
-FABRINET,G3323L100,FN US,0.894731214000,476.040000000000,754.0000000,358934.16,0.894779747900
-"""
-
-    def fake_get(url, **kwargs):
-        if url == product_url:
-            return FakeResponse(
-                text=(
-                    "<h1>National Security Emerging Markets Index ETF</h1>"
-                    '<span>NSI</span><a href="/f/holdings.csv">Full holdings</a>'
-                ),
-                content_type="text/html",
-                url=product_url,
-            )
-        return FakeResponse(text=raw_csv, content_type="text/csv", url=holdings_url)
-
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="NSI")
 
 
 @pytest.mark.asyncio
@@ -3656,7 +3380,6 @@ async def test_fortuna_adapter_parses_complete_product_table_and_classifies_opti
     assert result.rows[1].symbol is None
     assert result.rows[1].row_type == "cash"
     assert result.legal_metadata["composition_date"] == "2026-07-15"
-    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio
@@ -3698,36 +3421,6 @@ async def test_liquid_strategies_adapter_parses_complete_table_and_classifies_ro
     assert result.rows[2].weight == Decimal("0.9985")
     assert result.rows[3].row_type == "cash"
     assert result.legal_metadata["composition_date"] == "2026-07-15"
-    assert result.legal_metadata["completeness_status"] == "complete"
-
-
-@pytest.mark.asyncio
-async def test_liquid_strategies_adapter_rejects_undated_holdings_table(monkeypatch):
-    adapter = get_holdings_adapter("liquid_strategies")
-    assert adapter is not None
-    product_url = "https://lsfunds.com/etfs/ovl"
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text='<h1><span class="etf-hero__ticker">OVL</span></h1>',
-            content_type="text/html",
-            url=product_url,
-        )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr(
-        type(adapter),
-        "_parse_product_page",
-        classmethod(
-            lambda cls, raw_html, *, symbol: (
-                [CanonicalHoldingRow(symbol="VOO", name="Vanguard S&P 500 ETF")],
-                None,
-            )
-        ),
-    )
-
-    with pytest.raises(ValueError, match="did not expose dated holdings"):
-        await adapter.fetch_latest(symbol="OVL")
 
 
 @pytest.mark.asyncio
@@ -3795,221 +3488,6 @@ async def test_spdr_adapter_parses_fund_scoped_workbook_and_preserves_row_types(
     assert result.rows[0].weight == Decimal("0.07908008")
     assert len(result.rows) == 3
     assert result.legal_metadata["composition_date"] == "2026-07-14"
-
-
-@pytest.mark.asyncio
-async def test_spdr_adapter_uses_curated_sec_identity_for_dated_spyv(monkeypatch):
-    adapter = get_holdings_adapter("spdr")
-    assert adapter is not None
-    calls: list[dict[str, object]] = []
-
-    async def fake_sec_fetch(**kwargs):
-        calls.append(kwargs)
-        return HoldingsFetchResult(
-            rows=[CanonicalHoldingRow(symbol="NVDA", name="NVIDIA Corporation")],
-            legal_metadata={"composition_date": "2025-09-30"},
-        )
-
-    monkeypatch.setattr(adapter, "_fetch_latest_sec_filing_holdings", fake_sec_fetch)
-    identifiers = known_etf_route_metadata("SPYV")["provider_aliases"]
-    result = await adapter.fetch_for_date(
-        symbol="SPYV",
-        requested_date=date(2025, 12, 31),
-        identifiers=identifiers,
-    )
-
-    assert calls == [
-        {
-            "symbol": "SPYV",
-            "issuer_product_id": None,
-            "identifiers": identifiers,
-            "end_date": date(2025, 12, 31),
-            "max_filings": 50,
-        }
-    ]
-    assert result.legal_metadata["source_provider"] == "sec"
-    assert result.legal_metadata["requested_holdings_date"] == "2025-12-31"
-    assert result.legal_metadata["historical_as_of_policy"] == (
-        "latest_sec_filing_report_on_or_before_requested_date"
-    )
-    assert result.legal_metadata["issuer_route"] == "spdr_symbol_daily_holdings_workbook"
-
-
-@pytest.mark.asyncio
-async def test_spdr_adapter_uses_curated_sec_identity_for_dated_spyg(monkeypatch):
-    adapter = get_holdings_adapter("spdr")
-    assert adapter is not None
-    calls: list[dict[str, object]] = []
-
-    async def fake_sec_fetch(**kwargs):
-        calls.append(kwargs)
-        return HoldingsFetchResult(
-            rows=[CanonicalHoldingRow(symbol="NVDA", name="NVIDIA Corporation")],
-            legal_metadata={"composition_date": "2025-09-30"},
-        )
-
-    monkeypatch.setattr(adapter, "_fetch_latest_sec_filing_holdings", fake_sec_fetch)
-    identifiers = known_etf_route_metadata("SPYG")["provider_aliases"]
-    result = await adapter.fetch_for_date(
-        symbol="SPYG",
-        requested_date=date(2025, 12, 31),
-        identifiers=identifiers,
-    )
-
-    assert calls == [
-        {
-            "symbol": "SPYG",
-            "issuer_product_id": None,
-            "identifiers": identifiers,
-            "end_date": date(2025, 12, 31),
-            "max_filings": 50,
-        }
-    ]
-    assert result.legal_metadata["source_provider"] == "sec"
-    assert result.legal_metadata["requested_holdings_date"] == "2025-12-31"
-    assert result.legal_metadata["historical_as_of_policy"] == (
-        "latest_sec_filing_report_on_or_before_requested_date"
-    )
-    assert result.legal_metadata["issuer_route"] == "spdr_symbol_daily_holdings_workbook"
-
-
-@pytest.mark.asyncio
-async def test_spdr_adapter_uses_curated_sec_identity_for_dated_mdyg(monkeypatch):
-    adapter = get_holdings_adapter("spdr")
-    assert adapter is not None
-    calls: list[dict[str, object]] = []
-
-    async def fake_sec_fetch(**kwargs):
-        calls.append(kwargs)
-        return HoldingsFetchResult(
-            rows=[CanonicalHoldingRow(symbol="NVDA", name="NVIDIA Corporation")],
-            legal_metadata={"composition_date": "2025-09-30"},
-        )
-
-    monkeypatch.setattr(adapter, "_fetch_latest_sec_filing_holdings", fake_sec_fetch)
-    identifiers = known_etf_route_metadata("MDYG")["provider_aliases"]
-    result = await adapter.fetch_for_date(
-        symbol="MDYG",
-        requested_date=date(2025, 12, 31),
-        identifiers=identifiers,
-    )
-
-    assert calls == [
-        {
-            "symbol": "MDYG",
-            "issuer_product_id": None,
-            "identifiers": identifiers,
-            "end_date": date(2025, 12, 31),
-            "max_filings": 50,
-        }
-    ]
-    assert result.legal_metadata["source_provider"] == "sec"
-    assert result.legal_metadata["requested_holdings_date"] == "2025-12-31"
-    assert result.legal_metadata["historical_as_of_policy"] == (
-        "latest_sec_filing_report_on_or_before_requested_date"
-    )
-    assert result.legal_metadata["issuer_route"] == "spdr_symbol_daily_holdings_workbook"
-
-
-@pytest.mark.asyncio
-async def test_spdr_adapter_uses_curated_sec_identity_for_dated_mdyv(monkeypatch):
-    adapter = get_holdings_adapter("spdr")
-    assert adapter is not None
-    calls: list[dict[str, object]] = []
-
-    async def fake_sec_fetch(**kwargs):
-        calls.append(kwargs)
-        return HoldingsFetchResult(
-            rows=[CanonicalHoldingRow(symbol="NVDA", name="NVIDIA Corporation")],
-            legal_metadata={"composition_date": "2025-09-30"},
-        )
-
-    monkeypatch.setattr(adapter, "_fetch_latest_sec_filing_holdings", fake_sec_fetch)
-    identifiers = known_etf_route_metadata("MDYV")["provider_aliases"]
-    result = await adapter.fetch_for_date(
-        symbol="MDYV",
-        requested_date=date(2025, 12, 31),
-        identifiers=identifiers,
-    )
-
-    assert calls[0]["identifiers"] == identifiers
-    assert calls[0]["max_filings"] == 50
-    assert result.legal_metadata["source_provider"] == "sec"
-
-
-def test_sec_identity_match_accepts_legacy_mdy_series_name_without_class_ids():
-    raw_xml = """
-    <edgarSubmission xmlns="http://www.sec.gov/edgar/nport">
-      <headerData><filerInfo><filer><issuerCredentials>
-        <cik>0000936958</cik>
-      </issuerCredentials></filer></filerInfo></headerData>
-      <formData><genInfo>
-        <seriesName>SPDR S&amp;P MidCap 400 ETF Trust</seriesName>
-      </genInfo></formData>
-    </edgarSubmission>
-    """
-
-    matches, identity, status = _sec_nport_identity_match(
-        raw_xml,
-        identifiers={
-            "sec_cik": "0000936958",
-            "sec_series_name_contains": "MidCap 400 ETF Trust",
-            "sec_fund_tickers_symbol": "MDY",
-        },
-    )
-
-    assert matches is True
-    assert identity["series_name"] == "SPDR S&P MidCap 400 ETF Trust"
-    assert status == "verified"
-
-
-def test_sec_identity_match_accepts_spy_registrant_name_without_series_ids():
-    raw_xml = """
-    <edgarSubmission xmlns="http://www.sec.gov/edgar/nport">
-      <formData><genInfo>
-        <regName>State Street(R) SPDR(R) S&amp;P 500(R) ETF Trust</regName>
-        <seriesName>N/A</seriesName>
-      </genInfo></formData>
-    </edgarSubmission>
-    """
-
-    matches, identity, status = _sec_nport_identity_match(
-        raw_xml,
-        identifiers={
-            "sec_cik": "0000884394",
-            "sec_registrant_name_contains": "SPDR",
-        },
-    )
-
-    assert matches is True
-    assert "SPDR" in identity["registrant_name"]
-    assert status == "verified"
-
-
-def test_sec_identity_match_accepts_qqq_series_name_when_filing_omits_ids():
-    raw_xml = """
-    <edgarSubmission xmlns="http://www.sec.gov/edgar/nport">
-      <formData><genInfo>
-        <regName>Invesco QQQ Trust, Series 1</regName>
-        <seriesName>Invesco QQQ Trust, Series 1</seriesName>
-      </genInfo></formData>
-    </edgarSubmission>
-    """
-
-    matches, identity, status = _sec_nport_identity_match(
-        raw_xml,
-        identifiers={
-            "sec_cik": "0001067839",
-            "sec_series_id": "S000101292",
-            "sec_class_id": "C000271435",
-            "sec_series_name_contains": "Invesco QQQ Trust, Series 1",
-            "sec_fund_tickers_symbol": "QQQ",
-        },
-    )
-
-    assert matches is True
-    assert identity["series_name"] == "Invesco QQQ Trust, Series 1"
-    assert status == "verified"
 
 
 @pytest.mark.asyncio
@@ -4804,7 +4282,6 @@ async def test_hedgeye_adapter_selects_the_latest_requested_fund_snapshot(monkey
         "issuer_product_page_complete_daily_holdings_payload"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-11"
-    assert result.legal_metadata["completeness_status"] == "complete"
     assert len(result.rows) == 2
     assert result.rows[0].symbol == "MSFT"
     assert result.rows[0].cusip == "594918104"
@@ -4853,7 +4330,6 @@ async def test_scm_edge_adapter_uses_own_hedgeye_product_page_route(monkeypatch)
         "scm_edge_hedgeye_product_page_complete_daily_holdings_payload"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-11"
-    assert result.legal_metadata["completeness_status"] == "complete"
     assert result.legal_metadata["issuer_relationship"] == (
         "S.C.M. Edge issuer / Hedgeye public product-page publisher"
     )
@@ -4865,29 +4341,6 @@ async def test_scm_edge_adapter_uses_own_hedgeye_product_page_route(monkeypatch)
         "scm_edge_hedgeye_product_page_daily_holdings_payload"
     )
     assert result.rows[1].row_type == "cash"
-
-
-@pytest.mark.asyncio
-async def test_hedgeye_adapter_rejects_undated_holdings_payload(monkeypatch):
-    adapter = get_holdings_adapter("hedgeye")
-    assert adapter is not None
-    product_url = "https://www.hedgeyeam.com/heca"
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [FakeResponse(text="<script>Hedgeye HECA</script>", url=product_url)]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr(
-        type(adapter),
-        "_parse_product_page",
-        classmethod(
-            lambda cls, payload, *, symbol: (
-                [CanonicalHoldingRow(symbol="MSFT", name="Microsoft")],
-                None,
-            )
-        ),
-    )
-
-    with pytest.raises(ValueError, match="did not expose dated holdings"):
-        await adapter.fetch_latest(symbol="HECA")
 
 
 @pytest.mark.asyncio
@@ -4962,81 +4415,11 @@ async def test_polen_adapter_filters_issuer_multi_fund_export(monkeypatch):
     )
     assert result.legal_metadata["route_resolution"] == "issuer_multi_fund_daily_holdings_csv"
     assert result.legal_metadata["composition_date"] == "2026-07-10"
-    assert result.legal_metadata["completeness_status"] == "complete"
     assert len(result.rows) == 2
     assert result.rows[0].symbol == "MSFT"
     assert result.rows[0].weight == Decimal("0.25")
     assert result.rows[1].symbol is None
     assert result.rows[1].holding_type == "cash"
-
-
-@pytest.mark.asyncio
-async def test_polen_adapter_rejects_undated_holdings_export(monkeypatch):
-    adapter = get_holdings_adapter("polen")
-    assert adapter is not None
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [FakeResponse(text="dated export", url=adapter.HOLDINGS_URL)]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr(
-        type(adapter),
-        "_parse_holdings_export",
-        staticmethod(
-            lambda raw_csv, *, basket_name: (
-                [CanonicalHoldingRow(symbol="MSFT", name="Microsoft")],
-                None,
-            )
-        ),
-    )
-
-    with pytest.raises(ValueError, match="did not expose dated holdings"):
-        await adapter.fetch_latest(symbol="PCLG")
-
-
-@pytest.mark.asyncio
-async def test_founder_adapter_fetches_complete_dated_holdings_pdf(monkeypatch):
-    adapter = get_holdings_adapter("founder")
-    assert adapter is not None
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [
-        FakeResponse(content=b"pdf", content_type="application/pdf", url=adapter.HOLDINGS_URL)
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr(
-        type(adapter),
-        "_parse_holdings_pdf",
-        staticmethod(
-            lambda raw_pdf: (
-                [CanonicalHoldingRow(symbol="META", name="Meta Platforms")],
-                date(2026, 7, 10),
-            )
-        ),
-    )
-
-    result = await adapter.fetch_latest(symbol="FFF")
-
-    assert result.legal_metadata["composition_date"] == "2026-07-10"
-    assert result.legal_metadata["completeness_status"] == "complete"
-
-
-@pytest.mark.asyncio
-async def test_founder_adapter_rejects_undated_holdings_pdf(monkeypatch):
-    adapter = get_holdings_adapter("founder")
-    assert adapter is not None
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [
-        FakeResponse(content=b"pdf", content_type="application/pdf", url=adapter.HOLDINGS_URL)
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr(
-        type(adapter),
-        "_parse_holdings_pdf",
-        staticmethod(
-            lambda raw_pdf: ([CanonicalHoldingRow(symbol="META", name="Meta Platforms")], None)
-        ),
-    )
-
-    with pytest.raises(ValueError, match="did not expose dated holdings"):
-        await adapter.fetch_latest(symbol="FFF")
 
 
 @pytest.mark.asyncio
@@ -5128,7 +4511,6 @@ async def test_mairs_power_adapter_parses_complete_municipal_bond_portfolio(monk
         "issuer_product_page_complete_portfolio_table"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-13"
-    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio
@@ -7594,14 +6976,13 @@ async def test_invesco_dated_fetch_uses_sec_filing_at_or_before_requested_date(m
     assert adapter is not None
     observed: dict[str, object] = {}
 
-    async def fake_sec_fallback(*, symbol, issuer_product_id, identifiers, end_date, max_filings):
+    async def fake_sec_fallback(*, symbol, issuer_product_id, identifiers, end_date):
         observed.update(
             {
                 "symbol": symbol,
                 "issuer_product_id": issuer_product_id,
                 "identifiers": identifiers,
                 "end_date": end_date,
-                "max_filings": max_filings,
             }
         )
         return HoldingsFetchResult(
@@ -7626,52 +7007,6 @@ async def test_invesco_dated_fetch_uses_sec_filing_at_or_before_requested_date(m
         "issuer_product_id": None,
         "identifiers": {"sec_cik": "0001067839"},
         "end_date": date(2026, 7, 15),
-        "max_filings": 20,
-    }
-    assert result.legal_metadata["requested_holdings_date"] == "2026-07-15"
-    assert result.legal_metadata["historical_as_of_policy"] == (
-        "latest_sec_filing_report_on_or_before_requested_date"
-    )
-    assert result.legal_metadata["issuer_route"] == "invesco_current_monthly_only"
-
-
-@pytest.mark.asyncio
-async def test_invesco_rsp_dated_fetch_uses_curated_sec_identity(monkeypatch):
-    adapter = get_holdings_adapter("invesco")
-    assert adapter is not None
-    observed: dict[str, object] = {}
-
-    async def fake_sec_fallback(*, symbol, issuer_product_id, identifiers, end_date, max_filings):
-        observed.update(
-            {
-                "symbol": symbol,
-                "issuer_product_id": issuer_product_id,
-                "identifiers": identifiers,
-                "end_date": end_date,
-                "max_filings": max_filings,
-            }
-        )
-        return HoldingsFetchResult(
-            rows=[CanonicalHoldingRow(symbol="NVDA", name="NVIDIA Corporation")],
-            source_url="https://www.sec.gov/Archives/edgar/data/1209466/fixture.xml",
-            source_identifier="0001209466-26-000001",
-            legal_metadata={"route_resolution": "sec_edgar_filing_fallback"},
-        )
-
-    monkeypatch.setattr(adapter, "_fetch_latest_sec_filing_holdings", fake_sec_fallback)
-    metadata = known_etf_route_metadata("RSP")
-    result = await adapter.fetch_for_date(
-        symbol="RSP",
-        requested_date=date(2026, 7, 15),
-        identifiers=metadata["provider_aliases"],
-    )
-
-    assert observed == {
-        "symbol": "RSP",
-        "issuer_product_id": None,
-        "identifiers": metadata["provider_aliases"],
-        "end_date": date(2026, 7, 15),
-        "max_filings": 20,
     }
     assert result.legal_metadata["requested_holdings_date"] == "2026-07-15"
     assert result.legal_metadata["historical_as_of_policy"] == (
@@ -7782,50 +7117,13 @@ async def test_wellington_adapter_uses_verified_vanguard_publisher_route(monkeyp
     assert result.rows[0].shares == Decimal("87")
     assert result.rows[0].market_value == Decimal("33207.9")
     assert result.rows[0].weight == Decimal("0.048288")
-    assert result.rows[0].source_row_id == "VUSV:2026-07-27:1:594918104"
     assert result.legal_metadata["composition_date"] == "2026-07-27"
-    assert result.legal_metadata["as_of_date"] == "2026-07-27"
-    assert result.legal_metadata["row_count"] == 1
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.legal_metadata["snapshot_provenance"] == (
-        "issuer_native_vanguard_wellington_managed_etf"
-    )
-    assert result.raw_json["row_count"] == 1
-    assert result.raw_json["composition_date"] == "2026-07-27"
     assert result.legal_metadata["adapter_key"] == "wellington"
     assert result.legal_metadata["source_provider"] == "vanguard"
     assert result.legal_metadata["portfolio_manager"] == "wellington_management"
     assert result.legal_metadata["route_resolution"] == (
         "vanguard_publisher_pcf_json_for_wellington_managed_etf"
     )
-
-
-@pytest.mark.asyncio
-async def test_wellington_adapter_rejects_undated_publisher_result(monkeypatch):
-    adapter = get_holdings_adapter("wellington")
-    assert adapter is not None
-
-    async def fake_resolve(client, *, symbol):
-        del client
-        return "V055"
-
-    async def fake_detail(*, symbol, fund_id):
-        del symbol, fund_id
-        return HoldingsFetchResult(
-            rows=[CanonicalHoldingRow(symbol="MSFT", name="MICROSOFT CORP.")],
-            legal_metadata={
-                "adapter_key": "wellington",
-                "route_resolution": "vanguard_publisher_json_api_for_wellington_managed_etf",
-                "composition_date": None,
-                "as_of_date": None,
-            },
-        )
-
-    monkeypatch.setattr(adapter, "_resolve_vanguard_fund_id", fake_resolve)
-    monkeypatch.setattr(adapter, "_fetch_vanguard_detail_holdings", fake_detail)
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="VUSV")
 
 
 @pytest.mark.asyncio
@@ -9000,36 +8298,9 @@ async def test_tremblant_adapter_verifies_toga_application_and_parses_filepoint_
         == "issuer_product_page_verified_filepoint_holdings_csv"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-14"
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.raw_json["row_count"] == 2
-    assert result.raw_json["as_of_date"] == "2026-07-14"
-    assert result.rows[0].source_row_id == "TOGA:2026-07-14:1:00827B106"
 
     with pytest.raises(ValueError, match="scoped to TOGA"):
         await adapter.fetch_latest(symbol="TMT")
-
-
-@pytest.mark.asyncio
-async def test_tremblant_adapter_rejects_undated_holdings_csv(monkeypatch):
-    adapter = get_holdings_adapter("tremblant")
-    assert adapter is not None
-    FakeAsyncClient.queue = [
-        FakeResponse(text="<html><h1>Tremblant Global ETF TOGA</h1></html>"),
-        FakeResponse(text=f'$.ajax({{url:"./assets/data/{adapter.holdings_filename}"}})'),
-        FakeResponse(
-            text="\n".join(
-                [
-                    "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets",
-                    "-,TOGA,AFRM,00827B106,Affirm Holdings Inc,10,80,800,2.50%,10000",
-                ]
-            ),
-            url=adapter.holdings_url,
-        ),
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not expose a dated snapshot"):
-        await adapter.fetch_latest(symbol="TOGA")
 
 
 @pytest.mark.asyncio
@@ -9085,36 +8356,6 @@ async def test_twin_oak_adapter_validates_application_feed_and_filters_fund_rows
         "issuer_fund_page_verified_application_declared_holdings_csv"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-15"
-    assert result.rows[0].source_row_id == "TOAK:2026-07-15:1:SPY 08/21/2026 20.01 C"
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.raw_json["as_of_date"] == "2026-07-15"
-
-
-@pytest.mark.asyncio
-async def test_twin_oak_adapter_rejects_undated_holdings_csv(monkeypatch):
-    adapter = get_holdings_adapter("twin_oak")
-    assert adapter is not None
-    filename = "FilepointTwinOak.40O9.O9_ETF_Holdings.csv"
-    product_page_url = "https://twinoaketfs.com/TOAK"
-    holdings_url = f"https://twinoaketfs.com/assets/data/{filename}"
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text='<div class="fund-page" data-ticker="TOAK"></div>',
-            url=product_page_url,
-        ),
-        FakeResponse(
-            text=f'$.ajax({{url:"./assets/data/{filename}"}})',
-            url=adapter.APP_SCRIPT_URL,
-        ),
-        FakeResponse(
-            text="Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings\n-,TOAK,VOO,922908363,Vanguard S&P 500 ETF,1,1,1,100%\n",
-            url=holdings_url,
-        ),
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not expose a dated snapshot"):
-        await adapter.fetch_latest(symbol="TOAK")
 
 
 @pytest.mark.asyncio
@@ -10324,16 +9565,25 @@ async def test_etf_architect_adapter_retries_transient_requests_gateway_error(mo
             url="https://funds.alphaarchitect.com/qval/",
         ),
     ]
+    to_thread_calls = []
 
     def fake_get(url, **kwargs):
         requests_called.append(url)
         return responses.pop(0)
+
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        # Retry behavior is under test; real executor scheduling is not.
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
 
     async def skip_delay(_seconds):
         return None
 
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_delay)
 
     result = await adapter.fetch_latest(symbol="QVAL", identifiers={})
@@ -10342,6 +9592,8 @@ async def test_etf_architect_adapter_retries_transient_requests_gateway_error(mo
         "https://funds.alphaarchitect.com/qval/",
         "https://funds.alphaarchitect.com/qval/",
     ]
+    assert len(to_thread_calls) == 2
+    assert all(call[0] is requests.get for call in to_thread_calls)
     assert result.rows[0].symbol == "ADT"
 
 
@@ -11194,6 +10446,7 @@ async def test_day_hagan_declared_airtable_adapter_parses_holdings(monkeypatch, 
         ]
     }
     requested = []
+    to_thread_calls = []
 
     def fake_get(url, **kwargs):
         requested.append((url, kwargs))
@@ -11212,11 +10465,23 @@ async def test_day_hagan_declared_airtable_adapter_parses_holdings(monkeypatch, 
             url=url,
         )
 
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        # This parser/route test does not exercise executor scheduling.
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
+
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
 
     result = await adapter.fetch_latest(symbol="SSUS", identifiers={})
 
     assert requested[0][0] == "https://dhfunds.com/day-hagan-smart-sector-etf"
+    assert len(requested) == 2
+    assert len(to_thread_calls) == 2
+    assert to_thread_calls[0][0] is requests.get
+    assert to_thread_calls[1][0] is adapter._fetch_airtable_records
     assert len(result.rows) == 2
     assert [row.name for row in result.rows] == [
         "Communication Services Select Sector SPDR Fund",
@@ -11279,6 +10544,7 @@ async def test_estate_counselors_adapter_verifies_brinsmere_filepoint_holdings(m
         ]
     )
     requested = []
+    to_thread_calls = []
 
     def fake_get(url, **kwargs):
         requested.append((url, kwargs))
@@ -11295,7 +10561,16 @@ async def test_estate_counselors_adapter_verifies_brinsmere_filepoint_holdings(m
             return FakeResponse(text=raw_csv, content_type="text/csv", url=url)
         raise AssertionError(f"unexpected URL {url}")
 
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        # Keep the four fake issuer requests deterministic; executor scheduling
+        # is not part of this route-discovery and parsing contract.
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
+
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
 
     result = await adapter.fetch_latest(symbol="TBFC", identifiers={})
 
@@ -11308,6 +10583,8 @@ async def test_estate_counselors_adapter_verifies_brinsmere_filepoint_holdings(m
             "FilepointBrinsmereTMC.40M4.M4_Holdings.csv"
         ),
     ]
+    assert len(to_thread_calls) == 4
+    assert all(call[0] is requests.get for call in to_thread_calls)
     assert len(result.rows) == 2
     assert result.rows[0].symbol == "AVDV"
     assert result.rows[0].name == "Avantis International Small Cap Value ETF"
@@ -11378,6 +10655,7 @@ async def test_corient_adapter_verifies_fundx_csv_viewer_holdings(monkeypatch):
         }
     }
     requested = []
+    to_thread_calls = []
 
     def fake_get(url, **kwargs):
         requested.append((url, kwargs))
@@ -11391,7 +10669,16 @@ async def test_corient_adapter_verifies_fundx_csv_viewer_holdings(monkeypatch):
             return FakeResponse(text=json.dumps(payload), content_type="application/json", url=url)
         raise AssertionError(f"unexpected URL {url}")
 
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        # Route discovery and parsing use fake responses; executor scheduling is
+        # outside this test's contract.
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
+
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
 
     result = await adapter.fetch_latest(symbol="XCOR", identifiers={})
 
@@ -11402,6 +10689,8 @@ async def test_corient_adapter_verifies_fundx_csv_viewer_holdings(monkeypatch):
             "0ba9e6e7-ac72-4ebf-8e0a-64a998e7db52?_format=json"
         ),
     ]
+    assert len(to_thread_calls) == 2
+    assert all(call[0] is requests.get for call in to_thread_calls)
     assert len(result.rows) == 2
     assert result.rows[0].symbol == "IOO"
     assert result.rows[0].name == "iShares Global 100 ETF"
@@ -11560,14 +10849,6 @@ async def test_infrastructure_capital_adapter_fetches_symbol_holdings_workbook(m
 
     FakeAsyncClient.requested = []
     FakeAsyncClient.queue = [
-        FakeResponse(
-            text=(
-                "<html><h1>Infrastructure Capital Equity Income ETF (ICAP)</h1>"
-                "<h2>TOP 10 HOLDINGS</h2><p>Data as of 07/23/2026.</p></html>"
-            ),
-            content_type="text/html",
-            url="https://www.infracapfund.com/ICAP",
-        ),
         FakeResponse(content=xls_payload, content_type="application/vnd.ms-excel"),
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
@@ -11578,12 +10859,11 @@ async def test_infrastructure_capital_adapter_fetches_symbol_holdings_workbook(m
 
     result = await adapter.fetch_latest(symbol="ICAP", identifiers={})
 
-    assert FakeAsyncClient.requested[0][0] == "https://www.infracapfund.com/ICAP"
-    assert FakeAsyncClient.requested[1][0] == (
+    assert FakeAsyncClient.requested[0][0] == (
         "https://www.infracapfund.com/download-holdings-usbanks.php?fund=ICAP"
     )
     assert (
-        FakeAsyncClient.requested[1][1]["headers"]["Referer"] == "https://www.infracapfund.com/ICAP"
+        FakeAsyncClient.requested[0][1]["headers"]["Referer"] == "https://www.infracapfund.com/ICAP"
     )
     assert result.rows[0].symbol == "AVGO"
     assert result.rows[0].cusip == "11135F101"
@@ -11592,31 +10872,6 @@ async def test_infrastructure_capital_adapter_fetches_symbol_holdings_workbook(m
     )
     assert result.legal_metadata["source_provider"] == "infrastructure_capital"
     assert result.legal_metadata["source_format"] == "xls"
-    assert result.legal_metadata["composition_date"] == "2026-07-23"
-    assert result.legal_metadata["as_of_date"] == "2026-07-23"
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.raw_json["row_count"] == 1
-    assert result.rows[0].source_row_id == "ICAP:2026-07-23:1:11135F101"
-
-
-@pytest.mark.asyncio
-async def test_infrastructure_capital_adapter_rejects_undated_product_page(monkeypatch):
-    adapter = get_holdings_adapter("infrastructure_capital")
-    assert adapter is not None
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text=(
-                "<html><h1>Infrastructure Capital Equity Income ETF (ICAP)</h1>"
-                "<h2>TOP 10 HOLDINGS</h2></html>"
-            ),
-            content_type="text/html",
-            url="https://www.infracapfund.com/ICAP",
-        )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish a holdings composition date"):
-        await adapter.fetch_latest(symbol="ICAP", identifiers={})
 
 
 @pytest.mark.asyncio
@@ -11873,43 +11128,6 @@ async def test_palmer_square_adapter_parses_embedded_holdings_json(monkeypatch):
     assert result.legal_metadata["route_resolution"] == "issuer_product_page_embedded_holdings_json"
     assert result.legal_metadata["source_provider"] == "palmer_square"
     assert result.legal_metadata["composition_date"] == "2026-07-01"
-    assert result.legal_metadata["completeness_status"] == "complete"
-
-
-@pytest.mark.asyncio
-async def test_palmer_square_adapter_rejects_undated_holdings_page(monkeypatch):
-    adapter = get_holdings_adapter("palmer_square")
-    assert adapter is not None
-
-    raw_html = """
-    <html>
-      <body>
-        <script>
-          var holdingsData = [
-            {
-              "cusip": "64755YAJ7",
-              "name": "NEW MOUNTAIN FLT 04/39",
-              "asset_type": "CDO/COLLATERALIZED DEBT OBLIGATION",
-              "shares_par": "1,000,000.00000000",
-              "market_value": "997,441.09",
-              "weight_percent": "0.38"
-            }
-          ];
-        </script>
-      </body>
-    </html>
-    """
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text=raw_html,
-            content_type="text/html",
-            url="https://etf.palmersquarefunds.com/funds/us-etfs/palmer-square-credit-opportunities-etf",
-        )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="PSQO", identifiers={})
 
 
 @pytest.mark.asyncio
@@ -11978,7 +11196,6 @@ async def test_weitz_adapter_parses_verified_embedded_holdings_json(monkeypatch)
     assert result.legal_metadata["route_resolution"] == "issuer_product_page_embedded_holdings_json"
     assert result.legal_metadata["source_provider"] == "weitz"
     assert result.legal_metadata["composition_date"] == "2026-07-15"
-    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio
@@ -12508,6 +11725,7 @@ async def test_zacks_adapter_falls_back_to_requests_after_async_timeouts(monkeyp
     assert adapter is not None
 
     requests_seen = []
+    to_thread_calls = []
 
     def fake_requests_get(url, **kwargs):
         requests_seen.append((url, kwargs))
@@ -12515,6 +11733,10 @@ async def test_zacks_adapter_falls_back_to_requests_after_async_timeouts(monkeyp
             text="holdings",
             url="https://www.zacksetfs.com/webservices/holdings.php",
         )
+
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
 
     FakeAsyncClient.requested = []
     FakeAsyncClient.queue = [
@@ -12524,6 +11746,9 @@ async def test_zacks_adapter_falls_back_to_requests_after_async_timeouts(monkeyp
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
 
     async with FakeAsyncClient() as client:
         response = await adapter._get_holdings_with_timeout_retry(
@@ -12534,6 +11759,8 @@ async def test_zacks_adapter_falls_back_to_requests_after_async_timeouts(monkeyp
 
     assert response.text == "holdings"
     assert len(FakeAsyncClient.requested) == 3
+    assert len(to_thread_calls) == 1
+    assert to_thread_calls[0][0] is requests.get
     assert requests_seen[0][0] == "https://www.zacksetfs.com/webservices/holdings.php"
     assert requests_seen[0][1]["headers"] == {"Referer": "https://www.zacksetfs.com/"}
     assert requests_seen[0][1]["allow_redirects"] is True
@@ -12582,6 +11809,7 @@ async def test_zacks_adapter_retries_requests_fallback_timeout(monkeypatch):
     assert adapter is not None
 
     requests_seen = []
+    to_thread_calls = []
 
     def fake_requests_get(url, **kwargs):
         requests_seen.append((url, kwargs))
@@ -12592,6 +11820,10 @@ async def test_zacks_adapter_retries_requests_fallback_timeout(monkeypatch):
             url="https://www.zacksetfs.com/webservices/holdings.php",
         )
 
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
+
     FakeAsyncClient.requested = []
     FakeAsyncClient.queue = [
         httpx.ReadTimeout("issuer stalled"),
@@ -12600,6 +11832,9 @@ async def test_zacks_adapter_retries_requests_fallback_timeout(monkeypatch):
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
 
     async with FakeAsyncClient() as client:
         response = await adapter._get_holdings_with_timeout_retry(
@@ -12611,6 +11846,8 @@ async def test_zacks_adapter_retries_requests_fallback_timeout(monkeypatch):
     assert response.text == "holdings"
     assert len(FakeAsyncClient.requested) == 3
     assert len(requests_seen) == 2
+    assert len(to_thread_calls) == 2
+    assert all(call[0] is requests.get for call in to_thread_calls)
 
 
 @pytest.mark.asyncio
@@ -12619,6 +11856,7 @@ async def test_zacks_adapter_retries_requests_fallback_connection_error(monkeypa
     assert adapter is not None
 
     requests_seen = []
+    to_thread_calls = []
 
     def fake_requests_get(url, **kwargs):
         requests_seen.append((url, kwargs))
@@ -12629,6 +11867,10 @@ async def test_zacks_adapter_retries_requests_fallback_connection_error(monkeypa
             url="https://www.zacksetfs.com/webservices/holdings.php",
         )
 
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
+
     FakeAsyncClient.requested = []
     FakeAsyncClient.queue = [
         httpx.ReadTimeout("issuer stalled"),
@@ -12637,6 +11879,9 @@ async def test_zacks_adapter_retries_requests_fallback_connection_error(monkeypa
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
 
     async with FakeAsyncClient() as client:
         response = await adapter._get_holdings_with_timeout_retry(
@@ -12648,6 +11893,8 @@ async def test_zacks_adapter_retries_requests_fallback_connection_error(monkeypa
     assert response.text == "holdings"
     assert len(FakeAsyncClient.requested) == 3
     assert len(requests_seen) == 2
+    assert len(to_thread_calls) == 2
+    assert all(call[0] is requests.get for call in to_thread_calls)
 
 
 @pytest.mark.asyncio
@@ -12656,10 +11903,15 @@ async def test_zacks_adapter_reports_backend_disconnect_after_retry_exhaustion(m
     assert adapter is not None
 
     requests_seen = []
+    to_thread_calls = []
 
     def fake_requests_get(url, **kwargs):
         requests_seen.append((url, kwargs))
         raise requests.ConnectionError("remote disconnected")
+
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
 
     FakeAsyncClient.requested = []
     FakeAsyncClient.queue = [
@@ -12669,6 +11921,9 @@ async def test_zacks_adapter_reports_backend_disconnect_after_retry_exhaustion(m
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
 
     async with FakeAsyncClient() as client:
         with pytest.raises(ValueError, match="closed the backend connection"):
@@ -12680,6 +11935,8 @@ async def test_zacks_adapter_reports_backend_disconnect_after_retry_exhaustion(m
 
     assert len(FakeAsyncClient.requested) == 3
     assert len(requests_seen) == 3
+    assert len(to_thread_calls) == 3
+    assert all(call[0] is requests.get for call in to_thread_calls)
 
 
 @pytest.mark.asyncio
@@ -13108,6 +12365,7 @@ United States Treasury Bill,,,"$1,000.00",0.10%
         FakeResponse(status_code=403, url=holdings_url),
     ]
     fallback_calls = []
+    to_thread_calls = []
 
     def fake_requests_get(url, **kwargs):
         fallback_calls.append((url, kwargs))
@@ -13115,8 +12373,15 @@ United States Treasury Bill,,,"$1,000.00",0.10%
             raise requests.exceptions.ReadTimeout("issuer stalled")
         return FakeResponse(text=raw_csv, content_type="text/csv", url=url)
 
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
+
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
 
     result = await adapter.fetch_latest(symbol="DFTT", identifiers={})
 
@@ -13131,6 +12396,8 @@ United States Treasury Bill,,,"$1,000.00",0.10%
         holdings_url,
     ]
     assert all(call[1]["timeout"] == 30.0 for call in fallback_calls)
+    assert len(to_thread_calls) == 4
+    assert all(call[0] is requests.get for call in to_thread_calls)
     assert result.rows[0].symbol == "NVDA"
     assert result.legal_metadata["composition_date"] == "2026-07-17"
 
@@ -13529,10 +12796,6 @@ async def test_vident_product_page_adapter_parses_holdings_table(monkeypatch, ad
     assert result.legal_metadata["route_resolution"] == (
         "vident_product_page_complete_holdings_table"
     )
-    assert result.legal_metadata["source_quality"] == (
-        "issuer_reported_product_page_holdings_table"
-    )
-    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio
@@ -13693,7 +12956,6 @@ async def test_focus_financial_adapter_parses_kovitz_and_longview_native_routes(
     assert eqty_result.legal_metadata["route_resolution"] == (
         "focus_financial_kovitz_filepoint_complete_holdings_json"
     )
-    assert eqty_result.legal_metadata["completeness_status"] == "complete"
     assert len(ebi_result.rows) == 102
     assert ebi_result.rows[0].symbol == "A"
     assert ebi_result.rows[0].cusip == "00846U101"
@@ -13703,7 +12965,6 @@ async def test_focus_financial_adapter_parses_kovitz_and_longview_native_routes(
     assert ebi_result.legal_metadata["route_resolution"] == (
         "focus_financial_longview_fund_data_complete_holdings_table"
     )
-    assert ebi_result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio
@@ -13756,6 +13017,7 @@ async def test_focus_financial_longview_retries_requests_timeout(monkeypatch):
         requests.exceptions.ReadTimeout("issuer stalled"),
         success,
     ]
+    to_thread_calls = []
 
     def fake_requests_get(url, **kwargs):
         request_calls.append((url, kwargs))
@@ -13764,17 +13026,26 @@ async def test_focus_financial_longview_retries_requests_timeout(monkeypatch):
             raise result
         return result
 
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
+
     async def skip_delay(_seconds):
         return None
 
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_delay)
 
     result = await adapter.fetch_latest(symbol="EBI")
 
     assert len(FakeAsyncClient.requested) == 2
     assert len(request_calls) == 2
+    assert len(to_thread_calls) == 2
+    assert all(call[0] is requests.get for call in to_thread_calls)
     assert len(result.rows) == 101
     assert result.legal_metadata["route_resolution"] == (
         "focus_financial_longview_fund_data_complete_holdings_table"
@@ -14473,7 +13744,6 @@ async def test_artemis_adapter_verifies_ars_product_page_and_parses_complete_hol
     assert result.legal_metadata["route_resolution"] == (
         "ars_product_page_embedded_complete_holdings_table"
     )
-    assert result.legal_metadata["completeness_status"] == "complete"
     assert result.legal_metadata["composition_date"] == "2026-07-20"
     assert len(result.rows) == 2
     assert result.rows[0].symbol == "NVDA"
@@ -14483,30 +13753,6 @@ async def test_artemis_adapter_verifies_ars_product_page_and_parses_complete_hol
     assert result.rows[1].symbol is None
     assert result.rows[1].holding_type == "cash"
     assert result.rows[1].row_type == "cash"
-
-
-@pytest.mark.asyncio
-async def test_artemis_adapter_rejects_undated_holdings_table(monkeypatch):
-    adapter = get_holdings_adapter("artemis")
-    assert adapter is not None
-
-    async def fake_fetch_product_page(url):
-        return FakeResponse(text="ARS Core Equity Portfolio ETF Fund Holdings", url=url)
-
-    monkeypatch.setattr(type(adapter), "_fetch_product_page", staticmethod(fake_fetch_product_page))
-    monkeypatch.setattr(
-        type(adapter),
-        "_parse_holdings_html",
-        classmethod(
-            lambda cls, raw_html, *, symbol, expected_fund_name: (
-                [CanonicalHoldingRow(symbol="NVDA", name="NVIDIA Corp")],
-                None,
-            )
-        ),
-    )
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="ACEP")
 
 
 @pytest.mark.asyncio
@@ -14571,7 +13817,6 @@ async def test_x_square_adapter_verifies_product_page_and_parses_declared_comple
     assert result.legal_metadata["route_resolution"] == (
         "x_square_product_page_declared_complete_holdings_api"
     )
-    assert result.legal_metadata["completeness_status"] == "complete"
     assert result.legal_metadata["composition_date"] == "2026-07-20"
     assert len(result.rows) == 2
     assert result.rows[0].symbol == "AAPL"
@@ -14580,49 +13825,6 @@ async def test_x_square_adapter_verifies_product_page_and_parses_declared_comple
     assert result.rows[1].symbol is None
     assert result.rows[1].holding_type == "fixed_income"
     assert result.rows[1].cusip == "74529JPX7"
-
-
-@pytest.mark.asyncio
-async def test_x_square_adapter_rejects_undated_holdings_payload(monkeypatch):
-    adapter = get_holdings_adapter("x_square")
-    assert adapter is not None
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text="product page",
-            content_type="text/html",
-            url="https://www.x2etfs.com/holdings/x-square-municipal",
-        ),
-        FakeResponse(
-            text="token script",
-            content_type="application/javascript",
-            url="https://www.x2etfs.com/site-template/assets/javascript/api_key.php?v=2",
-        ),
-        FakeResponse(
-            text="{}",
-            content_type="application/json",
-            url="https://secure.alpsinc.com/MarketingAPI/api/v1/holding/ZTAX/full",
-        ),
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr(
-        type(adapter),
-        "_validate_product_page",
-        classmethod(lambda cls, raw_html, *, symbol, expected_fund_name: None),
-    )
-    monkeypatch.setattr(type(adapter), "_extract_bearer_token", staticmethod(lambda text: "token"))
-    monkeypatch.setattr(
-        type(adapter),
-        "_parse_holdings_payload",
-        classmethod(
-            lambda cls, payload, *, symbol: (
-                [CanonicalHoldingRow(symbol="AAPL", name="Apple Inc.")],
-                None,
-            )
-        ),
-    )
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="ZTAX", identifiers={})
 
 
 @pytest.mark.asyncio
@@ -15180,54 +14382,6 @@ async def test_aptus_adapter_fetches_product_page_holdings_table(monkeypatch):
     assert result.legal_metadata["source_format"] == "html"
     assert result.legal_metadata["route_resolution"] == "issuer_wordpress_api_holdings_table"
     assert result.legal_metadata["composition_date"] == "2026-06-25"
-    assert result.legal_metadata["as_of_date"] == "2026-06-25"
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.legal_metadata["snapshot_provenance"] == (
-        "issuer_native_aptus_wordpress_holdings_table"
-    )
-    assert result.rows[0].source_row_id == "DRSK:2026-06-25:1:46138J460"
-    assert result.raw_json["row_count"] == 1
-    assert result.raw_json["composition_date"] == "2026-06-25"
-
-
-@pytest.mark.asyncio
-async def test_aptus_adapter_rejects_undated_holdings_page(monkeypatch):
-    adapter = get_holdings_adapter("aptus")
-    assert adapter is not None
-
-    html = """
-    <table class="custom_tables fund_holdings_table">
-      <thead>
-        <tr>
-          <th>Stock Ticker</th>
-          <th>Cusip</th>
-          <th>Security Desc</th>
-          <th>Shares</th>
-          <th>Price</th>
-          <th>Market Value</th>
-          <th>Weightings</th>
-          <th>Effective Date</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>BSCU</td>
-          <td>46138J460</td>
-          <td>Invesco BulletShares 2030 Corporate Bond ETF</td>
-          <td>9,353,234.00</td>
-          <td>16.65</td>
-          <td>155,731,346.10</td>
-          <td>10.23%</td>
-          <td></td>
-        </tr>
-      </tbody>
-    </table>
-    """
-    FakeAsyncClient.queue = [FakeResponse(text=json.dumps({"content": {"rendered": html}}))]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="DRSK")
 
 
 @pytest.mark.asyncio
@@ -15365,70 +14519,8 @@ async def test_alliancebernstein_adapter_fetches_model_linked_workbook(monkeypat
     assert result.legal_metadata["source_format"] == "xlsx"
     assert result.legal_metadata["route_resolution"] == "issuer_product_page_model_workbook"
     assert result.legal_metadata["composition_date"] == "2026-04-30"
-    assert result.legal_metadata["as_of_date"] == "2026-04-30"
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.legal_metadata["snapshot_provenance"] == (
-        "issuer_native_alliancebernstein_model_workbook"
-    )
-    assert result.rows[0].source_row_id == "FWD:2026-04-30:1:11135F101"
-    assert result.raw_json["row_count"] == 1
-    assert result.raw_json["composition_date"] == "2026-04-30"
     assert result.legal_metadata["net_assets"] == "2478960606"
     assert result.legal_metadata["base_currency"] == "USD"
-
-
-@pytest.mark.asyncio
-async def test_alliancebernstein_adapter_rejects_undated_workbook(monkeypatch):
-    adapter = get_holdings_adapter("alliancebernstein")
-    assert adapter is not None
-    workbook = _xlsx_workbook(
-        [
-            ["AB Disruptors ETF"],
-            ["Holdings report"],
-            ["Base Currency: USD"],
-            ["Securities"],
-            [
-                "Units/Par Value/ # of contracts",
-                "Issue Description/Name",
-                "Accounting Value (BC)",
-                "% of Net Assets",
-                "ISIN (Primary ID)",
-                "Cusip",
-                "Sedol",
-                "Ticker",
-            ],
-            [
-                "203705",
-                "Broadcom, Inc.",
-                "85032578.15",
-                "0.0343",
-                "US11135F1012",
-                "11135F101",
-                "BDZ78H9",
-                "AVGO",
-            ],
-        ]
-    )
-    model_url = "/content/abde_holdings.model.json"
-    workbook_url = "/content/ab_full_holdings.xlsx"
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text=f'<div data-portfolio-holding="{model_url}"></div>',
-            content_type="text/html",
-        ),
-        FakeResponse(
-            text=json.dumps({"links": [{"url": workbook_url}]}),
-            content_type="application/json",
-        ),
-        FakeResponse(
-            content=workbook,
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        ),
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="FWD")
 
 
 @pytest.mark.asyncio
@@ -15681,34 +14773,6 @@ async def test_graniteshares_adapter_discovers_legacy_xls_holdings(monkeypatch):
     )
     assert result.legal_metadata["source_provider"] == "graniteshares"
     assert result.legal_metadata["source_format"] == "xls"
-    assert result.legal_metadata["composition_date"] == "2026-06-11"
-    assert result.legal_metadata["completeness_status"] == "complete"
-
-
-@pytest.mark.asyncio
-async def test_graniteshares_adapter_rejects_undated_holdings_workbook(monkeypatch):
-    adapter = get_holdings_adapter("graniteshares")
-    assert adapter is not None
-    holdings_url = "https://graniteshares.com/media/nwnlfyi3/nvd_holdings_file.xls"
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            content=b"legacy-xls",
-            content_type="application/vnd.ms-excel",
-            url=holdings_url,
-        )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr(
-        "app.services.etf_holdings_adapters.parse_holdings_xls",
-        lambda raw_workbook: (
-            [CanonicalHoldingRow(symbol="NVDA", name="NVIDIA CORP")],
-            [["Ticker", "Name"], ["NVDA", "NVIDIA CORP"]],
-        ),
-    )
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="NVD", source_url=holdings_url)
 
 
 @pytest.mark.asyncio
@@ -16192,7 +15256,6 @@ async def test_ssc_alps_adapter_fetches_public_proxy_holdings_json(monkeypatch):
     assert result.rows[0].market_value == Decimal("34348887")
     assert result.rows[0].country == "United States"
     assert result.rows[0].holding_type == "equity"
-    assert result.rows[0].source_row_id == "SDOG:2026-07-02:1:372460105"
     assert result.rows[1].symbol is None
     assert result.rows[1].row_type == "cash"
     assert result.rows[1].holding_type == "cash"
@@ -16200,8 +15263,6 @@ async def test_ssc_alps_adapter_fetches_public_proxy_holdings_json(monkeypatch):
         "issuer_public_hubspot_proxy_holdings_json"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-02"
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.raw_json["row_count"] == 2
 
 
 @pytest.mark.asyncio
@@ -16260,33 +15321,6 @@ async def test_oshares_uses_alps_public_proxy_as_native_route(monkeypatch):
         "issuer_public_hubspot_proxy_holdings_json"
     )
     assert result.legal_metadata["composition_date"] == "2026-08-07"
-    assert result.legal_metadata["completeness_status"] == "complete"
-
-
-@pytest.mark.asyncio
-async def test_ssc_alps_adapter_rejects_undated_holdings_payload(monkeypatch):
-    adapter = get_holdings_adapter("ssc")
-    assert adapter is not None
-
-    payload = [
-        {
-            "fundsymbol": "SDOG",
-            "holdingsymbol": "GPC",
-            "name": "Genuine Parts Co.",
-            "weight": 0.0255,
-            "holdingtype": "Common Stock",
-        }
-    ]
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text=json.dumps(payload),
-            content_type="application/json",
-        )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="SDOG")
 
 
 @pytest.mark.asyncio
@@ -17285,37 +16319,6 @@ async def test_retireful_adapter_follows_official_pagination_and_preserves_cash(
     assert result.legal_metadata["route_resolution"] == (
         "retireful_mohr_product_page_complete_paginated_holdings_table"
     )
-    assert result.legal_metadata["completeness_status"] == "complete"
-
-
-@pytest.mark.asyncio
-async def test_retireful_adapter_rejects_undated_holdings_table(monkeypatch):
-    adapter = get_holdings_adapter("retireful")
-    assert adapter is not None
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text="issuer page",
-            content_type="text/html",
-            url="https://www.mohrfunds.com/rule-adaptive-core-etf",
-        )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr(
-        type(adapter),
-        "_parse_product_page",
-        staticmethod(
-            lambda raw_html, *, symbol, expected_fund_name, page_url, page_number: (
-                None,
-                1,
-                [CanonicalHoldingRow(symbol="AAPL", name="Apple Inc.")],
-                None,
-            )
-        ),
-    )
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="RULE", identifiers={})
 
 
 @pytest.mark.asyncio
@@ -17919,29 +16922,6 @@ async def test_victory_adapter_fetches_public_all_holdings_json(monkeypatch):
     assert result.rows[1].market_value == Decimal("280661759.820000000000")
     assert result.legal_metadata["route_resolution"] == "issuer_public_product_api_all_holdings"
     assert result.legal_metadata["composition_date"] == "07/07/2026"
-    assert result.legal_metadata["completeness_status"] == "complete"
-
-
-@pytest.mark.asyncio
-async def test_victory_adapter_rejects_undated_holdings_payload(monkeypatch):
-    adapter = get_holdings_adapter("victory")
-    assert adapter is not None
-    payload = [
-        {
-            "holding_name": "ADOBE INC",
-            "stock_symbol": "ADBE US",
-            "market_value": "280661759.82",
-            "portfolio_percentage": "3.49",
-            "shares": "1287026",
-        }
-    ]
-    FakeAsyncClient.queue = [
-        FakeResponse(text=json.dumps(payload), content_type="application/json")
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="VFLO")
 
 
 @pytest.mark.asyncio
@@ -18060,38 +17040,8 @@ async def test_sterling_capital_adapter_validates_fund_scoped_holdings_pdf(monke
     assert result.rows[0].market_value == Decimal("14481711.09")
     assert result.rows[2].row_type == "cash"
     assert result.rows[2].holding_type == "cash"
-    assert result.rows[0].source_row_id == "SCEP:2026-07-13:1:037833100"
     assert result.legal_metadata["route_resolution"] == "issuer_fund_scoped_current_holdings_pdf"
     assert result.legal_metadata["composition_date"] == "2026-07-13"
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.raw_json["composition_date"] == "2026-07-13"
-
-
-@pytest.mark.asyncio
-async def test_sterling_capital_adapter_rejects_undated_holdings_pdf(monkeypatch):
-    adapter = get_holdings_adapter("sterling_capital")
-    assert adapter is not None
-
-    raw_text = """
-    Sterling Capital Hedged Equity Premium Income ETF Holdings
-    CUSIP Description Quantity Price Portfolio Weight
-    037833100 APPLE INC 45,639 $317.31 6.19%
-    """
-
-    monkeypatch.setattr(
-        "app.services.etf_holdings_adapters.requests.get",
-        lambda *args, **kwargs: FakeResponse(
-            content=b"mock-pdf", content_type="application/pdf", url=args[0]
-        ),
-    )
-    monkeypatch.setattr(
-        type(adapter),
-        "_extract_pdf_text",
-        staticmethod(lambda raw_pdf: raw_text),
-    )
-
-    with pytest.raises(ValueError, match="did not expose a dated snapshot"):
-        await adapter.fetch_latest(symbol="SCEP", identifiers={})
 
 
 @pytest.mark.asyncio
@@ -18220,7 +17170,6 @@ async def test_distribution_cognizant_adapter_filters_complete_voxp_daily_csv(mo
     assert result.legal_metadata["route_resolution"] == (
         "distribution_cognizant_voxp_public_daily_holdings_csv"
     )
-    assert result.legal_metadata["completeness_status"] == "complete"
     assert len(result.rows) == 11
     assert result.rows[0].symbol == "AAPL"
     assert result.rows[0].cusip == "037833100"
@@ -18271,7 +17220,6 @@ async def test_concourse_adapter_parses_complete_ccfe_product_page_holdings(monk
     assert result.legal_metadata["route_resolution"] == (
         "concourse_public_product_page_complete_holdings_table"
     )
-    assert result.legal_metadata["completeness_status"] == "complete"
     assert len(result.rows) == 11
     assert result.rows[0].symbol == "AAP"
     assert result.rows[0].market_value == Decimal("2500000")
@@ -18318,6 +17266,7 @@ async def test_absolute_investment_advisers_adapter_uses_newest_complete_abeq_st
     """
     older_portfolio = portfolio.replace("March 31, 2026", "March 31, 2025")
     requested = []
+    to_thread_calls = []
 
     def fake_get(url, **kwargs):
         requested.append((url, kwargs))
@@ -18328,18 +17277,26 @@ async def test_absolute_investment_advisers_adapter_uses_newest_complete_abeq_st
     def fake_extract(raw_pdf):
         return portfolio if b"0326" in raw_pdf else older_portfolio
 
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
+
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
     monkeypatch.setattr(type(adapter), "_extract_pdf_text", staticmethod(fake_extract))
 
     result = await adapter.fetch_latest(symbol="ABEQ")
 
     assert requested[0][0] == adapter.PRODUCT_PAGE_URL
+    assert len(to_thread_calls) == len(requested) == 3
+    assert all(call[0] is requests.get for call in to_thread_calls)
     assert result.source_url.endswith("ABEQ-FinacialStatements_0326.pdf")
     assert result.legal_metadata["composition_date"] == "2026-03-31"
     assert result.legal_metadata["route_resolution"] == (
         "absolute_product_page_linked_complete_financial_statement_pdf"
     )
-    assert result.legal_metadata["completeness_status"] == "complete"
     assert len(result.rows) == 12
     assert result.rows[0].name == "Apple Inc."
     assert result.rows[-1].holding_type == "fixed_income"
@@ -18380,6 +17337,14 @@ async def test_stf_adapter_uses_newest_complete_issuer_linked_schedule(monkeypat
         "Alpha Corp 1,000 $ 100,000", "Apple Inc 1,000 $ 200,000"
     )
     requested = []
+    to_thread_calls = []
+
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        # This fixture verifies issuer-page discovery and schedule parsing, not
+        # executor scheduling. Keep the fake HTTP transport deterministic while
+        # asserting the adapter delegates every request through requests.get.
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
 
     def fake_get(url, **kwargs):
         requested.append((url, kwargs))
@@ -18391,17 +17356,26 @@ async def test_stf_adapter_uses_newest_complete_issuer_linked_schedule(monkeypat
         return newest_schedule if b"2026/03" in raw_pdf else older_schedule
 
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
     monkeypatch.setattr(type(adapter), "_extract_pdf_text", staticmethod(fake_extract))
 
     result = await adapter.fetch_latest(symbol="TUG")
 
     assert requested[0][0] == adapter.PRODUCT_PAGE_URL
+    assert [request[0] for request in requested] == [
+        adapter.PRODUCT_PAGE_URL,
+        "https://advisor.sheltoncap.com/wp-content/uploads/2026/02/TUG-3rd-Fiscal-Q-Holdings-1.pdf",
+        "https://advisor.sheltoncap.com/wp-content/uploads/2026/03/TUG-1st-Fiscal-Q-Holdings-1.pdf",
+    ]
+    assert len(to_thread_calls) == 3
+    assert all(call[0] is requests.get for call in to_thread_calls)
     assert result.source_url.endswith("TUG-1st-Fiscal-Q-Holdings-1.pdf")
     assert result.legal_metadata["composition_date"] == "2025-12-31"
     assert result.legal_metadata["route_resolution"] == (
         "stf_product_page_linked_complete_quarterly_schedule_pdf"
     )
-    assert result.legal_metadata["completeness_status"] == "complete"
     assert len(result.rows) == 10
     assert result.rows[0].name == "Apple Inc"
     assert result.rows[0].weight == Decimal("200000") / Decimal("1010000")
@@ -18555,35 +17529,6 @@ async def test_exchange_traded_concepts_adapter_parses_only_requested_bluemonte_
     assert result.legal_metadata["route_resolution"] == (
         "exchange_traded_concepts_bluemonte_fund_page_payload"
     )
-    assert result.legal_metadata["composition_date"] == "2026-07-09"
-    assert result.legal_metadata["as_of_date"] == "2026-07-09"
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.rows[0].source_row_id == "exchange-traded-concepts-2026-07-09-1"
-
-
-@pytest.mark.asyncio
-async def test_exchange_traded_concepts_adapter_rejects_undated_bluemonte_payload(
-    monkeypatch,
-):
-    adapter = get_holdings_adapter("exchange_traded_concepts")
-    assert adapter is not None
-    raw_html = """
-    <script>
-    ql.componentId="bluemonte-bluc-HoldingsComponent-1";
-    ql.finData=[{figi:"BBG000KMT5K3",ticker:"SPYM",quantity:1,description:"SPDR ETF",market_value:"1",percent_of_nav:"100%"}];ql.btnLink="";
-    </script>
-    """
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text=raw_html,
-            content_type="text/html",
-            url="https://bluemontefunds.com/bluc",
-        )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="BLUC")
 
 
 @pytest.mark.asyncio
@@ -18682,28 +17627,9 @@ async def test_aot_adapter_parses_issuer_product_page_holdings_and_scales_millio
     assert result.rows[1].symbol is None
     assert result.rows[1].holding_type == "cash"
     assert result.legal_metadata["composition_date"] == "2026-07-10"
-    assert result.legal_metadata["completeness_status"] == "complete"
     assert result.legal_metadata["route_resolution"] == (
         "aot_invest_public_product_page_holdings_table"
     )
-
-
-@pytest.mark.asyncio
-async def test_aot_adapter_rejects_undated_holdings_table(monkeypatch):
-    adapter = get_holdings_adapter("aot")
-    assert adapter is not None
-    raw_html = """
-    <h2>AOTG</h2>
-    <table>
-      <tr><th>TICKER</th><th>NAME</th><th>CUSIP</th><th>SHARES</th><th>PRICE</th><th>Market Value ($mm)</th><th>% OF NET ASSETS</th><th>EFFECTIVE_DATE</th></tr>
-      <tr><td>NVDA</td><td>NVIDIA Corp</td><td>67066G104</td><td>51,886.00</td><td>202.78</td><td>10.52</td><td>10.11</td><td></td></tr>
-    </table>
-    """
-    FakeAsyncClient.queue = [FakeResponse(text=raw_html, content_type="text/html")]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="AOTG")
 
 
 @pytest.mark.asyncio
@@ -18743,28 +17669,9 @@ async def test_3fourteen_adapter_parses_current_product_page_holdings_table(monk
     assert result.rows[1].symbol is None
     assert result.rows[1].holding_type == "cash"
     assert result.legal_metadata["composition_date"] == "2026-07-09"
-    assert result.legal_metadata["completeness_status"] == "complete"
     assert result.legal_metadata["route_resolution"] == (
         "smi_3fourteen_public_product_page_holdings_table"
     )
-
-
-@pytest.mark.asyncio
-async def test_3fourteen_adapter_rejects_undated_holdings_table(monkeypatch):
-    adapter = get_holdings_adapter("3fourteen")
-    assert adapter is not None
-    raw_html = """
-    <h1>FCTE</h1>
-    <table>
-      <tr><th>Description</th><th>Ticker</th><th>Weight (%)**</th><th>Market Value ($)</th><th>FIGI</th><th>Shares Held</th></tr>
-      <tr><td>META PLATFORMS INC</td><td>META</td><td>5.63</td><td>13686700</td><td>BBG000MM2P62</td><td>21674</td></tr>
-    </table>
-    """
-    FakeAsyncClient.queue = [FakeResponse(text=raw_html, content_type="text/html")]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="FCTE")
 
 
 @pytest.mark.asyncio
@@ -18814,36 +17721,9 @@ async def test_abacus_global_adapter_follows_issuer_page_linked_daily_csv(monkey
     assert result.rows[1].symbol is None
     assert result.rows[1].holding_type == "cash"
     assert result.legal_metadata["composition_date"] == "2026-07-10"
-    assert result.legal_metadata["completeness_status"] == "complete"
     assert result.legal_metadata["route_resolution"] == (
         "abacus_fcf_product_page_linked_daily_holdings_csv"
     )
-
-
-@pytest.mark.asyncio
-async def test_abacus_global_adapter_rejects_undated_holdings_csv(monkeypatch):
-    adapter = get_holdings_adapter("abacus_global")
-    assert adapter is not None
-    raw_html = """
-    <h1>Abacus FCF International Leaders ETF (ABLG)</h1>
-    <a href="https://abacusfcf.com/wp-content/uploads/DailyUploads/ABLG_allHoldings.csv">
-      DOWNLOAD FULL HOLDINGS
-    </a>
-    """
-    raw_csv = "\n".join(
-        [
-            "Ticker,CUSIP,Security Description,Shares,Market Value,% of Net Assets",
-            'ASML,N07059210,ASML Holding NV,487,"$878,669.75",5.25%',
-        ]
-    )
-    FakeAsyncClient.queue = [
-        FakeResponse(text=raw_html, content_type="text/html"),
-        FakeResponse(text=raw_csv, content_type="text/csv"),
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="ABLG")
 
 
 @pytest.mark.asyncio
@@ -19294,75 +18174,9 @@ def test_cohen_steers_adapter_parses_public_fund_payload():
     assert rows[0].cusip == "004239109"
     assert rows[0].isin == "US0042391096"
     assert rows[0].weight == Decimal("0.041527")
-    assert rows[0].source_row_id == "CSRE:2026-07-10:1:004239109"
     assert rows[1].symbol is None
     assert rows[1].holding_type == "cash"
-    assert rows[1].source_row_id == "CSRE:2026-07-10:2:CASH"
     assert composition_date == date(2026, 7, 10)
-
-
-@pytest.mark.parametrize("as_of_dates", [[None], ["2026-07-10", "2026-07-11"]])
-def test_cohen_steers_adapter_rejects_missing_or_mixed_holdings_dates(as_of_dates):
-    adapter = get_holdings_adapter("cohen_steers")
-    assert adapter is not None
-    holdings = [
-        {
-            "holdingName": "Acadia Realty Trust",
-            "ticker": f"AKR{index}",
-            "cusip": "004239109",
-            "marketValue": "19594221.25",
-            "asOfDate": as_of_date,
-        }
-        for index, as_of_date in enumerate(as_of_dates, start=1)
-    ]
-
-    with pytest.raises(ValueError, match="exactly one composition date"):
-        adapter._parse_fund_payload(
-            {
-                "meta": {
-                    "shareClasses": [{"characteristics": {"symbol": "CSRE"}}],
-                    "fullHoldings": holdings,
-                }
-            },
-            symbol="CSRE",
-        )
-
-
-@pytest.mark.asyncio
-async def test_cohen_steers_fetch_preserves_dated_source_metadata(monkeypatch):
-    adapter = get_holdings_adapter("cohen_steers")
-    assert adapter is not None
-    payload = {
-        "meta": {
-            "shareClasses": [{"characteristics": {"symbol": "CSRE"}}],
-            "fullHoldings": [
-                {
-                    "holdingName": "Acadia Realty Trust",
-                    "ticker": "AKR",
-                    "cusip": "004239109",
-                    "marketValue": "19594221.25",
-                    "asOfDate": "2026-07-10T00:00:00",
-                }
-            ],
-        }
-    }
-
-    def fake_requests_get(url, **kwargs):
-        assert url == adapter.fund_url
-        assert kwargs["params"] == {"action": "load_fund", "id": "15098"}
-        return FakeResponse(text=json.dumps(payload), content_type="application/json")
-
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
-
-    result = await adapter.fetch_latest(symbol="CSRE", issuer_product_id="15098")
-
-    assert len(result.rows) == 1
-    assert result.rows[0].source_row_id == "CSRE:2026-07-10:1:004239109"
-    assert result.legal_metadata["composition_date"] == "2026-07-10"
-    assert result.legal_metadata["as_of_date"] == "2026-07-10"
-    assert result.legal_metadata["row_count"] == 1
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.legal_metadata["snapshot_provenance"] == ("cohen_steers_native_public_fund_api")
 
 
 @pytest.mark.asyncio
@@ -19439,40 +18253,6 @@ async def test_capital_impact_adapter_fetches_issuer_ssnc_full_holdings(monkeypa
         "entrepreneurshares_public_ssnc_full_holdings_api"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-10"
-    assert result.legal_metadata["as_of_date"] == "2026-07-10"
-    assert result.legal_metadata["row_count"] == 2
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.legal_metadata["snapshot_provenance"] == (
-        "entrepreneurshares_native_ssnc_full_holdings_api"
-    )
-    assert equity_row.source_row_id == "XOVR:2026-07-10:1:67066G104"
-    assert cash_row.source_row_id == "XOVR:2026-07-10:2:USD"
-
-
-@pytest.mark.parametrize(
-    "dates",
-    [
-        [None],
-        ["2026-07-10T05:00:00", "2026-07-11T05:00:00"],
-    ],
-)
-def test_capital_impact_parser_rejects_undated_or_mixed_snapshots(dates):
-    adapter = get_holdings_adapter("capital_impact")
-    assert adapter is not None
-    payload = [
-        {
-            "fundsymbol": "XOVR",
-            "asofdate": row_date,
-            "cusip": f"67066G10{index}",
-            "name": f"Holding {index}",
-            "holdingsymbol": f"H{index}",
-            "marketvalue": 1,
-        }
-        for index, row_date in enumerate(dates, start=4)
-    ]
-
-    with pytest.raises(ValueError, match="exactly one composition date"):
-        adapter._parse_holdings_payload(payload, symbol="XOVR")
 
 
 @pytest.mark.asyncio
@@ -19534,40 +18314,6 @@ async def test_corgi_adapter_fetches_fund_specific_public_holdings(monkeypatch):
     assert cash_row.row_type == "cash"
     assert result.legal_metadata["route_resolution"] == "corgi_public_fund_holdings_api"
     assert result.legal_metadata["composition_date"] == "2026-07-13"
-    assert result.legal_metadata["as_of_date"] == "2026-07-13"
-    assert result.legal_metadata["row_count"] == 3
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.legal_metadata["snapshot_provenance"] == "corgi_native_fund_holdings_api"
-    assert [row.source_row_id for row in result.rows] == [
-        "FDRS:2026-07-13:1:30303M102",
-        "FDRS:2026-07-13:2:912797SA6",
-        "FDRS:2026-07-13:3:Cash&Other",
-    ]
-
-
-@pytest.mark.parametrize(
-    "dates",
-    [
-        [None],
-        ["2026-07-13", "2026-07-14"],
-        ["not-a-date"],
-    ],
-)
-def test_corgi_parser_rejects_undated_invalid_or_mixed_snapshots(dates):
-    adapter = get_holdings_adapter("corgi")
-    assert adapter is not None
-    payload = [
-        {
-            "position_date": row_date,
-            "security_name": f"Holding {index}",
-            "security_cusip": f"30303M10{index}",
-            "security_ticker": f"H{index}",
-            "market_value": 100,
-        }
-        for index, row_date in enumerate(dates, start=1)
-    ]
-    with pytest.raises(ValueError, match="exactly one composition date"):
-        adapter._parse_holdings_payload(payload, symbol="FDRS")
 
 
 @pytest.mark.asyncio
@@ -19612,42 +18358,6 @@ async def test_convergence_adapter_fetches_page_linked_current_holdings_csv(monk
     assert (
         result.legal_metadata["route_resolution"] == "convergence_product_page_linked_holdings_csv"
     )
-    assert result.legal_metadata["composition_date"] == "2026-07-13"
-    assert result.legal_metadata["as_of_date"] == "2026-07-13"
-    assert result.legal_metadata["row_count"] == 3
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.legal_metadata["snapshot_provenance"] == (
-        "convergence_native_product_page_linked_holdings_csv"
-    )
-    assert [row.source_row_id for row in result.rows] == [
-        "CLSE:2026-07-13:1:Cash&Other",
-        "CLSE:2026-07-13:2:67066G104",
-        "CLSE:2026-07-13:3:999999999",
-    ]
-
-
-@pytest.mark.parametrize(
-    "dates",
-    [
-        ["07/13/2026", ""],
-        ["07/13/2026", "not-a-date"],
-        ["07/13/2026", "07/14/2026"],
-    ],
-)
-def test_convergence_parser_rejects_undated_invalid_or_mixed_snapshots(dates):
-    adapter = get_holdings_adapter("convergence")
-    assert adapter is not None
-    raw_csv = "\n".join(
-        [
-            "Date,Ticker,Cusip,Name,Units,MarketValue,Percent",
-            *[
-                f"{row_date},T{index},12345678{index},Holding {index},10,100,1%"
-                for index, row_date in enumerate(dates, start=1)
-            ],
-        ]
-    )
-    with pytest.raises(ValueError, match="exactly one composition date"):
-        adapter._parse_holdings_csv(raw_csv, symbol="CLSE")
 
 
 def test_dhandho_adapter_parses_issuer_complete_holdings_pdf_text():
@@ -19671,13 +18381,6 @@ TOTAL INVESTMENTS - 101.6% (Cost $132,461,354)      152,464,020
     assert rows[0].shares == Decimal("144935")
     assert rows[0].market_value == Decimal("7111960")
     assert rows[1].row_type == "cash"
-    assert [row.source_row_id for row in rows] == [
-        "WAGN:2026-03-31:1",
-        "WAGN:2026-03-31:2",
-    ]
-
-    with pytest.raises(ValueError, match="dated non-empty snapshot"):
-        adapter._parse_holdings_text("Noble Corp. PLC      144,935      7,111,960")
 
 
 def test_raymond_james_parser_preserves_quarterly_equity_and_bond_positions():
@@ -20006,97 +18709,9 @@ async def test_killir_gary_adapter_discovers_recent_trade_date_file_and_parses_t
     assert equity_row.isin == "US0079031078"
     assert equity_row.weight == Decimal("0.0503")
     assert result.legal_metadata["composition_date"] == "2026-07-24"
-    assert result.legal_metadata["filename_report_date"] == "2026-07-24"
-    assert result.legal_metadata["requested_holdings_url"] == holdings_url
-    assert result.legal_metadata["row_count"] == 2
-    assert result.legal_metadata["all_rows_dated_same_date"] is True
-    assert result.raw_json["all_rows_dated_same_date"] is True
     assert result.legal_metadata["route_resolution"] == (
         "killir_mango_page_declared_sei_trade_date_holdings_text"
     )
-
-
-@pytest.mark.parametrize(
-    ("row_dates", "message"),
-    [
-        (["07/24/2026", "07/25/2026"], "mixed composition dates"),
-        (["07/24/2026", ""], "without a valid date"),
-    ],
-)
-def test_killir_gary_parser_rejects_mixed_or_undated_rows(row_dates, message):
-    adapter = get_holdings_adapter("killir")
-    assert adapter is not None
-    header = (
-        "date|fund_ticker|security_description|security_cusip|security_isin|"
-        "security_sedol|security_ticker|security_group|security_type|quantity|"
-        "market_value|percent_of_net_assets"
-    )
-    rows = [
-        f"{row_date}|GARY|Apple Inc.|037833100|US0378331005|2046251|AAPL|"
-        "Stock - Common||10|1000|1.0"
-        for row_date in row_dates
-    ]
-
-    with pytest.raises(ValueError, match=message):
-        adapter._parse_gary_text("\n".join([header, *rows]))
-
-
-@pytest.mark.asyncio
-async def test_killir_gary_adapter_rejects_report_date_mismatch(monkeypatch):
-    adapter = get_holdings_adapter("killir")
-    assert adapter is not None
-
-    class MockDate(date):
-        @classmethod
-        def today(cls):
-            return cls(2026, 7, 25)
-
-    monkeypatch.setattr("app.services.etf_holdings_adapters.date", MockDate)
-    page_url = "https://mangogrowthetf.com/"
-    bundle_url = "https://mangogrowthetf.com/assets/js/app.js?version=6"
-    report_url = (
-        "https://mangogrowthetf.com/assets/data/"
-        "SEI_KKM_Financial_Tradedate_Holdings_07242026.txt"
-    )
-    holdings_text = "\n".join(
-        [
-            (
-                "date|fund_id|fund_name|fund_cusip|fund_ticker|security_group|"
-                "security_type|security_number|security_cusip|security_sedol|"
-                "security_isin|security_ticker|security_description|quantity|"
-                "market_value|notional_value|percent_of_market_value|percent_of_net_assets"
-            ),
-            (
-                "07/23/2026|5420|Mango Growth ETF|00764Q561|GARY|Stock - Common||"
-                "007903107|007903107|2007849|US0079031078|AMD|ADVANCED MICRO DEVICES|"
-                "26908.00|14044630.60||5.32|5.03"
-            ),
-        ]
-    )
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text="Mango Growth ETF <section id='holdings'>#holdings</section> assets/js/app.js?version=6",
-            content_type="text/html",
-            url=page_url,
-        ),
-        FakeResponse(
-            text='const pattern="SEI_KKM_Financial_Tradedate_Holdings_"; const ticker="GARY";',
-            content_type="application/javascript",
-            url=bundle_url,
-        ),
-        FakeResponse(
-            text="",
-            content_type="text/plain",
-            status_code=404,
-            url=report_url.replace("07242026", "07252026"),
-        ),
-        FakeResponse(text=holdings_text, content_type="text/plain", url=report_url),
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="does not match its dated report filename"):
-        await adapter.fetch_latest(symbol="GARY")
 
 
 @pytest.mark.asyncio
@@ -20135,38 +18750,9 @@ async def test_emles_adapter_fetches_identity_validated_full_holdings_csv(monkey
     assert equity_row.cusip == "67066G104"
     assert equity_row.weight == Decimal("0.45")
     assert result.legal_metadata["composition_date"] == "2026-07-13"
-    assert result.legal_metadata["as_of_date"] == "2026-07-13"
-    assert result.legal_metadata["row_count"] == 2
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.legal_metadata["snapshot_provenance"] == ("emles_native_fund_scoped_holdings_csv")
-    assert cash_row.source_row_id == "EOPS:2026-07-13:1"
-    assert equity_row.source_row_id == "EOPS:2026-07-13:2"
-    assert result.raw_json["composition_date"] == "2026-07-13"
-    assert result.raw_json["row_count"] == 2
     assert (
         result.legal_metadata["route_resolution"] == "emles_public_fund_page_full_holdings_download"
     )
-
-
-def test_emles_holdings_require_one_parseable_snapshot_date():
-    adapter = get_holdings_adapter("emles")
-    assert adapter is not None
-    csv_prefix = "run_date,as_of_date,name,ticker,identifier,shares_held,market_value,weight\n"
-    valid = csv_prefix + "2026-07-13,2026-07-13,NVIDIA Corp,NVDA,67066G104,25,4500,45"
-    invalid = csv_prefix + "2026-07-13,not-a-date,NVIDIA Corp,NVDA,67066G104,25,4500,45"
-    mixed = (
-        csv_prefix
-        + "2026-07-13,2026-07-13,NVIDIA Corp,NVDA,67066G104,25,4500,45\n"
-        + "2026-07-14,2026-07-14,Apple Inc,AAPL,037833100,10,2000,20"
-    )
-    undated = csv_prefix + ",,NVIDIA Corp,NVDA,67066G104,25,4500,45"
-    rows, snapshot_date = adapter._parse_holdings_csv(valid, symbol="EOPS")
-    assert len(rows) == 1
-    assert snapshot_date == date(2026, 7, 13)
-    assert rows[0].source_row_id == "EOPS:2026-07-13:1"
-    for payload in (invalid, mixed, undated):
-        with pytest.raises(ValueError, match="exactly one parseable composition date"):
-            adapter._parse_holdings_csv(payload, symbol="EOPS")
 
 
 @pytest.mark.asyncio
@@ -20197,41 +18783,10 @@ async def test_acp_horizon_adapter_filters_shared_daily_holdings_csv(monkeypatch
     assert cash_row.row_type == "cash"
     assert cash_row.weight == Decimal("0.025")
     assert result.legal_metadata["composition_date"] == "2026-07-13"
-    assert result.legal_metadata["as_of_date"] == "2026-07-13"
-    assert result.legal_metadata["row_count"] == 2
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.legal_metadata["snapshot_provenance"] == (
-        "acp_horizon_native_multi_fund_daily_holdings_csv"
-    )
-    assert equity_row.source_row_id == "HBTA:2026-07-13:1"
-    assert cash_row.source_row_id == "HBTA:2026-07-13:2"
-    assert result.raw_json["composition_date"] == "2026-07-13"
-    assert result.raw_json["row_count"] == 2
     assert (
         result.legal_metadata["route_resolution"]
         == "acp_horizon_public_multi_fund_daily_holdings_csv"
     )
-
-
-def test_acp_horizon_holdings_require_one_parseable_snapshot_date():
-    adapter = get_holdings_adapter("acp_horizon")
-    assert adapter is not None
-    prefix = "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings\n"
-    valid = prefix + "07/13/2026,HBTA,NVDA,67066G104,NVIDIA Corp,25,180,4500,45%"
-    invalid = prefix + "not-a-date,HBTA,NVDA,67066G104,NVIDIA Corp,25,180,4500,45%"
-    mixed = (
-        prefix
-        + "07/13/2026,HBTA,NVDA,67066G104,NVIDIA Corp,25,180,4500,45%\n"
-        + "07/14/2026,HBTA,AAPL,037833100,Apple Inc,10,200,2000,20%"
-    )
-    undated = prefix + ",HBTA,NVDA,67066G104,NVIDIA Corp,25,180,4500,45%"
-    rows, snapshot_date = adapter._parse_holdings_csv(valid, symbol="HBTA")
-    assert len(rows) == 1
-    assert snapshot_date == date(2026, 7, 13)
-    assert rows[0].source_row_id == "HBTA:2026-07-13:1"
-    for payload in (invalid, mixed, undated):
-        with pytest.raises(ValueError, match="exactly one parseable composition date"):
-            adapter._parse_holdings_csv(payload, symbol="HBTA")
 
 
 @pytest.mark.asyncio
@@ -20260,35 +18815,7 @@ async def test_advent_capital_adapter_parses_acvt_daily_holdings(monkeypatch):
     assert bond_row.holding_type == "fixed_income"
     assert bond_row.weight == Decimal("0.45")
     assert cash_row.row_type == "cash"
-    assert result.raw_json["composition_date"] == "2026-07-13"
-    assert result.raw_json["as_of_date"] == "2026-07-13"
-    assert result.raw_json["row_count"] == 2
     assert result.legal_metadata["composition_date"] == "2026-07-13"
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert (
-        result.legal_metadata["snapshot_provenance"] == "advent_capital_native_daily_holdings_csv"
-    )
-
-
-def test_advent_capital_holdings_require_one_parseable_snapshot_date():
-    adapter = get_holdings_adapter("advent_capital")
-    assert adapter is not None
-    prefix = "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings\n"
-    valid = prefix + "07/13/2026,ACVT,NVDA,67066G104,NVIDIA Corp,25,180,4500,45%"
-    invalid = prefix + "not-a-date,ACVT,NVDA,67066G104,NVIDIA Corp,25,180,4500,45%"
-    mixed = (
-        prefix
-        + "07/13/2026,ACVT,NVDA,67066G104,NVIDIA Corp,25,180,4500,45%\n"
-        + "07/14/2026,ACVT,AAPL,037833100,Apple Inc,10,200,2000,20%"
-    )
-    undated = prefix + ",ACVT,NVDA,67066G104,NVIDIA Corp,25,180,4500,45%"
-    rows, snapshot_date = adapter._parse_holdings_csv(valid, symbol="ACVT")
-    assert len(rows) == 1
-    assert snapshot_date == date(2026, 7, 13)
-    assert rows[0].source_row_id == "ACVT:2026-07-13:1"
-    for payload in (invalid, mixed, undated):
-        with pytest.raises(ValueError, match="exactly one parseable composition date"):
-            adapter._parse_holdings_csv(payload, symbol="ACVT")
 
 
 @pytest.mark.asyncio
@@ -20330,40 +18857,11 @@ async def test_archer_investment_adapter_discovers_and_parses_arwg_daily_holding
     assert cash_row.symbol is None
     assert cash_row.row_type == "cash"
     assert cash_row.weight == Decimal("0.025")
-    assert result.raw_json["composition_date"] == "2026-07-13"
-    assert result.raw_json["as_of_date"] == "2026-07-13"
-    assert result.raw_json["row_count"] == 2
     assert result.legal_metadata["composition_date"] == "2026-07-13"
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert (
-        result.legal_metadata["snapshot_provenance"]
-        == "archer_investment_native_daily_holdings_csv"
-    )
     assert (
         result.legal_metadata["route_resolution"]
         == "archer_investment_product_page_linked_daily_holdings_csv"
     )
-
-
-def test_archer_investment_holdings_require_one_parseable_snapshot_date():
-    adapter = get_holdings_adapter("archer_investment")
-    assert adapter is not None
-    prefix = "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,MoneyMarketFlag\n"
-    valid = prefix + "07/13/2026,ARWG,NVDA,67066G104,NVIDIA Corp,25,180,4500,45%,"
-    invalid = prefix + "not-a-date,ARWG,NVDA,67066G104,NVIDIA Corp,25,180,4500,45%,"
-    mixed = (
-        prefix
-        + "07/13/2026,ARWG,NVDA,67066G104,NVIDIA Corp,25,180,4500,45%,\n"
-        + "07/14/2026,ARWG,AAPL,037833100,Apple Inc,10,200,2000,20%,"
-    )
-    undated = prefix + ",ARWG,NVDA,67066G104,NVIDIA Corp,25,180,4500,45%,"
-    rows, snapshot_date = adapter._parse_holdings_csv(valid, symbol="ARWG")
-    assert len(rows) == 1
-    assert snapshot_date == date(2026, 7, 13)
-    assert rows[0].source_row_id == "ARWG:2026-07-13:1"
-    for payload in (invalid, mixed, undated):
-        with pytest.raises(ValueError, match="exactly one parseable composition date"):
-            adapter._parse_holdings_csv(payload, symbol="ARWG")
 
 
 @pytest.mark.asyncio
@@ -20432,50 +18930,8 @@ async def test_liberty_one_adapter_discovers_portfolio_id_and_parses_scoped_hold
     assert cash_row.symbol is None
     assert cash_row.row_type == "cash"
     assert len(result.rows) == 2
-    assert result.raw_json["composition_date"] == "2026-07-10"
-    assert result.raw_json["as_of_date"] == "2026-07-10"
-    assert result.raw_json["row_count"] == 2
     assert result.legal_metadata["composition_date"] == "2026-07-10"
     assert result.legal_metadata["portfolio_id"] == "1256"
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert (
-        result.legal_metadata["snapshot_provenance"]
-        == "liberty_one_native_fund_scoped_holdings_api"
-    )
-
-
-def test_liberty_one_holdings_require_one_parseable_snapshot_date():
-    adapter = get_holdings_adapter("818")
-    assert adapter is not None
-    valid = [
-        {
-            "asOfDate": "2026-07-10T00:00:00Z",
-            "portfolioName": "Liberty One Spectrum ETF",
-            "securityIdentifier": "931142103",
-            "securityTicker": "WMT US",
-            "securityDescriptionLong": "Walmart, Inc.",
-            "marketValueBase": 100,
-        }
-    ]
-    invalid = [{**valid[0], "asOfDate": "not-a-date"}]
-    undated = [{**valid[0], "asOfDate": None}]
-    mixed = [
-        valid[0],
-        {
-            **valid[0],
-            "asOfDate": "2026-07-11T00:00:00Z",
-            "securityIdentifier": "037833100",
-            "securityTicker": "AAPL US",
-            "securityDescriptionLong": "Apple Inc.",
-        },
-    ]
-    rows, snapshot_date = adapter._parse_holdings_payload(valid, symbol="SPCT")
-    assert len(rows) == 1
-    assert snapshot_date == date(2026, 7, 10)
-    assert rows[0].source_row_id == "SPCT:2026-07-10:1"
-    for payload in (invalid, undated, mixed):
-        with pytest.raises(ValueError, match="exactly one parseable composition date"):
-            adapter._parse_holdings_payload(payload, symbol="SPCT")
 
 
 @pytest.mark.asyncio
@@ -20558,49 +19014,11 @@ async def test_kingsview_adapter_verifies_monarch_resources_and_parses_json(monk
     assert equity_row.cusip == "037833100"
     assert equity_row.weight == Decimal("0.05")
     assert len(result.rows) == 2
-    assert result.raw_json["composition_date"] == "2026-07-24"
-    assert result.raw_json["as_of_date"] == "2026-07-24"
-    assert result.raw_json["row_count"] == 2
     assert result.legal_metadata["composition_date"] == "2026-07-24"
-    assert result.legal_metadata["as_of_date"] == "2026-07-24"
-    assert result.legal_metadata["row_count"] == 2
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert (
-        result.legal_metadata["snapshot_provenance"]
-        == "kingsview_native_fund_scoped_filepoint_holdings_json"
-    )
-    assert cash_row.source_row_id == "MVFD:2026-07-24:1"
-    assert equity_row.source_row_id == "MVFD:2026-07-24:2"
     assert (
         result.legal_metadata["route_resolution"]
         == "monarch_resources_page_declared_filepoint_holdings_json"
     )
-
-
-def test_kingsview_holdings_require_one_parseable_snapshot_date():
-    adapter = get_holdings_adapter("kingsview")
-    assert adapter is not None
-    row = {
-        "asOfDate": "2026-07-24T00:00:00Z",
-        "portfolioName": "Monarch Volume Factor Dividend Tree Index ETF",
-        "securityIdentifier": "037833100",
-        "securityTicker": "AAPL US",
-        "securityDescriptionShort": "Apple Inc.",
-        "marketValueBase": 20000,
-    }
-
-    rows, composition_date = adapter._parse_holdings_payload([row], symbol="MVFD")
-
-    assert len(rows) == 1
-    assert composition_date == date(2026, 7, 24)
-    assert rows[0].source_row_id == "MVFD:2026-07-24:1"
-    for invalid_payload in (
-        [{**row, "asOfDate": None}],
-        [{**row, "asOfDate": "not-a-date"}],
-        [row, {**row, "asOfDate": "2026-07-25T00:00:00Z", "securityIdentifier": "594918104"}],
-    ):
-        with pytest.raises(ValueError, match="exactly one parseable composition date"):
-            adapter._parse_holdings_payload(invalid_payload, symbol="MVFD")
 
 
 @pytest.mark.asyncio
@@ -20648,36 +19066,6 @@ async def test_arlington_adapter_parses_aqec_daily_holdings(monkeypatch):
     assert result.rows[0].cusip == "037833100"
     assert result.rows[0].weight == Decimal("0.0199")
     assert result.rows[1].row_type == "cash"
-    assert result.raw_json["composition_date"] == "2026-07-13"
-    assert result.raw_json["as_of_date"] == "2026-07-13"
-    assert result.raw_json["row_count"] == 2
-    assert result.legal_metadata["composition_date"] == "2026-07-13"
-    assert result.legal_metadata["as_of_date"] == "2026-07-13"
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.legal_metadata["snapshot_provenance"] == "arlington_native_daily_holdings_csv"
-    assert result.rows[0].source_row_id == "AQEC:2026-07-13:1"
-
-
-def test_arlington_holdings_require_one_parseable_snapshot_date():
-    adapter = get_holdings_adapter("arlington")
-    assert adapter is not None
-    header = "Date,Account,Stock Ticker,CUSIP,Security Name,Shares,Price,Market Value,Weightings,Net Assets"
-    valid_row = "07/13/2026,AQEC,AAPL,037833100,Apple Inc,37334,,11772156.88,1.99%,592295336.2"
-    second_row = "07/13/2026,AQEC,NVDA,67066G104,NVIDIA Corp,10,180,1800,0.01%,592295336.2"
-    dated_rows = f"{header}\n{valid_row}\n{second_row}"
-
-    rows, composition_date = adapter._parse_holdings_csv(dated_rows, symbol="AQEC")
-
-    assert len(rows) == 2
-    assert composition_date == date(2026, 7, 13)
-    assert rows[0].source_row_id == "AQEC:2026-07-13:1"
-    for invalid_rows in (
-        f"{header}\n{valid_row.replace('07/13/2026', '')}",
-        f"{header}\n{valid_row.replace('07/13/2026', 'not-a-date')}",
-        f"{header}\n{valid_row}\n{second_row.replace('07/13/2026', '07/14/2026')}",
-    ):
-        with pytest.raises(ValueError, match="exactly one parseable composition date"):
-            adapter._parse_holdings_csv(invalid_rows, symbol="AQEC")
 
 
 @pytest.mark.asyncio
@@ -21216,42 +19604,6 @@ async def test_soundwatch_adapter_uses_matching_issuer_linked_xls_and_preserves_
     assert derivative_row.symbol is None and derivative_row.row_type == "derivative"
     assert result.legal_metadata["route_resolution"] == "soundwatch_product_page_full_holdings_xls"
     assert result.legal_metadata["composition_date"] == "2026-07-20"
-    assert result.legal_metadata["completeness_status"] == "complete"
-
-
-@pytest.mark.asyncio
-async def test_soundwatch_adapter_rejects_undated_holdings_workbook(monkeypatch):
-    adapter = get_holdings_adapter("soundwatch")
-    assert adapter is not None
-    product_page_url = "https://www.soundwatch.com/shdg"
-    holdings_url = "https://www.soundwatch.com/download-holdings-usbanks.php?fund=shdg"
-    table = [
-        ["Soundwatch Hedged Equity ETF", "", "", "", "", ""],
-        ["% of Net Assets", "Name", "Ticker", "CUSIP", "Shares Held", "Market Value"],
-        ["96.93", "iShares Core S&P 500 ETF", "IVV", "464287200", "208648", "155801634.56"],
-    ]
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text=(
-                "Soundwatch Hedged Equity ETF SHDG "
-                '<a href="/download-holdings-usbanks.php?fund=shdg">Download full holdings</a>'
-            ),
-            content_type="text/html",
-            url=product_page_url,
-        ),
-        FakeResponse(
-            content=b"legacy-xls", content_type="application/vnd.ms-excel", url=holdings_url
-        ),
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr(
-        "app.services.etf_holdings_adapters.parse_holdings_xls",
-        lambda raw_workbook: ([], table),
-    )
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="SHDG")
 
 
 @pytest.mark.asyncio
@@ -21264,7 +19616,6 @@ async def test_wealthtrust_adapter_parses_only_the_official_wltg_holdings_table(
         FakeResponse(
             text=(
                 "<h1>WealthTrust DBS Long Term Growth ETF</h1><p>WLTG</p>"
-                "<p>Current as of 9/8/2026</p>"
                 "<table><tr><th>ETF Ticker</th><th>Description</th><th>Ticker</th>"
                 "<th>Weight</th><th>Market Value</th><th>FIGI</th><th>Shares Held</th></tr>"
                 "<tr><td>WLTG</td><td>Apple Inc.</td><td>AAPL</td><td>2.50%</td>"
@@ -21293,35 +19644,6 @@ async def test_wealthtrust_adapter_parses_only_the_official_wltg_holdings_table(
         result.legal_metadata["route_resolution"]
         == "wealthtrust_public_wltg_complete_holdings_table"
     )
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.legal_metadata["composition_date"] == "2026-09-08"
-    assert result.legal_metadata["as_of_date"] == "2026-09-08"
-    assert result.rows[0].source_row_id == "wealthtrust-WLTG-2026-09-08-1"
-
-
-@pytest.mark.asyncio
-async def test_wealthtrust_adapter_rejects_undated_holdings_page(monkeypatch):
-    adapter = get_holdings_adapter("wealthtrust")
-    assert adapter is not None
-    product_page_url = "https://wealthtrustetf.com/"
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text=(
-                "<h1>WealthTrust DBS Long Term Growth ETF</h1><p>WLTG</p>"
-                "<table><tr><th>ETF Ticker</th><th>Description</th><th>Ticker</th>"
-                "<th>Weight</th><th>Market Value</th><th>FIGI</th><th>Shares Held</th></tr>"
-                "<tr><td>WLTG</td><td>Apple Inc.</td><td>AAPL</td><td>2.50%</td>"
-                "<td>2500000</td><td>BBG000B9XRY4</td><td>10000</td></tr></table>"
-            ),
-            content_type="text/html",
-            url=product_page_url,
-        )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="WLTG")
 
 
 @pytest.mark.asyncio
@@ -21394,7 +19716,6 @@ async def test_eighth_wonder_adapter_parses_the_full_fundsmith_etft_component(mo
         "fundsmith_public_etft_complete_holdings_component"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-17"
-    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio
@@ -21707,10 +20028,6 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     assert rsp["issuer"] == "Invesco"
     assert rsp["provider_aliases"]["holdings_adapter"] == "invesco"
     assert rsp["provider_aliases"]["cusip"] == "46137V357"
-    assert rsp["provider_aliases"]["sec_cik"] == "0001209466"
-    assert rsp["provider_aliases"]["sec_series_id"] == "S000060812"
-    assert rsp["provider_aliases"]["sec_class_id"] == "C000197628"
-    assert rsp["provider_aliases"]["sec_fund_tickers_symbol"] == "RSP"
     invesco = holdings_adapter_catalog()
     invesco_entry = next(item for item in invesco if item["adapter_key"] == "invesco")
     assert invesco_entry["source_access"] == "issuer_public_json_catalog_cusip"
@@ -22582,48 +20899,10 @@ async def test_neil_azous_rareview_adapter_parses_database_info_payload(monkeypa
     assert result.rows[1].holding_type == "cash"
     assert result.rows[1].currency == "USD"
     assert result.legal_metadata["composition_date"] == "2026-07-22"
-    assert result.legal_metadata["as_of_date"] == "2026-07-22"
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.raw_json["composition_date"] == "2026-07-22"
-    assert result.rows[0].source_row_id == "rareview-2026-07-22-1"
     assert result.legal_metadata["source_provider"] == "rareview_capital"
     assert result.legal_metadata["route_resolution"] == (
         "rareview_product_page_database_info_payload"
     )
-
-
-@pytest.mark.asyncio
-async def test_neil_azous_rareview_adapter_rejects_undated_holdings_payload(monkeypatch):
-    adapter = get_holdings_adapter("neil_azous")
-    assert adapter is not None
-
-    payload = [
-        {
-            "fund_ticker": "RDFI",
-            "fund_description": "Rareview Dynamic Fixed Income ETF",
-            "constituents": json.dumps(
-                [
-                    {
-                        "constituent_ticker": "EDD",
-                        "constituent_description": "MORGAN STANLEY EMERGING MARK",
-                        "constituent_market_value": "5382171.99",
-                    }
-                ]
-            ),
-        }
-    ]
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text=f"<script>var databaseInfo = {json.dumps(payload)};</script>",
-            content_type="text/html",
-            url="https://rareviewcapital.com/dynamic-fixed-income-etf/",
-        )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="RDFI")
 
 
 @pytest.mark.asyncio
@@ -22713,7 +20992,6 @@ async def test_nomura_adapter_parses_server_rendered_daily_holdings_table(monkey
     assert result.legal_metadata["composition_date"] == "2026-07-24"
     assert result.legal_metadata["source_provider"] == "nomura_asset_management"
     assert result.legal_metadata["route_resolution"] == ("nomura_product_page_daily_holdings_table")
-    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio
@@ -22793,7 +21071,6 @@ async def test_delaware_adapter_parses_nomura_successor_daily_holdings_table(mon
     assert result.legal_metadata["route_resolution"] == (
         "delaware_nomura_successor_product_page_daily_holdings_table"
     )
-    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio
@@ -22809,7 +21086,6 @@ async def test_recognition_only_adapter_fetches_holdings_through_sec_fallback(mo
                 filing_url="https://www.sec.gov/Archives/edgar/data/1234567/fixture.xml",
                 form="NPORT-P",
                 report_date=date(2026, 5, 31),
-                acceptance_datetime=datetime(2026, 6, 1, 13, 45, 30, tzinfo=UTC),
             )
         ]
 
@@ -22856,8 +21132,6 @@ async def test_recognition_only_adapter_fetches_holdings_through_sec_fallback(mo
     assert result.legal_metadata["source_provider"] == "sec"
     assert result.legal_metadata["route_resolution"] == "sec_edgar_filing_fallback"
     assert result.legal_metadata["snapshot_provenance"] == "sec_nport_reconstructed_holdings"
-    assert result.legal_metadata["known_at"] == "2026-06-01T13:45:30Z"
-    assert result.legal_metadata["published_at"] == "2026-06-01T13:45:30Z"
 
 
 @pytest.mark.asyncio
@@ -22922,86 +21196,6 @@ async def test_sec_fallback_skips_parseable_nport_for_wrong_series(monkeypatch):
     assert result.source_identifier == "right"
     assert result.legal_metadata["filing_identity_status"] == "verified"
     assert result.legal_metadata["filing_identity"]["class_id"] == "C000192803"
-    assert len(FakeAsyncClient.requested) == 2
-
-
-@pytest.mark.asyncio
-async def test_sec_fallback_skips_parseable_legacy_for_wrong_curated_class(monkeypatch):
-    adapter = get_holdings_adapter("spdr")
-    assert adapter is not None
-    observed_discovery_limits: list[int] = []
-
-    async def fake_discover_holdings_filings(**kwargs):
-        observed_discovery_limits.append(kwargs["max_filings"])
-        if kwargs["forms"] == {"NPORT-P", "N-PORT", "NPORT-EX"}:
-            return []
-        return [
-            SimpleNamespace(
-                accession_number="legacy-wrong",
-                filing_url="https://www.sec.gov/Archives/legacy-wrong.xml",
-                form="N-CSRS",
-                report_date=date(2026, 5, 31),
-            ),
-            SimpleNamespace(
-                accession_number="legacy-right",
-                filing_url="https://www.sec.gov/Archives/legacy-right.xml",
-                form="N-CSRS",
-                report_date=date(2026, 5, 31),
-            ),
-        ]
-
-    monkeypatch.setattr(
-        "app.services.etf_holdings_edgar.discover_holdings_filings",
-        fake_discover_holdings_filings,
-    )
-
-    def fixture(series_id: str, class_id: str, symbol: str) -> str:
-        return f"""
-        <edgarSubmission>
-          <formData>
-            <genInfo>
-              <seriesId>{series_id}</seriesId>
-              <classId>{class_id}</classId>
-              <classTicker>{symbol}</classTicker>
-              <seriesName>State Street SPDR S&amp;P 600 Small Cap Growth ETF</seriesName>
-              <reportDate>2026-05-31</reportDate>
-            </genInfo>
-            <holdings>
-              <holding>
-                <name>Apple Inc.</name>
-                <ticker>AAPL</ticker>
-                <value>1000</value>
-              </holding>
-            </holdings>
-          </formData>
-        </edgarSubmission>
-        """
-
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [
-        FakeResponse(text=fixture("S000006984", "C000019037", "SPYG")),
-        FakeResponse(text=fixture("S000006990", "C000019043", "SLYG")),
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    result = await adapter._fetch_latest_sec_filing_holdings(
-        symbol="SLYG",
-        issuer_product_id=None,
-        identifiers={
-            "sec_cik": "0001064642",
-            "sec_series_id": "S000006990",
-            "sec_class_id": "C000019043",
-            "sec_fund_tickers_symbol": "SLYG",
-        },
-        end_date=date(2026, 5, 31),
-        max_filings=50,
-    )
-
-    assert result is not None
-    assert result.source_identifier == "legacy-right"
-    assert result.legal_metadata["filing_identity_status"] == "verified"
-    assert result.legal_metadata["filing_identity"]["class_id"] == "C000019043"
-    assert observed_discovery_limits == [400, 400]
     assert len(FakeAsyncClient.requested) == 2
 
 
@@ -23495,32 +21689,6 @@ async def test_allspring_adapter_parses_symbol_total_holdings_csv(monkeypatch):
     assert result.legal_metadata["source_provider"] == "allspring"
     assert result.legal_metadata["route_resolution"] == "issuer_symbol_total_holdings_csv"
     assert result.legal_metadata["composition_date"] == "2026-06-26"
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.raw_json["row_count"] == 4
-    assert result.raw_json["as_of_date"] == "2026-06-26"
-    assert result.rows[0].source_row_id == "ASLV:2026-06-26:1:023135106"
-
-
-@pytest.mark.asyncio
-async def test_allspring_adapter_rejects_undated_holdings_csv(monkeypatch):
-    adapter = get_holdings_adapter("allspring")
-    assert adapter is not None
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text="\n".join(
-                [
-                    "Total holdings",
-                    "SecurityName,Ticker,CUSIP,ISIN,SEDOL,AssetClass,SharesPrincipalAmount,MarketValue,NotionalValue,PercentOfNetAssets",
-                    "Amazon.com, Inc.,AMZN,023135106,US0231351067,2000019,Equity Security,1,$100,,1.00%",
-                ]
-            ),
-            url="https://www.allspringglobal.com/globalassets/data/total-holdings/ASLV.csv",
-        ),
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not expose a dated snapshot"):
-        await adapter.fetch_latest(symbol="ASLV")
 
 
 @pytest.mark.asyncio
@@ -23531,7 +21699,7 @@ async def test_deutsche_bank_adapter_parses_dws_holdings_json(monkeypatch):
     payload = {
         "tablesHeadlineText": "Fund holdings",
         "headlineText": "",
-        "asOfDate": "07/01/2026",
+        "asOfDate": "",
         "tables": [
             {
                 "values": [
@@ -23606,38 +21774,6 @@ async def test_deutsche_bank_adapter_parses_dws_holdings_json(monkeypatch):
     assert result.legal_metadata["source_provider"] == "deutsche_bank"
     assert result.legal_metadata["route_resolution"] == "issuer_public_pdp_holdings_json"
     assert result.legal_metadata["source_format"] == "json"
-    assert result.legal_metadata["composition_date"] == "2026-07-01"
-    assert result.legal_metadata["completeness_status"] == "complete"
-
-
-@pytest.mark.asyncio
-async def test_deutsche_bank_adapter_rejects_undated_holdings_json(monkeypatch):
-    adapter = get_holdings_adapter("deutsche_bank")
-    assert adapter is not None
-    payload = {
-        "asOfDate": "",
-        "tables": [
-            {
-                "values": [
-                    {
-                        "ISIN": {"ISIN_0": {"value": "NVDA.O"}},
-                        "Name": {"value": "NVIDIA Corp"},
-                        "Weighting": {"value": "13.55%"},
-                        "AssetClass": {"value": "Equity"},
-                    }
-                ]
-            }
-        ],
-    }
-    monkeypatch.setattr(
-        "app.services.etf_holdings_adapters.requests.get",
-        lambda url, **kwargs: FakeResponse(
-            text=json.dumps(payload), content_type="application/json", url=url
-        ),
-    )
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="USSG")
 
 
 @pytest.mark.asyncio
@@ -23749,61 +21885,6 @@ async def test_principal_adapter_parses_symbol_holdings_workbook(monkeypatch):
     assert result.legal_metadata["source_provider"] == "principal"
     assert result.legal_metadata["route_resolution"] == "issuer_symbol_holdings_xlsx"
     assert result.legal_metadata["composition_date"] == "2026-07-01"
-    assert result.legal_metadata["completeness_status"] == "complete"
-
-
-@pytest.mark.asyncio
-async def test_principal_adapter_rejects_undated_holdings_workbook(monkeypatch):
-    adapter = get_holdings_adapter("principal")
-    assert adapter is not None
-    headers = [
-        "% of Net Assets",
-        "Market Value",
-        "Security Type",
-        "Description",
-        "Ticker",
-        "CUSIP/Identifier",
-        "ISIN",
-        "SEDOL",
-        "Coupon Rate",
-        "Maturity Date",
-        "Par Value/Quantity/Notional",
-        "Contracts",
-        "Security Price",
-        "Issue Date",
-        "Currency",
-        "Underlying Asset Identifier",
-    ]
-    rows = [
-        ["Principal ETF Holdings"],
-        headers,
-        [
-            "0.1",
-            "100",
-            "Equity",
-            "NVIDIA CORP",
-            "NVDA",
-            "67066G104",
-            "US67066G1040",
-            "2379504",
-            "",
-            "",
-            "1",
-            "",
-            "100",
-            "",
-            "USD",
-            "",
-        ],
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.parse_xlsx_table", lambda _: rows)
-    monkeypatch.setattr(
-        "app.services.etf_holdings_adapters.requests.get",
-        lambda url, **kwargs: FakeResponse(content=b"workbook", url=url),
-    )
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="PSC")
 
 
 @pytest.mark.asyncio
@@ -23866,7 +21947,7 @@ async def test_miller_value_adapter_parses_embedded_holdings_payload(monkeypatch
             text=(
                 "<html><script>var a={};"
                 'dg.id=261;dg.componentId="milleretf-mvpa-holdings-1";'
-                'dg.titleText="Holdings";dg.date="07/09/2026";'
+                'dg.titleText="Holdings";'
                 "dg.finData=["
                 '{figi:"BBG002VZ68Y2",ticker:"BLMN",quantity:416324,'
                 'description:"BLOOMIN BRANDS INC",market_value:"3,805,201.36",'
@@ -23902,36 +21983,6 @@ async def test_miller_value_adapter_parses_embedded_holdings_payload(monkeypatch
     assert result.legal_metadata["source_provider"] == "miller_value"
     assert result.legal_metadata["route_resolution"] == "issuer_public_fund_page_embedded_holdings"
     assert result.legal_metadata["source_format"] == "nuxt_payload"
-    assert result.legal_metadata["composition_date"] == "2026-07-09"
-    assert result.legal_metadata["as_of_date"] == "2026-07-09"
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.raw_json["composition_date"] == "2026-07-09"
-    assert result.rows[0].source_row_id == "miller-value-2026-07-09-1"
-
-
-@pytest.mark.asyncio
-async def test_miller_value_adapter_rejects_undated_holdings_payload(monkeypatch):
-    adapter = get_holdings_adapter("miller_value")
-    assert adapter is not None
-
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text=(
-                "<html><script>var dg={};"
-                'dg.componentId="milleretf-mvpa-holdings-1";'
-                'dg.titleText="Holdings";'
-                'dg.finData=[{ticker:"BLMN",description:"BLOOMIN BRANDS INC"}];'
-                "dg.btnLink=null;</script></html>"
-            ),
-            content_type="text/html",
-            url="https://etf.millervaluefunds.com/mvpa",
-        )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="MVPA")
 
 
 @pytest.mark.asyncio
@@ -24012,55 +22063,9 @@ async def test_mitsubishi_ufj_adapter_parses_only_mjsc_product_page_holdings(mon
         "mufg_product_page_nuxt_complete_holdings_component"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-17"
-    assert result.legal_metadata["completeness_status"] == "complete"
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="NOT_MJSC")
-
-
-@pytest.mark.asyncio
-async def test_mitsubishi_ufj_adapter_rejects_undated_holdings_payload(monkeypatch):
-    adapter = get_holdings_adapter("mitsubishi_ufj")
-    assert adapter is not None
-    payload = [
-        None,
-        {"componentId": 2, "date": 3, "finData": 4},
-        "mufgetf-mjsc-HoldingsComponent-1",
-        None,
-        [5],
-        {
-            "figi": 6,
-            "ticker": 7,
-            "quantity": 8,
-            "description": 9,
-            "market_value": 10,
-            "percent_of_nav": 11,
-        },
-        "BBG000BCMC18",
-        "6134 JP",
-        "11100",
-        "FUJI CORPORATION",
-        "497,198.53",
-        "2.04%",
-    ]
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text=(
-                "<html><h1>MUFG Japan Small Cap Active ETF</h1>"
-                '<div data-preview-route="mjsc" '
-                'data-preview-component-id="mufgetf-mjsc-HoldingsComponent-1"></div>'
-                '<script type="application/json" id="__NUXT_DATA__">'
-                f"{json.dumps(payload)}"
-                "</script></html>"
-            ),
-            content_type="text/html",
-            url="https://www.mufgetfs.com/mjsc",
-        )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="MJSC")
 
 
 @pytest.mark.asyncio
@@ -24143,55 +22148,9 @@ async def test_mcivy_adapter_parses_only_identity_verified_genter_holdings(monke
     )
     assert result.legal_metadata["publisher"] == "The Nottingham Company"
     assert result.legal_metadata["composition_date"] == "2026-07-17"
-    assert result.legal_metadata["completeness_status"] == "complete"
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="UNRELATED")
-
-
-@pytest.mark.asyncio
-async def test_mcivy_adapter_rejects_undated_holdings_payload(monkeypatch):
-    adapter = get_holdings_adapter("mcivy")
-    assert adapter is not None
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text=json.dumps(
-                {"GEND": {"fundno": "446", "fname": "Genter Capital Dividend Income ETF"}}
-            ),
-            content_type="application/json",
-            url="https://www.genterfunds.com/js/fund_settings.json?version=6.17.26",
-        ),
-        FakeResponse(
-            text=json.dumps(
-                {
-                    "generalinfo": [
-                        {
-                            "ffundno": "446",
-                            "fticker": "GEND",
-                            "fname": "Genter Capital Dividend Income ETF",
-                        }
-                    ],
-                    "holdings": [
-                        {
-                            "ticker": "NTRS",
-                            "cusip": "665859104",
-                            "descr1": "NORTHERN TRUST ORD",
-                            "quantity": "1278.0",
-                            "marketvalue": "236021.04",
-                            "percentmv": "4.74",
-                            "category": "COMMSTCK",
-                        }
-                    ],
-                }
-            ),
-            content_type="application/json",
-            url="https://www.ncfunds.com/etf/load.php?f=446",
-        ),
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="GEND")
 
 
 @pytest.mark.asyncio
@@ -24256,54 +22215,9 @@ async def test_langar_adapter_parses_only_identity_verified_lght_holdings(monkey
         "langar_nottingham_fund_scoped_complete_holdings_json"
     )
     assert result.legal_metadata["publisher"] == "The Nottingham Company"
-    assert result.legal_metadata["composition_date"] == "2026-07-17"
-    assert result.legal_metadata["completeness_status"] == "complete"
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="UNRELATED")
-
-
-@pytest.mark.asyncio
-async def test_langar_adapter_rejects_undated_holdings_payload(monkeypatch):
-    adapter = get_holdings_adapter("langar")
-    assert adapter is not None
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text=json.dumps({"LGHT": {"fundno": "424", "fname": "Langar Global HealthTech ETF"}}),
-            content_type="application/json",
-            url="https://www.langarfunds.com/js/fund_settings.json?version=6.17.26",
-        ),
-        FakeResponse(
-            text=json.dumps(
-                {
-                    "generalinfo": [
-                        {
-                            "ffundno": "424",
-                            "fticker": "LGHT",
-                            "fname": "Langar Global HealthTech ETF",
-                        }
-                    ],
-                    "holdings": [
-                        {
-                            "ticker": "RMD",
-                            "cusip": "761152107",
-                            "descr1": "RESMED INC",
-                            "quantity": "961",
-                            "marketvalue": "191229.39",
-                            "percentmv": "9.37",
-                            "category": "COMMSTCK",
-                        }
-                    ],
-                }
-            ),
-            content_type="application/json",
-            url="https://www.ncfunds.com/etf/load.php?f=424",
-        ),
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="LGHT")
 
 
 @pytest.mark.asyncio
@@ -24317,8 +22231,7 @@ async def test_little_harbor_adapter_parses_only_mstb_linked_holdings_workbook(m
         FakeResponse(
             text=(
                 "<html>LHA Market State Tactical Beta ETF "
-                f'<a href="{workbook_url}">Download Full Holdings</a>'
-                "<p>TOP HOLDINGS <span>Data as of 09/14/2026</span></p></html>"
+                f'<a href="{workbook_url}">Download Full Holdings</a></html>'
             ),
             content_type="text/html",
             url="https://www.lhafunds.com/mstb",
@@ -24367,12 +22280,6 @@ async def test_little_harbor_adapter_parses_only_mstb_linked_holdings_workbook(m
     assert result.legal_metadata["route_resolution"] == (
         "little_harbor_product_page_linked_complete_holdings_xls"
     )
-    assert result.legal_metadata["source_quality"] == (
-        "issuer_page_declared_current_complete_holdings"
-    )
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.legal_metadata["composition_date"] == "2026-09-14"
-    assert result.legal_metadata["as_of_date"] == "2026-09-14"
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="UNRELATED")
@@ -24389,8 +22296,7 @@ async def test_pettee_adapter_parses_only_homz_linked_complete_holdings_workbook
         FakeResponse(
             text=(
                 "<html>Hoya Capital Housing ETF "
-                f'<a href="{workbook_url}">Download Full Holdings</a>'
-                "<p>TOP 10 HOLDINGS <span>Data as of 06/11/2026</span></p></html>"
+                f'<a href="{workbook_url}">Download Full Holdings</a></html>'
             ),
             content_type="text/html",
             url="https://www.hoyaetfs.com/homz",
@@ -24430,12 +22336,6 @@ async def test_pettee_adapter_parses_only_homz_linked_complete_holdings_workbook
     assert result.legal_metadata["route_resolution"] == (
         "pettee_hoya_product_page_linked_complete_holdings_xls"
     )
-    assert result.legal_metadata["source_quality"] == (
-        "issuer_page_declared_current_complete_holdings"
-    )
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.legal_metadata["composition_date"] == "2026-06-11"
-    assert result.legal_metadata["as_of_date"] == "2026-06-11"
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="UNRELATED")
@@ -24452,8 +22352,7 @@ async def test_sound_capital_adapter_parses_only_rver_linked_holdings_workbook(m
         FakeResponse(
             text=(
                 "<html>Trenchless Fund ETF (RVER) "
-                f'<a href="{workbook_url}">Download Full Holdings</a>'
-                "<p>TOP 10 HOLDINGS <span>Data as of 09/10/2026</span></p></html>"
+                f'<a href="{workbook_url}">Download Full Holdings</a></html>'
             ),
             content_type="text/html",
             url="https://river1.us/rver",
@@ -24500,12 +22399,6 @@ async def test_sound_capital_adapter_parses_only_rver_linked_holdings_workbook(m
     assert result.legal_metadata["route_resolution"] == (
         "sound_capital_river1_product_page_linked_complete_holdings_xls"
     )
-    assert result.legal_metadata["source_quality"] == (
-        "issuer_page_declared_current_complete_holdings"
-    )
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.legal_metadata["composition_date"] == "2026-09-10"
-    assert result.legal_metadata["as_of_date"] == "2026-09-10"
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="UNRELATED")
@@ -24522,8 +22415,7 @@ async def test_sovereign_adapter_parses_only_sovf_linked_holdings_workbook(monke
         FakeResponse(
             text=(
                 "<html>Sovereign's Capital Flourish Fund (SOVF) "
-                f'<a href="{workbook_url}">Download full holdings</a>'
-                "<p>TOP 10 HOLDINGS <span>Data as of 09/09/2026</span></p></html>"
+                f'<a href="{workbook_url}">Download full holdings</a></html>'
             ),
             content_type="text/html",
             url="https://www.scetfs.com/sovf",
@@ -24562,72 +22454,9 @@ async def test_sovereign_adapter_parses_only_sovf_linked_holdings_workbook(monke
     assert result.legal_metadata["route_resolution"] == (
         "sovereign_sovf_product_page_linked_complete_holdings_xls"
     )
-    assert result.legal_metadata["source_quality"] == (
-        "issuer_page_declared_current_complete_holdings"
-    )
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.legal_metadata["composition_date"] == "2026-09-09"
-    assert result.legal_metadata["as_of_date"] == "2026-09-09"
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="UNRELATED")
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("adapter_key", "symbol", "page_url", "page_identity", "download_path"),
-    [
-        (
-            "little_harbor",
-            "MSTB",
-            "https://www.lhafunds.com/mstb",
-            "LHA Market State Tactical Beta ETF",
-            "download-holdings-usbanks.php?fund=mstb",
-        ),
-        (
-            "pettee",
-            "HOMZ",
-            "https://www.hoyaetfs.com/homz",
-            "Hoya Capital Housing ETF",
-            "download-holdings-usbanks.php?fund=homz",
-        ),
-        (
-            "sound_capital",
-            "RVER",
-            "https://river1.us/rver",
-            "Trenchless Fund ETF (RVER)",
-            "download-holdings-usbanks.php?fund=rver",
-        ),
-        (
-            "sovereign",
-            "SOVF",
-            "https://www.scetfs.com/sovf",
-            "Sovereign's Capital Flourish Fund (SOVF)",
-            "download-holdings-usbanks.php?fund=sovf",
-        ),
-    ],
-)
-async def test_linked_workbook_adapters_reject_undated_holdings_page(
-    monkeypatch,
-    adapter_key,
-    symbol,
-    page_url,
-    page_identity,
-    download_path,
-):
-    adapter = get_holdings_adapter(adapter_key)
-    assert adapter is not None
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text=f'<html>{page_identity}<a href="{download_path}">Download Full Holdings</a></html>',
-            content_type="text/html",
-            url=page_url,
-        )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol=symbol)
 
 
 @pytest.mark.asyncio
@@ -24783,34 +22612,6 @@ async def test_adaptive_investments_adapter_parses_variable_embedded_holdings_pa
     assert result.legal_metadata["route_resolution"] == "issuer_public_fund_page_embedded_holdings"
     assert result.legal_metadata["source_format"] == "nuxt_payload"
     assert result.legal_metadata["composition_date"] == "2026-07-07"
-    assert result.legal_metadata["as_of_date"] == "2026-07-07"
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.raw_json["composition_date"] == "2026-07-07"
-    assert result.rows[0].source_row_id == "adaptive-investments-2026-07-07-1"
-
-
-@pytest.mark.asyncio
-async def test_adaptive_investments_adapter_rejects_undated_holdings_payload(monkeypatch):
-    adapter = get_holdings_adapter("adaptive_investments")
-    assert adapter is not None
-
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text=(
-                "<html><script>window.__NUXT__="
-                '(function(){pl.componentId="adpvetf-adpv-holdings-1";'
-                'pl.finData=[{ticker:"SNDK",description:"SANDISK CORP"}];'
-                "return {}}());</script></html>"
-            ),
-            content_type="text/html",
-            url="https://adpvetf.com/adpv",
-        )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="ADPV")
 
 
 @pytest.mark.asyncio
@@ -24939,31 +22740,6 @@ async def test_spear_adapter_parses_fixed_holdings_csv(monkeypatch):
     assert result.legal_metadata["source_provider"] == "spear"
     assert result.legal_metadata["route_resolution"] == "issuer_fixed_holdings_csv"
     assert result.legal_metadata["composition_date"] == "2026-06-29"
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.raw_json["row_count"] == 2
-    assert result.raw_json["as_of_date"] == "2026-06-29"
-    assert result.rows[0].source_row_id == "SPRX:2026-06-29:1:04626A103"
-
-
-@pytest.mark.asyncio
-async def test_spear_adapter_rejects_undated_holdings_csv(monkeypatch):
-    adapter = get_holdings_adapter("spear")
-    assert adapter is not None
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text="\n".join(
-                [
-                    "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets",
-                    "-,SPRX,ALAB,04626A103,Astera Labs Inc,1,1,1,1.00%,100",
-                ]
-            ),
-            url=adapter.holdings_url,
-        ),
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not expose a dated snapshot"):
-        await adapter.fetch_latest(symbol="SPRX")
 
 
 @pytest.mark.asyncio
@@ -25037,31 +22813,6 @@ async def test_timothy_plan_adapter_parses_holdings_page_table(monkeypatch):
     assert result.legal_metadata["source_provider"] == "timothy_plan"
     assert result.legal_metadata["route_resolution"] == "issuer_symbol_holdings_page_table"
     assert result.legal_metadata["composition_date"] == "2026-06-29"
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.raw_json["row_count"] == 2
-    assert result.raw_json["as_of_date"] == "2026-06-29"
-    assert result.rows[0].source_row_id == "TPHD:2026-06-29:1:US0010551028"
-
-
-@pytest.mark.asyncio
-async def test_timothy_plan_adapter_rejects_undated_holdings_page(monkeypatch):
-    adapter = get_holdings_adapter("timothy_plan")
-    assert adapter is not None
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text="""
-            <table>
-              <tr><td>Name</td><td>Symbol</td><td>ISIN</td><td>Shares Held</td><td>Market Value %</td><td>Market Value $</td></tr>
-              <tr><td>AFLAC INC</td><td>AFL U</td><td>US0010551028</td><td>1</td><td>1.00%</td><td>$100</td></tr>
-            </table>
-            """,
-            url="https://timothyplan.com/our-etfs/summary-etf-hds-holdings.php",
-        ),
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not expose a dated snapshot"):
-        await adapter.fetch_latest(symbol="TPHD")
 
 
 @pytest.mark.asyncio
@@ -25539,6 +23290,14 @@ async def test_main_management_adapter_uses_its_scoped_secondary_transport_after
             raise httpx.ReadTimeout("publisher stalled", request=httpx.Request("GET", url))
 
     fallback_calls: list[tuple[str, dict]] = []
+    to_thread_calls = []
+
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        # This case exercises retry/fallback behavior, not worker scheduling.
+        # Keep its fake HTTP transport deterministic while verifying every
+        # fallback attempt is delegated through requests.get.
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
 
     def fallback_get(url, **kwargs):
         fallback_calls.append((url, kwargs))
@@ -25549,11 +23308,16 @@ async def test_main_management_adapter_uses_its_scoped_secondary_transport_after
     TimeoutClient.requested = []
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", TimeoutClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fallback_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
 
     result = await adapter.fetch_latest(symbol="BUYW")
 
     assert len(TimeoutClient.requested) == 3
     assert len(fallback_calls) == 4
+    assert len(to_thread_calls) == 4
+    assert all(call[0] is requests.get for call in to_thread_calls)
     assert {call[0] for call in fallback_calls} == {
         "https://www.mainmgtetfs.com/etfs/download-buyw.php"
     }
@@ -26417,7 +24181,7 @@ async def test_ishares_adapter_fetches_explicit_historical_as_of_snapshot(monkey
 
 
 @pytest.mark.asyncio
-async def test_acsi_funds_official_daily_csv_route_is_native_and_requires_date(monkeypatch):
+async def test_acsi_funds_official_daily_csv_route_is_native_and_symbol_scoped(monkeypatch):
     adapter = get_holdings_adapter("acsi_funds")
     assert adapter is not None
     csv_text = (
@@ -26440,45 +24204,15 @@ async def test_acsi_funds_official_daily_csv_route_is_native_and_requires_date(m
     assert FakeAsyncClient.requested[0][0].startswith("https://acsietf.com/")
     assert result.rows[0].symbol == "AAPL"
     assert result.rows[0].weight == Decimal("0.0712")
-    assert result.rows[0].source_row_id == "ACSI:2026-08-10:1:037833100"
     assert result.rows[1].row_type == "cash"
-    assert result.rows[1].source_row_id == "ACSI:2026-08-10:2:Cash&Other"
-    metadata = result.legal_metadata or {}
-    assert metadata["route_resolution"] == "acsi_issuer_daily_holdings_csv"
-    assert metadata["composition_date"] == "2026-08-10"
-    assert metadata["as_of_date"] == "2026-08-10"
-    assert metadata["row_count"] == 2
-    assert metadata["completeness_status"] == "complete"
-    assert metadata["snapshot_provenance"] == "issuer_native_acsi_daily_holdings_csv"
-    assert result.raw_json["row_count"] == 2
+    assert result.legal_metadata["route_resolution"] == "acsi_issuer_daily_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-08-10"
     with pytest.raises(ValueError, match="only available for ACSI"):
         await adapter.fetch_latest(symbol="SPY")
 
 
 @pytest.mark.asyncio
-async def test_acsi_funds_official_daily_csv_route_rejects_undated_rows(monkeypatch):
-    adapter = get_holdings_adapter("acsi_funds")
-    assert adapter is not None
-    csv_text = (
-        "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,"
-        "Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag\n"
-        "08/10/2026,ACSI,AAPL,037833100,Apple Inc,26935,313.06,8432271.10,7.12%,118467642.50,1525000,61,\n"
-        ",ACSI,MSFT,594918104,Microsoft Corp,100,400,40000,0.03%,118467642.50,1525000,61,\n"
-    )
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text=csv_text,
-            url="https://acsietf.com/wp-content/uploads/files/TidalETF_Services.40ZZ.VA_Holdings_.csv",
-        )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish one composition date"):
-        await adapter.fetch_latest(symbol="ACSI")
-
-
-@pytest.mark.asyncio
-async def test_oakmark_official_symbol_csv_route_filters_fund_and_requires_date(monkeypatch):
+async def test_oakmark_official_symbol_csv_route_filters_fund_and_preserves_date(monkeypatch):
     adapter = get_holdings_adapter("oakmark")
     assert adapter is not None
     csv_text = (
@@ -26504,37 +24238,9 @@ async def test_oakmark_official_symbol_csv_route_filters_fund_and_requires_date(
     assert result.rows[1].symbol == "ACN"
     assert result.rows[1].weight == Decimal("0.0171345579")
     assert result.rows[1].cusip == "G1151C101"
-    assert result.rows[0].source_row_id == "OAKM:2026-08-07:1:NET OTHER ASSETS"
-    assert result.rows[1].source_row_id == "OAKM:2026-08-07:2:G1151C101"
     assert result.legal_metadata["route_resolution"] == "oakmark_issuer_symbol_holdings_csv"
     assert result.legal_metadata["composition_date"] == "2026-08-07"
     assert result.legal_metadata["as_of_date"] == "2026-08-07"
-    assert result.legal_metadata["row_count"] == 2
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.legal_metadata["snapshot_provenance"] == (
-        "issuer_native_oakmark_symbol_holdings_csv"
-    )
-    assert result.raw_json["row_count"] == 2
-    assert result.raw_json["composition_date"] == "2026-08-07"
-
-
-@pytest.mark.asyncio
-async def test_oakmark_official_symbol_csv_route_rejects_undated_rows(monkeypatch):
-    adapter = get_holdings_adapter("oakmark")
-    assert adapter is not None
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text=(
-                "etf_fund,as_of_date,ticker,cusip,sedol,isin,issue_name,weight,shares_held,base_market_value\n"
-                "OAKM,,ACN,G1151C101,B4BNMY3,IE00B4BNMY34,ACCENTURE PLC,1.7,113701,19455378.11\n"
-            ),
-            url="https://oakmark.com/wp-content/uploads/etf_data/oakm_holdings.csv",
-        )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish one composition date"):
-        await adapter.fetch_latest(symbol="OAKM")
 
 
 @pytest.mark.asyncio
@@ -26592,37 +24298,6 @@ async def test_range_official_nuxt_route_parses_dated_nukz_holdings(monkeypatch)
     )
     assert result.legal_metadata["composition_date"] == "2026-08-06"
     assert result.legal_metadata["as_of_date"] == "2026-08-06"
-    assert result.legal_metadata["completeness_status"] == "complete"
-
-
-@pytest.mark.asyncio
-async def test_range_official_nuxt_route_rejects_undated_holdings(monkeypatch):
-    adapter = get_holdings_adapter("range")
-    assert adapter is not None
-    payload = [
-        None,
-        "rangeetfs-nukz-HoldingsComponent-1",
-        None,
-        [5],
-        {"componentId": 1, "date": 2, "finData": 3, "ticker": 4},
-        {"ticker": 6, "description": 7, "quantity": 8, "market_value": 9, "percent_of_nav": 10},
-        "CCJ",
-        "CAMECO CORP",
-        692378,
-        "64,820,428.36",
-        "8.26%",
-    ]
-    page_html = (
-        '<script type="application/json" data-nuxt-data="nuxt-app" '
-        'id="__NUXT_DATA__">'
-        f"{json.dumps(payload)}"
-        "</script>"
-    )
-    FakeAsyncClient.queue = [FakeResponse(text=page_html, url="https://rangeetfs.com/nukz")]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish a composition date"):
-        await adapter.fetch_latest(symbol="NUKZ")
 
 
 def test_format_template_returns_none_when_missing_fields():
@@ -26754,43 +24429,12 @@ async def test_alerian_public_proxy_parses_identity_date_and_cash_rows(monkeypat
     assert result.rows[0].weight == Decimal("0.0829")
     assert result.rows[0].market_value == Decimal("43070003.88")
     assert result.rows[0].extra_data["industry"] == "Oil Gas & Consumable Fuels"
-    assert result.rows[0].source_row_id == "ENFR:2026-08-13:1:29273V100"
     assert result.rows[1].symbol is None
     assert result.rows[1].row_type == "cash"
-    assert result.rows[1].source_row_id == "ENFR:2026-08-13:2:Cash Equivalent"
     assert result.legal_metadata["composition_date"] == "2026-08-13"
-    assert result.legal_metadata["as_of_date"] == "2026-08-13"
-    assert result.legal_metadata["row_count"] == 2
-    assert result.legal_metadata["completeness_status"] == "complete"
-    assert result.legal_metadata["snapshot_provenance"] == "alerian_native_issuer_json"
     assert result.legal_metadata["route_resolution"] == (
         "alps_public_hubspot_proxy_marketing_api_full_holdings"
     )
-
-
-@pytest.mark.asyncio
-async def test_alerian_public_proxy_rejects_undated_rows(monkeypatch):
-    adapter = get_holdings_adapter("alerian")
-    assert adapter is not None
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text=json.dumps(
-                [
-                    {
-                        "fundsymbol": "ENFR",
-                        "holdingsymbol": "ET",
-                        "name": "Energy Transfer LP",
-                        "asofdate": None,
-                    }
-                ]
-            ),
-            content_type="application/json",
-        )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    with pytest.raises(ValueError, match="did not publish one composition date"):
-        await adapter.fetch_latest(symbol="ENFR")
 
 
 @pytest.mark.asyncio

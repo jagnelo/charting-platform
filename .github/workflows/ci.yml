@@ -63,9 +63,13 @@ jobs:
           cd backend
           ENV_FILE=.env.dev uv run pytest tests/integration \
             --override-ini addopts= \
+            --cov-append \
             --cov=app --cov-report=xml:coverage-integration.xml \
             --cov-fail-under=0 \
             --no-header -q
+
+      - name: Enforce combined backend coverage
+        run: cd backend && uv run coverage report --fail-under=75
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -108,6 +112,7 @@ jobs:
   branch-declared:
     name: Branch-declared Tests
     if: github.event_name == 'push' && github.ref != 'refs/heads/master' && github.ref != 'refs/heads/staging'
+    needs: [backend]
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -139,6 +144,9 @@ jobs:
 
       - name: Run tests declared by this branch
         run: make branch-tests INTEGRATION_BRANCH="$GITHUB_REF_NAME"
+        env:
+          BRANCH_TESTS_CI_COVERED_COMMANDS: full-backend-suite
+          INTEGRATION_BASE_SHA: origin/master
 
   # ── E2E tests ─────────────────────────────────────────────────────────────────
   e2e:
@@ -167,7 +175,7 @@ jobs:
 
       - name: Start stack
         # Vars are provided inline — no .env file needed
-        run: docker compose -p charting-platform-ci up -d --wait
+        run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml -p charting-platform-ci up -d --wait
         timeout-minutes: 5
         env:
           SECRET_KEY: ${{ secrets.SECRET_KEY || 'ci-secret-key-not-used-in-production' }}
@@ -201,7 +209,7 @@ jobs:
 
       - name: Tear down
         if: always()
-        run: docker compose -p charting-platform-ci down -v
+        run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml -p charting-platform-ci down -v
 
   # Staging is the integration authority. Master independently replays the same
   # architecture-neutral gate after an exact green staging SHA is promoted.

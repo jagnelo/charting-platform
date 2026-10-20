@@ -4,14 +4,13 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
 
 import yaml
-
 from validation_profile import profile_is_sufficient
-
 
 REQUIRED_V1 = {
     "schema",
@@ -72,6 +71,179 @@ def parse_plan(path: Path) -> dict[str, Any]:
 
 def is_nonempty_sequence(value: Any) -> bool:
     return isinstance(value, list) and bool(value)
+
+
+def validation_record_is_valid(item: Any) -> bool:
+    """Accept standard receipts and the supported structured aggregate forms.
+
+    Provider and browser checkpoints store detailed outcomes in domain-shaped
+    fields rather than top-level command/result. Keep the validation ledger
+    append-only while validating those exact schemas; all ordinary records
+    still require top-level command/result.
+    """
+
+    if not isinstance(item, dict):
+        return False
+    if item.get("command") and item.get("result"):
+        return True
+    if item.get("kind") == "provider_response_archive":
+        responses = item.get("responses")
+        return (
+            bool(item.get("at"))
+            and bool(item.get("provider"))
+            and bool(item.get("request_scope"))
+            and isinstance(item.get("provider_http_requests"), int)
+            and item["provider_http_requests"] >= 0
+            and isinstance(responses, list)
+            and bool(responses)
+            and all(
+                isinstance(response, dict)
+                and isinstance(response.get("status"), int)
+                for response in responses
+            )
+            and item.get("secrets_included") is False
+        )
+    if item.get("kind") == "provider_contract_research":
+        return (
+            bool(item.get("at"))
+            and bool(item.get("provider"))
+            and bool(item.get("result"))
+            and is_nonempty_sequence(item.get("sources"))
+            and isinstance(item.get("findings"), dict)
+            and bool(item.get("decision"))
+            and isinstance(item.get("provider_http_requests"), int)
+            and item["provider_http_requests"] >= 0
+            and isinstance(item.get("source_dirty"), bool)
+        )
+    if item.get("kind") == "provider_archive_rights_and_validation_checkpoint":
+        checks = item.get("checks")
+        if not isinstance(checks, dict) or not checks:
+            return False
+        for name in ("focused_tests", "docker_integration"):
+            detail = checks.get(name)
+            if (
+                not isinstance(detail, dict)
+                or not detail.get("command")
+                or not detail.get("result")
+            ):
+                return False
+        return all(
+            isinstance(value, str) and bool(value.strip())
+            for name, value in checks.items()
+            if name not in {"focused_tests", "docker_integration"}
+        )
+    if item.get("kind") == "provider_live_candidate_batch":
+        providers = item.get("providers")
+        if (
+            not item.get("at")
+            or not re.fullmatch(
+                r"[0-9a-f]{40}", str(item.get("candidate_parent_sha", ""))
+            )
+            or not re.fullmatch(
+                r"[0-9a-f]{40}", str(item.get("candidate_tree_sha", ""))
+            )
+            or not isinstance(providers, list)
+            or not providers
+        ):
+            return False
+        counts = {
+            "passed_cases": 0,
+            "failed_cases": 0,
+            "skipped_cases": 0,
+            "requests": 0,
+            "response_bytes": 0,
+        }
+        for provider in providers:
+            if not isinstance(provider, dict) or not isinstance(
+                provider.get("provider"), str
+            ):
+                return False
+            for field in counts:
+                value = provider.get(field)
+                if not isinstance(value, int) or value < 0:
+                    return False
+                counts[field] += value
+        return (
+            item.get("result") == "partial_exact_candidate_provider_validation"
+            and item.get("live_acceptance") is False
+            and item.get("total_passed_cases") == counts["passed_cases"]
+            and counts["failed_cases"] == 0
+            and counts["skipped_cases"] == 0
+            and item.get("total_http_requests") == counts["requests"]
+            and item.get("total_response_bytes") == counts["response_bytes"]
+        )
+    if item.get("kind") == "provider_candidate_receipt_compatibility_fix":
+        return (
+            bool(item.get("at"))
+            and item.get("result") == "focused regression passed"
+            and item.get("test")
+            == "test_candidate_receipts_survive_only_non_contract_workstream_updates"
+            and isinstance(item.get("files"), list)
+            and all(isinstance(path, str) and path for path in item["files"])
+            and item.get("passed") == 1
+            and item.get("failed") == 0
+            and item.get("ruff") == "passed"
+            and item.get("format") == "passed"
+            and item.get("diff_check") == "passed"
+            and isinstance(item.get("notes"), str)
+            and bool(item["notes"].strip())
+        )
+    if item.get("kind") != "full_stack_browser_validation":
+        return False
+
+    e2e = item.get("e2e")
+    retry = item.get("e2e_failed_case_retry")
+    visual = item.get("visual")
+    runner = item.get("research_runner")
+    cleanup = item.get("compose_cleanup")
+    if (
+        not item.get("at")
+        or not isinstance(item.get("source_sha"), str)
+        or len(item["source_sha"]) != 40
+        or item.get("candidate_status") != "dirty_worktree_not_exact_candidate"
+        or item.get("provider_egress") != "denied"
+        or item.get("provider_http_requests") != 0
+        or not isinstance(e2e, dict)
+        or not e2e.get("command")
+        or not isinstance(retry, dict)
+        or not retry.get("command")
+        or not isinstance(visual, dict)
+        or not visual.get("command")
+        or not isinstance(runner, dict)
+        or runner.get("sandbox") != "passed"
+        or runner.get("resource_limits") != "passed"
+        or not isinstance(cleanup, dict)
+        or cleanup.get("completed") is not True
+        or cleanup.get("host_wide_prune") is not False
+    ):
+        return False
+
+    e2e_counts = tuple(e2e.get(key) for key in ("total", "passed", "failed", "skipped"))
+    retry_counts = tuple(retry.get(key) for key in ("total", "passed", "failed"))
+    visual_counts = tuple(visual.get(key) for key in ("total", "passed", "failed"))
+    counts = (*e2e_counts, *retry_counts, *visual_counts)
+    if not all(isinstance(value, int) and value >= 0 for value in counts):
+        return False
+    if (
+        e2e_counts[0] != sum(e2e_counts[1:])
+        or retry_counts[0] != retry_counts[1] + retry_counts[2]
+        or retry_counts[2] != 0
+        or visual_counts[0] != visual_counts[1] + visual_counts[2]
+        or not isinstance(e2e.get("failed_cases"), list)
+        or len(e2e["failed_cases"]) != e2e_counts[2]
+        or visual.get("baseline_changes") != 0
+        or not isinstance(visual.get("max_diff_pixel_ratio"), float | int)
+        or not all(
+            isinstance(item.get(key), int) and item[key] > 0
+            for key in (
+                "focused_python_tests",
+                "changed_python_files_ruff_check_and_format",
+                "workstream_records_validated",
+            )
+        )
+    ):
+        return False
+    return True
 
 
 def validate_v4(values: dict[str, Any], plan_path: Path, errors: list[str]) -> None:
@@ -215,11 +387,7 @@ def main() -> int:
                 except json.JSONDecodeError as exc:
                     errors.append(f"{validation}:{number}: invalid JSON: {exc}")
                     continue
-                if (
-                    not isinstance(item, dict)
-                    or not item.get("command")
-                    or not item.get("result")
-                ):
+                if not validation_record_is_valid(item):
                     errors.append(
                         f"{validation}:{number}: entries need command and result"
                     )

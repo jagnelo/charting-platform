@@ -16,7 +16,6 @@ from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentProviderSymbol
 from app.models.listing import InstrumentListing
 from app.providers.base import InstrumentProfile, ListingRecord
-from app.services.provider_runtime import ProviderNoDataError
 
 
 def _make_yf_df(symbol: str, days: int = 10, start_price: float = 150.0):
@@ -160,42 +159,6 @@ class TestInstruments:
             }
         ]
 
-    def test_provenance_listing_lifecycle_timestamps_use_canonical_utc_wire_values(
-        self, client, auth_headers, instrument, db
-    ):
-        db.add(
-            InstrumentListing(
-                instrument_id=instrument.id,
-                ticker=instrument.symbol,
-                currency="USD",
-                is_primary=True,
-                is_active=True,
-                effective_at=datetime.fromisoformat("2026-01-02T05:04:05+02:00"),
-                known_at=datetime(2026, 1, 2, 3, 4, 5),
-                delisted_at=datetime.fromisoformat("2026-01-02T08:04:05+02:00"),
-            )
-        )
-        db.flush()
-
-        response = client.get(
-            f"/api/v1/instruments/{instrument.symbol}/provenance",
-            headers=auth_headers,
-        )
-
-        assert response.status_code == 200
-        assert response.json()["listings"] == [
-            {
-                "ticker": "AAPL",
-                "currency": "USD",
-                "is_primary": True,
-                "is_active": True,
-                "effective_at": "2026-01-02T03:04:05Z",
-                "known_at": "2026-01-02T03:04:05Z",
-                "delisted_at": "2026-01-02T06:04:05Z",
-                "exchange": None,
-            }
-        ]
-
     @patch("app.routers.instruments.get_provider_profile_async")
     def test_existing_instrument_read_does_not_fan_out_to_provider_metadata(
         self, provider_profile, client, auth_headers, instrument
@@ -207,6 +170,45 @@ class TestInstruments:
         res = client.get(f"/api/v1/instruments/{instrument.symbol}", headers=auth_headers)
         assert res.status_code == 200
         provider_profile.assert_not_called()
+
+    @patch("app.routers.instruments.fetch_ohlcv_latest")
+    def test_heatmap_uses_local_coverage_and_does_not_fan_out_to_provider(
+        self, fetch_latest, client, auth_headers, instrument, ohlcv_bars
+    ):
+        """Broad heatmap evaluation must defer cold/short history to refresh workers."""
+        fetch_latest.side_effect = AssertionError("heatmap evaluation must not make provider calls")
+        response = client.post(
+            "/api/v1/instruments/heatmap-data",
+            json={
+                "instrument_ids": [instrument.id],
+                "timeframe": "D1",
+                "include_sparklines": True,
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        row = response.json()[0]
+        assert row["current_price"] is None
+        assert row["coverage_preflight"]["daily"]["status"] in {"missing", "partial"}
+        assert row["coverage_preflight"]["daily"]["bar_count"] < 252
+        fetch_latest.assert_not_called()
+
+    @patch("app.services.market_data._fetch_provider")
+    def test_seasonality_uses_local_monthly_history_and_reports_coverage(
+        self, fetch_provider, client, auth_headers, instrument, ohlcv_bars
+    ):
+        """Seasonality evaluation must not synchronously refresh providers."""
+        response = client.get(
+            f"/api/v1/instruments/{instrument.symbol}/seasonality/monthly",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["coverage_preflight"]["evaluator"] == "instrument_seasonality"
+        assert payload["coverage_preflight"]["status"] == "deferred"
+        assert payload["coverage_preflight"]["items"][0]["status"] == "missing"
+        assert all(month["sample_count"] == 0 for month in payload["months"])
+        fetch_provider.assert_not_called()
 
     def test_get_instrument_by_id(self, client, auth_headers, instrument):
         res = client.get(f"/api/v1/instruments/{instrument.id}", headers=auth_headers)
@@ -312,30 +314,6 @@ class TestInstruments:
 
 
 class TestOHLCV:
-    @patch(
-        "app.services.market_data._fetch_provider",
-        side_effect=ProviderNoDataError("coarse timeframe unavailable"),
-    )
-    def test_coarse_read_materializes_local_d1_when_provider_has_no_data(
-        self, _fetch_provider, client, auth_headers, instrument, ohlcv_bars
-    ):
-        """A provider coarse-timeframe gap must use canonical local D1 evidence."""
-        start = datetime(2024, 1, 1, tzinfo=UTC).isoformat()
-        end = datetime(2024, 4, 30, tzinfo=UTC).isoformat()
-
-        response = client.get(
-            f"/api/v1/ohlcv/{instrument.symbol}/W1",
-            params={"start": start, "end": end},
-            headers=auth_headers,
-        )
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data
-        assert all(bar["is_derived"] is True for bar in data)
-        assert all(bar["source_timeframe"] == "D1" for bar in data)
-        _fetch_provider.assert_called()
-
     def test_get_ohlcv_cached_data(self, client, auth_headers, instrument, ohlcv_bars):
         """When bars exist in DB, no provider call should be needed."""
         start = datetime(2024, 1, 1, tzinfo=UTC).isoformat()
@@ -438,6 +416,23 @@ class TestIndicatorsEndpoint:
         assert "values" in data
         assert "sma" in data["values"]
         assert len(data["timestamps"]) == len(ohlcv_bars)
+        assert data["coverage_preflight"]["evaluator"] == "indicator_compute"
+        assert data["coverage_preflight"]["status"] == "full"
+
+    def test_compute_indicator_withholds_insufficient_history(
+        self, client, auth_headers, instrument, ohlcv_bars
+    ):
+        res = client.get(
+            f"/api/v1/indicators/compute/{instrument.symbol}/D1",
+            params={"indicator": "sma", "params": '{"period": 200}'},
+            headers=auth_headers,
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["timestamps"] == []
+        assert data["values"] == {}
+        assert data["coverage_preflight"]["status"] == "deferred"
+        assert data["coverage_preflight"]["ready_instrument_count"] == 0
 
     def test_compute_unknown_indicator_returns_error(
         self, client, auth_headers, instrument, ohlcv_bars

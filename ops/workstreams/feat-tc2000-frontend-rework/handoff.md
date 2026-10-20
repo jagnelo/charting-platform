@@ -1,5 +1,141 @@
 # feat/tc2000-frontend-rework
 
+## Current status — 2026-10-20 21:52Z: Provider consumer contract adaptation in progress
+
+This remains a normal TC-owned merge of released green staging
+`9b230ba4c97126a2937667138c6eb2a0aa297baf` into the existing branch:
+pre-merge `HEAD` and `origin/feat/tc2000-frontend-rework` are both
+`7a3aa2d87f43c0cc69a758750da14eae08e75f6b`, with that exact release at
+`MERGE_HEAD`. The merge is not committed or pushed yet. ETF and Strategy product
+source were not imported.
+
+The coordinator approved narrow, additive TC compatibility adaptations. The
+existing TC OHLCV lineage columns are restored as typed ORM fields over the
+already-present migration revisions; nullable event adjustment-factor evidence
+is carried through `InstrumentEventRecord`, normalized event persistence, and
+the existing observation materializer. The released Alpaca parser now also
+preserves only the two exact optional keys already recognized by the older TC
+parser (`adjustment_factor` and `adjustmentFactor`), rejecting malformed,
+non-finite, non-positive, or conflicting explicit values. No split ratio or
+dividend amount is used to calculate one. The six exact model/input/service and
+Alpaca parser/test adaptations are individually pinned to their accepted 9b230
+blob IDs in the plan and omitted only from the immutable-import manifest; all
+other imported bytes remain frozen. No new migration was added.
+
+Evidence boundary: the current Alpaca adapter consumes a dictionary-valued
+`cash_dividends` row and preserves the page envelope, but the public Alpaca
+corporate-actions endpoint reference does not declare an adjustment-factor
+response field. The optional parser path is backward-compatible support for the
+two explicitly named legacy TC fields, not proof that the native endpoint emits
+either one. Without such a field the factor remains unknown. No authenticated
+endpoint request was made. The parser-to-persistence regression uses a local
+fixture to prove typed propagation when an explicit recognized field is
+present; it is not native-feed evidence.
+
+Provider attribution boundary: the typed-record persistence test is explicitly
+a synthetic, provider-neutral fixture (`factor-fixture`), not Massive evidence.
+The real Alpaca parser-to-event-to-observation tests exercise the two exact
+legacy TC keys and absent/invalid cases. Massive's current public docs separately
+describe `historical_adjustment_factor` for both dividend and split records, but
+the accepted Massive parser does not normalize it; this narrowly approved
+Alpaca compatibility repair does not add Massive support or infer its behavior.
+
+Bounded local results so far: the Alpaca parser plus TC lineage/persistence,
+instrument-event, adjustment-factor and derived-timeframe selection passed
+`70/70`; independent OHLCV storage reconciliation passed `7/7`. The separate
+watchlist-history selection could not collect: it reaches ETF-owned
+`etf_holdings.py`, which imports `get_search_provider_chain` absent from the
+accepted Provider package. That is the known deferred ETF consumer mismatch;
+this branch does not restore that API or import ETF source. Exact workstream/scope
+validation, Alembic graph check, final staged-diff review, merge commit and
+source-specific CI are still pending. TCP3 overall remains gated on ETF release
+and consumer reconciliation; TCP4/TCP5, full roadmap, and official
+`REF-HELP-V25` parity remain open.
+
+## Historical status — 2026-10-20 21:26Z: exact Provider blobs selected; consumer contract review required
+
+The accepted Provider release `9b230ba4c97126a2937667138c6eb2a0aa297baf`
+(`CI39484176087`, Exhaustive job `118849529356`, canonical receipt
+`20261020T205101Z-9b230ba4c971.json`) is being reconciled only in this TC
+worktree. The normal merge is still in progress: local HEAD is
+`7a3aa2d87f43c0cc69a758750da14eae08e75f6b`, `MERGE_HEAD` is the exact released
+SHA, all52 original conflicts have been resolved in the index, and no merge
+commit has been created or pushed. Provider and repair workstream files match
+the accepted release byte-for-byte. No ETF/Strategy source was imported.
+
+Semantic choices made so far:
+
+- Exact accepted Provider blobs were selected for conflicts in Provider models,
+  adapters, routers, provider runtime/admission services, background tasks,
+  Provider tests, `market_data.py`, `instrument_events.py`, and shared
+  provider/config/docs/workflow files. The complete exact-path inventory and
+  hash audit is retained in the current validation context; no Provider source
+  was edited. Following the coordinator's same-turn review, the frozen
+  `backend/app/models/ohlcv.py` and `backend/app/providers/base.py` are now also
+  exact 9b230 blobs (Git blob IDs respectively
+  `d4d4cd177cf4160092b0c0d4c65e8b2eff7b06c1` and
+  `353335ec9dd2514e66d9c22e813123a35f60e9d8`, verified in both index and
+  worktree). `instrument_event.py` and `services/instrument_events.py` are
+  exact release blobs as well.
+- Shared TC consumer conflicts retain both authorities where contracts permit:
+  `main.py` keeps TC Favorites plus Provider market-data-admin registration,
+  large-universe seed and lock-client shutdown; `models/__init__.py` keeps
+  FavoriteInstrument with Provider exports; `analysis.py` and
+  `schemas/analysis.py` combine TC's dated/derived-bar and transparent breadth
+  outputs with Provider preflight/freshness fields; `market_map.py` keeps TC
+  point-in-time/Python-output behavior and merges Provider coverage/freshness;
+  `research.py` keeps immutable run-manifest/promotion behavior and adds the
+  Provider preflight helper; `strategy_lab.py` retains its current immutable
+  Study/ETF filtering while consuming Provider preflight; `WorkstationView.vue`
+  preserves its bounded160-attempt activation and teardown guard; and watchlist,
+  analysis, Market Map, Strategy and workstation unit tests retain both consumer
+  assertions and released readiness checks.
+- `Makefile` takes the released bounded/sharded backend coverage runner; the old
+  direct combined pytest invocation is not retained.
+- The frozen-import proof now supersedes the prior281a57 manifest:
+  `frozen-upstream-imports/9b230ba4c97126a2937667138c6eb2a0aa297baf.yaml`
+  pins all335 foreign paths to the accepted release mode/blob and its
+  byte-identical canonical receipt. The scope guard passes401 changed paths and
+  all29 self-tests. This proves import immutability only, not consumer-contract
+  acceptance.
+
+The exact release selection exposes two indispensable TC consumer contracts
+that are not present in the accepted Provider representation. They are not
+silently discarded, and no Provider-owned file is being forked:
+
+1. Released Provider `OHLCVBar` omits TC's existing `is_derived`,
+   `source_timeframe`, `derivation_method`, `derived_at`, `source_bar_count`,
+   `source_start` and `source_end` fields. TC consumers/tests still access
+   these ORM attributes in `analysis.py`, `adjustment_factors.py`,
+   `derived_timeframes.py`, `ohlcv_coverage.py`, `watchlist_history.py`,
+   `routers/coverage.py`, and corresponding unit tests. The released model
+   provides generic `provenance` JSON, but no reviewed TC-owned adapter and
+   historical-column migration yet proves equivalent read/write/cutoff behavior.
+2. Released Provider `InstrumentEventRecord`/`InstrumentEvent` omit TC's
+   typed `adjustment_factor` contract. TC's adjustment-factor materializer and
+   tests read `InstrumentEvent.adjustment_factor`; the released `raw_payload`
+   and immutable page snapshot preserve source evidence, but no approved
+   normalized field/adapter currently establishes factor meaning or lifecycle.
+   Do not infer it from arbitrary provider payloads or reinsert a field into
+   Provider-owned paths without review.
+3. Bounded backend test collection currently stops before assertions because the
+   pre-existing/excluded TC ETF service `backend/app/services/etf_holdings.py`
+   imports `get_search_provider_chain`, which the accepted Provider package no
+   longer exports. The service was not changed; it belongs to the later ETF
+   consumer phase, so do not patch or import ETF work here.
+
+Provider consumer preparation combines canonical/preflight/freshness evidence
+in TC analysis, Market Map, Research and Strategy read paths. The focused
+WorkstationView suite passed48/48, but backend consumer assertions did not run:
+collection stopped in later ETF-owned `etf_holdings.py` because the released
+Provider package no longer exports `get_search_provider_chain`. The exact
+frozen import manifest is verified, but the actual merge commit, branch CI and
+Provider consumer acceptance remain pending the two path-level contract
+resolutions and coordinator review. TCP3 overall still requires ETF's accepted
+green staging release and its consumer reconciliation; TCP4/TCP5, the full
+roadmap and official `REF-HELP-V25` remain open. No source was pushed, no
+staging/sibling/runtime resource was touched, and no acceptance is inferred.
+
 ## Current status — 2026-10-20 21:01Z: Provider-only TCP3 phase opened
 
 The coordinator released exact synchronized green staging

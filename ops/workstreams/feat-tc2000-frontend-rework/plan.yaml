@@ -3,7 +3,7 @@ branch: feat/tc2000-frontend-rework
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
-latest_staging_parent_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
+latest_staging_parent_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
 latest_staging_merge_sha: enclosing_merge_commit
 dependency_authorization: "Human-approved consumer dependency on feat/market-data-provider-platform and feat/etf-holdings-constituents; consume only after their work reaches staging."
 human_intent_authorization: >-
@@ -30,20 +30,27 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Superseding current status (2026-10-20T21:00Z): TCP2 local technical
-  acceptance remains limited to its owned gate (source35ee3c02, exact CI
-  39432030348, uniform pinned-Noble visual104/104 at0.005; full receipt below).
-  Provider-only TCP3 reconciliation is now authorized against released green
-  staging9b230ba4c97126a2937667138c6eb2a0aa297baf, canonical receipt
-  20261020T205101Z-9b230ba4c971.json and CI39484176087. The next action is to
-  merge only this exact staging snapshot into the existing unfrozen TC branch
-  and reconcile actual Provider identity, series/coverage, freshness and
-  preflight consumers with focused deterministic checks. This is a partial TCP3
-  phase only: ETF reconciliation and TCP3 overall completion remain gated on an
-  actual accepted green ETF staging release. TCP4 combined validation, TCP5
-  final review/closure and official REF-HELP-V25 parity remain open. No whole
-  checkpoint acceptance, staging integration, promotion or deployment is
-  inferred.
+  Current 2026-10-20 Provider-only reconciliation is in progress in the normal
+  merge of released green staging9b230ba4c97126a2937667138c6eb2a0aa297baf.
+  The frozen model conflicts now match exact release blobs. Bounded
+  consumer reconciliation is present in analysis, Market Map, Research, Strategy
+  Lab and workstation startup seams, with Provider freshness/preflight evidence
+  carried into the tests. Exact staging import remains blocked from publication
+  by two unresolved cross-owner contracts: accepted Provider OHLCV schema omits
+  TC derived-bar lineage fields used by existing analysis semantics, and
+  accepted Provider instrument-event schema/base record omit TC's explicit
+  adjustment_factor consumer contract. These gaps now have narrow additive TC
+  adaptations over the existing migration columns, plus an Alpaca compatibility
+  parser for only the exact optional factor keys recognized by the prior TC
+  parser. It is not evidence that Alpaca's documented endpoint emits those
+  fields. Massive's current documentation separately names
+  historical_adjustment_factor for dividends and splits, but the accepted
+  Massive parser does not normalize that field and this approved Alpaca
+  compatibility slice does not change Massive behavior. Unknown factors remain
+  null; no split/dividend-derived substitute is allowed. ETF reconciliation and
+  TCP3 overall remain gated on an accepted green ETF release. TCP4, TCP5, full
+  roadmap, and official REF-HELP-V25 remain open; no whole-checkpoint acceptance,
+  staging integration, promotion, or deployment is inferred.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -600,6 +607,7 @@ owned_paths:
   - backend/tests/unit/services/test_benchmark_family_coverage.py
   - backend/tests/unit/services/test_benchmark_family_history.py
   - backend/tests/unit/services/test_benchmark_family_holdings_runs.py
+  - backend/tests/unit/services/test_tc_provider_lineage_adaptations.py
   - backend/tests/unit/services/test_market_map.py
   - backend/tests/unit/services/test_breadth.py
   - backend/tests/unit/services/test_workstation_bootstrap.py
@@ -694,6 +702,9 @@ shared_path_exceptions:
   - path: backend/tests/integration/api/test_watchlists.py
     owners: [TC, market-data-provider-platform, etf-holdings-constituents]
     reason: TC Market Map execution and immutable Python-output lineage tests only; no provider or ETF acquisition coverage.
+  - path: backend/tests/unit/routers/test_analysis_router.py
+    owners: [TC, market-data-provider-platform]
+    reason: TC derived-bar cutoff consumer tests plus released Provider freshness-precedence assertions only; no Provider route, source, or acquisition behavior.
   - path: backend/app/models/strategy.py
     owners: [TC, market-data-provider-platform]
     reason: TC-owned Strategy domain only; avoid generic provider schema additions.
@@ -769,17 +780,72 @@ shared_path_exceptions:
   - path: tests/workflow/test_staging_workflow.py
     reason: Shared staging workflow regression tests carried by the released 0145 common-repair merge; coordinator-owned test infrastructure.
 dependencies:
-  - "feat/market-data-provider-platform (provider-neutral identifiers/listings, OHLCV, capability/entitlement/health, evaluator preflight, coverage state, and durable refresh handoff); dependency is not yet in staging."
+  - "feat/market-data-provider-platform (provider-neutral identifiers/listings, OHLCV, capability/entitlement/health, evaluator preflight, coverage state, and durable refresh handoff); accepted green release 9b230ba4c97126a2937667138c6eb2a0aa297baf is in staging and Provider-only consumer reconciliation is active."
   - "feat/etf-holdings-constituents (ETF holdings capability, audit, and source lineage); currently waits on provider-platform staging integration."
   - "Consume both dependencies only after their changes reach staging; do not modify their worktrees or duplicate their adapters, provider routing, credentials, ingestion, or refresh workers."
   - "Strategy Lab is intentionally not an upstream dependency for this branch; preserve TC's existing Python/DSL/Study/Strategy engine."
 scope_guard_baseline_sha: 2b92c642237ce2abde40a84ee98383d4ee4285d1
 frozen_upstream_import_manifests:
-  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/281a57bd9fb782c0f85bfb5127c713ea15037f68.yaml
+  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/9b230ba4c97126a2937667138c6eb2a0aa297baf.yaml
+approved_provider_contract_adaptations:
+  - path: backend/app/models/ohlcv.py
+    source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
+    accepted_blob: d4d4cd177cf4160092b0c0d4c65e8b2eff7b06c1
+    delta: Restore TC derived-lineage ORM projection over existing columns from ff0a1b2c3d4e.
+    rationale: >-
+      Provider provenance JSON has no equivalent typed cutoff/materializer contract. Preserve
+      existing populated lineage and null unknowns without adding duplicate schema columns.
+  - path: backend/app/models/instrument_event.py
+    source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
+    accepted_blob: 3caadf63beff2e786cf9f63af40da6d7c359008b
+    delta: Restore nullable typed adjustment_factor ORM field from existing ff2a3b4c5d6e column.
+    rationale: >-
+      TC adjustment-factor observations consume only validated explicit factor evidence; retain
+      nullable unknowns and do not derive this field from split ratios, dividends or raw payloads.
+  - path: backend/app/providers/base.py
+    source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
+    accepted_blob: 353335ec9dd2514e66d9c22e813123a35f60e9d8
+    delta: Add an optional finite-positive Decimal adjustment_factor to InstrumentEventRecord.
+    rationale: >-
+      The TC typed event consumer needs explicit normalized factor evidence; validation rejects
+      non-finite/non-positive values and no generic raw-payload inference is introduced.
+  - path: backend/app/services/instrument_events.py
+    source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
+    accepted_blob: 4ad0abeb919e374d44bf2f98bf8b3d191a40a4cf
+    delta: Persist the typed adjustment_factor on normalized event insert and conflict update.
+    rationale: >-
+      The existing TC observation/version materializer already consumes InstrumentEvent.factor;
+      this reconnects typed evidence to it without altering Provider identity or governance.
+  - path: backend/app/providers/alpaca.py
+    source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
+    accepted_blob: a7a2e4fa9430c0030e479ca6fe8078a47d18cdfb
+    delta: >-
+      Restore parsing of only the two explicit Alpaca cash-dividend factor keys already recognized
+      by the pre-merge TC adapter, validating supplied values as finite and positive.
+    rationale: >-
+      The accepted adapter treats cash_dividends rows as dictionaries and preserves the original
+      page payload, while Alpaca's public endpoint reference does not declare an adjustment-factor
+      response field. This retains only the two exact optional keys recognized by the prior TC
+      parser if they are explicitly present; it does not claim the native endpoint emits them.
+      Missing factors remain unknown, and dividend amounts or split rates are never used to infer
+      a factor. This path is specifically Alpaca compatibility and does not imply Massive support.
+  - path: backend/tests/unit/providers/test_new_providers.py
+    source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
+    accepted_blob: af1df01fa33293005e22d973749b1eb691198857
+    delta: Add explicit Alpaca factor parser, absent-factor, and invalid-factor contract coverage.
+    rationale: >-
+      Keep regression tests adjacent to the accepted current Alpaca paginated parser and prove
+      exact named-field behavior without changing page traversal, snapshots, or provider routing.
+      The separate Massive docs name historical_adjustment_factor for dividend and split rows,
+      but that accepted adapter does not normalize it; that distinct source contract is outside
+      this approved Alpaca compatibility change.
 approved_frozen_upstream_snapshots:
   - source_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
     receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/281a57bd9fb782c0f85bfb5127c713ea15037f68.json
     receipt_sha256: cb71f88b6df454161d373f6208ef868d2d257febb31f2f19e2ad86db795d565c
+  - source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
+    receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/9b230ba4c97126a2937667138c6eb2a0aa297baf.json
+    receipt_sha256: ded0df600ca37803dfbe61eadcf36b8b31ea8ed22e3f5c3b2cf4765eb18484f6
 frozen_upstream_import_policy:
   purpose: >-
     Admit coordinator-approved foreign files only as immutable bytes from an
@@ -879,14 +945,16 @@ progress:
   # Current TCP3 is intentionally subdivided; completed IDs remain TCP1/TCP2 only.
   current_phase: TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_ONLY_RECONCILIATION_ACTIVE_ETF_GATED;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN
   next_action: >-
-    Current action (2026-10-20T21:01Z): merge only the released green staging
-    snapshot 9b230ba4c97126a2937667138c6eb2a0aa297baf into this TC branch and
-    reconcile actual Provider identity, series/coverage, freshness and preflight
-    consumers with bounded stack-free focused checks. Preserve imported Provider
-    and repair records byte-for-byte and all TC-owned source/tests. ETF green
-    staging plus ETF consumer reconciliation are still required for TCP3 overall
-    completion. Do not run a full Compose/browser profile, full build, live HTTP,
-    or assigned-service action until the coordinator assigns capacity.
+    Complete the bounded offline Provider reconciliation against released
+    staging9b230, including the exact approved additive TC adapters and their
+    frozen-import manifest exceptions. Record passing focused parser-to-storage,
+    derived-timeframe, adjustment and OHLCV-storage tests; record the separate
+    watchlist-history collection failure at the pre-existing ETF import boundary.
+    Run scope/self-tests and workstream/structured/diff validation, then publish
+    the coherent merge context once through normal TC ownership and obtain exact
+    source CI. Do not run live HTTP, migrations against a database, a full
+    backend/frontend/browser/Compose profile, or touch assigned services.
+    ETF release and consumer reconciliation remain required for TCP3 overall.
 
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:
@@ -943,17 +1011,59 @@ progress:
     owned behavior, then revalidate. Keep full functional/visual gates and the
     complete V25 roadmap open.
   current_blocker: >-
-    Provider-only TCP3 reconciliation is active against released green staging
-    9b230ba4c97126a2937667138c6eb2a0aa297baf. Reconcile its actual consumer
-    contracts in TC-owned code/tests. ETF staging and its consumer reconciliation
-    remain gated and required before TCP3 overall completion; TCP4 combined
-    validation, TCP5 final review and official REF-HELP-V25 parity remain open.
+    Provider-only reconciliation against released
+    9b230ba4c97126a2937667138c6eb2a0aa297baf now has coordinator-approved,
+    additive TC representations for the existing OHLCV lineage columns and
+    typed adjustment-factor consumer. The four model/input/service adaptations
+    and two exact Alpaca parser/test adaptations are pinned to accepted source
+    blobs and excluded only from the immutable-file list; no migration was added
+    because the existing TC revisions already create the required columns.
+    Alpaca's public corporate-actions reference does not declare an adjustment
+    factor response field: only the two legacy TC-recognized explicit keys are
+    preserved if present, and this is not evidence that the native endpoint
+    emits one. Massive separately documents historical_adjustment_factor on
+    dividend and split records, but the accepted Massive parser does not
+    normalize that field and this narrow Alpaca adaptation does not implement
+    it. The synthetic typed persistence fixture is provider-neutral and is not
+    native Massive evidence. Focused relevant tests pass, but bounded history collection via
+    watchlist_history is blocked before assertions by the independent stale ETF
+    import get_search_provider_chain. No DB migration/runtime or exact merge CI
+    has run. ETF release/reconciliation is still required for TCP3 overall;
+    TCP4, TCP5, full roadmap and official REF-HELP-V25 remain open.
 current_checkpoint_status: >-
-  Current boundary (2026-10-20T21:00Z): TCP1 and TCP2 remain narrowly accepted
+  Current boundary (2026-10-20T21:52Z): TCP1 and TCP2 remain narrowly accepted
+  only as recorded. Provider-only TCP3 reconciliation is active against exact
+  green staging9b230ba4c97126a2937667138c6eb2a0aa297baf (receipt
+  20261020T205101Z-9b230ba4c971.json; CI39484176087; Exhaustive
+  118849529356). Pre-merge TC HEAD and origin were both
+  7a3aa2d87f43c0cc69a758750da14eae08e75f6b and MERGE_HEAD is exactly9b230;
+  the merge remains uncommitted/unpushed. The coordinator-approved six exact
+  contract adaptations preserve TC's existing derived-lineage ORM projection,
+  typed explicit factor consumer/persistence, and the two explicitly named
+  legacy Alpaca parser keys. No schema migration was added because the required
+  lineage/factor columns exist in the prior TC migrations. The current Alpaca
+  public corporate-actions reference does not declare an adjustment-factor row
+  field, so legacy optional-key parsing is not proof that the native endpoint
+  emits one; unknown remains null, with no dividend/split-derived substitute.
+  The bounded parser/persistence plus event/adjustment/derived-timeframe test
+  selection passed70/70; OHLCV storage reconciliation passed7/7. The separate
+  watchlist-history selection cannot collect because the later ETF-owned module
+  imports get_search_provider_chain absent from accepted Provider; no ETF
+  source/API was changed. Exact source scope/workstream validation, migration
+  graph review, merge commit/push and exact-source CI remain pending.
+  ETF staging and its TC consumer reconciliation are still required for TCP3;
+  TCP4, TCP5, the full roadmap and official REF-HELP-V25 remain open.
+
+  Historical boundary (2026-10-20T21:00Z): TCP1 and TCP2 remain narrowly accepted
   only as recorded. Provider-only TCP3 reconciliation is authorized against
   exact green staging9b230ba4c97126a2937667138c6eb2a0aa297baf (receipt
   20261020T205101Z-9b230ba4c971.json; CI39484176087). This phase may reconcile
-  only released Provider contracts in TC-owned consumers. Preserve the full
+  only released Provider contracts in TC-owned consumers. Provider source
+  reconciliation has identified two incompatible TC extensions absent from the
+  accepted Provider model/input blobs (OHLCV derived-bar lineage and explicit
+  instrument-event adjustment_factor). Those model/input paths remain upstream
+  owned and exact-release authoritative; no repair is made there pending review.
+  Preserve the full
   TCP3 acceptance criterion: ETF staging and ETF-consumer reconciliation are
   still required before TCP3 is complete. TCP4, TCP5 and official REF-HELP-V25
   remain open; whole-checkpoint acceptance is pending.

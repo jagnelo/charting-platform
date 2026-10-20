@@ -5,6 +5,7 @@ import pytest
 
 from app.schemas.market_map import MarketMapRequest
 from app.services.market_map import (
+    _market_map_required_bars,
     _as_utc,
     _cache_key,
     _condition_tree_matches_declared,
@@ -355,3 +356,14 @@ def test_python_breadth_tree_match_ignores_only_runner_metadata():
         },
     }
     assert not _condition_tree_matches_declared(changed, resolved)
+
+
+def test_market_map_required_bars_include_return_and_colour_dependencies():
+    request = MarketMapRequest(
+        source_id="watchlist:1",
+        period="1D",
+        color_metric="breadth",
+        condition={"kind": "above_moving_average", "params": {"period": 20}},
+    )
+
+    assert _market_map_required_bars(request) == 20

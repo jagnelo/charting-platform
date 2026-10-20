@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.provider_observation import DatasetStatus
 from app.models.radar import (
     RadarDetection,
     RadarOutcomeStatus,
@@ -18,6 +19,9 @@ from app.services.radar_engine import (
     _find_matching_thread,
     _invalidation_price,
     _overlapping_current_run_detection,
+    _queue_radar_repairs,
+    _radar_coverage_summary,
+    _radar_stale_instrument_ids,
     _timeframe_importance,
     analyze_instrument,
 )
@@ -88,6 +92,138 @@ class TestInvalidationPrice:
 
 
 class TestRadarEngine:
+    def test_radar_coverage_summary_distinguishes_full_partial_unavailable_and_empty(self):
+        bars = {1: _make_bars([100, 101])}
+
+        status, summary = _radar_coverage_summary([1, 2], bars, Timeframe.D1)
+        assert status == "partial"
+        assert summary["evaluated_count"] == 1
+        assert summary["missing_instrument_ids"] == [2]
+
+        status, summary = _radar_coverage_summary([1], bars, Timeframe.D1)
+        assert status == "full"
+        assert summary["missing_instrument_ids"] == []
+
+        status, summary = _radar_coverage_summary([2], bars, Timeframe.D1)
+        assert status == "unavailable"
+        assert summary["evaluated_count"] == 0
+
+        status, summary = _radar_coverage_summary([], bars, Timeframe.D1)
+        assert status == "empty"
+        assert summary["evaluated_count"] == 0
+
+    def test_radar_coverage_summary_bounds_missing_ids(self):
+        status, summary = _radar_coverage_summary(list(range(150)), {}, Timeframe.D1)
+
+        assert status == "unavailable"
+        assert len(summary["missing_instrument_ids"]) == 100
+        assert summary["missing_instrument_ids_truncated"] is True
+
+    def test_radar_coverage_summary_excludes_stale_bars_from_evaluation(self):
+        status, summary = _radar_coverage_summary(
+            [1, 2],
+            {1: _make_bars([100, 101]), 2: _make_bars([100, 101])},
+            Timeframe.D1,
+            stale_instrument_ids=[2],
+        )
+
+        assert status == "partial"
+        assert summary["evaluated_count"] == 1
+        assert summary["stale_instrument_ids"] == [2]
+        assert summary["stale_count"] == 1
+
+    def test_radar_coverage_summary_excludes_shared_preflight_blocked_ids(self):
+        status, summary = _radar_coverage_summary(
+            [1, 2, 3],
+            {1: _make_bars([100, 101]), 2: _make_bars([100, 101]), 3: _make_bars([100, 101])},
+            Timeframe.D1,
+            coverage_blocked_ids=[2],
+        )
+
+        assert status == "partial"
+        assert summary["evaluated_count"] == 2
+        assert summary["coverage_blocked_instrument_ids"] == [2]
+        assert summary["coverage_blocked_count"] == 1
+
+    def test_radar_freshness_uses_persisted_state_or_conservative_bar_fallback(self):
+        now = datetime(2026, 9, 12, 12, tzinfo=UTC)
+        bars = {1: _make_bars([100, 101]), 2: _make_bars([100, 101])}
+        fresh_state = SimpleNamespace(
+            status=DatasetStatus.FRESH,
+            stale_after=now + timedelta(hours=1),
+        )
+
+        stale = _radar_stale_instrument_ids(
+            [1, 2],
+            bars,
+            {1: [fresh_state]},
+            Timeframe.D1,
+            now=now,
+        )
+
+        assert stale == [2]
+
+    def test_radar_repairs_enqueue_only_missing_and_stale_members(self, monkeypatch):
+        queued: list[dict] = []
+        records: list[dict] = []
+
+        async def fake_enqueue(db, **kwargs):
+            queued.append(kwargs)
+
+        import app.services.market_refresh_queue as refresh_queue
+
+        monkeypatch.setattr(refresh_queue, "enqueue_refresh_job", fake_enqueue)
+
+        queued_count = __import__("asyncio").run(
+            _queue_radar_repairs(
+                object(),
+                instrument_ids=[1, 2, 3],
+                bars_by_instrument={1: _make_bars([100, 101]), 3: _make_bars([99, 100])},
+                timeframe=Timeframe.D1,
+                stale_instrument_ids=[3],
+                repair_records=records,
+                now=datetime(2026, 9, 12, 12, tzinfo=UTC),
+            )
+        )
+
+        assert queued_count == 2
+        assert [item["instrument_id"] for item in queued] == [2, 3]
+        assert all(item["capability"] == "price_history" for item in queued)
+        assert queued[0]["metadata_payload"]["coverage_reason"] == "missing"
+        assert queued[1]["metadata_payload"]["coverage_reason"] == "stale"
+        assert queued[0]["start_at"] == datetime(2026, 9, 12, 12, tzinfo=UTC) - timedelta(days=320)
+        assert [record["request_key"] for record in records] == [
+            "radar:D1:2",
+            "radar:D1:3",
+        ]
+        assert [record["coverage_reason"] for record in records] == ["missing", "stale"]
+        assert all(record["status"] == "queued" for record in records)
+
+    def test_radar_repairs_label_preflight_blocked_history(self, monkeypatch):
+        queued: list[dict] = []
+
+        async def fake_enqueue(db, **kwargs):
+            queued.append(kwargs)
+
+        import app.services.market_refresh_queue as refresh_queue
+
+        monkeypatch.setattr(refresh_queue, "enqueue_refresh_job", fake_enqueue)
+
+        queued_count = __import__("asyncio").run(
+            _queue_radar_repairs(
+                object(),
+                instrument_ids=[1],
+                bars_by_instrument={1: _make_bars([100, 101])},
+                timeframe=Timeframe.D1,
+                stale_instrument_ids=[],
+                coverage_blocked_ids=[1],
+                now=datetime(2026, 9, 12, 12, tzinfo=UTC),
+            )
+        )
+
+        assert queued_count == 1
+        assert queued[0]["metadata_payload"]["coverage_reason"] == "insufficient_history"
+
     def test_timeframe_importance_is_explicit_and_monotonic(self):
         values = [_timeframe_importance(timeframe) for timeframe in Timeframe]
 

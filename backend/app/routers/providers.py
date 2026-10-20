@@ -2,14 +2,13 @@ from datetime import UTC, datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_admin
 from app.config import settings
 from app.database import get_db
-from app.lib.time_utils import wire_datetime
 from app.models.data_source import DataSource
 from app.models.instrument_reconciliation import InstrumentReconciliationIssue
 from app.models.provider_runtime import (
@@ -22,6 +21,10 @@ from app.models.user import User
 from app.services.instrument_reconciliation import (
     list_reconciliation_issues,
     resolve_reconciliation_issue,
+)
+from app.services.provider_account_usage import (
+    list_provider_account_usage,
+    refresh_provider_account_usage,
 )
 from app.services.provider_availability import (
     latest_availability,
@@ -36,6 +39,7 @@ from app.services.provider_maintenance import (
 )
 from app.services.provider_runtime import (
     list_provider_status,
+    quota_contract_missing_dimensions,
     record_entitlement_revision,
     seed_provider_runtime,
 )
@@ -48,11 +52,14 @@ class ProviderPolicyUpdate(BaseModel):
     is_enabled: bool | None = None
     is_pinned: bool | None = None
     auto_weight_enabled: bool | None = None
-    base_priority: int | None = None
-    max_concurrency: int | None = None
-    tokens_per_minute: int | None = None
-    burst_capacity: int | None = None
-    cooldown_seconds: int | None = None
+    base_priority: int | None = Field(default=None, ge=0)
+    max_concurrency: int | None = Field(default=None, ge=1)
+    tokens_per_minute: int | None = Field(default=None, ge=1)
+    burst_capacity: int | None = Field(default=None, ge=1)
+    cooldown_seconds: int | None = Field(default=None, ge=1)
+    quota_contract: dict | None = None
+    quota_scope: str | None = None
+    quota_source: str | None = None
     freshness_seconds: int | None = None
 
 
@@ -92,7 +99,7 @@ async def get_providers(
                 "provider": row["provider"],
                 "supported_capabilities": row["supported_capabilities"],
                 "capabilities": [],
-                "updated_at": wire_datetime(datetime.now(UTC)),
+                "updated_at": datetime.now(),
             },
         )
         entry["capabilities"].append(row["capability"])
@@ -133,8 +140,8 @@ async def get_provider_entitlements(
             "venue_coverage": entitlement.venue_coverage,
             "freshness_semantics": entitlement.freshness_semantics,
             "enabled_environments": entitlement.enabled_environments,
-            "effective_at": wire_datetime(entitlement.effective_at),
-            "review_due_at": wire_datetime(entitlement.review_due_at),
+            "effective_at": entitlement.effective_at,
+            "review_due_at": entitlement.review_due_at,
             "live_probe_status": entitlement.live_probe_status,
             "revision": entitlement.revision,
         }
@@ -188,11 +195,11 @@ async def get_provider_entitlement_history(
             "venue_coverage": row.venue_coverage,
             "freshness_semantics": row.freshness_semantics,
             "enabled_environments": row.enabled_environments,
-            "effective_at": wire_datetime(row.effective_at),
-            "review_due_at": wire_datetime(row.review_due_at),
+            "effective_at": row.effective_at,
+            "review_due_at": row.review_due_at,
             "live_probe_status": row.live_probe_status,
             "change_reason": row.change_reason,
-            "created_at": wire_datetime(row.created_at),
+            "created_at": row.created_at,
         }
         for row in rows
     ]
@@ -247,9 +254,9 @@ async def get_provider_health(
             "provider": row["provider"],
             "capability": row["capability"],
             "failure_streak": row["failure_streak"],
-            "last_success_at": wire_datetime(row["last_success_at"]),
-            "last_failure_at": wire_datetime(row["last_failure_at"]),
-            "circuit_open_until": wire_datetime(row["circuit_open_until"]),
+            "last_success_at": row["last_success_at"],
+            "last_failure_at": row["last_failure_at"],
+            "circuit_open_until": row["circuit_open_until"],
             "ewma_latency_ms": row["ewma_latency_ms"],
             "ewma_success_rate": row["ewma_success_rate"],
             "ewma_completeness": row["ewma_completeness"],
@@ -276,6 +283,29 @@ async def get_provider_usage(
     current_user: User = Depends(get_current_user),
 ):
     return await summarize_provider_usage(db)
+
+
+@router.get("/usage/account")
+async def get_provider_account_usage(
+    provider: str | None = None,
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Return provider-native account counters retained across sessions."""
+
+    return await list_provider_account_usage(db, provider_name=provider, limit=limit)
+
+
+@router.post("/usage/account/refresh")
+async def refresh_provider_account_usage_endpoint(
+    provider: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Explicitly poll one reviewed provider account-usage endpoint."""
+
+    return await refresh_provider_account_usage(db, provider_name=provider)
 
 
 @router.get("/availability")
@@ -336,8 +366,8 @@ async def get_reconciliation_issues(
             "status": issue.status,
             "candidates": issue.candidates,
             "payload": issue.payload,
-            "observed_at": wire_datetime(issue.observed_at),
-            "resolved_at": wire_datetime(issue.resolved_at),
+            "observed_at": issue.observed_at,
+            "resolved_at": issue.resolved_at,
             "resolution": issue.resolution,
             "resolved_by": (
                 {
@@ -380,7 +410,7 @@ async def update_reconciliation_issue(
         "ok": True,
         "id": issue.id,
         "status": issue.status,
-        "resolved_at": wire_datetime(issue.resolved_at),
+        "resolved_at": issue.resolved_at,
         "resolution": issue.resolution,
         "resolved_by": {
             "id": current_user.id,
@@ -423,8 +453,77 @@ async def update_provider_policy(
     if policy is None:
         raise HTTPException(404, f"No policy found for '{provider_name}' / '{capability}'")
 
-    for field_name, value in body.model_dump(exclude_unset=True).items():
+    changes = body.model_dump(exclude_unset=True)
+    quota_fields = {"max_concurrency", "tokens_per_minute", "burst_capacity", "cooldown_seconds"}
+    candidate_contract_missing: list[str] = []
+    if "quota_contract" in changes and changes.get("quota_contract") is not None:
+        candidate_contract = changes.get("quota_contract")
+        if not isinstance(candidate_contract, dict):
+            raise HTTPException(400, "quota_contract must be a JSON object")
+        candidate_policy = ProviderPolicy(
+            capability=capability_enum,
+            quota_contract=candidate_contract,
+            # Validate the complete replacement as it will exist after the
+            # patch. Existing provenance may be reused when omitted, while
+            # an explicit null remains a deliberate fail-closed removal.
+            quota_scope=changes.get("quota_scope", policy.quota_scope),
+            quota_source=changes.get("quota_source", policy.quota_source),
+        )
+        candidate_contract_missing = quota_contract_missing_dimensions(candidate_policy)
+    candidate_structural_missing = [
+        item
+        for item in candidate_contract_missing
+        if not item.startswith(
+            (
+                "quota_contract.unknown_dimensions.",
+                "quota_contract.untracked_constraints.",
+            )
+        )
+        and not item.endswith(".reset.unresolved")
+    ]
+    if quota_fields.intersection(changes):
+        if "quota_contract" not in changes:
+            raise HTTPException(
+                400,
+                "Provider limits require an explicit replacement documentation-backed "
+                "quota_contract; individual numeric defaults are not accepted",
+            )
+        if candidate_structural_missing:
+            raise HTTPException(
+                400,
+                "quota_contract is incomplete: " + ", ".join(candidate_structural_missing),
+            )
+    if "quota_contract" in changes and changes.get("quota_contract") is not None:
+        if candidate_structural_missing:
+            raise HTTPException(
+                400,
+                "quota_contract is incomplete: " + ", ".join(candidate_structural_missing),
+            )
+        if not candidate_contract_missing:
+            quota_scope = str(changes.get("quota_scope", policy.quota_scope) or "").strip()
+            quota_source = str(changes.get("quota_source", policy.quota_source) or "").strip()
+            if not quota_scope:
+                raise HTTPException(400, "Complete quota contracts require quota_scope")
+            if not quota_source:
+                raise HTTPException(400, "Complete quota contracts require quota_source provenance")
+    for field_name, value in changes.items():
         setattr(policy, field_name, value)
+    if "quota_contract" in changes:
+        # A contract containing unknown/untracked dimensions is useful audit
+        # evidence, but it is not a verified admission contract. Keep the
+        # timestamp empty so admin diagnostics cannot present a fail-closed
+        # policy as documentation-approved.
+        policy.quota_verified_at = (
+            datetime.now(UTC)
+            if changes.get("quota_contract") is not None and not candidate_contract_missing
+            else None
+        )
+    elif {"quota_scope", "quota_source"}.intersection(changes):
+        # Provenance edits without an explicit complete replacement contract
+        # cannot inherit the previous review timestamp. The policy may remain
+        # useful audit state, but routing must wait for a new reviewed
+        # contract to be submitted.
+        policy.quota_verified_at = None
     if body.base_priority is not None and body.is_pinned is None:
         policy.is_pinned = True
     await db.flush()

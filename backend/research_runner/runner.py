@@ -14,7 +14,6 @@ import resource
 import signal
 import time
 from collections.abc import Callable
-from datetime import UTC, datetime
 from hashlib import sha256
 from pathlib import Path
 
@@ -180,7 +179,33 @@ def execute_job(
             "status": "failed",
             "diagnostics": [item.__dict__ for item in validation.diagnostics],
         }
-    datasets = job.get("dataset", {}).get("datasets")
+    dataset = job.get("dataset", {})
+    coverage_preflight = dataset.get("coverage_preflight") if isinstance(dataset, dict) else None
+    datasets = dataset.get("datasets") if isinstance(dataset, dict) else None
+    if (
+        isinstance(coverage_preflight, dict)
+        and not isinstance(datasets, list)
+        and str(coverage_preflight.get("status") or "").lower() != "full"
+    ):
+        status = str(coverage_preflight.get("status") or "deferred")
+        return {
+            "status": "completed",
+            "diagnostics": [
+                {
+                    "code": "coverage_preflight_blocked",
+                    "message": f"Research execution deferred because local OHLCV coverage is {status}.",
+                }
+            ],
+            "resource_usage": {
+                "evaluation": {
+                    "status": "deferred",
+                    "coverage_preflight": coverage_preflight,
+                }
+            },
+            "reproducibility_hash": sha256(
+                json.dumps(job, sort_keys=True, default=str).encode()
+            ).hexdigest(),
+        }
     if isinstance(datasets, list):
         # Aggregate chart plots are series assets, but their source evaluates
         # the complete prepared universe in one isolated invocation. Routing
@@ -190,13 +215,6 @@ def execute_job(
         # behaviour from an output name or user source text.
         if str(job.get("output_adapter") or "") == "breadth_aggregate_percentage":
             return _execute_single(source, job.get("dataset", {}), job)
-        if str(job.get("output_adapter") or "") == "study_series_to_series":
-            result = _execute_single(source, job.get("dataset", {}), job)
-            if result.get("status") != "completed":
-                return result
-            return _adapt_study_series_to_series(
-                result, str(job.get("output_name") or "") or None
-            )
         if str(job.get("output_contract") or "") == "study":
             return _execute_single(source, job.get("dataset", {}), job)
         if str(job.get("execution_mode") or "") == "breadth_history":
@@ -218,13 +236,7 @@ def execute_job(
             progress_callback=progress_callback,
             cancellation_check=cancellation_check,
         )
-    result = _execute_single(source, job.get("dataset", {}), job)
-    if (
-        result.get("status") == "completed"
-        and str(job.get("output_adapter") or "") == "range_center_to_series"
-    ):
-        return _adapt_range_center_to_series(result, str(job.get("output_name") or "") or None)
-    return result
+    return _execute_single(source, job.get("dataset", {}), job)
 
 
 def _truncate_dataset(dataset: dict, index: int) -> dict:
@@ -312,282 +324,6 @@ def _series_artifact(
         ):
             return float(value), None
     return None, "Series output has no finite value at the observation timestamp."
-
-
-def _scalar_artifact(
-    result: dict, output_name: str | None
-) -> tuple[float | None, str | None]:
-    """Extract one finite numeric scalar output for an explicit condition adapter."""
-    matches = [
-        artifact
-        for name, artifact in result.get("artifacts", {}).items()
-        if isinstance(artifact, dict)
-        and artifact.get("type") == "scalar"
-        and (output_name is None or name == output_name)
-    ]
-    if len(matches) != 1:
-        return (
-            None,
-            f"Expected exactly one scalar output{f' named {output_name!r}' if output_name else ''}.",
-        )
-    value = matches[0].get("value")
-    if (
-        not isinstance(value, int | float)
-        or isinstance(value, bool)
-        or not math.isfinite(float(value))
-    ):
-        return None, "Scalar output must be a finite numeric value."
-    return float(value), None
-
-
-def _range_center_artifact(
-    result: dict, output_name: str | None
-) -> tuple[float | None, str | None]:
-    """Extract the latest finite center from one structured range output.
-
-    Range outputs are not silently treated as ordinary series. The caller must
-    opt into an explicit range-center promotion adapter so the loss of the
-    lower/upper band remains visible in lineage and diagnostics.
-    """
-    matches = [
-        artifact
-        for name, artifact in result.get("artifacts", {}).items()
-        if isinstance(artifact, dict)
-        and artifact.get("type") == "range"
-        and (output_name is None or name == output_name)
-    ]
-    if len(matches) != 1:
-        return (
-            None,
-            f"Expected exactly one range output{f' named {output_name!r}' if output_name else ''}.",
-        )
-    raw = matches[0].get("value")
-    center = raw.get("center") if isinstance(raw, dict) else None
-    if not isinstance(center, list):
-        return None, "Range output has no center series to promote."
-    for value in reversed(center):
-        if (
-            isinstance(value, int | float)
-            and not isinstance(value, bool)
-            and math.isfinite(float(value))
-        ):
-            return float(value), None
-    return None, "Range center series has no finite value at the observation timestamp."
-
-
-def _adapt_range_center_to_series(result: dict, output_name: str | None) -> dict:
-    """Project one named range artifact into a chart-compatible center series."""
-    matches = [
-        (name, artifact)
-        for name, artifact in result.get("artifacts", {}).items()
-        if isinstance(artifact, dict)
-        and artifact.get("type") == "range"
-        and (output_name is None or name == output_name)
-    ]
-    if len(matches) != 1:
-        return {
-            "status": "failed",
-            "diagnostics": [{
-                "code": "range_center_adapter_output_missing",
-                "message": f"Expected exactly one range output{f' named {output_name!r}' if output_name else ''}.",
-            }],
-        }
-    name, artifact = matches[0]
-    raw = artifact.get("value")
-    if not isinstance(raw, dict):
-        return {
-            "status": "failed",
-            "diagnostics": [{
-                "code": "range_center_adapter_invalid_payload",
-                "message": "Range output must contain an object payload.",
-            }],
-        }
-    timestamps = raw.get("timestamps")
-    center = raw.get("center")
-    if not isinstance(timestamps, list) or not isinstance(center, list) or len(timestamps) != len(center):
-        return {
-            "status": "failed",
-            "diagnostics": [{
-                "code": "range_center_adapter_unaligned",
-                "message": "Range center and timestamps must be aligned lists.",
-            }],
-        }
-    if not all(
-        isinstance(value, int | float)
-        and not isinstance(value, bool)
-        and math.isfinite(float(value))
-        for value in center
-    ):
-        return {
-            "status": "failed",
-            "diagnostics": [{
-                "code": "range_center_adapter_non_numeric",
-                "message": "Range center values must be finite numbers.",
-            }],
-        }
-    return {
-        **result,
-        "artifacts": {
-            name: {
-                "type": "series",
-                "value": {
-                    "timestamps": [str(timestamp) for timestamp in timestamps],
-                    "values": [float(value) for value in center],
-                },
-            }
-        },
-    }
-
-
-def _adapt_study_series_to_series(result: dict, output_name: str | None) -> dict:
-    """Project one named aggregate Study artifact into a chart series.
-
-    Structured Study sources execute once over their prepared universe.  A
-    chart plot still needs one named ``series`` output, so this adapter keeps
-    the full-universe execution boundary explicit instead of accidentally
-    replaying the source once per member and losing its aggregate semantics.
-    """
-
-    matches = [
-        (name, artifact)
-        for name, artifact in result.get("artifacts", {}).items()
-        if isinstance(artifact, dict)
-        and artifact.get("type") == "series"
-        and (output_name is None or name == output_name)
-    ]
-    if len(matches) != 1:
-        return {
-            "status": "failed",
-            "diagnostics": [{
-                "code": "study_series_adapter_output_missing",
-                "message": f"Expected exactly one series output{f' named {output_name!r}' if output_name else ''}.",
-            }],
-        }
-    name, artifact = matches[0]
-    raw = artifact.get("value")
-    if not isinstance(raw, dict):
-        return {
-            "status": "failed",
-            "diagnostics": [{
-                "code": "study_series_adapter_invalid_payload",
-                "message": "Study series output must contain an object payload.",
-            }],
-        }
-    timestamps = raw.get("timestamps")
-    values = raw.get("values")
-    if not isinstance(timestamps, list) or not isinstance(values, list) or len(timestamps) != len(values):
-        return {
-            "status": "failed",
-            "diagnostics": [{
-                "code": "study_series_adapter_unaligned",
-                "message": "Study series timestamps and values must be aligned lists.",
-            }],
-        }
-    if not all(
-        value is None
-        or (
-            isinstance(value, int | float)
-            and not isinstance(value, bool)
-            and math.isfinite(float(value))
-        )
-        for value in values
-    ):
-        return {
-            "status": "failed",
-            "diagnostics": [{
-                "code": "study_series_adapter_non_numeric",
-                "message": "Study series values must be finite numbers or null.",
-            }],
-        }
-    return {
-        **result,
-        "artifacts": {
-            name: {
-                "type": "series",
-                "value": {
-                    "timestamps": [str(timestamp) for timestamp in timestamps],
-                    "values": [float(value) if value is not None else None for value in values],
-                },
-            }
-        },
-    }
-
-
-def _events_to_boolean(
-    result: dict, dataset: dict, output_name: str | None
-) -> tuple[bool | None, str | None, float | None]:
-    """Adapt one event artifact into current-observation Boolean semantics.
-
-    The adapter is deliberately explicit: an event output is not silently treated as a
-    Boolean by ordinary execution. A member matches only when at least one event from the
-    selected artifact occurs at the member's latest observation timestamp (or on the same
-    UTC calendar date when the event is date-only). Future-dated events never match.
-    """
-    matches = [
-        artifact
-        for name, artifact in result.get("artifacts", {}).items()
-        if isinstance(artifact, dict)
-        and artifact.get("type") == "events"
-        and (output_name is None or name == output_name)
-    ]
-    if len(matches) != 1:
-        return (
-            None,
-            f"Expected exactly one events output{f' named {output_name!r}' if output_name else ''}.",
-            None,
-        )
-    events = matches[0].get("value")
-    if not isinstance(events, list):
-        return None, "Events output must contain a list.", None
-    timestamps = dataset.get("timestamps")
-    if not isinstance(timestamps, list) or not timestamps:
-        return None, "Event Boolean adapter requires an observation timestamp.", None
-    observation = _parse_event_timestamp(timestamps[-1])
-    if observation is None:
-        return None, "Event Boolean adapter received an invalid observation timestamp.", None
-    observed_count = 0
-    candidate_symbol = str(dataset.get("symbol") or "").strip().upper()
-    candidate_instrument_id = dataset.get("instrument_id")
-    for event in events:
-        if not isinstance(event, dict):
-            continue
-        event_symbol = event.get("symbol")
-        if (
-            isinstance(event_symbol, str)
-            and event_symbol.strip()
-            and event_symbol.strip().upper() != candidate_symbol
-        ):
-            continue
-        event_instrument_id = event.get("instrument_id")
-        if (
-            isinstance(event_instrument_id, int)
-            and not isinstance(event_instrument_id, bool)
-            and isinstance(candidate_instrument_id, int)
-            and not isinstance(candidate_instrument_id, bool)
-            and event_instrument_id != candidate_instrument_id
-        ):
-            continue
-        event_time = _parse_event_timestamp(event.get("timestamp"))
-        if event_time is None or event_time > observation:
-            continue
-        # Date-only event feeds are common for daily disclosures. Treat an event on
-        # the same UTC day as the daily observation as current, while still rejecting
-        # a future event with an explicit time.
-        if event_time == observation or event_time.date() == observation.date():
-            observed_count += 1
-    return observed_count > 0, None, float(observed_count)
-
-
-def _parse_event_timestamp(value: object) -> datetime | None:
-    if not isinstance(value, str) or not value.strip():
-        return None
-    try:
-        parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
-    except ValueError:
-        return None
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=UTC)
-    return parsed.astimezone(UTC)
 
 
 def _series_target_value(
@@ -1352,15 +1088,8 @@ def _execute_batch(
                     "series"
                     if output_adapter in {"latest_series_to_scalar", "series_target_to_boolean"}
                     and output_contract in {"scalar", "boolean"}
-                    else "range"
-                    if output_adapter in {"range_center_to_scalar", "range_center_target_to_boolean"}
-                    and output_contract in {"scalar", "boolean"}
-                    else "scalar"
-                    if output_adapter == "scalar_target_to_boolean" and output_contract == "boolean"
                     else output_contract
                 )
-                if output_adapter == "events_to_boolean" and output_contract == "boolean":
-                    requested_contract = "events"
                 result = _execute_single(
                     source,
                     candidate,
@@ -1401,28 +1130,6 @@ def _execute_batch(
                         extracted_metric, hash_input.get("series_target")
                     )
                     error = extraction_error or target_error
-                elif output_adapter == "range_center_target_to_boolean":
-                    extracted_metric, extraction_error = _range_center_artifact(result, output_name)
-                    value, target_error = _series_target_value(
-                        extracted_metric, hash_input.get("series_target")
-                    )
-                    error = extraction_error or target_error
-                elif output_adapter == "scalar_target_to_boolean":
-                    extracted_metric, extraction_error = _scalar_artifact(result, output_name)
-                    value, target_error = _series_target_value(
-                        extracted_metric, hash_input.get("series_target")
-                    )
-                    error = extraction_error or target_error
-                elif output_adapter == "events_to_boolean":
-                    value, error, extracted_metric = _events_to_boolean(
-                        result, candidate, output_name
-                    )
-                elif output_adapter == "range_center_to_series":
-                    extracted_metric, error = _range_center_artifact(result, output_name)
-                    value = extracted_metric
-                elif output_adapter == "range_center_to_scalar":
-                    extracted_metric, error = _range_center_artifact(result, output_name)
-                    value = extracted_metric
                 elif output_contract == "boolean":
                     value, error, extracted_metric = _boolean_artifact(result, output_name)
                 elif output_contract == "series":

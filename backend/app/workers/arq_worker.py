@@ -12,11 +12,8 @@ from datetime import UTC, datetime
 
 from arq import cron
 from arq.connections import RedisSettings
-from fastapi.encoders import jsonable_encoder
-from sqlalchemy.orm import selectinload
 
 from app.config import settings
-from app.lib.time_utils import wire_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -41,19 +38,7 @@ async def task_bulk_fetch_instrument(
     from app.services.bulk_fetch import bulk_fetch_instrument, refresh_cancel_key
 
     async with AsyncSessionLocal() as db:
-        # ``provider_symbol_for_instrument`` deliberately never triggers lazy
-        # loads: history jobs must resolve the canonical provider binding that
-        # was persisted during holdings reconciliation, not fall back to an
-        # internal HOLDING-* symbol just because this worker loaded a bare row.
-        # Keep both relationship collections available for every timeframe.
-        instrument = await db.get(
-            Instrument,
-            instrument_id,
-            options=[
-                selectinload(Instrument.provider_symbols),
-                selectinload(Instrument.listings),
-            ],
-        )
+        instrument = await db.get(Instrument, instrument_id)
         if instrument is None:
             logger.warning(f"bulk_fetch: instrument {instrument_id} not found")
             return
@@ -72,10 +57,7 @@ async def task_bulk_fetch_instrument(
 
 
 async def task_refresh_benchmark_family_history(
-    ctx: dict,
-    instrument_ids: list[int],
-    timeframes: list[str] | None = None,
-    end: str | None = None,
+    ctx: dict, instrument_ids: list[int], timeframes: list[str] | None = None
 ):
     """Compatibility task for callers that submit a bounded family batch.
 
@@ -86,9 +68,7 @@ async def task_refresh_benchmark_family_history(
 
     results = []
     for instrument_id in instrument_ids:
-        results.append(
-            await task_bulk_fetch_instrument(ctx, instrument_id, timeframes=timeframes, end=end)
-        )
+        results.append(await task_bulk_fetch_instrument(ctx, instrument_id, timeframes=timeframes))
     return {"instrument_count": len(instrument_ids), "results": results}
 
 
@@ -99,11 +79,7 @@ async def task_refresh_benchmark_family_holdings_run(ctx: dict, run_id: int):
 
     from app.database import AsyncSessionLocal
     from app.models.benchmark_family_history import BenchmarkFamilyHoldingsRefreshRun
-    from app.services.benchmark_family_history import (
-        history_end_for_date,
-        history_end_iso,
-        queue_snapshot_member_history,
-    )
+    from app.services.benchmark_family_history import queue_snapshot_member_history
     from app.services.etf_holdings_refresh import refresh_benchmark_family_holdings_for_date
 
     async with AsyncSessionLocal() as db:
@@ -167,20 +143,11 @@ async def task_refresh_benchmark_family_holdings_run(ctx: dict, run_id: int):
                     and leg.get("snapshot_id") is not None
                 ]
                 if refreshed_snapshot_ids:
-                    # The holdings refresh and constituent materialization run in
-                    # this session's transaction.  Commit before enqueueing the
-                    # independent member jobs, otherwise a fast worker can query
-                    # the IDs before their parent snapshot/instruments are visible
-                    # and incorrectly report them as missing.
-                    await db.commit()
-                    history_end = history_end_for_date(requested_date)
                     try:
                         history_queue = await queue_snapshot_member_history(
                             db,
                             ctx.get("redis"),
                             refreshed_snapshot_ids,
-                            max_instruments=settings.BENCHMARK_FAMILY_MEMBER_HISTORY_MAX_INSTRUMENTS_PER_SNAPSHOT,
-                            end=history_end,
                         )
                     except Exception as exc:  # noqa: BLE001 - retain bounded queue evidence.
                         history_queue = {
@@ -188,28 +155,14 @@ async def task_refresh_benchmark_family_holdings_run(ctx: dict, run_id: int):
                             "snapshot_ids": refreshed_snapshot_ids,
                             "queued": 0,
                             "already_queued": 0,
-                            "queue_errors": [
-                                {
-                                    "status": "queue_error",
-                                    "snapshot_ids": refreshed_snapshot_ids,
-                                    "error": str(exc)[:500]
-                                    or "Benchmark family history queue failed.",
-                                }
-                            ],
-                            "queue_error_count": 1,
-                            "history_end": history_end_iso(history_end),
                             "error": str(exc)[:500],
                         }
                 else:
-                    history_end = history_end_for_date(requested_date)
                     history_queue = {
                         "status": "no_snapshots",
                         "snapshot_ids": [],
                         "queued": 0,
                         "already_queued": 0,
-                        "queue_errors": [],
-                        "queue_error_count": 0,
-                        "history_end": history_end_iso(history_end),
                     }
 
                 run = await db.get(BenchmarkFamilyHoldingsRefreshRun, run_id)
@@ -227,14 +180,8 @@ async def task_refresh_benchmark_family_holdings_run(ctx: dict, run_id: int):
                         "refreshed": int(summary.get("refreshed", 0)),
                         "unavailable": int(summary.get("unavailable", 0)),
                         "failed": int(summary.get("failed", 0)),
-                        # Adapter summaries carry date/datetime provenance in
-                        # each refreshed leg.  Encode those values before
-                        # storing the progress document in PostgreSQL JSON;
-                        # a raw ``date`` otherwise aborts the worker on the
-                        # first successful unit and leaves the durable run
-                        # stuck in ``running``.
-                        "legs": jsonable_encoder(summary.get("legs") or []),
-                        "history_queue": jsonable_encoder(history_queue),
+                        "legs": summary.get("legs") or [],
+                        "history_queue": history_queue,
                         "error": summary.get("error"),
                     }
                 )
@@ -285,11 +232,7 @@ async def task_refresh_scheduled_benchmark_family_holdings_unit(
     from datetime import date, datetime
 
     from app.database import AsyncSessionLocal
-    from app.services.benchmark_family_history import (
-        history_end_for_date,
-        history_end_iso,
-        queue_snapshot_member_history,
-    )
+    from app.services.benchmark_family_history import queue_snapshot_member_history
     from app.services.etf_holdings_refresh import refresh_benchmark_family_holdings_for_date
 
     requested_date = date.fromisoformat(str(requested_date_text))
@@ -320,44 +263,18 @@ async def task_refresh_scheduled_benchmark_family_holdings_unit(
             and leg.get("status") == "refreshed"
             and leg.get("snapshot_id") is not None
         ]
-        history_end = history_end_for_date(requested_date)
-        if snapshot_ids:
-            # Publish only committed snapshot/member rows to the separate bulk
-            # history workers; avoid an enqueue/transaction visibility race.
-            await db.commit()
-        try:
-            history_queue = await queue_snapshot_member_history(
-                db,
-                ctx.get("redis"),
-                snapshot_ids,
-                max_instruments=settings.BENCHMARK_FAMILY_MEMBER_HISTORY_MAX_INSTRUMENTS_PER_SNAPSHOT,
-                end=history_end,
-            )
-        except Exception as exc:  # noqa: BLE001 - retain bounded queue failure evidence.
-            history_queue = {
-                "status": "queue_error",
-                "snapshot_ids": snapshot_ids,
-                "queued": 0,
-                "already_queued": 0,
-                "queue_errors": [
-                    {
-                        "status": "queue_error",
-                        "snapshot_ids": snapshot_ids,
-                        "error": str(exc)[:500]
-                        or "Scheduled benchmark family history queue failed.",
-                    }
-                ],
-                "queue_error_count": 1,
-                "history_end": history_end_iso(history_end),
-                "error": str(exc)[:500],
-            }
+        history_queue = await queue_snapshot_member_history(
+            db,
+            ctx.get("redis"),
+            snapshot_ids,
+        )
         await db.commit()
         return {
             **summary,
             "requested_date": requested_date.isoformat(),
             "snapshot_ids": snapshot_ids,
             "history_queue": history_queue,
-            "completed_at": wire_datetime(datetime.now(UTC)) or "",
+            "completed_at": datetime.now(UTC).isoformat(),
         }
 
 
@@ -397,7 +314,7 @@ async def task_refresh_instrument_data(ctx: dict, instrument_id: int, timeframe:
             return
         tf = Timeframe(timeframe)
         start = datetime.now(UTC) - timedelta(days=7)
-        bars = await fetch_ohlcv(db, instrument, tf, start)
+        bars = await fetch_ohlcv(db, instrument, tf, start, redis=ctx.get("redis"))
         return {"bars_fetched": len(bars)}
 
 
@@ -464,13 +381,30 @@ async def scheduled_daily_id_bootstrap(ctx: dict):
 
 
 async def scheduled_daily_history_refresh(ctx: dict):
-    """Refresh recent canonical OHLCV bars when explicitly enabled."""
+    """Enqueue whole-universe core D1 work when explicitly enabled.
+
+    The deployed Docker worker must use the durable refresh queue rather than
+    iterating through every instrument and making provider calls in one long
+    cron invocation.  Lease/retry processing is handled by
+    ``scheduled_refresh_queue_process`` below.
+    """
     if not settings.MARKET_DATA_REFRESH_SCHEDULE_ENABLED:
         logger.info("Market-data refresh schedule disabled; skipping history refresh")
         return {"skipped": True, "reason": "schedule disabled"}
-    from app.tasks.data_tasks import fetch_all_instruments_history
+    from app.tasks.data_tasks import enqueue_core_refresh_jobs
 
-    return await fetch_all_instruments_history(ctx)
+    return await enqueue_core_refresh_jobs(ctx)
+
+
+async def scheduled_refresh_queue_process(ctx: dict):
+    """Process a bounded batch of leased core refresh jobs."""
+
+    if not settings.MARKET_DATA_REFRESH_SCHEDULE_ENABLED:
+        logger.info("Market-data refresh schedule disabled; skipping queue process")
+        return {"skipped": True, "reason": "schedule disabled"}
+    from app.tasks.data_tasks import process_refresh_jobs
+
+    return await process_refresh_jobs(ctx)
 
 
 async def scheduled_etf_holdings_refresh(ctx: dict):
@@ -495,12 +429,6 @@ async def scheduled_benchmark_family_holdings_refresh(ctx: dict):
     from app.tasks.etf_holdings_tasks import refresh_benchmark_family_holdings_task
 
     return await refresh_benchmark_family_holdings_task(ctx)
-
-
-async def scheduled_benchmark_family_member_history_backfill(ctx: dict):
-    from app.tasks.etf_holdings_tasks import backfill_benchmark_family_member_history_task
-
-    return await backfill_benchmark_family_member_history_task(ctx)
 
 
 async def scheduled_core_workstation_bootstrap(ctx: dict):
@@ -538,6 +466,107 @@ async def scheduled_weekly_provider_availability(ctx: dict):
         )
 
 
+async def scheduled_tokenized_asset_refresh(ctx: dict):
+    """Poll persisted tokenized products only when explicitly enabled."""
+
+    if not settings.TOKENIZED_ASSET_REFRESH_ENABLED:
+        return {"skipped": True, "reason": "tokenized refresh disabled"}
+    from app.tasks.data_tasks import refresh_tokenized_asset_prices
+
+    return await refresh_tokenized_asset_prices(ctx)
+
+
+async def scheduled_tokenized_catalog_refresh(ctx: dict):
+    """Discover tokenized listings only when the bounded catalog job is enabled."""
+
+    if not settings.TOKENIZED_CATALOG_REFRESH_ENABLED:
+        return {"skipped": True, "reason": "tokenized catalog refresh disabled"}
+    from app.tasks.data_tasks import refresh_tokenized_asset_catalog
+
+    return await refresh_tokenized_asset_catalog(ctx)
+
+
+async def scheduled_tokenized_historical_refresh(ctx: dict):
+    """Refresh tokenized aggregate candles only when explicitly enabled."""
+
+    if not settings.TOKENIZED_HISTORICAL_REFRESH_ENABLED:
+        return {"skipped": True, "reason": "tokenized historical refresh disabled"}
+    from app.tasks.data_tasks import refresh_tokenized_historical_asset_prices
+
+    return await refresh_tokenized_historical_asset_prices(ctx)
+
+
+async def scheduled_tokenized_event_refresh(ctx: dict):
+    """Persist tokenized corporate actions only when explicitly enabled."""
+
+    if not settings.TOKENIZED_EVENT_REFRESH_ENABLED:
+        return {"skipped": True, "reason": "tokenized event refresh disabled"}
+    from app.tasks.data_tasks import refresh_tokenized_corporate_actions
+
+    return await refresh_tokenized_corporate_actions(ctx)
+
+
+async def scheduled_market_events_refresh(ctx: dict):
+    """Persist a bounded forward market-event window when enabled."""
+
+    if not settings.MARKET_EVENTS_REFRESH_ENABLED:
+        logger.info("Market-events refresh disabled; skipping")
+        return {"skipped": True, "reason": "market-events refresh disabled"}
+    from app.tasks.data_tasks import refresh_market_events
+
+    return await refresh_market_events(ctx)
+
+
+async def scheduled_market_event_prelisting(ctx: dict):
+    """Materialize future-listing candidates only when explicitly enabled."""
+
+    if not settings.MARKET_EVENTS_PRELISTING_ENABLED:
+        return {"skipped": True, "reason": "pre-listing materialization disabled"}
+    from app.tasks.data_tasks import materialize_market_event_prelisting
+
+    return await materialize_market_event_prelisting(ctx)
+
+
+async def scheduled_edgar_ipo_universe_scan(ctx: dict):
+    """Scan one durable issuer batch for SEC filing-driven IPO candidates."""
+
+    if not settings.MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED:
+        return {"skipped": True, "reason": "EDGAR issuer-universe scan disabled"}
+    from app.tasks.data_tasks import refresh_edgar_ipo_pipeline_for_issuer_universe
+
+    return await refresh_edgar_ipo_pipeline_for_issuer_universe(ctx)
+
+
+async def scheduled_edgar_ipo_directory_scan(ctx: dict):
+    """Scan one SEC ticker-association page when explicitly enabled."""
+
+    if not settings.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED:
+        return {"skipped": True, "reason": "EDGAR SEC directory scan disabled"}
+    from app.tasks.data_tasks import refresh_edgar_ipo_pipeline_for_sec_directory
+
+    return await refresh_edgar_ipo_pipeline_for_sec_directory(ctx)
+
+
+async def scheduled_market_universe_reconciliation(ctx: dict):
+    """Reconcile the market universe only when explicitly enabled."""
+
+    if not settings.MARKET_UNIVERSE_RECONCILIATION_ENABLED:
+        return {"skipped": True, "reason": "market-universe reconciliation disabled"}
+    from app.tasks.data_tasks import reconcile_market_universe
+
+    return await reconcile_market_universe(ctx)
+
+
+async def scheduled_provider_account_usage_refresh(ctx: dict):
+    """Refresh explicitly configured native account-usage endpoints daily."""
+
+    if not settings.PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED:
+        return {"skipped": True, "reason": "provider account-usage refresh disabled"}
+    from app.tasks.data_tasks import refresh_provider_account_usage_snapshots
+
+    return await refresh_provider_account_usage_snapshots(ctx)
+
+
 async def worker_startup(ctx: dict):
     """Queue the first hydration without blocking worker readiness.
 
@@ -554,17 +583,13 @@ async def worker_startup(ctx: dict):
     if redis is None:
         logger.warning("Core workstation bootstrap could not be queued: Redis is unavailable")
         return
-    try:
-        job = await redis.enqueue_job(
-            "task_bootstrap_core_workstation",
-            # Bump this id when bootstrap semantics change so a completed result
-            # from an older deployment cannot suppress the corrected sweep.
-            _job_id="core-workstation-bootstrap-startup-v4",
-            _expires=3600,
-        )
-    except Exception as exc:  # noqa: BLE001 - startup must survive a transient queue outage.
-        logger.warning("Core workstation bootstrap could not be queued: %s", exc)
-        return
+    job = await redis.enqueue_job(
+        "task_bootstrap_core_workstation",
+        # Bump this id when bootstrap semantics change so a completed result
+        # from an older deployment cannot suppress the corrected sweep.
+        _job_id="core-workstation-bootstrap-startup-v4",
+        _expires=3600,
+    )
     logger.info("Queued core workstation bootstrap at worker startup: job=%s", job)
 
 
@@ -585,14 +610,23 @@ class WorkerSettings:
         scheduled_daily_metadata_sync,
         scheduled_daily_id_bootstrap,
         scheduled_daily_history_refresh,
+        scheduled_refresh_queue_process,
         scheduled_etf_holdings_refresh,
         scheduled_etf_holdings_sec_backfill,
         scheduled_etf_holdings_classification_refresh,
         scheduled_benchmark_family_holdings_refresh,
-        scheduled_benchmark_family_member_history_backfill,
-        scheduled_core_workstation_bootstrap,
         scheduled_daily_provider_availability,
         scheduled_weekly_provider_availability,
+        scheduled_tokenized_asset_refresh,
+        scheduled_tokenized_catalog_refresh,
+        scheduled_tokenized_historical_refresh,
+        scheduled_tokenized_event_refresh,
+        scheduled_market_events_refresh,
+        scheduled_edgar_ipo_universe_scan,
+        scheduled_edgar_ipo_directory_scan,
+        scheduled_market_event_prelisting,
+        scheduled_market_universe_reconciliation,
+        scheduled_provider_account_usage_refresh,
     ]
     cron_jobs = (
         [
@@ -600,14 +634,22 @@ class WorkerSettings:
             cron(scheduled_daily_metadata_sync, hour=3, minute=0),
             cron(scheduled_daily_id_bootstrap, hour=4, minute=0),
             cron(scheduled_daily_history_refresh, hour=5, minute=0),
+            cron(scheduled_refresh_queue_process, minute={0, 15, 30, 45}),
             cron(scheduled_etf_holdings_refresh, weekday=6, hour=5, minute=0),
             cron(scheduled_etf_holdings_sec_backfill, weekday=6, hour=6, minute=0),
             cron(scheduled_etf_holdings_classification_refresh, weekday=6, hour=7, minute=0),
             cron(scheduled_benchmark_family_holdings_refresh, weekday=6, hour=8, minute=0),
-            cron(scheduled_benchmark_family_member_history_backfill, weekday=6, hour=9, minute=0),
             cron(scheduled_core_workstation_bootstrap, hour=1, minute=0),
             cron(scheduled_daily_provider_availability, hour=2, minute=0),
             cron(scheduled_weekly_provider_availability, weekday=6, hour=3, minute=0),
+            cron(scheduled_tokenized_asset_refresh, minute={0, 15, 30, 45}),
+            cron(scheduled_tokenized_catalog_refresh, hour=6, minute=30),
+            cron(scheduled_tokenized_historical_refresh, hour=7, minute=0),
+            cron(scheduled_tokenized_event_refresh, minute={5, 20, 35, 50}),
+            cron(scheduled_market_events_refresh, hour=1, minute=30),
+            cron(scheduled_edgar_ipo_universe_scan, hour=1, minute=40),
+            cron(scheduled_edgar_ipo_directory_scan, hour=1, minute=42),
+            cron(scheduled_market_event_prelisting, hour=1, minute=45),
         ]
         if (
             settings.INSTRUMENT_SYNC_SCHEDULE_ENABLED
@@ -616,12 +658,29 @@ class WorkerSettings:
             or settings.ETF_HOLDINGS_SEC_BACKFILL_ENABLED
             or settings.ETF_HOLDINGS_CLASSIFICATION_REFRESH_ENABLED
             or settings.BENCHMARK_FAMILY_HOLDINGS_REFRESH_ENABLED
-            or settings.BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_ENABLED
             or settings.CORE_WORKSTATION_BOOTSTRAP_ENABLED
             or settings.PROVIDER_AVAILABILITY_MONITOR_ENABLED
+            or settings.TOKENIZED_ASSET_REFRESH_ENABLED
+            or settings.TOKENIZED_CATALOG_REFRESH_ENABLED
+            or settings.TOKENIZED_HISTORICAL_REFRESH_ENABLED
+            or settings.TOKENIZED_EVENT_REFRESH_ENABLED
+            or settings.MARKET_EVENTS_REFRESH_ENABLED
+            or settings.MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED
+            or settings.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED
+            or settings.MARKET_EVENTS_PRELISTING_ENABLED
+            or settings.MARKET_UNIVERSE_RECONCILIATION_ENABLED
+            or settings.PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED
         )
         else []
     )
+    if settings.MARKET_UNIVERSE_RECONCILIATION_ENABLED:
+        cron_jobs += (cron(scheduled_market_universe_reconciliation, hour=21, minute=0),)
+    if settings.PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED:
+        # 15:00 UTC is after MarketData.app's documented 09:30 America/New_York
+        # reset in both DST and standard-time periods. Other providers expose
+        # their own reset in the native observation; this is only a daily poll
+        # cadence, never a quota assumption.
+        cron_jobs += (cron(scheduled_provider_account_usage_refresh, hour=15, minute=0),)
     on_startup = worker_startup
     max_jobs = 4
     job_timeout = 600  # 10 minutes max per job

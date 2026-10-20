@@ -153,22 +153,48 @@ CORS_ORIGINS=["http://localhost","http://your-nas-ip"]
 ALERT_POLL_INTERVAL=60
 
 # Provider routing
-DEFAULT_MARKET_DATA_PROVIDER=yfinance
-DEFAULT_METADATA_PROVIDER=yfinance
-DEFAULT_EVENT_PROVIDER=yfinance
-DEFAULT_DISCOVERY_PROVIDER=yfinance
-DEFAULT_OPTIONS_PROVIDER=yfinance
-IDENTIFIER_PROVIDER_PRIORITY=["yfinance","openfigi"]
-OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY=[]
-PROVIDER_CHAIN_SEEDS={}
-PROVIDER_RATE_LIMIT_SEEDS={}
-PROVIDER_FRESHNESS_SEEDS={}
+# New-workstation/API-first defaults. yfinance is not an implicit fallback.
+DEFAULT_MARKET_DATA_PROVIDER=alpaca
+DEFAULT_METADATA_PROVIDER=edgar
+DEFAULT_EVENT_PROVIDER=alpaca
+DEFAULT_DISCOVERY_PROVIDER=alpaca
+# API-first options candidate; account/credit controls keep it fail-closed
+# until explicitly reviewed. Use yfinance only through an explicit legacy override.
+DEFAULT_OPTIONS_PROVIDER=marketdata_app
+ENABLE_LEGACY_YFINANCE_FALLBACK=false
+IDENTIFIER_PROVIDER_PRIORITY=["openfigi"]
+OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY=["marketdata_app"]
+# Tokenized providers remain visible in the seed order; each is still
+# fail-closed until its own quota, entitlement, and redistribution review passes.
+TOKENIZED_PROVIDER_PRIORITY=["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]
+# MarketData.app option chains are priced per returned current symbol. Leave
+# zero unless an operator has reviewed the request filters and selected a
+# conservative maximum symbol count.
+MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS=0
+# MarketData.app plan/limit must match this environment's actual account tier.
+# Supported daily pairs: free_forever/100, starter_trial/10000,
+# trader_trial/100000, starter/10000, trader/100000. Trial plans require an
+# explicit timezone-aware expiry; after it, runtime quota falls back to
+# free_forever/100. Native response headers never promote the configured plan.
+MARKETDATA_APP_REVIEWED_PLAN=
+MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=0
+# Required only for starter_trial/trader_trial; ISO-8601 with a UTC offset.
+MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT=
+# Leave provider chains at the backend's reviewed defaults unless changing them
+# deliberately; yfinance is not an implicit market-data fallback.
+PROVIDER_CHAIN_SEEDS={"account_usage":["marketdata_app","twelve_data","eodhd","binance"],"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","massive","edgar","finnhub","alpha_vantage"],"instrument_metadata":["edgar","massive"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["marketdata_app"],"tokenized_historical_prices":["dinari","ondo_global_markets"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}
+# Use __CODE_DEFAULT__ when no replacement map is intended. An explicit {}
+# remains a deliberate empty override that removes routable provider policies.
+PROVIDER_RATE_LIMIT_SEEDS=__CODE_DEFAULT__
+PROVIDER_FRESHNESS_SEEDS=__CODE_DEFAULT__
+PROVIDER_USAGE_PROFILE_SEEDS=__CODE_DEFAULT__
 OPTION_CHAIN_REFRESH_HORIZON_DAYS=45
 
 # Provider credentials / tuning
 OPENFIGI_API_KEY=
 OPENFIGI_TIMEOUT_SECONDS=10
 MARKETDATA_API_KEY=
+MASSIVE_CORPORATE_ACTIONS_MAX_PAGES=0 # legacy compatibility setting; Massive follows all cursors to completion
 FMP_API_KEY=
 ```
 
@@ -180,9 +206,24 @@ Useful provider envs:
 
 - `IDENTIFIER_PROVIDER_PRIORITY`: seed order for identifier enrichment.
 - `OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY`: seed order for option quote-history providers.
-- `PROVIDER_CHAIN_SEEDS`: JSON object overriding seed chains per capability, for example `{"instrument_metadata":["openfigi","yfinance"]}`.
-- `PROVIDER_RATE_LIMIT_SEEDS`: JSON object keyed by provider, for example `{"yfinance":{"tokens_per_minute":30,"burst_capacity":10}}`.
+- `PROVIDER_CHAIN_SEEDS`: JSON object overriding seed chains per capability, for example `{"instrument_metadata":["edgar","openfigi"]}`. Do not add yfinance unless the legacy/options path has been explicitly reviewed.
+- `PROVIDER_RATE_LIMIT_SEEDS`: JSON object keyed by provider. Values must be
+  copied from the provider's current published contract and include a complete
+  quota contract; there is no safe generic fallback. This is an environment-
+  specific full seed map, so retain every provider policy that should remain
+  routable when replacing it. `__CODE_DEFAULT__` keeps the reviewed in-code map;
+  an explicit `{}` deliberately removes routable provider policies. A provider
+  plan change must update its complete quota contract and separately reviewed
+  entitlement. `ALLOW_PAID_PROVIDER_ROUTING=true` admits a separately reviewed
+  paid entitlement at the routing layer; keep it `false` for this checkpoint.
+  It is not aggregate recurring-cost admission or authorization to activate a
+  paid plan. The approved 20 EUR/USD-equivalent shared ceiling remains Provider
+  work before paid activation can be proposed.
 - `PROVIDER_FRESHNESS_SEEDS`: JSON object keyed by capability, for example `{"price_history":300,"instrument_events":86400}`.
+- `PROVIDER_USAGE_PROFILE_SEEDS`: JSON object keyed by provider for reviewed
+  operation costs and provider-native usage dimensions. `__CODE_DEFAULT__`
+  keeps the in-code profile; an explicit `{}` deliberately removes those
+  overrides.
 - `OPTION_CHAIN_REFRESH_HORIZON_DAYS`: refresh horizon for tracked-interest options maintenance.
 
 Provider provenance is persisted alongside mastered instrument/detail/stat fields so it remains clear where key metadata came from, when it was observed, and why a given provider won field selection.

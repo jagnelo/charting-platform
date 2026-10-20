@@ -1,8948 +1,3051 @@
-## 2026-09-15 - Historical EA identifier disposition
-
-- [x] Preserve an auditable resolution note when a stable-identifier profile is
-      rejected and no canonical profile can be promoted; retain the note when
-      reconciling the existing placeholder again (`31/31` resolver tests).
-- [x] Explicitly disposition both EA rows as historical equities identified by
-      the 2025-09-30 and 2025-12-31 QQQ N-PORT records, CUSIP `285512109`, and
-      ISIN `US2855121099`. OpenFIGI currently returns `EA*` / `MM`, which fails
-      the supported US listing guard. Keep them noncanonical until temporal
-      listing lifecycle evidence can represent their historical EA listing.
-- [ ] Inspect and disposition the Dreyfus government-cash row from its exact
-      source snapshot. W1/MN history, dated rebalance continuity, and remaining
-      R1-R7 evidence remain open; no current listing or history is fabricated.
-
-## 2026-09-15 - Verified Killir GARY dated holdings
-
-- [x] Product commit bb70fff142a7f4b247664ce4047f93ac37343523 hardens the
-      issuer-declared GARY dated SEI text route: retained rows must share one
-      parseable date matching the selected report filename; missing, invalid,
-      or mixed dates fail closed. The public route returned 41 rows dated
-      2026-09-14, with no missing or mismatched dates.
-
-- [x] Focused Killir tests passed 5/5; the complete holdings-adapter module
-      passed 584/584; the opt-in GARY live route test passed 1/1; Ruff,
-      formatting, and diff checks passed.
-
-- [x] After authorized Docker access, full integration completed all
-      pre-visual stages: backend units 1618/1618, integration 405/405 at 82.23%
-      combined coverage, frontend Vitest 1067/1067, type-check/build, Compose
-      and research-runner checks, and functional Playwright 165 passed with
-      107 documented skips.
-- [ ] The visual stage exited 1 at 98/104 with exactly the six established
-      protected watchlist-column-editor-open/workspace-floating diffs. The
-      optional branch-tests suffix was not reached. Post-run resource audit
-      found zero containers, volumes, sessions, or known attributable bytes.
-      No provider/fallback or visual acceptance policy changed. Continue R1
-      family-wide population/history, D1/W1/MN floors, rebalance continuity,
-      and AC2-AC7/AC10.
-
-## 2026-09-15 - Verified Kingsview dated holdings
-
-Product commit `b375a4782` hardens Kingsview/Monarch's fund-ID-scoped
-FilePoint JSON holdings route. Every retained row must have the same parseable
-`asOfDate`; missing, invalid, and mixed-date snapshots fail closed; source IDs
-are date-scoped; and raw plus normalized metadata records composition/as-of
-date, row count, completeness, and
-`kingsview_native_fund_scoped_filepoint_holdings_json` provenance. The public
-MVFD route returned 42 rows dated 2026-09-11.
-
-Focused Kingsview assertions passed 3/3, the full holdings-adapter unit module
-passed 581/581, the opt-in public route test passed 1/1, and Ruff, formatting,
-and diff checks passed. The exact branch gate at product tip `b375a4782` passed
-backend units 1615/1615, integration 405/405 at 82.23% combined coverage,
-frontend Vitest 1067/1067, type-check/build, Compose and research-runner checks,
-and functional E2E 165 passed with 107 documented skips. Visual E2E remains
-98/104 with only the six established watchlist-column-editor/workspace-floating
-state-oracle diffs. Resource accounting confirmed zero containers, volumes,
-test-container sessions, or known attributable bytes; four generated images
-were removed. No provider/fallback, visual baseline, mask, threshold, skip, or
-acceptance policy changed. Continue R1 family-wide population/history,
-D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.
-
-## 2026-09-15 - Verified Arlington dated holdings
-
-Product commit `654bfe7e5` tightens Arlington's issuer-linked AQEC daily CSV:
-all retained rows must share exactly one parseable composition date; missing,
-invalid, and mixed dates fail closed; source IDs are date-scoped; and raw plus
-normalized metadata records composition/as-of date, row count, completeness,
-and `arlington_native_daily_holdings_csv` provenance. The public route probe
-passed with the live suite's 20-row minimum and asserted date/route metadata.
-
-The focused Arlington contract passed 2/2, the full holdings-adapter unit
-module passed 580/580, the opt-in public route probe passed 1/1, and Ruff,
-formatting, and diff checks passed. The exact branch gate at product tip
-`654bfe7e5` passed backend units 1614/1614, integration 405/405 at 82.22%
-combined coverage, frontend Vitest 1067/1067, type-check/build, Compose and
-research-runner checks, and functional E2E 165 passed with 107 documented
-skips. Visual E2E remains 98/104 with only the six established
-watchlist-column-editor/workspace-floating state-oracle diffs. Docker resource
-audit found zero containers, volumes, test-container sessions, or known
-attributable bytes; four generated images were removed. No fallback/provider,
-visual baseline, mask, threshold, skip, or acceptance policy changed. Continue
-R1 family-wide population/history, D1/W1/MN floors, rebalance continuity, and
-AC2-AC7/AC10.
-
-## 2026-09-15 - Verified Archer Investment dated holdings
-## 2026-09-15 - Verified Liberty One dated holdings
-
-- [x] Harden Liberty One's native fund-scoped holdings API route for SPCT;
-      require exactly one parseable asOfDate, fail closed for undated, invalid,
-      or mixed-date snapshots, date-scope row IDs, and record complete route
-      provenance/row-count metadata (67a2fd65). The public endpoint returned
-      53 complete rows dated 2026-09-11.
-- [x] Focused assertions passed 2/2 including missing/invalid/mixed-date
-      regressions; opt-in live assertion passed 1/1; direct probe, Ruff,
-      formatting, and diff checks passed. Exact gate backend units 1613/1613,
-      integration 405/405, Vitest 1067/1067, type-check/build, Compose and
-      research-runner probes passed. Functional E2E passed 165 with 107 skips.
-- [x] The first exact gate run hit one F8u-boolean final-header timeout (164
-      passed, 107 skipped), with its visual matrix at 98/104 and the same six
-      protected diffs. The unchanged-code full rerun passed F8u and all functional
-      scenarios; Docker cleanup verified zero containers,
-      volumes, and test-container sessions. No baseline, mask, threshold, skip,
-      provider/fallback, migration, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-- [x] Harden Archer Investment's product-page-linked daily CSV route for
-      `ARWG`; require exactly one parseable snapshot date, fail closed for
-      undated/invalid/mixed-date exports, date-scope row IDs, and record complete
-      native-route provenance/row-count metadata (`556926982`). The direct
-      public export published 42 complete rows dated 2026-09-14.
-- [x] Focused Archer assertions passed 2/2 including missing/invalid/mixed-date
-      regressions; opt-in live route assertion passed 1/1; direct probe returned
-      42 complete dated rows. Ruff/format/diff passed. Exact gate passed backend
-      units 1612/1612, integration 405/405 at 82.21% combined coverage, frontend
-      Vitest 1067/1067, type-check/build, compose/deployment contracts,
-      research-runner probes, and functional E2E 165 passed with 107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected diffs remain.
-      Docker teardown removed all branch-scoped containers, volumes, network,
-      four images, and testcontainer sessions. No provider/fallback, migration,
-      visual baseline, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-## 2026-09-15 - Verified Advent Capital dated holdings
-
-- [x] Harden Advent Capital's issuer-native daily CSV route for `ACVT`; require
-      exactly one parseable snapshot date, fail closed for undated/invalid/mixed-
-      date exports, date-scope row IDs, and record complete native-route
-      provenance/row-count metadata (`e9bb8b476`). The direct public export
-      published 60 complete rows dated 2026-09-14.
-- [x] Focused Advent Capital assertions passed 2/2 including missing/invalid/
-      mixed-date regressions; opt-in live route assertion passed 1/1; direct
-      probe returned 60 complete dated rows. Ruff/format/diff passed. Exact gate
-      passed backend units 1611/1611, integration 405/405 at 82.20% combined
-      coverage, frontend Vitest 1067/1067, type-check/build, compose/deployment
-      contracts, research-runner probes, and functional E2E 165 passed with
-      107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected diffs remain.
-      Docker teardown removed all branch-scoped containers, volumes, network,
-      four images, and testcontainer sessions. No provider/fallback, migration,
-      visual baseline, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-## 2026-09-15 - Verified ACP Horizon dated holdings
-
-- [x] Harden ACP Horizon's issuer-native multi-fund daily CSV route for `HBTA`;
-      require exactly one parseable snapshot date, fail closed for
-      undated/invalid/mixed-date exports, date-scope row IDs, and record complete
-      native-route provenance/row-count metadata (`7aa159a04`). The direct
-      public export published 207 complete rows dated 2026-09-14.
-- [x] Focused ACP Horizon assertions passed 2/2 including missing/invalid/mixed-
-      date regressions; opt-in live route assertion passed 1/1; direct probe
-      returned 207 complete dated rows. Ruff/format/diff passed. Exact gate
-      passed backend units 1610/1610, integration 405/405 at 82.20% combined
-      coverage, frontend Vitest 1067/1067, type-check/build, compose/deployment
-      contracts, research-runner probes, and functional E2E 165 passed with
-      107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected diffs remain.
-      Docker teardown removed all branch-scoped containers, volumes, network,
-      four images, and testcontainer sessions. No provider/fallback, migration,
-      visual baseline, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-## 2026-09-15 - Verified EMLes dated holdings
-
-- [x] Harden EMLes's native public fund-page, fund-scoped CSV route for the
-      listed lineup (focused on `EOPS`); require exactly one parseable snapshot
-      date, fail closed for undated/invalid/mixed-date exports, date-scope row
-      IDs, and record complete native-route provenance/row-count metadata
-      (`a001e82cd`). The direct public EOPS export published 1 complete row
-      dated 2022-10-20 (cash-only disclosure).
-- [x] Focused EMLes assertions passed 2/2 including missing/invalid/mixed-date
-      regressions; opt-in live route assertion passed 1/1; direct probe returned
-      1 complete dated row. Ruff/format/diff passed. Exact gate passed backend
-      units 1609/1609, integration 405/405 at 82.20% combined coverage,
-      frontend Vitest 1067/1067, type-check/build, compose/deployment
-      contracts, research-runner probes, and functional E2E 165 passed with
-      107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected diffs remain.
-      Docker teardown removed all branch-scoped containers, volumes, network,
-      four images, and testcontainer sessions. The first attempt had a
-      transient PostgreSQL termination and was cleanly retried. No
-      provider/fallback, migration, visual baseline, threshold, mask, skip, or
-      acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-## 2026-09-14 - Verified Optimize dated holdings
-
-- [x] Harden Optimize's native fund-scoped verified XLS route for `OPTZ`;
-      require exactly one parseable holdings-specific composition date, fail
-      closed for undated/invalid/ambiguous pages, date-scope row IDs, and
-      record complete native-route provenance/row-count metadata (`a9cdd8829`).
-      The direct public export published 339 rows dated 2026-09-14.
-- [x] Focused Optimize assertions passed 2/2 including missing/invalid/mixed-
-      date regressions; opt-in live route assertion passed 1/1; direct public
-      probe returned 339 complete dated rows. Ruff/format/diff passed. Exact
-      gate passed backend units 1608/1608, integration 405/405 at 82.19%
-      combined coverage, frontend Vitest 1067/1067, type-check/build,
-      compose/deployment contracts, research-runner probes, and functional E2E
-      165 passed with 107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected diffs remain.
-      Docker teardown removed all branch-scoped containers, volumes, network,
-      four images, and testcontainer sessions. No provider/fallback, migration,
-      visual baseline, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-## 2026-09-14 - Verified Cultivar dated holdings
-
-- [x] Harden Cultivar's native fund-page holdings route for `CVAR`; require
-      exactly one parseable `Fund Holdings as of` date, fail closed for
-      undated/invalid/ambiguous pages, date-scope row IDs, and record complete
-      native-route provenance/row-count metadata (`3de6e028b`). The direct
-      public fund page published 92 rows dated 2026-09-11.
-- [x] Focused Cultivar parser assertions passed 3/3 including undated, invalid,
-      and ambiguous-date regressions; the opt-in live route assertion passed
-      1/1; the direct public probe returned 92 complete dated rows. Ruff/format/
-      diff checks passed. The exact gate passed backend units 1607/1607,
-      integration 405/405 at 82.18% combined coverage, frontend Vitest
-      1067/1067, type-check/build, compose/deployment contracts,
-      research-runner probes, and functional E2E 165 passed with 107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected visual diffs
-      remain. Docker teardown removed all branch-scoped containers, volumes,
-      network, four images, and testcontainer sessions. No provider/fallback,
-      migration, visual baseline, threshold, mask, skip, or acceptance policy
-      changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-## 2026-09-14 - Verified Canary dated holdings
-
-- [x] Harden Canary's native product-page holdings route for `HBR`; require
-      exactly one parseable composition date across retained rows, fail closed
-      for undated/invalid/mixed-date snapshots, date-scope row IDs, and record
-      complete native-route provenance/row-count metadata (`ef1ca2eed`). The
-      direct public product page published 2 rows dated 2026-09-14.
-- [x] Focused Canary parser assertions passed 1/1 including undated, invalid,
-      and mixed-date regressions; the opt-in live route assertion passed 1/1;
-      the direct public probe returned 2 complete dated rows. Ruff/format/diff
-      checks passed. The exact gate passed backend units 1606/1606,
-      integration 405/405 at 82.18% combined coverage, frontend Vitest
-      1067/1067, type-check/build, compose/deployment contracts,
-      research-runner probes, and functional E2E 165 passed with 107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected visual diffs
-      remain. Docker teardown removed all branch-scoped containers, volumes,
-      network, four images, and testcontainer sessions. No provider/fallback,
-      migration, visual baseline, threshold, mask, skip, or acceptance policy
-      changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-## 2026-09-14 - Verified Water Island/AltShares dated holdings
-
-- [x] Harden the shared Water Island/AltShares native periodic
-      portfolio-of-investments PDF route for `ARB` and `EVNT`; require a dated
-      non-empty snapshot, exclude swap/forward/footnote sections, date-scope row
-      IDs, and record complete native-route provenance/row-count metadata
-      (`0d7437b01`). The reviewed public report published 66 `ARB` rows and 42
-      `EVNT` rows dated 2026-02-28.
-- [x] Focused Water Island assertions passed 2/2 including missing-date and
-      non-holdings-section regressions; opt-in live route assertions passed 2/2
-      for the Water Island and AltShares discovery keys; direct public probes
-      returned complete dated snapshots. Ruff/format/diff checks passed. The
-      exact gate passed backend units 1606/1606, integration 405/405 at 82.18%
-      combined coverage, frontend Vitest 1067/1067, type-check/build,
-      compose/deployment contracts, research-runner probes, and functional E2E
-      165 passed with 107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected visual diffs
-      remain. Docker teardown removed all branch-scoped containers, volumes,
-      network, four images, and testcontainer sessions. No provider/fallback,
-      migration, visual baseline, threshold, mask, skip, or acceptance policy
-      changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-## 2026-09-14 - Verified Dhandho dated holdings
-
-- [x] Harden Pabrai Wagons' native complete-holdings PDF route for WAGN;
-      require a dated non-empty snapshot, fail closed when the composition date
-      or rows are absent, date-scope row IDs, and record complete native-route
-      provenance/row-count metadata (`9ada7cb8e`). The reviewed public route
-      published 21 rows dated 2026-03-31.
-- [x] Focused Dhandho assertions passed 9/9 including the missing-date
-      regression; the opt-in live route assertion passed 1/1; the direct public
-      probe returned 21 complete rows dated 2026-03-31. Ruff/format/diff checks
-      passed. The exact gate passed backend units 1606/1606, integration
-      405/405 at 82.18% combined coverage, frontend Vitest 1067/1067,
-      type-check/build, compose/deployment contracts, research-runner probes,
-      and functional E2E 165 passed with 107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected visual diffs
-      remain. Docker teardown removed all branch-scoped containers, volumes,
-      network, four images, and testcontainer sessions. No provider/fallback,
-      migration, visual baseline, threshold, mask, skip, or acceptance policy
-      changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-## 2026-09-14 - Verified Convergence dated holdings
-
-- [x] Harden Convergence's issuer page-linked holdings route for CLSE; require
-      non-empty retained CSV rows with exactly one parseable `Date`, fail closed
-      for missing/invalid/mixed-date snapshots, date-scope row IDs, and record
-      complete native-route provenance/row-count metadata (`52771a08e`). The
-      reviewed public route published 361 rows dated 2026-09-14.
-- [x] Focused Convergence assertions passed 8/8 including missing/invalid/
-      mixed-date regressions; the opt-in live route assertion passed 1/1; the
-      direct public probe returned 361 complete rows dated 2026-09-14.
-      Ruff/format/diff checks passed. The exact gate passed backend units
-      1606/1606, integration 405/405 at 82.18% combined coverage, frontend
-      Vitest 1067/1067, type-check/build, compose/deployment contracts,
-      research-runner probes, and functional E2E 165 passed with 107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected visual diffs
-      remain. Docker teardown removed all branch-scoped containers, volumes,
-      network, four images, and testcontainer sessions. No provider/fallback,
-      migration, visual baseline, threshold, mask, skip, or acceptance policy
-      changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-## 2026-09-14 - Verified Corgi dated holdings
-
-- [x] Harden Corgi Funds' issuer-native public holdings route for FDRS; require
-      non-empty retained rows with exactly one parseable `position_date`, fail
-      closed for missing/invalid/mixed-date snapshots, date-scope row IDs, and
-      record complete native-route provenance/row-count metadata
-      (`94f09137e`). The reviewed public route published 52 rows dated
-      2026-09-14.
-- [x] Focused Corgi assertions passed 4/4 including missing/invalid/mixed-date
-      regressions; the opt-in live route assertion passed 1/1; the direct public
-      probe returned 52 complete rows dated 2026-09-14. Ruff/format/diff checks
-      passed. The exact gate passed backend units 1603/1603, integration 405/405
-      at 82.17% combined coverage, frontend Vitest 1067/1067, type-check/build,
-      compose/deployment contracts, research-runner probes, and functional E2E
-      165 passed with 107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected visual diffs
-      remain. Docker teardown removed all branch-scoped containers, volumes,
-      network, four images, and testcontainer sessions. No provider/fallback,
-      migration, visual baseline, threshold, mask, skip, or acceptance policy
-      changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-### 2026-09-14 - Verified SS&C dated holdings
-
-- [x] Harden the shared Capital Impact adapter for the EntrepreneurShares and
-      ERShares public SS&C full-holdings API routes; require non-empty retained
-      rows with exactly one parseable `asofdate`, fail closed for undated,
-      invalid, or mixed-date payloads, date-scope row IDs, and record complete
-      native-route provenance/row-count metadata (`da0334842`, formatted at
-      `6bc4d93e8`). The reviewed XOVR route published 33 rows dated 2026-09-11
-      for each route.
-- [x] Focused SS&C assertions passed 7/7 including undated/mixed-date
-      regressions; opt-in live public-route assertions passed 3/3; direct
-      public issuer probes returned 33 complete rows dated 2026-09-11 for
-      EntrepreneurShares and ERShares. Ruff/format/diff checks passed. The
-      exact gate passed backend units 1600/1600, integration 405/405 at 82.17%
-      combined coverage, frontend Vitest 1067/1067, type-check/build,
-      compose/deployment contracts, research-runner probes, and functional E2E
-      165 passed with 107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected visual diffs
-      remain. Docker teardown removed all branch-scoped containers, volumes,
-      network, four images, and testcontainer sessions. No provider/fallback,
-      migration, visual baseline, threshold, mask, skip, or acceptance policy
-      changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-## 2026-09-14 - Verified Cohen & Steers dated holdings
-
-Product commit `33f759bac` hardens Cohen & Steers' public WordPress fund API
-route for CSRE. The adapter now requires non-empty native holdings with exactly
-one parseable holding date across every retained row, fails closed for missing,
-invalid, or mixed-date payloads, date-scopes source IDs, and records complete
-composition/as-of, row-count, and `cohen_steers_native_public_fund_api`
-provenance metadata. The direct public issuer API route published 53 rows dated
-2026-09-14.
-
-Focused Cohen & Steers assertions passed 4/4 including missing/mixed-date
-regressions and mocked fetch metadata; the escalated opt-in live route assertion
-passed 1/1; and the direct public issuer probe returned 53 complete rows dated
-2026-09-14. Ruff, formatting, and diff checks passed. The exact branch-scoped
-Docker-backed gate passed backend units 1598/1598, integration 405/405 with
-82.16% combined coverage, frontend Vitest 1067/1067, type-check/build, compose/
-deployment contracts, research-runner sandbox/resource probes, and functional
-E2E 165 passed with 107 skipped. Visual E2E passed 98/104 with exactly the six
-unchanged protected watchlist-column-editor/workspace-floating diffs. Docker
-teardown removed all branch-scoped containers, volumes, network, four generated
-images, and testcontainer sessions. No provider/fallback, migration, visual
-baseline, threshold, mask, skip, or acceptance policy changed. Continue
-family-wide R1 population/history, D1/W1/MN floors, rebalance continuity, and
-AC2-AC7/AC10.
-
-### 2026-09-14 - Require dated Alerian holdings
-
-- [x] Harden Alerian's issuer-owned ALPS HubSpot proxy route for AMLP/ENFR;
-      require non-empty rows with exactly one parseable `asofdate`, fail closed
-      for undated/mixed-date payloads, date-scope row IDs, and record complete
-      native-route provenance/row-count metadata (`f7f4ed33d`). The reviewed
-      ENFR route published 29 rows dated 2026-09-11.
-- [x] Focused Alerian assertions passed 5/5 including the undated regression;
-      dedicated and generic live route assertions passed 2/2; the direct
-      public proxy probe returned 29 dated rows. Ruff/format/diff checks
-      passed. The exact gate passed backend units 1594/1594, integration
-      405/405 at 82.14% combined coverage, frontend Vitest 1067/1067,
-      type-check/build, compose/deployment contracts, expected research-runner
-      probes, and functional E2E 165 passed with 107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected visual
-      diffs remain. Docker teardown removed all branch-scoped containers,
-      volumes, network, four images, and testcontainer sessions. No provider/
-      fallback, migration, visual, threshold, mask, skip, or acceptance policy
-      changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-### 2026-09-14 - Require dated ACSI holdings
-
-- [x] Promote ACSI Funds' official daily holdings CSV to the issuer-native
-      ACSI route; require non-empty rows with exactly one composition date,
-      fail closed for undated/mixed-date exports, date-scope row IDs, and
-      record complete native-route provenance/row-count metadata
-      (`b067dc884`). The reviewed CSV published 33 rows dated 2026-09-14.
-- [x] Focused ACSI assertions passed 2/2 including the undated regression; the
-      dedicated opt-in live provider assertion passed 1/1 and the direct public
-      CSV probe returned 33 complete rows dated 2026-09-14. Ruff/format/diff
-      checks passed. The exact gate passed backend units 1593/1593, integration
-      405/405 at 82.13% combined coverage, frontend Vitest 1067/1067,
-      type-check/build, compose/deployment contracts, expected research-runner
-      probes, and functional E2E 165 passed with 107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected visual
-      diffs remain. Docker teardown removed all branch-scoped containers,
-      volumes, network, four images, and testcontainer sessions. No provider/
-      fallback, migration, visual, threshold, mask, skip, or acceptance policy
-      changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-### 2026-09-14 - Require dated Aptus holdings
-
-- [x] Require a publisher-declared composition date for Aptus's issuer-native
-      WordPress holdings table; fail closed for undated pages, date-scope row
-      IDs, and record complete native-route provenance/row-count metadata
-      (c481193f4). The reviewed DRSK page published 33 rows dated 2026-09-11.
-- [x] Focused Aptus assertions passed 2/2 including the undated regression;
-      the opt-in live provider assertion passed 1/1 and the direct live adapter
-      probe returned 33 complete rows. Ruff/format/diff checks passed. The
-      exact gate passed backend units 1589/1589, integration 405/405 at 82.12%
-      combined coverage, frontend Vitest 1067/1067, type-check/build,
-      compose/deployment contracts, expected research-runner probes, and
-      functional E2E 165 passed with 107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected visual
-      diffs remain. Docker teardown removed all branch-scoped containers,
-      volumes, network, four images, and testcontainer sessions. No provider/
-      fallback, migration, visual, threshold, mask, skip, or acceptance policy
-      changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-### 2026-09-14 - Require dated ALPS/SS&C holdings
-
-- [x] Require a publisher-declared composition date for ALPS/SS&C native
-      holdings JSON; fail closed for undated payloads, date-scope row IDs, and
-      record complete native-route provenance/row-count metadata
-      (f607797cd).
-- [x] Focused ALPS/SS&C and O'Shares assertions passed 3/3, live public
-      probes passed 3/3, and Ruff/format/diff checks passed. The exact gate
-      passed backend units 1588/1588, integration 405/405 at 82.11% combined
-      coverage, frontend Vitest 1067/1067, type-check/build,
-      compose/deployment contracts, expected research-runner probes, and
-      functional E2E 165 passed with 107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected visual
-      diffs remain. Docker teardown was clean with no retained containers,
-      volumes, networks, testcontainer sessions, or images. No provider/
-      fallback, migration, visual, threshold, mask, skip, or acceptance policy
-      changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-
 # Project TODO Memory
 
-### 2026-09-14 - Require dated Calvert holdings
-
-- [x] Harden Calvert's official issuer-native daily JSON route for CVLC;
-      require non-empty holdings with exactly one effective date, fail closed
-      for undated snapshots, date-scope row IDs, and record complete native
-      provenance/row-count metadata (`3c07b4c6`). The direct public issuer route
-      published 756 rows dated 2026-09-11.
-- [x] Focused Calvert assertions passed 4/4 including the undated regression;
-      dedicated live route assertions passed 2/2; the direct public issuer probe
-      returned 756 dated rows. Ruff/format/diff checks passed. The exact gate
-      passed backend units 1595/1595, integration 405/405 at 82.14% combined
-      coverage, frontend Vitest 1067/1067, type-check/build, compose/deployment
-      contracts, research-runner probes, and functional E2E 165 passed with
-      107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected visual
-      diffs remain. Docker teardown removed all branch-scoped containers,
-      volumes, network, four images, and testcontainer sessions. No provider/
-      fallback, migration, visual, threshold, mask, skip, or acceptance policy
-      changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-### 2026-09-14 - Require dated Oakmark holdings
-
-- [x] Promote Oakmark's official symbol-scoped CSV holdings exports to the
-      issuer-native OAKM/OAKI route; require exactly one composition date and
-      non-empty rows, fail closed for undated/ambiguous snapshots, date-scope
-      row IDs, and record complete native-route provenance/row-count metadata
-      (`cef626151`). The reviewed OAKM route published 41 rows dated
-      2026-09-14.
-- [x] Focused Oakmark assertions passed 2/2 including the undated regression;
-      opt-in live provider assertions passed 3/3 and the direct live adapter
-      probe returned 41 complete rows. Ruff/format/diff checks passed. The
-      exact gate passed backend units 1592/1592, integration 405/405 at 82.13%
-      combined coverage, frontend Vitest 1067/1067, type-check/build,
-      compose/deployment contracts, expected research-runner probes, and
-      functional E2E 165 passed with 107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected visual
-      diffs remain. Docker teardown removed all branch-scoped containers,
-      volumes, network, four images, and testcontainer sessions. No provider/
-      fallback, migration, visual baseline, threshold, mask, skip, or
-      acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-### 2026-09-14 - Require dated Wellington holdings
-
-- [x] Require Wellington-managed Vanguard publisher holdings for VUSV/VDIG/VUSG
-to publish a parseable composition date; fail closed for undated/empty results,
-date-scope row IDs, and record complete native-route provenance/row-count
-metadata (`4e76ab33d`). The reviewed VUSV route published 86 rows dated
-2026-06-30.
-- [x] Focused Wellington assertions passed 3/3 including the undated regression;
-the opt-in live provider assertions passed 2/2 and the direct live adapter probe
-returned 86 complete rows. Ruff/format/diff checks passed. The exact gate passed
-backend units 1591/1591, integration 405/405 at 82.13% combined coverage,
-frontend Vitest 1067/1067, type-check/build, compose/deployment contracts,
-expected research-runner probes, and functional E2E 165 passed with 107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected visual
-diffs remain. Docker teardown removed all branch-scoped containers, volumes,
-network, four images, and testcontainer sessions. No provider/fallback,
-migration, visual baseline, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-rebalance continuity, and AC2-AC7/AC10.
-
-### 2026-09-14 - Require dated AllianceBernstein holdings
-
-- [x] Require AllianceBernstein's issuer-native model workbook route to
-      publish a composition date; fail closed for undated workbooks,
-      date-scope source IDs, and record complete composition/as-of, row-count,
-      and model-workbook provenance metadata (851d1f2af). The live FWD
-      workbook published 128 rows dated 2026-07-31.
-- [x] Focused AllianceBernstein/Equitable assertions passed 3/3; the opt-in
-      live AllianceBernstein provider assertion passed 2/2; the direct live
-      adapter probe returned 128 complete rows; Ruff/format/diff checks passed.
-      The exact gate passed backend units 1590/1590, integration 405/405 at
-      82.13% combined coverage, frontend Vitest 1067/1067, type-check/build,
-      compose/deployment contracts, expected research-runner probes, and
-      functional E2E 165 passed with 107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected visual
-      diffs remain. Docker teardown removed all branch-scoped containers,
-      volumes, network, four images, and testcontainer sessions. No provider/
-      fallback, migration, visual, threshold, mask, skip, or acceptance policy
-      changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-
-### 2026-09-14 - Make history backfill skip undated snapshots
-
-- [x] Exclude legacy holdings snapshots without a publisher-declared
-      composition date from benchmark-family history queue planning while
-      retaining them for audit/readiness paths; report
-      undated_snapshot_count through the task response (75a6c7e45).
-- [x] Focused benchmark-family history/task assertions passed 34/34; Ruff,
-      formatting, and diff checks passed. The exact gate passed backend units
-      1587/1587, integration 405/405 at 82.10%, frontend Vitest 1067/1067,
-      type-check/build, compose/deployment contracts, expected
-      research-runner probes, and functional E2E 165 passed with 107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected visual
-      diffs remain. Docker resources were cleaned with no retained containers,
-      volumes, networks, testcontainer sessions, or images. No provider/
-      fallback, migration, visual, threshold, mask, skip, or acceptance policy
-      changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-
-### 2026-09-14 - Verify Infrastructure Capital dated holdings
-
-- [x] Require and record Infrastructure Capital's publisher-declared
-      composition date from the official product page before consuming its
-      native XLS holdings workbook; fail closed for undated pages, mark the
-      native route complete, and date-scope row IDs (619bd4826).
-- [x] Focused Infrastructure Capital unit assertions passed 2/2 and the
-      reviewed live workbook probe passed 1/1; Ruff, formatting, and diff
-      checks passed. The exact gate passed backend units 1587/1587,
-      integration 405/405 at 82.10%, frontend Vitest 1067/1067, type-check/
-      build, compose/deployment contracts, expected research-runner probes,
-      and functional E2E 165 passed with 107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected visual
-      diffs remain. Docker resources were cleaned with no retained containers,
-      volumes, networks, or testcontainer sessions. No provider/fallback,
-      migration, visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2-AC7/AC10.
-
-
-
-### 2026-09-14 - Verify Timothy Plan holdings and cold-navigation tool opens
-
-- [x] Require and record Timothy Plan's published holdings snapshot date for the native HTML holdings table; verify non-empty rows, fail closed for undated snapshots, mark the native route complete, and date-scope row IDs (86c4820f1).
-- [x] Preserve the first Add-tool command when a shell click races the workstation's asynchronous mount on cold /chart navigation (ad97b1aae). Focused Timothy assertions passed 12/12; focused F8t-results-open passed 1/1; the corrected exact gate passed backend units 1586/1586, integration 405/405 at 82.10%, frontend Vitest 1067/1067, and functional E2E 165 passed with 107 skipped.
-- [x] Visual E2E passed 98/104; only the six unchanged protected visual diffs remain. Docker resources were cleaned with no retained containers, volumes, networks, or testcontainer sessions. No provider/fallback, migration, visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.
-
-
-### 2026-09-14 — Promote verified Spear holdings completeness
-
-- [x] Require and record Spear Funds' published composition date for the
-      fixed issuer holdings CSV route for SPRX; verify non-empty rows, fail
-      closed for undated snapshots, mark the native route complete, and
-      date-scope row IDs.
-- [x] Product commit `045478c6e`; focused Spear assertions passed `10/10`,
-      with Ruff/format/diff checks passed. The exact gate passed backend units
-      `1585/1585`, integration `405/405` with `82.10%` combined coverage,
-      frontend Vitest `1067/1067`, type-check/build, compose/deployment
-      contracts, expected research-runner probes, and functional E2E `165
-      passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain. Docker resources were cleaned with no retained containers,
-      volumes, networks, or testcontainer sessions. No provider/fallback,
-      migration, visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-14 — Promote verified Allspring holdings completeness
-
-- [x] Require and record Allspring's published composition date for the issuer
-      symbol-specific total-holdings CSV route; verify non-empty rows, fail
-      closed for undated snapshots, mark the native route complete, and
-      date-scope row IDs.
-- [x] Product commit `1c9ee96ed`; focused Allspring assertions passed `8/8`,
-      with Ruff/format/diff checks passed. The exact gate passed backend units
-      `1584/1584`, integration `405/405` with `82.09%` combined coverage,
-      frontend Vitest `1067/1067`, type-check/build, compose/deployment
-      contracts, expected research-runner probes, and functional E2E `165
-      passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain. Docker resources were cleaned with no retained containers,
-      volumes, networks, or testcontainer sessions. No provider/fallback,
-      migration, visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-14 — Promote verified Tremblant holdings completeness
-
-- [x] Require and record Tremblant TOGA's published composition date for the
-      issuer-page-verified FilePoint holdings CSV; verify non-empty rows, fail
-      closed for undated snapshots, mark the native route complete, and
-      date-scope row IDs.
-- [x] Product commit `27b7b24dc`; focused Tremblant assertions passed `6/6`,
-      with Ruff/format/diff checks passed. The exact gate passed backend units
-      `1583/1583`, integration `405/405` with `82.09%` combined coverage,
-      frontend Vitest `1067/1067`, type-check/build, compose/deployment
-      contracts, expected research-runner probes, and functional E2E `165
-      passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain. Docker resources were cleaned with no retained containers,
-      volumes, networks, or testcontainer sessions. No provider/fallback,
-      migration, visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-14 — Promote verified FilePoint holdings completeness
-
-- [x] Require and record FilePoint/LionShares and Twin Oak published
-      composition dates for their issuer-native holdings routes; verify
-      non-empty rows, fail closed for undated snapshots, mark native routes
-      complete, and date-scope row IDs.
-- [x] Product commit `245ac0a56`; focused LionShares/Twin Oak assertions
-      passed `4/4`, with Ruff/format/diff checks passed. The exact gate passed
-      backend units `1582/1582`, integration `405/405` with `82.09%` combined
-      coverage, frontend Vitest `1067/1067`, type-check/build, compose/
-      deployment contracts, expected research-runner probes, and functional
-      E2E `165 passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain. Docker resources were cleaned with no retained containers,
-      volumes, networks, or testcontainer sessions. No provider/fallback,
-      migration, visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-14 — Promote verified Cygnet holdings completeness
-
-- [x] Require and record Cygnet Capital ELM's published composition date for
-      the issuer-declared full holdings CSV; verify account-scoped non-empty
-      rows, fail closed for undated snapshots, mark the native route complete,
-      and date-scope row IDs.
-- [x] Product commit `ce2353738`; focused assertions passed `3/3`, Ruff/
-      format/diff checks passed. The first exact gate had one transient
-      F8u-boolean header-visibility failure; isolated reproduction passed
-      `1/1` in 5.1s without code changes. The rerun exact gate passed backend
-      units `1580/1580`, integration `405/405` with `82.07%` combined coverage,
-      frontend Vitest `1067/1067`, type-check/build, compose/deployment
-      contracts, expected research-runner probes, and functional E2E `165
-      passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain. Docker resources were cleaned with no retained containers,
-      volumes, networks, or testcontainer sessions. No generic provider/
-      fallback, migration, visual, threshold, mask, skip, or acceptance policy
-      changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-14 — Promote verified Sterling Capital holdings completeness
-
-- [x] Require and record Sterling Capital's published composition date for the
-      issuer-native fund-scoped holdings PDFs, including Sterling Fund
-      Management and Guardian wrappers; verify non-empty rows, fail closed for
-      undated snapshots, mark the native route complete, and date-scope row IDs.
-- [x] Product commit `f8e071903`; focused Sterling family assertions passed
-      `5/5`, Ruff/format/diff checks passed, and the exact gate passed backend
-      units `1579/1579`, integration `405/405` with `82.07%` combined coverage,
-      frontend Vitest `1067/1067`, type-check/build, compose/deployment
-      contracts, expected research-runner probes, and functional E2E `165
-      passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain. Docker resources were cleaned with no retained containers,
-      volumes, networks, or testcontainer sessions. No generic provider/
-      fallback, migration, visual, threshold, mask, skip, or acceptance policy
-      changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-14 — Promote verified Rareview holdings completeness
-
-- [x] Require and record Rareview RDFI's published composition date for the
-      official databaseInfo holdings payload; verify non-empty native rows,
-      fail closed for undated snapshots, mark the native route complete, and
-      date-scope row IDs.
-- [x] Product commit `d227b50ba`; focused assertions passed `2/2`, Ruff/
-      format/diff checks passed, and the exact gate passed backend units
-      `1578/1578`, integration `405/405` with `82.07%` combined coverage,
-      frontend Vitest `1067/1067`, type-check/build, compose/deployment
-      contracts, expected research-runner probes, and functional E2E `165
-      passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain. Docker resources were cleaned with no retained containers,
-      volumes, networks, or testcontainer sessions. No generic provider/
-      fallback, migration, visual, threshold, mask, skip, or acceptance policy
-      changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-14 — Promote verified Miller Value holdings completeness
-
-- [x] Require and record Miller Value MVPA/MVPL's published composition date
-      for the official Nuxt holdings payloads; verify non-empty native rows,
-      fail closed for undated pages, mark native routes complete, and
-      date-scope row IDs.
-- [x] Product commit `3e6dc61c4`; focused assertions passed `2/2`, Ruff/
-      format/diff checks passed, and the exact gate passed backend units
-      `1577/1577`, integration `405/405` with `82.06%` combined coverage,
-      frontend Vitest `1067/1067`, type-check/build, compose/deployment
-      contracts, expected research-runner probes, and functional E2E `165
-      passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain. Docker resources were cleaned with no retained containers,
-      volumes, networks, or testcontainer sessions. No generic provider/
-      fallback, migration, visual, threshold, mask, skip, or acceptance policy
-      changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-14 — Promote verified Adaptive Investments holdings completeness
-
-- [x] Require and record Adaptive Investments ADPV's published composition
-      date for the official Nuxt holdings payload; verify non-empty native rows,
-      fail closed for undated pages, mark the native route complete, and
-      date-scope row IDs.
-- [x] Product commit `71ea4f76c`; focused assertions passed `2/2`,
-      Ruff/format/diff checks passed, and the exact branch-tip gate passed
-      backend units `1576/1576`, integration `405/405` with `82.06%` combined
-      coverage, frontend Vitest `1067/1067`, type-check/build, compose/
-      deployment contracts, expected research-runner probes, and functional
-      E2E `165 passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks,
-      or testcontainer sessions. No generic provider/fallback, migration,
-      visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-14 — Promote verified ETC/Bluemonte holdings completeness
-
-- [x] Require and record ETC/Bluemonte's published composition date for the
-      official embedded holdings payloads; verify non-empty native rows, fail
-      closed for undated pages, mark native routes complete, and date-scope
-      row IDs (product commit `6dd0521df`).
-- [x] Branch-tip gate at `71ea4f76c` passed backend units `1576/1576`,
-      integration `405/405` with `82.06%` combined coverage, frontend Vitest
-      `1067/1067`, type-check/build, compose/deployment contracts, expected
-      research-runner probes, and functional E2E `165 passed` with `107
-      skipped`; focused ETC/Bluemonte assertions passed `2/2`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain. Docker resources were cleaned with no retained containers,
-      volumes, networks, or testcontainer sessions. No provider/fallback,
-      migration, visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-14 — Promote verified WealthTrust holdings completeness
-
-- [x] Require and record WealthTrust WLTG's published `Current as of`/
-      `As of Date` snapshot for the official complete holdings table; verify
-      non-empty native rows and fail closed for undated pages.
-- [x] Product commit `481d60892`; focused assertions passed `2/2`,
-      Ruff/format/diff checks passed, and the exact gate passed backend units
-      `1574/1574`, integration `405/405` with `82.05%` combined coverage,
-      frontend Vitest `1067/1067`, type-check/build, compose/deployment
-      contracts, expected research-runner probes, and functional E2E `165
-      passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks,
-      or testcontainer sessions. No generic provider/fallback, migration,
-      visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-14 — Promote verified linked-workbook holdings completeness
-
-- [x] Require and record a holdings-specific published `Data as of` date for
-      Little Harbor, Pettee/Hoya, Sound Capital/River1, and Sovereign official
-      linked-workbook routes; verify non-empty native rows and fail closed for
-      undated holdings pages.
-- [x] Product commit `c2671c2c9`; focused assertions passed `8/8`,
-      Ruff/format/diff checks passed, and the exact gate passed backend units
-      `1573/1573`, integration `405/405` with `82.05%` combined coverage,
-      frontend Vitest `1067/1067`, type-check/build, compose/deployment
-      contracts, expected research-runner probes, and functional E2E `165
-      passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks,
-      or testcontainer sessions. No generic provider/fallback, migration,
-      visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-14 — Promote verified GraniteShares holdings completeness
-
-- [x] Require a published composition date for GraniteShares' official NVD
-      holdings workbook route. Derive the issuer snapshot date from its
-      filename, verify non-empty rows, and keep undated workbooks fail-closed.
-- [x] Product commit `8b4b6129d`; focused GraniteShares assertions passed
-      `4/4`, Ruff/format/diff checks passed, and the exact gate passed backend
-      units `1569/1569`, integration `405/405` with `82.04%` combined
-      coverage, frontend Vitest `1067/1067`, type-check/build, compose/
-      deployment contracts, expected research-runner probes, and functional
-      E2E `165 passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks,
-      or testcontainer sessions. No generic provider/fallback, migration,
-      visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-14 — Promote verified Range ETFs holdings completeness
-
-- [x] Require a published composition date for Range ETFs' official COAL/NUKZ
-      Nuxt holdings payloads. Verify non-empty rows; keep undated pages
-      fail-closed and generic labels unchanged.
-- [x] Product commit `827ae2b02`; focused Range assertions passed `2/2`,
-      Ruff/format/diff checks passed, and the exact gate passed backend units
-      `1568/1568`, integration `405/405` with `82.04%` combined coverage,
-      frontend Vitest `1067/1067`, type-check/build, compose/deployment
-      contracts, expected research-runner probes, and functional E2E `165
-      passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks,
-      or testcontainer sessions. No generic provider/fallback, migration,
-      visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-14 — Promote verified Palmer Square holdings completeness
-
-- [x] Require a published composition date for Palmer Square's official
-      PSQO/PSQA product-page embedded Full Investment Holdings payload. Verify
-      non-empty rows; keep undated pages fail-closed and generic labels
-      unchanged.
-- [x] Product commit `4effca228`; focused Palmer Square assertions passed
-      `2/2`, Ruff/format/diff checks passed, and the exact gate passed backend
-      units `1567/1567`, integration `405/405` with `82.04%` combined coverage,
-      frontend Vitest `1067/1067`, type-check/build, compose/deployment
-      contracts, expected research-runner probes, and functional E2E `165
-      passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks,
-      or testcontainer sessions. No generic provider/fallback, migration,
-      visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-14 — Promote verified Retireful/Mohr holdings completeness
-
-- [x] Require a published composition date for Retireful/Mohr's official
-      paginated holdings tables for RULE, SNAV, MFUL, and CNAV. Verify
-      non-empty rows and declared-count reconciliation; keep undated tables
-      fail-closed and generic labels unchanged.
-- [x] Product commit `697b51d00`; focused Retireful assertions passed `2/2`,
-      Ruff/format/diff checks passed, and the exact gate passed backend units
-      `1566/1566`, integration `405/405` with `82.04%` combined coverage,
-      frontend Vitest `1067/1067`, type-check/build, compose/deployment
-      contracts, expected research-runner probes, and functional E2E `165
-      passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks,
-      or testcontainer sessions. No generic provider/fallback, migration,
-      visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-14 — Promote verified Indexperts holdings completeness
-
-- [x] Require a published composition date for Indexperts' official
-      QIDX/RILA/YFFI holdings JSON feed. Verify parseable non-empty rows; keep
-      undated payloads fail-closed and generic labels unchanged.
-- [x] Product commit `81d551a48`; focused Indexperts assertions passed `2/2`,
-      Ruff/format/diff checks passed, and the exact gate passed backend units
-      `1565/1565`, integration `405/405` with `82.04%` combined coverage,
-      frontend Vitest `1067/1067`, type-check/build, compose/deployment
-      contracts, expected research-runner probes, and functional E2E `165
-      passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks,
-      or testcontainer sessions. No generic provider/fallback, migration,
-      visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-14 — Promote verified Soundwatch holdings completeness
-
-- [x] Require a published composition date for Soundwatch SHDG's official
-      issuer-linked XLS workbook. Verify parseable non-empty rows; keep
-      undated workbooks fail-closed and generic labels unchanged.
-- [x] Product commit `7f8c1abe5`; focused Soundwatch assertions passed `2/2`,
-      Ruff/format/diff checks passed, and the exact gate passed backend units
-      `1564/1564`, integration `405/405` with `82.03%` combined coverage,
-      frontend Vitest `1067/1067`, type-check/build, compose/deployment
-      contracts, expected research-runner probes, and functional E2E `165
-      passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks,
-      or testcontainer sessions. No generic provider/fallback, migration,
-      visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-14 — Promote verified Artemis and X-Square holdings completeness
-
-- [x] Require a published composition date for Artemis Capital's official
-      holdings table and X-Square Capital's official holdings payload. Verify
-      parseable non-empty rows; keep undated payloads fail-closed and generic
-      labels unchanged.
-- [x] Product commit `05971d070`; focused Artemis/X-Square assertions passed
-      `4/4`, Ruff/format/diff checks passed, and the exact gate passed backend
-      units `1563/1563`, integration `405/405`, frontend Vitest `1067/1067`,
-      type-check/build, compose/deployment contracts, expected
-      research-runner probes, and functional E2E `165 passed` with `107
-      skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks,
-      or testcontainer sessions. No generic provider/fallback, migration,
-      visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-14 — Promote verified MUFG, McIvy/Genter, and Langar holdings completeness
-
-### 2026-09-14 — Promote verified MUFG, McIvy/Genter, and Langar holdings completeness
-
-- [x] Require a published composition date for MUFG Japan Small Cap's official
-      product-page Nuxt holdings component and McIvy/Genter and Langar's
-      issuer-scoped Nottingham holdings JSON routes. Verify parseable non-empty
-      rows; keep undated payloads fail-closed and generic labels unchanged.
-- [x] Product commit `6fcc3c382`; focused MUFG/Genter/Langar assertions passed
-      `6/6`, Ruff/format/diff checks passed, and the exact gate passed backend
-      units `1561/1561`, integration `405/405` with `82.03%` combined
-      coverage, frontend Vitest `1067/1067`, type-check/build,
-      compose/deployment contracts, expected research-runner probes, and
-      functional E2E `165 passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks,
-      or testcontainer sessions. No generic provider/fallback, migration,
-      visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-14 — Promote verified National Security Index holdings completeness
-
-- [x] Require a published composition date for the National Security Index
-      ETF's official product-page declared holdings CSV and preserve explicit
-      `completeness_status: complete`. Verify issuer/product identity and
-      parseable non-empty rows; keep undated payloads fail-closed and generic
-      labels unchanged.
-- [x] Product commit `325bb4762`; focused NSI assertions passed `24/24`,
-      Ruff/format/diff checks passed, and the exact gate passed backend units
-      `1558/1558`, integration `405/405` with `81.98%` combined coverage,
-      frontend Vitest `1067/1067`, type-check/build, compose/deployment
-      contracts, expected research-runner probes, and functional E2E `165
-      passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks,
-      or testcontainer sessions. No generic provider/fallback, migration,
-      visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-14 — Promote verified AOT, SMI 3Fourteen, and Abacus Global holdings completeness
-
-- [x] Require a published composition date and add explicit
-      `completeness_status: complete` only to AOT's official holdings table,
-      SMI 3Fourteen's official holdings table, and Abacus Global's official
-      holdings CSV route. Verify parseable non-empty rows; keep undated
-      payloads fail-closed and generic labels unchanged.
-- [x] Product commit `56f982a39`; focused AOT/3Fourteen/Abacus assertions
-      passed `6/6`, Ruff/format/diff checks passed, and the exact gate passed
-      backend units `1557/1557`, integration `405/405` with `81.98%` combined
-      coverage, frontend Vitest `1067/1067`, type-check/build,
-      compose/deployment contracts, expected research-runner probes, and
-      functional E2E `165 passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks,
-      or testcontainer sessions. No generic provider/fallback, migration,
-      visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified Victory, DWS/Xtrackers, and Principal holdings completeness
-
-- [x] Require a published composition date and add explicit
-      `completeness_status: complete` only to VictoryShares' official product
-      API, DWS/Xtrackers' official PDP holdings JSON, and Principal's official
-      holdings workbook routes. Verify parseable non-empty rows; keep undated
-      payloads fail-closed and generic labels unchanged.
-- [x] Product commit `ce4937c71`; focused Victory/DWS/Principal assertions
-      passed `7/7`, Ruff/format/diff checks passed, and the exact gate passed
-      backend units `1554/1554`, integration `405/405` with `81.98%` combined
-      coverage, frontend Vitest `1067/1067`, type-check/build,
-      compose/deployment contracts, expected research-runner probes, and
-      functional E2E `165 passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks,
-      or testcontainer sessions. No generic provider/fallback, migration,
-      visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified Polen and Founder holdings completeness
-
-- [x] Require a published composition date and add explicit
-      `completeness_status: complete` only to Polen's configured official
-      holdings export and Founder's official holdings PDF route. Verify
-      issuer/product identity and parseable non-empty rows; keep undated
-      payloads fail-closed and generic labels unchanged.
-- [x] Product commit `c581637ba`; focused Polen/Founder assertions passed
-      `5/5`, Ruff/format/diff checks passed, and the exact gate passed backend
-      units `1551/1551`, integration `405/405` with `81.98%` combined coverage,
-      frontend Vitest `1067/1067`, type-check/build, compose/deployment
-      contracts, expected research-runner probes, and functional E2E `165
-      passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks,
-      or testcontainer sessions. No generic provider/fallback, migration,
-      visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified Hedgeye holdings completeness
-
-- [x] Require a published composition date and add explicit
-      `completeness_status: complete` only to Hedgeye's official daily
-      holdings payload routes and the S.C.M. Edge subclass using those routes.
-      Verify the latest requested fund snapshot and non-empty holdings; keep
-      undated payloads fail-closed and generic labels unchanged.
-- [x] Product commit `a3f07cb79`; focused Hedgeye/S.C.M. Edge assertions passed
-      `3/3`, Ruff/format/diff checks passed, and the exact gate passed backend
-      units `1548/1548`, integration `405/405` with `81.98%` combined coverage,
-      frontend Vitest `1067/1067`, type-check/build, compose/deployment
-      contracts, expected research-runner probes, and functional E2E `165
-      passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks,
-      or testcontainer sessions. No generic provider/fallback, migration,
-      visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified Liquid Strategies holdings completeness
-
-- [x] Require a published composition date and add explicit
-      `completeness_status: complete` only to Liquid Strategies' official
-      Overlay Shares holdings-table routes (OVL, OVS, OVF, OVLH, OVB, OVT,
-      OVM). Verify configured product-page identity, required holdings schema,
-      and parseable non-empty rows; keep undated tables fail-closed and generic
-      labels unchanged.
-- [x] Product commit `45ac854c3`; focused Liquid Strategies assertions passed
-      `2/2`, Ruff/format/diff checks passed, and the exact gate passed backend
-      units `1547/1547`, integration `405/405` with `81.98%` combined coverage,
-      frontend Vitest `1067/1067`, type-check/build, compose/deployment
-      contracts, expected research-runner probes, and functional E2E `165
-      passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks,
-      or testcontainer sessions. No generic provider/fallback, migration,
-      visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified Fortuna holdings completeness
-
-- [x] Require a published composition date and add explicit
-      `completeness_status: complete` only to Fortuna's official holdings-table
-      route. Verify official product/table identity and parseable non-empty
-      rows; keep undated tables fail-closed and generic labels unchanged.
-- [x] Product commit `23ed4643c`; focused Fortuna assertions passed `2/2`,
-      Ruff/format/diff checks passed, and the exact gate passed backend units
-      `1546/1546`, integration `405/405` with `81.98%` combined coverage,
-      frontend Vitest `1067/1067`, type-check/build, compose/deployment
-      contracts, expected research-runner probes, and functional E2E `165
-      passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks,
-      or testcontainer sessions. No generic provider/fallback, migration,
-      visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified Hotchkis & Wiley holdings completeness
-
-- [x] Require dated holdings metadata and add explicit
-      `completeness_status: complete` only to Hotchkis & Wiley's HWSM official
-      literature-page linked monthly holdings PDF route. Verify HWSM product
-      identity, issuer-declared PDF linkage, PDF fund identity, parseable
-      non-empty rows, and published composition date; keep undated PDFs
-      fail-closed and generic labels unchanged.
-- [x] Product commit `22de7e669`; focused HWSM assertions passed `2/2`,
-      Ruff/format/diff checks passed, and the exact gate passed backend units
-      `1545/1545`, integration `405/405` with `81.98%` combined coverage,
-      frontend Vitest `1067/1067`, type-check/build, compose/deployment
-      contracts, expected research-runner probes, and functional E2E `165
-      passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks,
-      or testcontainer sessions. No generic provider/fallback, migration,
-      visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified Nomura and Delaware holdings completeness
-
-- [x] Require dated holdings metadata and add explicit
-      `completeness_status: complete` only to Nomura's configured daily
-      product-page routes and Delaware/Macquarie successor routes using the
-      official Nomura table. Verify official product identity, exact
-      seven-column schema, non-empty rows, and parsed issuer date; keep generic
-      labels fail-closed with no fallback.
-- [x] Product commit `68e059423`; focused Nomura/Delaware assertions passed
-      `2/2`, Ruff/format/diff checks passed, and the exact gate passed backend
-      units `1544/1544`, integration `405/405`, frontend Vitest `1067/1067`,
-      type-check/build, compose/deployment contracts, expected research-runner
-      probes, and functional E2E `165 passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks, or
-      testcontainer sessions. No generic provider/fallback, migration, visual,
-      threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified IronHorse holdings completeness
-
-- [x] Add explicit `completeness_status: complete` only to IronHorse/Conductor's
-      CGV official product-page declared full CSV route. Verify official
-      product identity, declared download linkage, exact CSV schema, dated
-      holdings metadata, and non-empty rows; retain the existing SEC fallback
-      for undated or empty native downloads.
-- [x] Product commit `f2e00d61f`; focused IronHorse assertions passed `2/2`,
-      Ruff/format/diff checks passed, and the exact gate passed backend units
-      `1544/1544`, integration `405/405`, frontend Vitest `1067/1067`,
-      type-check/build, compose/deployment contracts, expected research-runner
-      probes, and functional E2E `165 passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks, or
-      testcontainer sessions. No generic provider/fallback, migration, visual,
-      threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified Cyber Hornet holdings completeness
-
-- [x] Add explicit `completeness_status: complete` only to Cyber Hornet's
-      BBB, EEE, SSS, and XXX issuer-page declared full holdings CSV routes.
-      Verify issuer download linkage, current dated holdings disclosure, exact
-      CSV schema, and non-empty rows; keep generic labels fail-closed with no
-      fallback.
-- [x] Product commit `e0cc62996`; focused Cyber Hornet assertion passed `1/1`,
-      Ruff/format/diff checks passed, and the exact gate passed backend units
-      `1544/1544`, integration `405/405`, frontend Vitest `1067/1067`,
-      type-check/build, compose/deployment contracts, expected research-runner
-      probes, and functional E2E `165 passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks, or
-      testcontainer sessions. No generic provider/fallback, migration, visual,
-      threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified Dividend Assets holdings completeness
-
-- [x] Add explicit `completeness_status: complete` only to Dividend Assets
-      Capital's DVGR official product-page holdings table. Verify official
-      product identity/ticker, exact table schema, one consistent effective
-      date across issuer rows, and non-empty holdings; keep generic labels
-      fail-closed with no fallback.
-- [x] Product commit `7f7a32ef1`; focused Dividend Assets assertion passed
-      `1/1`, Ruff/format/diff checks passed, and the exact gate passed backend
-      units `1544/1544`, integration `405/405`, frontend Vitest `1067/1067`,
-      type-check/build, compose/deployment contracts, expected research-runner
-      probes, and functional E2E `165 passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). Docker
-      resources were cleaned with no retained containers, volumes, networks, or
-      testcontainer sessions. No generic provider/fallback, migration, visual,
-      threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified Morgan Stanley holdings completeness
-
-- [x] Add explicit `completeness_status: complete` only to Morgan Stanley's
-      MSLC official product-page-linked current XLSX route. Verify official
-      product page/workbook linkage, expected fund identity, exact workbook
-      schema and security identifiers, dated holdings metadata, and non-empty
-      rows; keep generic labels fail-closed with no fallback.
-- [x] Product commit `d50362dfe`; focused Morgan Stanley assertions passed
-      `2/2`, Ruff/format/diff checks passed, and the exact gate passed backend
-      units `1544/1544`, integration `405/405`, frontend Vitest `1067/1067`,
-      type-check/build, compose/deployment contracts, expected research-runner
-      probes, and functional E2E `165 passed` with `107 skipped`.
-- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
-      diffs remain (watchlist-column-editor and workspace-floating). The
-      provider-probe stage was skipped because this change was not classified
-      as provider-related. Docker resources were cleaned with no retained
-      containers, volumes, networks, or testcontainer sessions. No generic
-      provider/fallback, migration, visual, threshold, mask, skip, or
-      acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified Golden Eagle holdings completeness
-
-- [x] Add explicit `completeness_status: complete` only to Golden Eagle's HYP
-      official product-page holdings route. Verify official product identity
-      and ticker, exact holdings-table schema, issuer-declared count against
-      parsed security rows, dated `As of` metadata, and non-empty holdings;
-      keep generic labels fail-closed with no fallback.
-- [x] Product commit `9b793f88e`; focused Golden Eagle assertions passed
-      `2/2`, Ruff/format/diff checks passed, and full backend units passed
-      `1544/1544`; integration passed `405/405` with `81.98%` combined
-      coverage.
-- [x] Exact branch-scoped gate passed frontend Vitest `1067/1067`,
-      type-check/build, compose/deployment contracts, expected research-runner
-      probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E
-      passed `98/104`; only the six unchanged protected visual diffs remain
-      (watchlist-column-editor and workspace-floating). Docker resources were
-      cleaned with no retained containers, volumes, networks, or testcontainer
-      sessions. No generic provider/fallback, migration, visual, threshold,
-      mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified Mairs & Power holdings completeness
-
-- [x] Add explicit `completeness_status: complete` only to Mairs & Power's
-      MINN official product-page portfolio route. Verify exact product
-      identity, dated `FULL PORTFOLIO AS OF` marker, normalized issuer table
-      schema, and non-empty rows; keep generic labels fail-closed with no
-      fallback.
-- [x] Product commit `4e71fd4f5`; focused Mairs & Power assertion passed
-      `1/1`, Ruff/format/diff checks passed, and full backend units passed
-      `1544/1544`.
-- [x] Exact branch-scoped gate passed backend unit `1544/1544`, integration
-      `405/405`, frontend Vitest `1067/1067`, type-check/build,
-      compose/deployment contracts, expected research-runner probes, and
-      functional E2E `165 passed` with `107 skipped`. Visual E2E passed
-      `98/104`; only the six unchanged protected visual diffs remain
-      (watchlist-column-editor and workspace-floating). Docker resources were
-      cleaned. No provider/fallback, migration, visual, threshold, mask,
-      skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified Retireful holdings completeness
-
-- [x] Add explicit `completeness_status: complete` only to Retireful/Mohr's
-      RULE, SNAV, MFUL, and CNAV official product-page holdings routes. Verify
-      product identity, dated composition, issuer-declared holding count,
-      pagination integrity, and exact row-count reconciliation; keep generic
-      labels fail-closed with no fallback.
-- [x] Product commit `afcdebe3d`; focused Retireful assertion passed `1/1`,
-      Ruff/format/diff checks passed, and full backend units passed
-      `1544/1544`.
-- [x] Exact branch-scoped gate passed backend unit `1544/1544`, integration
-      `405/405`, frontend Vitest `1067/1067`, type-check/build,
-      compose/deployment contracts, expected research-runner probes, and
-      functional E2E `165 passed` with `107 skipped`. Visual E2E passed
-      `98/104`; only the six unchanged protected visual diffs remain
-      (watchlist-column-editor and workspace-floating). Docker resources were
-      cleaned. No provider/fallback, migration, visual, threshold, mask,
-      skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified Artemis holdings completeness
-
-- [x] Add explicit `completeness_status: complete` only to Artemis ACEP and
-      AFOS official product-page holdings routes. Verify product identity,
-      exact `FUND HOLDINGS` eight-column schema, dated rows, and non-empty
-      holdings; keep generic labels fail-closed with no fallback.
-- [x] Product commit `180228b40`; focused Artemis assertion passed `1/1`,
-      Ruff/format/diff checks passed, and full backend units passed
-      `1544/1544`.
-- [x] Exact branch-scoped gate passed backend unit `1544/1544`, integration
-      `405/405`, frontend Vitest `1067/1067`, type-check/build,
-      compose/deployment contracts, expected research-runner probes, and
-      functional E2E `165 passed` with `107 skipped`. Visual E2E passed
-      `98/104`; only the six unchanged protected visual diffs remain
-      (watchlist-column-editor and workspace-floating). Docker resources were
-      cleaned. No provider/fallback, migration, visual, threshold, mask,
-      skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified X-Square holdings completeness
-
-- [x] Add explicit `completeness_status: complete` only to X-Square's
-      verified ZTAX product-page/API route. Verify product page ticker/fund
-      identity, declared Full Holdings client/API route, returned fund symbol,
-      `full` portfolio marker, dated rows, and non-empty holdings; keep generic
-      labels fail-closed with no fallback.
-- [x] Product commit `538c18fbd`; focused assertion passed `1/1`,
-      Ruff/format/diff checks passed, and full backend units passed
-      `1544/1544`.
-- [x] Exact branch-scoped gate passed backend unit `1544/1544`, integration
-      `405/405`, frontend Vitest `1067/1067`, type-check/build,
-      compose/deployment contracts, expected research-runner probes, and
-      functional E2E `165 passed` with `107 skipped`. Visual E2E passed
-      `98/104`; only the six unchanged protected visual diffs remain
-      (watchlist-column-editor and workspace-floating). Docker resources were
-      cleaned. No provider/fallback, migration, visual, threshold, mask,
-      skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified Focus Financial holdings completeness
-
-- [x] Add explicit `completeness_status: complete` only to Focus Financial's
-      verified EQTY Kovitz FilePoint JSON and EBI Longview fund-data table
-      routes. Verify official route/product identity, composition date,
-      route-specific schema, and 10/100-row minimums; keep generic labels
-      fail-closed with no fallback.
-- [x] Product commit `8d97540ec`; focused assertions passed `1/1`,
-      Ruff/format/diff checks passed, and full backend units passed
-      `1544/1544`.
-- [x] Exact branch-scoped gate passed backend unit `1544/1544`, integration
-      `405/405`, frontend Vitest `1067/1067`, type-check/build,
-      compose/deployment contracts, expected research-runner probes, and
-      functional E2E `165 passed` with `107 skipped`. Visual E2E passed
-      `98/104`; only the six unchanged protected visual diffs remain
-      (watchlist-column-editor and workspace-floating). Docker resources were
-      cleaned. No provider/fallback, migration, visual, threshold, mask,
-      skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified Vident/MM VAM holdings completeness
-
-- [x] Add explicit `completeness_status: complete` to the verified Vident/MM
-      VAM VUSE, VIDI, VBND, and PPTY product-page holdings routes. Verify
-      ticker/product identity, exact table headers, one dated composition,
-      and at least ten non-empty rows; keep generic labels fail-closed with
-      no fallback.
-- [x] Product commit `3378e533f`; focused Vident/MM VAM assertions passed
-      `2/2`, Ruff/format/diff checks passed, and full backend units passed
-      `1544/1544`.
-- [x] Exact branch-scoped gate passed backend unit `1544/1544`, integration
-      `405/405`, frontend Vitest `1067/1067`, type-check/build,
-      compose/deployment contracts, expected research-runner probes, and
-      functional E2E `165 passed` with `107 skipped`. Visual E2E passed
-      `98/104`; only the six unchanged protected visual diffs remain
-      (watchlist-column-editor and workspace-floating). Docker resources were
-      cleaned. No provider/fallback, migration, visual, threshold, mask,
-      skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified native holdings completeness
-
-- [x] Add explicit `completeness_status: complete` only to the verified
-      Soundwatch SHDG issuer-linked XLS, WealthTrust WLTG public complete
-      holdings table, Eighth Wonder/Fundsmith ETFT product-page payload, and
-      Range COAL/NUKZ official Nuxt fund-page routes. Verify route-specific
-      product/source identity and non-empty holdings; keep generic labels
-      fail-closed with no fallback.
-- [x] Product commit `ce18a1b7b`; focused native adapter assertions passed
-      `4/4`, Ruff/format/diff checks passed, and full backend units passed
-      `1544/1544`.
-- [x] Exact branch-scoped gate passed backend unit `1544/1544`, integration
-      `405/405`, frontend Vitest `1067/1067`, type-check/build,
-      compose/deployment contracts, expected research-runner probes, and
-      functional E2E `165 passed` with `107 skipped`. Visual E2E passed
-      `98/104`; only the six unchanged protected visual diffs remain
-      (watchlist-column-editor and workspace-floating). Docker resources were
-      cleaned. No provider/fallback, migration, visual, threshold, mask,
-      skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified linked workbook holdings completeness
-
-- [x] Add explicit `completeness_status: complete` only to the verified
-      Little Harbor MSTB/MSTQ/RMIF, Pettee/Hoya HOMZ/RIET, Sound Capital RVER,
-      and Sovereign SOVF issuer-linked workbook routes. Verify product
-      identity, declared download linkage, workbook schema/identity, and
-      non-empty rows; keep generic labels fail-closed with no fallback.
-- [x] Product commit `ce00fa0fa`; focused adapter assertions passed `4/4`,
-      Ruff/format/diff checks passed, and full backend units passed `1544/1544`.
-- [x] Exact branch-scoped gate passed backend unit `1544/1544`, integration
-      `405/405`, frontend Vitest `1067/1067`, type-check/build,
-      compose/deployment contracts, expected research-runner probes, and
-      functional E2E `165 passed` with `107 skipped`. Visual E2E passed
-      `98/104`; only the six unchanged protected visual diffs remain
-      (watchlist-column-editor and workspace-floating). Docker resources were
-      cleaned. No provider/fallback, migration, visual, threshold, mask,
-      skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified Indexperts holdings completeness
-
-- [x] Add explicit `completeness_status: complete` only to Indexperts'
-      verified RILA/QIDX/YFFI product-page and fund-scoped holdings routes.
-      Verify product-page/holdings identity, dated metadata, and non-empty
-      rows; keep generic labels fail-closed with no fallback.
-- [x] Product commit `d3fa295a9`; focused Indexperts adapter assertion passed
-      `1/1`, Ruff/format/diff checks passed, and full backend units passed
-      `1544/1544`.
-- [x] Exact branch-scoped gate passed backend unit `1544/1544`, integration
-      `405/405`, frontend Vitest `1067/1067`, type-check/build,
-      compose/deployment contracts, expected research-runner probes, and
-      functional E2E `165 passed` with `107 skipped`. Visual E2E passed
-      `98/104`; only the six unchanged protected visual diffs remain
-      (watchlist-column-editor and workspace-floating). Docker resources were
-      cleaned. No provider/fallback, migration, visual, threshold, mask,
-      skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified MUFG holdings completeness
-
-- [x] Add explicit `completeness_status: complete` only to Mitsubishi UFJ's
-      verified MJSC public product-page Nuxt holdings component. It verifies
-      exact product identity, route slug, named holdings component, dated
-      hydration payload, and non-empty rows; Japanese venue tickers remain
-      metadata rather than fabricated platform symbols.
-- [x] Product commit `96b13c816`; focused MUFG adapter assertion passed `1/1`,
-      Ruff/format/diff checks passed, and full backend units passed
-      `1544/1544`.
-- [x] Exact branch-scoped gate passed backend unit `1544/1544`, integration
-      `405/405`, frontend Vitest `1067/1067`, type-check/build,
-      compose/deployment contracts, expected research-runner probes, and
-      functional E2E `165 passed` with `107 skipped`. Visual E2E passed
-      `98/104`; only the six unchanged protected visual diffs remain
-      (watchlist-column-editor and workspace-floating). Docker resources were
-      cleaned. No provider/fallback, migration, visual, threshold, mask,
-      skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified publisher fund-scoped holdings completeness
-
-- [x] Add explicit `completeness_status: complete` only to the verified
-      McIvy/Genter GENT/GEND/GENM/GENW and Langar LGHT fund-scoped publisher
-      routes. Each route verifies issuer-settings fund identity, payload
-      ticker/fund/name identity, dated `pricing.effdate`, and non-empty rows;
-      live probes require at least 30 rows with CUSIPs. Generic current/daily/
-      table labels remain fail-closed.
-- [x] Product commit `829ed19f2`; focused McIvy/Langar adapter assertions
-      passed `2/2`, Ruff/format/diff checks passed, and full backend units
-      passed `1544/1544`.
-- [x] Exact branch-scoped gate passed backend unit `1544/1544`, integration
-      `405/405`, frontend Vitest `1067/1067`, type-check/build,
-      compose/deployment contracts, expected research-runner probes, and
-      functional E2E `165 passed` with `107 skipped`. Visual E2E passed
-      `98/104`; only the six unchanged protected visual diffs remain
-      (watchlist-column-editor and workspace-floating). Docker resources were
-      cleaned. No provider/fallback, migration, visual, threshold, mask,
-      skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified native holdings completeness
-
-- [x] Add explicit `completeness_status: complete` to the NSI product-page
-      CSV, Palmer Square dated Full Investment Holdings payload, and Weitz
-      dated identity-checked holdings payload. These are the only adapters
-      emitting the curated complete-daily/full-investment labels in this seam;
-      generic current/daily/table routes remain fail-closed.
-- [x] Product commit `c8ba7a600`; focused NSI/Palmer Square/Weitz adapter
-      assertions passed `4/4`, declared-completeness refresh checks passed
-      `8/8`, Ruff/format/diff checks passed, and the full backend unit suite
-      passed `1544/1544`.
-- [x] Exact branch-scoped gate at this tip passed backend unit `1544/1544`,
-      integration `405/405`, frontend Vitest `1067/1067`, type-check/build,
-      compose/deployment contracts, expected research-runner sandbox/resource
-      probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E
-      passed `98/104`; only the six unchanged protected visual diffs remain
-      (watchlist-column-editor at visual-1080p-100/125 and workspace-floating
-      at visual-1080p-100/125 and visual-1440p-100/125). Branch-scoped Docker
-      resources were cleaned. No provider/fallback, migration, visual,
-      threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified dated holdings completeness
-
-- [x] Add explicit `completeness_status: complete` to the Absolute
-      Investment Advisers ABEQ financial-statement route and STF Management
-      TUG quarterly-schedule route. Both existing issuer-page-linked routes
-      select the newest dated complete PDF; ABEQ additionally requires at
-      least 10 rows and at least 85% aggregate weight. Generic dated labels
-      remain fail-closed.
-- [x] Product commit `df0952777`; focused ABEQ/TUG adapter assertions passed
-      `2/2`, Ruff/format/diff checks passed, and the full backend unit suite
-      passed `1544/1544`.
-- [x] Exact branch-scoped gate at this tip passed backend unit `1544/1544`,
-      integration `405/405`, frontend Vitest `1067/1067`, type-check/build,
-      compose/deployment contracts, expected research-runner sandbox/resource
-      probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E
-      passed `98/104`; only the six unchanged protected visual diffs remain
-      (watchlist-column-editor at visual-1080p-100/125 and workspace-floating
-      at visual-1080p-100/125 and visual-1440p-100/125). Branch-scoped Docker
-      resources were cleaned. No provider/fallback, migration, visual,
-      threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified Distribution Cognizant completeness
-
-- [x] Add explicit `completeness_status: complete` to the Distribution
-      Cognizant VOXP result. The adapter already verifies the account-scoped
-      CSV, required holdings schema, symbol/account filter, dated snapshot,
-      and at least 10 rows; the generic `issuer_reported_daily_holdings`
-      quality label remains unchanged.
-- [x] Product commit `ba9f9a6eb`; focused Concourse/Distribution adapter
-      assertions passed `2/2`, Ruff/format/diff checks passed, and the full
-      backend unit suite passed `1544/1544`.
-- [x] Exact branch-scoped gate at this tip passed backend unit `1544/1544`,
-      integration `405/405`, frontend Vitest `1067/1067`, type-check/build,
-      compose/deployment contracts, expected research-runner sandbox/resource
-      probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E
-      passed `98/104`; only the six unchanged protected visual diffs remain
-      (watchlist-column-editor at visual-1080p-100/125 and workspace-floating
-      at visual-1080p-100/125 and visual-1440p-100/125). Branch-scoped Docker
-      resources were cleaned. No provider/fallback, migration, visual,
-      threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified Concourse completeness
-
-- [x] Add explicit `completeness_status: complete` to the Concourse CCFE
-      result. The adapter already verifies the official product-page identity,
-      exact holdings-table schema, effective date, and at least 10 rows; the
-      generic `issuer_reported_current_holdings` quality label remains
-      unchanged.
-- [x] Product commit `2c9444ab0`; the focused Concourse adapter regression
-      passed `1/1`, Ruff/format/diff checks passed, and the full backend unit
-      suite passed `1544/1544`.
-- [x] Exact branch-scoped gate at this tip passed backend unit `1544/1544`,
-      integration `405/405`, frontend Vitest `1067/1067`, type-check/build,
-      compose/deployment contracts, expected research-runner sandbox/resource
-      probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E
-      passed `98/104`; only the six unchanged protected visual diffs remain
-      (watchlist-column-editor at visual-1080p-100/125 and workspace-floating
-      at visual-1080p-100/125 and visual-1440p-100/125). Provider probes were
-      skipped because no provider-related changes were detected. Branch-scoped
-      Docker resources were cleaned. No provider/fallback, migration, visual,
-      threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote issuer-linked workbook holdings
-
-- [x] Promote only four adapters whose issuer page, declared workbook route,
-      required workbook identity/schema, and non-empty rows establish explicit
-      `issuer_page_declared_current_complete_holdings` evidence: Little Harbor,
-      Pettee/Hoya, Sound Capital/River1, and Sovereign/SOVF. Generic current,
-      daily, and table labels remain fail-closed as `unknown`.
-- [x] Product commit `6287f6900`; focused adapter assertions passed `4/4`
-      (the focused invocation was intentionally subset-only), related refresh
-      mapping checks passed `7/7`, Ruff/format/diff checks passed, and the full
-      backend unit suite passed `1544/1544`.
-- [x] Exact branch-scoped gate at this tip passed backend unit `1544/1544`,
-      integration `405/405`, frontend Vitest `1067/1067`, type-check/build,
-      compose/deployment contracts, expected research-runner sandbox/resource
-      probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E
-      passed `98/104`; only the six unchanged protected visual diffs remain
-      (watchlist-column-editor at visual-1080p-100/125 and workspace-floating
-      at visual-1080p-100/125 and visual-1440p-100/125). Provider probes were
-      skipped because no provider-related changes were detected. Branch-scoped
-      Docker resources were cleaned. No provider/fallback, migration, visual,
-      threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote verified Vident product-page holdings
-
-- [x] Map the unique `issuer_reported_product_page_holdings_table` label to
-      `complete` holdings evidence. The Vident/MM VAM adapter verifies the
-      issuer page, requires a dated holdings table, and rejects undersized
-      results before this status can be emitted; broader generic table labels
-      remain conservative.
-- [x] Focused adapter/refresh coverage passed `519/519`; Ruff, formatting, and
-      `git diff --check` passed; full backend units passed `1544/1544`.
-- [x] Exact gate at product tip `9ef91c40d` passed backend units `1544/1544`,
-      integration `405/405`, frontend Vitest `1067/1067`, type-check, build,
-      compose/deployment contracts, expected research-runner probes, and
-      functional E2E `165 passed` with `107 skipped`. Visual E2E passed
-      `98/104`; the six unchanged protected visual diffs remain
-      (watchlist-column-editor at visual-1080p-100/125 and workspace-floating
-      at visual-1080p-100/125 and visual-1440p-100/125). Provider probes were
-      skipped because no provider-related changes were detected. Branch-scoped
-      Docker resources were cleaned. No provider/fallback, migration, visual,
-      threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Recognize issuer-page declared current completeness
-
-- [x] Map the curated adapter label
-      `issuer_page_declared_current_complete_holdings` to persisted
-      `complete` holdings evidence. This covers mature issuer-page routes that
-      explicitly declare current, complete holdings without broad inference;
-      generic current-only and ambiguous labels remain `unknown`.
-- [x] Focused refresh coverage passed `8/8`; Ruff, formatting, and
-      `git diff --check` passed; full backend units passed `1543/1543`.
-- [x] Exact gate at product tip `d0598946f` passed backend units `1543/1543`,
-      integration `405/405`, frontend Vitest `1067/1067`, type-check, build,
-      compose/deployment contracts, expected research-runner probes, and
-      functional E2E `165 passed` with `107 skipped`. Visual E2E passed
-      `98/104`; the six unchanged protected visual diffs remain
-      (watchlist-column-editor at visual-1080p-100/125 and workspace-floating
-      at visual-1080p-100/125 and visual-1440p-100/125). Provider probes were
-      skipped because no provider-related changes were detected. Branch-scoped
-      Docker resources were cleaned. No provider/fallback, migration, visual,
-      threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Preserve profile source quality on the latest refresh route
-
-- [x] Keep the profile-declared `holdings_source_quality` alias when the
-      latest/current holdings route persists its snapshot, matching the dated
-      route and retaining the declared `complete` status for curated evidence.
-- [x] Focused bootstrap/refresh coverage passed `24/24`; Ruff, formatting, and
-      `git diff --check` passed; full backend units passed `1542/1542`.
-- [x] Exact gate at product tip `9ed31ba86` passed backend units `1542/1542`,
-      backend integration `405/405`, frontend Vitest `1067/1067`, type-check,
-      production build, compose/deployment contracts, expected research-runner
-      sandbox/resource probes, and functional E2E `165 passed` with `107
-      skipped`. Visual E2E passed `98/104`; the six unchanged protected visual
-      diffs remain (watchlist-column-editor at visual-1080p-100/125 and
-      workspace-floating at visual-1080p-100/125 and visual-1440p-100/125).
-      Provider probes were skipped because no provider-related changes were
-      detected. Branch-scoped Docker resources were cleaned. No
-      provider/fallback, migration, visual, threshold, mask, skip, or
-      acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Preserve declared completeness from curated holdings routes
-
-- [x] Map only explicit curated source-quality declarations to persisted
-      holdings completeness: filing-reconstructed routes become
-      `filing_reconstructed`, and issuer-reported complete routes become
-      `complete`; ambiguous/current-only labels remain `unknown`, while an
-      explicit completeness field still takes precedence.
-- [x] Focused refresh coverage passed `7/7`; Ruff passed; full backend units
-      passed `1541/1541`.
-- [x] Exact gate at product tip `42ffb4418` passed backend units `1541/1541`,
-      backend integration `405/405`, frontend Vitest `1067/1067`, type-check,
-      production build, compose/deployment contracts, expected research-runner
-      sandbox/resource probes, and functional E2E `165 passed` with `107
-      skipped`. Visual E2E passed `98/104`; the six unchanged protected visual
-      diffs remain (watchlist-column-editor at visual-1080p-100/125 and
-      workspace-floating at visual-1080p-100/125 and visual-1440p-100/125).
-      Branch-scoped Docker resources were cleaned. No provider/fallback,
-      migration, visual, threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Promote persisted holdings completeness on re-ingest
-
-- [x] Make duplicate snapshot reconciliation monotonic for holdings evidence:
-      re-ingesting the same content can promote `partial`/`unknown` to
-      `complete` or `filing_reconstructed`, but a weaker retry cannot
-      downgrade stronger persisted evidence. Adapter success state now records
-      the merged status as well as reconciled counters.
-- [x] Focused holdings-resolution coverage passed `30/30`; related refresh,
-      benchmark-family coverage/history suites passed `43/43`; Ruff passed;
-      full backend units passed `1536/1536`.
-- [x] Exact gate at product tip `0b2f03070` passed backend units `1536/1536`,
-      frontend Vitest `1067/1067`, type-check/build, compose/deployment
-      contracts, expected research-runner probes, and functional E2E
-      `165 passed` with `107 skipped`. Visual E2E passed `98/104`; the six
-      unchanged protected visual diffs remain (watchlist-column-editor at
-      1080p 100/125 and workspace-floating at 1080p 100/125 and 1440p
-      100/125).
-      Docker resources were cleaned. No provider/fallback, migration, visual,
-      threshold, mask, skip, or acceptance policy changed.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Require persisted holdings completeness for role readiness
-
-- [x] Gate benchmark-family composite readiness on the persisted holdings
-      snapshot completeness contract: only `complete` and
-      `filing_reconstructed` can promote a role to `ready`; `partial` and
-      `unknown` remain non-ready and are exposed as
-      `holdings_completeness_status` with a machine-readable reason.
-- [x] Regression coverage passed for the role-level contract, the real-Postgres
-      readiness composition (including the incomplete-snapshot mutation), full
-      backend units (`1535/1535`), frontend Vitest (`1067/1067`), frontend
-      type-check/build, Ruff, formatting, and `git diff --check`. No provider,
-      fallback, migration, visual, or acceptance policy changed.
-- [x] Exact gate at product tip `87f9a7a43` passed backend integration
-      `405/405`, frontend Vitest `1067/1067`, functional E2E `165 passed` with
-      `107 skipped`, and visual E2E `98/104`. One earlier F8u drag assertion
-      was transient; the isolated test then passed `1/1` and `5/5` repeats,
-      and the clean rerun passed all functional tests. The six unchanged
-      protected visual diffs remain open and Docker resources were cleaned.
-- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
-      rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Canonical family readiness composition contract and exact gate
-
-- [x] Add deterministic integration proof at `62d4ac8de` for a complete SPY
-      cap-weight family role: verified SPDR entitlement for universe discovery
-      and price history, a complete point-in-time snapshot, two resolved
-      weighted/classified members, and 252 D1, 52 W1, and 24 MN adjusted bars
-      per member. Public role status is `available` and composite readiness is
-      `ready` with no reasons.
-- [x] The focused PostgreSQL integration passed `1/1`. The exact gate at
-      `4d1a05db4` passed backend units `1534/1534`, integration `405/405`,
-      frontend Vitest `1067/1067`, functional E2E `165 passed` with `107
-      skipped`, and visual E2E `98/104`. Provider probes were skipped because
-      no provider-related changes were present. The six unchanged protected
-      visual diffs remain open; Docker resources were cleaned. The
-      `4d1a05db4` test-only locator stabilization removes dependence on an
-      outer Golden Layout wrapper label; no product/provider/fallback/visual
-      policy changed.
-- [ ] Continue R1 canonical persistence/population/history, family-wide
-      D1/W1/MN floors, rebalance continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Newer non-iShares family point-in-time route matrix
-
-- [x] Extend the bounded date-aware live matrix to the 12 canonical
-      non-iShares family legs that have curated SEC-backed routes at the
-      `2026-06-30` cutoff: `SPY`, `SPYV`, `SPYG`, `MDY`, `MDYV`, `MDYG`,
-      `SLYV`, `SLYG`, `SPTM`, `RSP`, `QQQ`, and `QQQE`. Every route reported
-      `sec_filing`/`sec`, verified filing identity, echoed the requested date,
-      and returned composition no later than the cutoff (minimum 80 rows for
-      QQQE and 100 for the other cases).
-- [x] The focused live matrix passed `12/12`; the deterministic taxonomy,
-      family-history, and refresh contracts passed `46/46` (`7df91ec76`).
-      The exact branch-scoped gate at this product tip passed backend units
-      `1534/1534`, integration `404/404`, frontend Vitest `1067/1067`,
-      functional E2E `165 passed` with `107 skipped`, and visual E2E `98/104`.
-      Provider probes were `not configured` because `RUN_LIVE_PROVIDER_TESTS`
-      was unset. The six unchanged protected visual diffs remain open; Docker
-      resources were cleaned. This is route evidence only: it does not prove
-      persisted snapshots/member bars, family-wide D1/W1/MN floors, or
-      rebalance continuity.
-- [ ] Continue R1 canonical population/history, family-wide floors and
-      continuity, and AC2–AC7/AC10. No visual baseline, mask, threshold, skip,
-      provider/fallback, migration, or acceptance policy changed.
-
-### 2026-09-13 — Older iShares family point-in-time route matrix
-
-- [x] Extend the date-aware iShares live matrix to all eight canonical family
-      legs (`IJR`, `IWB`, `IWD`, `IWF`, `IWM`, `IWN`, `IWO`, and `IWV`) at the
-      older `2025-12-31` cutoff, requiring the issuer public JSON as-of route,
-      at least 100 rows, and a composition date no later than the request.
-- [x] The complete bounded date matrix passed `17/17`: eight older-date cases,
-      eight existing `2026-06-30` cases, and the dedicated older IWM regression.
-      Full backend units passed `1534/1534`; Ruff, formatting, and
-      `git diff --check` passed (`32e1ab645`).
-- [x] Rerun the exact branch-scoped gate at coherent docs tip `d7bbc4564`.
-      Backend unit/integration passed `1534/1534` and `404/404`, frontend
-      Vitest passed `1067/1067`, functional E2E passed `165` with `107`
-      documented skips, and visual E2E passed `98/104`. Provider probes were
-      skipped because no provider-related paths changed. The six unchanged
-      protected visual diffs remain open; continue family-wide canonical
-      population, D1/W1/MN floors, continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Older IWM point-in-time history and exact gate
-
-Captured final gate receipt: the complete run reached backend unit `1534/1534`,
-integration `404/404`, frontend Vitest `1067/1067`, functional E2E `165 passed`
-with `107 skipped`, and visual E2E `98/104`; provider probes were
-`not configured`, and only the six unchanged protected visual diffs failed.
-Branch-scoped Docker resources were cleaned.
-
-- [x] Add a 2025-12-31 IWM regression beside the 2026-06-30 family date; both
-      public iShares JSON snapshots preserve matching composition dates, and
-      the focused live history suite passed `10/10` (`5caacf901`).
-- [x] Rerun the exact branch-scoped gate at `5caacf901`: backend unit
-      `1534/1534`, integration `404/404`, frontend Vitest `1067/1067`,
-      functional E2E `165 passed` with `107 skipped`, and visual `98/104`.
-      Provider probes reported `not configured` because the opt-in variable was
-      unset; deterministic contracts remain authoritative.
-- [ ] Keep the six unchanged protected visual diffs open and continue R1
-      provider/history population, D1/W1/MN floors and continuity, and
-      AC2–AC7/AC10.
-
-### 2026-09-13 — IWM historical route coverage and exact gate
-
-- [x] Add IWM to the date-aware iShares historical family route matrix; the
-      focused live suite passed `9/9`, including a 2026-06-30 public JSON
-      snapshot with `2009` rows (`f36421f49`).
-- [x] Rerun the exact branch-scoped gate at `f36421f49`: backend unit
-      `1534/1534`, integration `404/404`, frontend Vitest `1067/1067`, and
-      functional E2E `165 passed` with `107 skipped`; provider probes reported
-      `not configured` (deterministic contracts remain authoritative).
-- [ ] Keep the six unchanged protected visual diffs open: watchlist-column-
-      editor at 1080p 100/125 and workspace-floating at 1080p/1440p 100/125.
-      Continue R1 provider/history population, D1/W1/MN floors and continuity,
-      and AC2–AC7/AC10.
-
-### 2026-09-13 — Exact gate at corrected SLYG SEC identity tip
-
-- [x] Rerun the exact branch-scoped gate at product tip `c7d84436f`; backend
-      integration passed `404/404`, frontend Vitest passed `1067/1067`, and
-      functional E2E passed `165` with `107` documented skips.
-- [x] Research-runner sandbox/resource probes, compose/deployment contracts,
-      and all pre-visual checks passed. Provider probes were correctly skipped
-      because no provider-related path changes were detected by the gate.
-- [ ] Keep the six unchanged protected visual diffs open: watchlist-column-
-      editor at 1080p 100/125 and workspace-floating at 1080p/1440p 100/125.
-      Continue R1 canonical provider/history population, D1/W1/MN floors and
-      continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Correct SLYG SEC class route
-
-- [x] Correct SLYG's curated SEC series/class identity to
-      `S000006990` / `C000019043` and apply curated identity checks to legacy
-      SEC holdings, with a bounded 400-filing search for exact identities
-      (`c7d84436f`).
-- [x] Focused adapter/taxonomy/SEC coverage passed `535/535`; full backend
-      units passed `1534/1534`; Ruff, format, workstream, and diff checks
-      passed; corrected SLYG live route passed `1/1` and selected SPDR routes
-      passed `9/9`.
-- [ ] Rerun the exact branch-scoped gate at this provider tip and continue
-      canonical provider population/history, D1/W1/MN floors/continuity, and
-      AC2–AC7/AC10.
-
-### 2026-09-13 — Dock activation wait and exact gate
-
-- [x] Extend the bounded Golden Layout tool activation wait to cover cold
-      workstation reinstalls without changing the activation contract
-      (`c9e3819c4`); TypeScript and `git diff --check` passed.
-- [x] Isolated F9g/F9h passed `3/3`; repeated F9h passed `5/5`; the exact
-      branch-scoped gate passed all functional checks (`165 passed`, `107
-      skipped`) and `98/104` visual assertions.
-- [ ] Keep the six unchanged protected visual diffs open: watchlist-column-
-      editor at 1080p 100/125 and workspace-floating at 1080p/1440p 100/125.
-      Continue R1 canonical provider/history population, D1/W1/MN floors and
-      continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Bulk provider lineage promotion
-
-- [x] Align scheduled/bulk OHLCV maintenance with the canonical provider
-      upsert so late provider-native bars reclaim matching locally-derived
-      adjusted keys and clear stale derivation metadata; new-row counts remain
-      based on the pre-fetch cache.
-- [x] Focused bulk/market-data coverage passed `39/39`; the full backend unit
-      suite passed `1532/1532` at 69.01% total coverage; Ruff, formatting, and
-      `git diff --check` passed.
-- [ ] Rerun the exact branch-scoped gate at this documentation tip and
-      continue R1 family population, W1/MN floors/continuity, and AC2–AC7/AC10.
-
-### 2026-09-13 — Reviewed family issuer/SEC history routes
-
-- [x] Exercise `19` selected opt-in iShares, SPDR, Invesco, and SEC-backed
-      family-history route cases; all `19` passed.
-- [x] Record the narrow-run limitation: pytest exited only because subset
-      coverage was 15.13%, below the repository 55% threshold; this is route
-      evidence, not persisted family/floor/continuity readiness.
-- [ ] Complete canonical family/provider population and point-in-time history;
-      no provider, fallback, visual, or acceptance policy changed.
-
-### 2026-09-12 — Exact dashboard Watchlist gate rechecked
-
-- [x] Reran the exact branch-scoped gate at docs tip `14d0a2b09` / product tip
-      `f12e6f910`; repository/workstream, dependency/migration, frontend
-      preparation, Ruff, formatting, and TypeScript passed.
-- [ ] Docker API access was denied after the fixed 180-second readiness window;
-      backend integration, provider, browser, and visual stages did not run.
-      No visual/acceptance policy changed.
-- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam,
-      then rerun the exact branch-scoped gate at the next coherent tip.
-
-### 2026-09-12 — Fence dashboard Watchlist action teardown
-
-- [x] Fence dashboard Watchlist create, copy, delete, and add-by-symbol
-      post-await mutations by mounted lifecycle and action generations
-      (`f12e6f910`); store, selection, provider, and visual/acceptance
-      contracts are unchanged.
-- [x] Focused Watchlist lifecycle coverage passed `2/2`; full frontend Vitest
-      passed `1067/1067` across 122 files; type-check, production build, and
-      `git diff --check` passed with only the existing chunk-size warning. No
-      visual/acceptance policy changed.
-- [x] Reran the exact branch-scoped gate at docs tip `14d0a2b09` / product tip
-      `f12e6f910`; all pre-Docker stages passed before the Docker API boundary
-      recorded above.
-
-### 2026-09-12 — Exact dashboard instrument-search gate rechecked
-
-- [x] Reran the exact branch-scoped gate at docs tip `87e19058f` / product tip
-      `d924576f4`; repository/workstream, dependency/migration, frontend
-      preparation, Ruff, formatting, and TypeScript passed.
-- [ ] Docker API access was denied after the fixed 180-second readiness window;
-      backend integration, provider, browser, and visual stages did not run.
-      No visual/acceptance policy changed.
-- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam,
-      then rerun the exact branch-scoped gate at the next coherent tip.
-
-### 2026-09-12 — Fence dashboard instrument-search hydration teardown
-
-- [x] Fence debounced provider search and canonical-symbol resolution by
-      mounted lifecycle and selection generations (`d924576f4`); search,
-      expression, provider, and visual/acceptance contracts are unchanged.
-- [x] Focused search coverage passed `5/5`; full frontend Vitest passed
-      `1065/1065` across 121 files; type-check, production build, and
-      `git diff --check` passed with only the existing chunk-size warning. No
-      visual/acceptance policy changed.
-- [x] Reran the exact branch-scoped gate at docs tip `87e19058f` / product tip
-      `d924576f4`; all pre-Docker stages passed before the Docker API boundary
-      recorded above.
-
-### 2026-09-12 — Exact dashboard Heat Map gate rechecked
-
-- [x] Reran the exact branch-scoped gate at docs tip `d1deae3e1` / product tip
-      `33b73482d`; repository/workstream, dependency/migration, frontend
-      preparation, Ruff, formatting, and TypeScript passed.
-- [ ] Docker API access was denied after the fixed 180-second readiness window;
-      backend integration, provider, browser, and visual stages did not run.
-      No visual/acceptance policy changed.
-- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam,
-      then rerun the exact branch-scoped gate at the next coherent tip.
-
-### 2026-09-12 — Fence dashboard Heat Map hydration teardown
-
-- [x] Fence Heat Map screener/watchlist resolution, heatmap-data loading, and
-      nested live-price hydration by mounted lifecycle and request generations
-      (`33b73482d`); treemap, metric, payload, provider, and visual/acceptance
-      contracts are unchanged.
-- [x] Focused Heat Map lifecycle coverage passed `2/2`; full frontend Vitest
-      passed `1064/1064` across 121 files; type-check, production build, and
-      `git diff --check` passed with only the existing chunk-size warning. No
-      visual/acceptance policy changed.
-- [x] Reran the exact branch-scoped gate at docs tip `d1deae3e1` / product tip
-      `33b73482d`; all pre-Docker stages passed before the Docker API boundary
-      recorded above.
-
-### 2026-09-12 — Exact dashboard analytics gate rechecked
-
-- [x] Reran the exact branch-scoped gate at docs tip `2124d0730` / product tip
-      `3a22c9ae9`; repository/workstream, dependency/migration, frontend
-      preparation, Ruff, formatting, and TypeScript passed.
-- [ ] Docker API access was denied after the fixed 180-second readiness window;
-      backend integration, provider, browser, and visual stages did not run.
-      No visual/acceptance policy changed.
-- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam,
-      then rerun the exact branch-scoped gate at the next coherent tip.
-
-### 2026-09-12 — Fence dashboard analytics teardown
-
-- [x] Fence Economic Calendar and Seasonality dashboard responses by mounted
-      lifecycle and request generations (`3a22c9ae9`); payloads, period
-      semantics, provider routing, and visual/acceptance contracts are
-      unchanged.
-- [x] Focused analytics lifecycle coverage passed `2/2`; full frontend Vitest
-      passed `1062/1062` across 120 files; type-check, production build, and
-      `git diff --check` passed with only the existing chunk-size warning. No
-      visual/acceptance policy changed.
-- [x] Reran the exact branch-scoped gate at docs tip `2124d0730` / product tip
-      `3a22c9ae9`; all pre-Docker stages passed before the Docker API boundary
-      recorded above.
-
-### 2026-09-12 — Exact dashboard screener gate rechecked
-
-- [x] Reran the exact branch-scoped gate at docs tip `520cbd60e` / product tip
-      `e7136f18`; repository/workstream, dependency/migration, frontend
-      preparation, Ruff, formatting, and TypeScript passed.
-- [ ] Docker API access was denied after the fixed 180-second readiness window;
-      backend integration, provider, browser, and visual stages did not run.
-      No visual/acceptance policy changed.
-- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam,
-      then rerun the exact branch-scoped gate at the next coherent tip.
-
-### 2026-09-12 — Fence dashboard screener hydration teardown
-
-- [x] Fence dashboard screener-list, latest-result, and nested instrument
-      metadata hydration by mounted lifecycle and request generations
-      (`e7136f18`); result shapes, canonical resolution, provider routing, and
-      visual/acceptance contracts are unchanged.
-- [x] Focused screener lifecycle coverage passed `2/2`; full frontend Vitest
-      passed `1060/1060` across 119 files; type-check, production build, and
-      `git diff --check` passed with only the existing chunk-size warning. No
-      visual/acceptance policy changed.
-- [x] Reran the exact branch-scoped gate at docs tip `520cbd60e` / product tip
-      `e7136f18`; all pre-Docker stages passed before the Docker API boundary
-      recorded above.
-
-### 2026-09-12 — Fence dashboard chart hydration teardown
-
-- [x] Fence dashboard advanced-chart symbol resolution, chart loading,
-      drawings, price-alert overlays, and error cleanup by mounted lifecycle
-      and refresh generations (`963892284`).
-- [x] Focused advanced-chart coverage passed `1/1`; full frontend Vitest
-      passed `1058/1058`; type-check, production build, and `git diff --check`
-      passed with only the existing chunk-size warning. No visual/acceptance
-      policy changed.
-- [x] Reran the exact branch-scoped gate at docs tip `296d846e` / product tip
-      `963892284`; repository/workstream, dependency/migration, frontend
-      preparation, Ruff, formatting, and TypeScript passed.
-- [ ] Docker API access was denied after the fixed 180-second readiness window;
-      backend integration, provider, browser, and visual stages did not run.
-      No visual/acceptance policy changed.
-- [ ] Rerun the exact branch-scoped gate at the next coherent documentation
-      tip, then continue the next bounded provider/history or compatible
-      R4/R2-R7 seam.
-
-### 2026-09-12 — Fence dashboard radar and instrument hydration
-
-- [x] Fence dashboard Radar list/detail flows plus quote and instrument-details
-      metadata/OHLCV hydration by mounted lifecycle and request generations
-      (`c36c8f353`, `7c51e3b28`).
-- [x] Focused Radar widget coverage passed `5/5`; quote/details lifecycle
-      coverage passed `2/2`; full frontend Vitest passed `1057/1057`;
-      type-check, production build, and `git diff --check` passed with only the
-      existing chunk-size warning. No visual/acceptance policy changed.
-- [x] Reran the exact branch-scoped gate at docs tip `82e8786c` / product tip
-      `7c51e3b28`; repository/workstream, dependency/migration, frontend
-      preparation, Ruff, formatting, and TypeScript passed.
-- [ ] Docker API access was denied after the fixed 180-second readiness window;
-      backend integration, provider, browser, and visual stages did not run.
-      No visual/acceptance policy changed.
-- [ ] Rerun the exact branch-scoped gate at the next coherent documentation
-      tip, then continue the next bounded provider/history or compatible
-      R4/R2-R7 seam.
-
-### 2026-09-12 — Fence ChartPanel hydration teardown
-
-- [x] Fence linked-panel symbol loads, timeframe changes, layout restoration,
-      search responses, drawings, and alerts by mounted lifecycle and selection
-      generations (`f50f1533`).
-- [x] Focused ChartPanel coverage passed `2/2`; full frontend Vitest passed
-      `1053/1053`; type-check, production build, and `git diff --check` passed
-      with only the existing chunk-size warning. No visual/acceptance policy
-      changed.
-- [x] Reran the exact branch-scoped gate at docs tip `3a726786` / product tip
-      `f50f1533`; repository/workstream, dependency/migration, frontend
-      preparation, Ruff, formatting, and TypeScript passed.
-- [ ] Docker API access was denied after the fixed 180-second readiness window;
-      backend integration, provider, browser, and visual stages did not run.
-      No visual/acceptance policy changed.
-- [ ] Rerun the exact branch-scoped gate at the next coherent documentation
-      tip, then continue the next bounded provider/history or compatible
-      R4/R2-R7 seam.
-
-### 2026-09-12 — Fence Radar hydration teardown
-
-- [x] Fence Radar refresh/filter, detection/history, scan, basket hydration,
-      and alert/watchlist actions by mounted lifecycle state; event-safe
-      refresh preserves DOM filter behavior (`579eaa91`).
-- [x] Focused Radar coverage passed `6/6`; full frontend Vitest passed
-      `1051/1051`; type-check, production build, and `git diff --check` passed
-      with only the existing chunk-size warning. No visual/acceptance policy
-      changed.
-- [x] Reran the exact branch-scoped gate at docs tip `5fc73856` / product tip
-      `579eaa91`; repository/workstream, dependency/migration, frontend
-      preparation, Ruff, formatting, and TypeScript passed.
-- [ ] Docker API access was denied after the fixed 180-second readiness window;
-      backend integration, provider, browser, and visual stages did not run.
-      No visual/acceptance policy changed.
-- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam.
-
-### 2026-09-12 — Fence ChartView selection hydration
-
-- [x] Fence ChartView symbol/timeframe, linked-panel, comparison, drawings,
-      alerts, radar-overlay, and mount hydration by lifecycle and selection
-      generations (`75bc03a3`); canonical data and provider contracts remain
-      unchanged.
-- [x] Focused ChartView coverage passed `2/2`; full frontend Vitest passed
-      `1050/1050`; type-check, production build, and `git diff --check` passed
-      with only the existing chunk-size warning. No visual/acceptance policy
-      changed.
-- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam.
-
-### 2026-09-12 — Exact provider-panel gate rechecked
-
-- [x] Reran the exact branch-scoped gate at docs tip `ff767486` / product tip
-      `450c9746`; repository/workstream, dependency/migration, frontend
-      preparation, Ruff, formatting, and TypeScript passed.
-- [ ] Docker API access was denied after the fixed 180-second readiness window;
-      backend integration, provider, browser, and visual stages did not run.
-      No visual/acceptance policy changed.
-
-### 2026-09-12 — Fence Options Chain and ETF Holdings panel teardown
-
-- [x] Fence Options Chain instrument/chain loads and embedded ETF Holdings
-      snapshot loads by mounted lifecycle plus request generations
-      (`450c9746`); canonical payload, provider, point-in-time, and unsupported
-      row semantics are unchanged.
-- [x] Focused panel coverage passed `6/6`; full frontend Vitest passed
-      `1049/1049`; type-check, production build, and `git diff --check` passed
-      with only the existing chunk-size warning. No visual/acceptance policy
-      changed.
-- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam.
-
-### 2026-09-12 — Exact Settings-readiness gate rechecked
-
-- [x] Reran the exact branch-scoped gate at docs tip `4f927af3` / product tip
-      `6df66ac3`; repository/workstream, dependency/migration, frontend
-      preparation, Ruff, formatting, and TypeScript passed.
-- [ ] Docker API access was denied after the fixed 180-second readiness window;
-      backend integration, provider, browser, and visual stages did not run.
-      No visual/acceptance policy changed.
-
-### 2026-09-12 — Fence Strategy Lab bootstrap teardown
-
-- [x] Fence Strategy Lab universe-option hydration, post-bootstrap selection
-      hydration, reload, and coverage-preview responses by mounted lifecycle
-      and request generations (`ce2ca1a6`); existing strategy, Study, lineage,
-      provider, fallback, and promotion contracts are unchanged.
-- [x] Focused Strategy Lab coverage passed `29/29`; full frontend Vitest passed
-      `1047/1047`; type-check, production build, and `git diff --check` passed
-      with only the existing chunk-size warning. No visual/acceptance policy
-      changed.
-- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam.
-
-### 2026-09-12 — Fence Settings provider-readiness teardown
-
-- [x] Fence OneSignal initialization, backend health checks, provider policy
-      and availability loads/patches, and admin reconciliation review by
-      mounted lifecycle and request generations (`6df66ac3`). Detached or
-      superseded responses cannot publish stale readiness, policy, loading,
-      error, or issue state; existing API and provider contracts are unchanged.
-- [x] Focused Settings coverage passed `5/5`; full frontend Vitest passed
-      `1046/1046`; type-check, production build, and `git diff --check` passed
-      with only the existing chunk-size warning. No visual/acceptance policy
-      changed.
-- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam.
-
-### 2026-09-12 — Exact reusable-basket gate rechecked
-
-- [x] Reran the exact branch-scoped gate at docs tip `8632f1aa` / product tip
-      `f43ed459`; git-diff, workstream validation (30 records), dependency/
-      migration, frontend preparation, Ruff, formatting, and TypeScript passed.
-- [ ] Docker API access was denied after the fixed 180-second readiness window;
-      backend integration, provider, browser, and visual stages did not run.
-      No visual/acceptance policy changed.
-
-### 2026-09-12 — Fence reusable basket teardown
-
-- [x] Fence reusable-universe basket reload, save, and delete flows by a
-      lifecycle generation and reload sequence so detached responses cannot
-      publish local selection, status, or error state (`f43ed459`).
-- [x] Focused basket coverage passed `6/6`; full frontend Vitest passed
-      `1045/1045`; type-check, production build, and `git diff --check` passed
-      with only the existing chunk-size warning. No provider, fallback, visual,
-      or acceptance policy changed.
-- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam.
-
-### 2026-09-12 — Exact ETF Holdings selection gate rechecked
-
-- [x] Reran the exact branch-scoped gate at docs tip `99328434` / product tip
-      `a9602ebe`; git-diff, workstream validation (30 records), dependency/
-      migration, frontend preparation, Ruff, formatting, and TypeScript passed.
-- [ ] Docker API access was denied after the fixed 180-second readiness window;
-      backend integration, provider, browser, and visual stages did not run.
-      No visual/acceptance policy changed.
-
-### 2026-09-12 — Fence ETF Holdings profile-selection races
-
-- [x] Scope canonical ETF Holdings profile/bootstrap, snapshot, holdings,
-      comparison, evolution, transition, and overlap chains by a profile
-      selection generation so older selections cannot overwrite newer state
-      (`a9602ebe`); the mounted teardown fence remains active.
-- [x] Focused ETF Holdings coverage passed `7/7`; full frontend Vitest passed
-      `1044/1044`; type-check, production build, and `git diff --check` passed
-      with only the existing chunk-size warning. No API, provider, point-in-
-      time, fallback, visual, or acceptance policy changed.
-- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam.
-
-### 2026-09-12 — Fence ETF Holdings teardown
-
-- [x] Fence canonical ETF Holdings profile search/bootstrap, profile selection,
-      snapshot options, holdings, diff, weight-evolution, transition, and
-      overlap requests by a mounted lifecycle generation (`d5e4b070`).
-- [x] Focused ETF Holdings coverage passed `6/6`; full frontend Vitest passed
-      `1043/1043`; type-check, production build, and `git diff --check` passed
-      with only the existing chunk-size warning. No API, provider, point-in-
-      time, fallback, visual, or acceptance policy changed.
-- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam.
-
-### 2026-09-12 — Exact Research Results promotion gate rechecked
-
-- [x] Reran the exact branch-scoped gate at docs tip `7710ad52` / product tip
-      `22a2548c`; git-diff, workstream validation (30 records),
-      dependency/migration, frontend preparation, Ruff, formatting, and
-      TypeScript passed. The gate stopped at `backend-coverage` after 180
-      seconds because Docker access was denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
-      integration, provider, browser, or visual stage ran.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Fence Research Results promotion teardown
-
-- [x] Fence persisted Research Results breadth, event, structured
-      scalar/series/range, chart, column, gauge, alert, scan, Study Lab, and
-      Strategy signal promotion responses by mounted mutation generations so
-      teardown or superseded responses cannot publish stale messages/loading
-      cleanup or cached scan/filter records (`22a2548c`).
-- [x] Focused Research Results coverage passed `39/39`; full frontend Vitest
-      passed `1042/1042` across 115 files; frontend type-check, production
-      build, and `git diff --check` passed with only the existing chunk-size
-      warning. No API, lineage, provider, fallback, visual baseline, mask,
-      threshold, skip, or acceptance policy changed.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact benchmark-analytics gate rechecked
-
-- [x] At docs tip `b3a8394f` / product tip `45dff3ec`, git-diff, workstream
-      validation (30 records), dependency/migration, frontend preparation,
-      Ruff, formatting, and TypeScript passed.
-- [ ] Docker API permission denied after the fixed 180-second readiness window;
-      backend integration, provider, browser, and visual stages did not run.
-      No visual/acceptance policy changed.
-
-### 2026-09-12 — Fence benchmark-family analytics teardown
-
-- [x] Fence benchmark-family readiness, analytics, overview, and benchmark-list
-      loading indicators by independent request generations so teardown and
-      superseded requests cannot publish stale local state (`45dff3ec`).
-- [x] Full frontend Vitest passed `1041/1041` across 115 files; type-check,
-      production build, and `git diff --check` passed with only the existing
-      chunk-size warning. Full backend unit suite passed `1523/1523` at
-      `69.02%` coverage. No dedicated shared-content harness exists.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Fence workstation watchlist mutations
-
-- [x] Fence shared WorkstationToolContent combo and personal-watchlist
-      loading/mutations by disposal-scoped sequences and hydration checkpoints
-      (`8b63be84`).
-- [x] Full frontend Vitest passed `1041/1041` across 115 files; type-check,
-      production build, and `git diff --check` passed with only the existing
-      chunk-size warning. No dedicated shared-content harness exists;
-      higher-level workstation suites remain green.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact workstation-mutation gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `8b63be84`;
-      repository/workstream, dependency/migration, frontend preparation,
-      Ruff, formatting, and TypeScript passed. The gate stopped at
-      `backend-coverage` after 180 seconds because Docker returned permission
-      denied for `unix:///Users/jagnelo/.docker/run/docker.sock`; no later
-      backend integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence Market Map definition publication
-
-- [x] Fence reusable Market Map breadth-definition saves by mounted source
-      generation, including code-asset invalidation and status publication
-      (`5d4ca6a3`).
-- [x] Focused Market Map coverage passed `51/51`; full frontend Vitest passed
-      `1041/1041` across 115 files; frontend type-check, production build,
-      and `git diff --check` passed with only the existing chunk-size warning.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact definition-publication gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `5d4ca6a3`;
-      repository/workstream, dependency/migration, frontend preparation,
-      Ruff, formatting, and TypeScript passed. The gate stopped at
-      `backend-coverage` after 180 seconds because Docker returned permission
-      denied for `unix:///Users/jagnelo/.docker/run/docker.sock`; no later
-      backend integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence personal Market Map publications
-
-- [x] Fence selected-member and explicit-symbol personal-watchlist publication
-      by mounted source-scoped generations and sequential writes
-      (`728cc337`).
-- [x] Focused Market Map coverage passed `50/50`; full frontend Vitest passed
-      `1040/1040` across 115 files; frontend type-check, production build,
-      and `git diff --check` passed with only the existing chunk-size warning.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact personal-publication gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `728cc337`;
-      repository/workstream, dependency/migration, frontend preparation,
-      Ruff, formatting, and TypeScript passed. The gate stopped at
-      `backend-coverage` after 180 seconds because Docker returned permission
-      denied for `unix:///Users/jagnelo/.docker/run/docker.sock`; no later
-      backend integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence locked-source publication
-
-- [x] Fence Market Map locked-source publication across its API write, source
-      reload, source selection, and map rerun by mounted publication generation
-      (`94f451e0`).
-- [x] Focused Market Map coverage passed `49/49`; full frontend Vitest passed
-      `1038/1038` across 115 files; frontend type-check, production build,
-      and `git diff --check` passed with only the existing chunk-size warning.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact locked-source gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `94f451e0`;
-      repository/workstream, dependency/migration, frontend preparation,
-      Ruff, formatting, and TypeScript passed. The gate stopped at
-      `backend-coverage` after 180 seconds because Docker returned permission
-      denied for `unix:///Users/jagnelo/.docker/run/docker.sock`; no later
-      backend integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Reset stale Market Map clone state
-
-- [x] Clear invalidated Market Map clone busy, message, error, and retry state
-      when the active universe changes so the next source is not left disabled
-      (`cfc31024`).
-- [x] Focused Market Map coverage passed `47/47`; full frontend Vitest passed
-      `1037/1037` across 115 files; frontend type-check, production build,
-      and `git diff --check` passed with only the existing chunk-size warning.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact stale-state gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `cfc31024`;
-      repository/workstream, dependency/migration, frontend preparation,
-      Ruff, formatting, and TypeScript passed. The gate stopped at
-      `backend-coverage` after 180 seconds because Docker returned permission
-      denied for `unix:///Users/jagnelo/.docker/run/docker.sock`; no later
-      backend integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence Market Map source cloning
-
-- [x] Fence Market Map source clone and retry flows by a source-scoped
-      generation so unmounts or source changes stop sequential member writes
-      and stale status/error/loading mutations (`8d78eb61`).
-- [x] Focused Market Map coverage passed `46/46`; full frontend Vitest passed
-      `1036/1036` across 115 files; frontend type-check, production build,
-      and `git diff --check` passed with only the existing chunk-size warning.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact source-clone gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip
-      `8d78eb6177ed4f08359965251668574f186555a9`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and
-      TypeScript passed. The gate stopped at `backend-coverage` after 180
-      seconds because Docker returned permission denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
-      integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence shared workstation content loaders
-
-- [x] Fence WorkstationToolContent instrument, comparison, condition,
-      indicator, and Python-asset loader publications after teardown by
-      component disposal and invalidated request generations (`8eb187fa`).
-- [x] Full frontend Vitest passed `1035/1035` across 115 files; frontend
-      type-check, production build, and `git diff --check` passed with only
-      the existing chunk-size warning.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact shared-content loader gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip
-      `8eb187fab798eeb1c1f685e58198a3e7917ea89f`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and
-      TypeScript passed. The gate stopped at `backend-coverage` after 180
-      seconds because Docker returned permission denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
-      integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence ETF source bootstrap teardown
-
-- [x] Fence explicit Market Map ETF-source bootstrap after unmount or
-      source-action invalidation so late responses cannot refresh or select a
-      detached source (`f9ae2a21`).
-- [x] Focused Market Map coverage passed `45/45`; full frontend Vitest passed
-      `1035/1035` across 115 files; frontend type-check, production build,
-      and `git diff --check` passed with only the existing chunk-size warning.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact ETF bootstrap gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip
-      `f9ae2a2165791b4c54ec41f5f2be8bddf756773d`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and
-      TypeScript passed. The gate stopped at `backend-coverage` after 180
-      seconds because Docker returned permission denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
-      integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence Market Map history actions
-
-- [x] Fence explicit Market Map history refresh/cancel actions by mounted,
-      source-scoped action generation so late responses cannot repopulate a
-      closed surface or publish stale status (`54a306bb`).
-- [x] Focused Market Map coverage passed `44/44`; full frontend Vitest passed
-      `1034/1034` across 115 files; frontend type-check, production build,
-      and `git diff --check` passed with only the existing chunk-size warning.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact Market Map history-action gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip
-      `54a306bb823596574d8e7bf1a40133380e01a6ea`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and
-      TypeScript passed. The gate stopped at `backend-coverage` after 180
-      seconds because Docker returned permission denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
-      integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Cancel aborted workstation opens
-
-- [x] Release WorkstationView tool-open readiness waits on teardown and exit
-      before detached DOM/workspace mutation when the action is aborted
-      (`67720cbb`).
-- [x] Existing WorkstationView focused coverage passed `29/29`; full frontend
-      Vitest passed `1033/1033` across 115 files; frontend type-check,
-      production build, and `git diff --check` passed with only the existing
-      chunk-size warning.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact aborted-open gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip
-      `67720cbb4198274975ffd8755ef61b41e80dce78`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and
-      TypeScript passed. The gate stopped at `backend-coverage` after 180
-      seconds because Docker returned permission denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
-      integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence Coverage Summary lifecycle
-
-- [x] Fence canonical coverage and OHLCV-range responses on unmount so late
-      responses cannot repopulate a closed Coverage Summary surface
-      (`05f5a4e9`).
-- [x] Focused Coverage Summary coverage passed `5/5`; full frontend Vitest
-      passed `1033/1033` across 115 files; frontend type-check, production
-      build, and `git diff --check` passed with only the existing chunk-size
-      warning.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact Coverage Summary gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip
-      `05f5a4e9037e58b5938ea191bd4c679501b35f3b`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and
-      TypeScript passed. The gate stopped at `backend-coverage` after 180
-      seconds because Docker returned permission denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
-      integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence workstation hydration lifecycle
-
-- [x] Fence WorkstationView initial hydration, pop-out retry, symbol loading,
-      and canonical search callbacks after unmount; teardown invalidates
-      in-flight selection/search generations (`d85bcc78`).
-- [x] Focused WorkstationView coverage passed `29/29`; full frontend Vitest
-      passed `1032/1032` across 115 files; frontend type-check, production
-      build, and `git diff --check` passed with only the existing chunk-size
-      warning.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact workstation hydration gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip
-      `d85bcc78db68b6dcd0d1591ca0d0d2ef7950bf73`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and
-      TypeScript passed. The gate stopped at `backend-coverage` after 180
-      seconds because Docker returned permission denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
-      integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence Study Lab mutation lifecycle
-
-- [x] Fence Study Lab rerun and cancel responses by mounted state and
-      mutation generation so late responses cannot repopulate a closed study
-      surface or overwrite newer run state (`e47b8fbf`).
-- [x] Focused Study Lab coverage passed `31/31`; full frontend Vitest passed
-      `1031/1031` across 115 files; frontend type-check, production build,
-      and `git diff --check` passed with only the existing chunk-size warning.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact Study Lab mutation gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip
-      `e47b8fbf8dd7a217a6d600c19b82ae7828d9c914`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and
-      TypeScript passed. The gate stopped at `backend-coverage` after 180
-      seconds because Docker returned permission denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
-      integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence Research Results mutation lifecycle
-
-- [x] Fence Research Results rerun and cancel responses by mounted state and
-      mutation generation so late responses cannot repopulate a closed result
-      surface (`d9bd37c3`).
-- [x] Focused Research Results coverage passed `38/38`; full frontend Vitest
-      passed `1030/1030` across 115 files; frontend type-check, production
-      build, and `git diff --check` passed with only the existing chunk-size
-      warning.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact Research Results mutation gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip
-      `d9bd37c3c2d8e84f629fd4d65460771cc5ebadfb`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and
-      TypeScript passed. The gate stopped at `backend-coverage` after 180
-      seconds because Docker returned permission denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
-      integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence Relative Rotation lifecycle
-
-- [x] Fence Relative Rotation responses by mounted state and load generation
-      so late requests cannot repopulate a closed tool or overwrite newer
-      configuration (`4a798f03`).
-- [x] Focused Relative Rotation coverage passed `10/10`; full frontend
-      Vitest passed `1029/1029` across 115 files; frontend type-check,
-      production build, and `git diff --check` passed with only the existing
-      chunk-size warning.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact Relative Rotation lifecycle gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip
-      `4a798f03ef42463a86f466e7a21a47b0d338664c`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and
-      TypeScript passed. The gate stopped at `backend-coverage` after 180
-      seconds because Docker returned permission denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
-      integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence Instrument Note lifecycle
-
-- [x] Fence note hydration and debounced saves by mounted state and load
-      generation so late responses cannot repopulate an unmounted or relinked
-      tool (`b3b1aaec`).
-- [x] Focused linked-instrument coverage passed `16/16`; full frontend
-      Vitest passed `1028/1028` across 115 files; frontend type-check,
-      production build, and `git diff --check` passed with only the existing
-      chunk-size warning.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact Instrument Note lifecycle gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip
-      `b3b1aaec6bcf079a393b1c7bf37407c77e54bffc`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and
-      TypeScript passed. The gate stopped at `backend-coverage` after 180
-      seconds because Docker returned permission denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
-      integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence Instrument Alerts lifecycle
-
-- [x] Fence alert-bundle hydration and create/update mutations by mounted
-      state and view generation so late responses cannot repopulate an
-      unmounted or relinked tool (`4ab7ceb1`).
-- [x] Focused linked-instrument coverage passed `15/15`; full frontend
-      Vitest passed `1027/1027` across 115 files; frontend type-check,
-      production build, and `git diff --check` passed with only the existing
-      chunk-size warning.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact Instrument Alerts lifecycle gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip
-      `4ab7ceb194f5bdce28b85341dbe44141de9e5236`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and
-      TypeScript passed. The gate stopped at `backend-coverage` after 180
-      seconds because Docker returned permission denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
-      integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence VirtualWatchlist hydration lifecycle
-
-- [x] Fence saved-screener, Python asset, and column-set hydration by mounted
-      state and independent load generations so late or superseded responses
-      cannot repopulate a closed list (`6e54f192`).
-- [x] Focused VirtualWatchlist coverage passed `71/71`; full frontend Vitest
-      passed `1026/1026` across 115 files; frontend type-check, production
-      build, and `git diff --check` passed with only the existing chunk-size
-      warning.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact VirtualWatchlist lifecycle gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip
-      `6e54f192ecbc6b35fec42f75ef9541407d678675`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and
-      TypeScript passed. The gate stopped at `backend-coverage` after 180
-      seconds because Docker returned permission denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
-      integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence Chart Template loading lifecycle
-
-- [x] Fence Chart Template hydration by mounted state and load generation so
-      late or superseded responses cannot repopulate a closed control
-      (`2cfaa4f6`).
-- [x] Focused Chart Template coverage passed `10/10`; full frontend Vitest
-      passed `1023/1023` across 115 files; frontend type-check, production
-      build, and `git diff --check` passed with only the existing chunk-size
-      warning.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact Chart Template lifecycle gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip
-      `2cfaa4f6b5e987aba6ce84684d0ca39ad572458b`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and
-      TypeScript passed. The gate stopped at `backend-coverage` after 180
-      seconds because Docker returned permission denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
-      integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence Chart Plot Library loader lifecycle
-
-- [x] Fence Python asset and EasyScan history loaders by mounted state and
-      independent generations so late or superseded responses cannot repopulate
-      a closed menu (`51be2db1`).
-- [x] Focused Chart Plot Library coverage passed `31/31`; full frontend Vitest
-      passed `1022/1022` across 115 files; frontend type-check, production
-      build, and `git diff --check` passed with only the existing chunk-size
-      warning.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact Chart Plot Library lifecycle gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip
-      `51be2db172319759a13094961fc4421439d4b7d5`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and
-      TypeScript passed. The gate stopped at `backend-coverage` after 180
-      seconds because Docker returned permission denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
-      integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Exact Code Library lifecycle gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip
-      `dffcc5cde1b9edee0749f12cdf6158fd9dd5da44`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and
-      TypeScript passed. The gate stopped at `backend-coverage` after 180
-      seconds because Docker returned permission denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
-      integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence Code Library refresh lifecycle
-
-- [x] Fence Python Library refresh responses by mounted state and refresh
-      generation so late or superseded responses cannot publish stale assets,
-      errors, or loading cleanup (`53d57c1d`).
-- [x] Focused Code Library coverage passed `6/6`; full frontend Vitest passed
-      `1019/1019` across 115 files; frontend type-check, production build, and
-      `git diff --check` passed with only the existing chunk-size warning.
-- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Preserve Research Results selection during rerun
-
-- [x] Keep a slower rerun response from replacing a newer user-selected run
-      (`4939c094`).
-- [x] Focused Research Results coverage passed `37/37`; full frontend Vitest
-      passed `1018/1018` across 115 files; frontend type-check, production
-      build, and `git diff --check` passed with only the existing chunk-size
-      warning.
-- [ ] Rerun the exact branch gate when Docker is healthy, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Exact Research Results selection gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `4939c094`; repository/
-      workstream, dependency/migration, frontend preparation, Ruff, formatting,
-      and TypeScript passed. The gate stopped at `backend-coverage` after 180
-      seconds because Docker returned permission denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
-      integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Restore live Market Map after snapshot selection
-
-- [x] Refresh the current Market Map source after leaving a loaded saved
-      snapshot through the `Live / cached result` selector or deleting the
-      selected snapshot, so a saved map cannot be presented as live
-      (`02716f1b`).
-- [x] Focused Market Map component coverage passed `43/43`; full frontend
-      Vitest passed `1017/1017` across 115 files; frontend type-check,
-      production build, and `git diff --check` passed with only the existing
-      chunk-size warning.
-- [ ] Rerun the exact branch gate when Docker is healthy, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Exact live-snapshot transition gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `02716f1b`;
-      repository/workstream, dependency/migration, frontend preparation,
-      Ruff, formatting, and TypeScript passed. The gate stopped at
-      `backend-coverage` after 180 seconds because Docker returned permission
-      denied for `unix:///Users/jagnelo/.docker/run/docker.sock`; no later
-      backend integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence per-point breadth event knowledge
-
-- [x] Enforce each breadth-history event predicate's `fetched_at` cutoff at
-      the individual point timestamp, preventing later-discovered events from
-      affecting earlier points (`070f6ef8`).
-- [x] Focused breadth service coverage passed `29/29`; the full backend unit
-      suite passed `1523/1523` at `69.02%`; Ruff, formatting, and
-      `git diff --check` passed.
-- [ ] Rerun the exact branch gate when Docker is healthy, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Exact per-point breadth gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `070f6ef8`;
-      repository/workstream, dependency/migration, frontend preparation,
-      Ruff, formatting, and TypeScript passed. The gate stopped at
-      `backend-coverage` after 180 seconds because Docker returned permission
-      denied for `unix:///Users/jagnelo/.docker/run/docker.sock`; no later
-      backend integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence historical Market Map event knowledge
-
-- [x] Enforce the Market Map event knowledge boundary: event rows and
-      source-scoped fetch-state markers now require `fetched_at` at or before
-      the evaluation cutoff, and orphan event rows remain explicitly
-      unavailable instead of crashing or becoming a false event-negative
-      (`26161b90`).
-- [x] Focused Market Map service coverage passed `12/12`; the full backend
-      unit suite passed `1520/1520` at `68.99%`; Ruff, formatting, and
-      `git diff --check` passed.
-- [ ] Rerun the exact branch gate when Docker is healthy, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence adjustment-factor provenance by fetch time
-
-- [x] Bound normalized adjustment observations and legacy event fallback by
-      both effective/event time and observation/fetch time at the persisted bar
-      coverage end (`87134261`).
-- [x] Focused Market Data coverage passed `25/25`; the full backend unit suite
-      passed `1522/1522` at `69.01%`; Ruff, formatting, and `git diff --check`
+### 2026-10-04 — Bounded historical-event ingestion and acceptance refresh
+
+- [x] Added admin-only, provider/date-bounded market-event refresh with a
+      per-call page budget, durable cursor continuation, completion status, and
+      no-refetch behavior for completed windows unless explicitly forced.
+      Existing scheduled forward refresh is unchanged. Focused FINRA/event/
+      short-interest tests passed `102/102`; Docker-backed combined backend
+      tests passed `2,884/2,884` at `82.24%` coverage. Ruff, diff check,
+      workstream validation, and scoped Docker cleanup passed.
+- [x] Refreshed the full live preflight using the existing owner-only quota
+      ledger. It stopped before transport at `0/0` with 78 quota/cost/baseline,
+      11 rights/safety, and 21 operation-coverage blockers; zero provider API
+      requests were made. The detailed redacted receipt is in
+      `ops/workstreams/feat-market-data-provider-platform/validation.jsonl`.
+- [ ] Resolve the live matrix's external evidence gates before provider
+      transport: exact active-use baselines and remaining quota/reset/byte
+      contracts; written data-use/jurisdiction authority; FINRA async-result
+      bounds and an authorized complete OTC source; and GitHub/RPi/production
+      secret-store verification. Keep all blocked providers non-routable.
+- [ ] Resolve the separately recorded browser-profile failures with the
+      owning frontend workstream; do not change frontend files here. The
+      full provider matrix and final 30-day shadow phase remain unaccepted.
+
+### 2026-10-03 — Provider durable-storage rights gates extended
+
+- [x] Reconcile current first-party retention terms for MarketData.app and
+      Twelve Data against the product's explicit append-only archive goal.
+      MarketData.app requires deleting downloaded data when its subscription
+      ends; Twelve Data limits storage to the active subscription/tier and
+      requires deletion within 30 days after expiration/termination. Twelve
+      Data Basic is documented for internal non-display usage, not the
+      platform's persisted chart-display path. See the provider-specific source
+      audit and controls in `docs/data-providers.md`.
+- [x] Record the owner's one-time blanket approval for private persistent
+      storage and remove per-provider owner-storage approval gates. Keep only
+      distinct provider contract, access, entitlement, quota, and third-party
+      data-rights controls. Quota/account-introspection probes remain separate
+      from normal market-data ingestion.
+- [x] Wire non-secret controls into local examples, backend/worker Compose,
+      RPi backend/worker Compose, and protected provider-live workflow vars.
+      Focused registry/secret/live-runner tests passed `103/103`; runtime route
+      denial regressions passed `4/4`; Ruff passed. No provider request was
+      sent for this audit or implementation.
+- [ ] Obtain written archive/display authority for these account plans, or
+      keep durable MarketData.app and Twelve Data ingestion non-routable. A
+      fresh current-candidate full manifest preflight at `2026-10-03T12:16:42Z`
+      stopped before network access (`0/0`): 81 quota/cost/baseline blockers,
+      10 required live safety gates, and 21 unresolved operation cases. The
+      existing broader external gates remain in `plan.yaml` and the latest
+      redacted `validation.jsonl` receipt.
+
+### 2026-10-03 — Correct current provider quota evidence
+
+- [x] Recheck first-party FMP guidance. Its current plan page confirms 250
+      calls/day and 500 MB over a trailing 30-day bandwidth window; newer
+      official usage-limit guidance says not to promise one daily reset time
+      for every account and points to the dashboard. The code seed now keeps
+      the daily reset provider-defined until current account evidence is
+      configured; an older 3 PM Eastern claim is not a universal default.
+- [x] Confirm Tiingo Starter's published bandwidth is 1 GB/month (not 2 GB).
+      Its hourly, daily, monthly-bandwidth boundaries are documented, while
+      the distinct-symbol monthly anchor remains unspecified.
+- [x] Confirm Marketstack currently publishes 100 free requests/month and
+      charges one request per requested ticker; its FAQ separately conflicts
+      at 1,000/month and provides no monthly reset anchor. Keep the 100-call
+      ceiling and the account-specific reset gate.
+- [ ] Re-run quota contract/wiring tests and safe full-matrix preflight on
+      the corrected source; do not send provider traffic until baseline and
+      rights/cost admission succeeds.
+
+### 2026-10-02 — Exact-current preflight after tokenized pagination correction
+
+- [x] At exact pushed source `c4352c3d3`, the full provider matrix stopped
+      before transport at `0/0` with zero external requests. The redacted
+      receipt is durable in `validation.jsonl`.
+- [ ] Provider-specific usage baselines, quota/byte/reset contracts,
+      legal/source admission, deferred capabilities, deployment secret stores,
+      and the final shadow phase remain fail-closed.
+
+### 2026-10-02 — Tokenized complete-feed pagination correction
+
+- [x] Commit `56b9a3ea` distinguishes xStocks numeric pagination from
+      Robinhood's complete non-paginated corporate-action feed. A full
+      Robinhood response is no longer marked partial and replayed indefinitely
+      across scheduled jobs.
+- [x] Focused tokenized coverage passed `37/37`; the exact branch-owned unit
+      gate passed `1,960/1,960`; Docker PostgreSQL/Redis integration passed
+      `386/386`. No provider rows are intentionally discarded.
+- [ ] External provider admission, legal/source, secret-store, and final
+      shadow gates remain independent and fail-closed.
+
+### 2026-10-02 — Exact-current public/provider usage evidence refresh
+
+- [x] At exact source `52e24174b`, OpenFIGI passed `3/3` with 3 requests and
+      Binance passed `3/3` with 7 requests, including their account-usage and
+      history/profile paths.
+- [x] MarketData.app native account usage passed `1/1` with 1 request, and
+      Twelve Data native account usage passed `1/1` with 1 request. All four
+      redacted receipts are durable in `validation.jsonl`.
+- [x] The subsequent exact-source full preflight remained fail-closed at
+      `0/0` with zero additional provider requests; focused evidence does not
+      substitute for unresolved full-matrix quota, legal, or source gates.
+
+### 2026-10-02 — Exact-current Alpaca focused live validation
+
+- [x] At exact source `aa8f3b899`, the manifest-driven Alpaca focused matrix
+      passed `7/7` cases with `8` provider requests and complete same-run
+      evidence: historical and intraday OHLCV, latest price, native usage,
+      equity/crypto profiles, universe discovery, and corporate actions.
+- [x] The redacted receipt is persisted in `validation.jsonl`; no credentials
+      or response payloads entered Git. This focused run does not claim that
+      the blocked full provider matrix is complete.
+
+### 2026-10-02 — Exact-source lossless routed-response retention
+
+- [x] Commit `6eb7ab275` makes every routed provider call retain its ordered
+      response envelope in `provider_request_log`, including error paths;
+      JSON-safe serialization preserves non-JSON scalar evidence rather than
+      silently dropping it, and existing response bytes/headers remain
+      available.
+- [x] Telemetry capture is safe for streaming/unread responses: observation
+      failures are contained so instrumentation cannot fail a provider call.
+- [x] Migration `fb2c3d4e5f6a` is additive and refuses downgrade when retained
+      response evidence would be lost. Exact source passed 1,959/1,959
+      branch-owned units and 386/386 Docker PostgreSQL/Redis integration tests.
+- [x] Exact-current live preflight recorded `incomplete_preflight` at `0/0`
+      with zero external requests because provider-specific usage baselines,
+      cost/byte/reset contracts, legal/source admission, and capability gates
+      remain unresolved. No generic quota or inferred usage was introduced.
+- [ ] Complete the external provider admission and deployment/CI secret-store
+      gates before the final separately authorized 30-day shadow phase.
+
+### 2026-10-02 — Exact-current universe pagination continuity hardening
+
+- [x] Commit `6305bca0d` hardens the backend `seed_universe` discovery loop:
+      raw pages are retained before validation; provider `next_offset`,
+      `next_url`, and `complete` metadata are validated; repeated,
+      non-progressing, gap-skipping, malformed, and prematurely terminal
+      pagination fails closed instead of silently dropping later listings.
+- [x] Regression coverage proves a two-page provider continuation is followed
+      (`18/18` focused persistence tests; Ruff and diff checks clean).
+- [x] Exact pushed source `6305bca0d` passed the complete branch-owned unit
+      inventory (`1,957/1,957`, 37 warnings) and Docker PostgreSQL/Redis
+      integration (`386/386`, 57 warnings). Testcontainers cleanup was scoped;
+      no provider requests or credentials were used by either gate.
+- [x] Exact-current provider safety preflight at `6305bca0d` stopped before
+      transport (`0/0`, zero provider requests); the redacted receipt is in
+      `validation.jsonl`.
+- [ ] Provider-specific active baselines/contracts, legal/source admission,
+      deferred capability evidence, deployment secret stores, complete
+      NMS/OTC/SEC admission, and the final separately authorized shadow phase
+      remain explicit fail-closed gates.
+
+### 2026-10-02 — Exact-current safety preflight at pushed branch tip
+
+- [x] At exact pushed source `7527716ba`, the full provider manifest stopped
+      before provider transport with `0/0` cases and zero external requests.
+      The redacted receipt is appended to `validation.jsonl`.
+- [ ] Provider-specific active baselines/contracts, legal/source admission,
+      deferred capabilities, and the Nasdaq daily client-envelope exhaustion
+      remain explicit fail-closed gates. No generic limit or inferred usage was
+      introduced.
+
+### 2026-10-02 — Exact-head cross-window market-event rotation validation
+
+- [x] At exact source `9a8b71f4d`, the complete branch-owned non-ETF unit
+      inventory passed `1,911/1,911` in `137.39s` with 37 existing dependency
+      warnings. Docker PostgreSQL/Redis integration passed `386/386` in
+      `823.42s` with 57 existing dependency warnings.
+- [x] The integration session cleaned only its isolated testcontainers
+      resources; no host-wide prune, provider credentials, or external provider
+      calls were used.
+- [ ] External provider-specific quota/legal/source admissions remain separate
+      gates and are not widened by this code-level fairness correction.
+
+### 2026-10-02 — Exact-current provider safety preflight after market-event rotation
+
+- [x] At exact source `07d2b1e05`, the full provider manifest stopped before
+      provider transport with `0/0` cases and zero external requests. The
+      redacted receipt is appended to `validation.jsonl`.
+- [ ] The receipt retains provider-specific baseline/cost/byte/reset gaps,
+      legal/source admission, and deferred capabilities. Nasdaq's two-request
+      daily client envelope is also correctly exhausted by today's bounded
+      snapshot and therefore remains blocked until its next reviewed window.
+
+### 2026-10-02 — Exact-head market-event rotation validation
+
+- [x] At exact source `8d4a765e2`, the complete branch-owned non-ETF unit
+      inventory passed `1,911/1,911` in `150.01s` with 37 existing dependency
+      warnings.
+- [x] At the same exact source, Docker PostgreSQL/Redis integration passed
+      `386/386` in `764.43s` with 57 existing dependency warnings. Isolated
+      testcontainers resources were cleaned without a host-wide prune and no
+      provider credentials or external provider calls were used.
+- [ ] External provider-specific quota/legal/source admissions remain separate
+      gates; this validation does not convert unknown pools into routable ones.
+
+### 2026-10-02 — Exact-source bounded live provider coverage after rotation
+
+- [x] At exact source `3b2238d00`, bounded manifest-driven live coverage passed:
+      Alpaca `7/7` (8 requests), Binance `3/3` (7), OpenFIGI `3/3` (3),
+      Nasdaq Trader `1/1` (2), MarketData.app account usage `1/1` (1), EODHD
+      account usage `1/1` (1), Twelve Data account usage `1/1` (1), and the
+      explicitly authorized non-persisting Dinari Sandbox canary `1/1` (14).
+- [x] All receipts are redacted, serialized into the durable validation ledger,
+      and remain scoped to the current source; no provider payloads or secrets
+      were written to Git. Dinari Sandbox data remained outside canonical,
+      usage, alert, and analytics persistence.
+- [ ] Providers with unknown active baselines, unresolved cost/byte/reset or
+      legal/source controls, deferred capabilities, and the final shadow phase
+      remain fail-closed and were not represented as live passes.
+
+### 2026-10-02 — Exact-current provider safety preflight after rotation
+
+- [x] At exact pushed source `efffd8381`, the full manifest completed its
+      durable-ledger admission path and stopped before provider transport:
+      `0/0` cases and zero external requests. The redacted receipt is appended
+      to `validation.jsonl`.
+- [ ] The current blockers remain provider-specific active usage baselines or
+      cost/byte/reset contracts, capability/legal/source admission, FINRA OTC
+      controls, and the user-deferred providers. No generic limit, local zero,
+      or prior-usage inference was introduced.
+
+### 2026-10-02 — Exact-head non-ETF and Docker integration validation after per-asset rotation
+
+- [x] At exact pushed source `ef8d042ad`, the complete branch-owned non-ETF
+      unit inventory passed `1,910/1,910` in `140.94s` with 37 existing
+      dependency warnings. Only `backend/tests/unit/providers/test_etf_holdings_*.py`
+      was excluded under the explicit parallel-branch ownership boundary.
+- [x] At the same exact source, Docker PostgreSQL/Redis integration passed
+      `386/386` in `847.99s` with 57 existing dependency warnings. The isolated
+      testcontainers resources were cleaned without a host-wide prune; no
+      provider credentials or external provider calls were used.
+- [ ] Provider-specific active baselines/contracts, capability/legal/source
+      admission, FINRA OTC controls, deployment secret stores, deferred
+      providers, and the final shadow phase remain open; no generic limit or
+      inferred usage was introduced.
+
+### 2026-10-02 — Tokenized per-asset refresh fairness
+
+- [x] Add durable numeric asset cursors to tokenized quote and aggregate-
+      history batches. Per-job caps now rotate through active token IDs even
+      when a provider repeatedly fails one asset; that asset remains retryable
+      after the rest of the active set has had a turn. Focused coverage passes
+      `36/36`.
+- [ ] Provider-specific quota, terms, and deployment admission still govern
+      whether each tokenized refresh can execute; cursor rotation does not
+      override fail-closed routing or the Dinari Sandbox non-persistence rule.
+
+### 2026-10-02 — MarketData.app current account-pool reconciliation
+
+- [x] The exact-source credentialed MarketData.app account-usage case passed
+      `1/1` with one request, and its native daily-credit observation was
+      accepted by the owner-local durable quota ledger.
+- [x] The subsequent full preflight no longer reports the ordinary
+      `credits_per_day` pool as unknown; the configured account-plan and option
+      chain paths are admitted without a generic fallback.
+- [ ] Option quote history remains non-routable until a reviewed hard
+      response/credit ceiling is configured; this is independent of the daily
+      account-pool reconciliation.
+
+### 2026-10-02 — Exact-head full provider safety preflight after integration gate
+
+- [x] At exact pushed source `a3fab38aa`, the full provider manifest stopped
+      before transport with `0/0` cases and zero provider requests. The
+      redacted receipt is appended to `validation.jsonl`.
+- [ ] Provider-specific active baselines/contracts, capability/legal/source
+      admission, FINRA OTC controls, deployment secret stores, deferred
+      providers, and the final shadow phase remain open; no generic limit or
+      inferred usage was introduced.
+
+### 2026-10-02 — Exact-head Docker integration validation after provider rotation
+
+- [x] At exact pushed source `51465c701`, Docker PostgreSQL/Redis integration
+      passed `386/386` in `729.17s` with 57 existing dependency warnings.
+      Test resources were cleaned without a host-wide Docker prune and no
+      provider credentials or external calls were used.
+
+### 2026-10-02 — Exact-head non-ETF unit inventory after provider rotation
+
+- [x] At exact pushed source `eec5a6b20`, the complete branch-owned non-ETF
+      unit inventory passed `1,909/1,909` in `134.77s` with 37 existing
+      dependency warnings. Only the parallel ETF adapter test file was
+      excluded under the ownership boundary.
+- [ ] The repository-wide command remains unaccepted as a full pass until the
+      separately owned ETF adapter test file has its own reliable validation.
+
+### 2026-10-02 — Tokenized provider fairness rotation
+
+- [x] Prevent `TOKENIZED_EVENT_REFRESH_MAX_PROVIDERS` from permanently
+      selecting only the first providers in the runtime chain. Durable action
+      pagination state now rotates no/incomplete/failed providers first, then
+      completed providers by oldest successful observation before applying the
+      per-job cap. Focused tokenized coverage passes `35/35`.
+- [ ] Provider-specific quota, terms, and deployment admission still govern
+      whether each tokenized provider is eligible; rotation does not override
+      fail-closed routing or the Dinari Sandbox non-persistence boundary.
+
+### 2026-10-02 — Non-ETF unit inventory validation
+
+- [x] At exact pushed source `29a6560da4e69db30d5940a7bb4d1cbbfd8b2d61`, run
+      the complete branch-owned non-ETF unit inventory. All `1,908/1,908`
+      cases passed in `147.06s` with 37 existing dependency warnings.
+- [ ] Do not represent the repository-wide `2,453`-case command as a pass:
+      only the parallel ETF adapter test file was excluded from this receipt;
+      that file remains owned by `feat/etf-holdings-constituents` and its
+      hard-timeout behavior is a separate integration concern.
+
+### 2026-10-02 — CoinGecko native account-usage admission
+
+- [x] Implement `CoinGeckoProvider.fetch_account_usage()` against the
+      documented `/api/v3/key` endpoint. The adapter validates the plan,
+      per-minute limit, monthly limit, and monthly used/remaining arithmetic;
+      fixture coverage proves a successful native snapshot and malformed
+      counters fail closed.
+- [x] Add the usage operation to the provider quota contract and the
+      manifest-driven account-usage live matrix.
+- [x] The configured Demo key was checked live and returned HTTP 401
+      (`10005`) for `/key`; the runner records this as an expected entitlement
+      denial with one request and no reconciled baseline. This is not treated
+      as a successful provider pass, and no usage is inferred from it.
+- [ ] Re-run the same bounded probe after an authorized CoinGecko key/plan is
+      configured. Reconcile the native monthly pool before ordinary routing;
+      keep the minute pool non-routable unless native remaining/reset evidence
+      is actually returned or separately reviewed.
+
+### 2026-10-02 — CoinGecko key-pool live validation
+
+- [x] The corrected adapter's bounded account-usage case passed at source
+      `0dd2b9e56a354d26c0c716b05f1a2c2ceb17b520` with one request. The current
+      Demo key still returned HTTP 401 (`10005`), recorded as an expected
+      entitlement denial; no baseline was reconciled or inferred.
+- [ ] A key/plan authorized for `/key` is still required to validate the new
+      API-key-specific counters against a successful native payload.
+
+### 2026-10-02 — Exact-head safety preflight after key-pool correction
+
+- [x] Full manifest re-run at source
+      `1006f7807b94da2b8e0919cc51e4b9e93cd10f94` stopped before transport with
+      `0/0` cases and zero provider requests.
+- [ ] The preflight still reports the same external/admission gaps; the
+      key-specific CoinGecko correction introduced no unsafe fallback or
+      untracked request path.
+
+### 2026-10-02 — Provider-platform validation receipt
+
+- [x] Provider/configuration-focused unit matrix passed `955/955` without
+      coverage reporting, and Docker PostgreSQL/Redis integration passed
+      `386/386` in `756.15s` at the current implementation source.
+- [ ] The repository-wide `2,453`-case unit run is not yet a pass receipt:
+      both coverage-enabled and no-coverage attempts reached the large ETF
+      adapter test file and hit the hard timeout. This remains a validation
+      gap, not a provider failure; the prior exact-head complete unit receipt
+      is retained separately in the handoff.
+
+### 2026-10-02 — Exact-head full safety preflight after CoinGecko admission
+
+- [x] The full manifest was re-run at source
+      `60abc3ea07d0da8e356e36b809f5efe4d93ab42d`. It stopped before transport
+      with `0/0` cases and zero provider requests.
+- [ ] The receipt explicitly includes CoinGecko's unresolved minute baseline
+      (the native `/key` denial does not provide remaining/reset evidence),
+      plus the existing provider-specific quota/cost/byte, legal, venue,
+      capability, and deployment-secret gaps. No generic limit, prior usage,
+      or local zero was inferred.
+
+### 2026-10-02 — Pushed-head full safety preflight receipt
+
+- [x] Re-ran the same full safety preflight at the pushed branch tip
+      `dfa4adb7a5a3895c5655141ae162e06aef74f00c`; it again stopped before
+      transport with `0/0` cases and zero provider requests.
+- [ ] The unresolved admissions are unchanged: CoinGecko per-minute baseline,
+      provider-specific quota/cost/byte contracts, legal/venue/capability
+      controls, and target deployment/CI secret stores. No unsafe fallback or
+      prior-usage inference was introduced.
+
+### 2026-10-02 — Exact-head full safety preflight
+
+- [x] The full manifest was re-run after the Kraken admission audit at source
+      `1638244d8c6c6135e6527a56dd61b42ce38b4b2d`. It stopped before transport
+      with `0/0` cases and zero provider requests.
+- [ ] Remaining blockers are provider-specific active baselines or byte/cost
+      contracts (including Kraken, SEC, FINRA, CoinGecko, Coinbase, EODHD,
+      Finnhub, Twelve Data, and tokenized feeds), unresolved legal/venue
+      admission, deferred capability cases, complete OTC admission, and
+      deployment/CI secret stores. No generic limit or prior usage was
+      inferred.
+
+### 2026-10-02 — Current-source Kraken admission remains fail-closed
+
+- [x] A focused Kraken live attempt was executed through the owner-local
+      durable coordinator. The first sandboxed attempt was rejected because
+      the configured ledger path was read-only in that execution boundary;
+      the elevated retry reached provider-specific admission and made zero
+      Kraken requests.
+- [ ] Kraken's public request-per-second pool has no durable native account
+      counter in the adapter, so the active baseline remains unknown. The
+      runner correctly refuses discovery, latest-candle, and current-price
+      transport until a provider-backed or explicitly reviewed baseline is
+      available; no rate or prior usage is inferred.
+
+### 2026-10-02 — Current-source focused provider live evidence
+
+- [x] Bounded current-source live slices passed for Alpaca (`7/7`), Binance
+      (`3/3`), OpenFIGI (`3/3`), MarketData.app account usage (`1/1`), EODHD
+      account usage (`1/1`), and Twelve Data account usage (`1/1`).
+- [x] The approved Dinari Sandbox canary passed (`1/1`, 14 requests under the
+      20-request cap) with non-persisting isolation. Redacted receipts are in
+      the branch validation ledger; no secrets or payloads were persisted.
+- [ ] Providers with unknown active baselines, incomplete byte/cost/reset
+      contracts, legal/venue admission, or missing target secret stores remain
+      fail-closed and are not represented as live passes.
+
+### 2026-10-02 — Provider-symbol lifecycle history completion
+
+- [x] Persist provider-symbol `effective_at`, `known_at`, and `retired_at`
+      as first-class nullable columns through additive migration
+      `fa1b2c3d4e5f`; registration now preserves lifecycle arguments instead
+      of leaving them only in transient/provider payload metadata.
+- [x] Retire only the matching provider/venue binding after complete NMS
+      absence reaches the configured three confirmations, while retaining
+      the binding and allowing authoritative reactivation. Focused lifecycle
+      and migration coverage passed `40/40`; exact branch gates are recorded
+      in the feature workstream handoff.
+
+### 2026-10-02 — Marketstack universe totals fail closed
+
+- [x] Require strict provider-declared pagination metadata for Marketstack
+      ticker discovery and advance using raw page counts despite local
+      quote-type filtering; missing, contradictory, negative, boolean, and
+      non-integer metadata now fail closed instead of truncating or repeating
+      the universe. `total_scope: raw` keeps pagination totals separate from
+      filtered expected counts. Focused Marketstack coverage passed `21/21`
+      plus raw-total reconciliation coverage.
+
+### 2026-10-02 — Tokenized event pages fail closed on malformed rows
+
+- [x] Reject a tokenized corporate-action page containing any non-object row
+      before persisting or advancing its durable cursor. This prevents a
+      malformed provider item from being silently discarded or a partially
+      processed page from being marked complete; the failed page remains
+      retryable. Focused tokenized-event coverage passed `7/7`.
+
+### 2026-10-02 — Marketstack empty-page pagination handling
+
+- [x] Accept explicit zero-count terminal EOD pages for valid empty
+      symbol/date ranges instead of converting them into provider failures.
+- [x] Continue rejecting an empty page when the provider declares a positive
+      remaining total, preventing silent historical-row loss. Focused
+      Marketstack coverage passed `13/13`; the optional-provider suite passed
+      `113/113`.
+
+### 2026-10-01 — EODHD extra-call balance retention
+
+- [x] Preserve the documented EODHD `/user.extraLimit` balance as a named
+      `extra_calls` account-usage dimension instead of exposing only the daily
+      call pool. The value is retained as observation-only remaining balance;
+      no reset, limit, or routing entitlement is fabricated for this
+      non-expiring buffer.
+- [x] Add focused coverage for valid and malformed `extraLimit` payloads.
+- [ ] Keep ordinary EODHD routing fail-closed until the contradictory minute
+      publications and current account-specific reset/evidence controls are
+      reconciled. See `docs/data-providers.md` for the official-source audit.
+
+
+### 2026-10-01 — Market-event continuation fail-closed hardening
+
+- [x] Treat malformed Massive market-event envelopes as failed pagination
+      state, preserving the retry cursor and preventing a worker from marking
+      an incomplete scan successful.
+- [x] Reject contradictory provider responses that mark a page complete while
+      also returning a continuation. The page's normalized events remain
+      persisted, but the state is failed so the continuation cannot be silently
+      discarded.
+- [x] Add worker-restart continuation coverage. Focused market-event tests
+      passed `11/11`; the exact-head branch-owned unit gate passed `1,933/1,933`;
+      exact-head Docker PostgreSQL/Redis integration passed `386/386` in
+      `680.20s`; Ruff and diff checks are clean. The live preflight remained
+      fail-closed at `0/0` with zero provider requests.
+
+### 2026-09-25 — Massive market-event cursor retention
+
+- [x] Close the no-discard gap in market-wide event persistence. Massive IPO
+      pages are now followed through every validated cursor, with each page
+      passing through the normal quota/health runtime and every normalized
+      event retained.
+- [x] Persist the opaque continuation in `ProviderPaginationState` keyed by
+      provider and date window. A retry resumes the exact unresolved cursor
+      after a process or worker restart; a completed window is the only state
+      that resets for a fresh snapshot.
+- [x] If a later page fails (for example because the provider quota is
+      exhausted), earlier successful pages are still persisted and the typed
+      page failure plus the current retry cursor are retained for the next
+      scheduled run. Repeated or malformed cursors fail closed rather than
+      silently truncating the feed.
+- [x] Regression coverage verifies complete two-page traversal and partial
+      retention; the branch-owned unit gate passed `1,930/1,930`, Docker
+      PostgreSQL/Redis integration passed `386/386`, and Ruff/diff checks are
+      clean. Live Massive event transport remains terms-gated and was not
+      called.
+
+### 2026-09-25 — Twelve Data account-usage evidence refresh
+
+- [x] The configured Twelve Data key's account-usage-only live case passed
+      `1/1` with one request and 131 response bytes. Native credits reported an
+      `8 credits/minute` pool with `7` remaining in the measured response; the
+      separate daily account baseline remains unobservable and is not inferred.
+
+### 2026-09-25 — MarketData.app account-usage evidence refresh
+
+- [x] The configured MarketData.app key's account-usage-only live case passed
+      `1/1` with one request and 135 response bytes. The native response
+      reported a `10,000 credits/day` allowance, `10,000` remaining, and a
+      reset timestamp; the account-plan body remained absent, so the configured
+      trial-expiry/fallback policy remains authoritative rather than inferred
+      from `/user/`.
+
+### 2026-09-25 — EODHD account-usage evidence refresh
+
+- [x] The configured EODHD key's bounded native `/user` snapshot passed over
+      network-enabled execution: 1/1 case, 1 measured request, 304 response
+      bytes. The account reported a `20 calls/day` pool and native
+      `1200 requests/minute` headers; the response is retained only as
+      aggregate/redacted usage evidence outside Git.
+
+- [ ] Supply the reviewed non-secret EODHD controls in each target environment
+      (`EODHD_REVIEWED_MINUTE_LIMIT=1200`, the provider's reviewed minute reset,
+      and `EODHD_MINUTE_QUOTA_EVIDENCE`) before routing. The implementation
+      remains fail-closed until those operator-owned controls are present.
+
+### 2026-09-25 — Discovery-cache row isolation
+
+- [x] Harden the EODHD/FMP full-catalogue cache so both cached rows and rows
+      returned to callers are copied per dictionary. A caller-side mutation can
+      no longer alter later reconciliation pages; the regression is covered in
+      the optional-provider suite.
+
+- [x] Focused coverage passed `109/109`; the final branch-owned unit gate passed
+      `1,928/1,928` with `37` warnings, and Docker integration passed `386/386`
+      with `57` warnings. No ETF/frontend source changed.
+
+### 2026-09-25 — EODHD/FMP full-catalogue reuse
+
+- [x] Reuse each provider's full US discovery catalogue across successive
+      reconciliation pages for five minutes, scoped by provider and a one-way
+      credential digest. EODHD and FMP do not expose offset-aware catalogue
+      endpoints; this avoids repeated quota-consuming snapshots while retaining
+      every returned row and returning defensive copies to callers.
+
+- [x] Focused optional-provider coverage passed `109/109`; Ruff passed. The
+      exact-source branch unit gate passed `1,928/1,928`, and Docker integration
+      passed `386/386` with isolated PostgreSQL/Redis testcontainers. This is
+      a quota-preserving cache only; it does not close provider admission or
+      complete-universe gates.
+
+### 2026-09-25 — EDGAR baseline preflight
+
+- [x] Retry the bounded keyless EDGAR matrix with the supplied descriptive
+      contact and a private writable quota ledger. It stopped before transport
+      at `0/0` because SEC account-wide/IP usage is not observable; no request
+      was made and no baseline was fabricated.
+
+- [ ] Keep EDGAR fail-closed until an authoritative current baseline or an
+      explicitly reviewed shared-IP coordination boundary is available.
+
+### 2026-09-25 — Alpaca credential-scoped asset cache
+
+- [x] Scope the authenticated Alpaca asset cache to the trading host, key ID,
+      and a one-way secret digest so paper/live or credential changes cannot
+      reuse account-specific universe rows without retaining raw secrets.
+      Focused Alpaca coverage passed `51/51`; Ruff passed.
+
+- [x] Validate exact source
+      `f346ea2bf4f92fad0703b00789d6e838d5fc421c`: branch-owned unit scope
+      passed `1,926/1,926` with `37` warnings in `313.17s`; Docker integration
+      passed `386/386` with `57` warnings in `704.95s` (testcontainer session
+      `e53bcc4b-d9b4-4e4c-a9e6-173b50d5f076`); cleanup completed without
+      host-wide pruning.
+
+### 2026-09-25 — FINRA ORF credential-scoped directory cache
+
+- [x] Scope the ORF directory cache to the TRAQS username and a one-way
+      refresh-token digest in addition to source identity, preventing
+      credential-rotation reuse without retaining raw refresh tokens. Focused
+      FINRA coverage passed `43/43`; Ruff passed.
+
+- [x] Validate exact source
+      `60653704d5643e18dd30a393f81422e9c42aa1df`: branch-owned unit scope
+      passed `1,925/1,925` with `37` warnings in `314.40s`; Docker integration
+      passed `386/386` with `57` warnings in `709.56s` (testcontainer session
+      `6d65e7e7-f2e8-42e7-982a-f8f2a192d8ca`); cleanup completed without
+      host-wide pruning.
+
+### 2026-09-25 — FINRA OTC source-scoped directory cache
+
+- [x] Scope the in-memory OTC directory cache to the configured source kind,
+      active URL, and inactive URL so source changes cannot reuse rows from a
+      previous source during the TTL. Focused provider/registry/live-runner
+      coverage passed `114/114`; Ruff passed.
+
+- [x] Validate exact source
+      `12147907b26fe1d7940e03c6b18189e2f9715fd3`: branch-owned unit scope
+      passed `1,924/1,924` with `37` warnings in `312.96s`; Docker integration
+      passed `386/386` with `57` warnings in `709.09s` (testcontainer session
+      `93bfba88-70c7-468f-b45e-7fc3dcc8f45f`); cleanup completed without
+      host-wide pruning.
+
+### 2026-09-25 — FINRA Gateway credential-scoped token cache
+
+- [x] Scope the in-memory FINRA Gateway OAuth cache to the client ID and a
+      one-way client-secret digest, preventing credential-rotation reuse while
+      retaining no raw secret. Focused FINRA coverage passed `41/41`; Ruff
       passed.
-- [ ] Rerun the exact branch gate when Docker is healthy, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
 
-### 2026-09-12 — Exact factor-provenance gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `87134261`;
-      repository/workstream, dependency/migration, frontend preparation,
-      Ruff, formatting, and TypeScript passed. The gate stopped at
-      `backend-coverage` after 180 seconds because Docker returned permission
-      denied for `unix:///Users/jagnelo/.docker/run/docker.sock`; no later
-      backend integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence historical breadth event knowledge
-
-- [x] Enforce the breadth event knowledge boundary: current and historical
-      breadth reads now filter event rows and source-scoped fetch-state markers
-      by the evaluation cutoff, and only associate rows with an eligible
-      source state; missing state remains unavailable (`218ad3b8`).
-- [x] Focused analysis-router coverage passed `32/32`; the full backend unit
-      suite passed `1522/1522` at `69.01%`; Ruff, formatting, and
-      `git diff --check` passed.
-- [ ] Rerun the exact branch gate when Docker is healthy, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Exact historical-event gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `26161b90`;
-      repository/workstream, dependency/migration, frontend preparation,
-      Ruff, formatting, and TypeScript passed. The gate stopped at
-      `backend-coverage` after 180 seconds because Docker returned permission
-      denied for `unix:///Users/jagnelo/.docker/run/docker.sock`; no later
-      backend integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health and rerun the exact gate, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence stale Market Map snapshot mutations
-
-- [x] Fence Market Map snapshot save/delete responses by shared generation,
-      mounted state, current map cache, and selected snapshot so stale
-      mutations cannot overwrite a newer map (`0e04d489`).
-- [x] Market Map component coverage passed `42/42`; full frontend Vitest passed
-      `1016/1016`; frontend type-check and `git diff --check` passed.
-- [ ] Rerun the exact branch gate when Docker is healthy, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence stale Market Map snapshots
-
-- [x] Fence Market Map snapshot loads by selection generation, current
-      selection, and mounted state so late responses cannot replace a newer
-      saved map or stale loading/error state (`fc012ad0`).
-- [x] Market Map component coverage passed `41/41`; full frontend Vitest passed
-      `1015/1015`; frontend type-check and `git diff --check` passed.
-- [ ] Rerun the exact branch gate when Docker is healthy, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence Market Map Python asset lifecycle
-
-- [x] Fence Market Map Python asset discovery by component generation and
-      mounted state so late `/code/assets` responses cannot publish stale
-      options, errors, or loading cleanup (`a306e2f2`).
-- [x] Market Map component coverage passed `40/40`; full frontend Vitest passed
-      `1014/1014`; frontend type-check and `git diff --check` passed.
-- [ ] Rerun the exact branch gate when Docker is healthy, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence stale Market Map Python runs
-
-- [x] Fence queued Python breadth/area run responses and polling by the active
-      Market Map run generation and mounted state so stale source/run callbacks
-      cannot publish an old run ID, loading state, or map request (`95ed93ce`).
-- [x] Market Map component coverage passed `39/39`; full frontend Vitest passed
-      `1013/1013`; frontend type-check and `git diff --check` passed.
-- [ ] Rerun the exact branch gate when Docker is healthy, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence dated benchmark coverage races
-
-- [x] Fence Market Map benchmark-family coverage reads by request generation,
-      source, and mounted state so a late response from an older historical
-      cutoff cannot replace current canonical readiness (`6096ba0e`).
-- [x] Market Map component coverage passed `38/38`; full frontend Vitest passed
-      `1012/1012`; frontend type-check and `git diff --check` passed.
-- [ ] Rerun the exact branch gate when Docker is healthy, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Fence Market Map history readiness races
-
-- [x] Fence Market Map history-status and refresh-run responses by source,
-      timeframe, generation, and mounted state so late callbacks cannot
-      overwrite current canonical readiness (`c7a3c080`).
-- [x] Market Map component coverage passed `37/37`; full frontend Vitest passed
-      `1011/1011`; frontend type-check and `git diff --check` passed.
-- [ ] Rerun the exact branch gate when Docker is healthy, then continue
-      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Exact coarse-cache gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `ad86c37b`; repository,
-      workstream, dependency/migration, frontend preparation, Ruff, format,
-      and TypeScript stages passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned
-      permission denied for `unix:///Users/jagnelo/.docker/run/docker.sock`
-      after the fixed 180-second readiness window. No backend integration,
-      provider, browser, or visual stage ran.
-- [ ] Restore Docker health, rerun the exact gate, then continue provider/history,
-      R4 fan-out, and R2-R7 evidence. No visual/acceptance policy changed.
-
-### 2026-09-12 — Preserve coarse-cache evidence during bulk history refresh
-
-- [x] Correct the intraday-skip decision so a zero newly inserted coarse-row
-      result does not hide persisted canonical D1/W1/MN evidence. The bounded
-      probe respects the requested end, while intraday-only requests and the
-      genuinely empty-cache skip remain unchanged (`ad86c37b`).
-- [x] Focused bulk-fetch coverage passed `12/12`; the full backend unit suite
-      passed `1518/1518` with the existing 34 deprecation warnings; Ruff,
-      formatting, and `git diff --check` passed.
-- [ ] Rerun the exact branch gate at this coherent product tip once Docker is
-      healthy, then continue provider/history, R4 fan-out, and R2-R7 evidence.
-      No provider, fallback, visual, or acceptance policy changed.
-
-### 2026-09-12 — Exact named-event target gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `033b0397`; git-diff,
-      workstream validation, dependency/migration, frontend preparation, Ruff,
-      formatting, and TypeScript passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned
-      permission denied for `unix:///Users/jagnelo/.docker/run/docker.sock`
-      after the fixed 180-second readiness window. No backend integration,
-      provider, browser, or visual stage ran.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate,
-      then continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Preserve named multi-output event targets
-
-- [x] Correct the single-event filter/alert handler so explicitly selected
-      named artifacts in multi-output `events` runs retain their artifact name
-      and endpoint payload while single-output runs remain fail-closed
-      (`033b0397`).
-- [x] Focused Study Lab coverage passed `30/30`; full frontend Vitest passed
-      `1010/1010`; type-check, backend lint, formatting, and diff checks passed.
-- [ ] Rerun the exact branch gate at this product tip, then continue remaining
-      R4 fan-out, provider/history, and R2-R7 evidence. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Single-event Study Lab target fan-out
-
-- [x] Add the missing named watchlist-filter and alert actions for a completed
-      single-output `events` Study Lab run. Both use the existing
-      `events_to_boolean` promotion endpoint and preserve named artifact/run
-      lineage (`df4c89f0`); the existing Strategy signal action remains intact.
-- [x] Focused Study Lab component coverage passed `30/30`; full frontend
-      Vitest passed `1010/1010`; type-check, production build, backend lint,
-      formatting, and diff checks passed.
-- [x] The exact gate passed all pre-Docker stages and stopped at
-      `backend-coverage` after 180 seconds on Docker socket permission denied.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate,
-      then continue remaining R4 fan-out, provider/history, and R2-R7 evidence.
-      No visual/acceptance policy changed.
-
-### 2026-09-12 — Structured Study Lab Boolean signal fan-out
-
-- [x] Add the missing named Strategy Lab signal action for Boolean artifacts
-      from multi-output Study Lab runs. It reuses the immutable source and
-      selected output lineage alongside the existing column/filter/scan/gauge/
-      alert targets (`1e128acd`); other artifact shapes retain explicit
-      capability boundaries.
-- [x] Focused Study Lab component coverage passed `30/30`; full frontend
-      Vitest passed `1010/1010`; type-check, production build, backend lint,
-      formatting, and diff checks passed.
-- [x] The exact gate passed all pre-Docker stages and stopped at
-      `backend-coverage` after 180 seconds on Docker socket permission denied.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate,
-      then continue remaining R4 fan-out, provider/history, and R2-R7 evidence.
-      No visual/acceptance policy changed.
-
-### 2026-09-12 — Scheduled coarse-history readiness
-
-- [x] Close the nightly refresh gap where missing W1/MN provider rows were
-      skipped indefinitely even when canonical D1 history existed. Commit
-      `9f86dc7b` now materializes provider-neutral W1/MN views from persisted D1
-      evidence after the recent refresh pass, preserves provider precedence,
-      commits derived state, and reports derived counts without provider fan-out
-      or invented observations.
-- [x] Focused scheduled-history coverage passed `1/1`; full backend unit
-      coverage passed `1516/1516`; Ruff, formatting, and diff checks passed.
-- [ ] Rerun the exact branch gate at `9f86dc7b` once Docker is healthy, then
-      continue remaining provider-backed population/history, R4 fan-out, and
-      R2-R7 acceptance evidence. No visual/acceptance policy changed.
-
-### 2026-09-12 — Exact scheduled coarse-history gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `9f86dc7b`; git-diff,
-      workstream validation, dependency/migration, frontend preparation, Ruff,
-      formatting, and TypeScript passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned
-      permission denied for `unix:///Users/jagnelo/.docker/run/docker.sock`
-      after the fixed 180-second readiness window. No backend integration,
-      provider, browser, or visual stage ran.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate,
-      then continue provider/history, R4 fan-out, and R2-R7 evidence. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Canonicalize Study Lab execution timestamps
-
-- [x] Normalize Study Lab portfolio execution events, excursion rows, and
-      top-level trade/open-position records to the shared UTC-`Z` timeline
-      (`07fcfae0`) without changing IDs, ordering, P&L, or event semantics.
-- [x] Focused Study Lab service coverage passed `14/14`; Ruff, formatting, and
-      diff checks passed.
-- [ ] Run the exact gate at this coherent product tip, then continue bounded
-      provider/history or compatible chart/list/gauge work. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Exact Study Lab execution gate rechecked
-- [x] Reran the exact branch-scoped gate at product tip `07fcfae0`; git-diff,
-      workstream, dependency/migration, frontend preparation, Ruff, formatting,
-      and TypeScript stages passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned
-      permission denied for `unix:///Users/jagnelo/.docker/run/docker.sock`
-      after the fixed 180-second readiness window. No backend integration,
-      provider, browser, or visual stage ran.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate,
-      then continue provider/history or compatible chart/list/gauge work. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Canonicalize Study Lab timeline points
-
-- [x] Normalize dense Study Lab bar timestamps and trade/open-position event
-      keys to the shared UTC-`Z` timeline (`40b8db13`) without changing
-      date-only fallbacks, position identity, P&L, or event semantics.
-- [x] Focused Study Lab service coverage passed `14/14`; Ruff, formatting, and
-      diff checks passed.
-- [ ] Run the exact gate at this coherent product tip, then continue bounded
-      provider/history or compatible chart/list/gauge work. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Exact Study Lab timeline gate rechecked
-- [x] Reran the exact branch-scoped gate at product tip `40b8db13`; git-diff,
-      workstream, dependency/migration, frontend preparation, Ruff, formatting,
-      and TypeScript stages passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned
-      permission denied for `unix:///Users/jagnelo/.docker/run/docker.sock`
-      after the fixed 180-second readiness window. No backend integration,
-      provider, browser, or visual stage ran.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate,
-      then continue provider/history or compatible chart/list/gauge work. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Exact Study Lab fallback timing gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `780ef1e3`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and TypeScript stages passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned permission denied
-      for `unix:///Users/jagnelo/.docker/run/docker.sock` after the fixed 180-second readiness
-      window. No backend integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate, then continue
-      provider/history or compatible chart/list/gauge work. No visual/acceptance policy changed.
-
-### 2026-09-12 — Canonicalize Study Lab fallback timestamps
-
-- [x] Route no-date Study Lab benchmark/strategy timeline fallbacks through the
-      shared UTC-`Z` formatter (`780ef1e3`) without changing date-only request
-      fields or timeline key semantics.
-- [x] Focused Study Lab coverage passed `3/3`; Ruff, formatting, and diff checks
-      passed.
-- [ ] Run the exact gate at this coherent product tip, then continue bounded
-      provider/history or compatible chart/list/gauge work. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Exact history worker timing gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `7d40c1d4`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and TypeScript stages passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned permission denied
-      for `unix:///Users/jagnelo/.docker/run/docker.sock` after the fixed 180-second readiness
-      window. No backend integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate, then continue
-      provider/history or compatible chart/list/gauge work. No visual/acceptance policy changed.
-
-### 2026-09-12 — Canonicalize history worker completion time
-
-- [x] Route scheduled benchmark-family history worker `completed_at` through
-      the shared UTC-`Z` formatter (`7d40c1d4`) without changing queue,
-      progress, retry/error, or requested-date semantics.
-- [x] Focused history-worker lifecycle coverage passed `3/3`; Ruff, formatting,
-      and diff checks passed.
-- [ ] Run the exact gate at this coherent product tip, then continue bounded
-      provider/history or compatible chart/list/gauge work. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Exact SEC filing timing gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `5c8f3009`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and TypeScript stages passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned permission denied
-      for `unix:///Users/jagnelo/.docker/run/docker.sock` after the fixed 180-second readiness
-      window. No backend integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate, then continue
-      provider/history or compatible chart/list/gauge work. No visual/acceptance policy changed.
-
-### 2026-09-12 — Canonicalize SEC filing timing metadata
-
-- [x] Route reconstructed SEC EDGAR fallback `known_at` and `published_at`
-      through the shared UTC-`Z` formatter (`5c8f3009`) without changing filing
-      identity, composition dates, route resolution, or source semantics.
-- [x] Focused SEC fallback coverage passed `4/4`; Ruff, formatting, and
-      diff checks passed.
-- [ ] Run the exact gate at this coherent product tip, then continue bounded
-      provider/history or compatible chart/list/gauge work. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Exact paper-forward gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `530e8723`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and TypeScript stages passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned permission denied
-      for `unix:///Users/jagnelo/.docker/run/docker.sock` after the fixed 180-second readiness
-      window. No backend integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate, then continue
-      provider/history or compatible chart/list/gauge work. No visual/acceptance policy changed.
-
-### 2026-09-12 — Canonicalize paper-forward Study Lab timestamps
-
-- [x] Route paper-forward monitor snapshot timestamps through the shared
-      UTC-`Z` formatter (`530e8723`) without changing retention, equity,
-      status, or window semantics.
-- [x] Focused Study Lab service coverage passed `13/13`; Ruff, formatting, and
-      diff checks passed.
-- [ ] Run the exact gate at this coherent product tip, then continue bounded
-      provider/history or compatible chart/list/gauge work. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Exact benchmark timeline gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `2e2d7b78`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and TypeScript stages passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned permission denied
-      for `unix:///Users/jagnelo/.docker/run/docker.sock` after the fixed 180-second readiness
-      window. No backend integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate, then continue
-      provider/history or compatible chart/list/gauge work. No visual/acceptance policy changed.
-
-### 2026-09-12 — Canonicalize benchmark Study Lab timeline timestamps
-
-- [x] Route benchmark buy-and-hold position, execution-log, and equity-curve
-      timestamps through the shared UTC-`Z` formatter (`2e2d7b78`) without
-      changing return, position, coverage, or date-only semantics.
-- [x] Focused Study Lab service coverage passed `12/12`; Ruff, formatting, and
-      diff checks passed.
-- [ ] Run the exact gate at this coherent product tip, then continue bounded
-      provider/history or compatible chart/list/gauge work. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Canonicalize background alert timestamps
-
-- [x] Route scheduled price and indicator alert WebSocket `triggered_at`
-      values through the shared UTC-`Z` formatter (`fbf5ed08`) without changing
-      evaluation, repeat/status, targeting, or persistence semantics.
-- [x] Focused background-alert coverage passed `2/2`; Ruff, formatting, and
-      diff checks passed.
-- [ ] Run the exact gate at this coherent product tip, then continue bounded
-      provider/history or compatible chart/list/gauge work. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Exact screener timeline gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `8e406e36`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and TypeScript stages passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned permission denied
-      for `unix:///Users/jagnelo/.docker/run/docker.sock` after the fixed 180-second readiness
-      window. No backend integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate, then continue
-      provider/history or compatible chart/list/gauge work. No visual/acceptance policy changed.
-
-### 2026-09-12 — Canonicalize screener alert event timestamps
-
-- [x] Route screener alert WebSocket `triggered_at` through the shared UTC-`Z`
-      formatter (`8e406e36`) without changing targeting or trigger semantics.
-- [x] Focused screener-engine coverage passed `34/34`; Ruff, formatting, and
-      diff checks passed.
-- [ ] Run the exact gate at this coherent product tip, then continue bounded
-      provider/history or compatible chart/list/gauge work. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Exact Nautilus timestamp gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `7df2dd5c`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and TypeScript stages passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned permission denied
-      for `unix:///Users/jagnelo/.docker/run/docker.sock` after the fixed 180-second readiness
-      window. No backend integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate, then continue
-      provider/history or compatible chart/list/gauge work. No visual/acceptance policy changed.
-
-### 2026-09-12 — Canonicalize Nautilus Study Lab execution timestamps
-
-- [x] Route Nautilus trade, open-position, and equity-curve timestamps through
-      the shared UTC-`Z` formatter (`7df2dd5c`) without changing backtest
-      semantics.
-- [x] Focused Nautilus Study Lab coverage passed `14/14`; Ruff, formatting, and
-      diff checks passed.
-- [ ] Run the exact gate at this coherent product tip, then continue bounded
-      provider/history or compatible chart/list/gauge work. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Exact ETF provenance gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `e01d7dd1`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and TypeScript stages passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned permission denied
-      for `unix:///Users/jagnelo/.docker/run/docker.sock` after the fixed 180-second readiness
-      window. No backend integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate, then continue
-      provider/history or compatible chart/list/gauge work. No visual/acceptance policy changed.
-
-### 2026-09-12 — Canonicalize ETF constituent provenance timestamps
-
-- [x] Route ETF constituent classification enrichment and lightweight
-      instrument materialization timestamps through the shared UTC-`Z`
-      serializer (`e01d7dd1`); identity, provider routing, and membership
-      semantics are unchanged.
-- [x] Focused ETF holdings resolution coverage passed `29/29`; Ruff, formatting,
-      and diff checks passed.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate at
-      this product tip, then continue bounded provider/history or compatible
-      chart/list/gauge work. No visual/acceptance policy changed.
-
-### 2026-09-12 — Exact profile-provenance gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `e9921de8`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and TypeScript stages passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned permission denied
-      for `unix:///Users/jagnelo/.docker/run/docker.sock` after the fixed 180-second readiness
-      window. No backend integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate, then continue
-      provider/history or compatible chart/list/gauge work. No visual/acceptance policy changed.
-
-### 2026-09-12 — Canonicalize profile snapshot provenance timestamps
-
-- [x] Normalize profile listing lifecycle and flattened field-provenance timestamps
-      through the shared UTC-`Z` formatter (`e9921de8`).
-- [x] Focused provider-persistence and instrument-sync metadata coverage passed
-      `14/14`; Ruff, formatting, and diff checks passed.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate at
-      this product tip, then continue bounded provider/history or compatible
-      chart/list/gauge work. No visual/acceptance policy changed.
-
-### 2026-09-12 — Exact instrument-sync provenance gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `cc714b1b`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and TypeScript stages passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned permission denied
-      for `unix:///Users/jagnelo/.docker/run/docker.sock` after the fixed 180-second readiness
-      window. No backend integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate, then continue
-      provider/history or compatible chart/list/gauge work. No visual/acceptance policy changed.
-
-### 2026-09-12 — Canonicalize instrument-sync provenance timestamps
-
-- [x] Route nested listing, symbol/profile/stats, equity, currency, and futures
-      provider-provenance writes through the shared UTC-`Z` formatter (`cc714b1b`).
-- [x] Focused instrument-sync metadata and provider-persistence coverage passed
-      `12/12`; Ruff, formatting, and diff checks passed.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate at
-      this product tip, then continue bounded provider/history or compatible
-      chart/list/gauge work. No visual/acceptance policy changed.
-
-### 2026-09-12 — Exact provider-reconciliation gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `a0f9e252`; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and TypeScript stages passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned permission denied
-      for `unix:///Users/jagnelo/.docker/run/docker.sock` after the fixed 180-second readiness
-      window. No backend integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate, then continue
-      provider/history or compatible chart/list/gauge work. No visual/acceptance policy changed.
-
-### 2026-09-12 — Canonicalize provider reconciliation timestamps
-
-- [x] Serialize reconciliation PATCH `resolved_at` through the shared UTC-`Z`
-      helper (`a0f9e252`) without changing governance or resolution semantics.
-- [x] Provider router coverage passed `8/8`; Ruff, formatting, and diff checks
-      passed.
-- [ ] Run the exact gate at this coherent product tip, then continue bounded
-      provider/history or compatible chart/list/gauge work. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Canonicalize options-exposure computation time
-
-- [x] Route options-exposure `computed_at` through the shared UTC-`Z`
-      serializer (`c4e933a0`) without changing GEX/DEX analytics semantics.
-- [x] Ruff, formatting, diff checks, module compilation, and serializer smoke
-      passed.
-- [ ] Rerun the focused options-exposure integration suite and exact gate when
-      Docker is healthy; it currently cannot initialize its Postgres fixture due
-      to Docker socket permission denial. No visual/acceptance policy changed.
-
-### 2026-09-12 — Exact provider-observability gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `51e04a00` after the
-      provider observability timeline slice; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and TypeScript
-      stages passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned
-      permission denied for `unix:///Users/jagnelo/.docker/run/docker.sock` after
-      the fixed 180-second readiness window. No backend integration, provider,
-      browser, or visual stage ran.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate,
-      then continue provider/history or compatible chart/list/gauge work. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Canonicalize provider observability timelines
-
-- [x] Normalize provider usage window/lifecycle timestamps, hourly/daily bucket
-      starts, and provider-observation retention summaries through the shared
-      UTC-`Z` serializer (`51e04a00`) without changing provider semantics.
-- [x] Focused provider usage/maintenance coverage passed `4/4`; full backend
-      unit coverage passed `1506/1506` at `68.83%`; Ruff, formatting, and diff
-      checks passed.
-- [ ] Run the exact gate at this coherent product tip, then continue bounded
-      provider/history or compatible chart/list/gauge work. No visual/acceptance
-      policy changed.
-
-### 2026-09-12 — Exact analytics-tip gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `a959dcaf` after the
-      Market Map and breadth analytics timeline slice; repository/workstream,
-      dependency/migration, frontend preparation, Ruff, formatting, and TypeScript
-      stages passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned
-      permission denied for `unix:///Users/jagnelo/.docker/run/docker.sock` after
-      the fixed 180-second readiness window. No backend integration, provider,
-      browser, or visual stage ran.
-- [ ] Restore Docker health, rerun pending API regressions and the exact gate,
-      then continue provider/history or compatible chart/list/gauge work. No
-      visual/acceptance policy changed.
-
-### 2026-09-12 — Canonicalize Market Map and breadth analytics timelines
-
-- [x] Normalize Market Map profile/cache provenance and breadth occurrence identifiers on the
-      shared UTC-`Z` timeline (`1607f017`, `a959dcaf`) without changing analytics semantics.
-- [x] Focused Market Map coverage passed `10/10`, breadth coverage `28/28`, and full backend
-      unit coverage passed `1506/1506` at `68.83%`; Ruff, formatting, and diff checks passed.
-- [ ] Run the exact gate at this coherent product tip, then continue provider/history or
-      compatible chart/list/gauge work. No visual/acceptance policy changed.
-
-### 2026-09-12 — Exact research-timeline gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `36ed5513`; repository/workstream,
-      dependency, migration, frontend preparation, Ruff, formatting, and TypeScript stages passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned permission denied
-      for `unix:///Users/jagnelo/.docker/run/docker.sock` after the fixed 180-second readiness
-      window. No backend integration, provider, browser, or visual stage ran.
-- [ ] Restore Docker health, rerun the pending API regressions and exact gate, then continue
-      provider/history or compatible chart/list/gauge work. No visual/acceptance policy changed.
-
-### 2026-09-12 — Canonicalize research dataset timelines
-
-- [x] Normalize research dataset-manifest `as_of` and materialized
-      instrument/benchmark/reference/batch timestamp arrays through the shared UTC-`Z`
-      serializer (`36ed5513`); date-only fields and immutable run semantics are unchanged.
-- [x] Focused research-router coverage passed `3/3`; full backend unit coverage passed
-      `1506/1506` at `68.83%`; Ruff, formatting, and diff checks passed.
-- [ ] Rerun the exact gate at this product tip when Docker is healthy, then continue the
-      next bounded provider/history or compatible chart/list/gauge seam. No policy changed.
-
-### 2026-09-12 — Canonicalize combo-source exclusion timing
-
-- [x] Normalize combo point-in-time exclusion `known_at` through the shared UTC-`Z`
-      serializer (`dc1dfbcb`), preserving membership and exclusion semantics.
-- [x] Focused watchlist-source coverage passed `7/7`; full backend unit coverage passed
-      `1505/1505` at `68.81%`; Ruff, formatting, and diff checks passed.
-- [ ] Continue the next bounded provider/history or compatible chart/list/gauge seam and
-      rerun the exact gate at the next coherent tip when Docker is healthy. No policy changed.
-
-### 2026-09-12 — Exact options-tip gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `6fb7ca7b`; repository/workstream,
-      dependency, migration, frontend preparation, Ruff, formatting, and TypeScript stages passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned HTTP 500 for
-      `/v1.55/info` after the fixed 180-second readiness window. No backend integration, provider,
-      browser, or visual stage ran; no product assertion or visual-policy failure was observed.
-- [ ] Restore Docker health, rerun the pending API regressions and exact gate, then continue
-      provider/history or compatible chart/list/gauge work. No visual/acceptance policy changed.
-
-### 2026-09-12 — Options reads use typed canonical response contracts
-
-- [x] Add typed expiration, chain, contract-summary, snapshot, and
-      quote-history response models with canonical UTC `Z` observation
-      timestamps (`6fb7ca7b`).
-- [x] Focused options-schema coverage passed `2/2`; full backend unit
-      coverage passed `1504/1504` at `68.81%`; Ruff, formatting, and diff
-      checks passed.
-- [ ] Run the exact branch-scoped gate at this product tip, then continue
-      provider/history or compatible chart/list/gauge work.
-
-### 2026-09-12 — Exact history-progress gate rechecked
-
-- [x] Reran the exact branch-scoped gate at product tip `65e14448`; all
-      repository/workstream, dependency, migration, frontend preparation,
-      Ruff, formatting, and TypeScript stages passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned
-      HTTP 500 for `/v1.55/info` after the fixed 180-second readiness window.
-      No backend integration, provider, browser, or visual stage ran; no
-      product assertion or visual-policy failure was observed.
-- [ ] Restore Docker Desktop health, rerun the pending API regressions and
-      exact gate, then continue provider/history or compatible chart/list/gauge
-      work.
-
-### 2026-09-12 — History progress uses canonical wire timestamps
-
-- [x] Emit Redis bulk-fetch and durable watchlist refresh progress `updated_at`
-      values as canonical UTC `Z` timestamps (`65e14448`).
-- [x] Focused history-progress coverage passed `22/22`; full backend unit
-      coverage passed `1502/1502` at `68.76%`; Ruff, formatting, and diff
-      checks passed.
-- [ ] Restore Docker access, rerun the pending API regressions and exact gate,
-      then continue provider/history or compatible chart/list/gauge work.
-
-### 2026-09-12 — Analysis responses use canonical wire timestamps
-
-- [x] Serialize direct analysis-model `datetime` fields through the shared
-      response base as canonical UTC `Z` values across relative
-      strength/rotation, breadth/history, family analytics, rankings,
-      indicator batches, technical snapshots, and Market Gauge (`c072c91f`).
-- [x] Focused response-schema coverage passed `4/4`; full backend unit
-      coverage passed `1500/1500` at `68.74%`; Ruff, formatting, and diff
-      checks passed.
-- [x] Reran the exact branch-scoped gate at `c072c91f`; all pre-Docker stages
-      passed and `backend-coverage` stopped after 180 seconds because Docker
-      access was denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`. No later API, provider,
-      browser, or visual stage ran.
-- [ ] Restore Docker access, rerun the pending API regressions and exact gate,
-      then continue provider/history or compatible chart/list/gauge work.
-
-### 2026-09-12 — Calendar and legacy alert responses use canonical wire timestamps
-
-- [x] Serialize economic-calendar event timing and legacy indicator-alert
-      lifecycle timestamps as canonical UTC `Z` values through their response
-      models (`9462d4f6`).
-- [x] Focused response-schema coverage passed `3/3`; full backend unit
-      coverage passed `1499/1499` at `68.74%`; Ruff, formatting, and diff
-      checks passed.
-- [x] Reran the exact branch-scoped gate at `9462d4f6`; all pre-Docker stages
-      passed and `backend-coverage` stopped after 180 seconds because Docker
-      access was denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`. No later API, provider,
-      browser, or visual stage ran.
-- [ ] Restore Docker access, rerun the pending API regressions and exact gate,
-      then continue provider/history or compatible chart/list/gauge work.
-
-### 2026-09-12 — Market Map responses use canonical wire timestamps
-
-- [x] Serialize Market Map period bounds, cache freshness, per-cell
-      observation times, and snapshot lifecycle timestamps as canonical UTC
-      `Z` values through the response schemas (`0ab4c169`).
-- [x] Focused response-schema coverage passed `2/2`; full backend unit
-      coverage passed `1498/1498` at `68.64%`; Ruff, formatting, and diff
-      checks passed.
-- [x] Reran the exact branch-scoped gate at `0ab4c169`; all pre-Docker stages
-      passed and `backend-coverage` stopped after 180 seconds because Docker
-      access was denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`. No later API, provider,
-      browser, or visual stage ran.
-- [ ] Restore Docker access, rerun the pending API regressions and exact gate,
-      then continue provider/history or compatible chart/list/gauge work.
-
-### 2026-09-12 — Saved tool and Radar responses use canonical wire timestamps
-
-- [x] Serialize indicator presets, chart drawings, baskets, dashboards, and
-      Radar run/detection/thread response timestamps as canonical UTC `Z`
-      values through the shared response schemas (`3377a8b1`).
-- [x] Focused response-schema coverage passed `1/1`; full backend unit
-      coverage passed `1497/1497` at `68.63%`; Ruff, formatting, and diff
-      checks passed.
-- [x] Reran the exact branch-scoped gate at `3377a8b1`; all pre-Docker stages
-      passed and `backend-coverage` stopped after 180 seconds because Docker
-      access was denied for
-      `unix:///Users/jagnelo/.docker/run/docker.sock`. No later API, provider,
-      browser, or visual stage ran.
-- [ ] Restore Docker access, rerun the pending API regressions and exact gate,
-      then continue provider/history or compatible chart/list/gauge work.
-
-### 2026-09-12 — Strategy and Study Lab responses use canonical wire timestamps
-
-- [x] Serialize saved versions, runs, batches, definition summaries, and
-      strategy coverage ranges as canonical UTC `Z` values through the strategy
-      response schemas (`aeddaa1e`).
-- [x] Focused strategy-schema coverage passed `1/1`; full backend unit
-      coverage passed `1496/1496` at `68.61%`; Ruff, formatting, and diff
-      checks passed.
-- [x] Reran the exact branch-scoped gate at `aeddaa1e`; all pre-Docker stages
-      passed and `backend-coverage` stopped after 180 seconds because Docker
-      `/v1.55/info` returned HTTP 500. No later API, provider, browser, or
-      visual stage ran.
-- [ ] Restore Docker Desktop health, rerun the pending API regressions and
-      exact gate, then continue provider/history or compatible chart/list/gauge
-      work.
-
-### 2026-09-12 — Instrument provenance responses use canonical wire timestamps
-
-- [x] Serialize computed stats, field provenance, and listing
-      effective/known/delisted timestamps as canonical UTC `Z` values through
-      the instrument response schemas (`aeaa8228`).
-- [x] Focused instrument-router/schema coverage passed `9/9`; full backend
-      unit coverage passed `1495/1495` at `68.59%`; Ruff, formatting, and diff
-      checks passed.
-- [x] Reran the exact branch-scoped gate at `aeaa8228`; all pre-Docker stages
-      passed and `backend-coverage` stopped after 180 seconds because Docker
-      `/v1.55/info` returned HTTP 500. No later API, provider, browser, or
-      visual stage ran.
-- [ ] Restore Docker Desktop health, rerun the pending API regressions and
-      exact gate, then continue provider/history or compatible chart/list/gauge
-      work.
-
-### 2026-09-12 — Benchmark history and ETF holdings responses use canonical wire timestamps
-
-- [x] Serialize benchmark-family history summaries/runs and ETF adapter,
-      snapshot, dated-history, constituent-timeline, weight-evolution, filing,
-      and backfill-job timestamps as canonical UTC `Z` values (`63e5baea`,
-      `7afa32d8`).
-- [x] Focused benchmark-history coverage passed `26/26`; ETF holdings schema
-      coverage passed `1/1`; full backend unit coverage passed `1494/1494` at
-      `68.59%`; Ruff, formatting, and diff checks passed.
-- [x] Reran the exact branch-scoped gate at `7afa32d8`; all pre-Docker stages
-      passed and `backend-coverage` stopped after 180 seconds because Docker
-      `/v1.55/info` returned HTTP 500. No later API, provider, browser, or
-      visual stage ran.
-- [ ] Restore Docker Desktop health, rerun the pending API regressions and
-      exact gate, then continue provider/history or compatible chart/list/gauge
-      work.
-
-### 2026-09-12 — Coverage and freshness responses use canonical wire timestamps
-
-- [x] Serialize instrument coverage, dataset state, local ranges, OHLCV
-      requested/covered ranges, and missing slices as canonical UTC `Z` values
-      through the coverage schemas (`a1b97145`).
-- [x] Focused coverage-router coverage passed `13/13`; full backend unit
-      coverage passed `1492/1492` at `68.57%`; Ruff, formatting, and diff
-      checks passed.
-- [x] Reran the exact branch-scoped gate at `a1b97145`; all pre-Docker stages
-      passed and `backend-coverage` stopped after 180 seconds because Docker
-      `/v1.55/info` returned HTTP 500. No later API, provider, browser, or
-      visual stage ran.
-- [ ] Restore Docker Desktop health, rerun the pending API regressions and
-      exact gate, then continue provider/history or compatible chart/list/gauge
-      work.
-
-### 2026-09-12 — Workstation and taxonomy responses use canonical wire timestamps
-
-- [x] Serialize workspace, tab/window, library-item, instrument-note,
-      market-group, and ETF-industry response timestamps as canonical UTC `Z`
-      values through the shared workstation schemas (`54f08a5c`).
-- [x] Focused workstation schema coverage passed `1/1`; full backend unit
-      coverage passed `1491/1491` at `68.56%`; Ruff, formatting, and diff
-      checks passed.
-- [x] Reran the exact branch-scoped gate at `54f08a5c`; all pre-Docker stages
-      passed and `backend-coverage` stopped after 180 seconds because Docker
-      `/v1.55/info` returned HTTP 500. No later API, provider, browser, or
-      visual stage ran.
-- [ ] Restore Docker Desktop health, rerun the pending API regressions and
-      exact gate, then continue provider/history or compatible chart/list/gauge
-      work.
-
-### 2026-09-12 — Watchlist-history responses use canonical wire timestamps
-
-- [x] Serialize source/member timing, coverage, refresh-summary, and refresh-run
-      timestamps as canonical UTC `Z` values through the shared watchlist
-      schemas (`799db14d`).
-- [x] Focused watchlist-history schema/service coverage passed `11/11`; full
-      backend unit coverage passed `1490/1490` at `68.54%`; Ruff, formatting,
-      and diff checks passed.
-- [x] Reran the exact branch-scoped gate at `799db14d`; all pre-Docker stages
-      passed and `backend-coverage` stopped after 180 seconds because Docker
-      returned permission denied for `/Users/jagnelo/.docker/run/docker.sock`.
-      No later API, provider, browser, or visual stage ran.
-- [ ] Restore Docker access, rerun the pending API regressions and exact gate,
-      then continue provider/history or compatible chart/list/gauge work.
-
-### 2026-09-12 — OHLCV chart responses use canonical wire timestamps
-
-- [x] Serialize `OHLCVBarOut` bar and derived-lineage timestamps (`ts`,
-      `derived_at`, `source_start`, `source_end`) as canonical UTC `Z` values
-      through the shared response schema (`4a95aa1c`).
-- [x] Focused OHLCV-router coverage passed `16/16`; full backend unit coverage
-      passed `1489/1489` at `68.53%`; Ruff, formatting, and diff checks passed.
-- [x] Reran the exact branch-scoped gate at `4a95aa1c`; all pre-Docker stages
-      passed and `backend-coverage` stopped after 180 seconds because Docker
-      returned permission denied for `/Users/jagnelo/.docker/run/docker.sock`.
-      No later API, provider, browser, or visual stage ran.
-- [ ] Restore Docker access, rerun the pending API regressions and exact gate,
-      then continue provider/history or compatible chart/list/gauge work.
-
-### 2026-09-12 — Screener-alert API timestamps use the canonical wire format
-
-- [x] Serialize screener-alert list response timestamps (`triggered_at`,
-      `created_at`, `updated_at`) as canonical UTC `Z` values through the
-      shared response schema (`8ae68865`).
-- [x] Focused notification/schema coverage passed `4/4`; full backend unit
-      coverage passed `1488/1488` at `68.53%`; Ruff, formatting, and diff
-      checks passed.
-- [x] Reran the exact branch-scoped gate at `8ae68865`; all pre-Docker stages
-      passed and `backend-coverage` stopped after 180 seconds because Docker
-      returned permission denied for `/Users/jagnelo/.docker/run/docker.sock`.
-      No later API, provider, browser, or visual stage ran.
-- [ ] Restore Docker access, rerun the pending API regressions and exact gate,
-      then continue provider/history or compatible chart/list/gauge work.
-
-### 2026-09-12 — Alert-list API timestamps use the canonical wire format
-
-- [x] Serialize price- and indicator-alert list response timestamps
-      (`triggered_at`, `created_at`, `updated_at`) as canonical UTC `Z` values
-      through the shared response schemas (`a466b3c3`).
-- [x] Focused notification/schema coverage passed `3/3`; full backend unit
-      coverage passed `1487/1487` at `68.53%`; Ruff, formatting, and diff
-      checks passed.
-- [x] Reran the exact branch-scoped gate at `a466b3c3`; all pre-Docker stages
-      passed and `backend-coverage` stopped after 180 seconds because Docker
-      returned permission denied for `/Users/jagnelo/.docker/run/docker.sock`.
-      No later API, provider, browser, or visual stage ran.
-- [ ] Restore Docker access, rerun the pending API regressions and exact gate,
-      then continue provider/history or compatible chart/list/gauge work.
-
-### 2026-09-12 — Alert-history API timestamps use the canonical wire format
-
-- [x] Serialize alert-history `fired_at` and `created_at` values as canonical
-      UTC `Z` strings at the response schema boundary (`1a4c1f70`).
-- [x] Focused notification/schema coverage passed `2/2`; full backend unit
-      coverage passed `1486/1486` at `68.52%`; Ruff, formatting, and diff
-      checks passed.
-- [x] Reran the exact branch-scoped gate at `1a4c1f70`; all pre-Docker stages
-      passed and `backend-coverage` stopped after 180 seconds because Docker
-      returned permission denied for `/Users/jagnelo/.docker/run/docker.sock`.
-      No later stage ran.
-- [ ] Restore Docker access, rerun the pending API regressions and exact gate,
-      then continue provider/history or compatible chart/list/gauge work.
-
-### 2026-09-12 — Compact alert history discloses canonical condition context
-
-- [x] Retain and render firing-event condition snapshots in the linked
-      Instrument Alerts history, including canonical output keys and both
-      sides of indicator comparisons (`fc0cef98`).
-- [x] Focused linked-instrument coverage passed `13/13`; full frontend Vitest
-      passed `1010/1010` across `115` files; type-check, production build, and
-      diff checks passed with only the existing chunk-size warning.
-- [x] Reran the exact branch-scoped gate at `fc0cef98`; repository/workstream,
-      dependency/migration, frontend-preparation, and lint/type-check setup
-      passed, then `backend-coverage` stopped after 180 seconds because Docker
-      returned permission denied for `/Users/jagnelo/.docker/run/docker.sock`.
-      No later API, provider, browser, or visual stage ran.
-- [ ] Restore Docker access and rerun the gate and pending API regressions.
-- [ ] Continue the next bounded provider/history or compatible
-      chart/list/gauge seam without changing visual acceptance policy.
-
-### 2026-09-12 — Alert WebSocket timestamps use the canonical wire format
-
-- [x] Serialize price and indicator `alert_triggered.triggered_at` values as
-      canonical UTC `Z` timestamps (`13535088`).
-- [x] Focused notification-engine and OneSignal coverage passed `2/2`; Ruff,
-      formatting, and diff checks passed.
-- [x] Reran the exact branch-scoped gate at product tip `13535088`; all
-      pre-Docker stages passed and `backend-coverage` stopped after 180 seconds
-      because the Docker socket was inaccessible (`permission denied` for
-      `/Users/jagnelo/.docker/run/docker.sock`). No later stage ran and no
-      product or visual-policy failure was observed.
-- [ ] Restore Docker access, run the pending alert, indicator-batch, and
-      instrument-coverage API regressions plus the exact gate, then continue
-      provider/history or another compatible chart/list/gauge seam.
-
-### 2026-09-12 — Instrument stats provenance timestamps use the canonical wire format
-
-- [x] Serialize internally computed 52-week stats `fetched_at` provenance as
-      canonical UTC `Z` (`7c4364a8`).
-- [x] Focused instrument-router coverage passed `8/8`; Ruff, formatting, and
-      diff checks passed.
-- [x] Reran the exact branch-scoped gate at product tip `7c4364a8`; all
-      pre-Docker stages passed and `backend-coverage` stopped after 180 seconds
-      because the Docker socket was inaccessible (`permission denied` for
-      `/Users/jagnelo/.docker/run/docker.sock`). No later stage ran and no
-      product or visual-policy failure was observed.
-- [ ] Restore Docker access, run the pending alert, indicator-batch, and
-      instrument-coverage API regressions plus the exact gate, then continue
-      provider/history or another compatible chart/list/gauge seam.
-
-### 2026-09-12 — Alert delivery preserves canonical indicator outputs
-
-- [x] Carry canonical output keys through indicator firing snapshots,
-      per-user WebSocket events, OneSignal payloads, alert-history summaries,
-      and in-app toasts (`7a517e3f`).
-- [x] Backend alert-condition plus notification/engine coverage passed `24/24`;
-      full frontend Vitest passed `1009/1009` across `115` files; type-check,
-      build, Ruff/format, and diff checks passed with only the existing
-      chunk-size warning.
-- [x] Reran the exact branch-scoped gate at product tip `7a517e3f`; all
-      pre-Docker stages passed and `backend-coverage` stopped after 180 seconds
-      because the Docker socket was inaccessible (`permission denied` for
-      `/Users/jagnelo/.docker/run/docker.sock`). No later stage ran and no
-      product or visual-policy failure was observed.
-- [ ] Restore Docker access, run the pending alert, indicator-batch, and
-      instrument-coverage API regressions plus the exact gate, then continue
-      provider/history or another compatible chart/list/gauge seam.
-
-### 2026-09-12 — Instrument coverage timestamps use the canonical wire format
-
-- [x] Serialize instrument membership `last_run_at` and coverage `oldest` /
-      `newest` through the canonical UTC `Z` wire serializer (`41586210`).
-- [x] Focused instrument-router coverage passed `8/8`; Ruff, formatting, and
-      diff checks passed.
-- [x] Reran the exact branch-scoped gate at product tip `41586210`; all
-      pre-Docker stages passed and `backend-coverage` stopped after 180 seconds
-      because the Docker socket was inaccessible (`permission denied` for
-      `/Users/jagnelo/.docker/run/docker.sock`). No later stage ran and no
-      product or visual-policy failure was observed.
-- [ ] Restore Docker access, run the pending alert, indicator-batch, and
-      instrument-coverage API regressions plus the exact gate, then continue
-      provider/history or another compatible chart/list/gauge seam.
-
-### 2026-09-12 — Instrument alert lists disclose canonical indicator outputs
-
-- [x] Use the shared indicator-series formatter in the linked Instrument Alerts
-      saved-alert list and accessible label, including both comparison sides
-      and explicit multi-output keys (`cbb34eab`).
-- [x] Focused linked-instrument coverage passed `12/12`; full frontend Vitest
-      passed `1008/1008` across `114` files; type-check, production build, and
-      diff checks passed with only the existing chunk-size warning.
-- [x] Reran the exact branch-scoped gate at product tip `cbb34eab`; all
-      pre-Docker stages passed and `backend-coverage` stopped after 180 seconds
-      because Docker `/v1.55/info` returned HTTP 500. No later stage ran and no
-      product or visual-policy failure was observed.
-- [ ] Restore Docker Desktop health, run the pending alert and
-      indicator-batch API regressions and exact gate at `cbb34eab`, then
-      continue provider/history or another compatible chart/list/gauge seam.
-
-### 2026-09-12 — Dashboard alert summaries disclose canonical indicator outputs
-
-- [x] Centralize indicator series-label formatting and use it in compact
-      dashboard, AlertsView, and IndicatorPanel alert summaries so explicit
-      multi-output selections remain visible (`5ed246df`).
-- [x] Focused coverage passed `51/51`; full frontend Vitest passed `1007/1007`
-      across `114` files; type-check, production build, and diff checks passed
-      with only the existing chunk-size warning.
-- [x] Reran the exact branch-scoped gate at product tip `5ed246df`; all
-      pre-Docker stages passed and `backend-coverage` stopped after 180 seconds
-      because Docker `/v1.55/info` returned HTTP 500. No later stage ran and no
-      product or visual-policy failure was observed.
-- [ ] Restore Docker Desktop health, run the pending alert and
-      indicator-batch API regressions and exact gate at `5ed246df`, then
-      continue provider/history or another compatible chart/list/gauge seam.
-
-### 2026-09-12 — Alert lists disclose canonical indicator outputs
-
-- [x] Update Alerts view and chart-side alert labels to omit transport-only
-      `output` from numeric parameter text and disclose the selected canonical
-      series (`0554789e`).
-- [x] Full frontend Vitest passed `1004/1004` across `113` files;
-      type-check, build, and diff checks passed. The exact gate passed all
-      pre-Docker stages and stopped at `backend-coverage` after 180 seconds
-      because Docker `/v1.55/info` returned HTTP 500; no later stage ran and no
-      product or visual-policy failure was observed.
-- [ ] Restore Docker Desktop health, run the pending alert and
-      indicator-batch API regressions and exact gate at `0554789e`, then
-      continue provider/history or another compatible chart/list/gauge seam.
-
-### 2026-09-12 — Exact gate receipt at alert-form tip
-
-- [x] Reran `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
-      at product tip `a557ba57` after the alert-form output-selector slice;
-      repository/workstream/dependency/migration/frontend-preparation and
-      lint/type-check setup passed.
-- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned
-      HTTP 500 for `/v1.55/info` after 180 seconds. No API, provider, browser,
-      build, or visual stage ran; no product or visual-policy failure was
-      observed.
-- [ ] Restore Docker Desktop health, run the pending alert and
-      indicator-batch API regressions and exact gate again at `a557ba57`, then
-      continue provider/history or another compatible chart/list/gauge seam.
-
-### 2026-09-12 — Direct alert forms expose explicit multi-output selection
-
-- [x] Add explicit output selectors to Instrument Alerts and the reusable Alert
-      Form for multi-output indicators; disable submission until the selected
-      canonical key is present and preserve it through edit/promotion
-      payloads (`a557ba57`).
-- [x] Focused linked-instrument alert coverage passed `11/11`; full frontend
-      Vitest passed `1004/1004` across `113` files; build, type-check,
-      Ruff/format, and diff checks passed. No visual, provider, fallback, or
-      acceptance policy changed.
-- [ ] Restore Docker Desktop health, run the pending alert and
-      indicator-batch API regressions and exact branch-scoped gate at this tip,
-      then continue provider/history or another compatible chart/list/gauge
-      seam.
-
-### 2026-09-12 — Indicator alerts require explicit multi-output selection
-
-- [x] Reject unnamed or invalid multi-output indicator outputs at
-      `/alerts/indicator`, normalize single-output alerts to canonical keys,
-      and preserve explicit keys in the alert payload (`d3bf41e3`).
-- [x] Carry the selected output from Chart Plot Library alert promotion and
-      make both alert evaluators fail closed instead of choosing a first
-      returned series. Indicator-engine coverage passed `30/30`, Chart Plot
-      Library coverage `29/29`, combined drag/drop/EasyScan/plot-library
-      coverage `49/49`, and type-check/Ruff/format/diff checks passed.
-- [x] Ran the exact branch-scoped gate at product tip `d3bf41e3` (docs tip
-      `22a47645`). Repository/workstream/dependency/migration/frontend
-      preparation and lint setup passed; `backend-coverage` stopped after the
-      180-second Docker readiness window because Docker `/v1.55/info` returned
-      HTTP 500. No later stage ran and no product or visual failure was
-      observed.
-- [ ] Restore Docker Desktop health, run the pending alert and indicator-batch
-      API regressions plus the exact branch-scoped gate, then continue
-      provider/history or another compatible chart/list/gauge seam.
-
-### 2026-09-12 — Screener conditions fail closed on ambiguous indicator outputs
-
-- [x] Remove synchronous screener first-output fallback for indicator-threshold,
-      indicator-cross, and price-vs-indicator conditions; report structured
-      per-instrument exclusions for missing or invalid outputs (`93849ae6`).
-- [x] Add focused ambiguous/invalid Bollinger Band condition regressions;
-      screener-engine coverage passed `33/33`, Ruff, formatting, and diff checks
-      passed. No visual, provider, fallback, or acceptance policy changed.
-- [ ] Restore Docker Desktop health, run the pending indicator-batch API
-      regressions and exact branch-scoped gate, then continue provider/history
-      or another compatible chart/list/gauge seam.
-
-### 2026-09-12 — Indicator-batch API requires explicit multi-output selection
-
-- [x] Reject missing or invalid outputs for known multi-output indicators at
-      `/analysis/indicator-batch` with actionable 422 contracts; preserve
-      single-output and valid explicit-output behavior (`39562441`).
-- [x] Add API regression coverage for missing, valid, and invalid Bollinger Band
-      outputs. The indicator engine unit suite passed `29/29`; Ruff, formatting,
-      and diff checks passed. The API fixture coverage remains pending the
-      Docker-backed integration environment. No visual, provider, fallback, or
-      acceptance policy changed.
-- [x] Ran the exact branch-scoped gate at product tip `39562441`. Repository,
-      workstream, dependency, migration, frontend-preparation, and lint stages
-      passed; `backend-coverage` stopped after the 180-second Docker readiness
-      window because the Docker API returned permission denied. No later stage
-      ran and no product or visual failure was observed.
-- [ ] Restore Docker Desktop health, run the focused indicator-batch API
-      regressions and exact branch-scoped gate, then continue provider/history
-      or another compatible chart/list/gauge seam.
-
-### 2026-09-12 — Persisted watchlist indicator columns fail closed on ambiguity
-
-- [x] Reject missing/invalid outputs during persisted watchlist indicator
-      hydration with explicit `explicit_output_required` cells; normalize
-      single-output legacy columns to canonical keys (`385faf40`).
-- [x] Preserve the selector/drag/drop contract and all existing chart/list
-      behavior. Full frontend Vitest remained `1002/1002` across `113` files;
-      type-check, Ruff/format, and diff checks passed. No backend, visual,
-      provider, fallback, or acceptance policy changed.
-- [x] Reran the exact branch-scoped gate at product tip `385faf40`. Repository,
-      dependency, migration, frontend-preparation, and lint stages passed;
-      `backend-coverage` stopped after the 180-second Docker readiness window
-      because Docker Desktop `/v1.55/info` returned HTTP 500. No later stage
-      ran and no product or visual failure was observed.
-- [ ] Restore Docker Desktop health, rerun the exact branch-scoped gate, then
-      continue provider/history or another compatible chart/list/gauge seam.
-
-### 2026-09-12 — Chart Plot Library exposes explicit multi-output selection
-
-- [x] Add a bounded output selector to multi-output chart indicator rows using
-      canonical backend keys; persist the chosen key so drag/drop, watchlist,
-      EasyScan, and compatible promotion paths have an explicit series
-      contract (`1152b4e3`).
-- [x] Keep the unset state fail-closed and preserve chart rendering/chart-copy
-      behavior. Focused Chart Plot Library coverage passed `28/28`; full
-      frontend Vitest passed `1002/1002` across `113` files; type-check,
-      Ruff/format, and diff checks passed. No backend, visual, provider,
-      fallback, or acceptance policy changed.
-- [x] Reran the exact branch-scoped gate at product tip `1152b4e3`. Repository,
-      dependency, migration, frontend-preparation, and lint stages passed;
-      `backend-coverage` stopped after the 180-second Docker readiness window
-      because Docker Desktop `/v1.55/info` returned HTTP 500. No later stage
-      ran and no product or visual failure was observed.
-- [ ] Restore Docker Desktop health, rerun the exact branch-scoped gate, then
-      continue provider/history or another compatible chart/list/gauge seam.
-
-### 2026-09-12 — Chart plot output contracts survive drag/drop handoffs
-
-- [x] Carry canonical single-output keys through chart drag payloads and
-      direct chart-library watchlist copies; include timeframe/output in stable
-      indicator-column keys so distinct selections do not collide
-      (`72bdeea2`).
-- [x] Refuse ambiguous multi-output chart drops into numeric watchlist columns
-      and EasyScan technical conditions with visible destination status while
-      preserving chart rendering and chart-to-chart copying.
-- [x] Focused drag/drop + EasyScan coverage passed `20/20`, Chart Plot Library
-      coverage `27/27`, and full frontend Vitest `1001/1001` across `113` files;
-      type-check, Ruff/format, and diff checks passed. No backend, visual,
-      provider, fallback, or acceptance policy changed.
-- [x] Reran the exact branch-scoped gate at product tip `72bdeea2`. Repository,
-      dependency, migration, frontend-preparation, and lint stages passed;
-      `backend-coverage` stopped after the 180-second Docker readiness window
-      because Docker Desktop `/v1.55/info` returned HTTP 500. No later stage
-      ran and no product or visual failure was observed.
-- [ ] Restore Docker Desktop health, rerun the exact branch-scoped gate, then
-      continue provider/history or another compatible chart/list/gauge seam.
-
-### 2026-09-12 — Chart plot promotion rejects ambiguous multi-output indicators
-
-- [x] Make single-output chart indicator promotions declare the canonical
-      backend output key instead of the implicit `value` fallback.
-- [x] Refuse condition, Boolean-column, filter, scan, Market Gauge, alert,
-      Strategy-signal, and watchlist-column-copy actions for multi-output
-      indicators until an explicit output-selection contract is available;
-      chart rendering and chart-to-chart copying remain supported.
-- [x] Focused Chart Plot Library coverage passed `27/27`; full frontend
-      Vitest passed `998/998` across `113` files; type-check, Ruff/format, and
-      diff checks passed (`4db5cc1d`).
-- [x] Reran the exact branch-scoped gate at this product tip. Repository,
-      dependency, migration, frontend-preparation, and lint stages passed;
-      `backend-coverage` stopped after the 180-second Docker readiness window
-      because Docker Desktop `/v1.55/info` returned HTTP 500. No later gate
-      stage ran and no product or visual failure was observed.
-- [ ] Restore Docker Desktop health, rerun the exact gate, and continue the
-      next provider/history or compatible chart/list/gauge seam.
-
-### 2026-09-12 — Study Lab structured artifacts gain threshold fan-out
-
-- [x] Add the same explicit finite-observation threshold controls to named
-      scalar, series, and range-center artifacts in multi-output/structured
-      Study Lab runs. The controls reuse the existing Boolean column, filter,
-      scan, Market Gauge, alert, and Strategy signal adapters with preserved
-      output and membership lineage; cross-sectional aggregate restrictions are
-      unchanged.
-- [x] Focused Study Lab coverage passed `30/30`; full frontend Vitest passed
-      `997/997` across `113` files; frontend type-check, Ruff, formatting, and
-      diff checks passed. No backend, visual, provider, fallback, or acceptance
-      policy changed (`e048db09`).
-- [ ] Rerun the exact branch-scoped gate at this tip after Docker Desktop's API
-      is healthy, then continue provider/history or another compatible
-      chart/list/gauge seam.
-
-### 2026-09-12 — Study capability matrix matches threshold fan-out
-
-- [x] Align the shared Study artifact capability matrix with the implemented
-      promotion controls. Scalar artifacts now document direct watchlist
-      columns plus explicit-threshold Boolean column/filter/scan/Market Gauge/
-      alert/Strategy signal targets; series and range-center artifacts document
-      the same threshold fan-out alongside their chart/latest-value paths.
-- [x] Preserve the aggregate Study boundary: cross-sectional scalar, Boolean,
-      and range artifacts remain view/export-only, while aggregate series can
-      promote only to an aggregate chart plot. Focused Study Lab, Research
-      Results, and capability coverage passed `68/68`; frontend type-check
-      passed. No backend, visual, provider, fallback, or acceptance policy
-      changed.
-- [ ] Rerun the exact branch-scoped gate at this tip after Docker Desktop's API
-      is healthy, then continue provider/history or another compatible
-      chart/list/gauge seam.
-
-### 2026-09-12 — Capability-matrix exact gate remains Docker-blocked
-
-- [x] Attempt the exact branch-scoped gate at documentation tip `f79a79aa`
-      (product tip `2523d757`). Dependency resolution, migration compatibility,
-      frontend dependency preparation, and lint/format/type-check setup passed.
-      The Docker readiness helper waited 180 seconds and then stopped at
-      `backend-coverage` because Docker Desktop returned HTTP 500 and could not
-      route to `192.168.65.7:2376`.
-- [x] Keep the result separate from product failures: backend integration,
-      provider, browser, and visual stages did not run, and no product
-      assertion or visual-policy failure was observed. The earlier aggregate
-      product tip still has confirmed backend units `1,479/1,479`.
-- [ ] Rerun the exact gate after Docker health is restored, then continue the
-      next provider/history or compatible chart/list/gauge seam.
-
-### 2026-09-12 — Aggregate Study series keep cross-sectional semantics
-
-- [x] Mark factory breadth/ranking studies as cross-sectional, persist that
-      scope in Study runs, and execute aggregate Study sources once over their
-      prepared universe instead of replaying them per member.
-- [x] Add the explicit `study_series_to_series` adapter: one named finite
-      series can become an aggregate chart plot while malformed, unaligned,
-      non-numeric, or ambiguous outputs fail closed. Preserve source/run/
-      output/membership lineage and require the declared `series` contract.
-- [x] Keep Research Results and Study Lab aggregate runs aggregate-only:
-      chart-plot promotion is available for series artifacts, while scalar,
-      Boolean, range, latest-value, and threshold coercions remain view/export
-      only. Focused checks passed runner `3/3`, code-asset integration `1/1`
-      (two existing NumPy warnings), Research Results `36/36`, Study Lab
-      `29/29`, frontend type-check, Ruff, formatting, and diff checks.
-- [x] Run and record the exact elevated branch-scoped Docker-backed gate at
-      product tip `15f97dfa`: backend unit coverage passed `1,479/1,479`, then
-      all backend integration tests failed at shared Testcontainers setup when
-      Docker returned HTTP 500 creating `testcontainers/ryuk:0.7.0` (Docker
-      Desktop VM `192.168.65.7:2376` had no route). The gate stopped at
-      `backend-coverage` before frontend/stack/provider/browser/visual stages;
-      cleanup refused because Docker inspection was unavailable. No product
-      assertion or visual policy failure was observed.
-- [ ] Once Docker Desktop is healthy, rerun the exact gate; preserve the six
-      protected visual state-oracle diffs and unchanged visual/provider/
-      fallback/acceptance policy.
-
-### 2026-09-12 — Scalar Study outputs gain explicit threshold fan-out
-
-- [x] Add a finite numeric scalar threshold adapter for direct and structured
-      Study Lab results. The explicit `scalar_target_to_boolean` contract
-      supports immutable Boolean columns, watchlist filters, scans, Market
-      Gauges, alerts, and Strategy signals while preserving source/run/output
-      and canonical membership lineage; invalid/non-finite inputs fail closed.
-- [x] Add focused regressions: runner `114/114`, code-asset integration `24/24`
-      (two existing warnings), Research Results `35/35`, Study Lab `28/28`,
-      frontend type-check, Ruff, formatting, and diff checks all passed.
-- [x] Rerun the exact elevated branch-scoped Docker-backed gate at product tip
-      `af142b1d`. Backend units passed `1,477/1,477`; backend integration passed
-      `398/398`; frontend dependency/lint/format/type-check/Vitest/build/
-      contracts/probes, compose/provider contracts, research-runner probes, and
-      functional Playwright passed (`165` passed, `107` documented skips across
-      `272` tests). Visual parity completed `104` cases with `98` passes and
-      exactly the six established protected state-oracle diffs:
-      `watchlist-column-editor-open` at visual-1080p-100/125 and
-      `workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125.
-      The gate exited `1` only at `e2e-visual`; teardown removed all
-      branch-scoped containers, volumes, network, testcontainer sessions, and
-      four images. No visual, provider, fallback, or acceptance policy changed.
-- [ ] Continue provider/history or compatible chart/list/gauge work without
-      changing the six protected visual state-oracle diffs or acceptance policy.
-
-### 2026-09-12 — Exact gate after named event-filter artifact guard
-
-- [x] Rerun the exact elevated branch-scoped Docker-backed gate at product tip
-      `df4c127f` after adding the direct multi-output event filter/alert
-      artifact-name guard. Backend units passed `1,476/1,476`; backend
-      integration passed `396/396`; frontend dependency/lint/format/type-check/
-      Vitest/build/contracts/probes, compose/provider contracts,
-      research-runner probes, and functional Playwright passed (`165` passed,
-      `107` documented skips across `272` tests).
-- [x] Visual parity completed `104` cases with `98` passes and the same six
-      protected state-oracle diffs: `watchlist-column-editor-open` at
-      visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125
-      and visual-1440p-100/125. The gate exited `1` only at `e2e-visual`, and
-      branch-scoped teardown removed all containers, volumes, network,
-      testcontainer sessions, and four images. No visual, provider, fallback,
-      or acceptance policy changed; live 100k-point proof remains unclaimed.
-- [ ] Continue the next bounded provider/history or compatible chart/list/gauge
-      seam, then R1 canonical population/history breadth, W1/MN continuity,
-      dense-data evidence, and R2-R7 without changing protected visual policy.
-
-### 2026-09-12 — Server-side event filter promotion requires named output
-
-- [x] Close the remaining direct multi-output event adapter ambiguity. The
-      filter/alert promotion endpoint now rejects an unnamed direct `events`
-      run with multiple named artifacts instead of adapting the first output;
-      named selections retain the source artifact and canonical member scope.
-- [x] Extend the integration regression to cover missing-name rejection and a
-      successful named filter alongside the existing named Strategy signal.
-      Strategy Lab integration passed `27/27` with 54 warnings; Ruff,
-      formatting, and diff checks passed. The last exact gate at the preceding
-      product tip remains the recorded baseline (`98/104` visual with the same
-      six protected state-oracle diffs); rerun the exhaustive gate at this tip.
-- [x] The exact gate was rerun at the follow-up tip `df4c127f`; see the
-      recorded gate section above for the unchanged six-diff visual blocker.
-- [ ] Continue the next bounded provider/history or compatible chart/list/gauge
-      seam, then R1 canonical population/history breadth, W1/MN continuity,
-      dense-data evidence, and R2-R7 without changing protected visual policy.
-
-### 2026-09-12 — Named event-artifact promotion preserves output selection
-
-- [x] Close the direct multi-output events promotion gap. The API now requires
-      an explicit `artifact_name` when a completed `events` run contains more
-      than one named events artifact instead of silently promoting the first;
-      the selected output name is preserved in Strategy signal lineage.
-- [x] Research Results and Study Lab expose named filter/alert/signal actions
-      for direct multi-event runs, while top-level promotion actions remain
-      available only for an unambiguous single event artifact. Focused checks:
-      Research Results `34/34`, Study Lab plus capability tests `30/30`, and
-      Strategy Lab integration `27/27` (54 warnings); type-check, Ruff,
-      formatting, and diff checks passed.
-- [x] Rerun the exact elevated branch-scoped gate at product tip `ea7eccf1`.
-      Backend units `1,476/1,476`, backend integration `395/395`, frontend
-      dependency/lint/format/type-check/Vitest/build/contracts/probes,
-      compose/provider contracts, research-runner probes, and functional
-      Playwright `165` passed with `107` documented skips across `272` tests.
-      Visual parity completed `98/104`; the six established protected
-      state-oracle diffs remain unchanged. Teardown removed all branch-scoped
-      containers, volumes, network, testcontainer sessions, and four images.
-      No visual, provider, fallback, or acceptance policy changed.
-- [ ] Continue the next bounded provider/history or compatible chart/list/gauge
-      seam, then R1 canonical population/history breadth, W1/MN continuity,
-      dense-data evidence, and R2-R7 without changing protected visual policy.
-
-### 2026-09-12 — Strategy Lab ETF visibility exact-tip gate
-
-- [x] Rerun the exact branch-scoped Docker-backed integration gate at product
-      tip `4579d1e0` after applying the shared ETF fixture-visibility boundary
-      to Strategy Lab static and dynamic universes.
-- [x] The gate passed all non-visual stages: backend units `1,476/1,476`,
-      backend integration `395/395`, frontend dependency/lint/format/type
-      check/Vitest/build/contracts/probes, compose/provider contracts,
-      research-runner probes, and functional Playwright `165` passed with
-      `107` documented skips across `272` tests. Frontend Vitest completed
-      `113` files and `991` tests with `82.7%` statements.
-- [x] Visual parity completed `104` cases with `98` passes and exactly the
-      established protected state-oracle diffs: `watchlist-column-editor-open`
-      at visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125
-      and visual-1440p-100/125. The gate exited `1` only at `e2e-visual`;
-      teardown removed all branch-scoped containers, volumes, network,
-      testcontainer sessions, and four images. No visual, provider, fallback,
-      or acceptance policy changed.
-- [ ] Continue the next bounded provider/history or compatible chart/list/gauge
-      seam, then R1 canonical population/history breadth, W1/MN continuity,
-      dense-data evidence, and R2-R7 without changing protected visual policy.
-
-### 2026-09-12 — Strategy Lab ETF universes honor canonical fixture visibility
-
-- [x] Apply the shared controlled-fixture visibility contract to Strategy Lab's
-      static and dynamic ETF holdings resolvers. Canonical research reads now
-      exclude the exact `controlled_fixture` + `e2e_reference` pair, while
-      seeded runs remain explicitly fixture-scoped (`4579d1e0`).
-- [x] Add the integration regression proving a newer deterministic fixture
-      snapshot cannot replace a canonical ETF snapshot in a Strategy Lab
-      coverage preview. The focused case passed `1/1`, the complete Strategy
-      Lab integration file passed `26/26`, Ruff/formatting/diff checks passed,
-      and the full backend unit suite passed `1,476/1,476` at `68.52%` isolated
-      coverage.
-- [ ] Rerun the exact branch-scoped integration gate at this product tip;
-      continue provider/family history breadth, canonical population, W1/MN
-      continuity, dense-data evidence, and R2-R7 without changing protected
-      visual policy.
-
-### 2026-09-12 — SEC fallback requires canonical materialized members
-
-- [x] Keep the SEC bootstrap fallback eligible when the latest materialized
-      snapshot is complete but contains only cash/non-equity, unresolved, or
-      placeholder rows; only a canonical resolved equity/security member may
-      suppress the fallback (`87cc8bd2`).
-- [x] Add the focused regression proving a complete cash-only snapshot falls
-      through to SEC N-PORT backfill; the focused bootstrap suite passed
-      `16/16`, with Ruff, formatting, and diff checks clean.
-- [x] The full backend unit suite passed `1,476/1,476` at `68.53%` isolated
-      coverage. The exact gate passed backend integration `391/391`, frontend
-      static/build/test/contracts/probes, and functional Playwright (`165`
-      passed, `107` documented skips across `272`). Visual parity completed
-      `99/104`; the five failures were all within the established protected
-      `workspace-floating` / `watchlist-column-editor-open` scaled cases.
-      Teardown removed all branch-scoped resources and four images. No visual,
-      provider, fallback, or acceptance policy changed.
-- [ ] Continue provider/family history breadth, remaining canonical
-      population, W1/MN continuity, dense-data evidence, and R2-R7 without
-      changing protected visual policy.
-
-### 2026-09-12 — Source availability requires canonical materialized members
-
-- [x] Align ETF and benchmark-family source descriptors with the canonical
-      materialized-member contract: once snapshot rows are loaded, cash-only,
-      non-equity-only, unresolved, and placeholder-only rows remain
-      `holdings_snapshot_unresolved` even when the raw `resolved_count` is
-      positive; metadata-only legacy snapshots retain the counter compatibility
-      path (`73fa0b33`).
-- [x] Add the Docker-backed materialized cash/non-equity regression; the
-      focused source checks passed `2/2`, the complete watchlist integration
-      file passed `53/53`, and Ruff, formatting, and diff checks were clean.
-- [x] The full backend unit suite passed `1,475/1,475` at `68%` isolated
-      coverage. The exact gate passed all non-visual stages and functional
-      Playwright (`165` passed, `107` documented skips across `272`). Visual
-      parity remained `98/104` with the same six protected diffs; teardown
-      removed all resources and four images. No visual, provider, fallback, or
-      acceptance policy changed.
-- [ ] Continue provider/family history breadth, remaining canonical
-      population, W1/MN continuity, dense-data evidence, and R2-R7 without
-      changing protected visual policy.
-
-### 2026-09-11 — Historical backfill requires canonical snapshot rows
-
-- [x] Restrict benchmark-family member-history backfill candidates to
-      persisted snapshots with a resolved, non-placeholder canonical
-      equity/security row; raw `resolved_count` alone and non-equity-only or
-      metadata-only snapshots cannot create queueable history work
-      (`f3523bdd`).
-- [x] Add the real-Postgres cash-only snapshot regression; focused backfill
-      coverage passed `1/1`, the history service suite passed `25/25`, and
-      Ruff, formatting, and diff checks were clean.
-- [x] The full backend unit suite passed `1,475/1,475` at `68%` isolated
-      coverage. The exact gate passed backend integration `391/391`, frontend
-      checks, and functional Playwright (`165` passed, `107` documented skips
-      across `272`). Visual parity remained `98/104` with the same six
-      protected diffs; teardown removed all resources and four images. No
-      visual, provider, fallback, or acceptance policy changed.
-- [ ] Continue provider/family history breadth, canonical population, W1/MN
-      continuity, dense-data evidence, and R2-R7 without changing protected
-      visual policy.
-
-### 2026-09-11 — Bootstrap readiness requires canonical members
-
-- [x] Align core workstation bootstrap with the canonical ETF member
-      readiness contract: materialized snapshots need a resolved,
-      non-placeholder equity member; metadata-only snapshots retain the raw
-      `resolved_count` compatibility path (`a4571fdb`).
-- [x] Add focused readiness/bootstrap regressions; the bounded suite passed
-      `26/26`, with Ruff, formatting, and diff checks clean.
-- [x] The full backend unit suite passed `1,475/1,475` at `69%` isolated
-      coverage. The exact gate passed backend integration `391/391`, frontend
-      checks, and functional Playwright (`165` passed, `107` documented skips
-      across `272`). Visual parity remained `98/104` with the same six
-      protected diffs; teardown removed all resources and four images. No
-      visual, provider, fallback, or acceptance policy changed.
-- [ ] Continue provider/family history breadth, canonical population, W1/MN
-      continuity, dense-data evidence, and R2-R7 without changing protected
-      visual policy.
-
-### 2026-09-11 — Family coverage requires canonical snapshot members
-
-- [x] Require materialized benchmark-family snapshots to expose at least one
-      resolved, non-placeholder canonical equity member before reporting
-      point-in-time coverage as available; preserve raw-count evidence only for
-      legacy metadata-only snapshots (`f3943b82`).
-- [x] Add focused regressions for canonical, non-equity-only, and metadata-only
-      family snapshots; coverage passed `3/3`, with Ruff, formatting, and diff
-      checks clean.
-- [x] The full backend unit suite passed `1,474/1,474` at `68%` isolated
-      coverage. The exact gate passed backend integration `391/391`, frontend
-      checks, and functional Playwright (`165` passed, `107` documented skips
-      across `272`). Visual parity remained `98/104` with the same six
-      protected diffs; teardown removed all resources and four images. No
-      visual, provider, fallback, or acceptance policy changed.
-- [ ] Continue provider/family history breadth, canonical population, W1/MN
-      continuity, dense-data evidence, and R2-R7 without changing protected
-      visual policy.
-
-### 2026-09-11 — Family readiness metadata matches canonical members
-
-- [x] Deduplicate benchmark-family coverage metadata readiness by canonical
-      instrument ID so duplicate disclosure rows cannot inflate member,
-      weight, or classification counts; retain raw holdings as evidence
-      (`184cedd6`). A member is weighted when any eligible duplicate row
-      provides a weight.
-- [x] Add the Docker-backed duplicate-readiness regression; focused coverage
-      passed `1/1`, with Ruff, formatting, and diff checks clean.
-- [x] The full backend unit suite passed `1,474/1,474` at `68%` isolated
-      coverage. The exact gate passed backend integration `391/391`, frontend
-      checks, and functional Playwright (`165` passed, `107` documented skips
-      across `272`). Visual parity remained `98/104` with the same six
-      protected diffs; teardown removed all resources and four images. No
-      visual, provider, fallback, or acceptance policy changed.
-- [ ] Continue provider/family history breadth, canonical population, W1/MN
-      continuity, dense-data evidence, and R2-R7 without changing protected
-      visual policy.
-
-### 2026-09-11 — Source catalog counts match canonical ETF members
-
-- [x] Align latest ETF and benchmark-family source-picker `member_count` with
-      publishable canonical instrument IDs while retaining raw snapshot counts
-      in provenance (`5819244d`).
-- [x] Extend the Docker-backed source-listing regression with duplicate
-      canonical disclosure rows; focused coverage passed `3/3`, with Ruff,
-      formatting, and diff checks clean.
-- [x] The full backend unit suite passed `1,474/1,474` at `69%` coverage.
-      The exact gate passed backend integration `391/391`, frontend checks,
-      and functional Playwright (`165` passed, `107` documented skips across
-      `272`). Visual parity remained `98/104` with the same six protected
-      diffs; teardown removed all resources and four images. No visual,
-      provider, fallback, or acceptance policy changed.
-- [ ] Continue provider/family history breadth, remaining canonical
-      population, W1/MN continuity, dense-data evidence, and R2-R7 without
-      changing protected visual policy.
-
-### 2026-09-11 — Canonical ETF source resolution deduplicates member IDs
-
-- [x] Deduplicate resolved WatchlistSource and generic ETF breadth members by
-      canonical instrument ID; derived equal-weight sources use unique IDs and
-      native ETF weights aggregate duplicate disclosure rows (`85eaf4da`).
-- [x] Add Docker-backed duplicate-row regressions; focused coverage passed
-      `2/2`, with Ruff, formatting, and diff checks clean.
-- [x] The full backend unit suite passed `1,474/1,474` at `69%` coverage.
-      The exact gate passed backend integration `391/391`, frontend checks,
-      and functional Playwright (`165` passed, `107` documented skips across
-      `272`). Visual parity remained `98/104` with the same six protected
-      diffs; teardown removed all resources and four images. No visual,
-      provider, fallback, or acceptance policy changed.
-- [ ] Continue provider/family history breadth, remaining canonical
-      population, W1/MN continuity, dense-data evidence, and R2-R7 without
-      changing protected visual policy.
-
-### 2026-09-11 — ETF resolver enforces canonical equity eligibility
-
-- [x] Make low-level ETF constituent resolution and snapshot reconcile use the
-      normalized canonical `security` + supported-equity predicate, keeping
-      case/label variants such as `Fixed Income` evidence-only (`6365ec5a`).
-- [x] Add the resolver/reconcile regression; focused coverage passed `4/4`,
-      with Ruff, formatting, and diff checks clean.
-- [x] The full backend unit suite passed `1,474/1,474` at `69%` coverage.
-      The exact gate passed backend integration `391/391`, frontend checks,
-      and functional Playwright (`165` passed, `107` documented skips across
-      `272`). Visual parity remained `98/104` with the same six protected
-      diffs; teardown removed all resources and four images. No visual or
-      acceptance policy changed.
-- [ ] Continue provider/family history breadth, remaining canonical
-      population, W1/MN continuity, dense-data evidence, and R2-R7 without
-      changing protected visual policy.
-
-### 2026-09-11 — Classification maintenance targets canonical ETF candidates
-
-- [x] Restrict ETF classification-maintenance queueing to normalized
-      `security` rows with supported equity holding types; cash, derivatives,
-      and other non-member disclosures remain evidence-only (`b504810f`).
-- [x] Add bounded-maintenance and excluded-only snapshot regressions; focused
-      coverage passed `3/3`, with Ruff, formatting, and diff checks clean.
-- [x] The full backend unit suite passed `1,473/1,473` at `69%` coverage.
-      The exact gate reached backend integration `391/391`, frontend checks,
-      and functional Playwright (`164` passed, `107` documented skips); one
-      first-run EasyScan case was non-reproducible and passed twice when
-      rerun against a fresh stack. Visual parity remained `98/104` with the
-      same six protected diffs; teardown removed all resources and four
-      images. No visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, remaining canonical
-      population, W1/MN continuity, dense-data evidence, and R2-R7 without
-      changing protected visual policy.
-
-### 2026-09-11 — Strategy Lab ETF universes use canonical membership
-
-- [x] Align static and dynamic Strategy Lab ETF universe resolution with the
-      canonical resolved security/equity member contract, normalizing provider
-      row-type casing and excluding unresolved rows, non-equities, and linked
-      `HOLDING-*` placeholders (`b131cfa6`).
-- [x] Preserve raw provider audit labels while allowing direct ETF ingestion to
-      resolve case-variant security labels; the Docker-backed static/dynamic
-      regression coverage passed within integration `391/391`, with Ruff,
-      formatting, and diff checks clean.
-- [x] The full backend unit suite passed `1,472/1,472` at `68.57%` coverage.
-      The exact tip gate passed all non-visual stages, including frontend
-      Vitest `991/991`/build/contracts/probes and functional Playwright
-      (`165` passed, `107` documented skips). Visual parity remained `98/104`
-      with exactly the six established protected diffs; clean teardown removed
-      all branch resources and four images. No visual or acceptance policy
-      changed.
-- [ ] Continue provider/family history breadth, remaining canonical
-      population, W1/MN continuity, dense-data evidence, and R2-R7 without
-      changing protected visual policy.
-
-### 2026-09-11 — Enforce canonical ETF basket membership
-
-- [x] Align read-only ETF holdings basket materialization with the canonical
-      resolved security/equity member contract, excluding unresolved rows,
-      linked `HOLDING-*` placeholders, unsupported labels, and non-security
-      rows while normalizing provider row-type casing (`404a5e70`).
-- [x] Extend the mixed ETF snapshot materialization regression with a
-      placeholder and a no-identity unresolved row; the Docker-backed check
-      passed `1/1`, with Ruff, formatting, and diff checks clean.
-- [x] The full backend unit suite passed `1,472/1,472` at `69%` isolated
-      coverage. The exact tip gate passed all non-visual stages, including
-      integration `389/389` at `81.56%`, frontend Vitest `991/991`/build/
-      contracts/probes, and functional Playwright (`165` passed, `107`
-      documented skips across `272`). Visual parity remained `98/104` with
-      exactly the same six protected diffs; the gate exited at `e2e-visual`
-      only after clean teardown removed all resources and four images. No
-      visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, remaining canonical
-      population, W1/MN continuity, dense-data evidence, and R2-R7 without
-      changing protected visual policy.
-
-### 2026-09-11 — Normalize family history queue and derived equal-weight labels
-
-- [x] Normalize provider `row_type` labels in benchmark-family history queue
-      planning and derived equal-weight source membership (`c058eb0b`) so
-      `Security` variants retain canonical members and weights.
-- [x] Add focused queue and Docker-backed benchmark-family source regressions;
-      both passed `1/1`, with Ruff, formatting, and diff checks clean.
-- [x] The full backend unit suite passed `1,472/1,472` at `69%` isolated
-      coverage. The exact tip gate passed all non-visual stages, including
-      integration `389/389` at `81.56%`, frontend Vitest `991/991`/build/
-      contracts/probes, and functional Playwright (`165` passed, `107`
-      documented skips across `272`). Visual parity remained `98/104` with
-      exactly the same six protected diffs; the gate exited at `e2e-visual`
-      only after clean teardown removed all resources and four images. No
-      visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, remaining canonical
-      population, W1/MN continuity, dense-data evidence, and R2-R7 without
-      changing protected visual policy.
-
-### 2026-09-11 — Generic breadth consumers share canonical member eligibility
-
-- [x] Align the shared generic breadth resolver and family readiness metadata
-      with canonical member eligibility across current, historical, reference,
-      and Python/Study Lab paths; normalize issuer labels and reject unresolved
-      or internal `HOLDING-*` placeholders (`09c7930c`).
-- [x] Add the historical generic ETF breadth regression; the Docker-backed
-      check passed `1/1`, with Ruff, formatting, and diff checks clean.
-- [x] The full backend unit suite passed `1,472/1,472` at `69%` isolated
-      coverage. The exact tip gate passed all non-visual stages, including
-      integration `389/389` at `81.56%`, frontend Vitest `991/991`/build/
-      contracts/probes, and functional Playwright (`165` passed, `107`
-      documented skips across `272`). Visual parity remained `98/104` with
-      exactly the same six protected diffs; the gate exited at `e2e-visual`
-      only after clean teardown removed all resources and four images. No
-      visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, remaining canonical
-      population, W1/MN continuity, dense-data evidence, and R2-R7 without
-      changing protected visual policy.
-
-### 2026-09-11 — Canonical ETF source reads isolate controlled fixtures
-
-- [x] Apply the canonical-vs-controlled-fixture visibility boundary to
-      workstation source descriptors and ETF/benchmark-family source
-      resolution; normal reads cannot select a newer `e2e_reference` fixture
-      (`83bddc9a`).
-- [x] Add the real-Postgres regression covering source listing and resolved
-      members; it passed `1/1`, with Ruff, formatting, and diff checks clean.
-- [x] The full backend unit suite passed `1,472/1,472` at `68.55%` isolated
-      coverage. The exact tip gate passed all non-visual stages, including
-      integration `389/389` at `81.56%`, frontend Vitest `991/991`/build/
-      contracts/probes, and functional Playwright (`165` passed, `107`
-      documented skips across `272`). Visual parity remained `98/104` with
-      exactly the same six protected diffs; the gate exited at `e2e-visual`
-      only after clean teardown removed all resources and four images. No
-      visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, remaining canonical
-      population, W1/MN continuity, dense-data evidence, and R2-R7 without
-      changing protected visual policy.
-
-### 2026-09-11 — Industry drill-down excludes canonical placeholders
-
-- [x] Reject linked internal `HOLDING-*` placeholder instruments in industry
-      composition, curated proxy verification, and constituent drill-downs so
-      valid-looking placeholder classifications cannot enter canonical
-      coverage or results (`699624db`).
-- [x] Add the placeholder industry regression; the Docker-backed API checks
-      passed `2/2`, and Ruff, formatting, and diff checks passed.
-- [x] The full backend unit suite passed `1,472/1,472` at `68.57%` isolated
-      coverage. The exact tip gate passed all non-visual stages, including
-      integration `389/389` at `81.56%`, frontend Vitest `991/991`/build/
-      contracts/probes, and functional Playwright (`165` passed, `107`
-      documented skips across `272`). Visual parity remained `98/104` with
-      exactly the same six protected diffs; the gate exited at `e2e-visual`
-      only after clean teardown removed all resources and four images. No
-      visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, remaining canonical
-      population, W1/MN continuity, dense-data evidence, and R2-R7 without
-      changing protected visual policy.
-
-### 2026-09-11 — Direct family breadth accepts canonical equity labels
-
-- [x] Use the shared supported-equity label set in direct benchmark-family
-      breadth so issuer spellings such as `common stock` are evaluated while
-      unresolved, placeholder, and non-equity rows remain excluded
-      (`a1b08108`).
-- [x] Extend the mixed-family API regression with a `common stock` member;
-      the Docker-backed check passed `1/1`, and Ruff, formatting, and diff
-      checks passed.
-- [x] The full backend unit suite passed `1,472/1,472` at `68.57%` isolated
-      coverage. The exact tip gate passed all non-visual stages, including
-      integration `389/389` at `81.56%`, frontend Vitest `991/991`/build/
-      contracts/probes, and functional Playwright (`165` passed, `107`
-      documented skips across `272`). Visual parity remained `98/104` with
-      exactly the same six protected diffs; the gate exited at `e2e-visual`
-      only after clean branch-scoped teardown removed all resources and four
-      images. No visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, remaining canonical
-      population, W1/MN continuity, dense-data evidence, and R2-R7 without
-      changing protected visual policy.
-
-### 2026-09-11 — Generic ETF breadth excludes unresolved and placeholder members
-
-- [x] Align generic `etf_holdings` breadth with canonical member eligibility:
-      resolved non-placeholder security rows and supported equity issuer labels
-      only; preserve disclosed source rows and explicit `unresolved_member`
-      exclusions (`01dc3682`).
-- [x] Add the mixed canonical/placeholder/unresolved ETF breadth regression;
-      the Docker-backed API check passed `1/1`, and Ruff, formatting, and diff
-      checks passed.
-- [x] The full backend unit suite passed `1,472/1,472` at `68.57%` isolated
-      coverage. The exact tip gate passed all non-visual stages, including
-      integration `389/389` at `81.56%`, frontend Vitest `991/991`/build/
-      contracts/probes, and functional Playwright (`165` passed, `107`
-      documented skips across `272`). Visual parity remained `98/104` with
-      exactly the same six protected diffs; the gate exited at `e2e-visual`
-      only after clean branch-scoped teardown removed all resources and four
-      images. No visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, remaining canonical
-      population, W1/MN continuity, dense-data evidence, and R2-R7 without
-      changing protected visual policy.
-
-### 2026-09-11 — Direct family breadth excludes unresolved and placeholder members
-
-- [x] Align direct benchmark-family breadth with the canonical member
-      resolver: exclude unresolved holdings, missing resolved instruments, and
-      internal `HOLDING-*` placeholders while retaining an explicit
-      `unresolved_member` diagnostic (`76de35a5`).
-- [x] Add the mixed canonical/placeholder breadth regression; the
-      Docker-backed API check passed `1/1`, and Ruff, formatting, and diff
-      checks passed.
-- [x] The full backend unit suite passed `1,472/1,472` at `68.56%` isolated
-      coverage. The exact tip gate passed all non-visual stages, including
-      integration `389/389` at `81.56%`, frontend Vitest `991/991`/build/
-      contracts/probes, and functional Playwright (`165` passed, `107`
-      documented skips across `272`). Visual parity remained `98/104` with
-      exactly the same six protected diffs; the gate exited at `e2e-visual`
-      only after clean branch-scoped teardown removed all resources and four
-      images. No visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, remaining canonical
-      population, W1/MN continuity, dense-data evidence, and R2-R7 without
-      changing protected visual policy.
-
-### 2026-09-11 — Current readiness excludes open derived periods
-
-- [x] Apply the shared current wall-clock `source_end` visibility cutoff to
-      benchmark-family readiness while preserving future provider observations
-      and explicit historical `as_of` behavior (`9b13e33c`).
-- [x] Add the current-versus-historical incomplete-derived-period regression;
-      focused analysis/Market Map unit coverage passed `40/40`, the
-      Docker-backed readiness API regression passed `1/1`, and Ruff,
-      formatting, and diff checks passed.
-- [x] The full backend unit suite passed `1,472/1,472` at `69%` isolated
-      coverage. The exact tip gate passed all non-visual stages, including
-      integration `389/389` at `81.56%`, frontend Vitest `991/991`/build/
-      contracts/probes, and functional Playwright (`165` passed, `107`
-      documented skips across `272`). Visual parity remained `98/104` with
-      exactly the same six protected diffs; the gate exited at `e2e-visual`
-      only after clean branch-scoped teardown removed all resources and four
-      images. No visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, canonical population, W1/MN
-      continuity, dense-data evidence, and R2-R7 without changing protected
-      visual policy.
-
-### 2026-09-11 — Analytics consumers exclude incomplete derived periods
-
-- [x] Route Market Map member/reference reads and analysis truncation through
-      the shared derived `source_end` cutoff (`9a8d9ff2`, regression fix
-      `c288b2a8`) while retaining provider observations in current snapshots.
-- [x] Focused Market Map/analysis unit coverage passed `40/40`; the
-      Docker-backed Market Map API regression passed `1/1`; Ruff, formatting,
-      and diff checks passed.
-- [x] The full backend unit suite passed `1,472/1,472` at `68.57%` total
-      coverage. The exact tip gate passed all non-visual stages, including
-      integration `389/389` at `81.56%`, frontend Vitest `991/991`/build/
-      contracts/probes, and functional Playwright (`165` passed, `107`
-      documented skips across `272`). Visual parity remained `98/104` with
-      exactly the same six protected diffs; the gate exited at `e2e-visual`
-      only after clean branch-scoped teardown removed all resources and four
-      images. No visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
-      population, dense-data evidence, and R2-R7 without changing protected
-      visual policy.
-
-### 2026-09-11 — Coverage readiness excludes incomplete derived periods
-
-- [x] Align `/coverage/instruments/{symbol}/ohlcv` with the shared derived
-      `source_end` visibility cutoff used by canonical range/latest reads
-      (`b3f1b99c`), using the requested historical `end` or one current-time
-      latest cutoff without hiding provider rows.
-- [x] Focused coverage-router plus market-data coverage passed `37/37`; Ruff,
-      formatting, and diff checks passed. The full backend unit suite passed
-      `1,470/1,470` at `68.57%` total coverage.
-- [x] The exact tip gate passed all non-visual stages, including integration
-      `388/388` at `81.56%`, frontend Vitest `991/991`/build/contracts/probes,
-      and functional Playwright (`165` passed, `107` documented skips across
-      `272`). Visual parity remained `98/104` with the same six protected
-      diffs; the gate exited at `e2e-visual` only after clean teardown removed
-      all resources and four images. No visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
-      population, dense-data evidence, and R2-R7 without changing protected
-      visual policy.
-
-### 2026-09-11 — Latest coarse reads exclude incomplete derived periods
-
-- [x] Apply one current-time visibility cutoff to every `fetch_ohlcv_latest`
-      coarse-read branch so derived W1/MN rows require a non-null `source_end`
-      no later than now while provider rows remain timestamp-visible (`64783149`).
-- [x] Add the incomplete-latest-period regression; focused market-data
-      coverage passed `25/25`, with Ruff, formatting, and diff checks clean.
-- [x] The full backend unit suite passed `1,469/1,469` at `68.57%` total
-      coverage; the exact tip gate passed backend integration `388/388` at
-      `81.56%`, frontend Vitest `991/991`/build/contracts/probes, and functional
-      Playwright (`165` passed, `107` documented skips across `272`). Visual
-      parity remained `98/104` with exactly the same six protected diffs; the
-      gate exited at `e2e-visual` only after clean teardown and removal of four
-      images and the temporary builder. No visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
-      population, dense-data evidence, and R2-R7 without changing protected
-      visual policy.
-
-### 2026-09-11 — Historical coarse reads exclude incomplete derived periods
-
-- [x] Require derived W1/MN history rows to have a persisted `source_end` at or
-      before the requested cutoff, consistently across range reads, pagination,
-      family readiness history, and watchlist-source history (`8528205d`).
-- [x] Add the incomplete-derived-period regression; focused market-data
-      coverage passed `24/24`, adjacent analysis-router/watchlist-history
-      coverage passed `38/38`, and Ruff, formatting, and diff checks passed.
-- [x] The full backend unit suite passed `1,468/1,468` at `68.56%` total
-      coverage; the exact tip gate passed all non-visual stages, backend
-      integration `388/388` at `81.56%`, frontend Vitest `991/991`/build/
-      contracts/probes, and functional Playwright (`165` passed, `107`
-      documented skips across `272`). Visual parity remained `98/104` with
-      exactly the same six protected diffs; the gate exited at `e2e-visual`
-      only for those unchanged diffs after clean teardown and removal of four
-      images and the temporary builder. No visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
-      population, dense-data evidence, and R2-R7 without changing protected
-      visual policy.
-
-### 2026-09-11 — Risk-free provider refreshes retain fetch-time freshness
-
-- [x] Pass the wall-clock fetch timestamp into canonical RFR OHLCV persistence
-      so historical provider bar dates do not make a successful refresh appear
-      stale (`2cdfc3c4`); document the persistence behavior explicitly.
-- [x] Focused risk-free-rate coverage passed `1/1`, with Ruff, formatting, and
-      diff checks clean; the full backend unit suite passed `1,467/1,467` at
-      `68.55%` total coverage.
-- [x] The exact tip gate passed integration `388/388` at `81.54%`, frontend
-      Vitest `991/991`/build/contracts/probes, and functional Playwright
-      (`165` passed, `107` documented skips across `272`). Visual parity
-      remained `98/104` with exactly the same six protected diffs and clean
-      teardown; the temporary builder was removed. No visual or acceptance
-      policy changed.
-- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
-      population, dense-data evidence, and R2-R7 without changing protected
-      visual policy.
-
-### 2026-09-11 — Dataset coverage preserves cumulative incremental history
-
-- [x] Union incremental and out-of-order provider fetch bounds into the
-      persisted `InstrumentDatasetState` coverage range (`33738bf8`), while
-      keeping freshness timestamps tied to the newest input.
-- [x] Add regression coverage for the recent-fetch-then-older-backfill union;
-      focused market-data coverage passed `23/23`, with Ruff, formatting, and
-      diff checks clean.
-- [x] The full backend unit suite passed `1,467/1,467` at `68.55%` total
-      coverage; the exact tip gate passed integration `388/388` at `81.54%`,
-      frontend Vitest `991/991`/build/contracts/probes, and functional
-      Playwright (`165` passed, `107` documented skips across `272`). Visual
-      parity remained `98/104` with exactly the same six protected diffs and
-      clean teardown; the temporary builder was removed. No visual or
-      acceptance policy changed.
-- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
-      population, dense-data evidence, and R2-R7 without changing protected
-      visual policy.
-
-### 2026-09-11 — Bounded coarse fetch preserves future derived history
-
-- [x] Constrain bounded coarse provider deletion to the requested cutoff so
-      future derived W1/MN rows survive historical rebuilds (`fdd875d0`);
-      unbounded refresh behavior remains unchanged.
-- [x] Add regression coverage proving a future derived row survives beside a
-      bounded provider row; focused bulk-fetch coverage passed `9/9`, with
-      Ruff, formatting, and diff checks clean.
-- [x] The full backend unit suite passed `1,466/1,466` at `68.55%` total
-      coverage; the exact tip gate passed integration `388/388` at `81.54%`,
-      frontend Vitest `991/991`/build/contracts/probes, and functional
-      Playwright (`165` passed, `107` documented skips across `272`). Visual
-      parity remained `98/104` with exactly the six established protected
-      diffs and clean teardown; the temporary retry builder was removed.
-      `PLAYWRIGHT_HTML_OPEN=never` only suppressed the report server. No
-      visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
-      population, dense-data evidence, and R2-R7 without changing protected
-      visual policy.
-
-### 2026-09-11 — Preserve bounded derived history beside future provider rows
-
-- [x] Keep future provider W1/MN rows from suppressing a visible historical
-      derived period during bounded rebuilds (`8ac6df20`); unbounded provider
-      precedence remains unchanged.
-- [x] Focused derived-timeframe coverage passed `10/10`; Ruff, formatting, and
-      diff checks passed.
-- [x] The exact tip gate passed backend unit `1,465/1,465`, integration
-      `388/388` (`81.49%` combined), frontend Vitest `991/991`/build/contracts/
-      probes, and functional Playwright (`165` passed, `107` documented skips
-      across `272`); visual parity remained `98/104` with exactly the six
-      established protected diffs and clean teardown. The temporary retry
-      builder was removed; `PLAYWRIGHT_HTML_OPEN=never` only suppressed the
-      report server. No visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
-      population, dense-data evidence, and R2-R7 without changing protected
-      visual policy.
-
-### 2026-09-11 — Watchlist source versions stabilize equivalent timestamps
-
-- [x] Normalize timestamp inputs in watchlist membership digests and
-      market-group/ETF source-version strings to canonical UTC `Z` (`44a8ef35`),
-      keeping membership semantics and resolver cutoffs unchanged.
-- [x] Focused watchlist-source coverage passed `6/6`; Ruff, formatting, and
-      diff checks passed.
-- [x] The exact tip gate passed backend unit `1,464/1,464`, integration
-      `388/388` (`81.49%` combined), frontend Vitest `991/991`/build/contracts/
-      probes, and functional Playwright (`165` passed, `107` documented skips
-      across `272`); visual parity remained `98/104` with exactly the six
-      established protected diffs and clean teardown. The temporary retry
-      builder was removed; `PLAYWRIGHT_HTML_OPEN=never` only suppressed the
-      report server. No visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
-      population, dense-data evidence, and R2-R7 without changing protected
-      visual policy.
-
-### 2026-09-11 — Watchlist-source provenance timestamps canonicalize to UTC
-
-- [x] Serialize watchlist membership departure, saved-source known-at
-      exclusions, and holdings snapshot publication timestamps as canonical UTC
-      `Z` values (`00c3242e`) without changing membership semantics, cutoffs, or
-      source-version identity.
-- [x] Focused watchlist-source coverage passed `5/5`; the Docker-backed managed
-      departure-at-as-of API regression passed `1/1`; Ruff, formatting, and diff
-      checks passed.
-- [x] The exact tip gate passed backend unit `1,463/1,463`, integration
-      `388/388` (`81.49%` combined), frontend Vitest `991/991`/build/contracts/
-      probes, and functional Playwright (`165` passed, `107` documented skips
-      across `272`); visual parity remained `98/104` with exactly the six
-      established protected diffs and clean teardown. The temporary retry
-      builder was removed; `PLAYWRIGHT_HTML_OPEN=never` only suppressed the
-      report server. No visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
-      population, dense-data evidence, and R2-R7 without changing protected
-      visual policy.
-
-### 2026-09-11 — Workstation bootstrap family-history queue bounds canonicalize to UTC
-
-- [x] Canonicalize workstation bootstrap family-member history `as_of` queue
-      arguments and job identity to UTC `Z` (`389d3db0`), preserving family
-      selection, routing, history semantics, and deduplication.
-- [x] Focused workstation-bootstrap and benchmark-family-history coverage passed
-      `35/35`; Ruff, formatting, and diff checks passed.
-- [x] The exact tip gate passed backend unit `1,462/1,462`, integration
-      `388/388` (`81.49%` combined), frontend Vitest `991/991`/build/contracts/
-      probes, and functional Playwright (`165` passed, `107` documented skips
-      across `272`); visual parity remained `98/104` with exactly the six
-      established protected diffs and clean teardown. The temporary retry
-      builder was removed; `PLAYWRIGHT_HTML_OPEN=never` only suppressed the
-      report server. No visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
-      population, dense-data evidence, and R2-R7 without changing protected
-      visual policy.
-
-### 2026-09-11 — Family-history queue bounds canonicalize to UTC
-
-- [x] Canonicalize benchmark-family history planning and ETF/watchlist queue
-      `as_of`/history-end arguments to UTC `Z` (`9406a1c3`, `d8a539e9`) without
-      changing provider routing, history semantics, or job identity.
-- [x] Focused family-history services, workers, and task coverage passed
-      `58/58`; Ruff, formatting, and diff checks passed.
-- [x] The exact tip gate passed backend unit `1,462/1,462`, integration
-      `388/388` (`81.49%` combined), frontend Vitest `991/991`/build/contracts/
-      probes, and functional Playwright (`165` passed, `107` documented skips
-      across `272`); visual parity remained `98/104` with exactly the six
-      established protected diffs and clean teardown. The temporary retry
-      builder was removed; no visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
-      population, dense-data evidence, and R2-R7 without changing protected
-      visual policy.
-
-### 2026-09-11 — Provider-governance provenance timestamps canonicalize to UTC
-
-- [x] Serialize provider status, entitlement, reconciliation, availability,
-      and maintenance provenance timestamps through the shared canonical UTC
-      `Z` formatter (`6b3fe038`), preserving routing and dataset semantics.
-- [x] Focused provider-governance coverage passed `17/17`; full backend unit
-      coverage passed `1,462/1,462` at `68.48%`; Ruff, formatting, and diff
-      checks passed.
-- [x] The exact tip gate passed all non-visual stages and functional
-      Playwright (`165` passed, `107` documented skips across `272`), while
-      visual parity remained `98/104` with exactly the six established
-      protected diffs and clean teardown of all branch-scoped resources and
-      four images. No visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
-      population, dense-data evidence, and R2-R7 without changing protected
-      visual policy.
-
-### 2026-09-11 — Instrument provenance timestamps canonicalize to UTC
-
-- [x] Serialize listing lifecycle, profile/identifier/latest-price snapshot,
-      and dataset-state timestamps from the untyped instrument-provenance
-      endpoint through canonical UTC `Z` values (`affde164`).
-- [x] Focused instrument-router coverage passed `7/7`; the Docker-backed
-      provenance API regression passed `1/1`; full backend unit coverage passed
-      `1,460/1,460` at `68.44%`; Ruff, formatting, and diff checks passed.
-- [x] The exact tip gate passed all non-visual stages and functional
-      Playwright (`165` passed, `107` documented skips across `272`), while
-      visual parity remained `98/104` with exactly the six established
-      protected diffs and clean teardown of all branch-scoped resources and
-      four images. No visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
-      population, dense-data evidence, and R2-R7 without changing protected
-      visual policy.
-
-### 2026-09-11 — Family readiness requires dated evidence
-
-- [x] Require `point_in_time_supported` for a benchmark-family role to report
-      composite readiness `ready` (`d1f3da4d`); missing dated holdings evidence
-      remains partial with the explicit `point_in_time_unavailable` reason.
-- [x] Focused analysis-router coverage passed `28/28`; benchmark-family
-      coverage/readiness integration coverage passed `9/9` with Docker; Ruff,
-      formatting, and diff checks passed.
-- [x] The first full-gate backend run had a transient Postgres termination
-      (`148` passed, `240` setup errors); the fresh backend-coverage retry passed
-      unit `1,459/1,459` and integration `387/387` at `81.47%` combined
-      coverage.
-- [x] The subsequent exact full integration gate passed all non-visual stages,
-      frontend Vitest `991/991`, build/contracts/probes, and functional
-      Playwright `165` passed with `107` documented skips across `272`; visual
-      parity remained `98/104` with exactly the six established protected diffs
-      and clean teardown of all branch-scoped resources and four images.
-- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
-      population, dense-data evidence, and R2-R7 without changing protected
-      visual policy.
-
-### 2026-09-11 — Workstation bootstrap provenance gate receipt
-
-- [x] The exact elevated Docker-backed branch-scoped integration gate at
-      product tip `ee42a67c` passed every non-visual stage: backend unit
-      `1,457/1,457` (approximately `68%` total), backend integration `387/387`
-      (`81.47%` combined), frontend Vitest `991/991`, build, compose/provider
-      contracts, research-runner probes, and functional Playwright `165` passed
-      with `107` documented skips across `272`.
-- [x] Visual parity completed `104` cases with `98` passes and exactly the six
-      established protected diffs (`watchlist-column-editor-open` at
-      visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
-      visual-1440p-100/125); clean branch-scoped teardown removed all resources
-      and four images. No visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
-      population, dense-data evidence, and R2-R7; preserve the no-integration
-      boundary and protected visual assertions.
-
-### 2026-09-11 — Workstation bootstrap provenance canonicalizes to UTC
-
-- [x] Serialize curated workstation identity-bootstrap provenance timestamps
-      through the canonical UTC `Z` formatter for new and existing registry
-      entries (`ee42a67c`), without changing identity, provider, taxonomy,
-      hydration, or queue behavior.
-- [x] Focused workstation-bootstrap coverage passed `10/10`; Ruff, formatting,
-      and diff checks passed.
-- [x] Rerun the exact full integration gate at product tip `ee42a67c`; all
-      non-visual and functional stages passed, while visual parity remained
-      `98/104` with the six established protected diffs and clean teardown.
-- [ ] Complete provider/family history breadth, W1/MN continuity, canonical
-      population, dense-data evidence, and R2-R7; preserve the no-integration
-      boundary and protected visual assertions.
-
-### 2026-09-11 — Strategy Lab coverage timestamp gate receipt
-
-- [x] The exact elevated Docker-backed integration gate completed at product
-      tip `4f0abd68`: backend unit `1,456/1,456` (approximately `68%` total),
-      backend integration `387/387` (`81.47%` combined), frontend Vitest
-      `991/991`, build, compose/provider contracts, research-runner probes, and
-      functional Playwright `165` passed with `107` documented skips across
-      `272`.
-- [x] Visual parity completed `104` cases with `98` passes and exactly the six
-      established protected diffs (`watchlist-column-editor-open` at
-      visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
-      visual-1440p-100/125); clean branch-scoped teardown removed all resources
-      and four images. No visual or acceptance policy changed.
-- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
-      population, dense-data evidence, and R2-R7; preserve the no-integration
-      boundary and protected visual assertions.
-
-### 2026-09-11 — Strategy Lab coverage timestamps canonicalize to UTC
-
-- [x] Serialize per-instrument and aggregate Strategy Lab universe-coverage
-      timestamps through the shared canonical UTC `Z` formatter (`4f0abd68`),
-      keeping coverage status, membership, provider routing, cache semantics,
-      and visual behavior unchanged.
-- [x] Focused Strategy Lab coverage passed `14/14`; Ruff, formatting, and diff
-      checks passed.
-- [ ] Rerun the exact full integration gate at the next coherent product
-      checkpoint. Complete provider/family history breadth, W1/MN continuity,
-      canonical population, and R2-R7 evidence remain open.
-
-### 2026-09-11 — Study Lab universe provenance gate receipt
-
-- [x] Serialize Study Lab dynamic-universe `universe_snapshot_known_at` and
-      summary snapshot timestamps through the canonical UTC `Z` formatter at
-      product tip `b460ee98`, without changing membership, provider, fallback,
-      or cache-identity semantics.
-- [x] Focused Study Lab service coverage passed `2/2`; the full backend unit
-      suite passed `1,455/1,455` at approximately `68%`; Ruff, formatting, and
-      diff checks passed.
-- [x] The exact elevated Docker-backed gate passed all non-visual stages,
-      backend integration (`387/387`, `81.46%` combined coverage), frontend
-      Vitest (`991/991`) and build, compose/provider contracts,
-      research-runner probes, and functional Playwright (`165` passed, `107`
-      documented skips across `272`). Visual parity remained `98/104` with
-      exactly the six established protected diffs; teardown removed all
-      branch-scoped resources and four images.
-- [ ] Continue full provider/family history breadth, W1/MN continuity,
-      canonical population, dense-data evidence, and R2-R7; preserve the
-      protected visual assertions and no-integration boundary.
-
-### 2026-09-11 — Analysis universe provenance gate retry receipt
-
-- [x] Serialize ETF/family constituent and breadth-universe `known_at` and
-      requested `as_of` provenance through the canonical UTC wire formatter at
-      product tip `d46e76cd`, without changing membership, provider, fallback,
-      or cache-identity semantics.
-- [x] Focused analysis-router coverage passed `26/26`; the full backend unit
-      suite passed `1,453/1,453` at `68%`; Ruff, formatting, and diff checks
-      passed.
-- [x] The first exact gate exposed one isolated F8u real-drag timeout; the
-      authorized fresh-stack retry passed all functional Playwright cases
-      (`165` passed, `107` documented skips across `272`), backend integration
-      (`387/387`, `81.46%` combined coverage), frontend Vitest (`991/991`),
-      build, compose/provider contracts, and research-runner probes. Visual
-      parity remained `98/104` with exactly the six established protected
-      diffs; teardown removed all branch-scoped resources and four images.
-- [ ] Treat F8u as non-reproducible on the retry, preserve the six protected
-      visual assertions, and continue full provider/family history breadth,
-      W1/MN continuity, canonical population, dense-data evidence, and R2-R7.
-
-### 2026-09-11 — Market Map provenance timestamps canonicalize to UTC
-
-- [x] Serialize Market Map profile, membership, bar/event watermark, and
-      provider-policy timestamps on the canonical UTC timeline, including
-      offset-bearing persisted observations and cache inputs.
-- [x] Focused Market Map coverage passed `10/10`; the full backend unit suite
-      passed `1,453/1,453` at `68.26%`; Ruff, formatting, and diff checks
-      passed.
-- [x] The exact elevated Docker-backed gate passed all non-visual stages,
-      backend integration (`387/387`, `81.46%` combined coverage), frontend
-      Vitest (`991/991`) and build, and functional Playwright (`165` passed,
-      `107` documented skips across `272`); visual parity was `98/104` with
-      exactly the six protected diffs and clean branch-scoped teardown.
-- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
-      the bounded lineage path, canonical population, and dense-data evidence;
-      preserve protected visual assertions and the no-integration boundary.
-
-### 2026-09-11 — Breadth occurrence timestamps canonicalize to UTC
-
-- [x] Normalize breadth-history occurrence timestamps and IDs to UTC for
-      offset-aware and legacy naive point timestamps.
-- [x] Focused breadth-service coverage passed `28/28`; the full backend unit
-      suite passed `1,451/1,451` at `68%`; Ruff, formatting, and diff checks
-      passed.
-- [x] The exact elevated Docker-backed gate passed all non-visual stages,
-      backend integration (`387/387`), frontend Vitest (`991/991`) and build,
-      and functional Playwright (`165` passed, `107` documented skips across
-      `272`); visual parity was `98/104` with exactly the six protected diffs
-      and clean branch-scoped teardown.
-- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
-      the bounded lineage path, canonical population, and dense-data evidence;
-      preserve protected visual assertions and the no-integration boundary.
-
-### 2026-09-11 — Analysis provenance timestamps serialize canonically
-
-- [x] Serialize analysis provenance timestamps as canonical UTC `Z` values,
-      including offset-aware historical cutoffs.
-- [x] Focused analysis-router coverage passed `26/26`; the full backend unit
-      suite passed `1,450/1,450` at `68%`; Ruff, formatting, and diff checks
-      passed.
-- [x] The exact elevated Docker-backed gate passed all non-visual stages,
-      backend integration (`387/387`), frontend Vitest (`991/991`) and build,
-      and functional Playwright (`165` passed, `107` documented skips across
-      `272`); visual parity was `98/104` with exactly the six protected diffs
-      and clean branch-scoped teardown.
-- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
-      the bounded lineage path, canonical population, and dense-data evidence;
-      preserve protected visual assertions and the no-integration boundary.
-
-### 2026-09-11 — Calendar-event history ranges canonicalize to UTC
-
-- [x] Normalize direct calendar-event history `start`/`end` bounds to UTC
-      before SQL predicates, covering internal callers outside the HTTP router.
-- [x] Focused calendar-event coverage passed `2/2`; the full backend unit suite
-      passed `1,450/1,450` at `68%`; Ruff, formatting, and diff checks passed.
-- [x] The exact elevated Docker-backed gate passed all non-visual stages,
-      backend integration (`387/387`), frontend Vitest (`991/991`) and build,
-      and functional Playwright (`165` passed, `107` documented skips across
-      `272`); visual parity was `98/104` with exactly the six protected diffs
-      and clean branch-scoped teardown.
-- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
-      the bounded lineage path, canonical population, and dense-data evidence;
-      preserve protected visual assertions and the no-integration boundary.
-
-### 2026-09-11 — Option quote history ranges canonicalize to UTC
-
-- [x] Normalize option quote-history `start`/`end` values to UTC before
-      provider coverage checks and persisted quote SQL.
-- [x] Focused option-history coverage passed `2/2`; the full backend unit suite
-      passed `1,449/1,449` at `68%`; Ruff, formatting, and diff checks passed.
-- [x] The exact elevated Docker-backed gate passed all non-visual stages,
-      backend integration (`387/387`), frontend Vitest (`991/991`) and build,
-      and functional Playwright (`165` passed, `107` documented skips across
-      `272`); visual parity was `98/104` with exactly the six protected diffs
-      and clean branch-scoped teardown.
-- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
-      the bounded lineage path, canonical population, and dense-data evidence;
-      preserve protected visual assertions and the no-integration boundary.
-
-### 2026-09-11 — Synthetic basket history ranges canonicalize to UTC
-
-- [x] Normalize synthetic basket/ratio history `start`/`end` boundaries to UTC
-      in the router and service before direct SQL selection and rebasing.
-- [x] Focused basket integration coverage passed `4/4`; the full backend unit
-      suite passed `1,448/1,448` at `68%`; Ruff, formatting, and diff checks
-      passed.
-- [x] The exact elevated Docker-backed gate passed all non-visual stages,
-      backend integration (`387/387`), frontend Vitest (`991/991`) and build,
-      and functional Playwright (`165` passed, `107` documented skips across
-      `272`); visual parity was `98/104` with exactly the six protected diffs
-      and clean branch-scoped teardown.
-- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
-      the bounded lineage path, canonical population, and dense-data evidence;
-      preserve protected visual assertions and the no-integration boundary.
-
-### 2026-09-10 — OHLCV router boundaries canonicalize to UTC
-
-- [x] Canonicalize chart OHLCV `start`, `end`, and `before` boundaries to UTC
-      across local, transformed, provider-backed, and materialization reads.
-- [x] Focused OHLCV-router regressions passed `15/15`; the full backend unit
-      suite passed `1,448/1,448` at `68%`; Ruff, formatting, and diff checks
-      passed.
-- [x] The exact elevated Docker-backed gate passed all non-visual stages,
-      backend integration (`387/387`), frontend Vitest (`991/991`) and build,
-      and functional Playwright (`165` passed, `107` documented skips across
-      `272`); visual parity was `98/104` with exactly the six protected diffs
-      and clean branch-scoped teardown.
-- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
-      the bounded lineage path, canonical population, and dense-data evidence;
-      preserve protected visual assertions and the no-integration boundary.
-
-### 2026-09-10 — Coverage request boundaries normalize to UTC
-
-- [x] Normalize instrument OHLCV coverage `start`/`end` request boundaries to
-      UTC before validation, SQL selection, coverage/provenance assessment,
-      and response serialization.
-- [x] Focused coverage-router regressions passed `11/11`; the full backend
-      unit suite passed `1,446/1,446` at `68%`; Ruff, formatting, and diff
-      checks passed.
-- [x] The exact elevated Docker-backed gate passed all non-visual stages,
-      backend integration (`387/387`), frontend Vitest (`991/991`) and build,
-      and functional Playwright (`165` passed, `107` documented skips across
-      `272`); visual parity was `98/104` with exactly the six protected diffs
-      and clean branch-scoped teardown.
-- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
-      the bounded lineage path, canonical population, and dense-data evidence;
-      preserve protected visual assertions and the no-integration boundary.
-
-### 2026-09-10 — Market Map range and cache boundaries normalize to UTC
-
-- [x] Canonicalize Market Map membership, period, bar, reference, watermark,
-      provider-snapshot, and cache-key timestamps to UTC.
-- [x] Focused Market Map regression coverage passed `8/8`; the full backend
-      unit suite passed `1,445/1,445` at `68%`; Ruff, formatting, and diff
-      checks passed.
-- [x] The exact gate passed non-visual stages, backend integration (`387/387`
-      with `81.39%` combined coverage), frontend Vitest (`991/991`) and build,
-      and functional Playwright (`165` passed, `107` documented skips across
-      `272`); visual parity was `98/104` with exactly the six protected diffs
-      and clean scoped teardown.
-- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
-      the bounded lineage path, canonical population, and dense-data evidence;
-      preserve protected visual assertions and the no-integration boundary.
-
-### 2026-09-10 — Market-data range boundaries normalize at the public service edge
-
-- [x] Normalize public market-data range and pagination boundaries to UTC
-      before provider fetches, cache-coverage checks, and latest-window
-      calculations.
-- [x] Focused market-data regression coverage passed `22/22`; the full backend
-      unit suite passed `1,443/1,443` at `68%`; Ruff, formatting, and diff
-      checks passed. The earlier F8r Python Library browser failure reproduced
-      validly at `1/1` and passed.
-- [x] The exact gate passed all non-visual stages, backend integration
-      (`387/387` with `81.38%` combined coverage), frontend Vitest (`991/991`)
-      and build, and functional Playwright (`165` passed, `107` documented
-      skips across `272`); visual parity was `98/104` with exactly the six
-      protected diffs and clean scoped teardown.
-- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
-      the bounded lineage path, canonical population, and dense-data evidence;
-      preserve protected visual assertions and the no-integration boundary.
-
-### 2026-09-10 — Market-data cutoff normalization completes the R1 timestamp seam
-
-- [x] Canonicalize naive and offset-aware market-data timestamps to UTC before
-      historical OHLCV bar cutoff comparisons.
-- [x] Focused market-data regression coverage passed `22/22`; the full backend
-      unit suite passed `1,443/1,443` at `68%`; Ruff, formatting, and diff
-      checks passed.
-- [x] The exact gate passed non-visual stages, backend integration (`387/387`
-      with `81.38%` combined coverage), frontend Vitest (`991/991`) and build,
-      and functional Playwright (`165` passed, `107` documented skips across
-      `272`); visual parity was `98/104` with exactly the six protected diffs
-      and clean scoped teardown.
-- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
-      the bounded lineage path, canonical population, and dense-data evidence;
-      preserve protected visual assertions and the no-integration boundary.
-
-### 2026-09-10 — Watchlist history cutoffs normalize across source and bar reads
-
-- [x] Normalize the shared UTC evaluation cutoff for market-group membership
-      effective/known timestamps and watchlist-history OHLCV bar queries,
-      including offset-aware API values.
-- [x] Focused watchlist-source/history coverage passed `14/14`; the full
-      backend unit suite passed `1,442/1,442` at `68%`; Ruff, formatting, and
-      diff checks passed.
-- [x] The exact gate passed non-visual stages, backend integration (`387/387`),
-      frontend Vitest (`991/991`) and build, and functional Playwright (`165`
-      passed, `107` documented skips across `272`); visual parity was `98/104`
-      with exactly the six protected diffs and clean scoped teardown.
-- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
-      the bounded lineage path, canonical population, and dense-data evidence;
-      preserve protected visual assertions and the no-integration boundary.
-
-### 2026-09-10 — Watchlist source cutoffs normalize across membership and holdings
-
-- [x] Normalize historical cutoffs and persisted timestamps to UTC in shared
-      watchlist membership, saved explicit-source, combo, benchmark-family,
-      and ETF holdings resolution paths.
-- [x] Focused watchlist-source/history coverage passed `12/12`; the full
-      backend unit suite passed `1,440/1,440` at `68%`; Ruff, formatting, and
-      diff checks passed.
-- [x] The exact gate passed non-visual stages, backend integration (`387/387`),
-      frontend Vitest (`991/991`) and build, and functional Playwright (`165`
-      passed, `107` documented skips across `272`); visual parity was `98/104`
-      with exactly the six protected diffs and clean scoped teardown.
-- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
-      the bounded lineage path, canonical population, and dense-data evidence;
-      preserve protected visual assertions and the no-integration boundary.
-
-### 2026-09-10 — Historical analysis cutoffs normalize across consumers
-
-- [x] Route analysis bar truncation, technical/proxy snapshots, ETF constituent
-      reads, family history, and concentration history through canonical UTC
-      cutoff comparisons for offset-less and offset-bearing API values.
-- [x] Focused analysis/taxonomy regression coverage passed `42/42`; the full
-      backend unit suite passed `1,438/1,438` at `68%`; Ruff, formatting, and
-      diff checks passed.
-- [x] The exact gate passed non-visual stages, backend integration (`387/387`),
-      and functional Playwright (`165` passed, `107` documented skips across
-      `272`); visual parity was `98/104` with exactly the six protected diffs
-      and clean scoped teardown.
-- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
-      the bounded lineage path, canonical population, and dense-data evidence;
-      preserve protected visual assertions and the no-integration boundary.
-
-### 2026-09-10 — Historical industry classification honors fetch cutoff
-
-- [x] Require dated profile snapshots to prove observed and fetched timestamps
-      are both present and no later than the normalized UTC cutoff; normalize
-      offset-less historical cutoffs for classification and holdings reads.
-- [x] Focused taxonomy/router regression coverage passed `41/41`; the full
-      backend unit suite passed `1,437/1,437` at `68%`; Ruff, formatting, and
-      diff checks passed.
-- [x] The exact gate passed non-visual stages, backend integration (`387/387`
-      with `81.36%` combined coverage), and functional Playwright (`165`
-      passed, `107` documented skips across `272`); visual parity was `98/104`
-      with exactly the six protected diffs and clean scoped teardown.
-- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
-      the bounded lineage path, canonical population, and dense-data evidence;
-      preserve protected visual assertions and the no-integration boundary.
-
-### 2026-09-10 — Historical coarse-timeframe factor proof honors fetch cutoff
-
-- [x] Require dated W1/MN materialization to prove both `coverage_end` and
-      `fetched_at` are present and no later than the requested cutoff before
-      inheriting D1 factor evidence; keep missing/future proof conservative.
-- [x] Focused derived-timeframe regression coverage passed `9/9`; the full
-      backend unit suite passed `1,435/1,435` at `68%`; Ruff, formatting, and
-      diff checks passed.
-- [x] The exact gate passed all non-visual stages and functional Playwright
-      (`165` passed, `107` documented skips across `272`); visual parity was
-      `98/104` with exactly the six protected diffs and clean scoped teardown.
-- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
-      the bounded lineage path, canonical population, and dense-data evidence;
-      preserve protected visual assertions and the no-integration boundary.
-
-### 2026-09-10 — Coverage resolution honors explicit lineage-key precedence
-
-- [x] Order range-coverage state by the requested `dataset_keys` precedence so
-      a verified lineage-specific factor state cannot be shadowed by generic
-      fallback state at the same symbol/timeframe.
-- [x] Focused coverage-router coverage passed `10/10`; the full backend unit
-      suite passed `1,433/1,433` at `68.00%`; Ruff, formatting, and diff checks
-      passed.
-- [x] The exact gate passed all non-visual stages and functional Playwright
-      (`165` passed, `107` documented skips across `272`); visual parity remains
-      `98/104` with exactly the six protected diffs and clean scoped teardown.
-- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
-      the bounded lineage path, canonical population, and dense-data evidence;
-      preserve protected visual assertions and the no-integration boundary.
-
-### 2026-09-10 — Range coverage factor provenance honors requested end
-
-- [x] Bound range coverage factor-state projection by the requested inclusive
-      end using temporal `coverage_end` and `fetched_at`; keep missing proof
-      conservative and prevent future state from appearing in earlier ranges.
-- [x] Focused coverage/watchlist/family regression coverage passed `20/20`; the
-      full backend unit suite passed `1,432/1,432` at `68.00%`; Ruff, formatting,
-      and diff checks passed.
-- [x] The exact gate passed all non-visual stages and functional Playwright
-      (`165` passed, `107` documented skips across `272`); visual parity remains
-      `98/104` with exactly the six protected diffs and clean scoped teardown.
-- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
-      the bounded lineage path, canonical population, and dense-data evidence;
-      preserve protected visual assertions and the no-integration boundary.
-
-### 2026-09-10 — Historical factor evidence honors `as_of`
-
-- [x] Pass dated history cutoffs into generic and benchmark-family factor
-      evidence and reject state whose coverage or fetch time is later than the
-      requested cutoff; keep missing/unverifiable evidence conservative.
-- [x] Focused cutoff/family-history coverage passed `11/11`; full backend unit
-      coverage passed `1,431/1,431` at `68.00%`; Ruff, formatting, and diff
-      checks passed.
-- [x] The exact gate passed all non-visual stages and functional Playwright
-      (`165` passed, `107` documented skips across `272`); visual parity remains
-      `98/104` with exactly the six protected diffs and clean scoped teardown.
-- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
-      the bounded lineage path, canonical population, and dense-data evidence;
-      preserve protected visual assertions and the no-integration boundary.
-
-### 2026-09-10 — Benchmark-family history exposes factor lineage
-
-- [x] Make benchmark-family member history retain `derivation_method` and
-      read method-specific D1 factor state for covered derived bars, including
-      provider-adjustment-factor version/status evidence.
-- [x] Focused family-history regression passed `1/1`; full backend unit
-      coverage passed `1,430/1,430` at `67.98%`; Ruff, formatting, and diff
-      checks passed.
-- [x] The exact gate passed all non-visual stages and functional Playwright
-      (`165` passed, `107` documented skips across `272`); visual parity remains
-      `98/104` with exactly the six protected diffs and clean scoped teardown.
-- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
-      the bounded lineage path, canonical population, and dense-data evidence;
-      preserve protected visual assertions and the no-integration boundary.
-
-### 2026-09-10 — D1 history exposes local provider-factor lineage
-
-- [x] Make generic source-history status read method-specific D1 derived state
-      and attach factor evidence only to the corresponding covered lineage.
-- [x] Focused watchlist-history coverage passed `9/9`; full backend unit
-      coverage passed `1,429/1,429` at `67.88%`; Ruff, formatting, and diff
-      checks passed.
-- [x] The exact gate passed backend integration `387/387`, frontend/runtime
-      checks, and functional Playwright (`165` passed, `107` documented skips
-      across `272`); visual parity remains `98/104` with exactly the six
-      protected diffs and clean scoped teardown.
-- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
-      the bounded lineage path, canonical population, and dense-data evidence;
-      preserve protected visual assertions and the no-fallback boundary.
-
-### 2026-09-10 — Explicit provider-factor precedence
-
-- [x] Make explicit provider-factor materialization upgrade an existing
-      `local_split_ratio` derived row at the same key while keeping provider
-      rows immutable and preventing split-only downgrade or unrelated lineage
-      replacement.
-- [x] Focused adjustment-factor coverage passed `19/19`; full backend unit
-      coverage passed `1,428/1,428` at `67.87%`; Ruff, formatting, and diff
-      checks passed.
-- [x] The exact gate passed backend integration `387/387`, frontend/runtime
-      checks, and functional Playwright (`165` passed, `107` documented skips
-      across `272`); visual parity remains `98/104` with exactly the six
-      protected diffs and clean scoped teardown after the expected visual
-      exit.
-- [ ] Continue provider/family history, W1/MN continuity beyond the bounded
-      path, canonical population, and dense-data evidence; preserve protected
-      visual assertions and the no-fallback/no-integration boundary.
-
-### 2026-09-10 — Explicit provider-factor materialization and lineage
-
-- [x] Add the authenticated explicit `materialize-local-provider` route and
-      persist provider-adjustment-factor derived rows without replacing
-      provider collisions; prices/VWAP use the adjusted/raw multiplier and
-      volume scales inversely.
-- [x] Carry provider-factor lineage through coverage and D1-to-W1/MN state,
-      retaining point-in-time checks and the separate split-only rebuilder.
-- [x] Focused materialization/lineage coverage passed `53/53`; full backend
-      unit coverage passed `1,427/1,427` at `67.86%`; Ruff, formatting, and
-      diff checks passed; the exact gate passed all non-visual stages and
-      functional Playwright (`165` passed, `107` documented skips across
-      `272`) while visual parity remained `98/104` with exactly the six
-      protected diffs and clean teardown.
-- [ ] Continue provider/family history, W1/MN continuity beyond the bounded
-      path, canonical population, and dense-data evidence; preserve protected
-      visual assertions and the no-fallback/no-integration boundary.
-
-### 2026-09-10 — Explicit provider adjustment-factor application
-
-- [x] Add a pure provider-factor rebuilder for persisted
-      `factor_kind=provider_supplied` observations, with explicit
-      adjusted/raw multiplier semantics for pre-event prices/VWAP and inverse
-      volume scaling; keep split-only reciprocal rebuilding separate.
-- [x] Reject missing, invalid, mixed-kind, mixed-version, and amount-only
-      inputs with structured opaque results; preserve raw/provider rows and do
-      not infer a provider convention.
-- [x] Focused adjustment-factor coverage passed `17/17`; full backend unit
-      coverage passed `1,422/1,422` at `67.85%`; Ruff, formatting, and diff
-      checks passed. The exact gate passed backend integration `387/387`,
-      frontend/build/runtime checks, and functional Playwright (`165` passed,
-      `107` documented skips across `272`); visual parity remains `98/104`
-      with exactly the six protected diffs and clean teardown.
-- [x] Wire the explicit provider-factor contract into authenticated local
-      materialization, coverage lineage, and D1-to-W1/MN provenance; continue
-      the remaining provider/family history, canonical population, and dense-
-      data evidence from the new explicit seam.
-
-### 2026-09-10 — Bounded historical coarse-timeframe materialization
-
-- [x] Pass dated bulk-history cutoffs into W1/MN materialization, filter D1
-      evidence through the inclusive UTC end, replace only derived rows through
-      that end, and preserve newer derived cache rows/state metadata.
-- [x] Keep factor provenance point-in-time safe by rejecting provider/local
-      evidence whose coverage extends past the requested cutoff; preserve
-      provider precedence and the unbounded latest-cache path.
-- [x] Focused derived-timeframe/bulk-fetch regression coverage passed `14/14`;
-      full backend unit coverage passed `1,420/1,420` at `67.84%`; Ruff,
-      formatting, and diff checks passed.
-- [ ] Continue provider/family history, W1/MN continuity beyond this seam,
-      canonical population, and dense-data evidence.
-
-### 2026-09-10 — Mounted watchlist promotion visibility
-
-- [x] Preserve mounted watchlist configuration identity during chart Boolean
-      column and filter promotion, and emit the complete target configuration
-      through the workstation parent contract for cross-root Golden Layout
-      consumers.
-- [x] Focused `ChartPlotLibrary` coverage passed `25/25`; authenticated
-      `F8u-boolean` browser coverage passed `1/1`; the exact gate's functional
-      suite passed `165` with `107` documented skips across `272`.
-- [x] Visual parity remains `98/104` with exactly the six protected diffs;
-      clean branch-scoped teardown completed and no visual/acceptance policy
-      changed.
-- [ ] Continue the remaining R1/R6 provider/family history, W1/MN continuity,
-      canonical population, and dense-data work; do not change protected
-      visual assertions.
-
-### 2026-09-10 — Local split provenance carried into coarse views
-
-- [x] Carry a verified `local_split_ratio` factor version from fully local
-      split-derived D1 bars into provider-neutral W1/MN dataset provenance.
-- [x] Require agreement across provider and local D1 evidence; preserve an
-      explicitly unversioned state for missing, opaque, or conflicting inputs.
-- [x] Focused derived-timeframe coverage passed `5/5`; full backend unit
-      coverage passed `1,418/1,418` at `67.82%`; Ruff, formatting, and diff
-      checks passed; the exact gate preserved the six protected visual diffs.
-- [ ] Continue provider/family history, W1/MN continuity beyond this lineage
-      seam, canonical population, and dense-data evidence.
-
-### 2026-09-10 — Local split-adjusted materialization behind explicit lineage
-
-- [x] Add authenticated local split-adjusted materialization behind the
-      persisted `view=canonical|provider|derived` OHLCV selector. Read one
-      identified raw provider source, apply complete version-consistent
-      split-only factors, persist local derived rows without replacing provider
-      collisions, and record `local_split_ratio` provenance plus factor version.
-- [x] Return structured unsupported/ambiguous/incomplete/dividend/no-data
-      receipts; preserve raw/provider rows and existing D1-derived W1/MN
-      semantics without changing provider routing, fallback, or visual policy.
-- [x] Focused materializer coverage passed `15/15`; focused router coverage
-      passed `12/12`; full backend unit coverage passed `1,417/1,417` before
-      the exact gate; Ruff, formatting, and diff checks passed.
-- [ ] Continue provider/family history, W1/MN continuity, canonical
-      population, and live 100k-point evidence; preserve the six protected
-      visual assertions and rerun the exact gate after the next coherent tip.
-
-### 2026-09-10 — Explicit local split-factor rebuild contract
-
-- [x] Add a pure local split-ratio rebuilder that applies cumulative
-      pre-event price factors and inverse volume scaling to raw bars while
-      returning immutable derived lineage.
-- [x] Reject dividend/provider-oriented factors, incomplete inputs, and mixed
-      factor versions with explicit unsupported/opaque states; do not mutate
-      raw/provider bars or infer a provider convention.
-- [x] Focused adjustment-factor coverage passed `14/14`; the full backend unit
-      suite passed `1,413/1,413` at `67.78%` coverage against the `55%`
-      threshold; Ruff, formatting, and diff checks passed.
-- [x] Specify and wire an explicit persisted derived-view contract; continue
-      provider/family history, W1/MN continuity, canonical population, and
-      live 100k-point evidence while preserving the six protected visual
-      assertions and rerunning the exact gate at the next coherent tip.
-
-### 2026-09-10 — Exact integration gate after local split-factor rebuilder
-
-- [x] Rerun the branch-scoped gate at documentation checkpoint `4cf80612`
-      (product behavior `4af7917f`): backend unit `1,413/1,413`, backend
-      integration `387/387`, frontend Vitest/type-check/build,
-      compose/health/performance/acceptance checks, and functional Playwright
-      `165` passed with `107` documented skips across `272`.
-- [x] Confirm visual parity remains `98/104` with exactly the six protected
-      `watchlist-column-editor-open` and `workspace-floating` state-oracle
-      diffs across the four declared projects; research-runner denials were
-      expected and scoped Docker resources were cleaned up.
-- [ ] Wire the explicit derived-view contract and continue provider/family
-      history, W1/MN continuity, canonical population, and live 100k-point
-      evidence. Do not change visual baselines, masks, thresholds, skips,
-      providers, fallbacks, or acceptance policy; rerun the exact gate after
-      the next coherent product change.
-
-### 2026-09-10 — Explicit persisted OHLCV lineage views
-
-- [x] Add the backward-compatible `view=canonical|provider|derived` selector
-      to local, provider-capable, and transformed OHLCV reads. Canonical keeps
-      the existing provider-plus-derived merge; provider and derived isolate
-      persisted `is_derived` lineage, and provider-only reads never trigger
-      coarse materialization.
-- [x] Focused OHLCV router coverage passed `11/11`; the full backend unit suite
-      passed `1,414/1,414` at `67.79%` coverage against the `55%` threshold;
-      Ruff, formatting, and diff checks passed.
-- [ ] Continue local split-ratio materialization, provider/family history,
-      W1/MN continuity, canonical population, and live 100k-point evidence;
-      preserve the six protected visual assertions and rerun the exact gate.
-
-### 2026-09-10 — Exact integration gate rerun after factor-cutoff regression
-
-- [x] Rerun the prescribed branch-scoped gate from HEAD `e1fa2478` after the
-      point-in-time factor regression: backend unit `1,409/1,409`, backend
-      integration `387/387`, frontend Vitest/type-check/build,
-      compose/provider/runner/health/performance/acceptance checks, and
-      functional Playwright `165` passed with `107` documented skips across
-      `272`.
-- [x] Confirm visual parity remains `98/104` with exactly the six protected
-      `watchlist-column-editor-open` and `workspace-floating` state-oracle
-      diffs across the four declared projects; scoped Docker resources were
-      cleaned up. No visual policy or fallback behavior changed.
-- [ ] Continue provider factor application/rebuild, family/provider history,
-      W1/MN continuity, canonical population, and live 100k-point evidence;
-      preserve the six protected assertions and rerun the exact gate after
-      the next coherent product change.
-
-### 2026-09-10 — Point-in-time factor cutoff regression completion
-
-- [x] Cover both normalized observation and legacy event fallback paths for
-      the `coverage_end` cutoff; future corporate actions cannot contaminate
-      historical factor provenance.
-- [x] Focused factor coverage passed `6/6`; the full backend unit suite passed
-      `1,409/1,409` at `67.76%` coverage against the `55%` threshold; Ruff,
-      formatting, and diff checks passed.
-- [ ] Continue provider factor application/rebuild, family/provider history,
-      W1/MN continuity, canonical population, and live 100k-point evidence;
-      preserve the six protected visual assertions and rerun the exact gate
-      after the next coherent product change.
-
-### 2026-09-10 — Point-in-time adjustment-factor provenance
-
-- [x] Bound normalized adjustment observations and legacy event fallback rows
-      to each dataset's `coverage_end`, so future events cannot contaminate a
-      historical range's factor version.
-- [x] Focused factor/market-data coverage passed `5/5`; the full backend unit
-      suite passed `1,408/1,408` at `67.76%` coverage against the `55%`
-      threshold; Ruff, formatting, and diff checks passed.
-- [ ] Continue provider factor application/rebuild, family/provider history,
-      W1/MN continuity, canonical population, and live 100k-point evidence;
-      preserve the six protected visual assertions and rerun the exact gate
-      after the next coherent product change.
-
-### 2026-09-10 — Exact integration gate at the coherent product tip
-
-- [x] Run the prescribed branch-scoped gate at product tip `02bc0bd8`:
-      backend unit `1,407/1,407`, backend integration `387/387` with `81.30%`
-      combined coverage, frontend Vitest/type-check/build, compose/health/
-      performance/acceptance checks, and functional Playwright `165` passed
-      with `107` documented skips across `272`.
-- [x] Record visual parity `98/104`; the six failures are exactly the
-      protected `watchlist-column-editor-open` and `workspace-floating`
-      state-oracle diffs. Scoped Docker resources were cleaned up.
-- [ ] Do not change visual baselines, masks, thresholds, skips, providers,
-      fallbacks, or acceptance policy. Continue provider factor
-      application/rebuild, family/provider history, W1/MN continuity,
-      cadence/population, and live 100k-point evidence; rerun the exact gate
-      after the next coherent product change.
-
-### 2026-09-10 — Linear-time OHLCV reconciliation
-
-- [x] Replace nested provider/observation orphan scans with a precomputed
-      complete-identity set, preserving instrument/source/timeframe/UTC/mode
-      semantics while reducing reconciliation to linear work.
-- [x] Regress storage reconciliation plus coverage routing (`12/12`); Ruff,
-      formatting, and diff checks passed. This is an implementation guard for
-      the roadmap's large-data path, not a claim that the 100k-point live gate
-      has passed.
-- [ ] Rerun the exact Docker-backed gate at `bab365e9`, then at the current
-      coherent tip, and continue provider factor application/rebuild,
-      family/provider history, W1/MN continuity, cadence, population, and R6
-      dense-data evidence.
-
-### 2026-09-10 — UTC normalization at the bulk-history boundary
-
-- [x] Normalize offset-aware provider timestamps to UTC before bulk-history
-      comparisons and persistence, keeping canonical OHLCV keys consistent
-      across equivalent timestamp offsets.
-- [x] Regress the bulk worker (`7/7`) and full backend unit suite
-      (`1,406/1,406`, `67.76%` coverage against the `55%` threshold); Ruff,
-      formatting, and diff checks passed without changing visible or visual
-      policy.
-- [ ] Rerun the exact Docker-backed gate at `bab365e9`, then at the current
-      coherent tip, and continue provider factor application/rebuild,
-      family/provider history, W1/MN continuity, cadence, and population.
-
-### 2026-09-10 — Explicit intraday history requests
-
-- [x] Preserve explicit intraday-only history requests: the bulk worker now
-      calls the provider for `H1`/finer requests instead of misclassifying them
-      as skipped because no coarse timeframe appeared in the same request.
-- [x] Keep mixed-request optimization safe under arbitrary caller ordering by
-      waiting until requested coarse timeframes have been attempted; focused
-      bulk-fetch coverage passed `6/6`, and the full backend unit suite passed
-      `1,405/1,405` at `67.76%` coverage against the `55%` threshold.
-- [ ] Rerun the exact Docker-backed gate at `bab365e9`, then at the current
-      coherent tip, and continue provider factor application/rebuild,
-      family/provider history, W1/MN continuity, cadence, and population.
-
-### 2026-09-10 — Storage reconciliation identity hardening
-
-- [x] Match provider OHLCV bars and raw observations on the complete storage
-      identity (instrument, source, timeframe, UTC timestamp, and raw versus
-      adjusted mode), preventing cross-view evidence collisions.
-- [x] Normalize offset-aware timestamps to UTC and regress the focused storage
-      and coverage-router contract (`11/11`); the full backend unit suite also
-      passed `1,403/1,403` at `67.75%` coverage against the `55%` threshold.
-      Ruff, formatting, and diff checks passed without changing visible or
-      visual policy.
-- [x] Reconfirm the complete frontend suite at the same product tip:
-      Vitest `991/991`, type-check, and production build passed; the existing
-      large-chunk warning remains informational.
-- [ ] Rerun the exact Docker-backed gate at `bab365e9`, then at the current
-      coherent tip, and continue provider factor application/rebuild,
-      family/provider history, W1/MN continuity, cadence, and population.
-
-### 2026-09-10 — Conflict recovery after late snapshot callbacks
-
-- [x] Make revisioned workspace saves distinguish a request that predates a
-      structural tool mutation from one that already contains it, preserving
-      the retry safety for stale requests while retaining the user's recovery
-      copy when a late layout/configuration callback races the original edit.
-- [x] Add the regression coverage: workspace-store `72/72`, full frontend
-      Vitest `991/991`, type-check/build, Ruff, formatting, and diff checks all
-      passed; no visual or acceptance policy changed.
-- [ ] Rerun the exact Docker-backed gate at product tip `bab365e9`. The first
-      attempt at provider tip `00849c5b` failed only at F8j-conflict (`164`
-      passed, `107` documented skips across `272`); the fix is committed, but
-      Docker Desktop became unresponsive during the required stack rebuild.
-- [ ] Complete provider factor application/rebuild verification and continue
-      family/provider history, W1/MN continuity, broader cadence, and
-      canonical population evidence.
-
-### 2026-09-10 — Adjustment-factor input audit evidence
-
-- [x] Carry conservative adjustment-input counts (observed, rebuildable,
-      opaque) and factor kinds from durable provider event or normalized
-      observation lineage through dataset state and canonical OHLCV coverage;
-      label it as input audit evidence, not proof of local price recalculation.
-- [x] Surface the additive evidence through Coverage Summary's existing
-      screen-reader-only range description without visible layout or pixel
-      changes; focused backend coverage passed `36/36`, the frontend consumer
-      passed `4/4`, and type-check, Ruff, formatting, and diff checks passed.
-- [x] Re-run the exact gate: backend `1,399/387` (`81.23%`), frontend
-      `990/990`, functional `165` with `107` documented skips, visual `98/104`
-      with the six established diffs, and clean teardown.
-- [ ] Complete provider factor application/rebuild verification and continue
-      family/provider history, W1/MN continuity, broader cadence, and
-      canonical population evidence.
-
-### 2026-09-10 — Observed OHLCV cadence contract
-
-- [x] Expose canonical returned-bar cadence as additive coverage evidence:
-      distinct UTC timestamp status, sample count, median/minimum/maximum
-      interval days, and an explicit diagnostic-only semantics label that does
-      not infer provider schedules or missing-observation completeness.
-- [x] Carry the evidence through the Coverage Summary accessibility contract;
-      focused service/router coverage passed `26/26`, the frontend consumer
-      passed `4/4`, and type-check, Ruff, formatting, and diff checks passed
-      without visible layout or pixel changes.
-- [x] Re-run the exact gate: backend `1,399/387` (`81.23%`), frontend
-      `990/990`, functional `165` with `107` documented skips, visual `98/104`
-      with the six established diffs, and clean teardown.
-- [ ] Continue broader provider factor application/rebuild verification and
-      family/provider history, W1/MN continuity, broader cadence, and canonical
-      population evidence.
-
-### 2026-09-10 — Benchmark-family observed cadence evidence
-
-- [x] Measure distinct composition-date spacing for each benchmark-family
-      role's returned D1/W1/MN snapshots and expose status, sample count, and
-      median/minimum/maximum interval days without inferring an official
-      disclosure schedule or missing-snapshot completeness.
-- [x] Carry the additive observed-cadence evidence through the family
-      provenance contract, Market Map, and family-role accessibility summaries
-      without visible layout or pixel changes; cadence coverage passed `9/9`,
-      family integration `1/1`, Market Map `36/36`, and type-check, Ruff,
-      formatting, and diff checks passed.
-- [x] Re-run the exact gate: backend `1,397/387` (`81.22%`), frontend
-      `990/990`, functional `165` with `107` documented skips, visual `98/104`
-      with the six established diffs, and clean teardown.
-- [ ] Continue broader provider factor application/rebuild verification and
-      family/provider history, W1/MN continuity, broader cadence, and canonical
-      population evidence.
-
-### 2026-09-10 — Benchmark-family history factor-evidence consumer
-
-- [x] Carry durable adjustment provenance from provider and derived member-bar
-      rows into each benchmark-family role's D1/W1/MN coverage contract, with
-      conservative versioned/opaque/unavailable counts and no invented factor
-      evidence.
-- [x] Preserve provider source identity during aggregation and expose the
-      additive evidence through Market Map and family-role accessibility
-      summaries; focused integration passed `1/1`, watchlist-history unit
-      coverage `8/8`, Market Map frontend coverage `36/36`, and type-check,
-      Ruff, formatting, and diff checks passed.
-- [x] Re-run the exact gate: backend `1,394/387` (`81.21%`), frontend
-      `990/990`, functional `165` with `107` documented skips, visual `98/104`
-      with the six established diffs, and clean teardown.
-- [ ] Continue broader factor application/rebuild verification and family /
-      provider history, W1/MN continuity, cadence, and canonical population.
-
-### 2026-09-10 — Generic history factor-evidence consumer
-
-- [x] Join covered provider/derived history to durable dataset-state factor
-      provenance and expose conservative member counts plus an aggregate
-      version/status only for complete consistent lineage; keep legacy opaque
-      rows and mixed evidence explicit.
-- [x] Carry the evidence through the Market Map assistive provenance label
-      without visible layout or pixel changes; focused watchlist-history and
-      Market Map coverage passed `8/8` and `36/36`, with type-check, Ruff,
-      formatting, and diff checks green.
-- [x] Re-run the exact gate after correcting the PostgreSQL grouping clause:
-      backend `1,394/387` (`81.21%`), frontend `990/990`, functional `165`
-      with `107` documented skips, visual `98/104` with the six established
-      diffs, and clean teardown.
-- [ ] Continue broader factor application/rebuild verification and family /
-      provider history, W1/MN continuity, cadence, and canonical population.
-
-### 2026-09-10 — Derived factor provenance reaches coverage consumers
-
-- [x] Read the null-source derived W1/MN dataset state for derived-only
-      coverage ranges so inherited canonical D1 factor versions reach the
-      workstation contract; keep mixed lineage conservative.
-- [x] Regress the focused derived-timeframe, factor, market-data, and coverage
-      router contract (`38/38`); the exact gate preserved `1,393/387`
-      backend, `990/990` frontend, `165` functional passes, `107` documented
-      skips, and the six established visual diffs with clean teardown.
-- [ ] Continue broader factor application/rebuild verification and family /
-      provider history, W1/MN continuity, cadence, and canonical population.
-
-### 2026-09-10 — Derived timeframe factor-lineage propagation
-
-- [x] Preserve a verified canonical D1 `factor_version` on derived W1/MN
-      dataset provenance when all contributing provider sources agree; keep
-      mixed, missing, opaque, and raw evidence explicitly unversioned.
-- [x] Regress the derived-timeframe, factor, market-data, and coverage-router
-      contract (`37/37`); the exact gate preserved `1,392/387` backend,
-      `990/990` frontend, `165` functional passes, `107` documented skips,
-      and the six established visual diffs with clean teardown.
-- [ ] Continue broader factor application/rebuild verification and family /
-      provider history, W1/MN continuity, cadence, and canonical population.
-
-### 2026-09-10 — Provider-factor fingerprint compatibility correction
-
-- [x] Preserve the established split-only `afv1-…` fingerprint while retaining
-      explicit provider-factor metadata for provider-supplied evidence.
-- [x] Re-run the focused factor/market-data/event (`28/28`) and provider
-      adapter (`83/83`) coverage; the exact gate completed its migration
-      compatibility stage (reported skipped with no changes from its
-      comparison tip) and preserved `1,391/387` backend, `990/990` frontend,
-      `165` functional passes, `107` documented skips, and the six established
-      visual diffs with clean teardown.
-- [ ] Continue broader factor application/rebuild verification and family /
-      provider history, W1/MN continuity, cadence, and canonical population.
-
-### 2026-09-10 — Provider-supplied adjustment-factor persistence
-
-- [x] Extend provider event and normalized observation contracts with explicit
-      positive adjustment factors and a `factor_kind` discriminator; persist
-      them idempotently and bump event refresh version to `3`.
-- [x] Promote complete, consistently versioned provider-factor evidence to
-      deterministic `afv1-…` dataset provenance while keeping amount-only
-      dividends opaque; focused factor/market-data/event coverage passed
-      `28/28` and the related provider suite passed `83/83`.
-- [ ] Continue broader factor application/rebuild verification and family /
-      provider history, W1/MN continuity, cadence, and canonical population.
-
-### 2026-09-10 — Accessible storage evidence consumer
-
-- [x] Carry raw/provider storage reconciliation status and counts through the
-      Coverage Summary tool's existing screen-reader-only range description,
-      without visible layout or pixel changes.
-- [x] Regress the frontend consumer (`4/4`) and type-check; the exact gate
-      preserved `1,387/387` backend, `990/990` frontend, `165` functional
-      passes, `107` documented skips, and the six visual diffs with clean
-      teardown.
-- [ ] Add provider-supplied dividend factors and factor-application/rebuild
-      verification; continue family/provider history, W1/MN continuity,
-      cadence, and canonical population.
-
-### 2026-09-10 — Raw/provider storage reconciliation evidence
-
-- [x] Add provider-bar versus raw-observation reconciliation evidence to the
-      adjusted OHLCV coverage contract, distinguishing reconciled, missing,
-      mismatched, orphaned, and not-observed states while excluding derived
-      rows from raw-observation requirements.
-- [x] Regress storage/coverage (`8/8`) and the backend unit-only suite
-      (`1,387/1,387`); the exact gate preserved `1,387/387` backend,
-      `990/990` frontend, `165` functional passes, `107` documented skips,
-      and the six visual diffs with clean teardown.
-- [ ] Add provider-supplied dividend factors and factor-application/rebuild
-      verification; continue family/provider history, W1/MN continuity,
-      cadence, and canonical population.
-
-### 2026-09-10 — Persisted factor completeness guard
-
-- [x] Reject durable split-factor provenance when any valid persisted split
-      observation lacks a factor version; keep partial or mixed refreshes
-      explicitly opaque.
-- [x] Regress factor/market-data coverage (`23/23`); the exact gate preserved
-      `1,385/387` backend, `990/990` frontend, `165` functional passes,
-      `107` documented skips, and the six visual diffs with clean teardown.
-- [ ] Add provider-supplied dividend factors and factor-application/rebuild
-      verification; continue raw-versus-derived reconciliation, family/
-      provider history, W1/MN continuity, cadence, and canonical population.
-
-### 2026-09-10 — Durable factor provenance reconciliation
-
-- [x] Prefer durable normalized split/dividend observations when recording
-      provider adjusted-dataset provenance; preserve a rebuildable version
-      only for one consistent valid split-factor set and surface mixed or
-      incomplete persisted evidence as opaque.
-- [x] Regress durable reconciliation (`22/22` focused tests); the exact gate
-      preserved `1,384/387` backend, `990/990` frontend, `165` functional
-      passes, `107` documented skips, and the six visual diffs with clean
-      teardown.
-- [ ] Add provider-supplied dividend factors and factor-application/rebuild
-      verification; continue raw-versus-derived reconciliation, family/
-      provider history, W1/MN continuity, cadence, and canonical population.
-
-### 2026-09-10 — Coverage exposes verified adjustment-factor version
-
-- [x] Make adjusted OHLCV coverage expose a verified provider `factor_version`
-      and `factor_status` from the newest matching dataset-state provenance,
-      while leaving opaque/absent factor evidence unchanged.
-- [x] Regress the coverage-router and factor contract (`10/10`), preserve the
-      factor/event (`20/20`), adjacent OHLCV/derived-timeframe (`13/13`), and
-      OHLCV integration (`19/19`) receipts; the exact gate preserved
-      `1,381/387` backend, `990/990` frontend, `165` functional passes,
-      `107` documented skips, and the six visual diffs with clean teardown.
-- [ ] Add provider-supplied dividend factors and factor-application/rebuild
-      verification; continue raw-versus-derived reconciliation, family/
-      provider history, W1/MN continuity, cadence, and canonical population.
-
-### 2026-09-10 — Durable normalized adjustment-factor observations
-
-- [x] Add the additive `adjustment_factor_observation` model and migration;
-      persist split/dividend event evidence idempotently from provider event
-      ingestion, retaining stable `afv1-…` versions only for complete split
-      inputs.
-- [x] Regress factor/event/market-data coverage (`20/20`), adjacent OHLCV /
-      derived-timeframe coverage (`13/13`), and OHLCV integration (`19/19`);
-      the exact gate preserved `1,380/387` backend, `990/990` frontend, `165`
-      functional passes, `107` documented skips, and the six visual diffs with
-      clean teardown.
-- [ ] Add provider-supplied dividend factors and factor-application/rebuild
-      verification; continue raw-versus-derived reconciliation, family/
-      provider history, W1/MN continuity, cadence, and canonical population.
-
-### 2026-09-10 — Rebuildable split-factor provenance fingerprint
-
-- [x] Canonically fingerprint complete persisted split events as a stable
-      `afv1-…` adjustment-factor version in provider dataset provenance.
-- [x] Keep dividend, incomplete, and absent factor inputs explicitly opaque;
-      focused factor/market-data coverage passed 18/18, adjacent OHLCV/
-      derived-timeframe coverage 13/13, OHLCV integration 19/19, and the exact
-      gate preserved 1,379/387 backend, 990/990 frontend, 165 functional
-      passes, 107 documented skips, and the six visual diffs with clean
-      teardown.
-- [ ] Extend the model to durable factor-event persistence and provider
-      dividend-factor coverage; complete raw-versus-derived storage evidence,
-      family/provider history, W1/MN continuity, cadence beyond source-
-      declared metadata, and canonical population.
-
-### 2026-09-10 — Provider history promotes derived rows to canonical lineage
-
-- [x] Make provider OHLCV upserts reclaim matching W1/MN keys from local
-      D1-derived rows, clearing `is_derived` and all derivation metadata while
-      preserving provider values/source precedence.
-- [x] Regress the late-provider promotion (`14/14` market-data units), adjacent
-      derived/OHLCV contracts (`13/13`), and OHLCV integration (`19/19`); the
-      exact gate preserved 1,375/387 backend coverage, 165 functional passes,
-      107 documented skips, and the six established visual diffs with clean
-      teardown.
-- [ ] Build a rebuildable adjustment-factor/version model and complete raw-
-      versus-derived storage evidence, family/provider history, W1/MN
-      continuity, cadence beyond source-declared metadata, and canonical
-      population.
-
-### 2026-09-10 — Generic history source provenance evidence
-
-- [x] Preserve source-declared publication, cadence, parser version, source
-      identifier, effective/known membership timing, and timing provenance in
-      generic history status without inferring cadence or fabricating metadata.
-- [x] Expose the metadata only through hidden Market Map accessibility
-      evidence; focused history units passed 7/7, Market Map Vitest 36/36, and
-      the exact gate preserved 165 functional passes, 107 documented skips,
-      and the six established visual diffs with clean teardown.
-- [ ] Build a rebuildable adjustment-factor/version model and raw-versus-
-      derived storage separation; complete family/provider history, W1/MN
-      continuity, cadence beyond source-declared metadata, and canonical
-      population evidence.
-
-### 2026-09-09 — Generic history adjustment provenance evidence
-
-- [x] Report provider-native opaque, derived-inherited, mixed, and unavailable
-      adjustment provenance per generic history timeframe; keep `factor_version`
-      null when providers do not expose one.
-- [x] Expose the envelope only through hidden Market Map accessibility evidence;
-      focused history units passed 7/7, Market Map Vitest 36/36, and the exact
-      gate preserved 165 functional passes, 107 documented skips, and the six
-      established visual diffs with clean teardown.
-- [ ] Build a rebuildable adjustment-factor/version model and raw-versus-derived
-      storage separation; complete family/provider history, W1/MN continuity,
-      cadence, and canonical population evidence.
-
-### 2026-09-09 — Generic history membership timing evidence
-
-- [x] Preserve resolver-supplied membership `effective_at`, `known_at`, and
-      declared timing-provenance labels in generic history status without
-      inferring cadence or fabricating timestamps.
-- [x] Expose timing only through hidden Market Map accessibility evidence;
-      focused history units passed 7/7, Market Map Vitest 36/36, and the exact
-      gate preserved 165 functional passes, 107 documented skips, and the six
-      established visual diffs with clean teardown.
-- [ ] Complete family/provider history, W1/MN continuity, source-declared
-      cadence evidence, adjustment-factor/version provenance, raw-versus-
-      derived storage, and broader canonical population evidence.
-
-### 2026-09-09 — Generic watchlist history lineage evidence
-
-- [x] Report provider-versus-derived bar lineage per timeframe, including
-      member splits, mixed members, bar totals, and the normalized source label;
-      combine both lineages per member before applying D1/W1/MN readiness floors.
-- [x] Keep the evidence hidden from the visible Market Map and preserve all
-      provider, fallback, storage, visual, and acceptance policy; focused
-      watchlist-history units passed 7/7, Market Map Vitest 36/36, and the exact
-      gate preserved 165 functional passes, 107 documented skips, and the six
-      established visual diffs with clean teardown.
-- [ ] Complete family/provider history, W1/MN continuity, cadence/effective
-      timing, adjustment-factor/version provenance, raw-versus-derived storage,
-      and broader canonical population evidence.
-
-### 2026-09-09 — Unified watchlist history disposition evidence
-
-- [x] Carry canonical, placeholder, unresolved, and excluded dispositions
-      through generic watchlist history planning/status and refresh-source
-      contracts while preserving aggregate exclusion behavior.
-- [x] Expose the generic history disposition map through hidden Market Map
-      accessibility evidence; focused backend coverage passed 7/7, the
-      Docker-backed watchlist API regressions passed 2/2, adjacent history
-      units passed 32/32, and Market Map coverage passed 36/36.
-- [ ] Complete family/provider history, W1/MN continuity, cadence/effective
-      timing, adjustment-factor/version provenance, and raw-versus-derived
-      storage evidence; preserve unchanged provider/fallback and visual policy.
-
-### 2026-09-09 — Explicit history queue disposition readiness
-
-- [x] Expose canonical, placeholder, unresolved, and excluded dispositions on
-      admin canonical history-refresh legs while preserving legacy aggregate
-      counts and deterministic zero maps for unresolved/error legs.
-- [x] Regress duplicate canonical IDs, placeholder provenance, and
-      cash/non-equity exclusion reasons; focused planner coverage passed 25/25,
-      the Docker-backed ETF history API suite passed 65/65, and the exact gate
-      preserved 165 functional passes, 107 documented skips, and the six
-      established visual diffs with clean teardown.
-- [ ] Complete family/provider history, W1/MN continuity, cadence/effective
-      timing, adjustment-factor/version provenance, and raw-versus-derived
-      storage evidence; preserve unchanged provider/fallback and visual policy.
-
-### 2026-09-09 — Explicit family member disposition readiness
-
-- [x] Return provider-neutral `canonical`, `placeholder`, `unresolved`, and
-      `excluded` member dispositions for each persisted benchmark-family
-      snapshot while keeping canonical IDs and readiness denominators scoped to
-      resolved security/equity rows.
-- [x] Regress the mixed snapshot contract with a cash/non-member row; the
-      workspace integration contract passed 57/57 and focused Market Map,
-      accessibility, and pop-out frontend coverage passed 66/66. Type-check,
+- [x] Validate exact source
+      `f76966ce4329ad181b75557feb39024266c648f8`: branch-owned unit scope
+      passed `1,923/1,923` with `37` warnings in `328.24s`; Docker integration
+      passed `386/386` with `57` warnings in `729.32s` (testcontainer session
+      `89b74bd8-70c8-4249-95e8-df7db0f8570c`); cleanup completed without
+      host-wide pruning.
+
+### 2026-09-25 — FINRA ORF credential-scoped token cache
+
+- [x] Scope the in-memory ORF access-token cache to the TRAQS username and a
+      non-secret refresh-token digest, preventing credential-rotation reuse
+      while retaining no raw refresh token. Focused FINRA coverage passed
+      `40/40`; Ruff passed.
+
+- [x] Validate exact source
+      `461a7aeee9b8094e6fc84d6adfca5f81a4d83ceb`: branch-owned unit scope
+      passed `1,922/1,922` with `37` warnings in `324.59s`; Docker integration
+      passed `386/386` with `57` warnings in `711.07s` (session
+      `00cd7f28-fdac-4b17-92d1-d36d7f46d472`); cleanup completed without
+      host-wide pruning.
+
+### 2026-09-25 — FINRA ORF endpoint-path hardening and exact validation
+
+- [x] Require the documented ORF `/DownloadHandler.ashx` path before any
+      credentialed request; malformed paths are now rejected explicitly.
+      Focused ORF coverage passed `24/24` and Ruff passed.
+
+- [x] Validate exact source `f4880cb7742d943399603ece66318ba169a502ad`:
+      branch-owned unit scope passed `1,921/1,921` with `37` warnings, and
+      Docker PostgreSQL/Redis integration passed `386/386` with `57` warnings
+      in `719.08s` (session `3a62ab45-5477-4314-b858-8d2825c3f808`); cleanup
+      completed without host-wide pruning.
+
+### 2026-09-25 — FINRA ORF host correction and full validation
+
+- [x] Correct the ORF validator and branch-owned fixtures to use the official
+      `apidownload.finratraqs.org` TRAQS host; the prior spelling was invalid
+      and would reject valid source URLs. Focused provider/registry/live-runner
+      coverage passed `95/95`; Ruff passed.
+
+- [x] Validate the exact corrected source
+      `83d1225167d86b4da59a09d2b82ede3393573894`: branch-owned unit scope
+      passed `1,920/1,920` with `37` warnings in `324.49s`, and Docker
+      PostgreSQL/Redis integration passed `386/386` with `57` warnings in
+      `723.01s` (testcontainer session
+      `c2c740f0-324c-4395-afbd-9844ac07c468`); cleanup completed without
+      host-wide pruning.
+
+- [ ] Keep ORF routing fail-closed until the separate TRAQS account
+      entitlement, source/redistribution review, operation-cost bound, and
+      bounded credentialed live matrix are available.
+
+### 2026-09-25 — FINRA ORF authentication correction and exact-head validation
+
+- [x] Correct the FINRA OTC ORF integration to use its separate documented
+      TRAQS refresh-token/username flow and authenticated `POST` file requests;
+      FINRA Gateway client credentials remain restricted to the Query API.
+      Focused provider/live-runner/secret-wiring/lint/compile checks passed
+      `112/112`; no secrets were persisted.
+
+- [x] Re-run the authoritative Docker integration gate at the corrected source
+      `bb42631453c1080b81ae2bebfc5190acec56f641`: `386` tests passed with `57`
+      warnings in `726.24s` using isolated PostgreSQL/Redis testcontainers
+      (session `ee99d026-d67d-4f9a-a125-a9563390969c`); cleanup completed
+      without host-wide pruning.
+
+- [ ] Keep ORF routing fail-closed until a TRAQS ORF username and refresh token
+      entitlement are configured and the bounded live ORF matrix is run; the
+      existing FINRA Gateway credentials do not satisfy this requirement.
+
+### 2026-09-25 — Current provider-contract audit continuation
+
+- [x] Re-run the exact-head branch-owned backend unit gate, excluding only the
+      ETF adapter file owned by `feat/etf-holdings-constituents`: `1,917`
+      tests passed with `37` existing warnings in `322.75s`. The command
+      intentionally overrides repository `addopts` so its branch result is not
+      rejected by the unrelated global coverage threshold; coverage remains
+      reported and the receipt is durable in the provider workstream.
+
+- [x] Replace the generic host-ledger failure with an actionable, redacted
+      read-only SQLite diagnostic. The quota-coordinator/live-runner focused
+      suite passed `86/86`; the current preflight receipt identifies the
+      writable-ledger/PostgreSQL requirement without exposing paths or secrets.
+
+- [x] Re-run the focused FMP preflight with a private writable isolated ledger.
+      It made zero provider requests and reached the provider-specific byte,
+      reset, daily, and bandwidth evidence blockers, proving the host-ledger
+      permission issue is not masking the FMP contract gate.
+
+- [x] Re-run the authoritative Docker-backed integration gate after the FMP
+      reset-conflict and quota-ledger diagnostic changes. The exact-head
+      `make test-int` run passed `386` tests with `57` warnings in `721.87s`
+      using isolated PostgreSQL/Redis testcontainers (session
+      `119701e7-3cb6-40d6-8f2c-ad2ee013b968`); cleanup completed without
+      host-wide pruning.
+
+- [x] Make live preflight diagnostics exhaustive for FMP. Missing or malformed
+      byte maps no longer suppress the daily-reset and bandwidth-evidence
+      controls; the refreshed focused run stopped at `0/0` before transport
+      and recorded every unresolved FMP control in `validation.jsonl`.
+
+- [x] Reconcile the two current official FMP reset statements. The API FAQ
+      publishes a 15:00 America/New_York reset, while newer official limit
+      guidance says no single reset time should be promised and points to the
+      account dashboard. Keep the deterministic FAQ boundary only as fixture
+      behavior and record account-specific reset evidence as an admission
+      requirement; do not infer a reset from the conflict.
+
+- [x] Recheck current official Marketstack quota sources. Pricing/home/contact
+      guidance says 100 requests/month, one FAQ paragraph says 1,000, and no
+      official reset timestamp or machine-readable usage counter was found.
+      Preserve the lower audit ceiling and fail-closed routing; do not infer a
+      reset boundary.
+
+- [x] Refresh the exact-HEAD full provider safety preflight after the current
+      live receipts. It stopped before ordinary transport at `0/0` with zero
+      provider requests and recorded the remaining fail-closed gates in the
+      provider workstream receipt.
+- [x] Refresh the current Nasdaq Trader NMS directory at the exact source.
+      The full-directory pagination/completeness case passed `1/1` with the
+      two official files, two requests, and 892,447 response bytes. OTC
+      completeness remains a separate FINRA/OTC source gate.
+- [x] Attempt the exact-source EDGAR live matrix. It stopped before transport
+      at `0/0` because no durable account-wide/IP request baseline is
+      available; no SEC request was made and no quota was inferred.
+- [x] Refresh the keyless OpenFIGI mapping/profile/account-usage matrix at the
+      current source. It passed `3/3` with three requests; keyed-mode evidence
+      remains intentionally absent because no OpenFIGI key is configured.
+- [x] Re-run provider secret-wiring validation after the latest workflow and
+      evidence changes: `26/26` passed without contacting external services.
+
+- [x] Attempt the focused credentialed Twelve Data account-usage probe with an
+      isolated owner-only durable ledger. The first shell attempt failed before
+      transport because DNS was unavailable; the redacted failure receipt is
+      retained as environment evidence.
+- [x] Re-run the focused Twelve Data live probe from a network-enabled host.
+      It passed `1/1` with one request and native minute headers
+      `api-credits-used=1`, `api-credits-left=7`, and `api-credits-request=1`.
+- [ ] Reconcile Twelve Data's durable daily baseline before admitting
+      daily-metered routing. The exact provider reset boundary is already
+      documented as 00:00 UTC; the `/api_usage` response does not expose prior
+      daily consumption, so no daily usage is inferred.
+- [x] Refresh bounded native account-usage evidence at the current source for
+      Alpaca, MarketData.app, EODHD, Binance, and OpenFIGI. Each focused live
+      case passed `1/1` with exactly one request; redacted receipts and byte
+      totals are durable in the provider workstream.
+- [ ] Keep EODHD fail-closed until its contradictory published minute limits,
+      active account entitlement, and current daily baseline are reconciled.
+- [x] Run the explicitly capped Dinari Sandbox canary with ephemeral
+      authorization controls. It passed `1/1` with 14 requests and 125,169
+      response bytes; the redacted receipt is durable and sandbox payloads were
+      not persisted into canonical data.
+- [ ] Keep Dinari production routing disabled until its Sandbox quota/reset and
+      commercial/redistribution terms are provider-authoritatively reviewed.
+
+- [x] Refresh the exact-current full provider safety preflight at source
+      `fcb047f68531a34dc9719be48d751cc1f88e401d`; it stopped before transport
+      with `0/0` cases and zero provider requests.
+- [x] Audit Tiingo's documented account-usage route. The API URL redirects to
+      a web account page rather than a machine-readable counter endpoint, so
+      no prior usage or reset state can be established automatically. No
+      credential was forwarded across the redirect and no Tiingo data request
+      was made.
+- [ ] Obtain a reviewed machine-readable Tiingo usage source or explicit
+      operator evidence before admitting Tiingo's quota-limited routing.
+
+- [x] Preserve the EODHD provider-documented minute reset boundary in native
+      account-usage observations and allow that named dimension to reconcile
+      only against a reviewed EODHD contract. Focused tests passed `11/11`,
+      branch-owned unit tests passed `1,915/1,915`, and Docker integration
+      passed `386/386` at source
+      `d050a169c9d3f4e283187e43ca7513e9b09fe334`.
+- [ ] Reconcile the configured EODHD account's active minute entitlement and
+      current daily usage date, then replay its bounded live matrix. Until that
+      evidence exists, EODHD remains fail-closed and no quota is inferred.
+
+- [x] Record the conflicting official EODHD minute limits: the Free Starter
+      pricing row says 20 requests/minute, while the API-limits page says
+      1,000/minute on every plan. Runtime enforces 20/minute until active-key
+      evidence is reviewed and never widens automatically. The configured
+      key's bounded `/user` response reported a 20-call daily limit, stale
+      `apiRequestsDate=2026-09-15`, and native minute headers `1200/1199`.
+- [x] Run current-source keyless matrices for OpenFIGI (`3/3`) and Binance
+      (`3/3`) after native usage refreshes. Redacted receipts are durable in
+      the provider workstream; keyed OpenFIGI limits remain unproven.
+- [ ] Reconcile EODHD's active account entitlement and current daily baseline
+      from provider-authoritative evidence before enabling ordinary routing.
+
+### 2026-09-17 — Explicit provider-scoped reset safety envelopes
+
+- [x] Apply the Alpaca reset-boundary decision to the other providers whose
+      current evidence gives an exact numeric ceiling but omits a calculable
+      native bucket boundary: Massive Stocks Basic (5 calls/minute), Alpha
+      Vantage free (25 calls/day), SEC EDGAR fair-access (10 calls/second), and
+      Finnhub's independent 60 calls/minute and 30 calls/second pools.
+- [x] Retain each provider-defined reset label for audit while enforcing an
+      explicit rolling application envelope on that individual dimension. No
+      generic request, burst, concurrency, or cooldown fallback is used; an
+      optional reviewed native-reset override remains provider-specific.
+- [x] Update runtime admission, direct live-probe reservations, diagnostics,
+      examples, and focused regressions. The current Docker-backed backend gate
+      passes `2,767/2,767` with 89 warnings and 82.06% coverage.
+- [ ] Reconcile each provider's durable account baseline before executing its
+      metered live matrix. A safety envelope makes the reset calculation safe;
+      it does not fabricate prior external usage or bypass separate terms,
+      entitlement, byte-cost, or universe gates.
+
+### 2026-09-17 — Resumable, lossless event ingestion
+
+- [x] Replace Alpaca's corporate-action page bound with a durable page
+      checkpoint. Every successful page now stores its raw provider envelope,
+      normalized rows, request cursor, next cursor, query fingerprint, and
+      completion state in `instrument_event_page_snapshot` and
+      `instrument_event_fetch_state`.
+- [x] Resume incomplete queries against the same provider and cursor on the
+      next job; a provider fallback cannot consume another provider's cursor.
+      Direct Alpaca and Massive adapters follow all provider cursors to
+      completion, and unsupported Alpaca action families remain in raw page
+      snapshots instead of being discarded.
+- [x] Remove page-bound routing gates and update live/unit coverage. Local
+      fairness may stop work between pages, but no setting can mark an
+      incomplete result complete or permanently exclude a page.
+- [ ] Run the credentialed end-to-end page-resume probe in the deployed worker
+      once the target environment has the new migration applied. This is an
+      execution/environment gate, not a data-model or code-completeness gap.
+
+### 2026-09-17 — Current-head provider preflight after queue fixes
+
+- [x] Re-run the full provider matrix at source `ba3893314` after the daily
+      refresh-key and queue-throughput changes. The safety preflight stopped
+      before transport (`0/0` cases, zero provider requests) and recorded the
+      durable quota-coordinator availability blocker plus the existing
+      provider-specific quota/reset, legal/use, capability-coverage, and
+      unresolved-operation blockers.
+- [x] Preserve the result as an aggregate-only `validation.jsonl` receipt;
+      no credentials or provider payloads were consumed. This does not close
+      live acceptance, routing-promotion, deployment-secret, universe, or
+      final-shadow gates.
+- [x] Replay the same preflight with elevated access to the owner-only durable
+      quota ledger. Ledger health passed, but the matrix still stopped before
+      transport (`0/0`, zero provider requests) on provider-specific
+      reset/baseline/cost, unresolved-operation, and legal/use controls; this
+      supersedes the sandbox-only unavailable-ledger diagnostic.
+
+### 2026-09-17 — Configurable core-refresh throughput
+
+- [x] Add `MARKET_DATA_REFRESH_QUEUE_BATCH_SIZE` with a default of 100 and a
+      safe worker bound of 1–500; wire it through standard/RPi Compose and
+      deployment documentation.
+- [x] Add configuration regressions and replay the authoritative backend gate:
+      `2,370/2,370` passed with 37 warnings and 70.82% coverage; Compose,
       Ruff, and diff checks passed.
-- [ ] Complete family/provider history, W1/MN continuity, cadence/effective
-      timing, adjustment-factor/version provenance, and raw-versus-derived
-      storage evidence; preserve the six established visual state-oracle
-      diffs and unchanged provider/fallback policy.
-
-### 2026-09-09 — Missing pop-out recovery alert accessibility
-
-- [x] Expose the existing unavailable-pop-out recovery message as an
-      assertive alert/live region for assistive technology.
-- [x] Preserve its copy, browser/OS boundary disclosure, layout,
-      provider/fallback behavior, visual output, and acceptance policy;
-      focused view coverage passed 28/28, with type-check and diff checks
-      green.
-- [ ] Continue R1 canonical family/member history readiness and broader
-      R6-R7 native-window, accessibility, security, and visual proof.
-
-### 2026-09-09 — Workstation recovery status accessibility
-
-- [x] Announce the existing concise footer recovery message as a polite,
-      atomic status for assistive technology.
-- [x] Preserve transport-error copy, native tooltip detail, footer geometry,
-      provider/fallback behavior, and visual acceptance policy; focused view
-      coverage passed 27/27 and type-check/diff checks passed.
-- [ ] Continue R1 canonical family/member history readiness and broader R6-R7
-      native-window, accessibility, security, and visual proof.
-
-### 2026-09-09 — Snapshot generation queue recovery
-
-- [x] Keep the generation owned by an in-flight workstation snapshot PUT and
-      retry newer local layout/tool edits after the older request settles.
-- [x] Regress the exact timing race with a deferred PUT and preserve the
-      existing functional, provider, fallback, and visual acceptance policy.
-- [ ] Continue R1 canonical family/member history readiness and the broader
-      R6-R7 resilience/accessibility proof across live workflows.
-
-### 2026-09-09 — OHLCV range lineage and adjustment provenance accessibility
-
-- [x] Return provider/derived/unknown counts, source lineage/timeframes, and an
-      explicit adjustment-provenance envelope from canonical coverage ranges.
-- [x] Expose the range lineage and opaque/inherited adjustment status through a
-      hidden Coverage Summary accessibility description without changing pixels,
-      provider precedence, fallback, storage, or visual policy.
-- [ ] Complete the R1 canonical family/member history audit, including a
-      rebuildable adjustment-factor/version model and raw-versus-derived
-      storage separation; this slice intentionally leaves `factor_version`
-      unreported when the provider does not expose it.
-
-### 2026-09-09 — Market Map canvas accessibility
-
-- [x] Add a bounded hidden summary to large canvas maps for source, scope,
-      metrics, coverage, freshness, warnings, exclusions, and selection.
-- [x] Preserve the existing canvas label, keyboard member-search path, visual
-      output, and provider/fallback contracts.
-- [ ] Extend R6 accessibility proof across native windows and full live
-      canonical workflows.
-
-### 2026-09-09 — Study artifact accessibility
-
-- [x] Add shared assistive summaries for scalar/boolean/series/range/table/bar,
-      histogram/scatter/heatmap/dashboard/events/breadth-history artifacts.
-- [x] Wire summaries into Study Lab and persisted research-result regions
-      without changing visual output or promotion contracts.
-- [ ] Extend R6 accessibility proof across native windows and full live
-      canonical workflows.
-
-### 2026-09-09 — Chart history provenance accessibility
-
-- [x] Carry OHLCV derived/source fields into the typed chart contract.
-- [x] Expose loaded-range and selected-bar provider/derived/adjustment lineage
-      to assistive users without changing chart pixels or visual policy.
-- [ ] Continue the bounded canonical family/member history audit; chart
-      disclosure does not establish W1/MN provider readiness or continuity.
-
-### 2026-09-09 — ETF history-point provenance accessibility
-
-- [x] Keep point-level composition, weight, disclosure timing, provider/source,
-      cadence, parser, timing-basis, and provider/derived provenance typed in
-      ETF weight-evolution data.
-- [x] Expose that metadata through an accessible labelled evolution track and
-      point titles without changing the workstation layout or provider/fallback
-      policy.
-- [ ] Continue the bounded canonical family/member history audit; accessible
-      point provenance does not establish complete family population or W1/MN
-      readiness.
-
-### 2026-09-09 — ETF snapshot selector disclosure provenance
-
-- [x] Carry publication time, cadence, parser version, source identifier, and
-      explicit timing-basis labels through the authenticated snapshot-date
-      history endpoint without changing provider precedence or fallback rules.
-- [x] Expose the same metadata through native snapshot-option titles so date
-      selection remains compact while provenance is available to keyboard and
-      assistive users.
-- [ ] Continue the bounded canonical family/member history audit; this selector
-      metadata does not establish complete family population or W1/MN readiness.
-
-### 2026-09-08 — Canonical derived W1/MN timeframe materialization
-
-- [x] Add explicit OHLCV derivation lineage (`is_derived`, source timeframe,
-      method, and materialization time) with an Alembic migration and API
-      response fields.
-- [x] Materialize W1/MN from persisted adjusted D1 bars during scheduled/bulk
-      maintenance using XNYS calendar periods; preserve observed bounds and do
-      not forward-fill gaps.
-- [x] Keep provider-supplied coarse bars authoritative per calendar period and
-      leave derived rows without a provider source ID; verify the policy with
-      focused tests plus the full unit and PostgreSQL integration suites.
-- [ ] Rebuild adjustment-factor/version provenance and physically separate raw
-      provider storage from the derived cache as the broader historical-data
-      model is completed; this slice is an explicit, tagged representation in
-      the existing OHLCV table, not the final storage redesign.
-- [ ] Re-run bounded family maintenance and prove D1/W1/MN analysis floors,
-      rebalance continuity, and UI readiness against canonical data.
-
-### 2026-09-09 — Mixed-timeframe queue reproduction remains healthy
-
-- [x] Run four concurrent canonical seeded ARQ jobs across MN/W1/D1; all
-      completed and retained D1 availability despite expected coarser-TF gaps.
-- [x] Run a fresh XLK MN/W1/D1 job; MN/W1 reported coverage errors while D1
-      persisted 2,344 bars through 2025-12-31.
-- [x] Reproduce the earlier empty result with the exact canonical snapshot
-      member set and inspect per-member symbol provenance/transient provider
-      conditions. The empty result was not reproduced; governed canonical-symbol
-      fallback succeeded and no runtime/provider policy change was justified.
-
-### 2026-09-09 — Canonical Nasdaq ARQ worker path confirmed
-
-- [x] Enqueue one bounded canonical NVDA `task_bulk_fetch_instrument` D1 job;
-      the real ARQ worker returned `{'D1': 2344}` through `2025-12-31`.
-- [x] Investigate family-scale queue behavior under an explicit bounded fan-out:
-      all `54/54` queued canonical member D1 jobs completed without worker
-      errors. D1-only success does not establish W1/MN continuity/readiness.
-
-### 2026-09-09 — Canonical Nasdaq provider path rechecked
-
-- [x] Verify representative canonical QQQ/SPY/NVDA identities resolve to active
-      Nasdaq provider symbols and that Nasdaq is first in the price-history
-      chain.
-- [x] Run one bounded QQQ D1 fetch through `bulk_fetch_instrument`; `2,344`
-      adjusted bars persisted through `2025-12-31` on the fresh scoped stack.
-- [x] Re-run bounded family member history under the explicit queue budget;
-      `54/54` canonical D1 jobs completed and `53` met the 252-bar floor.
-- [ ] Establish D1/W1/MN continuity and family-wide readiness; this bounded
-      probe leaves W1/MN unavailable and does not claim completeness.
-
-### 2026-09-08 — Controlled network-scale workstation row-budget oracle
-
-- [x] Add an opt-in, capped 10,000-identity E2E fixture that is explicitly
-      marked controlled/non-canonical and exercises real browse/watchlist/API
-      transport.
-- [x] Bound eager quote hydration to a 24-worker pool after the first live run
-      showed unbounded fan-out exhausting browser resources.
-- [x] Verify the authenticated network oracle: `1/1` passed in `7.2s`, all
-      10,000 rows hydrated, virtualized DOM stayed below 100 mounted rows,
-      row-budget state was `within`, and no critical diagnostics were reported.
-- [ ] Repeat the workstation budget check against canonical provider-backed
-      data when a supported dense universe and history are available; this
-      controlled fixture does not establish canonical R1/R2 readiness.
-
-### 2026-09-08 — Exact-tip integration gate after canonical maintenance
-
-- [x] Re-run the full branch-scoped gate at the current documentation tip:
-      all non-visual stages passed and functional Playwright passed 165 with
-      107 documented skips across 272 cases.
-- [x] Preserve the unchanged visual result: 98/104 passed with exactly the
-      six known state-oracle diffs; scoped teardown and cleanup were clean.
-
-### 2026-09-08 — Canonical Nasdaq-100 dated refresh and queue handoff
-
-- [x] Run the real worker path for a dated `nasdaq100` refresh: QQQ and QQQE
-      refreshed from SEC-backed routes; value/growth remained explicitly
-      unavailable.
-- [x] Queue seven canonical member-history jobs and run bounded classification;
-      30 records were enriched with zero failures and 174 remain pending.
-- [ ] Provide usable adjusted D1/W1/MN member bars and continuity; this run's
-      configured provider chain exhausted without persisting bars.
-
-### 2026-09-08 — Expose workstation dense-row budget telemetry
-
-- [x] Add provider-neutral row-universe, mounted-window, and within/exceeded
-      10,000-row budget attributes to the virtual watchlist without truncating
-      or substituting data.
-- [x] Verify focused virtual-watchlist coverage `68/68`, frontend
-      type-check/build, and the full gate: all non-visual stages passed;
-      visual parity remains `98/104` with the same six unchanged state-oracle
-      diffs.
-- [ ] Use the telemetry in a live network-hydrated 10,000-row workstation
-      oracle; controlled component evidence remains insufficient.
-
-### 2026-09-08 — Configurable bounded canonical history fan-out
-
-- [x] Expose the per-snapshot canonical history queue ceiling through Settings
-      and Compose, and pass it through scheduled refresh and persisted-snapshot
-      backfill (default `5000`).
-- [x] Verify focused unit, worker, and real-Postgres integration coverage, then
-      rerun the full gate: all non-visual stages passed; visual parity remains
-      `98/104` with the same six unchanged state-oracle diffs.
-- [ ] Continue canonical family history/readiness and R2-R7 evidence; do not
-      treat the configurable bound as history hydration or readiness.
-
-### 2026-09-08 — Bounded canonical Nasdaq-100 member-history queue
-
-- [x] Verify unresolved QQQ rows are excluded from history fan-out, then
-      promote two rows and queue 27 canonical members with 74 unresolved rows
-      excluded.
-- [x] Persist adjusted D1 history for 23/27 queued members: 45,199 bars and
-      every covered member above the 252-bar floor (minimum 613).
-- [ ] Resolve the remaining QQQ placeholders and hydrate W1/MN history;
-      provider exhaustion leaves `history_ready=false` and no continuity claim.
-
-### 2026-09-08 — Bounded eight-family canonical enrichment pass
-
-- [x] Exercise all eight configured family refresh paths and select nine dated
-      snapshots across eight profiles with zero refresh failures.
-- [x] Run the bounded classifier with zero failures: 181 records enriched and
-      4,144 remain pending.
-- [ ] Hydrate canonical D1/W1/MN member bars and verify continuity/analysis
-      floors; this fresh-stack pass found zero such bars and implies no
-      readiness.
-
-### 2026-09-08 — Bounded Russell 2000 canonical enrichment
-
-- [x] Refresh IWM/IWN/IWO dated snapshots with zero failures and run bounded
-      enrichment across three profiles, enriching 101 records.
-- [x] Preserve explicit post-run state: IWM 77/3, IWN 34/3, and IWO 59/3
-      classified/placeholder counts; 4,376 records remain pending.
-- [ ] Continue enrichment and populate D1/W1/MN member history; no readiness
-      is inferred from partial classification.
-
-### 2026-09-08 — Bounded S&P 500 canonical enrichment
-
-- [x] Run bounded enrichment across SPY/RSP/SPYV/SPYG dated snapshots with
-      zero failures and 78 records enriched under the per-profile cap.
-- [x] Preserve explicit post-run state: SPY 51/449, RSP 50/453, SPYV 40/403,
-      and SPYG 25/117 classified/placeholder counts; 1,518 remain pending.
-- [ ] Continue bounded enrichment and populate D1/W1/MN member history; no
-      readiness is inferred from partial classification.
-
-### 2026-09-08 — Authenticated keyboard/accessibility browser slice
-
-- [x] Run the focused authenticated Playwright keyboard/accessibility slice:
-      workspace tabs, watchlist row actions, shell menus, keyboard help, and
-      drawing flyouts passed `5/5` in `9.5s` with no critical diagnostics.
-- [ ] Extend R6 coverage to native-window behavior, broader accessibility and
-      security checks, dense live-data budgets, and remaining visual oracles.
-
-### 2026-09-08 — Bounded S&P MidCap 400 canonical enrichment
-
-- [x] Refresh MDY/MDYV/MDYG dated snapshots with zero failures and run the
-      bounded worker across three profiles, enriching 113 records.
-- [x] Preserve explicit post-run state: MDY 76 classified/0 placeholders,
-      MDYV 56/9, MDYG 47/9, with 824 records still pending.
-- [ ] Continue enrichment and populate D1/W1/MN member history; no readiness
-      is inferred from partial classification.
-
-### 2026-09-08 — Seeded authenticated top-down/source workflow slice
-
-- [x] Run the targeted seeded browser slice: coverage/watchlists, locked and
-      personal Market Map handoff, family drill-down/source matrix, breadth
-      loading/error and ratios, and recursive Python breadth comparisons passed
-      `11/11` in `44.1s` with no critical diagnostics.
-- [ ] Repeat the top-down journey against canonical provider-backed data and
-      preserve synchronized history/source-readiness evidence.
-
-### 2026-09-08 — Bounded S&P SmallCap 600 canonical enrichment
-
-- [x] Refresh IJR/SLYV/SLYG dated snapshots with zero failures and run bounded
-      enrichment across three profiles, enriching 76 records.
-- [x] Preserve explicit post-run state: IJR 60 classified/2 placeholders,
-      SLYV 38/7, SLYG 6/114, with 1,171 records still pending.
-- [ ] Continue enrichment and populate D1/W1/MN member history; no readiness
-      is inferred from partial classification.
-
-### 2026-09-08 — Frontend dependency security audit
-
-- [x] Run authoritative npm audits: production dependencies report zero
-      vulnerabilities; the development graph reports five findings (two
-      critical, one high, two moderate).
-- [ ] Plan and execute a compatibility-tested major upgrade of Vite/Vitest/
-      coverage tooling, then rerun the complete integration gate.
-
-### 2026-09-08 — Bounded Russell 1000 canonical enrichment
-
-- [x] Run bounded enrichment across the three Russell 1000 dated snapshots:
-      zero failures and 100 records enriched under the per-profile cap.
-- [x] Preserve explicit post-run state: IWB 70 classified/1 placeholder, IWD
-      39/1, IWF 50/0, with 2,176 records still pending.
-- [ ] Continue bounded enrichment and populate D1/W1/MN member history; no
-      history readiness is inferred from classification progress alone.
-
-### 2026-09-08 — 10,000-row virtual watchlist validation
-
-- [x] Run the focused virtual-watchlist suite: `67/67` passed, including the
-      10,000-row universe and wide-column virtualization guards.
-- [ ] Obtain live network-hydrated 10,000-row browser evidence; component
-      virtualization coverage does not prove transport-scale readiness.
-
-### 2026-09-08 — 100,000-point uPlot interaction validation
-
-- [x] Run the real-browser 100,000-point uPlot history guard; 40 zoom/pan
-      cycles passed without chart replacement inside the 2,500 ms budget.
-- [ ] Add or execute the separate 10,000-row workstation data-budget oracle;
-      this renderer result does not imply row-grid readiness.
-
-### 2026-09-08 — 100-round pop-out endurance validation
-
-- [x] Run the R6 workstation performance guards with
-      `TC2000_POP_OUT_CHURN_ROUNDS=100`; both tests passed in `1.7` minutes,
-      preserving canvas/tool counts and bounded lifecycle recovery.
-- [ ] Extend R6 evidence to native-window behavior, dense-data budgets,
-      accessibility/security, and the remaining visual-oracle review.
-
-### 2026-09-08 — Russell 3000 provider population
-
-- [x] Persist IWV `2602/2605` resolved iShares rows for `2025-12-31` with
-      zero refresh failures (`2599` canonical and three placeholders).
-- [x] Keep equal-weight, value, and growth explicitly unavailable because no
-      verified mapped proxies exist.
-- [ ] Finish IWV placeholder enrichment and classification, then verify
-      continuity plus D1/W1/MN floors before claiming readiness.
-
-### 2026-09-08 — Russell 1000 provider population
-
-- [x] Persist IWB `1014/1017`, IWD `873/876`, and IWF `393/396` resolved
-      iShares rows for `2025-12-31` with zero refresh failures.
-- [x] Keep equal-weight explicitly unavailable because no verified mapped
-      proxy exists; preserve one placeholder in IWB/IWD and none in IWF.
-- [ ] Finish placeholder enrichment and classification, then verify continuity
-      plus D1/W1/MN floors before claiming readiness.
-
-### 2026-09-08 — Russell 2000 provider population
-
-- [x] Persist IWM `1963/1967`, IWN `1422/1425`, and IWO `1101/1104`
-      resolved iShares rows for `2025-12-31` with zero refresh failures.
-- [x] Keep equal-weight explicitly unavailable because no verified mapped
-      proxy exists; mapped legs retained complete weights and explicit gaps.
-- [ ] Finish the three placeholders per mapped leg, classify all canonical
-      members, and verify continuity plus D1/W1/MN floors before readiness.
-
-### 2026-09-08 — S&P Composite 1500 provider population
-
-- [x] Persist the mapped SPTM cap-weighted leg for `2025-12-31` with zero
-      refresh failures and `1516/1516` resolved holding rows.
-- [x] Keep equal-weight, value, and growth explicitly unavailable because no
-      verified mapped proxies exist for those roles.
-- [ ] Replace all 1,516 `HOLDING-*` placeholders with canonical instruments,
-      then verify classification, continuity, and D1/W1/MN member-bar floors;
-      no readiness is inferred from provider-row resolution alone.
-
-### 2026-09-08 — S&P SmallCap 600 provider population
-
-- [x] Persist IJR `636/644` resolved rows (eight unresolved), SLYV `461/461`,
-      and SLYG `142/142` SEC-reconstructed rows with zero refresh failures.
-- [x] Keep the equal-weight role explicitly unavailable because no verified
-      mapped proxy exists; retain the provider population gaps in readiness.
-- [ ] Resolve the two IJR, six SLYV, and 141 SLYG placeholders, then verify
-      family continuity and D1/W1/MN member-bar floors before claiming readiness.
-
-### 2026-09-08 — Bounded Nasdaq-100 canonical provider-history maintenance
-
-- [x] Execute a bounded persisted Nasdaq-100 dated refresh for QQQ/QQQE.
-      Four SEC-reconstructed snapshots persisted with every row identity
-      resolved: QQQ `2025-12-31` (`101/101`) and QQQE `2025-10-31`,
-      `2024-10-31`, `2024-04-30` (`103/103`, `102/102`, `102/102`).
-- [x] Run the bounded classification pass over the four selected snapshots;
-      it completed `enriched=1, remaining=407, failed=0` without provider or
-      fallback-policy changes.
-- [ ] Continue family-wide population and historical continuity. QQQ older
-      SEC identity rejections and one QQQE legacy/series rejection remain
-      explicit, and the disposable stack had no D1/W1/MN bars because market
-      data seeding was disabled.
-
-### 2026-09-08 — S&P MidCap 400 provider population
-
-- [x] Persist MDY `401/401` (2025-09-30), MDYV `309/309`, and MDYG `238/238`
-      SEC-reconstructed rows with zero refresh failures.
-- [x] Keep the equal-weight role explicitly unavailable because no verified
-      proxy is mapped; readiness reports retained placeholders and no history
-      floors were inferred.
-- [ ] Enrich placeholders and verify continuity plus D1/W1/MN member-bar
-      floors for this family.
-
-### 2026-09-08 — S&P 500 provider population and PostgreSQL identity repair
-
-- [x] Fix PostgreSQL-safe internal ISIN reassignment by releasing old unique
-      ownership before assigning the alias to the reconciled instrument
-      (`d9f95faa`); focused regression passed.
-- [x] Persist four SEC-reconstructed S&P 500 legs with zero refresh failures:
-      SPY `503/503`, RSP `507/507`, SPYV `446/446`, SPYG `142/142`.
-- [x] Exact-tip gate passed `1353` unit / `386` integration, coverage
-      `80.98%`, Vitest `974/974`, and Playwright `165/271` with `106` skips;
-      visual remains `98/104` with the six known state-oracle diffs.
-- [ ] Enrich placeholder members and verify family continuity plus D1/W1/MN
-      floors; no readiness is inferred from resolved placeholder rows.
-
-### 2026-09-08 — Seeded member-bar floor probe
-
-- [x] Market-data-seeded disposable stack confirmed controlled six-member
-      QQQ/QQQE fixtures only: 520 D1 bars per proxy and D1 floor readiness;
-      W1/MN bars were zero and value/growth mappings unavailable.
-- [ ] Treat this as fixture evidence only; continue provider-backed family
-      population, continuity, and W1/MN member-bar verification.
-
-### 2026-09-08 — Exact-tip gate after QQQ identity repair
-
-- [x] Permit curated SEC filings with omitted series/class IDs only when the
-      observed series name matches the curated route constraint; mismatches and
-      CIK-only inference still fail closed (`40a67a9c`). Live QQQ
-      `2024-12-31` refresh persisted `101/101` resolved rows.
-- [x] Exhaustive gate completed all non-visual stages: backend `1353` unit and
-      `386` integration tests, coverage `80.98%`, frontend Vitest `974/974`,
-      build/compose/provider policy, stack/runner probes, and Playwright `165`
-      passed with `106` documented skips across `271` tests.
-- [x] Visual matrix remains `98/104`; exactly the six unchanged
-      watchlist-column-editor-open/workspace-floating state-oracle diffs fail.
-- [ ] Continue family-wide R1 population, historical continuity, and D1/W1/MN
-      member-bar floors, then the remaining R2-R7 work.
-
-### 2026-09-08 — Exact-tip gate after alert-promotion hydration stabilization
-
-- [x] Add the bounded canonical-instrument settling window to F8u-alert,
-      matching the proven F8u-signal guard; focused coverage passed `3/3`
-      after repeated suite-order timeouts (`e227eda8`).
-- [x] Exhaustive gate completed all non-visual stages: backend `1352` unit
-      and `386` integration tests, frontend Vitest `974/974`, production
-      build/compose/provider policy, healthy stack and runner probes, and
-      functional Playwright `165` passed with `106` documented skips across
-      `271` tests.
-- [x] Visual matrix remains `98/104`; only the six unchanged
-      watchlist-column-editor-open/workspace-floating state-oracle diffs fail.
-- [ ] Execute opt-in provider maintenance and verify persisted populations,
-      continuity, and D1/W1/MN member-bar floors.
-
-### 2026-09-08 — Exact-tip gate after worker Compose wiring
-
-- [x] Wire `ETF_HOLDINGS_CLASSIFICATION_MAX_SNAPSHOTS_PER_PROFILE` into the
-      branch-scoped worker service (`abf0bb69`).
-- [x] Exhaustive gate completed all non-visual stages: backend `1351` unit
-      and `386` integration tests, frontend Vitest `974/974`, production
-      build/compose/provider policy, healthy stack and runner probes, and
-      functional Playwright `165` passed with `106` documented skips across
-      `271` tests. A transient F8u-alert timeout from the preceding run was
-      reproduced as a focused `1/1` pass before this rerun.
-- [x] Visual matrix remains `98/104`; only the six unchanged
-      watchlist-column-editor-open/workspace-floating state-oracle diffs fail.
-- [ ] Execute opt-in provider maintenance and verify persisted populations,
-      continuity, and D1/W1/MN member-bar floors.
-
-### 2026-09-08 — Exact-tip gate after historical enrichment safety fix
-
-- [x] Guard the dated-enrichment summary when an instrument has no
-      `equity_detail` relationship (`c9e017e0`).
-- [x] Exhaustive gate completed all non-visual stages: backend `1351` unit
-      and `386` integration tests, frontend Vitest `974/974`, production
-      build/compose/provider policy, healthy stack and runner probes, and
-      functional Playwright `165` passed with `106` documented skips across
-      `271` tests.
-- [x] Visual matrix remains `98/104`; only the six unchanged
-      watchlist-column-editor-open/workspace-floating state-oracle diffs fail.
-- [ ] Execute opt-in provider maintenance and verify persisted populations,
-      continuity, and D1/W1/MN member-bar floors.
-
-### 2026-09-08 — Bounded canonical enrichment across dated snapshots
-
-- [x] Extend the scheduled canonical holding-enrichment pass from latest-only
-      to up to four persisted non-fixture snapshots per ETF profile, with one
-      per-profile resolver budget and caps covering unresolved rows as well as
-      missing classifications (`cb3191fe`).
-- [x] Focused resolution coverage passed `25/25`; bounded worker/configuration
-      checks passed `6/6`; Ruff, compile, and diff checks passed.
-- [ ] Execute the opt-in maintenance against persisted provider snapshots and
-      verify resolved populations, continuity, and D1/W1/MN member-bar floors;
-      this code change does not fabricate symbols or claim data completeness.
-
-### 2026-09-08 — Study Lab threshold Strategy-signal promotion
-
-- [x] Add direct `Save as Strategy signal` targets for numeric series and
-      range-center Study Lab artifacts, preserving immutable canonical lineage,
-      explicit threshold adapters, and fail-closed member identity
-      (`9352c43a`).
-- [x] Focused Study Lab coverage passed `27/27`; authenticated F9j browser
-      proof passed `1/1` (`290ff9f7`).
-- [x] Final exact-tip gate recorded backend `1350` unit/`385` integration,
-      combined coverage `80.96%`, frontend `972/972`, and functional
-      Playwright `164` passed with `106` documented skips; visual parity
-      remains `98/104` with only the six known state-oracle diffs.
-- [ ] Continue canonical provider/history readiness and remaining R2-R7
-      roadmap work; do not alter visual policy or promote this feature branch.
-
-### 2026-09-07 — Authenticated browser proof for chart EasyScan and Market Gauge promotion
-
-- [x] Add and run F8u-scan and F8u-gauge: chart indicator promotion creates
-      reusable conditions and EasyScan-backed direct targets, with visible
-      EasyScan/Market Gauge status (`38f7480a`, focused `2/2`).
-- [x] Exact-tip gate recorded backend `1350` unit/`385` integration, frontend
-      `972/972`, and functional Playwright `164` passed with `106` documented
-      skips across `270`; visual parity remains `98/104` with only the six
-      known state-oracle diffs and cleanup/resource accounting is clean.
-- [ ] Continue the remaining Strategy Lab promotion fan-out alongside
-      canonical provider/history population and R2-R7 roadmap work.
-
-### 2026-09-07 — Authenticated browser proof for chart indicator-alert promotion
-
-- [x] Add and run the consuming F8u-alert Playwright flow: after canonical
-      instrument hydration, chart EMA promotion creates a reusable condition
-      and indicator alert for the active instrument (`a7d7915d`, focused `1/1`).
-- [x] Exact-tip gate recorded backend `1350` unit/`385` integration, frontend
-      `972/972`, and functional Playwright `162` passed with `106` documented
-      skips across `268`; visual parity remains `98/104` with only the six
-      known state-oracle diffs and cleanup/resource accounting is clean.
-- [ ] Continue the remaining compatible chart/list/gauge and Strategy Lab
-      promotion fan-out alongside canonical provider/history population and
-      R2-R7 roadmap work.
-
-### 2026-09-07 — Authenticated browser proof for chart watchlist-filter promotion
-
-- [x] Add and run the consuming F8u-filter Playwright flow: chart RSI
-      promotion reaches a selected persisted active watchlist filter and the
-      saved workspace snapshot retains the filter mode and EasyScan identifier
-      (`91c470dc`, focused `1/1`).
-- [x] Exact-tip gate recorded backend `1350` unit/`385` integration, frontend
-      `972/972`, and functional Playwright `161` passed with `106` documented
-      skips across `267`; visual parity remains `98/104` with only the six
-      known state-oracle diffs and cleanup/resource accounting is clean.
-- [ ] Continue the remaining compatible chart/list/gauge and Strategy Lab
-      promotion fan-out alongside canonical provider/history population and
-      R2-R7 roadmap work.
-
-### 2026-09-07 — Authenticated browser proof for chart Boolean-column promotion
-
-- [x] Add and run the consuming F8u-boolean Playwright flow: chart RSI
-      promotion reaches a selected persisted Boolean watchlist column and
-      browser diagnostics remain clean (`a229a145`, focused `1/1`).
-- [x] Exact-tip gate recorded backend `1350` unit/`385` integration, frontend
-      `972/972`, and functional Playwright `160` passed with `106` documented
-      skips across `266`; visual parity remains `98/104` with only the six
-      known state-oracle diffs and cleanup/resource accounting is clean.
-- [ ] Continue the remaining compatible chart/list/gauge and Strategy Lab
-      promotion fan-out alongside canonical provider/history population and
-      R2-R7 roadmap work.
-
-### 2026-09-07 — Chart Plot Library Boolean watchlist-column promotion
-
-- [x] Add a typed `Boolean column` promotion target to the Chart Plot Library.
-      It persists the indicator threshold as a reusable condition, creates the
-      existing EasyScan backing, and adds `condition:<key>` plus its visibility
-      key to a selected watchlist (`191aa889`).
-- [x] Focused Chart Plot Library coverage passed `23/23`; frontend type-check
-      passed; exact-tip gate passed backend `1350` unit/`385` integration,
-      frontend `972/972`, and functional Playwright `159` passed with `106`
-      documented skips. Visual parity remains `98/104` with only the six
-      known state-oracle diffs; cleanup/resource accounting is clean.
-- [ ] Continue the remaining compatible chart/list/gauge and Strategy Lab
-      promotion fan-out alongside canonical provider/history population and
-      R2-R7 roadmap work.
-
-### 2026-09-07 — Chart Plot Library Market Gauge promotion
-
-- [x] Add a `Market Gauge` promotion target to the Chart Plot Library. It
-      persists the indicator threshold as a reusable condition, creates the
-      existing saved EasyScan target, and reports the gauge availability using
-      the same contract as Study Lab (`f2dc4a78`).
-- [x] Focused Chart Plot Library coverage passed `22/22`; frontend type-check
-      passed; exact-tip gate passed backend `1350` unit/`385` integration,
-      frontend `971/971`, and functional Playwright `159` passed with `106`
-      documented skips. Visual parity remains `98/104` with only the six
-      known state-oracle diffs; cleanup/resource accounting is clean.
-- [ ] Continue the remaining compatible chart/list/gauge and Strategy Lab
-      promotion fan-out alongside canonical provider/history population and
-      R2-R7 roadmap work.
-
-### 2026-09-07 — Continue compatible provider metadata fallback
-
-- [x] Keep searching the configured provider chain when a provider-owned
-      metadata profile is non-null but fails canonical name, symbol,
-      placeholder, or equity-like quote-type checks; accept the first fully
-      admissible profile and retain safe default fallback (`ab9ebe56`).
-- [x] Focused ETF resolver coverage passed `24/24`; exact-tip gate passed
-      backend `1350` unit/`385` integration, frontend `970/970`, and
-      functional Playwright `159` passed with `106` documented skips. Visual
-      parity remains `98/104` with only the six known state-oracle diffs;
-      cleanup is clean.
-- [ ] Continue separately authorized, auditable enrichment and canonical
-      member-bar population; provider-chain safety does not prove complete
-      family/date/member coverage.
-
-### 2026-09-07 — Let identity search providers complete canonical enrichment
-
-- [x] Use metadata from the reviewed provider that supplied a unique
-      identifier-only search candidate before falling back to the configured
-      default metadata provider. Promotion still requires compatible names,
-      canonical non-placeholder symbols, and an equity-like quote type; the
-      operation remains bounded maintenance-only (`53f7b07b`).
-- [x] Focused ETF resolver coverage passed `23/23`; exact-tip gate passed
-      backend `1349` unit/`385` integration, frontend `970/970`, and functional
-      Playwright `159` passed with `106` documented skips. Visual parity remains
-      `98/104` with only the six known state-oracle diffs; cleanup is clean.
-- [ ] Continue separately authorized, auditable enrichment and canonical
-      member-bar population; this removes a provider-boundary gap but does not
-      prove complete family/date/member coverage.
-
-### 2026-09-07 — Verify canonical member-history backfill against persisted data
-
-- [x] Add a real-Postgres integration regression proving the opt-in backfill
-      selects persisted canonical `sec_nport` snapshots, excludes
-      `controlled_fixture`/`e2e_reference` snapshots, queues resolved members
-      with the inclusive composition-date bound, and preserves the deterministic
-      idempotence key (`466b11a3`).
-- [x] Exact-tip gate passed all non-visual stages: backend `1348` unit and
-      `385` integration tests with combined coverage above the floor, frontend
-      `970/970`, and functional Playwright `159` passed with `106` documented
-      skips across `265` specs. Visual parity remains `98/104` with only the
-      six known state-oracle diffs; stack cleanup/resource accounting is clean.
-- [ ] Populate and verify the broader canonical holdings/member-bar history
-      inventory; this regression proves backfill behavior, not data completeness.
-
-### 2026-09-07 — Backfill existing canonical family member history
-
-- [x] Add the bounded, provider-neutral `backfill_benchmark_family_member_history_task`
-      and deterministic persisted-snapshot planner; exclude controlled/e2e
-      fixtures, cap work at 512 snapshots by default, and use inclusive
-      composition-date history bounds. The task is opt-in and scheduled only
-      when `BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_ENABLED=true`.
-- [x] Focused service/task/worker checks passed 56 tests; Ruff, compile, and
-      diff checks passed (the selected-only run's global coverage warning is
-      expected).
-- [x] Exact-tip gate passed all non-visual stages and functional Playwright
-      (1348 unit, 384 integration, frontend 970/970, 159 functional passes,
-      106 documented skips); visual parity remains 98/104 with the six known
-      state-oracle diffs and cleanup/resource accounting clean.
-- [ ] Populate and verify the broader canonical holdings/member-bar history
-      inventory; route identity and a bounded backfill mechanism are not proof
-      that every family/date/member bar is populated.
-
-### 2026-09-07 — Enable SPTM SEC filing-reconstruction history route
-
-- [x] Upgrade mapped SPDR SPTM from issuer-current-only to
-      `sec_filing_reconstruction` using SEC CIK `0001064642`, series
-      `S000006973`, class `C000019026`, fund ticker `SPTM`, and a bounded
-      50-filing search window; retain the issuer daily-workbook route separately.
-      Product commit `f30fe002`.
-- [x] Focused regression/static checks passed (`8` selected tests), the selected
-      family coverage API regression passed `1/1`, and the opt-in live SPTM SEC
-      route probe passed `1/1` on the verified result (the command's global
-      coverage warning is unrelated to the underlying test).
-- [x] Exact-tip gate passed all non-visual stages: backend `1345` unit and
-      `384` integration tests, frontend `970/970`, and functional Playwright
-      `159` passed with `106` documented skips across `265` specs. Visual parity
-      remains `98/104` with only the six documented state-oracle diffs;
-      cleanup/resource accounting is clean.
-- [ ] Continue broader canonical provider/history population and the remaining
-      R2-R7 roadmap work; route identity and reconstruction readiness are not
-      proof that all SPTM historical holdings, weights, membership, or member
-      bars are populated.
-
-### 2026-09-07 — Exact-tip gate after SPTM SEC history reconstruction
-
-- [x] Recorded the exact-tip gate at product commit `f30fe002`; the six visual
-      state-oracle diffs remain unchanged and no oracle or provider policy was
-      weakened.
-
-### 2026-09-07 — Enable SLYG SEC filing-reconstruction history route
-
-- [x] Upgrade mapped SPDR SLYG from issuer-current-only to
-      `sec_filing_reconstruction` using SEC CIK `0001064642`, series
-      `S000006984`, class `C000019037`, fund ticker `SLYG`, and a bounded
-      50-filing search window; retain the issuer daily-workbook route separately.
-      Product commit `49d8d98f`.
-- [x] Focused regression/static checks passed (`8` selected tests), the selected
-      family coverage API regression passed `1/1`, and the opt-in live SLYG SEC
-      route probe passed `1/1` on the verified result (the command's global
-      coverage warning is unrelated to the underlying test).
-- [x] Exact-tip gate passed all non-visual stages: backend `1344` unit and
-      `384` integration tests, frontend `970/970`, and functional Playwright
-      `159` passed with `106` documented skips across `265` specs. Visual parity
-      remains `98/104` with only the six documented state-oracle diffs;
-      cleanup/resource accounting is clean.
-- [ ] Continue the final bounded canonical provider/history population slice;
-      route identity and reconstruction readiness are not proof that all SLYG
-      historical holdings, weights, membership, or member bars are populated.
-
-### 2026-09-07 — Exact-tip gate after SLYG SEC history reconstruction
-
-- [x] Recorded the exact-tip gate at product commit `49d8d98f`; the six visual
-      state-oracle diffs remain unchanged and no oracle or provider policy was
-      weakened.
-
-### 2026-09-07 — Enable SLYV SEC filing-reconstruction history route
-
-- [x] Upgrade mapped SPDR SLYV from issuer-current-only to
-      `sec_filing_reconstruction` using SEC CIK `0001064642`, series
-      `S000006974`, class `C000019027`, fund ticker `SLYV`, and a bounded
-      50-filing search window; retain the issuer daily-workbook route separately.
-      Product commit `feded2ca`.
-- [x] Focused regression/static checks passed (`14` selected tests), the
-      selected family coverage API regression passed `1/1`, and the opt-in live
-      SLYV SEC route probe passed `1/1` on the verified result (the command's
-      global coverage warning is unrelated to the underlying test).
-- [x] Exact-tip gate passed all non-visual stages: backend `1343` unit and
-      `384` integration tests, frontend `970/970`, and functional Playwright
-      `159` passed with `106` documented skips across `265` specs. Visual parity
-      remains `98/104` with only the six documented state-oracle diffs;
-      cleanup/resource accounting is clean.
-- [ ] Continue the next bounded canonical provider/history population slice;
-      route identity and reconstruction readiness are not proof that all SLYV
-      historical holdings, weights, membership, or member bars are populated.
-
-### 2026-09-07 — Exact-tip gate after SLYV SEC history reconstruction
-
-- [x] Recorded the exact-tip gate at product commit `feded2ca`; the six visual
-      state-oracle diffs remain unchanged and no oracle or provider policy was
-      weakened.
-
-### 2026-09-07 — Enable SPY SEC filing-reconstruction history route
-
-- [x] Upgrade mapped SPDR SPY from issuer-current-only to
-      `sec_filing_reconstruction` using SEC trust CIK `0000884394` and the
-      curated registrant-name identity containing `SPDR`; retain the issuer
-      daily-workbook route separately. Product commit `de94e8b1`.
-- [x] Focused regression/static checks passed (`13` selected tests), the
-      selected family coverage API regression passed `1/1`, and the opt-in live
-      SPY SEC route probe passed `1/1` on the verified result (the command's
-      global coverage warning is unrelated to the underlying test).
-- [x] Exact-tip gate passed all non-visual stages: backend `1342` unit and
-      `384` integration tests, frontend `970/970`, and functional Playwright
-      `159` passed with `106` documented skips across `265` specs. Visual parity
-      remains `98/104` with only the six documented state-oracle diffs;
-      cleanup/resource accounting is clean.
-- [ ] Continue the next bounded canonical provider/history population slice;
-      route identity and reconstruction readiness are not proof that all SPY
-      historical holdings, weights, membership, or member bars are populated.
-
-### 2026-09-07 — Enable MDY SEC filing-reconstruction history route
-
-- [x] Upgrade mapped SPDR MDY from issuer-current-only to
-      `sec_filing_reconstruction` using SEC CIK `0000936958`, legacy N-PORT
-      series-name identity `MidCap 400 ETF Trust`, and a bounded 50-filing
-      search window; retain the issuer daily-workbook route separately. Product
-      commit `ebbb0664`.
-- [x] Focused regression/static checks passed (`11` selected tests), the
-      selected family coverage API regression passed `1/1`, and the opt-in live
-      MDY SEC route probe passed `1/1` on the verified result (the command's
-      global coverage warning is unrelated to the underlying test).
-- [x] Exact-tip gate passed all non-visual stages: backend `1339` unit and
-      `384` integration tests, frontend `970/970`, and functional Playwright
-      `159` passed with `106` documented skips across `265` specs. Visual parity
-      remains `98/104` with only the six documented state-oracle diffs;
-      cleanup/resource accounting is clean.
-- [ ] Continue the next bounded canonical provider/history population slice;
-      route identity and reconstruction readiness are not proof that all MDY
-      historical holdings, weights, membership, or member bars are populated.
-
-### 2026-09-07 — Enable MDYV SEC filing-reconstruction history route
-
-- [x] Upgrade mapped SPDR MDYV from issuer-current-only to
-      `sec_filing_reconstruction` using SEC CIK `0001064642`, series
-      `S000006988`, class `C000019041`, and a bounded 50-filing search window;
-      retain the issuer daily-workbook route separately. Product commit
-      `f7bd23a3`.
-- [x] Focused regressions/static checks passed (`8` selected tests) and the
-      opt-in live MDYV SEC route probe passed `1/1` on the verified result.
-- [x] Exact-tip gate passed all non-visual stages: backend `1337` unit and
-      `384` integration tests, `80.94%` combined coverage, frontend `970/970`,
-      and functional Playwright `159` passed with `106` documented skips
-      across `265` specs. Visual parity remains `98/104` with only the six
-      documented state-oracle diffs; cleanup/resource accounting is clean.
-- [ ] Continue the next bounded canonical provider/history population slice;
-      route identity and reconstruction readiness are not proof that all MDYV
-      historical holdings, weights, membership, or member bars are populated.
-
-### 2026-09-07 — Enable MDYG SEC filing-reconstruction history route
-
-- [x] Upgrade mapped SPDR MDYG from issuer-current-only to
-      `sec_filing_reconstruction` using SEC CIK `0001064642`, series
-      `S000006987`, class `C000019040`, and the bounded 50-filing search
-      window; retain the issuer daily-workbook route separately. Product
-      commit `f7a90789`.
-- [x] Focused regressions/static checks passed (`8` selected tests) and the
-      opt-in live MDYG SEC route probe passed `1/1` on the verified rerun
-      (238 rows; the earlier wrong-filing response was discarded).
-- [x] Exact-tip gate passed all non-visual stages: backend `1335` unit and
-      `384` integration tests, `80.94%` combined coverage, frontend `970/970`,
-      and functional Playwright `159` passed with `106` documented skips
-      across `265` specs. Visual parity remains `98/104` with only the six
-      documented state-oracle diffs; cleanup/resource accounting is clean.
-- [ ] Continue the next bounded canonical provider/history population slice;
-      route identity and reconstruction readiness are not proof that all MDYG
-      historical holdings, weights, membership, or member bars are populated.
-
-### 2026-09-07 — Enable SPYG SEC filing-reconstruction history route
-
-- [x] Upgrade mapped SPDR SPYG from issuer-current-only to
-      `sec_filing_reconstruction` using SEC CIK `0001064642`, series
-      `S000006984`, class `C000019037`, and the bounded 50-filing search
-      window; retain the issuer daily-workbook route separately. Product
-      commit `7ee30073`.
-- [x] Focused regressions/static checks passed (`9` selected tests) and the
-      opt-in live SPYG SEC route probe passed `1/1`.
-- [x] Exact-tip gate passed all non-visual stages: backend `1333` unit and
-      `384` integration tests, `80.94%` combined coverage, frontend `970/970`,
-      and functional Playwright `159` passed with `106` documented skips across
-      `265` specs. Visual parity remains `98/104` with only the six documented
-      state-oracle diffs; cleanup/resource accounting is clean.
-- [ ] Continue the next bounded canonical provider/history population slice;
-      route identity and reconstruction readiness are not proof that all SPYG
-      historical holdings, weights, membership, or member bars are populated.
-
-### 2026-09-07 — Enable SPYV SEC filing-reconstruction history route
-
-- [x] Upgrade mapped SPDR SPYV from issuer-current-only to
-      `sec_filing_reconstruction` using SEC CIK `0001064642`, series
-      `S000006985`, class `C000019038`, and a bounded 50-filing search window;
-      retain the issuer daily-workbook route separately. Product commit
-      `2b46d6e5`.
-- [x] Focused regressions/static checks passed (`7` selected tests) and the
-      opt-in live SPYV SEC route probe passed `1/1`.
-- [x] Exact-tip gate passed all non-visual stages: backend `1331` unit and
-      `384` integration tests, `80.94%` combined coverage, frontend `970/970`,
-      and functional Playwright `159` passed with `106` documented skips across
-      `265` specs. Visual parity remains `98/104` with only the six documented
-      state-oracle diffs; cleanup/resource accounting is clean.
-- [ ] Continue the next bounded canonical provider/history population slice;
-      route identity and reconstruction readiness are not proof that all SPYV
-      historical holdings, weights, membership, or member bars are populated.
-
-### 2026-09-07 — Enable RSP SEC filing-reconstruction history route
-
-- [x] Upgrade mapped Invesco RSP from issuer-current-only to
-      `sec_filing_reconstruction` using SEC CIK `0001209466`, series
-      `S000060812`, class `C000197628`, and the bounded 20-filing search window;
-      retain the issuer current/monthly route separately. Product commit
-      `e96ef740`.
-- [x] Focused regressions/static checks passed (`24` tests plus the selected
-      API regression); opt-in live QQQ/RSP SEC route probes passed `2/2`.
-- [x] Exact-tip gate passed all non-visual stages: backend `1329` unit and
-      `384` integration tests, `80.94%` combined coverage, frontend `970/970`,
-      and functional Playwright `159` passed with `106` documented skips across
-      `265` specs. Visual parity remains `98/104` with only the six documented
-      state-oracle diffs; cleanup/resource accounting is clean.
-- [ ] Continue the next bounded canonical provider/history population slice;
-      route identity and reconstruction readiness are not proof that all RSP
-      historical holdings, weights, membership, or member bars are populated.
-
-### 2026-09-07 — Expose Invesco current-only history route evidence
-
-- [x] Declare explicit issuer-current-only route evidence for the mapped
-      Invesco RSP role and preserve
-      `issuer_current_only` / `invesco` /
-      `issuer_public_json_catalog_current_monthly_only` plus the public
-      CUSIP-based catalog URL through family-history planning. Product commit
-      `63d64bfe`; this does not claim dated replay, curated SEC reconstruction,
-      or populated holdings/member-bar history.
-- [x] Focused taxonomy/planner/refresh/route checks passed `30/30`; the
-      selected family coverage API regression passed `1/1`; Ruff, format, and
-      diff checks passed.
-- [x] Rerun the exact-tip integration gate at product tip `63d64bfe`:
-      backend `1328/1328` unit and `384/384` integration tests, `80.94%`
-      combined coverage, frontend `970/970`, and functional Playwright `159`
-      passed with `106` documented skips across `265` specs. The visual matrix
-      remains `98/104` with the same six state-oracle diffs: column-editor-open
-      (`13,844` pixels at 1080p-100/125) and workspace-floating (`12,097`,
-      `12,097`, `9,770`, `11,901` pixels at 1080p-100/125 and 1440p-100/125).
-      Cleanup/resource accounting is clean; no visual/provider/fallback/
-      acceptance policy changed.
-- [ ] Continue the next bounded canonical provider/history population slice;
-      preserve the six visual state-oracle diffs and do not treat route
-      metadata as populated history.
-
-### 2026-09-06 — Expose SPDR current-only history route evidence
-
-- [x] Declare explicit issuer-current-only route evidence for the nine mapped
-      SPDR roles SPY, SPYV, SPYG, MDY, MDYV, MDYG, SLYV, SLYG, and SPTM, and
-      preserve the symbol-specific daily workbook URL through family-history
-      planning. Product commit `9ec4d498`; this does not claim dated replay or
-      populated holdings/member-bar history.
-- [x] Focused taxonomy/planner/refresh/route checks passed `28/28`; the selected
-      family coverage API regression passed `1/1`; Ruff, format, and diff checks
-      passed.
-- [x] Rerun the exact-tip integration gate at product tip `9ec4d498`: all
-      locked/non-visual stages and authenticated functional Playwright passed
-      (`159` passed, `106` documented skips across `265` specs; frontend
-      `970/970`). The visual matrix remains `98/104` with the same six
-      state-oracle diffs: column-editor-open (`13,844` pixels at 1080p-100/125)
-      and workspace-floating (`9,770`, `12,097`, `9,770`, `9,770` pixels at
-      1080p-100/125 and 1440p-100/125). Cleanup/resource accounting is clean;
-      no visual/provider/fallback/acceptance policy changed.
-- [ ] Continue the next bounded canonical provider/history population slice;
-      preserve the six visual state-oracle diffs and do not treat route metadata
-      as populated history.
-
-### 2026-09-06 — Expose iShares dated history routes
-
-- [x] Declare the verified issuer `asOfDate` route for IJR, IWB, IWD, IWF,
-      IWM, IWN, IWO, and IWV, and preserve it through family-history planning.
-      Product commit `8573d958`; route capability does not claim populated
-      dated snapshots or member-bar history.
-- [x] Focused route, planner, dated-refresh, and adapter checks passed `5/5`;
-      Ruff, format, and diff checks passed.
-- [x] Rerun the exact-tip integration gate after the iShares route contract
-      repair at product tip `704e5c8b`; the full receipt is recorded below and
-      preserves the six existing visual state-oracle diffs.
-
-- [x] Rerun the exact-tip integration gate after the test-contract repair at
-      product tip `704e5c8b`: backend `1324/1324` unit and `384/384`
-      integration tests, `80.94%` combined coverage, frontend `970/970`, and
-      functional Playwright `159` passed with `106` documented skips across
-      `265` specs. The visual matrix remains `98/104` with the same six
-      state-oracle diffs: column-editor-open (`13,844` pixels at 1080p-100/125)
-      and workspace-floating (`9,770`, `11,901`, `12,097`, `9,770` pixels at
-      1080p-100/125 and 1440p-100/125). Cleanup/resource accounting is clean;
-      no visual/provider/fallback/acceptance policy changed.
-- [ ] Continue the next bounded canonical provider/history population slice;
-      preserve the six visual state-oracle diffs and do not treat route metadata
-      as populated history.
-
-### 2026-09-06 — Carry history routes into dated family refreshes
-
-- [x] Carry declared historical route status/provider/policy/source through
-      refreshed, route-not-ready, failed, and unmapped benchmark-family dated
-      refresh legs. Product commit `1888f358`.
-- [x] Focused service coverage passed `12/12`; selected dated-family API
-      regression passed `1/1`; Ruff/format/diff checks passed.
-- [x] Rerun the exact-tip integration gate at corrected product tip `bf550e0f`:
-      backend unit phase `1322` passed, combined coverage passed the configured
-      threshold, and authenticated functional Playwright passed `159` with
-      `106` documented skips across `265` specs. The visual matrix remains
-      `98/104` with the six existing state-oracle diffs: watchlist-column-editor-
-      open at 1080p-100/125 (`13,844` pixels each) and workspace-floating at
-      1080p-100/125 (`9,770` each) and 1440p-100/125 (`12,097` each). Cleanup
-      and resource audit are clean; no visual/provider/fallback/acceptance
-      policy changed.
-- [ ] Continue the next bounded canonical provider/history population slice;
-      preserve the six visual state-oracle diffs.
-
-### 2026-09-06 — Carry canonical history routes into refresh plans
-
-- [x] Carry each benchmark-family history-refresh leg's canonical route
-      status/provider/policy/source into the admin queue response, preserving
-      QQQ/QQQE SEC reconstruction evidence separately from local membership and
-      OHLCV population. Product commit `97a144bd`.
-- [x] Focused history planner tests passed `11/11`; the two admin family-history
-      refresh API regressions passed `2/2`; Ruff/format/diff checks passed.
-- [x] Rerun the exact-tip integration gate at product tip `97a144bd`: backend
-      unit phase `1321` passed, functional Playwright `159` passed with `106`
-      documented skips across `265` specs, and all locked/non-visual stages
-      passed. The visual matrix remains `98/104` with the six existing
-      state-oracle diffs (watchlist-column-editor-open `13,844` pixels at
-      1080p-100/125; workspace-floating `12,097`/`12,097`/`11,901`/`12,097`
-      pixels at 1080p-100/125 and 1440p-100/125). Cleanup/resource audit is
-      clean; no visual/provider/fallback/acceptance policy changed.
-
-### 2026-09-06 — Nasdaq family history-route evidence and exact-tip gate
-
-- [x] Add canonical SEC historical-filing reconstruction route metadata for
-      QQQ and QQQE, expose status/provider/policy/source through backend family
-      coverage/readiness and visual-neutral Market Map/Market Breadth evidence,
-      and preserve the distinction between route readiness and populated dated
-      holdings/member bars. Product commit `3a3e5bc1`.
-- [x] Record the exact-tip `full_stack_browser` gate at product tip
-      `3a3e5bc1`: backend `1320/1320` unit and `384/384` integration tests,
-      `80.93%` combined coverage, frontend `970/970`, functional Playwright
-      `159` passed with `106` documented skips across `265` specs, and all
-      locked/build/stack/runner checks passed.
-- [x] Preserve the unchanged visual/provider/fallback/acceptance boundary:
-      the visual matrix returned `98/104` with exactly six diffs —
-      watchlist-column-editor-open at 1080p-100/125 (`13,844` pixels each)
-      and workspace-floating at 1080p-100 (`12,097`), 1080p-125 (`9,770`),
-      1440p-100 (`12,097`), and 1440p-125 (`12,097`). Cleanup and the resource
-      audit left no containers, volumes, sessions, or known bytes.
-- [ ] Continue the next bounded canonical provider/history population slice;
-      do not treat route metadata as populated history.
-
-### 2026-09-06 — Exact-tip gate after canonical family provenance evidence
-
-- [x] Record the exact-tip `full_stack_browser` gate at product tip
-      `0147aded` (documentation tip `a3841089`): locked/non-visual checks and
-      functional Playwright passed (`159` passed, `106` documented skips across
-      `265` specs; backend `1320/1320` unit and `384/384` integration;
-      `80.93%` combined; frontend `970/970`).
-- [x] Preserve the unchanged visual/provider/fallback/acceptance boundary:
-      the visual matrix returned `98/104` with exactly six diffs —
-      watchlist-column-editor-open at 1080p-100/125 (`13,844` pixels each)
-      and workspace-floating at 1080p-100 (`9,770`), 1080p-125 (`12,097`),
-      1440p-100 (`9,770`), and 1440p-125 (`12,097` pixels). Gate cleanup and
-      the resource audit left no containers, volumes, sessions, or known bytes.
-- [ ] Continue the next bounded canonical provider/history slice while
-      preserving the six visual state-oracle diffs.
-
-### 2026-09-06 — Expose canonical family provenance evidence
-
-- [x] Extend visual-neutral canonical evidence in Market Map and Market Breadth
-      with family identity, official index name, as-of, membership version,
-      primitive universe-provenance fields, coverage, freshness, and exclusion
-      codes. Product commit `0147aded`; no provider selection, inference,
-      retry, substitution, fallback, visual, or acceptance policy changed.
-- [x] Market Map focused unit coverage passed `36/36`, full frontend Vitest
-      passed `970/970`, type-check and production build passed.
-- [x] Rerun the exact-tip integration gate at the next documentation tip; the
-      receipt is recorded immediately above with the six unchanged visual
-      state-oracle diffs.
-
-### 2026-09-06 — Exact-tip gate after canonical readiness lineage evidence
-
-- [x] Record the exact-tip `full_stack_browser` gate at product tip
-      `ab09cc60` (documentation tip `7c2d076f`): locked/non-visual checks and
-      functional Playwright passed (`159` passed, `106` documented skips across
-      `265` specs; backend `1320/1320` unit and `384/384` integration;
-      `80.93%` combined; frontend `970/970`).
-- [x] Preserve the unchanged visual/provider/fallback/acceptance boundary:
-      the visual matrix returned `98/104` with exactly six diffs —
-      watchlist-column-editor-open at 1080p-100/125 (`13,844` pixels each)
-      and workspace-floating at all four projects (`12,097` pixels each).
-      Gate cleanup and the resource audit left no containers, volumes, sessions,
-      or known bytes.
-- [ ] Continue the next bounded canonical provider/history slice while
-      preserving the six visual state-oracle diffs.
-
-### 2026-09-06 — Expose canonical readiness lineage evidence
-
-- [x] Extend visual-neutral canonical role evidence in Market Map and Market
-      Breadth with returned availability/status, member and placeholder counts,
-      weighted/classified counts, point-in-time/history state, per-timeframe
-      analysis-ready counts/bar floors/date ranges, holdings route, refresh
-      outcome/timestamps/reason, entitlement lifecycle, and composite readiness
-      reasons. Product commit `ab09cc60`; no provider selection, inference,
-      retry, substitution, fallback, visual, or acceptance policy changed.
-- [x] Market Map focused unit coverage passed `36/36`, full frontend Vitest
-      passed `970/970`, type-check/build passed, and authenticated
-      `F8s-breadth-family-ratio` passed `1/1`. Teardown/resource accounting
-      reported zero containers, volumes, sessions, and known bytes.
-- [x] Rerun the exact-tip integration gate at the next documentation tip;
-      the receipt is recorded immediately above with the six unchanged visual
-      state-oracle diffs.
-
-### 2026-09-06 — Exact-tip gate after canonical entitlement capability evidence
-
-- [x] Record the exact-tip `full_stack_browser` gate at product tip
-      `de4ab370` (documentation tip `4ed2b533`): locked/non-visual checks and
-      functional Playwright passed (`159` passed, `106` documented skips across
-      `265` specs; backend `1320/1320` unit and `384/384` integration;
-      `80.93%` combined; frontend `970/970`).
-- [x] Preserve the unchanged visual/provider/fallback/acceptance boundary:
-      the visual matrix returned `98/104` with exactly six diffs —
-      watchlist-column-editor-open at 1080p-100/125 (`13,844` pixels each)
-      and workspace-floating at 1080p-100 (`12,097`), 1080p-125 (`12,097`),
-      1440p-100 (`12,097`), and 1440p-125 (`9,770` pixels). Gate cleanup and
-      the resource audit left no containers, volumes, sessions, or known bytes.
-- [ ] Continue the next bounded canonical provider/history slice while
-      preserving the six visual state-oracle diffs.
-
-### 2026-09-06 — Expose canonical entitlement capability evidence
-
-- [x] Extend visual-neutral canonical role evidence in Market Breadth and
-      Market Map with the returned per-role entitlement capability map, sorted
-      as human-readable key/value states; explicitly report `capabilities not
-      reported` when absent. Product commit `de4ab370`.
-- [x] Market Map focused unit coverage passed `36/36`, full frontend Vitest
-      passed `970/970`, type-check/build passed, and rebuilt authenticated
-      `F8s-breadth-family-ratio` passed `1/1`. Teardown/resource accounting
-      reported zero containers, volumes, sessions, and known bytes.
-- [x] Rerun the exact-tip integration gate at the next documentation tip;
-      the receipt is recorded immediately above with the six unchanged visual
-      state-oracle diffs.
-
-### 2026-09-06 — Exact-tip gate after canonical continuity evidence
-
-- [x] Record the exact-tip `full_stack_browser` gate at product tip
-      `3a9f89e2` (documentation tip `11b8265d`): locked/non-visual checks and
-      functional Playwright passed (`159` passed, `106` documented skips across
-      `265` specs; backend `1320/1320` unit and `384/384` integration;
-      `80.93%` combined; frontend `970/970`).
-- [x] Preserve the unchanged visual/provider/fallback/acceptance boundary:
-      the visual matrix returned `98/104` with exactly six diffs —
-      watchlist-column-editor-open at 1080p-100/125 (`13,844` pixels each)
-      and workspace-floating at 1080p-100 (`9,770`), 1080p-125 (`12,097`),
-      1440p-100 (`11,901`), and 1440p-125 (`11,901` pixels). Gate cleanup
-      left no containers, volumes, sessions, or known bytes. Continue the
-      next bounded canonical provider/history slice.
-
-### 2026-09-06 — Expose canonical continuity gap evidence
-
-- [x] Extend visual-neutral canonical role evidence in Market Breadth and
-      Market Map with continuity status, gap count, maximum interval, dated
-      gap intervals, and snapshot-window capping; explicitly report
-      `continuity not reported` when the API omits continuity. Product commit
-      `3a9f89e2`.
-- [x] Market Map focused unit coverage passed `36/36`, full frontend Vitest
-      passed `970/970`, type-check/build passed, and rebuilt authenticated
-      `F8s-breadth-family-ratio` passed `1/1`. Teardown/resource accounting
-      reported zero containers, volumes, sessions, and known bytes.
-- [ ] Rerun the exact-tip integration gate at the next documentation tip;
-      preserve the six existing visual state-oracle diffs.
-
-### 2026-09-06 — Exact-tip gate after canonical snapshot lineage evidence
-
-- [x] Record the exact-tip `full_stack_browser` gate at product tip
-      `97efe1ea` (documentation tip `86733d42`): locked/non-visual checks and
-      functional Playwright passed (`159` passed, `106` documented skips across
-      `265` specs; backend `1320/1320` unit and `384/384` integration;
-      `80.93%` combined; frontend `970/970`).
-- [x] Preserve the unchanged visual/provider/fallback/acceptance boundary:
-      the visual matrix returned `98/104` with exactly six diffs —
-      watchlist-column-editor-open at 1080p-100/125 (`13,844` pixels each)
-      and workspace-floating at 1080p-100 (`12,097`), 1080p-125 (`12,097`),
-      1440p-100 (`9,770`), and 1440p-125 (`12,097` pixels). Gate cleanup
-      left no containers, volumes, sessions, or known bytes. Continue the
-      next bounded canonical provider/history slice.
-
-### 2026-09-06 — Expose canonical snapshot lineage evidence
-
-- [x] Extend visual-neutral accessible role evidence in Market Breadth and
-      Market Map with latest canonical snapshot composition/as-of/known dates,
-      provenance, row count, resolved count, and unresolved count. Missing
-      values remain not reported and no provider, readiness, refresh, role
-      substitution, fallback, visual, or acceptance policy changed. Product
-      commit `97efe1ea`.
-- [x] Market Map unit coverage passed `36/36`, full frontend Vitest passed
-      `970/970`, type-check/build passed, and authenticated
-      `F8s-breadth-family-ratio` passed `1/1` with lineage fields asserted.
-      Teardown/resource accounting reported zero containers, volumes, sessions,
-      and known bytes.
-- [x] Rerun the exact-tip integration gate at the next documentation tip;
-      preserve the six existing visual state-oracle diffs. The receipt is
-      recorded immediately above.
-
-### 2026-09-06 — Exact-tip gate after canonical snapshot quality evidence
-
-- [x] Record the exact-tip `full_stack_browser` gate at product tip
-      `d3547dfd` (documentation tip `a037ea56`): locked/non-visual checks and
-      functional Playwright passed (`159` passed, `106` documented skips across
-      `265` specs; backend `1320/1320` unit and `384/384` integration;
-      `80.93%` combined; frontend `970/970`).
-- [x] Preserve the unchanged visual/provider/fallback/acceptance boundary:
-      the visual matrix returned `98/104` with exactly six diffs —
-      watchlist-column-editor-open at 1080p-100/125 (`13,844` pixels each)
-      and workspace-floating at 1080p-100 (`12,097`), 1080p-125 (`9,770`),
-      1440p-100 (`12,097`), and 1440p-125 (`12,097` pixels). Gate cleanup
-      left no containers, volumes, sessions, or known bytes. Continue the
-      next bounded canonical provider/history slice.
-
-### 2026-09-06 — Expose canonical snapshot quality evidence
-
-- [x] Add visual-neutral accessible role evidence for the latest canonical
-      holdings snapshot source quality and completeness status in Market
-      Breadth and Market Map; explicitly report unavailable snapshot evidence
-      and not-reported fields without provider selection, readiness inference,
-      refresh retry, role substitution, or fallback/acceptance-policy changes.
-      Product commit `d3547dfd`.
-- [x] Market Map unit coverage passed `36/36`, full frontend Vitest passed
-      `970/970`, type-check and production build passed, and authenticated
-      `F8s-breadth-family-ratio` passed `1/1` with source quality and
-      completeness asserted. Teardown/resource accounting reported zero
-      containers, volumes, sessions, and known bytes.
-- [x] Rerun the exact-tip integration gate at the next documentation tip;
-      preserve the six existing visual state-oracle diffs. The receipt is
-      recorded immediately above.
-
-### 2026-09-06 — Exact-tip gate after canonical role identity evidence
-
-- [x] Record the exact-tip `full_stack_browser` gate at product tip
-      `6209b55f` (documentation tip before this receipt update `4da0f688`):
-      locked/non-visual checks and functional Playwright passed (`159`
-      passed, `106` documented skips across `265` specs; backend `1320/1320`
-      unit and `384/384` integration; `80.93%` combined; frontend `970/970`).
-- [x] Preserve the unchanged visual/provider/fallback/acceptance boundary:
-      the visual matrix returned `98/104` with exactly six diffs —
-      watchlist-column-editor-open at 1080p-100/125 (`13,844` pixels each)
-      and workspace-floating at 1080p-100/125 and 1440p-100/125 (`12,097`
-      pixels each in this run). Teardown/resource accounting reported zero
-      containers, volumes, sessions, and known bytes. Continue the next
-      bounded canonical provider/history slice.
-
-### 2026-09-06 — Expose canonical role identity evidence
-
-- [x] Add visual-neutral accessible identity evidence to Market Breadth and
-      Market Map for returned role verification state, mapping adapter
-      key/status/confidence, and explicit unmapped/not-reported states. The
-      consumers only format canonical API fields and do not select providers,
-      infer readiness, retry refreshes, substitute roles, or alter fallback,
-      visual, or acceptance policy. Product commit `6209b55f`.
-- [x] Market Map unit coverage passed `36/36`, full frontend Vitest passed
-      `970/970`, production image type-check/build passed, and rebuilt
-      authenticated Chromium `F8s-breadth-family-ratio` passed `1/1`.
-      Teardown/resource accounting reported zero containers, volumes, sessions,
-      and known bytes.
-- [x] Rerun the exact-tip integration gate at the next documentation tip;
-      preserve the six existing visual state-oracle diffs. The gate receipt
-      is recorded above.
-
-### 2026-09-06 — Exact-tip gate after canonical role evidence
-
-- [x] Record the exact-tip integration gate at branch tip `2baa19a0` (product
-      `eccae95e`, documentation `2baa19a0`): locked/non-visual checks and
-      functional Playwright passed (`159` passed, `106` documented skips across
-      `265` specs; backend `1320/1320` unit and `384/384` integration; `80.93%`
-      combined; frontend `970/970`), and the visual matrix returned to
-      `98/104` with exactly the six known diffs.
-- [x] Preserve the unchanged visual/provider/fallback/acceptance boundary:
-      watchlist-column-editor-open failed only at 1080p-100/125 (`13,844`
-      pixels each), while workspace-floating failed only at 1080p-100/125 and
-      1440p-100/125 (`12,097`, `12,097`, `11,901`, `9,770` pixels in this run).
-      Teardown/resource accounting reported zero containers, volumes, sessions,
-      and known bytes. Continue the next bounded canonical provider/history
-      slice.
-
-### 2026-09-06 — Expose canonical role evidence in Market Breadth
-
-- [x] Add a visual-neutral accessible status for each returned benchmark-family
-      role with canonical member/placeholder counts, weighted/classified counts
-      and statuses, point-in-time support, history readiness, and composite
-      readiness. The consumer only formats API evidence; it does not select
-      providers, infer readiness, retry refreshes, substitute roles, or change
-      fallback/acceptance policy. Product commit `eccae95e`.
-- [x] Full frontend Vitest passed `970/970`, type-check/build passed, and
-      rebuilt authenticated Chromium `F8s-breadth-family-ratio` passed `1/1`
-      with covered-role evidence asserted. Teardown/resource accounting
-      reported zero containers, volumes, sessions, and known bytes.
-- [x] Rerun the exact-tip integration gate at the next documentation tip;
-      preserve the six existing visual state-oracle diffs.
-
-### 2026-09-06 — Expose canonical universe provenance evidence
-
-- [x] Add an accessible labelled readiness status for registry, family count,
-      point-in-time/latest mode, missing-family count, and provider-call
-      boundary. Product commit `80f7f266` formats returned metadata only and
-      remains visual-neutral.
-- [x] Full frontend Vitest passed `970/970`, type-check/build passed, and
-      rebuilt authenticated Chromium passed the provider-probe and universe
-      provenance assertions `2/2`; teardown/resource accounting reported zero
-      containers, volumes, sessions, and known bytes.
-- [x] Rerun the exact-tip integration gate at product `80f7f266` and docs
-      `b57e5893`: locked/non-visual and functional checks passed (`159` passed,
-      `106` documented skips across `265` specs; backend `1320/1320` unit and
-      `384/384` integration; `80.93%` combined; frontend `970/970`), and the
-      visual matrix returned to `98/104` with exactly the six known diffs.
-
-### 2026-09-06 — Exact-tip gate after canonical universe provenance evidence
-
-- [x] Record the authoritative corrected-tip gate at product `80f7f266` and
-      documentation `b57e5893`; no baseline, mask, threshold, skip, fallback,
-      provider, or acceptance policy changed.
-- [x] Teardown removed the assigned stack and four generated images;
-      resource accounting reported zero containers, volumes, sessions, and
-      known bytes. Continue the next bounded canonical provider/history slice.
-
-### 2026-09-06 — Keep provider-probe evidence visual-neutral
-
-- [x] Preserve the canonical provider-probe evidence as an accessible labelled
-      status without changing benchmark-header layout pixels. Product commit
-      `da417508`; focused store coverage `71/71`, type-check/build passed,
-      provider-probe browser assertion `1/1`, and focused visual cases `22/28`
-      passed with only the six existing watchlist/floating diffs.
-- [x] Rerun the exact-tip integration gate at `da417508` (docs `4b16ddc1`):
-      locked/non-visual and functional checks passed (`158` passed, `106`
-      documented skips across `264` specs; backend `1320/1320` unit and
-      `384/384` integration; `80.93%` combined; frontend `970/970`), and the
-      visual matrix returned to `98/104` with exactly the six known diffs.
-
-### 2026-09-06 — Exact-tip gate after visual-neutral provider-probe evidence
-
-- [x] Record the authoritative corrected-tip gate at product `da417508` and
-      documentation `4b16ddc1`; no baseline, mask, threshold, skip, fallback,
-      provider, or acceptance policy changed.
-- [x] Teardown removed the assigned stack and four generated images;
-      resource accounting reported zero containers, volumes, sessions, and
-      known bytes. Continue the next bounded canonical provider/history slice.
-
-### 2026-09-06 — Exact-tip gate after canonical provider-probe evidence
-
-- [x] Run the exact-tip gate at product `901f56e5` and docs `04661fcb`:
-      locked/non-visual and functional checks passed (`158` passed, `106`
-      documented skips across `264` specs; backend `1320/1320` unit and
-      `384/384` integration; `80.93%` combined; frontend `970/970`).
-- [x] Identify the visual-only expansion: `27/104` visual cases failed
-      because the newly visible provider-probe line changed existing board
-      screenshots in addition to the six known state-oracle diffs. The line
-      was made visual-neutral in `da417508`; no visual oracle or acceptance
-      policy was changed.
-- [x] Teardown removed the assigned stack and four generated images;
-      resource accounting reported zero containers, volumes, sessions, and
-      known bytes.
-
-### 2026-09-05 — Surface canonical provider-probe evidence
-
-- [x] Render returned provider-neutral readiness probe evidence in the
-      benchmark workstation: passed/total probes, recovered count, and latest
-      observation date. Do not call providers, choose routes, infer
-      entitlement, retry refreshes, or change fallback/acceptance policy.
-- [x] Product commit `901f56e5` is committed locally; the store suite passed
-      `71/71`, full frontend Vitest passed `970/970`, type-check/build passed,
-      and rebuilt authenticated Chromium passed the provider-probe assertion
-      `1/1`. Teardown/resource accounting reported zero containers, volumes,
-      sessions, and known bytes.
-- [x] Record the exact-tip gate at documentation tip `04661fcb`; the visual
-      expansion was isolated to the newly visible provider-probe line and was
-      corrected by `da417508` without changing visual or acceptance policy.
-
-### 2026-09-05 — Exact-tip gate after canonical holdings-route adapter identity
-
-- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
-      at product tip `1ca7569d` and documentation tip `5936a6ed`: all locked,
-      backend/frontend, build, compose/provider, stack-health,
-      runner-isolation, and functional browser checks passed (`157/157`,
-      `106` documented skips across `263` specs; backend `1320/1320` unit and
-      `384/384` integration; `80.93%` combined; frontend `970/970`).
-- [ ] Preserve and separately resolve the six unchanged visual state-oracle
-      diffs: `watchlist-column-editor-open` at 1080p 100/125 (`13,844` pixels
-      each), and `workspace-floating` at 1080p 100/125 and 1440p 100/125
-      (`11,901`, `12,097`, `12,097`, `12,097` pixels). Do not alter baselines,
-      masks, thresholds, skips, fallbacks, provider, or acceptance policy.
-- [x] Teardown removed the assigned stack and four generated images; resource
-      accounting reported zero containers, volumes, sessions, and known bytes.
-      Continue the next bounded canonical provider/history slice without
-      integrating, promoting, deploying, or mutating another worktree.
-
-### 2026-09-05 — Expose canonical holdings-route adapter identity
-
-- [x] Render the returned holdings-route adapter key beside route
-      status/provider in Market Map canonical readiness and the Market Breadth
-      family coverage strip; omit missing values and do not select providers,
-      infer readiness, retry refreshes, or change fallback/acceptance policy.
-- [x] Product commit `1ca7569d` is pushed; focused Market Map coverage passed
-      `36/36`, full frontend Vitest passed `970/970`, type-check/build passed,
-      and elevated authenticated `F8s-breadth-family-ratio` passed `1/1` with
-      `fixture_holdings` asserted. The initial restricted Chromium invocation
-      failed before assertions; teardown/resource accounting after the
-      corrected run reported zero containers, volumes, sessions, and known
-      bytes.
-- [x] Record the exact-tip integration gate at documentation tip `5936a6ed`,
-      preserving the six known visual state-oracle diffs and all provider,
-      fallback, baseline, and acceptance policy.
-
-### 2026-09-05 — Exact-tip gate after canonical entitlement audit metadata
-
-- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
-      at product tip `bd2b14d2` and documentation tip `52fa058f`: all locked,
-      backend/frontend, build, compose/provider, stack-health,
-      runner-isolation, and functional browser checks passed (`157/157`,
-      `106` documented skips across `263` specs; backend `1320/1320` unit and
-      `384/384` integration; `80.93%` combined; frontend `970/970`).
-- [ ] Preserve and separately resolve the six unchanged visual state-oracle
-      diffs: `watchlist-column-editor-open` at 1080p 100/125 (`13,844` pixels
-      each), and `workspace-floating` at 1080p/1440p 100/125 (`9,770`,
-      `12,097`, `12,097`, `12,097`). Do not alter baselines, masks, thresholds,
-      skips, fallbacks, provider, or acceptance policy.
-- [x] Teardown removed the assigned stack and four generated images; resource
-      accounting reported zero containers, volumes, sessions, and known bytes.
-      Continue canonical provider/history work without integrating, promoting,
-      deploying, or mutating another worktree.
-
-### 2026-09-05 — Expose canonical entitlement audit metadata
-
-- [x] Render returned entitlement provider, live-probe status, revision,
-      effective date, and review-due date in the Market Breadth family
-      coverage strip and Market Map canonical-readiness list; omit missing
-      metadata and do not infer entitlement, renew credentials, fan out to
-      another provider, or change fallback/acceptance policy.
-- [x] Product commit `bd2b14d2` is pushed; focused Market Map coverage passed
-      `36/36`, full frontend Vitest passed `970/970`, type-check/build passed,
-      and rebuilt authenticated `F8s-breadth-family-ratio` passed `1/1` with
-      the audit metadata asserted. The initial browser invocation targeted
-      port 80 instead of the assigned 28083 stack port and failed before
-      assertions; the corrected rerun passed. Cleanup left zero containers,
-      volumes, images, sessions, and known bytes.
-- [x] Record the exact-tip integration gate at documentation tip `52fa058f`;
-      preserve the six known visual state-oracle diffs and all provider,
-      fallback, baseline, and acceptance policy while continuing the next
-      canonical provider/history slice.
-
-### 2026-09-05 — Exact-tip gate after canonical holdings-refresh timestamps
-
-- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
-      at product tip `3c44b2de` and documentation tip `dcd4b4bf`: all locked,
-      backend/frontend, build, compose/provider, stack-health,
-      runner-isolation, and functional browser checks passed (`157/157`,
-      `106` documented skips across `263` specs; backend `1320/1320` unit and
-      `384/384` integration; `80.93%` combined; frontend `970/970`).
-- [ ] Preserve and separately resolve the six unchanged visual state-oracle
-      diffs: `watchlist-column-editor-open` at 1080p 100/125 (`13,844` pixels
-      each), and `workspace-floating` at 1080p/1440p 100/125 (`9,770`,
-      `12,097`, `12,097`, `9,770`). Do not alter baselines, masks, thresholds,
-      skips, fallbacks, provider, or acceptance policy.
-- [x] Teardown removed the assigned stack and four generated images; resource
-      accounting reported zero containers, volumes, sessions, and known bytes.
-      Continue canonical provider/history work without integrating, promoting,
-      deploying, or mutating another worktree.
-
-### 2026-09-05 — Expose canonical holdings-refresh timestamps
-
-- [x] Show returned holdings-refresh checked, failed, and composition dates in
-      the Market Breadth family coverage strip and Market Map canonical
-      readiness list; omit missing fields and do not infer readiness, retry
-      providers, or change fallback/acceptance policy.
-- [x] Product commit `3c44b2de` is pushed; focused Market Map coverage passed
-      `36/36`, full frontend Vitest passed `970/970`, type-check/build passed,
-      and rebuilt authenticated `F8s-breadth-family-ratio` passed `1/1` with
-      the new checked/failed/composition labels asserted. The initial stack
-      attempt was cleaned before assertion; the healthy retry passed and final
-      cleanup left zero containers, volumes, images, sessions, and known bytes.
-- [ ] Rerun the exact-tip integration gate at the next documentation tip,
-      preserving the six known visual state-oracle diffs and all provider,
-      fallback, baseline, and acceptance policy.
-
-### 2026-09-05 — Exact-tip gate after canonical holdings-refresh diagnostics
-
-- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
-      at product tip `347602f3` and documentation tip `def196bc`: locked
-      dependency/migration, workstream, lint/format/type-check, backend
-      unit/integration (`1320/1320`, `384/384`; `80.93%`), frontend Vitest
-      (`970/970`), build, compose/provider, stack-health, runner-isolation,
-      and authenticated functional browser checks all passed (`157/157`,
-      `106` documented skips across `263` specs).
-- [ ] Preserve and separately resolve the six unchanged visual state-oracle
-      diffs: `watchlist-column-editor-open` at 1080p 100/125 (`13,844` pixels
-      each), and `workspace-floating` at 1080p/1440p 100/125 (`9,770`,
-      `12,097`, `9,770`, `12,097`). Do not alter baselines, masks, thresholds,
-      skips, fallbacks, provider, or acceptance policy.
-- [x] Teardown removed the assigned stack and four generated images; resource
-      accounting reported zero containers, volumes, sessions, and known bytes.
-      Continue canonical provider/history work without integrating, promoting,
-      deploying, or mutating another worktree.
-
-### 2026-09-05 — Expose canonical holdings-refresh diagnostics
-
-- [x] Show returned holdings-refresh provider and failure reason in the Market
-      Breadth family coverage strip and Market Map canonical readiness list;
-      do not infer readiness, retry providers, or change fallback policy.
-- [x] Product commit `347602f3` is committed locally; focused Market Map
-      coverage passed `36/36`, full frontend Vitest passed `970/970`,
-      type-check/build passed, and rebuilt authenticated
-      `F8s-breadth-family-ratio` passed `1/1` with the diagnostic asserted.
-      Cleanup left zero containers, volumes, images, sessions, and known bytes.
-- [ ] Rerun the exact-tip integration gate at the next documentation tip,
-      preserving the six known visual state-oracle diffs and all provider,
-      fallback, baseline, and acceptance policy.
-
-### 2026-09-05 — Exact-tip gate after canonical composite-readiness reasons
-
-- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
-      at product tip `606d67ba` and documentation tip `a25f8497`: all locked,
-      backend/frontend, build, compose/provider, stack-health,
-      runner-isolation, and functional browser checks passed (`157/157`,
-      `106` documented skips across `263` specs); visual acceptance remains
-      `98/104` with the same six state-oracle assertions.
-- [ ] Preserve and separately resolve `watchlist-column-editor-open` at 1080p
-      100/125 and `workspace-floating` at 1080p/1440p 100/125. Do not alter
-      baselines, masks, thresholds, skips, fallbacks, provider, or acceptance
-      policy.
-- [x] Teardown removed the assigned stack and four generated images; no
-      containers or volumes remained and resource accounting reported zero
-      known bytes. Continue the next canonical provider/history slice without
-      integrating, promoting, deploying, or mutating another worktree.
-
-### 2026-09-05 — Surface canonical composite-readiness reasons
-
-- [x] Render returned `composite_readiness_reasons` beside each Market Breadth
-      benchmark-family role's readiness status without inferring readiness or
-      changing provider/fallback/acceptance policy.
-- [x] Product commit `606d67ba` is committed locally; Vitest passed `970/970`,
-      type-check/build passed, rebuilt authenticated `F8s-breadth-family-ratio`
-      passed `1/1` with ready/unavailable reason labels asserted, and teardown
-      left zero containers, volumes, or known bytes.
-- [ ] Rerun the exact-tip integration gate at the next documentation tip,
-      preserving the six known visual state-oracle diffs and all provider,
-      fallback, baseline, and acceptance policy.
-
-### 2026-09-05 — Exact-tip gate after disclosure effective times
-
-- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
-      at product tip `e96b081a` and documentation tip `d82ff2ec`: all locked,
-      backend/frontend, build, compose/provider, stack-health,
-      runner-isolation, and functional browser checks passed (`157/157`,
-      `106` documented skips across `263` specs); visual acceptance remains
-      `98/104` with the same six state-oracle assertions.
-- [ ] Preserve and separately resolve `watchlist-column-editor-open` at 1080p
-      100/125 and `workspace-floating` at 1080p/1440p 100/125. Do not alter
-      baselines, masks, thresholds, skips, fallbacks, provider, or acceptance
-      policy.
-- [x] Teardown removed the assigned stack and four generated images; no
-      containers or volumes remained and resource accounting was clean. Continue
-      the next canonical provider/history slice without integrating, promoting,
-      deploying, or mutating another worktree.
-
-### 2026-09-05 — Surface canonical disclosure effective times
-
-- [x] Render returned snapshot `as_of_date` and `known_at` beside the latest
-      family disclosure date, resolution counts, and provider; omit each field
-      when the canonical snapshot does not supply it and do not infer freshness.
-- [x] Product commit `e96b081a` is pushed; Vitest passed `970/970`, type-check
-      and production build passed, and rebuilt authenticated Chromium
-      `F8s-breadth-family-ratio` passed `1/1` with the effective/known timestamp
-      label asserted. The stale pre-change label expectation was corrected in
-      the same test slice.
-- [ ] Rerun the exact-tip integration gate at the next documentation tip,
-      preserving the six known visual state-oracle diffs and all provider,
-      fallback, baseline, and acceptance policy.
-
-### 2026-09-05 — Exact-tip gate after canonical member-history floors
-
-- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
-      at product tip `2f7c1d84` and documentation tip `f4498c80`: locked,
-      backend/frontend, build, compose/provider, stack-health,
-      runner-isolation, and functional browser checks passed (`157/157`,
-      `106` documented skips across `263` specs); visual acceptance remains
-      `98/104` with the same six state-oracle assertions.
-- [ ] Preserve and separately resolve `watchlist-column-editor-open` at 1080p
-      100/125 and `workspace-floating` at 1080p/1440p 100/125. Do not alter
-      baselines, masks, thresholds, skips, fallbacks, provider, or acceptance
-      policy.
-- [x] Teardown removed the assigned stack and four generated images; no
-      containers or volumes remained and resource accounting was clean. Continue
-      the next canonical provider/history slice without integrating, promoting,
-      deploying, or mutating another worktree.
-
-### 2026-09-05 — Show canonical member-history floors
-
-- [x] Include the backend `required_bar_count` floor for D1/W1/MN beside each
-      role’s covered and analysis-ready counts in the workstation family
-      coverage strip; no history computation or provider/fallback policy changed.
-- [x] Product commit `2f7c1d84` is pushed; Vitest passed `970/970`,
-      type-check/build passed, and rebuilt authenticated Chromium
-      `F8s-breadth-family-ratio` passed `1/1` with floors `252/52/24` asserted.
-      Teardown and resource accounting were clean after four images were removed.
-- [x] Rerun the exact-tip integration gate at the next documentation tip,
-      preserving the six known visual state-oracle diffs and all provider,
-      fallback, baseline, and acceptance policy.
-
-### 2026-09-05 — Surface latest family disclosure provenance
-
-- [x] Show each benchmark-family role’s latest canonical disclosure date,
-      resolved/total rows, unresolved rows when present, and source provider in
-      the workstation coverage strip without inferring data or substituting
-      roles.
-- [x] Product commit `38178e12` is pushed; Vitest passed `970/970`,
-      type-check/build passed, and rebuilt authenticated Chromium
-      `F8s-breadth-family-ratio` passed `1/1` with the provenance label asserted.
-      Teardown and resource accounting were clean after four generated images
-      were removed.
-- [ ] Rerun the exact-tip integration gate at the next documentation tip,
-      preserving the six known visual state-oracle diffs and all provider,
-      fallback, baseline, and acceptance policy.
-
-### 2026-09-05 — Exact-tip gate after member-bar timeframe readiness
-
-- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
-      at product tip `a456d7c8` and documentation tip `493c2b66`: all locked,
-      backend/frontend, build, stack-health, runner-isolation, and functional
-      browser checks passed (`157/157`, `106` documented skips across `263`
-      specs); visual acceptance remains `98/104` with the same six state-oracle
-      diffs.
-- [ ] Preserve and separately resolve `watchlist-column-editor-open` at 1080p
-      100/125 and `workspace-floating` at 1080p/1440p 100/125. Do not alter
-      baselines, masks, thresholds, skips, fallbacks, provider, or acceptance
-      policy.
-- [x] Teardown removed the assigned stack and four generated images; no
-      containers or volumes remained and resource accounting was clean. Continue
-      the next canonical provider/history slice without integrating, promoting,
-      deploying, or mutating another worktree.
-
-### 2026-09-05 — Surface every canonical member-bar timeframe in family readiness
-
-- [x] Report D1, W1, and MN covered/analysis-ready member counts in the Market
-      Breadth benchmark-family readiness summary; missing timeframe legs remain
-      explicit as unavailable and no provider/fallback behavior changed.
-- [x] Extend the authenticated `F8s-breadth-family-ratio` fixture and assertion
-      to cover all three canonical timeframe contracts. Product commit `a456d7c8`
-      is pushed; Vitest passed `970/970`, type-check/build passed, and rebuilt
-      Chromium passed `1/1` with clean stack/resource teardown.
-- [ ] Rerun the exact-tip integration gate at the next documentation tip,
-      preserving the six known visual state-oracle diffs and all visual,
-      provider, fallback, and acceptance policy.
-
-### 2026-09-05 — Assert selected ranking-period values end to end
-
-- [x] Harden `F8s-breadth-family-ratio` with period-specific ranking mock values and an explicit
-      rendered `3M` assertion (`RSP · 34% · Δ 8%`), so request/label propagation cannot hide a
-      hard-coded `1M` summary consumer.
-- [x] Test commit `4302a9a6` is pushed; rebuilt-stack authenticated Chromium passed `1/1` after
-      correcting the expectation to the UI's compact percentage format, with clean teardown and
-      resource accounting.
-- [x] Exact-tip gate at product tip `4302a9a6` (documentation tip `5962f592`) passed all
-      non-visual stages and functional Playwright (`157/157`, `106` documented skips); visual
-      acceptance remains `98/104` with the same six state-oracle diffs. Preserve baseline, mask,
-      threshold, skip, fallback, provider, and acceptance policy.
-
-### 2026-09-05 — Correct period-aware ranking summaries
-
-- [x] Use the persisted `family_rank_period` for role-ranking and cross-family
-      summary performance reads; remove the remaining hard-coded `1M` consumers.
-- [x] Product commit `cdcef088` is pushed; focused frontend coverage passed
-      `136/136`, TypeScript/build passed, and authenticated Chromium
-      `F8s-breadth-family-ratio` passed `1/1` on a rebuilt branch-scoped stack with
-      clean teardown/resource accounting.
-- [x] Rerun the exact-tip exhaustive gate at metadata tip `20c750a2` (product tip
-      `cdcef088`): all locked/non-visual stages and functional Playwright passed
-      (`157/157`, `106` documented skips); the unchanged visual matrix is `98/104`
-      with the same six state-oracle diffs. Teardown and resource accounting were
-      clean; preserve provider/fallback, baseline, threshold, mask, skip, and
-      acceptance policy.
-
-### 2026-09-05 — Exact-tip gate after configurable family ranking horizons
-
-- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at metadata
-      tip `d64c9c78` (product tip `bbe011db`): all locked checks, backend/frontend suites,
-      combined coverage (`80.93%`), build, stack health, runner isolation, and functional
-      Playwright (`157/157`, `106` documented skips) passed; visual matrix completed `104` cases.
-- [ ] Preserve and separately resolve the same six visual state-oracle diffs (`98/104`):
-      `watchlist-column-editor-open` at both 1080p scales and `workspace-floating` at all four
-      1080p/1440p scales. Do not alter baselines, masks, thresholds, skips, fallbacks, provider,
-      or acceptance policy to make the gate green.
-- [x] Teardown and resource accounting were clean; continue the next canonical analytics/provider
-      slice without integrating, promoting, deploying, or mutating another worktree.
-
-### 2026-09-05 — Expose configurable family ranking horizons
-
-- [x] Persist and expose the canonical benchmark-family ranking-period contract (`1D`, `1W`,
-      `1M`, `3M`, `6M`, `YTD`, `1Y`) as `family_rank_period`, with safe `1M` fallback for invalid
-      stored values.
-- [x] Thread the selected period through role ranking, concentration current/history, and
-      cross-family ranking current/history request parameters and cache keys; surface the period
-      in the affected panel labels.
-- [x] Run focused frontend coverage (`136/136`), TypeScript, production build, and authenticated
-      Chromium `F8s-breadth-family-ratio` (`1/1`) asserting a `3M` request and rendered labels on a
-      rebuilt branch-scoped stack; teardown and resource accounting were clean.
-- [x] Rerun the exact-tip exhaustive gate at the coherent documentation tip; all non-visual stages
-      and functional browser checks passed, while the unchanged visual matrix remains `98/104` with
-      the six known state-oracle diffs recorded above. Preserve provider, fallback, baseline,
-      threshold, mask, skip, and acceptance policy.
-
-### 2026-09-05 — Exact-tip gate after cross-family rank history
-
-- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at metadata
-      tip `228af958` (product tip `1ae69113`): all locked checks, backend/frontend suites,
-      coverage (`80.93%`), build, stack health, runner isolation, and functional Playwright
-      (`157/157`, `106` documented skips) passed; visual matrix completed `104` cases.
-- [ ] Preserve and separately resolve the same six visual state-oracle diffs (`98/104`):
-      `watchlist-column-editor-open` at both 1080p scales and `workspace-floating` at all four
-      1080p/1440p scales. Do not alter baselines, masks, thresholds, skips, fallbacks, provider,
-      or acceptance policy to make the gate green.
-- [x] Teardown and resource accounting were clean; continue the next canonical analytics/provider
-      slice without integrating, promoting, deploying, or mutating another worktree.
-
-### 2026-09-05 — Render cross-family rank history
-
-- [x] Render canonical cross-family historical `rank` values as a separate family-labelled,
-      inverted-axis uPlot chart beside relative-performance history; align timestamps, preserve
-      missing observations as nulls, and fail closed on malformed/non-finite data.
-- [x] Add lifecycle/alignment coverage (`32/32`), TypeScript, production build, and authenticated
-      Chromium `F8s-breadth-family-ratio` (`1/1`) asserting the rank chart on a rebuilt
-      branch-scoped stack; teardown and resource cleanup were clean.
-- [x] Product commit `1ae69113` (`feat(tc2000): render cross-family rank history`) is pushed to
-      `origin/feat/tc2000-frontend-rework`; rerun the exact-tip exhaustive gate at the next
-      coherent documentation tip. Preserve the six known visual state-oracle diffs and all
-      provider, fallback, baseline, threshold, mask, skip, and acceptance policy.
-
-### 2026-09-05 — Exact-tip gate after concentration metrics history
-
-- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at metadata
-      tip `a399697a` (product tip `d9b9de95`): all locked checks, backend/frontend suites,
-      coverage (`80.93%`), build, stack health, runner isolation, and functional Playwright
-      (`157/157`, `106` documented skips) passed; visual matrix completed `104` cases.
-- [ ] Preserve and separately resolve the six existing visual state-oracle diffs (`98/104`):
-      `watchlist-column-editor-open` at both 1080p scales and `workspace-floating` at all four
-      1080p/1440p scales. Do not alter baselines, masks, thresholds, skips, fallbacks, provider,
-      or acceptance policy to make the gate green.
-- [x] Teardown and resource accounting were clean; continue the next canonical analytics/provider
-      slice without integrating, promoting, deploying, or mutating another worktree.
-
-### 2026-09-05 — Render benchmark-family concentration metrics history
-
-- [x] Render canonical point-in-time `top_n_weight` and `hhi` history for available benchmark-family
-      roles as aligned role-coloured uPlot series; preserve missing timestamps as nulls, distinguish
-      HHI with dashed lines, and fail closed on malformed/non-finite observations while retaining
-      current concentration, coverage, warnings, membership, and provenance text.
-- [x] Add lifecycle/alignment coverage (`29/29`), TypeScript, production build, and authenticated
-      Chromium `F8s-breadth-family-ratio` (`1/1`) asserting the metrics chart on a rebuilt
-      branch-scoped stack; teardown and resource cleanup were clean.
-- [x] Product commit `d9b9de95` (`feat(tc2000): render concentration metrics history`) is pushed
-      to `origin/feat/tc2000-frontend-rework`; rerun the exact-tip exhaustive gate at the next
-      coherent documentation tip. Preserve the six known visual state-oracle diffs and all
-      provider, fallback, baseline, threshold, mask, skip, and acceptance policy.
-
-### 2026-09-05 — Render family relative-strength history
-
-- [x] Render canonical batch family ratio points as an aligned role-coloured uPlot history chart;
-      preserve missing timestamps as nulls without forward filling and fail closed on malformed or
-      non-finite observations while retaining latest values, coverage, warnings, and provenance.
-- [x] Add lifecycle/alignment coverage (`26/26`), TypeScript, production build, and authenticated
-      Chromium `F8s-breadth-family-ratio` (`1/1`) asserting the history chart on a rebuilt
-      branch-scoped stack; teardown and resource cleanup were clean.
-- [x] Product commit `852c1613` (`feat(tc2000): render family ratio history`) and durable receipt
-      are pushed to `origin/feat/tc2000-frontend-rework`. The exact-tip gate at metadata tip
-      `f6607ad7` passed all non-visual stages and functional Playwright (`157/157`, `106` skips);
-      the visual matrix remains `98/104` with the same six state-oracle failures. Teardown and
-      resource accounting were clean; no visual/provider/fallback policy changed.
-
-### 2026-09-05 — Render cross-family ranking history
-
-- [x] Render canonical cross-family ranking-history `relative_performance` series as family-labelled
-      uPlot lines beneath the current ranking summary; align timestamps and preserve missing
-      observations as nulls without forward filling rank or performance values, with explicit
-      unavailable state for malformed/unsupported data.
-- [x] Add lifecycle/alignment coverage (`23/23`), TypeScript, production build, and authenticated
-      Chromium `F8s-breadth-family-ratio` (`1/1`) asserting the historical relative-performance
-      chart is visible on a rebuilt branch-scoped stack; teardown and resource cleanup were clean.
-- [x] Commit/push the product and durable workstream receipt, then rerun the exact-tip exhaustive
-      gate at the next coherent documentation tip. Preserve the six existing visual state-oracle
-      failures and unchanged visual/provider/fallback policy.
-- [x] Product commit `335992cd` (`feat(tc2000): render cross-family ranking history`) and the
-      durable receipt are pushed to `origin/feat/tc2000-frontend-rework`. The exact-tip gate at
-      metadata tip `a9f7451c` passed all non-visual stages and the visual matrix; functional
-      Playwright was `156/157` with `106` documented skips because `F8s-market-map-watchlist`
-      hit one detached-DOM timeout. A fresh isolated retry passed `1/1`; teardown/resource
-      accounting were clean. No visual/provider/fallback policy changed.
-
-### 2026-09-05 — Render benchmark-family concentration history
-
-- [x] Render canonical point-in-time concentration-history `dispersion` by available benchmark
-      family role in a role-coloured chart; align timestamps and preserve missing observations as
-      nulls without forward filling or substituting membership/return data.
-- [x] Add lifecycle/alignment coverage (`20/20`), TypeScript, production build, and authenticated
-      Chromium `F8s-breadth-family-ratio` (`1/1`) asserting the dispersion chart is visible;
-      rebuilt-stack teardown and resource cleanup were clean.
-- [x] Product commit `8697e7b8` (`feat(tc2000): render concentration history`) is pushed to
-      `origin/feat/tc2000-frontend-rework`.
-- [x] Exact-tip `full_stack_browser` gate at metadata tip `6590c2b1` (product tip `8697e7b8`)
-      passed all non-visual stages and functional Playwright (`157/157`, `106` documented skips);
-      visual acceptance remains `98/104` with the same six state-oracle failures. Teardown and
-      resource accounting were clean; no visual/provider/fallback policy changed.
-
-### 2026-09-05 — Render benchmark-family breadth history
-
-- [x] Render the canonical per-role breadth-history `above_ma.ma20` series in a role-coloured
-      workstation chart using aligned timestamps; preserve missing observations as nulls with no
-      forward fill, and keep role-local readiness/status text visible.
-- [x] Add lifecycle/alignment coverage (`17/17`), TypeScript, production build, and authenticated
-      Chromium `F8s-breadth-family-ratio` (`1/1`) on a rebuilt branch-scoped stack; teardown and
-      temporary-builder cleanup were clean.
-- [x] Product commit `45ae7e9b` (`feat(tc2000): render benchmark family breadth history`) is
-      pushed to `origin/feat/tc2000-frontend-rework`.
-- [x] Exact-tip `full_stack_browser` gate at metadata tip `9c230fd5` (product tip `45ae7e9b`)
-      passed all non-visual stages and functional Playwright (`157/157`, `106` documented skips);
-      visual acceptance remains `98/104` with the same six state-oracle failures. Teardown and
-      resource accounting were clean; no visual/provider/fallback policy changed.
-
-### 2026-09-05 — Benchmark-family breadth history exposes per-role readiness
-
-- [x] Add role-local benchmark-family breadth-history readiness fields for member count,
-      analysis-ready member count/percentage, canonical D1/W1/MN floor, and explicit
-      `ready`/`partial`/`pending`/`unavailable` status; preserve role lineage and missing-role
-      visibility without fallback or fabricated data.
-- [x] Surface the role-aware analysis-ready summary in the workstation while retaining the
-      aligned-point history summary. Ruff/format, TypeScript, focused Market Map coverage `36/36`,
-      and the focused benchmark-family history integration assertion `1/1` passed.
-- [x] Product commit `6b4d47d1` (`feat(tc2000): expose family breadth history readiness`) is
-      pushed to `origin/feat/tc2000-frontend-rework`; rebuilt authenticated Chromium
-      `F8s-breadth-family-ratio` passed `1/1` and assigned stack resources were removed.
-- [x] Exact-tip gate rerun at docs tip `437e35b8`: all non-visual stages and functional Playwright
-      passed (`157/157`, `106` documented skips); frontend Vitest was `952/952` across `109` files
-      and the visual matrix was `98/104`. The same six state-oracle assertions remain the only
-      blocker (watchlist-column-editor-open at both 1080p scales; workspace-floating at all four
-      scales). Teardown/resource accounting were clean and no visual/provider policy changed.
-- [ ] Continue the next canonical provider/history slice with authenticated evidence.
-
-### 2026-09-05 — Structured Study outputs promote to Strategy signals
-
-- [x] Extend persisted Research Results so compatible structured Boolean artifacts can be saved as
-      typed Strategy signals, while finite numeric `series` and aligned range-center artifacts can
-      be thresholded with the explicit operator/value control and saved as Strategy signals. The
-      signal asset retains selected output identity, canonical member scope, source/membership,
-      Study/run/dataset lineage, and the adapter/threshold semantics; unsupported shapes remain
-      view/export-only and missing canonical members fail closed.
-- [x] Carry `series_target_to_boolean`, `range_center_target_to_boolean`, selected output name, and
-      promotion lineage from the immutable CodeVersion into Strategy Lab's queued research run so
-      the isolated runner applies the relation against current canonical observations. Existing
-      event signal behavior remains unchanged.
-- [x] Add frontend unit coverage for the Boolean/series/range signal matrix, backend service
-      coverage for adapter propagation, focused Strategy Lab API integration (`2/2` with Docker),
-      and authenticated F8t Results browser proof (`2/2`) on a rebuilt branch-scoped stack. Frontend
-      type-check/build and diff checks passed; teardown removed assigned resources.
-- [x] Product commit `9080e4de` (`feat(tc2000): promote structured studies to strategy signals`)
-      is pushed to `origin/feat/tc2000-frontend-rework`.
-- [x] Re-run the exact-tip exhaustive integration gate at this product tip. At follow-up tip
-      `a5dc4957`, all non-visual stages and functional Playwright passed (`157/157`, with `106`
-      documented skips across `263` specs); combined backend coverage was `80.92%` and frontend
-      Vitest was `952/952` across `109` files. The four-project visual matrix remains `98/104`
-      with the same six state-oracle diffs: `watchlist-column-editor-open` at visual-1080p-100/125
-      (`13,844` pixels each), and `workspace-floating` at visual-1080p-100 (`12,097`),
-      visual-1080p-125 (`9,770`), visual-1440p-100 (`12,097`), and visual-1440p-125 (`12,097`).
-      Teardown/resource accounting were clean; no visual or provider fallback policy changed.
-- [ ] Continue the next canonical provider/history slice with authenticated evidence; preserve the
-      six visual state-oracle diffs and all existing acceptance/fallback policy.
-
-### 2026-09-05 — Aggregate readiness browser and exact-tip gate
-
-- [x] Rebuilt the branch-scoped stack and ran the authenticated Market Map history flow; it
-      passed `1/1` with clean teardown.
-- [x] Re-ran `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
-      metadata tip `4932fbc2` (product tip `ea4514fa`). Locked dependency/migration checks,
-      workstream validation, lint/format/type-check, backend units/integration and combined
-      coverage (`80.92%`), frontend Vitest (`952/952`), build, compose/provider policy,
-      stack health, runner isolation, and functional Playwright (`157/157`, `106` documented
-      skips across `263` specs) passed.
-- [ ] The unchanged visual matrix is `98/104`; preserve the six state-oracle diffs:
-      `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` pixels each), and
-      `workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125
-      (`12,097`/`12,097`/`9,770`/`9,770` pixels). No visual policy, fallback rule, provider
-      rule, baseline, mask, threshold, or skip changed. Continue the next compatible
-      canonical provider/history or Study slice.
-
-### 2026-09-05 — Separate aggregate analysis readiness from covered history
-
-- [x] Keep the legacy generic source-history `overall_status` for covered/worker progress while
-      adding `analysis_ready` and `analysis_ready_status` across every requested timeframe. The
-      aggregate applies the D1/W1/MN floors of 252/52/24 bars, so daily coverage cannot hide an
-      incomplete weekly or monthly leg and one-bar coverage cannot masquerade as study-ready.
-- [x] Surface the aggregate state in Market Map and retain compatibility with older API/e2e
-      fixtures. Watchlist-history units passed `6/6`, backend units passed `1,319/1,319` with the
-      existing `34` warnings, focused Market Map component coverage passed `36/36`, full frontend
-      Vitest passed `952/952` across `109` files, TypeScript, Ruff, format, and `git diff --check`
-      passed. Product commit `ea4514fa` is committed on `feat/tc2000-frontend-rework`.
-- [x] Re-ran the authenticated browser flow and exact-tip exhaustive gate after this product
-      commit; all non-visual stages passed and the six visual state-oracle diffs remain the
-      explicit reproducible blocker. Preserve the unchanged fallback/provider policy.
-
-### 2026-09-05 — Expose analysis-ready history floors for generic sources
-
-- [x] Extend the shared watchlist source-history contract with provider-neutral analysis-readiness
-      counts and percentages for D1/W1/MN, using the declared technical floors of 252/52/24 bars.
-      Preserve the existing covered-member, worker-progress, and overall-status semantics; no
-      provider entitlement, fallback, or fabricated-data behavior changed.
-- [x] Render the analysis-ready count and floor in the Market Map history labels when returned,
-      while keeping older/e2e response fixtures compatible. Backend unit coverage passed `5/5`,
-      the focused API assertion passed `1/1` (the selected-test invocation reports only its expected
-      coverage-floor caveat), frontend component coverage passed `36/36`, full frontend Vitest
-      passed `952/952` across `109` files, backend units passed `1,318/1,318`, and Ruff/format,
-      TypeScript, and `git diff --check` passed. Authenticated F8s-market-map-watchlist passed
-      `1/1` on a rebuilt branch-scoped Docker stack; teardown removed all assigned resources.
-- [x] Product commit `8490f2dd` (`feat(tc2000): expose history analysis-ready floors`) is pushed to
-      `origin/feat/tc2000-frontend-rework`. The exact-tip exhaustive gate ran at metadata tip
-      `0af0bed5` and passed every non-visual stage plus functional Playwright (`157/157` with `106`
-      documented skips across `263` specs). The unchanged visual matrix completed `104` cases with
-      `98` passes and six failures: `watchlist-column-editor-open` at visual-1080p-100/125
-      (`13,844` pixels each), and `workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125
-      (`9,770`/`11,901`/`11,901`/`12,097` pixels). Teardown removed all assigned resources; no
-      visual policy, provider fallback rule, or acceptance policy changed.
-- [ ] Preserve the six visual state-oracle diffs and continue the next compatible canonical
-      provider/history or Study target without changing visual policy or fallback rules.
-
-### 2026-09-05 — Promote Study range centers through explicit Boolean thresholds
-
-- [x] Extend the primary Study Lab and persisted Research Results promotion matrix for completed
-      structured `range` artifacts with aligned finite `center` observations. A user can choose
-      `gt`, `gte`, `lt`, `lte`, `eq`, or `ne` plus a finite threshold and save a typed Boolean
-      column or reuse the condition for a watchlist filter, scan, Market Gauge, or alert. The
-      lower/upper bands remain source-only and the immutable source is never rewritten.
-- [x] Carry the explicit `range_center_target_to_boolean` adapter through the code-asset contract,
-      screener provenance, immutable research job envelope, and prepared-universe batch runner.
-      Validation accepts the Boolean adapter only when the selected source declares a `range`
-      output and rejects unsupported operators/non-finite thresholds with `invalid_range_center_target`.
-      Each member cell extracts the latest finite center and applies the relation outside user code,
-      preserving canonical member scope and Study/run/dataset lineage.
-- [x] Add focused backend runner/API/screener and frontend Study Lab/Research Results/capability
-      coverage, plus authenticated structured-results browser proof. Backend runner coverage passed
-      `113/113`; code API passed `24/24`; screener integration passed `27/27`; focused frontend
-      coverage passed `63/63`; full frontend Vitest passed `952/952` across `109` files;
-      TypeScript, production build, Ruff, workstream validation, and `git diff --check` passed.
-      Authenticated F8t-results passed `1/1` on the rebuilt branch-scoped Docker stack, and focused
-      stack teardown/resource accounting were clean. Product commit `7f672897` is pushed to
-      `origin/feat/tc2000-frontend-rework`.
-- [x] Re-run the exact-tip exhaustive gate at metadata tip `93883674` (implementation tip `7f672897`,
-      formatter correction `c2f3a588`).
-      Locked dependencies/migrations, workstream validation, Ruff/format, TypeScript, backend units
-      (`1,318/1,318`), backend integration (`384/384` with the existing warnings), frontend Vitest
-      (`952/952` across `109` files), production build, compose/provider policy, stack health, and
-      runner isolation passed. Functional Playwright passed `157/157` with `106` documented skips
-      across `263` specs. The unchanged four-project visual matrix completed `104` cases with
-      `98` passes and six failures: `watchlist-column-editor-open` at visual-1080p-100/125
-      (`13,844` pixels each), and `workspace-floating` at visual-1080p-100/125/1440p-100/125
-      (`11,901`/`11,901`/`12,097`/`9,770` pixels). No baseline, mask, threshold, skip, fallback
-      oracle, provider rule, or acceptance policy changed. Gate teardown removed the assigned stack
-      and generated resources; resource accounting was clean.
-- [ ] Preserve the six visual state-oracle diffs and continue canonical provider/history, richer Study, native-window/
-      accessibility/security, dense-data, and visual-oracle work.
-
-### 2026-09-05 — Exact-tip gate after Study range-center threshold promotion
-
-- [x] The exact-tip `full_stack_browser` gate ran at metadata tip `93883674` after the formatter-only
-      test correction `c2f3a588` (product tip `7f672897`). All non-visual stages passed: locked
-      dependency/migration checks, workstream validation, Ruff/format, TypeScript, backend units
-      `1,318/1,318`, backend integration `384/384` with the existing warnings, frontend Vitest
-      `952/952` across `109` files, production build, compose/provider policy, stack health, and
-      runner isolation. Functional Playwright passed `157/157` with `106` documented skips across
-      `263` specs.
-- [x] Preserve the unchanged visual result: `98/104` passed. The six failures are
-      `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` pixels each) and
-      `workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125
-      (`11,901`/`11,901`/`12,097`/`9,770` pixels). No baseline, mask, threshold, skip, fallback
-      oracle, provider rule, or acceptance policy changed; teardown and resource accounting were
-      clean. The visual state-oracle mismatch remains the reproducible gate blocker.
-- [ ] Continue canonical provider/history, richer Study, native-window/accessibility/security,
-      dense-data, and visual-oracle work while preserving the unchanged visual policy.
-
-### 2026-09-05 — Promote Study range centers into latest-value watchlist columns
-
-- [x] Extend the primary Study Lab and persisted Research Results promotion matrix so a completed
-      structured `range` artifact with an aligned finite `center` can be saved as a typed latest-value
-      watchlist column. Lower/upper band values remain source-only; the immutable source/output/run/
-      dataset lineage records the explicit `range_center_to_scalar` adapter and
-      `study_range_center_result_as_latest_watchlist_column` semantics.
-- [x] Carry the scalar adapter through the code-asset contract, immutable research job envelope, and
-      prepared-universe batch runner. Validation accepts the scalar target only when the selected
-      source declares a `range` output; each member cell extracts the latest finite center outside
-      user code and preserves the typed scalar result.
-- [x] Add focused backend job/runner/API and frontend Study Lab/Research Results/capability coverage,
-      plus authenticated structured-results browser proof. Backend runner coverage passed `112/112`,
-      job-envelope coverage `5/5`, code API integration `24/24`, focused frontend coverage `61/61`,
-      full frontend Vitest `950/950` across `109` files, type-check/build/diff checks passed, and
-      authenticated F8t-results plus the adjacent primary threshold flow passed `1/1` each on a
-      rebuilt branch-scoped Docker stack. Product commit `928bf8ae` is pushed to
-      `origin/feat/tc2000-frontend-rework`; focused stack teardown and resource cleanup were clean.
-- [x] Re-run the exact-tip exhaustive gate at metadata tip `098546be` (product tip `928bf8ae`).
-      Locked dependencies/migrations, workstream validation, Ruff/format, TypeScript, backend units
-      (`1,317/1,317`), backend integration (`384/384` with the existing warnings), frontend Vitest
-      (`950/950` across `109` files), production build, compose/provider policy, stack health, and
-      runner isolation passed. Functional Playwright passed `157/157` with `106` documented skips
-      across `263` specs. The unchanged four-project visual matrix completed `104` cases with
-      `98` passes and six failures: `watchlist-column-editor-open` at visual-1080p-100/125
-      (`13,844` pixels each), and `workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125
-      (`12,097`/`12,097`/`12,097`/`12,097` pixels). No baseline, mask, threshold, skip, fallback
-      oracle, provider rule, or acceptance policy changed. Gate teardown removed the assigned stack
-      and generated resources; resource accounting was clean.
-- [ ] Preserve the six visual state-oracle diffs and continue canonical provider/history, richer
-      Study, native-window/accessibility/security, dense-data, and visual-oracle work.
-
-### 2026-09-05 — Promote primary Study Lab series through explicit Boolean thresholds
-
-- [x] Extend the primary Study Lab for completed single-output finite numeric `series` runs with
-      explicit `gt`, `gte`, `lt`, `lte`, `eq`, and `ne` threshold controls. The user can save a
-      typed Boolean column or reuse one stable threshold condition for a watchlist filter, scan,
-      Market Gauge, or alert; the original Study source remains immutable.
-- [x] Preserve the selected output, canonical member IDs/source/membership, timeframe, dataset and
-      run lineage, condition/column code versions, and `series_target_to_boolean` adapter. Non-finite
-      observations, missing canonical scope, and unsupported run shapes remain explicitly unavailable.
-- [x] Add focused UI/API regression coverage for the promotion matrix and stable screener reuse.
-      Focused Study Lab coverage passed `26/26`; full frontend Vitest passed `949/949` across `109`
-      files; TypeScript, production build, and `git diff --check` passed; authenticated F9j passed
-      `1/1` on the rebuilt branch-scoped Docker stack. Product commit `b6316871` is pushed to
-      `origin/feat/tc2000-frontend-rework`.
-- [x] Re-run the exact-tip exhaustive gate at product tip `b6316871`. Locked dependency/migration,
-      Ruff/format, TypeScript, backend units (`1,315/1,315`), backend integration (`384/384` with
-      the existing `54` warnings), combined coverage (`80.91%`), frontend Vitest (`949/949`), build,
-      compose/provider policy, stack health, and runner isolation passed. Functional Playwright
-      passed `157/157` with `106` documented skips across `263` specs; the four-project visual matrix
-      remains `98/104` with the same six state-oracle diffs. Teardown and resource accounting were
-      clean; no visual policy, fallback rule, or protected worktree changed.
-- [ ] Continue canonical provider/history population, richer Study targets, native-window/
-      accessibility/security evidence, dense-data budgets, and visual-oracle review.
-
-### 2026-09-05 — Promote Study numeric series through explicit Boolean thresholds
-
-- [x] Extend persisted Research Results for finite numeric `series` artifacts with an explicit
-      operator/threshold editor and safe targets for Boolean columns, watchlist filters, scans,
-      Market Gauges, and alerts. The source output name, declared canonical member IDs, timeframe,
-      dataset/run lineage, `series_target`, and `series_target_to_boolean` adapter are preserved;
-      unsupported/non-finite shapes remain unavailable.
-- [x] Carry the adapter metadata through `/screeners/from-python-condition` into the isolated
-      runner job. The code-asset boundary accepts this Boolean contract only when validation sees
-      a numeric series and a finite supported relation; invalid operators/thresholds return an
-      explicit `invalid_series_target` error. The original Study source remains immutable.
-- [x] Add regression coverage for the UI promotion matrix, stable scan reuse, API contract,
-      provenance propagation, runner-job handoff, and capability text. Focused frontend Results/
-      capability coverage passed `34/34`; full frontend Vitest passed `948/948` across `109` files;
-      type-check/build/diff checks passed; backend code+screener integration passed `51/51` with
-      the existing NumPy deprecation warnings, and the threshold runner unit passed. Product commit
-      `225ab93f` is pushed to `origin/feat/tc2000-frontend-rework`.
-- [x] Rebuild the branch-scoped stack and run the authenticated `F8t-results-series-threshold`
-      Results flow; it passed `1/1` with the operator/threshold, Boolean asset lineage, canonical
-      member universe, and screener provenance assertions. Exact-tip gate evidence is recorded in
-      the dated entry below. The existing six visual matrix diffs must not be masked, baselined, thresholded,
-      skipped, or treated as provider gaps.
-- [ ] Continue canonical provider/history population, richer Study targets, native-window/
-      accessibility/security evidence, dense-data budgets, and visual-oracle review.
-
-### 2026-09-05 — Exact-tip gate after numeric Study series threshold promotion
-
-- [x] At product tip `a6737e18`, all locked dependency/migration, Ruff/format, TypeScript,
-      backend unit (`1,315/1,315`), backend integration (`384/384`, existing `54` warnings),
-      combined coverage (`80.91%`), frontend Vitest (`948/948` across `109` files), build,
-      compose/provider, stack-health, and runner stages passed.
-- [x] The first functional pass encountered one transient `F8j` conflict-recovery timeout.
-      An isolated retry passed `1/1`, and the complete functional rerun passed `153/153` with
-      `109` documented skips across `262` specs. The rebuilt stack was torn down cleanly.
-- [x] Visual-only acceptance remains `98/104`, with six unchanged state-oracle diffs:
-      `watchlist-column-editor-open` (`13,844` pixels at 1080p-100/125) and
-      `workspace-floating` (`12,097`/`9,770`/`12,097`/`9,770` pixels at 1080p-100/125/1440p-100/125).
-      No baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed.
-- [ ] Continue canonical provider/history population, richer Study targets, native-window/
-      accessibility/security evidence, dense-data budgets, and visual-oracle review.
-
-### 2026-09-05 — Surface canonical source-history ranges
-
-- [x] Extend the Market Map source-history readiness strip to render every returned timeframe
-      with covered/member counts, bar totals, and observed oldest/newest bounds. Missing bounds
-      remain explicit as `unknown`; no provider call, fallback rule, or cross-timeframe inference
+- [ ] Tune the value only after deployment-specific provider quota and worker
+      latency evidence exists; this setting does not override fail-closed
+      provider admission.
+
+### 2026-09-17 — Recurring core-refresh key correction
+
+- [x] Make whole-universe daily D1 refresh keys idempotent within a UTC run
+      date but distinct across dates; the previous permanent instrument key
+      could leave later daily deliveries coalesced into a completed row.
+- [x] Add direct next-day queue regression coverage and replay the full unit
+      gate: `2,367/2,367` passed with 37 warnings and 70.82% coverage.
+- [ ] Preserve the remaining provider quota, source/legal, universe,
+      deployment-secret, deferred-provider, and final-shadow gates.
+
+### 2026-09-17 — Manifest-derived usage-only selection
+
+- [x] Derive the live runner's `--account-usage-only` provider set directly
+      from manifest cases containing `account_usage`; remove the duplicate
+      hard-coded provider list.
+- [x] Add regression coverage for the derived set and replay the committed
+      Binance matrix: `3/3`, seven requests, no dirty source paths.
+- [ ] Preserve the same fail-closed quota, legal/source, universe,
+      deployment-secret, deferred-provider, and final-shadow gates while new
+      providers are added.
+
+### 2026-09-17 — Native-usage bootstrap admission correction
+
+- [x] Allow a selected provider with an explicit manifest
+      `account_usage` case to establish an expired fixed-window baseline before
+      metered cases; keep every operation reservation atomic and fail-closed.
+- [x] Add regression coverage for both sides of the boundary: unknown
+      baselines remain blocked without the explicit bootstrap, and are only
+      admitted for that provider when the bootstrap is present.
+- [x] Validate the correction against Binance's current public API: the
+      account-usage snapshot ran first and the bounded matrix passed `3/3`
+      with seven requests. The aggregate receipt is redacted and marked
+      `not_current_source` until the correction is committed.
+- [x] Replay the full backend unit gate and branch validation, commit the
+      correction as `c2907967c`, and replay the same bounded Binance suite
+      against the committed source (`3/3`, seven requests, no dirty paths).
+      Keep all other provider quota, legal/source, universe, deployment-secret,
+      and final-shadow gates unchanged.
+
+### 2026-09-17 — Configured-provider live validation
+
+- [x] Run the configured MarketData.app trial through the durable live-test
+      coordinator: focused suite passed `7/7` with `9` HTTP requests, including
+      account usage, latest price, intraday history, option chain/expirations,
+      and option quote history; the unbounded response-priced history guard
+      made no request as intended.
+- [x] Run the configured Dinari Sandbox credentials through the explicit
+      `24`-request canary: `1/1` passed. Keep this as Sandbox transport/schema
+      evidence only; unknown Sandbox quota/commercial terms keep ordinary
+      routing disabled.
+- [x] Run Alpaca's configured paper credentials through the account-usage-only
+      live case: `1/1` passed with one request. Keep ordinary routing disabled
+      until the reset boundary and current quota evidence are reviewed.
+- [x] Run EODHD, Twelve Data, and Binance account-usage-only probes: `1/1`
+      passed for each. Record OpenFIGI's current typed `429` without a blind
+      retry; earlier bounded anonymous evidence remains the accepted proof.
+- [x] Verify the live receipts contain only redacted aggregate telemetry while
+      the durable owner-local quota ledger remains outside Git; no secrets or
+      provider payloads were persisted.
+- [x] Re-run repository workflow and deployment contracts: workflow tests passed
+      `46/46`, and backend/e2e/RPi Compose configuration assertions passed.
+- [x] Replay the authoritative committed-checkout backend unit gate: `2,364`
+      passed, 37 warnings, 70.82% coverage.
+- [x] Run the current-head full live-matrix safety preflight: it stopped before
+      transport with `0/0` cases and zero provider requests, retaining exact
+      provider-specific quota/baseline/reset and legal/capability blockers.
+
+### 2026-09-17 — EODHD reviewed-entitlement routing correction
+
+- [x] Remove the obsolete routing-diagnostic ceiling that rejected reviewed
+      EODHD minute limits above the conservative 1,000/minute seed.
+- [x] Add regression coverage proving the configured 1,200/minute native
+      entitlement passes diagnostics while reset and evidence controls remain
+      required.
+- [ ] Obtain the final admission-safe reset and evidence decision before
+      promoting ordinary EODHD routing.
+
+### 2026-09-17 — FMP trailing-bandwidth contract correction
+
+- [x] Reconcile the current official FMP pricing page's free-plan bandwidth
+      contract: 500 MB over a trailing 30-day window. The provider seed now
+      uses a conservative `500,000,000`-byte ceiling and the explicit
+      `rolling_30_days` reset.
+- [x] Keep the configured account's reported 512 MB value as a documented
+      source discrepancy; do not widen the limit without account evidence.
+- [x] Retain `FMP_REVIEWED_BANDWIDTH_RESET` as an optional validated override
+      for a future plan, while requiring the daily reset review, complete
+      operation-byte map, and current entitlement evidence before routing.
+- [ ] Obtain current account evidence for the 250-call/day reset and reviewed
+      endpoint byte bounds before promoting FMP routing.
+
+### 2026-09-17 — Exact-source OpenFIGI anonymous matrix
+
+- [x] After an initial anonymous HTTP 429 was preserved as a typed rate-limit
+      failure, one provider-window delay was observed and exactly one retry was
+      made. At source `a76955954`, the native usage bootstrap passed `1/1`,
+      followed immediately by the bounded OpenFIGI matrix passing `3/3` with
+      three upstream requests and `87,895` response bytes.
+- [ ] This proves anonymous-mode mapping/profile transport and native-header
+      accounting only; keyed-mode limits remain unproven because no OpenFIGI
+      key is configured.
+
+### 2026-09-17 — Binance fixed-window live-ordering correction
+
+- [x] Retain the first Binance replay's genuine reset-boundary admission
+      failure rather than retrying blindly. Add a manifest-runner-only ordering
+      hook and regression so native account-usage snapshots run before metered
+      operations; ordinary collection is unchanged.
+- [x] At committed source `f9172617a`, refresh the current Binance weight
+      window and pass the bounded matrix `3/3` with seven requests and
+      17,616,639 response bytes across latest/history, price, discovery, and
+      native usage. No credentials or payloads were persisted.
+- [ ] Keep Binance's native one-minute observation short-lived and require a
+      fresh baseline before later transport; this does not widen any other
+      provider's quota or legal gates.
+
+### 2026-09-17 — Current-source OpenFIGI keyless matrix
+
+- [x] Refresh OpenFIGI's anonymous native rate-limit state (`1/1`, one
+      request, 8,812 response bytes), then run its bounded keyless matrix at
+      source `690b1bfdf4a950cb1e060a3e72c140f55ec87ee5`. Mapping, profile
+      resolution, and account usage passed `3/3` with three requests and
+      87,895 response bytes; receipts are redacted and durable.
+- [ ] Keep keyed-mode OpenFIGI limits unproven until an API key is supplied;
+      do not infer keyed allowances from anonymous evidence.
+
+### 2026-09-17 — Current-source Dinari Sandbox canary
+
+- [x] Run the isolated Dinari Sandbox canary at source
+      `67dc4e3736caceb3464f6f42de75a38e5933e813` with the transient
+      32-request cap. The canary passed `1/1`, made 14 bounded requests, and
+      recorded 187,388 response bytes across catalogue, identity, prices,
+      quotes, four history windows, news, dividends, splits, and corporate
+      actions. Only aggregate telemetry was retained.
+- [ ] Keep Sandbox data out of canonical persistence and ordinary routing;
+      Dinari's numeric quota/reset and commercial/redistribution terms remain
+      unresolved.
+
+### 2026-09-17 — Current-source MarketData.app bounded matrix
+
+- [x] Re-run the complete bounded MarketData.app provider matrix at source
+      `37a95bcc161ccf11a0435438bc7f730a589bd5eb`. All `7/7` selected cases
+      passed with nine upstream requests and 20,960 response bytes, covering
+      account usage, candles, latest price, option expirations/chain, and
+      bounded option history. The response-priced unbounded-history guard made
+      zero requests.
+- [ ] Keep response-priced history non-routable until a reviewed hard result
+      or credit ceiling exists; this receipt does not close the other provider,
+      legal/source, universe, secret-store, deployment, or shadow gates.
+
+### 2026-09-17 — Current-head full-matrix safety preflight
+
+- [x] Run the complete provider manifest preflight at source
+      `8a0bac156fdc3e7bf399ac44065703c50223a9c5`. It stopped before any
+      network call with `0/0` cases and zero provider requests, retaining the
+      expected quota/baseline/reset, legal/source, capability, universe, and
+      target secret-store blockers.
+- [ ] Do not treat this safety receipt as live acceptance; the provider,
+      source/terms, universe, target-secret, deployment, and final shadow gates
+      remain separately open.
+
+### 2026-09-17 — Current-source native usage refresh
+
+- [x] Re-run the bounded native account-usage cases at the exact committed
+      source `79b87e71dfc5cf001362e1d87985dc04d089b60b` for MarketData.app and
+      Alpaca. Both passed `1/1` with one request each (135 and 125 response
+      bytes respectively); redacted receipts are durable in the workstream
+      ledger and no provider payloads or credentials were persisted.
+- [ ] Keep the evidence scoped correctly: Alpaca ordinary routing still needs
+      an admission-safe reset boundary and evidence; MarketData.app remains
+      governed by the explicit Starter Trial/10,000-credit policy and expiry,
+      with paid-plan changes requiring a new provider-specific configuration.
+
+### 2026-09-16 — FRED reset-boundary admission control
+
+- [x] Correct the FRED v1 quota seed: the documented 120-requests/minute
+      threshold remains `provider_defined` for both scope and reset, with an
+      explicit unresolved `requests_per_minute_reset_boundary` dimension; the
+      separate FRED v2 2-requests/second rule is not applied.
+- [x] Add `FRED_REVIEWED_RESET` and `FRED_RESET_EVIDENCE` as independent
+      controls through settings, diagnostics, local/RPi Compose, GitHub live
+      validation, examples, documentation, and focused tests. A reviewed
+      scope/limit/rights set cannot promote FRED without reset evidence.
+- [x] Focused provider contract/registry/wiring coverage passes `159/159`,
+      and the full backend unit gate passes `2,361/2,361` with 70.80% coverage
+      and 37 warnings. The exact-current-source FRED preflight at
+      `626e672af` made zero provider requests and recorded the reset/evidence,
+      rights, and durable-ledger blockers.
+- [ ] Obtain current FRED/provider-account reset evidence and written storage,
+      automated-use, and per-series rights authority before routing or live
+      transport validation.
+
+### 2026-09-16 — SEC EDGAR reset-boundary admission control
+
+- [x] Correct the EDGAR quota seed so the documented 10-requests/second
+      ceiling is not interpreted as a provider-confirmed rolling window. The
+      contract now records `provider_defined` plus the exact unresolved
+      `requests_per_second_reset_boundary` dimension.
+- [x] Add `EDGAR_REVIEWED_RESET` and `EDGAR_QUOTA_EVIDENCE` through settings,
+      diagnostics, local/RPi Compose, GitHub live validation, examples, and
+      focused tests. A reviewed pair is required before routing; User-Agent
+      configuration and an IP baseline alone are insufficient. Focused
+      coverage passed `134/134`; the full backend unit gate passed
+      `2,360/2,360` with 70.80% coverage and 37 warnings.
+- [x] The exact-current-source preflight at `f68fdc0d7` stopped before
+      transport with zero SEC requests and recorded the new reset/evidence
+      blockers plus the missing durable IP baseline.
+- [x] Include the EDGAR quota status in the provider-to-safety-control map so
+      future live runs cannot bypass the gate through a direct manifest path;
+      the focused wiring test and full backend suite remain green.
+- [ ] Obtain current SEC/account evidence for the reset boundary and run the
+      bounded EDGAR live matrix only after that pair and the durable IP baseline
+      are available.
+
+### 2026-09-16 — Massive reset-boundary admission control
+
+- [x] Add explicit `MASSIVE_REVIEWED_RESET` and
+      `MASSIVE_QUOTA_EVIDENCE` controls for the documented Stocks Basic
+      five-requests/minute pool. The provider does not publish whether that
+      minute bucket is fixed or rolling, so blank or invalid controls keep
+      the quota contract unresolved and routing fail-closed.
+- [x] Wire the controls through local/RPi Compose, GitHub live CI, provider
+      diagnostics, examples, and the live preflight. Focused coverage passes
+      `133/133`; the complete backend unit gate passes `2,359/2,359` with 37
+      warnings. No reset semantics are inferred from the headline allowance.
+- [ ] Obtain current provider/account evidence for the reset boundary and
+      review Massive's free-plan use/redistribution terms before promoting
+      ordinary routing or corporate-action history.
+
+### 2026-09-25 — Twelve Data daily reset source reconciliation
+
+- [x] Record the official credits documentation's exact Basic daily reset at
+      00:00 UTC as `calendar_day_utc` in the provider seed and documentation.
+- [x] Preserve fail-closed behavior for the separate prior daily-usage
+      baseline: `/api_usage` exposes minute counters only, so no daily usage is
+      inferred or copied from the minute headers.
+- [ ] Establish a durable current daily baseline from an authoritative
+      provider/account source before enabling ordinary daily-metered reads.
+
+### 2026-09-25 — FMP exact daily reset reconciliation
+
+- [x] Replace the former provider-defined/rolling safety treatment for the
+      Basic/Free 250-call pool with the official FAQ's exact 3 PM Eastern
+      reset (`15:00 America/New_York`). The boundary is timezone-aware and
+      handles daylight-saving transitions in the shared quota-window resolver.
+- [x] Keep the independent 500 MB trailing-30-day bandwidth pool, conservative
+      decimal-byte ceiling, complete operation-byte bounds, and current
+      entitlement evidence requirements unchanged. This closes only the daily
+      reset-contract gap; FMP remains non-routable until the byte/evidence gates
+      are satisfied.
+- [x] Add regression coverage for pre/post-reset window calculation and the
+      exact default/override seed contract. Official sources: [FMP pricing](https://site.financialmodelingprep.com/developer/docs/pricing)
+      and [FMP FAQ](https://site.financialmodelingprep.com/de/faqs?code=statements).
+
+### 2026-09-17 — FMP daily-cap safety envelope and independent quota controls
+
+- [x] Add explicit FMP controls for the independent 250-calls/day and
+      512 MB/30-day bandwidth pools. At that time the exact daily ceiling used
+      a provider-scoped rolling-24-hour application safety envelope; the later
+      2026-09-25 reconciliation supersedes that reset treatment with the
+      official 3 PM Eastern boundary.
+      `FMP_BANDWIDTH_QUOTA_EVIDENCE` and the complete response-byte map remain
+      mandatory, while the documented rolling-30-day bandwidth boundary is
+      used by default. No generic provider limit is inferred.
+- [x] Wire the controls through local/RPi Compose, GitHub live CI, provider
+      diagnostics, and durable provider documentation. Focused quota/registry/
+      wiring coverage passes `216/216`; the Docker-backed full backend gate
+      passes `2,767/2,767` with 89 warnings and 82.05% coverage. The daily
+      native boundary remains audit-labelled as provider
+      defined, but the rolling safety envelope prevents unsafe admission until
+      a reviewed native reset is supplied.
+
+### 2026-09-17 — Tiingo provider-scoped reset safety envelopes
+
+- [x] Apply the provider-scoped safety-envelope decision to Tiingo's exact
+      500-unique-symbol/month and 50-request/hour pools. The native reset
+      labels remain provider-defined for audit, while rolling 31-day and
+      rolling one-hour application envelopes prevent unsafe admission. The
+      reviewed native-reset/evidence variables remain optional overrides.
+      A complete `TIINGO_OPERATION_BYTE_BOUNDS` map remains mandatory.
+- [x] Wire the controls through local/RPi Compose, GitHub live CI, provider
+      diagnostics, and durable documentation. Focused quota/registry/wiring
+      coverage passes `216/216`; the Docker-backed full backend gate passes
+      `2,767/2,767` with 89 warnings and 82.05% coverage. No Tiingo provider
+      request was made by this change.
+
+### 2026-09-17 — FINRA public-byte safety envelope
+
+- [x] Retain FINRA's exact 10 GB public-credential allowance and its native
+      provider-defined monthly label for audit, while enforcing a conservative
+      provider-scoped rolling 31-day application envelope because the reset
+      timezone and byte convention are not published.
+- [x] Keep the 3 MB synchronous response reservation and measured-byte
+      settlement unchanged; this protects the durable ledger without dropping
+      data or treating a guessed boundary as provider fact.
+- [x] Replay the focused registry/runtime/quota/secret suite (`216/216`), the
+      Docker-backed combined backend gate (`2,767/2,767`, 89 warnings, 82.06%
+      coverage), and the committed-source preflight. The preflight stopped at
+      `0/0` with zero provider requests: FINRA's external request/byte
+      baselines are unknown and Tiingo's operation-byte map is unset. Async
+      result-byte, ORF entitlement, legal terms, and external baseline gates
+      remain independently required.
+
+### 2026-09-17 — Owner-scope native baseline refreshes
+
+- [x] Refresh Alpaca's owner-scope native account baseline and run its bounded
+      credentialed matrix: `7/7` cases passed with eight upstream requests,
+      covering equity/crypto profiles, history, latest price, assets, and
+      corporate actions.
+- [x] Refresh Twelve Data's owner-scope native minute-credit baseline: `1/1`
+      passed with one request. The separate daily-credit pool remains
+      explicitly unreconciled because its usage endpoint exposes no cumulative
+      daily counter.
+- [x] Keep both receipts aggregate-only and committed; no credentials or
+      provider payloads were persisted.
+
+### 2026-09-17 — Owner-scope full safety audit
+
+- [x] Replay the full current-source provider runner under the owner durable
+      scope. It stopped before transport at `0/0` with zero provider requests
+      and recorded the remaining provider-specific baseline, quota, legal,
+      capability, universe, and secret-store gates.
+- [x] Preserve the result as an aggregate-only committed receipt; it does not
+      promote routing or authorize the deferred shadow run.
+
+### 2026-09-17 — MarketData.app current trial matrix
+
+- [x] Re-run the configured Starter Trial matrix at the current source:
+      `7/7` passed with nine upstream requests and 21,135 response bytes,
+      covering account usage, daily/intraday candles, latest price,
+      expirations, option chain, historical option quotes, and the deliberate
+      no-request guard for unbounded response-priced history.
+- [x] Preserve the aggregate-only receipt; trial expiry and future paid-plan
+      limits remain explicit environment configuration.
+
+### 2026-09-17 — Dinari Sandbox replacement-key canary
+
+- [x] Validate the replacement Sandbox key pair through the isolated canary:
+      `1/1` passed with 14 bounded upstream requests across catalogue/identity,
+      price/quote, DAY/WEEK/MONTH/YEAR history, news, dividends, splits, and
+      corporate actions.
+- [x] Keep the canary authorization/cap transient and preserve only aggregate
+      telemetry; no Sandbox payload entered canonical persistence or normal
+      routing.
+
+### 2026-09-16 — Marketstack monthly-cap admission review
+
+- [x] Add explicit `MARKETSTACK_REVIEWED_MONTHLY_LIMIT`,
+      `MARKETSTACK_REVIEWED_MONTHLY_RESET`, and
+      `MARKETSTACK_QUOTA_EVIDENCE` controls. The pricing/FAQ conflict (100
+      versus 1,000 requests/month) remains visible; no value is silently
+      promoted and blank controls keep routing fail-closed.
+- [x] Wire the controls through local/RPi Compose, GitHub live CI, provider
+      diagnostics, and live preflight while preserving the separate discovery
+      MIC gate. Focused coverage passes `156/156`; the full backend unit suite
+      passes `2,358/2,358` with 37 warnings. No Marketstack request was made
+      by this change.
+
+### 2026-09-16 — Native account-usage baseline refresh
+
+- [x] Re-run the provider-specific account-usage-only live cases for Alpaca,
+      EODHD, Twelve Data, and MarketData.app from the committed source. All
+      four passed `1/1` with exactly one bounded request each; redacted
+      aggregate receipts are appended to `validation.jsonl` and no history,
+      quote, options, or discovery pulls were made.
+- [x] Re-run MarketData.app's complete reviewed Starter-trial focused matrix:
+      `7/7` cases passed (daily/five-minute history, latest price, expirations,
+      option chain, bounded option history, and the deliberate no-request
+      guard). The receipt is current-source evidence only; paid-plan changes
+      and response-priced history remain configuration-gated.
+- [x] Refresh the same bounded matrix at current source `5e2bfa102`: `7/7`
+      passed with the configured Starter Trial account; the redacted receipt
+      records the exact current-source evidence and no response-priced history
+      request was admitted.
+- [ ] Continue reconciling each provider's native observation against its
+      exact durable quota dimensions; a passing usage snapshot does not itself
+      authorize ordinary routing when reset semantics, terms, or plan limits
+      remain unresolved.
+
+### 2026-09-16 — Alpaca independent reset-boundary admission control (superseded)
+
+> Historical checkpoint. The current head uses the official fixed-minute
+> contract and native reset headers; the reviewed-reset pair is now optional
+> future-plan evidence.
+
+- [x] Keep Alpaca's documented 200-requests/minute account ceiling separate
+      from its native account-usage bootstrap. Commit `8808f6ba` adds
+      `ALPACA_REVIEWED_RESET` and `ALPACA_QUOTA_EVIDENCE`; ordinary market-data
+      and metadata routing remains fail-closed until both are configured with
+      an admission-safe reset label and current evidence. The one
+      `fetch_account_usage` control-plane read remains eligible to observe
+      native `X-RateLimit-*` headers without guessing a window.
+- [x] The former local corporate-action bound was replaced by durable
+      page-by-page continuation. `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` remains
+      only as a compatibility/fairness setting and cannot exclude pages.
+- [x] Focused Alpaca/registry/quota/runtime/wiring coverage passed `424/424`;
+      complete backend unit coverage passed `2,356/2,356` with 37 warnings and
+      70.76% coverage; Ruff and diff checks passed. The committed-source
+      account-usage live case passed `1/1` with one authenticated request and
+      125 response bytes; the receipt records only aggregate telemetry.
+- [ ] Obtain current Alpaca reset-boundary evidence, configure the reviewed
+      pair per environment, and run the bounded credentialed live matrix; do
+      not promote ordinary routing from fixture or header observations alone.
+
+### 2026-09-16 — Finnhub independent reset-boundary admission control
+
+- [x] Preserve Finnhub's 60/minute and 30/second ceilings as independent
+      quota dimensions and add separate reviewed reset/evidence controls for
+      each. Commit `dd60e653` wires the controls through runtime diagnostics,
+      live preflight, local/RPi Compose, GitHub CI, and examples; defaults stay
+      fail-closed and do not infer rolling or fixed windows.
+- [x] Validate focused provider registry/quota/secret wiring `153/153` and
+      the complete backend unit gate `2,354/2,354` (37 warnings, 70.75%
+      coverage), plus Ruff and diff checks. No provider request or credential
+      was used.
+- [ ] Obtain current Finnhub reset-boundary evidence for both pools, then run
+      the bounded live cases; do not promote the provider from fixture evidence.
+
+### 2026-09-16 — Alpha Vantage reset-boundary admission control
+
+- [x] Replace the unresolved Alpha Vantage reset boundary with an explicit
+      provider-specific review path. Commit `2f72ad2d` adds
+      `ALPHA_VANTAGE_REVIEWED_RESET` and `ALPHA_VANTAGE_QUOTA_EVIDENCE`, keeps
+      the default 25-requests/day seed fail-closed, and promotes it only for an
+      admission-safe reset label with non-empty evidence. The controls are
+      wired through local/RPi Compose, the manual GitHub workflow, diagnostics,
+      and live preflight so future account-plan changes remain configuration-
+      driven rather than hard-coded.
+- [x] Validate focused registry/quota/secret-wiring coverage `152/152` and the
+      complete backend unit gate `2,353/2,353` (37 warnings, 70.73% coverage),
+      plus Ruff and diff checks. No provider request or credential was used.
+- [ ] Supply current provider reset-boundary evidence and run the bounded Alpha
+      weekly/monthly live case; do not promote routing from fixture evidence.
+
+### 2026-09-16 — Alpha Vantage weekly/monthly history coverage
+
+- [x] Extend the Alpha Vantage adapter beyond its daily-only restriction to
+      parse the documented raw `TIME_SERIES_WEEKLY` and
+      `TIME_SERIES_MONTHLY` endpoints. Each remains a one-query operation in
+      the reviewed quota profile; daily `compact` history keeps its explicit
+      100-point completeness guard, and all three aggregations reject adjusted
+      requests before transport because adjusted history is premium-only.
+      Fixture coverage passes `262/262` for the provider suite; no provider
+      request or credential was used by this change.
+- [ ] Add one bounded weekly or monthly credentialed live case when the
+      current Alpha Vantage daily-capacity window and exact-source live gate
+      permit it; this code change does not resolve the provider's unpublished
+      25-requests/day reset boundary.
+
+### 2026-09-16 — Tiingo reset-semantics correction
+
+- [x] Reconcile Tiingo against its current primary documentation: daily
+      requests reset at midnight EST and monthly bandwidth resets on the first
+      day of each month at midnight EST. The quota seed now records
+      `calendar_day_est` and `calendar_month_est` rather than leaving those
+      documented boundaries as generic provider-defined values.
+- [ ] Keep the 500-unique-symbol monthly reset anchor and hourly timezone/
+      boundary fail-closed because Tiingo does not define them in the reviewed
+      source. Routing also still requires a complete reviewed
+      `TIINGO_OPERATION_BYTE_BOUNDS` map; no provider request was made for this
+      correction. Focused quota coverage passes `102/102`; the fresh full
+      backend unit replay at source `98002b309` passes `2,346/2,346` with 37
+      warnings.
+
+### 2026-09-16 — MarketData.app Starter Trial configuration verification
+
+- [x] Record the owner-selected account policy without storing the credential:
+      the current local key uses `starter_trial` with `10,000` daily credits
+      through `2026-10-11T18:09:00+01:00`, calculated as 30 days from the
+      supplied 2026-09-11 18:09 Europe/Lisbon key-email time. The external
+      `~/.config/charting-platform/app.env` file contains these non-secret
+      controls and remains outside Git.
+- [x] Recheck the runtime boundary: the active trial uses the 10,000-credit
+      pool, and at/after expiry the provider-specific entitlement and durable
+      quota contract fall back to Free Forever/100 credits/day. A future paid
+      plan remains an explicit plan/limit configuration change and is
+      non-routable by default. `ALLOW_PAID_PROVIDER_ROUTING=true` can include a
+      separately reviewed plan, but is not aggregate cost admission or
+      authorization to activate paid service. The approved shared ceiling
+      remains Provider ICP2 work, with ETF consumer validation under ICP6.
+      Focused quota/registry/coordinator
+      coverage passes `163/163`; a fresh backend unit replay passes
+      `2,346/2,346` with 37 warnings; workstream validation and diff checks
+      pass.
+- [ ] Keep provider terms/redistribution, protected target secret stores,
+      complete venue reconciliation, routing activation, and the final shadow
+      run as separate gates; this configuration verification does not close
+      them.
+
+### 2026-09-16 — Alpaca fixed historical-start entitlement
+
+- [x] Model Alpaca Basic's documented stock/ETF history start (`2016-01-01`)
+      as a fixed `earliest_date` constraint rather than leaving bulk hydration
+      at an epoch sentinel or approximating the bound as a drifting number of
+      years. Routing and bulk-fetch admission share the same parser, and
+      malformed, future, mixed, or missing bound forms fail closed. Focused
+      routing/bulk coverage passes `43/43`; Ruff passes. Provider quota reset,
+      account-baseline, terms, and live transport gates remain separate.
+
+### 2026-09-16 — `per_dimension` reset and live-preflight fail-closed handling
+
+- [x] Treat `per_dimension` as an unresolved meta-label unless every
+      chargeable dimension supplies its own explicit calculable reset. Preserve
+      the intentional zero-cost exclusion for unknown account-usage bootstrap
+      pools without creating a fake window, and classify unresolved-reset
+      exceptions as live-runner blockers before transport. The full backend
+      unit suite passes `2,326/2,326` with 70.68% coverage; exact-source
+      preflight replay remains required after commit.
+
+### 2026-09-16 — Provider-defined quota reset admission hardening
+
+- [x] Prevent unresolved provider-defined reset labels from being interpreted
+      as rolling or epoch windows. The shared admission predicate now permits
+      those labels only as auditable, unverified policy state; runtime and
+      direct live-probe reservations require an explicit calculable reset for
+      every dimension. Explicit dimension-level calendar/fixed/rolling resets
+      remain supported. Focused quota coverage passed `101/101`, and the full
+      backend unit gate passed `2,324/2,324` with 70.68% coverage. Provider
+      baseline, legal/source, deployment-secret, universe, and shadow gates
+      remain separate and fail-closed.
+
+### 2026-09-16 — Direct live account-usage baseline handoff
+
+- [x] Make the direct live account-usage probes reconcile exact native
+      snapshots into the same durable coordinator used by runtime refreshes.
+      MarketData.app and Twelve Data now seed their reviewed active pools after
+      a successful usage read; EODHD remains observation-only when its reported
+      usage date is stale. Focused local checks passed `1/1` for each of the
+      two reconciled providers, and unit coverage verifies both the positive
+      and fail-closed paths. Replay at the committed source SHA before treating
+      these as acceptance evidence.
+
+### 2026-09-16 — CoinGecko Demo usage-endpoint audit
+
+- [x] Probe CoinGecko's documented `/key` account-usage endpoint once with the
+      configured Demo key. The official endpoint is Pro-only: the bounded
+      request returned HTTP 401 error code `10005`; the probe is recorded in
+      the private usage ledger. Current pricing documents 100 calls/minute,
+      10,000 successful credits/month, and a first-of-month UTC reset. The
+      Demo adapter now tracks this application's attempted minute calls and
+      monthly successful calls in its durable coordinator, and no longer
+      advertises or repeats Pro-only `/key` usage on Demo. The account-usage
+      method remains available only for a configured entitled plan. No secret
+      or response payload was committed.
+
+### 2026-09-16 — Alpha Vantage compact-history completeness guard
+
+- [x] Reject a requested daily range that predates Alpha Vantage's full-size
+      free `compact` response (latest 100 points) instead of silently returning
+      only the newer partial slice. The adapter raises a typed provider error,
+      allowing provider routing to fall back or report the bounded-history gap;
+      focused Alpha Vantage coverage passes 29/29. This does not promote the
+      provider's free plan or widen its documented 25-requests/day quota.
+
+### 2026-09-16 — Massive free-plan use-scope gate
+
+- [x] Record Massive's official Stocks Basic restriction that free access is
+      for personal, non-business, non-commercial, non-redistributed use. The
+      provider key alone no longer admits metadata, history, or event routing:
+      a deployment must explicitly configure the reviewed use scope, reference,
+      review timestamp. Invalid or expired
+      attestations remain fail-closed. Focused registry/preflight/wiring tests
+      pass 47/47; the broader provider/quota/runtime/live-runner set passes
+      435/435; the full backend unit suite passes 2,300/2,300. No provider
+      calls or credentials were used by this change.
+
+- [x] Expose Massive's optional use-attestation expiry in routing diagnostics
+      as a first-class control. An explicitly expired or malformed expiry is
+      now reported by name while an omitted expiry remains valid for a
+      non-time-limited personal-use review. Focused registry/wiring/live-runner
+      coverage passes `84/84` after this hardening.
+
+### 2026-09-16 — MarketData.app account-introspection charge correction
+
+- [x] Treat authenticated `/user/` account usage as a provider-specific,
+      explicitly routable operation that consumes the account-wide concurrency
+      lease but zero daily credits, matching the native `x-api-ratelimit-consumed`
+      observation. This prevents durable cross-session quota overcounting and
+      permits first-use account snapshots without inventing a starting credit
+      baseline. Actual market-data/options calls still require the reviewed
+      plan/limit baseline. Focused quota/runtime/coordinator coverage passes
+      5/5; the bounded credentialed MarketData.app matrix passed 7/7 cases
+      (9 requests, 17,241 response bytes), including `/user/`; its account
+      usage reservation settled with zero daily-credit units under the old
+      interpretation. The later official docs audit shows a successful `/user/`
+      response consumes at least one credit; treat this receipt as historical,
+      not current quota-safety evidence. The full backend
+      unit suite passes 2,294/2,294. The receipt is not-current-source while
+      this worktree remains dirty.
+
+### 2026-09-16 — Live-preflight provider-cost correction
+
+- [x] Treat explicitly empty per-dimension operation-cost maps as reviewed
+      zero-cost exclusions while keeping omitted operations in non-empty maps
+      fail-closed. Add exact bounded live-manifest reservations for the current
+      Binance/Coinbase/Kraken latest-candle, Massive daily-history, and
+      Marketstack daily-history cases. Focused quota/live-runner coverage passes
+      71/71 and the full backend unit suite passes 2,292/2,292; provider
+      baselines, legal/source controls, byte maps, target secret stores, and
+      current-source live acceptance remain open.
+
+### 2026-09-16 — Opt-in provider-native account-usage refresh
+
+- [x] Add a disabled-by-default daily worker path for provider-native account
+      usage snapshots. Deployments must enable
+      `PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED` and name an explicit JSON list
+      in `PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS`; an empty list never means
+      all providers. Compose/RPi/GitHub wiring, failure isolation, and worker
+      scheduling are covered. The full backend unit suite passes `2,290/2,290`;
+      provider baselines, source/legal review, target-owned secret stores, and
+      the final shadow run remain open.
+
+### 2026-09-14 — Operation-attributed live-provider usage receipts
+
+- [x] Extend the owner-managed live usage receipt and merger with a bounded
+      per-operation breakdown containing only operation count, HTTP requests,
+      response bytes, and failures. Older receipts remain readable; nested
+      totals above provider aggregates are rejected; admin usage diagnostics
+      expose `live_test_usage.operation_breakdown`.
+- [x] Require explicit operation labels across all 49 market-data and
+      tokenized live probes, including Alpaca, SEC EDGAR, MarketData.app, and
+      Dinari. Focused usage coverage passed 32/32; the final current-head live
+      matrix collected 49 cases and passed 43/49, with only the documented
+      Alpha Vantage capacity responses and missing Tradier/IBKR/Ondo
+      credentials remaining. Routing, legal, deployment, reconciliation, and
+      shadow gates remain fail-closed.
+
+### 2026-09-14 — Final Alpaca crypto metadata live validation
+
+- [x] Normalize Alpaca crypto asset metadata requests from the platform's
+      `BTC-USD` representation to the provider's `BTC/USD` path while keeping
+      provider-native listing symbols and explicit `ALPACA_ASSET_ID` identity.
+      Focused Alpaca fixture coverage passed 46/46; the credentialed BTC-USD
+      live probe passed; the final authoritative Docker-backed backend gate
+      passed 2,524/2,524 at 81.74% coverage with 89 warnings. Source checkpoint
+      `2735f038f` is pushed and no frontend or ETF-provider adapter files
       changed.
-- [x] Add component and authenticated `F8s-family-matrix` assertions for the generalized range
-      text. Focused Market Map coverage passed `36/36`; full frontend Vitest passed `947/947` across
-      `109` files; TypeScript, production build, and `git diff --check` passed; the rebuilt
-      branch-scoped Docker browser check passed `1/1`; teardown removed all assigned containers,
-      volumes, generated images, and test-container sessions. Product commit `ad90b988` is pushed
-      to `origin/feat/tc2000-frontend-rework`.
-- [x] Re-run the exact-tip exhaustive gate at metadata tip `70d99baf` (product tip `ad90b988`).
-      Backend units (`1,315/1,315`), integration (`383/383` with the existing `54` warnings),
-      combined coverage (`80.90%`), frontend Vitest (`947/947`), type-check/build, compose and
-      provider policy, stack/runner probes, and functional Playwright (`155` passed, `106` skips)
-      passed. A transient F8r Python Library narrow-window discovery failure was cleared by a
-      fresh-stack isolated retry (`1/1` plus `3/3` repeats) before the successful full rerun.
-- [ ] Preserve the unchanged visual policy and the reproducible six-diff matrix blocker:
-      `98/104` passed; `watchlist-column-editor-open` differs by `13,844` pixels at 1080p-100/125,
-      while `workspace-floating` differs by `11,901`/`12,097`/`12,097`/`5,512` pixels at
-      1080p-100/125 and 1440p-100/125.
-
-### 2026-09-05 — Exact-tip exhaustive gate after member-history date ranges
-
-- [x] Re-run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
-      metadata tip `dace1ab4` (product tip `6fa41b81`, with the date-range records committed).
-      Locked dependency/migration checks, Ruff/format, TypeScript, backend units (`1,315/1,315`),
-      integration (`383/383` with the existing `54` warnings), combined coverage (`80.90%`),
-      frontend Vitest (`947/947` across `109` files), production build, compose/provider policy,
-      stack health, runner isolation, and authenticated functional Playwright (`155` passed,
-      `106` documented skips across `261` specs) all passed.
-- [x] Preserve the unchanged visual acceptance result: `98/104` passed. The six failures remain
-      `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` pixels each) and
-      `workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125 (`11,901`/`9,770`/
-      `9,770`/`9,770` pixels). The workspace-floating actual still intentionally contains
-      canonical benchmark rows after late-popout hydration. No baseline, mask, threshold, skip,
-      fallback, provider rule, or acceptance policy changed; gate teardown and resource
-      accounting were clean.
-- [ ] Continue canonical provider/history population, richer compatible Study targets,
-      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review;
-      this visual matrix is the current reproducible gate blocker.
-
-### 2026-09-05 — Surface canonical member-history date ranges
-
-- [x] Extend the Market Map canonical benchmark-family readiness label with each returned
-      timeframe's observed `oldest` and `newest` member-bar dates. The display preserves missing
-      bounds as `unknown` and never infers coverage from another timeframe.
-- [x] Add component and authenticated `F8s-family-map-drilldown` assertions for the date-range
-      text. Focused Market Map coverage passed `36/36`; full frontend Vitest passed `947/947`
-      across `109` files; TypeScript, production build, and `git diff --check` passed; the rebuilt
-      branch-scoped Docker browser check passed `1/1`; teardown removed all containers, volumes,
-      generated images, and test-container sessions. Product commit `6fa41b81` is pushed to
-      `origin/feat/tc2000-frontend-rework`.
-- [ ] Continue canonical provider/history population, richer compatible Study targets,
-      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review;
-      the latest exhaustive gate remains the reproducible six-diff visual blocker.
-
-### 2026-09-05 — Exact-tip exhaustive gate after Study event signal lineage
-
-- [x] Re-run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
-      metadata tip `aa8fbd0b` (product tip `3a7e4861`, with the durable Study event-lineage
-      records committed). Locked dependency/migration checks, Ruff/format, TypeScript, backend
-      units (`1,315/1,315`), integration (`383/383` with the existing `54` warnings), combined
-      coverage (`80.90%`), frontend Vitest (`947/947` across `109` files), production build,
-      compose/provider policy, stack health, runner isolation, and authenticated functional
-      Playwright (`155` passed, `106` documented skips across `261` specs) all passed.
-- [x] Preserve the unchanged visual acceptance result: `98/104` passed. The six failures remain
-      `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` pixels each) and
-      `workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125 (`11,901`/`9,770`/
-      `9,770`/`12,097` pixels). No baseline, mask, threshold, skip, fallback oracle, provider
-      rule, or acceptance policy changed. Gate teardown removed all assigned containers, volumes,
-      network, generated images, and test-container sessions; resource accounting was clean.
-- [ ] Continue canonical provider/history population, richer compatible Study targets,
-      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review;
-      the visual matrix is the current reproducible gate blocker.
-
-### 2026-09-05 — Preserve Study event signal lineage
-
-- [x] Route primary Study Lab `events` promotions through a dedicated typed signal asset instead
-      of reusing the raw Study version. Both single-output and named multi-output event artifacts
-      now declare `events_to_signal`, selected output identity, immutable source/run/dataset
-      lineage, current-data re-evaluation, and the explicit point-in-time limitation before the
-      Strategy Lab signal is created.
-- [x] Add component coverage for direct and named event signal promotion and extend authenticated
-      F8o to exercise `Save signal: occurrences`. Focused Study Lab coverage passed `25/25`; full
-      frontend Vitest passed `947/947` across `109` files; TypeScript type-check, production build,
-      and `git diff --check` passed. Authenticated F8o passed `1/1` on the rebuilt branch-scoped
-      Docker stack; teardown/resource accounting reported zero containers, volumes, known image
-      bytes, and test-container sessions. Product commit `3a7e4861` is committed locally on
-      `feat/tc2000-frontend-rework`.
-- [ ] Re-run the exact-tip exhaustive gate at this product tip. The unchanged visual matrix is
-      still the reproducible six-diff blocker; canonical provider/history, richer Study targets,
-      native-window/accessibility/security, dense-data budgets, and visual-oracle review remain
-      open.
-
-### 2026-09-05 — Exact-tip exhaustive gate after structured-event signal contract
-
-- [x] Re-run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
-      metadata tip `df95b3c5` (product tip `22fd676e` plus the backend contract test and
-      formatter/checkpoint metadata commits). Locked dependency/migration checks, Ruff/format,
-      TypeScript, backend units (`1,315/1,315`), integration (`383/383` with the existing `54`
-      warnings), combined coverage (`80.90%`), frontend Vitest (`947/947` across `109` files),
-      production build, compose/provider policy, stack health, runner isolation, and authenticated
-      functional Playwright (`155` passed, `106` documented skips across `261` specs) all passed.
-- [x] Preserve the unchanged visual acceptance result: `98/104` passed. The six failures remain
-      `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` pixels each) and
-      `workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125 (`12,097`/`12,097`/
-      `12,097`/`9,770` pixels). No baseline, mask, threshold, skip, fallback oracle, provider
-      rule, or acceptance policy changed. Gate teardown removed all assigned containers, volumes,
-      network, generated images, and test-container sessions; resource accounting was clean.
-- [ ] Continue canonical provider/history population, richer compatible Study targets,
-      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review;
-      the visual matrix is the current reproducible gate blocker.
-
-### 2026-09-05 — Verify backend contract for structured Study event signals
-
-- [x] Add integration coverage for the Research Results structured-event signal API boundary.
-      The test persists a multi-output Study source as a named `events` signal version with the
-      explicit `events_to_signal` adapter and source/output lineage, then promotes that immutable
-      version through Strategy Lab and verifies the Python strategy snapshot reference.
-- [x] The focused test passed `1/1` with `--no-cov`; the full backend integration suite passed
-      `383/383` with the existing `54` warnings. That integration-only invocation reports
-      `48.09%` and exits on the configured `55%` floor because the repository threshold is based
-      on the combined unit/integration gate; this is a coverage-scope caveat, not a test failure.
-- [ ] Continue canonical provider/history population, richer compatible Study targets,
-      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review;
-      the exact-tip visual matrix remains the reproducible six-diff blocker.
-
-### 2026-09-05 — Promote named structured Study events to Strategy signals
-
-- [x] Align Research Results with the existing Study Lab event capability. A completed
-      multi-output Study event artifact now offers `Save Strategy signal`; the frontend creates a
-      typed `events` signal asset scoped to the selected output name, then hands its immutable
-      version to Strategy Lab. The lineage records source run/code/dataset/output identity,
-      `events_to_signal`, current-data re-evaluation, and the explicit point-in-time limitation;
-      no event list is coerced into a Boolean or widened to an unscoped universe.
-- [x] Add capability-matrix, component, and authenticated F8t-results coverage. Focused Research
-      Results/capability tests passed `33/33`; full frontend Vitest passed `947/947` across `109`
-      files; TypeScript type-check, production build, and `git diff --check` passed. Authenticated
-      F8t-results passed `1/1` against the rebuilt branch-scoped Docker stack; teardown and resource
-      accounting reported zero containers, volumes, known image bytes, and test-container sessions.
-      Product commit `22fd676e` is pushed to `origin/feat/tc2000-frontend-rework`.
-- [ ] Continue canonical provider/history population, richer compatible Study targets,
-      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review;
-      the exact-tip visual matrix remains the reproducible six-diff blocker.
-
-### 2026-09-05 — Exact-tip exhaustive gate after complete benchmark history readiness
-
-- [x] Re-run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
-      metadata tip `3b497ee3` (product tip `0712951`). Locked dependency/migration checks,
-      Ruff/format, TypeScript, backend units (`1,315/1,315`), integration (`382/382` with the
-      existing `54` warnings), combined coverage (`80.90%`), frontend Vitest (`946/946` across
-      `109` files), production build, compose/provider policy, stack health, runner isolation,
-      and authenticated functional Playwright (`155` passed, `106` documented skips across
-      `261` specs) all passed.
-- [x] Record the unchanged visual acceptance result: `98/104` passed. The six failures remain
-      `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` pixels each) and
-      `workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125 (`9,770`/`12,097`/
-      `12,097`/`12,097` pixels). No baseline, mask, threshold, skip, fallback oracle, provider
-      rule, or acceptance policy changed. Gate teardown removed all assigned containers, volumes,
-      network, generated images, and test-container sessions.
-- [ ] Continue canonical provider/history population, richer compatible Study targets,
-      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review;
-      the visual matrix is the current reproducible gate blocker.
-
-### 2026-09-05 — Surface complete benchmark history readiness
-
-- [x] Extend the Market Map benchmark-family readiness panel to show every canonical bar-history
-      timeframe returned by the API, not only the selected timeframe. Each role now exposes D1/W1/
-      MN analysis-ready versus covered members, observed bar totals, and the declared per-timeframe
-      analysis floor; missing weekly/monthly legs remain explicit instead of being implied by D1.
-- [x] Add focused and authenticated browser assertions for the complete history summary. Market Map
-      coverage passed `36/36`; full frontend Vitest passed `946/946` across `109` files; TypeScript
-      type-check, production build, and `git diff --check` passed. Authenticated F8s passed `1/1`
-      against the rebuilt branch-scoped Docker stack; teardown and resource accounting reported
-      zero containers, volumes, known image bytes, and test-container sessions. Product commit
-      `0712951` is committed locally on `feat/tc2000-frontend-rework`.
-- [ ] Continue canonical provider/history population, richer compatible Study targets,
-      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review;
-      the prior exact-tip exhaustive result remains the unchanged `98/104` visual blocker.
-
-### 2026-09-05 — Preserve single-output Study series promotion contract
-
-- [x] Fix the primary Study Lab's single-output numeric-series promotion path to derive the
-      selected output name from the returned series artifact. The persisted watchlist column now
-      declares the scalar contract with `latest_series_to_scalar`, while structured timestamped
-      and raw single-output series payloads both retain the immutable Study/run lineage. The
-      backend's declared-output contract is therefore satisfied without weakening validation or
-      introducing a latest-only fallback for incompatible shapes.
-- [x] Add a raw-series component regression and correct the authenticated F9i selector so the
-      direct Study Lab promotion is exercised end to end. Focused Study Lab coverage passed
-      `25/25`; full frontend Vitest passed `946/946` across `109` files; TypeScript type-check,
-      production build, and `git diff --check` passed. Authenticated F9i passed `1/1` against the
-      rebuilt branch-scoped Docker stack; teardown and resource accounting reported zero
-      containers, volumes, known image bytes, and test-container sessions. Product commit
-      `2ee80c3` is committed locally on `feat/tc2000-frontend-rework`.
-- [ ] Continue canonical provider/history enrichment, richer compatible Study targets,
-      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review;
-      the prior exact-tip exhaustive result remains the unchanged `98/104` visual blocker.
-
-### 2026-09-05 — Expose structured range centers in Study Lab
-
-- [x] Align the primary Study Lab with the persisted-result capability matrix for structured
-      `range` artifacts. A named range with aligned finite center values now offers `Save center
-      plot`; the persisted chart asset declares `range_center_to_series`, preserves source/output/
-      run lineage, and leaves lower/upper bounds in the immutable source. Ranges without a valid
-      center and all unsupported shapes remain view/export-only.
-- [x] Add direct Study Lab regression assertions for the adapter, scalar/series contract boundary,
-      and lineage semantics. Focused Study Lab coverage passed `24/24`; full frontend Vitest
-      passed `945/945` across `109` files; TypeScript type-check, production build, and
-      `git diff --check` passed. Product commit `a12c428c` is pushed to
-      `origin/feat/tc2000-frontend-rework`.
-- [ ] Rerun the branch-scoped browser/gate receipts at this new product tip when the Docker-backed
-      stack is available. The prior exhaustive result remains the unchanged `98/104` visual
-      blocker; canonical provider/history, richer Study targets, native-window/accessibility/
-      security, dense-data budgets, and visual-oracle review remain open.
-
-### 2026-09-05 — Expose latest Study series columns in Study Lab
-
-- [x] Bring the safe numeric-series latest-value promotion to the primary Study Lab surface.
-      Completed Study runs now offer `Save latest column` only when a finite observation exists;
-      the persisted asset declares `latest_series_to_scalar`, retains the selected output and
-      immutable Study/run lineage, and remains a typed scalar watchlist column. Series plots and
-      all incompatible shapes keep their existing behavior.
-- [x] Extend the authenticated F9i Study Lab flow and component coverage for the direct control.
-      Focused Study Lab coverage passed `24/24`; the full frontend Vitest suite had already passed
-      `945/945` across `109` files at the same product boundary; TypeScript type-check, production
-      build, and `git diff --check` passed. Product commit `ec17b0fb` is pushed to
-      `origin/feat/tc2000-frontend-rework`.
-- [ ] Re-run the branch-scoped Docker-backed browser/gate receipts at this new product tip when
-      the next coherent batch is ready. The existing exhaustive result remains the unchanged
-      `98/104` visual blocker; canonical provider/history enrichment, richer Study targets,
-      native-window/accessibility/security, dense-data budgets, and visual-oracle review remain
-      open.
-
-### 2026-09-05 — Surface canonical role evidence in Market Map
-
-- [x] Extend the benchmark-family readiness contract used by Market Map to retain the API's
-      existing snapshot, continuity, entitlement, adapter, and per-timeframe history metadata.
-      The readiness panel now shows member/weight/classification counts, point-in-time support,
-      entitlement provider and live-probe state, the latest disclosed composition/as-of/known-at
-      dates with resolved-row counts, and observed continuity gaps. This is display-only evidence;
-      interactive reads still use the local canonical contract and never fan out to providers or
-      substitute a neighboring role.
-- [x] Add regression assertions for partial, dated, gapped, and entitlement-backed role evidence.
-      Focused Market Map coverage passed `36/36`; full frontend Vitest passed `945/945` across
-      `109` files; TypeScript type-check, production build, and `git diff --check` passed.
-      Product commit `37af72fa` is pushed to `origin/feat/tc2000-frontend-rework`.
-- [ ] Continue canonical provider/history enrichment (including unresolved QQQ/QQQE and W1/MN
-      evidence), richer compatible Study Lab targets, native-window/accessibility/security
-      evidence, dense-data budgets, and visual-oracle review. The feature goal remains active and
-      is not yet ready for human review.
-
-### 2026-09-05 — Exact-tip exhaustive gate after latest Study series promotion
-
-- [x] Reran `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
-      metadata tip `c8dee130` (product tip `a6301f0f`). Locked dependencies/migrations, Ruff/
-      format, TypeScript, backend units (`1,315/1,315`), integration (`382/382` with the
-      existing `54` warnings), combined coverage (`80.90%`), frontend Vitest (`945/945` across
-      `109` files), production build, compose/provider policy, assigned-stack health,
-      research-runner isolation, and authenticated functional Playwright (`155` passed and
-      `106` documented skips across `261` specs) all passed.
-- [x] Preserve the unchanged visual result as an explicit blocker: the four-project matrix
-      completed `104` cases with `98` passes and six failures—`watchlist-column-editor-open` at
-      visual-1080p-100/125 (`13,844` differing pixels each), and `workspace-floating` at
-      visual-1080p-100/125/1440p-100/1440p-125 (`9,770`/`12,097`/`9,770`/`12,097` differing
-      pixels). No visual baseline, mask, threshold, skip, fallback oracle, provider rule, or
-      acceptance policy changed; the floating actual continues to contain canonical benchmark
-      rows after late-popout hydration. Gate teardown and the post-gate resource audit reported
-      zero containers, volumes, known image bytes, test-container sessions, and complete
-      accounting.
-- [ ] Continue canonical provider/history enrichment, richer compatible Study Lab targets,
-      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review.
-      The feature goal remains active and is not yet ready for human review.
-
-### 2026-09-05 — Promote finite Study series observations into watchlist columns
-
-- [x] Extend the persisted Research Results promotion matrix with an explicit latest-value
-      watchlist-column target for numeric `series` artifacts. The control appears only when the
-      artifact contains at least one finite observation, declares the `latest_series_to_scalar`
-      adapter, and keeps the immutable Study source/output/run lineage visible; series plots remain
-      available as chart plots and incompatible shapes are untouched.
-- [x] Enforce the adapter at the code-asset API boundary only when validation observes a numeric
-      series output, and cover the persisted runner handoff plus authenticated `F8t-results` UI
-      request. Focused Results/capability coverage passed `32/32`; the targeted backend runner/API
-      slice passed `135/135` (two existing NumPy deprecation warnings); full frontend Vitest passed
-      `945/945` across `109` files; TypeScript type-check, production build, and `git diff --check`
-      passed. Authenticated `F8t-results` browser coverage passed `1/1` on the rebuilt
-      branch-scoped Docker stack, including the new `Save latest column: trend` action; teardown
-      and resource accounting reported zero containers, volumes, known bytes, and test-container
-      sessions. Product commit `a6301f0f` is pushed to `origin/feat/tc2000-frontend-rework`.
-- [ ] Continue canonical provider/history enrichment (including unresolved QQQ/QQQE and W1/MN
-      evidence), richer compatible Study Lab targets, native-window/accessibility/security
-      evidence, dense-data budgets, and visual-oracle review.
-
-### 2026-09-05 — Surface canonical benchmark readiness in Market Map
-
-- [x] Connect benchmark-family Market Map sources to the existing provider-neutral readiness
-      contract. The tool now shows all four independent roles, dated-holdings coverage, route and
-      member-history state, and explicit analysis-ready counts for the selected D1/W1/MN timeframe.
-      Pending and unavailable roles remain visible with machine-readable reasons; no provider is
-      contacted from the interactive read and no proxy substitution is introduced.
-- [x] Add regression coverage for partial, pending, and unavailable roles. Focused Market Map,
-      Research Results, and capability-matrix coverage passed `67/67`; full frontend Vitest passed
-      `944/944` across `109` files; TypeScript type-check, production build, and `git diff --check`
-      passed. Authenticated `F8s-family-map-drilldown` browser coverage passed `1/1` against the
-      seeded branch-scoped Docker stack; teardown and resource accounting reported zero
-      containers, volumes, known bytes, and test-container sessions. Product commits `7a24dd4b`
-      and `19896f1e` are pushed to `origin/feat/tc2000-frontend-rework`. A follow-up refinement
-      in `4026d8d3` also renders each role's route/provider and holdings-refresh state explicitly.
-- [ ] Continue canonical provider/history enrichment (including unresolved QQQ/QQQE and W1/MN
-      evidence), richer compatible Study Lab targets, native-window/accessibility/security
-      evidence, dense-data budgets, and visual-oracle review.
-
-### 2026-09-05 — Explicit Study artifact capability matrix
-
-- [x] Publish the persisted Research Results promotion matrix in a shared frontend capability
-      module. Scalar, Boolean, numeric-series, range-center, and structured-event artifacts now
-      state their compatible watchlist/chart/filter/scan/gauge/alert targets; table, categorical
-      bar, histogram, scatter, heatmap, dashboard, and historical-breadth shapes explicitly remain
-      view/export-only rather than being flattened through a lossy adapter.
-- [x] Guard range-center promotion on the actual artifact payload. A range without an aligned,
-      finite center series no longer offers a chart promotion control and instead reports that its
-      bounds remain source-only. Focused capability and Research Results coverage passed `31/31`,
-      full frontend Vitest passed `943/943` across `109` files, TypeScript type-check and
-      production build passed, and `git diff --check` passed. Authenticated `F8t-results` browser
-      coverage passed `1/1` against the seeded branch-scoped Docker stack; teardown and resource
-      accounting reported zero containers, volumes, known bytes, and test-container sessions.
-      Product commit `95b12a0f` is pushed to `origin/feat/tc2000-frontend-rework`.
-- [ ] Continue canonical provider/history enrichment, richer compatible Study Lab targets,
-      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review;
-      no visual policy or provider fallback rule changed.
-
-### 2026-09-05 — Structured range-center chart promotion and exact-tip gate
-
-- [x] Add an explicit `range_center_to_series` adapter for named structured `range` Study
-      artifacts. Research Results now offers `Save center chart plot: <artifact>`; the adapter
-      projects only the aligned finite center values into a chart `series`, preserves immutable
-      source/run/configuration/manifest/hash lineage, and leaves lower/upper bounds in the source.
-      Categorical, table, matrix, dashboard, and other unsupported shapes remain non-promotable.
-- [x] Verify the slice: focused runner range coverage passed `3/3`, the combined runner/jobs
-      unit slice passed `115/115`, the selected code API contract passed `1/1` (two existing
-      NumPy warnings), Research Results component coverage passed `27/27`, full frontend Vitest
-      passed `939/939` across `108` files, Ruff/type-check/build passed, and the authenticated
-      F8t-results browser flow passed `1/1` against the branch-scoped Docker stack. Teardown and
-      resource accounting reported zero containers, volumes, known bytes, and test-container
-      sessions. Product commit `397c554a` contains the implementation and coverage.
-- [x] Reran the exact-tip exhaustive gate at product tip `397c554a`. Backend units passed
-      `1,315/1,315`, integration `382/382` with the existing `54` warnings, combined coverage
-      remained `80.90%`, frontend Vitest passed `939/939`, type/build/contracts, provider policy,
-      runner probes, stack health, and functional Playwright (`155` passed and `106` documented
-      skips across `261` specs) all passed. The unchanged visual matrix remains `98/104` with
-      six concentrated diffs: `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844`
-      pixels each), and `workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125
-      (`9,770`/`5,512`/`12,097`/`12,097`). No visual baseline, mask, threshold, skip, fallback,
-      provider rule, or acceptance policy changed; Docker teardown and resource accounting were
-      clean.
-- [ ] Continue richer Study Lab targets, canonical provider/history enrichment, native-window/
-      accessibility/security evidence, dense-data budgets, and visual-oracle review. The feature
-      goal remains active and is not yet ready for human review.
-
-### 2026-09-04 — Exact-tip exhaustive gate after structured Boolean promotions
-
-- [x] Reran `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
-      product tip `68856251`. Locked dependencies/migrations, Ruff/format, TypeScript, backend
-      units (`1,311/1,311`), integration (`382/382` with the existing `54` warnings), combined
-      coverage (`80.90%`), frontend Vitest (`938/938` across `108` files), production build,
-      compose/provider policy, assigned-stack health, research-runner isolation, and authenticated
-      functional Playwright (`155` passed and `106` documented skips across `261` specs) all
-      passed. The branch-scoped Docker stack was torn down and resource accounting reported zero
-      containers, volumes, known image bytes, test-container sessions, and complete accounting.
-- [x] Preserve the unchanged visual result as an explicit blocker: the four-project matrix
-      completed `104` cases with `98` passes and six failures—`watchlist-column-editor-open` at
-      visual-1080p-100/125 (`13,844` differing pixels each), and `workspace-floating` at
-      visual-1080p-100 (`12,097`), visual-1080p-125 (`9,770`), visual-1440p-100 (`12,097`),
-      and visual-1440p-125 (`9,770`). No baseline, mask, threshold, skip, fallback oracle,
-      provider rule, or acceptance policy changed; the floating actual intentionally includes
-      canonical benchmark rows after late-popout hydration.
-- [ ] Continue richer Study Lab targets, canonical provider/history enrichment, native-window/
-      accessibility/security evidence, dense-data budgets, and visual-oracle review. The feature
-      goal remains active and is not yet ready for human review.
-
-### 2026-09-04 — Persisted Study Results Boolean promotion matrix
-
-- [x] Complete the named Boolean promotion matrix on persisted Research Results for completed
-      multi-output Study runs: save a typed watchlist column, create a scoped EasyScan-backed
-      watchlist filter or reusable scan, expose the scan as a Market Gauge, and create an alert.
-      Each adapter selects the named Boolean output, retrieves the immutable source CodeVersion,
-      preserves run/configuration/manifest/hash lineage, and carries the declared canonical member
-      IDs; missing IDs refuse promotion rather than widening the universe.
-- [x] Add regression coverage for the five controls, lineage and output contract, EasyScan reuse
-      across filter/scan/gauge/alert targets, and the no-canonical-member safety refusal. Focused
-      Research Results coverage passed `26/26`; full frontend Vitest passed `938/938` across
-      `108` files; TypeScript type-check and production build passed; authenticated F8t-results
-      browser coverage passed `1/1` against the rebuilt branch-scoped Docker stack; teardown and
-      resource accounting reported zero containers, volumes, known image bytes, and test-container
-      sessions. Product commit `68856251` contains the implementation and coverage.
-- [x] Reran the exact-tip exhaustive gate at `68856251`; all non-visual and functional stages
-      passed, while the unchanged visual matrix remains `98/104` with the six documented diffs
-      recorded above. Continue compatible richer Study Lab targets, canonical provider/history
-      enrichment, native-window/accessibility/security evidence, dense-data budgets, and
-      visual-oracle review. The feature goal remains active and is not yet ready for human review.
-
-### 2026-09-04 — Exact-tip exhaustive gate after structured scalar and series promotions
-
-- [x] Reran `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
-      product tip `f8d68d3f`. Locked dependencies/migrations, Ruff/format, TypeScript, backend
-      units (`1,311/1,311`), integration (`382/382` with the existing `54` warnings), combined
-      coverage (`80.90%`), frontend Vitest (`936/936` across `108` files), production build,
-      compose/provider policy, assigned-stack health, research-runner isolation, and authenticated
-      functional Playwright (`155` passed and `106` documented skips across `261` specs) all
-      passed. The branch-scoped Docker stack was torn down and resource accounting reported zero
-      containers, volumes, known image bytes, test-container sessions, and complete accounting.
-- [x] Preserve the unchanged visual result as an explicit blocker: the four-project matrix
-      completed `104` cases with `98` passes and six failures—`watchlist-column-editor-open` at
-      visual-1080p-100/125 (`13,844` differing pixels each), and `workspace-floating` at
-      visual-1080p-100 (`12,097`), visual-1080p-125 (`9,770`), visual-1440p-100 (`12,097`),
-      and visual-1440p-125 (`9,770`). No baseline, mask, threshold, skip, fallback oracle,
-      provider rule, or acceptance policy changed; the floating actual intentionally includes
-      canonical benchmark rows after late-popout hydration.
-- [ ] Continue the remaining Boolean structured-result promotion matrix (filter, scan, gauge,
-      alert, and typed column), compatible chart/list/gauge and richer Study Lab targets, canonical
-      provider/history enrichment, native-window/accessibility/security evidence, dense-data
-      budgets, and visual-oracle review. The feature goal remains active and is not yet ready for
-      human review.
-
-### 2026-09-04 — Persisted Study Results scalar and series promotions
-
-- [x] Add explicit named promotions to the persisted Research Results surface for completed
-      multi-output Study runs: scalar artifacts can be saved as typed watchlist columns and numeric
-      series artifacts can be saved as chart plots. The adapter retrieves the immutable source code
-      version, preserves the selected output name, run/configuration/manifest/hash lineage, and
-      uses the declared output contract without coercing incompatible shapes.
-- [x] Extend the authenticated F8t-results browser fixture to exercise both controls through the
-      real UI/API route, with source-version and output-name assertions. Focused Research Results
-      coverage passed `24/24`; full frontend Vitest passed `936/936` across `108` files; TypeScript
-      type-check passed; the authenticated F8t-results flow passed `1/1`; teardown and resource
-      accounting reported zero containers, volumes, known image bytes, and test-container sessions.
-      Product commit `f8d68d3f` contains the implementation and coverage.
-- [ ] Continue the remaining Boolean structured-result promotion matrix (filter, scan, gauge,
-      alert, and typed column), compatible chart/list/gauge and richer Study Lab targets, canonical
-      provider/history enrichment, native-window/accessibility/security evidence, dense-data
-      budgets, and visual-oracle review. The feature goal remains active and is not yet ready for
-      human review.
-
-### 2026-09-04 — Exact-tip exhaustive gate after structured Study Lab result promotions
-
-- [x] Reran `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
-      product tip `24287f3c`. Locked dependencies/migrations, Ruff/format, TypeScript, backend
-      units (`1,311/1,311`), integration (`382/382` with the existing `54` warnings), combined
-      coverage (`80.90%`), frontend Vitest (`935/935` across `108` files), production build,
-      compose/provider policy, assigned-stack health, research-runner isolation, and authenticated
-      functional Playwright (`155` passed and `106` documented skips across `261` specs) all
-      passed. The branch-scoped Docker stack was torn down and the resource audit reported zero
-      containers, volumes, known image bytes, test-container sessions, and complete accounting.
-- [x] Preserve the unchanged visual result as an explicit blocker: the four-project matrix
-      completed `104` cases with `98` passes and six failures—`watchlist-column-editor-open` at
-      visual-1080p-100/125 (`13,844` differing pixels each), and `workspace-floating` at
-      visual-1080p-100 (`12,097`), visual-1080p-125 (`9,770`), visual-1440p-100 (`12,097`),
-      and visual-1440p-125 (`9,770`). No baseline, mask, threshold, skip, fallback oracle,
-      provider rule, or acceptance policy changed; the floating actual intentionally includes
-      canonical benchmark rows after late-popout hydration.
-- [ ] Continue the remaining compatible chart/list/gauge and richer Study Lab promotion targets,
-      canonical provider/history enrichment, native-window/accessibility/security evidence,
-      dense-data budgets, and visual-oracle review. The feature goal remains active and is not yet
-      ready for human review.
-
-### 2026-09-04 — Structured Study Lab events in persisted Research Results
-
-- [x] Expose named `Save filter: <artifact>` and `Promote alert: <artifact>` actions beside
-      events artifacts in the persisted Research Results surface for completed multi-output
-      Study runs. Each request includes the selected artifact name, and the alert reuses the
-      lineage-preserving event filter with current-observation semantics.
-- [x] Keep direct `Save events as Strategy signal` guarded to explicit/legacy single-output
-      events contracts while retaining compatibility for older compact responses that omit the
-      contract field. Structured-study event artifacts are no longer offered an invalid direct
-      signal action.
-- [x] Verify the slice: focused Research Results component coverage passed `23/23`; full
-      frontend Vitest passed `935/935` across `108` files; TypeScript type-check passed; the
-      authenticated `F8t-results` browser flow passed `1/1` against the branch-scoped Docker
-      stack; teardown and resource accounting reported zero containers, volumes, known image
-      bytes, and test-container sessions. Product commit `24287f3c` contains the implementation.
-- [x] Reran the exact-tip exhaustive integration gate at product commit `24287f3c`; the receipt is
-      recorded immediately above with all non-visual and functional stages green and the six
-      unchanged visual diffs preserved. Visual or provider fallback policy was not altered.
-
-### 2026-09-04 — Exact-tip exhaustive gate after structured Study Lab browser coverage
-
-- [x] Rerun `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
-      product tip `6f575a34`. Locked dependencies/migrations, Ruff/format, TypeScript, backend
-      units (`1,311/1,311`), integration (`382/382` with the existing `54` warnings), combined
-      coverage (`80.90%`), frontend Vitest (`934/934` across `108` files), production build,
-      compose/provider policy, assigned-stack health, research-runner isolation, and authenticated
-      functional Playwright (`155` passed and `106` documented skips across `261` specs) all
-      passed. The first exhaustive invocation had one non-reproducible F8t-results-open lookup
-      failure; a fresh isolated three-run reproduction passed `3/3`, and the complete rerun passed
-      the functional suite. Stack teardown and resource accounting were clean.
-- [x] Preserve the unchanged visual result as an explicit blocker: the four-project matrix
-      completed `104` cases with `98` passes and six failures—`watchlist-column-editor-open` at
-      visual-1080p-100/125 (`13,844` differing pixels each), and `workspace-floating` at
-      visual-1080p-100 (`12,097`), visual-1080p-125 (`11,901`), visual-1440p-100 (`12,097`),
-      and visual-1440p-125 (`9,770`). No baseline, mask, threshold, skip, fallback oracle,
-      provider rule, or acceptance policy changed; the floating actual intentionally includes
-      canonical benchmark rows after late-popout hydration.
-- [ ] Continue the remaining compatible chart/list/gauge and richer Study Lab promotion targets,
-      canonical provider/history enrichment, native-window/accessibility/security evidence, and
-      visual-oracle review. The feature goal remains active and is not yet ready for human review.
-
-### 2026-09-04 — Structured Study Lab event promotions browser coverage
-
-- [x] Extend the authenticated F8o Study Lab flow to exercise both named structured-event
-      actions through the real API: `Save filter: occurrences` and `Promote alert: occurrences`.
-      The focused branch-scoped Docker run passed `1/1`; the stack teardown and resource audit
-      reported zero containers, volumes, known image bytes, and test-container sessions.
-- [x] Rerun the exact-tip exhaustive integration gate at product commit `6f575a34`; the complete
-      receipt is recorded immediately above. Its six unchanged visual diffs remain explicit review
-      blockers. No visual baseline, mask, threshold, skip, fallback oracle, provider rule, or
-      acceptance policy changed.
-
-### 2026-09-04 — Exact-tip exhaustive gate after structured Study Lab event adapters
-
-- [x] Rerun `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
-      product tip `1918ca81`. Locked dependencies/migrations, Ruff/format, TypeScript, backend
-      units (`1,311/1,311`), integration (`382/382` with the existing `54` warnings), combined
-      coverage (`80.90%`), frontend Vitest (`934/934` across `108` files), production build,
-      compose/provider policy, assigned-stack health, research-runner isolation, and authenticated
-      functional Playwright (`155` passed and `106` documented skips across `261` specs) all
-      passed. The stack was torn down and the resource audit reported zero containers, volumes,
-      known image bytes, and test-container sessions.
-- [x] Preserve the unchanged visual result as an explicit blocker: the four-project matrix
-      completed `104` cases with `98` passes and six failures—`watchlist-column-editor-open` at
-      visual-1080p-100/125 (`13,844` differing pixels each), and `workspace-floating` at
-      visual-1080p-100 (`12,097`), visual-1080p-125 (`11,901`), visual-1440p-100 (`12,097`),
-      and visual-1440p-125 (`5,512`). No baseline, mask, threshold, skip, fallback oracle,
-      provider rule, or acceptance policy changed; the intentional canonical-row state in the
-      floating window remains part of the review evidence.
-- [ ] Continue the remaining compatible chart/list/gauge and richer Study Lab promotion targets,
-      canonical provider/history enrichment, native-window/accessibility/security evidence, and
-      visual-oracle review. The feature goal remains active and is not yet ready for human review.
-
-### 2026-09-04 — Structured Study Lab event promotion adapters
-
-- [x] Extend Study Lab promotion controls so named `events` artifacts from a multi-output
-      `study` run can be explicitly saved as a current-data watchlist filter or promoted to an
-      active alert. The filter endpoint requires the selected artifact name, preserves the source
-      run/code/artifact/manifest lineage, scopes the custom universe to declared canonical member
-      IDs, and records the `events_to_boolean` adapter; the alert reuses that filter. Existing
-      single-output event-to-Strategy-signal behavior remains unchanged.
-- [x] Allow the screener queue to execute the explicit adapter against a structured-study source
-      while keeping ordinary Boolean contract validation strict. Add regression coverage for
-      named-output extraction, missing-artifact selection, output-contract lineage, filter/alert
-      requests, and the Study Lab controls.
-- [x] Verify the slice: full research-runner units passed `108/108`; event-focused runner tests
-      passed `9/9`; Strategy Lab event integration passed `3/3`; screener Python-condition
-      integration passed `3/3`; Study Lab component tests passed `24/24`; full frontend Vitest
-      passed `934/934` across `108` files; type-check, production build, compileall, Ruff,
-      format, and diff checks passed. Product commit `1918ca81` contains the implementation.
-- [x] Rerun the exhaustive branch gate at product tip `1918ca81`; the exact receipt is recorded
-      immediately above and preserves the six visual blockers. Continue the remaining
-      chart/list/gauge and richer Study Lab promotion targets, canonical provider/history
-      enrichment, native-window/accessibility/security evidence, and visual-oracle review. No
-      visual baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance
-      policy may change to hide a regression.
-
-### 2026-09-04 — Exact-tip exhaustive gate after event identity scoping
-
-- [x] Rerun `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
-      product tip `7c930fd1`. Locked dependencies/migrations, Ruff/format, TypeScript, backend
-      units (`1,310/1,310`), integration (`381/381` with the existing `54` warnings), combined
-      coverage (`80.90%`), frontend Vitest (`934/934` across `108` files), production build,
-      compose/provider policy, assigned-stack health, research-runner isolation, and authenticated
-      functional Playwright (`155` passed and `106` documented skips across `261` specs) all
-      passed. The stack was torn down and the post-gate resource audit reported zero containers,
-      volumes, known image bytes, and test-container sessions.
-- [x] Preserve the unchanged visual result as an explicit blocker: the four-project matrix
-      completed `104` cases with `98` passes and six failures—`watchlist-column-editor-open` at
-      visual-1080p-100/125 (`13,844` differing pixels each), and `workspace-floating` at
-      visual-1080p-100 (`9,770`), visual-1080p-125 (`12,097`), visual-1440p-100 (`9,770`), and
-      visual-1440p-125 (`12,097`). No baseline, mask, threshold, skip, fallback oracle, provider
-      rule, or acceptance policy changed; the intentional canonical-row state in the floating
-      window remains part of the review evidence.
-- [ ] Continue the remaining compatible chart/list/gauge and Study Lab promotion targets,
-      canonical provider/history enrichment, native-window/accessibility/security evidence, and
-      visual-oracle review. The feature goal remains active and is not yet ready for human review.
-
-### 2026-09-04 — Event adapter preserves per-member lineage
-
-- [x] Close a scope defect in `events_to_boolean`: persisted events carrying a symbol or canonical
-      `instrument_id` are now matched only to the candidate with the same identity. Symbol-less
-      events remain candidate-local because the isolated source is executed against that candidate;
-      explicit identity mismatches are excluded rather than leaking a same-day event to another
-      member.
-- [x] Verify the repair with the event-focused runner suite (`8/8`), the full runner unit suite
-      (`107/107`), event-promotion integration coverage (`2/2`), compileall, Ruff, and diff checks.
-      Product commit `7c930fd1` is pushed to the feature branch.
-- [x] Rerun the exhaustive branch gate at `7c930fd1`; the exact receipt is recorded in the
-      checkpoint immediately above, with the six preserved visual diffs unchanged. No baseline,
-      mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed to make
-      the matrix green.
-- [ ] Continue the remaining compatible chart/list/gauge and Study Lab promotion targets,
-      canonical provider/history enrichment, and native-window/accessibility/security evidence.
-
-### 2026-09-04 — Exact-tip exhaustive gate after event filter/alert fan-out
-
-- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
-      product tip `0da00e08`. Backend units passed `1,309/1,309`, integration passed `381/381`
-      with the existing `54` warnings, combined coverage was `80.90%`, frontend Vitest passed
-      `934/934` across `108` files, and authenticated functional Playwright passed `155` with
-      `106` documented skips across `261` specs. Static/type/build/compile, compose,
-      provider-policy, stack-health, and research-runner isolation stages passed.
-- [x] Preserve the visual result honestly: the unchanged four-project matrix passed `98/104`
-      and failed only the six known board-state assertions—`watchlist-column-editor-open` at
-      visual-1080p-100/125 (`13,844` differing pixels) and `workspace-floating` at all four
-      projects (latest captures `11,901`, `9,770`, `12,097`, and `12,097`). Teardown removed the
-      branch-scoped stack and the resource audit reported zero containers, volumes, images, and
-      test-container sessions.
-- [ ] Obtain review of the six visual diffs and continue compatible chart/list/gauge and Study
-      Lab promotion targets, canonical provider/history enrichment, native-window/accessibility/
-      security evidence, and the remaining R1-R6 gaps. No baseline, mask, threshold, skip,
-      fallback oracle, provider rule, or acceptance policy may change to make the matrix green.
-
-### 2026-09-04 — Event artifact filter and alert fan-out
-
-- [x] Add an explicit `events_to_boolean` adapter in the isolated runner. It evaluates event
-      presence at the candidate's latest observation, accepts same-UTC-day date-only events,
-      rejects future/invalid timestamps, and reports a bounded observed-event metric without
-      guessing across symbols or widening the source contract.
-- [x] Add a user-scoped `POST /research/runs/{run_id}/promote-event-filter` endpoint. It accepts
-      only completed, owned, single-output `events` sources, requires declared canonical member
-      IDs, preserves the source run/code/artifact/reproducibility/manifest lineage, and creates
-      a custom Python condition with the explicit adapter. The existing screener queue now
-      accepts this adapter only for an `events` CodeVersion.
-- [x] Surface both `Save events as watchlist filter` and `Promote events to alert` in Research
-      Results. Alert creation reuses the lineage-preserving filter and states the current-
-      observation semantics; no event artifact is silently relabelled as Boolean.
-- [x] Verify the slice: isolated runner event tests passed `7/7`, Strategy Lab integration
-      coverage passed `2/2` (including the new filter promotion), frontend component tests
-      passed `22/22`, full frontend Vitest passed `934/934` across `108` files, type-check,
-      production build, compileall, Ruff, format, and diff checks passed.
-- [ ] Extend the same explicit capability matrix to remaining compatible chart/list/gauge and
-      Study Lab targets, then rerun the exhaustive branch gate at the new product tip. The
-      existing visual review item remains unchanged: six diffs are preserved and no baseline,
-      mask, threshold, skip, fallback oracle, provider rule, or acceptance policy may change.
-
-### 2026-09-04 — Late benchmark pop-out hydration and exact-tip gate
-
-- [x] Hydrate missing shared market-analysis inputs when a benchmark/watchlist pop-out opens
-      after the leader window has already refreshed. The path runs once only when the canonical
-      group snapshots and breadth inputs are absent; chart pop-outs remain display-only and do
-      not trigger unrelated market-analysis work.
-- [x] Verify the boundary with focused bindings (`26/26`), the full frontend Vitest suite
-      (`933/933` across `108` files), type-check/build, and the seeded F8b-a benchmark pop-out
-      flow (`1/1`). The previously observed Study Results open-flow failure was transient: its
-      isolated repetitions passed `1/1`, `5/5`, and `6/6`, and the full functional run passed
-      `155` with `106` documented skips across `261` specs.
-- [x] Re-run the exact exhaustive gate at product tip `b142729a`. Backend units passed
-      `1,307/1,307`, integration passed `380/380` with the existing `54` warnings, combined
-      coverage was `80.91%`, and all non-visual stages passed. Docker teardown and resource
-      accounting were clean.
-- [ ] Obtain review of the six visual diffs: `watchlist-column-editor-open` at the two 1080p
-      projects (`13,844` pixels) and `workspace-floating` at all four projects (`12,097` or
-      `9,770` pixels). The floating actual now contains canonical benchmark rows because of the
-      late-popout fix. Do not change baselines, masks, thresholds, skips, fallback oracles, or
-      acceptance policy without separately reviewed evidence.
-- [ ] Continue canonical provider/history enrichment, compatible event promotion fan-out,
-      native-window/accessibility/security evidence, and the remaining R1-R6 gaps.
-
-### 2026-09-04 — Multi-window endurance beyond 100 rounds
-
-- [x] Run the seeded workstation lifecycle guard with `TC2000_POP_OUT_CHURN_ROUNDS=105`.
-      Both performance specs passed (`2/2`) after 105 rounds of opening two pop-outs, verifying
-      page convergence, tool/canvas bounds, and the available browser heap ceilings.
-- [x] Tear down the branch-scoped stack and verify that its containers, volumes, network, images,
-      and test-container sessions were removed.
-- [ ] Extend R6 evidence to native-window behavior, dense-data budgets, accessibility/security,
-      logging, and the remaining visual/state gaps.
-
-### 2026-09-04 — Chart renderer readiness performance guard
-
-- [x] Add a chart-root readiness marker that remains busy while data-bearing uPlot charts are
-      initializing, while allowing empty/no-data charts to settle. The workstation performance
-      guards now wait on this explicit state rather than racing the renderer.
-- [x] Run the seeded Docker-backed performance suite with five bounded pop-out churn rounds;
-      both performance specs passed (`2/2`). No visual baseline, mask, threshold, skip, provider,
-      fallback, or protected-worktree policy changed.
-- [ ] Continue the broader R1-R6 evidence work and diagnose the six unchanged visual-oracle diffs.
-
-### 2026-09-04 — Event artifact Strategy signal browser coverage
-
-- [x] Extend the Study Results browser fixture with a completed generic `events` artifact and
-      assert the authenticated `Save events as Strategy signal` action, user-scoped promotion
-      request, and created signal lineage result. The focused Playwright flow passed (`1/1`) on
-      the healthy branch-scoped Docker stack.
-- [ ] Continue occurrence promotion across compatible chart/list/filter/gauge, alert, and Study
-      Lab targets with source-run and dataset lineage preserved.
-
-### 2026-09-04 — Exact-tip gate after renderer readiness
-
-- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at product
-      tip `8ddcb7b8`. Backend units (`1,307/1,307`), integration (`380/380`, existing `54`
-      warnings), combined coverage (`80.91%`), frontend Vitest (`930/930` across `108` files),
-      static/build/compose/provider checks, stack health, runner isolation, and functional
-      Playwright (`154` passed, `106` documented skips across `260`) all passed.
-- [ ] Obtain human review of the unchanged six visual diffs: `watchlist-column-editor-open` at
-      the two 1080p projects and `workspace-floating` at all four projects (`98/104` visual
-      cases passed). Do not alter baselines, masks, thresholds, skips, or fallback oracles.
-
-### 2026-09-04 — Persisted event artifacts promote to Strategy signals
-
-- [x] Add a user-scoped promotion endpoint for completed runs whose immutable CodeVersion
-      contract is `events`. The Strategy definition/version retains the source run, code asset/version,
-      event artifact, reproducibility hash, compact dataset-manifest summary and fingerprint, run
-      configuration, and explicit current-data re-evaluation semantics. Multi-output `study` versions
-      are rejected rather than silently relabelled as signals.
-- [x] Surface the promotion action in Research Results only when a completed run contains an events
-      artifact, and report the created Strategy signal plus its lineage semantics. Frontend Vitest
-      passes `930/930`, type-check/build pass, backend units pass `1,307/1,307`, Ruff/format,
-      compileall, and diff checks pass. The Docker-backed integration regression is present but could
-      not start because the local Docker daemon was unavailable.
-- [ ] Continue occurrence promotion across compatible chart/list/filter/gauge, alert, and Study Lab
-      targets, and rerun the backend integration regression when Docker is available.
-
-### 2026-09-04 — Research Results filters generic event artifacts
-
-- [x] Apply the persisted Research Results occurrence controls to generic `events` artifacts as
-      well as Python breadth history. Symbol matching and dynamically discovered event kinds are
-      explicit, bounded client-side filters over the immutable runner payload; no event is hidden
-      from the export or occurrence bus and no new execution path is introduced.
-- [x] Preserve occurrence identity when a filtered generic event is selected, including symbol,
-      timestamp, kind, and canonical instrument ID when present. The focused component regression,
-      full frontend Vitest suite (`929/929`), type-check, production build, and diff checks pass.
-- [ ] Continue occurrence promotion for event artifacts into compatible chart/list/filter/gauge,
-      alert, and Study Lab targets with source-run and dataset lineage preserved; the direct
-      Strategy Lab signal target is now covered by the section above.
-
-### 2026-09-04 — Python breadth reference-universe comparison slice
-
-- [x] Allow a Python breadth `python_series_comparison` tree to select either a benchmark symbol or
-      a canonical reference universe. Market Map passes the selected source through the existing
-      canonical membership resolver; the API records membership/provenance and materializes a
-      close-only equal-weight return index from local bars with exact timestamp alignment.
-- [x] Keep the isolated runner provider-free: the derived reference index is handed in as the
-      read-only benchmark dataset, with missing history and unsupported fields remaining explicit
-      exclusions. Focused frontend, runner, and Docker-backed API regressions pass.
-- [ ] Continue richer multi-stage derived-series composition and the remaining compatible promotion
-      fan-out; reference-universe support now exists for Python comparison trees, but broader
-      promotion and exact Version 25 promotion-row visuals remain open.
-
-### 2026-09-04 — Exact-tip exhaustive integration gate after Python breadth-tree slice
-
-- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at synchronized
-      tip `2eb93854`. All stages through the authenticated functional browser suite passed, including
-      locked dependencies/migrations, combined backend coverage, frontend checks/build, compose and
-      provider policy, stack health, runner isolation, and `154` functional passes with `106`
-      documented skips across `260` specs.
-- [ ] Obtain human review of the unchanged six visual-oracle diffs: `watchlist-column-editor-open`
-      at 1080p-100/125 and `workspace-floating` at all four projects. Do not alter baselines, masks,
-      thresholds, skips, or fallback oracles to make the matrix green.
-
-### 2026-09-04 — Python breadth condition trees feed Market Map colours
-
-- [x] Connect the advanced Market Map breadth editor to the existing isolated Python breadth
-      runner. A tree containing `python_series` or `python_series_comparison` leaves now queues a
-      bounded current Boolean run before requesting the map; the selected source, timeframe, and
-      benchmark-symbol context remain explicit in the request.
-- [x] Make the Market Map backend consume only the completed runner `batch_cells` artifact. It
-      requires a user-owned current Boolean breadth run, compares the persisted resolved tree with
-      the requested predicate while ignoring only runner-injected source metadata, and requires an
-      exact member-ID set. Missing, excluded, invalid, mismatched, or foreign runs remain explicit
-      errors/coverage gaps; the map never executes Python or fans out a provider.
-- [x] Preserve cross-sectional and mixed-tree semantics by using the isolated run's final tri-state
-      member values and metrics, while keeping the existing native evaluator for non-Python breadth
-      conditions. Add focused editor, backend unit, and Docker-backed Market Map regressions.
-- [ ] Continue richer multi-stage derived-series composition and the remaining compatible promotion
-      fan-out; Python benchmark comparisons in Market Map currently require a benchmark symbol (a
-      reference-universe adapter remains a separate contract gap).
-
-### 2026-09-04 — Bounded canonical enrichment and D1 history runtime
-
-- [x] Rerun five bounded one-profile classification passes at exact feature tip `09ecb4b8`.
-      The passes completed `enriched=14,6,1,0,0` with `failed=0`, advancing the dated QQQ
-      snapshot from 14 to 21 canonical members and reducing explicit `HOLDING-*` placeholders
-      from 87 to 80. The configured `edgar,massive,alpha_vantage` chain remained maintenance-only;
-      missing-key providers were skipped and no CoinGecko or symbol-guess path was used.
-- [x] Queue the authenticated `nasdaq100`/`cap_weight` member-history handoff for `D1`, `W1`,
-      and `MN`. It selected all 21 canonical members and excluded all 80 placeholders. After the
-      bounded queue drained, SQL reported 46,566 D1 bars across 21/21 members, each meeting the
-      252-bar analysis floor; W1/MN had no provider-backed bars and no derived bars were claimed.
-- [x] Verify the UI-facing contract after history hydration: cap-weight reports 21 canonical,
-      80 placeholders, D1 analysis-ready 21/21, W1/MN 0/21, and `history_ready=false`; the full
-      Nasdaq-100 role matrix remains 0.25 coverage because QQQE and value/growth roles are still
+- [x] Re-run the complete lock-protected matrix at the final head. It
+      collected 49 cases and passed 43/49, with the three documented Alpha
+      Vantage free-key capacity responses and exact Tradier/IBKR/Ondo
+      credential preflights preserved. The owner-only redacted receipt
+      recorded 26 provider rows, 98 HTTP requests, 79 operations, 23,237,350
+      response bytes, and four failed operations; routing/legal/deployment/
+      reconciliation/shadow controls remain fail-closed.
+
+### 2026-09-14 — Alpaca instrument metadata and current-head live validation
+
+- [x] Add Alpaca's authenticated asset metadata endpoint to the common
+      `InstrumentProfile` contract. Preserve the provider UUID as
+      `ALPACA_ASSET_ID`, retain exchange/class/status/tradability fields and
+      the raw payload, add an explicit one-request quota cost, and place Alpaca
+      after EDGAR/Massive in the metadata chain. Focused unit/registry/quota
+      checks passed; the bounded paper-account `AAPL` profile probe passed;
+      the authoritative Docker-backed backend gate passed 2,523/2,523 at
+      81.74% coverage with 89 warnings. Source checkpoint `a49c5b9f1` is
+      pushed and no frontend or ETF-provider adapter files changed.
+- [x] Re-run the complete lock-protected live matrix at that source head. It
+      collected 48 cases and passed 42/48: Alpha Vantage's three calendar/
+      earnings reads returned the typed documented free-key capacity response,
+      while Tradier, IBKR, and Ondo remained exact missing-credential
+      preflights. The owner-only redacted receipt recorded 26 provider rows,
+      97 HTTP requests, 78 operations, 23,169,232 response bytes, and four
+      failed operations. This is transport evidence only; provider-specific
+      quota/legal/entitlement, deployment-secret, reconciliation, and shadow
+      gates remain fail-closed.
+
+### 2026-09-14 — Current-head complete live provider matrix
+
+- [x] Re-run the lock-protected manifest matrix against source checkpoint
+      `b6fce15e5` using the existing owner-managed keys. The 47-case run passed
+      41/47: Alpha Vantage returned its documented free-key daily-capacity
+      response for IPO-calendar and both earnings operations, while Tradier,
+      IBKR, and Ondo remained exact missing-credential preflights. The
+      aggregate-only receipt recorded 26 providers, 96 HTTP requests, 77
+      operations, and 23,167,868 response bytes in the external ledger. No
+      credentials or payloads entered Git; unresolved routing-safety controls
+      remain fail-closed and this is not acceptance evidence.
+
+### 2026-09-14 — Typed unsupported history timeframes across adapters
+
+- [x] Make direct history requests fail closed with typed provider errors when
+      a provider does not advertise the requested timeframe. Alpaca, Binance,
+      Tiingo, Twelve Data, Tradier, MarketData.app, Finnhub, Marketstack, EODHD,
+      and FMP no longer turn unsupported annual/unmapped windows into an
+      ambiguous empty result; valid empty ranges and non-crypto Binance symbol
+      filtering remain intact. Focused adapter tests passed 343/343 with
+      `--no-cov`; the authoritative Docker-backed backend gate passed
+      2,520/2,520 at 81.75% coverage with 89 warnings. Provider entitlement,
+      quota, legal, deployment-secret, and routing-promotion gates remain
+      fail-closed.
+
+### 2026-09-14 — Typed unsupported daily-provider timeframes
+
+- [x] Make Alpha Vantage and FRED reject unsupported direct and latest history
+      timeframes before transport, rather than returning an ambiguous empty
+      dataset or deriving an unsupported lookback. Focused provider/alert/
+      Nautilus coverage passed 356/356; the authoritative Docker-backed
+      backend gate passed 2,510/2,510 at 81.73% coverage with 89 warnings.
+      Provider/legal, quota, and deployment gates remain fail-closed.
+
+### 2026-09-13 — Tokenized historical documentation parity
+
+- [x] Align the provider configuration comment and data-provider guide with
+      the implemented Dinari/Ondo tokenized historical bridge and its `DAY`,
+      `WEEK`, `MONTH`, and `YEAR` windows. Focused tokenized/asset-service/
+      secret-wiring coverage passed 122/122; the authoritative Docker-backed
+      backend gate passed 2,488/2,488 at 81.72% combined coverage with 89
+      warnings. Provider/legal/quota review remains fail-closed.
+
+### 2026-09-13 — Tokenized historical deployment-chain parity
+
+- [x] Add `tokenized_historical_prices` with Dinari and Ondo to the explicit
+      provider-chain defaults in both env examples and local/RPi Compose. This
+      prevents deployment overrides from silently dropping the canonical
+      tokenized history capability. Wiring/registry/tokenized-service tests
+      passed 65/65; Compose YAML parsing and static checks passed.
+
+### 2026-09-13 — Ondo tokenized historical bridge
+
+- [x] Connect Ondo's documented primary-token daily OHLC endpoint to the
+      shared tokenized historical capability. DAY preserves source rows, while
+      WEEK/MONTH/YEAR use deterministic local rollups with raw provenance and
+      no fabricated volume. Focused tokenized/quota coverage passed 167/167;
+      the authoritative Docker-backed backend gate passed 2,484/2,484 at
+      81.71% combined coverage with 89 warnings. Ondo quota, caching,
+      display-only, and redistribution review remains fail-closed.
+
+### 2026-09-13 — Latest-bar history admission
+
+- [x] Pass a provider-specific history-start factory through latest-price
+      routing so latest-window reads use the same structured, documented
+      lookback bounds as explicit history requests. Focused market-data,
+      runtime, routing, and risk-free coverage passed 103/103; the
+      authoritative Docker-backed backend gate passed 2,483/2,483 at 81.71%
+      combined coverage with 89 warnings. No frontend or ETF-provider adapter
+      files changed.
+
+### 2026-09-13 — Current-source credentialed provider live refresh
+
+- [x] Re-run the bounded credentialed live suite against source checkpoint
+      `750f02d57`. Alpaca, SEC EDGAR, MarketData.app, and Dinari Sandbox passed
+      all 11 selected test bodies. The redacted receipt recorded 5 Alpaca
+      requests/6,487,828 bytes, 6 EDGAR requests/6,236,111 bytes, 5
+      MarketData.app requests/20,561 bytes, and 14 Dinari requests/182,346
+      bytes; aggregate usage was merged into the owner-managed ledger with
+      `accepted=4`. This is transport/schema evidence only; no credentials or
+      provider payloads entered Git and no routing entitlements were promoted.
+
+### 2026-09-13 — Risk-free historical admission
+
+- [x] Thread the risk-free-rate provider fallback's explicit 30-day historical
+      start through provider-specific structured history admission so it cannot
+      bypass documented lookback bounds. Focused risk-free/runtime/routing
+      coverage passed 77/77; the authoritative Docker-backed backend gate
+      passed 2,482/2,482 at 81.71% combined coverage with 89 warnings. No
+      frontend or ETF-provider adapter files changed.
+
+### 2026-09-13 — Provider-specific history-depth admission
+
+- [x] Replace descriptive-only history-depth routing with structured,
+      provider-specific `quota_policy.history_constraints` bounds. Massive's
+      two-year, Marketstack's one-year, EODHD's one-year, and MarketData.app
+      Free/Trial one-year documented lookbacks are enforced for normal bounded
+      OHLCV fetches; missing,
+      malformed, future, or exceeded bounds fail closed. Epoch-style bulk
+      hydration remains adaptive and persists only validated provider rows.
+      Focused routing/runtime coverage passed 76/76, and the authoritative
+      Docker-backed backend gate passed 2,482/2,482 at 81.71% combined
+      coverage. No frontend or ETF-provider adapter files changed.
+
+- [ ] Keep all other provider history limits without machine-readable,
+      documentation-backed bounds non-routable until their exact plan and
+      endpoint semantics are reviewed; do not convert prose such as
+      "plan-dependent" or "latest N points" into guessed calendar windows.
+
+### 2026-09-13 — Final current-source provider matrix receipt
+
+- [x] Run the full lock-protected provider/tokenized matrix against pushed
+      checkpoint `aedf1943f`. It collected 47 cases and passed 41/47; the six
+      explicit non-passes were Alpha Vantage IPO-calendar,
+      earnings-calendar, and earnings-history capacity responses at the
+      supplied free key's documented allowance, plus missing credential
+      preflights for intentionally deferred Tradier, IBKR, and Ondo. The
+      redacted 26-provider receipt recorded 96 upstream requests and
+      23,334,032 response bytes and merged into the owner-managed ledger with
+      `accepted=26`. This remains transport/quota evidence only, not routing
+      or acceptance proof.
+
+- [ ] Keep the provider-specific quota, entitlement, redistribution, deferred
+      credential, deployment-secret, reconciliation, and shadow-run gates open
+      until their separate reviews and evidence are complete.
+
+### 2026-09-13 — MarketData.app trial-expiry configuration boundary
+
+- [x] Enforce the provider's time-limited Starter/Trader Trial entitlement
+      at routing time with a future timezone-aware
+      `MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT`. Empty deployment mappings are
+      normalized to unset so local/RPi Compose and the manual GitHub workflow
+      boot safely while still leaving the trial pool fail-closed. Missing,
+      naive, and elapsed values are covered by provider-policy/preflight tests;
+      the focused suite passes 128/128 and the full backend gate passes
+      2,455/2,455 at 81.68% coverage.
+
+- [ ] Keep the plan/terms and redistribution review open; this configuration
+      change does not establish a MarketData.app entitlement or promote routing.
+
+- [x] Make provider diagnostics report the complete invalid control set when a
+      trial has both a mismatched plan/limit pair and an invalid expiry. The
+      runtime and live preflight now distinguish a valid pair with a missing
+      expiry from a trial with multiple invalid controls, without weakening
+      fail-closed admission. Focused provider-policy coverage remains green;
+      the authoritative backend gate passes 2,455/2,455 at 81.68% coverage.
+
+### 2026-09-13 — MarketData.app stock-candle credit accounting
+
+- [x] Replace the previous fixed one-credit OHLCV/bulk-history charge with a
+      provider-specific, date-granular estimate: MarketData.app charges one
+      credit per 1,000 returned stock candles, and its `from`/`to` request is
+      calendar-date based. Intraday reservations therefore use a conservative
+      full-day candle upper bound; unsupported platform timeframes return no
+      estimate and remain fail-closed rather than reverting to one credit.
+      Explicit, latest, and bulk history paths now pass the calculated cost
+      into durable provider quota reservation. Focused provider/runtime/service
+      coverage passes 244/244; Ruff, compileall, and diff checks pass; the
+      authoritative Docker-backed gate passes 2,452/2,452 at 81.67% combined
+      coverage with 89 warnings. No external provider calls or credentials were
+      used for this source change.
+
+- [ ] Keep the MarketData.app plan/terms, response-priced options bound, and
+      account-wide usage review gates fail-closed until the operator records the
+      exact account entitlement and redistribution decision.
+
+### 2026-09-13 — Current-source live provider matrix receipt
+
+- [x] Forced the bounded manifest-driven provider matrix against the current
+      source using the existing operator-owned environment. It collected 47
+      cases and passed 41. The three Alpha Vantage event/earnings operations
+      returned typed documented free-key capacity responses; Tradier, IBKR,
+      and Ondo remained exact missing-credential preflights. The run exited
+      2, consumed no credentials into Git, and made no routing-entitlement
+      changes.
+
+- [ ] Keep this as non-acceptance evidence until the provider-specific
+      quota/legal/redistribution controls and deferred credentials are
+      resolved; a capacity response or missing credential is not a successful
+      data read.
+
+### 2026-09-13 — Supplied-credential provider-specific live revalidation
+
+- [x] Re-run bounded live cases for the newly supplied Alpaca, SEC EDGAR,
+      MarketData.app, and rotated Dinari Sandbox credentials. Eleven test
+      bodies passed: EDGAR profile/filings/directory (3), Alpaca
+      daily/intraday/latest/assets/corporate actions (4), MarketData.app
+      options/account-usage/intraday (3), and Dinari metadata/price/quote/
+      DAY-WEEK-MONTH-YEAR history/news/dividends/splits/corporate actions (1).
+      A fresh `--no-cov` rerun passed 11/11 against the pushed checkpoint
+      `49e8095a6`; its redacted receipt recorded 30 upstream requests and
+      12,926,846 response bytes across four provider rows, and merged into the
+      owner-managed ledger with `accepted=4`. No credential or provider
+      payload entered Git.
+
+- [ ] Keep this as transport evidence only. Provider-specific quota,
+      entitlement, legal/redistribution, and deployment-secret gates remain
+      independently required before routing or acceptance.
+
+### 2026-09-13 — Newly configured provider revalidation and IBKR futures
+
+- [x] Revalidate the newly configured Alpaca and MarketData.app credentials in
+      seven bounded live cases: Alpaca daily/intraday/latest history, assets,
+      and corporate actions plus MarketData.app options, account usage, and
+      intraday history. All seven passed; only aggregate usage telemetry was
+      written to the owner-managed external ledger.
+
+- [x] Promote IBKR's existing generic Client Portal Gateway historical path to
+      an explicit futures-history capability based on the official all-
+      instruments endpoint. Document the 1,000-bar response cap and expired-
+      futures two-year availability limit; recommend `IBKR_CONID_MAP` when
+      symbol search is ambiguous. Options-specific methods and live gateway
+      evidence remain open.
+
+### 2026-09-13 — Tokenized historical aggregate persistence
+
+- [x] Add a separate, disabled-by-default daily worker for bounded tokenized
+      historical aggregates. It admits only adapters that expose the explicit
+      `fetch_tokenized_historical_prices` operation, routes by provider asset
+      identity, reserves the provider runtime operation cost, and persists
+      canonical raw `24_7` OHLC bars with provenance and no invented volume,
+      VWAP, or adjustment. Dinari exposes native aggregate windows; Ondo now
+      exposes documented daily primary-token OHLC with deterministic local
+      DAY/WEEK/MONTH/YEAR rollups. Configuration is wired through local and RPi
+      compose/env examples, and focused coverage plus the authoritative backend
+      gate are recorded in the current Ondo bridge entry above.
+
+- [ ] Keep the scheduler disabled until Dinari and Ondo account quota, terms,
+      caching, eligibility, and redistribution reviews are recorded. The
+      credentialed Dinari Sandbox adapter live case passes 1/1 for metadata,
+      price, quote, all four documented aggregate windows, news, dividends,
+      splits, and the combined action surface; Ondo remains an exact missing-
+      credential preflight. These are transport/fixture evidence, not
+      commercial-production or routing-entitlement evidence. The latest full
+      current-source matrix remains the separately recorded non-acceptance
+      receipt above.
+
+### 2026-09-13 — Tokenized catalog discovery scheduling
+
+- [x] Schedule tokenized listing discovery as a separate bounded daily worker,
+      independent from quote polling and corporate-action polling. The job is
+      disabled by default until provider quota/terms are reviewed, uses
+      `TOKENIZED_CATALOG_REFRESH_MAX_PAGES` and
+      `TOKENIZED_CATALOG_REFRESH_PAGE_SIZE`, and clamps both values at the
+      service boundary. Focused scheduler/service/provider/config coverage
+      passed 153/153; Ruff, compileall, YAML parsing, and diff checks passed.
+      No live provider calls, credentials, frontend files, or ETF-provider
+      adapter files changed.
+
+- [x] Re-run the authoritative Docker-backed backend gate after catalog
+      scheduler/config changes. The complete scoped suite passes 2,441/2,441
+      with 89 warnings at 81.61% combined coverage using cleaned labeled
+      testcontainer session `824c0c11-8c12-4c6b-9186-ac86dcf5aeb7`. Provider
+      quota/terms, deployment, CI, shadow, and staging-coordinator gates
+      remain open.
+
+### 2026-09-13 — Tokenized catalog completeness evidence
+
+- [x] Make bounded tokenized-asset catalog refreshes report whether the
+      provider page stream ended before the configured `max_pages` bound. A
+      full final page now returns `status: partial`, per-provider
+      `pages_fetched`/`truncated`/`complete` evidence, and aggregate
+      completeness flags instead of being presented as a complete universe.
+      Tokenized service/provider fixtures pass 90/90; Ruff, compileall, and
+      diff checks pass. No live provider calls, frontend files, or ETF-provider
+      adapter files changed.
+
+- [x] Re-run the authoritative Docker-backed backend gate after the bounded
+      tokenized-catalog change. The complete scoped suite passes 2,436/2,436
+      with 89 warnings at 81.60% combined coverage using cleaned labeled
+      testcontainer session `05167e7e-98d4-4817-a500-a5caec09b5f6`. No live
+      provider calls or credentials were used.
+
+### 2026-09-13 — Seasonality evaluator provider boundary
+
+- [x] Make `/api/v1/instruments/{symbol}/seasonality/monthly` evaluate only
+      local canonical monthly history, with additive shared OHLCV coverage
+      evidence. Refresh workers remain responsible for provider I/O, so a
+      seasonality request cannot fan out synchronously into an external API.
+      Focused PostgreSQL integration passes 21/21 without coverage collection;
+      Ruff, compileall, and diff checks pass. The coverage-enabled focused run
+      also passed all 21 tests but exits on the repository-wide threshold when
+      run in isolation. No provider calls, frontend files, or ETF-provider
+      adapter files changed.
+
+  The authoritative Docker-backed combined backend gate then passed
+  2,434/2,434 with 89 warnings at 81.58% coverage using cleaned labeled
+  testcontainer session `adbeabea-934e-4267-b590-717cb9a78f99`.
+
+### 2026-09-13 — Heatmap sparkline query bound
+
+- [x] Bound non-daily heatmap sparkline reads with a per-instrument SQL window
+      instead of loading all historical rows for the requested universe. The
+      DB-first/no-provider-fanout contract remains intact. Focused heatmap
+      integration passes 1/1, Ruff/compileall/diff checks pass, and the
+      authoritative Docker-backed combined backend gate passes 2,433/2,433 at
+      81.52% coverage with 89 warnings. No provider calls, frontend files, or
+      ETF-provider adapter files changed.
+
+### 2026-09-13 — Heatmap evaluator coverage preflight
+
+- [x] Make `/api/v1/instruments/heatmap-data` DB-first and provider-neutral.
+      The broad evaluator no longer performs one provider-backed latest-bar
+      fetch per instrument; daily and selected-timeframe local history are
+      assessed through the shared OHLCV preflight, short histories are deferred,
+      and each row exposes additive daily/sparkline readiness evidence. Focused
+      PostgreSQL integration passes 7/7, Ruff/compileall/diff checks pass, and
+      the authoritative Docker-backed combined backend gate passes 2,433/2,433
+      at 81.53% coverage with 89 warnings. No provider calls, frontend files,
+      or ETF-provider adapter files changed.
+
+### 2026-09-13 — Indicator endpoint coverage preflight
+
+- [x] Extend the shared OHLCV coverage preflight to
+      `/api/v1/indicators/compute/{symbol}/{timeframe}`. Required history is
+      derived from the canonical indicator registry and normalized parameters;
+      under-sized local history is withheld with additive serialized coverage
+      evidence, while successful and unknown-indicator responses preserve their
+      existing shapes. Focused indicator endpoint integration passes 6/6,
+      Ruff/compileall/diff checks pass, and the authoritative Docker-backed
+      combined backend gate passes 2,432/2,432 at 81.45% coverage with 89
+      warnings. No provider calls, frontend files, or ETF-provider adapter files
+      changed.
+
+### 2026-09-13 — Generic historical breadth coverage preflight
+
+- [x] Extend the provider-neutral OHLCV preflight to the generic
+      `/analysis/breadth/history` endpoint. Historical bars are truncated at
+      `as_of` as an upper cutoff, then assessed over their observed extent
+      against the condition-derived history floor; insufficient members are
+      withheld instead of producing synthetic historical points. The response
+      now exposes additive `coverage_preflight` evidence. Focused PostgreSQL
+      integration passes 3/3, Ruff/compileall/diff checks pass, and the
+      authoritative Docker-backed combined backend gate passes 2,431/2,431 at
+      81.45% coverage with 89 warnings. No provider calls, frontend files, or
+      ETF-provider adapter files changed.
+
+### 2026-09-13 — Shared evaluator coverage preflight
+
+- [x] Extend the shared OHLCV coverage preflight to benchmark-family
+      concentration. Each delegated role is checked after membership and
+      persisted stale-ID filtering using the selected rank-period floor
+      (`offset + 1`, or a conservative 253-bar YTD/unknown-period floor),
+      with short/cold histories reported as partial/deferred. Focused
+      PostgreSQL integration passes 1/1, the complete backend unit suite passes
+      2,029/2,029, and the authoritative Docker-backed gate passes 2,410/2,410
+      at 81.39% coverage. No provider, frontend, or ETF-provider adapter files
+      changed.
+
+- [x] Add a provider-neutral OHLCV preflight coordinator for broad Strategy Lab
+      rules and Radar signal replay. It loads the requested local bars once per
+      instrument/timeframe, uses the exact missing-slice/freshness planner,
+      withholds unresolved instruments from evaluation, and reports full,
+      partial, deferred, stale-blocked, or empty readiness without making a
+      provider call. An explicit `queue_coverage_repairs` execution assumption
+      may enqueue only the bounded slices through the durable refresh queue;
+      default behavior is read-only. Focused preflight coverage passes 4/4 and
+      the complete Strategy Lab API suite passes 20/20. No frontend or ETF
+      provider-adapter files changed.
+- [x] Extend the same preflight contract to the current reusable `/breadth`
+      snapshot. It now evaluates the already-loaded local bars against the
+      declared condition's required history, withholds unresolved members, and
+      returns the serialized per-instrument readiness report without making a
+      provider call. Focused stale/current breadth regressions pass 2/2.
+- [x] Extend the same contract to historical benchmark-family concentration
+      and industry proxy/classified-industry snapshots. Historical roles report
+      point-in-time local readiness; industry routes use the 252-bar technical
+      floor and remain read-only with respect to provider I/O. Focused
+      PostgreSQL integration passes 2/2, the complete backend unit suite passes
+      2,029/2,029, and the authoritative Docker-backed gate passes 2,410/2,410
+      at 81.40% coverage. No provider, frontend, or ETF-provider adapter files
+      changed.
+- [x] Extend the same contract to the direct ETF constituent analysis consumer.
+      The point-in-time holding snapshot now exposes its shared 252-bar OHLCV
+      preflight, and benchmark-family constituent wrappers preserve it. Focused
+      PostgreSQL integration passes 4/4, the complete backend unit suite passes
+      2,029/2,029, and the authoritative Docker-backed gate passes 2,410/2,410
+      at 81.40% coverage. No ETF provider-adapter or frontend files changed;
+      reconcile the response-field contract with
+      feat/etf-holdings-constituents at staging.
+- [x] Extend the same contract to benchmark-family breadth without applying a
+      single overly-conservative history gate. Each built-in metric receives
+      its own cached-bar preflight, and the cap benchmark has a separate
+      readiness result; valid shorter-history metrics remain evaluable while
+      insufficient metrics are withheld. Focused benchmark-family integration
+      coverage passes 1/1.
+- [x] Extend the same preflight contract to both production and ARQ-compatible
+      indicator-alert execution. Grouped high-alert price polling and grouped
+      indicator OHLCV snapshots remain outside the evaluation loops; indicator
+      history requirements are derived from the canonical registry, with
+      composite windows and non-window numeric parameters handled explicitly.
+      Insufficient groups are withheld rather than evaluated from partial local
+      history. Focused alert-preflight coverage passes 8/8 and indicator
+      history-floor regressions pass 2/2 (39/39 across the two focused files),
+      the PostgreSQL worker alert checks pass 2/2, and the combined backend gate passes
+      2,402/2,402. No provider call occurs inside an alert evaluation loop.
+- [x] Extend the same contract to synchronous and streaming screeners. Their
+      existing grouped local snapshot is retained, raw rows are assessed by the
+      shared preflight, and indicator/price-change history floors are derived
+      from the actual condition tree. Insufficient primary/D1/W1 coverage is
+      withheld with an explicit exclusion and an additive preflight summary;
+      focused screener/preflight coverage passes 36/36, the database-backed
+      screener integration passes 26/26, and the complete backend gate passes
+      2,404/2,404. No provider call occurs inside a screener evaluation loop.
+- [x] Extend the shared coverage contract to Market Map evaluation. Breadth
+      conditions now derive exact local history floors (including nested and
+      cross-sectional semantics), while return/RSI/volume/52-week map metrics
+      use their own deterministic floors. Market Map exposes the serialized
+      `coverage_preflight` report and withholds non-Python colours when the
+      required local snapshot is not ready. Focused breadth/Market Map unit
+      coverage passes 34/34, the complete watchlist integration suite passes
+      49/49, and the authoritative Docker-backed gate passes 2,409/2,409 at
+      81.37% coverage. No provider, frontend, or ETF-provider files changed.
+- [x] Persist evaluator run status separately from the existing Strategy Lab
+      `completed` transport status. Research runs now retain an additive
+      `resource_usage.evaluation` record and expose `evaluation_status` on run
+      and batch-result responses; `completed` transport with datasets plus
+      exclusions is reported as `partial`, while exclusions without datasets
+      are `deferred`. Research-job unit coverage passes 5/5, the PostgreSQL
+      research API suite passes 24/24, the complete backend unit suite passes
+      2,027/2,027, and the authoritative Docker-backed gate passes 2,406/2,406
+      at 81.38% coverage. No migration head, frontend, or ETF-provider files
+      changed.
+- [x] Extend the shared OHLCV preflight to Study Lab/research dataset
+      materialization. Historical gaps and code lookback shortfalls now remain
+      explicit coverage/exclusion evidence; ready batch members continue while
+      incomplete members are withheld, and single-instrument studies are
+      deferred before isolated user code executes. Focused PostgreSQL
+      integration passes 4/4, research-runner/job unit coverage passes 110/110,
+      the complete backend unit suite passes 2,030/2,030, and the authoritative
+      Docker-backed gate passes 2,412/2,412 at 81.40% coverage. No frontend or
+      ETF-provider adapter files changed.
+- [x] Extend the same contract to the Radar signal scan. Its existing indexed
+      local-bar load and freshness/repair behavior now feed the shared
+      provider-neutral preflight with the engine's 80-bar minimum; short or
+      otherwise incomplete histories are withheld from signal evaluation,
+      repair requests are labeled `insufficient_history`, and the serialized
+      run summary preserves the per-instrument preflight evidence. Focused
+      Radar unit coverage passes 35/35 and the complete PostgreSQL API coverage
+      passes 13/13; no provider, frontend, or ETF-provider adapter files changed.
+- [x] Persist the bounded Radar repair handoff alongside the coverage report.
+      Opt-in repair runs now retain each coalescing request key, observed queue
+      status, attempt count, next-attempt timestamp, capability, timeframe, and
+      coverage reason without lease tokens or provider secrets. The admin queue
+      remains authoritative for later lifecycle transitions; focused Radar
+      coverage passes 35/35 and 13/13, and the authoritative backend gate
+      passes 2,415/2,415 at 81.41% coverage.
+- [ ] Extend the same contract to future non-Strategy signal engines beyond
+      the currently covered Strategy Lab, generic breadth,
+      benchmark-family breadth, alert, screener, and Market Map paths.
+
+### 2026-09-13 — Persist refresh-job outcomes for evaluator coordination
+
+- [x] Persist durable refresh-job `started_at`, `finished_at`, and redacted
+      `result_summary` fields. Worker completions now record observed-bar counts
+      and empty responses; retry/defer paths retain bounded error and provider
+      reset evidence. The admin refresh-queue diagnostic exposes these fields
+      without lease tokens, so operators and future evaluators can distinguish
+      completed, empty, retry, deferred, and leased work. Focused queue/worker/
+      migration coverage passes 49/49 and the admin integration coverage passes
+      3/3. Migration `5f6a7b8c9d0e` follows the provider-account-usage
+      migration; no frontend or ETF-provider files changed.
+
+### 2026-09-13 — Preserve typed options-provider failures
+
+- [x] Narrow option expiration, chain, and historical quote refresh fallbacks
+      to the explicitly safe `ProviderNotConfiguredError` and
+      `ProviderNoDataError` cases. Provider rate-limit, quota-contract,
+      malformed-response, and transport failures now remain typed and reach
+      the caller/runtime instead of being converted into empty or stale data.
+      Focused options data/exposure unit coverage passes 37/37, PostgreSQL
+      options-exposure integration passes 24/24, and the authoritative backend
+      gate passes 2,418/2,418 at 81.43% coverage.
+
+### 2026-09-13 — Close tokenized-provider secret redaction coverage
+
+- [x] Add Dinari key ID/secret and Ondo API key to the central provider-error
+      redaction allow-list. Regression coverage now proves tokenized credentials
+      are removed from typed rate-limit and response errors, complementing the
+      existing secret-wiring checks; focused coverage passes 28/28 and the
+      authoritative backend gate passes 2,421/2,421 at 81.43% coverage.
+
+### 2026-09-12 — Pagination cursor safety
+
+- [x] Reject repeated Alpaca history page tokens and malformed/repeated
+      discovery `next_url` metadata instead of looping or reprocessing the same
+      provider page. Focused pagination/provider coverage passes `60/60`, and
+      the complete backend unit suite passes `1,987/1,987` with 37 warnings;
+      Ruff, compileall, and diff checks pass. Source checkpoint `fe21e6be`; no
+      provider calls, credentials, frontend files, or ETF-provider adapter
+      files changed.
+
+### 2026-09-12 — Typed provider reset-header recovery
+
+- [x] Recover provider-declared retry timestamps in the runtime when a typed
+      adapter rate-limit error carries allow-listed reset headers but omitted
+      `retry_at`; absent or malformed reset values remain unknown rather than
+      receiving an invented delay. Focused capacity/quota coverage passes
+      `87/87`, and the complete backend unit suite passes `1,985/1,985` with
+      the known 37 warnings. Source checkpoint `a7c01524`; no provider calls,
+      credentials, frontend files, or ETF-provider adapter files changed.
+
+### 2026-09-12 — Quota settlement coercion hardening
+
+- [x] Reject malformed reserved/consumed/observed quota units and missing
+      transport reservation dimensions instead of converting them to zero or
+      one; explicit zero remains valid for non-applicable dimensions.
+- [x] Extend the same fail-closed behavior to legacy workload-lease settlement:
+      malformed lease/consumed units, non-boolean success flags, and invalid or
+      duplicate durable quota-window IDs now fail before any settlement lookup
+      or mutation. Focused quota/settlement coverage passes `112/112`; the
+      complete backend unit suite passes `1,984/1,984` with the known 37
+      warnings. Source checkpoints `b9435a63` and `265ec186`; no provider calls,
+      credentials, frontend files, or ETF-provider adapter files changed.
+
+### 2026-09-12 — Stable identity in durable universe reconciliation
+
+- [x] Extend `reconcile_us_universe` to resolve provider FIGI, composite FIGI,
+      ISIN, CUSIP, and SEDOL evidence before ticker/venue matching. Stable
+      owners survive ticker changes; unresolved identifiers never fall back to
+      ticker-only matching; cross-owner, type, alias, and ticker/venue conflicts
+      are quarantined while lifecycle observations remain auditable. Focused
+      reconciliation coverage passes 14/14 and the complete backend unit suite
+      passes 1,893/1,893 with the known 37 warnings. No provider calls,
+      frontend files, or ETF-provider adapter files changed.
+
+### 2026-09-12 — Stable identifiers in legacy universe discovery
+
+- [x] Extend the legacy `seed_universe` promotion path to consume provider
+      FIGI, composite FIGI, ISIN, CUSIP, and SEDOL observations. Existing
+      stable owners are reused across ticker changes and venue listings;
+      unresolved stable keys never weaken to ticker-only matching, and
+      conflicting identifier owners remain fail-closed with the raw discovery
+      snapshot retained. Focused seed coverage passes 7/7 and the complete
+      backend unit suite passes 1,889/1,889 with the known 37 warnings. Changed
+      files pass Ruff, formatting, compileall, and diff checks; no provider
+      calls, frontend files, or ETF-provider adapter files were changed.
+
+### 2026-09-12 — US-first universe scope honesty
+
+- [x] Correct the discovery-service documentation so the configured provider
+      chain is described as US-venue focused (with explicitly configured crypto
+      exceptions), rather than claiming global-market completeness. Provider
+      coverage and entitlement-specific completeness remain retained as
+      observations and are not overstated.
+
+### 2026-09-12 — Venue-qualified universe identity
+
+- [x] Harden legacy `seed_universe` discovery so a ticker is never treated as
+      globally unique. Existing candidates are matched by normalized ticker,
+      canonical exchange MIC, and instrument type; a sole venue-less legacy
+      listing may be enriched once, while cross-venue collisions and duplicate
+      local keys remain fail-closed for separate reconciliation. Focused
+      seed-universe coverage passes 4/4 and the complete backend unit suite
+      passes 1,886/1,886 with the known 37 warnings. Changed-file Ruff,
+      formatting, compileall, and diff checks pass. Docker-backed migration /
+      full-stack validation remains unavailable; no frontend or ETF-provider
+      adapter files changed.
+
+### 2026-09-12 — Tokenized underlying stable-identifier retention
+
+- [x] Retain provider-published underlying FIGI, composite FIGI, ISIN, and
+      CUSIP values for xStocks and Dinari token records, persist them on the
+      tokenized-asset detail model, and resolve the underlying through the
+      canonical instrument/domain-key/active-identifier registry before any
+      ticker fallback. Added a reversible migration and focused coverage for
+      FIGI, composite FIGI, ISIN, CUSIP, ambiguity, and unresolved-identifier
+      cases. Providers that do not document these fields (for example the
+      current Robinhood public asset payload) leave them absent rather than
+      inventing identity evidence.
+
+### 2026-09-12 — Stable-ID-first tokenized underlying linkage
+
+- [x] Make tokenized-security persistence resolve an economic underlying by a
+      supplied ISIN first, checking both the canonical `Instrument.isin` field
+      and active `InstrumentIdentifier` rows. If that evidence is missing,
+      ambiguous, or unresolved, the service no longer weakens to a ticker-only
+      match; ticker fallback remains limited to one active listing.
+- [x] Persist explicit `underlying_link_status` provenance values and add
+      regressions for duplicate-ticker disambiguation, identifier-only
+      resolution, and unresolved-ISIN no-fallback behavior. Focused tokenized
+      service coverage passes 10/10 and the complete backend unit suite passes
+      1,879/1,879 with the known 37 warnings. No frontend or ETF-provider
+      adapter files changed.
+
+### 2026-09-12 — SEC ticker-directory ambiguity handling
+
+- [x] Preserve duplicate SEC ticker rows as explicit ambiguous candidates
+      instead of letting the last directory row overwrite the first CIK.
+      Profile/event lookup and issuer search now refuse ambiguous ticker-only
+      resolution until venue or security-level evidence is supplied. Focused
+      EDGAR ticker coverage passes 27/27; no provider calls were made.
+
+### 2026-09-12 — Durable bounded EDGAR issuer-universe scan
+
+- [x] Add an additive `market_event_scan_state` table and admin-only
+      `/api/v1/market-data/event-scan-state` read for durable EDGAR scan
+      cursors, cycle/batch counts, failures, and bounded provenance.
+- [x] Add a separately disabled worker/task that walks known canonical issuer
+      CIKs in bounded batches and composes the existing per-CIK EDGAR
+      IPO-pipeline service atomically with cursor updates. `partial` and
+      `complete` cycles are explicit; a complete cycle is not a claim of global
+      SEC universe coverage because issuers absent from the canonical table
+      remain outside scope.
+- [x] Add migration, service, router, and worker tests. Focused scan coverage
+      passes 56/56 and the complete backend unit suite passes 1,876/1,876 with
+      the known 37 warnings; Ruff, compileall, diff checks, and both Compose
+      YAML parses pass. Docker-backed migration/full-stack validation remains
       unavailable.
-- [ ] Continue separately authorized enrichment only where a supported provider can add auditable
-      identity evidence; resolve W1/MN and QQQE/SPDR dated-source gaps before counting more roles
-      toward canonical readiness. Preserve the six visual-oracle failures as an explicit blocker.
 
-### 2026-09-04 — Bounded provider-search chain for canonical maintenance
+### 2026-09-12 — Audited pre-listing candidate materialization
 
-- [x] Extend identifier-only ETF constituent maintenance to use the reviewed,
-      ordered `instrument_search` provider chain (deduplicated and capability-checked),
-      appending the configured metadata provider when an operator supplies a custom chain
-      that omits it. Each provider remains row-local and bounded (`limit=8`); outages are
-      isolated, and promotion still requires one unique name match plus a full compatible
-      metadata profile.
-- [x] Keep the chain maintenance-only: interactive canonical search and source resolution
-      remain provider-free, and no symbol guessing, latest-only fallback, or fabricated bars
-      are introduced.
-- [x] Add focused resolver and registry coverage for ordered fallback, duplicate suppression,
-      and default-provider retention (`30` tests pass with `--no-cov`; the focused command's
-      repository-wide coverage gate is intentionally not used as a slice-level signal).
-- [x] Persist each successful registered-provider search response in the canonical
-      `instrument_search_snapshot` observation store, retaining the bounded issuer query and
-      result payload without making observation persistence a promotion prerequisite. The focused
-      resolver/registry suite now passes `31` tests with `--no-cov`.
-- [x] Re-run a separately authorized disposable QQQ classification batch with the configured
-      chain and record whether any additional placeholders promote; the exact-tip batch
-      completed `enriched=14, remaining=87, failed=0` with no additional promotions. The
-      persisted observation audit retained 96 bounded rows (`edgar=32`, 15 non-empty;
-      `massive=32`, empty; `alpha_vantage=32`, empty), while authenticated coverage remains
-      partial (`coverage=0.25`, one of four roles covered, `history_ready=false`). Provider
-      reachability is still not counted as canonical readiness until member history and the
-      remaining family/role sources are complete. The stack teardown/resource audit reported
-      zero containers, volumes, and known image bytes.
+- [x] Add an additive `market_event_prelisting_candidate` table and bounded
+      backend service for future IPO/IPO-pipeline observations. Reconciled
+      observations produce one candidate and, only for validated stock evidence,
+      one inactive `provisional` instrument with provider/stable-identifier
+      provenance; conflicted or malformed evidence is quarantined or skipped.
+- [x] Add conservative promotion: only one unique active FIGI/ISIN/CUSIP match,
+      or an exact provider-symbol plus exchange-MIC match across provider
+      sources, may link a candidate to a listed instrument. Ticker-only and
+      ambiguous matches remain pending; provider events are never overwritten.
+- [x] Wire the opt-in backend/worker schedule and admin-only
+      `/api/v1/market-data/prelisting-candidates` evidence endpoint. Focused
+      prelisting/migration/router/worker coverage passes 42/42; the complete
+      backend unit suite passes 1,868/1,868 with the known 37 warnings. Docker
+      PostgreSQL/full-stack validation remains unavailable.
 
-### 2026-09-04 — Bounded canonical QQQ reconciliation and history handoff
+### 2026-09-12 — Canonical bar persistence fidelity
 
-- [x] Re-run the dated `nasdaq100`/`cap_weight` holdings maintenance on a fresh,
-      branch-scoped disposable stack with `IDENTIFIER_PROVIDER_PRIORITY=[]`. The request for
-      `2025-12-31` completed `1/1` and retained one QQQ snapshot with 101 raw SEC rows.
-- [x] Exercise four bounded classification batches (`tc2000-classification-batch-2` through
-      `-5`, one profile per pass, at most 32 enrichments per pass). The same persisted snapshot
-      advanced from 14 to 21 canonical provider symbols; 80 rows remain explicit `HOLDING-*`
-      placeholders and every batch completed without a worker failure.
-- [x] Submit the authenticated point-in-time history handoff for `D1`, `W1`, and `MN`. It
-      selected and queued all 21 canonical members and explicitly excluded the 80 placeholders.
-      The database now has D1 bars for 21/21 canonical members (each has at least 252 bars),
-      while W1/MN have no provider-backed bars; the provider logs record those timeframe-specific
-      no-data results rather than fabricating or deriving bars.
-- [x] Verify the UI-facing coverage contract after the handoff: `nasdaq100`/`cap_weight` is
-      `partial`, with `member_count=21`, `placeholder_member_count=80`, `history_ready=false`,
-      and explicit W1/MN incompleteness. The other roles remain unavailable/pending as reported
-      by their source contracts.
-- [x] Remove the disposable stack, volumes, network, and generated images with the branch-scoped
-      teardown helper; resource status reports zero containers, volumes, and known image bytes.
-- [ ] Continue separately authorized, auditable provider batches for the remaining 80 placeholders,
-      and investigate supported W1/MN and QQQE/SPDR dated sources before counting those members
-      toward canonical readiness. Do not use symbol guesses, latest-only fallback, or fabricated
-      timeframe bars.
+- [x] Preserve `market_series_id`, session, adjustment basis/version, and
+      provider provenance when persisting canonical OHLCV bars and provider
+      observations; upserts now update these fields instead of silently
+      dropping them.
+- [x] Add the provider-observation `session` column through additive migration
+      `8e9f0a1b2c3d`, with SQLite upgrade/default/downgrade coverage. Focused
+      persistence/provider tests pass 212/212 and the complete backend unit
+      suite passes 1,797/1,797 with the known 37 warnings. Docker-backed
+      migration/integration validation remains blocked by unavailable Docker.
+- [x] Re-run the changed Alpaca and keyless crypto history adapters live after
+      the provenance update; the bounded regression passed 4/4 under run
+      `canonical-persistence-provenance-20260912`, with aggregate usage kept
+      outside Git.
+- [x] Ensure Alpha Vantage and the shared optional REST raw-history parser also
+      identify their provider in persisted provenance. Focused provider tests
+      pass 272/272 and the complete backend unit suite passes 1,797/1,797;
+      this metadata-only change required no additional provider calls.
 
-### 2026-09-04 — Exact-tip gate after bounded canonical runtime
+### 2026-09-12 — Series-scoped OHLCV conflict identity
 
-- [x] Re-run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at the
-      synchronized evidence tip. Git/workstream validation, locked dependency and migration
-      checks, Ruff, TypeScript, split backend coverage (`1,303` unit and `378` integration tests,
-      combined coverage `80.92%`), frontend Vitest/build, compose contracts, stack health,
-      research-runner isolation probes, and the authenticated functional browser suite (`154`
-      passes, `106` documented skips across `260`) all completed successfully.
-- [x] Preserve the unchanged visual-policy blocker: the four-project visual matrix passed `98/104`
-      and failed only `watchlist-column-editor-open` at 1080p-100/125 and `workspace-floating` at
-      all four projects. The watchlist diffs remain `13,844` pixels; floating diffs are `4,257`
-      at 1080p-100 and `4,453` at 1080p-125/1440p-100/1440p-125. No baseline, mask, threshold,
-      skip, or fallback oracle changed.
-- [x] Confirm the gate removed its assigned containers, volumes, network, and generated images;
-      the resource audit reports zero containers, volumes, and known image bytes.
-- [ ] Keep the visual six-diff blocker and the R1 provider/history gaps explicit while continuing
-      separately authorized work; do not treat this gate as product completion or integrate,
-      promote, or deploy from the feature session.
+- [x] Assign provider refresh results to a deterministic `MarketSeries` and
+      carry that ID into canonical bars and provider observations.
+- [x] Replace the legacy instrument/timeframe/timestamp uniqueness keys with
+      series/session-aware `scope_key` keys, while preserving a
+      `legacy:<session>` compatibility scope for older rows. Migration
+      `9f0a1b2c3d4e` and SQLite upgrade/backfill/downgrade coverage are added;
+      focused series/migration/service tests pass 19/19 and the complete
+      backend unit suite passes 1,799/1,799. PostgreSQL-backed migration and
+      full-stack validation remain blocked by unavailable Docker.
+- [x] Add the durable `market_series_default` mapping used by ordinary
+      symbol/timeframe OHLCV reads. The first admitted canonical series is
+      retained, regular-session series repair an extended-only selection, and
+      inactive mappings fall back to the first active canonical series without
+      mixing alternate feeds or legacy rows. Migration
+      `a0b1c2d3e4f5` and service/read regressions pass 21/21; the complete
+      backend unit suite passes 1,802/1,802. PostgreSQL/full-stack execution
+      remains Docker-gated.
 
-### 2026-09-04 — Bounded name-search reconciliation runtime evidence
+### 2026-09-12 — Latest-window series identity
 
-- [x] Exercise the new identifier-only name-search bridge on a fresh, branch-scoped stack with
-      `IDENTIFIER_PROVIDER_PRIORITY=[]`, so the bounded run used the public SEC search/metadata
-      path without sending identifiers to OpenFIGI. The authenticated Nasdaq-100
-      `cap_weight` holdings run completed `1/1` for `2025-12-31` and produced a QQQ snapshot with
-      101 raw SEC rows.
-- [x] Run one bounded reconciliation profile batch (`max_profiles=1`,
-      `max_enrichments_per_profile=32`). Fourteen rows promoted to canonical provider symbols
-      and retained provider-backed classification/identifier evidence; 87 rows remain explicit
-      `HOLDING-*` placeholders. The maintenance receipt now re-queries persisted columns after
-      reconciliation, so `enriched` and `remaining` counts cannot be understated by stale
-      SQLAlchemy relationships.
-- [x] Tear down the disposable stack, volumes, network, and images with the branch-scoped helper.
-      No D1/W1/MN history jobs were queued from placeholders, no bar coverage was claimed, and
-      no latest-only or symbol-guess fallback was used. This is bounded provider evidence, not
-      complete QQQ canonical readiness or point-in-time history.
-- [ ] Continue with separately authorized, auditable provider batches for the 87 remaining
-      placeholders before counting them toward canonical history or analysis readiness.
+- [x] Route cold/latest provider fetches through the same deterministic
+      `MarketSeries` attachment used by historical repairs. Latest bars no
+      longer persist as legacy `NULL` series rows that would be excluded after
+      a default mapping is created. Focused market-data/default-mapping
+      coverage passes 21/21 and the complete backend unit suite passes
+      1,804/1,804 with the known 37 warnings; PostgreSQL/full-stack validation
+      remains Docker-gated.
+- [x] Apply the same series attachment to bulk historical refreshes and the
+      risk-free-rate provider path. Their persisted bars now participate in
+      the selected default series instead of silently creating legacy rows;
+      focused bulk/risk-free/market-data coverage passes 27/27 and the
+      complete backend unit suite passes 1,805/1,805. PostgreSQL/full-stack
+      validation remains Docker-gated.
+- [x] Constrain synthetic OHLCV readback to the same compatibility selector,
+      preventing stale alternate/legacy rows from leaking into a recomputed
+      synthetic result. The complete backend unit suite remains green at
+      1,805/1,805; PostgreSQL/full-stack validation remains Docker-gated.
+- [x] Make the selector require matching bars before suppressing legacy rows.
+      A pre-created or emptied canonical series no longer hides usable legacy
+      history; the focused selector coverage passes 22/22 and the complete
+      backend unit suite passes 1,806/1,806. PostgreSQL/full-stack validation
+      remains Docker-gated.
+- [x] Partition provider responses containing mixed session/feed/adjustment
+      metadata into separate deterministic `MarketSeries` identities. A batch
+      no longer inherits the first bar's scope; focused market-data coverage
+      passes 29/29 and the complete backend unit suite passes 1,807/1,807.
+      PostgreSQL/full-stack validation remains Docker-gated.
 
-### 2026-09-04 — Timeframe-specific history gaps no longer poison provider health
+### 2026-09-12 — Alpha Vantage earnings history capability
 
-- [x] Keep a provider's expected empty history response scoped to the requested symbol/timeframe/
-      range. The request remains a failed, auditable `ProviderRequestLog` entry and still allows
-      the provider chain to try an independently entitled fallback, but a `ProviderNoDataError`
-      on `price_history` no longer increments capability-wide health failure streaks or opens the
-      shared provider circuit (for example, Nasdaq's D1-only public route receiving an MN/W1 ask).
-- [x] Cover both the single-miss fallback path and three repeated MN misses. Focused provider
-      runtime tests pass `5/5`; the full backend unit suite passes `1,299/1,299`; Ruff, format,
-      compileall, TypeScript, and diff checks pass. No provider entitlement, fallback order,
-      visual oracle, threshold, baseline, or protected worktree changed.
-- [x] Re-run bounded canonical QQQ D1/W1/MN maintenance after this health-boundary fix. In the
-      isolated branch stack, the dated NASDAQ-100 holdings run completed (`1/1`) and produced a
-      QQQ snapshot with 101 raw SEC rows; the exact D1/W1/MN history handoff queued `0` jobs and
-      reported `101` unresolved placeholder instruments. The direct point-in-time history planner
-      remained `pending` at the historical cutoff because the newly fetched snapshot was learned
-      after that cutoff. No public-provider bar coverage was claimed and no visual oracle changed.
-- [ ] Retain the explicit unsupported/coverage result and continue identifier enrichment only with
-      auditable provider evidence; do not guess symbols or use latest-only fallback.
+- [x] Add strict normalization for Alpha Vantage's documented `EARNINGS`
+      endpoint, preserving annual/quarterly fiscal dates, reported EPS,
+      estimates, surprises, and explicit unknown intraday timing.
+- [x] Register the capability, charge its one-query operation explicitly, and
+      add it as the final default instrument-events fallback after the richer
+      Alpaca/EDGAR/Finnhub routes so the 25-requests/day key is not spent first.
+- [x] Re-run the credentialed live earnings probe after the prior capacity
+      response; the bounded AAPL case passed `1/1` under the operator-managed
+      environment and produced normalized provider rows.
 
-### 2026-09-04 — Identifier-only holdings use a conservative search bridge
+### 2026-09-12 — Finnhub earnings capability registration
 
-- [x] After stable-identifier providers return no profile, bounded reconciliation may query the
-      configured instrument-search provider for symbol-less issuer names. Promotion requires one
-      unique best token match, a full compatible metadata profile, an allowed equity-like quote
-      type, and the existing provenance/identifier registration path. Tied or weak matches remain
-      `HOLDING-*` placeholders; existing symbol- and stable-identifier-first resolution is unchanged.
-- [x] Add focused unique-match, ambiguity, and weak-match regressions. The resolver module passes
-      `20/20`, the full backend unit suite passes `1,303/1,303`, the Docker-backed ETF holdings integration
-      module passes `65/65`, and repository lint/format/type checks pass. No visual oracle,
-      threshold, mask, skip, fallback rule, or protected worktree changed.
-- [ ] Use this bridge only from the bounded, opt-in reconciliation worker and collect live provider
-      evidence before counting any QQQ member as canonical or queuing its D1/W1/MN history.
+- [x] Register Finnhub's already-implemented per-symbol earnings history and
+      forward earnings-calendar methods under the explicit `earnings`
+      capability, with a registry regression. Focused provider/registry tests
+      pass 91/91.
+- [x] Add Finnhub to the default `instrument_events` fallback chain after
+      Alpaca and EDGAR so the live-proven earnings adapter is reachable through
+      normal capability-aware routing; configuration examples and README are
+      synchronized.
 
-### 2026-09-04 — Placeholder holdings stay outside canonical history readiness
+### 2026-09-12 — Live-ledger crash durability and permissions
 
-- [x] Keep internal `HOLDING-*` instruments visible as unresolved reconciliation evidence, but
-      exclude them from benchmark-family member-bar denominators and weight/classification
-      readiness counts. A materialized placeholder is not canonical market data and must not make
-      a role appear analysis-ready.
-- [x] Stop bounded snapshot-history queueing from submitting provider jobs for placeholder
-      instruments. The queue now reports those rows through its existing `unresolved_count` while
-      preserving canonical instrument ordering, dated end bounds, idempotence, and per-member
-      queue-error evidence.
-- [x] Surface the placeholder count in the authenticated family coverage row and member-history
-      readiness payload so the operator can distinguish canonical coverage from identifier
-      enrichment still required. Focused queue coverage passes `10/10`, the Docker-backed
-      benchmark-family integration matrix passes `23/23`, backend units pass `1298/1298`,
-      frontend Vitest passes `926/926`, type-check, compileall, Ruff, and diff checks pass.
-- [x] Apply the same canonical-member filter to the shared ETF and benchmark-family source
-      resolver used by watchlist routes, Market Map, breadth, research, and history planning.
-      Resolved descriptors now report canonical and placeholder counts, all-placeholder snapshots
-      remain unresolved, and both source paths are covered by the complete watchlists integration
-      module (`49/49`) plus the benchmark-family matrix (`23/23`).
-- [ ] Continue bounded identifier enrichment for the remaining QQQ placeholders only with
-      auditable provider evidence; no symbol guess or latest-only fallback is acceptable.
+- [x] Harden the owner-managed aggregate-only live-usage ledger to mode `0600`
+      during preflight and after writes, and `fsync` each receipt batch before
+      releasing its lock. Focused ledger coverage passes 12/12 and the complete
+      backend unit suite passes 1,775/1,775.
 
-### 2026-09-03 — Prior-session evidence reconciled into the active TC2000 roadmap
+### 2026-09-12 — Shared local provider admission controls
 
-- [x] Reconcile the staging-derived feature worktree, the durable August implementation ledgers,
-      all 78 canonical user turns from the prior Codex rollout, the four distinct user-shared
-      visual subjects, and the reconstructed 230-item/26-source-group public TC2000 reference
-      board.
-- [x] Publish `docs/tc2000-roadmap.md` as the concise product north star, current baseline,
-      dependency-ordered workstream map, and completion definition. Historical test counts remain
-      explicitly historical until the synchronized branch baseline is rerun.
-- [ ] Execute R0: synchronize the branch with a selected green staging checkpoint, rerun the named
-      current-state gates, and reproduce or retire the ambiguous late-session Golden Layout concern
-      before beginning new product slices.
-- [ ] Execute R1 next: close the canonical benchmark-family population, entitlement, point-in-time
-      holdings/classification, and member-history gaps that currently limit real-data daily use.
+- [x] Key the process-local token bucket and semaphore by the same explicit
+      provider quota group used by durable reservations, including reviewed
+      concurrent-request dimensions, so account/key/IP/session allowances are
+      not multiplied once per capability inside a worker. Keep ungrouped
+      contracts isolated by capability.
+- [x] Preserve explicitly non-applicable zero-cost dimensions during settlement
+      instead of charging the compatibility one-unit amount. Focused accounting
+      coverage passes 7/7 and the complete backend unit suite passes 1,768/1,768.
+
+### 2026-09-12 — Shared concurrency quota-group admission
+
+- [x] Include reviewed concurrent-request dimensions when deriving process-local
+      semaphore keys, keeping shared account/key/IP/session concurrency budgets
+      aligned with durable reservations; request/credit/weight token buckets
+      retain their short-window grouping. Focused accounting coverage passes 7/7
+      and the complete backend unit suite passes 1,769/1,769.
+
+### 2026-09-12 — Alpaca corporate-actions page fidelity
+
+- [x] Request Alpaca's documented 1,000-record corporate-actions page maximum
+      and retain the explicit local page-budget guard. Focused coverage passes
+      6/6, and the bounded credentialed assets/actions live case passes 1/1.
+
+### 2026-09-12 — Live-ledger writability preflight
+
+- [x] Verify the configured aggregate-only usage ledger before any
+      quota-consuming live provider call. An unwritable path now exits the live
+      session with code 2 before tests run; focused ledger coverage passes 8/8
+      and the complete backend unit suite passes 1,771/1,771.
+
+### 2026-09-12 — Live-ledger attribution preflight
+
+- [x] Require a bounded printable `PROVIDER_LIVE_USAGE_SCOPE` in every
+      quota-consuming live pytest session, including direct invocations, so
+      new receipts cannot silently use `unspecified`. Focused ledger coverage
+      passes 11/11 and the complete backend unit suite passes 1,774/1,774.
+
+### 2026-09-12 — Complete configured-provider live revalidation
+
+- [x] Re-run the full 41-case manifest with the existing configured keys and a
+      fresh usage identity. It passed 37/41; Alpha Vantage capacity and the
+      intentionally deferred Tradier/IBKR/Ondo credential preflights remain
+      explicit non-passes. The external receipt contains aggregate-only usage
+      telemetry and no credentials or payloads.
+
+### 2026-09-12 — Newly configured provider live revalidation
+
+- [x] Revalidate the supplied Alpaca paper, SEC EDGAR User-Agent, MarketData.app,
+      and Dinari Sandbox settings in one bounded fresh-run matrix. All 7 selected
+      transport/normalization cases passed; the external ledger contains only
+      aggregate counts/bytes and allow-listed headers under a unique run ID.
+
+### 2026-09-12 — Cross-session live-ledger identity hardening
+
+- [x] Generate a fresh UUID for direct live-test invocations when no explicit
+      run ID is supplied. This prevents process-ID reuse or inherited shell
+      values from merging unrelated provider usage sessions; wrapper/CI IDs
+      remain authoritative when provided. Focused ledger coverage passes 6/6.
+
+### 2026-09-12 — Explicit provider quota-group accounting
+
+- [x] Separate the durable quota bucket key from the requested capability. A
+      provider contract may now declare `dimension.quota_group` when one
+      account/key-wide allowance is shared by multiple capabilities; omitted
+      groups retain the capability-scoped compatibility key, and blank groups
+      fail closed.
+- [x] Apply this to every currently reviewed account/key/IP/session-scoped
+      contract (including MarketData.app credits/concurrency and Tiingo/FMP
+      byte pools), while retaining endpoint/pair-scoped exceptions. Expose the
+      group in admin/usage diagnostics, backfill existing rows through an
+      additive migration, and prove grouped and ungrouped behavior with unit
+      coverage.
+
+### 2026-09-12 — Strict provider credential presence checks
+
+- [x] Reject whitespace-only values in the centralized provider configuration
+      predicate, including multi-field Dinari/FINRA credentials and Massive's
+      current-or-legacy key alternatives. This keeps runtime and availability
+      admission consistent with the redacted diagnostics contract. Focused
+      registry/availability coverage passes 31/31 and the complete backend unit
+      suite passes 1,760/1,760 with the existing warnings.
+
+### 2026-09-12 — Operation-aware availability credential checks
+
+- [x] Align scheduled provider-availability preflights with the central
+      operation-aware registry contract. Multi-field providers such as Dinari
+      (key ID + secret), IBKR (gateway URL + session cookie), and SEC EDGAR
+      (validated User-Agent) are no longer reduced to a legacy single
+      `*_API_KEY` heuristic; Marketstack history/latest checks no longer
+      require its discovery MIC, while discovery still does. Focused
+      availability coverage passes 8/8 and the complete backend unit suite
+      passes 1,759/1,759 with the existing warnings.
+
+### 2026-09-12 — Operation-scoped Marketstack discovery configuration
+
+- [x] Keep Marketstack's explicit exchange/MIC requirement limited to
+      universe discovery and reconciliation. Daily history and quote routing
+      now require only `MARKETSTACK_API_KEY`, while provider-level diagnostics
+      still expose the missing discovery scope and discovery remains
+      fail-closed without it. Registry/runtime regressions pass `48/48`, and
+      the complete backend unit suite passes `1,757/1,757` with the existing
+      37 warnings.
+
+### 2026-09-12 — Tiingo bandwidth contract confirmation
+
+- [x] Recheck the current official Tiingo pricing page: the free Starter
+      contract is 500 unique symbols/month, 50 requests/hour, 1,000/day, and
+      1 GB/month bandwidth. The observed “2.00 GB” dashboard value is not
+      promoted into routing; operation byte bounds remain explicitly required.
+
+### 2026-09-12 — Compose provider-wiring validation
+
+- [x] Validate both root and RPi Compose manifests after the Dinari Sandbox
+      correction. Root Compose parses with its configured environment; RPi
+      Compose parses with non-secret deployment placeholders. No services were
+      started or restarted.
+
+### 2026-09-12 — Core bootstrap provider-error redaction
+
+- [x] Apply bounded credential redaction to core workstation history, ETF
+      bootstrap, and family-history queue error results. The existing bootstrap
+      regression now exercises a credential-bearing provider failure; focused
+      bootstrap/error coverage passes 14/14 and the full backend unit suite
+      passes 1743/1743 with Ruff and diff checks clean.
+
+### 2026-09-12 — Dinari Sandbox deployment-default correction
+
+- [x] Correct Docker Compose, RPi Compose, and the manual GitHub live workflow
+      to default Dinari to the documented Sandbox host used by the validated
+      credential pair; add a regression rejecting the retired `sbt` host.
+      Focused provider-wiring/tokenized coverage passes 63/63; the full backend
+      unit suite passes 1743/1743 with Ruff, compilation, and diff checks clean.
+
+### 2026-09-12 — Bulk-fetch returned-error redaction regression
+
+- [x] Add a regression proving bulk historical fetch failures returned to the
+      caller are credential-redacted and bounded, not merely redacted in logs.
+      Focused bulk/provider-runtime/error coverage passes 36/36; the full
+      backend unit suite passes 1742/1742 with Ruff, compilation, and diff
+      checks clean.
+
+### 2026-09-12 — Provider exception boundary hardening
+
+- [x] Extend bounded credential redaction to provider-facing market-data
+      refresh, bulk-history, alert preflight, and background refresh diagnostics,
+      including returned bulk-fetch error state. Focused coverage passes 76/76;
+      the full backend unit suite passes 1741/1741 with Ruff, compilation, and
+      diff checks clean.
+
+### 2026-09-12 — Central bounded provider diagnostics
+
+- [x] Centralize credential redaction plus bounded diagnostic output for the
+      provider runtime's request logs, health state, capacity events, fallback
+      diagnostics, and availability probes. Focused runtime/error coverage
+      passes 38/38; the full backend unit suite passes 1741/1741 with Ruff,
+      compilation, and diff checks clean.
+
+### 2026-09-12 — Bounded provider adapter diagnostics
+
+- [x] Bound redacted transport-exception messages emitted by Alpaca, Binance,
+      yfinance, instrument sync, and US-universe reconciliation to 1,000
+      characters while durable fields retain their 4,000-character limit. The
+      combined provider/service regression set passes 393/393; the full backend
+      unit suite passes 1739/1739 with Ruff, compilation, and diff checks clean.
+
+### 2026-09-12 — Provider adapter log redaction
+
+- [x] Route transport exception text through the shared credential redactor in
+      Alpaca, Binance, and legacy yfinance adapter logs. All provider unit tests
+      pass 369/369; the full backend unit suite passes 1739/1739 with Ruff,
+      compilation, and diff checks clean.
+
+### 2026-09-12 — Provider-run diagnostic error redaction
+
+- [x] Extend credential redaction to the durable instrument-sync and US-universe
+      reconciliation error fields and to their provider-failure log messages.
+      Regression coverage passes 24/24 across the affected provider/run services;
+      the full backend unit suite passes 1739/1739 with Ruff, compilation, and
+      diff checks clean.
+
+### 2026-09-12 — Provider diagnostic error redaction
+
+- [x] Enforce credential redaction at provider-availability and provider-support
+      persistence boundaries, so unexpected transport exceptions cannot leak
+      secrets through health, availability, or capability diagnostics. Focused
+      provider/queue/admin coverage passes 19/19; the full backend unit suite
+      passes 1737/1737 with Ruff, compilation, and diff checks clean.
+
+### 2026-09-12 — Durable refresh-job lease ownership
+
+- [x] Add a persisted, per-claim opaque lease token to `MarketRefreshJob` and
+      require conditional id/status/token/expiry matching for completion and
+      retry updates. A stale worker now receives an explicit lease-loss result
+      and cannot overwrite a later worker's outcome.
+- [x] Add the additive migration and unit coverage for token issuance,
+      clearing, wrong-token rejection, expiry rejection, and worker behavior
+      that avoids retrying after lease loss. Focused queue/worker coverage
+      passes 32/32; the full backend unit suite passes 1734/1734 with Ruff,
+      compilation, and diff checks clean.
+- [x] Expose bounded admin-only `/api/v1/market-data/refresh/queue` diagnostics
+      with status counts, lease-expiry/degradation state, retry metadata, and
+      last errors while deliberately omitting lease tokens. The API contract
+      regression is present; its PostgreSQL-backed execution is Docker-gated.
+- [x] Redact refresh-job errors at both persistence and admin-read boundaries,
+      covering unexpected transport exceptions as well as typed provider
+      failures. Regression coverage verifies credentials never enter the
+      durable `last_error` field.
+
+### 2026-09-12 — Dinari Sandbox default host alignment
+
+- [x] Align the checked-in configuration examples and Dinari adapter fallback with the
+      documented `https://api-enterprise.sandbox.dinari.com/api/v2` Sandbox host used by the
+      newly supplied credential pair. Production deployments must still override the base URL
+      explicitly; the key itself never selects an environment. Add a regression proving a blank
+      setting cannot fall back to the retired `api-enterprise.sbt.dinari.com` host.
+- [x] Dinari tokenized-provider unit coverage passes `49/49`; Ruff, compilation, and diff checks
+      pass. No credentials or provider payloads were persisted.
+- [x] Dinari and Ondo authenticated adapters now reject missing credentials before any HTTP
+      request, matching the existing fail-closed provider contract. Tokenized-provider coverage
+      passes `51/51`; the full backend unit suite passes `1731/1731`.
+
+### 2026-09-12 — ETF constituent analysis freshness boundary
+
+- [x] Extend the current ETF constituent snapshot consumer to honor persisted
+      OHLCV freshness. Expired holding, benchmark, and market-benchmark bars
+      are withheld with explicit `stale_data` warnings and deduplicated
+      freshness accounting; historical `as_of` snapshots retain their
+      point-in-time behavior.
+- [x] Add database-backed regression coverage for the current stale snapshot
+      boundary (focused route/unit checks are green; execution of the
+      integration case remains subject to the Docker readiness gate).
+- [ ] Reconcile the consumer contract with the parallel
+      `feat/etf-holdings-constituents` branch at staging. This branch does not
+      modify that branch's ETF provider adapters; integration must preserve
+      its adapter ownership and merge only compatible canonical identity and
+      freshness contracts.
+
+### 2026-09-12 — Market Map current-data freshness boundary
+
+- [x] Make current Market Map calculations fail closed on explicitly stale
+      member OHLCV bars, stale direct references, and stale reference-source
+      members. The cache identity includes the stale-state set, freshness
+      accounting includes comparison IDs, and explicit `as_of` maps retain
+      historical observations.
+- [x] Add regression coverage for current stale withholding and historical
+      `as_of` preservation. The full backend unit suite is green; the
+      database-backed regression remains subject to Docker readiness.
+
+### 2026-09-12 — Benchmark-family role ranking freshness boundary
+
+- [x] Apply the persisted OHLCV freshness gate to current benchmark-family
+      role rankings. Expired role bars are withheld, rankings and performance
+      cells are not produced from them, and explicit `stale_data` warnings plus
+      freshness accounting identify the affected role; historical `as_of`
+      ranking remains unchanged.
+- [x] Close the existing database-backed regression expectation for stale
+      `equal_weight` ranking data. Focused and full unit checks are green; the
+      integration case remains blocked only by Docker readiness.
+
+### 2026-09-12 — Credentialed live confirmation for newly supplied providers
+
+- [x] Run bounded live integration cases with the owner-managed runtime
+      credentials for SEC EDGAR, Alpaca, MarketData.app, and Dinari Sandbox.
+      The selected matrix passed `7/7`, including SEC directory pagination,
+      Alpaca history/latest-price reads, MarketData.app option paths, and
+      Dinari metadata/quote/history/news. Only aggregate usage telemetry was
+      written outside Git; no credentials or payloads were persisted.
+- [x] Rerun the complete 39-case manifest matrix with the same environment:
+      `35/39` passed. The four non-passes are Alpha Vantage's typed daily
+      capacity response and the intentionally deferred Tradier, IBKR, and Ondo
+      credential preflights; no provider payloads or credentials entered Git.
+- [x] Supersede that earlier matrix with the refreshed 41-case run at
+      `2026-09-12T07:21:11Z`: `37/41` passed in `79.69s`, including the newly
+      supplied Alpaca, MarketData.app, Dinari Sandbox, and SEC EDGAR cases.
+      The four remaining outcomes are unchanged and intentional: Alpha
+      Vantage's documented daily-capacity response plus the deferred Tradier,
+      IBKR, and Ondo credential preflights. The redacted 26-provider receipt
+      was merged into the owner-managed external ledger; no credentials or
+      payloads entered Git.
+- [ ] Keep the provider-specific governance gates separate from transport
+      evidence: MarketData.app still needs the exact reviewed plan/limit pair
+      and option-chain symbol bound; Dinari remains non-routable until its
+      quota/cache/redistribution terms are reviewed. SEC deployment contacts,
+      account isolation, and the 30-day shadow run remain open.
+
+### 2026-09-12 — Coalesce identical OHLCV refreshes
+
+- [x] Add a process-local refresh gate around the complete canonical
+      `fetch_ohlcv` read/refresh/persist transaction. Concurrent identical
+      instrument/timeframe/range/adjustment requests now serialize and the
+      waiting caller re-runs the normal coverage check after the first commit,
+      preventing duplicate provider quota consumption inside one backend
+      process. Local-only and synthetic reads remain unaffected; durable
+      refresh jobs continue to provide cross-worker coalescing.
+- [x] Add concurrent regression coverage and rerun OHLCV router/background
+      tests. Focused market-data coverage passes `10/10`, router/background
+      coverage passes `13/13`, and no generic quota fallback is introduced.
+- [x] Extend the same coalescing contract across PostgreSQL-backed process
+      boundaries with a transaction-scoped advisory lock derived from the exact
+      request key. The lock is held through refresh persistence, so another
+      worker rechecks committed coverage before provider execution; SQLite and
+      unit doubles safely retain the process-local gate only.
+- [x] Add explicit multi-host contention validation for deployments that cannot
+      share the same PostgreSQL transaction boundary. An opt-in Redis
+      coordinator now wraps canonical and bulk OHLCV refreshes with bounded
+      tokenized locks; acquisition failure is fail-closed, and independent
+      Redis clients have an integration contention/release regression. Durable
+      refresh-job result leases continue to use persisted per-claim tokens and
+      conditional completion/retry updates. The Redis gate remains disabled by
+      default until each deployment explicitly shares its Redis URL and sets a
+      TTL above the slowest permitted refresh.
+- [x] Extend the same process/PostgreSQL gate to implicit latest-window and
+      page-before refresh paths used by chart/instrument reads; focused
+      coalescing coverage now includes both implicit paths.
+- [x] Serialize PostgreSQL refresh-queue enqueue admission by request key so
+      concurrent workers do not race through select-then-insert before the
+      durable unique constraint; SQLite/unit adapters retain their no-op path.
+
+### 2026-09-12 — Grouped screener coverage preflight
+
+- [x] Move synchronous and streaming screener evaluation to a two-phase
+      grouped local-data flow. The condition tree is walked up front to identify
+      primary/D1/W1 dependencies; each instrument/timeframe snapshot is loaded
+      once before evaluation, and no provider or per-instrument OHLCV read is
+      performed inside the evaluation loop.
+- [x] Preserve the existing primary-timeframe missing-coverage response while
+      reporting additional missing dependency timeframes explicitly. Focused
+      screener preflight/unit coverage passes `34/34`, the database-backed
+      screener integration suite passes `26/26`, and the stream remains
+      provider-free for cold members.
+- [x] Extend the freshness/coordinator boundary to radar, chart technical,
+      relative-strength, group snapshot, group breadth, and group relative-
+      rotation plus benchmark-family relative-rotation reads. These local
+      evaluators now exclude explicitly stale current snapshots while retaining
+      historical `as_of` behavior.
+- [x] Group snapshots now include benchmark freshness in the same deduplicated
+      summary as their members. Expired benchmark bars produce an explicit
+      `stale_data` exclusion and stale relative cells rather than an ambiguous
+      unaligned-benchmark result; the historical `as_of` path remains unchanged.
+- [x] The reusable current `/breadth` evaluator now excludes stale members,
+      withholds stale direct benchmarks, and records stale derived-reference
+      members. Its historical endpoint continues to use observed point-in-time
+      bars without projecting current freshness backward.
+- [x] The current `/indicator-batch` endpoint now withholds expired OHLCV
+      snapshots and emits a per-symbol `stale_data` warning instead of
+      calculating indicators from stale bars.
+- [x] Benchmark-family ratios now withhold a current ratio when either the
+      selected role or its benchmark has expired OHLCV freshness, expose
+      per-ratio `stale_data` warnings, and include the underlying freshness
+      summary; historical `as_of` ratios remain unchanged.
+- [x] Industry-proxy and classified-industry snapshots now withhold expired
+      current proxy/member bars, label partial synthetic series coverage, and
+      emit explicit stale benchmark-relative cells; historical `as_of` reads
+      continue to use their point-in-time bars.
+- [x] Benchmark-family breadth now excludes stale current role members,
+      withholds a stale cap benchmark from relative participation, and includes
+      the role/member freshness summary; historical breadth remains unchanged.
+- [x] Derived benchmark-family equal-weight series now exclude stale current
+      members and preserve historical `as_of` calculations, with explicit stale
+      exclusions alongside partial-coverage diagnostics.
+- [x] Benchmark-family role ranking and cross-family cap ranking now withhold
+      expired current role bars, retain stale warnings, and include deduplicated
+      freshness summaries; historical ranking remains unchanged.
+- [x] Extend the same coordinator-backed preflight across the current chart and
+      analysis routes, including Market Map and benchmark-family rankings;
+      current consumers now withhold explicitly stale data while historical
+      `as_of` paths remain point-in-time.
+- [ ] Extend that contract to future breadth/signal engines and refresh-job
+      status persistence.
+
+### 2026-09-12 — Persist radar coverage outcomes
+
+- [x] Persist radar coverage separately from execution status. Each completed
+      run now records `full`, `partial`, `unavailable`, or `empty` coverage,
+      total/missing counts, timeframe, and a bounded sample of missing
+      instrument IDs. The detector remains DB-only during evaluation, so a
+      partial run cannot be mistaken for a fully evaluated universe.
+- [x] Bound persisted missing-ID evidence and cover full/partial/unavailable/
+      empty classifications with unit regression tests.
+- [x] Add freshness-aware radar preflight and an opt-in coordinator-backed
+      repair queue. Persisted `InstrumentDatasetState.stale_after` evidence (or
+      a conservative timeframe fallback when no state exists) now excludes
+      stale members from evaluation and records their bounded IDs/counts;
+      `queue_repairs=true` enqueues bounded `price_history` work without any
+      provider call in the evaluator.
+- [x] Current group-breadth reads now exclude members with explicitly stale
+      persisted OHLCV state, report missing/stale/evaluated counts, and retain
+      historical `as_of` semantics. Chart routes and other future evaluators
+      still require their own coordinator-backed preflight.
+- [ ] Extend the same coordinator-backed preflight to future breadth/signal
+      engines and refresh-job status persistence; current chart consumers are
+      covered by the stale-data boundaries recorded above.
+
+### 2026-09-12 — MarketData.app provider-native option credit accounting
+
+- [x] Preserve MarketData.app's `X-Api-Ratelimit-Limit`, `Remaining`, `Reset`,
+      and per-response `Consumed` headers through transport telemetry,
+      diagnostics, capacity events, and the external live-ledger/receipt
+      merger, filtering all other response headers.
+- [x] Parse the provider-native reset header into typed retry timing wherever
+      MarketData.app rate-limit errors are raised; malformed or absent resets
+      remain unknown rather than receiving an invented delay.
+- [x] Keep the same provider-native capacity headers available in runtime
+      capacity events, cross-session summaries, and merged live receipts, while
+      retaining FINRA pagination evidence and rejecting non-capacity secrets.
+- [x] Exercise the native credit headers through the provider runtime itself,
+      including durable cumulative-total settlement, not only isolated parser
+      helpers or direct adapter telemetry.
+- [x] Settle actual credit consumption and cumulative remaining-credit usage
+      only when the returned limit matches the reviewed 100-credit contract;
+      never infer a response-priced option charge from a generic request unit.
+- [x] Add the explicit `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` control,
+      apply the documented `strikeLimit` filter, reject responses over the
+      reviewed bound, and keep the default zero bound fail-closed. Historical
+      single-contract quote history derives its reservation from the
+      documented end-of-day date range.
+- [x] Re-run the full backend/live acceptance gates for this revision: the
+      combined backend gate passed 2073/2073 at 80.66% coverage, and the
+      complete live matrix passed 35/39 with only the documented Alpha Vantage
+      capacity response and intentional deferred-provider credential
+      preflights remaining.
+- [ ] Obtain operator review of the bound, option entitlements, and
+      redistribution terms before enabling current-chain routing.
+- [x] Record the current MarketData.app account plan explicitly. The owner
+      confirmed the 30-day Starter Trial and its 10,000-credit daily pool;
+      `MARKETDATA_APP_REVIEWED_PLAN=starter_trial`, the matching
+      `MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=10000`, and the timezone-aware
+      expiry are configured outside Git. The runtime downgrades to
+      Free-Forever/100 after expiry. Quant/Prime still require a separate
+      per-minute contract model.
+- [x] Wire the MarketData.app account-plan/limit gate through routing
+      diagnostics, local/RPi Compose, the manual GitHub live workflow, and
+      environment examples, including the operation-specific option-chain
+      symbol bound. The authoritative backend gate passed 2078/2078
+      at 80.69% coverage; the final live matrix passed 35/39 with only the
+      documented Alpha Vantage capacity response and intentionally deferred
+      Tradier/IBKR/Ondo credential preflights remaining (plus this new
+      explicit MarketData.app plan review gate).
+
+### 2026-09-10 — Ondo market-summary surface
+
+- [x] Add strict normalization for Ondo's documented per-asset market summary:
+      primary-token price changes, 24-hour price-history points, holder and
+      session metadata, plus underlying company price, 52-week, volume,
+      shares-outstanding, and market-cap fields. Preserve primary versus
+      underlying identities and raw provenance; omitted optional values remain
+      absent.
+- [x] Charge the metadata lookup plus market-summary read as two provider
+      requests and extend the credentialed live case to exercise the surface.
+- [ ] Run the credentialed live case after `ONDO_GLOBAL_MARKETS_API_KEY` is
+      provisioned; account quota/cache and display-only terms remain separate
+      governance gates.
+
+### 2026-09-10 — Tokenized-security provider adapters (Dinari and Ondo)
+
+- [x] Replace the Dinari and Ondo descriptor-only entries with concrete,
+      read-only adapters. Dinari now preserves Stock UUIDs, CAIP-10 token
+      deployments, FIGI/CIK/CUSIP metadata, fair price, bid/ask quote,
+      DAY/WEEK/MONTH/YEAR aggregate history, news, dividends, and splits.
+      Ondo now preserves chain addresses/ISIN/tags, latest indicative price,
+      and primary/underlying display-only OHLC candles with the provider's
+      documented interval/range matrix.
+- [x] Wire exact credentials (`DINARI_API_KEY_ID`,
+      `DINARI_API_SECRET_KEY`, and `ONDO_GLOBAL_MARKETS_API_KEY`) through
+      settings, registry, local/RPi Compose, GitHub manual live validation,
+      usage profiles, and fail-closed unknown-quota contracts. No credentials
+      or payloads are tracked in Git.
+- [x] Add fixture tests for provider-native identity, malformed containers,
+      finite numeric/timestamp validation, market-scope preservation, and
+      exact two-request metadata-plus-data usage accounting.
+- [x] Run the credentialed Dinari Sandbox case with operator-owned credentials;
+      metadata, quote/history, news, dividend, and split reads passed 1/1 on
+      2026-09-12. Provider-native quota/cache/redistribution terms remain
+      unreviewed, so the provider is not promoted by this live result.
+- [ ] Run the credentialed Ondo live case with operator-owned credentials and
+      record provider-native quota/cache/redistribution terms. Missing
+      credentials remain an explicit live preflight failure, not a skip; Ondo
+      remains non-routable while numeric account quotas and commercial/US
+      eligibility terms are unknown.
+- [x] Add the canonical tokenized OHLC bridge through the approved
+      `tokenized_historical_prices` storage/capability contract. Ondo's daily
+      primary-token rows now persist through the same scoped raw `24_7`
+      `OHLCVBar`/`MarketSeries` path with deterministic local rollups and raw
+      provenance; the provider remains fail-closed until its quota/terms are
+      reviewed.
+- [ ] Add a separate tokenized corporate-action bridge only after its storage
+      and capability contract is approved; tokenized history/news methods do
+      not silently become generic US venue corporate-action coverage.
+
+### 2026-09-10 — IBKR read-only gateway adapter
+
+- [x] Replace the descriptor-only IBKR market-data entry with a concrete,
+      documentation-faithful read-only Client Portal Gateway adapter covering
+      exact-symbol search/profile, raw OHLCV history with bounded cursor paging,
+      and account-context/latest-price snapshots. The adapter requires an
+      operator-created gateway session cookie, keeps IBKR `conid` values in
+      provider listing metadata rather than canonical identity, rejects
+      adjusted-history requests it cannot prove, and preserves typed pacing,
+      malformed-response, and redacted-cookie failures.
+- [x] Wire IBKR's URL/session configuration through local/RPi Compose, GitHub
+      live validation, the environment examples, capability routing, dynamic
+      history-page usage costs, and the live manifest. Fixture coverage passes;
+      live evidence remains an explicit preflight until a gateway URL and
+      interactive session cookie are supplied.
+- [ ] Keep IBKR options/futures-specific surfaces and automated gateway login
+      out of routing until separate entitlements, adapters, and live evidence
+      are implemented.
+
+### 2026-09-10 — IBKR historical pacing contract correction
+
+- [x] Reconcile the descriptor-only IBKR quota record with the current official
+      historical-market-data documentation: retain the 10 requests/second
+      session ceiling, add the 50 historical requests/minute ceiling, retain
+      the five-concurrent-history limit, and record the 1,000-bar response cap
+      as an endpoint constraint. The adapter remains intentionally non-routable
+      until a funded/session-bound read-only adapter and live evidence exist.
+
+### 2026-09-10 — Live usage attribution and provider-capacity evidence
+
+- [x] Extend the external direct-live usage ledger to retain a bounded,
+      allow-listed snapshot of provider-native capacity headers (credits,
+      reset/remaining values, `Retry-After`, FINRA pagination bounds, and
+      exchange weight state). Headers are forwarded from both ordinary and
+      tokenized live probes, exposed as the latest redacted diagnostic snapshot,
+      and rejected when they are not on the allow-list; credentials and payload
+      headers never enter the ledger.
+- [x] Require a printable, bounded `PROVIDER_LIVE_USAGE_SCOPE` during the
+      manifest live preflight. Legacy receipts remain readable as
+      `unspecified`, but new quota-consuming live runs cannot create
+      unattributed cross-environment usage. Focused ledger/usage/secret-wiring
+      coverage passes `20/20` with Ruff and diff checks clean.
+
+### 2026-09-10 — Shared provider capacity-envelope evidence
+
+- [x] Preserve provider-declared `Retry-After`/reset headers and retry times
+      when JSON quota/error envelopes arrive with HTTP 200, across all
+      registered provider adapters. Retain only allow-listed capacity headers;
+      malformed response-header objects fail safely without masking the typed
+      provider error. Focused provider/error coverage passed `247/247`, and
+      the authoritative backend gate passed `1966/1966` with `80.50%` coverage.
+- [x] Rerun the complete manifest live matrix after the transport change:
+      `27/34` passed at `2026-09-10T11:15Z`; the remaining seven cases are
+      explicit missing `EDGAR_USER_AGENT`, Alpaca, Tradier, and MarketData.app
+      credential preflights plus Alpha Vantage's documented daily-capacity
+      responses. No acceptance claim was made.
+- [x] Finalize the shared capacity-envelope evidence after the safe response
+      header extractor: focused provider/runtime/error coverage passed `327/327`
+      and the final authoritative Docker-backed gate passed `1966/1966` with
+      `80.52%` coverage (testcontainer session
+      `bc90810e-baba-4963-84c1-ef58081f42ce`, cleaned without host-wide pruning).
+- [x] Rerun the complete matrix with a temporary descriptive SEC User-Agent and
+      reviewed XNAS discovery override: `29/34` passed at `2026-09-10T11:24Z`.
+      The five failures are missing Alpaca, Tradier, and MarketData.app
+      credential domains plus typed Alpha Vantage daily-capacity responses;
+      tokenized probes remained green. A follow-up Finnhub isolation passed
+      `1/1` with the operator-owned env. This is evidence only, not acceptance;
+      deployment-owned SEC contact configuration remains required.
+- [x] Reject the documented placeholder SEC contact value during live credential
+      preflight and in the live-test helper, preventing false configured
+      evidence. Focused secret-wiring coverage passes `10/10`; the final
+      authoritative backend gate passes `1967/1967` with `80.52%` coverage and
+      89 warnings (testcontainer session
+      `aca39e7f-8836-4d71-b130-9d92033cafee`, cleaned without host-wide pruning).
+- [x] Reject all checked-in SEC contact placeholders, including
+      `contact@example.com`, `your.email@example.com`, and any `example.com`
+      value, consistently in the EDGAR adapter, registry, live preflight, and
+      live-test helper. Focused SEC/secret-wiring coverage passes `32/32` with
+      Ruff and diff checks clean; the authoritative backend gate passes
+      `1968/1968` with `80.51%` coverage and 89 warnings (testcontainer session
+      `59baf5db-b0e7-42fe-8ef9-221e13084cec`, cleaned without host-wide pruning).
+- [x] Remove invalid SEC placeholders from root/backend environment examples
+      and the provider guide, and reject `myemail@` plus angle-bracket
+      documentation placeholders in the shared validator, live preflight, and
+      live-test helper. Focused SEC/secret-wiring coverage remains `32/32`; the
+      authoritative backend gate passes `1968/1968` with `80.52%` coverage and
+      89 warnings (testcontainer session
+      `4ac59081-aebf-41f3-b579-a0784fcaf418`, cleaned without host-wide pruning).
+- [x] Extend the backend `/shadow` report with eligible core-session D1 coverage,
+      an explicit 99% threshold status, quota-capacity event totals, and open
+      anomaly counts by severity. Focused monitoring coverage passes `5/5`; the
+      authoritative backend gate passes `1969/1969` with `80.53%` coverage and
+      89 warnings (testcontainer session
+      `2f99f994-7fc5-4944-b43c-6b3308512d79`, cleaned without host-wide pruning).
+- [x] Add non-secret `PROVIDER_LIVE_USAGE_SCOPE` labels to direct live receipts,
+      API summaries, CI/Compose wiring, and merger deduplication so usage from
+      separate environments cannot be silently conflated. Legacy rows normalize
+      to `unspecified`. Focused ledger/usage/router/wiring coverage passes
+      `26/26`; the authoritative backend gate passes `1970/1970` with `80.53%`
+      coverage and 89 warnings (testcontainer session
+      `ce2882bf-eb46-4cc4-82b7-947dc03324b6`, cleaned without host-wide pruning).
+
+### 2026-09-10 — Optional provider response-contract hardening
+
+- [x] Make Tradier's documented nested history/quote wrappers fail closed on
+      scalar or malformed row containers while preserving valid empty wrappers.
+- [x] Make Marketstack EOD pagination fail closed on missing, malformed,
+      non-progressing, or contradictory metadata instead of truncating history.
+      The focused optional-provider suite passes `32/32`; the authoritative
+      Docker-backed gate passes `1892/1892` with `80.36%` line coverage and
+      89 warnings, and the owned PostgreSQL/Redis testcontainer is cleaned
+      without host-wide pruning.
+- [x] Make every concrete optional-provider documented row-list endpoint fail
+      closed on missing, scalar, or mixed row containers, and reject malformed
+      Tradier option-expiration dates/wrappers. The focused suite passes
+      `35/35`; the authoritative Docker-backed gate passes `1895/1895` with
+      `80.36%` line coverage and 89 warnings.
+- [x] Make tokenized xStocks, Robinhood, Bybit, Gate, and Kraken list, quote,
+      instrument, and corporate-action paths reject malformed response
+      containers rather than filtering rows or creating synthetic records. The
+      focused tokenized suite passes `23/23`; the authoritative Docker-backed
+      gate passes `1900/1900` with `80.35%` line coverage and 89 warnings.
+- [x] Make Coinbase and Kraken crypto candle, ticker, and directory adapters
+      reject malformed row containers and non-numeric fields instead of
+      skipping observations or returning empty/synthetic results. Focused
+      new-provider tests pass `121/121`; the authoritative Docker-backed gate
+      passes `1904/1904` with `80.35%` line coverage and 89 warnings.
+- [x] Make OpenFIGI mapping reject malformed envelopes, missing/mixed rows,
+      response-count mismatches, and non-2xx/429 failures with typed errors.
+      Focused tests pass `8/8`; the authoritative Docker-backed gate passes
+      `1907/1907` with `80.35%` line coverage and 89 warnings.
+
+### 2026-09-05 — Corrective provider quota and live-evidence gate
+
+This entry supersedes older “provider not built” notes below; historical entries
+remain for audit chronology, while `docs/data-providers.md` is the authoritative
+current capability/quota ledger.
+
+- [x] Remove inferred provider limits from runtime defaults. A provider is
+      non-routable until its provider-specific quota contract, scope, source,
+      and credential state are recorded; unknown limits are never replaced by
+      a 60/minute, 15-burst, 2-concurrent, or 30-second fallback.
+- [x] Add durable multi-dimensional reservations, provider-reset-aware
+      deferral, typed 429/418 handling, admin-visible quota state, and
+      operation-cost fail-closed behavior for weighted/credit APIs.
+- [x] Remove Marketstack's implicit single-venue (`XNYS`) discovery default;
+      ticker discovery now requires an explicit operator-selected MIC/exchange
+      setting and remains supplementary to the authoritative NMS/OTC census.
+- [x] Replace undocumented Nasdaq quote/history calls with official Nasdaq
+      Trader directory evidence; retain Coinbase/Kraken public crypto adapters,
+      FINRA OAuth configuration, OTC Daily List lifecycle-event evidence, the
+      fail-closed configurable FINRA OTC symbol-directory adapter, and
+      documentation-faithful optional adapters.
+- [x] Make universe reconciliation fail closed on cursor pages without totals
+      or explicit completion evidence, preserve Nasdaq Financial Status evidence,
+      and prevent exchange-qualified ticker merges across venues.
+- [x] Add a manifest-driven live-provider matrix. Keyless probes currently
+      pass for OpenFIGI, SEC EDGAR (profile plus full ticker/exchange-directory
+      pagination with a real contact User-Agent), Nasdaq first-page and
+      full-directory pagination for equities/ETFs, Binance, Coinbase, and
+      Kraken; backend unit and integration suites pass.
+- [x] Record Binance's official Spot REST request weights where the adapter can
+      charge them before execution: single-symbol price is weight 2 and
+      exchange-info discovery is weight 20. Multi-page historical candles stay
+      fail-closed until their complete request weight can be reserved safely.
+- [x] Store the supplied credentials outside Git in the owner-only shared local
+      env source and live-prove non-empty native results for Massive, Alpha
+      Vantage, CoinGecko, FRED, FINRA short interest and OTC Daily List, FINRA
+      OTC Security Master, Tiingo, Twelve Data, Finnhub company profile and
+      earnings, Alpha Vantage daily history,
+      Marketstack, EODHD, and FMP (`13/13`). Fix the free-plan mismatches found
+      by those probes instead of accepting skips or empty lists.
+- [x] Correct the FRED quota record after rechecking the official v1 and v2
+      documentation: v1 exposes rate-limit errors but no numeric ceiling or
+      enforcement scope, while the separate v2 2-requests/second rule must not
+      be applied to the v1 adapter. Unknown dimensions are now surfaced
+      explicitly and FRED remains non-routable until its v1 contract and terms
+      are reviewed.
+- [x] Record EODHD's conflicting official per-minute statements: its Free
+      Starter plan card says 20 requests/minute while its general limits page
+      and Quick Start say 1,000/minute for every plan. Enforce the conservative
+      20/minute plus 20 daily credits for this Free Starter account; provider
+      clarification/account evidence remains an explicit gap. Charge documented
+      endpoint credit weights only where the configured plan is entitled.
+- [x] Enforce MarketData.app's documented 50-request account-wide concurrency
+      ceiling with a durable release-only in-flight quota dimension shared by
+      direct calls and queued workload leases.
+- [x] Add an opt-in bounded tokenized quote-refresh worker path. Persisted token
+      products route provider-asset IDs through durable quota reservations and
+      retain separate token price snapshots; the schedule is disabled by
+      default and is passed only to backend/worker deployments.
+- [x] Add a dedicated tokenized-corporate-actions capability and runtime path.
+      xStocks history/upcoming feeds and Robinhood's combined action feed now
+      persist provisional canonical market events with explicit identity
+      linkage, unresolved-row retention, provider-specific operation accounting,
+      and a separately disabled worker schedule; catalogue/quote-only tokenized
+      adapters cannot be selected for corporate-action reads.
+- [x] Revalidate the complete provider matrix after the tokenized capability
+      change: 31/34 cases passed with only the exact Alpaca, Tradier, and
+      MarketData.app credential domains blocked; the clean backend gate passed
+      1,855 tests at 80.37% coverage and the dedicated tokenized suite passed
+      7/7 live probes plus 47 focused tests.
+- [x] Add safe cross-worktree env links, complete backend/worker Compose
+      pass-through, and a manual GitHub environment-scoped live workflow.
+      Routine push/PR CI receives no provider credentials. GitHub environment
+      creation/upload is externally blocked until the repository-owner
+      `jagnelo` account is authenticated in `gh`; the active
+      `an account without repository access` account received HTTP 403.
+- [x] Persist GitHub live-run aggregate usage receipts in a 90-day redacted
+      artifact from runner-temporary storage, including failed/blocked runs;
+      artifacts contain no credentials or payloads and remain separate from
+      runtime quota reservations. Operator reconciliation is still required
+      because provider account usage is not branch- or runner-scoped.
+- [x] Add a lock-protected sanitizer/merger for downloaded local/GitHub usage
+      receipts. It allow-lists aggregate fields, deduplicates run/provider rows,
+      rejects malformed input without printing values, and never promotes CI
+      observations into provider routing or runtime quota reservations.
+- [x] Correct the README provider-routing example so fresh operators see the
+      API-first Alpaca/EDGAR/OpenFIGI defaults and cannot accidentally restore
+      yfinance as the broad default route; yfinance remains an explicit,
+      disabled-by-default legacy/options compatibility path.
+- [x] Close the remaining code-owned Tradier options gap: the concrete adapter
+      now normalizes documented expiration and current-chain endpoints,
+      provider OCC symbols, calls/puts, quotes, open interest, and nested ORATS
+      Greeks; operation costs are explicit and the credentialed live matrix
+      exercises both reads when a production token is available. No sandbox
+      token or undocumented quota is promoted.
+- [x] Preserve Alpha Vantage's provider-specific daily-capacity semantics in
+      runtime deferral: explicit 25-requests/day messages, including the
+      observed CSV `Information` response, now produce a rolling 24-hour retry
+      timestamp instead of a generic cooldown or an immediate retry storm.
+- [x] Supply and live-prove the newly configured Alpaca Trading API
+      key/secret, MarketData.app token, SEC EDGAR contact, and Dinari Sandbox
+      pair. The 2026-09-12 bounded probes passed for those providers, including
+      Alpaca paper assets/corporate actions, MarketData.app option paths, EDGAR
+      filings/Company Facts, and Dinari metadata/quote/history/news/dividend/
+      split reads. Positive live evidence is a runtime prerequisite, but does
+      not by itself promote unreviewed quota, entitlement, or redistribution
+      controls; every deployment/CI environment still needs its own non-secret
+      EDGAR contact value.
+- [ ] Provision and live-prove a Tradier individual token only if that provider
+      is re-enabled by the operator. Tradier, Ondo, and IBKR are intentionally
+      deferred in the current plan, so their exact credential preflights remain
+      explicit failures rather than skipped evidence. No 30-day observation run
+      may start before the NMS/OTC reconciliation and provider-governance gates
+      are complete. Tiingo, FINRA, and FMP also remain non-routable until their
+      provider-specific bandwidth/terms constraints are reviewed.
+
+### 2026-09-04 — US-first market-data provider platform foundation
+
+- [x] Add additive, provider-agnostic identity primitives: a namespaced
+      `instrument.domain_key` (FIGI preferred), separate `issuer` legal-entity
+      records with CIK/LEI, effective-dated identifier/listing evidence, and an
+      explicit `instrument_identity_quarantine` for ambiguous or unresolved
+      candidates. OpenFIGI ticker mapping now refuses ambiguous venue/type rows.
+- [x] Add `market_series` scope for venue/feed/session/timeframe/adjustment
+      basis and preserve provenance on raw observations and canonical OHLCV
+      rows. Local rollups emit only observed buckets and never fabricate missing
+      daily sessions.
+- [x] Add versioned exchange session rules and calendar exceptions, durable
+      provider quota windows/workload leases/routing decisions, and backend-only
+      diagnostics under `/api/v1/market-data/*`.
+- [x] Add the practical optional-provider roster as disabled descriptors and
+      add QuantLib American-option Greeks with explicit model/input provenance
+      and the existing Black-Scholes fallback. Concrete opt-in REST adapters
+      now normalize Tiingo, Twelve Data, Finnhub, Marketstack, EODHD, and FMP
+      history/profile/event surfaces without entering default routing. FMP's
+      stable `earnings-calendar` adapter is fixture- and live-covered; routing
+      remains byte-bound gated and analyst surfaces remain an explicit gate.
+- [x] Add the first concrete non-price paths: raw SEC Company Facts, FINRA
+      short-interest normalisation, Alpha Vantage market-event calendar records,
+      durable persistence helpers, and explicit crypto/futures/options capability
+      labels. Additive queue workers now separate broad D1 scheduling from
+      provider I/O and retry leases.
+- [x] Add durable coverage snapshots, shadow observations, and reviewable
+      anomaly records plus backend-only reports; these remain observational and
+      cannot enable routing by themselves.
+- [x] Add a worker-only US universe/lifecycle reconciliation path with durable
+      complete-run counts, provider symbol/venue presence, conservative
+      repeated-missing confirmation, lifecycle events, identity issues, and
+      core D1 coverage snapshots. Nasdaq public directory discovery is retained
+      as NMS venue evidence alongside SEC/Alpaca/Massive/Alpha Vantage, and the
+      FINRA OTC directory parser is present, but its `otcSecurityMaster` source
+      is now treated as unverified: current public FINRA dataset documentation
+      does not list it. A historical pagination probe is transport evidence
+      only. The provider is non-routable and is not queried until current docs
+      or written FINRA confirmation establishes availability and authorized
+      use; FINRA Daily List alone is not a complete directory.
+- [ ] Activate reviewed optional-provider entitlements, reconcile the complete
+      US venue universe in production, and complete the separate post-merge
+      30-day observation run. New routing remains disabled until the workstream
+      activation bar is met.
 
 ### 2026-08-19 — Generic breadth predicates can be reused as Study Lab definitions
 
@@ -19211,8 +13314,19 @@ Why this was deferred:
 ### 9. Activate paid providers for options data and forward earnings estimates
 Status: `In progress — full completion contract still open`
 
+Historical note: the current provider adapter/quota ledger is maintained in the
+2026-09-05 entry above. This item remains open specifically for credentialed
+activation and richer options/forward-estimate surfaces, not because the basic
+MarketData.app or FMP REST adapters are absent. MarketData.app's bounded
+credentialed candle and options (expirations, current-chain normalization, and
+single-contract quote history) paths are now live-proven. Its
+response-dependent chain/quote credit cost is intentionally not routed until a
+reviewed maximum reservation bound exists; earnings entitlements remain
+separately unverified.
+
 Context:
-- The platform now has a full free-provider stack (Alpaca, FRED, Binance, CoinGecko, EDGAR)
+- The platform now has a full free-provider stack (Alpaca, FRED, Binance, CoinGecko, EDGAR,
+  and MarketData.app for delayed candles)
   covering US equity OHLCV, crypto, corporate actions, rates, and historical earnings.
 - The following data types have no viable free alternative and are currently covered only by
   yfinance (unofficial, no SLA):
@@ -19220,17 +13334,25 @@ Context:
   - **Forward earnings calendar** — upcoming confirmed/estimated earnings dates
   - **Analyst price targets and recommendations**
 
-Low-budget candidates already anticipated in config.py (keys are present, providers not yet built):
-- `MARKETDATA_API_KEY` → MarketData.app ($25/month) — US options with real greeks + earnings calendar
+Low-budget candidates already anticipated in config.py:
+- `MARKETDATA_APP_API_KEY` → MarketData.app — delayed US candles, current option expirations/chains, and historical single-contract quotes; response-dependent chain/quote credits require a reviewed reservation bound, and earnings surfaces still require entitlement validation
 - `FMP_API_KEY` → Financial Modeling Prep ($15/month) — forward estimates, analyst data, richer fundamentals
 - IBKR TWS API (free with account) — comprehensive US + international options, futures, real greeks;
   requires IB Gateway sidecar process and a throttled scheduler due to IBKR pacing limits
 
 What remains:
-- Implement `marketdata` provider (MarketData.app): `OptionChainProvider` with real greeks,
-  `EventProvider` for earnings calendar
-- Implement `fmp` provider (FMP): `EventProvider` for forward earnings + analyst data,
-  `InstrumentMetadataProvider` for richer fundamentals
+- Credentialed live validation and entitlement review for the remaining optional adapters;
+  Alpaca latest-price/history and MarketData.app candle/options/quote-history reads, plus Dinari
+  Sandbox tokenized reads, are now live-proven.
+- Keep validating the dedicated `OptionChainProvider`'s real-greeks path and add a
+  forward-earnings `EventProvider` only when the selected plan/API contract supports
+  those surfaces; MarketData.app chain/quote routing must remain disabled until its
+  response-dependent credit bound is reviewed.
+- Validate/activate the FMP stable `earnings-calendar` event surface and add
+  analyst-estimate/price-target adapters only when the selected plan/API
+  contract supports those surfaces. The earnings-calendar adapter now has
+  fixture and configured-key live evidence; routing still requires reviewed
+  byte bounds, and analyst-estimate/price-target coverage remains open.
 - Optionally implement `ibkr` provider (IBKR TWS): comprehensive coverage for priority instruments,
   requires IB Gateway sidecar and a pacing-aware scheduler queue
 - Demote yfinance options/events capabilities to last-resort once paid providers are active
@@ -19289,9 +13411,10 @@ Free-source provider direction confirmed from primary sources:
     - `424B*`
   - this will help us detect issuers moving through the IPO funnel earlier than a structured calendar sometimes will
   - but EDGAR should not be presented as an exact listing-date authority because it is filing-driven, not listing-calendar-driven
-- **Massive market-holiday data** is also worth folding into the same subsystem:
+- **Massive market-holiday data** is now exposed by the same backend adapter:
   - `GET /v1/marketstatus/upcoming` is forward-looking and included in Stocks Basic Free
-  - this is not an IPO feed, but it is a good example of a free market-calendar input that belongs in the same page/widget layer
+  - normalized `market_holiday` events preserve exchange, status, open/close, and raw payload fields
+  - persistence/reconciliation with the versioned exchange-session calendar remains open; this provider read is not itself a canonical holiday authority
 - **Finnhub** can be kept as an evaluation candidate, not a committed provider yet:
   - official docs expose `/calendar/ipo?from=...&to=...`
   - Finnhub also offers a free API key
@@ -19314,27 +13437,48 @@ Product goals:
 
 What remains:
 
-- Add a new provider capability for **forward market events**, distinct from the current instrument-event history model:
-  - examples:
-    - `market_event_calendar`
-    - or a clearly named equivalent
-  - do not overload the current per-instrument event fetch path with market-wide future events
-  - allow multiple providers to contribute to the same normalized market-event feed
+- The normalized `market_events` provider capability is now distinct from the
+  instrument-event history model and supports multiple contributors. A
+  backend-only, opt-in refresh service now persists provider observations with
+  exact provider-symbol/CIK linkage and per-provider failure outcomes. The
+  authenticated backend read path is now available at
+  `/api/v1/calendar/market-events` with bounded inclusive date and identity
+  filters; reads are database-only and return source/provisional payload
+  provenance. A durable, conservative `market_event_consensus_v1` pass now
+  groups only exact event-type/target/date candidates, preserves provider rows,
+  and records corroboration or field-level conflicts for the admin-only
+  `/api/v1/market-data/event-consensus` read path. A separate backend-only,
+  opt-in pre-listing workflow now materializes one auditable candidate per
+  consensus group, creates only inactive provisional stock instruments from
+  validated symbols, quarantines conflicts/malformed evidence, and promotes
+  only on a unique stable-identifier or exact venue-qualified provider-symbol
+  match. Candidates and promotion evidence are available through the admin-only
+  `/api/v1/market-data/prelisting-candidates` path. The remaining work is
+  complete EDGAR/Alpha feed coverage, global venue reconciliation, and
+  calendar-facing product surfaces; do not overload the per-instrument event
+  fetch path with market-wide future events.
 
-- Add provider implementations for the free sources that actually make sense:
-  - `massive`
-    - ingest `reference/ipos`
-    - support status filtering and pagination
-    - store the provider payload and provider-specific status semantics
-    - use this as the primary free IPO backbone
+- Provider implementations for the free sources that actually make sense are now
+  partially in place:
+  - `massive` now exposes a normalized `market_events` adapter for
+    `reference/ipos`, including local inclusive date bounds, `ipo_status`
+    filtering, verbatim provider payloads/status semantics, and an explicit
+    one-request page result with `next_url`. The adapter never follows cursors
+    implicitly, so the documented 5-requests/minute allowance cannot be
+    exceeded by a fixed one-request operation cost. A positive configured live
+    event-row observation is still required before this source can be promoted
+    as the primary free IPO backbone.
   - `alphavantage`
     - ingest `IPO_CALENDAR`
-    - later also ingest `EARNINGS_CALENDAR` into the same broader market-events system
+    - `EARNINGS_CALENDAR` is now normalized through a separate one-request
+      operation with the documented 3/6/12-month horizon choices; the worker
+      currently selects the bounded 3-month operation so its daily quota cost
+      remains explicit
     - ingest `LISTING_STATUS` into the instrument-master follow-through side so future IPO placeholders can be promoted once the listing is real
     - normalize CSV payloads into the same event schema
   - `edgar`
-    - add a supplementary IPO-pipeline detector for filings such as `S-1`, `S-1/A`, `F-1`, `F-1/A`, `424B*`
-    - use this to enrich “watchlist of possible upcoming listings” rather than to claim exact listing dates
+    - `fetch_ipo_pipeline_events` now detects recent `S-1`, `S-1/A`, `F-1`, `F-1/A`, and `424B*` filings for an explicitly supplied CIK
+    - use this to enrich “watchlist of possible upcoming listings” rather than to claim exact listing dates; archived submissions and global issuer enumeration remain explicit caller work
   - optionally `finnhub`
     - only after free-tier access is explicitly validated in practice
     - if validated, use it as another corroborating structured IPO source, not as the sole source of truth
@@ -20610,6 +14754,15 @@ Specific migration targets:
 - indicator alerts:
   - stop refreshing OHLCV separately inside each alert path
   - group by `(instrument, timeframe)` and refresh once, then evaluate all alerts from the same DB snapshot
+
+Implementation checkpoint (2026-09-12): the production APScheduler alert engine
+and the ARQ-compatible alert task now perform a grouped preflight before any
+price/indicator evaluation. Latest-price polling is once per instrument, and
+indicator OHLCV/local-bar reads are performed once per `(instrument, timeframe)`
+group. The evaluation loops consume only those immutable-in-run observations/local bars;
+provider failures leave the affected group unavailable instead of triggering
+per-alert retries. The broader coordinator migration for radar, screeners,
+and future evaluators remains open.
 - chart/instrument OHLCV routes:
   - keep read-through semantics
   - but route through the same coordinator so missing-slice and freshness policy stay consistent across the app
@@ -22098,6 +16251,7 @@ Required free-source provider roles:
 
 Primary source-documentation anchors:
 - Massive reference tickers: <https://massive.com/docs/rest/stocks/tickers/all-tickers>;
+- Massive IPO calendar: <https://massive.com/docs/rest/stocks/corporate-actions>;
 - Alpha Vantage listing status and raw daily history:
   <https://www.alphavantage.co/documentation/>;
 - Alpaca market-data plan/feed semantics:
@@ -24109,161 +18263,690 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Promote the resulting definition fan-out to every compatible target (column, filter, scan,
       alert, gauge, chart plot, and Strategy Lab signal) with target-specific output validation.
 
-### 2026-09-08 — Chart Plot Library Strategy-signal promotion
+### 2026-09-12 — SEC EDGAR profile listing validation
 
-- [x] Add an explicit Chart Plot Library → Strategy signal adapter for compatible single-output
-      indicators. The generated immutable code asset records canonical instrument/timeframe,
-      indicator/output, threshold operator/value, source plot, and current-data re-evaluation
-      semantics before creating the user-scoped Strategy Lab signal.
-- [x] Refuse multi-output/structured chart indicators with a stable capability error; no output
-      is selected implicitly. Preserve existing column, filter, scan, gauge, and alert adapters.
-- [x] Add focused component and backend metadata coverage (`25/25` frontend component tests;
-      chart-origin integration assertions), plus authenticated consuming coverage in the existing
-      full browser matrix.
-- [x] Exact-tip gate at product tip `b53873c1`: non-visual stages green (backend `1,350` unit,
-      `385` integration, frontend `974/974`, build/compose/stack/runner checks, and functional
-      Playwright `164` passed/`106` skipped across `270`); visual `98/104` with the six unchanged
-      state-oracle diffs. No visual or provider policy changed.
-- [ ] Remaining R4 fan-out cells, complete canonical provider/history population, exact V25
-      visual approval, native-window/accessibility/security evidence, and dense-data budgets.
+- [x] Reject scalar, malformed, and ticker/exchange-length-mismatched arrays in EDGAR submissions
+      profiles before creating provider-symbol/listing history.
+- [x] Add focused regression coverage and preserve the existing no-network live-provider boundary.
+- [ ] Complete/global SEC and OTC venue reconciliation remains a separate universe-coverage gate.
 
-### 2026-09-08 — Authenticated chart Strategy-signal proof
+### 2026-09-12 — Newly supplied provider credentials and Dinari cursor contract
 
-- [x] Add F8u-signal consuming-UI coverage: canonical SPY hydration, RSI chart plot,
-      `>= 70` Strategy-signal promotion, code-asset and signal-response assertions, and
-      visible success status (`4361fa5c`, focused `1/1`).
-- [x] Exact-tip gate at `4361fa5c`: backend `1,350` unit/`385` integration, frontend
-      `974/974`, functional Playwright `165` passed with `106` documented skips across
-      `271`; visual parity remains `98/104` with the same six known state-oracle diffs.
-- [ ] Continue remaining R4 fan-out cells, canonical provider/history population, exact V25
-      visual approval, native-window/accessibility/security evidence, and dense-data budgets.
+- [x] Revalidate the supplied Alpaca paper, SEC EDGAR, MarketData.app, and rotated
+      Dinari Sandbox credentials through bounded live cases. The selected provider
+      test functions passed `10/10`: EDGAR `3/3`, Alpaca `4/4`, MarketData.app
+      `2/2`, and Dinari `1/1`; exact operation/request counts and allow-listed capacity
+      headers were written only to the owner-managed external ledger.
+- [x] Update Dinari stock and stock-split reads to the current cursor-paginated
+      contract (`limit`, `order`, `next`) with instance-scoped cursor state, strict
+      continuation metadata validation, explicit legacy list fallback, and a
+      fail-closed error when split history has an unfetched continuation.
+- [x] Add regression coverage for cursor reuse, missing/malformed/repeated cursors,
+      legacy response compatibility, and split continuation truncation; focused
+      tokenized coverage passes `57/57`, the combined provider/runtime contract
+      slice passes `396/396`, and no frontend or ETF-provider files changed.
+- [ ] Dinari remains non-routable until partner/account quota, US SIP/NBBO fee,
+      display-only/no-cache, redistribution, and commercial eligibility terms are
+      reviewed; MarketData.app remains non-routable until its exact plan/credit
+      pair and response-dependent option bound are reviewed. Tradier, Ondo, and
+      IBKR remain intentionally deferred per the current provider plan.
 
-### 2026-09-08 — Refresh Nasdaq provider-route probes
+### 2026-09-12 — Dinari symbol-filter lookup completeness
 
-- [x] Rerun the opt-in QQQ SEC historical, QQQE current issuer CSV, and QQQE SEC historical
-      provider probes with network access; all `3/3` passed with route/date/row assertions.
-- [ ] Treat this as route health evidence only. Persisted dated snapshots, unresolved member
-      replacement, D1/W1/MN bar floors, and continuity across rebalance dates remain open.
+- [x] Use Dinari's documented `symbols[]` catalogue filter for ticker-like
+      metadata lookups, so a symbol is not missed solely because it falls after
+      the first page; preserve the UUID/unfiltered compatibility path and keep
+      cursor state isolated by filter.
+- [x] Add unit coverage and re-run the credentialed Dinari Sandbox compound
+      live case. The changed case passed `1/1`; two aggregate-only receipts were
+      merged into the owner ledger (`accepted=2`, `duplicates=0`,
+      `rejected=0`) after an overlapping retry completed.
+- [ ] Dinari quota, US eligibility, fee, display/cache, redistribution, and
+      commercial routing gates remain unchanged and fail-closed.
 
-### 2026-09-08 — Extend workstation pop-out endurance evidence
+### 2026-09-12 — Dinari corporate-action capability completeness
 
-- [x] Rerun `workstation_performance.spec.ts` with `TC2000_POP_OUT_CHURN_ROUNDS=250`; both
-      Chromium guards passed `2/2` in 3.8 minutes with no tool/canvas growth or convergence
-      failure. Stack teardown and resource audit reported zero retained resources.
-- [ ] Native multi-monitor behavior, dense-data budgets, accessibility/security, and remaining
-      R6 evidence are still open; browser simulation does not substitute for native proof.
+- [x] Expose Dinari's documented split/dividend reads through the generic
+      `tokenized_corporate_actions` adapter surface. Symbol-scoped reads combine
+      per-stock dividends and splits; unscoped reads use the bounded global split
+      feed because Dinari does not publish a global dividend endpoint.
+- [x] Reject the unsupported `upcoming` semantic instead of labelling Dinari's
+      historical/global response as future data. Split reads now retain the
+      opaque `next` cursor and permit only explicit in-order continuation on the
+      same adapter instance; missing, repeated, or cross-feed cursor state fails
+      closed rather than silently truncating action history.
+- [x] Add provider/runtime/quota and scheduler regressions plus a credentialed
+      Sandbox live case. The changed case passed `1/1` with 23 HTTP requests and
+      12 measured operations; aggregate-only telemetry was merged into the
+      owner-managed ledger outside Git.
+- [ ] Dinari partner quota, US eligibility, fee, display/cache, redistribution,
+      and commercial routing gates remain unchanged and fail-closed.
 
-### 2026-09-09 — Exact Nasdaq snapshot-member history rerun
+### 2026-09-12 — Dinari action identity linkage
 
-- [x] Re-ran the dated `nasdaq100` refresh and awaited every exact queued canonical member job.
-      Seven QQQE members persisted adjusted D1 history through `2025-12-31`: BIIB/CDW/LULU/ON
-      `2,344` bars each, SOLS `51`, TTD `2,333`, and GFS `1,048`; MN/W1 returned expected
-      no-data outcomes. The snapshot excluded `197` unresolved/placeholders and value/growth
-      remained explicitly unavailable.
-- [ ] Auditable enrichment for the `197` placeholders, MN/W1 floors, rebalance continuity,
-      complete family/root coverage, and final canonical readiness remain open. The prior empty
-      family result was not reproduced, and no provider/fallback/acceptance policy changed.
+- [x] Recognize Dinari's provider-native `stock_id`/`stockId` fields in the
+      shared tokenized event linker, so global and symbol-scoped split/dividend
+      rows can attach to the persisted token instrument without ticker guesses.
+- [x] Add a scheduler regression proving a Dinari global split row links to the
+      matching tokenized asset; full backend unit coverage passes `1,907/1,907`
+      and changed-file lint/compile/diff checks pass.
+- [ ] Complete Dinari quota, commercial, US-eligibility, display/cache, and
+      redistribution review before any routing admission.
 
-### 2026-09-09 — US-ISIN foreign-listing guard
+### 2026-09-12 — Dinari paginated UUID lookup safety
 
-- [x] Reject foreign identifier-provider listings for US ISIN holdings before
-      canonical promotion, while retaining the existing bounded provider-backed
-      name bridge after stable-identifier candidates are exhausted (`26/26`
-      resolver tests; Ruff clean).
-- [x] Rebuilt-stack receipt: AZN/TEAM/HON promotions verified; `54/54` queued
-      canonical D1 jobs completed, `53` met the 252-bar floor (`51–2344` bars),
-      W1/MN coverage remained `0`, and the two exact snapshots held `55`
-      canonical symbols plus `115` placeholder rows.
-- [ ] Continue auditable placeholder enrichment, W1/MN history, rebalance
-      continuity, and the remaining R2–R7 acceptance evidence.
+- [x] Treat a UUID lookup that misses the first unfiltered catalogue page but
+      receives a `next` cursor as an explicit incomplete-catalogue condition,
+      rather than returning `None` and allowing a false not-found result.
+- [x] Add a regression for the fail-closed path; fresh metadata remains fetched
+      on every lookup so ticker/lifecycle changes are not hidden by an
+      unreviewed in-memory cache. The complete provider suite passes `65/65`.
+- [ ] Complete Dinari catalogue enumeration and provider quota/terms review
+      before routing admission; callers must advance the documented cursor
+      explicitly when resolving UUIDs beyond the first page.
 
-### 2026-09-09 — Bounded Nasdaq canonical enrichment/history audit
+### 2026-09-12 — Superseding credentialed provider rerun
 
-- [x] Reran the dated QQQ/QQQE refresh and bounded classification on the seeded
-      branch stack with zero classification failures; the exact snapshots now
-      expose `99` and `101` non-placeholder canonical rows (`106` in the union),
-      while explicit placeholder rows remain unresolved.
-- [x] Awaited all `106` canonical-member history jobs. Adjusted D1 history is
-      present for `100` instruments and `99` meet the `252`-bar floor through
-      `2025-12-31` (range `51–2,344` bars); the queue reported `4` unresolved
-      member exclusions.
-- [ ] W1/MN bars remain unavailable; auditable placeholder enrichment, multiple
-      dated snapshots/rebalance continuity, complete family/root coverage, and
-      final canonical readiness remain open. Value/growth roles remain explicitly
-      unavailable and no provider/fallback/acceptance policy changed.
+- [x] Re-run the bounded live suite after the Dinari UUID miss-safety correction
+      using the operator-configured Alpaca paper, SEC EDGAR, MarketData.app, and
+      Dinari Sandbox credentials. All `10/10` selected tests passed: EDGAR `3/3`
+      (5 operations/6 requests), Alpaca `4/4` (5/5), MarketData.app `2/2` (4/4),
+      and Dinari `1/1` (12 operations/23 requests).
+- [x] Merge only the successful aggregate-only receipt into the owner-managed
+      cross-session ledger (`accepted=4`, `duplicates=0`, `rejected=0`). The
+      preceding network-sandbox attempt measured zero requests and was excluded;
+      no credentials or provider payloads were persisted.
+- [ ] Keep provider quota, account-plan, commercial, redistribution, and
+      response-dependent routing gates fail-closed until their exact reviewed
+      contracts are supplied; this live rerun is transport/schema evidence only.
 
-### 2026-09-09 — SEC name normalization and INSM follow-up
+### 2026-09-12 — SEC ticker-association scan path
 
-- [x] Normalize punctuation in the bounded SEC issuer-title search bridge (`2/2`
-      focused tests; Ruff clean) without changing symbol guessing, listing guards,
-      or acceptance policy.
-- [x] Rebuilt-stack reconciliation promoted `INSMED`; its new canonical member
-      job returned `2,344` adjusted D1 bars through `2025-12-31`, with expected
-      MN/W1 no-data outcomes. The snapshots now hold `100` and `101` canonical
-      rows (`102` in union) and three explicit residual placeholders (EA twice,
-      Dreyfus government cash).
-- [x] Explicitly disposition the two EA residuals as historical equities with
-      stable CUSIP/ISIN identity but no accepted current US listing; they remain
-      noncanonical until point-in-time listing lifecycle support is available.
-- [ ] Identify/disposition the Dreyfus government-cash row, add W1/MN history,
-      prove dated rebalance continuity, and complete remaining R1–R7 acceptance evidence.
+- [x] Add a separate SEC directory-backed issuer CIK pager that deduplicates
+      ambiguous ticker rows by CIK, retains all associated tickers, validates
+      bounds and pagination, and reuses the official cached ticker directory.
+- [x] Add a durable, bounded ARQ scan that persists its directory offset and
+      cycle state in `MarketEventScanState.provenance`, composes the existing
+      per-CIK IPO-pipeline parser, records typed/redacted failures, and refuses
+      simultaneous legacy issuer-table and directory scans to prevent quota
+      double-spend.
+- [x] Add disabled-by-default configuration, worker scheduling, Compose wiring,
+      unit regressions, and a live SEC probe that proves traversal of the
+      SEC ticker-association snapshot with unique CIK pagination. The SEC says
+      these files do not guarantee accuracy or scope; this does not prove
+      complete US-listed security or venue coverage. The full backend unit suite passed `1,922/1,922` before the
+      final mutual-exclusion regression, which also passes; the live probe
+      passed `1/1` and recorded only aggregate telemetry outside Git.
+- [ ] Keep activation separately reviewed: production SEC request budgeting,
+      canonical issuer materialization, broader NMS/OTC reconciliation, and
+      provider-terms gates remain open. The corrected materialization flow now
+      requires a complete clean dry cycle, exact reviewed cycle count, and
+      unchanged source fingerprint before creating only missing Issuer rows.
 
-### 2026-09-09 — Dated family refresh transaction isolation
+### 2026-09-12 — Isolated SEC directory live probe
 
-- [x] Isolate each mapped family role in its own SQLAlchemy savepoint so one provider/parser
-      transaction failure cannot cascade as `closed transaction inside context manager`; add a
-      failure-then-success regression test (`6/6` focused service/worker tests passed).
-- [x] Live SP500 retry completed all four mapped roles (`4` refreshed, `0` failed) and queued
-      `491` canonical history candidates (`1` new, `490` already queued; `69` unresolved).
-- [ ] Rerun the remaining families under the corrected boundary and close the broader R1 gaps:
-      complete root/role population, residual disposition, W1/MN history floors, and rebalance
-      continuity. No provider, fallback, credential, visual, or acceptance policy changed.
+- [x] Make the complete unique-CIK SEC directory live case reset its provider
+      cache before measuring transport. This keeps the case independently
+      runnable after other SEC probes and prevents a cache hit from being
+      misreported as missing live evidence.
+- [x] Re-run the bounded credentialed provider cases after the isolation fix:
+      SEC EDGAR, Alpaca paper, MarketData.app, and Dinari Sandbox passed `9/9`.
+      The complete backend unit suite passed `1,923/1,923` with 69.68%
+      coverage; the all-test command still reports only the known Docker API
+      500 integration setup errors when PostgreSQL/Redis containers are absent.
+- [x] Use pytest restoration for the SEC cache reset so the standalone probe
+      also leaves later live cases isolated; the refined credentialed probe
+      passed `1/1`.
+- [ ] Keep provider quota, account-plan, terms, redistribution, Docker,
+      deployment, and shadow gates unchanged; this test correction adds no
+      routing entitlement and persisted only aggregate usage outside Git.
 
-### 2026-09-08 — Preserve family-leg provider failures after savepoint rollback
+### 2026-09-12 — Complete provider matrix after SEC probe isolation
 
-- [x] Keep per-role family savepoints, but defer failure telemetry until the failed savepoint
-      has rolled back (`record_failure=False` for the nested dated refresh). This preserves the
-      provider/parser root exception instead of replacing it with SQLAlchemy's closed-transaction
-      message; failure telemetry is best effort after rollback.
-- [x] Focused service/bootstrap coverage passed `17/17`; Ruff and `git diff --check` passed.
-- [x] A serial rebuilt-stack pass across all eight configured families completed `18` mapped
-      role refreshes, reported `10` explicitly unavailable roles, and reported `0` failed roles.
-- [ ] Rerun/close the broader R1 gaps (canonical population, residual placeholders, D1/W1/MN
-      floors, and dated rebalance continuity), then complete R2–R7. No provider, fallback,
-      credential, visual, or acceptance policy changed.
+- [x] Run the full manifest-driven live matrix with the existing operator-owned
+      credentials and the shared usage lock/ledger. `40/46` cases passed.
+- [x] Preserve the six honest non-passes: Alpha Vantage returned its typed
+      documented 25-requests/day capacity response for IPO-calendar and both
+      earnings reads; Tradier, IBKR, and Ondo remained exact intentional
+      credential preflights. No unexpected provider failure was observed.
+- [ ] Keep the matrix result non-accepting until deferred credentials and the
+      provider-specific quota, terms, routing, Docker, deployment, and shadow
+      gates are resolved; the live run changed no routing entitlement.
 
-### 2026-09-08 — Exact-tip gate after family failure-telemetry fix
+### 2026-09-12 — Explicit SEC directory issuer-materialization policy
 
-- [x] Targeted F8u-boolean and F8x-library browser rerun passed `2/2` with elevated host browser
-      permissions; the earlier failures were Chromium sandbox launch errors, not product failures.
-- [x] Exact required gate passed backend `1,359` unit and `386` integration tests (`80.98%`),
-      frontend Vitest/build, compose/provider/runner and health checks, and functional Playwright
-      `165/272` with `107` documented skips.
-- [x] Visual matrix completed `98/104`; the only six failures are the established unchanged
-      column-editor/floating-workspace state-oracle diffs. Scoped teardown removed all resources.
-- [ ] Visual review/approval, canonical family history/readiness, native-window and broader
-      accessibility/security evidence, and the remaining R2–R7 acceptance work remain open.
+- [x] Add an explicit `disabled`/`create_missing` policy to the complete SEC
+      issuer-directory scan. The default performs no issuer writes; the
+      reviewed `create_missing` mode validates CIK/name/ticker evidence and
+      creates only missing canonical `Issuer` rows with provenance.
+- [x] Keep security-master boundaries explicit: this path never creates or
+      updates instruments/listings, changes existing legal names, or
+      deactivates records; malformed evidence and domain conflicts fail closed.
+      Focused SEC directory/service/worker coverage passes `50/50`.
+- [ ] Operator review of the SEC submissions budget and the chosen
+      materialization policy is still required before enabling the worker; this
+      implementation does not infer tradability, listing dates, or redistribution
+      rights from the issuer directory.
 
-### 2026-09-08 — Bounded real ARQ canonical-history handoff
+### 2026-09-12 — Alpaca corporate-action cursor safety (superseded by resumable ingestion)
 
-- [x] Rebuilt the branch-local stack with the worker cap set to `32` and ran a real dated
-      `sp400` ARQ unit for `2025-12-31`: `MDY`, `MDYV`, and `MDYG` refreshed, equal-weight was
-      explicitly unavailable, and no role failed.
-- [x] The committed snapshots selected exactly `32` canonical members (`401` resolved rows;
-      queue `limited=true`), and all `32` member jobs drained. Selected-member adjusted D1
-      coverage reached `31` instruments / `68,431` bars through `2025-12-31`; W1/MN remained
-      zero. Worker effective cap was verified as `32`; teardown removed all resources.
-- [ ] Continue full-family canonical population, placeholder disposition, W1/MN floors, dated
-      rebalance continuity, and the remaining R2–R7 evidence. The prior uncapped probe was
-      interrupted and is not treated as a receipt; no provider/fallback/acceptance policy changed.
+- [x] Reject repeated Alpaca corporate-action pagination-token cycles instead
+      of relying only on an immediate self-repeat. The current resumable
+      ingestion service additionally persists every page and continuation.
+      Focused corporate-action coverage passes `7/7`, and the complete backend
+      unit suite passes `1,988/1,988` with 37 warnings; Ruff, compileall, and
+      diff checks pass. Source checkpoint `f6482ed2`; no provider calls,
+      credentials, frontend files, or ETF-provider adapter files changed.
 
-### 2026-09-08 — Bounded eight-family ARQ handoff
+### 2026-09-12 — Massive continuation-cursor safety
 
-- [x] Ran all eight configured dated family units serially with the worker cap fixed at `8`:
-      `20` mapped roles refreshed, `12` explicitly unavailable roles, and `0` failed roles.
-- [x] Bounded selections totaled `56` member slots with idempotent overlap reuse; no active ARQ
-      queue key remained after the handoff. Aggregate refreshed-snapshot coverage reached
-      `44` instruments / `94,540` adjusted D1 bars through `2025-12-31`; W1/MN remained zero.
-- [ ] Continue uncapped-but-governed population, placeholder disposition, dated rebalance
-      continuity, W1/MN floors, and the remaining R2–R7 evidence. No provider/fallback/
-      acceptance policy changed.
+- [x] Require Massive ticker-discovery and IPO `next_url` values to be strings
+      containing exactly one non-empty cursor. Malformed, cursorless, or
+      ambiguous continuations now fail closed instead of replaying pages or
+      over-running the safety bound. Focused Massive coverage passes `11/11`,
+      and the complete backend unit suite passes `1,993/1,993` with 37
+      warnings; Ruff, compileall, and diff checks pass. Source checkpoint
+      `acfbfb2a`; no provider calls, credentials, frontend files, or ETF-provider
+      adapter files changed.
+
+### 2026-09-12 — Dinari cursor-chain safety
+
+- [x] Reject repeated Dinari stock-catalogue and split pagination cursor cycles
+      and clear stale cursor-chain state on a fresh first-page request. Focused
+      Dinari pagination coverage passes `11/11`, and the complete backend unit
+      suite passes `1,996/1,996` with 37 warnings; Ruff, compileall, and diff
+      checks pass. Source checkpoint `3cedc9d6`; no provider calls, credentials,
+      frontend files, or ETF-provider adapter files changed.
+
+### 2026-09-12 — Universe offset metadata safety
+
+- [x] Reject boolean, non-integer, negative, and non-progressing discovery
+      `next_offset` metadata instead of accepting Python bool values as offsets
+      or silently claiming completion. Focused universe pagination coverage
+      passes `5/5`, and the complete backend unit suite passes `2,000/2,000`
+      with 37 warnings; Ruff, compileall, and diff checks pass. Source
+      checkpoint `71faddb0`; no provider calls, credentials, frontend files,
+      or ETF-provider adapter files changed.
+### 2026-09-12 — Quota-window diagnostic safety
+
+- [x] Stop coercing malformed durable quota-window durations to one second.
+      Invalid windows are excluded from active utilization and surfaced with
+      their window ID, dimension, and exact validation reason. Focused
+      usage-window coverage passes `10/10`, and the complete backend unit suite
+      passes `2,007/2,007` with 37 warnings; Ruff, compileall, and diff checks
+      pass. Source checkpoint `ba3a721d`; no provider calls, credentials,
+      frontend files, or ETF-provider adapter files changed.
+
+### 2026-09-12 — Explicit durable reservation windows
+
+- [x] Remove the `reserve_provider_quota` helper's implicit 60-second default;
+      every reservation now supplies its provider-reviewed `window_seconds`
+      explicitly, and omitted windows fail at the call boundary. Focused
+      routing/quota coverage passes `112/112`; the complete backend unit suite
+      passes `2,008/2,008` with 37 warnings, with Ruff, compileall, and diff
+      checks clean. Source checkpoint `ac2ce574`; no provider calls,
+      credentials, frontend files, or ETF-provider adapter files changed.
+
+### 2026-09-12 — Docker-backed backend gate restoration
+
+- [x] Align the H4 radar and historical market-map integration fixtures with
+      the implemented timeframe/freshness semantics. The complete scoped
+      Docker-backed backend gate passes `2,386/2,386` with `81.33%` combined
+      coverage and 89 warnings; labeled test resources were cleaned. Source
+      checkpoint `a8ee8573`; no provider calls, credentials, frontend files,
+      or ETF-provider adapter files changed.
+
+### 2026-09-13 — Explicit indicator-batch coverage preflight
+
+- [x] Extend the provider-neutral evaluator preflight to the explicit-symbol
+      `/analysis/indicator-batch` endpoint. Required history is derived from
+      the canonical indicator registry; already loaded local bars are assessed
+      once without provider I/O; under-sized values are withheld with an
+      explicit `insufficient_history` warning; and the additive response
+      exposes the serialized `coverage_preflight` report.
+- [x] Focused PostgreSQL integration passes `2/2`; the complete backend unit
+      suite passes `2,029/2,029`; Ruff, compileall, and diff checks pass; and
+      the authoritative Docker-backed backend gate passes `2,410/2,410` at
+      `81.37%` combined coverage with 89 warnings. The labeled testcontainer
+      session is cleaned without host-wide pruning. No provider calls,
+      credentials, frontend files, or ETF-provider adapter files changed.
+- [ ] Future non-Strategy evaluator engines beyond the explicit indicator
+      batch and Market Map remain open, as do provider/legal, CI/deployment,
+      migration-compatibility, universe-reconciliation, and shadow gates.
+- [x] Align stale-state handling with the preflight report: stale dataset
+      rows are removed from the cached-bar view before readiness is assessed,
+      so the endpoint cannot report a ready snapshot while withholding the
+      corresponding value. The focused integration remains `2/2` and the
+      authoritative Docker-backed gate remains `2,410/2,410` at `81.37%`.
+
+### 2026-09-13 — Point-in-time analysis coverage preflight
+
+- [x] Extend the shared provider-neutral coverage report to technical snapshots
+      and relative-strength analysis. Technical snapshots expose the exact
+      252-bar requirement while preserving per-metric warnings; relative
+      strength exposes per-leg local coverage while retaining explicit
+      aligned-timestamp overlap diagnostics.
+- [x] Focused PostgreSQL point-in-time analysis integration passes `3/3`; the
+      complete backend unit suite passes `2,029/2,029`; changed-file Ruff,
+      compileall, and diff checks pass; and the authoritative Docker-backed
+      backend gate passes `2,410/2,410` at `81.38%` combined coverage with 89
+      warnings. The labeled testcontainer session is cleaned without host-wide
+      pruning. No provider calls, credentials, frontend files, or ETF-provider
+      adapter files changed.
+- [x] Preserve the technical-snapshot preflight in benchmark-family technical
+      responses per mapped role. Short local histories expose the same deferred
+      252-bar report at the family wrapper. Focused integration passes `1/1`,
+      the complete backend unit suite passes `2,029/2,029`, and the authoritative
+      Docker-backed gate passes `2,410/2,410` at `81.38%` coverage with 89
+      warnings. No provider calls, credentials, frontend files, or ETF-provider
+      adapter files changed.
+- [x] Extend coverage preflight to benchmark-family and arbitrary-group
+      relative-rotation responses. The raw-bar floor is derived from
+      `(2 * lookback + 1) * sampling`; existing aligned-overlap and metric
+      warnings remain unchanged. Focused integration passes `2/2`, the complete
+      backend unit suite passes `2,029/2,029`, and the authoritative
+      Docker-backed gate passes `2,410/2,410` at `81.38%` coverage with 89
+      warnings. No provider calls, credentials, frontend files, or ETF-provider
+      adapter files changed.
+- [x] Add shared coverage preflight to the general group snapshot and
+      current/historical group-breadth responses. Snapshot/current breadth use
+      a 252-bar floor; historical breadth uses a 200-bar MA200 floor. Focused
+      integration passes `3/3`, the complete backend unit suite passes
+      `2,029/2,029`, and the authoritative Docker-backed gate passes
+      `2,410/2,410` at `81.38%` coverage with 89 warnings. No provider calls,
+      credentials, frontend files, or ETF-provider adapter files changed.
+
+### 2026-09-13 — Benchmark-family ratio coverage preflight
+
+- [x] Extend the shared provider-neutral OHLCV preflight to benchmark-family
+      ratio responses. Each resolved role/benchmark leg is assessed from
+      already loaded local bars with a one-bar minimum; stale legs are removed
+      before readiness is calculated; and batches with no verified mappings
+      return an explicit empty report. Existing aligned-close ratio semantics
+      and stale-result withholding remain unchanged.
+- [x] Focused PostgreSQL integration passes `1/1`; the complete backend unit
+      suite passes `2,029/2,029`; changed-file Ruff, compileall, and diff checks
+      pass; and the authoritative Docker-backed backend gate passes
+      `2,410/2,410` at `81.38%` combined coverage with 89 warnings. The labeled
+      testcontainer session is cleaned without host-wide pruning. No provider
+      calls, credentials, frontend files, or ETF-provider adapter files
+      changed.
+- [ ] Future non-Strategy evaluator engines, provider/legal, CI/deployment,
+      migration-compatibility, universe-reconciliation, and shadow gates
+      remain open.
+
+### 2026-09-13 — Derived equal-weight coverage preflight
+
+- [x] Add shared OHLCV coverage preflight to point-in-time derived equal-weight
+      family series after membership and persisted-staleness filtering; cold
+      and stale-filtered members remain explicit deferred/partial evidence.
+- [x] Focused PostgreSQL integration passes `1/1`; the complete backend unit
+      suite passes `2,029/2,029`; changed-file Ruff, compileall, and diff checks
+      pass; and the authoritative Docker-backed backend gate passes
+      `2,410/2,410` at `81.39%` combined coverage with 89 warnings. The labeled
+      testcontainer session is cleaned without host-wide pruning. No provider
+      calls, credentials, frontend files, or ETF-provider adapter files
+      changed.
+- [ ] Future non-Strategy evaluator engines, provider/legal, CI/deployment,
+      migration-compatibility, universe-reconciliation, and shadow gates
+      remain open.
+
+### 2026-09-13 — Benchmark-family historical breadth coverage preflight
+
+- [x] Add per-role shared OHLCV coverage preflight to benchmark-family
+      historical breadth. Each role uses the exact 200-bar MA200 floor after
+      point-in-time membership resolution; short histories remain deferred
+      instead of being represented as ready.
+- [x] Focused PostgreSQL integration passes `1/1`; the complete backend unit
+      suite passes `2,029/2,029`; changed-file Ruff, compileall, and diff checks
+      pass; and the authoritative Docker-backed backend gate passes
+      `2,410/2,410` at `81.39%` combined coverage with 89 warnings. The labeled
+      testcontainer session is cleaned without host-wide pruning. No provider
+      calls, credentials, frontend files, or ETF-provider adapter files
+      changed.
+- [ ] Future non-Strategy evaluator engines, provider/legal, CI/deployment,
+      migration-compatibility, universe-reconciliation, and shadow gates
+      remain open.
+
+### 2026-09-13 — Benchmark-family overview coverage preflight
+
+- [x] Preserve delegated group-snapshot coverage preflight in the
+      benchmark-family overview response; the no-cap path returns an explicit
+      empty `benchmark_family_overview` report rather than hiding readiness.
+- [x] Focused PostgreSQL integration passes `1/1`; the complete backend unit
+      suite passes `2,029/2,029`; changed-file Ruff, compileall, and diff checks
+      pass; and the authoritative Docker-backed backend gate passes
+      `2,410/2,410` at `81.38%` combined coverage with 89 warnings. The labeled
+      testcontainer session is cleaned without host-wide pruning. No provider
+      calls, credentials, frontend files, or ETF-provider adapter files
+      changed.
+- [ ] Future non-Strategy evaluator engines, provider/legal, CI/deployment,
+      migration-compatibility, universe-reconciliation, and shadow gates
+      remain open.
+
+### 2026-09-13 — Cross-family ranking coverage preflight
+
+- [x] Extend the shared provider-neutral coverage preflight to cross-family
+      current and historical ranking responses. Both endpoints derive their
+      local history floor from the selected rank period (`offset + 1`, or 253
+      bars for YTD); current ranking removes stale legs before readiness is
+      assessed.
+- [x] Focused PostgreSQL integration passes `2/2`; the complete backend unit
+      suite passes `2,029/2,029`; changed-file Ruff, compileall, and diff checks
+      pass; and the authoritative Docker-backed backend gate passes
+      `2,410/2,410` at `81.39%` combined coverage with 89 warnings. The labeled
+      testcontainer session is cleaned without host-wide pruning. No provider
+      calls, credentials, frontend files, or ETF-provider adapter files
+      changed.
+- [ ] Future non-Strategy evaluator engines, provider/legal, CI/deployment,
+      migration-compatibility, universe-reconciliation, and shadow gates
+      remain open.
+
+### 2026-09-13 — Benchmark-family ranking coverage preflight
+
+- [x] Extend the shared coverage preflight to benchmark-family ranking. The
+      selected rank period determines the local history floor (`offset + 1`,
+      or a conservative 253 bars for YTD); stale role bars are removed before
+      readiness is assessed, while existing role-level withholding remains
+      unchanged.
+- [x] Focused PostgreSQL integration passes `1/1`; the complete backend unit
+      suite passes `2,029/2,029`; changed-file Ruff, compileall, and diff checks
+      pass; and the authoritative Docker-backed backend gate passes
+      `2,410/2,410` at `81.38%` combined coverage with 89 warnings. The labeled
+      testcontainer session is cleaned without host-wide pruning. No provider
+      calls, credentials, frontend files, or ETF-provider adapter files
+      changed.
+- [ ] Future non-Strategy evaluator engines, provider/legal, CI/deployment,
+      migration-compatibility, universe-reconciliation, and shadow gates
+      remain open.
+
+### 2026-09-13 — Dinari Sandbox catalogue amplification and transient 500 recovery
+
+- [x] Keep validated Dinari Stock records in an instance-scoped UUID cache so
+      downstream price, quote, aggregate-history, news, dividend, and split
+      reads do not repeatedly enumerate the full catalogue. A new adapter
+      instance still performs fresh metadata resolution, preserving lifecycle
+      visibility across runs and authenticated environments.
+- [x] Add a Dinari-only bounded recovery for intermittent Sandbox HTTP 500
+      responses (at most two retries with short linear backoff). 4xx/rate-limit
+      failures and all other providers remain typed and fail immediately; each
+      attempt remains in transport telemetry. Focused tokenized coverage passes
+      `72/72`, including retry-exhaustion coverage; the provider/registry/quota/secret
+      slice passes `197/197`, and
+      the real Dinari Sandbox compound read passes `1/1`.
+- [x] The authoritative Docker-backed backend gate passes `2,424/2,424` at
+      `81.44%` combined coverage; labeled testcontainer session
+      `9b8d2316-064e-48a9-bee5-e3ba27cf8b88` was cleaned without host-wide
+      pruning. The refreshed full live matrix passes `41/47`; the six honest
+      non-passes are Alpha Vantage's typed documented daily/one-per-second
+      capacity responses for IPO-calendar and both earnings reads, plus the
+      intentional Tradier, IBKR, and Ondo credential preflights. No routing
+      entitlement was changed and no credentials or provider payloads entered
+      Git.
+- [ ] Dinari partner quota, commercial, US-eligibility, display/cache, and
+      redistribution review remain open, as do the other provider/legal,
+      CI/deployment, universe-reconciliation, migration-compatibility, and
+      shadow gates.
+
+### 2026-09-13 — Current-source provider live matrix
+
+- [x] Rerun the lock-protected manifest-driven live matrix against the current
+      source and existing owner-managed credentials. It collected `47` cases
+      and passed `41`; the three Alpha Vantage event/earnings cases returned
+      typed documented capacity responses, while Tradier, IBKR, and Ondo
+      remained exact missing-credential preflights. The routing safety report
+      continued to enumerate the specific unreviewed controls for Alpaca
+      corporate actions, FINRA async/OTC, FRED, Nasdaq, xStocks, Bybit,
+      Marketstack discovery, MarketData.app, Tiingo, and FMP. Exit code `2`
+      made no acceptance claim; aggregate usage stayed outside Git and no
+      credentials or payloads entered Git.
+
+### 2026-09-13 — Dinari Sandbox-only retry boundary
+
+- [x] Scope Dinari's bounded HTTP 500 recovery to hosts ending in
+      `.sandbox.dinari.com`; documented production hosts now fail fast until
+      production-specific evidence supports another policy. The production
+      host regression made exactly one request and preserved the typed 500
+      response. Tokenized unit coverage passed `73/73`, including persistent
+      Sandbox-500 exhaustion and production-host no-retry coverage; the
+      provider/registry/quota/secret slice passed `198/198`.
+- [x] The complete backend unit suite passed `2,043/2,043`; the isolated
+      PostgreSQL integration suite passed `383/383`; and the authoritative
+      Docker-backed combined gate passed `2,426/2,426` at `81.44%` coverage
+      with 89 warnings using cleaned testcontainer session
+      `ea357249-d45b-488e-97cf-302ccdfcb7c3`. No provider calls, credentials,
+      or payloads entered Git. The live matrix remains `41/47` with the same
+      six honest non-passes and no acceptance claim.
+- [ ] Dinari partner quota, commercial, US-eligibility, display/cache, and
+      redistribution review remain open, as do the other provider/legal,
+      CI/deployment, universe-reconciliation, migration-compatibility, and
+      shadow gates.
+
+### 2026-09-13 — Newly configured provider matrix rerun
+
+- [x] Rerun the complete 47-case live matrix with the configured Alpaca paper,
+      MarketData.app, Dinari Sandbox, SEC EDGAR, and existing owner-managed
+      provider credentials from a network-enabled environment. `41` bounded
+      transport observations passed. The three Alpha Vantage event/earnings
+      operations returned typed documented capacity responses because the free
+      key was at its 25-requests/day / one-request-per-second capacity; the
+      intentional Tradier, IBKR, and Ondo credential preflights remained exact
+      missing-credential outcomes.
+- [x] Preserve the incomplete result as non-acceptance evidence: exit code `2`,
+      safety preflight still blocking unreviewed quota/legal/redistribution and
+      response-dependent routing controls, and aggregate-only usage in the
+      external operator ledger. No credentials or provider payloads entered
+      Git.
+- [ ] Obtain the remaining provider-specific reviews/credentials before a
+      complete matrix can be accepted; do not reinterpret a capacity response
+      or missing credential as a successful data read.
+
+### 2026-09-13 — Universe pagination total validation
+
+- [x] Tighten the generic US-universe reconciliation boundary so authoritative
+      `total` metadata must be a real integer (booleans, numeric strings, and
+      fractional values are rejected) instead of being coerced with `int(...)`.
+      Negative totals remain rejected separately, and failed pages never mark a
+      reconciliation run complete.
+- [x] Add four malformed-total regressions. The focused universe suite passes
+      `23/23`; Ruff, compileall, and diff checks pass; and the authoritative
+      Docker-backed backend unit/integration gate passes `2,430/2,430` at
+      `81.45%` coverage with 89 warnings. Labeled testcontainer session
+      `840f0c25-0cc1-4188-aefd-6dd5c77f8467` was cleaned without host-wide
+      pruning. No provider calls, credentials, frontend files, or ETF-provider
+      adapter files changed.
+- [ ] Complete/global SEC and OTC reconciliation still requires an approved
+      authoritative security-master source and its terms/polling/redistribution
+      review; this change only closes malformed pagination metadata handling.
+
+### 2026-09-13 — Universe duplicate-listing validation
+
+- [x] Reject duplicate listing keys across the complete discovery page stream
+      (symbol, normalized exchange, and row type) before observed counts or
+      completeness can be accepted. The repeated-cursor regression remains
+      independently covered; focused universe coverage passes `24/24`, Ruff,
+      compileall, and diff checks pass, and the authoritative Docker-backed
+      backend unit/integration gate passes `2,431/2,431` at `81.45%` coverage
+      with 89 warnings using cleaned testcontainer session
+      `e2ec12b5-2754-4fb0-8398-c756ed334c8e`. No provider calls, credentials,
+      frontend files, or ETF-provider adapter files changed.
+- [ ] Complete/global SEC and OTC reconciliation still requires an approved
+      authoritative security-master source and its terms/polling/redistribution
+      review; this guard only prevents duplicate rows from creating a false
+      complete snapshot.
+
+### 2026-09-13 — Provider migration graph repair
+
+- [x] Repair the provider-platform Alembic graph: rename the duplicate provider
+      revision to `ab1c2d3e4f5a`, make prelisting depend on both radar and event
+      consensus, and merge the remaining provider/radar heads through the
+      schema-neutral `bc2d3e4f5a6b` revision. `alembic heads` now reports one
+      head; staging-baseline migration compatibility passed with previous-release
+      `/health` 200 and 25 changed migration files; the focused migration smoke
+      test passed `1/1`; and the authoritative backend gate passed `2,431/2,431`
+      at `81.45%` coverage with 89 warnings using cleaned session
+      `8ee61c02-0fec-430c-a5c8-d68c398e4733`.
+- [ ] Coordinator review is still required before this migration boundary is
+      promoted through staging.
+
+### 2026-09-13 — Current-source live matrix after migration repair
+
+- [x] Refresh the lock-protected manifest at source checkpoint `db3c0eda5`.
+      It collected 47 cases and passed 41. The six honest non-passes were
+      Alpha Vantage's typed 25-requests/day and one-request-per-second capacity
+      responses, plus exact missing-credential preflights for Tradier, IBKR, and
+      Ondo. Aggregate usage stayed outside Git; no credentials or payloads were
+      persisted, and exit code `2` made no acceptance claim.
+- [ ] Provider-specific quota/legal/redistribution controls and deferred
+      credentials remain explicit review gates; do not reinterpret this live
+      receipt as routing or production approval.
+
+### 2026-09-13 — Tokenized catalog provider-failure isolation
+
+- [x] Keep one tokenized provider outage or malformed page from aborting the
+      qualified-provider refresh. Catalog refresh now records redacted
+      provider/page failure evidence, continues with the remaining providers,
+      and distinguishes all-provider `failed` from mixed-provider `partial`
+      outcomes. Tokenized service/provider fixtures pass 92/92; no live
+      provider calls or credentials were used.
+- [x] Re-run the authoritative Docker-backed backend gate: 2,438/2,438
+      passed, 81.61% combined coverage, 89 warnings, cleaned testcontainer
+      session `bcf70b7a-48f3-49d4-9a78-d26499a577f7`.
+
+### 2026-09-13 — Tokenized historical capability separation
+
+- [x] Give tokenized historical aggregates their own
+      `TOKENIZED_HISTORICAL_PRICES` capability, provider-chain seed, registry
+      getter/manifest entry, availability probe contract, and PostgreSQL enum
+      migration. Dinari is the only adapter advertising this capability;
+      historical refresh now resolves and charges it independently of
+      `TOKENIZED_ASSETS` catalogue/quote traffic.
+- [x] Focused provider/availability/tokenized coverage passes `172/172`; the
+      authoritative Docker-backed backend gate passes `2,454/2,454` at 81.67%
+      combined coverage with 89 warnings. No frontend or ETF-provider adapter
+      files changed.
+- [ ] Dinari historical routing and the disabled worker still require reviewed
+      quota, commercial, US-eligibility, caching, and redistribution terms.
+
+### 2026-09-16 — SEC/prelisting strong-evidence quarantine
+
+- [x] Tighten future-listing materialization so an inactive provisional
+      instrument is created only from a corroborated/resolved multi-provider
+      consensus with exact symbol and company-name agreement, plus either an
+      exact shared venue MIC or a stable FIGI/ISIN/CUSIP observed by at least
+      two providers. Single-source, missing-field, and conflicting evidence
+      now remains an auditable quarantined candidate; a legacy provisional row
+      is also forced inactive/quarantined if later evidence becomes ambiguous.
+- [x] Add regressions for single-source SEC evidence and conflicting symbols;
+      focused prelisting coverage passes `8/8`, Ruff, compileall, and diff
+      checks pass. No live SEC calls, credentials, migrations, frontend files,
+      or ETF-provider adapter files were involved.
+### 2026-09-16 — EODHD conflicting minute-pool admission control
+
+- [x] Stop treating the lower 20/minute EODHD publication as a confirmed
+      account limit. The checked-in seed now records the 20-versus-1,000
+      official-source conflict and unresolved reset boundary explicitly.
+- [x] Add provider-specific `EODHD_REVIEWED_MINUTE_LIMIT`,
+      `EODHD_REVIEWED_MINUTE_RESET`, and `EODHD_MINUTE_QUOTA_EVIDENCE` controls.
+      Ordinary history/profile/quote/discovery routing remains fail-closed until
+      all three are present and the selected reset is admission-safe.
+- [x] Preserve the bounded `/user` bootstrap path for the independently
+      documented daily pool; only the explicitly allow-listed unresolved minute
+      dimensions may be observed there, never treated as zero or routable.
+- [x] Resolve the EODHD minute-pool discrepancy from first-party evidence:
+      the detailed API-limits page sets 1,000/minute and the configured key's
+      2026-10-14 response reports 1,200/1,199. The repository default uses the
+      documented 1,000/minute; an explicit environment override is required
+      before using this key's 1,200 native limit.
+- [ ] Replay the full EODHD matrix against the current candidate when its
+      20-call/day free allowance has enough headroom; the 16-call full-suite
+      reservation and 10-call profile entitlement probe currently do not fit.
+      `/api/user` is zero daily credits but consumes one request/minute unit.
+
+### 2026-09-17 — Docker-backed integration validation
+
+- [x] Re-run `make test-int` at source `5fd3544b6` after the EODHD quota
+      coordinator/bootstrap fixes. All `386` PostgreSQL/Redis integration
+      tests passed in `354.16s`; the isolated testcontainer session was
+      cleaned without host-wide pruning and no provider credentials or live
+      calls were used.
+- [ ] Provider-specific quota/legal/source, complete-universe, target secret
+      store, deployment, routing-promotion, and final shadow gates remain open.
+
+### 2026-09-17 — Compose and workflow contract validation
+
+- [x] `make test-compose-contract` passed for the main and RPi Compose files,
+      including provider environment and egress/network assertions, and
+      `make test-workflow` passed `46/46` workflow tests with the isolated UV
+      cache.
+- [ ] Static wiring does not prove GitHub/RPi/production secret-store contents
+      or deployment authorization; those owner-controlled gates remain open.
+
+### 2026-09-17 — Migration compatibility against staging base
+
+- [x] Run `INTEGRATION_BASE_SHA=8b885a2f... make test-migration-compatibility`.
+      All `31` changed provider-platform migrations upgraded successfully;
+      previous-release schema head was `fe4f5a6b7c8d`, and the previous app
+      returned `/health 200` against the expanded schema. Temporary Docker and
+      worktree resources were cleaned.
+
+### 2026-09-17 — Current-source native usage snapshots
+
+- [x] Re-run the bounded Twelve Data account-usage case from committed source
+      `6047a5985`. It passed `1/1` with one upstream request and `132` response
+      bytes; the receipt is redacted in `validation.jsonl` and the durable
+      owner-local quota ledger was used.
+- [x] Re-run the bounded EODHD account-usage case from the same committed
+      source. It passed `1/1` with one upstream request and `304` response
+      bytes. This is a native usage observation only; EODHD ordinary routing
+      remains fail-closed until the conflicting minute-pool limit/reset and
+      evidence controls are reviewed.
+- [ ] These snapshots do not close provider-specific reset, legal/source,
+      complete-universe, target secret-store, deployment, routing-promotion,
+      deferred-provider, or final shadow gates.
+
+### 2026-09-17 — Exact-source live matrix replay
+
+- [x] MarketData.app passed its exact-source bounded matrix `7/7` at
+      `ac34754e1`, with nine upstream requests and `20,960` response bytes;
+      the response-priced unbounded-history guard made no request.
+- [x] Binance passed its exact-source native usage bootstrap `1/1`, followed
+      immediately by the bounded matrix `3/3` at `ac34754e1` (seven upstream
+      requests and `17,616,639` response bytes). The fixed one-minute
+      request-weight baseline was refreshed at the window boundary; a prior
+      replay that crossed the boundary was correctly rejected before transport.
+- [ ] These are bounded transport/accounting receipts only; provider-specific
+      terms, complete universe, target secret stores, deferred providers,
+      routing promotion, and the final shadow gate remain open.
+
+### 2026-09-17 — Current-SHA full safety preflight
+
+- [x] The complete live manifest preflight at source `0de1e9f9e` stopped before
+      network access with `0/0` cases and zero provider requests. It recorded
+      the current provider-specific quota/baseline, capability, legal/source,
+      complete-universe, and target secret-store blockers.
+- [ ] This is fail-closed safety evidence, not provider acceptance; no routing
+      promotion, deployment, deferred-provider activation, or shadow run is
+      authorized from this receipt.
+
+### 2026-10-04 — Massive quota buckets and durable-use restrictions
+
+- [x] Reconcile current Massive REST guidance: Stocks Basic is 5 requests/minute
+      per asset-class account bucket. The current Basic-access FAQ explicitly
+      says reference data, corporate actions, and minute aggregates work on
+      Basic, so all stock adapter operations use the shared Stocks bucket; the
+      previous separate-reference-bucket interpretation was incorrect. The
+      provider's exact reset boundary and native current-use counter remain
+      unpublished, so active usage still requires durable-ledger admission.
+- [x] Reconcile current Market Data Terms (updated 2025-08-28): Individual use
+      is personal/display-only, copying and non-display use need express prior
+      written consent, data must be deleted on account termination/restriction,
+      and any other viewer requires Business licensing. The runtime now needs
+      written authority for automated persistent archive and the actual app
+      audience; the old personal-use attestation no longer admits this archive.
+- [ ] Resolve Massive provider entitlement/terms controls and obtain a safe
+      active rolling-window usage baseline before further live probes. The
+      separate-reference-bucket evidence requirement has been removed because
+      the current first-party Basic FAQ says all stock-class REST operations
+      share the 5/minute asset-class allowance. No undocumented reset instant
+      or native current-use counter is assumed.
