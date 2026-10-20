@@ -22153,3 +22153,42 @@ references/tolerances are unchanged. Candidate browser proof and exact-source
 CI remain pending; no browser or Compose run was launched while Provider owns
 the heavy slot. TCP2 full104, TCP3 Provider/ETF consumer reconciliation, TCP4,
 TCP5 and official `REF-HELP-V25` parity remain open.
+
+## 2026-10-20 12:30Z — Date-pointer loaded-chart setup diagnosis
+
+The exact source `9525719a47834f61d92eb95f94470ccb3d61fd67` has terminal-red
+Actions run `39412365771`: `190` passed, `110` declared skips, and one
+retry-passing date-pointer failure. The first-attempt error context captured
+the visible chart shell with no bars/loading and no `.ohlcv-info`; the later
+failure screenshot shows SPY data/readout after the failed five-second
+assertion. That later screenshot is not evidence the readout existed when the
+assertion ran. The exact CI first-attempt request timing was not captured.
+
+In the isolated pinned-Noble fixture, the unchanged test passed once in `10.7s`
+with zero retries. Its trace records `GET /api/v1/ohlcv/local/SPY/D1?limit=500`
+returning `200` in `90.5ms` at `12:26:05.905Z`, while the chart-root visibility
+wait was still in progress; shortcut interaction then occurred after that
+response. This is a local timing observation, not a reproduction of the hosted
+failure. The spec is a keyboard-mode interaction test, not a cold-start
+performance contract; other loaded-chart interactions wait for visible `.uplot`
+and `aria-busy=false` before acting.
+
+The test previously treated a visible `.chart-root` shell as ready. It now
+requires visible `.uplot`, `aria-busy=false`, and the initial `.ohlcv-info`
+before keyboard interaction. These use the existing Playwright five-second
+expectation defaults. Every original keyboard, focus, mode, final-readout,
+persistence and reload assertion remains unchanged, including its original
+five-second timeout. The updated unchanged flow passed `1/1` in `9.1s`, zero
+retries, with trace enabled. `npm run type-check`, the TC scope guard (`58`
+changed paths, including `22` byte-verified immutable imports), the workstream
+validator and `git diff --check` pass. Setup-only failures (runner mount/module
+resolution, config-relative test discovery and reserved synthetic email) are
+preserved in the temporary run artifacts and are not reported as test
+failures; the fixture email was corrected only in its temporary Compose
+override.
+
+No product code, CI assertion, retry, timeout, screenshot reference or
+tolerance changed. The original hosted red remains historical and unclosed;
+exact-source CI and the required full functional/104-visual profile remain
+pending. This candidate is not checkpoint acceptance. TCP3-TCP5 and official
+`REF-HELP-V25` parity remain open.

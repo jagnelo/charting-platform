@@ -6,6 +6,12 @@ test('TC2000 date pointer shortcut cycles the active chart through all display m
   await expect(chart).toBeVisible()
   await expect(chart).toHaveAttribute('data-date-pointer-mode', 'on_with_values')
 
+  // The root can be a visible loading shell. Establish the same loaded-chart
+  // precondition used by other interaction flows before testing keyboard modes.
+  await expect(chart.locator('.uplot')).toBeVisible()
+  await expect(chart).toHaveAttribute('aria-busy', 'false')
+  await expect(chart.locator('.ohlcv-info')).toBeVisible()
+
   await chart.click()
   await page.keyboard.press('.')
   await expect(chart).toHaveAttribute('data-date-pointer-mode', 'off')
