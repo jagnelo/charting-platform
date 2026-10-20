@@ -22060,3 +22060,30 @@ tolerance changed. These `92` unit tests are not runtime acceptance. Provider
 owns the active heavy visual slot, so unchanged zero-retry F8n runtime proof and
 the full104 matrix remain pending. TCP2-TCP5 and official `REF-HELP-V25` parity
 remain open.
+
+## 2026-10-20 09:05Z — Renderer refresh published; exact F8n passes, independent save/list flake remains
+
+The settled-refresh renderer repair is published as
+`30529fae090624220cec06fc0796082a0386b3a2`; local HEAD and
+`origin/feat-tc2000-frontend-rework` are identical and the worktree was clean
+after the non-force push. Exact automatic Actions run `39394689368` passed
+Backend, Frontend Unit and Branch-declared. Exhaustive was skipped by feature
+policy. E2E job `118536842929` reported `190` passed, `110` declared skips and
+one retry-passing flake in 18.8 minutes, so the strict workflow remains red.
+
+The unchanged F8n-gesture test ran once and passed without a retry or failure.
+This is exact hosted runtime evidence that source `30529fae` preserves the
+captured renderer through the full ordinary gesture/latest-recovery flow. It
+does not establish the pending full104 visual matrix, Provider/ETF consumers,
+combined profile, official V25 parity or whole-checkpoint acceptance.
+
+The only failure was `tc2000_chart_template_hotkeys.spec.ts:27`: after ordinary
+Save, the first attempt did not find the saved-template dialog button
+`F5 line template v1` within the unchanged five-second assertion; the existing
+retry passed. The failure precedes F5 assignment and keypress, so keyboard
+dispatch is not yet implicated. Preserve the strict flake failure, original
+timeout/assertion and all interaction/visual oracles. The next separate TC-owned
+context is bounded artifact/source analysis of template save/list hydration and
+a deterministic baseline-red unit regression before a minimal product fix.
+Provider retains the heavy slot; no TC browser, Compose or full build is
+authorized now. TCP2-TCP5 and official `REF-HELP-V25` remain open.

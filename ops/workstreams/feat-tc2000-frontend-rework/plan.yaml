@@ -30,30 +30,25 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Exact published source4626277265507fa2ffc0179a0be1c49f4ff215ca has terminal
-  red Actions39362805814: Backend, Frontend Unit and Branch-declared passed;
-  E2E reported190 passed,110 declared skips and one hard F8n-gesture failure on
-  both attempts. All ordinary zoom/pan/latest recovery assertions passed, but
-  the final single uPlot element was not the renderer instance captured before
-  the gestures. F8m passed once. The retained exact artifact shows repeated
-  settled same-selection chart hydrations after readiness; the store cleared
-  rendered state and toggled loading, which destroyed and recreated uPlot.
+  Published renderer-refresh source30529fae090624220cec06fc0796082a0386b3a2
+  is clean and synchronized with origin. Exact Actions39394689368 passed
+  Backend, Frontend Unit and Branch-declared; E2E reported190 passed,110
+  declared skips and one retry-passing flake, so strict policy correctly keeps
+  the workflow red. The unchanged F8n-gesture case ran once and passed without
+  retry or failure, providing exact hosted runtime evidence for renderer
+  identity. The sole flake is the distinct chart-template hotkey flow: after an
+  ordinary Save, the first attempt could not find the saved-template dialog
+  button `F5 line template v1` within its existing5-second contract; retry
+  passed. This occurs before F5 assignment or keypress, so the current defect is
+  save/list hydration readiness until evidence proves otherwise.
 
-  The current four-file candidate preserves genuine same-scope refresh I/O but
-  retains rendered bars/loading and equal indicator-array identity for only the
-  exact successfully rendered symbol/timeframe/bar-type/local-mode/all-four-
-  transform scope. Mode changes and prechanged type/transform refs clear state;
-  changed indicator stacks apply; failed refreshes retain rendered bars and
-  report the error. The shared OHLCV coordinator ignores only a settled cached
-  value for explicit refresh: fresh and ordinary linked consumers still join
-  one pending transport, whose updated response replaces the shared cache.
-  Baseline-red regressions proved both scope leaks and the settled-cache hole;
-  corrected focused store/coordinator tests pass54/54, adjacent chart lifecycle
-  tests pass38/38, locked vue-tsc passes and diff checking is clean. This is
-  unit/type evidence only: unchanged zero-retry F8n runtime proof remains
-  required, and Provider owns the active heavy visual slot. Do not launch a TC
-  browser/Compose/full matrix now. TCP2 full104, TCP3 released Provider/ETF
-  consumers, TCP4, TCP5 and official REF-HELP-V25 parity remain open.
+  Preserve the renderer repair, strict zero-flake policy, existing timeout,
+  ordinary interaction and identity oracle. Diagnose the separate template
+  save/list lifecycle from the exact artifact and add a deterministic baseline-
+  red unit regression before any narrow TC-owned product correction. Provider
+  owns the active heavy slot; no TC browser/Compose/full matrix now. TCP2 full104,
+  TCP3 released Provider/ETF consumers, TCP4, TCP5 and official REF-HELP-V25
+  parity remain open; exact305 is not whole-checkpoint or staging acceptance.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
