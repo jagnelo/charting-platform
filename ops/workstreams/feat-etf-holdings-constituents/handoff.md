@@ -12021,3 +12021,30 @@ validation disposition, then collect exact-source branch CI. Do not start the
 TestClient/full-stack profile until the coordinator releases fixture capacity.
 After actual Provider acceptance and green staging, reconcile only that exact
 staging SHA before implementing the prepared `ETF_HOLDINGS` bridge.
+
+## Exact CI serialization defect and corrective follow-up — 2026-10-20
+
+The just-published lineage change `b3071cfac11f6a79586eaa4fef102b8404a36790`
+triggered exact CI run `39407749446` (attempt 1). Frontend Unit Tests passed.
+The Branch-declared job failed with seven consumer cases, all on the same
+concrete regression: direct current-analysis 409 details contained Python
+`date` values and FastAPI's `JSONResponse` raised `TypeError: Object of type
+date is not JSON serializable`. The failing cases include all six admission
+failure parametrizations and the expired-holdings case. The job did not invoke
+the opt-in live issuer matrix. Backend Tests were still running when this
+receipt was written; the run is preserved and is not green.
+
+The direct error helper now converts the newly exposed date and timestamp
+fields to ISO-8601 strings, matching the existing watchlist provenance/API
+shape. Unit assertions were adjusted to the serialized contract; no assertion
+was weakened. The two focused pure tests printed passing markers after this
+correction, but the local pytest wrapper again did not exit normally and was
+interrupted with exit 130. That remains inconclusive, not a clean local pass.
+Ruff/diff/workstream validation and a new exact-source CI are required for the
+correction. No live issuer/provider/SEC traffic, quota, paid/trial activation,
+heavy local fixture, or cross-worktree action occurred.
+
+The feature remains in progress and unaccepted. The actual shared-runtime
+bridge still waits for the coordinator's accepted green Provider staging
+release; MSMR/QQQ and Militia/GOOG remain unresolved/quarantined, and the full
+roadmap and later observation gate remain open.

@@ -185,12 +185,34 @@ def current_analysis_error_detail(capability: ETFHoldingsCapability) -> dict[str
         "adapter_key": capability.adapter_key,
         "source_provider": capability.source_provider,
         "transport_kind": capability.transport_kind,
-        "composition_date": capability.composition_date,
-        "published_at": capability.published_at,
-        "freshness_deadline": capability.freshness_deadline,
-        "last_checked_at": capability.last_checked_at,
-        "last_success_at": capability.last_success_at,
-        "last_failure_at": capability.last_failure_at,
+        "composition_date": (
+            capability.composition_date.isoformat()
+            if capability.composition_date is not None
+            else None
+        ),
+        "published_at": (
+            capability.published_at.isoformat() if capability.published_at is not None else None
+        ),
+        "freshness_deadline": (
+            capability.freshness_deadline.isoformat()
+            if capability.freshness_deadline is not None
+            else None
+        ),
+        "last_checked_at": (
+            capability.last_checked_at.isoformat()
+            if capability.last_checked_at is not None
+            else None
+        ),
+        "last_success_at": (
+            capability.last_success_at.isoformat()
+            if capability.last_success_at is not None
+            else None
+        ),
+        "last_failure_at": (
+            capability.last_failure_at.isoformat()
+            if capability.last_failure_at is not None
+            else None
+        ),
         "completeness_status": capability.completeness_status,
         "row_count": capability.row_count,
         "resolved_count": capability.resolved_count,

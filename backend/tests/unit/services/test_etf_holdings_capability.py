@@ -164,12 +164,12 @@ def test_current_analysis_error_detail_preserves_failure_classification():
     assert detail["identity_verified"] is True
     assert detail["adapter_key"] == "issuer"
     assert detail["source_provider"] == "issuer"
-    assert detail["composition_date"] == date(2026, 9, 3)
-    assert detail["published_at"] == NOW
-    assert detail["freshness_deadline"] == date(2026, 9, 10)
-    assert detail["last_checked_at"] == NOW
-    assert detail["last_success_at"] == NOW
-    assert detail["last_failure_at"] == NOW
+    assert detail["composition_date"] == "2026-09-03"
+    assert detail["published_at"] == NOW.isoformat()
+    assert detail["freshness_deadline"] == "2026-09-10"
+    assert detail["last_checked_at"] == NOW.isoformat()
+    assert detail["last_success_at"] == NOW.isoformat()
+    assert detail["last_failure_at"] == NOW.isoformat()
     assert detail["completeness_status"] == "complete"
     assert detail["row_count"] == 25
     assert detail["resolved_count"] == 24
