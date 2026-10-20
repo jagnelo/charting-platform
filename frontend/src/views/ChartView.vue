@@ -439,6 +439,7 @@ async function loadComparisonBars() {
 async function onSymbolSelect(symbol: string) {
   const generation = lifecycleGeneration
   const selection = ++selectionGeneration
+  const selectionIndicatorEdit = chartStore.indicatorEditGeneration
   const isCurrentSelection = () => isCurrentLifecycle(generation) && selection === selectionGeneration
   if (chartStore.symbol !== symbol) {
     radarStore.clearChartDetections()
@@ -460,7 +461,9 @@ async function onSymbolSelect(symbol: string) {
       await alertsStore.loadAlerts(inst.id)
       if (!isCurrentSelection()) return
       const def = presetsStore.getDefault()
-      if (def) chartStore.setIndicators([...def.indicators])
+      if (def && chartStore.indicatorEditGeneration === selectionIndicatorEdit) {
+        chartStore.setIndicators([...def.indicators])
+      }
     }
     lastClose.value = currentPrice.value
     await loadComparisonBars()
@@ -605,16 +608,38 @@ async function confirmCreateWatchlist(name: string) {
 onMounted(async () => {
   const generation = lifecycleGeneration
   document.addEventListener('click', onDocClick, true)
-  await presetsStore.loadPresets()
-  if (!isCurrentLifecycle(generation)) return
   // Load ticker from URL param e.g. navigating from /alerts
   const sym = route.params.symbol as string | undefined
   const pending = radarStore.pendingChartDetection
   if (sym && pending?.instrumentSymbol === sym.toUpperCase() && currentTf.value !== pending.timeframe) {
     currentTf.value = pending.timeframe
   }
+  const presetsLoad = presetsStore.loadPresets()
   if (sym) {
-    await onSymbolSelect(sym)
+    // Do not serialize URL-symbol hydration behind preset I/O. A user can
+    // switch from one chart to a multi-panel layout while presets are still
+    // loading; starting the symbol now lets the existing 1→multi watcher carry
+    // it into every linked panel instead of leaving the original panel blank.
+    const symbolSelection = onSymbolSelect(sym)
+    const bootstrapSelection = selectionGeneration
+    const bootstrapIndicatorEdit = chartStore.indicatorEditGeneration
+    await Promise.all([presetsLoad, symbolSelection])
+    if (!isCurrentLifecycle(generation)) return
+    // onSymbolSelect may have completed before presets were available. Apply
+    // the default once both operations settle only while this exact selection
+    // still owns the chart and no explicit indicator mutation has superseded
+    // it. Multi-panel stores retain their own indicator state.
+    if (
+      layoutStore.layout === '1'
+      && selectionGeneration === bootstrapSelection
+      && chartStore.indicatorEditGeneration === bootstrapIndicatorEdit
+      && chartStore.symbol === sym
+    ) {
+      const def = presetsStore.getDefault()
+      if (def) chartStore.setIndicators([...def.indicators])
+    }
+  } else {
+    await presetsLoad
   }
 })
 

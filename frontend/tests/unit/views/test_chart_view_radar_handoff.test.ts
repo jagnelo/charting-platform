@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import ChartView from '@/views/ChartView.vue'
 import { useAlertsStore } from '@/stores/alerts'
-import { useChartStore } from '@/stores/chart'
+import { useChartStore, usePanelStore } from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useLayoutStore } from '@/stores/layout'
 import { useOptionsExposureStore } from '@/stores/optionsExposure'
@@ -45,6 +45,86 @@ describe('ChartView radar handoff', () => {
     route.query = {}
     route.path = '/chart'
   })
+
+  function mountDeferredPresetsChart(delaySymbolLoad = false) {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const chartStore = useChartStore()
+    const p0Store = usePanelStore('p0')
+    const p1Store = usePanelStore('p1')
+    const drawStore = useDrawingsStore()
+    const alertsStore = useAlertsStore()
+    const layoutStore = useLayoutStore()
+    const optionsExposureStore = useOptionsExposureStore()
+    const presetsStore = usePresetsStore()
+    const radarStore = useRadarStore()
+    layoutStore.layout = '1'
+    route.params.symbol = 'SPY'
+    route.path = '/chart/SPY'
+
+    let presetsReady = false
+    let resolvePresets!: () => void
+    const presetsLoaded = new Promise<void>(resolve => { resolvePresets = resolve })
+    const defaultIndicators = [{ type: 'sma', params: { period: 20 }, style: { color: '#fff' }, pane: 'main' }] as const
+    vi.spyOn(presetsStore, 'loadPresets').mockReturnValue(presetsLoaded)
+    vi.spyOn(presetsStore, 'getDefault').mockImplementation(() => (
+      presetsReady
+        ? { id: 1, name: 'Default', description: null, indicators: [...defaultIndicators], is_default: true, created_at: '', updated_at: '' }
+        : null
+    ) as any)
+    let resolveSymbolLoad!: () => void
+    const symbolLoaded = delaySymbolLoad ? new Promise<void>(resolve => { resolveSymbolLoad = resolve }) : null
+    const globalLoad = vi.spyOn(chartStore, 'loadBars').mockImplementation(async (symbol: string) => {
+      chartStore.symbol = symbol
+      if (symbolLoaded) await symbolLoaded
+      chartStore.instrument = { id: 1, symbol, name: symbol, is_active: true, currency: 'USD' }
+    })
+    const p0Load = vi.spyOn(p0Store, 'loadBars').mockImplementation(async (symbol: string) => {
+      p0Store.symbol = symbol
+    })
+    const p1Load = vi.spyOn(p1Store, 'loadBars').mockImplementation(async (symbol: string) => {
+      p1Store.symbol = symbol
+    })
+    const setIndicators = vi.spyOn(chartStore, 'setIndicators')
+    vi.spyOn(drawStore, 'loadDrawings').mockImplementation(async () => {})
+    vi.spyOn(alertsStore, 'loadAlerts').mockImplementation(async () => {})
+    vi.spyOn(optionsExposureStore, 'load').mockImplementation(async () => {})
+    vi.spyOn(optionsExposureStore, 'reset').mockImplementation(() => {})
+    vi.spyOn(radarStore, 'loadChartDetections').mockImplementation(async () => [])
+
+    const wrapper = mount(ChartView, {
+      global: {
+        plugins: [pinia],
+        stubs: {
+          SearchBar: { template: '<div />' },
+          TimeframeSelector: { template: '<div />' },
+          LayoutPicker: { template: '<div />' },
+          DrawingToolbar: { template: '<div />' },
+          IndicatorPanel: { template: '<div />' },
+          WatchlistPanel: { template: '<div />' },
+          ResizeHandle: { template: '<div />' },
+          TextPromptModal: { template: '<div />' },
+          OptionsChainPanel: { template: '<div />' },
+          OptionsExposurePanel: { template: '<div />' },
+          MultiChartLayout: { template: '<div />' },
+          UPlotChart: { template: '<div />' },
+        },
+      },
+    })
+
+    return {
+      chartStore,
+      defaultIndicators,
+      globalLoad,
+      layoutStore,
+      p0Load,
+      p1Load,
+      releasePresets: () => { presetsReady = true; resolvePresets() },
+      releaseSymbolLoad: () => resolveSymbolLoad?.(),
+      setIndicators,
+      wrapper,
+    }
+  }
 
   it('keeps the preferred radar detection selected when arriving from the radar page', async () => {
     const pinia = createPinia()
@@ -213,5 +293,95 @@ describe('ChartView radar handoff', () => {
     await selection
 
     expect(loadDrawingsSpy).not.toHaveBeenCalled()
+  })
+
+  it('starts URL symbol hydration before presets settle so a user layout change retains the symbol', async () => {
+    const { globalLoad, layoutStore, p0Load, p1Load, releasePresets, wrapper } = mountDeferredPresetsChart()
+
+    await flushPromises()
+    expect(globalLoad).toHaveBeenCalledWith('SPY', 'D1')
+
+    layoutStore.setLayout('2h')
+    layoutStore.setActivePanel('p1')
+    await flushPromises()
+    releasePresets()
+
+    await vi.waitFor(() => {
+      expect(p0Load).toHaveBeenCalledWith('SPY', 'D1')
+      expect(p1Load).toHaveBeenCalledWith('SPY', 'H4')
+    })
+    expect(layoutStore.panels.map(panel => panel.symbol)).toEqual(['SPY', 'SPY'])
+    wrapper.unmount()
+  })
+
+  it('applies a late default once when the bootstrap selection remains untouched', async () => {
+    const { chartStore, defaultIndicators, releasePresets, setIndicators, wrapper } = mountDeferredPresetsChart()
+
+    await flushPromises()
+    expect(chartStore.indicators).toEqual([])
+    releasePresets()
+
+    await vi.waitFor(() => expect(setIndicators).toHaveBeenCalledTimes(1))
+    expect(chartStore.indicators).toEqual(defaultIndicators)
+    wrapper.unmount()
+  })
+
+  it('does not apply the default twice when onSymbolSelect observes settled presets', async () => {
+    const { defaultIndicators, releasePresets, releaseSymbolLoad, setIndicators, wrapper } = mountDeferredPresetsChart(true)
+
+    await flushPromises()
+    releasePresets()
+    await flushPromises()
+    releaseSymbolLoad()
+
+    await vi.waitFor(() => expect(setIndicators).toHaveBeenCalledTimes(1))
+    expect(setIndicators).toHaveBeenCalledWith(defaultIndicators)
+    wrapper.unmount()
+  })
+
+  it('does not let a late default overwrite a user indicator edit', async () => {
+    const { chartStore, releasePresets, setIndicators, wrapper } = mountDeferredPresetsChart()
+    const userIndicator = { type: 'rsi', params: { period: 9 }, style: { color: '#ff0' }, pane: 'separate' } as const
+
+    await flushPromises()
+    chartStore.addIndicator(userIndicator as any)
+    releasePresets()
+    await flushPromises()
+
+    expect(setIndicators).not.toHaveBeenCalled()
+    expect(chartStore.indicators).toEqual([userIndicator])
+    wrapper.unmount()
+  })
+
+  it('does not let onSymbolSelect overwrite a user edit made while its symbol load is pending', async () => {
+    const { chartStore, releasePresets, releaseSymbolLoad, setIndicators, wrapper } = mountDeferredPresetsChart(true)
+    const userIndicator = { type: 'rsi', params: { period: 9 }, style: { color: '#ff0' }, pane: 'separate' } as const
+
+    await flushPromises()
+    chartStore.addIndicator(userIndicator as any)
+    releasePresets()
+    await flushPromises()
+    releaseSymbolLoad()
+    await flushPromises()
+
+    expect(setIndicators).not.toHaveBeenCalled()
+    expect(chartStore.indicators).toEqual([userIndicator])
+    wrapper.unmount()
+  })
+
+  it('does not let the bootstrap default overwrite a newer same-symbol selection', async () => {
+    const { chartStore, releasePresets, setIndicators, wrapper } = mountDeferredPresetsChart()
+    const vm = wrapper.vm as unknown as { onSymbolSelect: (symbol: string) => Promise<void> }
+
+    await flushPromises()
+    await vm.onSymbolSelect('QQQ')
+    await vm.onSymbolSelect('SPY')
+    releasePresets()
+    await flushPromises()
+
+    expect(chartStore.symbol).toBe('SPY')
+    expect(setIndicators).not.toHaveBeenCalled()
+    expect(chartStore.indicators).toEqual([])
+    wrapper.unmount()
   })
 })

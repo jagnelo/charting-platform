@@ -21966,8 +21966,8 @@ and user-moved viewport behavior are unchanged.
 The chart-store suite passes `45/45`; the bounded chart-store, chart-projection,
 Chart Plot Library and conditional-uPlot lifecycle set passes `127/127` on this
 final candidate; the locked `npm run type-check` and `git diff --check` pass.
-The attempted direct `npx
-eslint` invocation is not validation evidence: this package has no locked
+The attempted direct `npx eslint` invocation is not validation evidence: this
+package has no locked
 ESLint dependency or script, and npm failed with `EAI_AGAIN` while trying to
 reach `registry.npmjs.org`; the shell's later successful diff check had masked
 that earlier command failure. No dependency was fetched or added. This is
@@ -21976,3 +21976,36 @@ rejected, unchanged zero-retry F8n proof remains required, and F8m's deferred
 presets/layout bootstrap race remains a separate defect. No browser, Compose,
 provider call, screenshot/oracle/tolerance change or upstream import occurred.
 TCP2-TCP5 and official `REF-HELP-V25` parity remain open.
+
+## 2026-10-20 02:49Z — Deferred presets/layout bootstrap regression
+
+This is a separate `deferred-presets-layout-bootstrap` context based on the
+preserved F8m trace, not an extension of hydration coalescing. A deterministic
+ChartView regression holds `loadPresets()` pending while the route contains
+SPY. Before the correction, URL-symbol hydration made zero calls during that
+interval (`1` failed, `2` skipped), so selecting Two columns could run the
+normal 1→multi watcher while the global symbol was still empty. That matches
+the recorded blank p0 / SPY p1 failure mechanism.
+
+ChartView now starts preset loading and URL-symbol hydration concurrently. The
+existing single-to-multi watcher can therefore carry the synchronously selected
+symbol into every linked panel even if the user changes layout before presets
+settle. Once both operations finish, the default preset is reapplied only when
+the exact bootstrap selection generation still owns the single chart and the
+chart store's explicit indicator-edit generation is unchanged. This prevents a
+newer A→B→A/same-symbol selection or user add/edit/remove/reorder action from
+being overwritten. If `onSymbolSelect` observes settled presets and applies the
+default itself, it uses the same selection-local edit token so a user edit made
+while the symbol request is pending wins; that successful application then
+advances the token and prevents the bootstrap path from applying it twice.
+Multi-panel indicator state remains independent. The layout
+regression changes to two columns while presets are pending and proves both
+p0/D1 and p1/H4 retain SPY.
+
+The focused regressions pass, and the full ChartView handoff, ChartPanel
+lifecycle and chart-store set passes `57/57`; locked `npm run type-check` and
+`git diff --check` pass. No browser or Compose run occurred, so the original
+F8m ordinary flow remains runtime-pending and exact source `4525` remains
+rejected. No observer wait, assertion, timeout, retry, provider path, visual
+reference or `0.005` tolerance changed. Full104, TCP3-TCP5 and official
+`REF-HELP-V25` parity remain open.

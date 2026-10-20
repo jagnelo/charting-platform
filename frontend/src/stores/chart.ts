@@ -47,6 +47,7 @@ function createChartStore(storeId: string) {
     const localOnlyMode = ref(false)
     const selectedIndicatorIndex    = ref<number | null>(null)
     const editRequestIndicatorIndex = ref<number | null>(null)
+    const indicatorEditGeneration   = ref(0)
 
     let _saveTimer:     ReturnType<typeof setTimeout>  | null = null
     let _coveragePoller: ReturnType<typeof setInterval> | null = null
@@ -372,11 +373,12 @@ function createChartStore(storeId: string) {
       })
     }
 
-    function setIndicators(configs: IndicatorConfig[]) { indicatorsDirty = true; indicators.value = configs }
-    function addIndicator(config: IndicatorConfig)     { indicatorsDirty = true; indicators.value.push(config) }
-    function removeIndicator(index: number)            { indicatorsDirty = true; indicators.value.splice(index, 1) }
-    function updateIndicator(index: number, config: IndicatorConfig) { indicatorsDirty = true; indicators.value[index] = config }
-    function reorderIndicators(newOrder: IndicatorConfig[]) { indicatorsDirty = true; indicators.value = newOrder }
+    function noteIndicatorEdit() { indicatorsDirty = true; indicatorEditGeneration.value += 1 }
+    function setIndicators(configs: IndicatorConfig[]) { noteIndicatorEdit(); indicators.value = configs }
+    function addIndicator(config: IndicatorConfig)     { noteIndicatorEdit(); indicators.value.push(config) }
+    function removeIndicator(index: number)            { noteIndicatorEdit(); indicators.value.splice(index, 1) }
+    function updateIndicator(index: number, config: IndicatorConfig) { noteIndicatorEdit(); indicators.value[index] = config }
+    function reorderIndicators(newOrder: IndicatorConfig[]) { noteIndicatorEdit(); indicators.value = newOrder }
     function selectIndicator(i: number | null) { selectedIndicatorIndex.value = i }
     function requestEditIndicator(i: number | null) { editRequestIndicatorIndex.value = i }
 
@@ -425,6 +427,7 @@ function createChartStore(storeId: string) {
       localOnlyMode,
       isLoading, loading: isLoading, isLoadingMore, hasReachedStart, error, isFetchingHistory, uplotData,
       selectedIndicatorIndex, editRequestIndicatorIndex,
+      indicatorEditGeneration,
       loadBars, loadMoreBars, loadInstrument,
       setBarType, fetchLatestBars,
       setIndicators, addIndicator, removeIndicator, updateIndicator, reorderIndicators,
