@@ -950,8 +950,8 @@ class TestWorkspaces:
         db.flush()
         snapshot = ETFHoldingsSnapshot(
             etf_profile_id=profile.id,
-            composition_date=datetime(2024, 6, 30, tzinfo=UTC).date(),
-            known_at=datetime(2024, 7, 1, tzinfo=UTC),
+            composition_date=datetime(2024, 5, 28, tzinfo=UTC).date(),
+            known_at=datetime(2024, 5, 29, tzinfo=UTC),
             provenance="issuer_native",
             source_provider="fixture",
             source_quality="issuer_disclosed",
@@ -999,7 +999,7 @@ class TestWorkspaces:
             params={
                 "rank_period": "1M",
                 "top_n": 5,
-                "as_of": "2024-07-02T00:00:00Z",
+                "as_of": "2024-05-29T00:00:00Z",
             },
         )
         assert response.status_code == 200, response.text
@@ -1007,6 +1007,8 @@ class TestWorkspaces:
         roles = {role["role"]: role for role in payload["roles"]}
         cap = roles["cap_weight"]
         assert cap["available"] is True
+        assert cap["composition_date"] == "2024-05-28"
+        assert cap["known_at"] == "2024-05-29T00:00:00Z"
         assert cap["weight_method"] == "reported_holdings_weights"
         assert cap["top_n_weight"] == 0.25
         assert cap["hhi"] == 1
@@ -1421,16 +1423,26 @@ class TestWorkspaces:
         assert payload["freshness"] == "current"
 
     def test_benchmark_family_breadth_batches_role_participation_without_fallback(
-        self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
+        self, client, auth_headers, db, instrument_type
     ):
-        from datetime import UTC, datetime
+        from datetime import UTC, timedelta
         from decimal import Decimal
 
         from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
         from app.models.instrument import Instrument
+        from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.workstation import MarketGroup
 
         seeded = client.get("/api/v1/market-groups", headers=auth_headers)
         assert seeded.status_code == 200
+        family = db.query(MarketGroup).filter(MarketGroup.stable_key == "sp500").one()
+        family_known_at = family.known_at
+        assert family_known_at is not None
+        if family_known_at.tzinfo is None:
+            family_known_at = family_known_at.replace(tzinfo=UTC)
+        else:
+            family_known_at = family_known_at.astimezone(UTC)
+        as_of = family_known_at
         rsp = Instrument(
             symbol="RSP",
             name="Invesco S&P 500 Equal Weight ETF",
@@ -1438,15 +1450,29 @@ class TestWorkspaces:
             instrument_type_id=instrument_type.id,
             is_active=True,
         )
-        db.add(rsp)
+        member = Instrument(
+            symbol="BREADTH-MEMBER",
+            name="Controlled benchmark-family breadth member",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        spy = Instrument(
+            symbol="SPY",
+            name="SPDR S&P 500 ETF Trust",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add_all([rsp, member, spy])
         db.flush()
         profile = ETFProfile(instrument_id=rsp.id, adapter_status="resolved")
         db.add(profile)
         db.flush()
         snapshot = ETFHoldingsSnapshot(
             etf_profile_id=profile.id,
-            composition_date=datetime(2024, 6, 28, tzinfo=UTC).date(),
-            known_at=datetime(2024, 6, 29, tzinfo=UTC),
+            composition_date=(as_of - timedelta(days=2)).date(),
+            known_at=as_of,
             provenance="issuer_native",
             source_provider="fixture",
             source_quality="issuer_disclosed",
@@ -1462,15 +1488,31 @@ class TestWorkspaces:
         db.add(
             ETFHolding(
                 snapshot_id=snapshot.id,
-                constituent_instrument_id=instrument.id,
+                constituent_instrument_id=member.id,
                 position=0,
-                reported_symbol=instrument.symbol,
-                reported_name=instrument.name,
+                reported_symbol=member.symbol,
+                reported_name=member.name,
                 weight=Decimal("1"),
                 source_row_hash="test-family-breadth-aapl",
                 is_resolved=True,
             )
         )
+        db.flush()
+        for index in range(30):
+            close = Decimal(str(100 + index))
+            db.add(
+                OHLCVBar(
+                    instrument_id=member.id,
+                    timeframe=Timeframe.D1,
+                    ts=as_of - timedelta(days=29 - index),
+                    open=close,
+                    high=close,
+                    low=close,
+                    close=close,
+                    volume=Decimal("1"),
+                    is_adjusted=True,
+                )
+            )
         db.flush()
 
         response = client.get(
@@ -1479,7 +1521,7 @@ class TestWorkspaces:
             params={
                 "near_threshold": "0.02",
                 "new_high_lookback": "20",
-                "as_of": "2026-12-31T00:00:00Z",
+                "as_of": as_of.isoformat(),
             },
         )
         assert response.status_code == 200, response.text
@@ -1488,6 +1530,12 @@ class TestWorkspaces:
         assert roles["cap_weight"]["available"] is False
         assert roles["equal_weight"]["available"] is True
         assert roles["equal_weight"]["symbol"] == "RSP"
+        assert roles["equal_weight"]["universe_provenance"]["composition_date"] == (
+            (as_of - timedelta(days=2)).date().isoformat()
+        )
+        assert roles["equal_weight"]["universe_provenance"]["known_at"].startswith(
+            as_of.isoformat()
+        )
         assert roles["equal_weight"]["above_ma"]["ma20"]["requested_count"] == 1
         assert roles["equal_weight"]["above_ma"]["ma20"]["eligible_count"] == 1
         assert roles["equal_weight"]["near_52w_high"]["percentage"] is None
@@ -1497,33 +1545,74 @@ class TestWorkspaces:
             roles["equal_weight"]["coverage_preflight"]["near_52w_high"]["items"][0]["status"]
             == "partial"
         )
-        assert payload["coverage_preflight"]["benchmark"]["status"] == "empty"
+        assert payload["coverage_preflight"]["benchmark"]["evaluator"] == (
+            "benchmark_family_breadth:cap_benchmark"
+        )
+        assert payload["coverage_preflight"]["benchmark"]["status"] == "deferred"
         assert payload["near_threshold"] == 0.02
         assert payload["universe_provenance"]["breadth_semantics"] == (
             "standard_role_participation_batch_over_point_in_time_holdings"
         )
 
+        from app.models.market_data_foundation import ProviderQuotaWindow
         from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+        from app.models.provider_runtime import ProviderRequestLog
 
-        db.add(
-            InstrumentDatasetState(
-                instrument_id=instrument.id,
-                dataset_type="ohlcv",
-                dataset_key="D1:adj",
-                status=DatasetStatus.STALE,
-            )
+        provider_log_count = db.query(ProviderRequestLog).count()
+        quota_window_count = db.query(ProviderQuotaWindow).count()
+        db.add_all(
+            [
+                InstrumentDatasetState(
+                    instrument_id=member.id,
+                    dataset_type="ohlcv",
+                    dataset_key="D1:adj",
+                    status=DatasetStatus.STALE,
+                ),
+                InstrumentDatasetState(
+                    instrument_id=spy.id,
+                    dataset_type="ohlcv",
+                    dataset_key="D1:adj",
+                    status=DatasetStatus.STALE,
+                ),
+            ]
         )
         db.flush()
-        stale_response = client.get(
+        current_after_stale = client.get(
             "/api/v1/analysis/benchmark-families/sp500/breadth",
             headers=auth_headers,
             params={"near_threshold": "0.02", "new_high_lookback": "20"},
         )
-        assert stale_response.status_code == 200, stale_response.text
-        stale_payload = stale_response.json()
-        stale_equal = {role["role"]: role for role in stale_payload["roles"]}["equal_weight"]
-        assert stale_equal["above_ma"]["ma20"]["eligible_count"] == 0
-        assert stale_equal["above_ma"]["ma20"]["exclusions"][0]["code"] == "stale_data"
+        assert current_after_stale.status_code == 200, current_after_stale.text
+        stale_equal = {role["role"]: role for role in current_after_stale.json()["roles"]}[
+            "equal_weight"
+        ]
+        assert stale_equal["available"] is False
+        assert stale_equal["above_ma"] == {}
+        assert stale_equal["exclusions"][0]["code"] == "etf_holdings_not_current"
+        assert any(
+            item["code"] == "stale_data" for item in current_after_stale.json()["exclusions"]
+        )
+
+        point_in_time_after_current_stale = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/breadth",
+            headers=auth_headers,
+            params={
+                "near_threshold": "0.02",
+                "new_high_lookback": "20",
+                "as_of": as_of.isoformat(),
+            },
+        )
+        assert point_in_time_after_current_stale.status_code == 200
+        pit_equal = {
+            role["role"]: role for role in point_in_time_after_current_stale.json()["roles"]
+        }["equal_weight"]
+        assert pit_equal["above_ma"]["ma20"]["eligible_count"] == 1
+        assert pit_equal["universe_provenance"]["composition_date"] == (
+            (as_of - timedelta(days=2)).date().isoformat()
+        )
+        assert pit_equal["universe_provenance"]["known_at"].startswith(as_of.isoformat())
+        assert db.query(ProviderRequestLog).count() == provider_log_count
+        assert db.query(ProviderQuotaWindow).count() == quota_window_count
 
     def test_benchmark_family_breadth_history_keeps_role_lineage_and_missing_roles_explicit(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
@@ -4215,11 +4304,30 @@ class TestWorkspaces:
             headers=auth_headers,
             params={"benchmark": instrument.symbol},
         )
-        assert stale_response.status_code == 200, stale_response.text
-        stale_payload = stale_response.json()
-        assert stale_payload["coverage"] == 0
-        assert stale_payload["rows"][0]["last"]["warning"]["code"] == "stale_data"
-        assert any(item["code"] == "stale_data" for item in stale_payload["exclusions"])
+        assert stale_response.status_code == 409, stale_response.text
+        capability = client.get("/api/v1/etf-holdings/XLK/capability", headers=auth_headers)
+        assert capability.status_code == 200
+        assert stale_response.json()["detail"] == _expected_current_error(
+            {
+                "code": "etf_holdings_not_current",
+                "availability": "stale",
+                "source_tier": "issuer_native",
+                "usable_for_current_analysis": False,
+                "failure_class": None,
+                "reason": "No concrete ETF holdings adapter is assigned to this profile.",
+            },
+            capability.json(),
+        )
+        historical_after_stale = client.get(
+            "/api/v1/analysis/etf/XLK/constituents/snapshot",
+            headers=auth_headers,
+            params={"benchmark": instrument.symbol, "as_of": "2024-06-01T00:00:00Z"},
+        )
+        assert historical_after_stale.status_code == 200, historical_after_stale.text
+        historical_payload = historical_after_stale.json()
+        assert historical_payload["composition_date"] == "2024-05-30"
+        assert historical_payload["known_at"].startswith("2024-05-31T00:00:00")
+        assert historical_payload["rows"][0]["symbol"] == instrument.symbol
 
     def test_etf_constituent_snapshot_discloses_excluded_holdings_and_coverage(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
@@ -4599,10 +4707,20 @@ class TestWorkspaces:
             headers=auth_headers,
             params={"market_benchmark": instrument.symbol},
         )
-        assert stale_ranked.status_code == 200
-        stale_ranked_payload = stale_ranked.json()
-        assert stale_ranked_payload["coverage"] == 0
-        assert stale_ranked_payload["rows"][0]["last"]["warning"]["code"] == "stale_data"
+        assert stale_ranked.status_code == 409, stale_ranked.text
+        capability = client.get("/api/v1/etf-holdings/XLK/capability", headers=auth_headers)
+        assert capability.status_code == 200
+        assert stale_ranked.json()["detail"] == _expected_current_error(
+            {
+                "code": "etf_holdings_not_current",
+                "availability": "stale",
+                "source_tier": "issuer_native",
+                "usable_for_current_analysis": False,
+                "failure_class": None,
+                "reason": "No concrete ETF holdings adapter is assigned to this profile.",
+            },
+            capability.json(),
+        )
 
         future_timestamp = datetime(2024, 6, 4, tzinfo=UTC)
         for item, close in ((source, "100"), (proxy, "300"), (instrument, "50")):

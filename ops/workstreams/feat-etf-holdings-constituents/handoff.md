@@ -12463,3 +12463,45 @@ unpublished. Next, finish exact path/diff review, publish this coherent
 changeset through the owner workflow, and inspect only its exact-source CI;
 the Provider DB settlement, failed-attempt lineage, SEC/discovery bindings,
 full consumer profile and full_stack_browser gaps remain open.
+
+### Bounded workspace consumer repair — 2026-10-20 22:25Z
+
+After publishing the separate shared-runtime database-test context at
+`463e5f4ad6c75957f86b4d7fdeb520e72205de9e`, corrected four exact-source
+workspace consumer failures without changing production behavior or replacing
+the prior red CI receipt. Historical benchmark concentration now uses a
+holdings `composition_date`/`known_at` and request cutoff within its seeded bar
+coverage. Breadth uses the seeded benchmark family's actual `known_at`, with
+controlled snapshot and OHLCV fixture lineage aligned to that instant; its
+positive `ma20` participation assertion remains. A separate no-`as_of` request
+after current freshness is marked stale proves the cap benchmark is excluded
+with `stale_data` and the equal-weight role is unavailable with the endpoint's
+`etf_holdings_not_current` exclusion and no executable metrics. Repeating the
+explicit historical breadth request still returns its positive result. The
+Provider request-log and quota-window row counts remain unchanged across those
+current-denial and PIT requests.
+
+The constituent-snapshot and industry-proxy cases retain their positive dated
+PIT assertions and now expect the exact structured `409
+etf_holdings_not_current` response from no-`as_of` analysis where XLK has no
+concrete current adapter. The constituent case repeats its dated snapshot
+after marking cached OHLCV stale and verifies composition date, known-at and
+identity remain intact. These are current-mode rejection and PIT-read
+assertions, not current holdings support. The exact prior baseline CI
+`39504688326` remains red and unchanged; its four consumer failures motivated
+this context. Final bounded verification selected exactly those four tests:
+4 passed, 50 deselected, 13.13 seconds, with only two upstream Nautilus
+NumPy-timedelta deprecation warnings. Ruff check/format and `git diff --check`
+pass. An intermediate bounded assertion confirmed the endpoint returns a
+typed unavailable role rather than an invented `ma20` metric; the assertion
+was aligned to that actual response, not weakened to permit participation.
+
+The loopback-only Postgres/Redis services and generated volumes from the prior
+DB context remain running and preserved for the still-open bounded DB work.
+This context proves neither DB concurrency nor durable failed-attempt lineage;
+both remain OPEN. No provider/issuer/SEC HTTP, quota, paid/trial operation,
+service lifecycle change, or data cleanup occurred. The ETF checkpoint remains
+`in_progress/not accepted`; full API/worker coverage, SEC/discovery bindings,
+the full_stack_browser profile, exact-source CI, remaining roadmap, and the
+30-day observation gate remain open. MSMR/QQQ and Militia/GOOG remain
+unresolved and quarantined.
