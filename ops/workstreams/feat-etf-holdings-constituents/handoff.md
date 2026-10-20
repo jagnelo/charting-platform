@@ -12561,3 +12561,23 @@ staging/sibling change, or acceptance was performed. Current branch/source and
 receipt are still unpublished; next action is exact owner-path review, final
 workstream validation and substantive changeset publication followed by its
 exact-source CI.
+
+### Restore the default offline live-module contract — 2026-10-21
+
+Correction to the command disposition above: the ordinary invocation of
+`backend/tests/live/test_etf_holdings_live_providers.py` is not a live issuer
+sweep. The module has an autouse gate that skips network-bearing cases unless
+`RUN_LIVE_ETF_HOLDINGS_TESTS` is exactly `1`, while its nine named
+registry/route contracts are explicitly exempt from that skip. The actual CI
+workflow sets no live opt-in variable. Therefore the default module command is
+safe and must remain in automatic branch validation.
+
+Restored it in `plan.yaml` with the explicit environment value
+`RUN_LIVE_ETF_HOLDINGS_TESTS=0`; added the paired `branch-tests.json` manifest
+with an exact copy of the nine plan entries and a CI mapping that reuses the
+Backend Tests job only for the three backend unit commands it actually covers.
+The offline live-module contracts still execute in Branch-declared Tests; the
+network-bearing `RUN_LIVE_ETF_HOLDINGS_TESTS=1` command remains solely in
+`deferred_live_checks`. No live code/assertion, access hold, or route status is
+changed. This correction supersedes only the prior statement that the ordinary
+module command should be absent; historical CI outcomes remain unchanged.

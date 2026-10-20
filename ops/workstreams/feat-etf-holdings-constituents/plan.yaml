@@ -461,17 +461,18 @@ branch_tests:
   - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_adapters.py -q --no-cov"
   - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py -q --no-cov"
   - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_issuer_route_drift.py -q --no-cov"
+  - "RUN_LIVE_ETF_HOLDINGS_TESTS=0 uv run --project backend pytest backend/tests/live/test_etf_holdings_live_providers.py -q --no-cov"
   - "uv run --project backend ruff check backend/app/services/etf_holdings_adapters.py backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/live/test_etf_holdings_live_providers.py"
   - "uv run --project backend python scripts/validate-workstream.py ops/workstreams/feat-etf-holdings-constituents"
   - "npm --prefix frontend run type-check"
   - "npm --prefix frontend test -- --run tests/unit/components/test_etf_holdings_panel.test.ts tests/unit/views/test_etf_holdings_view.test.ts"
   - "npm --prefix frontend run build"
-branch_tests_reason: "Automatically executed branch tests are limited to deterministic/no-network backend and frontend contracts, static analysis, and durable workstream validation. External ETF issuer probes are excluded and remain available only through the explicit deferred opt-in below."
+branch_tests_reason: "Automatically executed branch tests include deterministic/no-network backend and frontend contracts, static analysis, and durable workstream validation. The live-provider module is invoked explicitly with RUN_LIVE_ETF_HOLDINGS_TESTS=0 so its nine offline registry/route contracts run while its network-bearing probes remain skipped. External issuer probes remain available only through the explicit deferred opt-in below."
 deferred_live_checks:
   - command: "RUN_LIVE_ETF_HOLDINGS_TESTS=1 uv run --project backend pytest backend/tests/live/test_etf_holdings_live_providers.py -q -rs --no-cov"
     purpose: "Explicit, manually authorized issuer-route/source validation; never part of push-triggered branch CI."
     execution_policy: "Do not run during routine branch validation. Run only after current access/terms/quota review, rate-conscious authorization, and confirmation that retained evidence is required and permitted. Stop on any access challenge or 403/429; do not retry."
-live_test_impact: "Issuer calls are explicitly opt-in and excluded from automatically executed branch_tests; the command is retained under deferred_live_checks. Any authorized live check must be bounded, rate-conscious, and restricted to reviewed public/free or already-entitled routes. Live failures must distinguish route drift, issuer blocking, entitlement, network, parser, and source-data failures."
+live_test_impact: "Network-bearing issuer calls run only when RUN_LIVE_ETF_HOLDINGS_TESTS=1; the ordinary branch test explicitly sets it to 0 and retains nine no-network registry/route contracts. The network-enabled command remains under deferred_live_checks. Any authorized live check must be bounded, rate-conscious, and restricted to reviewed public/free or already-entitled routes. Live failures must distinguish route drift, issuer blocking, entitlement, network, parser, and source-data failures."
 migration_impact: "Additive ETF capability/freshness/schema-observation state and the ETF_HOLDINGS shared-capability seed; preserve existing snapshots and compatibility reads."
 deployment_impact: "New disabled-by-default ETF canary configuration, shared provider-platform capability/entitlement/budget integration, and post-deployment 30-day shadow evidence; no paid activation or deployment in this session."
 status: in_progress
@@ -483,19 +484,26 @@ current_phase: shared_runtime_attempt_failure_and_effective_url_integrity_2026_1
 current_blocker: >-
   Both summaries preserve 15 Tier-0 and 156 Tier-1 symbol investigations.
   Accepted Provider release 9b230ba4c97126a2937667138c6eb2a0aa297baf remains
-  merged into ETF at 45859aa024a00bf638dc5a2bed619c1778dd7fc6. Current dirty
-  source passes the nine-test real shared-runtime loopback DB/Redis
+  merged into ETF at 45859aa024a00bf638dc5a2bed619c1778dd7fc6. Published
+  source dc2608bd0135bb7ef457d8b933d3e20b7e876948 has exact-source CI
+  39511734942 in progress; this is not checkpoint acceptance. Its bounded
+  shared-runtime loopback DB/Redis
   MockTransport module, including committed instrument-symbol rejection,
   cancellation rollback/raw lineage, failure/uncertain settlement, and exact
   effective URL/request-log binding for real adapter params, client defaults,
   and cross-origin redirects. Full URLs compare without redaction in memory;
   persisted URL metadata is redacted; no concrete per-operation URL catalogue
-  is required. The live issuer sweep has been removed from automatic
-  branch_tests and remains only as the explicit deferred opt-in below. Earlier
-  exact hosted CI red receipts remain historical; current dirty source has no
-  CI yet. SEC/discovery, broader worker/API/current-vs-historical/PIT,
-  full_stack_browser, exact current-source CI, the complete issuer roadmap and
-  30-day observation gate remain open. MSMR/QQQ and Militia/GOOG remain
+  is required. The default live-module contract is explicitly invoked in
+  branch_tests with RUN_LIVE_ETF_HOLDINGS_TESTS=0, retaining nine offline
+  registry/route checks; only the network-bearing RUN_LIVE_ETF_HOLDINGS_TESTS=1
+  sweep remains deferred. It passes locally with nine tests and 537 network
+  probes skipped. The paired branch-tests.json mirrors all nine plan commands
+  and maps only backend unit commands to the Backend Tests job. Earlier exact
+  hosted CI red receipts remain historical. Dated-refresh rejection retention
+  across caller rollback/reopen is the next owned contract. SEC/discovery,
+  broader worker/API/current-vs-historical/PIT, full_stack_browser, final
+  exact-source CI, the complete issuer roadmap and 30-day observation gate
+  remain open. MSMR/QQQ and Militia/GOOG remain
   unresolved/quarantined; unknown/quota-held/paid/trial/unsafe operations
   remain disabled. Checkpoint stays in_progress/not accepted.
 
