@@ -1182,6 +1182,8 @@ def test_live_quota_preflight_only_allows_explicit_bootstrap_unknown_baseline(
         lambda **kwargs: {"status": "unknown", "remaining_units": None},
     )
 
+    # Preserve the operation-level contract: data-only use stays blocked with
+    # the exact diagnostic, while explicitly reviewed bootstrap stays allowed.
     assert runner.live_operation_quota_preflight(
         {"binance"},
         operations_override={"binance": {"fetch_ohlcv"}},
@@ -1198,6 +1200,36 @@ def test_live_quota_preflight_only_allows_explicit_bootstrap_unknown_baseline(
         )
         == {}
     )
+
+    selected_cases, selected_operations = runner.parse_live_case_selectors(
+        ["binance:test_binance_keyless_bounded_daily_history"], {"binance"}
+    )
+    assert selected_operations == {"binance": {"fetch_account_usage", "fetch_ohlcv"}}
+    assert runner.selected_case_bootstrap_providers({"binance"}, selected_operations) == {"binance"}
+    multipliers = runner.selected_case_operation_multipliers(selected_cases)
+
+    # This reproduces the actual CLI case-scoped path: the selected case's
+    # canonical operation map contains its native usage helper, so preflight
+    # permits that exact account snapshot to establish the mapped weight pool.
+    assert (
+        runner.live_case_quota_preflight(
+            {"binance"},
+            operations=selected_operations,
+            operation_multipliers=multipliers,
+        )
+        == {}
+    )
+
+    # A data-only selection has no bootstrap authority and remains fail-closed.
+    data_only = {"binance": {"fetch_ohlcv"}}
+    assert runner.selected_case_bootstrap_providers({"binance"}, data_only) == set()
+    assert runner.live_case_quota_preflight(
+        {"binance"}, operations=data_only, operation_multipliers={"binance": {}}
+    ) == {
+        "binance": [
+            "binance/fetch_ohlcv: active request_weight_per_minute usage baseline is unknown"
+        ]
+    }
 
 
 def test_live_quota_preflight_blocks_bootstrap_dimensions_without_native_mapping(

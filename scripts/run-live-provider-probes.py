@@ -2210,6 +2210,41 @@ def manifest_account_usage_providers(providers: set[str]) -> set[str]:
     }
 
 
+def selected_case_bootstrap_providers(
+    selected_providers: set[str],
+    selected_case_operations: dict[str, set[str]],
+) -> set[str]:
+    """Return only selected providers whose exact cases include usage probes.
+
+    Case-scoped preflight must not infer bootstrap authority merely because a
+    provider has some account-usage case in its manifest. The selected case's
+    operation map must explicitly include ``fetch_account_usage``.
+    """
+
+    explicitly_selected = {
+        provider
+        for provider, operations in selected_case_operations.items()
+        if "fetch_account_usage" in operations
+    }
+    return manifest_account_usage_providers(selected_providers) & explicitly_selected
+
+
+def live_case_quota_preflight(
+    providers: set[str],
+    *,
+    operations: dict[str, set[str]],
+    operation_multipliers: dict[str, dict[str, int]],
+) -> dict[str, list[str]]:
+    """Preflight exact selected cases, admitting only their declared usage bootstrap."""
+
+    return live_operation_quota_preflight(
+        providers,
+        operations_override=operations,
+        operation_multipliers=operation_multipliers,
+        bootstrap_providers=selected_case_bootstrap_providers(providers, operations),
+    )
+
+
 def account_usage_only_provider_set() -> set[str]:
     """Return the manifest-derived providers accepted by usage-only runs."""
 
@@ -5695,9 +5730,9 @@ def main() -> int:
                 },
             )
         elif case_selectors:
-            live_quota_missing = live_operation_quota_preflight(
+            live_quota_missing = live_case_quota_preflight(
                 selected_for_run,
-                operations_override=selected_case_operations,
+                operations=selected_case_operations,
                 operation_multipliers=selected_case_multipliers,
             )
         elif account_usage_only:

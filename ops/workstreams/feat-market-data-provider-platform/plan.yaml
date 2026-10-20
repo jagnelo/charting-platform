@@ -1,5 +1,17 @@
 schema: 4
 # Corrected exact-source plan — 2026-10-20 02:00+01:00. Implementation
+# Current implementation repair (2026-10-20): exact selected-case preflight
+# denied Binance's unknown request-weight-per-minute baseline even though the
+# selected bounded-daily case contained its reviewed account-usage bootstrap;
+# the case made no transport. The runner now grants bootstrap preflight only
+# when that exact selected operation map includes fetch_account_usage and the
+# provider manifest supports it. Data-only selection keeps the original exact
+# unknown-baseline denial. Affected runner/usage/secret-wiring modules pass
+# 250/250 no-network tests. This working source is unpublished and not
+# CI-validated; checkpoint remains in_progress/pending, all holds remain, and
+# the prior live authorization cannot be reused.
+#
+# Historical implementation
 # `389b8ce912ee04c59024467632b339442673fd82` is clean/pushed; exact Actions
 # `39350853804` is terminal green for Backend, Frontend Unit, Branch-declared,
 # and Playwright; Exhaustive is skipped by feature-branch policy. The
@@ -13,6 +25,27 @@ schema: 4
 # minute unit and zero daily credits, then reconciles both native dimensions.
 # Plan self-validation is green with zero held/nonfree/missing-cost/missing-
 # exclusion/headroom errors. No transport/reservation/spend occurred.
+# Superseding current state (2026-10-20 16:58 UTC): HEAD
+# `1603f78812130f69919efa6d2d0515a497c50257` is synchronized with origin and
+# exact CI39424707045 is terminal green for that source; the working repair is
+# not yet published or CI-validated. The prior four-record conditional index
+# candidate b787608015986e111cbb38827cbcd73e654ce5a4 was archived and unstaged;
+# it remains unaccepted. Working status is in_progress/closure pending. The
+# preserved plan bounds are210 future+44
+# historical=254 combined, finite subtotal162; Kraken xStocks is3, not the
+# obsolete4, and FINRA short-interest2 was already included.
+# Source-derived coverage initially had45 selected cases=19 completed+26
+# remaining. The later bounded attempt passed23 of those26; Binance's next
+# case stopped before transport on a preflight bug, with Kraken xStocks and
+# Gate TradFi not started. No passed case may be replayed.
+# The selected-case bootstrap correction is a runner-only change; all
+# production/provider operation contracts and holds remain identical.
+# Source-derived operation coverage:45 selected cases; 82 case-operation
+# checks cover80 unique enabled pairs (36+45-1 shared
+# Binance usage pair). Finnhub expected403 is in the completed14 and will not
+# be replayed. Remaining cases include FMP and MarketData.app usage,
+# EODHD's zero-daily-credit/minute-accounted exception, and Binance helper
+# usage. Existing holds remain unchanged.
 # Final-plan transport-accounting correction — 2026-10-20 01:57+01:00.
 # Coordinator review found that Finnhub's company-profile live case performs
 # seven metered reads: six enabled-capability reads plus one deliberate

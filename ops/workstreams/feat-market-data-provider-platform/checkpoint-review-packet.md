@@ -1,5 +1,19 @@
 # Provider integration checkpoint review packet
 
+## Proposed index-only final contract — not current status, 2026-10-20
+
+This is a static candidate contract only. It becomes authoritative only after
+the remaining proof passes and the coordinator records delegated technical
+acceptance. The actual working plan remains `in_progress` with closure pending;
+ICP7, final evidence, and exact-source CI are not claimed complete here. The
+candidate preserves all approved operation selections, free-only rules,
+deferrals, holds, original roadmap criteria, and downstream remainder. It
+does not authorize provider requests, quota reservations/spend, paid/trial
+activation, deployment, or feature-owner integration. Candidate source parent
+is `1603f78812130f69919efa6d2d0515a497c50257`; the staged tree must be reported
+separately after index construction and independently reviewed. This remains a
+proposal only; working status stays `in_progress` / `pending`.
+
 ## Corrected bounded plan — 2026-10-20 02:00+01:00
 
 Exact implementation source `389b8ce912ee04c59024467632b339442673fd82`
@@ -2859,3 +2873,52 @@ with no integration/coverage result. All 55 retained containers survived
 unchanged. Exact-source CI and the complete backend gate must pass on the
 corrected source; browser reconciliation still waits for the coordinator's
 actual green geometry staging release.
+
+## 2026-10-20 bounded-candidate boundary
+
+### Current-source remaining-only preparation
+
+Current published source is `1603f78812130f69919efa6d2d0515a497c50257`
+(tree `a9e7fd00ab544fe611c10e8945a61297cdd32b7c`, parent
+`30a603cc50d9edfaa8ee92d413b49864e8026ff2`), synchronized with origin.
+Exact Actions `39424707045` is still in progress. Corrected forecast: 210
+proposed future transports plus 44 actual historical transports = 254
+combined; finite subtotal 162. The superseded 211/255 arithmetic used an
+obsolete Kraken xStocks bound of four; the current source-reviewed bound is
+three. FINRA short-interest's two transports were already counted.
+
+The 45 selected cases comprise 19 completed and 26 never-started cases. The
+source-derived union is 80 unique enabled provider/operation pairs across
+82 case-operation checks: the completed 19 cases cover 36 unique pairs, the
+remaining 26 cover 45, and one Binance account-usage pair overlaps. Finnhub's
+metered expected403 was in the completed14-case portion and is not selected
+again. The remaining cases include FMP and MarketData.app account-usage cases,
+the EODHD zero-daily-credit/minute-accounted usage exception, and the
+conditional Binance helper refresh. All existing holds remain unchanged.
+
+Exact source `30a603cc50d9edfaa8ee92d413b49864e8026ff2` passed Actions
+`39411772762` (Backend, Frontend Unit, Branch-declared, and Playwright green;
+Exhaustive skipped by feature policy). The Playwright job was 152 passed / 109
+declared skips with no flaky summary. A narrowly elevated canonical no-HTTP
+preflight reached the existing durable quota coordinator; it evaluated all 27
+providers with zero provider/issuer requests, reservations, or spend. It
+reported Alpha Vantage, Dinari, Marketstack, and Tiingo admission blockers;
+these remain held and preflight-eligible providers are not automatically
+authorized for transport. The exact staged conditional proposal is based on
+parent `30a603cc50d9edfaa8ee92d413b49864e8026ff2`; its tree is supplied in the
+coordinator review message rather than embedded in a self-referential record.
+The working plan remains
+`in_progress` / `pending`. Final boundary review is required before any
+remaining live cases. No completed case is replayed.
+
+The authorized candidate execution then stopped fail-closed after two cases.
+Alpaca account usage passed (1 request / 124 bytes); the assets/corporate
+actions case made one `discover_universe_page` request (6,465,390 bytes) and
+was denied before `fetch_instrument_events` transport with
+`ProviderQuotaAdmissionError: provider quota exhausted`. Both requests have
+same-run usage rows and reservation IDs marked `observed`; total is 2 new
+requests / 2 reservations and 11 combined including the historical nine. No
+retry, hold change, reset, or further case occurred. Exact details and preserved
+logs are in the latest worktree-only validation/handoff records; the candidate
+index remains frozen at the reviewed tree. Remaining cases stay unproven and
+must not resume without coordinator review of fresh quota admission.

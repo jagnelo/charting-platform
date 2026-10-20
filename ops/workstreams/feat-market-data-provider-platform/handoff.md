@@ -1,5 +1,65 @@
 # feat/market-data-provider-platform
 
+## 2026-10-20 16:58 UTC — Binance selected-case bootstrap preflight repair
+
+- The one-shot bounded proof stopped after 23 passed cases / 66 actual
+  transports. Its next case,
+  `binance:test_binance_keyless_bounded_daily_history`, was denied in preflight
+  because the request-weight-per-minute baseline was unknown; the preserved
+  output is `staged_candidate_incomplete_preflight`, exit code2, case_count0.
+  The canonical selected-case path completes admission before runner invocation.
+  No retry or later case ran. Preserve the
+  23 receipts and stopped run at
+  `/tmp/provider-1603-b787-remaining-only-execution-20261020` unchanged.
+- Root cause: exact `--case` preflight omitted bootstrap eligibility although
+  the selected manifest case explicitly includes both `fetch_account_usage`
+  and `fetch_ohlcv`. The test's native usage helper is the reviewed bootstrap
+  path; no provider contract or baseline was missing. The runner now derives
+  bootstrap eligibility only from the exact selected operation map intersected
+  with manifest account-usage providers. Data-only selections retain the exact
+  original denial diagnostic.
+- The old conditional proposal is preserved at
+  `/tmp/provider-b787-proposal-preserved-20261020.tar`, SHA-256
+  `6a165bd425989b5db7e66528b0e9e56aa8f46ab9558ad5111a60e87824a7066c`; it is
+  not accepted or published as ready. Working status remains `in_progress`,
+  closure pending, and merge unauthorized.
+- No-network runner/usage/secret-wiring modules pass 250/250; Ruff
+  check/format, Python compile, and diff check pass. No provider/issuer HTTP,
+  reservation, quota spend/reset, fixture, or workflow dispatch occurred in
+  this repair. The previous execution authorization was bound to the pre-fix
+  source/driver/plan and does not authorize continuation.
+- Next: publish this truthful repair through exact hosted CI, then prepare the
+  exact current-source isolated full-stack/browser plan for coordinator review.
+  The Binance retry plus the not-yet-started Kraken xStocks and Gate TradFi
+  cases remain unproven and require fresh exact-source bound/admission review;
+  do not replay the 23 passed cases.
+
+## 2026-10-20 13:05 UTC — remaining-only candidate preparation
+
+- Current clean published source is `1603f78812130f69919efa6d2d0515a497c50257`
+  (tree `a9e7fd00ab544fe611c10e8945a61297cdd32b7c`, parent
+  `30a603cc50d9edfaa8ee92d413b49864e8026ff2`), synchronized with origin.
+  Exact Actions `39424707045` remains in progress; this is not a green gate.
+- Preparing a four-workstream-file, index-only conditional contract. The
+  working plan remains `in_progress` with `closure_summary: pending`; staged
+  proposal fields are not actual acceptance or proof.
+- Corrected count: 210 proposed future transports +44 actual historical =254
+  combined; finite subtotal162. Current Kraken xStocks bound is3, not obsolete4;
+  FINRA short-interest2 is already counted. Original v3 and raw evidence remain
+  unchanged.
+- Source-derived operation union:45 selected cases=19 completed+26
+  never-started;82 case-operation checks cover80 unique enabled pairs
+  (completed36 + remaining45 - one shared Binance usage pair). Finnhub's
+  expected403 belongs to completed14 and is not replayed. Remaining cases
+  include FMP and MarketData.app usage snapshots, EODHD's special zero-daily-
+  credit/minute-accounted usage case, and a conditional Binance helper. All
+  existing holds remain unchanged.
+- The complete private remaining-only driver is offline preparation. It must
+  bind the canonical staged snapshot, exact source and historical prefix, and
+  require a separate reviewed authorization file before invoking subprocesses.
+  No provider/issuer HTTP, reservation/spend, usage refresh or workflow dispatch
+  has occurred or is authorized by this preparation.
+
 ## 2026-10-20 10:27 UTC — bounded proof stopped at OpenFIGI usage baseline
 
 - Current source `0d8945133ddc2e0549a6484da644518aa87ae843` is synchronized
