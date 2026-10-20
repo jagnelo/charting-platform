@@ -1,5 +1,43 @@
 # Provider integration checkpoint review packet
 
+## Combined candidate local gates and operation draft — 2026-10-20 01:20+01:00
+
+Exact source `023d30c615ae1bfea3a79f90d4d814242cd5711e` passed the required
+isolated pinned-Noble profile: 155 functional/performance cases passed, two
+expected live-data cases skipped, and all 104 strict visual cases passed with
+one worker, zero retries, unchanged references/tolerance, and read-only DejaVu.
+The browser could reach only the reviewed `cdn.onesignal.com:443` proxy target;
+backend and worker provider egress remained denied and produced no provider
+traffic. After evidence export, only the exact temporary project was removed.
+All 61 retained container records and all 55 running containers remain
+identical to their pre-run inventory.
+
+Exact Actions `39342948219` is nevertheless strict red: Backend, Frontend Unit,
+and Branch-declared passed, but hosted E2E had one F8t-results-open first-attempt
+failure (`.research-results-tool` absent after the ordinary menu click) followed
+by a retry pass. The strict flaky gate correctly failed the job. Artifact
+`12231332082` retains the failure. The local exact-source zero-retry flow passed,
+so this remains a preserved TC-owned intermittent interaction gap rather than a
+Provider-data failure; it must be resolved through a released shared repair and
+fresh exact CI, not a rerun or relaxed oracle.
+
+The concrete no-transport execution plan is
+`/tmp/provider-023d-final-operation-execution-plan.json` (SHA-256
+`f49d16b57f785bbc64b1167b9a104211df9b66c99ee57bfa2cde6bbd1d1cdbae`).
+It inventories all 78 manifest cases and their exact CLI selectors, operation
+aliases/multipliers, free-plan admission, reviewed request/credit/byte bounds,
+durable quota windows/headroom, source-qualified historical evidence, and
+tested no-transport outcomes. Fifty-two cases are bounded candidates or become
+candidates only after their exact account-usage bootstrap verifies the durable
+baseline; 26 remain held, human-deferred, unreviewed, or intentional-no-request.
+The plan keeps Bybit behind its wildcard runtime hold and treats generic
+preflight eligibility as non-authority. It isolates EODHD
+`fetch_account_usage` as the only unheld EODHD case: zero daily credits, still
+minute-accounted, separately preflighted, never a request for the held 16-call
+manifest. The full-roadmap verifier remains honestly incomplete. No provider
+transport or reservation is authorized before central reviews this exact draft
+and the one fully staged final-candidate contract.
+
 ## Released geometry reconciliation — 2026-10-20 00:33+01:00
 
 Provider merged only released staging

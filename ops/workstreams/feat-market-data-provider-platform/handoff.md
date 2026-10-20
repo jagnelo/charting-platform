@@ -1,5 +1,49 @@
 # feat/market-data-provider-platform
 
+## 2026-10-20 01:20+01:00 — combined local profile green; exact CI preserves F8t flake
+
+- Current source and origin remain `023d30c615ae1bfea3a79f90d4d814242cd5711e`.
+  The uniquely named isolated project `provider-a807-browser-20261020` ran the
+  required pinned Playwright 1.62.1 Noble profile with read-only DejaVu fonts,
+  one worker, zero retries, unchanged assertions/references/tolerance, seeded
+  backend data, denied backend/worker provider egress, and an explicit browser
+  proxy allowing only `cdn.onesignal.com:443`.
+- Functional/performance validation passed 155 tests with two expected live-data
+  skips in 17.0 minutes. Strict visual validation passed all 104 cases in 12.7
+  minutes. Both `.last-run.json` files report `passed` with empty
+  `failedTests`. The proxy log contains only the reviewed OneSignal CONNECT
+  destination; the provider-egress-deny log is empty. No provider/issuer HTTP,
+  durable quota reservation, or quota spend occurred.
+- Only the exact temporary project's nine containers, four volumes, and two
+  networks were removed after artifacts were exported. The project now has no
+  resources. All 61 retained container records and 55 retained running
+  containers match the pre-run short-ID hash
+  `4a5a5d927532eae2e67ffa097b03a11c1b3f351c0b6f4ccec13b725a4219f52e`.
+- Exact Actions `39342948219` is terminal red on the same source. Backend,
+  Frontend Unit, and Branch-declared passed; Exhaustive skipped under feature
+  policy. Hosted E2E reported 151 passed, 109 expected skips, and one strict
+  flaky failure: F8t-results-open did not render `.research-results-tool` after
+  the ordinary Study Results menu click within 15 seconds, then passed retry
+  #1. Artifact `12231332082` preserves screenshot/video/error context. This
+  TC-owned flake is not erased by the green local zero-retry run and is not a
+  Provider payload/quota failure; no retry or assertion weakening is allowed.
+- The concrete final-operation draft is outside source at
+  `/tmp/provider-023d-final-operation-execution-plan.json`, SHA-256
+  `f49d16b57f785bbc64b1167b9a104211df9b66c99ee57bfa2cde6bbd1d1cdbae`.
+  It maps all 78 manifest cases to exact `--provider`/`--case` selectors,
+  canonical operations and service aliases, reviewed cost/byte bounds, current
+  durable quota windows/headroom, plan admission, historical-but-not-current
+  proof, and tested exclusions. It identifies 52 bounded or usage-bootstrap-
+  conditional cases and 26 held/deferred/unreviewed/intentional-no-request
+  cases. EODHD `fetch_account_usage` is the sole ordinary EODHD exception and
+  stays zero-daily-credit but minute-accounted. No live execution is authorized
+  until coordinator review of this draft and the final staged source contract.
+- Checkpoint remains `in_progress`. Next: central review of the exact operation
+  draft and resolution/release of the TC-owned F8t flake; then prepare one fully
+  staged final acceptance-contract draft, run only coordinator-approved exact
+  bounded cases with fresh durable admission, publish once, and require exact
+  final CI. The full roadmap and all paid/trial/unknown/held controls remain.
+
 ## 2026-10-20 00:37+01:00 — continuity checkpoint before browser fixture start
 
 - Provider HEAD and origin are clean and synchronized at

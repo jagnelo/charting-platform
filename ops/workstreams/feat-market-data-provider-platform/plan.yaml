@@ -1,4 +1,20 @@
 schema: 4
+# Combined current-source gate — 2026-10-20 01:20+01:00. Exact023d30c local
+# pinned-Noble1.62.1 profile passed155 functional/performance with2expected
+# live skips and104/104 strict visuals,oneworker,zeroretries,unchanged
+# references/tolerance,readonlyDejaVu andprovider-egress denied. The exact
+# temporary project was removed; all61 retained records/55 running IDs match
+# the original hash. Exact Actions39342948219 is strict-red only because hosted
+# F8t-results-open missed the research-results tool on attempt1 and passed retry1;
+# preserve artifact12231332082 and do not rerun/relax or edit TC-owned source.
+# Concrete final-operation draft:
+# /tmp/provider-023d-final-operation-execution-plan.json sha256 f49d16b57f785bbc64b1167b9a104211df9b66c99ee57bfa2cde6bbd1d1cdbae.
+# It covers78manifest cases:52 bounded/bootstrap-conditional and26 held/
+# deferred/unreviewed/no-request, with exact selectors,cost/byte bounds,quota
+# windows/headroom,aliases and proof dispositions. No transport is authorized
+# until coordinator review and final fully-staged contract freeze. Status stays
+# in_progress; next resolve/release F8t, reconcile if needed, then bounded final
+# proof, one coherent publication and exact final CI. Full roadmap stays open.
 # Released geometry reconciliation — 2026-10-20 00:33+01:00. Exact green
 # staging281a57bd merged without conflict at Provider merge sourced5e462dc.
 # The imported application delta is only WorkstationToolContent.vue plus F8u/F9c
