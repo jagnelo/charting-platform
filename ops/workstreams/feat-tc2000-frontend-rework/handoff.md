@@ -21883,3 +21883,65 @@ build or broad suite ran. Local `f21` remains one commit ahead of origin
 `13ee184`, with the product correction and owner evidence dirty. Historical
 `4/5` focused functional, `1/1` F8m, and both failed F8n traces remain intact.
 TCP2-TCP5 and official `REF-HELP-V25` parity remain open.
+
+## 2026-10-20 02:28Z — Exact 4525 runtime rejection, causal split and cleanup
+
+The observer plus requested-range candidate was frozen as local commit
+`4525a2e45169b595a1b00cbe8e9adcb9564c173a`; origin remains
+`13ee184268ab8ef2b144241a05ecc30e16c1a1a7`. Its tracked source archive has
+SHA-256 `88ca26673f76cd6e40fee4e72f54204d5eb34ce4998d46c55f37a29052620bbb`.
+The single pinned Noble 1.62.1, one-worker, zero-retry, internal-only fixture
+`tc-f8n-range-4525-20261020t0156z` used that exact archive, blank provider and
+OneSignal credentials, disabled provider routing/refresh, no host ports and
+the unchanged browser assertions. Commit `4525` is **not accepted**.
+
+The first authorized six-case run stopped on its first case. F8m failed hard
+after 60 seconds waiting for `Change chart symbol from SPY`; result: `1` failed
+and `5` did not run. Its trace shows a deterministic initialization race:
+`ChartView` started `/api/v1/presets` at trace time 7592.992 and awaited it for
+428 ms, while the test selected Two columns at 7620.886. During that suspended
+route bootstrap, ordinary panel interactions made p1 active/Yellow and p0
+Purple. When URL-symbol bootstrap resumed, `onSymbolSelect` observed multi-panel
+mode and loaded SPY only through the now-active Yellow p1, so p0 remained the
+blank `Search chart symbol` panel and p1 held SPY. This is product state loss,
+not authority to select another panel or weaken the SPY assertion. Exact
+artifacts remain at
+`/tmp/tc-f8n-range-4525-20261020T0156Z/artifacts/focused/test-results/flows-TC2000-workstation-F-d45e5-wildcard-and-grey-isolation-chromium`;
+trace SHA-256 is
+`bb7a04832c229771ed41a8e87f4a8a731d972e3c3615eb463e70941563e51709`.
+
+The separately authorized slice then ran only the five cases that had not
+executed. F8n-crosshair passed; F8n-gesture failed hard at its first Shift-pan
+recovery because Go to latest never appeared; F8k and both F8u cases did not
+run. Result: `1` passed, `1` failed and `3` did not run. The unchanged eight
+ordinary Shift+wheel events all reached the live primary-chart overlay, and
+the same older-page request prepended 20 local bars. The trace also records
+three additional identical `/instrument-indicators/2` hydrations after the
+chart had reported ready and gestures had begun. Multiple mounted virtual
+chart roots share `workstation-primary-chart`; each can call `loadBars`, advance
+the shared generation, clear bars and rebuild the renderer. That evidence
+disproves closure by the requested-range helper alone. Exact artifacts remain
+at
+`/tmp/tc-f8n-range-4525-20261020T0156Z/artifacts/focused-unexecuted/test-results/flows-TC2000-workstation-F-18663-pad-pan-and-latest-recovery-chromium`;
+trace SHA-256 is
+`7fc4278c116c09ef72bbacb377cb762962884ca8b46de676c49c0c8520afd968`.
+
+No further browser run was made. The browser allow proxy logged no request.
+The application deny proxy logged four blocked outbound attempts; no outbound
+connection succeeded. After preserving artifacts, exact label and image checks
+preceded cleanup. Only the fixture's eight containers, four volumes, two
+networks and four uniquely tagged revision-`4525` images were removed. The
+before/after retained-container inventories are both `55/55` with no missing
+ID; assigned TC services/data were untouched. The exact fixture now has zero
+containers, volumes, networks or image tags. Fresh memory available after
+cleanup was 2,452 MiB.
+
+The next source context is deliberately separate: add a deterministic red
+regression for duplicate identical hydration against one shared chart store,
+then coalesce only the matching in-flight selection/timeframe/bar-type/local-
+mode/transform request. Different requests, teardown generations and a later
+settled refresh must remain distinct. F8m's presets/layout handoff race remains
+separate unless a deterministic regression proves the same cause. No browser,
+Compose or full104 run is permitted for that correction until the coordinator
+releases another slot. TCP2-TCP5, Provider/ETF consumption and official
+`REF-HELP-V25` parity remain open.

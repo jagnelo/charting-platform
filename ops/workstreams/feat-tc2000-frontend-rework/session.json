@@ -52,11 +52,8 @@
     "visuals": "No pixel pass inferred; TCP2 full 104-case matrix and official V25 parity remain open."
   },
   "dirty_paths": [
-    "frontend/src/components/chart/UPlotChart.vue",
-    "frontend/src/lib/workstation/chart-projection.ts",
-    "frontend/tests/e2e/flows.spec.ts",
-    "frontend/tests/unit/components/test_chart_plot_library.test.ts",
-    "frontend/tests/unit/lib/test_chart_projection.test.ts",
+    "frontend/src/stores/chart.ts",
+    "frontend/tests/unit/stores/test_stores.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
@@ -110,7 +107,7 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "f21b66af7463d9d7330f65da10f85b79583c49b6",
+  "head": "4525a2e45169b595a1b00cbe8e9adcb9564c173a",
   "implementation_sha": "918b81eb06f1fb2979781946ddbf8b991b580703",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -143,7 +140,7 @@
     }
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-20T01:42:00+00:00",
+  "last_checkpoint": "2026-10-20T02:28:14+00:00",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
@@ -176,8 +173,8 @@
     "artifact_id": 12230757066,
     "artifact_sha256": "4eeeb028074031b05725efc6ab9c9b479834fdf5e353dd6d11e370bc3cc32d29",
     "base_sha": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
-    "classification": "F8u searched a removed label span after TC made the label an accessible settings button; isolated f21 ordinary drag now passes. F8n hydration targeting is corrected. Both retained failures issue the same local older-page request after zoom and prepend20 bars (500 to520) during TC's consecutive Shift-plus-horizontal recovery sequence. The target is the primary chart; the lower Relative Strength crosshair is linked output. uPlot setScale defers scale commit to a microtask while the old component derived isAtLatest from the stale committed scale. Staging-based source299 passes only a simpler single horizontal recovery, so its pass is environmental evidence rather than equivalent coverage.",
-    "focused_checks": "Isolated f21 five-case run4_pass_1_F8n_fail; unchanged F8m1_pass; chart_projection4/4; ChartPlotLibrary45/45; conditional_uplot_lifecycles33/33; targeted ESLint; git diff --check",
+    "classification": "Exact4525 is unaccepted. Its six-case run stopped at hard F8m with five not run; trace timing proves deferred URL-symbol bootstrap resumed after presets and hydrated only the panel made active during the await. The separate five-unexecuted slice passed F8n-crosshair, failed F8n-gesture at first Shift recovery and left three unrun. F8n records the20-bar prepend plus three later identical hydrations against the shared primary-chart store, so requested-range classification alone is insufficient. A separate baseline-red unit now owns exact in-flight hydration coalescing.",
+    "focused_checks": "Exact4525 F8m1_fail_5_not_run; separate F8n-crosshair1_pass_F8n-gesture1_fail_3_not_run; fixture removed55_of_55 retained; duplicate-hydration baseline1_fail40_skip; corrected chart-store43/43 pass",
     "source_paths": [
       "frontend/tests/e2e/flows.spec.ts",
       "frontend/tests/unit/components/test_chart_plot_library.test.ts",
@@ -185,11 +182,11 @@
       "frontend/src/lib/workstation/chart-projection.ts",
       "frontend/tests/unit/lib/test_chart_projection.test.ts"
     ],
-    "state": "f21_local_unpublished_plus_dirty_product_range_state_fix_pending_next_released_browser_slot",
-    "visual_followup": "Full104 remains deferred until F8n/F8u close and the coordinator separately releases capacity."
+    "state": "exact4525_local_unpublished_unaccepted;duplicate_identical_hydration_fix_dirty_pending_stack_free_review_and_future_browser_slot",
+    "visual_followup": "Full104 remains deferred until F8n and F8m close and the coordinator separately releases capacity."
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Root owns the sole heavy slot for its live104 visual matrix. Keep TC offline; at the next explicit slot, prove the dirty requested-range latest-state fix with unchanged zero-retry F8n-gesture in one isolated internal-only fixture. Do not restart cancelled diagnostic83 or launch full104 first.",
+  "next_action": "Keep TC offline. Complete focused stack-free review of the duplicate-identical-hydration correction, then report the exact candidate and wait for a coordinator-released browser slot to run unchanged zero-retry F8n/F8m proof. Do not launch full104 first.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -218,17 +215,17 @@
     "completed": [
       "TCP1"
     ],
-    "current_blocker": "Exact13ee CI is terminal red on hard F8u and retry-passing F8m. Local f21 proves F8u and unchanged F8m but still fails TC's consecutive F8n recovery after real primary-chart wheel input. Both retained F8n traces prepend20 local bars during gestures; source299 passes only a simpler single recovery. A narrow dirty product correction derives latest state from the requested range because uPlot commits scales asynchronously; deterministic unit coverage passes but runtime proof awaits the next released heavy slot. TCP3 awaits accepted Provider then ETF releases; TCP4-TCP5 and REF-HELP-V25 remain open.",
-    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_F8N_PRODUCT_RANGE_STATE_FIX_PENDING_RUNTIME_PROOF_THEN_FULL104_OPEN;TCP3_PROVIDER_ETF_RELEASE_AND_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
-    "next_action": "Root owns the sole heavy slot for live104 visuals. When explicitly reassigned, run unchanged zero-retry F8n-gesture against the dirty range-state fix in one isolated internal-only fixture before any full104 matrix.",
+    "current_blocker": "Exact4525 is runtime-red and unaccepted: F8m lost p0 during deferred presets/URL bootstrap, and the separate unexecuted slice failed first F8n Shift recovery while duplicate shared-store hydrations landed. The exact fixture is removed with55/55 retained IDs. A baseline-red unit proves the duplicate-identical-load defect; the narrow candidate passes43 chart-store tests but still requires stack-free review and unchanged focused browser proof in a future slot. TCP3 awaits accepted Provider then ETF releases; TCP4-TCP5 and REF-HELP-V25 remain open.",
+    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_DUPLICATE_HYDRATION_FIX_DIRTY_F8M_SEPARATE_AND_FULL104_OPEN;TCP3_PROVIDER_ETF_RELEASE_AND_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
+    "next_action": "Finish stack-free review of the duplicate-identical-hydration correction, publish only after coherent evidence, then await an explicit focused browser slot for unchanged F8n/F8m proof before full104.",
     "total": 5,
-    "updated_at": "2026-10-20T01:42:00+00:00"
+    "updated_at": "2026-10-20T02:28:14+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "f21b66af7463d9d7330f65da10f85b79583c49b6",
-    "current_pending_range": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7..f21b66af7463d9d7330f65da10f85b79583c49b6 plus uncommitted product range-state fix",
+    "current_local_head": "4525a2e45169b595a1b00cbe8e9adcb9564c173a",
+    "current_pending_range": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7..4525a2e45169b595a1b00cbe8e9adcb9564c173a plus uncommitted duplicate-identical-hydration correction and owner evidence",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
@@ -236,7 +233,7 @@
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
     "remote_tracking_sha": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
-    "status": "origin remains at terminal-red guard13ee; local f21 observer candidate and dirty requested-range product correction are unpublished pending focused runtime proof"
+    "status": "origin remains at terminal-red guard13ee; local4525 is runtime-red and unaccepted; the separate dirty duplicate-identical-hydration correction is unpublished pending stack-free review and a future focused browser slot"
   },
   "remote": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
   "remote_sha": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
