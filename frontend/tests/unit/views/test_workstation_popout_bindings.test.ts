@@ -1,5 +1,5 @@
 import { defineComponent } from 'vue'
-import { mount as rawMount, type MountingOptions } from '@vue/test-utils'
+import { flushPromises, mount as rawMount, type MountingOptions } from '@vue/test-utils'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -36,7 +36,7 @@ const harness = vi.hoisted(() => {
     workspace: { id: 1, is_default: false, name: 'US Top Down', tabs: [tab], settings: { factory_id: 'us-top-down' } },
     workspaces: [{ id: 1, name: 'US Top Down', is_default: false, position: 0, revision: 1 }],
     activeTabKey: 'us-top-down',
-    activeTab: tab,
+    activeTab: tab as typeof tab | null,
     linkedSymbol: 'SPY',
     linkedTimeframe: 'D1',
     isPersistenceLeader: true,
@@ -82,7 +82,9 @@ const routeState = vi.hoisted(() => ({ path: '/popout/benchmark-list', params: {
 const apiGet = vi.hoisted(() => vi.fn().mockResolvedValue([]))
 
 vi.mock('@/stores/workspace', () => ({
-  OPENABLE_WORKSTATION_TOOLS: [],
+  OPENABLE_WORKSTATION_TOOLS: [
+    { tool_type: 'research_results', title: 'Study Results', instance_prefix: 'research-results', configuration: {} },
+  ],
   useWorkspaceStore: () => harness.workspace,
 }))
 vi.mock('@/stores/chart', () => ({
@@ -147,8 +149,80 @@ describe('WorkstationView pop-out bindings', () => {
     apiGet.mockReset()
     apiGet.mockResolvedValue([])
     harness.workspace.loadDefault = vi.fn().mockResolvedValue(undefined)
+    harness.workspace.activeTab = harness.workspace.workspace.tabs[0]
+    harness.workspace.openTool.mockReset()
     harness.workspace.marketGroups = { 'us-benchmarks': { members: [] }, 'sp500-sectors': { members: [] } }
     harness.recent.recent = [{ symbol: 'XLK', name: 'Technology Select Sector SPDR Fund', viewedAt: 2 }]
+  })
+
+  it('acknowledges a cold tool command immediately and applies it exactly once after hydration', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    const tab = harness.workspace.activeTab
+    harness.workspace.activeTab = null
+    let finishLoad!: () => void
+    harness.workspace.loadDefault.mockImplementation(() => new Promise<void>(resolve => { finishLoad = resolve }))
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await wrapper.get('.workstation__tool-library > button').trigger('click')
+      await wrapper.get('.workstation__tool-library-menu [role="menuitem"]').trigger('click')
+      expect(harness.workspace.openTool).not.toHaveBeenCalled()
+      expect(wrapper.find('.workstation__tool-library-menu').exists()).toBe(false)
+    } finally {
+      harness.workspace.activeTab = tab
+      finishLoad()
+      await flushPromises()
+      wrapper.unmount()
+    }
+    expect(harness.workspace.openTool).toHaveBeenCalledTimes(1)
+    expect(harness.workspace.openTool).toHaveBeenCalledWith(
+      expect.objectContaining({ tool_type: 'research_results', title: 'Study Results' }),
+      {},
+    )
+  })
+
+  it('cancels an accepted cold tool command when its workstation unmounts before hydration', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    const tab = harness.workspace.activeTab
+    harness.workspace.activeTab = null
+    let finishLoad!: () => void
+    harness.workspace.loadDefault.mockImplementation(() => new Promise<void>(resolve => { finishLoad = resolve }))
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    await wrapper.get('.workstation__tool-library > button').trigger('click')
+    await wrapper.get('.workstation__tool-library-menu [role="menuitem"]').trigger('click')
+    expect(harness.workspace.openTool).not.toHaveBeenCalled()
+    wrapper.unmount()
+    harness.workspace.activeTab = tab
+    finishLoad()
+    await flushPromises()
+    expect(harness.workspace.openTool).not.toHaveBeenCalled()
+  })
+
+  it('opens a tool immediately if a usable tab exists while initial loading remains pending', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    let finishLoad!: () => void
+    harness.workspace.loadDefault.mockImplementation(() => new Promise<void>(resolve => { finishLoad = resolve }))
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await wrapper.get('.workstation__tool-library > button').trigger('click')
+      await wrapper.get('.workstation__tool-library-menu [role="menuitem"]').trigger('click')
+      expect(harness.workspace.openTool).toHaveBeenCalledTimes(1)
+      expect(wrapper.find('.workstation__tool-library-menu').exists()).toBe(false)
+      finishLoad()
+      await flushPromises()
+      expect(harness.workspace.openTool).toHaveBeenCalledTimes(1)
+    } finally {
+      finishLoad()
+      wrapper.unmount()
+    }
   })
 
   it('forwards watchlist persistence and proxy events from a floated tool to the shell', async () => {

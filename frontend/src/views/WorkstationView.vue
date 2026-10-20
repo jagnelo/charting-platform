@@ -1098,6 +1098,10 @@ async function selectIndustryProxy(symbol: string, instrumentId?: number | null)
 }
 
 async function openTool(tool: OpenableToolDefinition, configurationOverride: Record<string, unknown> = {}) {
+  // Acknowledge the accepted command before hydration can suspend it. Keeping
+  // the menu open makes a queued ordinary click indistinguishable from a lost
+  // click and invites a second activation of the same command.
+  toolLibraryOpen.value = false
   // A shell click can arrive before the asynchronous onMounted hook marks the
   // component live. Wait for that lifecycle boundary instead of yielding one
   // render turn and accidentally dropping the first Add-tool action on a cold
@@ -1114,6 +1118,7 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
   // wait for readiness when there is no active tab to mutate at all.
   if (!workspaceReady.value && !workspaceStore.activeTab) {
     if (workspaceLoadPromise) await workspaceLoadPromise
+    if (!componentMounted) return
     // The click can arrive in the same turn as component mount, before the
     // onMounted callback has assigned its load promise. Wait on the explicit
     // readiness signal instead of silently dropping the user's command after
@@ -1121,12 +1126,15 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
     // hydrating.
     if (!workspaceReady.value && !workspaceStore.activeTab) await workspaceReadyPromise
   }
+  // The user may have left this workstation while its snapshot was loading.
+  // The old view must never apply a pending command to the shared store after
+  // teardown (including a tab now owned by the replacement view).
+  if (!componentMounted) return
   if (!workspaceStore.activeTab) {
     workspaceStore.error = 'The workstation layout is not available yet; please retry the tool action.'
     return
   }
   const opened = workspaceStore.openTool(tool, configurationOverride)
-  toolLibraryOpen.value = false
   if (!opened) return
   await nextTick()
   // Golden Layout can finish creating the tab after its virtual component has
@@ -1138,6 +1146,7 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
   // interaction until the DOM confirms the requested tab is active; this is
   // bounded and exits immediately once the user-visible state is correct.
   for (let attempt = 0; attempt < 40; attempt += 1) {
+    if (!componentMounted) return
     const toolRoot = [...document.querySelectorAll<HTMLElement>('[data-tool-key]')]
       .find(candidate => candidate.dataset.toolKey === opened.instance_key)
     // Do not fall back to a same-titled tab while the new virtual component is
