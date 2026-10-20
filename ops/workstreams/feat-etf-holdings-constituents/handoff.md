@@ -1,5 +1,102 @@
 # feat/etf-holdings-constituents
 
+## Isolated shared-runtime DB/Redis slot — 2026-10-20
+
+Coordinator assigned the next exclusive narrow ETF DB/Redis validation slot
+after safely stopping four old Provider temporary projects. The retirement
+receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/provider-old-fixture-safe-retirement-20261020.md`;
+it confirms only those four projects were stopped, all 16 of their volumes
+remain, and assigned Provider/TC services were not stopped. This slot authorizes
+only a fresh generated database, mocked transports, bounded single-worker
+tests, and modest explicit service memory limits; it does not authorize a full
+application/browser stack, retained-fixture reuse, live traffic, or cleanup of
+other resources.
+
+Prelaunch inventory on exact ETF source `684812f39cd0c479bd837ece2dafcd745c4e52d5`:
+
+- Existing claim/worktree remains this ETF branch; local HEAD equals origin,
+  and the worktree was clean.
+- `scripts/agent-session.py resources` reports ETF worktree ID
+  `feat-etf-holdings-constituents-fdc36fa27a`, no ETF containers, no ETF
+  volumes, and only the two usual ETF Compose project names (not running).
+- Existing shared host projects and retained volumes were inventoried
+  read-only. Provider/TC assigned services and the unrelated running Stremio
+  services were left untouched. Old Provider containers/volumes remain present
+  but stopped/retained as documented by the retirement receipt.
+- Host port 5432 is occupied by an existing service and is not used. Ports
+  15432 and 16379 were free at inventory time. No container or volume named
+  for the new source-qualified project existed.
+- Planned exact temporary Compose project:
+  `etf-db-684812f39cd0-20261020`; only services `postgres` and `redis`, labelled
+  with ETF worktree ID `feat-etf-holdings-constituents-fdc36fa27a`.
+- Planned fresh generated volumes:
+  `etf-db-684812f39cd0-20261020_postgres_dev_data` and
+  `etf-db-684812f39cd0-20261020_redis_dev_data`. They are distinct from all
+  Provider/TC retained volume names. No retained dataset will be mounted or
+  seeded.
+- The bounded profile points `TEST_DATABASE_URL` and `TEST_REDIS_URL` only at
+  these fresh services. PostgreSQL uses explicit 768 MiB / 1 CPU and Redis
+  256 MiB / 0.5 CPU limits. The Provider runtime's durable quota coordinator
+  is PostgreSQL-backed; Redis was health-checked, not represented as part of
+  Provider admission. Network transports are in-process HTTPX MockTransport.
+
+The first containers were launched with the base Compose wildcard bindings.
+Before the test result was considered usable, independent review identified
+that `HostIp` was empty on ports 15432/16379. The initial two-test result
+(`2 passed in 13.25s`) is therefore retained only as historical evidence under
+the wildcard fixture and is superseded for validation. No tests were run while
+the corrected boundary was pending.
+
+Compose 2.40.3 supports `!override`; the temporary override replaces (does not
+append to) both base port lists with exactly `127.0.0.1:15432:5432` and
+`127.0.0.1:16379:6379`. The exact `postgres` and `redis` services were
+force-recreated under project `etf-db-684812f39cd0-20261020`, without `down`,
+volume removal, or touching other services. Their generated volumes were
+preserved. Post-recreation `docker inspect` verified HostIp `127.0.0.1` on
+both bindings and the same project-qualified volume mounts. Both container
+health checks reached `healthy`; `pg_isready` reported accepting connections
+and Redis `PING` returned `PONG`.
+
+After that verification, the corrected bounded command was run once with one
+pytest process and a 300-second hard timeout:
+`timeout --signal=INT --kill-after=5s 300s .venv/bin/pytest tests/integration/test_etf_holdings_provider_bridge_runtime.py -q --no-cov`.
+It completed normally: `2 passed in 12.92s`; no external HTTP was used. The
+quota assertions now treat `ProviderQuotaWindow` rows as rolling per-second
+buckets: they verify whole-second unique bucket starts, the 60-second window
+contract, and exact aggregate reserved/consumed units. Exact per-physical-hop
+evidence remains independently asserted: two request logs, two settled shared
+reservations, two one-request transports, and two consumed units. The prior
+assertion that bucket-row count should equal physical request count has been
+removed because crossing a wall-clock second can produce either one or two
+valid buckets.
+
+The successful result validates only this bounded shared-runtime redirect and
+pre-transport denial profile. It does not close failed-attempt lineage,
+concurrency/restart, SEC/discovery, API/worker or PIT consumer gaps, nor the
+required full-stack/browser profile or checkpoint. No data-source request or
+quota spend is authorized. MSMR/QQQ and Militia/GOOG quarantines and the full
+acceptance roadmap remain unchanged; generated volumes are retained.
+
+Coordinator's exact-source CI review for `684812f39cd0c479bd837ece2dafcd745c4e52d5`
+is terminal red at Actions `39504688326`: Backend unit passed, integration had
+4 failures/402 passes, Frontend passed, and later branch/E2E jobs were skipped.
+The independent review records concentration and breadth data-window mismatches,
+a stale-current ETF constituent expectation, and an industry-proxy current-mode
+expectation. Preserve that red run; no CI rerun occurred. A bounded local run of
+the four named consumer tests after initial test edits returned 3 passed and 1
+failed: the breadth fixture's temporary 2024 as-of preceded the seeded
+benchmark-family `known_at`, and the API correctly returned
+`market_group_not_known_at`. That partial consumer investigation is separate
+from the DB-slot evidence and must be resolved with coherent group/holdings/bar
+known-at facts, not a relaxed status assertion.
+
+Next independent DB work remains actual concurrent reservation/admission
+contention and durable failed-attempt request-log lineage; neither is covered by
+the current 2-test profile. Preserve the two healthy loopback-only containers
+and generated volumes for the assigned remaining bounded DB work. Do not stop,
+recreate, or clean them or any other project without coordinator direction.
+
 ## Accepted Provider release and ETF-only reconciliation — 2026-10-20 20:58Z
 
 Provider is accepted and released in synchronized green staging at exact SHA
