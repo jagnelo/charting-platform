@@ -37,18 +37,18 @@
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "current_exact_ci": {
     "attempt": 1,
-    "conclusion": "success",
-    "e2e_summary": "E2E job 118349565204 reported 190 passed and 110 expected skips in 16.7m, with no retry, flaky or failure. F9c-transform executed once and the strict lifecycle-performance case passed.",
-    "head_sha": "57d1767926eb96d98909712bf22c74ee9be6d443",
+    "conclusion": "failure",
+    "e2e_summary": "E2E job 118369687512 reported 189 passed, 110 expected skips and two hard failures in both attempts: F8n-gesture real zoom/pan/latest recovery and F8u RSI plot drag-source readiness.",
+    "head_sha": "5da1dab3fb448165dced330c8bf61eecfcdc8aea",
     "jobs": {
       "backend": "success",
       "branch_declared": "success",
-      "e2e": "success; 190 passed, 110 expected skips, zero retry/flaky/failure",
+      "e2e": "failure; 189 passed, 110 expected skips, F8n-gesture and F8u failed both attempts",
       "exhaustive_feature_branch": "skipped by branch policy",
       "frontend_unit": "success"
     },
-    "run_id": 39336228008,
-    "status": "terminal green on exact published source 57d1767926eb96d98909712bf22c74ee9be6d443; transform-route lifecycle repair context closed",
+    "run_id": 39342525119,
+    "status": "terminal red on exact published common-staging merge 5da1dab3fb448165dced330c8bf61eecfcdc8aea; artifact 12230757066 retained",
     "visuals": "No pixel pass inferred; TCP2 full 104-case matrix and official V25 parity remain open."
   },
   "dirty_paths": [],
@@ -100,7 +100,7 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "enclosing_merge_commit_for_281a57bd9fb782c0f85bfb5127c713ea15037f68",
+  "head": "enclosing_frozen_upstream_import_guard_commit",
   "implementation_sha": "918b81eb06f1fb2979781946ddbf8b991b580703",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -133,26 +133,36 @@
     }
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-19T23:20:11+00:00",
+  "last_checkpoint": "2026-10-20T00:01:08+00:00",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
-    "conclusion": "success",
-    "e2e_summary": "190 passed, 110 expected skips, zero retry/flaky/failure; F9c-transform and strict lifecycle-performance test passed",
-    "head_sha": "57d1767926eb96d98909712bf22c74ee9be6d443",
+    "conclusion": "failure",
+    "e2e_summary": "189 passed, 110 expected skips, two hard failures in both attempts: F8n-gesture and F8u",
+    "head_sha": "5da1dab3fb448165dced330c8bf61eecfcdc8aea",
     "jobs": {
       "backend": "success",
       "branch_declared": "success",
-      "e2e": "success_190_passed_110_expected_skips_zero_retry_flaky_failure",
+      "e2e": "failure_189_passed_110_expected_skips_f8n_gesture_and_f8u_failed_both_attempts",
       "exhaustive_feature_branch": "skipped_by_branch_policy",
       "frontend_unit": "success"
     },
-    "run_id": 39336228008,
-    "scope": "Exact published source 57d1767926eb96d98909712bf22c74ee9be6d443. Backend, Frontend Unit, Branch-declared and E2E passed on attempt1. F9c-transform executed once; terminal E2E was190 passed and110 expected skips with no retry, flaky or failure. Exhaustive remained skipped by feature-branch policy.",
+    "run_id": 39342525119,
+    "scope": "Exact published common-staging merge 5da1dab3fb448165dced330c8bf61eecfcdc8aea. Backend, Frontend Unit and Branch-declared passed. E2E job118369687512 was terminal red with189 passed,110 expected skips and hard F8n-gesture and F8u failures in both attempts. Artifact12230757066 is retained; Exhaustive remained skipped by feature-branch policy.",
     "visuals": "No pixel pass inferred; TCP2 full 104-case local visual matrix and official V25 parity remain open."
   },
+  "frozen_upstream_import_guard": {
+    "approved_snapshot": "281a57bd9fb782c0f85bfb5127c713ea15037f68",
+    "baseline": "2b92c642237ce2abde40a84ee98383d4ee4285d1",
+    "candidate_source": "enclosing_frozen_upstream_import_guard_commit",
+    "coordinator_review": "approved for coherent publication at script digest 47eeb060ae3162a5640360e6198546cb32b4bae6be5e423c981c54dc4c6b60f3 and manifest digest b72c0133d25361923c45bd2b28c016813d687feba01aaa56b816c4d518854ec2",
+    "immutable_paths": 22,
+    "receipt_sha256": "cb71f88b6df454161d373f6208ef868d2d257febb31f2f19e2ad86db795d565c",
+    "result": "UV self-test 29 pass; actual guard 51 paths pass with 22 immutable imports; workstream, Python, YAML/JSON/JSONL and diff checks pass",
+    "trust_boundary": "Every future released Provider/ETF snapshot, manifest and canonical receipt requires a new explicit coordinator approval; no blanket future import authority."
+  },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Wait for either a coordinator-granted heavy browser slot for the full normalized104-case TCP2 matrix or accepted Provider then ETF green staging releases for TCP3. Do not import sibling objects or merge a common-repair-only staging baseline.",
+  "next_action": "Publish the single approved frozen-import guard correction and inspect its exact automatic CI. Keep the historical 5da F8n/F8u failures open; TCP2 full104 and TCP3 Provider/ETF consumers remain gated by coordinator capacity/releases.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -165,7 +175,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "2620cee88304392d227e3e9e5bfcc3b5f23b2e080097b315d3798412d359a078",
+  "plan_hash": "2ed5732481cc4f4cce2bb8db6b29e68df6fbcf8c48d9460d0f86c811c7a9aa32",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -181,28 +191,28 @@
     "completed": [
       "TCP1"
     ],
-    "current_blocker": "The enclosing merge reconciles exact green common staging281a57bd/CI39335198284 while preserving TC hydration, route-lifecycle, mount-cleanup and plot-drop behavior plus staging tokenized occurrence ownership and F9c geometry. Exact branch CI is pending. TCP2 full104 awaits a coordinator-granted heavy browser slot; TCP3 awaits accepted Provider then ETF product releases. TCP4-TCP5 and REF-HELP-V25 remain open.",
+    "current_blocker": "The approved frozen-import guard candidate is ready for one coherent publication. Historical exact merge run39342525119 is red on hard F8n-gesture and F8u failures. TCP2 full104 awaits a coordinator-granted heavy browser slot; TCP3 awaits accepted Provider then ETF product releases. TCP4-TCP5 and REF-HELP-V25 remain open.",
     "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_FULL_VISUAL_AND_FUNCTIONAL_GATES_OPEN;TCP3_PROVIDER_ETF_RELEASE_AND_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
-    "next_action": "Publish this exact common-baseline merge after stack-free checks and observe its automatic exact-source CI once. Then use the next coordinator-granted heavy browser slot for TCP2 or consume only later accepted Provider-then-ETF product staging for TCP3.",
+    "next_action": "Commit and push the single reviewed frozen-import guard correction, then inspect its automatic exact-source CI once. Do not import Provider023 or start a heavy local profile.",
     "total": 5,
-    "updated_at": "2026-10-19T23:20:11+00:00"
+    "updated_at": "2026-10-20T00:01:08+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "enclosing_merge_commit_for_281a57bd9fb782c0f85bfb5127c713ea15037f68",
-    "current_pending_range": "f9dd0d3febd34f0274303671d673d63939d1fa10 plus exact staging parent 281a57bd9fb782c0f85bfb5127c713ea15037f68",
+    "current_local_head": "enclosing_frozen_upstream_import_guard_commit",
+    "current_pending_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..enclosing_frozen_upstream_import_guard_commit",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
-    "last_attempted_local_head": "f9dd0d3febd34f0274303671d673d63939d1fa10",
-    "last_attempted_range": "57d1767926eb96d98909712bf22c74ee9be6d443..f9dd0d3febd34f0274303671d673d63939d1fa10",
+    "last_attempted_local_head": "5da1dab3fb448165dced330c8bf61eecfcdc8aea",
+    "last_attempted_range": "f9dd0d3febd34f0274303671d673d63939d1fa10..5da1dab3fb448165dced330c8bf61eecfcdc8aea",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "f9dd0d3febd34f0274303671d673d63939d1fa10",
-    "status": "owner-record closure f9dd0d3f is synchronized; exact common-staging backmerge is pending enclosing commit, push and automatic CI"
+    "remote_tracking_sha": "5da1dab3fb448165dced330c8bf61eecfcdc8aea",
+    "status": "common-staging merge5da1dab3 is synchronized with terminal-red exact CI; reviewed frozen-import correction is pending one enclosing commit/push and automatic CI"
   },
-  "remote": "f9dd0d3febd34f0274303671d673d63939d1fa10",
-  "remote_sha": "f9dd0d3febd34f0274303671d673d63939d1fa10",
+  "remote": "5da1dab3fb448165dced330c8bf61eecfcdc8aea",
+  "remote_sha": "5da1dab3fb448165dced330c8bf61eecfcdc8aea",
   "remote_synchronized": false,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",

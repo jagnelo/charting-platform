@@ -21679,3 +21679,65 @@ both the staged index and working tree. The scope guard then passed all `48`
 changed paths and all six fail-closed self-tests. Any later drift in those
 frozen paths requires explicit ownership reconciliation rather than a broader
 exception.
+
+## 2026-10-20 00:01Z — Common-merge exact CI closed red
+
+Automatic exact-source run `39342525119` completed on published merge
+`5da1dab3fb448165dced330c8bf61eecfcdc8aea`. Backend, Frontend Unit and
+Branch-declared jobs passed; the feature Exhaustive job was skipped by policy.
+E2E job `118369687512` remained red with `189` passed, `110` expected skips and
+two hard failures that failed both attempts. `F8n-gesture` did not expose the
+real go-to-latest recovery control on its first attempt and then lacked the
+expected plot hit-test on retry. `F8u` could not find the RSI plot drag source
+in either attempt. The report is retained as artifact `12230757066` with ZIP
+digest `4eeeb028074031b05725efc6ab9c9b479834fdf5e353dd6d11e370bc3cc32d29`.
+No retry, timeout, assertion, product behavior or visual policy was changed.
+
+This terminal result closes the publication receipt for the common merge; it
+does not validate that merge as a TC checkpoint. Both failures remain real TC
+functional gates, and the new ownership-guard work below is independent of
+them. Ordinary hosted CI continued to skip the `104` protected visual cases.
+
+## 2026-10-20 00:01Z — Frozen upstream imports become immutable
+
+The TC scope guard retains the original approved checkpoint `2b92c642`, the
+unchanged ownership ledger/counts, ordinary `authorized(path, plan)` behavior,
+and every Provider/ETF exclusion. The `22` frozen coordinator files imported
+from released green staging `281a57bd9fb782c0f85bfb5127c713ea15037f68`
+have been removed from writable shared-path exceptions. They now live in one
+explicit immutable manifest. Every present file pins an exact Git mode and
+blob; explicit deletions are supported. The guard verifies both the staged
+index and worktree, so later staged or unstaged content/mode drift, deletion,
+replacement or symlink substitution fails.
+
+Portable approval proof is a separate exact-snapshot allowlist plus the
+tracked canonical release receipt. That receipt is byte-for-byte equal to
+`/home/m920q/charting-platform/.ai/staging-attempts/20261019T230653Z-281a57bd9fb7.json`
+and has SHA-256
+`cb71f88b6df454161d373f6208ef868d2d257febb31f2f19e2ad86db795d565c`.
+The guard parses and verifies its green state, exact staging SHA, Actions run
+URL/ID, starting-staging ancestry, merge shape and released source ancestry.
+The released staging snapshot must also enter TC as a non-first-parent merge
+after `2b92c642`, or be the exact active `MERGE_HEAD` during a pending merge.
+
+The UV-managed self-test reports `29/29` passing checks: the original six are
+unchanged, and focused fixtures cover committed and active-merge positives;
+unapproved-but-merged and approved-but-unmerged sources; receipt byte, state,
+source and run drift; additions and deletions; index/worktree byte and mode
+drift; symlinks; wildcard/traversal paths; unknown references and snapshot blob
+mismatch. The actual guard accepts `51` changed paths, with exactly `22`
+byte-verified immutable imports. Workstream validation, Python compilation,
+YAML/JSON checks and `git diff --check` pass. Coordinator review approved exact
+script digest `47eeb060ae3162a5640360e6198546cb32b4bae6be5e423c981c54dc4c6b60f3`
+and manifest digest
+`b72c0133d25361923c45bd2b28c016813d687feba01aaa56b816c4d518854ec2`.
+
+The approval list is a reviewed repository policy boundary, not a cryptographic
+signature. Every future Provider or ETF entry requires a new coordinator
+approval for the actual released green staging SHA, its exact path manifest and
+canonical receipt. If an already-frozen file changes, the new manifest must
+supersede the old reference and repeat the complete current frozen set. This
+mechanism does not approve Provider `023d30c6`, any sibling import, staging
+integration, or product acceptance. TCP2's full `104` visual matrix, TCP3
+Provider/ETF consumers, TCP4 combined validation, TCP5 closure and official
+`REF-HELP-V25` parity remain open.

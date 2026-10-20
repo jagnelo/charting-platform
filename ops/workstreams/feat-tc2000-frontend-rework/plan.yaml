@@ -30,24 +30,34 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  The enclosing merge reconciles exact synchronized green common staging
-  281a57bd9fb782c0f85bfb5127c713ea15037f68 / run39335198284 into the TC
-  branch under the coordinator's bounded authorization. It preserves TC's
-  local-chart hydration optimization, transform-route continuation ordering,
-  mount cleanup and plot-drop validation while accepting staging's tokenized
-  occurrence-date ownership, F8u common repair, F9c geometry and ordinary
-  populated-comparison regression. This common baseline is not Provider, ETF,
-  TC or Strategy product-checkpoint acceptance.
+  Exact green common staging281a57bd9fb782c0f85bfb5127c713ea15037f68
+  is already reconciled by merge5da1dab3. The current independent candidate
+  repairs only TC's future upstream-import scope mechanics:22 coordinator files
+  formerly listed as writable shared exceptions are now immutable entries tied
+  to an explicit approved snapshot and a tracked byte-identical canonical green
+  receipt. Ordinary authorized(path,plan), the fixed2b92 checkpoint, ownership
+  ledger/counts and Provider/ETF exclusions remain unchanged. Both index and
+  worktree must match every pinned blob/mode or explicit deletion, and the
+  approved staging snapshot must have receipt and TC merge ancestry.
 
-  Cheap exact-merge scope, workstream, syntax/diff and Playwright-discovery
-  checks remain required before publication, followed by normal exact-source
-  CI. Provider owns the heavy local slot, so no local browser, Compose, build,
-  typecheck or full matrix runs are authorized here. TCP2 still requires the
-  complete normalized104-case matrix in a granted isolated slot. TCP3 remains
-  gated on later accepted Provider then ETF product staging releases; TCP4,
-  TCP5 and every full-roadmap criterion remain open. The reviewed local-only
-  Help reference and unchanged0.005 tolerance remain intact, and
-  REF-HELP-V25 remains required_missing.
+  The exact pre-correction merge run39342525119 is terminal red on5da1dab3:
+  Backend, Frontend and Branch-declared passed, while E2E job118369687512
+  reported189 passed/110 expected skips and two hard failures in both attempts.
+  F8n-gesture failed its real zoom/pan/latest recovery checks, and F8u could not
+  find the RSI plot drag source. Artifact12230757066 is retained. This is an
+  honest historical merge receipt, not a guard-candidate result or permission
+  to weaken either behavior.
+
+  The separate approved-snapshot list remains a reviewed policy trust boundary,
+  not a cryptographic signature. Synthetic checks cover committed and active
+  merge provenance, an unapproved merged source, an approved unmerged source,
+  receipt state/source/run mismatches, additions/deletions, byte/mode drift,
+  symlinks and malformed paths. The already-running exact merge CI must finish
+  before this one coherent correction is published. No Provider or ETF source
+  is imported or accepted. TCP2 normalized104, TCP3 released Provider/ETF
+  consumers, TCP4, TCP5 and every full-roadmap criterion remain open; the
+  reviewed local-only Help reference, unchanged0.005 tolerance and
+  REF-HELP-V25 required_missing state remain intact.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -766,56 +776,43 @@ shared_path_exceptions:
     reason: Shared staging integration implementation carried by the released 0145 common-repair merge; coordinator-owned workflow behavior.
   - path: tests/workflow/test_staging_workflow.py
     reason: Shared staging workflow regression tests carried by the released 0145 common-repair merge; coordinator-owned test infrastructure.
-  - path: ops/workflow-validation.jsonl
-    reason: Append-only coordinator workflow-validation evidence carried unchanged by released common staging281a57bd.
-  - path: ops/workstreams/fix-chart-template-key-generation/handoff.md
-    reason: Frozen coordinator repair handoff carried unchanged by released common staging281a57bd.
-  - path: ops/workstreams/fix-chart-template-key-generation/plan.yaml
-    reason: Frozen coordinator repair plan carried unchanged by released common staging281a57bd.
-  - path: ops/workstreams/fix-chart-template-key-generation/session.json
-    reason: Frozen coordinator repair session record carried unchanged by released common staging281a57bd.
-  - path: ops/workstreams/fix-chart-template-key-generation/validation.jsonl
-    reason: Frozen coordinator repair validation journal carried unchanged by released common staging281a57bd.
-  - path: ops/workstreams/fix-chart-template-pointer-interaction/handoff.md
-    reason: Frozen coordinator pointer-repair handoff carried unchanged by released common staging281a57bd.
-  - path: ops/workstreams/fix-chart-template-pointer-interaction/plan.yaml
-    reason: Frozen coordinator pointer-repair plan carried unchanged by released common staging281a57bd.
-  - path: ops/workstreams/fix-chart-template-pointer-interaction/validation.jsonl
-    reason: Frozen coordinator pointer-repair journal carried unchanged by released common staging281a57bd.
-  - path: ops/workstreams/fix-tc-occurrence-date-hydration/handoff.md
-    reason: Frozen coordinator occurrence-date repair handoff carried unchanged by released common staging281a57bd.
-  - path: ops/workstreams/fix-tc-occurrence-date-hydration/plan.yaml
-    reason: Frozen coordinator occurrence-date repair plan carried unchanged by released common staging281a57bd.
-  - path: ops/workstreams/fix-tc-occurrence-date-hydration/session.json
-    reason: Frozen coordinator occurrence-date repair session carried unchanged by released common staging281a57bd.
-  - path: ops/workstreams/fix-tc-occurrence-date-hydration/validation.jsonl
-    reason: Frozen coordinator occurrence-date repair journal carried unchanged by released common staging281a57bd.
-  - path: ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/handoff.md
-    reason: Frozen coordinator F9c geometry handoff carried unchanged by released common staging281a57bd.
-  - path: ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/plan.yaml
-    reason: Frozen coordinator F9c geometry plan carried unchanged by released common staging281a57bd.
-  - path: ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/session.json
-    reason: Frozen coordinator F9c geometry session carried unchanged by released common staging281a57bd.
-  - path: ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/validation.jsonl
-    reason: Frozen coordinator F9c geometry journal carried unchanged by released common staging281a57bd.
-  - path: ops/workstreams/fix-watchlist-plot-live-configuration/handoff.md
-    reason: Frozen coordinator F8u repair handoff carried unchanged by released common staging281a57bd.
-  - path: ops/workstreams/fix-watchlist-plot-live-configuration/plan.yaml
-    reason: Frozen coordinator F8u repair plan carried unchanged by released common staging281a57bd.
-  - path: ops/workstreams/fix-watchlist-plot-live-configuration/session.json
-    reason: Frozen coordinator F8u repair session carried unchanged by released common staging281a57bd.
-  - path: ops/workstreams/fix-watchlist-plot-live-configuration/validation.jsonl
-    reason: Frozen coordinator F8u repair journal carried unchanged by released common staging281a57bd.
-  - path: scripts/integration_queue.py
-    reason: Coordinator-owned guarded integration-queue implementation carried unchanged by released common staging281a57bd.
-  - path: tests/workflow/test_integration_queue.py
-    reason: Coordinator-owned guarded integration-queue regression carried unchanged by released common staging281a57bd.
 dependencies:
   - "feat/market-data-provider-platform (provider-neutral identifiers/listings, OHLCV, capability/entitlement/health, evaluator preflight, coverage state, and durable refresh handoff); dependency is not yet in staging."
   - "feat/etf-holdings-constituents (ETF holdings capability, audit, and source lineage); currently waits on provider-platform staging integration."
   - "Consume both dependencies only after their changes reach staging; do not modify their worktrees or duplicate their adapters, provider routing, credentials, ingestion, or refresh workers."
   - "Strategy Lab is intentionally not an upstream dependency for this branch; preserve TC's existing Python/DSL/Study/Strategy engine."
 scope_guard_baseline_sha: 2b92c642237ce2abde40a84ee98383d4ee4285d1
+frozen_upstream_import_manifests:
+  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/281a57bd9fb782c0f85bfb5127c713ea15037f68.yaml
+approved_frozen_upstream_snapshots:
+  - source_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
+    receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/281a57bd9fb782c0f85bfb5127c713ea15037f68.json
+    receipt_sha256: cb71f88b6df454161d373f6208ef868d2d257febb31f2f19e2ad86db795d565c
+frozen_upstream_import_policy:
+  purpose: >-
+    Admit coordinator-approved foreign files only as immutable bytes from an
+    exact released green staging snapshot that entered this branch through a
+    non-first-parent merge after the fixed 2b92c642 scope checkpoint.
+  fail_closed_boundary: >-
+    Ordinary authorized(path, plan) remains unchanged. Every imported file must
+    be listed exactly with snapshot blob/mode or explicit deletion state, and
+    both the index and worktree must still match. Wildcards, directory grants,
+    missing or duplicate paths, malformed provenance, unmerged sources,
+    unsupported file kinds and any staged or unstaged drift fail validation.
+  supersession: >-
+    Referenced manifests describe the complete current frozen set. If a later
+    accepted staging release changes an already-frozen file, its new manifest
+    must explicitly supersede the old reference and repeat every still-frozen
+    path at the new snapshot; duplicate path authority across manifests fails.
+  coordinator_review_required: >-
+    Approval identity is a declarative repository policy boundary, not a
+    cryptographic signature. The guard requires a separate explicit approved
+    snapshot allowlist and a tracked byte-for-byte canonical receipt, then
+    verifies its digest, green state, staging source, run URL/ID, starting
+    staging ancestry and recorded source ancestry offline. The coordinator
+    must review every allowlist and receipt addition. If cryptographic issuer
+    authentication is required, the coordinator must define trusted signing
+    material before the first Provider or ETF manifest is accepted.
 focused_browser_provenance_correction: >-
   The 2026-10-16 F8s/F9c retry-free runs used the existing TC worktree Vite at
   127.0.0.1:15190, proxied to the assigned TC backend at 127.0.0.1:28008;
