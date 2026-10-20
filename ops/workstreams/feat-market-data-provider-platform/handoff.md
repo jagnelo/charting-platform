@@ -1,5 +1,34 @@
 # feat/market-data-provider-platform
 
+## 2026-10-20 01:28+01:00 — exact F8t artifact reviewed; shared lifecycle cause remains unresolved
+
+- Downloaded GitHub artifact `12231332082` once through the authenticated
+  artifact route to `/tmp/provider-023-f8t-artifact.zip`; its size is 2,356,333
+  bytes and SHA-256 is
+  `8b509cae74d85e6282cfed2d5b11238960a6df4e797b0cdb8053efa5eda9d429`.
+  Extracted evidence is under `/tmp/provider-023-f8t-artifact/` and the causal
+  review is `/tmp/provider-023-f8t-causal-review.md` (SHA-256
+  `480b1502606d43ff3af1cdcf581c0c7f65a80efda3d18002963dd0629c820b0c`).
+- The failed-attempt screenshot and accessibility snapshot show the Add tool
+  menu still expanded and no Study Results tool after the unchanged 15-second
+  wait. This rules out a selector-only miss of an already-rendered tool. The
+  retained trace is the successful retry: its ordinary click completed in
+  about 208 ms and the exact tool became visible about 13 ms later.
+- Because the artifact does not retain the failed-attempt trace or an
+  application-side command acknowledgement, it cannot distinguish a pointer
+  sequence lost to DOM replacement from an `openTool` handler still waiting at
+  its lifecycle barrier. Treat this as an unresolved shared workstation
+  command/lifecycle defect, not an observer-only test issue and not a Provider
+  payload/quota issue.
+- Proposed coordinator/TC-owned minimal repair: acknowledge the ordinary menu
+  command by closing the menu synchronously before lifecycle waits, preserve
+  the queued tool intent through readiness, retain the current active-tab fast
+  path and bounded real-tab activation, and unit-test exactly-once execution
+  across delayed readiness. Keep the E2E ordinary click, 15-second visibility,
+  exact ARIA outcome, all behavioral assertions, and strict zero-flake policy.
+  The E2E may add menu closure as a diagnostic assertion, not as a substitute
+  for the result tool outcome. No frontend or Provider source was changed.
+
 ## 2026-10-20 01:20+01:00 — combined local profile green; exact CI preserves F8t flake
 
 - Current source and origin remain `023d30c615ae1bfea3a79f90d4d814242cd5711e`.
