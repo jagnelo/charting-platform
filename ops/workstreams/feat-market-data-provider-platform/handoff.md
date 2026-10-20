@@ -1,5 +1,41 @@
 # feat/market-data-provider-platform
 
+## 2026-10-20 01:57+01:00 — Finnhub denial transport is quota-accounted separately from capability success
+
+- Central review of the private bounded-operation plan found one definite cost
+  omission: `test_finnhub_credentialed_company_profile` makes seven metered
+  reads, not six. Its deliberate `fetch_ohlcv` request expects HTTP 403 to
+  establish the free-plan entitlement denial. That request consumes quota even
+  though it must never count as an enabled capability.
+- The live runner now has an explicit case-level transport-addition map.
+  Exact-case selection, full-matrix multipliers, and quota preflight include
+  the Finnhub denial, while `LIVE_CASE_OPERATIONS` and
+  `LIVE_REQUIRED_OPERATIONS` continue to exclude it from successful capability
+  evidence. Structural validation requires every such transport addition to
+  have matching expected-denial status metadata and an explicit
+  `expected_entitlement_denial` disposition; it also fails if any expected
+  denial is absent from transport accounting.
+- The real preflight path is regression-tested with a fake reservation planner:
+  all seven Finnhub operations are enumerated before transport and
+  `fetch_ohlcv` has multiplier one. The existing HTTP-403 assertion, zero retry,
+  and unexpected 401/403/429 fail-fast policy are unchanged.
+- No-transport validation passed: runner plus secret-wiring `181/181`; bounded
+  ICP2/ICP6 recurring-cost/runtime/coverage/OHLCV/runner selection `266/266` in
+  165.80 seconds; Ruff and `git diff --check` passed. No provider/issuer HTTP,
+  quota reservation/spend, hold change, fixture, or retained-resource action
+  occurred.
+- The final plan generator now separates enabled capability operations from all
+  transports and includes the denial in total request/window budgets. For the
+  sole EODHD exception, it explicitly records release-only concurrency reserved
+  before the one usage request, one calls-per-minute unit, zero daily credits,
+  native-dimension reconciliation, and after-response settlement. Zero daily
+  credit cost never means zero minute cost. Do not run EODHD data calls.
+- Next: commit/push this coherent source/test/evidence correction, require its
+  exact CI, then regenerate and re-review the private plan from that committed
+  source. Do not import shared UI repair `d12a730a4` until central releases it
+  through green staging. Checkpoint remains `in_progress`; no live execution is
+  authorized.
+
 ## 2026-10-20 01:28+01:00 — exact F8t artifact reviewed; shared lifecycle cause remains unresolved
 
 - Downloaded GitHub artifact `12231332082` once through the authenticated

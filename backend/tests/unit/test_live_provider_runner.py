@@ -87,6 +87,63 @@ def test_eodhd_compound_small_read_accounts_for_every_operation_and_repeat():
     }
 
 
+def test_finnhub_expected_denial_is_preflighted_without_becoming_capability_evidence(
+    monkeypatch,
+):
+    from app.services import provider_quota_coordinator
+
+    runner = _runner_module()
+    case = "test_finnhub_credentialed_company_profile"
+    selector = f"finnhub:{case}"
+
+    assert "fetch_ohlcv" not in runner.LIVE_CASE_OPERATIONS["finnhub"][case]
+    assert "fetch_ohlcv" not in runner.LIVE_REQUIRED_OPERATIONS["finnhub"]
+    assert (
+        "expected_entitlement_denial"
+        in runner.LIVE_OPERATION_DISPOSITIONS["finnhub"]["fetch_ohlcv"]
+    )
+    assert runner.LIVE_CASE_TRANSPORT_ADDITIONS["finnhub"][case] == {"fetch_ohlcv"}
+
+    selected, transport_operations = runner.parse_live_case_selectors([selector], {"finnhub"})
+    assert transport_operations["finnhub"] == {
+        *runner.LIVE_CASE_OPERATIONS["finnhub"][case],
+        "fetch_ohlcv",
+    }
+    transport_counts = runner.selected_case_operation_multipliers(selected)
+    assert transport_counts["finnhub"]["fetch_ohlcv"] == 1
+    assert runner.LIVE_MATRIX_OPERATION_MULTIPLIERS["finnhub"]["fetch_ohlcv"] == 1
+
+    preflighted: list[str] = []
+
+    def reservation_plan(
+        provider_name,
+        operation,
+        usage_identity,
+        now,
+        operation_cost_override=None,
+        dimension_cost_overrides=None,
+    ):
+        assert provider_name == "finnhub"
+        preflighted.append(operation)
+        return "rolling", {}, []
+
+    monkeypatch.setattr(
+        provider_quota_coordinator,
+        "_reservation_plan_for_live_probe",
+        reservation_plan,
+    )
+
+    assert (
+        runner.live_operation_quota_preflight(
+            {"finnhub"},
+            operations_override=transport_operations,
+            operation_multipliers=transport_counts,
+        )
+        == {}
+    )
+    assert set(preflighted) == transport_operations["finnhub"]
+
+
 def test_full_matrix_cost_counts_are_derived_from_every_manifest_case():
     runner = _runner_module()
 

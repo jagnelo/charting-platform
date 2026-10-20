@@ -1085,6 +1085,33 @@ LIVE_CASE_OPERATION_MULTIPLIERS = {
     },
 }
 
+# Transport accounting is deliberately broader than capability acceptance.
+# A live case can make a metered request whose expected response proves that
+# the operation is *not* entitled. Such a request must be preflighted and
+# reserved, but it must not become successful capability evidence.
+LIVE_CASE_TRANSPORT_ADDITIONS = {
+    "finnhub": {
+        "test_finnhub_credentialed_company_profile": {"fetch_ohlcv"},
+    },
+}
+
+
+def live_case_transport_operations(provider: str, case_name: str) -> set[str]:
+    """Return every metered operation a case executes, including denials."""
+
+    return set(LIVE_CASE_OPERATIONS.get(provider, {}).get(case_name, set())) | set(
+        LIVE_CASE_TRANSPORT_ADDITIONS.get(provider, {}).get(case_name, set())
+    )
+
+
+def live_matrix_transport_operations(provider: str) -> set[str]:
+    """Return enabled operations plus explicit metered denial transports."""
+
+    additions = LIVE_CASE_TRANSPORT_ADDITIONS.get(provider, {})
+    return set(LIVE_REQUIRED_OPERATIONS.get(provider, set())) | (
+        set().union(*additions.values()) if additions else set()
+    )
+
 
 def _full_matrix_operation_multipliers() -> dict[str, dict[str, int]]:
     """Derive aggregate operation counts from the complete live-case manifest."""
@@ -1093,7 +1120,7 @@ def _full_matrix_operation_multipliers() -> dict[str, dict[str, int]]:
     for provider, cases in LIVE_PROVIDER_CASES.items():
         provider_totals = totals.setdefault(provider, {})
         for _path, case_name in cases:
-            operations = LIVE_CASE_OPERATIONS.get(provider, {}).get(case_name, set())
+            operations = live_case_transport_operations(provider, case_name)
             case_multipliers = LIVE_CASE_OPERATION_MULTIPLIERS.get(provider, {}).get(
                 case_name, {}
             )
@@ -1108,6 +1135,10 @@ def _full_matrix_operation_multipliers() -> dict[str, dict[str, int]]:
 # by every selected case, including repeated reads. Individual HTTP sends still
 # make their own atomic reservations immediately before transport.
 LIVE_MATRIX_OPERATION_MULTIPLIERS = _full_matrix_operation_multipliers()
+LIVE_MATRIX_TRANSPORT_OPERATIONS = {
+    provider: set(operation_counts)
+    for provider, operation_counts in LIVE_MATRIX_OPERATION_MULTIPLIERS.items()
+}
 
 # Capability-level operations not executed by the bounded matrix are recorded
 # explicitly instead of being mistaken for coverage.  These are current
@@ -1530,7 +1561,7 @@ def live_matrix_inventory_errors() -> list[str]:
     for provider, multipliers in sorted(LIVE_MATRIX_OPERATION_MULTIPLIERS.items()):
         for operation, count in sorted(multipliers.items()):
             if (
-                operation not in LIVE_REQUIRED_OPERATIONS.get(provider, set())
+                operation not in LIVE_MATRIX_TRANSPORT_OPERATIONS.get(provider, set())
                 or isinstance(count, bool)
                 or not isinstance(count, int)
                 or count < 1
@@ -1540,12 +1571,13 @@ def live_matrix_inventory_errors() -> list[str]:
                 )
     for provider, cases in sorted(LIVE_CASE_OPERATION_MULTIPLIERS.items()):
         for function_name, multipliers in sorted(cases.items()):
-            operations = LIVE_CASE_OPERATIONS.get(provider, {}).get(function_name)
-            if operations is None:
+            mapped_operations = LIVE_CASE_OPERATIONS.get(provider, {}).get(function_name)
+            if mapped_operations is None:
                 errors.append(
                     f"{provider}/{function_name} has multipliers without a case-operation map"
                 )
                 continue
+            operations = live_case_transport_operations(provider, function_name)
             for operation, count in sorted(multipliers.items()):
                 if (
                     operation not in operations
@@ -1556,6 +1588,62 @@ def live_matrix_inventory_errors() -> list[str]:
                     errors.append(
                         f"{provider}/{function_name}/{operation} has an invalid case operation multiplier"
                     )
+    for provider, cases in sorted(LIVE_CASE_TRANSPORT_ADDITIONS.items()):
+        manifest_cases = {
+            function_name
+            for _relative_path, function_name in LIVE_PROVIDER_CASES.get(provider, ())
+        }
+        for function_name, operations in sorted(cases.items()):
+            if function_name not in manifest_cases:
+                errors.append(
+                    f"{provider} transport map references an unmanifested case: "
+                    f"{function_name}"
+                )
+                continue
+            if not operations:
+                errors.append(f"{provider}/{function_name} has no transport additions")
+                continue
+            accepted = LIVE_CASE_OPERATIONS.get(provider, {}).get(function_name, set())
+            overlap = sorted(set(operations) & set(accepted))
+            if overlap:
+                errors.append(
+                    f"{provider}/{function_name} transport additions overlap enabled "
+                    "capability evidence: " + ", ".join(overlap)
+                )
+            case_key = next(
+                (
+                    (provider, relative_path, function_name)
+                    for relative_path, name in LIVE_PROVIDER_CASES.get(provider, ())
+                    if name == function_name
+                ),
+                None,
+            )
+            expected_denials = LIVE_EXPECTED_ENTITLEMENT_DENIALS.get(case_key, {})
+            for operation in sorted(operations):
+                if operation not in expected_denials:
+                    errors.append(
+                        f"{provider}/{function_name}/{operation} transport addition "
+                        "has no expected entitlement-denial status"
+                    )
+                disposition = LIVE_OPERATION_DISPOSITIONS.get(provider, {}).get(
+                    operation, ""
+                )
+                if live_operation_disposition_kind(disposition) != (
+                    "expected_entitlement_denial"
+                ):
+                    errors.append(
+                        f"{provider}/{function_name}/{operation} transport addition "
+                        "has no expected-entitlement-denial disposition"
+                    )
+    for case_key, expected_denials in sorted(LIVE_EXPECTED_ENTITLEMENT_DENIALS.items()):
+        provider, _relative_path, function_name = case_key
+        transport_operations = live_case_transport_operations(provider, function_name)
+        missing = sorted(set(expected_denials) - transport_operations)
+        if missing:
+            errors.append(
+                f"{provider}/{function_name} expected entitlement denials are not "
+                "transport-accounted: " + ", ".join(missing)
+            )
     for provider, operations in sorted(LIVE_REQUIRED_OPERATIONS.items()):
         if not operations:
             errors.append(f"{provider} has no required live operations")
@@ -1930,7 +2018,7 @@ def live_operation_quota_preflight(
         operations = (
             operations_override.get(provider, set())
             if operations_override is not None
-            else LIVE_REQUIRED_OPERATIONS.get(provider, set())
+            else live_matrix_transport_operations(provider)
         )
         multipliers = (
             operation_multipliers.get(provider, {})
@@ -3472,7 +3560,7 @@ def parse_live_case_selectors(
             raise ValueError(
                 f"--case {selector!r} is not in the live provider manifest"
             )
-        operations = LIVE_CASE_OPERATIONS.get(provider, {}).get(function_name)
+        operations = live_case_transport_operations(provider, function_name)
         if not operations:
             raise ValueError(
                 f"--case {selector!r} has no explicit provider-operation mapping"
@@ -3491,7 +3579,7 @@ def selected_case_operation_multipliers(
     for provider, case_names in selected_cases.items():
         provider_totals = totals.setdefault(provider, {})
         for case_name in case_names:
-            operations = LIVE_CASE_OPERATIONS.get(provider, {}).get(case_name, set())
+            operations = live_case_transport_operations(provider, case_name)
             case_multipliers = LIVE_CASE_OPERATION_MULTIPLIERS.get(provider, {}).get(
                 case_name, {}
             )

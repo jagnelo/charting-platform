@@ -1,5 +1,24 @@
 # Provider integration checkpoint review packet
 
+## Finnhub transport-cost correction — 2026-10-20 01:57+01:00
+
+The bounded plan's 80 enabled canonical operations remain capability coverage,
+but its previous 98-request total was incomplete. Finnhub's selected profile
+case also performs a deliberate metered `fetch_ohlcv` request that expects HTTP
+403. The runner now includes that denial request in exact-case and full-matrix
+quota preflight/reservation accounting without promoting it to enabled
+capability evidence. Inventory validation ties every added transport to both
+expected-denial status metadata and an explicit denial disposition.
+
+The correction passed 181 runner/secret-wiring tests and the complete bounded
+ICP2/ICP6 selection at 266/266, with live execution disabled and zero external
+transport or quota mutation. The corrected private plan must be regenerated
+from the committed candidate; its total transport bound is expected to rise by
+one while enabled-operation coverage remains unchanged. The EODHD usage-only
+exception must show release-only concurrency before transport, one minute unit,
+zero daily credits, native-dimension reconciliation, and measured settlement;
+no EODHD data call is part of the checkpoint plan.
+
 ## Combined candidate local gates and operation draft — 2026-10-20 01:20+01:00
 
 Exact source `023d30c615ae1bfea3a79f90d4d814242cd5711e` passed the required

@@ -1,4 +1,21 @@
 schema: 4
+# Final-plan transport-accounting correction — 2026-10-20 01:57+01:00.
+# Coordinator review found that Finnhub's company-profile live case performs
+# seven metered reads: six enabled-capability reads plus one deliberate
+# fetch_ohlcv request whose expected HTTP403 proves the free-plan denial. The
+# runner now keeps the denial outside capability-success evidence while adding
+# it to case/full-matrix quota preflight, aggregate reservation multipliers and
+# structural inventory validation. The denial/status assertion, zero-retry and
+# fail-fast policy remain unchanged. Focused runner/secret tests pass181/181;
+# the current bounded ICP2/ICP6 no-transport selection passes266/266. EODHD's
+# sole unheld fetch_account_usage exception remains a one-request bootstrap:
+# reserve release-only concurrency before transport, charge one minute request
+# and zero daily credits, then reconcile declared native dimensions and settle
+# measured usage after the response. No EODHD data call or provider transport
+# occurred. Publish this substantive source/test/evidence context once, require
+# exact-source CI, then regenerate the private bounded plan from committed
+# source; expected enabled coverage remains separate from total transport cost.
+# Shared UI repair d12a730a remains unaccepted and must not be imported.
 # Combined current-source gate — 2026-10-20 01:20+01:00. Exact023d30c local
 # pinned-Noble1.62.1 profile passed155 functional/performance with2expected
 # live skips and104/104 strict visuals,oneworker,zeroretries,unchanged
