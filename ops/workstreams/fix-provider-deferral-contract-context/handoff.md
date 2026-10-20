@@ -1,5 +1,24 @@
 # fix/provider-deferral-contract-context
 
+## Published implementation and conditional integration handoff
+
+Implementation `cf04daf58671fb3e542d7347d354da1844ef2e6d` is pushed; local,
+tracking and remote refs synchronized and worktree clean at that boundary.
+Final operational checkpoint contains only this owned workstream and adopts the
+human's standing delegated conditional acceptance contract. Its exact final CI
+is NOT yet proven; status ready_for_integration is conditional and does not
+waive canonical source-CI or exact staging Exhaustive gates. AC4 remains pending
+until those external exact receipts exist. The final source SHA is captured by
+the integration helper; no self-reference/CI acknowledgment commit is required.
+
+Only next action after this operational commit/push: monitor its automatic
+exact-source CI. Coordinator alone accepts terminal-green evidence and runs
+guarded remediation from persistent staging with REMEDIATE_DEGRADED=1, then
+requires new exact staging Exhaustive green before ETF release. Feature branches
+remain untouched; no live proof replay, fixture, blanket cleanup, or deployment.
+Session plan hash records the validated implementation boundary before this
+final closure decision, not a claim that closure is a new implementation phase.
+
 Created from `staging` at `ca2602328195e20895e29802e3000ae584b44289`.
 
 ## Human authorization

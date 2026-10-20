@@ -6,8 +6,21 @@ parent_sha: ca2602328195e20895e29802e3000ae584b44289
 dependency_authorization: "Standing human authorization recorded in .ai/staging-attempts/human-standing-integration-authorization-20261020.md; coordinator-scoped test-only repair of CI39475398032 based directly on degraded staging ca2602328195e20895e29802e3000ae584b44289; preserve all feature worktrees and provider holds."
 human_intent_authorization: "I, the human in charge, explicitly authorize any and all actions the AI agent(s) may request in order to progress development, reconciliation and promotion of the four feature branches into staging and production so the product may be deployed and tested in full, by the human"
 planning_state: ready
-human_closure_authorization: pending
-closure_summary: pending
+human_closure_authorization: The human explicitly authorized all four-feature development/reconciliation/promotion mechanics and delegated checkpoint acceptance to the coordinator. Apply that standing authorization only to this necessary test-only remediation after exact final source CI is green; no additional individual human signoff is required. No unsafe provider activation or deployment is implied.
+closure_summary: >-
+  Conditional remediation contract for implementation cf04daf58671fb3e542d7347d354da1844ef2e6d:
+  explicitly bind the existing Provider-plan matrix contract to its actual plan,
+  preserve all exclusions/selection assertions, and add five branch-owned lookup
+  regressions. Exact original failure reproduced;255 offline regressions and
+  Ruff/format pass. No runtime/provider plan/hold/dependency/migration/Compose,
+  visual-oracle or sibling changes; zero HTTP/new fixture. Existing accepted
+  unchanged local component evidence retains its original source scope.
+  Final publication must be clean/pushed and its exact required CI terminal-green
+  before coordinator technical acceptance and canonical REMEDIATE_DEGRADED=1
+  integration based directly on ca2602328195e20895e29802e3000ae584b44289.
+  Require exact repaired staging Exhaustive green before ETF release; retain
+  all failed evidence, datasets, holds and complete feature roadmaps.
+  integration_capture: exact branch HEAD
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: docker_integration
@@ -38,12 +51,12 @@ branch_tests_reason: The entire affected offline runner contract module must pas
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: in_progress
+status: ready_for_integration
 remaining_gaps:
   - Exact repair-source CI and subsequent exact staging Exhaustive remain unproven.
 progress:
-  completed: []
+  completed: [AC1, AC2, AC3]
   total: 4
-  current_phase: reproduce_staging_contract_failure
+  current_phase: final_publication_pending_exact_ci
   current_blocker: none
-  next_action: Reproduce the failing contract before the narrow test-only repair. Existing unbounded coordinator goal supervises this work in its original visible thread.
+  next_action: Freeze the final publication; coordinator verifies its exact CI and conditional acceptance externally, then guarded remediation and exact staging Exhaustive. Do not create self-hash or CI-acknowledgment commits.
