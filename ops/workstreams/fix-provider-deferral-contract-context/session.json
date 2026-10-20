@@ -24,30 +24,44 @@
     "volume_count": 0,
     "worktree_id": "fix-provider-deferral-contract-context-5b29bc9da8"
   },
+  "docker_ready": {
+    "ready": true,
+    "started_desktop": false,
+    "wait_seconds": 0
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance fix/provider-deferral-contract-context: I, the human in charge, explicitly authorize any and all actions the AI agent(s) may request in order to progress development, reconciliation and promotion of the four feature branches into staging and production so the product may be deployed and tested in full, by the human. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_objective": "Advance fix/provider-deferral-contract-context: Repair the Provider deferral-contract unit test so the same required assertions execute truthfully on feature branches, staging and master without changing production lookup or provider restrictions.. Acceptance criteria: AC1: Reproduce the exact staging failure before editing, then retain all three approved exclusions and existing selected-matrix assertions with an explicit real Provider plan.; AC2: Prove default lookup remains branch-owned and missing staging or unknown plans inherit no deferrals, while explicit Provider-plan lookup is independent of the checkout.; AC3: Complete offline live-runner, usage and secret regressions, Ruff, formatting, workstream validation and clean diff review with zero provider transport and no Docker fixture.; AC4: Publish a clean synchronized repair and prove exact-source normal CI before delegated checkpoint acceptance; coordinator alone performs guarded remediation and requires exact staging Exhaustive green before ETF release.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-10-20T18:46:03.192558+00:00",
   "goal_request": {
-    "objective": "Advance fix/provider-deferral-contract-context: I, the human in charge, explicitly authorize any and all actions the AI agent(s) may request in order to progress development, reconciliation and promotion of the four feature branches into staging and production so the product may be deployed and tested in full, by the human. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+    "objective": "Advance fix/provider-deferral-contract-context: Repair the Provider deferral-contract unit test so the same required assertions execute truthfully on feature branches, staging and master without changing production lookup or provider restrictions.. Acceptance criteria: AC1: Reproduce the exact staging failure before editing, then retain all three approved exclusions and existing selected-matrix assertions with an explicit real Provider plan.; AC2: Prove default lookup remains branch-owned and missing staging or unknown plans inherit no deferrals, while explicit Provider-plan lookup is independent of the checkout.; AC3: Complete offline live-runner, usage and secret regressions, Ruff, formatting, workstream validation and clean diff review with zero provider transport and no Docker fixture.; AC4: Publish a clean synchronized repair and prove exact-source normal CI before delegated checkpoint acceptance; coordinator alone performs guarded remediation and requires exact staging Exhaustive green before ETF release.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "planning_required",
-  "goal_state": "planning_required",
+  "goal_state": "active",
+  "goal_unavailable_reason": null,
   "head": "184843ba9082f8006d6a9f8e0d9be35dc98bdffc",
-  "implementation_sha": "ca2602328195e20895e29802e3000ae584b44289",
+  "implementation_sha": "cb1aaf4b236ce2bdec21ef30986032f8795e9a04",
+  "last_human_progress_update": "2026-10-20T18:47:04.781315+00:00",
   "local_validation_profile": "pending_agent_assessment",
-  "next_action": "run make agent-session-start",
+  "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
-  "plan_hash": "169de4e2ee4f329bb9ddb2b061fe756a8102359ec078af1e0dec073002dbfc35",
+  "plan_hash": "9c7523b903413a925a236c4cfc1555bc170538e540f3e9393bc9d2171b559d0a",
   "planning_required": true,
-  "planning_state": "draft",
+  "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
-    "completed": [],
+    "completed": [
+      "AC1",
+      "AC2",
+      "AC3"
+    ],
     "current_blocker": "none",
-    "current_phase": "plan",
-    "total": 0
+    "current_phase": "repair_local_green",
+    "next_action": "Publish coherent test-only repair and final operational receipt, then inspect exact final CI before conditional coordinator acceptance and guarded remediation.",
+    "total": 4,
+    "updated_at": "2026-10-20T18:47:04.781297+00:00"
   },
   "remote": "184843ba9082f8006d6a9f8e0d9be35dc98bdffc",
-  "remote_sha": "184843ba9082f8006d6a9f8e0d9be35dc98bdffc",
+  "remote_sha": "cb1aaf4b236ce2bdec21ef30986032f8795e9a04",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

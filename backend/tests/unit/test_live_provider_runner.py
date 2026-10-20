@@ -495,9 +495,17 @@ def test_binance_live_probe_refreshes_native_usage_after_fixed_window_rollover(m
     assert len(observed) == 1
 
 
-def test_only_plan_approved_live_deferrals_are_excluded_from_full_matrix():
+def test_only_plan_approved_live_deferrals_are_excluded_from_full_matrix(monkeypatch):
     runner = _runner_module()
-    deferrals = runner.approved_live_deferrals()
+    provider_plan = (
+        runner.ROOT / "ops" / "workstreams" / "feat-market-data-provider-platform" / "plan.yaml"
+    )
+
+    def unexpected_branch_lookup(*args, **kwargs):
+        raise AssertionError("explicit Provider-plan contract must not inspect the checkout")
+
+    monkeypatch.setattr(runner.subprocess, "run", unexpected_branch_lookup)
+    deferrals = runner.approved_live_deferrals(provider_plan)
 
     assert set(deferrals) == {"tradier", "ibkr", "ondo_global_markets"}
     arguments = runner.selected_live_test_arguments(None, deferred_providers=set(deferrals))
@@ -509,6 +517,48 @@ def test_only_plan_approved_live_deferrals_are_excluded_from_full_matrix():
         argument.endswith("test_market_data_providers_live.py") for argument in arguments
     )
     assert any("test_openfigi_keyless_mapping" in argument for argument in arguments)
+
+
+@pytest.mark.parametrize(
+    ("branch", "expected"),
+    [
+        ("feat/market-data-provider-platform", {"tradier"}),
+        ("staging", set()),
+        ("master", set()),
+        ("fix/provider-deferral-contract-context", set()),
+        ("feat/unrelated", set()),
+    ],
+)
+def test_default_live_deferrals_use_only_current_branch_plan(
+    monkeypatch, tmp_path, branch, expected
+):
+    runner = _runner_module()
+    provider_plan = (
+        tmp_path / "ops" / "workstreams" / "feat-market-data-provider-platform" / "plan.yaml"
+    )
+    provider_plan.parent.mkdir(parents=True)
+    provider_plan.write_text(
+        "approved_execution_decisions:\n"
+        "  providers:\n"
+        "    tradier: Deferred by user for this Provider plan only\n"
+    )
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
+    calls = []
+
+    def current_branch(command, **kwargs):
+        assert command == ["git", "branch", "--show-current"]
+        assert kwargs == {
+            "cwd": tmp_path,
+            "text": True,
+            "capture_output": True,
+            "check": False,
+        }
+        calls.append(branch)
+        return SimpleNamespace(stdout=f"{branch}\n")
+
+    monkeypatch.setattr(runner.subprocess, "run", current_branch)
+    assert set(runner.approved_live_deferrals()) == expected
+    assert calls == [branch]
 
 
 def test_orf_source_requires_traqs_credentials_separately_from_gateway(monkeypatch):

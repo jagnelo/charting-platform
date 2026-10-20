@@ -28,3 +28,26 @@ test's implicit branch dependency, add adversarial/default-lookup tests, run the
 full affected offline regressions and review exact changes. Then coherent commit,
 push, exact repair CI and review before coordinator-only remediation. Green
 staging is not yet established. All full feature roadmaps remain open.
+
+## Repair implementation local evidence
+
+Before edits: exact failure reproduced (1 failed in4.41s). Explicit Provider-plan
+lookup now retains all original exclusions/matrix assertions and rejects any
+checkout discovery. Five additive default-lookup cases prove only the matching
+Provider branch receives that branch's fixture approval; staging, master,
+repair and unrelated branches receive none. Production behavior is unchanged.
+
+Final combined offline regression after formatting:255/255 passed in6.57s
+(161runner/58usage/36secret); Ruff and format checks passed. Original format
+failure was fixed, not waived. No HTTP or Docker fixture; retained resources
+untouched. Merged staging contents exactly match accepted74d; declared runtime
+inputs match63e's accepted local component evidence. Reuse only its original
+scope: actual63e local2859unit/396integration/migrations/82% is retained in
+`.ai/staging-attempts/provider-63e-backend-green-20261020.json`. Actual74d hosted
+CI39469994067 passed2888unit/396integration/152browser. None of those old runs
+is misrepresented as executed on this repair; changed contracts ran here afresh.
+
+Next: commit/push reviewed test and owned records, verify clean/ref parity, then
+publish one operational receipt naming implementation SHA. Exact final repair CI
+and exact staging Exhaustive remain open. Coordinator records terminal CI and
+conditional acceptance externally; no self-hash/CI acknowledgment commit loop.
