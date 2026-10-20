@@ -12581,3 +12581,74 @@ network-bearing `RUN_LIVE_ETF_HOLDINGS_TESTS=1` command remains solely in
 `deferred_live_checks`. No live code/assertion, access hold, or route status is
 changed. This correction supersedes only the prior statement that the ordinary
 module command should be absent; historical CI outcomes remain unchanged.
+
+### Preserve rejected issuer bodies across latest and dated ingest rollback — 2026-10-21
+
+Closed the bounded latest/dated raw-retention context on source based at exact
+branch tip `d6bf78d`. Both refresh entry points
+now route ingest-validation rejection through the existing independently owned
+raw-artifact retention helper. The helper captures the stable committed profile
+identity from SQLAlchemy inspection before caller-session expiration, then uses
+an independent session without loading from, committing, or rolling back the
+caller's failed transaction. Dated error handling records a failure only while
+the caller session remains active; after a real database constraint rejection
+it re-raises the original exception rather than masking it with a flush on the
+failed session. Content-addressed dedup remains intact while later identical
+rejected bodies add their own request-log IDs, redacted URLs, attempt evidence,
+and requested dates to the existing artifact.
+
+The exact assigned loopback-only fixture was requalified with all environment
+values set inline for each database-backed pytest command:
+
+```text
+TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:15432/etf_bridge_integration_20261020
+TEST_REDIS_URL=redis://127.0.0.1:16379/0
+WORKTREE_ID=feat-etf-holdings-constituents-fdc36fa27a
+```
+
+The six dated cases passed (`6 passed, 10 deselected`), including dated fetch
+retention, identical-body dedup/linkage, future-composition rejection,
+post-fetch validation rejection, an actual PostgreSQL length-constraint error
+surviving caller rollback/reopen, and cancellation across caller rollback.
+The full containing real shared-runtime module then passed `16/16` in 35.73
+seconds, including the corresponding latest-route actual PostgreSQL constraint
+failure and rollback/reopen regression. All publisher traffic used local
+HTTPX `MockTransport`; no issuer, SEC or Provider HTTP was made. The complete
+unit modules `test_etf_holdings_provider_bridge.py` and
+`test_etf_holdings_refresh.py` passed `34/34` in 2.73 seconds. Their faithful
+doubles preserve redirect request-log callback IDs `[1, 2]`, exercise the
+worker-local HTTPX attempt, and assert the retention seam receives the exact
+rejected raw text/JSON; they do not introduce a production fake-session or
+`db=None` bypass.
+
+The exact d6 source run `39512664693` is terminal RED (Backend: 4 failed,
+3223 passed; Frontend passed; downstream jobs skipped). Its four unit failures
+were in those callback/session/retention doubles; the complete local module
+reconciliation above passes. This historical run is preserved and was not
+rerun. Fresh exact-source CI for the coherent retention changeset remains
+required; the d6 result does not represent that changeset.
+
+Fixture correction history is retained, not counted as qualification: earlier
+dated/full-module attempts omitted the explicit database variables and
+therefore invoked implicit Testcontainers (an earlier five-dated-case run
+passed, and the then-14-case full module passed). Successful-run container IDs
+were not captured, so no retroactive teardown claim is made. The specifically
+observed failed-run IDs `c9a183030deb` and `f91ce372f965` were checked by exact
+ID afterward and Docker reported `no such object` for each. A separate
+diagnostic invocation used the assigned database but an incorrect Redis URL
+with embedded credentials; its six passing cases are non-qualifying. All
+subsequent qualifying commands used the exact three values above. The
+additional database `etf_etf_dated_retention_20261021`, created after it was
+verified absent, remains preserved on the assigned service; its test-generated
+ORM tables were removed by that test's normal teardown, while the seven
+Provider quota-ledger tables remain. Nothing was deleted or cleaned up.
+
+The accidental setup paths and the 2026-10-20 CI run `39512664693` do not alter
+product acceptance. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined;
+unknown, quota-held, paid/trial and unsafe operations remain disabled. SEC and
+discovery bindings, broader worker/API/current-versus-historical/PIT coverage,
+migration/startup readiness, `full_stack_browser`, and fresh exact-source CI
+remain open. The shared Provider release remains the only accepted dependency;
+ETF is still `in_progress/not accepted`, and the full roadmap and 30-day
+observation gate remain open. No staging/sibling write, external request,
+quota use, service stop, fixture cleanup or acceptance occurred.

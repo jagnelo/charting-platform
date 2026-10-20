@@ -124,6 +124,10 @@ async def test_adapter_httpx_redirects_are_dispatched_as_separate_shared_attempt
         assert db_arg is db
         attempt = kwargs["single_attempt"]
         urls.append((kwargs["request_url"], attempt.method, attempt.request_kwargs))
+        binding = bridge._REQUEST_BINDING.get()
+        request_log_id = len(urls)
+        binding.request_log_ids.append(request_log_id)
+        binding.request_urls_by_log_id[request_log_id] = kwargs["request_url"]
         request = httpx.Request(attempt.method, kwargs["request_url"])
         if len(urls) == 1:
             response = httpx.Response(
@@ -133,7 +137,7 @@ async def test_adapter_httpx_redirects_are_dispatched_as_separate_shared_attempt
             )
         else:
             response = httpx.Response(200, text="symbol,weight\nAAA,1\n", request=request)
-        return SimpleNamespace(result=response, request_log_id=len(urls))
+        return SimpleNamespace(result=response, request_log_id=request_log_id)
 
     monkeypatch.setattr(
         "app.services.etf_holdings_provider_bridge.execute_etf_holdings_request_attempt",
@@ -414,7 +418,9 @@ async def test_real_issuer_adapter_through_refresh_uses_worker_local_mocktranspo
         provider_adapter = kwargs["etf_holdings_adapters"]["fixture"]
         response = _run_in_finite_worker(invoke, provider_adapter, provider_symbol)
         dispatches.append(response.status_code)
-        return SimpleNamespace(result=response, request_log_id=len(dispatches))
+        request_log_id = len(dispatches)
+        kwargs["request_log_id_callback"](request_log_id)
+        return SimpleNamespace(result=response, request_log_id=request_log_id)
 
     async def reviewed_policy_context(*_args, **_kwargs):
         return None
@@ -455,11 +461,22 @@ async def test_real_issuer_adapter_through_refresh_uses_worker_local_mocktranspo
         ingested.update(kwargs)
         return SimpleNamespace(id=99, source_provider=kwargs["source_provider"])
 
+    async def offline_execute_attempt(_db, **kwargs):
+        invoke = _sync_provider_invoke(kwargs["single_attempt"])
+        response = _run_in_finite_worker(invoke, None, None)
+        dispatches.append(response.status_code)
+        request_log_id = len(dispatches)
+        binding = bridge._REQUEST_BINDING.get()
+        binding.request_log_ids.append(request_log_id)
+        binding.request_urls_by_log_id[request_log_id] = kwargs["request_url"]
+        return SimpleNamespace(result=response, request_log_id=request_log_id)
+
     async def accept_schema(*_args, **_kwargs):
         return None
 
     monkeypatch.setattr(refresh, "ingest_holdings_snapshot", capture_ingestion)
     monkeypatch.setattr(refresh, "_ensure_schema_fingerprint_is_stable", accept_schema)
+    monkeypatch.setattr(bridge, "execute_etf_holdings_request_attempt", offline_execute_attempt)
 
     result = await refresh._refresh_adapter_route(object(), profile)
 

@@ -43,12 +43,13 @@
       "backend/tests/unit/services/test_etf_holdings_refresh.py",
       "backend/tests/live/test_etf_holdings_live_providers.py",
       "backend/tests/integration/api/test_workspaces.py",
+      "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml"
     ],
-    "state": "accepted_Provider_9b230ba4_merged_at_45859aa; shared_runtime_DB_redirect_and_denial_module_published_at_463e5f4ad6c75957f86b4d7fdeb520e72205de9e_with_two_bounded_tests_passing; DB_fixture_loopback_only_and_retained; DB_concurrency_and_failed_attempt_lineage_open; prior_CI39504688326_terminal_red_preserved; HTTPX_redirect_compatibility_and_fail_closed_transport_coverage_retained; four_workspace_consumer_repairs_pass_bounded_4_test_profile; current_stale_benchmark_excluded_and_ETF_current_role_unavailable; dated_PIT_reads_remain_positive_and_provider_log_quota_counts_unchanged; consumer_context_publication_and_new_exact_CI_pending; SEC_discovery_full_worker_API_full_stack_browser_and_full_roadmap_pending; MSMR_QQQ_and_Militia_GOOG_unresolved_quarantined; checkpoint_in_progress_not_accepted"
+    "state": "accepted_Provider_9b230ba4_merged_at_45859aa; latest_and_dated_ingest_rejection_raw_retention_context_implemented_with_independent_session_and_original_failure_preserved; exact_assigned_loopback_fixture_six_dated_cases_pass_16_case_full_runtime_module_pass_and_both_unit_modules_34_pass; accidental_implicit_Testcontainers_results_preserved_as_nonqualifying_and_exact_observed_ids_verified_absent; exact_d6_CI39512664693_terminal_red_preserved_four_unit_test_double_failures_reconciled_locally; publication_pending_fresh_exact_source_CI_required; SEC_discovery_full_worker_API_current_historical_PIT_migration_startup_full_stack_browser_and_full_roadmap_pending; MSMR_QQQ_and_Militia_GOOG_unresolved_quarantined; checkpoint_in_progress_not_accepted"
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -85,37 +86,19 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "current_blocker_latest": "2026-10-20: Accepted Provider release 9b230ba4c97126a2937667138c6eb2a0aa297baf remains merged at 45859aa. In the current unpublished shared-runtime failure/URL-integrity context, the bounded loopback Postgres/Redis MockTransport module passes 9/9 in 25.04s, including per-hop admission, denied/unknown/exhausted zero transport, HTTP error/body retention, timeout UNCERTAIN settlement, parser rejection, cancellation rollback/reopen, concurrency/restart, stale-current retention, and a real CI adapter params/client-default/cross-origin redirect case. The effective URL including HTTPX-merged params is compared completely in memory and mapped to request-log IDs; sensitive values are not replayed to the redirect origin, and persisted URLs are redacted. Per-operation policy remains host/operation/evidence based; no mandatory concrete-URL catalogue was added. The tests bind the committed Instrument.symbol, and an arbitrary symbol mismatch is rejected before reservation/transport. The live issuer sweep is no longer in automatic branch_tests: run-branch-tests --list shows eight deterministic/no-network commands, with the live command retained only in deferred_live_checks. Ruff, py_compile, diff check, workstream validation and the preserved 15 Tier-0 and 156 Tier-1 narrative sentinel pass. The earlier 5-failure integration attempts were corrected test-fixture/transaction assumptions; final exact focused module is green. Exact hosted CI39508166490 (7ea) and CI39504688326 (684) remain historical red receipts, not results for current dirty source; no CI has run for this worktree diff. Source and owner receipt are still unpublished. Exact-source CI, SEC/discovery integration, broader worker/API/current-vs-PIT and full_stack_browser remain open. MSMR/QQQ and Militia/GOOG stay unresolved/quarantined; unknown/quota-held/paid/trial/unsafe operations remain disabled. Full roadmap and 30-day observation gate remain open; ETF is in_progress/not accepted.",
+  "current_blocker_latest": "2026-10-21: Accepted Provider release 9b230ba4c97126a2937667138c6eb2a0aa297baf remains merged at 45859aa. Latest and dated ETF ingest rejection now retain raw bytes and attempt linkage through the independent committed-profile session while leaving caller transaction ownership intact; dated database constraint rejection rethrows its original error after caller rollback rather than masking it. Exact assigned loopback PostgreSQL/Redis fixture was run with explicit TEST_DATABASE_URL, TEST_REDIS_URL, and WORKTREE_ID on every qualifying DB command: six dated regressions pass, full runtime module 16/16 passes, and full bridge/refresh unit modules pass 34/34. The exact d6 CI39512664693 is preserved terminal RED (Backend 4 failed/3223 passed; Frontend passed; downstream skipped); all four unit double failures were reconciled and both complete modules now pass locally. Earlier missing-environment Testcontainers results and one wrong-Redis-URL passing result are explicitly non-qualifying; the two observed accidental Testcontainers IDs were verified absent, and the separately created diagnostic DB remains preserved. No new hosted CI for the dirty source yet. MSMR/QQQ and Militia/GOOG remain quarantined; unknown/quota-held/paid/trial/unsafe routes remain disabled. SEC/discovery, broader worker/API/current-vs-PIT, migration/startup, full_stack_browser, fresh exact-source CI, complete issuer roadmap, and 30-day observation gate remain open. Exact phrase 15 Tier-0 and 156 Tier-1 is preserved. ETF is in_progress/not accepted.",
   "dirty_paths": [
+    "backend/app/services/etf_holdings_refresh.py",
+    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
+    "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
+    "backend/tests/unit/services/test_etf_holdings_refresh.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
-    "ops/workstreams/feat-etf-holdings-constituents/branch-tests.json"
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
   ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 2,
-    "containers": [
-      "etf-db-684812f39cd0-20261020-postgres-1",
-      "etf-db-684812f39cd0-20261020-redis-1"
-    ],
-    "known_bytes": 102724665,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-etf-holdings-constituents-fdc36fa2",
-      "charting-stack-feat-etf-holdings-constituents-fdc36fa2"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 102700089,
-    "volume_count": 2,
-    "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_ready": {
     "ready": false,
@@ -137,7 +120,7 @@
   "goal_request_state": "ready",
   "goal_state": "blocked_in_codex_goal_api; coordinator-directed continuation is active in this original owner session; no goal state or accounting reset requested or performed",
   "goal_unavailable_reason": null,
-  "head": "dc2608bd0135bb7ef457d8b933d3e20b7e876948",
+  "head": "d6bf78ddee465fc7b3fde846e1e28998e47d84b3",
   "implementation_sha": "dd9b7a08ce79303638c3951dd937270e97bbff33",
   "integration_checkpoint": {
     "acceptance_authorization": "pending",
@@ -234,7 +217,7 @@
   },
   "last_checkpoint": "2026-10-19T23:44:19Z",
   "last_human_progress_update": "2026-10-20T23:04:23.190835+00:00",
-  "latest_checkpoint": "2026-10-19 23:44Z: Common-baseline merge 4fd48056c3fb7d54678f9ba7741fa5fd06b0c473 is published/synchronized and exact CI39340838524 passed Backend, Frontend Unit, Branch-declared and Playwright. Read-only comparison of Provider 023d30c615ae1bfea3a79f90d4d814242cd5711e against a8440efb mapped the new shared operation-hold boundary: provider/operation and wildcard holds deny before adapter construction, reservation and transport; service aliases normalize only for hold lookup; malformed maps fail closed; the concrete operation remains the quota identity. ETF post-release tests now explicitly cover held/wildcard/aliased/malformed/unknown zero-transport behavior. Provider is still unaccepted/unreleased, ETF_HOLDINGS remains absent, and no product code, HTTP, quota, heavy fixture or cross-worktree write occurred.",
+  "latest_checkpoint": "2026-10-20T23:20Z: On d6bf78d, closed latest/dated rejected-body retention under the existing shared runtime: latest and dated ingests retain rejected payloads independently of caller rollback, preserve identical-body attempt links, and retain original database exceptions. Exact assigned loopback fixture: six dated regressions passed; full real-runtime module 16/16 passed; bridge and refresh unit modules 34/34 passed. Exact CI39512664693 remains terminal red on the previous source with four unit fake/callback failures; those full modules now pass locally and a new exact-source CI is pending publication. Historic accidental Testcontainers runs and the incorrect Redis-URL run are explicitly non-qualifying; observed container IDs were checked absent and the separately created diagnostic database is preserved. ETF remains in_progress/not accepted; all full-roadmap, safety, and observation gates remain open.",
   "local_profile_execution": {
     "cleanup": {
       "host_wide_prune": false,
@@ -270,7 +253,7 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Review and publish the coherent shared-runtime failure/URL-integrity source and receipts after verifying the planned automatic branch command list is no-network; inspect only its exact-source CI. Preserve the assigned loopback DB fixture/volumes. Then continue SEC/discovery bindings and complete broader API/worker current-vs-historical/PIT reconciliation, followed by the assigned full_stack_browser profile and final exact-source CI. Preserve Provider holds and MSMR/QQQ plus Militia/GOOG quarantines; no external requests, quota, paid/trial activation, cleanup, staging integration or self-acceptance.",
+  "next_action": "Run the exact 15 Tier-0/156 Tier-1 narrative sentinel, workstream validator, JSON/JSONL/YAML and plan-hash checks, Ruff/format and git diff check after the current record edits; review exact owner paths and publish this substantive retention changeset once, then inspect only its exact-source CI. Continue held SEC/discovery bindings, remaining admission/consumer cases, migration/startup and assigned full_stack_browser after coordinator resource release. Preserve Provider holds and MSMR/QQQ plus Militia/GOOG quarantines; no external HTTP/quota, paid/trial activation, cleanup, staging integration or self-acceptance.",
   "plan_hash": "c14b0e0846eb02efddc9373c1b55baaa0b219531b12640a9a9d09fd8d54d09b4",
   "planning_required": false,
   "planning_state": "ready",
@@ -324,11 +307,11 @@
     "completed": [
       "EICP1"
     ],
-    "current_blocker": "Both current workstream summaries retain 15 Tier-0 and 156 Tier-1 symbol investigations. Published dc2608bd has exact CI 39511734942 still in progress. The safe default live-module command is restored with RUN_LIVE_ETF_HOLDINGS_TESTS=0 and passed 9 tests with 537 network probes skipped; the branch manifest mirrors all nine plan commands and keeps only the explicit =1 issuer sweep deferred. The required count sentinel and workstream validation pass after this exact count phrase is restored. Dated-refresh rejection/failure retention across caller rollback and reopen is the next implementation context; no checkpoint acceptance.",
-    "current_phase": "restore_default_offline_live_contracts_2026_10_20",
-    "next_action": "Publish the plan/manifest correction after the current dc2608 exact-source CI is observed terminal. Then implement shared durable failed-attempt retention for refresh_etf_holdings_for_date, including ingest-validation rejection and cancellation, with actual caller rollback/reopen proof on the same retained loopback DB/Redis fixture and MockTransport only. Preserve latest behavior, PIT semantics, Provider settlement/uncertainty and quarantines. No external HTTP/quota, full fixture/browser profile, staging/sibling write, cleanup or acceptance.",
+    "current_blocker": "Both current workstream summaries retain 15 Tier-0 and 156 Tier-1 symbol investigations. Exact d6 CI39512664693 is terminal RED (4 backend unit failures, 3223 passed; frontend passed, later jobs skipped); the four failures were reconciled across the complete bridge and refresh unit modules, now 34/34 pass. Latest and dated ingest-rejection raw retention now pass against the explicitly named loopback fixture: dated selection 6/6 and complete shared-runtime integration module 16/16. Earlier implicit Testcontainers and wrong Redis URL attempts remain recorded but do not count as qualified evidence; observed accidental IDs were verified absent and the diagnostic database is preserved. Fresh exact-source CI and all remaining EICP/full-roadmap gates remain open; no checkpoint acceptance.",
+    "current_phase": "latest_and_dated_ingest_rejection_raw_retention_2026_10_21",
+    "next_action": "Complete final narrative sentinel, workstream/schema/hash validation, Ruff/format and diff checks; then publish the coherent implementation plus evidence and inspect its exact-source CI. Continue the remaining shared admission/consumer and held discovery cases, migration/startup and full_stack_browser only at the assigned safe resource boundary. Keep all publisher requests and quota operations offline, preserve quarantine and the full roadmap, and do not accept or integrate ETF.",
     "total": 7,
-    "updated_at": "2026-10-20T23:04:23.190814+00:00"
+    "updated_at": "2026-10-20T23:20:54+00:00"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -340,8 +323,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "dc2608bd0135bb7ef457d8b933d3e20b7e876948",
-  "remote_sha": "dc2608bd0135bb7ef457d8b933d3e20b7e876948",
+  "remote": "d6bf78ddee465fc7b3fde846e1e28998e47d84b3",
+  "remote_sha": "d6bf78ddee465fc7b3fde846e1e28998e47d84b3",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

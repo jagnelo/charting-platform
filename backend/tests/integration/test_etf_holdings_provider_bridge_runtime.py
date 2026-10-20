@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import threading
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 from uuid import uuid4
@@ -19,6 +19,7 @@ import httpx
 import pytest
 import pytest_asyncio
 from sqlalchemy import select
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import selectinload
 
@@ -120,12 +121,12 @@ async def _seed_reviewed_fixture(
     limit: int,
     monkeypatch,
     reviewed_hosts: list[str] | None = None,
+    operation: str = "fetch_etf_holdings_latest",
 ):
     suffix = uuid4().hex[:10]
     provider_name = f"etf-fixture-{suffix}"
     account_scope = f"etf-offline-test-account-{suffix}"
     quota_scope = "api_key"
-    operation = "fetch_etf_holdings_latest"
     now = datetime.now(UTC)
     dimension_source = "test-fixture:etf:synthetic-quota-contract"
     review_account_key = f"{provider_name}:{quota_scope}"
@@ -328,7 +329,13 @@ async def _fetch_two_hop_fixture(session, case, runner, profile_id):
 
 
 async def _seed_real_adapter_profile(
-    session, case, monkeypatch, *, composition_date=None, route_url=None
+    session,
+    case,
+    monkeypatch,
+    *,
+    composition_date=None,
+    route_url=None,
+    dated_route_template=None,
 ):
     instrument = await session.get(Instrument, case.instrument_id)
     assert instrument is not None
@@ -341,6 +348,11 @@ async def _seed_real_adapter_profile(
         adapter_status="pending",
         provider_aliases={
             "holdings_url": route_url or "https://publisher.example/holdings.csv",
+            **(
+                {"dated_holdings_url_template": dated_route_template}
+                if dated_route_template
+                else {}
+            ),
             "expected_etf_symbol": instrument.symbol,
             "holdings_source_provider": case.provider_name,
             "holdings_completeness_status": "complete",
@@ -372,6 +384,8 @@ async def _create_committed_fixture(
     with_profile=False,
     route_url=None,
     reviewed_hosts=None,
+    operation="fetch_etf_holdings_latest",
+    dated_route_template=None,
 ):
     """Commit only synthetic setup rows before isolated Provider attempts."""
     async with provider_db() as session:
@@ -381,11 +395,16 @@ async def _create_committed_fixture(
                 limit=limit,
                 monkeypatch=monkeypatch,
                 reviewed_hosts=reviewed_hosts,
+                operation=operation,
             )
             profile = None
             if with_profile:
                 profile, _adapter = await _seed_real_adapter_profile(
-                    session, case, monkeypatch, route_url=route_url
+                    session,
+                    case,
+                    monkeypatch,
+                    route_url=route_url,
+                    dated_route_template=dated_route_template,
                 )
             profile_id = profile.id if profile is not None else None
     return case, profile_id
@@ -1083,6 +1102,506 @@ async def test_parser_rejection_keeps_transport_success_but_no_snapshot_and_raw_
             assert artifact is not None
             assert artifact.payload_text == runner.body
             assert artifact.legal_metadata["provider_request_log_ids"] == [row.id]
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_latest_ingest_database_validation_failure_retains_body_after_rollback(
+    db_engine, provider_db, monkeypatch
+):
+    """A real persistence constraint rejection keeps raw bytes beyond UOW rollback."""
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        db_engine.url.render_as_string(hide_password=False),
+    )
+    case, profile_id = await _create_committed_fixture(
+        provider_db, monkeypatch, limit=3, with_profile=True
+    )
+    long_name = "Rejected holding name " + ("X" * 400)
+    runner = _TransportRunner()
+    runner.body = f"Symbol,Name,Weight,Fund\nAAA,{long_name},1.0,{case.instrument_symbol}\n"
+    _use_mocktransport(monkeypatch, runner)
+
+    with pytest.raises(DBAPIError):
+        async with provider_db() as session:
+            async with session.begin():
+                profile = await _load_profile(session, profile_id)
+                await refresh._refresh_adapter_route(session, profile)
+
+    async with provider_db() as reopened:
+        row = await _assert_one_settled_attempt(
+            reopened,
+            case,
+            expected_success=True,
+            expected_http_requests=1,
+        )
+        artifact = await reopened.scalar(
+            select(ETFHoldingsRawArtifact).where(
+                ETFHoldingsRawArtifact.etf_profile_id == profile_id,
+                ETFHoldingsRawArtifact.source_kind == "issuer_adapter_rejected_fetch",
+            )
+        )
+        assert artifact is not None
+        assert artifact.payload_text == runner.body
+        assert artifact.content_hash == _hash_payload(runner.body)
+        assert artifact.legal_metadata["provider_request_log_ids"] == [row.id]
+        assert artifact.legal_metadata["validation"]["status"] == "ingest_rejected"
+        assert (
+            await reopened.scalar(
+                select(ETFHoldingsSnapshot.id).where(
+                    ETFHoldingsSnapshot.etf_profile_id == profile_id
+                )
+            )
+            is None
+        )
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_dated_refresh_persists_the_requested_point_in_time_without_relabelling(
+    db_engine, provider_db, monkeypatch
+):
+    """Dated issuer success preserves requested/as-of and composition dates."""
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        db_engine.url.render_as_string(hide_password=False),
+    )
+    dated_template = "https://publisher.example/archive/{symbol}/{date}.csv"
+    case, profile_id = await _create_committed_fixture(
+        provider_db,
+        monkeypatch,
+        limit=3,
+        with_profile=True,
+        operation="fetch_etf_holdings_for_date",
+        dated_route_template=dated_template,
+    )
+    requested_date = date(2025, 6, 30)
+    runner = _TransportRunner()
+    runner.body = f"Symbol,Name,Weight,Fund\nAAA,Example Corp,1.0,{case.instrument_symbol}\n"
+    _use_mocktransport(monkeypatch, runner)
+
+    async with provider_db() as session:
+        async with session.begin():
+            profile = await _load_profile(session, profile_id)
+            snapshot = await refresh.refresh_etf_holdings_for_date(
+                session, profile, requested_date=requested_date
+            )
+            assert snapshot.composition_date == requested_date
+            assert snapshot.as_of_date == requested_date
+            assert snapshot.known_at is not None
+            assert runner.calls == [
+                (
+                    "GET",
+                    f"https://publisher.example/archive/{case.instrument_symbol}/2025-06-30.csv",
+                )
+            ]
+
+    async with provider_db() as reopened:
+        logs = list(
+            (
+                await reopened.scalars(
+                    select(ProviderRequestLog).where(
+                        ProviderRequestLog.data_source_id == case.source_id,
+                        ProviderRequestLog.operation == "fetch_etf_holdings_for_date",
+                    )
+                )
+            ).all()
+        )
+        assert len(logs) == 1
+        assert logs[0].success and logs[0].http_requests == 1
+        assert logs[0].settled_usage_units == Decimal("1.0000")
+        persisted = await reopened.get(ETFHoldingsSnapshot, snapshot.id)
+        assert persisted is not None
+        assert persisted.composition_date == requested_date
+        assert persisted.as_of_date == requested_date
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_dated_refresh_rejection_retains_identical_body_attempt_links_after_rollback(
+    db_engine, provider_db, monkeypatch
+):
+    """Dedup keeps one raw body while linking every repeated failed date attempt."""
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        db_engine.url.render_as_string(hide_password=False),
+    )
+    case, profile_id = await _create_committed_fixture(
+        provider_db,
+        monkeypatch,
+        limit=4,
+        with_profile=True,
+        operation="fetch_etf_holdings_for_date",
+        dated_route_template="https://publisher.example/archive/{symbol}/{date}.csv",
+    )
+    requested_date = date(2025, 6, 30)
+    response_body = "archived publisher challenge response"
+    runner = _TransportRunner()
+    runner.status_code = 500
+    runner.body = response_body
+    _use_mocktransport(monkeypatch, runner)
+
+    for _ in range(2):
+        with pytest.raises(httpx.HTTPStatusError):
+            async with provider_db() as session:
+                async with session.begin():
+                    profile = await _load_profile(session, profile_id)
+                    await refresh.refresh_etf_holdings_for_date(
+                        session, profile, requested_date=requested_date
+                    )
+
+    async with provider_db() as reopened:
+        logs = list(
+            (
+                await reopened.scalars(
+                    select(ProviderRequestLog)
+                    .where(
+                        ProviderRequestLog.data_source_id == case.source_id,
+                        ProviderRequestLog.operation == case.operation,
+                    )
+                    .order_by(ProviderRequestLog.id)
+                )
+            ).all()
+        )
+        assert len(logs) == 2
+        assert all(not row.success and row.http_requests == 1 for row in logs)
+        assert all(row.completed_at is not None for row in logs)
+        assert all(row.settled_usage_units == Decimal("1.0000") for row in logs)
+        artifacts = list(
+            (
+                await reopened.scalars(
+                    select(ETFHoldingsRawArtifact).where(
+                        ETFHoldingsRawArtifact.etf_profile_id == profile_id,
+                        ETFHoldingsRawArtifact.source_kind == "issuer_adapter_rejected_fetch",
+                    )
+                )
+            ).all()
+        )
+        assert len(artifacts) == 1
+        artifact = artifacts[0]
+        assert artifact.payload_text == response_body
+        assert artifact.content_hash == _hash_payload(response_body)
+        assert artifact.legal_metadata["provider_request_log_ids"] == [row.id for row in logs]
+        assert artifact.legal_metadata["request_urls"] == [
+            f"https://publisher.example/archive/{case.instrument_symbol}/2025-06-30.csv",
+            f"https://publisher.example/archive/{case.instrument_symbol}/2025-06-30.csv",
+        ]
+        assert artifact.legal_metadata["rejected_requested_dates"] == ["2025-06-30"]
+        assert [item["request_log_id"] for item in artifact.legal_metadata["request_attempts"]] == [
+            row.id for row in logs
+        ]
+        assert runner.calls == [
+            (
+                "GET",
+                f"https://publisher.example/archive/{case.instrument_symbol}/2025-06-30.csv",
+            ),
+            (
+                "GET",
+                f"https://publisher.example/archive/{case.instrument_symbol}/2025-06-30.csv",
+            ),
+        ]
+        assert (
+            await reopened.scalar(
+                select(ETFHoldingsSnapshot.id).where(
+                    ETFHoldingsSnapshot.etf_profile_id == profile_id
+                )
+            )
+            is None
+        )
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_dated_refresh_retains_future_composition_claim_without_snapshot(
+    db_engine, provider_db, monkeypatch
+):
+    """A future-dated response is retained as rejected evidence, never a snapshot."""
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        db_engine.url.render_as_string(hide_password=False),
+    )
+    case, profile_id = await _create_committed_fixture(
+        provider_db,
+        monkeypatch,
+        limit=3,
+        with_profile=True,
+        operation="fetch_etf_holdings_for_date",
+        dated_route_template="https://publisher.example/archive/{symbol}/{date}.csv",
+    )
+    requested_date = date(2025, 6, 30)
+    reported_date = date(2025, 7, 1)
+    runner = _TransportRunner()
+    runner.body = f"Symbol,Name,Weight,Fund\nAAA,Example Corp,1.0,{case.instrument_symbol}\n"
+    _use_mocktransport(monkeypatch, runner)
+    original_fetch_for_date = IssuerCsvHoldingsAdapter.fetch_for_date
+
+    async def future_dated_fetch(adapter, **kwargs):
+        result = await original_fetch_for_date(adapter, **kwargs)
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "composition_date": reported_date.isoformat(),
+        }
+        return result
+
+    monkeypatch.setattr(IssuerCsvHoldingsAdapter, "fetch_for_date", future_dated_fetch)
+    with pytest.raises(ValueError, match="after the requested date"):
+        async with provider_db() as session:
+            async with session.begin():
+                profile = await _load_profile(session, profile_id)
+                await refresh.refresh_etf_holdings_for_date(
+                    session, profile, requested_date=requested_date
+                )
+
+    async with provider_db() as reopened:
+        row = await _assert_one_settled_attempt(
+            reopened,
+            case,
+            expected_success=True,
+            expected_http_requests=1,
+        )
+        artifact = await reopened.scalar(
+            select(ETFHoldingsRawArtifact).where(
+                ETFHoldingsRawArtifact.etf_profile_id == profile_id,
+                ETFHoldingsRawArtifact.source_kind == "issuer_adapter_rejected_fetch",
+            )
+        )
+        assert artifact is not None
+        assert artifact.payload_text == runner.body
+        assert artifact.content_hash == _hash_payload(runner.body)
+        assert artifact.composition_date is None
+        assert artifact.as_of_date is None
+        assert artifact.legal_metadata["provider_request_log_ids"] == [row.id]
+        assert artifact.legal_metadata["rejected_requested_dates"] == [requested_date.isoformat()]
+        assert artifact.legal_metadata["validation"] == {
+            "status": "composition_after_requested_date",
+            "reported_composition_date": reported_date.isoformat(),
+        }
+        assert (
+            await reopened.scalar(
+                select(ETFHoldingsSnapshot.id).where(
+                    ETFHoldingsSnapshot.etf_profile_id == profile_id
+                )
+            )
+            is None
+        )
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_dated_ingest_validation_rejection_retains_raw_response(
+    db_engine, provider_db, monkeypatch
+):
+    """Post-fetch ingest validation failure retains bytes outside caller UOW."""
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        db_engine.url.render_as_string(hide_password=False),
+    )
+    case, profile_id = await _create_committed_fixture(
+        provider_db,
+        monkeypatch,
+        limit=3,
+        with_profile=True,
+        operation="fetch_etf_holdings_for_date",
+        dated_route_template="https://publisher.example/archive/{symbol}/{date}.csv",
+    )
+    requested_date = date(2025, 6, 30)
+    runner = _TransportRunner()
+    runner.body = f"Symbol,Name,Weight,Fund\nAAA,Example Corp,1.0,{case.instrument_symbol}\n"
+    _use_mocktransport(monkeypatch, runner)
+
+    async def reject_ingest(*_args, **_kwargs):
+        raise ValueError("synthetic ingest validation rejection")
+
+    monkeypatch.setattr(refresh, "ingest_holdings_snapshot", reject_ingest)
+    with pytest.raises(ValueError, match="synthetic ingest validation rejection"):
+        async with provider_db() as session:
+            async with session.begin():
+                profile = await _load_profile(session, profile_id)
+                await refresh.refresh_etf_holdings_for_date(
+                    session, profile, requested_date=requested_date
+                )
+
+    async with provider_db() as reopened:
+        row = await _assert_one_settled_attempt(
+            reopened,
+            case,
+            expected_success=True,
+            expected_http_requests=1,
+        )
+        artifact = await reopened.scalar(
+            select(ETFHoldingsRawArtifact).where(
+                ETFHoldingsRawArtifact.etf_profile_id == profile_id,
+                ETFHoldingsRawArtifact.source_kind == "issuer_adapter_rejected_fetch",
+            )
+        )
+        assert artifact is not None
+        assert artifact.payload_text == runner.body
+        assert artifact.content_hash == _hash_payload(runner.body)
+        assert artifact.legal_metadata["provider_request_log_ids"] == [row.id]
+        assert artifact.legal_metadata["validation"] == {
+            "status": "ingest_rejected",
+            "requested_date": requested_date.isoformat(),
+            "composition_date": requested_date.isoformat(),
+        }
+        assert artifact.legal_metadata["rejected_requested_dates"] == [requested_date.isoformat()]
+        assert (
+            await reopened.scalar(
+                select(ETFHoldingsSnapshot.id).where(
+                    ETFHoldingsSnapshot.etf_profile_id == profile_id
+                )
+            )
+            is None
+        )
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_dated_database_validation_failure_preserves_original_error_and_raw_body(
+    db_engine, provider_db, monkeypatch
+):
+    """A real dated persistence rejection survives caller rollback and reopen."""
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        db_engine.url.render_as_string(hide_password=False),
+    )
+    case, profile_id = await _create_committed_fixture(
+        provider_db,
+        monkeypatch,
+        limit=3,
+        with_profile=True,
+        operation="fetch_etf_holdings_for_date",
+        dated_route_template="https://publisher.example/archive/{symbol}/{date}.csv",
+    )
+    requested_date = date(2025, 6, 30)
+    long_name = "Rejected dated holding name " + ("X" * 400)
+    runner = _TransportRunner()
+    runner.body = f"Symbol,Name,Weight,Fund\nAAA,{long_name},1.0,{case.instrument_symbol}\n"
+    _use_mocktransport(monkeypatch, runner)
+
+    with pytest.raises(DBAPIError, match="value too long"):
+        async with provider_db() as session:
+            async with session.begin():
+                profile = await _load_profile(session, profile_id)
+                await refresh.refresh_etf_holdings_for_date(
+                    session, profile, requested_date=requested_date
+                )
+
+    async with provider_db() as reopened:
+        row = await _assert_one_settled_attempt(
+            reopened,
+            case,
+            expected_success=True,
+            expected_http_requests=1,
+        )
+        artifact = await reopened.scalar(
+            select(ETFHoldingsRawArtifact).where(
+                ETFHoldingsRawArtifact.etf_profile_id == profile_id,
+                ETFHoldingsRawArtifact.source_kind == "issuer_adapter_rejected_fetch",
+            )
+        )
+        assert artifact is not None
+        assert artifact.payload_text == runner.body
+        assert artifact.content_hash == _hash_payload(runner.body)
+        assert artifact.legal_metadata["provider_request_log_ids"] == [row.id]
+        assert artifact.legal_metadata["validation"] == {
+            "status": "ingest_rejected",
+            "requested_date": requested_date.isoformat(),
+            "composition_date": requested_date.isoformat(),
+        }
+        assert artifact.legal_metadata["rejected_requested_dates"] == [requested_date.isoformat()]
+        assert (
+            await reopened.scalar(
+                select(ETFHoldingsSnapshot.id).where(
+                    ETFHoldingsSnapshot.etf_profile_id == profile_id
+                )
+            )
+            is None
+        )
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_dated_cancellation_retains_response_after_real_caller_rollback(
+    db_engine, provider_db, monkeypatch
+):
+    """Cancellation in the dated route leaves raw/request lineage after rollback."""
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        db_engine.url.render_as_string(hide_password=False),
+    )
+    case, profile_id = await _create_committed_fixture(
+        provider_db,
+        monkeypatch,
+        limit=3,
+        with_profile=True,
+        operation="fetch_etf_holdings_for_date",
+        dated_route_template="https://publisher.example/archive/{symbol}/{date}.csv",
+    )
+    runner = _TransportRunner()
+    runner.started = threading.Event()
+    runner.release = threading.Event()
+    _use_mocktransport(monkeypatch, runner)
+    requested_date = date(2025, 6, 30)
+
+    with pytest.raises(asyncio.CancelledError):
+        async with provider_db() as session:
+            async with session.begin():
+                profile = await _load_profile(session, profile_id)
+                task = asyncio.create_task(
+                    refresh.refresh_etf_holdings_for_date(
+                        session, profile, requested_date=requested_date
+                    )
+                )
+                assert await asyncio.to_thread(runner.started.wait, 3)
+                task.cancel()
+                await asyncio.sleep(0.02)
+                assert not task.done()
+                task.cancel()
+                await asyncio.sleep(0.02)
+                assert not task.done()
+                runner.release.set()
+                await task
+
+    async with provider_db() as reopened:
+        row = await _assert_one_settled_attempt(
+            reopened,
+            case,
+            expected_success=True,
+            expected_http_requests=1,
+        )
+        artifact = await reopened.scalar(
+            select(ETFHoldingsRawArtifact).where(
+                ETFHoldingsRawArtifact.etf_profile_id == profile_id,
+                ETFHoldingsRawArtifact.source_kind == "issuer_adapter_rejected_fetch",
+            )
+        )
+        assert artifact is not None
+        assert artifact.payload_text == runner.body
+        assert artifact.content_hash == _hash_payload(runner.body)
+        assert artifact.legal_metadata["provider_request_log_ids"] == [row.id]
+        assert artifact.legal_metadata["rejected_requested_dates"] == [requested_date.isoformat()]
+        assert (
+            await reopened.scalar(
+                select(ETFHoldingsSnapshot.id).where(
+                    ETFHoldingsSnapshot.etf_profile_id == profile_id
+                )
+            )
+            is None
+        )
 
 
 @pytest.mark.integration

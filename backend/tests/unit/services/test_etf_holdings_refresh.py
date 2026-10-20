@@ -181,10 +181,19 @@ async def test_refresh_route_rejects_future_metadata_before_snapshot_ingestion(m
     async def unexpected_ingest(*_args, **_kwargs):
         raise AssertionError("future-dated artifacts must be rejected before ingestion")
 
+    retained = []
+
+    async def capture_rejected_artifact(*args, **kwargs):
+        retained.append((args, kwargs))
+        return None
+
     monkeypatch.setattr(refresh, "ingest_holdings_snapshot", unexpected_ingest)
+    monkeypatch.setattr(refresh, "_retain_rejected_fetch_artifact", capture_rejected_artifact)
 
     with pytest.raises(ValueError, match="future composition date"):
         await refresh._refresh_adapter_route(None, profile)
+    assert retained[0][1]["validation"] == {"status": "future_dated"}
+    assert retained[0][1]["fetch_result"].raw_text == "DXJ fixture"
 
 
 @pytest.mark.asyncio
@@ -244,7 +253,7 @@ async def test_refresh_route_rejects_schema_drift_before_snapshot_ingestion(monk
                 "source_provider": "fixture",
                 "source_format": "json",
                 "parser_version": "fixture-json-v1",
-                "composition_date": "2026-09-03",
+                "composition_date": datetime.now(UTC).date().isoformat(),
             },
         )
 
@@ -254,10 +263,19 @@ async def test_refresh_route_rejects_schema_drift_before_snapshot_ingestion(monk
     async def unexpected_ingest(*_args, **_kwargs):
         raise AssertionError("schema-drift artifacts must be rejected before ingestion")
 
+    retained = []
+
+    async def capture_rejected_artifact(*args, **kwargs):
+        retained.append((args, kwargs))
+        return None
+
     monkeypatch.setattr(refresh, "ingest_holdings_snapshot", unexpected_ingest)
+    monkeypatch.setattr(refresh, "_retain_rejected_fetch_artifact", capture_rejected_artifact)
 
     with pytest.raises(refresh.ETFHoldingsSchemaDriftError, match="schema fingerprint drift"):
         await refresh._refresh_adapter_route(db, profile)
+    assert retained[0][1]["validation"] == {"status": "schema_drift"}
+    assert retained[0][1]["fetch_result"].raw_json == {"holdings": [{"ticker": "DXJ", "weight": 1}]}
 
 
 @pytest.mark.asyncio
