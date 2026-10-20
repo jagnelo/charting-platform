@@ -6,7 +6,10 @@ The TC-owned normal merge of released green staging
 `9b230ba4c97126a2937667138c6eb2a0aa297baf` is committed and pushed as
 `669b49804205411245f46463db5bcfa41860248b` (first parent
 `7a3aa2d87f43c0cc69a758750da14eae08e75f6b`, second parent exact released
-`9b230ba4c97126a2937667138c6eb2a0aa297baf`). Local and origin refs match.
+`9b230ba4c97126a2937667138c6eb2a0aa297baf`). The prior published checkpoint
+was `7c261fa17e4f6d4bce10be63cbf60a3f6d2c4386`; the tested implementation
+merge remains `669b49804205411245f46463db5bcfa41860248b`. Verify the enclosing
+record commit's final HEAD/origin externally after publication.
 Exact CI `39504855454`, attempt1, is terminal red: Backend Tests failed while
 collecting16 modules because the deferred ETF-owned `etf_holdings.py` imports
 `get_search_provider_chain`, which the accepted Provider package does not

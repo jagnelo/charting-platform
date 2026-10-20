@@ -135,7 +135,7 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "669b49804205411245f46463db5bcfa41860248b",
+  "head": "7c261fa17e4f6d4bce10be63cbf60a3f6d2c4386",
   "implementation_sha": "669b49804205411245f46463db5bcfa41860248b",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -202,7 +202,7 @@
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "669b49804205411245f46463db5bcfa41860248b",
+    "current_local_head": "7c261fa17e4f6d4bce10be63cbf60a3f6d2c4386",
     "current_pending_range": "none; Provider-only reconciliation merge 669b49804205411245f46463db5bcfa41860248b is pushed; exact CI red as recorded",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
@@ -210,11 +210,11 @@
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "669b49804205411245f46463db5bcfa41860248b",
-    "status": "local/origin both equal 669b49804205411245f46463db5bcfa41860248b; merge source is published; exact CI is red on deferred ETF consumer import collection"
+    "remote_tracking_sha": "7c261fa17e4f6d4bce10be63cbf60a3f6d2c4386",
+    "status": "last verified pre-record checkpoint: local/origin both equal 7c261fa17e4f6d4bce10be63cbf60a3f6d2c4386; tested Provider merge source 669b498 is published and exact CI is red on deferred ETF consumer import collection; verify enclosing record commit HEAD/origin externally"
   },
   "remote": "origin",
-  "remote_sha": "669b49804205411245f46463db5bcfa41860248b",
+  "remote_sha": "7c261fa17e4f6d4bce10be63cbf60a3f6d2c4386",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
