@@ -1,20 +1,65 @@
 {
-  "schema": 2,
+  "acceptance_criteria": [],
+  "active_session_id": "37d09662-b39e-43f3-9df7-ea97892ece1f",
   "branch": "fix/provider-deferral-contract-context",
-  "parent_branch": "staging",
-  "implementation_sha": "ca2602328195e20895e29802e3000ae584b44289",
-  "remote_sha": null,
-  "active_session_id": null,
-  "previous_session_ids": [],
-  "goal_state": "not_started",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-provider-deferral-contract-context-5b29bc9d",
+      "charting-stack-fix-provider-deferral-contract-context-5b29bc9d"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-provider-deferral-contract-context-5b29bc9da8"
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/provider-deferral-contract-context: I, the human in charge, explicitly authorize any and all actions the AI agent(s) may request in order to progress development, reconciliation and promotion of the four feature branches into staging and production so the product may be deployed and tested in full, by the human. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/provider-deferral-contract-context: I, the human in charge, explicitly authorize any and all actions the AI agent(s) may request in order to progress development, reconciliation and promotion of the four feature branches into staging and production so the product may be deployed and tested in full, by the human. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "184843ba9082f8006d6a9f8e0d9be35dc98bdffc",
+  "implementation_sha": "ca2602328195e20895e29802e3000ae584b44289",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "169de4e2ee4f329bb9ddb2b061fe756a8102359ec078af1e0dec073002dbfc35",
+  "planning_required": true,
   "planning_state": "draft",
+  "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "total": 0,
+    "current_blocker": "none",
     "current_phase": "plan",
-    "current_blocker": "none"
+    "total": 0
   },
-  "next_action": "run make agent-session-start",
-  "retained_docker_resources": []
+  "remote": "184843ba9082f8006d6a9f8e0d9be35dc98bdffc",
+  "remote_sha": "184843ba9082f8006d6a9f8e0d9be35dc98bdffc",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "37d09662-b39e-43f3-9df7-ea97892ece1f",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-provider-deferral-contract-context/ops/workstreams/fix-provider-deferral-contract-context",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-provider-deferral-contract-context/ops/workstreams/fix-provider-deferral-contract-context/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-provider-deferral-contract-context/ops/workstreams/fix-provider-deferral-contract-context/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-provider-deferral-contract-context/ops/workstreams/fix-provider-deferral-contract-context/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-provider-deferral-contract-context/ops/workstreams/fix-provider-deferral-contract-context/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-provider-deferral-contract-context",
+  "worktree_id": "fix-provider-deferral-contract-context-5b29bc9da8"
 }

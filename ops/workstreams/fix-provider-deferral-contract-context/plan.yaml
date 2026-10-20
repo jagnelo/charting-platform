@@ -5,30 +5,45 @@ parent_branch: staging
 parent_sha: ca2602328195e20895e29802e3000ae584b44289
 dependency_authorization: "Standing human authorization recorded in .ai/staging-attempts/human-standing-integration-authorization-20261020.md; coordinator-scoped test-only repair of CI39475398032 based directly on degraded staging ca2602328195e20895e29802e3000ae584b44289; preserve all feature worktrees and provider holds."
 human_intent_authorization: "I, the human in charge, explicitly authorize any and all actions the AI agent(s) may request in order to progress development, reconciliation and promotion of the four feature branches into staging and production so the product may be deployed and tested in full, by the human"
-planning_state: draft
+planning_state: ready
 human_closure_authorization: pending
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: docker_integration
+local_validation_reason: The minimum path classifier treats provider tests as Docker integration. Reuse the already accepted unchanged database/runtime component evidence from Provider source63e52b12aa08aec1be1abaaabbb3078f4fcdfe41 (2859 unit, 396 integration, fresh/upgrade migrations; actual raw receipts retained) without claiming rerun on this repair. Source74d exact CI39469994067 independently passed2888 unit and396 integration. Production/dependencies/migrations/Compose inputs are unchanged; execute all affected offline contracts afresh. No new fixture is justified for this test-only edit; exact repair CI and exact staging Exhaustive remain mandatory.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
-goal: "I, the human in charge, explicitly authorize any and all actions the AI agent(s) may request in order to progress development, reconciliation and promotion of the four feature branches into staging and production so the product may be deployed and tested in full, by the human"
-scope: []
-owned_paths: []
-dependencies: []
-acceptance_criteria: []
-branch_tests: []
-branch_tests_reason: pending agent assessment
+goal: Repair the Provider deferral-contract unit test so the same required assertions execute truthfully on feature branches, staging and master without changing production lookup or provider restrictions.
+scope:
+  - Explicitly bind the Provider-plan contract test to its actual Provider plan rather than the checkout branch.
+  - Add deterministic default branch lookup and explicit-plan checkout-independence regression coverage.
+owned_paths:
+  - backend/tests/unit/test_live_provider_runner.py
+  - ops/workstreams/fix-provider-deferral-contract-context/
+dependencies:
+  - Exact degraded staging ca2602328195e20895e29802e3000ae584b44289, containing accepted Provider source74d114aa6a174c723b01da25d83e7a49470bdc93.
+acceptance_criteria:
+  - id: AC1
+    text: Reproduce the exact staging failure before editing, then retain all three approved exclusions and existing selected-matrix assertions with an explicit real Provider plan.
+  - id: AC2
+    text: Prove default lookup remains branch-owned and missing staging or unknown plans inherit no deferrals, while explicit Provider-plan lookup is independent of the checkout.
+  - id: AC3
+    text: Complete offline live-runner, usage and secret regressions, Ruff, formatting, workstream validation and clean diff review with zero provider transport and no Docker fixture.
+  - id: AC4
+    text: Publish a clean synchronized repair and prove exact-source normal CI before delegated checkpoint acceptance; coordinator alone performs guarded remediation and requires exact staging Exhaustive green before ETF release.
+branch_tests:
+  - uv run --project backend pytest backend/tests/unit/test_live_provider_runner.py -q --no-cov
+branch_tests_reason: The entire affected offline runner contract module must pass on any checkout branch; routine push CI additionally retains all ordinary backend, frontend and Playwright gates.
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: authorized
-remaining_gaps: []
+status: in_progress
+remaining_gaps:
+  - Exact repair-source CI and subsequent exact staging Exhaustive remain unproven.
 progress:
   completed: []
-  total: 0
-  current_phase: plan
+  total: 4
+  current_phase: reproduce_staging_contract_failure
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: Reproduce the failing contract before the narrow test-only repair. Existing unbounded coordinator goal supervises this work in its original visible thread.
