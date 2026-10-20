@@ -146,7 +146,7 @@ def test_failed_current_route_keeps_last_known_snapshot_degraded():
 def test_current_analysis_error_detail_preserves_failure_classification():
     result = evaluate_capability(
         profile(),
-        None,
+        snapshot(),
         state(
             status="failure",
             reason="WisdomTree issuer access challenge blocked the product route.",
@@ -158,7 +158,22 @@ def test_current_analysis_error_detail_preserves_failure_classification():
 
     detail = current_analysis_error_detail(result)
 
+    assert detail["availability"] == DEGRADED
     assert detail["failure_class"] == "issuer_access_blocked"
+    assert detail["displayable_last_known"] is True
+    assert detail["identity_verified"] is True
+    assert detail["adapter_key"] == "issuer"
+    assert detail["source_provider"] == "issuer"
+    assert detail["composition_date"] == date(2026, 9, 3)
+    assert detail["published_at"] == NOW
+    assert detail["freshness_deadline"] == date(2026, 9, 10)
+    assert detail["last_checked_at"] == NOW
+    assert detail["last_success_at"] == NOW
+    assert detail["last_failure_at"] == NOW
+    assert detail["completeness_status"] == "complete"
+    assert detail["row_count"] == 25
+    assert detail["resolved_count"] == 24
+    assert detail["unresolved_count"] == 1
 
 
 def test_unspecified_cadence_expires_after_conservative_window():

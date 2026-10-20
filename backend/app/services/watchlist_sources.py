@@ -83,6 +83,24 @@ def current_analysis_source_error_detail(
         "availability": availability or "unknown",
         "source_tier": provenance.get("source_tier") or "none",
         "usable_for_current_analysis": False,
+        "displayable_last_known": provenance.get("displayable_last_known", False),
+        "identity_verified": provenance.get("identity_verified"),
+        "adapter_key": provenance.get("adapter_key"),
+        "source_provider": provenance.get("source_provider"),
+        "transport_kind": provenance.get("transport_kind"),
+        "snapshot_id": provenance.get("snapshot_id"),
+        "snapshot_hash": provenance.get("snapshot_hash"),
+        "composition_date": provenance.get("composition_date"),
+        "published_at": provenance.get("snapshot_published_at"),
+        "known_at": provenance.get("known_at"),
+        "freshness_deadline": provenance.get("freshness_deadline"),
+        "last_checked_at": provenance.get("last_checked_at"),
+        "last_success_at": provenance.get("last_success_at"),
+        "last_failure_at": provenance.get("last_failure_at"),
+        "completeness_status": provenance.get("completeness_status"),
+        "row_count": provenance.get("snapshot_row_count"),
+        "resolved_count": provenance.get("snapshot_resolved_count"),
+        "unresolved_count": provenance.get("snapshot_unresolved_count"),
         "failure_class": provenance.get("failure_class"),
         "reason": provenance.get("capability_reason")
         or "ETF holdings are not current for analysis.",
@@ -271,7 +289,7 @@ def _holdings_route_provenance(
 
     capability = (
         evaluate_capability(profile, snapshot, state)
-        if profile is not None and snapshot is not None and state is not None and as_of is None
+        if profile is not None and snapshot is not None and as_of is None
         else None
     )
 
@@ -300,6 +318,48 @@ def _holdings_route_provenance(
             if snapshot is not None and snapshot.published_at is not None
             else None
         ),
+        "snapshot_id": snapshot.id if snapshot is not None else None,
+        "snapshot_hash": snapshot.snapshot_hash if snapshot is not None else None,
+        "known_at": snapshot.known_at.isoformat()
+        if snapshot is not None and snapshot.known_at is not None
+        else None,
+        "availability": capability.availability if capability is not None else None,
+        "source_tier": capability.source_tier if capability is not None else None,
+        "identity_verified": capability.identity_verified if capability is not None else None,
+        "displayable_last_known": (
+            capability.displayable_last_known if capability is not None else snapshot is not None
+        ),
+        "source_provider": capability.source_provider if capability is not None else None,
+        "transport_kind": capability.transport_kind if capability is not None else None,
+        "composition_date": (
+            capability.composition_date.isoformat()
+            if capability is not None and capability.composition_date is not None
+            else None
+        ),
+        "freshness_deadline": (
+            capability.freshness_deadline.isoformat()
+            if capability is not None and capability.freshness_deadline is not None
+            else None
+        ),
+        "last_checked_at": (
+            capability.last_checked_at.isoformat()
+            if capability is not None and capability.last_checked_at is not None
+            else None
+        ),
+        "last_success_at": (
+            capability.last_success_at.isoformat()
+            if capability is not None and capability.last_success_at is not None
+            else None
+        ),
+        "last_failure_at": (
+            capability.last_failure_at.isoformat()
+            if capability is not None and capability.last_failure_at is not None
+            else None
+        ),
+        "completeness_status": capability.completeness_status if capability is not None else None,
+        "row_count": capability.row_count if capability is not None else None,
+        "resolved_count": capability.resolved_count if capability is not None else None,
+        "unresolved_count": capability.unresolved_count if capability is not None else None,
         "failure_class": capability.failure_class if capability is not None else None,
         "capability_reason": capability.reason if capability is not None else None,
         "usable_for_current_analysis": (
@@ -470,6 +530,9 @@ def _etf_descriptor(
             "profile_id": profile.id if profile is not None else None,
             "snapshot_id": snapshot.id if snapshot else None,
             "snapshot_hash": snapshot.snapshot_hash if snapshot else None,
+            "known_at": snapshot.known_at.isoformat()
+            if snapshot is not None and snapshot.known_at is not None
+            else None,
             "completeness_status": snapshot.completeness_status if snapshot else "not_loaded",
             **_holdings_route_provenance(profile, snapshot, state, as_of=as_of),
         },

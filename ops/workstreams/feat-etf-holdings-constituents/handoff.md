@@ -11980,3 +11980,44 @@ execute the documented capability/migration, identity, admission, operation
 hold, per-attempt transport, settlement, lineage, startup and combined-profile
 test checklist. Do not infer release from Provider branch CI or candidate
 publication.
+
+## Current-analysis rejection lineage repair — 2026-10-20
+
+The interrupted bounded consumer-hardening change was unfinished at the
+`ef0d30d701272d0e17fecadd0264b9b52e75bcd0` branch boundary. It is now scoped to
+five owned application/test files: direct ETF current-analysis 409 details and
+watchlist-source rejection details retain last-known displayability, verified
+identity, adapter/provider/transport, snapshot identity/hash, composition,
+publication/known times, freshness, route-check/success/failure timestamps,
+completeness and row counts. Watchlist provenance evaluates capability from a
+cached profile/snapshot even when adapter state is absent; it performs no
+provider probe or refresh. Historical/as-of paths continue to bypass current
+capability evaluation, and no PIT selection or persistence behavior changed.
+
+Pure capability and watchlist-source assertions reached 104/104 passing test
+markers, including the added detail-payload coverage, but the pytest process
+did not return a normal exit after its final test output. The invocation was
+interrupted (exit 130) after process inspection found no pytest process; this
+is recorded as locally inconclusive, not as a green suite. A separate
+DB-fixture-backed selected consumer case also printed its passing marker but
+did not exit cleanly, so it is not counted as a completed pass. The existing
+TestClient 409 assertions were extended but were not run locally. Ruff check,
+Ruff format check and `git diff --check` pass. No issuer, SEC or Provider HTTP,
+quota, paid/trial operation, heavy fixture, service cleanup, staging/sibling
+write, data reset or deployment was performed.
+
+The canonical UV-managed preflight confirmed this assigned branch/worktree but
+could not refresh the shared allocation registry because
+`/home/m920q/charting-platform/.ai/runtime/allocations.lock` is read-only in
+this sandbox. The existing claim was retained; no takeover or alternate claim
+was attempted. The bridge remains gated on the coordinator's accepted
+synchronized green Provider staging release. Current coordinator evidence
+still reports Provider's combined full-profile work in progress and no
+accepted product checkpoint. Keep MSMR/QQQ and Militia/GOOG unresolved and
+quarantined; preserve the full roadmap and 30-day observation gate.
+
+Next owner action: publish this bounded lineage contract with its exact local
+validation disposition, then collect exact-source branch CI. Do not start the
+TestClient/full-stack profile until the coordinator releases fixture capacity.
+After actual Provider acceptance and green staging, reconcile only that exact
+staging SHA before implementing the prepared `ETF_HOLDINGS` bridge.

@@ -181,7 +181,14 @@ def test_denied_refresh_preserves_history_and_rejects_current_analysis(
 
     response = client.get("/api/v1/etf-holdings/ARKK/basket", headers=auth_headers)
     assert response.status_code == 409
-    assert response.json()["detail"]["failure_class"] == failure_class
+    rejection = response.json()["detail"]
+    assert rejection["failure_class"] == failure_class
+    assert rejection["displayable_last_known"] is True
+    assert rejection["adapter_key"] == "ark"
+    assert rejection["source_provider"] == "ark"
+    assert rejection["composition_date"] == snapshot.composition_date.isoformat()
+    assert rejection["freshness_deadline"] is not None
+    assert rejection["completeness_status"] == "complete"
     assert db.scalar(select(func.count()).select_from(Basket)) == 0
 
     historical = client.get(
@@ -199,9 +206,7 @@ def test_denied_refresh_preserves_history_and_rejects_current_analysis(
 
 
 @pytest.mark.asyncio
-async def test_point_in_time_route_excludes_corrections_not_yet_known(
-    user, db, lineage
-):
+async def test_point_in_time_route_excludes_corrections_not_yet_known(user, db, lineage):
     profile, original, _, _, now = lineage
     target_date = (now - timedelta(days=10)).date()
     original.composition_date = target_date - timedelta(days=1)
@@ -219,9 +224,7 @@ async def test_point_in_time_route_excludes_corrections_not_yet_known(
     db.add(correction)
     db.flush()
 
-    date_parameter = signature(
-        etf_holdings_router.materialized_holdings_basket
-    ).parameters["date_"]
+    date_parameter = signature(etf_holdings_router.materialized_holdings_basket).parameters["date_"]
     assert date_parameter.default.alias == "date"
 
     response = await etf_holdings_router.materialized_holdings_basket(
