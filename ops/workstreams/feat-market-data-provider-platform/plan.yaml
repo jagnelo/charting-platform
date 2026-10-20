@@ -1,5 +1,26 @@
 schema: 4
 # Corrected exact-source plan — 2026-10-20 02:00+01:00. Implementation
+# Three-case continuation preparation (2026-10-20): current source is
+# 2e1e63593b1083cfc38be3eba4b2071fe799170c, synchronized with origin. The
+# working plan remains in_progress/closure pending/merge unauthorized. The
+# private exact-index proposal is conditional only; no completion/readiness,
+# transport authorization, quota reservation/spend, paid/trial activation, or
+# acceptance is asserted. Only Binance bounded daily history (max 2 actual
+# transports including its selected usage helper), Kraken xStocks (max 3), and
+# Gate TradFi (max 16) remain uncompleted: 21 proposed future attempt ceiling
+# plus 110 preserved actual transports =131 arithmetic combined. The three
+# successful receipt files total108; separate a716 OpenFIGI evidence adds1 and
+# the failed Alpaca universe attempt adds1. Historical
+# receipts remain bound to their original source/candidate trees. The private
+# receipt verifier requires complete expected-operation evidence; Kraken's
+# empty catalogue outcome does not prove lookup/price and cannot satisfy full
+# checkpoint operation evidence. Local functional/visual/probe receipts remain
+# component-qualified to their exact original sources as recorded in handoff.
+# Offline continuation review completed: actual historical receipt hashes and
+# legacy/new transport-budget schemas verify; 108 successful receipt requests
+# plus separate OpenFIGI1 and failed Alpaca1 evidence reconcile to110 total.
+# The private actual-prefix/canonical-subprocess mock suite passes13/13. This
+# does not authorize execution or change in_progress/pending/mergefalse state.
 # Current implementation repair (2026-10-20): exact selected-case preflight
 # denied Binance's unknown request-weight-per-minute baseline even though the
 # selected bounded-daily case contained its reviewed account-usage bootstrap;
@@ -684,7 +705,30 @@ human_intent_authorization: "Implement the approved US-first multi-provider mark
 integration_checkpoint_authorization: "Human direction received 2026-10-15 to incorporate provider-platform-integration-1 from staging commit e4d10ce0d7abc0056befca06831539fb36287043. At 2026-10-15 22:55Z the human answered: Yes—approve that initial scope and handle checkpoint acceptance. The central coordinator owns conditional technical acceptance after required exact-source contracts/tests and may integrate only a proven eligible checkpoint. This does not authorize this feature agent to self-integrate, deploy, activate paid/trial operations, start the operational trial, or clean retained data; preserve the full roadmap."
 planning_state: ready
 human_closure_authorization: delegated_conditional_acceptance_to_central_coordinator
-closure_summary: pending
+closure_summary: >-
+  provider-platform-integration-1 is the initial Provider integration checkpoint,
+  technically accepted by the delegated central coordinator on 2026-10-20
+  after its required contracts and evidence were reviewed. It delivers tested
+  identity/provenance/history/quarantine compatibility; provider entitlement,
+  quota, recurring-cost, runtime-hold, series, coverage, and producer
+  success/unavailable contracts; additive migration compatibility; and tested
+  local configuration/secret boundaries. Only verified-free operations with
+  current admission are routable. Quota-held, unreviewed, unknown, unsafe,
+  paid/trial, and user-deferred operations remain non-routable. Tradier, IBKR,
+  and Ondo remain user-deferred. The exact-source proof covers 80 successful
+  enabled canonical provider/operation pairs; the separately metered expected
+  Finnhub fetch_ohlcv 403 is a denial, not capability evidence. The final three
+  bounded cases passed on implementation source
+  2e1e63593b1083cfc38be3eba4b2071fe799170c using 9 transports; cumulative
+  actual requests including preserved historical and failed attempts are 119.
+  This does not claim a complete 27-provider live matrix or full-roadmap
+  completion. ICP7 final-publication CI and the staging Exhaustive gate remain
+  pending; the coordinator owns guarded staging integration after exact final
+  branch CI is terminal green. Full NMS/OTC/SEC reconciliation, target secret
+  stores, downstream branch wiring, paid activation, deployment, and the
+  operational trial remain on the preserved roadmap. No deployment, paid or
+  trial activation, operational trial, or feature-owner integration is
+  authorized. integration_capture: exact branch HEAD
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
@@ -815,7 +859,7 @@ acceptance_criteria:
 integration_checkpoint:
   id: provider-platform-integration-1
   planning_authorization: "Human instruction on 2026-10-15 to consume the staging coordinator's checkpoint policy and prioritize the integration checkpoint while preserving the full roadmap. Source policy: staging commit e4d10ce0d7abc0056befca06831539fb36287043."
-  acceptance_state: pending_required_validation_and_coordinator_review
+  acceptance_state: effective_on_commit_after_exact_proof_and_delegated_coordinator_acceptance
   human_closure_authorization: conditional_checkpoint_acceptance_delegated_to_coordinator
   conditional_checkpoint_acceptance_delegation:
     recorded_at: "22:55Z (user-provided timestamp)"
@@ -1566,7 +1610,7 @@ branch_tests_reason: Application models, migrations, providers, workers, Redis q
 live_test_impact: opt-in provider probes and a separately approved post-deployment 30-day disabled shadow run; no deployment or activation is authorized in this implementation session
 migration_impact: multiple additive/transformational PostgreSQL migrations for issuers, domain identities, series scope, sessions, facts/events/short interest, provider runtime budgets, and shadow telemetry; old symbol/OHLCV rows require deterministic compatibility backfill
 deployment_impact: new backend/worker configuration, optional provider credentials, QuantLib dependency, Redis-backed quota state, scheduled shadow-report jobs, and feature flags; deployment remains a separate human-authorized master workflow
-status: in_progress
+status: ready_for_integration
 approved_execution_decisions:
   provider_use:
     rule: Use every eligible provider for every capability it supports, ranked dynamically by capability, history, freshness, health, entitlement, exact cost, and remaining usage.

@@ -1,18 +1,42 @@
 # Provider integration checkpoint review packet
 
-## Proposed index-only final contract — not current status, 2026-10-20
+## Delegated technical acceptance — final publication pending
 
-This is a static candidate contract only. It becomes authoritative only after
-the remaining proof passes and the coordinator records delegated technical
-acceptance. The actual working plan remains `in_progress` with closure pending;
-ICP7, final evidence, and exact-source CI are not claimed complete here. The
-candidate preserves all approved operation selections, free-only rules,
-deferrals, holds, original roadmap criteria, and downstream remainder. It
-does not authorize provider requests, quota reservations/spend, paid/trial
-activation, deployment, or feature-owner integration. Candidate source parent
-is `1603f78812130f69919efa6d2d0515a497c50257`; the staged tree must be reported
-separately after index construction and independently reviewed. This remains a
-proposal only; working status stays `in_progress` / `pending`.
+The central coordinator has accepted `provider-platform-integration-1` under
+the human's delegated initial verified-free-only scope, conditional on this
+coherent publication's exact-source CI and coordinator-owned guarded staging
+integration. The full Provider roadmap remains open. The feature owner does
+not merge to staging, deploy, activate paid/trial operations, run the
+operational trial, or clean retained data.
+
+Exact implementation source: `2e1e63593b1083cfc38be3eba4b2071fe799170c`;
+reviewed conditional candidate tree: `a68aa6c28baa692f50de2f1742d620e471e9ead5`.
+Source CI `39462597846` is green; final-publication CI is still pending. Its
+E2E `118773659076` completed 152 passed/109 declared skips with no retry or
+flake. The authorized remaining-only run completed all three required cases:
+Binance 2, Kraken xStocks 3, Gate TradFi 4 transports. All required operation
+evidence is complete: 9 new transports and 119 cumulative actual transports
+including preserved historical and failed attempts, below the 131 attempt
+ceiling. Raw canonical receipts and terminal result are preserved at
+`/tmp/provider-2e1-three-case-execution-20261020/`; exact file hashes and
+operation dispositions are recorded in handoff and the append-only journal.
+
+The cumulative successful enabled-operation union is 80. The expected,
+separately metered Finnhub `fetch_ohlcv` 403 remains a denial, not capability
+evidence. Old receipts retain their actual source/tree/schema and are never
+rebound. Functional/visual proof (155 passed/2 declared skips; 104 strict
+visuals) remains qualified to source
+`63e52b12aa08aec1be1abaaabbb3078f4fcdfe41`, with the exact input-byte identity
+review documented; it is not represented as a new full profile on `2e1e635…`.
+The local lock/export, migration-head, lint and render-only Compose contract
+results on `2e1e635…` are recorded in the private receipt named in handoff.
+
+Every existing quota/operation hold, free-only restriction, full roadmap item,
+downstream owner/remainder, and historical red/failed result is preserved.
+ICP7's exact CI for this publication and the staging Exhaustive gate remain
+pending. No full 27-provider live-matrix success or full-roadmap completion is
+claimed. The plan records `integration_capture: exact branch HEAD` so the
+coordinator captures the actual commit without a self-hash loop.
 
 ## Corrected bounded plan — 2026-10-20 02:00+01:00
 

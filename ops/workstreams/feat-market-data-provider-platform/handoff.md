@@ -1,5 +1,99 @@
 # feat/market-data-provider-platform
 
+## 2026-10-20 — Delegated technical acceptance and final publication
+
+- The central coordinator recorded conditional technical acceptance of
+  `provider-platform-integration-1` under the human's delegated
+  verified-free-only scope. This is not full roadmap completion or permission
+  for the feature owner to integrate. The checkpoint is eligible for guarded
+  staging integration only after this coherent publication's exact-source CI
+  is terminal green; the coordinator owns `make integrate` and staging's
+  Exhaustive gate.
+- Implementation source is
+  `2e1e63593b1083cfc38be3eba4b2071fe799170c`; the reviewed conditional index
+  candidate tree was
+  `a68aa6c28baa692f50de2f1742d620e471e9ead5`. The coordinator independently
+  verified the final source/candidate boundary and the exact live receipts.
+  Existing source CI `39462597846` is green, including E2E `118773659076`
+  (152 passed, 109 declared skips, no retries/flakes); final publication CI is
+  pending and is not claimed passed here.
+- The one authorized remaining-only run completed once with exit 0. Binance
+  bounded daily history used 2 HTTP transports (usage bootstrap and history),
+  Kraken xStocks used 3, and Gate TradFi used 4. All required operation
+  evidence is complete; 9 new transports plus 110 preserved actual historical
+  transports total 119, below the reviewed 131 ceiling. Canonical receipts:
+  `/tmp/provider-2e1-three-case-execution-20261020/canonical-receipts.jsonl`
+  (SHA-256
+  `6c7133a4553d3ce014b5d27b898c0aaa84f4808f45bd14c7ec9fe9dd4b8e66a9`);
+  terminal result:
+  `/tmp/provider-2e1-three-case-execution-20261020/terminal-result.json`
+  (SHA-256
+  `82b0225e3196292d6a29c7d46a1c34cc1e3664c3061260b1b92542318f779a69`).
+  Cumulative evidence has 46 successful rows across 45 distinct cases and 117
+  receipt HTTP transports, plus the separately preserved OpenFIGI bootstrap
+  and failed Alpaca universe attempt (one transport each). The expected
+  metered Finnhub `fetch_ohlcv` 403 is a denial, not an enabled operation; the
+  successful enabled-operation union remains 80.
+- Local lock/sync/export comparison, single Alembic head, Ruff/format/TypeScript
+  lint, and render-only base/E2E/RPi Compose contract checks passed on source
+  `2e1e635…`; receipt
+  `/tmp/provider-2e1-local-gates-receipt-20261020.md` has SHA-256
+  `4c6564c1b4c28c59395029cd544a68534a1e3150e956b2f5b09dcfd35230b118`.
+  The pinned functional/visual and other component gates remain qualified to
+  their original source identities as listed in the review packet, not
+  relabeled as a fresh full profile on this source.
+- All holds, free-only admission, quota state, provider contracts, roadmap
+  criteria, downstream ownership, and historical failure evidence remain
+  unchanged. No full-roadmap/live-matrix claim, paid/trial activation, data
+  reset, deployment, or staging/sibling write is implied. Current plan records
+  `ready_for_integration` for this accepted checkpoint while ICP7's exact
+  final-publication CI remains pending.
+
+## 2026-10-20 — Three-case continuation preparation (offline only)
+
+- Current published source is `2e1e63593b1083cfc38be3eba4b2071fe799170c`,
+  synchronized with origin. Root owns Actions `39462597846`; this session is
+  not polling it. The exact current plan and a four-record conditional index
+  proposal are being prepared for coordinator review; this is not acceptance,
+  readiness publication, or transport authority. The working plan remains
+  `in_progress`, closure `pending`, and merge unauthorized.
+- The only uncompleted selected cases are Binance bounded daily history
+  (maximum 2 transports, including its selected usage helper), Kraken xStocks
+  (maximum 3), and Gate TradFi (maximum 16). The three successful receipt files
+  account for 108 transports. Separately, the preserved a716 OpenFIGI usage
+  receipt adds one and the prior failed Alpaca universe attempt adds one, so
+  preserved actual transports total 110; 21 future maximum gives 131
+  arithmetic combined. These are attempt ceilings, not allowance or proof of
+  completion. No provider request/reservation or quota change is authorized.
+- Preserve the prior 19 completed cases and the later 23-case partial run; do
+  not replay them. The prior run's next Binance case stopped before test
+  invocation at preflight with `staged_candidate_incomplete_preflight`,
+  `case_count: 0`, and the unknown request-weight-per-minute blocker; it did
+  not emit a `transport_started` field. The new offline driver rejects any
+  pytest pass whose canonical receipt omits expected per-operation evidence.
+  In particular, Kraken's empty-catalogue path does not prove asset lookup or
+  price retrieval and cannot count as complete checkpoint evidence.
+- Exact local component evidence is reused only under original source
+  identities: source `63e52b12aa08aec1be1abaaabbb3078f4fcdfe41` has the
+  independently read functional 155-pass/2-declared-skip and strict visual
+  104/104 terminal results; source `0d8945133ddc2e0549a6484da644518aa87ae843`
+  has the research-runner probes. Root's input-identity review proves the
+  relevant app/frontend/dependency/migration/Compose/Makefile/probe bytes are
+  identical through `2e1e635…`; these are component-qualified historical
+  results, not executions or live evidence on `2e1e635…`.
+- Offline continuation verification is complete: the preserved receipt files
+  were read and hash-checked in place. The 129232 five-row and 30a fifteen-row
+  formats contain no `transport_budget` field; all 23 b787 rows contain and
+  reconcile it. Successful files total 108 transports; the separate preserved
+  OpenFIGI bootstrap and failed Alpaca universe read bring the historical
+  actual total to 110. The actual-prefix verifier reconciled 42 cases, and the
+  private canonical-subprocess mock suite passed 13/13. Driver SHA-256
+  `029bd038f0b952f3c62d3615a6669cabf71d73292cbd25cfc526e97eb1b3e3a8`;
+  test SHA-256
+  `ea85326a50987a91d71d33dd8ac1f222936f6499e7ed4eb003d62ab20904b881`.
+  This is offline preparation only; the fixed once-only execution directory
+  remains absent and no provider request/reservation/spend occurred.
+
 ## 2026-10-20 16:58 UTC — Binance selected-case bootstrap preflight repair
 
 - The one-shot bounded proof stopped after 23 passed cases / 66 actual
