@@ -37,29 +37,22 @@
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "current_exact_ci": {
     "attempt": 1,
-    "conclusion": "failure",
-    "e2e_job_id": 118564119663,
-    "e2e_summary": "190 passed, 110 declared skips, one retry-passing TC2000 date-pointer OHLCV-readout flake",
-    "head_sha": "a8e5dbce34012b6edbb85315fe60d37987465acc",
+    "conclusion": "success",
+    "e2e_job_id": 118663396931,
+    "e2e_summary": "191 passed, 110 declared skips, zero retries or flaky markers",
+    "head_sha": "35ee3c0263c5255ecd8d9dafee4cd48c8e46c163",
     "jobs": {
       "backend": "success",
       "branch_declared": "success",
-      "e2e": "failure_190_passed_110_declared_skips_1_retry_passing_date_pointer_ohlcv_readout_flake",
+      "e2e": "success_191_passed_110_declared_skips_zero_retries_or_flakes",
       "exhaustive_feature_branch": "skipped_by_branch_policy",
       "frontend_unit": "success"
     },
-    "run_id": 39402602512,
-    "status": "terminal strict-red exact source a8e5dbce; date-pointer mode and focus assertions passed, .ohlcv-info absent within unchanged5s on first attempt and retry passed; preserve red",
-    "visuals": "No pixel pass inferred; TCP2 full 104-case matrix and official V25 parity remain open."
+    "run_id": 39432030348,
+    "status": "terminal success for exact product source35ee3c02; required hosted jobs succeeded",
+    "visuals": "Hosted CI skipped the opted-in visual cases; separate exact-source local pinned-Noble run passed104/104 across four profiles with zero retries and unchanged0.005 tolerance. Official V25 parity remains required_missing."
   },
-  "dirty_paths": [
-    "frontend/src/stores/chart.ts",
-    "frontend/tests/unit/stores/test_stores.test.ts",
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -108,8 +101,8 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "a8e5dbce34012b6edbb85315fe60d37987465acc",
-  "implementation_sha": "a8e5dbce34012b6edbb85315fe60d37987465acc",
+  "head": "35ee3c0263c5255ecd8d9dafee4cd48c8e46c163",
+  "implementation_sha": "35ee3c0263c5255ecd8d9dafee4cd48c8e46c163",
   "integration_checkpoint": {
     "acceptance": "pending",
     "coordinator_guidance": "/home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md",
@@ -145,19 +138,19 @@
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
-    "conclusion": "failure",
-    "e2e_summary": "189 passed, 110 expected skips, one hard F8u removed-span failure and one retry-passing F8m readiness failure",
-    "head_sha": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
+    "conclusion": "success",
+    "e2e_summary": "191 passed, 110 declared skips, zero retries or flaky markers",
+    "head_sha": "35ee3c0263c5255ecd8d9dafee4cd48c8e46c163",
     "jobs": {
       "backend": "success",
       "branch_declared": "success",
-      "e2e": "failure_189_passed_110_expected_skips_f8u_hard_f8m_flaky",
+      "e2e": "success_191_passed_110_declared_skips_zero_retries_or_flakes",
       "exhaustive_feature_branch": "skipped_by_branch_policy",
       "frontend_unit": "success"
     },
-    "run_id": 39345866954,
-    "scope": "Exact published frozen-import guard source13ee184268ab8ef2b144241a05ecc30e16c1a1a7. Backend, Frontend Unit and Branch-declared passed. E2E job118380822617 was terminal red with189 passed,110 expected skips, a hard F8u removed-span failure and a retry-passing F8m readiness failure. This run does not cover local f21 or the later dirty product candidate; Exhaustive remained skipped by feature-branch policy.",
-    "visuals": "No pixel pass inferred; TCP2 full 104-case local visual matrix and official V25 parity remain open."
+    "run_id": 39432030348,
+    "scope": "Exact product source35ee3c0263c5255ecd8d9dafee4cd48c8e46c163; Backend, Frontend Unit, Branch-declared and E2E succeeded. E2E job118663396931 reports191 passed and110 declared skips with no retries/flaky markers. Exhaustive was skipped by feature-branch policy.",
+    "visuals": "Hosted CI skipped visual cases; separate same-source local pinned-Noble matrix passed104/104 under original0.005 tolerance. Official V25 parity remains required_missing."
   },
   "frozen_upstream_import_guard": {
     "approved_snapshot": "281a57bd9fb782c0f85bfb5127c713ea15037f68",
@@ -218,13 +211,14 @@
   ],
   "progress": {
     "completed": [
-      "TCP1"
+      "TCP1",
+      "TCP2"
     ],
-    "current_blocker": "Exact source a8e5dbce CI39402602512 is terminal strict-red on the date-pointer .ohlcv-info first-attempt failure; first-failure screenshot shows Loading SPY, no OHLCV bars and Unavailable freshness. A deterministic baseline-red deferred-indicator test proves initial bars were blocked by indicator hydration; candidate now publishes initial bars before indicator completion while settled-refresh atomic behavior stays intact. Chart-store 51/51 and locked type-check pass; browser and fresh exact-source CI remain pending.",
-    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_DATE_POINTER_INITIAL_BARS_READINESS_UNIT_FIX_PENDING_PUBLICATION_RUNTIME_AND_FULL104_OPEN;TCP3_PROVIDER_ETF_RELEASE_AND_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
-    "next_action": "Publish this six-path date-pointer readiness repair after staged review; observe its exact CI and run unchanged ordinary date-pointer browser flow only after coordinator releases capacity.",
+    "current_blocker": "TCP2 local functional/visual technical acceptance is recorded for exact product source35ee3c02: exact Actions39432030348 is green and the unchanged pinned-Noble four-profile matrix passed104/104 at0.005 with zero retries. Remaining blockers are accepted Provider then ETF green staging, real consumer reconciliation, TCP4 combined profile, TCP5 final review, and official REF-HELP-V25 parity.",
+    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_ETF_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN",
+    "next_action": "Publish this coherent owned-record update once and verify its exact-source CI; then wait for accepted Provider followed by ETF staging before TC consumer reconciliation. Do not rerun the unchanged matrix or infer whole-checkpoint acceptance.",
     "total": 5,
-    "updated_at": "2026-10-20T10:52:48+00:00"
+    "updated_at": "2026-10-20T14:42:10+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",

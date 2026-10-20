@@ -1,5 +1,27 @@
 # Fresh checkpoint fixture validation route
 
+## Current TC visual font runtime disposition — 2026-10-20
+
+For this TC reference set, run every visual profile in the pinned
+`mcr.microsoft.com/playwright:v1.62.1-noble` image **without** a host DejaVu
+font mount. This supersedes the earlier normalized-font recommendation below.
+The exact uniform no-mount run on product source
+`35ee3c0263c5255ecd8d9dafee4cd48c8e46c163` passed all104 visual cases across
+the four existing profiles in15.7minutes, one worker, zero retries, with the
+original references and0.005 tolerance. Do not mix host-mounted and unmounted
+profiles within a matrix.
+
+The matched network-none fontconfig A/B used the same cached Noble image. With
+no host mount, `monospace` resolved to WenQuanYi Zen Hei Mono and
+`ui-monospace` to WenQuanYi Zen Hei; with the read-only host DejaVu mount they
+resolved to DejaVu Sans Mono and DejaVu Sans. Arial remained Liberation Sans.
+The three formerly mismatching Study structured-result/sandbox-error profiles
+then passed unchanged in the no-mount focused comparison. The previous
+host-mounted full run remains preserved as101/104 red, along with all three
+focused A/B results; no references, assertions, masks, skips or tolerance were
+changed. This is TC-reference-specific runtime evidence, not a global font
+policy or official V25 parity.
+
 Prepared 2026-10-15 while canonical matrix process11617 remains active. This
 route passed Compose config validation and subsequently initialized six healthy
 services after matrix11617 ended. The unchanged floating-window visual case
@@ -46,17 +68,14 @@ unset, no SDK request is made; an explicitly configured user action remains the
 only supported opt-in load path. Keep provider routing/refresh disabled and all
 provider/OneSignal keys blank in the visual fixture.
 
-For the normalized full matrix, mount only
-`/usr/share/fonts/truetype/dejavu` read-only into pinned
-`mcr.microsoft.com/playwright:v1.62.1-noble` from browser start. This leaves
-Arial on the pinned image's normal fallback and supplies the DejaVu monospace
-used by the previously verified strict visual environment. Run all four
-existing viewport/DPI projects, one worker and zero retries, with
-`RUN_BOARD_VISUAL_PARITY=1`. Preserve every state assertion, screenshot, mask
-and the `0.005` tolerance. Allow enough bounded wall time for all 104 cases;
-the prior 600-second client bound expired before completion and is not an
-acceptable terminal result. Retain the full terminal report and artifacts
-before scoped cleanup.
+Historical 2026-10-15 setup recommendation (superseded by the exact TC A/B
+evidence above): the host DejaVu directory was previously recommended as a
+read-only mount for a normalized matrix. Do not apply that mount to the current
+TC references. The unchanged run command still covers all four existing
+viewport/DPI projects, one worker and zero retries, with
+`RUN_BOARD_VISUAL_PARITY=1`; preserve every state assertion, screenshot, mask
+and the `0.005` tolerance. Allow enough bounded wall time for all104 cases and
+retain the full terminal report/artifacts before scoped cleanup.
 
 Cleanup must target **only** `tc2000-checkpoint-fresh-9d78e1`, using that same
 Compose invocation with `down --volumes`. Verify exact project labels before

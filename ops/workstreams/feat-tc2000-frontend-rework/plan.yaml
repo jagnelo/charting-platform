@@ -30,31 +30,27 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Published source `a8e5dbce34012b6edbb85315fe60d37987465acc` has terminal strict-
-  red Actions39402602512: Backend, Frontend Unit and Branch-declared passed;
-  E2E reports190 passed,110 declared skips and one retry-passing flake. The sole
-  first-attempt failure is the unchanged date-pointer test's `.ohlcv-info`
-  visibility assertion after mode and focus passed. Its first-failure screenshot
-  and context show `Loading SPY…`, no OHLCV bars and market-data freshness
-  `Unavailable`. The package's detailed browser trace is a successful completed
-  attempt and is not used to infer first-attempt request ordering.
+  Superseding current status (2026-10-20T14:42Z): coordinator technical
+  acceptance covers TCP2's TC-owned local functional/visual gate only, under
+  the existing delegated authority. Exact product source
+  35ee3c0263c5255ecd8d9dafee4cd48c8e46c163 has required hosted CI run
+  39432030348 green; E2E job118663396931 reports191 passed/110 declared skips,
+  with no retries or flaky markers. The unchanged pinned-Noble four-profile
+  visual matrix ran uniformly without the host DejaVu mount: 104/104 passed in
+  15.7 minutes, one worker, zero retries, original references and0.005
+  tolerance. The matching A/B proof established that the host mount changed
+  monospace/ui-monospace fallback and caused the three earlier screenshot
+  mismatches. The prior mounted-font 101/104 red receipt and all three focused
+  A/B comparisons remain preserved; no screenshot, mask, assertion, skip or
+  tolerance changed. Use the exact TC reference runtime guidance in
+  checkpoint-runtime-validation.md; do not import Provider's font assumptions.
 
-  Source analysis found that initial chart loading waits for instrument-indicator
-  hydration before publishing already-resolved OHLCV bars. A deterministic
-  deferred-indicator regression failed on a8e5dbce with bars still empty and
-  loading true, then passed after the candidate published bars and cleared the
-  initial loading state before applying indicators. Settled same-scope refreshes
-  retain their existing atomic rendered-state behavior; the full chart-store
-  suite passes51/51 and locked `vue-tsc` passes. This source mechanism is
-  consistent with the screenshot, but the first-attempt network timing is not
-  present in the retained detailed trace, so that exact request delay is not
-  claimed as observed.
-
-  The candidate's ordinary browser proof and exact-source CI remain pending.
-  Preserve the original5-second assertion, strict flake policy and all visual
-  oracles. No browser/Compose/full matrix while Provider owns the heavy slot.
-  TCP2 full104, TCP3 released Provider/ETF consumers, TCP4, TCP5 and official
-  REF-HELP-V25 parity remain open; no checkpoint acceptance is inferred.
+  TCP2 is accepted only as this local technical gate. TCP3 Provider/ETF green
+  staging release and real consumer reconciliation, TCP4 combined full profile,
+  TCP5 final review/closure, and official REF-HELP-V25 parity remain open.
+  The integration checkpoint remains pending; no whole-feature acceptance,
+  freeze, staging merge or deployment is inferred. This record-only publication
+  must receive its own exact-source CI; no unchanged browser matrix is planned.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -885,9 +881,9 @@ migration_impact: "No generic provider or ETF schema/migration work is owned her
 deployment_impact: "No deployment or environment promotion is authorized in this feature session; record deployment impact only as a final review handoff."
 status: in_progress
 progress:
-  completed: [TCP1]
+  completed: [TCP1, TCP2]
   total: 5
-  current_phase: TCP1_NARROW_ACCEPTED;_TCP2_EXACT_CI_CLEAN_FULL_VISUAL_OPEN;_TCP3_PROVIDER_ETF_CONSUMERS_OPEN;_TCP4_COMBINED_PROFILE_OPEN;_TCP5_REVIEW_OPEN
+  current_phase: TCP1_NARROW_ACCEPTED;_TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;_TCP3_PROVIDER_ETF_CONSUMER_RECONCILIATION_OPEN;_TCP4_COMBINED_PROFILE_OPEN;_TCP5_FINAL_REVIEW_OPEN
   next_action: >-
     Historical pre-acceptance continuation record (superseded by
     current_checkpoint_status below): TCP1 source 82d881e76be8de538abb6ec5c454d96afe0ee56a is already an ancestor
@@ -942,92 +938,27 @@ progress:
     owned behavior, then revalidate. Keep full functional/visual gates and the
     complete V25 roadmap open.
   current_blocker: >-
-    TCP1 source 82d881e76be8de538abb6ec5c454d96afe0ee56a was merged by
-    TC merge commit d4274a9fa3119c212a9aaf2c0006c20d921812e8 and
-    reconciled; four conflict paths were resolved without changing Help source
-    or oracles. The source uses one snapshot-save generation with both the TC
-    structural-local-change conflict recovery and the common repair's accepted
-    superseded-revision/baseline acknowledgement, trailing-save flush, and
-    selected-workspace guard. Focused workspace-store tests passed 79/79 and
-    frontend build passed after type-check. The retry-free populated
-    comparison/template and date-pointer reload browser replays passed after
-    merge. Exact-head run 38831565334 is terminal with successful
-    Branch-declared, Frontend Unit, and Backend jobs, but E2E failed: 188 passed,
-    110 skipped, one F8s-market-map-watchlist failure (Refresh action timed out
-    in the last visible Market Map tool); Exhaustive was skipped. The runtime
-    allocator preflight could not write its global allocations.lock in this
-    restricted environment. Provider owns the current heavy validation slot.
-    The terminal F8s failure was caused by a stale exact accessible-name
-    locator: the button is named `Refresh Market Map`, not its visible text
-    `Refresh`. The test now uses the correct semantic name, waits for the
-    universe-change automatic request to settle, then verifies a separate
-    ordinary manual click. Two fresh-account no-retry F8s browser runs passed
-    (2/2); populated desktop and 390x800 Plots/Remove ordinary-click checks
-    passed in the F9c flow (1/1). The focused MarketMapTool Vitest passed 58/58.
-    A first browser attempt using a reserved `.test` email failed at account
-    setup; it was not a product run. An intermediate F8s replay reached and
-    exposed the obsolete locator; that is the diagnosis, not a retry pass. The
-    initial narrow F9c setup tried to reopen the template menu and failed to
-    locate its item; the final narrow check populates RSP through the comparison
-    control and tests both ordinary actions. Exact-head Actions run 38835330075
-    for source commit 7f33b07dfc7ffa57d5285e04981448732e3eb727 is terminal
-    success: Backend Tests, Branch-declared Tests, Frontend Unit Tests, and E2E
-    Tests succeeded; E2E reports 189 passed/110 skipped (299 total). The
-    ordinary workflow command did not opt in to visual parity; those skips are
-    not visual acceptance, and Exhaustive Integration Gate was skipped. Full
-    local/combined gates remain pending; Provider has priority for the next
-    full local validation slot.
-    Before TCP4, the exact-source full local/combined opted-in visual matrix must execute in
-    a documented deterministic browser/font environment; the Help-only local
-    run is not a substitute. Provider/ETF product integration and TCP3/TCP4
-    remain incomplete. The
-    human-approved local Help product reference is tracked and validated at
-    unchanged thresholds; official V25 Help visual parity remains
-    required_missing and unfinished. Local focused Help checks passed one
-    keyboard/accessibility test and four visual profiles; hosted CI must not be
-    counted for those visuals because it skipped all 104 visual cases. Exact
-    Actions run 38824304286 on f1eef21b791659babdcd83a32151b2b6810f21a8 had
-    Backend, Frontend Unit, and Branch-declared jobs succeed, but E2E had 186
-    passed, 110 skipped, and three retry-passing flakes (F9c comparison,
-    date-pointer reload, F8w Market Gauge); clean all-source CI remains open.
-    Continue only with the full roadmap; no staging integration or feature
-    completion is implied.
-    New coordinator audit (2026-10-16) reports hosted Provider E2E job
-    116790236300 at149 passed/109 skipped with two retry-passing flakes: F8b
-    popup Close hit Target page closed during an ordinary click after nested
-    isClosed prechecks; F8u could not find the RSI header after real drag. TC's
-    F8b had the same nested-precheck shape. It now delegates popup cleanup to
-    the existing closePopupWhenOpen helper, which keeps the ordinary Close
-    action, tolerates only a popup that actually closed, and propagates other
-    errors; durable source-tool and diagnostics assertions remain. Browser
-    execution is pending Provider's heavy slot. F8u remains a separate
-    source/readiness/drag diagnosis; no retry, sleep, force, synthetic drag, or
-    upstream readiness assumption was added. Provider's UPlot lacks TC's
-    aria-busy marker, so TC's F8n observer is not assumed portable upstream.
-    The coordinator independently accepts 43e2c0275/run38846672417 only as
-    mounted-app functional observer evidence, not for later d9/73 source. Exact
-    d9e1187fb/run38849132666 validates the additive ToolWindow readiness alias
-    (focused test 11/11; required CI jobs successful; 189 passed/110 skipped,
-    no retries; hosted visuals skipped). Current F8b source correction is
-    published in 73fba9d4acc815e963d06cf5085db7497ccac1f7; run38852207578 was
-    verified live/in progress on this exact SHA. It is a candidate only until
-    terminal E2E is audited. Local mounted-app/full-functional and104-profile
-    visual evidence still required; no local heavy stack while Provider owns
-    the slot. Provider/ETF staged consumers remain unavailable until green
-    product staging release. Latest coordinator evidence identifies Provider's
-    56e full profile as in progress and ETF's shared bridge as pending. Standard
-    Make preflight cannot write root `.ai/runtime/allocations.lock` here. UV-
-    managed direct `agent-session.py status` with an isolated `/tmp` cache
-    refreshed this session record while preserving the writer claim; do not
-    rerun `agent-session-start` on this already claimed dirty continuation.
-    Superseding exact-source update (2026-10-16T08:13Z): candidate
-    e2b474b8605fc0f8d9554d70745d0f0bf2e0baaf is pushed and exact CI
-    38868618416 attempt1 passed all required jobs. E2E reports189 passed,
-    110 skipped, one retry-passing F8m menu-item failure at flows.spec.ts:2377;
-    the 10,000-cell Market Map path passed on its first attempt. Hosted visuals
-    were skipped. Next diagnose F8m without relaxing the ordinary click or final
-    chart-state assertions. TCP1 only accepted; TCP2-TCP5 and V25 parity open.
+    TCP2 local technical acceptance is recorded above. Remaining blockers are
+    only the ordered upstream/combined gates and final review: wait for Provider
+    then ETF accepted green staging, reconcile their actual consumer contracts
+    in this TC worktree, and perform the required combined full profile/exact
+    source CI before requesting final checkpoint review. Official V25 visual
+    parity remains required_missing. Earlier red and pending entries remain
+    historical evidence; they are superseded only for current TCP2 local-gate
+    status, not erased or relabelled.
 current_checkpoint_status: >-
+  Superseding current boundary (2026-10-20T14:42Z): coordinator technical
+  acceptance covers TCP2's TC-owned local functional/visual gate only. Product
+  source35ee3c0263c5255ecd8d9dafee4cd48c8e46c163 has exact required hosted CI
+  39432030348 green (E2E job118663396931:191 passed,110 declared skips,no
+  retry/flaky markers) and uniform pinned-Noble local visual104/104 pass in
+  15.7m,one worker,zero retries,unchanged references/tolerance0.005. The old
+  host-DejaVu-mounted101/104 red and all matched A/B3 receipts are retained.
+  Current TC fixture guidance is no host DejaVu mount for all profiles. This
+  is not whole checkpoint acceptance: TCP3 Provider/ETF consumers,TCP4 combined
+  profile,TCP5 final review, and official REF-HELP-V25 remain open; all older
+  entries below retain their historical source qualification.
+
   Superseding current boundary (2026-10-19T23:20Z): the enclosing merge brings
   exact green common staging281a57bd9fb782c0f85bfb5127c713ea15037f68 / CI
   39335198284 into the TC branch. This is the coordinator-released common

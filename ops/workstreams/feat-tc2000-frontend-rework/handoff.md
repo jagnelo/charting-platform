@@ -1,5 +1,14 @@
 # feat/tc2000-frontend-rework
 
+## Current status — 2026-10-20 14:42Z
+
+TCP2's local technical gate is accepted only: product source
+`35ee3c0263c5255ecd8d9dafee4cd48c8e46c163` has green required CI
+`39432030348` and the unchanged pinned-Noble visual matrix passed104/104 at
+the existing0.005 tolerance. TCP3/4/5 and official V25 parity remain open;
+this is not whole-checkpoint acceptance. Detailed receipts and runtime
+provenance are recorded at the end of this handoff.
+
 ## 2026-10-18 — Human-approved local Help oracle reviewed; V25 gap retained
 
 Acceptance flexibility used: the human-approved deterministic local-only Help
@@ -22233,3 +22242,48 @@ test-only correction and use a uniquely named detached browser container with
 an in-container timeout/kill grace; retain terminal state, logs and artifacts
 before exact-container cleanup. TCP2 remains open pending the complete strict
 matrix; TCP3-TCP5 and official `REF-HELP-V25` parity remain open.
+
+## 2026-10-20 14:42Z — TCP2 local technical gate accepted; TC font runtime corrected
+
+The coordinator's delegated technical acceptance in
+`/home/m920q/charting-platform/.ai/staging-attempts/tc-tcp2-technical-acceptance-20261020.md`
+accepts TCP2's local technical gate only. Exact product source
+`35ee3c0263c5255ecd8d9dafee4cd48c8e46c163` has required Actions run
+`39432030348` green; E2E job `118663396931` reports191 passed/110 declared
+skips and no retry/flaky markers. The ordinary hosted job skipped all visual
+cases; it is not the pixel evidence.
+
+The exact-source local strict matrix used pinned Playwright1.62.1 Noble without
+a host DejaVu mount, all four original profiles, one worker, zero retries,
+unchanged references/masks/skips and tolerance0.005. It completed104/104 in
+15.7minutes, exit0, from14:20:28Z to14:36:12Z. The raw log SHA-256 is
+`2eaca0b6363d366cbd16902d1b00652feca7fd6cb98091222339421d456ac1c6`; atomic
+exit receipt SHA-256 is
+`ada44399459f2445184c013fe00c4ecbdd561702ba5a898d699ccfefc04f380e`. Both
+remain under
+`.ai/runtime/tc-val-9525719-20261020t1125z/artifacts/full-visual-nohostdejavu-35ee3c02-20261020t1520z/`.
+
+Font disposition is TC-reference-specific and evidence-based: the same cached
+Noble image maps generic monospace/ui-monospace to WenQuanYi without the host
+mount, but to DejaVu Sans Mono/DejaVu Sans with the read-only host directory;
+Arial remains Liberation Sans. All three unchanged matched Study Lab cases
+that failed with the mount passed without it. Preserve the earlier mounted
+full run as101/104 red and the matched A/B3 receipts; no baseline, oracle,
+assertion, mask, skip or tolerance was changed. The earlier functional source
+`89dca752` result195 passed/2 declared skips is separately qualified and is
+not relabelled as a no-host-font run.
+
+The exact one-off browser container was `d54603d9c8e625ec6fb88c3d3ad1331b3d3b02d4046f38926445ac7058bbc53e`.
+After the atomic exit receipt, its process list contained only the idle
+`sleep infinity` shell; the coordinator verified and removed that exact
+container. The seven retained fixture/app/proxy services and four assigned
+volumes remain running/intact; artifacts were retained. No application source,
+functional assertion, screenshot or upstream worktree changed.
+
+This closes only the locally accepted TCP2 technical gate. TCP3 still requires
+accepted Provider then ETF green staging and real TC consumer reconciliation;
+TCP4 combined validation and TCP5 final review/closure remain open. Official
+`REF-HELP-V25` parity remains `required_missing`; the approved local Help
+reference is not official V25 evidence. Publish this coherent record update
+once, validate it and verify its exact-source CI. Do not rerun an unchanged
+matrix or claim whole-checkpoint acceptance.
