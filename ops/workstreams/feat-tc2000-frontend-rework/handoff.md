@@ -1,6 +1,41 @@
 # feat/tc2000-frontend-rework
 
-## Current status — 2026-10-20 21:52Z: Provider consumer contract adaptation in progress
+## Current status — 2026-10-20 22:03Z: Provider merge published; exact CI blocked at ETF collection boundary
+
+The TC-owned normal merge of released green staging
+`9b230ba4c97126a2937667138c6eb2a0aa297baf` is committed and pushed as
+`669b49804205411245f46463db5bcfa41860248b` (first parent
+`7a3aa2d87f43c0cc69a758750da14eae08e75f6b`, second parent exact released
+`9b230ba4c97126a2937667138c6eb2a0aa297baf`). Local and origin refs match.
+Exact CI `39504855454`, attempt1, is terminal red: Backend Tests failed while
+collecting16 modules because the deferred ETF-owned `etf_holdings.py` imports
+`get_search_provider_chain`, which the accepted Provider package does not
+expose. Frontend Unit Tests passed. Branch-declared, Playwright and Exhaustive
+jobs were skipped after the backend failure. This confirms the previously
+observed watchlist-history collection boundary; it is not an Alpaca/Massive
+factor regression and is not permission to restore the ETF-owned API in
+Provider or import unreleased ETF code.
+
+The bounded implementation remains as described below: TC's existing derived
+lineage columns are restored over existing migration revisions; validated
+nullable factor evidence flows through typed event persistence and observations;
+the Alpaca parser preserves only legacy `adjustment_factor` and
+`adjustmentFactor` fields. The provider-neutral synthetic fixture is named
+`factor-fixture`, not Massive. Massive docs separately list
+`historical_adjustment_factor`, while the accepted Massive parser does not
+normalize it; this approved Alpaca compatibility slice did not change Massive.
+Focused parser/lineage/event/adjustment/derived-timeframe tests pass70/70;
+OHLCV storage reconciliation passes7/7; Ruff, scope self-tests34/34, actual
+scope guard402 paths (329 frozen imports plus6 exact adaptations), workstream,
+structured-data and diff checks pass. Watchlist-history test collection is
+still blocked before assertions at the same ETF-owned import. No DB migration,
+full backend suite, live HTTP, or runtime fixture was run. Next action is to
+retain this exact red receipt and wait for the accepted green ETF staging
+release plus a separately approved exact import manifest before ETF consumer
+reconciliation. TCP3 overall, TCP4/TCP5, full roadmap and official
+`REF-HELP-V25` remain open.
+
+## Historical status — 2026-10-20 21:52Z: Provider consumer contract adaptation in progress
 
 This remains a normal TC-owned merge of released green staging
 `9b230ba4c97126a2937667138c6eb2a0aa297baf` into the existing branch:

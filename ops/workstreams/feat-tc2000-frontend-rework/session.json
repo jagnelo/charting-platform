@@ -37,20 +37,23 @@
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "current_exact_ci": {
     "attempt": 1,
-    "conclusion": "success",
-    "e2e_job_id": 118663396931,
-    "e2e_summary": "191 passed, 110 declared skips, zero retries or flaky markers",
-    "head_sha": "35ee3c0263c5255ecd8d9dafee4cd48c8e46c163",
+    "backend_job_id": 118911116181,
+    "branch_declared_job_id": 118911809083,
+    "conclusion": "failure",
+    "e2e_job_id": 118912013490,
+    "e2e_summary": "skipped after backend test collection failed; no E2E cases executed",
+    "frontend_unit_job_id": 118911116375,
+    "head_sha": "669b49804205411245f46463db5bcfa41860248b",
     "jobs": {
-      "backend": "success",
-      "branch_declared": "success",
-      "e2e": "success_191_passed_110_declared_skips_zero_retries_or_flakes",
-      "exhaustive_feature_branch": "skipped_by_branch_policy",
+      "backend": "failure_16_collection_errors_get_search_provider_chain_missing_from_accepted_provider",
+      "branch_declared": "skipped_after_backend_failure",
+      "e2e": "skipped_after_backend_failure",
+      "exhaustive_feature_branch": "skipped_after_backend_failure",
       "frontend_unit": "success"
     },
-    "run_id": 39432030348,
-    "status": "terminal success for exact product source35ee3c02; required hosted jobs succeeded",
-    "visuals": "Hosted CI skipped the opted-in visual cases; separate exact-source local pinned-Noble run passed104/104 across four profiles with zero retries and unchanged0.005 tolerance. Official V25 parity remains required_missing."
+    "run_id": 39504855454,
+    "status": "terminal red for exact merge source669b; backend collection is blocked by the deferred ETF-owned import boundary",
+    "visuals": "No hosted E2E or visual cases ran. Previously accepted TCP2 local visual evidence remains separately source-qualified; official V25 parity remains required_missing."
   },
   "dirty_paths": [],
   "docker": {
@@ -132,8 +135,8 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "7a3aa2d87f43c0cc69a758750da14eae08e75f6b",
-  "implementation_sha": "35ee3c0263c5255ecd8d9dafee4cd48c8e46c163",
+  "head": "669b49804205411245f46463db5bcfa41860248b",
+  "implementation_sha": "669b49804205411245f46463db5bcfa41860248b",
   "integration_checkpoint": {
     "acceptance": "pending",
     "coordinator_guidance": "/home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md",
@@ -141,7 +144,7 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-20T02:28:14+00:00",
+  "last_checkpoint": "2026-10-20T22:03:00+00:00",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
@@ -190,29 +193,29 @@
       "TCP1",
       "TCP2"
     ],
-    "current_blocker": "TCP1/TCP2 remain narrowly accepted as recorded. Provider-only TCP3 reconciliation is active against released9b230 with six coordinator-approved exact adaptations; merge publication, exact-source CI and a bounded watchlist-history collection blocked before assertions by the later ETF import are outstanding. Alpaca public endpoint reference does not declare adjustment_factor, so its optional legacy-key parser support is not native-feed proof. ETF reconciliation, TCP4, TCP5, complete roadmap and official REF-HELP-V25 remain open.",
+    "current_blocker": "TCP1/TCP2 remain narrowly accepted as recorded. Provider-only merge669b49804205411245f46463db5bcfa41860248b is pushed, but exact CI39504855454 is terminal red: Backend unit collection has16 errors at the deferred ETF-owned get_search_provider_chain import; Frontend Unit passed and Branch-declared/Playwright/Exhaustive were skipped. Do not restore the ETF API in Provider. Alpaca optional legacy factor parsing is not native-feed proof; the synthetic fixture is provider-neutral and Massive is unchanged. ETF staging/reconciliation, TCP3 overall, TCP4, TCP5, complete roadmap and official REF-HELP-V25 remain open.",
     "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_ONLY_RECONCILIATION_ACTIVE_ETF_GATED;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN",
-    "next_action": "Finish exact scope/workstream/structured/diff checks, publish the single Provider reconciliation merge through normal TC ownership, and obtain exact-source CI; do not import or repair ETF-owned code in this phase.",
+    "next_action": "Preserve the exact CI red receipt. Wait for accepted green ETF staging and a new explicit exact snapshot/manifest approval before ETF consumer reconciliation; do not retry unchanged collection or restore ETF-owned get_search_provider_chain in Provider.",
     "total": 5,
-    "updated_at": "2026-10-20T21:52:10+00:00"
+    "updated_at": "2026-10-20T22:03:00+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "a8e5dbce34012b6edbb85315fe60d37987465acc",
-    "current_pending_range": "a8e5dbce34012b6edbb85315fe60d37987465acc plus the uncommitted initial-bars readiness source, regression and owner evidence",
+    "current_local_head": "669b49804205411245f46463db5bcfa41860248b",
+    "current_pending_range": "none; Provider-only reconciliation merge 669b49804205411245f46463db5bcfa41860248b is pushed; exact CI red as recorded",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "a8e5dbce34012b6edbb85315fe60d37987465acc",
-    "status": "local/origin a8e5dbce are equal; date-pointer initial-bars readiness repair and regression are dirty pending staged review/publication; ordinary runtime proof remains open"
+    "remote_tracking_sha": "669b49804205411245f46463db5bcfa41860248b",
+    "status": "local/origin both equal 669b49804205411245f46463db5bcfa41860248b; merge source is published; exact CI is red on deferred ETF consumer import collection"
   },
-  "remote": "ba744412355f424df944177d31f0686f0e09f1b4",
-  "remote_sha": "7a3aa2d87f43c0cc69a758750da14eae08e75f6b",
-  "remote_synchronized": false,
+  "remote": "origin",
+  "remote_sha": "669b49804205411245f46463db5bcfa41860248b",
+  "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"

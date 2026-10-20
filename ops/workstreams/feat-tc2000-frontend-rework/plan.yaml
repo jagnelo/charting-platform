@@ -30,27 +30,25 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Current 2026-10-20 Provider-only reconciliation is in progress in the normal
-  merge of released green staging9b230ba4c97126a2937667138c6eb2a0aa297baf.
-  The frozen model conflicts now match exact release blobs. Bounded
-  consumer reconciliation is present in analysis, Market Map, Research, Strategy
-  Lab and workstation startup seams, with Provider freshness/preflight evidence
-  carried into the tests. Exact staging import remains blocked from publication
-  by two unresolved cross-owner contracts: accepted Provider OHLCV schema omits
-  TC derived-bar lineage fields used by existing analysis semantics, and
-  accepted Provider instrument-event schema/base record omit TC's explicit
-  adjustment_factor consumer contract. These gaps now have narrow additive TC
-  adaptations over the existing migration columns, plus an Alpaca compatibility
-  parser for only the exact optional factor keys recognized by the prior TC
-  parser. It is not evidence that Alpaca's documented endpoint emits those
-  fields. Massive's current documentation separately names
-  historical_adjustment_factor for dividends and splits, but the accepted
-  Massive parser does not normalize that field and this approved Alpaca
-  compatibility slice does not change Massive behavior. Unknown factors remain
-  null; no split/dividend-derived substitute is allowed. ETF reconciliation and
-  TCP3 overall remain gated on an accepted green ETF release. TCP4, TCP5, full
-  roadmap, and official REF-HELP-V25 remain open; no whole-checkpoint acceptance,
-  staging integration, promotion, or deployment is inferred.
+  Provider-only reconciliation is committed and pushed in TC merge
+  669b49804205411245f46463db5bcfa41860248b, whose second parent is the exact
+  accepted green staging release9b230ba4c97126a2937667138c6eb2a0aa297baf.
+  Exact-source CI39504855454 is terminal red: Backend Tests failed during
+  collection in16 modules because deferred ETF-owned code imports
+  get_search_provider_chain, which the accepted Provider package does not expose;
+  Frontend Unit passed, while Branch-declared, Playwright and Exhaustive were
+  skipped after the backend failure. The additive TC OHLCV lineage and
+  event-factor adaptations use existing migration columns. Alpaca parsing keeps
+  only the exact legacy explicit adjustment_factor/adjustmentFactor keys;
+  endpoint emission is unverified, absent values stay unknown, and no factor is
+  inferred. The provider-neutral synthetic persistence fixture is not Massive
+  evidence. Massive documents historical_adjustment_factor for dividend and
+  split rows, but the accepted Massive parser does not normalize it and this
+  Alpaca-only compatibility slice does not change that behavior. Bounded
+  watchlist-history test collection remains blocked at the deferred ETF-owned
+  get_search_provider_chain import. ETF reconciliation is still required for
+  TCP3 overall; TCP4, TCP5, full roadmap and official REF-HELP-V25 remain open.
+  No whole-checkpoint acceptance or staging integration is inferred.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -945,16 +943,7 @@ progress:
   # Current TCP3 is intentionally subdivided; completed IDs remain TCP1/TCP2 only.
   current_phase: TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_ONLY_RECONCILIATION_ACTIVE_ETF_GATED;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN
   next_action: >-
-    Complete the bounded offline Provider reconciliation against released
-    staging9b230, including the exact approved additive TC adapters and their
-    frozen-import manifest exceptions. Record passing focused parser-to-storage,
-    derived-timeframe, adjustment and OHLCV-storage tests; record the separate
-    watchlist-history collection failure at the pre-existing ETF import boundary.
-    Run scope/self-tests and workstream/structured/diff validation, then publish
-    the coherent merge context once through normal TC ownership and obtain exact
-    source CI. Do not run live HTTP, migrations against a database, a full
-    backend/frontend/browser/Compose profile, or touch assigned services.
-    ETF release and consumer reconciliation remain required for TCP3 overall.
+    Preserve exact-source CI39504855454 as red and do not retry its unchanged collection failure. Wait for the separately accepted green ETF staging release and a new explicit snapshot/manifest approval before ETF consumer reconciliation. Resolve the collection boundary only through that authorized ETF consumer reconciliation; do not restore ETF-owned get_search_provider_chain in Provider or merge unaccepted ETF code. No heavy local suite, runtime fixture, migration execution, live HTTP, or assigned-service action is in scope now.
 
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:
@@ -1011,48 +1000,24 @@ progress:
     owned behavior, then revalidate. Keep full functional/visual gates and the
     complete V25 roadmap open.
   current_blocker: >-
-    Provider-only reconciliation against released
-    9b230ba4c97126a2937667138c6eb2a0aa297baf now has coordinator-approved,
-    additive TC representations for the existing OHLCV lineage columns and
-    typed adjustment-factor consumer. The four model/input/service adaptations
-    and two exact Alpaca parser/test adaptations are pinned to accepted source
-    blobs and excluded only from the immutable-file list; no migration was added
-    because the existing TC revisions already create the required columns.
-    Alpaca's public corporate-actions reference does not declare an adjustment
-    factor response field: only the two legacy TC-recognized explicit keys are
-    preserved if present, and this is not evidence that the native endpoint
-    emits one. Massive separately documents historical_adjustment_factor on
-    dividend and split records, but the accepted Massive parser does not
-    normalize that field and this narrow Alpaca adaptation does not implement
-    it. The synthetic typed persistence fixture is provider-neutral and is not
-    native Massive evidence. Focused relevant tests pass, but bounded history collection via
-    watchlist_history is blocked before assertions by the independent stale ETF
-    import get_search_provider_chain. No DB migration/runtime or exact merge CI
-    has run. ETF release/reconciliation is still required for TCP3 overall;
-    TCP4, TCP5, full roadmap and official REF-HELP-V25 remain open.
+    The released Provider consumer merge is at 669b49804205411245f46463db5bcfa41860248b
+    and was pushed with local/origin parity. Exact-source CI39504855454 is
+    terminal red: Backend unit collection has16 errors at the deferred ETF-owned
+    get_search_provider_chain import; Frontend Unit passed and Branch-declared,
+    Playwright and Exhaustive were skipped. Focused parser/lineage/event/
+    adjustment/derived-timeframe tests passed70/70, OHLCV storage passed7/7,
+    Ruff and scope/workstream/diff checks passed. The watchlist-history test
+    selection still cannot collect because deferred ETF-owned code imports
+    get_search_provider_chain, which accepted Provider does not expose. No
+    database migration, full backend suite, browser, or live HTTP was run. ETF
+    green release and a new coordinator-approved import snapshot remain required
+    before ETF reconciliation; TCP3 overall, TCP4/TCP5, full roadmap, and
+    official REF-HELP-V25 remain open.
 current_checkpoint_status: >-
-  Current boundary (2026-10-20T21:52Z): TCP1 and TCP2 remain narrowly accepted
-  only as recorded. Provider-only TCP3 reconciliation is active against exact
-  green staging9b230ba4c97126a2937667138c6eb2a0aa297baf (receipt
-  20261020T205101Z-9b230ba4c971.json; CI39484176087; Exhaustive
-  118849529356). Pre-merge TC HEAD and origin were both
-  7a3aa2d87f43c0cc69a758750da14eae08e75f6b and MERGE_HEAD is exactly9b230;
-  the merge remains uncommitted/unpushed. The coordinator-approved six exact
-  contract adaptations preserve TC's existing derived-lineage ORM projection,
-  typed explicit factor consumer/persistence, and the two explicitly named
-  legacy Alpaca parser keys. No schema migration was added because the required
-  lineage/factor columns exist in the prior TC migrations. The current Alpaca
-  public corporate-actions reference does not declare an adjustment-factor row
-  field, so legacy optional-key parsing is not proof that the native endpoint
-  emits one; unknown remains null, with no dividend/split-derived substitute.
-  The bounded parser/persistence plus event/adjustment/derived-timeframe test
-  selection passed70/70; OHLCV storage reconciliation passed7/7. The separate
-  watchlist-history selection cannot collect because the later ETF-owned module
-  imports get_search_provider_chain absent from accepted Provider; no ETF
-  source/API was changed. Exact source scope/workstream validation, migration
-  graph review, merge commit/push and exact-source CI remain pending.
-  ETF staging and its TC consumer reconciliation are still required for TCP3;
-  TCP4, TCP5, the full roadmap and official REF-HELP-V25 remain open.
+  Current boundary (2026-10-20T22:03Z): TCP1 and TCP2 remain narrowly accepted
+  only as previously recorded. The TC-owned Provider-only backmerge of exact
+  released staging9b230ba4c97126a2937667138c6eb2a0aa297baf is committed as
+  669b49804205411245f46463db5bcfa41860248b (first parent7a3aa2d87f43c0cc69a758750da14eae08e75f6b; second parent exact9b230) and pushed with local/origin parity. Exact Actions run39504855454 attempt1 is terminal red: Backend unit job failed at collection in16 modules on deferred ETF-owned get_search_provider_chain; Frontend Unit passed; Branch-declared, Playwright and Exhaustive were skipped. The six explicit TC compatibility adaptations remain narrowly identified in the manifest; no migration was added. Alpaca support is limited to the two legacy explicit keys and is not native endpoint evidence. The synthetic persistence fixture is provider-neutral. Massive docs name historical_adjustment_factor, but the accepted parser does not normalize it and this slice does not adapt Massive. Focused70/70, OHLCV storage7/7, scope self-test34/34, actual scope guard402 changed paths/329 immutable imports/6 adaptations, workstream, structured-data and diff checks pass. Watchlist-history collection remains blocked before assertions by ETF-owned get_search_provider_chain. Do not restore that ETF API in Provider or import unreleased ETF code. ETF consumer reconciliation, TCP3 overall, TCP4, TCP5, full roadmap and official REF-HELP-V25 remain open.
 
   Historical boundary (2026-10-20T21:00Z): TCP1 and TCP2 remain narrowly accepted
   only as recorded. Provider-only TCP3 reconciliation is authorized against
