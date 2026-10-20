@@ -6,9 +6,11 @@ import pytest
 from sqlalchemy import select
 
 from app.models.data_source import DataSource
+from app.models.exchange import Exchange
 from app.models.instrument import EquityDetail, Instrument
-from app.models.instrument_identity import InstrumentIdentifier
+from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
 from app.models.listing import InstrumentListing
+from app.models.market_data_foundation import Issuer
 from app.models.provider_observation import (
     InstrumentIdentifierSnapshot,
     InstrumentProfileSnapshot,
@@ -18,7 +20,7 @@ from app.models.provider_observation import (
 )
 from app.models.provider_runtime import ProviderCapability, ProviderHealthState, ProviderPolicy
 from app.providers.base import IdentifierRecord, InstrumentProfile, ProviderSearchResult
-from app.services import instrument_mastering, instrument_sync, market_data
+from app.services import instrument_mastering, instrument_sync, market_data, provider_observations
 from app.services.provider_runtime import ProviderExecutionResult, ResolvedProvider
 from tests.unit.conftest import AsyncSessionAdapter
 
@@ -55,6 +57,70 @@ async def test_profile_classification_system_is_retained_in_detail_provenance(
 
     assert detail.field_provenance["sector"]["classification_system"] == "SEC_SIC"
     assert detail.field_provenance["industry"]["classification_system"] == "SEC_SIC"
+
+
+@pytest.mark.asyncio
+async def test_identifier_snapshot_retains_provider_rows_without_changing_projection(
+    db, instrument
+):
+    data_source = DataSource(name="openfigi", is_active=True)
+    db.add(data_source)
+    db.flush()
+    snapshot = await provider_observations.store_identifier_snapshot(
+        AsyncSessionAdapter(db),
+        instrument_id=instrument.id,
+        data_source_id=data_source.id,
+        provider_symbol="AAPL",
+        identifiers=[
+            IdentifierRecord(
+                identifier_type="FIGI",
+                identifier_value="BBG000B9XRY4",
+                is_primary=True,
+                source="openfigi",
+                extra_data={"exchange_code": "US"},
+                raw_payload={"figi": "BBG000B9XRY4", "securityType": "Common Stock"},
+            )
+        ],
+    )
+
+    assert snapshot.payload["identifiers"][0]["identifier_value"] == "BBG000B9XRY4"
+    assert snapshot.payload["identifiers"][0]["raw_payload"]["securityType"] == "Common Stock"
+
+
+@pytest.mark.asyncio
+async def test_profile_cik_is_attached_to_issuer_not_security_identity(db, instrument, monkeypatch):
+    profile = InstrumentProfile(
+        provider="edgar",
+        symbol=instrument.symbol,
+        canonical_symbol=instrument.symbol,
+        name=instrument.name,
+        currency="USD",
+        quote_type="EQUITY",
+        exchange="NASDAQ",
+        identifiers=[IdentifierRecord(identifier_type="CIK", identifier_value="320193")],
+        extra={"cik": 320193},
+    )
+
+    async def _no_provider_scores(*_args, **_kwargs):
+        return []
+
+    monkeypatch.setattr(instrument_mastering, "resolve_provider_chain", _no_provider_scores)
+    await instrument_mastering.ingest_provider_profile(
+        AsyncSessionAdapter(db), profile, instrument=instrument
+    )
+
+    issuer = db.execute(select(Issuer).where(Issuer.cik == "0000320193")).scalar_one()
+    assert instrument.issuer_id == issuer.id
+    assert issuer.domain_key == "cik:0000320193"
+    assert (
+        db.execute(
+            select(InstrumentIdentifier).where(
+                InstrumentIdentifier.instrument_id == instrument.id,
+                InstrumentIdentifier.identifier_type == InstrumentIdentifierType.CIK,
+            )
+        ).scalar_one_or_none()
+        is None
+    )
 
 
 def _resolved_provider(
@@ -115,6 +181,7 @@ async def test_latest_price_fetch_persists_and_then_reuses_cache(db, instrument,
             policy=resolved.policy,
             health=resolved.health,
             result=123.45,
+            response_payloads=({"symbol": "AAPL", "price": "123.45"},),
         )
 
     monkeypatch.setattr(market_data, "resolve_provider_chain", _fake_resolve)
@@ -129,6 +196,37 @@ async def test_latest_price_fetch_persists_and_then_reuses_cache(db, instrument,
     assert execute_calls == 1
     assert len(snapshots) == 1
     assert float(snapshots[0].price) == pytest.approx(123.45)
+    assert snapshots[0].payload == {
+        "price": 123.45,
+        "provider_response": {"symbol": "AAPL", "price": "123.45"},
+        "provider_responses": [{"symbol": "AAPL", "price": "123.45"}],
+    }
+
+
+@pytest.mark.asyncio
+async def test_latest_price_snapshot_preserves_all_provider_responses(db, instrument):
+    resolved = _resolved_provider(
+        db, provider_name="test-provider", capability=ProviderCapability.LATEST_PRICE
+    )
+    snapshot = await provider_observations.store_latest_price_snapshot(
+        AsyncSessionAdapter(db),
+        instrument_id=instrument.id,
+        data_source_id=resolved.data_source.id,
+        provider_symbol="AAPL",
+        price=123.45,
+        payloads=[
+            {"page": 1, "price": "123.45"},
+            {"page": 2, "price": "123.45"},
+        ],
+    )
+
+    assert snapshot.payload == {
+        "price": 123.45,
+        "provider_responses": [
+            {"page": 1, "price": "123.45"},
+            {"page": 2, "price": "123.45"},
+        ],
+    }
 
 
 @pytest.mark.asyncio
@@ -150,7 +248,11 @@ async def test_search_fetch_persists_and_then_reuses_cache(db, monkeypatch):
         if provider_name == "yfinance":
             results = [
                 ProviderSearchResult(
-                    symbol="NVDA", name="NVIDIA", exchange="NASDAQ", instrument_type="Stock"
+                    symbol="NVDA",
+                    name="NVIDIA",
+                    exchange="NASDAQ",
+                    instrument_type="Stock",
+                    raw_payload={"symbol": "NVDA", "quoteType": "EQUITY", "assetId": "y-1"},
                 )
             ]
             resolved = yfinance
@@ -161,6 +263,11 @@ async def test_search_fetch_persists_and_then_reuses_cache(db, monkeypatch):
                     name="NVIDIA Tokenized",
                     exchange="CoinGecko",
                     instrument_type="CRYPTOCURRENCY",
+                    raw_payload={
+                        "id": "nvidia-token",
+                        "symbol": "nvda",
+                        "name": "NVIDIA Tokenized",
+                    },
                 )
             ]
             resolved = coingecko
@@ -202,6 +309,12 @@ async def test_search_fetch_persists_and_then_reuses_cache(db, monkeypatch):
     )
     assert len(snapshots) == 2
     assert {snapshot.query for snapshot in snapshots} == {"nvda"}
+    assert snapshots[0].payload["results"][0]["raw_payload"]
+    assert {
+        snapshot.payload["results"][0]["raw_payload"].get("assetId")
+        or snapshot.payload["results"][0]["raw_payload"].get("id")
+        for snapshot in snapshots
+    } == {"y-1", "nvidia-token"}
 
 
 @pytest.mark.asyncio
@@ -330,6 +443,7 @@ async def test_identifier_fetch_persists_snapshot_and_identifier(db, instrument,
                     identifier_value="US0378331005",
                     is_primary=True,
                     source="openfigi",
+                    raw_payload={"figi": "BBG000B9XRY4", "securityType": "Common Stock"},
                 )
             ],
         )
@@ -343,6 +457,7 @@ async def test_identifier_fetch_persists_snapshot_and_identifier(db, instrument,
     assert changed is True
     assert identifier.identifier_value == "US0378331005"
     assert snapshot.provider_symbol == "AAPL"
+    assert snapshot.payload["identifiers"][0]["raw_payload"]["securityType"] == "Common Stock"
 
 
 @pytest.mark.asyncio
@@ -418,6 +533,349 @@ async def test_seed_universe_persists_discovery_snapshots(db, monkeypatch):
         == "Bitcoin"
     )
     assert len(snapshots) == 2
+
+
+@pytest.mark.asyncio
+async def test_seed_universe_honors_provider_continuation_metadata(db, monkeypatch):
+    """A valid continuation must not be truncated after the first discovery page."""
+
+    async_db = AsyncSessionAdapter(db)
+
+    class _DiscoveryProvider:
+        def supported_discovery_types(self):
+            return ["EQUITY"]
+
+    massive = _resolved_provider(
+        db,
+        provider_name="massive",
+        capability=ProviderCapability.UNIVERSE_DISCOVERY,
+        provider=_DiscoveryProvider(),
+    )
+
+    pages = [
+        {
+            "total": 3,
+            "quotes": [
+                {
+                    "symbol": "FIRST",
+                    "longName": "First Corp",
+                    "currency": "USD",
+                    "exchange": "NASDAQ",
+                },
+                {
+                    "symbol": "SECOND",
+                    "longName": "Second Corp",
+                    "currency": "USD",
+                    "exchange": "NASDAQ",
+                },
+            ],
+            "next_offset": 2,
+        },
+        {
+            "total": 3,
+            "quotes": [
+                {
+                    "symbol": "THIRD",
+                    "longName": "Third Corp",
+                    "currency": "USD",
+                    "exchange": "NASDAQ",
+                }
+            ],
+        },
+    ]
+    calls: list[int] = []
+
+    async def _fake_resolve(*args, **kwargs):
+        return [massive]
+
+    async def _fake_execute(*args, **kwargs):
+        offset = len(calls) * 2
+        calls.append(offset)
+        return ProviderExecutionResult(
+            provider_name="massive",
+            data_source=massive.data_source,
+            policy=massive.policy,
+            health=massive.health,
+            result=pages[len(calls) - 1],
+        )
+
+    monkeypatch.setattr(instrument_sync, "resolve_provider_chain", _fake_resolve)
+    monkeypatch.setattr(instrument_sync, "execute_provider_call", _fake_execute)
+    monkeypatch.setattr(instrument_sync.settings, "INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS", 0)
+
+    result = await instrument_sync.seed_universe(async_db)
+
+    assert result["created"] == 3
+    assert calls == [0, 2]
+    assert (
+        db.query(Instrument).filter(Instrument.symbol.in_(["FIRST", "SECOND", "THIRD"])).count()
+        == 3
+    )
+
+
+@pytest.mark.asyncio
+async def test_seed_universe_does_not_merge_same_ticker_across_venues(db, monkeypatch):
+    """A ticker collision across known venues creates two canonical securities."""
+
+    async_db = AsyncSessionAdapter(db)
+
+    class _DiscoveryProvider:
+        def supported_discovery_types(self):
+            return ["EQUITY"]
+
+    massive = _resolved_provider(
+        db,
+        provider_name="massive",
+        capability=ProviderCapability.UNIVERSE_DISCOVERY,
+        provider=_DiscoveryProvider(),
+    )
+
+    async def _fake_resolve(*args, **kwargs):
+        return [massive]
+
+    async def _fake_execute(*args, **kwargs):
+        return ProviderExecutionResult(
+            provider_name="massive",
+            data_source=massive.data_source,
+            policy=massive.policy,
+            health=massive.health,
+            result={
+                "total": 2,
+                "quotes": [
+                    {
+                        "symbol": "DUAL",
+                        "longName": "Dual Nasdaq",
+                        "currency": "USD",
+                        "exchange": "NASDAQ",
+                    },
+                    {
+                        "symbol": "DUAL",
+                        "longName": "Dual New York",
+                        "currency": "USD",
+                        "exchange": "NYSE",
+                    },
+                ],
+            },
+        )
+
+    monkeypatch.setattr(instrument_sync, "resolve_provider_chain", _fake_resolve)
+    monkeypatch.setattr(instrument_sync, "execute_provider_call", _fake_execute)
+    monkeypatch.setattr(instrument_sync.settings, "INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS", 0)
+
+    result = await instrument_sync.seed_universe(async_db)
+
+    instruments = db.query(Instrument).filter(Instrument.symbol == "DUAL").all()
+    assert result["created"] == 2
+    assert len(instruments) == 2
+    assert {
+        db.query(Exchange).filter(Exchange.id == listing.exchange_id).one().mic
+        for instrument in instruments
+        for listing in instrument.listings
+    } == {"XNAS", "XNYS"}
+
+
+@pytest.mark.asyncio
+async def test_seed_universe_reuses_stable_identifier_across_ticker_change(
+    db, instrument, monkeypatch
+):
+    """A provider ticker change must update the stable security, not create a duplicate."""
+
+    async_db = AsyncSessionAdapter(db)
+    instrument.domain_key = "figi:BBG000B9XRY4"
+    db.add(
+        InstrumentIdentifier(
+            instrument_id=instrument.id,
+            identifier_type=InstrumentIdentifierType.FIGI,
+            identifier_value="BBG000B9XRY4",
+            is_primary=True,
+            is_active=True,
+        )
+    )
+    db.flush()
+
+    class _DiscoveryProvider:
+        def supported_discovery_types(self):
+            return ["EQUITY"]
+
+    massive = _resolved_provider(
+        db,
+        provider_name="massive",
+        capability=ProviderCapability.UNIVERSE_DISCOVERY,
+        provider=_DiscoveryProvider(),
+    )
+
+    async def _fake_resolve(*args, **kwargs):
+        return [massive]
+
+    async def _fake_execute(*args, **kwargs):
+        return ProviderExecutionResult(
+            provider_name="massive",
+            data_source=massive.data_source,
+            policy=massive.policy,
+            health=massive.health,
+            result={
+                "total": 1,
+                "quotes": [
+                    {
+                        "symbol": "NEW",
+                        "longName": "Apple Inc.",
+                        "currency": "USD",
+                        "exchange": "NASDAQ",
+                        "figi": "bbg000b9xry4",
+                    }
+                ],
+            },
+        )
+
+    monkeypatch.setattr(instrument_sync, "resolve_provider_chain", _fake_resolve)
+    monkeypatch.setattr(instrument_sync, "execute_provider_call", _fake_execute)
+    monkeypatch.setattr(instrument_sync.settings, "INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS", 0)
+
+    result = await instrument_sync.seed_universe(async_db)
+
+    assert result["created"] == 0
+    assert result["updated"] == 1
+    assert db.query(Instrument).count() == 1
+    assert instrument.symbol == "AAPL"
+    assert [listing.ticker for listing in instrument.listings] == ["NEW"]
+    assert instrument.domain_key == "figi:BBG000B9XRY4"
+
+
+@pytest.mark.asyncio
+async def test_seed_universe_does_not_merge_unresolved_stable_identifier_by_ticker(
+    db, instrument, monkeypatch
+):
+    """A new stable key is provisional and must not reuse a ticker-only legacy row."""
+
+    async_db = AsyncSessionAdapter(db)
+    db.add(
+        InstrumentListing(
+            instrument_id=instrument.id,
+            ticker="AAPL",
+            is_primary=True,
+            is_active=True,
+        )
+    )
+    db.flush()
+
+    class _DiscoveryProvider:
+        def supported_discovery_types(self):
+            return ["EQUITY"]
+
+    massive = _resolved_provider(
+        db,
+        provider_name="massive",
+        capability=ProviderCapability.UNIVERSE_DISCOVERY,
+        provider=_DiscoveryProvider(),
+    )
+
+    async def _fake_resolve(*args, **kwargs):
+        return [massive]
+
+    async def _fake_execute(*args, **kwargs):
+        return ProviderExecutionResult(
+            provider_name="massive",
+            data_source=massive.data_source,
+            policy=massive.policy,
+            health=massive.health,
+            result={
+                "total": 1,
+                "quotes": [
+                    {
+                        "symbol": "AAPL",
+                        "longName": "Apple Inc.",
+                        "currency": "USD",
+                        "exchange": "NASDAQ",
+                        "figi": "BBG000B9XRY4",
+                    }
+                ],
+            },
+        )
+
+    monkeypatch.setattr(instrument_sync, "resolve_provider_chain", _fake_resolve)
+    monkeypatch.setattr(instrument_sync, "execute_provider_call", _fake_execute)
+    monkeypatch.setattr(instrument_sync.settings, "INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS", 0)
+
+    result = await instrument_sync.seed_universe(async_db)
+
+    assert result["created"] == 1
+    assert db.query(Instrument).count() == 2
+    assert (
+        db.query(Instrument).filter(Instrument.domain_key == "figi:BBG000B9XRY4").one().id
+        != instrument.id
+    )
+
+
+@pytest.mark.asyncio
+async def test_seed_universe_quarantines_conflicting_stable_identifier_owners(
+    db, instrument, instrument_b, monkeypatch
+):
+    """Conflicting FIGI/ISIN owners must not be resolved by provider row order."""
+
+    async_db = AsyncSessionAdapter(db)
+    db.add_all(
+        [
+            InstrumentIdentifier(
+                instrument_id=instrument.id,
+                identifier_type=InstrumentIdentifierType.FIGI,
+                identifier_value="BBG000B9XRY4",
+                is_primary=True,
+                is_active=True,
+            ),
+            InstrumentIdentifier(
+                instrument_id=instrument_b.id,
+                identifier_type=InstrumentIdentifierType.ISIN,
+                identifier_value="US0378331005",
+                is_primary=True,
+                is_active=True,
+            ),
+        ]
+    )
+    db.flush()
+
+    class _DiscoveryProvider:
+        def supported_discovery_types(self):
+            return ["EQUITY"]
+
+    massive = _resolved_provider(
+        db,
+        provider_name="massive",
+        capability=ProviderCapability.UNIVERSE_DISCOVERY,
+        provider=_DiscoveryProvider(),
+    )
+
+    async def _fake_resolve(*args, **kwargs):
+        return [massive]
+
+    async def _fake_execute(*args, **kwargs):
+        return ProviderExecutionResult(
+            provider_name="massive",
+            data_source=massive.data_source,
+            policy=massive.policy,
+            health=massive.health,
+            result={
+                "total": 1,
+                "quotes": [
+                    {
+                        "symbol": "AAPL",
+                        "longName": "Apple Inc.",
+                        "currency": "USD",
+                        "exchange": "NASDAQ",
+                        "figi": "BBG000B9XRY4",
+                        "isin": "US0378331005",
+                    }
+                ],
+            },
+        )
+
+    monkeypatch.setattr(instrument_sync, "resolve_provider_chain", _fake_resolve)
+    monkeypatch.setattr(instrument_sync, "execute_provider_call", _fake_execute)
+    monkeypatch.setattr(instrument_sync.settings, "INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS", 0)
+
+    result = await instrument_sync.seed_universe(async_db)
+
+    assert result == {"created": 0, "updated": 0, "total": 0}
+    assert db.query(InstrumentListing).count() == 0
 
 
 @pytest.mark.asyncio
@@ -552,7 +1010,7 @@ async def test_seed_universe_does_not_promote_ambiguous_sec_ticker(db, monkeypat
 
 
 @pytest.mark.asyncio
-async def test_ingest_provider_profile_normalizes_long_exchange_labels(db):
+async def test_ingest_provider_profile_does_not_invent_mic_from_long_exchange_label(db):
     async_db = AsyncSessionAdapter(db)
 
     profile = InstrumentProfile(
@@ -576,5 +1034,5 @@ async def test_ingest_provider_profile_normalizes_long_exchange_labels(db):
     detail = db.execute(
         select(EquityDetail).where(EquityDetail.instrument_id == instrument.id)
     ).scalar_one()
-    assert detail.exchange_mic == "TT"
+    assert detail.exchange_mic is None
     assert instrument.currency is None

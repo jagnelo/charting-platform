@@ -23,6 +23,7 @@ from app.routers import (
     indicators,
     instrument_indicators,
     instruments,
+    market_data_admin,
     market_groups,
     notes,
     ohlcv,
@@ -39,6 +40,7 @@ from app.routers import (
     workspaces,
 )
 from app.services.alert_engine import run_alert_check
+from app.services.distributed_locks import close_shared_redis_lock_client
 from app.services.e2e_seed import seed_e2e_instruments, seed_e2e_market_data
 from app.services.provider_runtime import seed_provider_runtime
 from app.services.workstation_bootstrap import ensure_core_workstation_identities
@@ -109,6 +111,7 @@ async def lifespan(app: FastAPI):
     logger.info("Backend ready ✓")
     yield
     scheduler.shutdown(wait=False)
+    await close_shared_redis_lock_client()
 
 
 app = FastAPI(
@@ -156,6 +159,7 @@ app.include_router(code.router, prefix=PREFIX)
 app.include_router(research.router, prefix=PREFIX)
 app.include_router(workspaces.router, prefix=PREFIX)
 app.include_router(market_groups.router, prefix=PREFIX)
+app.include_router(market_data_admin.router, prefix=PREFIX)
 app.include_router(notes.router, prefix=PREFIX)
 
 

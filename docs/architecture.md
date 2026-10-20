@@ -22,15 +22,23 @@ asset_class (Equity, Fixed Income, Crypto, ...)
 
 exchange (MIC code, timezone, market hours)
 instrument_listing  (ticker per exchange — AAPL on NASDAQ vs XETR)
+issuer (legal entity; CIK/LEI and provenance)
+instrument_identity_quarantine (unresolved/ambiguous provider candidates)
+market_series (venue/feed/session/timeframe/adjustment scope)
+exchange_session_rule / exchange_calendar_exception (versioned calendars)
 data_source (provider-backed, extensible)
   └── supported_capabilities (price_history, instrument_metadata, option_chain, ...)
 provider_policy / provider_health_state / provider_request_log
+provider_quota_window / provider_workload_lease / provider_routing_decision
 instrument_profile_snapshot / market_bar_observation / instrument_dataset_state
+market_event / fundamental_fact / short_interest_observation
+market_universe_reconciliation_run / market_universe_lifecycle_observation
+market_coverage_snapshot / provider_shadow_observation / market_data_anomaly
 option_chain_snapshot / option_quote_point
 
 ohlcv_bar
   ├── instrument_id  (FK → instrument)
-  ├── timeframe      (enum: M1 M5 M15 M30 H1 H2 H4 H12 D1 W1 MN)
+  ├── timeframe      (enum: M1 M5 M15 M30 H1 H2 H4 H12 D1 W1 MN Y1)
   ├── ts             (timestamp with timezone)
   ├── open/high/low/close/volume
   └── is_adjusted    (unique constraint: instrument+timeframe+ts+is_adjusted)
@@ -54,7 +62,9 @@ user
 
 **`instrument` is universal** — options and futures are instruments with a detail row, not separate tables. This means a screener condition can target any instrument type with the same code path.
 
-**`instrument_listing` separates instrument from exchange** — AAPL on NASDAQ and AAPL on XETR are the same `instrument` but different `instrument_listing` rows. Price data is fetched via the listing's ticker symbol on its exchange.
+**`instrument_listing` separates instrument from exchange** — AAPL on NASDAQ and AAPL on XETR are the same `instrument` but different `instrument_listing` rows. Price data is fetched via the listing's ticker symbol on its exchange. `instrument.domain_key` (FIGI namespace where possible) is the stable cross-provider identity; ticker/provider-symbol rows are effective-dated evidence.
+
+**`market_series` separates a security from a feed** — A regular-session SIP series, an IEX overlay, a provider-native daily series, and a split-adjusted canonical series are distinct rows. Rollups are created only from acquired finer bars; missing sessions are never fabricated.
 
 **`chart_drawing.timeframe` is nullable + `pin_to_all`** — a drawing with `pin_to_all=True` appears on all timeframes for that instrument. `timeframe=None` with `pin_to_all=False` is invalid by convention.
 
@@ -65,6 +75,18 @@ user
 **Raw observations and canonical read models are separate** — provider snapshots and observations are stored first (`instrument_profile_snapshot`, `market_bar_observation`, `option_chain_snapshot`, `option_quote_point`), then reconciled into canonical rows such as `instrument`, `instrument_stats`, `ohlcv_bar`, and `instrument_event`.
 
 **Provider routing is DB-controlled at runtime** — env vars seed the initial provider chain, rate limits, and freshness windows, but day-to-day ordering, pinning, and auto-weighting live in `provider_policy` and `provider_health_state`.
+
+**Quota-aware routing is durable and explainable** — workers reserve units in `provider_quota_window`, receive a short-lived `provider_workload_lease`, and write a `provider_routing_decision` explaining accepted/rejected candidates. Coverage snapshots, shadow comparisons, and anomaly records are also durable; shadow rows default to `routing_enabled=false`. Optional provider descriptors are visible to administrators but remain disabled until reviewed.
+
+**Universe lifecycle is observation-based** — complete discovery pages are
+retained as provider snapshots and summarized in
+`market_universe_reconciliation_run`. Per-symbol/venue presence is tracked in
+`market_universe_lifecycle_observation`; a failed or empty provider response
+never counts as a complete absence, and listing/instrument retirement requires
+repeated missing confirmations. SEC CIK values are retained on the issuer and
+never used alone to merge a new security; a security-level key or review is
+required. Core D1 coverage is recorded after successful reconciliation with
+exchange holiday exceptions applied.
 
 ---
 

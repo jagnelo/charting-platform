@@ -171,6 +171,45 @@ class TestInstruments:
         assert res.status_code == 200
         provider_profile.assert_not_called()
 
+    @patch("app.routers.instruments.fetch_ohlcv_latest")
+    def test_heatmap_uses_local_coverage_and_does_not_fan_out_to_provider(
+        self, fetch_latest, client, auth_headers, instrument, ohlcv_bars
+    ):
+        """Broad heatmap evaluation must defer cold/short history to refresh workers."""
+        fetch_latest.side_effect = AssertionError("heatmap evaluation must not make provider calls")
+        response = client.post(
+            "/api/v1/instruments/heatmap-data",
+            json={
+                "instrument_ids": [instrument.id],
+                "timeframe": "D1",
+                "include_sparklines": True,
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        row = response.json()[0]
+        assert row["current_price"] is None
+        assert row["coverage_preflight"]["daily"]["status"] in {"missing", "partial"}
+        assert row["coverage_preflight"]["daily"]["bar_count"] < 252
+        fetch_latest.assert_not_called()
+
+    @patch("app.services.market_data._fetch_provider")
+    def test_seasonality_uses_local_monthly_history_and_reports_coverage(
+        self, fetch_provider, client, auth_headers, instrument, ohlcv_bars
+    ):
+        """Seasonality evaluation must not synchronously refresh providers."""
+        response = client.get(
+            f"/api/v1/instruments/{instrument.symbol}/seasonality/monthly",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["coverage_preflight"]["evaluator"] == "instrument_seasonality"
+        assert payload["coverage_preflight"]["status"] == "deferred"
+        assert payload["coverage_preflight"]["items"][0]["status"] == "missing"
+        assert all(month["sample_count"] == 0 for month in payload["months"])
+        fetch_provider.assert_not_called()
+
     def test_get_instrument_by_id(self, client, auth_headers, instrument):
         res = client.get(f"/api/v1/instruments/{instrument.id}", headers=auth_headers)
         assert res.status_code in (200, 404)  # depends on router implementation
@@ -377,6 +416,23 @@ class TestIndicatorsEndpoint:
         assert "values" in data
         assert "sma" in data["values"]
         assert len(data["timestamps"]) == len(ohlcv_bars)
+        assert data["coverage_preflight"]["evaluator"] == "indicator_compute"
+        assert data["coverage_preflight"]["status"] == "full"
+
+    def test_compute_indicator_withholds_insufficient_history(
+        self, client, auth_headers, instrument, ohlcv_bars
+    ):
+        res = client.get(
+            f"/api/v1/indicators/compute/{instrument.symbol}/D1",
+            params={"indicator": "sma", "params": '{"period": 200}'},
+            headers=auth_headers,
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["timestamps"] == []
+        assert data["values"] == {}
+        assert data["coverage_preflight"]["status"] == "deferred"
+        assert data["coverage_preflight"]["ready_instrument_count"] == 0
 
     def test_compute_unknown_indicator_returns_error(
         self, client, auth_headers, instrument, ohlcv_bars

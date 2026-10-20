@@ -20,18 +20,32 @@ from sqlalchemy.orm import selectinload
 from app.config import settings
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.instrument import EquityDetail, ForexDetail, FutureDetail, Instrument
+from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
 from app.models.instrument_stats import InstrumentStats
 from app.models.instrument_sync_run import InstrumentSyncRun
+from app.models.listing import InstrumentListing
 from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
-from app.services.exchange_catalog import coerce_listing_lifecycle_at, upsert_instrument_listing
+from app.providers.base import IdentifierRecord
+from app.providers.errors import redact_provider_message
+from app.services.exchange_catalog import (
+    coerce_listing_lifecycle_at,
+    normalize_exchange_mic,
+    upsert_instrument_listing,
+)
 from app.services.instrument_mastering import (
     ensure_external_identifier,
     ensure_internal_identifier,
     ingest_provider_profile,
+    register_identifier,
     register_provider_symbol,
 )
 from app.services.instrument_reconciliation import record_discovery_ambiguities
+from app.services.market_data_identity import (
+    apply_domain_identity,
+    choose_domain_key,
+    normalize_identifier_value,
+)
 from app.services.provider_observations import store_universe_discovery_snapshot
 from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
 
@@ -98,6 +112,14 @@ async def _ensure_instrument_type(db: AsyncSession, asset_class_name: str, type_
     return it.id
 
 
+def _seed_quote_type(row: dict, fallback: str) -> str:
+    """Use a recognized row-level type when a provider returns mixed listings."""
+    value = str(row.get("instrument_type") or "").strip().upper()
+    if value in {"CS", "COMMON_STOCK", "COMMON STOCK", "STOCK", "EQUITIES"}:
+        value = "EQUITY"
+    return value if value in _QUOTE_TYPE_TAXONOMY else fallback
+
+
 # ── Seed ──────────────────────────────────────────────────────────────────────
 
 
@@ -150,6 +172,91 @@ def _listing_evidence(
     }
 
 
+def _seed_symbol_key(value: str | None) -> str:
+    """Normalize a discovery ticker for matching within one provider page.
+
+    This is deliberately only a comparison key.  The provider's original
+    symbol remains in the listing/provider-symbol rows and in provenance.
+    """
+
+    return str(value or "").strip().upper()
+
+
+_SEED_STABLE_IDENTIFIER_FIELDS: tuple[tuple[str, InstrumentIdentifierType], ...] = (
+    ("figi", InstrumentIdentifierType.FIGI),
+    ("composite_figi", InstrumentIdentifierType.COMPOSITE_FIGI),
+    ("compositeFigi", InstrumentIdentifierType.COMPOSITE_FIGI),
+    ("isin", InstrumentIdentifierType.ISIN),
+    ("cusip", InstrumentIdentifierType.CUSIP),
+    ("sedol", InstrumentIdentifierType.SEDOL),
+)
+
+
+def _seed_stable_identifiers(
+    quote: dict,
+) -> dict[InstrumentIdentifierType, str]:
+    """Extract normalized security identifiers from a discovery observation."""
+
+    identifiers: dict[InstrumentIdentifierType, str] = {}
+    for field_name, identifier_type in _SEED_STABLE_IDENTIFIER_FIELDS:
+        raw_value = quote.get(field_name)
+        if raw_value in (None, ""):
+            continue
+        value = normalize_identifier_value(str(raw_value))
+        if not value:
+            continue
+        previous = identifiers.get(identifier_type)
+        if previous is not None and previous != value:
+            # Two aliases for one identifier type disagree. Retain a sentinel
+            # that the caller will treat as an ambiguous stable identity.
+            identifiers[identifier_type] = ""
+            continue
+        identifiers[identifier_type] = value
+    return identifiers
+
+
+def _add_unique_stable_candidate(
+    candidates: dict[tuple[InstrumentIdentifierType, str], Instrument],
+    ambiguous: set[tuple[InstrumentIdentifierType, str]],
+    key: tuple[InstrumentIdentifierType, str],
+    instrument: Instrument,
+) -> None:
+    """Index an existing stable identifier only when it has one owner."""
+
+    if key in ambiguous:
+        return
+    previous = candidates.get(key)
+    if previous is None:
+        candidates[key] = instrument
+    elif previous is not instrument:
+        candidates.pop(key, None)
+        ambiguous.add(key)
+
+
+def _add_unique_seed_candidate(
+    candidates: dict[tuple[str, str | None, int], Instrument],
+    ambiguous: set[tuple[str, str | None, int]],
+    key: tuple[str, str | None, int],
+    instrument: Instrument,
+) -> None:
+    """Index an existing listing only when the comparison key is unique.
+
+    A duplicate key is an identity ambiguity, not permission to pick the first
+    row returned by the database.  Ambiguous keys are kept out of promotion by
+    ``seed_universe`` and remain available in the discovery snapshot for a
+    separate reconciliation decision.
+    """
+
+    if key in ambiguous:
+        return
+    previous = candidates.get(key)
+    if previous is None:
+        candidates[key] = instrument
+    elif previous is not instrument:
+        candidates.pop(key, None)
+        ambiguous.add(key)
+
+
 async def _upsert_listing(
     db: AsyncSession,
     instrument: Instrument,
@@ -160,6 +267,7 @@ async def _upsert_listing(
     effective_at: datetime | None = None,
     known_at: datetime | None = None,
     delisted_at: datetime | None = None,
+    source: str | None = None,
 ) -> None:
     await upsert_instrument_listing(
         db,
@@ -172,6 +280,8 @@ async def _upsert_listing(
         effective_at=effective_at,
         known_at=known_at,
         delisted_at=delisted_at,
+        source=source,
+        provenance={"lifecycle_observation": True} if source else None,
     )
 
 
@@ -229,14 +339,16 @@ async def _provider_chain_label(db: AsyncSession, capability: ProviderCapability
 
 async def seed_universe(db: AsyncSession) -> dict:
     """
-    Idempotent bootstrap of the full global instrument universe via the
-    configured discovery providers.
+    Idempotent bootstrap of the configured instrument universe via the
+    capability-routed discovery providers. The default chain is US venue
+    focused; crypto providers may add non-US instruments where explicitly
+    configured, but this function does not claim global market completeness.
 
     For every supported discovery type the provider is paged in batches
     of 250. Each page response contains all the metadata needed (name, sector,
     industry, country, exchange, currency, marketCap) so no per-instrument info
-    call is required — the whole universe is seeded quickly and covers global
-    markets (US, EU, Asia, etc.).
+    call is required. Coverage and completeness remain provider- and
+    entitlement-specific and are retained as discovery observations.
 
     Detail/listing/stat rows created per quote type:
       EQUITY / ETF / MUTUALFUND / INDEX → EquityDetail (sector, industry, …)
@@ -244,8 +356,10 @@ async def seed_universe(db: AsyncSession) -> dict:
       FUTURE                            → FutureDetail with best-effort fields
       all quote types                   → InstrumentListing + InstrumentStats when available
 
-    Existing symbols have their metadata updated; new symbols get a new
-    Instrument row.  Commits every page.
+    Existing venue/type-qualified listings have their metadata updated; new
+    venue/type combinations get a new Instrument row.  A venue-less legacy
+    listing is enriched only when it is the sole unqualified candidate.
+    Commits every page.
     """
     # Pre-resolve all InstrumentType IDs so we don't hit the DB per quote
     type_id_map: dict[str, int] = {}
@@ -256,13 +370,120 @@ async def seed_universe(db: AsyncSession) -> dict:
     # Determine which quote types use EquityDetail
     _EQUITY_DETAIL_TYPES = {"EQUITY", "ETF", "MUTUALFUND", "INDEX"}
 
-    # Pre-load symbol → Instrument for cheap existence checks (exclude synthetics)
-    existing: dict[str, Instrument] = {
-        row.symbol: row
-        for row in (await db.execute(select(Instrument).where(Instrument.is_synthetic.is_(False))))
+    # Pre-load venue/type-qualified candidates for cheap existence checks
+    # (exclude synthetics).  A symbol alone is not a security identity: the
+    # same ticker can be listed on multiple venues, and a provider can emit
+    # the same ticker for different quote types.  Only unique listing keys may
+    # be promoted; duplicate local keys remain ambiguous until reconciliation.
+    existing_instruments = (
+        (
+            await db.execute(
+                select(Instrument)
+                .options(selectinload(Instrument.listings).selectinload(InstrumentListing.exchange))
+                .where(Instrument.is_synthetic.is_(False))
+            )
+        )
         .scalars()
+        .unique()
         .all()
-    }
+    )
+    existing_by_key: dict[tuple[str, str | None, int], Instrument] = {}
+    ambiguous_keys: set[tuple[str, str | None, int]] = set()
+    unqualified_by_symbol_type: dict[tuple[str, int], Instrument] = {}
+    ambiguous_unqualified: set[tuple[str, int]] = set()
+    known_venue_symbol_types: set[tuple[str, int]] = set()
+    stable_owner_by_key: dict[tuple[InstrumentIdentifierType, str], Instrument] = {}
+    ambiguous_stable_keys: set[tuple[InstrumentIdentifierType, str]] = set()
+    domain_owner_by_key: dict[str, Instrument] = {}
+    ambiguous_domain_keys: set[str] = set()
+
+    for existing_instrument in existing_instruments:
+        instrument_type_key = existing_instrument.instrument_type_id
+        listings = list(existing_instrument.listings or [])
+        if not listings:
+            unqualified_key = (_seed_symbol_key(existing_instrument.symbol), instrument_type_key)
+            if unqualified_key in ambiguous_unqualified:
+                continue
+            previous = unqualified_by_symbol_type.get(unqualified_key)
+            if previous is None:
+                unqualified_by_symbol_type[unqualified_key] = existing_instrument
+            elif previous is not existing_instrument:
+                unqualified_by_symbol_type.pop(unqualified_key, None)
+                ambiguous_unqualified.add(unqualified_key)
+            continue
+
+        has_known_venue = False
+        for listing in listings:
+            exchange_mic = normalize_exchange_mic(
+                listing.exchange.mic if listing.exchange is not None else None
+            )
+            listing_key = (
+                _seed_symbol_key(listing.ticker),
+                exchange_mic,
+                instrument_type_key,
+            )
+            if exchange_mic is not None:
+                has_known_venue = True
+                known_venue_symbol_types.add((listing_key[0], instrument_type_key))
+                _add_unique_seed_candidate(
+                    existing_by_key,
+                    ambiguous_keys,
+                    listing_key,
+                    existing_instrument,
+                )
+
+        # A legacy venue-less listing can be enriched once by a qualified
+        # discovery row, but only while no known venue exists for that
+        # instrument.  Two venue-less rows with the same symbol/type are also
+        # ambiguous and must not be merged implicitly.
+        if not has_known_venue:
+            for listing in listings:
+                unqualified_key = (_seed_symbol_key(listing.ticker), instrument_type_key)
+                if unqualified_key in ambiguous_unqualified:
+                    continue
+                previous = unqualified_by_symbol_type.get(unqualified_key)
+                if previous is None:
+                    unqualified_by_symbol_type[unqualified_key] = existing_instrument
+                elif previous is not existing_instrument:
+                    unqualified_by_symbol_type.pop(unqualified_key, None)
+                    ambiguous_unqualified.add(unqualified_key)
+
+        if existing_instrument.domain_key:
+            domain_key = str(existing_instrument.domain_key).strip().lower()
+            previous_domain_owner = domain_owner_by_key.get(domain_key)
+            if previous_domain_owner is None:
+                domain_owner_by_key[domain_key] = existing_instrument
+            elif previous_domain_owner is not existing_instrument:
+                domain_owner_by_key.pop(domain_key, None)
+                ambiguous_domain_keys.add(domain_key)
+
+    existing_identifiers = (
+        (
+            await db.execute(
+                select(InstrumentIdentifier)
+                .options(selectinload(InstrumentIdentifier.instrument))
+                .where(InstrumentIdentifier.is_active.is_(True))
+            )
+        )
+        .scalars()
+        .unique()
+        .all()
+    )
+    for identifier in existing_identifiers:
+        if identifier.identifier_type == InstrumentIdentifierType.INTERNAL:
+            continue
+        owner = identifier.instrument
+        if owner is None or owner.is_synthetic:
+            continue
+        value = normalize_identifier_value(identifier.identifier_value)
+        if not value:
+            continue
+        _add_unique_stable_candidate(
+            stable_owner_by_key,
+            ambiguous_stable_keys,
+            (identifier.identifier_type, value),
+            owner,
+        )
 
     created = 0
     updated = 0
@@ -273,9 +494,11 @@ async def seed_universe(db: AsyncSession) -> dict:
     for discovery in discovery_chain:
         discovery_provider = discovery.provider
         for quote_type in discovery_provider.supported_discovery_types():
-            type_id = type_id_map[quote_type]
+            if quote_type not in type_id_map:
+                raise ValueError(f"provider returned unsupported discovery type {quote_type!r}")
             offset = 0
             total = None
+            seen_next_urls: set[str] = set()
 
             logger.info("seed_universe: scanning %s via %s…", quote_type, discovery.provider_name)
 
@@ -300,7 +523,63 @@ async def seed_universe(db: AsyncSession) -> dict:
                     offset=offset,
                     page=page,
                 )
-                quotes = page.get("quotes") or []
+                # Persist the raw response before attempting identity
+                # promotion. Discovery calls consume provider quota; a worker
+                # interruption must not erase a page that was already
+                # obtained. Promotion remains restart-safe because the page
+                # snapshot is immutable evidence and the next invocation
+                # replays the provider's exact pagination contract.
+                await db.commit()
+                validation_errors = page.get("validation_errors") or []
+                if validation_errors:
+                    raise ValueError(
+                        "discovery provider response was retained but failed validation: "
+                        + "; ".join(str(error) for error in validation_errors)
+                    )
+                raw_quotes = page.get("quotes")
+                if raw_quotes is None:
+                    raw_quotes = []
+                if not isinstance(raw_quotes, list) or any(
+                    not isinstance(quote, dict) for quote in raw_quotes
+                ):
+                    raise ValueError("discovery provider returned a malformed quotes page")
+                quotes = list(raw_quotes)
+
+                declared_total = page.get("total")
+                if declared_total is not None:
+                    if (
+                        isinstance(declared_total, bool)
+                        or not isinstance(declared_total, int)
+                        or declared_total < 0
+                    ):
+                        raise ValueError("discovery provider returned an invalid total")
+                    if total is None:
+                        total = declared_total
+                    elif total != declared_total:
+                        raise ValueError("discovery provider changed its declared total")
+
+                raw_next_offset = page.get("next_offset")
+                if raw_next_offset is not None and (
+                    isinstance(raw_next_offset, bool)
+                    or not isinstance(raw_next_offset, int)
+                    or raw_next_offset < 0
+                ):
+                    raise ValueError("discovery provider returned an invalid next_offset")
+                if isinstance(raw_next_offset, int) and raw_next_offset <= offset:
+                    raise ValueError("discovery provider returned a non-progressing next_offset")
+
+                raw_next_url = page.get("next_url")
+                if raw_next_url is not None and not isinstance(raw_next_url, str):
+                    raise ValueError("discovery provider returned an invalid next_url")
+                if isinstance(raw_next_url, str) and raw_next_url:
+                    if raw_next_url in seen_next_urls:
+                        raise ValueError("discovery provider repeated a pagination next_url")
+                    seen_next_urls.add(raw_next_url)
+                has_next_url = isinstance(raw_next_url, str) and bool(raw_next_url)
+                complete = page.get("complete") is True
+                if complete and (raw_next_offset is not None or has_next_url):
+                    raise ValueError("discovery provider marked a page complete with continuation")
+
                 await record_discovery_ambiguities(
                     db,
                     data_source_id=execution.data_source.id,
@@ -311,22 +590,26 @@ async def seed_universe(db: AsyncSession) -> dict:
                 )
 
                 if total is None:
-                    total = page.get("total", 0)
                     logger.info(
-                        "seed_universe: %s via %s total=%d",
+                        "seed_universe: %s via %s total=%s",
                         quote_type,
                         discovery.provider_name,
                         total,
                     )
 
-                if not quotes:
-                    break
+                if not quotes and not complete and raw_next_offset is None and not has_next_url:
+                    raise ValueError(
+                        "discovery provider returned an empty page without completion evidence"
+                    )
 
                 fetched_at = datetime.now(UTC)
                 for q in quotes:
                     symbol = (q.get("symbol") or "").strip()
                     if not symbol:
                         continue
+
+                    row_quote_type = _seed_quote_type(q, quote_type)
+                    row_type_id = type_id_map[row_quote_type]
 
                     # Preserve the raw discovery snapshot, but never merge
                     # distinct issuers solely because their ticker matches.
@@ -343,25 +626,120 @@ async def seed_universe(db: AsyncSession) -> dict:
                     currency = q.get("currency")
                     exchange = q.get("exchange") or q.get("fullExchangeName")
 
-                    inst = existing.get(symbol)
+                    symbol_key = _seed_symbol_key(symbol)
+                    exchange_mic = normalize_exchange_mic(exchange)
+                    qualified_key = (symbol_key, exchange_mic, row_type_id)
+                    symbol_type_key = (symbol_key, row_type_id)
+
+                    stable_identifiers = _seed_stable_identifiers(q)
+                    stable_identifier_conflict = any(
+                        not value for value in stable_identifiers.values()
+                    )
+                    stable_owner_candidates: set[Instrument] = set()
+                    stable_key_ambiguous = stable_identifier_conflict
+                    for identifier_type, identifier_value in stable_identifiers.items():
+                        if not identifier_value:
+                            continue
+                        stable_key = (identifier_type, identifier_value)
+                        if stable_key in ambiguous_stable_keys:
+                            stable_key_ambiguous = True
+                            continue
+                        owner = stable_owner_by_key.get(stable_key)
+                        if owner is not None:
+                            stable_owner_candidates.add(owner)
+
+                    stable_values = {
+                        identifier_type: identifier_value
+                        for identifier_type, identifier_value in stable_identifiers.items()
+                        if identifier_value
+                    }
+                    observed_domain_key = choose_domain_key(stable_values)
+                    if observed_domain_key is not None:
+                        observed_domain_key = observed_domain_key.lower()
+                        if observed_domain_key in ambiguous_domain_keys:
+                            stable_key_ambiguous = True
+                        else:
+                            owner = domain_owner_by_key.get(observed_domain_key)
+                            if owner is not None:
+                                stable_owner_candidates.add(owner)
+
+                    if stable_key_ambiguous or len(stable_owner_candidates) > 1:
+                        logger.warning(
+                            "seed_universe: conflicting stable identity for %s via %s; "
+                            "retaining discovery snapshot without promotion",
+                            symbol,
+                            page_provider_name,
+                        )
+                        continue
+                    stable_owner = next(iter(stable_owner_candidates), None)
+
+                    # Prefer an exact venue/type match.  A venue-less legacy
+                    # listing may be enriched only when it is the sole
+                    # unqualified candidate and no known venue already claims
+                    # this symbol/type.  Never fall back from one known venue
+                    # to another, and never select an arbitrary duplicate.
+                    inst = existing_by_key.get(qualified_key)
+                    if qualified_key in ambiguous_keys and stable_owner is None:
+                        logger.warning(
+                            "seed_universe: local identity ambiguity for %s (%s/%s); "
+                            "retaining discovery snapshot without promotion",
+                            symbol,
+                            exchange or "unknown venue",
+                            quote_type,
+                        )
+                        continue
+                    if stable_owner is not None and stable_owner.instrument_type_id != row_type_id:
+                        logger.warning(
+                            "seed_universe: stable identity for %s belongs to a different "
+                            "instrument type; retaining discovery snapshot without promotion",
+                            symbol,
+                        )
+                        continue
+                    if inst is not None and stable_owner is not None and inst is not stable_owner:
+                        logger.warning(
+                            "seed_universe: venue and stable identity disagree for %s via %s; "
+                            "retaining discovery snapshot without promotion",
+                            symbol,
+                            page_provider_name,
+                        )
+                        continue
+                    if stable_owner is not None:
+                        inst = stable_owner
+                    if (
+                        inst is None
+                        and not stable_identifiers
+                        and symbol_type_key not in ambiguous_unqualified
+                    ):
+                        if exchange_mic is None or symbol_type_key not in known_venue_symbol_types:
+                            inst = unqualified_by_symbol_type.get(symbol_type_key)
+
                     if inst is None:
                         inst = Instrument(
                             symbol=symbol,
                             name=name,
-                            instrument_type_id=type_id,
+                            instrument_type_id=row_type_id,
                             currency=currency,
                             is_active=True,
                         )
                         db.add(inst)
                         await db.flush()
-                        existing[symbol] = inst
+                        _add_unique_seed_candidate(
+                            existing_by_key,
+                            ambiguous_keys,
+                            qualified_key,
+                            inst,
+                        )
+                        if exchange_mic is None:
+                            unqualified_by_symbol_type[symbol_type_key] = inst
+                        else:
+                            known_venue_symbol_types.add(symbol_type_key)
                         created += 1
                     else:
                         if name:
                             inst.name = name
                         if currency:
                             inst.currency = currency
-                        inst.instrument_type_id = type_id
+                        inst.instrument_type_id = row_type_id
                         # Discovery is evidence, not canonical lifecycle truth.  In
                         # particular, a provider row may carry a delisted/inactive
                         # status; never silently reactivate an existing instrument
@@ -397,7 +775,20 @@ async def seed_universe(db: AsyncSession) -> dict:
                         effective_at=coerce_listing_lifecycle_at(q.get("ipo_date")),
                         known_at=fetched_at,
                         delisted_at=coerce_listing_lifecycle_at(q.get("delisting_date")),
+                        source=page_provider_name,
                     )
+                    # Make the just-observed venue/type key available to later
+                    # rows in this run.  This is essential when a legacy
+                    # venue-less listing was enriched: a following row for a
+                    # different venue must create a distinct instrument.
+                    _add_unique_seed_candidate(
+                        existing_by_key,
+                        ambiguous_keys,
+                        qualified_key,
+                        inst,
+                    )
+                    if exchange_mic is not None:
+                        known_venue_symbol_types.add(symbol_type_key)
                     listing_evidence = _listing_evidence(
                         q,
                         provider_name=page_provider_name,
@@ -422,7 +813,7 @@ async def seed_universe(db: AsyncSession) -> dict:
                         page_provider_name,
                         symbol,
                         provider_exchange_code=exchange,
-                        provider_instrument_type=quote_type,
+                        provider_instrument_type=row_quote_type,
                         currency=currency,
                         is_primary=True,
                         extra_data=provider_extra_data or None,
@@ -431,10 +822,52 @@ async def seed_universe(db: AsyncSession) -> dict:
                         known_at=fetched_at,
                         delisted_at=coerce_listing_lifecycle_at(q.get("delisting_date")),
                     )
+                    for index, (identifier_type, identifier_value) in enumerate(
+                        stable_values.items()
+                    ):
+                        await register_identifier(
+                            db,
+                            inst,
+                            page_provider_name,
+                            IdentifierRecord(
+                                identifier_type=identifier_type.value,
+                                identifier_value=identifier_value,
+                                is_primary=index == 0,
+                                source=page_provider_name,
+                                raw_payload=dict(q),
+                            ),
+                        )
+                    if stable_values and not inst.domain_key:
+                        await apply_domain_identity(
+                            db,
+                            inst,
+                            identifiers=stable_values,
+                            provider_name=page_provider_name,
+                            provider_symbol=symbol,
+                            exchange_mic=exchange_mic,
+                            candidate_payload=q,
+                        )
+                    for identifier_type, identifier_value in stable_values.items():
+                        _add_unique_stable_candidate(
+                            stable_owner_by_key,
+                            ambiguous_stable_keys,
+                            (identifier_type, identifier_value),
+                            inst,
+                        )
+                    if (
+                        observed_domain_key is not None
+                        and observed_domain_key not in ambiguous_domain_keys
+                    ):
+                        previous_domain_owner = domain_owner_by_key.get(observed_domain_key)
+                        if previous_domain_owner is None or previous_domain_owner is inst:
+                            domain_owner_by_key[observed_domain_key] = inst
+                        else:
+                            domain_owner_by_key.pop(observed_domain_key, None)
+                            ambiguous_domain_keys.add(observed_domain_key)
                     await _upsert_stats(db, inst, q, source_provider=page_provider_name)
                     await ensure_internal_identifier(db, inst)
 
-                    if quote_type in _EQUITY_DETAIL_TYPES:
+                    if row_quote_type in _EQUITY_DETAIL_TYPES:
                         ed = (
                             await db.execute(
                                 select(EquityDetail).where(EquityDetail.instrument_id == inst.id)
@@ -465,7 +898,7 @@ async def seed_universe(db: AsyncSession) -> dict:
                                 }
                         ed.field_provenance = field_provenance or None
 
-                    elif quote_type == "CURRENCY":
+                    elif row_quote_type == "CURRENCY":
                         pair = _parse_forex_pair(symbol)
                         if pair:
                             fd = (
@@ -493,7 +926,7 @@ async def seed_universe(db: AsyncSession) -> dict:
                             }
                             fd.field_provenance = field_provenance
 
-                    elif quote_type == "FUTURE":
+                    elif row_quote_type == "FUTURE":
                         fut = (
                             await db.execute(
                                 select(FutureDetail).where(FutureDetail.instrument_id == inst.id)
@@ -524,7 +957,7 @@ async def seed_universe(db: AsyncSession) -> dict:
 
                 await db.commit()
                 logger.info(
-                    "seed_universe: %s via %s offset=%d/%d created=%d updated=%d",
+                    "seed_universe: %s via %s offset=%d/%s created=%d updated=%d",
                     quote_type,
                     page_provider_name,
                     offset + len(quotes),
@@ -533,11 +966,32 @@ async def seed_universe(db: AsyncSession) -> dict:
                     updated,
                 )
 
-                offset += len(quotes)
-                if offset >= (total or 0):
+                page_end_offset = offset + len(quotes)
+                continue_after_page = False
+                if isinstance(raw_next_offset, int):
+                    if raw_next_offset > page_end_offset:
+                        raise ValueError("discovery provider pagination skipped rows between pages")
+                    offset = raw_next_offset
+                    continue_after_page = True
+                elif has_next_url:
+                    if not quotes:
+                        raise ValueError(
+                            "discovery provider returned a continuation after an empty page"
+                        )
+                    offset = page_end_offset
+                    continue_after_page = True
+                elif total is not None:
+                    if page_end_offset >= total:
+                        break
+                    raise ValueError("discovery provider omitted pagination before declared total")
+                elif complete:
                     break
+                else:
+                    raise ValueError("discovery provider omitted total and completion evidence")
 
-                await asyncio.sleep(settings.INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS)
+                if continue_after_page:
+                    await asyncio.sleep(settings.INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS)
+                    continue
 
     logger.info("seed_universe complete: created=%d  updated=%d", created, updated)
     return {"created": created, "updated": updated, "total": created + updated}
@@ -635,8 +1089,18 @@ async def sync_instruments(db: AsyncSession, limit: int | None = None) -> dict:
                 execution = await execute_provider_call(
                     db,
                     ProviderCapability.INSTRUMENT_METADATA,
-                    "sync_instrument_profile",
+                    # Keep the runtime operation name identical to the
+                    # provider contract and availability probe.  The sync
+                    # task is a workload, not a distinct upstream endpoint;
+                    # using a private name here bypassed the reviewed
+                    # ``get_instrument_profile`` cost/entitlement entry for
+                    # several providers and made the call fail closed for the
+                    # wrong reason.
+                    "get_instrument_profile",
                     instrument_id=inst.id,
+                    usage_identity=lambda provider_name: provider_symbol_for_instrument(
+                        inst, provider_name
+                    ),
                     invoke=lambda provider, _provider_symbol: provider.get_instrument_profile(
                         provider_symbol_for_instrument(inst, provider.name)
                     ),
@@ -645,7 +1109,11 @@ async def sync_instruments(db: AsyncSession, limit: int | None = None) -> dict:
                 )
                 profile = execution.result
             except Exception as exc:
-                logger.info("No metadata refresh available for %s: %s", inst.symbol, exc)
+                logger.info(
+                    "No metadata refresh available for %s: %s",
+                    inst.symbol,
+                    redact_provider_message(exc)[:1000],
+                )
                 profile = None
             await asyncio.sleep(settings.INSTRUMENT_METADATA_DELAY_SECONDS)
 
@@ -796,6 +1264,6 @@ async def run_tracked_sync(
     except Exception as exc:
         run.status = "failed"
         run.finished_at = datetime.now(UTC)
-        run.error = str(exc)
+        run.error = redact_provider_message(exc)[:4000]
         await db.commit()
         raise

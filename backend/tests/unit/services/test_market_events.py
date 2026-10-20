@@ -1,0 +1,657 @@
+from datetime import UTC, date, datetime
+from types import SimpleNamespace
+
+import pytest
+from sqlalchemy import select
+
+from app.config import settings
+from app.models.data_source import DataSource
+from app.models.instrument import Instrument
+from app.models.instrument_identity import InstrumentProviderSymbol
+from app.models.market_data_foundation import (
+    Issuer,
+    MarketEvent,
+    MarketEventObservation,
+    ProviderPaginationState,
+)
+from app.models.provider_runtime import ProviderCapability
+from app.providers.base import MarketEventRecord
+from app.services import market_events
+from app.tasks import data_tasks
+from tests.unit.conftest import AsyncSessionAdapter
+
+
+def _record(*, event_key: str, payload: dict) -> MarketEventRecord:
+    return MarketEventRecord(
+        event_type="ipo",
+        event_key=event_key,
+        event_time=datetime(2026, 9, 12, tzinfo=UTC),
+        effective_date=date(2026, 9, 12),
+        title="Example event",
+        source_version="fixture-v1",
+        is_provisional=True,
+        raw_payload=payload,
+    )
+
+
+@pytest.mark.asyncio
+async def test_refresh_market_events_persists_and_exactly_links_provider_symbol(
+    db, instrument, monkeypatch
+):
+    source = DataSource(name="massive", base_url="https://api.massive.com")
+    db.add(source)
+    db.flush()
+    db.add(
+        InstrumentProviderSymbol(
+            instrument_id=instrument.id,
+            data_source_id=source.id,
+            provider_symbol="AAPL",
+            is_active=True,
+        )
+    )
+    db.flush()
+
+    async def fake_execute(_db, capability, operation, **kwargs):
+        assert capability is ProviderCapability.MARKET_EVENTS
+        assert operation == "fetch_market_events"
+        return SimpleNamespace(
+            provider_name=kwargs["provider_name"],
+            result=[_record(event_key="ipo:aapl:2026-09-12", payload={"ticker": "aapl"})],
+        )
+
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+    result = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db), provider_names=["massive"]
+    )
+
+    assert result["status"] == "refreshed"
+    assert result["events"] == 1
+    assert result["persisted"] == 1
+    assert result["linked"] == 1
+    assert result["unlinked"] == 0
+    row = db.execute(select(MarketEvent)).scalar_one()
+    assert row.instrument_id == instrument.id
+    assert row.source == "massive"
+    assert row.payload["ticker"] == "aapl"
+    assert len(db.execute(select(MarketEventObservation)).scalars().all()) == 1
+
+    # The provider event key is the durable idempotency boundary.
+    second = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db), provider_names=["massive"]
+    )
+    assert second["events"] == 1
+    assert len(db.execute(select(MarketEvent)).scalars().all()) == 1
+    assert len(db.execute(select(MarketEventObservation)).scalars().all()) == 2
+
+
+@pytest.mark.asyncio
+async def test_refresh_market_events_runs_additional_provider_calendar_operation(db, monkeypatch):
+    operations = []
+
+    async def fake_execute(_db, capability, operation, **kwargs):
+        assert capability is ProviderCapability.MARKET_EVENTS
+        operations.append(operation)
+        event_type = "earnings" if operation == "fetch_earnings_calendar" else "ipo"
+        return SimpleNamespace(
+            provider_name=kwargs["provider_name"],
+            result=[
+                _record(
+                    event_key=f"alpha:{event_type}",
+                    payload={"symbol": "AAPL", "event_type": event_type},
+                )
+            ],
+        )
+
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+    result = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db), provider_names=["alpha_vantage"]
+    )
+
+    assert operations == ["fetch_market_events", "fetch_earnings_calendar"]
+    assert result["status"] == "refreshed"
+    assert result["events"] == 2
+    assert result["failures"] == 0
+    assert len(db.execute(select(MarketEvent)).scalars().all()) == 2
+
+
+@pytest.mark.asyncio
+async def test_refresh_market_events_rotates_bounded_provider_budget(db, monkeypatch):
+    monkeypatch.setattr(
+        market_events,
+        "market_event_provider_names",
+        lambda _provider_names=None: ["massive", "alpha_vantage", "fmp"],
+    )
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        return SimpleNamespace(provider_name=kwargs["provider_name"], result=[])
+
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+
+    results = []
+    for offset in range(3):
+        window_start = date(2026, 9, 1 + offset)
+        results.append(
+            await market_events.refresh_market_events(
+                AsyncSessionAdapter(db),
+                start=window_start,
+                end=window_start,
+                max_providers=1,
+            )
+        )
+
+    assert [result["providers"][0]["provider"] for result in results] == [
+        "massive",
+        "alpha_vantage",
+        "fmp",
+    ]
+    rotation = db.execute(
+        select(ProviderPaginationState).where(
+            ProviderPaginationState.operation == "provider_rotation"
+        )
+    ).scalar_one()
+    assert rotation.status == "partial"
+    assert rotation.pages_fetched == 3
+    assert rotation.metadata_payload["last_selected"] == "fmp"
+    assert rotation.metadata_payload["window"]["start"] == "2026-09-03"
+
+
+@pytest.mark.asyncio
+async def test_refresh_market_events_follows_cursor_only_fmp_pages(db, monkeypatch):
+    calls = []
+
+    async def fake_execute(_db, capability, operation, **kwargs):
+        assert capability is ProviderCapability.MARKET_EVENTS
+        assert operation == "fetch_market_events"
+        calls.append(len(calls))
+        if len(calls) == 1:
+            result = {
+                "events": [_record(event_key="fmp:earnings:first", payload={"ticker": "FIRST"})],
+                "next_url": None,
+                "next_cursor": "1",
+                "complete": False,
+            }
+        else:
+            persisted_before_next_request = (await _db.execute(select(MarketEvent))).scalars().all()
+            assert [row.event_key for row in persisted_before_next_request] == [
+                "fmp:earnings:first"
+            ]
+            result = {
+                "events": [_record(event_key="fmp:earnings:second", payload={"ticker": "SECOND"})],
+                "next_url": None,
+                "next_cursor": None,
+                "complete": True,
+            }
+        return SimpleNamespace(provider_name="fmp", result=result)
+
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+    result = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db), provider_names=["fmp"]
+    )
+
+    assert calls == [0, 1]
+    assert result["status"] == "refreshed"
+    assert result["events"] == 2
+    assert result["failures"] == 0
+    assert {row.event_key for row in db.execute(select(MarketEvent)).scalars().all()} == {
+        "fmp:earnings:first",
+        "fmp:earnings:second",
+    }
+    state = db.execute(
+        select(ProviderPaginationState).where(ProviderPaginationState.provider == "fmp")
+    ).scalar_one()
+    assert state.status == "complete"
+    assert state.pages_fetched == 2
+    assert state.cursor is None
+
+
+@pytest.mark.asyncio
+async def test_refresh_market_events_retains_pages_before_cursor_failure(db, monkeypatch):
+    calls = 0
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise RuntimeError("provider quota exhausted")
+        return SimpleNamespace(
+            provider_name="massive",
+            result={
+                "events": [
+                    _record(event_key="massive:ipo:retained", payload={"ticker": "RETAINED"})
+                ],
+                "next_url": "https://api.massive.com/vX/reference/ipos?cursor=blocked",
+                "next_cursor": "blocked",
+                "complete": False,
+            },
+        )
+
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+    result = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db), provider_names=["massive"]
+    )
+
+    assert calls == 2
+    assert result["status"] == "refreshed"
+    assert result["events"] == 1
+    assert result["failures"] == 1
+    assert result["providers"][0]["failures"][0]["page_cursor"] == "blocked"
+    assert db.execute(select(MarketEvent)).scalar_one().event_key == "massive:ipo:retained"
+    state = db.execute(
+        select(ProviderPaginationState).where(ProviderPaginationState.provider == "massive")
+    ).scalar_one()
+    assert state.status == "failed"
+    assert state.cursor == "blocked"
+    assert state.pages_fetched == 1
+
+
+@pytest.mark.asyncio
+async def test_cursor_market_event_pages_commit_rows_before_blocking_and_do_not_refetch(
+    db, monkeypatch
+):
+    page_calls = []
+    execute_calls = []
+    event = _record(
+        event_key="massive:ipo:991",
+        payload={"OTCDailyListID": 991, "vendor_extension": {"keep": True}},
+    )
+
+    def fetch_page(**kwargs):
+        page_calls.append(kwargs.get("cursor"))
+        if kwargs.get("cursor") == "resume":
+            return {"events": [], "next_url": None, "next_cursor": None, "complete": True}
+        return {
+            "events": [event],
+            "next_url": None,
+            "next_cursor": "resume",
+            "complete": False,
+            "blocked_error": "alternate transport is required",
+        }
+
+    provider = SimpleNamespace(
+        fetch_market_events=lambda **_kwargs: [],
+        fetch_market_events_page=fetch_page,
+    )
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        execute_calls.append("requested")
+        return SimpleNamespace(
+            provider_name="massive",
+            result=kwargs["invoke"](provider, None),
+        )
+
+    monkeypatch.setattr(market_events, "get_provider", lambda _name: provider)
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+
+    first = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db), provider_names=["massive"]
+    )
+    assert first["events"] == 1
+    assert first["persisted"] == 1
+    assert first["failures"] == 1
+    observation = db.execute(select(MarketEventObservation)).scalar_one()
+    assert observation.payload["vendor_extension"] == {"keep": True}
+    state = db.execute(
+        select(ProviderPaginationState).where(
+            ProviderPaginationState.provider == "massive",
+            ProviderPaginationState.operation == "fetch_market_events",
+        )
+    ).scalar_one()
+    assert state.status == "blocked"
+    assert state.cursor == "resume"
+    assert "alternate transport" in state.last_error
+
+    second = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db), provider_names=["massive"]
+    )
+    assert second["events"] == 0
+    assert second["failures"] == 1
+    assert page_calls == [None]
+    assert execute_calls == ["requested"]
+
+    third = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db), provider_names=["massive"], retry_blocked=True
+    )
+    assert third["failures"] == 0
+    assert page_calls == [None, "resume"]
+    assert execute_calls == ["requested", "requested"]
+
+
+@pytest.mark.asyncio
+async def test_refresh_market_events_resumes_cursor_after_restart(db, monkeypatch):
+    calls: list[str | None] = []
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        cursor = kwargs["invoke"]
+        # The service binds the requested cursor into the invocation closure;
+        # the first run is forced to stop after page one, then the second run
+        # must begin directly at the persisted continuation.
+        page_cursor = getattr(cursor, "__defaults__", (None,))[-1]
+        calls.append(page_cursor)
+        if len(calls) == 1:
+            result = {
+                "events": [_record(event_key="massive:ipo:restart:first", payload={})],
+                "next_url": "https://api.massive.com/vX/reference/ipos?cursor=resume",
+                "next_cursor": "resume",
+                "complete": False,
+            }
+        elif len(calls) == 2:
+            raise RuntimeError("simulated worker interruption")
+        elif page_cursor == "resume":
+            result = {
+                "events": [_record(event_key="massive:ipo:restart:second", payload={})],
+                "next_url": None,
+                "next_cursor": None,
+                "complete": True,
+            }
+        else:
+            raise AssertionError(f"unexpected restart cursor: {page_cursor!r}")
+        return SimpleNamespace(provider_name="massive", result=result)
+
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+    first = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db), provider_names=["massive"]
+    )
+    assert first["failures"] == 1
+
+    # Expire the identity map before the retry so the continuation is read
+    # from durable state rather than an in-memory ORM object.
+    db.expire_all()
+    second = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db), provider_names=["massive"]
+    )
+    assert second["failures"] == 0
+    assert calls == [None, "resume", "resume"]
+    assert {row.event_key for row in db.execute(select(MarketEvent)).scalars().all()} == {
+        "massive:ipo:restart:first",
+        "massive:ipo:restart:second",
+    }
+
+
+@pytest.mark.asyncio
+async def test_market_event_page_budget_resumes_and_skips_completed_history(db, monkeypatch):
+    requested_cursors: list[str | None] = []
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        invoke = kwargs["invoke"]
+        cursor = getattr(invoke, "__defaults__", (None,))[-1]
+        requested_cursors.append(cursor)
+        if cursor is None:
+            result = {
+                "events": [_record(event_key="massive:history:first", payload={"page": 1})],
+                "next_url": "https://api.massive.com/vX/reference/ipos?cursor=history-next",
+                "next_cursor": "history-next",
+                "complete": False,
+            }
+        elif cursor == "history-next":
+            result = {
+                "events": [_record(event_key="massive:history:second", payload={"page": 2})],
+                "next_url": None,
+                "next_cursor": None,
+                "complete": True,
+            }
+        else:
+            raise AssertionError(f"unexpected page cursor: {cursor!r}")
+        return SimpleNamespace(provider_name="massive", result=result)
+
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+    window = {"start": date(2026, 1, 1), "end": date(2026, 1, 31)}
+    first = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db),
+        provider_names=["massive"],
+        max_pages=1,
+        force_refresh=False,
+        **window,
+    )
+
+    assert first["providers"][0]["pagination"] == {
+        "status": "partial",
+        "pages_fetched": 1,
+        "total_pages_fetched": 1,
+        "continuation_pending": True,
+        "skipped_completed_window": False,
+    }
+    assert db.execute(select(MarketEvent)).scalar_one().event_key == "massive:history:first"
+
+    db.expire_all()
+    second = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db),
+        provider_names=["massive"],
+        max_pages=1,
+        force_refresh=False,
+        **window,
+    )
+    assert second["providers"][0]["pagination"]["status"] == "complete"
+    assert second["providers"][0]["pagination"]["continuation_pending"] is False
+    assert requested_cursors == [None, "history-next"]
+    assert {row.event_key for row in db.execute(select(MarketEvent)).scalars().all()} == {
+        "massive:history:first",
+        "massive:history:second",
+    }
+
+    completed = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db),
+        provider_names=["massive"],
+        max_pages=1,
+        force_refresh=False,
+        **window,
+    )
+    assert completed["providers"][0]["pagination"]["skipped_completed_window"] is True
+    assert requested_cursors == [None, "history-next"]
+
+
+@pytest.mark.asyncio
+async def test_refresh_market_events_marks_malformed_page_failed(db, monkeypatch):
+    async def fake_execute(_db, _capability, _operation, **_kwargs):
+        return SimpleNamespace(provider_name="massive", result={"unexpected": "shape"})
+
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+    result = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db), provider_names=["massive"]
+    )
+
+    assert result["failures"] == 1
+    state = db.execute(
+        select(ProviderPaginationState).where(ProviderPaginationState.provider == "massive")
+    ).scalar_one()
+    assert state.status == "failed"
+    assert state.last_error == "provider returned malformed market-event records"
+
+
+@pytest.mark.asyncio
+async def test_refresh_market_events_rejects_complete_page_with_continuation(db, monkeypatch):
+    async def fake_execute(_db, _capability, _operation, **_kwargs):
+        return SimpleNamespace(
+            provider_name="massive",
+            result={
+                "events": [_record(event_key="massive:ipo:contradictory", payload={})],
+                "next_url": "https://api.massive.com/vX/reference/ipos?cursor=ignored",
+                "next_cursor": "ignored",
+                "complete": True,
+            },
+        )
+
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+    result = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db), provider_names=["massive"]
+    )
+
+    assert result["failures"] == 1
+    assert db.execute(select(MarketEvent)).scalar_one().event_key == ("massive:ipo:contradictory")
+    state = db.execute(
+        select(ProviderPaginationState).where(ProviderPaginationState.provider == "massive")
+    ).scalar_one()
+    assert state.status == "failed"
+    assert state.cursor is None
+
+
+@pytest.mark.asyncio
+async def test_refresh_market_events_leaves_ambiguous_symbol_unlinked(
+    db, instrument, instrument_type, monkeypatch
+):
+    duplicate = Instrument(
+        symbol="AAPL-ALT",
+        name="Alternate Apple listing",
+        currency="USD",
+        instrument_type_id=instrument_type.id,
+        is_active=True,
+    )
+    source = DataSource(name="massive", base_url="https://api.massive.com")
+    db.add_all([duplicate, source])
+    db.flush()
+    db.add_all(
+        [
+            InstrumentProviderSymbol(
+                instrument_id=instrument.id,
+                data_source_id=source.id,
+                provider_symbol="AAPL",
+                provider_exchange_code="XNAS",
+                is_active=True,
+            ),
+            InstrumentProviderSymbol(
+                instrument_id=duplicate.id,
+                data_source_id=source.id,
+                provider_symbol="AAPL",
+                provider_exchange_code="XNYS",
+                is_active=True,
+            ),
+        ]
+    )
+    db.flush()
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        return SimpleNamespace(
+            provider_name=kwargs["provider_name"],
+            result=[_record(event_key="ipo:aapl:ambiguous", payload={"ticker": "AAPL"})],
+        )
+
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+    result = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db), provider_names=["massive"]
+    )
+
+    assert result["linked"] == 0
+    assert result["unlinked"] == 1
+    assert db.execute(select(MarketEvent)).scalar_one().instrument_id is None
+
+
+@pytest.mark.asyncio
+async def test_refresh_market_events_links_exact_issuer_cik_and_retains_other_failures(
+    db, monkeypatch
+):
+    source = DataSource(name="fmp", base_url="https://financialmodelingprep.com")
+    issuer = Issuer(
+        domain_key="cik:0000320193",
+        legal_name="Apple Inc.",
+        cik="0000320193",
+        country_code="US",
+    )
+    db.add_all([source, issuer])
+    db.flush()
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        if kwargs["provider_name"] == "fmp":
+            return SimpleNamespace(
+                provider_name="fmp",
+                result=[_record(event_key="earnings:apple:2026-09-12", payload={"cik": "320193"})],
+            )
+        raise RuntimeError("provider deliberately unavailable")
+
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+    result = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db), provider_names=["massive", "fmp"]
+    )
+
+    assert result["status"] == "refreshed"
+    assert result["failures"] == 1
+    assert result["linked"] == 1
+    assert result["providers"][0]["status"] == "failed"
+    row = db.execute(select(MarketEvent)).scalar_one()
+    assert row.issuer_id == issuer.id
+    assert row.instrument_id is None
+
+
+@pytest.mark.asyncio
+async def test_refresh_edgar_ipo_pipeline_uses_explicit_ciks_and_links_issuer(db, monkeypatch):
+    source = DataSource(name="edgar", base_url="https://data.sec.gov")
+    issuer = Issuer(
+        domain_key="cik:0000320193",
+        legal_name="Apple Inc.",
+        cik="0000320193",
+        country_code="US",
+    )
+    db.add_all([source, issuer])
+    db.flush()
+
+    calls = []
+    symbols = []
+
+    async def fake_execute(_db, capability, operation, **kwargs):
+        assert capability is ProviderCapability.MARKET_EVENTS
+        assert operation == "fetch_ipo_pipeline_events"
+        calls.append(kwargs["usage_identity"])
+        symbols.append(kwargs["provider_symbol"])
+        return SimpleNamespace(
+            provider_name="edgar",
+            result=[
+                MarketEventRecord(
+                    event_type="ipo_pipeline",
+                    event_key="edgar:ipo_pipeline:0000320193:000032019324000001",
+                    event_time=datetime(2026, 9, 12, tzinfo=UTC),
+                    effective_date=date(2026, 9, 12),
+                    title="SEC S-1 IPO pipeline filing",
+                    source_version="submissions:recent",
+                    is_provisional=True,
+                    raw_payload={"cik": "0000320193", "form": "S-1"},
+                )
+            ],
+        )
+
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+    result = await market_events.refresh_edgar_ipo_pipeline(
+        AsyncSessionAdapter(db),
+        ["320193", "320193", "not-a-cik"],
+        max_ciks=10,
+    )
+
+    assert calls == ["cik:0000320193"]
+    assert symbols == ["CIK:0000320193"]
+    assert result["status"] == "refreshed"
+    assert result["requested_ciks"] == 1
+    assert result["invalid_ciks"] == 1
+    assert result["failures"] == 1
+    assert result["linked"] == 1
+    row = db.execute(select(MarketEvent)).scalar_one()
+    assert row.issuer_id == issuer.id
+    assert row.event_type == "ipo_pipeline"
+    assert row.is_provisional is True
+
+
+@pytest.mark.asyncio
+async def test_market_events_task_uses_bounded_forward_window(monkeypatch):
+    class _Session:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+    calls = []
+
+    async def fake_refresh(db, **kwargs):
+        calls.append((db, kwargs))
+        return {"status": "no_events"}
+
+    monkeypatch.setattr(settings, "MARKET_EVENTS_REFRESH_ENABLED", True)
+    monkeypatch.setattr(settings, "MARKET_EVENTS_REFRESH_LOOKAHEAD_DAYS", 14)
+    monkeypatch.setattr(settings, "MARKET_EVENTS_REFRESH_MAX_PROVIDERS", 3)
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", lambda: _Session())
+    monkeypatch.setattr("app.services.market_events.refresh_market_events", fake_refresh)
+
+    result = await data_tasks.refresh_market_events({})
+
+    assert result == {"status": "no_events"}
+    assert len(calls) == 1
+    _, kwargs = calls[0]
+    assert kwargs["end"] >= kwargs["start"]
+    assert (kwargs["end"] - kwargs["start"]).days == 14
+    assert kwargs["max_providers"] == 3

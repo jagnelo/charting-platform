@@ -44,6 +44,25 @@ def test_backend_compose_contract_shares_research_job_protocol_volumes():
     assert "- research_results:/results" in service
 
 
+def test_backend_compose_retains_provider_state_and_strategy_artifact_mounts():
+    import yaml
+
+    compose = (Path(__file__).resolve().parents[3] / "docker-compose.yml").read_text()
+    service = compose.split("  backend:\n", 1)[1].split("\n  # ── ARQ worker", 1)[0]
+
+    assert "provider-quota}:/var/lib/charting-platform/provider-quota" in service
+    assert (
+        "provider-secrets/finra-orf}:/var/lib/charting-platform/provider-secrets/finra-orf"
+        in service
+    )
+    assert "strategy_lab_artifacts:/strategy-lab-artifacts" in service
+    assert "strategy_lab_v2_preparation_socket:/run/strategy-lab-v2" in service
+    assert "  strategy-lab-v2-preparation:\n" in compose
+    parsed = yaml.safe_load(compose)
+    assert "backend" in parsed["services"]
+    assert "strategy-lab-v2-preparation" in parsed["services"]
+
+
 def test_worker_compose_contract_inherits_seed_and_workstation_bootstrap_flags():
     """Seed isolation must cover the worker, not only the HTTP backend."""
     compose = (Path(__file__).resolve().parents[3] / "docker-compose.yml").read_text()

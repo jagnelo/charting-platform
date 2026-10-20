@@ -476,6 +476,8 @@ class TestWorkspaces:
         payload = response.json()
         assert payload["family_key"] == "nasdaq100"
         assert payload["official_index_symbol"] == "NDX"
+        assert payload["coverage_preflight"]["evaluator"] == "benchmark_family_overview"
+        assert payload["coverage_preflight"]["status"] == "empty"
         assert payload["coverage"] == 0
         assert payload["rows"] == []
         assert payload["universe_provenance"]["cap_proxy_symbol"] == "QQQ"
@@ -982,6 +984,11 @@ class TestWorkspaces:
         assert cap["coverage"] == 1
         assert cap["dispersion"] == 0
         assert cap["members"][0]["symbol"] == instrument.symbol
+        assert cap["coverage_preflight"]["evaluator"] == (
+            "benchmark_family_concentration:cap_weight"
+        )
+        assert cap["coverage_preflight"]["status"] == "full"
+        assert payload["coverage_preflight"]["roles"]["cap_weight"]["status"] == "full"
         assert roles["equal_weight"]["available"] is False
 
     def test_benchmark_family_concentration_history_uses_known_at_snapshots(
@@ -1103,6 +1110,13 @@ class TestWorkspaces:
         assert point["effective_constituents"] == 1
         assert point["coverage"] == 1
         assert {item["snapshot_id"] for item in cap["points"]} == {snapshot.id, later_snapshot.id}
+        assert cap["coverage_preflight"]["evaluator"] == (
+            "benchmark_family_concentration_history:cap_weight"
+        )
+        assert payload["coverage_preflight"]["roles"]["cap_weight"]["status"] in {
+            "full",
+            "partial",
+        }
         assert roles["equal_weight"]["available"] is False
 
     def test_benchmark_family_concentration_history_supports_derived_equal_membership(
@@ -1199,6 +1213,10 @@ class TestWorkspaces:
         assert equal["points"][-1]["weight_method"] == (
             "equal_start_weight_point_in_time_membership_rebalanced_on_declared_schedule"
         )
+        assert equal["coverage_preflight"]["evaluator"] == (
+            "benchmark_family_concentration_history:equal_weight"
+        )
+        assert equal["coverage_preflight"]["status"] == "deferred"
 
     def test_benchmark_family_ratios_align_selected_leg_to_cap_and_market(
         self, client, auth_headers, db, instrument_type
@@ -1253,6 +1271,8 @@ class TestWorkspaces:
         )
         assert response.status_code == 200, response.text
         payload = response.json()
+        assert payload["coverage_preflight"]["evaluator"] == "benchmark_family_ratios"
+        assert payload["coverage_preflight"]["status"] == "full"
         assert payload["universe_provenance"]["ratio_semantics"] == (
             "aligned_close_ratio_without_forward_fill"
         )
@@ -1282,6 +1302,29 @@ class TestWorkspaces:
             ("equal_weight", "market"),
             ("cap_weight", "market"),
         }
+
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=rsp.id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+        stale_response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/ratios",
+            headers=auth_headers,
+            params={"role": "equal_weight", "market_benchmark": "SPY"},
+        )
+        assert stale_response.status_code == 200, stale_response.text
+        stale_payload = stale_response.json()
+        assert stale_payload["freshness"] == "stale"
+        assert stale_payload["coverage_preflight"]["status"] == "partial"
+        assert all(item["points"] == [] for item in stale_payload["ratios"])
+        assert all(item["warnings"][0]["code"] == "stale_data" for item in stale_payload["ratios"])
 
     def test_benchmark_family_technicals_return_independent_role_states_without_fallback(
         self, client, auth_headers, db, instrument_type
@@ -1335,6 +1378,8 @@ class TestWorkspaces:
         assert roles["cap_weight"]["last"] == 102
         assert roles["cap_weight"]["as_of"] == "2026-12-31T23:59:59Z"
         assert roles["cap_weight"]["sma200"] is None
+        assert roles["cap_weight"]["coverage_preflight"]["evaluator"] == ("technical_snapshot")
+        assert roles["cap_weight"]["coverage_preflight"]["status"] == "deferred"
         assert roles["equal_weight"]["symbol"] == "RSP"
         assert roles["equal_weight"]["available"] is False
         assert roles["equal_weight"]["warnings"][0]["code"] == "benchmark_proxy_unavailable"
@@ -1410,10 +1455,39 @@ class TestWorkspaces:
         assert roles["equal_weight"]["above_ma"]["ma20"]["requested_count"] == 1
         assert roles["equal_weight"]["above_ma"]["ma20"]["eligible_count"] == 1
         assert roles["equal_weight"]["near_52w_high"]["percentage"] is None
+        assert roles["equal_weight"]["coverage_preflight"]["ma20"]["status"] == "full"
+        assert roles["equal_weight"]["coverage_preflight"]["near_52w_high"]["status"] == "deferred"
+        assert (
+            roles["equal_weight"]["coverage_preflight"]["near_52w_high"]["items"][0]["status"]
+            == "partial"
+        )
+        assert payload["coverage_preflight"]["benchmark"]["status"] == "empty"
         assert payload["near_threshold"] == 0.02
         assert payload["universe_provenance"]["breadth_semantics"] == (
             "standard_role_participation_batch_over_point_in_time_holdings"
         )
+
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=instrument.id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+        stale_response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/breadth",
+            headers=auth_headers,
+            params={"near_threshold": "0.02", "new_high_lookback": "20"},
+        )
+        assert stale_response.status_code == 200, stale_response.text
+        stale_payload = stale_response.json()
+        stale_equal = {role["role"]: role for role in stale_payload["roles"]}["equal_weight"]
+        assert stale_equal["above_ma"]["ma20"]["eligible_count"] == 0
+        assert stale_equal["above_ma"]["ma20"]["exclusions"][0]["code"] == "stale_data"
 
     def test_benchmark_family_breadth_history_keeps_role_lineage_and_missing_roles_explicit(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
@@ -1480,6 +1554,10 @@ class TestWorkspaces:
         assert roles["cap_weight"]["exclusions"][0]["code"] == "instrument_not_found"
         assert roles["equal_weight"]["available"] is True
         assert roles["equal_weight"]["membership_version"] is not None
+        assert roles["equal_weight"]["coverage_preflight"]["evaluator"] == (
+            "benchmark_family_breadth_history:equal_weight"
+        )
+        assert roles["equal_weight"]["coverage_preflight"]["status"] == "deferred"
         assert len(roles["equal_weight"]["points"]) == 30
         assert set(roles["equal_weight"]["points"][-1]["above_ma"]) == {
             "ma20",
@@ -1487,6 +1565,7 @@ class TestWorkspaces:
             "ma200",
         }
         assert payload["limit"] == 30
+        assert payload["coverage_preflight"]["roles"]["equal_weight"]["status"] == "deferred"
 
     def test_benchmark_family_ranking_preserves_cap_relative_role_performance(
         self, client, auth_headers, db, instrument_type
@@ -1538,6 +1617,8 @@ class TestWorkspaces:
         )
         assert response.status_code == 200, response.text
         payload = response.json()
+        assert payload["coverage_preflight"]["evaluator"] == "benchmark_family_ranking"
+        assert payload["coverage_preflight"]["status"] == "full"
         roles = {role["role"]: role for role in payload["roles"]}
         assert roles["cap_weight"]["available"] is True
         assert roles["equal_weight"]["available"] is True
@@ -1546,6 +1627,29 @@ class TestWorkspaces:
         assert roles["equal_weight"]["relative_performance"]["1M"] > 0
         assert roles["value"]["available"] is False
         assert payload["benchmark"] == "SPY"
+
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=instruments["RSP"].id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+        stale_response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/ranking",
+            headers=auth_headers,
+            params={"rank_period": "1M"},
+        )
+        assert stale_response.status_code == 200, stale_response.text
+        stale_payload = stale_response.json()
+        assert stale_payload["coverage_preflight"]["status"] == "partial"
+        stale_roles = {role["role"]: role for role in stale_payload["roles"]}
+        assert stale_roles["equal_weight"]["available"] is False
+        assert stale_roles["equal_weight"]["warnings"][0]["code"] == "stale_data"
 
     def test_cross_family_ranking_keeps_unavailable_cap_legs_explicit(
         self, client, auth_headers, db, instrument_type
@@ -1592,6 +1696,8 @@ class TestWorkspaces:
         )
         assert response.status_code == 200, response.text
         payload = response.json()
+        assert payload["coverage_preflight"]["evaluator"] == "cross_family_ranking"
+        assert payload["coverage_preflight"]["status"] == "full"
         rows = {row["family_key"]: row for row in payload["rows"]}
         assert rows["sp500"]["available"] is True
         assert rows["sp500"]["rank"] == 1
@@ -1658,6 +1764,8 @@ class TestWorkspaces:
         )
         assert response.status_code == 200, response.text
         payload = response.json()
+        assert payload["coverage_preflight"]["evaluator"] == "cross_family_ranking_history"
+        assert payload["coverage_preflight"]["status"] == "full"
         rows = {row["family_key"]: row for row in payload["rows"]}
         assert payload["limit"] == 8
         assert payload["benchmark"] == "SPY"
@@ -1733,6 +1841,8 @@ class TestWorkspaces:
         assert len(roles["equal_weight"]["history"]) == 7
         assert roles["equal_weight"]["trend"] > 0
         assert roles["equal_weight"]["state"] in {"leading", "weakening"}
+        assert payload["coverage_preflight"]["evaluator"] == ("benchmark_family_relative_rotation")
+        assert payload["coverage_preflight"]["status"] == "full"
         assert roles["value"]["available"] is False
         assert roles["value"]["warnings"][0]["code"] == "role_mapping_unavailable"
 
@@ -1773,10 +1883,35 @@ class TestWorkspaces:
         assert available_payload["member_count"] == 1
         assert available_payload["covered_member_count"] == 1
         assert available_payload["coverage"] == 1
+        assert available_payload["coverage_preflight"]["evaluator"] == (
+            "benchmark_family_derived_equal_weight"
+        )
+        assert available_payload["coverage_preflight"]["status"] == "full"
         assert len(available_payload["points"]) == len(ohlcv_bars)
         assert available_payload["universe_provenance"]["membership_semantics"] == (
             "point_in_time_constituent_derived_equal_weight"
         )
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=instrument.id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+        stale = client.get(
+            "/api/v1/analysis/benchmark-families/sp1500/derived-equal-weight",
+            headers=auth_headers,
+        )
+        assert stale.status_code == 200, stale.text
+        stale_payload = stale.json()
+        assert stale_payload["covered_member_count"] == 0
+        assert stale_payload["points"] == []
+        assert stale_payload["coverage_preflight"]["status"] == "deferred"
+        assert stale_payload["exclusions"][-1]["code"] == "stale_data"
         historical = client.get(
             "/api/v1/analysis/benchmark-families/sp1500/derived-equal-weight",
             headers=auth_headers,
@@ -2040,6 +2175,7 @@ class TestWorkspaces:
         assert len(payload["points"]) == 149
         assert payload["coverage"] < 1
         assert payload["warnings"][0]["code"] == "partial_overlap"
+        assert payload["coverage_preflight"]["evaluator"] == "relative_strength"
 
     def test_relative_strength_applies_point_in_time_cutoff(
         self, client, auth_headers, db, instrument, instrument_b, ohlcv_bars
@@ -2180,9 +2316,11 @@ class TestWorkspaces:
         assert payload["sma200"] == 251.5
         assert payload["position_52w"] == 1
         assert payload["volume_ratio_50"] > 1
+        assert payload["coverage_preflight"]["evaluator"] == "technical_snapshot"
+        assert payload["coverage_preflight"]["status"] == "full"
 
     def test_indicator_batch_returns_local_latest_values_and_exclusions(
-        self, client, auth_headers, instrument, ohlcv_bars
+        self, client, auth_headers, db, instrument, ohlcv_bars
     ):
         response = client.post(
             "/api/v1/analysis/indicator-batch",
@@ -2206,6 +2344,79 @@ class TestWorkspaces:
         assert payload["values"][instrument.symbol]["warning"] is None
         assert payload["values"]["UNKNOWN"]["warning"]["code"] == "instrument_not_found"
         assert any(item["code"] == "instrument_not_found" for item in payload["exclusions"])
+
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=instrument.id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+        stale_response = client.post(
+            "/api/v1/analysis/indicator-batch",
+            headers=auth_headers,
+            json={
+                "symbols": [instrument.symbol],
+                "indicator": "sma",
+                "params": {"period": 2},
+                "timeframe": "D1",
+                "adjusted": True,
+            },
+        )
+        assert stale_response.status_code == 200
+        stale_payload = stale_response.json()
+        assert stale_payload["evaluated_count"] == 0
+        assert stale_payload["values"][instrument.symbol]["warning"]["code"] == "stale_data"
+        assert stale_payload["coverage_preflight"]["status"] == "deferred"
+        assert stale_payload["coverage_preflight"]["items"][0]["status"] == "missing"
+        assert any(item["code"] == "stale_data" for item in stale_payload["exclusions"])
+
+    def test_indicator_batch_withholds_values_when_shared_preflight_lacks_history(
+        self, client, auth_headers, db, instrument
+    ):
+        from datetime import UTC, datetime
+        from decimal import Decimal
+
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                timeframe=Timeframe.D1,
+                ts=datetime(2026, 1, 2, tzinfo=UTC),
+                open=Decimal("100"),
+                high=Decimal("101"),
+                low=Decimal("99"),
+                close=Decimal("100"),
+                volume=Decimal("1000"),
+                is_adjusted=True,
+            )
+        )
+        db.flush()
+
+        response = client.post(
+            "/api/v1/analysis/indicator-batch",
+            headers=auth_headers,
+            json={
+                "symbols": [instrument.symbol],
+                "indicator": "sma",
+                "params": {"period": 3},
+                "timeframe": "D1",
+                "adjusted": True,
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["coverage_preflight"]["evaluator"] == "indicator_batch"
+        assert payload["coverage_preflight"]["status"] == "deferred"
+        assert payload["coverage_preflight"]["items"][0]["status"] == "partial"
+        assert payload["values"][instrument.symbol]["value"] is None
+        assert payload["values"][instrument.symbol]["warning"]["code"] == ("insufficient_history")
 
     def test_group_snapshot_exposes_bounded_calendar_year_returns(
         self, client, auth_headers, db, instrument, ohlcv_bars
@@ -2253,6 +2464,8 @@ class TestWorkspaces:
         assert cells["2026"]["value"] == 0.1
         assert cells["2023"]["value"] is None
         assert cells["2023"]["warning"]["code"] == "no_calendar_year_bars"
+        assert response.json()["coverage_preflight"]["evaluator"] == "group_snapshot"
+        assert response.json()["coverage_preflight"]["status"] == "deferred"
 
     def test_historical_breadth_uses_only_each_constituents_available_bar_dates(
         self, client, auth_headers, db, instrument, ohlcv_bars
@@ -2302,6 +2515,7 @@ class TestWorkspaces:
         assert rotation.json()["history_length"] == 8
         assert len(row["history"]) == 8
         assert row["coverage"] == 1
+        assert rotation.json()["coverage_preflight"]["evaluator"] == ("group_relative_rotation")
 
     def test_relative_rotation_respects_point_in_time_membership_and_bars(
         self, client, auth_headers, db, instrument, ohlcv_bars
@@ -2443,6 +2657,7 @@ class TestWorkspaces:
             "uptrend",
             "downtrend",
         } <= set(next(iter(member_metrics.values())))
+        assert breadth_payload["coverage_preflight"]["evaluator"] == "group_breadth"
 
         history = client.get(
             "/api/v1/analysis/groups/point-in-time-batch-test/breadth/history",
@@ -2451,6 +2666,106 @@ class TestWorkspaces:
         )
         assert history.status_code == 200
         assert all(point["timestamp"] <= params["as_of"] for point in history.json()["points"])
+        assert history.json()["coverage_preflight"]["evaluator"] == "group_breadth_history"
+
+    def test_current_breadth_excludes_expired_ohlcv_members(
+        self, client, auth_headers, db, instrument, ohlcv_bars
+    ):
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+        from app.models.workstation import MarketGroup, MarketGroupMember
+
+        group = MarketGroup(
+            stable_key="stale-breadth-test", group_type="test", name="Stale breadth"
+        )
+        db.add(group)
+        db.flush()
+        db.add(MarketGroupMember(market_group_id=group.id, instrument_id=instrument.id, position=0))
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=instrument.id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/groups/stale-breadth-test/breadth",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["evaluated_count"] == 0
+        assert payload["missing_count"] == 0
+        assert payload["stale_count"] == 1
+        assert payload["coverage"] == 0
+        assert any(item["code"] == "stale_data" for item in payload["exclusions"])
+        assert payload["member_metrics"][str(instrument.id)]["above_ma20"] is None
+
+        technical = client.get(
+            f"/api/v1/analysis/instruments/{instrument.symbol}/technical",
+            headers=auth_headers,
+        )
+        assert technical.status_code == 200
+        technical_payload = technical.json()
+        assert technical_payload["last"] is None
+        assert any(item["code"] == "stale_data" for item in technical_payload["warnings"])
+
+        ratio = client.get(
+            "/api/v1/analysis/relative-strength",
+            headers=auth_headers,
+            params={"symbol": instrument.symbol, "benchmark": instrument.symbol},
+        )
+        assert ratio.status_code == 200
+        assert ratio.json()["points"] == []
+        assert any(item["code"] == "stale_data" for item in ratio.json()["warnings"])
+
+        snapshot = client.get(
+            "/api/v1/analysis/groups/stale-breadth-test/snapshot",
+            headers=auth_headers,
+            params={"benchmark": instrument.symbol},
+        )
+        assert snapshot.status_code == 200
+        snapshot_payload = snapshot.json()
+        assert snapshot_payload["coverage"] == 0
+        assert snapshot_payload["rows"][0]["last"]["value"] is None
+        assert snapshot_payload["rows"][0]["last"]["warning"]["code"] == "stale_data"
+        assert snapshot_payload["freshness_detail"]["requested"] == 1
+        assert any(item["code"] == "stale_data" for item in snapshot_payload["exclusions"])
+
+        rotation = client.get(
+            "/api/v1/analysis/groups/stale-breadth-test/relative-rotation",
+            headers=auth_headers,
+            params={"benchmark": instrument.symbol},
+        )
+        assert rotation.status_code == 200
+        rotation_payload = rotation.json()
+        assert rotation_payload["rows"][0]["coverage"] == 0
+        assert rotation_payload["rows"][0]["warnings"][0]["code"] == "stale_data"
+
+        generic = client.post(
+            "/api/v1/analysis/breadth",
+            headers=auth_headers,
+            json={
+                "version": 1,
+                "universe": {"kind": "group", "key": group.stable_key},
+                "condition": {
+                    "kind": "above_moving_average",
+                    "params": {"period": 20, "average": "sma", "comparator": "above"},
+                },
+                "timeframe": "D1",
+                "adjusted": True,
+            },
+        )
+        assert generic.status_code == 200
+        generic_payload = generic.json()
+        assert generic_payload["eligible_count"] == 0
+        assert generic_payload["coverage"] == 0
+        assert generic_payload["members"][0]["warning"]["code"] == "stale_data"
+        assert generic_payload["coverage_preflight"]["status"] == "deferred"
+        assert generic_payload["coverage_preflight"]["ready_instrument_count"] == 0
+        assert any(item["code"] == "stale_data" for item in generic_payload["exclusions"])
 
     def test_generic_breadth_accepts_a_reusable_condition_and_explicit_symbols(
         self, client, auth_headers, db, instrument, ohlcv_bars
@@ -2490,6 +2805,8 @@ class TestWorkspaces:
         assert payload["coverage"] == 1
         assert payload["members"][0]["symbol"] == instrument.symbol
         assert payload["members"][0]["value"] in {True, False}
+        assert payload["coverage_preflight"]["status"] == "full"
+        assert payload["coverage_preflight"]["ready_instrument_count"] == 1
 
         saved_condition = client.put(
             "/api/v1/workspaces/library/conditions/breadth-sma",
@@ -3065,6 +3382,27 @@ class TestWorkspaces:
         assert payload["condition_asset_key"] == "breadth-history-sma"
         assert payload["condition_library_version"] == 1
         assert payload["python_code_version_id"] == saved_python_version
+        assert payload["coverage_preflight"]["evaluator"] == "generic_breadth_history"
+        assert payload["coverage_preflight"]["status"] == "full"
+
+        insufficient = client.post(
+            "/api/v1/analysis/breadth/history",
+            headers=auth_headers,
+            json={
+                "universe": {"kind": "group", "key": group.stable_key},
+                "condition": {
+                    "kind": "above_moving_average",
+                    "params": {"period": 200, "average": "sma", "comparator": "above"},
+                },
+                "timeframe": "D1",
+                "limit": 20,
+            },
+        )
+        assert insufficient.status_code == 200, insufficient.text
+        insufficient_payload = insufficient.json()
+        assert insufficient_payload["coverage_preflight"]["status"] == "deferred"
+        assert insufficient_payload["coverage_preflight"]["ready_instrument_count"] == 0
+        assert insufficient_payload["points"] == []
 
     def test_python_breadth_queues_isolated_current_and_history_and_promotes_to_scan(
         self, client, auth_headers, instrument, ohlcv_bars, tmp_path, monkeypatch
@@ -3784,9 +4122,35 @@ class TestWorkspaces:
         assert payload["source_provider"] == "issuer"
         assert payload["as_of"] == "2024-06-01T00:00:00Z"
         assert payload["universe_provenance"]["requested_as_of"] == "2024-06-01T00:00:00+00:00"
+        assert payload["coverage_preflight"]["evaluator"] == "etf_constituent_snapshot"
         assert payload["coverage"] == 1
         assert payload["rows"][0]["symbol"] == instrument.symbol
         assert payload["rows"][0]["relative_to_benchmark"]["value"] == 1
+
+        # Current analysis must withhold bars whose persisted freshness state
+        # has expired, while the point-in-time request above remains intact.
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=instrument.id,
+                data_source_id=None,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+        stale_response = client.get(
+            "/api/v1/analysis/etf/XLK/constituents/snapshot",
+            headers=auth_headers,
+            params={"benchmark": instrument.symbol},
+        )
+        assert stale_response.status_code == 200, stale_response.text
+        stale_payload = stale_response.json()
+        assert stale_payload["coverage"] == 0
+        assert stale_payload["rows"][0]["last"]["warning"]["code"] == "stale_data"
+        assert any(item["code"] == "stale_data" for item in stale_payload["exclusions"])
 
     def test_etf_constituent_snapshot_discloses_excluded_holdings_and_coverage(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
@@ -3887,7 +4251,11 @@ class TestWorkspaces:
         from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
         from app.models.instrument import EquityDetail, Instrument
         from app.models.ohlcv import OHLCVBar, Timeframe
-        from app.models.provider_observation import InstrumentProfileSnapshot
+        from app.models.provider_observation import (
+            DatasetStatus,
+            InstrumentDatasetState,
+            InstrumentProfileSnapshot,
+        )
 
         db.add(
             EquityDetail(
@@ -4085,6 +4453,7 @@ class TestWorkspaces:
             ranked_payload["proxy_evidence"][0]["verification_state"]
             == "holdings_classification_verified"
         )
+        assert ranked_payload["coverage_preflight"]["evaluator"] == "industry_proxy_snapshot"
         assert ranked_payload["rows"][0]["symbol"] == "SMH"
         assert ranked_payload["rows"][0]["relative_to_benchmark"]["value"] == 2
         assert ranked_payload["rows"][0]["relative_to_market"]["value"] == 4
@@ -4098,6 +4467,7 @@ class TestWorkspaces:
         industries_payload = industries_ranked.json()
         assert industries_payload["group_key"] == "industry:XLK"
         assert industries_payload["market_benchmark"] == instrument.symbol
+        assert industries_payload["coverage_preflight"]["evaluator"] == "industry_snapshot"
         assert industries_payload["rows"][0]["industry"] == "Semiconductors"
         assert set(industries_payload["rows"][0]["performance"]) == {
             "1D",
@@ -4110,6 +4480,25 @@ class TestWorkspaces:
         }
         assert industries_payload["rows"][0]["relative_to_benchmark"]["value"] == 1
         assert industries_payload["rows"][0]["relative_to_market"]["value"] == 1
+
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=proxy.id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+        stale_ranked = client.get(
+            "/api/v1/analysis/etf/XLK/industries/Semiconductors/proxies/snapshot",
+            headers=auth_headers,
+            params={"market_benchmark": instrument.symbol},
+        )
+        assert stale_ranked.status_code == 200
+        stale_ranked_payload = stale_ranked.json()
+        assert stale_ranked_payload["coverage"] == 0
+        assert stale_ranked_payload["rows"][0]["last"]["warning"]["code"] == "stale_data"
 
         future_timestamp = datetime(2024, 6, 4, tzinfo=UTC)
         for item, close in ((source, "100"), (proxy, "300"), (instrument, "50")):

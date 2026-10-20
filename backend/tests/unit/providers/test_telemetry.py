@@ -1,0 +1,233 @@
+from unittest.mock import MagicMock
+
+from app.providers.telemetry import activate, deactivate, observe_response
+
+
+def test_transport_measurement_records_bytes_and_selected_headers():
+    response = MagicMock()
+    response.content = b"{}\n"
+    response.headers = {
+        "content-length": "3",
+        "x-ratelimit-remaining": "17",
+        "x-gate-ratelimit-requests-remain": "4",
+        "x-gate-ratelimit-limit": "5",
+        "x-gate-ratelimit-reset-timestamp": "1791568316",
+        "x-ratelimit-limit-day": "1000",
+        "x-ratelimit-limit-month": "100",
+        "x-ratelimit-remaining-day": "997",
+        "x-ratelimit-remaining-month": "96",
+        "x-ratelimit-limit-second": "5",
+        "x-ratelimit-remaining-second": "4",
+        "x-ratelimit-reset-second": "1791837416",
+        "x-rate-limit-remaining": "0",
+        "authorization": "must-not-be-recorded",
+    }
+    response.status_code = 200
+
+    measurement, token = activate()
+    try:
+        observe_response(response)
+        observe_response(response)
+    finally:
+        deactivate(token)
+
+    assert measurement.http_requests == 2
+    assert measurement.response_bytes == 6
+    assert measurement.response_headers == {
+        "content-length": "3",
+        "x-gate-ratelimit-limit": "5",
+        "x-gate-ratelimit-requests-remain": "4",
+        "x-gate-ratelimit-reset-timestamp": "1791568316",
+        "x-ratelimit-limit-day": "1000",
+        "x-ratelimit-limit-month": "100",
+        "x-ratelimit-remaining-day": "997",
+        "x-ratelimit-remaining-month": "96",
+        "x-ratelimit-remaining": "17",
+        "x-ratelimit-limit-second": "5",
+        "x-ratelimit-remaining-second": "4",
+        "x-ratelimit-reset-second": "1791837416",
+        "x-rate-limit-remaining": "0",
+    }
+    assert len(measurement.response_metadata) == 2
+    assert measurement.response_metadata[0] == {
+        "status_code": 200,
+        "headers": {
+            "content-length": "3",
+            "x-gate-ratelimit-limit": "5",
+            "x-gate-ratelimit-requests-remain": "4",
+            "x-gate-ratelimit-reset-timestamp": "1791568316",
+            "x-ratelimit-limit-day": "1000",
+            "x-ratelimit-limit-month": "100",
+            "x-ratelimit-remaining-day": "997",
+            "x-ratelimit-remaining-month": "96",
+            "x-ratelimit-remaining": "17",
+            "x-ratelimit-limit-second": "5",
+            "x-ratelimit-remaining-second": "4",
+            "x-ratelimit-reset-second": "1791837416",
+            "x-rate-limit-remaining": "0",
+        },
+    }
+    assert "authorization" not in str(measurement.response_metadata)
+
+
+def test_observation_without_active_call_is_ignored():
+    response = MagicMock(content=b"payload")
+    observe_response(response)
+
+
+def test_payload_capture_is_explicit_and_keeps_body_without_headers():
+    class _Response:
+        content = b'{"price": 101.25}'
+        headers = None
+        text = '{"price": 101.25}'
+
+        @staticmethod
+        def json():
+            return {"price": 101.25, "symbol": "AAPL"}
+
+    measurement, token = activate(capture_response_payloads=True)
+    try:
+        observe_response(_Response())
+    finally:
+        deactivate(token)
+
+    assert measurement.response_payloads == [{"price": 101.25, "symbol": "AAPL"}]
+    assert measurement.as_dict()["response_payloads"] == measurement.response_payloads
+
+
+def test_provider_can_suppress_payload_capture_for_credential_keyed_response_envelopes():
+    class _CredentialKeyedResponse:
+        content = b'{"secret-value":{"usage":0}}'
+        headers = None
+
+        @staticmethod
+        def json():
+            return {"secret-value": {"usage": 0}}
+
+    measurement, token = activate(capture_response_payloads=True)
+    try:
+        observe_response(_CredentialKeyedResponse(), capture_response_payload=False)
+    finally:
+        deactivate(token)
+
+    assert measurement.http_requests == 1
+    assert measurement.response_bytes == len(_CredentialKeyedResponse.content)
+    assert measurement.response_payloads == []
+
+
+def test_payload_capture_redacts_signed_urls_and_secret_fields_but_keeps_market_data():
+    signed_url = (
+        "https://download.example.test/result.csv?X-Amz-Credential=credential-value"
+        "&X-Amz-Signature=signature-value&X-Amz-Security-Token=session-value"
+    )
+
+    class _Response:
+        content = b"{}"
+        headers = None
+
+        @staticmethod
+        def json():
+            return {
+                "resultLink": signed_url,
+                "accessToken": "oauth-access-value",
+                "api_key": "provider-api-value",
+                "rows": [{"symbol": "AAPL", "close": 101.25}],
+            }
+
+    measurement, token = activate(capture_response_payloads=True)
+    try:
+        observe_response(_Response())
+    finally:
+        deactivate(token)
+
+    payload = measurement.response_payloads[0]
+    assert payload["resultLink"].startswith("https://download.example.test/result.csv?")
+    assert "credential-value" not in str(payload)
+    assert "signature-value" not in str(payload)
+    assert "session-value" not in str(payload)
+    assert "oauth-access-value" not in str(payload)
+    assert "provider-api-value" not in str(payload)
+    assert payload["rows"] == [{"symbol": "AAPL", "close": 101.25}]
+
+
+def test_payload_capture_does_not_mask_unread_streaming_response():
+    class _UnreadStream:
+        headers = {}
+
+        @staticmethod
+        def json():
+            raise RuntimeError("response body has not been read")
+
+        @property
+        def text(self):
+            raise RuntimeError("response body has not been read")
+
+    measurement, token = activate(capture_response_payloads=True)
+    try:
+        observe_response(_UnreadStream())
+    finally:
+        deactivate(token)
+
+    assert measurement.http_requests == 1
+    assert measurement.response_payloads == []
+
+
+def test_streaming_observation_accepts_explicit_measured_bytes_without_materializing_content():
+    response = MagicMock()
+    response.headers = {"record-total": "2"}
+    measurement, token = activate()
+    try:
+        observe_response(response, response_bytes=0)
+        observe_response(response, response_bytes=7, count_request=False)
+    finally:
+        deactivate(token)
+
+    assert measurement.http_requests == 1
+    assert measurement.response_bytes == 7
+    assert measurement.response_headers == {"record-total": "2"}
+
+
+def test_transport_measurement_records_provider_specific_usage_headers():
+    response = MagicMock()
+    response.content = b"credits"
+    response.headers = {
+        "api-credits-used": "3",
+        "api-credits-left": "5",
+        "Api-Credits-Request": "1",
+        "X-Api-Ratelimit-Limit": "100",
+        "X-Api-Ratelimit-Remaining": "96",
+        "X-Api-Ratelimit-Reset": "1700000000",
+        "X-Api-Ratelimit-Consumed": "4",
+        "X-Ratelimit-Available": "117",
+        "X-Ratelimit-Expiry": "1700000000",
+        "X-Bapi-Limit": "50",
+        "X-Bapi-Limit-Status": "49",
+        "X-Bapi-Limit-Reset-Timestamp": "1700000000000",
+        "Record-Total": "250",
+        "Record-Limit": "5000",
+        "Response-Payload-Max-Size": "3",
+    }
+
+    measurement, token = activate()
+    try:
+        observe_response(response)
+    finally:
+        deactivate(token)
+
+    assert measurement.response_headers == {
+        "api-credits-used": "3",
+        "api-credits-left": "5",
+        "api-credits-request": "1",
+        "x-api-ratelimit-limit": "100",
+        "x-api-ratelimit-remaining": "96",
+        "x-api-ratelimit-reset": "1700000000",
+        "x-api-ratelimit-consumed": "4",
+        "x-ratelimit-available": "117",
+        "x-ratelimit-expiry": "1700000000",
+        "x-bapi-limit": "50",
+        "x-bapi-limit-status": "49",
+        "x-bapi-limit-reset-timestamp": "1700000000000",
+        "record-total": "250",
+        "record-limit": "5000",
+        "response-payload-max-size": "3",
+    }

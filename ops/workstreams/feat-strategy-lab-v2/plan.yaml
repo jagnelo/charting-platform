@@ -5,20 +5,26 @@ goal: Prepare strategy-lab-v2-integration-1 for human review, preserving the com
 integration_checkpoint:
   id: strategy-lab-v2-integration-1
   active_changeset:
-    name: strategy-common-baseline-reconciliation
+    name: strategy-provider-only-consumer-reconciliation
     status: in_progress
-    source_commit: 01735f607d3051e3ebe569762ee65d5aa5b99c82
-    intent: Reconcile the exact coordinator-released green auxiliary baseline while retaining the published producer adapter, migration and test map for the later accepted Provider -> ETF -> TC2000 staging release; do not import or implement against unreleased feature sources.
+    source_commit: ec24a4f6f37c3b3cfd75a7927646d0c68c883e6e
+    intent: Merge only the exact accepted Provider staging release and reconcile canonical Provider identity, local series, coverage, freshness, and provenance through Strategy's existing immutable research contracts. Keep ETF point-in-time and TC2000 immutable Study/Code consumers gated until their own green releases.
     owned_paths:
       - backend/alembic/env.py
       - backend/alembic/versions/*strategy_lab*.py
       - backend/alembic/versions/*forward_dispatch_checkpoint.py
       - backend/app/strategy_lab_v2/migration_compatibility.py
       - backend/app/strategy_lab_v2/tests/test_migration_compatibility.py
+      - backend/app/strategy_lab_v2/provider_series_contract.py
+      - backend/app/strategy_lab_v2/tests/test_provider_series_contract.py
       - backend/tests/unit/strategy_lab_v2/test_schema_migration.py
       - backend/tests/integration/strategy_lab_v2/test_forward_dispatch_admission_migration_postgres.py
+      - backend/tests/unit/test_research_runner_deployment.py
       - .github/workflows/ci.yml
       - Makefile
+      - docker-compose.yml
+      - scripts/backend_coverage.py
+      - tests/workflow/test_backend_coverage.py
       - frontend/src/components/workstation/WorkstationToolContent.vue
       - frontend/src/stores/workspace.ts
       - frontend/tests/e2e/flows.spec.ts
@@ -27,14 +33,17 @@ integration_checkpoint:
       - ops/workstreams/feat-strategy-lab-v2/
   post_release_reconciliation_map: ops/workstreams/feat-strategy-lab-v2/post-release-reconciliation.md
   current_coordination_boundary:
-    staging_sha: ebf8648b90f4630090e32a6947f38a0cbb08544e
-    canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261020T025429Z-ebf8648b90f4.json
-    exact_ci_run: 39357623554
-    scope: Shared cold-add-tool repair baseline only; product checkpoints merged 0/4.
+    staging_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
+    canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261020T205101Z-9b230ba4c971.json
+    exact_ci_run: 39484176087
+    exhaustive_job: 118849529356
+    scope: Accepted Provider product checkpoint plus synchronized common repairs; Strategy may reconcile Provider-only consumers.
     status: >-
-      This auxiliary green release is not a Provider, ETF or TC2000 product
-      baseline. The coordinator will deliver each actual accepted green staged
-      product baseline in dependency order before Strategy consumes it.
+      Provider is released for bounded Strategy consumer reconciliation. ETF
+      point-in-time membership and TC2000 immutable CodeVersion/Study contracts
+      remain gated on their own accepted green staging releases. The full
+      dependency-ordered combined checkpoint and every full validation gate
+      remain open.
   released_auxiliary_reconciliation:
     staging_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
     canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261019T230653Z-281a57bd9fb7.json
@@ -304,9 +313,12 @@ acceptance_criteria:
   text: Prepare independent API/migration/worker and immutable-input consumer success/rejection evidence
     without importing unstaged implementations.
 - id: SLICP3
-  text: After Provider, ETF and TC2000 reach synchronized green staging and this source is unfrozen,
-    merge staging here and reconcile canonical identity/series/coverage, known-at ETF membership
-    and immutable CodeVersion/Study outputs.
+  text: >-
+    Reconcile dependency-ordered accepted green staging incrementally: Provider
+    canonical identity/local series/coverage/freshness/provenance now; ETF
+    known-at point-in-time membership and TC2000 immutable CodeVersion/Study
+    outputs only after their releases; then prove the full combined consumer
+    contract without completing this criterion early.
 - id: SLICP4
   text: Reconcile routers, migrations, configuration and Compose workers; pass full application and
     exact-source CI gates with unsupported scopes explicit and Nautilus RC results qualified by exact
@@ -317,24 +329,26 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2]
   total: 5
-  current_phase: integration-readiness-awaiting-provider-product-release
+  current_phase: provider-only-consumer-reconciliation
   current_blocker: >-
-    Staging ebf8648b90f4630090e32a6947f38a0cbb08544e passed exact CI 39357623554,
-    including Exhaustive, and is released only as a shared cold-add-tool repair.
-    Product checkpoints remain 0/4. The real dependency is the coordinator's
-    accepted green Provider release, followed by ETF and TC2000 in order, before
-    Strategy can implement the mapped consumer adapters. Historical Strategy
-    source 54fa13e1ba17a40de6f242e16d5a96d8217615cb / CI 38820638540 exit 152
+    Provider staging 9b230ba4c97126a2937667138c6eb2a0aa297baf is accepted and
+    released for this Provider-only phase; exact CI 39484176087 and Exhaustive
+    job 118849529356 are green. ETF point-in-time membership and TC2000 immutable
+    CodeVersion/Study releases remain real downstream dependencies. Static
+    Alembic inspection reports distinct Provider head b6e9a42d1c73 and Strategy
+    head slv2_0008; retain both histories and defer an additive graph merge until
+    the accepted ETF/TC heads arrive. Historical Strategy source
+    54fa13e1ba17a40de6f242e16d5a96d8217615cb / CI 38820638540 exit 152
     remains unproven and preserved. Combined consumer/PostgreSQL/application,
     coordinated exhaustive, exact-current-source CI after future changes, and
     local full_stack_browser gates remain open.
   next_action: >-
-    Hold integration readiness on the published post-release map. When the
-    coordinator delivers an accepted green Provider release, verify its exact
-    staged source and wire canonical identity, local series, coverage and
-    freshness through the existing Strategy host seams. Then consume the
-    coordinator-delivered ETF point-in-time membership release and TC2000
-    immutable CodeVersion/Study release in order, preserving owner, known-at,
+    Complete the released Provider-only branch reconciliation and trace its
+    canonical identity, local series, coverage, freshness and provenance through
+    existing Strategy host seams with fail-closed/no-hidden-transport behavior.
+    Keep ETF point-in-time membership and TC2000 immutable CodeVersion/Study
+    consumers explicitly gated on their later accepted green staging releases;
+    preserve owner, known-at,
     source/output and worker terminal causality assertions. Reconcile additive
     migrations only from those actual staged heads, then run the combined
     PostgreSQL/application, exhaustive, local full_stack_browser and exact-source

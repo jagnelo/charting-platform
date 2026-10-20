@@ -1,22 +1,150 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
+
+import pytest
 
 from app.config import settings
 from app.models.provider_runtime import ProviderCapability
+from app.providers.registry import provider_is_configured
 from app.services.provider_availability import (
+    availability_error_message,
     classify_exception,
     classify_response,
+    default_probe,
     notification_due,
+    provider_configured,
+    representative_operation,
     representative_request,
+    response_payload,
     response_shape,
+    run_availability_probes,
 )
+
+
+@pytest.mark.asyncio
+async def test_raw_only_history_availability_probe_requests_unadjusted_bars(monkeypatch):
+    calls = []
+
+    class RawOnlyProvider:
+        name = "ibkr"
+
+        def fetch_latest_ohlcv(self, **kwargs):
+            calls.append(kwargs)
+            return []
+
+    monkeypatch.setattr(
+        "app.services.provider_availability.get_provider",
+        lambda _name: RawOnlyProvider(),
+    )
+
+    result = await default_probe(
+        "ibkr",
+        ProviderCapability.FUTURES_HISTORY,
+        representative_request(ProviderCapability.FUTURES_HISTORY),
+    )
+
+    assert result == []
+    assert calls and calls[0]["adjusted"] is False
+
+
+@pytest.mark.asyncio
+async def test_tokenized_history_availability_probe_uses_distinct_operation(monkeypatch):
+    calls = []
+
+    class DinariProvider:
+        name = "dinari"
+
+        def fetch_tokenized_historical_prices(self, **kwargs):
+            calls.append(kwargs)
+            return []
+
+    monkeypatch.setattr(
+        "app.services.provider_availability.get_provider",
+        lambda _name: DinariProvider(),
+    )
+
+    capability = ProviderCapability.TOKENIZED_HISTORICAL_PRICES
+    result = await default_probe("dinari", capability, representative_request(capability))
+
+    assert result == []
+    assert calls == [{"identifier": "AAPL", "timespan": "DAY"}]
+
+
+@pytest.mark.asyncio
+async def test_edgar_market_event_availability_probe_uses_ipo_pipeline_contract(monkeypatch):
+    calls = []
+
+    class EdgarProvider:
+        name = "edgar"
+
+        def fetch_ipo_pipeline_events(self, **kwargs):
+            calls.append(kwargs)
+            return []
+
+    monkeypatch.setattr(
+        "app.services.provider_availability.get_provider",
+        lambda _name: EdgarProvider(),
+    )
+
+    capability = ProviderCapability.MARKET_EVENTS
+    request = representative_request(capability)
+    assert representative_operation(capability, "edgar") == "fetch_ipo_pipeline_events"
+    result = await default_probe("edgar", capability, request)
+
+    assert result == []
+    assert calls == [
+        {
+            "cik": "0000320193",
+            "start": date.fromisoformat(request["start"]),
+            "end": date.fromisoformat(request["end"]),
+            "max_events": 1,
+        }
+    ]
 
 
 def test_representative_contract_covers_each_capability():
     for capability in ProviderCapability:
         request = representative_request(capability)
         assert request
-        assert "symbol" in request or "query" in request or "quote_type" in request
+        assert (
+            "symbol" in request
+            or "identifier" in request
+            or "query" in request
+            or "quote_type" in request
+        )
+
+
+def test_representative_operations_cover_probeable_capabilities():
+    for capability in ProviderCapability:
+        request = representative_request(capability)
+        operation = representative_operation(capability)
+        if request and capability != ProviderCapability.MARKET_CALENDAR:
+            assert operation
+
+
+def test_availability_configuration_uses_operation_aware_registry(monkeypatch):
+    source = SimpleNamespace(name="marketstack")
+    entitlement = SimpleNamespace()
+    monkeypatch.setattr(settings, "MARKETSTACK_API_KEY", "marketstack-key")
+    monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_EXCHANGE", "")
+
+    assert provider_configured(source, entitlement, operation="fetch_latest_ohlcv")
+    assert not provider_configured(source, entitlement, operation="discover_universe_page")
+
+    dinari = SimpleNamespace(name="dinari")
+    monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "dinari-id")
+    monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "dinari-secret")
+    assert provider_configured(dinari, entitlement, operation="discover_tokenized_assets")
+
+
+def test_provider_configuration_rejects_whitespace_credentials(monkeypatch):
+    monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "   ")
+    monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "dinari-secret")
+    assert not provider_is_configured("dinari")
+
+    monkeypatch.setattr(settings, "MASSIVE_API_KEY", "   ")
+    monkeypatch.setattr(settings, "MARKETDATA_API_KEY", "\t")
+    assert not provider_is_configured("massive")
 
 
 def test_classification_is_deterministic_for_empty_and_transport_failures():
@@ -26,6 +154,44 @@ def test_classification_is_deterministic_for_empty_and_transport_failures():
     assert classify_exception(TimeoutError()) == "timeout"
     assert classify_exception(ConnectionError("DNS lookup failed")) == "dns_transport"
     assert classify_exception(KeyError("new_field")) == "schema_content_incompatibility"
+
+
+def test_response_payload_retains_typed_fields_and_redacts_only_auth_material():
+    from app.providers.base import ProviderSearchResult
+
+    value = {
+        "rows": [ProviderSearchResult(symbol="AAPL", name="Apple")],
+        "observed_at": datetime(2026, 9, 25, tzinfo=UTC),
+        "price": 123.45,
+        "api_key": "do-not-persist",
+        "next_page_token": "continuation-is-data",
+    }
+
+    assert response_payload(value) == {
+        "rows": [{"symbol": "AAPL", "name": "Apple", "exchange": "", "instrument_type": ""}],
+        "observed_at": "2026-09-25T00:00:00+00:00",
+        "price": 123.45,
+        "api_key": "<redacted>",
+        "next_page_token": "continuation-is-data",
+    }
+    retained = response_payload(
+        ProviderSearchResult(
+            symbol="AAPL",
+            name="Apple",
+            raw_payload={"figi": "BBG000B9XRY4", "status": "ACTIVE"},
+        )
+    )
+    assert retained["raw_payload"] == {"figi": "BBG000B9XRY4", "status": "ACTIVE"}
+
+
+def test_availability_error_message_redacts_credentials_and_is_bounded():
+    message = availability_error_message(
+        RuntimeError("GET https://provider.test/data?api_key=availability-secret " + "x" * 2000)
+    )
+
+    assert "availability-secret" not in message
+    assert "<redacted>" in message
+    assert len(message) <= 1000
 
 
 def test_classification_covers_http_auth_quota_schema_and_parser_boundaries():
@@ -139,3 +305,67 @@ def test_notification_policy_covers_first_failure_cooldown_and_recovery(monkeypa
         )
         == "recovery"
     )
+
+
+@pytest.mark.asyncio
+async def test_availability_query_api_skips_finra_otc_when_credentials_are_missing(db, monkeypatch):
+    from app.models.data_source import DataSource
+    from app.models.provider_runtime import ProviderPolicy
+
+    source = DataSource(
+        name="finra_otc_directory",
+        base_url="https://api.finra.org",
+        is_active=True,
+    )
+    db.add(source)
+    db.flush()
+    db.add(
+        ProviderPolicy(
+            data_source_id=source.id,
+            capability=ProviderCapability.UNIVERSE_DISCOVERY,
+            is_enabled=True,
+            is_pinned=True,
+            base_priority=1,
+        )
+    )
+    db.flush()
+    monkeypatch.setattr(
+        settings,
+        "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+        "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster",
+    )
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "finra_otc_query_api")
+    monkeypatch.setattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 86400)
+    monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "")
+    monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "")
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_REVIEWED", False)
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_EVIDENCE", "")
+    calls = []
+
+    class AsyncSessionFacade:
+        def add(self, value):
+            db.add(value)
+
+        async def execute(self, statement):
+            return db.execute(statement)
+
+        async def flush(self):
+            db.flush()
+
+        async def commit(self):
+            db.commit()
+
+    async def probe(provider_name, capability, request):
+        calls.append((provider_name, capability, request))
+        return {"rows": []}
+
+    await run_availability_probes(AsyncSessionFacade(), "daily_core", probe=probe)
+
+    from app.models.provider_runtime import ProviderAvailabilityObservation
+
+    observation = db.query(ProviderAvailabilityObservation).one()
+    assert calls == []
+    assert observation.classification == "not_configured"
+    assert observation.success is False
+    assert observation.error_message is None
+    assert observation.consecutive_failures == 0

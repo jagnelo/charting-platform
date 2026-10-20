@@ -1,8 +1,8 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +22,10 @@ from app.services.instrument_reconciliation import (
     list_reconciliation_issues,
     resolve_reconciliation_issue,
 )
+from app.services.provider_account_usage import (
+    list_provider_account_usage,
+    refresh_provider_account_usage,
+)
 from app.services.provider_availability import (
     latest_availability,
     recent_availability_runs,
@@ -35,6 +39,7 @@ from app.services.provider_maintenance import (
 )
 from app.services.provider_runtime import (
     list_provider_status,
+    quota_contract_missing_dimensions,
     record_entitlement_revision,
     seed_provider_runtime,
 )
@@ -47,11 +52,14 @@ class ProviderPolicyUpdate(BaseModel):
     is_enabled: bool | None = None
     is_pinned: bool | None = None
     auto_weight_enabled: bool | None = None
-    base_priority: int | None = None
-    max_concurrency: int | None = None
-    tokens_per_minute: int | None = None
-    burst_capacity: int | None = None
-    cooldown_seconds: int | None = None
+    base_priority: int | None = Field(default=None, ge=0)
+    max_concurrency: int | None = Field(default=None, ge=1)
+    tokens_per_minute: int | None = Field(default=None, ge=1)
+    burst_capacity: int | None = Field(default=None, ge=1)
+    cooldown_seconds: int | None = Field(default=None, ge=1)
+    quota_contract: dict | None = None
+    quota_scope: str | None = None
+    quota_source: str | None = None
     freshness_seconds: int | None = None
 
 
@@ -277,6 +285,29 @@ async def get_provider_usage(
     return await summarize_provider_usage(db)
 
 
+@router.get("/usage/account")
+async def get_provider_account_usage(
+    provider: str | None = None,
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Return provider-native account counters retained across sessions."""
+
+    return await list_provider_account_usage(db, provider_name=provider, limit=limit)
+
+
+@router.post("/usage/account/refresh")
+async def refresh_provider_account_usage_endpoint(
+    provider: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Explicitly poll one reviewed provider account-usage endpoint."""
+
+    return await refresh_provider_account_usage(db, provider_name=provider)
+
+
 @router.get("/availability")
 async def get_provider_availability(
     db: AsyncSession = Depends(get_db),
@@ -422,8 +453,77 @@ async def update_provider_policy(
     if policy is None:
         raise HTTPException(404, f"No policy found for '{provider_name}' / '{capability}'")
 
-    for field_name, value in body.model_dump(exclude_unset=True).items():
+    changes = body.model_dump(exclude_unset=True)
+    quota_fields = {"max_concurrency", "tokens_per_minute", "burst_capacity", "cooldown_seconds"}
+    candidate_contract_missing: list[str] = []
+    if "quota_contract" in changes and changes.get("quota_contract") is not None:
+        candidate_contract = changes.get("quota_contract")
+        if not isinstance(candidate_contract, dict):
+            raise HTTPException(400, "quota_contract must be a JSON object")
+        candidate_policy = ProviderPolicy(
+            capability=capability_enum,
+            quota_contract=candidate_contract,
+            # Validate the complete replacement as it will exist after the
+            # patch. Existing provenance may be reused when omitted, while
+            # an explicit null remains a deliberate fail-closed removal.
+            quota_scope=changes.get("quota_scope", policy.quota_scope),
+            quota_source=changes.get("quota_source", policy.quota_source),
+        )
+        candidate_contract_missing = quota_contract_missing_dimensions(candidate_policy)
+    candidate_structural_missing = [
+        item
+        for item in candidate_contract_missing
+        if not item.startswith(
+            (
+                "quota_contract.unknown_dimensions.",
+                "quota_contract.untracked_constraints.",
+            )
+        )
+        and not item.endswith(".reset.unresolved")
+    ]
+    if quota_fields.intersection(changes):
+        if "quota_contract" not in changes:
+            raise HTTPException(
+                400,
+                "Provider limits require an explicit replacement documentation-backed "
+                "quota_contract; individual numeric defaults are not accepted",
+            )
+        if candidate_structural_missing:
+            raise HTTPException(
+                400,
+                "quota_contract is incomplete: " + ", ".join(candidate_structural_missing),
+            )
+    if "quota_contract" in changes and changes.get("quota_contract") is not None:
+        if candidate_structural_missing:
+            raise HTTPException(
+                400,
+                "quota_contract is incomplete: " + ", ".join(candidate_structural_missing),
+            )
+        if not candidate_contract_missing:
+            quota_scope = str(changes.get("quota_scope", policy.quota_scope) or "").strip()
+            quota_source = str(changes.get("quota_source", policy.quota_source) or "").strip()
+            if not quota_scope:
+                raise HTTPException(400, "Complete quota contracts require quota_scope")
+            if not quota_source:
+                raise HTTPException(400, "Complete quota contracts require quota_source provenance")
+    for field_name, value in changes.items():
         setattr(policy, field_name, value)
+    if "quota_contract" in changes:
+        # A contract containing unknown/untracked dimensions is useful audit
+        # evidence, but it is not a verified admission contract. Keep the
+        # timestamp empty so admin diagnostics cannot present a fail-closed
+        # policy as documentation-approved.
+        policy.quota_verified_at = (
+            datetime.now(UTC)
+            if changes.get("quota_contract") is not None and not candidate_contract_missing
+            else None
+        )
+    elif {"quota_scope", "quota_source"}.intersection(changes):
+        # Provenance edits without an explicit complete replacement contract
+        # cannot inherit the previous review timestamp. The policy may remain
+        # useful audit state, but routing must wait for a new reviewed
+        # contract to be submitted.
+        policy.quota_verified_at = None
     if body.base_priority is not None and body.is_pinned is None:
         policy.is_pinned = True
     await db.flush()

@@ -24,6 +24,165 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+_PROVIDER_CREDENTIAL_SETTINGS = (
+    "ALPACA_API_KEY",
+    "ALPACA_SECRET_KEY",
+    "ALPHA_VANTAGE_API_KEY",
+    "COINGECKO_API_KEY",
+    "EODHD_API_KEY",
+    "FINNHUB_API_KEY",
+    "FINRA_CLIENT_ID",
+    "FINRA_CLIENT_SECRET",
+    "FMP_API_KEY",
+    "FRED_API_KEY",
+    "MARKETDATA_APP_API_KEY",
+    "MARKETSTACK_API_KEY",
+    "MASSIVE_API_KEY",
+    "OPENFIGI_API_KEY",
+    "TIINGO_API_KEY",
+    "TRADIER_API_KEY",
+    "TWELVE_DATA_API_KEY",
+    "XSTOCKS_API_KEY",
+)
+
+
+def pytest_collection_modifyitems(config, items):
+    """Bootstrap native provider usage before metered live operations.
+
+    The live runner deliberately refreshes provider-native account usage in the
+    same pytest process as the bounded data cases.  Pytest otherwise preserves
+    source-file order, which can put an account-usage snapshot after history,
+    quote, or discovery calls.  That is unsafe for fixed-window providers
+    (for example Binance): a reset can occur between a separately launched
+    bootstrap and the first metered operation, leaving the operation without a
+    current durable baseline.  This ordering is limited to the manifest runner
+    and does not affect ordinary unit/integration collection.
+    """
+
+    if os.getenv("PROVIDER_LIVE_MATRIX_RUN", "").strip() != "1":
+        return
+    raw_case_order = os.getenv("PROVIDER_LIVE_CASE_ORDER", "").strip()
+    case_order: list[str] = []
+    if raw_case_order:
+        try:
+            decoded_case_order = json.loads(raw_case_order)
+        except json.JSONDecodeError:
+            pytest.exit("provider live case order is invalid JSON", returncode=2)
+        if (
+            not isinstance(decoded_case_order, list)
+            or any(not isinstance(item, str) or not item for item in decoded_case_order)
+            or len(decoded_case_order) != len(set(decoded_case_order))
+        ):
+            pytest.exit("provider live case order is malformed", returncode=2)
+        case_order = decoded_case_order
+    case_rank = {node_id: index for index, node_id in enumerate(case_order)}
+
+    def ordering(item):
+        # Parameterized manifest cases append ``[case-id]`` to their node ID;
+        # rank them using the unparameterized manifest node requested by the
+        # parent runner.
+        manifest_node_id = item.nodeid.split("[", 1)[0]
+        return (
+            0 if "account_usage" in item.nodeid else 1,
+            case_rank.get(manifest_node_id, len(case_rank)),
+            item.nodeid,
+        )
+
+    items.sort(key=ordering)
+
+
+@pytest.fixture(autouse=True)
+def isolate_external_provider_credentials(request, monkeypatch):
+    """Prevent ordinary tests from inheriting developer live credentials."""
+
+    if request.node.get_closest_marker("live") is not None:
+        return
+    from app.config import settings
+
+    for name in _PROVIDER_CREDENTIAL_SETTINGS:
+        monkeypatch.delenv(name, raising=False)
+        monkeypatch.setattr(settings, name, "")
+
+
+@pytest.fixture(autouse=True)
+def isolate_integration_research_job_directories(request, monkeypatch, tmp_path):
+    """Keep API integration tests from writing into shared host research paths."""
+
+    if not request.node.nodeid.startswith("tests/integration/"):
+        return
+    from app.config import settings
+
+    job_directory = tmp_path / "research-jobs"
+    result_directory = tmp_path / "research-results"
+    job_directory.mkdir()
+    result_directory.mkdir()
+    monkeypatch.setattr(settings, "RESEARCH_JOB_DIR", str(job_directory))
+    monkeypatch.setattr(settings, "RESEARCH_RESULT_DIR", str(result_directory))
+
+
+@pytest.fixture(autouse=True)
+def isolate_provider_quota_coordinator(request, monkeypatch, tmp_path):
+    """Keep non-live tests from reading or spending the owner's durable ledger."""
+
+    if request.node.get_closest_marker("live") is not None:
+        return
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", "")
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_ACCOUNT_SCOPES", {})
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_EXCLUSIVE_ACCOUNT_SCOPES", {})
+
+    # Most runtime tests use synthetic provider responses and are testing a
+    # provider operation, not account setup. Give those isolated fixture
+    # accounts an explicit zero baseline. Dedicated coordinator tests exercise
+    # the production fail-closed path with no such fixture attestation.
+    import app.services.provider_quota_coordinator as coordinator
+    from app.services.provider_runtime import quota_dimensions
+
+    original_reserve = coordinator.reserve_provider_quota_async
+
+    async def reserve_with_fixture_baseline(**kwargs):
+        policy = kwargs.get("policy")
+        provider = str(kwargs.get("provider_name") or "")
+        capability = str(kwargs.get("capability") or "price_history")
+        current = kwargs.get("now") or datetime.now(UTC)
+        dimension_units = kwargs.get("dimension_units") or {}
+        for dimension in quota_dimensions(policy):
+            name = str(dimension.get("name") or "")
+            if not name or not dimension_units.get(name):
+                continue
+            if str(dimension.get("unit") or "").lower() in {
+                "concurrent_requests",
+                "concurrency",
+            }:
+                continue
+            status = coordinator.provider_quota_baseline_status(
+                provider_name=provider,
+                capability=capability,
+                policy=policy,
+                dimension_name=name,
+                now=current,
+            )
+            if status["status"] == "unknown":
+                coordinator.reconcile_provider_quota_baseline(
+                    provider_name=provider,
+                    capability=capability,
+                    policy=policy,
+                    dimension_name=name,
+                    used_units=0,
+                    observed_at=current,
+                    evidence_reference="test-fixture:fixture:isolated-pytest-account",
+                    now=current,
+                )
+        return await original_reserve(**kwargs)
+
+    monkeypatch.setattr(
+        coordinator,
+        "reserve_provider_quota_async",
+        reserve_with_fixture_baseline,
+    )
+
 
 def _record_testcontainer(container) -> None:
     """Persist session IDs so scoped cleanup can find abandoned Ryuk resources."""
@@ -56,6 +215,9 @@ class AsyncSessionAdapter:
 
     async def execute(self, *args, **kwargs):
         return self._session.execute(*args, **kwargs)
+
+    async def run_sync(self, fn, *args, **kwargs):
+        return fn(self._session, *args, **kwargs)
 
     async def get(self, *args, **kwargs):
         return self._session.get(*args, **kwargs)

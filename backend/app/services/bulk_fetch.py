@@ -5,9 +5,11 @@ Pulls the maximum available OHLCV history for an instrument from the configured
 provider and stores it in the local DB for all supported timeframes.
 
 Design principles:
-  - Source-agnostic: no hardcoded source-specific history-window assumptions.
-  - We always attempt to start from EPOCH (Unix timestamp 0) and let the data
-    source tell us how far back it can actually go.
+  - Source-agnostic: provider-specific history windows come from reviewed
+    machine-readable entitlement constraints, never generic assumptions.
+  - Providers without an explicit history bound receive an epoch sentinel and
+    are rejected by runtime admission; the source is never asked to act as an
+    undocumented unlimited-history provider.
   - If a source returns nothing for a timeframe after coarser timeframes have
     returned data, we record that fact and stop asking, accepting the source
     simply doesn't provide that resolution that far back.
@@ -25,12 +27,44 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
-from app.services.market_data import _record_bar_observations, _touch_ohlcv_dataset_state
-from app.services.provider_runtime import execute_provider_call
+from app.providers.alpaca import estimate_ohlcv_request_count
+from app.providers.binance import estimate_ohlcv_request_weight
+from app.providers.crypto_market_data import (
+    estimate_coinbase_ohlcv_request_count,
+    estimate_kraken_ohlcv_request_count,
+)
+from app.providers.errors import bounded_redact_provider_message
+from app.providers.ibkr import estimate_ibkr_ohlcv_request_count
+from app.providers.massive import (
+    estimate_ohlcv_request_count as estimate_massive_ohlcv_request_count,
+)
+from app.providers.optional_market_data import (
+    estimate_fmp_ohlcv_request_count,
+    estimate_marketdata_app_ohlcv_credit_count,
+    estimate_marketstack_ohlcv_request_count,
+    estimate_tiingo_ohlcv_request_count,
+    estimate_twelve_data_ohlcv_request_count,
+)
+from app.services.distributed_locks import (
+    DistributedLockError,
+    redis_distributed_lock,
+    shared_redis_lock_client,
+)
+from app.services.market_data import (
+    _attach_provider_series,
+    _default_series_bar_condition,
+    _record_bar_observations,
+    _touch_ohlcv_dataset_state,
+)
+from app.services.provider_runtime import (
+    execute_provider_call,
+    provider_history_bound_start,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +97,43 @@ INTER_TF_DELAY_SECONDS: float = 1.5
 _REDIS_PROGRESS_KEY = "bulk_fetch:progress:{instrument_id}"
 _REDIS_CANCEL_KEY = "watchlist-history:cancel:{run_id}"
 _REDIS_TTL_SECONDS = 86_400  # 24 h
+
+
+def _provider_bulk_history_start(provider_name: str, end: datetime) -> datetime:
+    """Return the reviewed earliest request bound for one provider.
+
+    A bulk refresh must not send the epoch to every adapter: the runtime's
+    entitlement check needs the same requested start that the adapter will
+    actually receive.  Bounds come from the machine-readable provider
+    entitlement seed.  An absent or malformed bound deliberately returns the
+    epoch, which makes the provider fail closed in ``resolve_provider_chain``
+    rather than inventing an unlimited history entitlement.
+
+    The seed is only a conservative request bound.  An operator may narrow a
+    provider entitlement in the database; the runtime admission check still
+    applies that persisted policy before the request is sent.
+    """
+
+    normalized_end = _normalize_fetch_end(end)
+    provider_seed = settings.PROVIDER_ENTITLEMENT_SEEDS.get(str(provider_name).strip().lower())
+    if not isinstance(provider_seed, dict):
+        return EPOCH_START
+
+    # Capability-level reviews override the provider-wide entitlement.  This
+    # matters for providers such as Finnhub whose free plan may expose price
+    # history only after a separate endpoint entitlement is reviewed.
+    capability_seed = provider_seed.get("capabilities", {}).get("price_history")
+    if isinstance(capability_seed, dict):
+        provider_seed = {**provider_seed, **capability_seed}
+    quota_policy = provider_seed.get("quota_policy")
+    constraints = (
+        quota_policy.get("history_constraints") if isinstance(quota_policy, dict) else None
+    )
+    if not isinstance(constraints, dict):
+        return EPOCH_START
+
+    earliest, _reason = provider_history_bound_start(constraints, now=normalized_end)
+    return earliest or EPOCH_START
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -126,6 +197,7 @@ async def bulk_fetch_instrument(
             timeframe=tf,
             adjusted=adjusted,
             end=fetch_end,
+            redis=redis,
         )
         summary[tf.value] = result
 
@@ -161,7 +233,9 @@ async def get_fetch_progress(instrument_id: int, redis) -> dict | None:
         raw = await redis.get(key)
         return json.loads(raw) if raw else None
     except Exception as e:
-        logger.warning(f"Could not read fetch progress from Redis: {e}")
+        logger.warning(
+            "Could not read fetch progress from Redis: %s", bounded_redact_provider_message(e)
+        )
         return None
 
 
@@ -178,7 +252,10 @@ async def _is_cancel_requested(redis, cancel_key: str | None) -> bool:
         value = await redis.get(cancel_key)
         return value not in (None, b"", "", b"0", "0", False)
     except Exception as exc:  # noqa: BLE001 - cancellation must not break fetches.
-        logger.warning("Could not read history refresh cancellation marker: %s", exc)
+        logger.warning(
+            "Could not read history refresh cancellation marker: %s",
+            bounded_redact_provider_message(exc),
+        )
         return False
 
 
@@ -192,19 +269,43 @@ async def _fetch_one_timeframe(
     timeframe: Timeframe,
     adjusted: bool,
     end: datetime,
+    redis=None,
 ) -> int | str:
     try:
-        return await _do_fetch_and_store(
-            db=db,
-            instrument=instrument,
-            ticker_sym=ticker_sym,
-            timeframe=timeframe,
-            adjusted=adjusted,
-            end=end,
-        )
+        distributed_redis = None
+        if settings.OHLCV_DISTRIBUTED_LOCK_ENABLED:
+            distributed_redis = redis or shared_redis_lock_client()
+        if distributed_redis is None:
+            return await _do_fetch_and_store(
+                db=db,
+                instrument=instrument,
+                ticker_sym=ticker_sym,
+                timeframe=timeframe,
+                adjusted=adjusted,
+                end=end,
+            )
+        async with redis_distributed_lock(
+            distributed_redis,
+            namespace="ohlcv-bulk-refresh",
+            identity=repr((instrument.id, timeframe.value, end, adjusted)),
+            ttl_seconds=settings.OHLCV_DISTRIBUTED_LOCK_TTL_SECONDS,
+            blocking_timeout_seconds=settings.OHLCV_DISTRIBUTED_LOCK_WAIT_SECONDS,
+            retry_interval_seconds=settings.OHLCV_DISTRIBUTED_LOCK_RETRY_SECONDS,
+        ):
+            return await _do_fetch_and_store(
+                db=db,
+                instrument=instrument,
+                ticker_sym=ticker_sym,
+                timeframe=timeframe,
+                adjusted=adjusted,
+                end=end,
+            )
+    except DistributedLockError:
+        raise
     except Exception as e:
-        logger.error(f"Bulk fetch failed for {ticker_sym} {timeframe.value}: {e}")
-        return f"error:{e}"
+        safe_error = bounded_redact_provider_message(e)
+        logger.error("Bulk fetch failed for %s %s: %s", ticker_sym, timeframe.value, safe_error)
+        return f"error:{safe_error}"
 
 
 async def _do_fetch_and_store(
@@ -215,16 +316,72 @@ async def _do_fetch_and_store(
     adjusted: bool,
     end: datetime,
 ) -> int:
-    """Request from EPOCH and upsert all returned bars. Returns new-bar count."""
+    """Request the reviewed maximum history and upsert all returned bars.
+
+    Providers with an explicit plan lookback receive that provider-specific
+    lower bound. Providers without a machine-readable bound receive the epoch
+    sentinel and are rejected by runtime history admission; that is safer than
+    silently treating an unknown plan as unlimited history.
+    """
+    provider_history_starts = {
+        provider_name: _provider_bulk_history_start(provider_name, end)
+        for provider_name in settings.PROVIDER_ENTITLEMENT_SEEDS
+    }
+
+    def history_start(provider_name: str) -> datetime:
+        return provider_history_starts.get(provider_name, EPOCH_START)
+
+    alpaca_start = history_start("alpaca")
+    binance_start = history_start("binance")
+    coinbase_start = history_start("coinbase")
+    kraken_start = history_start("kraken")
+    massive_start = history_start("massive")
+    marketstack_start = history_start("marketstack")
+    marketdata_app_start = history_start("marketdata_app")
+    twelve_data_start = history_start("twelve_data")
+    ibkr_start = history_start("ibkr")
+
+    alpaca_cost = estimate_ohlcv_request_count(timeframe, alpaca_start, end)
+    binance_cost = estimate_ohlcv_request_weight(timeframe, binance_start, end)
+    coinbase_cost = estimate_coinbase_ohlcv_request_count(timeframe, coinbase_start, end)
+    kraken_cost = estimate_kraken_ohlcv_request_count(timeframe, kraken_start, end)
+    massive_cost = estimate_massive_ohlcv_request_count(timeframe, massive_start, end)
+    marketstack_cost = estimate_marketstack_ohlcv_request_count(timeframe, marketstack_start, end)
+    marketdata_app_cost = estimate_marketdata_app_ohlcv_credit_count(
+        timeframe, marketdata_app_start, end
+    )
+    twelve_data_cost = estimate_twelve_data_ohlcv_request_count(timeframe, twelve_data_start, end)
+    ibkr_cost = estimate_ibkr_ohlcv_request_count(timeframe, ibkr_start, end)
+    tiingo_cost = estimate_tiingo_ohlcv_request_count(timeframe, history_start("tiingo"), end)
+    fmp_cost = estimate_fmp_ohlcv_request_count(timeframe, history_start("fmp"), end)
+    operation_cost_overrides = {
+        **({"alpaca": alpaca_cost} if alpaca_cost is not None else {}),
+        **({"binance": binance_cost} if binance_cost is not None else {}),
+        **({"coinbase": coinbase_cost} if coinbase_cost is not None else {}),
+        **({"kraken": kraken_cost} if kraken_cost is not None else {}),
+        **({"massive": massive_cost} if massive_cost is not None else {}),
+        **({"marketstack": marketstack_cost} if marketstack_cost is not None else {}),
+        **({"marketdata_app": marketdata_app_cost} if marketdata_app_cost is not None else {}),
+        **({"twelve_data": twelve_data_cost} if twelve_data_cost is not None else {}),
+        **({"ibkr": ibkr_cost} if ibkr_cost is not None else {}),
+        **({"fmp": fmp_cost} if fmp_cost is not None else {}),
+        **({"tiingo": tiingo_cost} if tiingo_cost is not None else {}),
+    }
     execution = await execute_provider_call(
         db,
         ProviderCapability.PRICE_HISTORY,
         f"bulk_fetch:{timeframe.value}",
         instrument_id=instrument.id,
+        usage_identity=lambda provider_name: provider_symbol_for_instrument(
+            instrument, provider_name
+        ),
+        operation_cost_overrides=operation_cost_overrides or None,
+        adjusted=adjusted,
+        history_start=history_start,
         invoke=lambda provider, _provider_symbol: provider.fetch_ohlcv(
             provider_symbol_for_instrument(instrument, provider.name),
             timeframe,
-            EPOCH_START,
+            history_start(provider.name),
             end,
             adjusted=adjusted,
             instrument_id=instrument.id,
@@ -246,6 +403,14 @@ async def _do_fetch_and_store(
         await db.commit()
         return 0
 
+    bars = await _attach_provider_series(
+        db,
+        instrument,
+        timeframe,
+        adjusted,
+        execution,
+        bars=bars,
+    )
     existing_ts = await _existing_timestamps(db, instrument.id, timeframe, adjusted)
 
     new_bars: list[OHLCVBar] = []
@@ -308,6 +473,7 @@ async def _existing_timestamps(
         OHLCVBar.instrument_id == instrument_id,
         OHLCVBar.timeframe == timeframe,
         OHLCVBar.is_adjusted == adjusted,
+        _default_series_bar_condition(instrument_id, timeframe, adjusted),
     )
     rows = (await db.execute(stmt)).scalars().all()
     return {_to_utc(ts) for ts in rows}
@@ -360,4 +526,6 @@ async def _publish_progress(
         )
         await redis.set(key, payload, ex=_REDIS_TTL_SECONDS)
     except Exception as e:
-        logger.warning(f"Could not write fetch progress to Redis: {e}")
+        logger.warning(
+            "Could not write fetch progress to Redis: %s", bounded_redact_provider_message(e)
+        )

@@ -23,6 +23,7 @@ from app.routers.analysis import (
     _python_breadth_point,
     _rotation_state,
     _sample_aligned_points,
+    _stale_instrument_ids,
     _technical_cells_for_series,
     _truncate_bars_at,
     _volume_ratio_50,
@@ -283,6 +284,58 @@ def test_analysis_helpers_preserve_utc_wire_format_and_empty_data_warnings():
     cells = _performance_cells([], instrument_id=7)
     assert set(cells) == {"1D", "1W", "1M", "3M", "6M", "YTD", "1Y"}
     assert all(cell.warning and cell.warning.code == "no_bars" for cell in cells.values())
+
+
+@pytest.mark.asyncio
+async def test_stale_instrument_ids_honor_expiry_and_current_fresh_precedence():
+    from datetime import timedelta
+
+    from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+    now = datetime.now(UTC)
+    states = [
+        InstrumentDatasetState(
+            instrument_id=7,
+            dataset_type="ohlcv",
+            dataset_key="D1:adj",
+            status=DatasetStatus.STALE,
+        ),
+        InstrumentDatasetState(
+            instrument_id=8,
+            dataset_type="ohlcv",
+            dataset_key="D1:adj",
+            status=DatasetStatus.FRESH,
+            stale_after=now - timedelta(minutes=1),
+        ),
+        InstrumentDatasetState(
+            instrument_id=9,
+            dataset_type="ohlcv",
+            dataset_key="D1:adj",
+            status=DatasetStatus.FRESH,
+            stale_after=now + timedelta(minutes=1),
+        ),
+        InstrumentDatasetState(
+            instrument_id=9,
+            dataset_type="ohlcv",
+            dataset_key="D1:raw",
+            status=DatasetStatus.STALE,
+        ),
+    ]
+
+    class Result:
+        def scalars(self):
+            return self
+
+        def all(self):
+            return states
+
+    class Database:
+        async def execute(self, _statement):
+            return Result()
+
+    stale = await _stale_instrument_ids(Database(), [7, 8, 9], Timeframe.D1, adjusted=True)
+
+    assert stale == {7, 8}
 
 
 def test_industry_aggregate_helpers_return_complete_periods_and_transparent_technicals():

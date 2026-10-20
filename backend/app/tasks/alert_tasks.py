@@ -9,9 +9,12 @@ from sqlalchemy import select
 from app.database import AsyncSessionLocal
 from app.models.indicator_alert import IndicatorAlert
 from app.models.instrument import Instrument
-from app.models.ohlcv import OHLCVBar
+from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
+from app.providers.errors import bounded_redact_provider_message
 from app.services import indicators as ind_engine
+from app.services.evaluator_preflight import preflight_ohlcv
+from app.services.indicators import required_bars_for_indicator
 from app.services.market_data import get_current_price_async
 from app.services.onesignal import send_alert_notification
 from app.websocket.manager import ws_manager
@@ -84,6 +87,99 @@ async def _get_recent_bars(db, instrument_id, timeframe, limit=300):
         .scalars()
         .all()[::-1]
     )
+
+
+async def _preflight_latest_prices(
+    db,
+    alerts_by_instrument: dict[int, list[PriceAlert]],
+    *,
+    redis=None,
+) -> dict[int, float | None]:
+    """Poll each high-alert instrument once before the evaluation phase."""
+
+    prices: dict[int, float | None] = {}
+    for instrument_id in sorted(alerts_by_instrument):
+        instrument = await db.get(Instrument, instrument_id)
+        if instrument is None:
+            prices[instrument_id] = None
+            continue
+        await db.refresh(instrument, ["listings", "provider_symbols"])
+        try:
+            price_kwargs = {"redis": redis} if redis is not None else {}
+            prices[instrument_id] = await get_current_price_async(db, instrument, **price_kwargs)
+        except Exception as exc:  # noqa: BLE001 - retain per-instrument preflight failure.
+            logger.debug(
+                "Latest price unavailable for %s: %s",
+                instrument.symbol,
+                bounded_redact_provider_message(exc),
+            )
+            prices[instrument_id] = None
+    return prices
+
+
+async def _preflight_recent_bars(
+    db, alerts: list[IndicatorAlert]
+) -> dict[tuple[int, Timeframe], list[OHLCVBar]]:
+    """Load and gate one local indicator snapshot per instrument/timeframe group.
+
+    This ARQ-compatible path has historically read local bars directly.  It
+    now shares the evaluator coverage gate with the scheduler-backed alert
+    engine, while still keeping provider I/O out of the evaluation loop.
+    """
+
+    grouped_alerts: dict[tuple[int, Timeframe], list[IndicatorAlert]] = {}
+    for alert in alerts:
+        grouped_alerts.setdefault((alert.instrument_id, alert.timeframe), []).append(alert)
+    snapshots: dict[tuple[int, Timeframe], list[OHLCVBar]] = {}
+    for instrument_id, timeframe in sorted(
+        grouped_alerts, key=lambda item: (item[0], str(item[1]))
+    ):
+        bars = await _get_recent_bars(db, instrument_id, timeframe)
+        if not bars:
+            snapshots[(instrument_id, timeframe)] = []
+            continue
+        minimum_bars = max(
+            max(
+                required_bars_for_indicator(
+                    getattr(alert, "indicator_a_type", ""),
+                    getattr(alert, "indicator_a_params", None),
+                )
+                for alert in grouped_alerts[(instrument_id, timeframe)]
+            ),
+            max(
+                (
+                    required_bars_for_indicator(
+                        alert.indicator_b_type,
+                        alert.indicator_b_params,
+                    )
+                    for alert in grouped_alerts[(instrument_id, timeframe)]
+                    if getattr(alert, "indicator_b_type", None)
+                ),
+                default=2,
+            ),
+        )
+        coverage = await preflight_ohlcv(
+            db,
+            evaluator=f"indicator_alert_worker:{instrument_id}:{timeframe.value}",
+            instrument_ids=[instrument_id],
+            timeframe=timeframe,
+            date_from=None,
+            date_to=None,
+            adjusted=None,
+            cached_bars={instrument_id: bars},
+            minimum_bars=minimum_bars,
+        )
+        if instrument_id not in coverage.ready_instrument_ids:
+            logger.debug(
+                "Worker indicator history deferred for instrument %s (%s): %s",
+                instrument_id,
+                timeframe,
+                coverage.to_dict(),
+            )
+            snapshots[(instrument_id, timeframe)] = []
+        else:
+            snapshots[(instrument_id, timeframe)] = bars
+    return snapshots
 
 
 async def _fire_price_alert(db, alert, current_price):
@@ -177,16 +273,12 @@ async def check_all_alerts(ctx: dict) -> dict:
             for a in price_alerts:
                 by_instrument.setdefault(a.instrument_id, []).append(a)
 
+            # High-alert latest-price polling is grouped as a preflight.  The
+            # alert evaluation loop below only consumes this snapshot, so
+            # multiple alerts cannot independently spend provider quota.
+            prices = await _preflight_latest_prices(db, by_instrument, redis=ctx.get("redis"))
             for iid, alerts in by_instrument.items():
-                instrument = await db.get(Instrument, iid)
-                if instrument is None:
-                    continue
-                await db.refresh(instrument, ["listings", "provider_symbols"])
-                try:
-                    price = await get_current_price_async(db, instrument)
-                except Exception as exc:
-                    logger.debug("Latest price unavailable for %s: %s", instrument.symbol, exc)
-                    continue
+                price = prices.get(iid)
                 if price is None:
                     continue
 
@@ -214,8 +306,9 @@ async def check_all_alerts(ctx: dict) -> dict:
                 .all()
             )
 
+            recent_bars = await _preflight_recent_bars(db, ind_alerts)
             for alert in ind_alerts:
-                bars = await _get_recent_bars(db, alert.instrument_id, alert.timeframe)
+                bars = recent_bars.get((alert.instrument_id, alert.timeframe), [])
                 if not bars:
                     continue
 
@@ -261,7 +354,9 @@ async def check_all_alerts(ctx: dict) -> dict:
             await db.commit()
 
         except Exception as e:
-            logger.error(f"Alert check failed: {e}", exc_info=True)
+            logger.error(
+                "Alert check failed: %s", bounded_redact_provider_message(e), exc_info=True
+            )
             await db.rollback()
 
     return {"price_fired": price_fired, "indicator_fired": indicator_fired}

@@ -130,7 +130,12 @@ from app.services.breadth import (
     evaluate_breadth,
     evaluate_breadth_history,
 )
-from app.services.indicators import OHLCVSeries, get_latest_value
+from app.services.evaluator_preflight import preflight_ohlcv
+from app.services.indicators import (
+    OHLCVSeries,
+    get_latest_value,
+    required_bars_for_indicator,
+)
 from app.services.market_map import build_market_map, read_market_map_cache
 from app.services.parameter_validation import validate_parameter_values
 from app.services.research_jobs import (
@@ -689,6 +694,26 @@ async def indicator_batch(
     bars_by_id = await _bars_by_instrument(
         db, [instrument.id for instrument in instruments.values()], timeframe, body.adjusted
     )
+    stale_ids = await _stale_instrument_ids(
+        db, [instrument.id for instrument in instruments.values()], timeframe, body.adjusted
+    )
+    preflight_bars_by_id = {
+        instrument_id: ([] if instrument_id in stale_ids else bars)
+        for instrument_id, bars in bars_by_id.items()
+    }
+    minimum_bars = required_bars_for_indicator(body.indicator, body.params)
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="indicator_batch",
+        instrument_ids=[item.id for item in instruments.values()],
+        timeframe=timeframe,
+        date_from=None,
+        date_to=None,
+        adjusted=body.adjusted,
+        cached_bars=preflight_bars_by_id,
+        minimum_bars=minimum_bars,
+    )
+    preflight_ready_ids = coverage_preflight.ready_instrument_ids
     values: dict[str, dict[str, object]] = {}
     exclusions: list[AnalysisWarning] = []
     for symbol in symbols:
@@ -707,6 +732,19 @@ async def indicator_batch(
             exclusions.append(warning)
             continue
         bars = bars_by_id.get(instrument.id, [])[-500:]
+        if instrument.id in stale_ids:
+            warning = AnalysisWarning(
+                code="stale_data",
+                message="Persisted OHLCV freshness has expired; the indicator was withheld.",
+                instrument_id=instrument.id,
+            )
+            values[symbol] = {
+                "value": None,
+                "observation_time": None,
+                "warning": warning.model_dump(),
+            }
+            exclusions.append(warning)
+            continue
         if not bars:
             warning = AnalysisWarning(
                 code="no_bars",
@@ -716,6 +754,31 @@ async def indicator_batch(
             values[symbol] = {
                 "value": None,
                 "observation_time": None,
+                "warning": warning.model_dump(),
+            }
+            exclusions.append(warning)
+            continue
+        if instrument.id not in preflight_ready_ids:
+            item = next(
+                (
+                    coverage_item
+                    for coverage_item in coverage_preflight.items
+                    if coverage_item.instrument_id == instrument.id
+                ),
+                None,
+            )
+            warning = AnalysisWarning(
+                code="insufficient_history",
+                message=(
+                    item.explanation
+                    if item is not None
+                    else f"This indicator requires at least {minimum_bars} local bars."
+                ),
+                instrument_id=instrument.id,
+            )
+            values[symbol] = {
+                "value": None,
+                "observation_time": bars[-1].ts,
                 "warning": warning.model_dump(),
             }
             exclusions.append(warning)
@@ -762,6 +825,7 @@ async def indicator_batch(
         requested_count=len(symbols),
         evaluated_count=evaluated_count,
         coverage=evaluated_count / max(len(symbols), 1),
+        coverage_preflight=coverage_preflight.to_dict(),
         exclusions=exclusions,
     )
 
@@ -857,6 +921,11 @@ def _rotation_state(trend: float, momentum: float) -> str:
     if momentum >= 0:
         return "improving"
     return "lagging"
+
+
+def _rotation_required_bars(sampling: int, lookback: int) -> int:
+    """Return the raw-bar floor for two lookback windows after sampling."""
+    return (lookback * 2 + 1) * sampling
 
 
 def _rotation_metrics(
@@ -1270,7 +1339,10 @@ async def _batch_freshness(
             for entry in entries
         ):
             current += 1
-        elif any(entry.status == DatasetStatus.FRESH for entry in entries):
+        elif any(
+            entry.status == DatasetStatus.FRESH or entry.status == DatasetStatus.STALE
+            for entry in entries
+        ):
             stale += 1
         else:
             other += 1
@@ -1282,6 +1354,74 @@ async def _batch_freshness(
     if stale and current == 0:
         return "stale", detail
     return "partial", detail
+
+
+async def _stale_instrument_ids(
+    db: AsyncSession,
+    instrument_ids: list[int],
+    timeframe: Timeframe,
+    adjusted: bool = True,
+) -> set[int]:
+    """Return members whose persisted OHLCV state is explicitly stale.
+
+    Breadth is a local evaluator and must not turn an expired provider-backed
+    snapshot into a current signal. A historical ``as_of`` request does not
+    use this helper: current freshness cannot be projected backward onto a
+    point-in-time analysis.
+    """
+
+    if not instrument_ids:
+        return set()
+    dataset_keys = [f"{timeframe.value}:{'adj' if adjusted else 'raw'}", timeframe.value]
+    states = (
+        (
+            await db.execute(
+                select(InstrumentDatasetState).where(
+                    InstrumentDatasetState.instrument_id.in_(instrument_ids),
+                    InstrumentDatasetState.dataset_type == "ohlcv",
+                    InstrumentDatasetState.dataset_key.in_(dataset_keys),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    now = datetime.now(UTC)
+    by_instrument: dict[int, list[InstrumentDatasetState]] = defaultdict(list)
+    for state in states:
+        by_instrument[state.instrument_id].append(state)
+
+    stale_ids: set[int] = set()
+    for instrument_id in instrument_ids:
+        entries = by_instrument.get(instrument_id, [])
+        if any(
+            entry.status == DatasetStatus.FRESH
+            and entry.stale_after is not None
+            and (
+                entry.stale_after
+                if entry.stale_after.tzinfo
+                else entry.stale_after.replace(tzinfo=UTC)
+            )
+            > now
+            for entry in entries
+        ):
+            continue
+        if any(
+            entry.status == DatasetStatus.STALE
+            or (
+                entry.status == DatasetStatus.FRESH
+                and entry.stale_after is not None
+                and (
+                    entry.stale_after
+                    if entry.stale_after.tzinfo
+                    else entry.stale_after.replace(tzinfo=UTC)
+                )
+                <= now
+            )
+            for entry in entries
+        ):
+            stale_ids.add(instrument_id)
+    return stale_ids
 
 
 @router.get("/instruments/{symbol}/technical", response_model=TechnicalSnapshotOut)
@@ -1300,8 +1440,33 @@ async def instrument_technical_snapshot(
     )
     if as_of is not None:
         bars = [bar for bar in bars if bar.ts <= as_of]
-    latest = bars[-1] if bars else None
     warnings: list[AnalysisWarning] = []
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, [instrument.id], timeframe, adjusted)
+    )
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="technical_snapshot",
+        instrument_ids=[instrument.id],
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars={instrument.id: [] if instrument.id in stale_ids else bars},
+        minimum_bars=252,
+    )
+    if instrument.id in stale_ids:
+        bars = []
+        warnings.append(
+            AnalysisWarning(
+                code="stale_data",
+                message="Persisted OHLCV freshness has expired; technical values were withheld.",
+                instrument_id=instrument.id,
+            )
+        )
+    latest = bars[-1] if bars else None
 
     def required(period: int, label: str) -> bool:
         if len(bars) >= period:
@@ -1316,11 +1481,14 @@ async def instrument_technical_snapshot(
         return False
 
     if latest is None:
-        warnings.append(
-            AnalysisWarning(
-                code="no_bars", message="No local bars are available.", instrument_id=instrument.id
+        if instrument.id not in stale_ids:
+            warnings.append(
+                AnalysisWarning(
+                    code="no_bars",
+                    message="No local bars are available.",
+                    instrument_id=instrument.id,
+                )
             )
-        )
         freshness, freshness_detail = await _batch_freshness(
             db, [instrument.id], timeframe, adjusted
         )
@@ -1338,6 +1506,7 @@ async def instrument_technical_snapshot(
             sma200=None,
             position_52w=None,
             volume_ratio_50=None,
+            coverage_preflight=coverage_preflight.to_dict(),
             warnings=warnings,
         )
 
@@ -1377,6 +1546,7 @@ async def instrument_technical_snapshot(
         sma200=averages[200],
         position_52w=position_52w,
         volume_ratio_50=volume_ratio_50,
+        coverage_preflight=coverage_preflight.to_dict(),
         warnings=warnings,
     )
 
@@ -1394,6 +1564,27 @@ async def relative_strength(
     primary, comparator = await _instrument(db, symbol), await _instrument(db, benchmark)
     grouped = await _bars_by_instrument(db, [primary.id, comparator.id], timeframe, adjusted)
     grouped = _truncate_bars_at(grouped, as_of)
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, [primary.id, comparator.id], timeframe, adjusted)
+    )
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="relative_strength",
+        instrument_ids=[primary.id, comparator.id],
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars={
+            instrument_id: [] if instrument_id in stale_ids else bars
+            for instrument_id, bars in grouped.items()
+        },
+        minimum_bars=1,
+    )
+    for instrument_id in stale_ids:
+        grouped[instrument_id] = []
     primary_by_time = {bar.ts: bar for bar in grouped.get(primary.id, [])}
     comparator_by_time = {bar.ts: bar for bar in grouped.get(comparator.id, [])}
     timestamps = sorted(primary_by_time.keys() & comparator_by_time.keys())
@@ -1407,6 +1598,15 @@ async def relative_strength(
     ]
     maximum = max(len(primary_by_time), len(comparator_by_time), 1)
     warnings: list[AnalysisWarning] = []
+    for instrument_id in (primary.id, comparator.id):
+        if instrument_id in stale_ids:
+            warnings.append(
+                AnalysisWarning(
+                    code="stale_data",
+                    message="Persisted OHLCV freshness has expired; the ratio excludes this instrument.",
+                    instrument_id=instrument_id,
+                )
+            )
     if not points:
         warnings.append(
             AnalysisWarning(
@@ -1435,6 +1635,7 @@ async def relative_strength(
         overlap_start=points[0].timestamp if points else None,
         overlap_end=points[-1].timestamp if points else None,
         coverage=len(points) / maximum,
+        coverage_preflight=coverage_preflight.to_dict(),
         warnings=warnings,
     )
 
@@ -1516,6 +1717,24 @@ async def benchmark_family_relative_rotation(
     bars_by_id = _truncate_bars_at(
         await _bars_by_instrument(db, instrument_ids, timeframe, adjusted), as_of
     )
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, instrument_ids, timeframe, adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="benchmark_family_relative_rotation",
+        instrument_ids=instrument_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=_rotation_required_bars(sampling, lookback),
+    )
     benchmark_bars = bars_by_id.get(cap_instrument.id, [])
     benchmark_by_timestamp = {bar.ts: bar for bar in benchmark_bars}
     roles: list[BenchmarkFamilyRotationRoleOut] = []
@@ -1547,6 +1766,27 @@ async def benchmark_family_relative_rotation(
             )
             continue
         bars = bars_by_id.get(instrument.id, [])
+        stale_target = cap_instrument.id if cap_instrument.id in stale_ids else instrument.id
+        if instrument.id in stale_ids or cap_instrument.id in stale_ids:
+            roles.append(
+                BenchmarkFamilyRotationRoleOut(
+                    role=role,
+                    instrument_id=instrument.id,
+                    symbol=symbol,
+                    label=label,
+                    verification_state=verification_state,
+                    available=False,
+                    coverage=0,
+                    warnings=[
+                        AnalysisWarning(
+                            code="stale_data",
+                            message="Persisted OHLCV freshness has expired; rotation was withheld.",
+                            instrument_id=stale_target,
+                        )
+                    ],
+                )
+            )
+            continue
         aligned = [
             (bar.ts, float(bar.close / benchmark_by_timestamp[bar.ts].close))
             for bar in bars
@@ -1628,6 +1868,7 @@ async def benchmark_family_relative_rotation(
         membership_version=_group_membership_version(group, members),
         universe_provenance=_group_provenance(group, as_of),
         roles=roles,
+        coverage_preflight=coverage_preflight.to_dict(),
         exclusions=exclusions,
         freshness=freshness,
         freshness_detail=freshness_detail,
@@ -1675,6 +1916,25 @@ async def group_relative_rotation(
         db, [*instrument_ids, benchmark_instrument.id], timeframe, adjusted
     )
     bars_by_id = _truncate_bars_at(bars_by_id, as_of)
+    rotation_ids = [*instrument_ids, benchmark_instrument.id]
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, rotation_ids, timeframe, adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="group_relative_rotation",
+        instrument_ids=rotation_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=_rotation_required_bars(sampling, lookback),
+    )
     benchmark_bars = {bar.ts: bar for bar in bars_by_id.get(benchmark_instrument.id, [])}
     rows: list[RelativeRotationRow] = []
     for member in sorted(members, key=lambda item: item.position):
@@ -1682,6 +1942,29 @@ async def group_relative_rotation(
         if instrument is None:
             continue
         bars = bars_by_id.get(instrument.id, [])
+        stale_member = instrument.id in stale_ids or benchmark_instrument.id in stale_ids
+        if stale_member:
+            stale_target = (
+                benchmark_instrument.id if benchmark_instrument.id in stale_ids else instrument.id
+            )
+            rows.append(
+                RelativeRotationRow(
+                    instrument_id=instrument.id,
+                    symbol=instrument.symbol,
+                    name=instrument.name,
+                    coverage=0,
+                    tail=[],
+                    history=[],
+                    warnings=[
+                        AnalysisWarning(
+                            code="stale_data",
+                            message="Persisted OHLCV freshness has expired; rotation was withheld.",
+                            instrument_id=stale_target,
+                        )
+                    ],
+                )
+            )
+            continue
         aligned = [
             (bar.ts, float(bar.close / benchmark_bars[bar.ts].close))
             for bar in bars
@@ -1757,6 +2040,7 @@ async def group_relative_rotation(
         as_of=as_of,
         freshness=freshness,
         freshness_detail=freshness_detail,
+        coverage_preflight=coverage_preflight.to_dict(),
         rows=rows,
     )
 
@@ -1797,22 +2081,52 @@ async def industry_proxy_snapshot(
     bars_by_id = await _bars_by_instrument(
         db, [*(item.id for item in ordered), sector.id, market.id], timeframe, adjusted
     )
-    if as_of is not None:
-        bars_by_id = {
-            instrument_id: [bar for bar in bars if bar.ts <= as_of]
-            for instrument_id, bars in bars_by_id.items()
-        }
+    bars_by_id = _truncate_bars_at(bars_by_id, as_of)
+    freshness_ids = list(dict.fromkeys([*(item.id for item in ordered), sector.id, market.id]))
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, freshness_ids, timeframe, adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="industry_proxy_snapshot",
+        instrument_ids=freshness_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=252,
+    )
     sector_bars = {bar.ts: bar for bar in bars_by_id.get(sector.id, [])}
     market_bars = {bar.ts: bar for bar in bars_by_id.get(market.id, [])}
     rows: list[IndustryProxySnapshotRow] = []
     exclusions: list[AnalysisWarning] = []
+    for instrument_id in (sector.id, market.id):
+        if instrument_id in stale_ids:
+            exclusions.append(
+                AnalysisWarning(
+                    code="stale_data",
+                    message="Persisted OHLCV freshness has expired; benchmark-relative values were withheld.",
+                    instrument_id=instrument_id,
+                )
+            )
     covered = 0
     for instrument in ordered:
         bars = bars_by_id.get(instrument.id, [])
         latest = bars[-1] if bars else None
         if latest is None:
             warning = AnalysisWarning(
-                code="no_bars", message="No local bars are available.", instrument_id=instrument.id
+                code=("stale_data" if instrument.id in stale_ids else "no_bars"),
+                message=(
+                    "Persisted OHLCV freshness has expired; chart values were withheld."
+                    if instrument.id in stale_ids
+                    else "No local bars are available."
+                ),
+                instrument_id=instrument.id,
             )
             exclusions.append(warning)
             rows.append(
@@ -1885,7 +2199,17 @@ async def industry_proxy_snapshot(
             )
         technical["volume_ratio_50"] = _cell(volume_ratio_50, latest, volume_warning)
 
-        def ratio(reference: dict) -> AnalysisCell:
+        def ratio(reference: dict, reference_id: int) -> AnalysisCell:
+            if reference_id in stale_ids:
+                return _cell(
+                    None,
+                    latest,
+                    AnalysisWarning(
+                        code="stale_data",
+                        message="Persisted OHLCV freshness has expired; benchmark-relative values were withheld.",
+                        instrument_id=reference_id,
+                    ),
+                )
             reference_bar = reference.get(latest.ts)
             return (
                 _cell(float(latest.close / reference_bar.close), latest)
@@ -1909,13 +2233,11 @@ async def industry_proxy_snapshot(
                 last=_cell(float(latest.close), latest),
                 performance=performance,
                 technical=technical,
-                relative_to_benchmark=ratio(sector_bars),
-                relative_to_market=ratio(market_bars),
+                relative_to_benchmark=ratio(sector_bars, sector.id),
+                relative_to_market=ratio(market_bars, market.id),
             )
         )
-    freshness, freshness_detail = await _batch_freshness(
-        db, [*(item.id for item in ordered), sector.id, market.id], timeframe, adjusted
-    )
+    freshness, freshness_detail = await _batch_freshness(db, freshness_ids, timeframe, adjusted)
     return IndustryProxySnapshotOut(
         group_key=f"industry-proxy:{sector.symbol}:{industry}",
         etf_symbol=sector.symbol,
@@ -1937,6 +2259,7 @@ async def industry_proxy_snapshot(
         },
         freshness=freshness,
         freshness_detail=freshness_detail,
+        coverage_preflight=coverage_preflight.to_dict(),
         coverage=covered / max(len(ordered), 1),
         exclusions=exclusions,
         rows=rows,
@@ -1984,6 +2307,33 @@ async def industry_snapshot(
     bars_by_id = _truncate_bars_at(
         await _bars_by_instrument(db, list(all_instrument_ids), timeframe, adjusted), as_of
     )
+    freshness_ids = sorted(all_instrument_ids)
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, freshness_ids, timeframe, adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
+        if instrument_id in {etf.id, market.id}:
+            exclusions.append(
+                AnalysisWarning(
+                    code="stale_data",
+                    message="Persisted OHLCV freshness has expired; benchmark-relative values were withheld.",
+                    instrument_id=instrument_id,
+                )
+            )
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="industry_snapshot",
+        instrument_ids=sorted(all_instrument_ids),
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=252,
+    )
     benchmark_series = _normalised_bar_series(bars_by_id.get(etf.id, []))
     market_series = _normalised_bar_series(bars_by_id.get(market.id, []))
     covered = 0
@@ -2006,24 +2356,56 @@ async def industry_snapshot(
             for cell in [*performance.values(), *technical.values()]
             if cell.warning is not None
         ]
+        stale_members = sorted(set(ids) & stale_ids)
+        warnings.extend(
+            AnalysisWarning(
+                code="stale_data",
+                message="Persisted OHLCV freshness has expired; the member was excluded from the industry series.",
+                instrument_id=instrument_id,
+            )
+            for instrument_id in stale_members
+        )
         last_timestamp, last_value = series[-1] if series else (None, None)
+        last_warning = warnings[0] if not series and warnings else None
+        benchmark_relative = _ratio_cell(series, benchmark_series, None)
+        if etf.id in stale_ids:
+            benchmark_relative = AnalysisCell(
+                value=None,
+                observation_time=last_timestamp,
+                warning=AnalysisWarning(
+                    code="stale_data",
+                    message="Persisted OHLCV freshness has expired; benchmark-relative values were withheld.",
+                    instrument_id=etf.id,
+                ),
+            )
+        market_relative = _ratio_cell(series, market_series, None)
+        if market.id in stale_ids:
+            market_relative = AnalysisCell(
+                value=None,
+                observation_time=last_timestamp,
+                warning=AnalysisWarning(
+                    code="stale_data",
+                    message="Persisted OHLCV freshness has expired; market-relative values were withheld.",
+                    instrument_id=market.id,
+                ),
+            )
         rows.append(
             IndustrySnapshotRow(
                 industry=industry.industry,
                 constituent_count=industry.constituent_count,
                 resolved_count=industry.resolved_count,
                 coverage=len([item for item in ids if bars_by_id.get(item)]) / max(len(ids), 1),
-                last=AnalysisCell(value=last_value, observation_time=last_timestamp),
+                last=AnalysisCell(
+                    value=last_value, observation_time=last_timestamp, warning=last_warning
+                ),
                 performance=performance,
-                relative_to_benchmark=_ratio_cell(series, benchmark_series, None),
-                relative_to_market=_ratio_cell(series, market_series, None),
+                relative_to_benchmark=benchmark_relative,
+                relative_to_market=market_relative,
                 technical=technical,
                 warnings=warnings,
             )
         )
-    freshness, freshness_detail = await _batch_freshness(
-        db, list(all_instrument_ids), timeframe, adjusted
-    )
+    freshness, freshness_detail = await _batch_freshness(db, freshness_ids, timeframe, adjusted)
     return IndustrySnapshotOut(
         group_key=f"industry:{etf.symbol}",
         etf_symbol=etf.symbol,
@@ -2058,6 +2440,7 @@ async def industry_snapshot(
         },
         freshness=freshness,
         freshness_detail=freshness_detail,
+        coverage_preflight=coverage_preflight.to_dict(),
         coverage=covered / max(len(industry_members), 1),
         exclusions=exclusions,
         rows=rows,
@@ -2149,6 +2532,25 @@ async def etf_constituent_snapshot(
     # were available by the requested cutoff.  Without this truncation a
     # historical holdings set could still be ranked using future bars.
     bars_by_id = _truncate_bars_at(bars_by_id, as_of)
+    freshness_ids = list(dict.fromkeys([*instrument_ids, *comparison_ids]))
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, freshness_ids, timeframe, adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="etf_constituent_snapshot",
+        instrument_ids=freshness_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=252,
+    )
     benchmark_bars = {bar.ts: bar for bar in bars_by_id.get(benchmark_instrument.id, [])}
     market_bars = (
         {bar.ts: bar for bar in bars_by_id.get(market_instrument.id, [])}
@@ -2157,6 +2559,15 @@ async def etf_constituent_snapshot(
     )
     rows: list[ETFConstituentSnapshotRowOut] = []
     covered = 0
+    for instrument_id in comparison_ids:
+        if instrument_id in stale_ids:
+            exclusions.append(
+                AnalysisWarning(
+                    code="stale_data",
+                    message="Persisted OHLCV freshness has expired; benchmark-relative values were withheld.",
+                    instrument_id=instrument_id,
+                )
+            )
     for holding in sorted(holdings, key=lambda item: item.position):
         instrument = instruments.get(holding.constituent_instrument_id)
         if instrument is None:
@@ -2172,7 +2583,13 @@ async def etf_constituent_snapshot(
         latest = bars[-1] if bars else None
         if latest is None:
             warning = AnalysisWarning(
-                code="no_bars", message="No local bars are available.", instrument_id=instrument.id
+                code=("stale_data" if instrument.id in stale_ids else "no_bars"),
+                message=(
+                    "Persisted OHLCV freshness has expired; chart values were withheld."
+                    if instrument.id in stale_ids
+                    else "No local bars are available."
+                ),
+                instrument_id=instrument.id,
             )
             exclusions.append(warning)
             rows.append(
@@ -2251,36 +2668,58 @@ async def etf_constituent_snapshot(
                 ),
             )
         technical["volume_ratio_50"] = _cell(volume_ratio_50, latest, volume_warning)
-        benchmark_bar = benchmark_bars.get(latest.ts)
-        relative = (
-            _cell(float(latest.close / benchmark_bar.close), latest)
-            if benchmark_bar is not None and benchmark_bar.close != 0
-            else _cell(
+        if benchmark_instrument.id in stale_ids:
+            relative = _cell(
                 None,
                 latest,
                 AnalysisWarning(
-                    code="unaligned_benchmark",
-                    message="No aligned benchmark bar is available.",
-                    instrument_id=instrument.id,
+                    code="stale_data",
+                    message="Persisted OHLCV freshness has expired; benchmark-relative values were withheld.",
+                    instrument_id=benchmark_instrument.id,
                 ),
             )
-        )
-        market_relative = None
-        if market_instrument is not None:
-            market_bar = market_bars.get(latest.ts)
-            market_relative = (
-                _cell(float(latest.close / market_bar.close), latest)
-                if market_bar is not None and market_bar.close != 0
+        else:
+            benchmark_bar = benchmark_bars.get(latest.ts)
+            relative = (
+                _cell(float(latest.close / benchmark_bar.close), latest)
+                if benchmark_bar is not None and benchmark_bar.close != 0
                 else _cell(
                     None,
                     latest,
                     AnalysisWarning(
-                        code="unaligned_market_benchmark",
-                        message="No aligned market benchmark bar is available.",
+                        code="unaligned_benchmark",
+                        message="No aligned benchmark bar is available.",
                         instrument_id=instrument.id,
                     ),
                 )
             )
+        market_relative = None
+        if market_instrument is not None:
+            if market_instrument.id in stale_ids:
+                market_relative = _cell(
+                    None,
+                    latest,
+                    AnalysisWarning(
+                        code="stale_data",
+                        message="Persisted OHLCV freshness has expired; market-relative values were withheld.",
+                        instrument_id=market_instrument.id,
+                    ),
+                )
+            else:
+                market_bar = market_bars.get(latest.ts)
+                market_relative = (
+                    _cell(float(latest.close / market_bar.close), latest)
+                    if market_bar is not None and market_bar.close != 0
+                    else _cell(
+                        None,
+                        latest,
+                        AnalysisWarning(
+                            code="unaligned_market_benchmark",
+                            message="No aligned market benchmark bar is available.",
+                            instrument_id=instrument.id,
+                        ),
+                    )
+                )
         rows.append(
             ETFConstituentSnapshotRowOut(
                 instrument_id=instrument.id,
@@ -2300,9 +2739,7 @@ async def etf_constituent_snapshot(
                 technical=technical,
             )
         )
-    freshness, freshness_detail = await _batch_freshness(
-        db, [*instrument_ids, *comparison_ids], timeframe, adjusted
-    )
+    freshness, freshness_detail = await _batch_freshness(db, freshness_ids, timeframe, adjusted)
     return ETFConstituentSnapshotOut(
         group_key=f"etf-proxy:{etf.symbol}",
         timeframe=timeframe.value,
@@ -2321,6 +2758,7 @@ async def etf_constituent_snapshot(
         },
         freshness=freshness,
         freshness_detail=freshness_detail,
+        coverage_preflight=coverage_preflight.to_dict(),
         coverage=covered / max(len(disclosed_rows), 1),
         exclusions=exclusions,
         rows=rows,
@@ -2470,6 +2908,9 @@ async def benchmark_family_concentration(
     cap_symbol = str(cap_mapping.get("symbol")).upper() if cap_mapping.get("symbol") else None
     roles: list[BenchmarkFamilyConcentrationRoleOut] = []
     exclusions: list[AnalysisWarning] = []
+    role_coverage_preflights: dict[str, dict[str, object]] = {}
+    rank_offset = _PERIODS.get(rank_period)
+    minimum_bars = rank_offset + 1 if rank_offset is not None else 253
     for role in ("cap_weight", "equal_weight", "value", "growth"):
         mapping = mappings.get(role)
         mapping = mapping if isinstance(mapping, Mapping) else {}
@@ -2546,6 +2987,30 @@ async def benchmark_family_concentration(
             )
             continue
 
+        member_ids = [row.instrument_id for row in snapshot.rows]
+        bars_by_id = _truncate_bars_at(
+            await _bars_by_instrument(db, member_ids, timeframe, adjusted), as_of
+        )
+        stale_ids = (
+            set()
+            if as_of is not None
+            else await _stale_instrument_ids(db, member_ids, timeframe, adjusted)
+        )
+        for instrument_id in stale_ids:
+            bars_by_id[instrument_id] = []
+        role_coverage_preflight = await preflight_ohlcv(
+            db,
+            evaluator=f"benchmark_family_concentration:{role}",
+            instrument_ids=member_ids,
+            timeframe=timeframe,
+            date_from=None,
+            date_to=as_of,
+            adjusted=adjusted,
+            cached_bars=bars_by_id,
+            minimum_bars=minimum_bars,
+        )
+        role_coverage_preflights[role] = role_coverage_preflight.to_dict()
+
         performance_rows = [
             (
                 row,
@@ -2617,6 +3082,7 @@ async def benchmark_family_concentration(
                 coverage=len(returns) / max(denominator, 1),
                 members=member_outputs,
                 warnings=role_warnings,
+                coverage_preflight=role_coverage_preflight.to_dict(),
                 **stats,
             )
         )
@@ -2642,6 +3108,7 @@ async def benchmark_family_concentration(
         as_of=as_of,
         rank_period=rank_period,
         top_n=top_n,
+        coverage_preflight={"roles": role_coverage_preflights},
         roles=roles,
         exclusions=exclusions,
         freshness=freshness,
@@ -2695,6 +3162,9 @@ async def benchmark_family_concentration_history(
     roles: list[BenchmarkFamilyConcentrationHistoryRoleOut] = []
     exclusions: list[AnalysisWarning] = []
     freshness_ids: list[int] = []
+    role_coverage_preflights: dict[str, dict[str, object]] = {}
+    rank_offset = _PERIODS.get(rank_period)
+    minimum_bars = rank_offset + 1 if rank_offset is not None else 253
 
     for role in ("cap_weight", "equal_weight", "value", "growth"):
         mapping = mappings.get(role)
@@ -2726,6 +3196,18 @@ async def benchmark_family_concentration_history(
                 for instrument_id, bars in bars_by_id.items()
                 if bars
             }
+            role_coverage_preflight = await preflight_ohlcv(
+                db,
+                evaluator=f"benchmark_family_concentration_history:{role}",
+                instrument_ids=member_ids,
+                timeframe=timeframe,
+                date_from=None,
+                date_to=as_of,
+                adjusted=adjusted,
+                cached_bars=bars_by_id,
+                minimum_bars=minimum_bars,
+            )
+            role_coverage_preflights[role] = role_coverage_preflight.to_dict()
             timestamps = sorted(
                 {timestamp for series in series_by_id.values() for timestamp in series}
             )[-limit:]
@@ -2822,6 +3304,7 @@ async def benchmark_family_concentration_history(
                     verification_state="derived_policy",
                     available=bool(points),
                     membership_semantics="point_in_time_group_membership",
+                    coverage_preflight=role_coverage_preflight.to_dict(),
                     points=points,
                     exclusions=role_exclusions,
                 )
@@ -2943,6 +3426,18 @@ async def benchmark_family_concentration_history(
             for instrument_id, bars in bars_by_id.items()
             if bars
         }
+        role_coverage_preflight = await preflight_ohlcv(
+            db,
+            evaluator=f"benchmark_family_concentration_history:{role}",
+            instrument_ids=instrument_ids,
+            timeframe=timeframe,
+            date_from=None,
+            date_to=as_of,
+            adjusted=adjusted,
+            cached_bars=bars_by_id,
+            minimum_bars=minimum_bars,
+        )
+        role_coverage_preflights[role] = role_coverage_preflight.to_dict()
         timestamps = sorted(
             {timestamp for series in series_by_id.values() for timestamp in series}
         )[-limit:]
@@ -3048,6 +3543,7 @@ async def benchmark_family_concentration_history(
                 label=label,
                 verification_state=verification_state,
                 available=bool(points),
+                coverage_preflight=role_coverage_preflight.to_dict(),
                 points=points,
                 exclusions=role_exclusions,
             )
@@ -3067,6 +3563,7 @@ async def benchmark_family_concentration_history(
         rank_period=rank_period,
         top_n=top_n,
         limit=limit,
+        coverage_preflight={"roles": role_coverage_preflights},
         roles=roles,
         exclusions=exclusions,
         freshness=freshness,
@@ -3169,6 +3666,16 @@ async def benchmark_family_ratios(
                 },
             )
     if not selected_mappings and batch_requested:
+        coverage_preflight = await preflight_ohlcv(
+            db,
+            evaluator="benchmark_family_ratios",
+            instrument_ids=[],
+            timeframe=timeframe,
+            date_from=None,
+            date_to=as_of,
+            adjusted=adjusted,
+            minimum_bars=1,
+        )
         members = _group_members_at(group, as_of)
         return BenchmarkFamilyRatiosOut(
             family_key=family_key,
@@ -3183,6 +3690,7 @@ async def benchmark_family_ratios(
                 "market_benchmark": market_benchmark.upper() if market_benchmark else None,
                 "ratio_semantics": "aligned_close_ratio_without_forward_fill",
             },
+            coverage_preflight=coverage_preflight.to_dict(),
             ratios=[],
             exclusions=exclusions,
             freshness="unavailable",
@@ -3256,6 +3764,24 @@ async def benchmark_family_ratios(
     bars_by_id = _truncate_bars_at(
         await _bars_by_instrument(db, instrument_ids, timeframe, adjusted), as_of
     )
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, instrument_ids, timeframe, adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="benchmark_family_ratios",
+        instrument_ids=[instrument.id for instrument in instruments.values()],
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=1,
+    )
 
     def ratio_result(
         *,
@@ -3268,6 +3794,32 @@ async def benchmark_family_ratios(
         benchmark = instruments[benchmark_symbol]
         primary_bars = bars_by_id.get(primary.id, [])
         benchmark_bars = bars_by_id.get(benchmark.id, [])
+        if primary.id in stale_ids or benchmark.id in stale_ids:
+            stale_id = benchmark.id if benchmark.id in stale_ids else primary.id
+            warning = AnalysisWarning(
+                code="stale_data",
+                message="Persisted OHLCV freshness has expired; the family ratio was withheld.",
+                instrument_id=stale_id,
+            )
+            return BenchmarkFamilyRatioOut(
+                family_key=family_key,
+                role=primary_role,
+                symbol=primary_symbol,
+                benchmark_role=benchmark_role,
+                benchmark=benchmark_symbol,
+                timeframe=timeframe.value,
+                adjustment="split_adjusted" if adjusted else "raw",
+                as_of=as_of,
+                points=[],
+                coverage=0,
+                warnings=[warning],
+                freshness="stale",
+                freshness_detail={
+                    "primary_bars": len(primary_bars),
+                    "benchmark_bars": len(benchmark_bars),
+                    "stale_instrument_id": stale_id,
+                },
+            )
         primary_by_time = {bar.ts: bar for bar in primary_bars}
         benchmark_by_time = {bar.ts: bar for bar in benchmark_bars}
         timestamps = sorted(primary_by_time.keys() & benchmark_by_time.keys())
@@ -3336,6 +3888,7 @@ async def benchmark_family_ratios(
                 )
             )
     members = _group_members_at(group, as_of)
+    freshness, freshness_detail = await _batch_freshness(db, instrument_ids, timeframe, adjusted)
     return BenchmarkFamilyRatiosOut(
         family_key=family_key,
         official_index_symbol=str(official.get("symbol") or ""),
@@ -3355,10 +3908,17 @@ async def benchmark_family_ratios(
             "market_benchmark": market_benchmark.upper() if market_benchmark else None,
             "ratio_semantics": "aligned_close_ratio_without_forward_fill",
         },
+        coverage_preflight=coverage_preflight.to_dict(),
         ratios=ratios,
         exclusions=exclusions,
-        freshness="available" if ratios and any(r.points for r in ratios) else "coverage_limited",
-        freshness_detail={"ratio_count": len(ratios)},
+        freshness=(
+            freshness
+            if stale_ids
+            else "available"
+            if ratios and any(r.points for r in ratios)
+            else "coverage_limited"
+        ),
+        freshness_detail={**freshness_detail, "ratio_count": len(ratios)},
     )
 
 
@@ -3728,6 +4288,7 @@ async def benchmark_family_overview(
         freshness = snapshot.freshness
         freshness_detail = snapshot.freshness_detail
         universe_provenance = snapshot.universe_provenance
+        coverage_preflight = snapshot.coverage_preflight
     else:
         membership_version = _group_membership_version(group, selected_members)
         rows = []
@@ -3736,6 +4297,18 @@ async def benchmark_family_overview(
         freshness = "unavailable"
         freshness_detail = {}
         universe_provenance = _group_provenance(group, as_of)
+        coverage_preflight = (
+            await preflight_ohlcv(
+                db,
+                evaluator="benchmark_family_overview",
+                instrument_ids=[],
+                timeframe=timeframe,
+                date_from=None,
+                date_to=as_of,
+                adjusted=adjusted,
+                minimum_bars=252,
+            )
+        ).to_dict()
         exclusions = [
             AnalysisWarning(
                 code="cap_proxy_unavailable",
@@ -3801,6 +4374,7 @@ async def benchmark_family_overview(
             "cap_proxy_available": cap_instrument is not None,
             "official_index_series_policy": official.get("series_policy"),
         },
+        coverage_preflight=coverage_preflight,
         coverage=coverage,
         exclusions=exclusions,
         mappings=mappings,
@@ -3934,6 +4508,7 @@ async def benchmark_family_technicals(
                 position_52w=snapshot.position_52w,
                 volume_ratio_50=snapshot.volume_ratio_50,
                 freshness=snapshot.freshness,
+                coverage_preflight=snapshot.coverage_preflight,
                 warnings=snapshot.warnings,
             )
         )
@@ -4013,6 +4588,8 @@ async def benchmark_family_breadth(
         else None
     )
     cap_instrument = None
+    roles: list[BenchmarkFamilyBreadthRoleOut] = []
+    exclusions: list[AnalysisWarning] = []
     if cap_symbol:
         try:
             cap_instrument = await _instrument(db, cap_symbol)
@@ -4026,15 +4603,47 @@ async def benchmark_family_breadth(
         if cap_instrument
         else []
     )
-    roles: list[BenchmarkFamilyBreadthRoleOut] = []
-    exclusions: list[AnalysisWarning] = []
+    freshness_ids: set[int] = {cap_instrument.id} if cap_instrument else set()
+    cap_stale_ids = (
+        set()
+        if as_of is not None or cap_instrument is None
+        else await _stale_instrument_ids(db, [cap_instrument.id], timeframe, adjusted)
+    )
+    if cap_stale_ids:
+        cap_bars = []
+        exclusions.append(
+            AnalysisWarning(
+                code="stale_data",
+                message="Persisted OHLCV freshness has expired; family breadth benchmark values were withheld.",
+                instrument_id=cap_instrument.id,
+            )
+        )
+    cap_coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="benchmark_family_breadth:cap_benchmark",
+        instrument_ids=[cap_instrument.id] if cap_instrument else [],
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars={cap_instrument.id: cap_bars} if cap_instrument else None,
+        minimum_bars=21,
+    )
+    if cap_instrument and cap_instrument.id not in cap_coverage_preflight.ready_instrument_ids:
+        cap_bars = []
+
+    role_coverage_preflights: dict[str, dict[str, object]] = {}
 
     def metric(
         results: list[object],
         aggregate: dict[str, int | float],
+        stale_ids: set[int],
     ) -> BenchmarkFamilyBreadthMetricOut:
         metric_exclusions = [
-            _generic_breadth_warning(str(result.exclusion_code), result.instrument_id)
+            _generic_breadth_warning(
+                "stale_data" if result.instrument_id in stale_ids else str(result.exclusion_code),
+                result.instrument_id,
+            )
             for result in results
             if getattr(result, "exclusion_code", None)
         ]
@@ -4107,43 +4716,100 @@ async def benchmark_family_breadth(
             )
             continue
         instrument_ids = [member.instrument_id for member in members]
+        freshness_ids.update(instrument_ids)
         bars_by_id = _truncate_bars_at(
             await _bars_by_instrument(db, instrument_ids, timeframe, adjusted), as_of
         )
+        stale_ids = (
+            set()
+            if as_of is not None
+            else await _stale_instrument_ids(db, instrument_ids, timeframe, adjusted)
+        )
+        for instrument_id in stale_ids:
+            bars_by_id[instrument_id] = []
         role_exclusions = list(universe_warnings)
-
-        def evaluate(condition: dict[str, object]) -> BenchmarkFamilyBreadthMetricOut:
-            results, aggregate = evaluate_breadth(
-                members, bars_by_id, condition, benchmark_bars=cap_bars or None
+        role_exclusions.extend(
+            AnalysisWarning(
+                code="stale_data",
+                message="Persisted OHLCV freshness has expired; the member was excluded.",
+                instrument_id=instrument_id,
             )
-            return metric(results, aggregate)
+            for instrument_id in sorted(stale_ids)
+        )
 
-        above_ma = {
-            f"ma{period}": evaluate({"kind": "above_moving_average", "params": {"period": period}})
-            for period in (20, 50, 200)
-        }
-        near_high = evaluate(
+        role_preflight = role_coverage_preflights.setdefault(role, {})
+
+        async def evaluate(
+            condition_key: str, condition: dict[str, object]
+        ) -> BenchmarkFamilyBreadthMetricOut:
+            condition_preflight = await preflight_ohlcv(
+                db,
+                evaluator=f"benchmark_family_breadth:{role}:{condition_key}",
+                instrument_ids=instrument_ids,
+                timeframe=timeframe,
+                date_from=None,
+                date_to=as_of,
+                adjusted=adjusted,
+                cached_bars=bars_by_id,
+                minimum_bars=_breadth_required_bars(condition),
+            )
+            condition_bars_by_id = {
+                instrument_id: (
+                    list(bars_by_id.get(instrument_id, ()))
+                    if instrument_id in condition_preflight.ready_instrument_ids
+                    else []
+                )
+                for instrument_id in instrument_ids
+            }
+            results, aggregate = evaluate_breadth(
+                members,
+                condition_bars_by_id,
+                condition,
+                benchmark_bars=cap_bars or None,
+            )
+            role_preflight[condition_key] = condition_preflight.to_dict()
+            return metric(results, aggregate, stale_ids)
+
+        above_ma: dict[str, BenchmarkFamilyBreadthMetricOut] = {}
+        for period in (20, 50, 200):
+            above_ma[f"ma{period}"] = await evaluate(
+                f"ma{period}",
+                {"kind": "above_moving_average", "params": {"period": period}},
+            )
+        near_high = await evaluate(
+            "near_52w_high",
             {
                 "kind": "within_52_week_high",
                 "params": {"lookback": 252, "threshold": near_threshold, "direction": "high"},
-            }
+            },
         )
-        new_high = evaluate(
+        new_high = await evaluate(
+            "new_high",
             {
                 "kind": "new_high_low",
                 "params": {"lookback": new_high_lookback, "direction": "high"},
-            }
+            },
         )
-        trend_up = evaluate(
+        trend_up = await evaluate(
+            "trend_up",
             {
                 "kind": "trend",
                 "params": {"fast_period": 20, "slow_period": 50, "direction": "up"},
-            }
+            },
         )
         relative = None
         if role != "cap_weight" and cap_bars:
-            relative = evaluate(
-                {"kind": "relative_strength", "params": {"lookback": 20, "threshold": 0}}
+            relative = await evaluate(
+                "relative_strength_to_cap",
+                {"kind": "relative_strength", "params": {"lookback": 20, "threshold": 0}},
+            )
+        elif role != "cap_weight" and cap_stale_ids:
+            role_exclusions.append(
+                AnalysisWarning(
+                    code="stale_data",
+                    message="Persisted OHLCV freshness has expired; relative strength to cap was withheld.",
+                    instrument_id=cap_instrument.id if cap_instrument else None,
+                )
             )
         role_exclusions.extend(
             warning
@@ -4166,11 +4832,15 @@ async def benchmark_family_breadth(
                 new_high=new_high,
                 trend_up=trend_up,
                 relative_strength_to_cap=relative,
+                coverage_preflight=role_preflight,
                 exclusions=role_exclusions,
             )
         )
 
     selected_members = _group_members_at(family, as_of)
+    freshness, freshness_detail = await _batch_freshness(
+        db, sorted(freshness_ids), timeframe, adjusted
+    )
     return BenchmarkFamilyBreadthOut(
         family_key=family_key,
         official_index_symbol=str(official.get("symbol") or ""),
@@ -4186,10 +4856,15 @@ async def benchmark_family_breadth(
             "breadth_semantics": "standard_role_participation_batch_over_point_in_time_holdings",
             "requested_roles": ["cap_weight", "equal_weight", "value", "growth"],
         },
+        coverage_preflight={
+            "benchmark": cap_coverage_preflight.to_dict(),
+            "roles": role_coverage_preflights,
+        },
         roles=roles,
         exclusions=exclusions,
-        freshness="available" if any(role.available for role in roles) else "unavailable",
+        freshness=freshness if freshness_ids else "unavailable",
         freshness_detail={
+            **freshness_detail,
             "role_count": 4,
             "available_roles": sum(role.available for role in roles),
         },
@@ -4236,6 +4911,7 @@ async def benchmark_family_breadth_history(
     roles: list[BenchmarkFamilyBreadthHistoryRoleOut] = []
     exclusions: list[AnalysisWarning] = []
     freshness_ids: list[int] = []
+    role_coverage_preflights: dict[str, dict[str, object]] = {}
     for role in ("cap_weight", "equal_weight", "value", "growth"):
         mapping = mappings.get(role)
         mapping = mapping if isinstance(mapping, Mapping) else {}
@@ -4301,6 +4977,18 @@ async def benchmark_family_breadth_history(
         bars_by_id = _truncate_bars_at(
             await _bars_by_instrument(db, member_ids, timeframe, adjusted), as_of
         )
+        role_coverage_preflight = await preflight_ohlcv(
+            db,
+            evaluator=f"benchmark_family_breadth_history:{role}",
+            instrument_ids=member_ids,
+            timeframe=timeframe,
+            date_from=None,
+            date_to=as_of,
+            adjusted=adjusted,
+            cached_bars=bars_by_id,
+            minimum_bars=200,
+        )
+        role_coverage_preflights[role] = role_coverage_preflight.to_dict()
         freshness_ids.extend(member_ids)
         by_timestamp: dict[datetime, dict[str, tuple[float | None, float]]] = {}
         role_exclusions = list(universe_warnings)
@@ -4348,6 +5036,7 @@ async def benchmark_family_breadth_history(
                 available=True,
                 membership_version=_generic_membership_version(membership_payload),
                 universe_provenance=universe_provenance,
+                coverage_preflight=role_coverage_preflight.to_dict(),
                 points=points,
                 exclusions=role_exclusions,
             )
@@ -4363,6 +5052,7 @@ async def benchmark_family_breadth_history(
         adjustment="split_adjusted" if adjusted else "raw",
         as_of=as_of,
         limit=limit,
+        coverage_preflight={"roles": role_coverage_preflights},
         roles=roles,
         exclusions=exclusions,
         freshness=freshness,
@@ -4431,6 +5121,18 @@ async def cross_family_ranking_history(
     bars_by_id = _truncate_bars_at(
         await _bars_by_instrument(db, instrument_ids, timeframe, adjusted),
         as_of,
+    )
+    rank_offset = _PERIODS.get(rank_period)
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="cross_family_ranking_history",
+        instrument_ids=instrument_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=(rank_offset + 1) if rank_offset is not None else 253,
     )
     benchmark_series = (
         _historical_return_series(bars_by_id.get(benchmark_instrument.id, []))
@@ -4525,6 +5227,7 @@ async def cross_family_ranking_history(
         benchmark=benchmark_instrument.symbol if benchmark_instrument else None,
         rank_period=rank_period,
         limit=limit,
+        coverage_preflight=coverage_preflight.to_dict(),
         rows=rows,
         exclusions=exclusions,
         freshness=freshness,
@@ -4596,6 +5299,41 @@ async def cross_family_ranking(
         ),
         as_of,
     )
+    ranking_ids = list(
+        dict.fromkeys(
+            [
+                *[instrument.id for instrument in cap_instruments.values()],
+                *([benchmark_instrument.id] if benchmark_instrument else []),
+            ]
+        )
+    )
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, ranking_ids, timeframe, adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
+    rank_offset = _PERIODS.get(rank_period)
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="cross_family_ranking",
+        instrument_ids=ranking_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=(rank_offset + 1) if rank_offset is not None else 253,
+    )
+    if benchmark_instrument and benchmark_instrument.id in stale_ids:
+        exclusions.append(
+            AnalysisWarning(
+                code="stale_data",
+                message="Persisted OHLCV freshness has expired; benchmark-relative ranking values were withheld.",
+                instrument_id=benchmark_instrument.id,
+            )
+        )
     benchmark_cells = (
         _aggregate_series_cells(
             [(bar.ts, float(bar.close)) for bar in bars_by_id.get(benchmark_instrument.id, [])],
@@ -4638,6 +5376,15 @@ async def cross_family_ranking(
             [(bar.ts, float(bar.close)) for bar in bars_by_id.get(instrument.id, [])],
             instrument.id,
         )
+        row_warnings = [cell.warning for cell in cells.values() if cell.warning is not None]
+        if instrument.id in stale_ids:
+            row_warnings = [
+                AnalysisWarning(
+                    code="stale_data",
+                    message="Persisted OHLCV freshness has expired; ranking values were withheld.",
+                    instrument_id=instrument.id,
+                )
+            ]
         rows.append(
             CrossFamilyRankingRowOut(
                 family_key=group.stable_key,
@@ -4659,7 +5406,7 @@ async def cross_family_ranking(
                     )
                     for period, cell in cells.items()
                 },
-                warnings=[cell.warning for cell in cells.values() if cell.warning is not None],
+                warnings=row_warnings,
             )
         )
     ranked = sorted(
@@ -4671,10 +5418,7 @@ async def cross_family_ranking(
         row.rank = rank
     freshness, freshness_detail = await _batch_freshness(
         db,
-        [
-            *[instrument.id for instrument in cap_instruments.values()],
-            *([benchmark_instrument.id] if benchmark_instrument else []),
-        ],
+        ranking_ids,
         timeframe,
         adjusted,
     )
@@ -4684,6 +5428,7 @@ async def cross_family_ranking(
         as_of=as_of,
         benchmark=benchmark_instrument.symbol if benchmark_instrument else None,
         rank_period=rank_period,
+        coverage_preflight=coverage_preflight.to_dict(),
         rows=rows,
         exclusions=exclusions,
         freshness=freshness,
@@ -4752,6 +5497,26 @@ async def benchmark_family_ranking(
         ),
         as_of,
     )
+    ranking_ids = [instrument.id for instrument in instrument_by_role.values()]
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, ranking_ids, timeframe, adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
+    rank_offset = _PERIODS.get(rank_period)
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="benchmark_family_ranking",
+        instrument_ids=ranking_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=(rank_offset + 1) if rank_offset is not None else 253,
+    )
     role_cells: dict[str, dict[str, AnalysisCell]] = {}
     rows: list[BenchmarkFamilyRankingRoleOut] = []
     for role in ("cap_weight", "equal_weight", "value", "growth"):
@@ -4775,6 +5540,26 @@ async def benchmark_family_ranking(
                             message="The mapped role has no canonical instrument or bars.",
                         )
                     ],
+                )
+            )
+            continue
+        if instrument.id in stale_ids:
+            warning = AnalysisWarning(
+                code="stale_data",
+                message="Persisted OHLCV freshness has expired; ranking values were withheld.",
+                instrument_id=instrument.id,
+            )
+            role_cells[role] = {}
+            warnings.append(warning)
+            rows.append(
+                BenchmarkFamilyRankingRoleOut(
+                    role=role,
+                    symbol=symbol,
+                    label=label,
+                    verification_state=verification_state,
+                    available=False,
+                    performance={},
+                    warnings=[warning],
                 )
             )
             continue
@@ -4816,9 +5601,7 @@ async def benchmark_family_ranking(
     )
     for rank, row in enumerate(ranked, start=1):
         row.rank = rank
-    freshness, freshness_detail = await _batch_freshness(
-        db, [instrument.id for instrument in instrument_by_role.values()], timeframe, adjusted
-    )
+    freshness, freshness_detail = await _batch_freshness(db, ranking_ids, timeframe, adjusted)
     return BenchmarkFamilyRankingOut(
         family_key=family_key,
         official_index_symbol=str(official.get("symbol") or ""),
@@ -4827,6 +5610,7 @@ async def benchmark_family_ranking(
         adjustment="split_adjusted" if adjusted else "raw",
         as_of=as_of,
         rank_period=rank_period,
+        coverage_preflight=coverage_preflight.to_dict(),
         roles=rows,
         exclusions=warnings,
         freshness=freshness,
@@ -4895,7 +5679,25 @@ async def benchmark_family_derived_equal_weight(
     bars_by_id = _truncate_bars_at(
         await _bars_by_instrument(db, member_ids, timeframe, adjusted), as_of
     )
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, member_ids, timeframe, adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
     covered_member_count = sum(1 for instrument_id in member_ids if bars_by_id.get(instrument_id))
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="benchmark_family_derived_equal_weight",
+        instrument_ids=member_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=1,
+    )
     series = _equal_weight_series(bars_by_id, member_ids)
     exclusions: list[AnalysisWarning] = []
     if not constituent_members:
@@ -4922,6 +5724,14 @@ async def benchmark_family_derived_equal_weight(
                 message="Members without local bars were excluded from the aligned series.",
             )
         )
+    exclusions.extend(
+        AnalysisWarning(
+            code="stale_data",
+            message="Persisted OHLCV freshness has expired; the member was excluded from the derived series.",
+            instrument_id=instrument_id,
+        )
+        for instrument_id in sorted(stale_ids)
+    )
     freshness, freshness_detail = await _batch_freshness(db, member_ids, timeframe, adjusted)
     return BenchmarkFamilyDerivedEqualWeightOut(
         family_key=family_key,
@@ -4931,6 +5741,7 @@ async def benchmark_family_derived_equal_weight(
         adjustment="split_adjusted" if adjusted else "raw",
         as_of=series[-1][0] if series else as_of,
         membership_version=membership_version,
+        coverage_preflight=coverage_preflight.to_dict(),
         universe_provenance={
             **_group_provenance(group, as_of),
             "membership_semantics": "point_in_time_constituent_derived_equal_weight",
@@ -4979,9 +5790,29 @@ async def group_snapshot(
         ).scalars()
     }
     benchmark_instrument = await _instrument(db, benchmark) if benchmark else None
-    all_ids = instrument_ids + ([benchmark_instrument.id] if benchmark_instrument else [])
+    all_ids = list(
+        dict.fromkeys(instrument_ids + ([benchmark_instrument.id] if benchmark_instrument else []))
+    )
     bars_by_id = _truncate_bars_at(
         await _bars_by_instrument(db, all_ids, timeframe, adjusted), as_of
+    )
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, all_ids, timeframe, adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="group_snapshot",
+        instrument_ids=all_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=252,
     )
     benchmark_bars = (
         {bar.ts: bar for bar in bars_by_id.get(benchmark_instrument.id, [])}
@@ -4995,6 +5826,14 @@ async def group_snapshot(
     calendar_years = list(range(latest_year - _CALENDAR_YEAR_LOOKBACK + 1, latest_year + 1))
     rows: list[GroupSnapshotRow] = []
     exclusions: list[AnalysisWarning] = []
+    if benchmark_instrument and benchmark_instrument.id in stale_ids:
+        exclusions.append(
+            AnalysisWarning(
+                code="stale_data",
+                message="Persisted OHLCV freshness has expired; benchmark-relative values were withheld.",
+                instrument_id=benchmark_instrument.id,
+            )
+        )
     covered = 0
     for member in sorted(members, key=lambda item: item.position):
         instrument = instruments.get(member.instrument_id)
@@ -5011,7 +5850,13 @@ async def group_snapshot(
         latest = bars[-1] if bars else None
         if latest is None:
             warning = AnalysisWarning(
-                code="no_bars", message="No local bars are available.", instrument_id=instrument.id
+                code=("stale_data" if instrument.id in stale_ids else "no_bars"),
+                message=(
+                    "Persisted OHLCV freshness has expired; chart values were withheld."
+                    if instrument.id in stale_ids
+                    else "No local bars are available."
+                ),
+                instrument_id=instrument.id,
             )
             exclusions.append(warning)
             rows.append(
@@ -5086,19 +5931,30 @@ async def group_snapshot(
         technical["volume_ratio_50"] = _cell(volume_ratio_50, latest, volume_warning)
         relative: AnalysisCell | None = None
         if benchmark_instrument:
-            benchmark_bar = benchmark_bars.get(latest.ts)
-            if benchmark_bar is None or benchmark_bar.close == 0:
+            if benchmark_instrument.id in stale_ids:
                 relative = _cell(
                     None,
                     latest,
                     AnalysisWarning(
-                        code="unaligned_benchmark",
-                        message="No aligned benchmark bar is available.",
-                        instrument_id=instrument.id,
+                        code="stale_data",
+                        message="Persisted OHLCV freshness has expired; benchmark-relative values were withheld.",
+                        instrument_id=benchmark_instrument.id,
                     ),
                 )
             else:
-                relative = _cell(float(latest.close / benchmark_bar.close), latest)
+                benchmark_bar = benchmark_bars.get(latest.ts)
+                if benchmark_bar is None or benchmark_bar.close == 0:
+                    relative = _cell(
+                        None,
+                        latest,
+                        AnalysisWarning(
+                            code="unaligned_benchmark",
+                            message="No aligned benchmark bar is available.",
+                            instrument_id=instrument.id,
+                        ),
+                    )
+                else:
+                    relative = _cell(float(latest.close / benchmark_bar.close), latest)
         rows.append(
             GroupSnapshotRow(
                 instrument_id=instrument.id,
@@ -5111,7 +5967,7 @@ async def group_snapshot(
                 technical=technical,
             )
         )
-    freshness, freshness_detail = await _batch_freshness(db, instrument_ids, timeframe, adjusted)
+    freshness, freshness_detail = await _batch_freshness(db, all_ids, timeframe, adjusted)
     return GroupSnapshotOut(
         group_key=group.stable_key,
         timeframe=timeframe.value,
@@ -5123,6 +5979,7 @@ async def group_snapshot(
         universe_provenance=_group_provenance(group, as_of),
         freshness=freshness,
         freshness_detail=freshness_detail,
+        coverage_preflight=coverage_preflight.to_dict(),
         coverage=covered / max(len(members), 1),
         exclusions=exclusions,
         rows=rows,
@@ -5151,12 +6008,36 @@ async def group_breadth(
         raise HTTPException(404, detail={"code": "market_group_not_found", "group_key": group_key})
     requested_as_of = as_of
     members = _group_members_at(group, requested_as_of)
+    member_ids = [member.instrument_id for member in members]
     bars_by_id = _truncate_bars_at(
-        await _bars_by_instrument(
-            db, [member.instrument_id for member in members], timeframe, adjusted
-        ),
+        await _bars_by_instrument(db, member_ids, timeframe, adjusted),
         requested_as_of,
     )
+    # Current breadth must not treat expired provider-backed bars as current
+    # signals. Historical ``as_of`` requests deliberately retain their
+    # point-in-time semantics and therefore skip today's freshness state.
+    stale_ids = (
+        set()
+        if requested_as_of is not None
+        else await _stale_instrument_ids(db, member_ids, timeframe, adjusted)
+    )
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="group_breadth",
+        instrument_ids=member_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=requested_as_of,
+        adjusted=adjusted,
+        cached_bars={
+            instrument_id: ([] if instrument_id in stale_ids else bars)
+            for instrument_id, bars in bars_by_id.items()
+        },
+        minimum_bars=252,
+    )
+    missing_ids = {
+        instrument_id for instrument_id in member_ids if not bars_by_id.get(instrument_id)
+    }
     counts = {20: 0, 50: 0, 200: 0}
     eligible = {20: 0, 50: 0, 200: 0}
     near_counts = {"high": 0, "low": 0}
@@ -5173,6 +6054,29 @@ async def group_breadth(
     for member in members:
         bars = bars_by_id.get(member.instrument_id, [])
         metrics: dict[str, float | int | None] = {}
+        if member.instrument_id in stale_ids:
+            member_metrics[str(member.instrument_id)] = {
+                "above_ma20": None,
+                "above_ma50": None,
+                "above_ma200": None,
+                "distance_ma20": None,
+                "distance_ma50": None,
+                "distance_ma200": None,
+                "near_52w_high": None,
+                "near_52w_low": None,
+                "new_high": None,
+                "new_low": None,
+                "uptrend": None,
+                "downtrend": None,
+            }
+            exclusions.append(
+                AnalysisWarning(
+                    code="stale_data",
+                    message="Persisted OHLCV freshness has expired; the member was excluded.",
+                    instrument_id=member.instrument_id,
+                )
+            )
+            continue
         if bars:
             latest_as_of = max(latest_as_of, bars[-1].ts) if latest_as_of else bars[-1].ts
         for period in counts:
@@ -5257,10 +6161,15 @@ async def group_breadth(
         as_of=latest_as_of,
         membership_version=_group_membership_version(group, members),
         universe_provenance=_group_provenance(group, requested_as_of),
+        coverage_preflight=coverage_preflight.to_dict(),
         freshness=freshness,
         freshness_detail=freshness_detail,
-        evaluated_count=len(members),
-        coverage=sum(1 for bars in bars_by_id.values() if bars) / max(len(members), 1),
+        coverage=sum(
+            1
+            for instrument_id, bars in bars_by_id.items()
+            if bars and instrument_id not in stale_ids
+        )
+        / max(len(members), 1),
         coverage_detail={
             **{f"ma{period}": eligible[period] / max(len(members), 1) for period in eligible},
             "near_52w": near_eligible / max(len(members), 1),
@@ -5294,6 +6203,9 @@ async def group_breadth(
         },
         new_high_lookback=new_high_lookback,
         near_threshold=near_threshold,
+        evaluated_count=len(set(member_ids) - (missing_ids | stale_ids)),
+        missing_count=len(missing_ids),
+        stale_count=len(stale_ids),
         exclusions=exclusions,
     )
 
@@ -5327,6 +6239,17 @@ async def group_breadth_history(
             db, [member.instrument_id for member in members], timeframe, adjusted
         ),
         as_of,
+    )
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="group_breadth_history",
+        instrument_ids=[member.instrument_id for member in members],
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=200,
     )
     for member in members:
         bars = bars_by_id.get(member.instrument_id, [])
@@ -5371,6 +6294,7 @@ async def group_breadth_history(
         adjustment="split_adjusted" if adjusted else "raw",
         membership_version=_group_membership_version(group, members),
         universe_provenance=_group_provenance(group, as_of),
+        coverage_preflight=coverage_preflight.to_dict(),
         freshness=freshness,
         freshness_detail=freshness_detail,
         points=points,
@@ -5380,6 +6304,7 @@ async def group_breadth_history(
 
 _GENERIC_BREADTH_EXCLUSION_MESSAGES = {
     "no_bars": "No local bars are available for this member.",
+    "stale_data": "Persisted OHLCV freshness has expired; this member was excluded.",
     "invalid_close": "The member has a non-finite close observation.",
     "invalid_average": "The requested average could not be calculated.",
     "invalid_reference": "The requested reference value is invalid or zero.",
@@ -5539,6 +6464,7 @@ async def _resolve_generic_breadth_reference(
     timeframe: Timeframe,
     db: AsyncSession,
     user_id: int | None = None,
+    current_only: bool = False,
 ) -> tuple[list[object] | None, list[int], list[AnalysisWarning], dict[str, object]]:
     """Resolve a group/peer aggregate target without provider fan-out.
 
@@ -5578,6 +6504,20 @@ async def _resolve_generic_breadth_reference(
         await _bars_by_instrument(db, reference_ids, timeframe, definition.adjusted),
         definition.as_of,
     )
+    reference_stale_ids = (
+        set()
+        if not current_only or definition.as_of is not None
+        else await _stale_instrument_ids(db, reference_ids, timeframe, definition.adjusted)
+    )
+    for instrument_id in reference_stale_ids:
+        reference_bars_by_id[instrument_id] = []
+        reference_warnings.append(
+            AnalysisWarning(
+                code="stale_data",
+                message="Persisted OHLCV freshness has expired; the reference member was excluded.",
+                instrument_id=instrument_id,
+            )
+        )
     reference_series, series_summary = build_equal_reference_series(reference_bars_by_id)
     reference_membership_version = _generic_membership_version(reference_membership_payload)
     provenance: dict[str, object] = {
@@ -5586,6 +6526,7 @@ async def _resolve_generic_breadth_reference(
         "universe": reference_universe_provenance,
         "membership_version": reference_membership_version,
         "member_count": len(reference_members),
+        "stale_member_count": len(reference_stale_ids),
         **series_summary,
     }
     return reference_series, reference_ids, reference_warnings, provenance
@@ -7633,6 +8574,32 @@ async def promote_python_breadth_run_to_study(
     return asset
 
 
+def _breadth_required_bars(condition: Mapping[str, object]) -> int:
+    """Return the minimum local bars needed by a breadth condition tree."""
+
+    maximum = 2
+
+    def visit(node: object) -> None:
+        nonlocal maximum
+        if not isinstance(node, Mapping):
+            if isinstance(node, list):
+                for child in node:
+                    visit(child)
+            return
+        params = node.get("params")
+        if isinstance(params, Mapping):
+            for key in ("period", "lookback", "window", "fast_period", "slow_period"):
+                value = params.get(key)
+                if isinstance(value, int | float) and not isinstance(value, bool):
+                    maximum = max(maximum, int(value) + 1)
+            visit(params.get("conditions"))
+        visit(node.get("conditions"))
+        visit(node.get("condition"))
+
+    visit(condition)
+    return max(3, maximum)
+
+
 @router.post("/breadth", response_model=BreadthDefinitionOut)
 async def evaluate_generic_breadth(
     definition: BreadthDefinitionRequest,
@@ -7836,6 +8803,28 @@ async def evaluate_generic_breadth(
     bars_by_id = _truncate_bars_at(
         await _bars_by_instrument(db, member_ids, timeframe, definition.adjusted), definition.as_of
     )
+    stale_ids = (
+        set()
+        if definition.as_of is not None
+        else await _stale_instrument_ids(db, member_ids, timeframe, definition.adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="generic_breadth",
+        instrument_ids=member_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=definition.as_of,
+        adjusted=definition.adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=_breadth_required_bars(condition_definition.model_dump(mode="json")),
+    )
+    preflight_ready_ids = coverage_preflight.ready_instrument_ids
+    for instrument_id in member_ids:
+        if instrument_id not in preflight_ready_ids:
+            bars_by_id[instrument_id] = []
     events_by_id: dict[int, list[InstrumentEvent] | None] | None = None
     event_provenance: dict[str, object] = {}
     if _generic_condition_requires_events(condition_definition.model_dump()):
@@ -7852,7 +8841,12 @@ async def evaluate_generic_breadth(
                 reference_warnings,
                 reference_provenance,
             ) = await _resolve_generic_breadth_reference(
-                definition, condition_definition.model_dump(), timeframe, db, current_user.id
+                definition,
+                condition_definition.model_dump(),
+                timeframe,
+                db,
+                current_user.id,
+                current_only=True,
             )
         else:
             if not definition.benchmark:
@@ -7862,6 +8856,20 @@ async def evaluate_generic_breadth(
                 await _bars_by_instrument(db, [benchmark.id], timeframe, definition.adjusted),
                 definition.as_of,
             ).get(benchmark.id, [])
+            benchmark_stale = (
+                definition.as_of is None
+                and benchmark.id
+                in await _stale_instrument_ids(db, [benchmark.id], timeframe, definition.adjusted)
+            )
+            if benchmark_stale:
+                benchmark_bars = []
+                reference_warnings.append(
+                    AnalysisWarning(
+                        code="stale_data",
+                        message="Persisted OHLCV freshness has expired; the benchmark was withheld.",
+                        instrument_id=benchmark.id,
+                    )
+                )
     elif definition.reference_universe is not None:
         raise HTTPException(
             422,
@@ -7895,7 +8903,9 @@ async def evaluate_generic_breadth(
     member_outputs: list[BreadthMemberResultOut] = []
     for result in results:
         warning = (
-            _generic_breadth_warning(result.exclusion_code, result.instrument_id)
+            _generic_breadth_warning("stale_data", result.instrument_id)
+            if result.instrument_id in stale_ids
+            else _generic_breadth_warning(result.exclusion_code, result.instrument_id)
             if result.exclusion_code
             else None
         )
@@ -7929,8 +8939,12 @@ async def evaluate_generic_breadth(
     definition_payload["condition_asset"] = condition_metadata
     if definition.benchmark:
         definition_payload["benchmark"] = definition.benchmark.upper()
+    freshness_ids = [*member_ids, *reference_member_ids]
+    if definition.benchmark:
+        benchmark = await _instrument(db, definition.benchmark)
+        freshness_ids.append(benchmark.id)
     freshness, freshness_detail = await _batch_freshness(
-        db, [*member_ids, *reference_member_ids], timeframe, definition.adjusted
+        db, list(dict.fromkeys(freshness_ids)), timeframe, definition.adjusted
     )
     latest_as_of = max(
         (result.observation_time for result in results if result.observation_time), default=None
@@ -7959,6 +8973,7 @@ async def evaluate_generic_breadth(
             if int(aggregate["requested_count"]) + len(universe_warnings)
             else 0.0
         ),
+        coverage_preflight=coverage_preflight.to_dict(),
         members=member_outputs,
         exclusions=warnings,
     )
@@ -7991,6 +9006,25 @@ async def evaluate_generic_breadth_history(
     ) = await _resolve_generic_breadth_universe(definition, db, current_user.id)
     bars_by_id = await _bars_by_instrument(db, member_ids, timeframe, definition.adjusted)
     bars_by_id = _truncate_bars_at(bars_by_id, definition.as_of)
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="generic_breadth_history",
+        instrument_ids=member_ids,
+        timeframe=timeframe,
+        date_from=None,
+        # ``as_of`` is an upper cutoff for a historical study, not a promise
+        # that a bar exists exactly at that timestamp.  The bars have already
+        # been truncated to the cutoff above, so let preflight assess the
+        # observed historical extent and its internal gaps.
+        date_to=None,
+        adjusted=definition.adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=_breadth_required_bars(condition_definition.model_dump(mode="json")),
+    )
+    preflight_ready_ids = coverage_preflight.ready_instrument_ids
+    for instrument_id in member_ids:
+        if instrument_id not in preflight_ready_ids:
+            bars_by_id[instrument_id] = []
     events_by_id: dict[int, list[InstrumentEvent] | None] | None = None
     event_provenance: dict[str, object] = {}
     if _generic_condition_requires_events(condition_definition.model_dump()):
@@ -8118,6 +9152,7 @@ async def evaluate_generic_breadth_history(
         as_of=definition.as_of or (points[-1].timestamp if points else None),
         freshness=freshness,
         freshness_detail=freshness_detail,
+        coverage_preflight=coverage_preflight.to_dict(),
         points=points,
         occurrences=[
             BreadthDefinitionHistoryOccurrenceOut(**occurrence) for occurrence in occurrence_rows

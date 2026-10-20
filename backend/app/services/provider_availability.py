@@ -9,10 +9,14 @@ parallel for the same provider.
 from __future__ import annotations
 
 import asyncio
+import dataclasses
+import enum
 import inspect
 import time
 from collections.abc import Awaitable, Callable
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
+from datetime import time as datetime_time
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import desc, select
@@ -29,13 +33,20 @@ from app.models.provider_runtime import (
     ProviderHealthState,
     ProviderPolicy,
 )
-from app.providers import get_provider
+from app.providers import (
+    get_provider,
+    provider_is_configured,
+    provider_missing_routing_controls,
+    provider_supports_adjustment,
+)
+from app.providers.errors import bounded_redact_provider_message
 from app.services.onesignal import send_provider_availability_notification
 
 CLASSIFICATIONS = {
     "success",
     "not_configured",
     "entitlement_exclusion",
+    "routing_control_exclusion",
     "authentication",
     "quota_rate_limit",
     "dns_transport",
@@ -50,6 +61,7 @@ Probe = Callable[[str, ProviderCapability, dict[str, Any]], Any | Awaitable[Any]
 
 def representative_request(capability: ProviderCapability) -> dict[str, Any]:
     values: dict[ProviderCapability, dict[str, Any]] = {
+        ProviderCapability.ACCOUNT_USAGE: {"symbol": "account"},
         ProviderCapability.INSTRUMENT_SEARCH: {"query": "SPY", "limit": 1},
         ProviderCapability.INSTRUMENT_METADATA: {"symbol": "SPY"},
         ProviderCapability.PRICE_HISTORY: {"symbol": "SPY", "timeframe": "D1", "limit": 5},
@@ -59,8 +71,83 @@ def representative_request(capability: ProviderCapability) -> dict[str, Any]:
         ProviderCapability.UNIVERSE_DISCOVERY: {"quote_type": "EQUITY", "offset": 0},
         ProviderCapability.OPTION_CHAIN: {"symbol": "SPY"},
         ProviderCapability.OPTION_QUOTE_HISTORY: {"symbol": "SPY", "days": 5},
+        ProviderCapability.CORPORATE_ACTIONS: {"symbol": "SPY"},
+        ProviderCapability.EARNINGS: {"symbol": "SPY"},
+        ProviderCapability.FUNDAMENTALS: {"symbol": "SPY", "cik": "0000320193"},
+        ProviderCapability.SHORT_INTEREST: {"symbol": "SPY"},
+        ProviderCapability.MARKET_CALENDAR: {"symbol": "SPY"},
+        ProviderCapability.FUTURES_HISTORY: {"symbol": "ES=F", "timeframe": "D1", "limit": 5},
+        ProviderCapability.CRYPTO_HISTORY: {"symbol": "BTC-USD", "timeframe": "D1", "limit": 5},
+        ProviderCapability.OPTIONS_CURRENT: {"symbol": "SPY"},
+        ProviderCapability.MARKET_EVENTS: {
+            "symbol": "SPY",
+            "cik": "0000320193",
+            "start": (datetime.now(UTC) - timedelta(days=7)).date().isoformat(),
+            "end": datetime.now(UTC).date().isoformat(),
+        },
+        ProviderCapability.TOKENIZED_ASSETS: {
+            "symbol": "AAPL",
+            "page": 0,
+            "page_size": 1,
+        },
+        ProviderCapability.TOKENIZED_HISTORICAL_PRICES: {
+            "identifier": "AAPL",
+            "timeframe": "D1",
+            "limit": 5,
+        },
+        ProviderCapability.TOKENIZED_CORPORATE_ACTIONS: {
+            "symbol": "AAPL",
+        },
     }
     return dict(values[capability])
+
+
+def representative_operation(
+    capability: ProviderCapability, provider_name: str | None = None
+) -> str | None:
+    """Return the concrete adapter operation exercised by an availability probe.
+
+    Configuration is sometimes operation-scoped.  Marketstack history/latest
+    only needs its API key, whereas its universe discovery also needs an
+    explicit MIC; using the actual representative operation keeps availability
+    diagnostics aligned with runtime admission.  The operation names also make
+    multi-field credentials (Dinari ID/secret, IBKR URL/cookie, SEC User-Agent)
+    flow through the single provider registry contract instead of a legacy
+    ``*_API_KEY`` heuristic.
+    """
+
+    if (
+        capability == ProviderCapability.MARKET_EVENTS
+        and str(provider_name or "").lower() == "edgar"
+    ):
+        # EDGAR exposes filing-driven IPO candidates by issuer/CIK, not the
+        # calendar-wide ``fetch_market_events(start, end)`` endpoint used by
+        # other market-event providers. Keep its availability operation
+        # aligned with the dedicated service and reviewed quota entry.
+        return "fetch_ipo_pipeline_events"
+    return {
+        ProviderCapability.ACCOUNT_USAGE: "fetch_account_usage",
+        ProviderCapability.INSTRUMENT_SEARCH: "search_instruments",
+        ProviderCapability.INSTRUMENT_METADATA: "get_instrument_profile",
+        ProviderCapability.PRICE_HISTORY: "fetch_latest_ohlcv",
+        ProviderCapability.LATEST_PRICE: "get_current_price",
+        ProviderCapability.INSTRUMENT_EVENTS: "fetch_instrument_events",
+        ProviderCapability.INSTRUMENT_IDENTIFIERS: "fetch_stable_identifiers",
+        ProviderCapability.UNIVERSE_DISCOVERY: "discover_universe_page",
+        ProviderCapability.OPTION_CHAIN: "fetch_option_chain",
+        ProviderCapability.OPTION_QUOTE_HISTORY: "fetch_option_quote_history",
+        ProviderCapability.CORPORATE_ACTIONS: "fetch_instrument_events",
+        ProviderCapability.EARNINGS: "fetch_instrument_events",
+        ProviderCapability.FUNDAMENTALS: "fetch_fundamental_facts",
+        ProviderCapability.SHORT_INTEREST: "fetch_short_interest",
+        ProviderCapability.FUTURES_HISTORY: "fetch_latest_ohlcv",
+        ProviderCapability.CRYPTO_HISTORY: "fetch_latest_ohlcv",
+        ProviderCapability.OPTIONS_CURRENT: "fetch_option_chain",
+        ProviderCapability.MARKET_EVENTS: "fetch_market_events",
+        ProviderCapability.TOKENIZED_ASSETS: "discover_tokenized_assets",
+        ProviderCapability.TOKENIZED_HISTORICAL_PRICES: "fetch_tokenized_historical_prices",
+        ProviderCapability.TOKENIZED_CORPORATE_ACTIONS: "fetch_tokenized_corporate_actions",
+    }.get(capability)
 
 
 def classify_exception(exc: BaseException) -> str:
@@ -89,6 +176,12 @@ def classify_exception(exc: BaseException) -> str:
     return "internal_parser_failure"
 
 
+def availability_error_message(exc: BaseException) -> str:
+    """Return a bounded, credential-redacted error for durable probe evidence."""
+
+    return bounded_redact_provider_message(exc)
+
+
 def response_shape(value: Any) -> dict[str, Any]:
     if value is None:
         return {"type": "null", "items": 0}
@@ -101,6 +194,75 @@ def response_shape(value: Any) -> dict[str, Any]:
             "item_type": type(next(iter(value), None)).__name__,
         }
     return {"type": type(value).__name__}
+
+
+_SENSITIVE_RESPONSE_KEYS = frozenset(
+    {
+        "api_key",
+        "apikey",
+        "access_key",
+        "access_token",
+        "authorization",
+        "client_secret",
+        "cookie",
+        "password",
+        "private_key",
+        "refresh_token",
+        "secret",
+        "secret_key",
+    }
+)
+
+
+def _sensitive_response_key(key: object) -> bool:
+    normalized = str(key).strip().lower().replace("-", "_")
+    return normalized in _SENSITIVE_RESPONSE_KEYS
+
+
+def response_payload(value: Any) -> Any:
+    """Convert a probe result into complete JSON evidence without secrets.
+
+    Provider adapters intentionally return typed dataclasses, enums, dates,
+    and decimals rather than raw HTTP JSON.  Persisting only ``response_shape``
+    loses the actual evidence and forces a quota-consuming re-probe.  This
+    conversion keeps every returned field while redacting only fields whose
+    names are authentication material; it does not impose a row/item limit.
+    """
+
+    if value is None or isinstance(value, str | int | float | bool):
+        return (
+            value
+            if not isinstance(value, str)
+            else bounded_redact_provider_message(value, max_length=len(value))
+        )
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, datetime | date | datetime_time):
+        return value.isoformat()
+    if isinstance(value, enum.Enum):
+        return response_payload(value.value)
+    if dataclasses.is_dataclass(value) and not isinstance(value, type):
+        data = dataclasses.asdict(value)
+        # ``raw_payload`` is an additive evidence field on normalized provider
+        # rows. Preserve the historical typed-response shape when an adapter
+        # has no raw row to retain, while keeping non-empty provider evidence.
+        if data.get("raw_payload") is None:
+            data.pop("raw_payload", None)
+        return response_payload(data)
+    if isinstance(value, dict):
+        return {
+            str(key): "<redacted>" if _sensitive_response_key(key) else response_payload(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list | tuple | set | frozenset):
+        return [response_payload(item) for item in value]
+    model_dump = getattr(value, "model_dump", None)
+    if callable(model_dump):
+        return response_payload(model_dump(mode="json"))
+    as_dict = getattr(value, "dict", None)
+    if callable(as_dict):
+        return response_payload(as_dict())
+    return bounded_redact_provider_message(repr(value), max_length=len(repr(value)))
 
 
 def classify_response(value: Any) -> str:
@@ -116,6 +278,7 @@ async def default_probe(
 ) -> Any:
     provider = get_provider(provider_name)
     method_name = {
+        ProviderCapability.ACCOUNT_USAGE: "fetch_account_usage",
         ProviderCapability.INSTRUMENT_SEARCH: "search_instruments",
         ProviderCapability.INSTRUMENT_METADATA: "get_instrument_profile",
         ProviderCapability.LATEST_PRICE: "get_current_price",
@@ -125,7 +288,20 @@ async def default_probe(
         ProviderCapability.UNIVERSE_DISCOVERY: "discover_universe_page",
         ProviderCapability.OPTION_CHAIN: "fetch_option_chain",
         ProviderCapability.OPTION_QUOTE_HISTORY: "fetch_option_quote_history",
+        ProviderCapability.CORPORATE_ACTIONS: "fetch_instrument_events",
+        ProviderCapability.EARNINGS: "fetch_instrument_events",
+        ProviderCapability.FUNDAMENTALS: "fetch_fundamental_facts",
+        ProviderCapability.SHORT_INTEREST: "fetch_short_interest",
+        ProviderCapability.FUTURES_HISTORY: "fetch_latest_ohlcv",
+        ProviderCapability.CRYPTO_HISTORY: "fetch_latest_ohlcv",
+        ProviderCapability.OPTIONS_CURRENT: "fetch_option_chain",
+        ProviderCapability.MARKET_EVENTS: "fetch_market_events",
+        ProviderCapability.TOKENIZED_ASSETS: "discover_tokenized_assets",
+        ProviderCapability.TOKENIZED_HISTORICAL_PRICES: "fetch_tokenized_historical_prices",
+        ProviderCapability.TOKENIZED_CORPORATE_ACTIONS: "fetch_tokenized_corporate_actions",
     }.get(capability)
+    if capability == ProviderCapability.MARKET_EVENTS and provider_name.lower() == "edgar":
+        method_name = "fetch_ipo_pipeline_events"
     if method_name is None:
         raise RuntimeError(f"no representative probe contract for {capability.value}")
     method = getattr(provider, method_name)
@@ -141,12 +317,47 @@ async def default_probe(
         ProviderCapability.INSTRUMENT_IDENTIFIERS,
         ProviderCapability.OPTION_CHAIN,
         ProviderCapability.OPTION_QUOTE_HISTORY,
+        ProviderCapability.CORPORATE_ACTIONS,
+        ProviderCapability.EARNINGS,
+        ProviderCapability.SHORT_INTEREST,
+        ProviderCapability.OPTIONS_CURRENT,
     }:
         args = {"symbol": request["symbol"]}
+    if capability == ProviderCapability.MARKET_EVENTS:
+        if provider_name.lower() == "edgar":
+            args = {
+                "cik": request.get("cik", "0000320193"),
+                "start": date.fromisoformat(request["start"]),
+                "end": date.fromisoformat(request["end"]),
+                "max_events": 1,
+            }
+        else:
+            args = {
+                "start": date.fromisoformat(request["start"]),
+                "end": date.fromisoformat(request["end"]),
+            }
     if capability == ProviderCapability.PRICE_HISTORY:
         args = {"symbol": request["symbol"], "timeframe": Timeframe.D1, "limit": request["limit"]}
     if capability == ProviderCapability.UNIVERSE_DISCOVERY:
         args = {"quote_type": request["quote_type"], "offset": request["offset"]}
+    if capability == ProviderCapability.FUNDAMENTALS:
+        args = {"cik": request["cik"]}
+    if capability in {ProviderCapability.FUTURES_HISTORY, ProviderCapability.CRYPTO_HISTORY}:
+        args = {
+            "symbol": request["symbol"],
+            "timeframe": Timeframe.D1,
+            "limit": request["limit"],
+        }
+    if capability in {
+        ProviderCapability.PRICE_HISTORY,
+        ProviderCapability.FUTURES_HISTORY,
+        ProviderCapability.CRYPTO_HISTORY,
+    } and not provider_supports_adjustment(getattr(provider, "name", provider_name), True):
+        # Availability probes must exercise the provider's documented raw
+        # surface rather than failing before transport because the common
+        # adapter default is ``adjusted=True``. This matters for IBKR futures,
+        # whose generic historical endpoint is raw-only.
+        args["adjusted"] = False
     if capability == ProviderCapability.OPTION_QUOTE_HISTORY:
         now = datetime.now(UTC)
         args = {
@@ -154,18 +365,33 @@ async def default_probe(
             "start": now - timedelta(days=request["days"]),
             "end": now,
         }
+    if capability == ProviderCapability.TOKENIZED_ASSETS:
+        args = {"page": request["page"], "page_size": request["page_size"]}
+    if capability == ProviderCapability.TOKENIZED_HISTORICAL_PRICES:
+        args = {"identifier": request["identifier"], "timespan": "DAY"}
+    if capability == ProviderCapability.TOKENIZED_CORPORATE_ACTIONS:
+        args = {"symbol": request["symbol"]}
     result = method(**args)
     return await result if inspect.isawaitable(result) else result
 
 
-def provider_configured(source: DataSource, entitlement: ProviderEntitlement | None) -> bool:
-    if entitlement and entitlement.authentication_required:
-        config = source.config or {}
-        if config.get("api_key") or config.get("credentials"):
-            return True
-        provider_key = f"{source.name.upper()}_API_KEY"
-        return bool(getattr(settings, provider_key, ""))
-    return True
+def provider_configured(
+    source: DataSource,
+    entitlement: ProviderEntitlement | None,
+    *,
+    operation: str | None = None,
+) -> bool:
+    """Use the registry's complete, operation-aware configuration contract.
+
+    ``DataSource.config`` intentionally contains no secret values, so the
+    former API-key-only fallback could not correctly validate providers with
+    multiple credentials or non-key authentication.  Keep the entitlement
+    argument for the availability caller's compatibility, but make the
+    registry authoritative for every provider and operation.
+    """
+
+    del entitlement
+    return provider_is_configured(source.name, operation=operation)
 
 
 def notification_due(
@@ -237,6 +463,7 @@ async def run_availability_probes(
     provider_locks: dict[str, asyncio.Lock] = {}
     for policy, source, entitlement in rows:
         request = representative_request(policy.capability)
+        operation = representative_operation(policy.capability, source.name)
         classification = "success"
         success = False
         error_message = None
@@ -246,21 +473,57 @@ async def run_availability_probes(
             not entitlement.is_free or entitlement.configured_plan in {"excluded", "unreviewed"}
         ):
             classification = "entitlement_exclusion"
-        elif not provider_configured(source, entitlement):
+        elif missing_controls := provider_missing_routing_controls(source.name, operation):
+            classification = "routing_control_exclusion"
+            error_message = "non-routable: missing " + ", ".join(missing_controls)
+        elif not provider_configured(source, entitlement, operation=operation):
             classification = "not_configured"
         else:
             try:
                 lock = provider_locks.setdefault(source.name, asyncio.Lock())
                 async with lock:
+                    if probe is not None:
+                        probe_call = probe(source.name, policy.capability, request)
+                    else:
+                        # Availability probes are real provider calls too. Use
+                        # the same capability/operation resolver, durable
+                        # quota reservation, telemetry, health and settlement
+                        # path as application traffic instead of invoking an
+                        # adapter directly outside runtime accounting. The
+                        # small executor bridge keeps the existing async
+                        # ``default_probe`` contract (including async
+                        # adapters) while the runtime owns the reservation.
+                        from app.services.provider_runtime import execute_provider_call
+
+                        if operation is None:
+                            raise RuntimeError(
+                                f"no representative operation for {policy.capability.value}"
+                            )
+
+                        probe_call = execute_provider_call(
+                            db,
+                            policy.capability,
+                            operation,
+                            provider_name=source.name,
+                            invoke=lambda _provider, _symbol: asyncio.run(
+                                default_probe(source.name, policy.capability, request)
+                            ),
+                            response_items=lambda result: (
+                                len(result) if isinstance(result, dict | list | tuple | set) else 1
+                            ),
+                            treat_empty_as_failure=False,
+                        )
                     value = await asyncio.wait_for(
-                        (probe or default_probe)(source.name, policy.capability, request),
+                        probe_call,
                         timeout=max(0.1, settings.PROVIDER_AVAILABILITY_PROBE_TIMEOUT_SECONDS),
                     )
+                    if probe is None:
+                        value = value.result
                 classification = classify_response(value)
                 success = classification == "success"
             except Exception as exc:  # noqa: BLE001 - classification is the durable contract.
                 classification = classify_exception(exc)
-                error_message = str(exc)[:1000]
+                error_message = availability_error_message(exc)
         previous = (
             await db.execute(
                 select(ProviderAvailabilityObservation)
@@ -272,7 +535,11 @@ async def run_availability_probes(
                 .limit(1)
             )
         ).scalar_one_or_none()
-        excluded = classification in {"not_configured", "entitlement_exclusion"}
+        excluded = classification in {
+            "not_configured",
+            "entitlement_exclusion",
+            "routing_control_exclusion",
+        }
         effective_failure = not success and not excluded
         streak = (
             0 if success or excluded else int(previous.consecutive_failures if previous else 0) + 1
@@ -324,6 +591,7 @@ async def run_availability_probes(
             # Preserve shape evidence for empty/partial responses as well as
             # successes; exceptions still record an explicit null shape.
             response_shape=response_shape(value),
+            response_payload=response_payload(value),
             consecutive_failures=streak,
             recovered=recovered,
             error_message=error_message,
@@ -386,6 +654,7 @@ async def latest_availability(db: AsyncSession) -> list[dict[str, Any]]:
                 "recovered": observation.recovered,
                 "error_message": observation.error_message,
                 "observed_at": observation.created_at,
+                "response_payload": observation.response_payload,
                 "last_success_at": health.last_success_at if health else None,
                 "last_failure_at": health.last_failure_at if health else None,
                 "response_shape": observation.response_shape,

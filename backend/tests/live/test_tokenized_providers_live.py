@@ -1,0 +1,668 @@
+"""Bounded live validation for public tokenized-security APIs."""
+
+from __future__ import annotations
+
+import os
+import time
+from uuid import UUID
+
+import pytest
+
+from app.providers.base import ProviderAccountUsage
+from app.providers.errors import ProviderRateLimitError
+from app.providers.telemetry import activate as activate_provider_telemetry
+from app.providers.telemetry import deactivate as deactivate_provider_telemetry
+from app.providers.tokenized import (
+    BybitXStocksProvider,
+    DinariTokenProvider,
+    GateTradfiProvider,
+    KrakenXStocksProvider,
+    OndoGlobalMarketsProvider,
+    RobinhoodTokenProvider,
+    XStocksProvider,
+)
+from tests.live.live_usage import (
+    activate_request_admission,
+    archive_response_payloads,
+    challenge_status_code,
+    deactivate_request_admission,
+    reconcile_native_account_usage,
+    record_observation,
+)
+
+pytestmark = [
+    pytest.mark.live,
+    pytest.mark.skipif(
+        os.getenv("RUN_LIVE_PROVIDER_TESTS") != "1",
+        reason="Set RUN_LIVE_PROVIDER_TESTS=1 to run external provider probes.",
+    ),
+]
+
+
+def _assert_asset(record, *, require_quote: bool = False):
+    assert record is not None
+    assert record.provider and record.asset_id and record.symbol
+    assert record.raw_payload
+    if require_quote:
+        assert record.price is not None or record.bid is not None or record.ask is not None
+
+
+def _require(*names: str) -> None:
+    missing = [name for name in names if not os.getenv(name, "").strip()]
+    if missing:
+        pytest.fail(f"missing live provider credentials: {', '.join(missing)}")
+
+
+def _observed_read(
+    call,
+    provider_name: str,
+    operation: str,
+    *,
+    usage_identity: str | None = None,
+    operation_cost_override: int | None = None,
+    dimension_cost_overrides: dict[str, int] | None = None,
+):
+    """Admit a direct tokenized-provider read before outbound HTTP.
+
+    All providers, including Dinari Sandbox canaries, use the durable quota
+    coordinator and private response archive. Dinari is still never
+    application-routable; its explicit per-process request cap is an
+    additional backstop, not quota accounting.
+    """
+
+    from app.services.provider_quota_coordinator import (
+        ProviderQuotaAdmissionError,
+        reserve_live_provider_operation,
+        settle_live_provider_operation,
+    )
+
+    canary = provider_name == "dinari" and os.getenv("DINARI_SANDBOX_CANARY_RUN") == "1"
+    if canary and (
+        operation != "discover_tokenized_assets" or operation_cost_override not in (None, 1)
+    ):
+        raise RuntimeError(
+            "Dinari Sandbox canary permits only one discovery request with a local cost of one"
+        )
+    reservation = reserve_live_provider_operation(
+        provider_name,
+        operation,
+        usage_identity=usage_identity,
+        operation_cost_override=(1 if canary else operation_cost_override),
+        dimension_cost_overrides=dimension_cost_overrides,
+        require_persistent_coordinator=True,
+    )
+    if reservation is None:
+        raise ProviderQuotaAdmissionError(
+            f"provider quota exhausted before live operation {provider_name}/{operation}"
+        )
+
+    measurement, token = activate_provider_telemetry(capture_response_payloads=True)
+    admission_token = activate_request_admission()
+    try:
+        result = call()
+    except BaseException as original_exc:
+        response_status_code = challenge_status_code(
+            measurement.response_metadata, getattr(original_exc, "status_code", None)
+        ) or getattr(original_exc, "status_code", None)
+        # A rejected request is still useful live evidence: the provider
+        # response must have crossed the adapter and been observed before the
+        # caller decides whether a bounded retry is allowed.
+        archive_error = None
+        try:
+            archive_response_payloads(
+                provider_name,
+                operation,
+                measurement.response_payloads,
+                response_bytes=measurement.response_bytes,
+                response_metadata=measurement.response_metadata,
+            )
+            if measurement.http_requests != len(measurement.response_payloads):
+                raise RuntimeError(
+                    "live response body capture mismatch: "
+                    f"{measurement.http_requests} responses, "
+                    f"{len(measurement.response_payloads)} captured bodies"
+                )
+        except BaseException as archive_exc:
+            archive_error = archive_exc
+        try:
+            settle_live_provider_operation(
+                reservation,
+                http_requests=measurement.http_requests,
+                response_bytes=measurement.response_bytes,
+                **(
+                    {"response_status_code": response_status_code}
+                    if response_status_code is not None
+                    else {}
+                ),
+            )
+        finally:
+            record_observation(
+                provider_name,
+                operation=operation,
+                http_requests=measurement.http_requests,
+                response_bytes=measurement.response_bytes,
+                response_headers=measurement.response_headers,
+                success=False,
+                disposition="archive_failure" if archive_error is not None else "provider_error",
+                response_status_code=response_status_code,
+                reservation_id=reservation.reservation_id,
+            )
+        # A canary cap can deliberately reject before transport, so zero
+        # measured requests is an honest local-admission outcome. Normal
+        # provider reservations still require a measured provider response.
+        if not canary:
+            assert measurement.http_requests > 0
+            assert measurement.response_bytes > 0
+        if archive_error is not None:
+            raise archive_error from original_exc
+        raise
+    finally:
+        deactivate_request_admission(admission_token)
+        deactivate_provider_telemetry(token)
+    archive_error = None
+    try:
+        archive_response_payloads(
+            provider_name,
+            operation,
+            measurement.response_payloads,
+            response_bytes=measurement.response_bytes,
+            response_metadata=measurement.response_metadata,
+        )
+        if measurement.http_requests != len(measurement.response_payloads):
+            raise RuntimeError(
+                "live response body capture mismatch: "
+                f"{measurement.http_requests} responses, "
+                f"{len(measurement.response_payloads)} captured bodies"
+            )
+    except BaseException as archive_exc:
+        archive_error = archive_exc
+    try:
+        response_status_code = challenge_status_code(measurement.response_metadata)
+        settle_live_provider_operation(
+            reservation,
+            http_requests=measurement.http_requests,
+            response_bytes=measurement.response_bytes,
+            **(
+                {"response_status_code": response_status_code}
+                if response_status_code is not None
+                else {}
+            ),
+        )
+    finally:
+        record_observation(
+            provider_name,
+            operation=operation,
+            http_requests=measurement.http_requests,
+            response_bytes=measurement.response_bytes,
+            response_headers=measurement.response_headers,
+            success=archive_error is None,
+            disposition="observed" if archive_error is None else "archive_failure",
+            response_status_code=response_status_code,
+            reservation_id=reservation.reservation_id,
+        )
+    assert measurement.http_requests > 0
+    assert measurement.response_bytes > 0
+    if archive_error is not None:
+        raise archive_error
+    return result, measurement
+
+
+def test_xstocks_public_asset_and_price():
+    provider = XStocksProvider()
+    rows, measurement = _observed_read(
+        lambda: provider.discover_tokenized_assets(page=0, page_size=1),
+        "xstocks",
+        "discover_tokenized_assets",
+    )
+    assert rows
+    _assert_asset(rows[0])
+    resolved, resolved_measurement = _observed_read(
+        lambda: provider.get_tokenized_asset(rows[0].symbol),
+        "xstocks",
+        "get_tokenized_asset",
+    )
+    assert resolved_measurement.http_requests == 1
+    _assert_asset(resolved)
+    priced, quote_measurement = _observed_read(
+        lambda: provider.get_tokenized_price(rows[0].symbol), "xstocks", "get_tokenized_price"
+    )
+    assert quote_measurement.http_requests >= 2
+    _assert_asset(priced)
+    if priced.price is None and priced.bid is None and priced.ask is None:
+        # xStocks returns an explicit null quote while the selected token's
+        # trading session is closed. Treat that as a valid, observed market
+        # state rather than fabricating a price or failing a transport probe.
+        price_payload = priced.raw_payload.get("price", {})
+        asset_payload = priced.raw_payload.get("asset", {})
+        assert isinstance(price_payload, dict)
+        assert price_payload.get("quote") is None
+        trading = asset_payload.get("trading", {})
+        assert isinstance(trading, dict)
+        assert trading.get("currentPeriod") == "closed"
+    else:
+        _assert_asset(priced, require_quote=True)
+
+
+def test_xstocks_account_usage_snapshot():
+    usage, measurement = _observed_read(
+        lambda: XStocksProvider().fetch_account_usage(),
+        "xstocks",
+        "fetch_account_usage",
+    )
+    assert isinstance(usage, ProviderAccountUsage)
+    assert measurement.http_requests == 1
+    assert usage.raw_payload.get("nodes") is not None
+    assert {"x-ratelimit-limit", "x-ratelimit-remaining", "x-ratelimit-reset"} <= set(
+        usage.response_headers
+    )
+    dimension = next(item for item in usage.dimensions if item.name == "public_requests_per_minute")
+    assert dimension.limit > 0
+    assert dimension.remaining is not None
+    assert dimension.reset_at is not None
+    reconciliation = reconcile_native_account_usage("xstocks", usage)
+    assert len(reconciliation) == 1
+    assert reconciliation[0]["status"] == "reconciled"
+    assert reconciliation[0]["dimension"] == "public_requests_per_minute"
+
+
+def test_xstocks_public_corporate_actions():
+    provider = XStocksProvider()
+    events, measurement = _observed_read(
+        lambda: provider.fetch_tokenized_corporate_actions(page=1, page_size=1),
+        "xstocks",
+        "fetch_tokenized_corporate_actions",
+    )
+    assert isinstance(events, list)
+    assert all(isinstance(event, dict) for event in events)
+    assert measurement.http_requests == 1
+
+
+def test_robinhood_public_asset_and_price():
+    provider = RobinhoodTokenProvider()
+    rows, _ = _observed_read(
+        lambda: provider.discover_tokenized_assets(page=0, page_size=1),
+        "robinhood_tokens",
+        "discover_tokenized_assets",
+    )
+    assert rows
+    _assert_asset(rows[0])
+    resolved, resolved_measurement = _observed_read(
+        lambda: provider.get_tokenized_asset(rows[0].symbol),
+        "robinhood_tokens",
+        "get_tokenized_asset",
+    )
+    assert resolved_measurement.http_requests == 1
+    _assert_asset(resolved)
+    try:
+        priced, quote_measurement = _observed_read(
+            lambda: provider.get_tokenized_price(rows[0].symbol),
+            "robinhood_tokens",
+            "get_tokenized_price",
+        )
+    except ProviderRateLimitError as exc:
+        # Robinhood's public edge occasionally returns its documented local
+        # throttle even below the published 60 req/s limit.  Record the first
+        # bounded observation, then retry once after a provider-safe second.
+        if exc.status_code != 429:
+            raise
+        time.sleep(1.1)
+        priced, quote_measurement = _observed_read(
+            lambda: provider.get_tokenized_price(rows[0].symbol),
+            "robinhood_tokens",
+            "get_tokenized_price",
+        )
+    assert quote_measurement.http_requests >= 2
+    _assert_asset(priced, require_quote=True)
+
+
+def test_robinhood_public_corporate_actions():
+    provider = RobinhoodTokenProvider()
+    events, measurement = _observed_read(
+        lambda: provider.fetch_tokenized_corporate_actions(),
+        "robinhood_tokens",
+        "fetch_tokenized_corporate_actions",
+    )
+    assert isinstance(events, list)
+    assert all(isinstance(event, dict) for event in events)
+    assert measurement.http_requests == 1
+
+
+def test_bybit_public_xstocks_asset_and_price():
+    provider = BybitXStocksProvider()
+    rows, measurement = _observed_read(
+        lambda: provider.discover_tokenized_assets(page=0, page_size=1),
+        "bybit_xstocks",
+        "discover_tokenized_assets",
+    )
+    assert rows
+    assert measurement.response_bytes > 0
+    # Bybit documents endpoint/UID-specific state in these response headers.
+    # When the public edge emits them, telemetry must retain only the
+    # allow-listed names; the current unauthenticated public edge may omit
+    # them, which is itself evidence for keeping routing fail-closed.
+    assert set(measurement.response_headers) <= {
+        "content-length",
+        "x-bapi-limit",
+        "x-bapi-limit-status",
+        "x-bapi-limit-reset-timestamp",
+    }
+    _assert_asset(rows[0])
+    resolved, resolved_measurement = _observed_read(
+        lambda: provider.get_tokenized_asset(rows[0].symbol),
+        "bybit_xstocks",
+        "get_tokenized_asset",
+    )
+    assert resolved_measurement.http_requests == 1
+    _assert_asset(resolved)
+    priced, quote_measurement = _observed_read(
+        lambda: provider.get_tokenized_price(rows[0].symbol),
+        "bybit_xstocks",
+        "get_tokenized_price",
+    )
+    assert quote_measurement.http_requests >= 2
+    assert set(quote_measurement.response_headers) <= {
+        "content-length",
+        "x-bapi-limit",
+        "x-bapi-limit-status",
+        "x-bapi-limit-reset-timestamp",
+    }
+    _assert_asset(priced, require_quote=True)
+
+
+def test_bybit_public_xstocks_cursor_page():
+    """Exercise Bybit's opaque cursor API rather than assuming page numbers."""
+
+    provider = BybitXStocksProvider()
+    page, cursor_measurement = _observed_read(
+        lambda: provider.discover_tokenized_page(cursor=None, page_size=1),
+        "bybit_xstocks",
+        "discover_tokenized_page",
+    )
+    assert cursor_measurement.http_requests == 1
+    rows, next_cursor = page
+    assert rows
+    _assert_asset(rows[0])
+
+    # A terminal first page is valid evidence too.  When Bybit supplies a
+    # cursor, reserve and fetch exactly one continuation page so the live
+    # suite verifies the opaque-cursor contract without attempting a catalogue
+    # sweep.
+    if next_cursor:
+        continued_page, continuation_measurement = _observed_read(
+            lambda: provider.discover_tokenized_page(
+                cursor=next_cursor,
+                page_size=1,
+            ),
+            "bybit_xstocks",
+            "discover_tokenized_page",
+        )
+        assert continuation_measurement.http_requests == 1
+        continued, _ = continued_page
+        assert isinstance(continued, list)
+
+
+def test_gate_public_tradfi_asset_and_orderbook():
+    provider = GateTradfiProvider()
+    # The first Gate symbol may be listed but have no active order book. Probe
+    # a small bounded page and require one quote-bearing symbol so this test
+    # proves the market-data surface rather than merely catalogue metadata.
+    rows, measurement = _observed_read(
+        lambda: provider.discover_tokenized_assets(page=0, page_size=5),
+        "gate_tradfi",
+        "discover_tokenized_assets",
+    )
+    assert rows
+    assert measurement.response_bytes > 0
+    quote_record = None
+    for row in rows:
+        _assert_asset(row)
+        resolved, resolved_measurement = _observed_read(
+            lambda row=row: provider.get_tokenized_asset(row.symbol),
+            "gate_tradfi",
+            "get_tokenized_asset",
+        )
+        assert resolved_measurement.http_requests == 1
+        _assert_asset(resolved)
+        priced, quote_measurement = _observed_read(
+            lambda row=row: provider.get_tokenized_price(row.symbol),
+            "gate_tradfi",
+            "get_tokenized_price",
+        )
+        assert quote_measurement.http_requests >= 2
+        _assert_asset(priced)
+        if priced and (
+            priced.price is not None or priced.bid is not None or priced.ask is not None
+        ):
+            quote_record = priced
+            break
+    _assert_asset(quote_record, require_quote=True)
+
+
+def test_kraken_public_xstocks_asset_and_ticker():
+    from app.providers.registry import provider_missing_routing_controls
+
+    missing = provider_missing_routing_controls("kraken_xstocks", "discover_tokenized_assets")
+    if missing:
+        assert {
+            "KRAKEN_MARKET_DATA_USE_AUTHORIZED",
+            "KRAKEN_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+            "KRAKEN_MARKET_DATA_USE_AUTHORITY_SCOPE",
+            "KRAKEN_MARKET_DATA_USE_REVIEWED_AT",
+        } >= set(missing)
+        return
+    provider = KrakenXStocksProvider()
+    # Kraken's public Spot API quota is shared with the generic Kraken
+    # provider by egress IP and is documented at one request/second. The
+    # acceptance runner executes this provider's reads in one process. Kraken's
+    # public safe frequency is one request/second, so pace each distinct read
+    # instead of relying on test ordering or bursting the shared IP scope.
+    time.sleep(1.2)
+    rows, measurement = _observed_read(
+        lambda: provider.discover_tokenized_assets(page=0, page_size=1),
+        "kraken_xstocks",
+        "discover_tokenized_assets",
+    )
+    assert measurement.response_bytes > 0
+    # Kraken currently publishes no pair whose provider-native metadata marks
+    # it as xStocks. An empty catalogue is a meaningful discovery observation,
+    # but it does not prove that asset lookup or pricing works. Return from the
+    # case rather than skipping it: the runner can retain the successful
+    # discovery request and separately report the two unexercised operations
+    # as missing acceptance evidence.
+    if not rows:
+        return
+    _assert_asset(rows[0])
+    time.sleep(1.2)
+    resolved, resolved_measurement = _observed_read(
+        lambda: provider.get_tokenized_asset(rows[0].symbol),
+        "kraken_xstocks",
+        "get_tokenized_asset",
+    )
+    assert resolved_measurement.http_requests == 1
+    _assert_asset(resolved)
+    time.sleep(1.2)
+    priced, quote_measurement = _observed_read(
+        lambda: provider.get_tokenized_price(rows[0].symbol),
+        "kraken_xstocks",
+        "get_tokenized_price",
+    )
+    assert quote_measurement.http_requests == 1
+    _assert_asset(priced, require_quote=True)
+
+
+def test_dinari_credentialed_stock_metadata_price_quote_history_and_news():
+    _require("DINARI_API_KEY_ID", "DINARI_API_SECRET_KEY")
+    provider = DinariTokenProvider()
+    # The supplied key is Sandbox-only. Assert the credentialed canary cannot
+    # be redirected to the production API by environment configuration.
+    assert provider._base_url() == "https://api-enterprise.sandbox.dinari.com/api/v2"
+    if os.getenv("DINARI_SANDBOX_CANARY_RUN") == "1":
+        # The canary verifies credentials and one documented read only. Its
+        # single request is archived privately; this proves neither an
+        # ongoing provider quota nor the rest of the Dinari data surface.
+        rows, canary_measurement = _observed_read(
+            lambda: provider.discover_tokenized_assets(page=0, page_size=1),
+            "dinari",
+            "discover_tokenized_assets",
+            operation_cost_override=1,
+        )
+        assert canary_measurement.http_requests == 1
+        assert rows
+        _assert_asset(rows[0])
+        UUID(rows[0].asset_id)
+        return
+    rows, measurement = _observed_read(
+        lambda: provider.discover_tokenized_assets(page=0, page_size=1),
+        "dinari",
+        "discover_tokenized_assets",
+    )
+    assert rows
+    _assert_asset(rows[0])
+    identifier = rows[0].asset_id
+    # Dinari's Stock UUID is the durable provider identity; the first live
+    # catalogue row must also expose at least one stable economic-underlying
+    # identifier so downstream issuer reconciliation does not fall back to a
+    # ticker-only join.
+    UUID(identifier)
+    assert any(
+        (
+            rows[0].underlying_figi,
+            rows[0].underlying_composite_figi,
+            rows[0].underlying_isin,
+            rows[0].underlying_cusip,
+            rows[0].underlying_cik,
+        )
+    )
+    resolved_by_symbol, symbol_measurement = _observed_read(
+        lambda: provider.get_tokenized_asset(rows[0].symbol), "dinari", "get_tokenized_asset"
+    )
+    assert symbol_measurement.http_requests == 1
+    _assert_asset(resolved_by_symbol)
+    assert resolved_by_symbol.asset_id == identifier
+    priced, price_measurement = _observed_read(
+        lambda: provider.get_tokenized_price(identifier), "dinari", "get_tokenized_price"
+    )
+    # The provider-native UUID is cached from the validated catalogue read;
+    # only the downstream price endpoint is required after that point.
+    assert price_measurement.http_requests >= 1
+    _assert_asset(priced, require_quote=True)
+    quoted, quote_measurement = _observed_read(
+        lambda: provider.get_tokenized_quote(identifier), "dinari", "get_tokenized_quote"
+    )
+    assert quote_measurement.http_requests >= 1
+    _assert_asset(quoted, require_quote=True)
+    # Dinari documents four distinct aggregate windows. Exercise each one so
+    # a transport/schema change cannot leave the adapter green while silently
+    # supporting only the default DAY surface.
+    for timespan in ("DAY", "WEEK", "MONTH", "YEAR"):
+        history, history_measurement = _observed_read(
+            lambda timespan=timespan: provider.fetch_tokenized_historical_prices(
+                identifier, timespan=timespan
+            ),
+            "dinari",
+            "fetch_tokenized_historical_prices",
+        )
+        assert history_measurement.http_requests >= 1
+        assert isinstance(history, list)
+        for row in history:
+            assert row["stock_id"] == identifier
+            assert row["timespan"] == timespan
+            assert row["timestamp"].tzinfo is not None
+            assert row["open"] > 0
+            assert row["high"] >= max(row["open"], row["close"])
+            assert row["low"] <= min(row["open"], row["close"])
+            assert row["close"] > 0
+            assert isinstance(row["raw_payload"], dict)
+    news, news_measurement = _observed_read(
+        lambda: provider.fetch_tokenized_news(identifier, limit=1),
+        "dinari",
+        "fetch_tokenized_news",
+    )
+    assert news_measurement.http_requests >= 1
+    assert isinstance(news, list)
+    dividends, dividend_measurement = _observed_read(
+        lambda: provider.fetch_tokenized_dividends(identifier),
+        "dinari",
+        "fetch_tokenized_dividends",
+    )
+    assert dividend_measurement.http_requests >= 1
+    assert isinstance(dividends, list)
+    splits, split_measurement = _observed_read(
+        lambda: provider.fetch_tokenized_splits(identifier),
+        "dinari",
+        "fetch_tokenized_splits",
+    )
+    assert split_measurement.http_requests >= 1
+    assert isinstance(splits, list)
+    # If the provider advertises another split page, exercise the explicit
+    # same-instance cursor continuation. A terminal first page consumes no
+    # additional request and is still a valid live observation.
+    if provider._split_cursors:
+        continued, continuation_measurement = _observed_read(
+            lambda: provider.fetch_tokenized_splits(identifier, page=2),
+            "dinari",
+            "fetch_tokenized_splits",
+        )
+        assert continuation_measurement.http_requests >= 1
+        assert isinstance(continued, list)
+    actions, action_measurement = _observed_read(
+        lambda: provider.fetch_tokenized_corporate_actions(symbol=rows[0].symbol),
+        "dinari",
+        "fetch_tokenized_corporate_actions",
+    )
+    assert action_measurement.http_requests >= 3
+    assert isinstance(actions, list)
+    assert all(row.get("action_type") in {"dividend", "split"} for row in actions)
+    assert measurement.http_requests == 1
+
+
+def test_ondo_credentialed_metadata_price_market_summary_and_ohlc():
+    _require("ONDO_GLOBAL_MARKETS_API_KEY")
+    provider = OndoGlobalMarketsProvider()
+    rows, measurement = _observed_read(
+        lambda: provider.discover_tokenized_assets(page=0, page_size=1),
+        "ondo_global_markets",
+        "discover_tokenized_assets",
+    )
+    assert rows
+    _assert_asset(rows[0])
+    priced, price_measurement = _observed_read(
+        lambda: provider.get_tokenized_price(rows[0].symbol),
+        "ondo_global_markets",
+        "get_tokenized_price",
+    )
+    assert price_measurement.http_requests >= 2
+    _assert_asset(priced, require_quote=True)
+    market, market_measurement = _observed_read(
+        lambda: provider.fetch_tokenized_market_data(rows[0].symbol),
+        "ondo_global_markets",
+        "fetch_tokenized_market_data",
+    )
+    assert market_measurement.http_requests >= 2
+    assert market is not None
+    assert market["primary_market"]["symbol"] == rows[0].symbol
+    assert market["underlying_market"]["ticker"] == rows[0].underlying_symbol
+    candles, ohlc_measurement = _observed_read(
+        lambda: provider.fetch_tokenized_ohlc(
+            rows[0].symbol, interval="1day", range_="1day", market="primary"
+        ),
+        "ondo_global_markets",
+        "fetch_tokenized_ohlc",
+    )
+    assert ohlc_measurement.http_requests >= 2
+    assert isinstance(candles, list)
+    historical, historical_measurement = _observed_read(
+        lambda: provider.fetch_tokenized_historical_prices(rows[0].symbol, timespan="DAY"),
+        "ondo_global_markets",
+        "fetch_tokenized_historical_prices",
+    )
+    assert historical_measurement.http_requests >= 2
+    assert isinstance(historical, list)
+    for row in historical:
+        assert row["provider_asset_id"] == rows[0].symbol
+        assert row["timespan"] == "DAY"
+        assert row["timestamp"].tzinfo is not None
+        assert row["high"] >= max(row["open"], row["close"])
+        assert row["low"] <= min(row["open"], row["close"])
+        assert isinstance(row["raw_payload"], dict)
+    assert measurement.http_requests == 1

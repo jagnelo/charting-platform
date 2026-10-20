@@ -6,6 +6,86 @@ from app.models.provider_observation import DatasetStatus, InstrumentDatasetStat
 
 
 class TestCoverageRouter:
+    def test_exposes_missing_range_without_provider_routing(self, client, auth_headers, instrument):
+        response = client.get(
+            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
+            params={
+                "timeframe": "D1",
+                "start": "2026-01-02T00:00:00Z",
+                "end": "2026-01-02T00:00:00Z",
+                "mode": "historical",
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body == {
+            "instrument_id": instrument.id,
+            "symbol": instrument.symbol,
+            "timeframe": "D1",
+            "adjusted": True,
+            "mode": "historical",
+            "requested_start": "2026-01-02T00:00:00Z",
+            "requested_end": "2026-01-02T00:00:00Z",
+            "status": "missing",
+            "covered_start": None,
+            "covered_end": None,
+            "bar_count": 0,
+            "missing_slices": [{"start": "2026-01-02T00:00:00Z", "end": "2026-01-02T00:00:00Z"}],
+            "explanation": "No local bars cover the requested range.",
+            "provenance": "canonical_local_database",
+        }
+
+    def test_exposes_fully_covered_range_without_provider_routing(
+        self, client, auth_headers, db, instrument
+    ):
+        session = datetime(2026, 1, 2, tzinfo=UTC)
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                timeframe=Timeframe.D1,
+                ts=session,
+                open=Decimal("10"),
+                high=Decimal("11"),
+                low=Decimal("9"),
+                close=Decimal("10"),
+                volume=Decimal("100"),
+                is_adjusted=True,
+            )
+        )
+        db.flush()
+
+        response = client.get(
+            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
+            params={
+                "timeframe": "D1",
+                "start": "2026-01-02T00:00:00Z",
+                "end": "2026-01-02T00:00:00Z",
+                "mode": "historical",
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body == {
+            "instrument_id": instrument.id,
+            "symbol": instrument.symbol,
+            "timeframe": "D1",
+            "adjusted": True,
+            "mode": "historical",
+            "requested_start": "2026-01-02T00:00:00Z",
+            "requested_end": "2026-01-02T00:00:00Z",
+            "status": "ready",
+            "covered_start": "2026-01-02T00:00:00Z",
+            "covered_end": "2026-01-02T00:00:00Z",
+            "bar_count": 1,
+            "missing_slices": [],
+            "explanation": "The requested range is locally covered.",
+            "provenance": "canonical_local_database",
+        }
+
     def test_returns_canonical_local_coverage_without_provider_routing(
         self, client, auth_headers, db, instrument
     ):
@@ -122,13 +202,22 @@ class TestCoverageRouter:
 
         assert response.status_code == 200
         body = response.json()
-        assert body["status"] == "partial"
-        assert body["bar_count"] == 3
-        assert body["missing_slices"] == [
-            {"start": "2026-01-05T00:00:00Z", "end": "2026-01-09T00:00:00Z"}
-        ]
-        assert body["provenance"] == "canonical_local_database"
-        assert "provider" not in body
+        assert body == {
+            "instrument_id": instrument.id,
+            "symbol": instrument.symbol,
+            "timeframe": "D1",
+            "adjusted": True,
+            "mode": "historical",
+            "requested_start": "2026-01-01T00:00:00Z",
+            "requested_end": "2026-01-10T00:00:00Z",
+            "status": "partial",
+            "covered_start": "2026-01-01T00:00:00Z",
+            "covered_end": "2026-01-10T00:00:00Z",
+            "bar_count": 3,
+            "missing_slices": [{"start": "2026-01-05T00:00:00Z", "end": "2026-01-09T00:00:00Z"}],
+            "explanation": "Local bars leave one or more bounded range slices unavailable.",
+            "provenance": "canonical_local_database",
+        }
 
     def test_rejects_reversed_coverage_ranges(self, client, auth_headers, instrument):
         response = client.get(

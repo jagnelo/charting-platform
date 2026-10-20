@@ -15125,3 +15125,106 @@ coordinator-delivered accepted Provider staging release, followed by ETF and
 TC2000. Combined PostgreSQL/application, Exhaustive, full `full_stack_browser`
 and exact-source CI gates remain open. Historical exit-152 evidence and the full
 roadmap remain preserved.
+
+## 2026-10-20 — Provider-only consumer phase authorized
+
+The coordinator released accepted synchronized green Provider staging
+`9b230ba4c97126a2937667138c6eb2a0aa297baf`, canonical receipt
+`20261020T205101Z-9b230ba4c971.json`, exact CI `39484176087` and Exhaustive job
+`118849529356`. The accepted Provider source is
+`74d114aa6a174c723b01da25d83e7a49470bdc93`; the staging source also includes
+the Provider test-only repair. This is a Provider product checkpoint plus
+synchronized common repairs, not ETF/TC acceptance or Strategy completion.
+
+The coordinator authorizes merging only this exact released staging object into
+this existing Strategy branch and beginning the Provider-only subphase of
+SLICP3. Reconcile actual canonical instrument identity, locally persisted
+market series, coverage/freshness/provenance and unavailable/denial behavior
+through existing Strategy host seams. Preserve engine-neutral Strategy
+architecture, the existing exact Nautilus pin, no-hidden-transport and
+no-fabricated or stale-as-current availability. Provider live proof remains
+source-qualified; no provider/issuer HTTP, quota, paid/trial, broker or capital
+action is part of this consumer work.
+
+SLICP3 remains incomplete. ETF point-in-time membership and TC immutable
+CodeVersion/completed Study outputs stay gated on their own accepted green
+staging releases; do not import unreleased source or guess future contracts.
+SLICP4/SLICP5, additive migration reconciliation, worker restart and
+owner-isolation guarantees, combined PostgreSQL/application, coordinated
+Exhaustive, exact-current-source CI and local `full_stack_browser` remain open.
+The checkpoint remains `in_progress`, not accepted or ready for integration.
+
+The exact released Provider SHA is present as `origin/staging`, with merge base
+`281a57bd9fb782c0f85bfb5127c713ea15037f68` against this branch. The worktree
+also carries an inherited dirty `session.json` resynchronization receipt from
+the prior turn; it is preserved, not rewritten or discarded. No Compose/browser/
+full-suite/build, live transport, retained-service/data cleanup, staging/sibling
+write or deployment operation is permitted in this phase.
+
+## 2026-10-20 — Provider consumer contract and bounded reconciliation
+
+The exact Provider release is being merged only from synchronized
+`origin/staging` `9b230ba4c97126a2937667138c6eb2a0aa297baf`; merge base is the
+previous released common baseline `281a57bd9fb782c0f85bfb5127c713ea15037f68`.
+The incoming frozen Provider workstream is preserved byte-for-byte. Makefile
+and Compose merge conflicts are resolved additively: the local coverage runner
+remains sharded and bounded, and the combined 75% report remains unchanged;
+Strategy's opt-in preparation worker/artifact/socket mounts coexist with the
+Provider quota-ledger and FINRA state mounts. No Compose config/stack command
+or service operation ran.
+
+The new pure consumer boundary in
+`backend/app/strategy_lab_v2/provider_series_contract.py` reads actual Provider
+record fields without DB/network I/O. It binds only `Instrument.domain_key` with
+resolved identity to the exact active `MarketSeries` instrument/source ID,
+source-series key, timeframe, feed, session and adjustment scope. Symbols alone,
+quarantined identities and provider-adjusted prices do not qualify. Raw basis
+has the explicit raw-unadjusted semantics from the Provider enum; adjusted
+series require matching explicit corporate-action provenance (which current
+ingestion does not consistently publish, so those inputs remain rejected).
+
+Coverage resolution content-addresses the canonical identity, local series
+scope, real `OhlcvCoverageAssessment` status/window/count/gaps, and explicit
+calendar digest. Only a ready, gap-free, matching row-count/window assessment
+creates the existing Strategy `CoverageAttestation`; partial, stale, missing,
+mis-scoped, digest-drifted or incomplete evidence returns no attestation. The
+attestation flows through existing `verify_snapshot_coverage` and
+`verify_data_acquisition` pure gates. `InstrumentDatasetState` freshness is a
+separate exact-scope assessment derived from timeframe plus raw/adjusted basis:
+current requires `fresh`, a past fetch, stored coverage bounds and
+`stale_after > evaluated_at`; stale is stale, pending/failed is unavailable,
+and missing/mismatched/incomplete evidence is unknown—not current. No provider
+or issuer request, quota reservation, fixture data or external availability
+claim was used.
+
+The accepted Provider coverage runner now conditionally discovers and actually
+executes `app/strategy_lab_v2/tests` in the same bounded 50-case unit shards,
+while retaining separate bounded integration execution, single coverage erase,
+append across every shard/integration and the aggregate `--fail-under=75` gate.
+The existing CI unit command still explicitly includes the Strategy package;
+CI continues its distinct integration append and aggregate 75% step. No CI
+claim is made that it runs the local sharding helper. A stack-free Compose
+source regression checks both feature mount sets remain present.
+
+Bounded validation passed: 64 focused tests across the Provider binding,
+coverage/acquisition contracts, Compose source contract and coverage runner in
+2.02s; focused Ruff checks, formatting and `git diff --check` passed. Running
+ordinary `uv run` first attempted to fetch uncached QuantLib and was blocked by
+host DNS; the same tests passed through the already-installed UV-managed
+environment with `--no-sync`. Static Alembic loading succeeds and reports two
+distinct current heads: Provider `b6e9a42d1c73` and Strategy `slv2_0008`.
+Strategy `slv2_0001` through `slv2_0008` remain unchanged; no revision ID was
+renamed/reparented and no database was read or modified. Defer one additive
+multi-head graph merge until accepted ETF/TC migration heads are released, and
+then run the required fresh/previous-release PostgreSQL equivalence gates.
+
+SLICP3 is still only partially advanced, not complete: Provider identity/local
+series/coverage/freshness/provenance has a tested deterministic consumer seam;
+ETF PIT membership and TC immutable CodeVersion/completed Study remain gated on
+their own green staging releases. Full API/worker wiring, combined migration
+convergence, PostgreSQL/application, Exhaustive, exact-source CI and local
+`full_stack_browser` remain open. The inherited dirty `session.json` receipt is
+untouched. The original 18-criterion roadmap, historical 54fa13e1 exit-152
+receipt, disabled live/trading defaults, migration/data safety, terminal
+completion-before-settlement, reservation/lease identity and owner isolation
+remain in force.

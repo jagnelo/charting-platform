@@ -4,7 +4,10 @@ import pytest
 from sqlalchemy import select
 
 from app.models.data_source import DataSource
-from app.models.instrument_reconciliation import InstrumentReconciliationIssue
+from app.models.instrument_reconciliation import (
+    InstrumentReconciliationIssue,
+    InstrumentReconciliationIssueObservation,
+)
 from app.models.user import User
 from app.services.instrument_reconciliation import (
     list_reconciliation_issues,
@@ -62,6 +65,7 @@ async def test_record_discovery_ambiguity_is_idempotent(db):
     assert issues[0].status == "open"
     assert issues[0].data_source.name == "edgar"
     assert db.execute(select(InstrumentReconciliationIssue)).scalars().all()
+    assert len(db.execute(select(InstrumentReconciliationIssueObservation)).scalars().all()) == 2
 
 
 @pytest.mark.asyncio
