@@ -514,6 +514,16 @@ def test_provider_chain_examples_match_backend_tokenized_history_contract():
 def test_live_workflow_is_branch_scoped_environment_isolated_and_maps_each_secret():
     workflow = (ROOT / ".github/workflows/provider-live.yml").read_text()
     assert "workflow_dispatch:" in workflow
+    assert "max_http_requests:" in workflow
+    assert "required: true\n        type: string" in workflow
+    live_step = workflow.split("- name: Run one bounded live read per provider", maxsplit=1)[
+        1
+    ].split("\n      - name:", maxsplit=1)[0]
+    step_env, run_section = live_step.split("        run: |\n", maxsplit=1)
+    run_script = run_section
+    assert "PROVIDER_LIVE_RUN_HTTP_LIMIT: ${{ inputs.max_http_requests }}" in step_env
+    assert '--max-http-requests "$PROVIDER_LIVE_RUN_HTTP_LIMIT"' in run_script
+    assert "${{ inputs.max_http_requests }}" not in run_script
     assert "if: github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/master'" in workflow
     assert "provider-live-staging" in workflow
     assert "provider-live-master" in workflow

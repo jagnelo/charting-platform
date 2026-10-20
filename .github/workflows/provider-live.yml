@@ -8,6 +8,10 @@ on:
         required: false
         default: false
         type: boolean
+      max_http_requests:
+        description: "Reviewed maximum HTTP transport attempts for this run (non-negative integer; no default)"
+        required: true
+        type: string
 
 concurrency:
   group: provider-live-${{ github.ref }}
@@ -234,12 +238,16 @@ jobs:
           # Keep aggregate-only usage telemetry in the runner temp area; the
           # artifact step below uploads only this redacted ledger.
           PROVIDER_LIVE_USAGE_LEDGER: ${{ runner.temp }}/provider-live-usage.jsonl
+          # Keep dispatch input data out of the generated shell source.
+          PROVIDER_LIVE_RUN_HTTP_LIMIT: ${{ inputs.max_http_requests }}
         run: |
           if [ "${{ inputs.dinari_sandbox_canary }}" = "true" ]; then
             uv run --project backend python scripts/run-live-provider-probes.py \
-              --provider dinari --dinari-sandbox-canary
+              --provider dinari --dinari-sandbox-canary \
+              --max-http-requests "$PROVIDER_LIVE_RUN_HTTP_LIMIT"
           else
-            uv run --project backend python scripts/run-live-provider-probes.py
+            uv run --project backend python scripts/run-live-provider-probes.py \
+              --max-http-requests "$PROVIDER_LIVE_RUN_HTTP_LIMIT"
           fi
 
       - name: Preserve redacted live usage receipt

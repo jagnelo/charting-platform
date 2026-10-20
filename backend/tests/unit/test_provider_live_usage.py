@@ -3,6 +3,10 @@ from __future__ import annotations
 import asyncio
 import importlib.util
 import json
+import os
+import subprocess
+import sys
+import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
@@ -842,6 +846,324 @@ def test_httpx_live_transport_requires_active_durable_quota_admission(monkeypatc
             finally:
                 live_usage.deactivate_request_admission(token)
             assert response.json() == {"ok": True}
+
+
+@pytest.mark.parametrize("is_async", [False, True])
+def test_httpx_transport_budget_blocks_n_plus_one_before_send(monkeypatch, is_async):
+    import httpx
+
+    monkeypatch.setenv("RUN_LIVE_PROVIDER_TESTS", "1")
+    monkeypatch.setenv("PROVIDER_LIVE_MAX_HTTP_REQUESTS", "2")
+    monkeypatch.delenv("PROVIDER_LIVE_TRANSPORT_BUDGET_FILE", raising=False)
+    live_usage._reset_for_test()
+    live_usage.install_httpx_quota_admission_guard(patcher=monkeypatch)
+    sent = []
+    transport = httpx.MockTransport(
+        lambda request: sent.append(request.url.path) or httpx.Response(200, json={"ok": True})
+    )
+    token = live_usage.activate_request_admission()
+    try:
+        if is_async:
+
+            async def send():
+                async with httpx.AsyncClient(transport=transport) as client:
+                    assert (
+                        await client.get("https://provider.example.test/one")
+                    ).status_code == 200
+                    assert (
+                        await client.get("https://provider.example.test/two")
+                    ).status_code == 200
+                    with pytest.raises(
+                        live_usage.LiveTransportBudgetExceeded,
+                        match=r"budget exhausted \(2 maximum\)",
+                    ):
+                        await client.get("https://provider.example.test/three")
+
+            asyncio.run(send())
+        else:
+            with httpx.Client(transport=transport) as client:
+                assert client.get("https://provider.example.test/one").status_code == 200
+                assert client.get("https://provider.example.test/two").status_code == 200
+                with pytest.raises(
+                    live_usage.LiveTransportBudgetExceeded,
+                    match=r"budget exhausted \(2 maximum\)",
+                ):
+                    client.get("https://provider.example.test/three")
+    finally:
+        live_usage.deactivate_request_admission(token)
+
+    assert sent == ["/one", "/two"]
+    assert live_usage.transport_budget_used() == 2
+
+
+@pytest.mark.parametrize("is_async", [False, True])
+def test_zero_httpx_transport_budget_blocks_first_send(monkeypatch, is_async):
+    import httpx
+
+    monkeypatch.setenv("RUN_LIVE_PROVIDER_TESTS", "1")
+    monkeypatch.setenv("PROVIDER_LIVE_MAX_HTTP_REQUESTS", "0")
+    monkeypatch.delenv("PROVIDER_LIVE_TRANSPORT_BUDGET_FILE", raising=False)
+    live_usage._reset_for_test()
+    live_usage.install_httpx_quota_admission_guard(patcher=monkeypatch)
+    sent = []
+    transport = httpx.MockTransport(lambda request: sent.append(request) or httpx.Response(200))
+    token = live_usage.activate_request_admission()
+    try:
+        if is_async:
+
+            async def send():
+                async with httpx.AsyncClient(transport=transport) as client:
+                    with pytest.raises(live_usage.LiveTransportBudgetExceeded):
+                        await client.get("https://provider.example.test/zero")
+
+            asyncio.run(send())
+        else:
+            with httpx.Client(transport=transport) as client:
+                with pytest.raises(live_usage.LiveTransportBudgetExceeded):
+                    client.get("https://provider.example.test/zero")
+    finally:
+        live_usage.deactivate_request_admission(token)
+
+    assert sent == []
+    assert live_usage.transport_budget_used() == 0
+
+
+def test_httpx_redirect_hops_each_consume_transport_budget(monkeypatch):
+    import httpx
+
+    monkeypatch.setenv("RUN_LIVE_PROVIDER_TESTS", "1")
+    monkeypatch.setenv("PROVIDER_LIVE_MAX_HTTP_REQUESTS", "1")
+    monkeypatch.delenv("PROVIDER_LIVE_TRANSPORT_BUDGET_FILE", raising=False)
+    live_usage._reset_for_test()
+    live_usage.install_httpx_quota_admission_guard(patcher=monkeypatch)
+    sent = []
+
+    def handler(request):
+        sent.append(request.url.path)
+        return httpx.Response(302, headers={"Location": "/next"})
+
+    token = live_usage.activate_request_admission()
+    try:
+        with httpx.Client(transport=httpx.MockTransport(handler), follow_redirects=True) as client:
+            with pytest.raises(live_usage.LiveTransportBudgetExceeded):
+                client.get("https://provider.example.test/start")
+    finally:
+        live_usage.deactivate_request_admission(token)
+
+    assert sent == ["/start"]
+    assert live_usage.transport_budget_used() == 1
+
+
+@pytest.mark.parametrize("is_async", [False, True])
+def test_httpx_auth_replay_consumes_another_transport_budget_unit(monkeypatch, is_async):
+    import httpx
+
+    class ReplayAuth(httpx.Auth):
+        def auth_flow(self, request):
+            yield request
+            yield request
+
+        async def async_auth_flow(self, request):
+            yield request
+            yield request
+
+    monkeypatch.setenv("RUN_LIVE_PROVIDER_TESTS", "1")
+    monkeypatch.setenv("PROVIDER_LIVE_MAX_HTTP_REQUESTS", "1")
+    monkeypatch.delenv("PROVIDER_LIVE_TRANSPORT_BUDGET_FILE", raising=False)
+    live_usage._reset_for_test()
+    live_usage.install_httpx_quota_admission_guard(patcher=monkeypatch)
+    sent = []
+    transport = httpx.MockTransport(
+        lambda request: sent.append(request) or httpx.Response(200, content=b"ok")
+    )
+    token = live_usage.activate_request_admission()
+    try:
+        if is_async:
+
+            async def send():
+                async with httpx.AsyncClient(transport=transport, auth=ReplayAuth()) as client:
+                    with pytest.raises(live_usage.LiveTransportBudgetExceeded):
+                        await client.get("https://provider.example.test/auth")
+
+            asyncio.run(send())
+        else:
+            with httpx.Client(transport=transport, auth=ReplayAuth()) as client:
+                with pytest.raises(live_usage.LiveTransportBudgetExceeded):
+                    client.get("https://provider.example.test/auth")
+    finally:
+        live_usage.deactivate_request_admission(token)
+
+    assert len(sent) == 1
+    assert live_usage.transport_budget_used() == 1
+
+
+def test_httpx_transport_budget_is_atomic_for_concurrent_async_helpers(tmp_path, monkeypatch):
+    import httpx
+
+    monkeypatch.setenv("RUN_LIVE_PROVIDER_TESTS", "1")
+    monkeypatch.setenv("PROVIDER_LIVE_MAX_HTTP_REQUESTS", "3")
+    counter = tmp_path / "shared-transport-count"
+    counter.write_text("0", encoding="ascii")
+    counter.chmod(0o600)
+    monkeypatch.setenv("PROVIDER_LIVE_TRANSPORT_BUDGET_FILE", str(counter))
+    live_usage._reset_for_test()
+    live_usage.install_httpx_quota_admission_guard(patcher=monkeypatch)
+    sent = []
+    transport = httpx.MockTransport(
+        lambda request: sent.append(request.url.path) or httpx.Response(200, content=b"ok")
+    )
+    token = live_usage.activate_request_admission()
+    try:
+
+        async def send_concurrently():
+            async with httpx.AsyncClient(transport=transport) as client:
+                return await asyncio.gather(
+                    *(client.get(f"https://provider.example.test/page/{i}") for i in range(8)),
+                    return_exceptions=True,
+                )
+
+        results = asyncio.run(send_concurrently())
+    finally:
+        live_usage.deactivate_request_admission(token)
+
+    assert sum(isinstance(result, httpx.Response) for result in results) == 3
+    assert (
+        sum(isinstance(result, live_usage.LiveTransportBudgetExceeded) for result in results) == 5
+    )
+    assert len(sent) == 3
+    assert live_usage.transport_budget_used() == 3
+    assert counter.read_text(encoding="ascii") == "3"
+
+
+def test_transport_budget_shared_counter_enforces_cap_across_runner_processes(tmp_path):
+    counter = tmp_path / "shared-process-transport-count"
+    counter.write_text("0", encoding="ascii")
+    counter.chmod(0o600)
+    release = tmp_path / "release-processes"
+    markers = [tmp_path / f"process-{index}-ready" for index in range(2)]
+    child_script = "\n".join(
+        (
+            "import json, os, sys, time",
+            "from pathlib import Path",
+            "from tests.live import live_usage",
+            "counter, release, ready = map(Path, sys.argv[1:4])",
+            'os.environ["PROVIDER_LIVE_MAX_HTTP_REQUESTS"] = "3"',
+            'os.environ["PROVIDER_LIVE_TRANSPORT_BUDGET_FILE"] = str(counter)',
+            "ready.touch()",
+            "deadline = time.monotonic() + 5",
+            "while not release.exists():",
+            "    if time.monotonic() >= deadline:",
+            "        raise SystemExit('timed out waiting for process start barrier')",
+            "    time.sleep(0.005)",
+            "outcomes = []",
+            "for _ in range(2):",
+            "    try:",
+            "        live_usage._consume_transport_budget()",
+            "        outcomes.append('admitted')",
+            "    except live_usage.LiveTransportBudgetExceeded:",
+            "        outcomes.append('denied')",
+            "print(json.dumps(outcomes))",
+        )
+    )
+    backend_root = Path(__file__).resolve().parents[2]
+    child_env = os.environ.copy()
+    processes = [
+        subprocess.Popen(
+            [sys.executable, "-c", child_script, str(counter), str(release), str(marker)],
+            cwd=backend_root,
+            env=child_env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        for marker in markers
+    ]
+    try:
+        deadline = time.monotonic() + 5
+        while not all(marker.exists() for marker in markers):
+            if time.monotonic() >= deadline:
+                pytest.fail("child processes did not reach the shared-counter barrier")
+            time.sleep(0.005)
+        release.touch()
+        outputs = [process.communicate(timeout=5) for process in processes]
+    finally:
+        for process in processes:
+            if process.poll() is None:
+                process.kill()
+            process.wait(timeout=2)
+
+    assert [process.returncode for process in processes] == [0, 0]
+    outcomes = [outcome for stdout, _ in outputs for outcome in json.loads(stdout)]
+    assert outcomes.count("admitted") == 3
+    assert outcomes.count("denied") == 1
+    assert counter.read_text(encoding="ascii") == "3"
+
+
+def test_transport_budget_counts_helper_and_pagination_requests_and_shared_file(
+    tmp_path: Path, monkeypatch
+):
+    import httpx
+
+    counter = tmp_path / "transport-count"
+    counter.write_text("0", encoding="ascii")
+    counter.chmod(0o600)
+    monkeypatch.setenv("RUN_LIVE_PROVIDER_TESTS", "1")
+    monkeypatch.setenv("PROVIDER_LIVE_MAX_HTTP_REQUESTS", "2")
+    monkeypatch.setenv("PROVIDER_LIVE_TRANSPORT_BUDGET_FILE", str(counter))
+    live_usage._reset_for_test()
+    live_usage.install_httpx_quota_admission_guard(patcher=monkeypatch)
+    sent = []
+    transport = httpx.MockTransport(
+        lambda request: sent.append(request.url.path) or httpx.Response(200, content=b"ok")
+    )
+    token = live_usage.activate_request_admission()
+    try:
+        with httpx.Client(transport=transport) as client:
+            # These represent two helper/pagination transports within one case.
+            client.get("https://provider.example.test/auth-helper")
+            client.get("https://provider.example.test/page/next")
+            with pytest.raises(live_usage.LiveTransportBudgetExceeded):
+                client.get("https://provider.example.test/page/overflow")
+    finally:
+        live_usage.deactivate_request_admission(token)
+
+    assert sent == ["/auth-helper", "/page/next"]
+    assert counter.read_text(encoding="ascii") == "2"
+    assert live_usage.transport_budget_used() == 2
+
+
+@pytest.mark.parametrize("raw_limit", ["", "-1", "+1", "1.5", " 2", "２"])
+def test_transport_budget_rejects_invalid_configured_limit(monkeypatch, raw_limit):
+    monkeypatch.setenv("PROVIDER_LIVE_MAX_HTTP_REQUESTS", raw_limit)
+    with pytest.raises(RuntimeError, match="must be a non-negative base-10 integer"):
+        live_usage.configured_transport_budget()
+
+
+def test_transport_budget_allows_zero_and_missing_is_unconfigured(monkeypatch):
+    monkeypatch.setenv("PROVIDER_LIVE_MAX_HTTP_REQUESTS", "0")
+    assert live_usage.configured_transport_budget() == 0
+    monkeypatch.delenv("PROVIDER_LIVE_MAX_HTTP_REQUESTS")
+    assert live_usage.configured_transport_budget() is None
+    with pytest.raises(RuntimeError, match="is required for canonical live transport"):
+        live_usage.ensure_transport_budget_configured()
+
+
+def test_native_no_reservation_denial_precedes_transport_budget(monkeypatch):
+    import httpx
+
+    monkeypatch.setenv("RUN_LIVE_PROVIDER_TESTS", "1")
+    monkeypatch.setenv("PROVIDER_LIVE_MAX_HTTP_REQUESTS", "1")
+    monkeypatch.delenv("PROVIDER_LIVE_TRANSPORT_BUDGET_FILE", raising=False)
+    live_usage._reset_for_test()
+    live_usage.install_httpx_quota_admission_guard(patcher=monkeypatch)
+    sent = []
+    transport = httpx.MockTransport(lambda request: sent.append(request) or httpx.Response(200))
+    with httpx.Client(transport=transport) as client:
+        with pytest.raises(RuntimeError, match="no active durable quota reservation"):
+            client.get("https://provider.example.test/denied")
+
+    assert sent == []
+    assert live_usage.transport_budget_used() == 0
 
 
 @pytest.mark.parametrize("scope", ["", "x" * 129, "x\nlabel"])

@@ -59,6 +59,33 @@ def test_fmp_account_usage_bootstrap_is_in_full_live_manifest():
     assert runner.live_matrix_inventory_errors() == []
 
 
+@pytest.mark.parametrize(("value", "expected"), [("0", 0), ("12", 12)])
+def test_live_http_transport_limit_parser_accepts_non_negative_decimal(value, expected):
+    runner = _runner_module()
+    assert runner._non_negative_integer(value) == expected
+
+
+@pytest.mark.parametrize("value", ["", "-1", "+1", "1.0", " 2", "２"])
+def test_live_http_transport_limit_parser_rejects_invalid_values(value):
+    import argparse
+
+    runner = _runner_module()
+    with pytest.raises(argparse.ArgumentTypeError, match="non-negative base-10 integer"):
+        runner._non_negative_integer(value)
+
+
+def test_live_http_transport_counter_file_is_private_and_starts_at_zero(tmp_path):
+    runner = _runner_module()
+    counter = tmp_path / "run-counter"
+
+    runner._create_transport_budget_file(counter)
+
+    assert counter.read_text(encoding="ascii") == "0"
+    assert counter.stat().st_mode & 0o777 == 0o600
+    with pytest.raises(FileExistsError):
+        runner._create_transport_budget_file(counter)
+
+
 def test_finra_short_interest_and_daily_list_have_case_scoped_operations():
     runner = _runner_module()
 
@@ -84,25 +111,23 @@ def test_binance_history_case_inventory_includes_every_usage_refresh_transport()
                 else {"fetch_ohlcv"}
             ),
         }
-        assert runner.LIVE_CASE_OPERATION_MULTIPLIERS["binance"][case_name][
-            "fetch_account_usage"
-        ] == refresh_count
+        assert (
+            runner.LIVE_CASE_OPERATION_MULTIPLIERS["binance"][case_name]["fetch_account_usage"]
+            == refresh_count
+        )
 
         selected, transport_operations = runner.parse_live_case_selectors(
             [f"binance:{case_name}"], {"binance"}
         )
-        assert transport_operations["binance"] == runner.LIVE_CASE_OPERATIONS[
-            "binance"
-        ][case_name]
-        assert runner.selected_case_operation_multipliers(selected)["binance"][
-            "fetch_account_usage"
-        ] == refresh_count
+        assert transport_operations["binance"] == runner.LIVE_CASE_OPERATIONS["binance"][case_name]
+        assert (
+            runner.selected_case_operation_multipliers(selected)["binance"]["fetch_account_usage"]
+            == refresh_count
+        )
 
     # Provider/full-matrix mode also sees the implicit requests in addition to
     # the dedicated one-request account-usage snapshot case.
-    assert runner.LIVE_MATRIX_OPERATION_MULTIPLIERS["binance"][
-        "fetch_account_usage"
-    ] == 5
+    assert runner.LIVE_MATRIX_OPERATION_MULTIPLIERS["binance"]["fetch_account_usage"] == 5
     assert runner.live_matrix_inventory_errors() == []
 
 
@@ -586,6 +611,7 @@ def test_dinari_canary_runs_durable_quota_preflight_before_any_transport(monkeyp
     )
     monkeypatch.setenv("DINARI_SANDBOX_CANARY_MAX_REQUESTS", "1")
     monkeypatch.setattr(runner, "changed_provider_code", lambda: True)
+    monkeypatch.setattr(runner, "approved_live_deferrals", lambda: {})
     monkeypatch.setattr(runner, "live_matrix_inventory_errors", lambda: [])
     monkeypatch.setattr(runner, "approved_live_deferrals", lambda: {})
     monkeypatch.setattr(runner, "LIVE_PROVIDER_CASES", {"dinari": (("x", "y"),)})
@@ -2883,12 +2909,18 @@ def test_candidate_receipt_writer_persists_only_redacted_success_outside_worktre
         },
         candidate_unchanged=True,
         candidate_receipt_file=receipt_path,
+        max_http_requests=7,
+        admitted_http_transports=4,
     )
 
     persisted = json.loads(receipt_path.read_text(encoding="utf-8"))
     assert result == "staged_candidate_provider_passed"
     assert persisted["candidate_unchanged"] is True
     assert persisted["live_acceptance"] is False
+    assert persisted["transport_budget"] == {
+        "max_http_requests": 7,
+        "admitted_http_transports": 4,
+    }
     assert receipt_path.stat().st_mode & 0o777 == 0o600
 
 
@@ -3828,6 +3860,50 @@ def test_staged_candidate_missing_credentials_blocks_before_network(monkeypatch,
 
     assert runner.main() == 2
     assert "blocked before network calls" in capsys.readouterr().out
+
+
+def test_canonical_live_runner_requires_transport_limit_before_launch(
+    monkeypatch, capsys, tmp_path
+):
+    runner = _runner_module()
+    monkeypatch.setattr(
+        runner,
+        "_arguments",
+        lambda: SimpleNamespace(
+            verify_candidate_receipts=None,
+            candidate_receipt_file=None,
+            provider=["demo"],
+            case=[],
+            allow_staged_candidate=False,
+            account_usage_only=False,
+            dinari_sandbox_canary=False,
+            preflight_only=False,
+            max_http_requests=None,
+        ),
+    )
+    monkeypatch.setattr(runner, "load_dotenv", lambda *args, **kwargs: None)
+    monkeypatch.setattr(runner, "DEFAULT_SHARED_ENV", tmp_path / "absent.env")
+    monkeypatch.setenv("RUN_LIVE_PROVIDER_TESTS", "1")
+    monkeypatch.setattr(runner, "changed_provider_code", lambda: True)
+    monkeypatch.setattr(runner, "approved_live_deferrals", lambda: {})
+    monkeypatch.setattr(runner, "LIVE_PROVIDER_CASES", {"demo": (("live.py", "test_read"),)})
+    monkeypatch.setattr(runner, "CREDENTIALS", {"demo": ()})
+    monkeypatch.setattr(runner, "KEYLESS", ())
+    monkeypatch.setattr(runner, "setting_is_configured", lambda _name: True)
+    monkeypatch.setattr(runner, "usage_scope_is_configured", lambda: True)
+    monkeypatch.setattr(runner, "durable_quota_preflight", lambda: (True, None))
+    monkeypatch.setattr(runner, "live_operation_quota_preflight", lambda *args, **kwargs: {})
+    monkeypatch.setattr(runner, "routing_safety_preflight", lambda: {})
+    monkeypatch.setattr(runner, "live_required_safety_blockers", lambda *args, **kwargs: {})
+    monkeypatch.setattr(runner, "live_provider_plan_admission_blockers", lambda *args, **kwargs: {})
+    monkeypatch.setattr(
+        runner,
+        "provider_live_run_lock",
+        lambda: (_ for _ in ()).throw(AssertionError("must block before live lock")),
+    )
+
+    assert runner.main() == 2
+    assert "--max-http-requests is required" in capsys.readouterr().out
 
 
 def test_workstream_only_porcelain_changes_do_not_taint_live_source_receipt(monkeypatch):

@@ -9,9 +9,11 @@ from tests.live.live_usage import (
     deactivate_case,
     ensure_ledger_writable,
     ensure_response_archive_writable,
+    ensure_transport_budget_configured,
     ensure_usage_scope_configured,
     flush_observations,
     install_httpx_quota_admission_guard,
+    transport_budget_used,
 )
 
 
@@ -30,6 +32,7 @@ def pytest_sessionstart(session):
             returncode=2,
         )
     try:
+        ensure_transport_budget_configured()
         install_httpx_quota_admission_guard()
         ensure_usage_scope_configured()
         ensure_ledger_writable()
@@ -45,6 +48,13 @@ def pytest_sessionfinish(session, exitstatus):
     """Persist measured direct-adapter usage after every live pytest process."""
 
     flush_observations(int(exitstatus))
+    try:
+        maximum = ensure_transport_budget_configured()
+        print("provider live HTTP transport budget: " f"{transport_budget_used()}/{maximum} used")
+    except RuntimeError:
+        # Session startup already fails closed for missing/invalid limits. Keep
+        # teardown from hiding the original pytest result if setup was aborted.
+        pass
 
 
 @pytest.hookimpl(hookwrapper=True)

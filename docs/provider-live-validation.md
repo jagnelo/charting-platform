@@ -786,6 +786,20 @@ spend quota. The Alpha Vantage example below selects exactly two cases and
 currently sends two requests if the durable preflight admits them; do not use
 it as a request to rerun a completed probe without first checking quota state:
 
+Every actual canonical live run requires an explicit `--max-http-requests`
+value. This non-negative integer caps HTTPX transport attempts across the
+entire runner invocation, including provider batches, redirects, auth/helper
+requests, and retries. Select the value from the reviewed operation/case budget;
+the runner supplies no guessed default. Zero intentionally denies the first
+send. The cap supplements, and never replaces, native durable quota admission
+and settlement, response retention, holds, or global authentication/rate-limit
+stops. Exhaustion fails the full test and stops later cases; it cannot turn a
+partial universe traversal into success. `--preflight-only` and
+`--verify-candidate-receipts` remain no-HTTP operations and do not require a
+cap. Live command examples below use
+`${PROVIDER_LIVE_RUN_HTTP_LIMIT:?set the reviewed non-negative ceiling}` so
+they cannot silently run without one.
+
 ```sh
 scripts/run-live-provider-probes.py --provider alpha_vantage \
   --case alpha_vantage:test_alpha_vantage_credentialed_current_price \
@@ -818,6 +832,7 @@ scripts/run-live-provider-probes.py --provider alpha_vantage \
 scripts/run-live-provider-probes.py --provider alpha_vantage \
   --case alpha_vantage:test_alpha_vantage_credentialed_daily \
   --allow-staged-candidate \
+  --max-http-requests "${PROVIDER_LIVE_RUN_HTTP_LIMIT:?set reviewed cap}" \
   --candidate-receipt-file /tmp/market-data-provider-candidate-live.jsonl
 ```
 
@@ -1231,7 +1246,8 @@ The live matrix is intentionally separate from normal unit/integration runs:
 ```sh
 PROVIDER_LIVE_USAGE_SCOPE=local-dev RUN_LIVE_PROVIDER_TESTS=1 \
   rtk uv run --project backend python scripts/run-live-provider-probes.py \
-  --allow-staged-candidate
+  --allow-staged-candidate \
+  --max-http-requests "${PROVIDER_LIVE_RUN_HTTP_LIMIT:?set reviewed cap}"
 ```
 
 The command performs a preflight, prints missing inputs and non-routable
@@ -1256,6 +1272,7 @@ unchanged, for example:
 PROVIDER_LIVE_USAGE_SCOPE=local-dev RUN_LIVE_PROVIDER_TESTS=1 \
   rtk uv run --project backend python scripts/run-live-provider-probes.py \
   --provider alpaca --allow-staged-candidate \
+  --max-http-requests "${PROVIDER_LIVE_RUN_HTTP_LIMIT:?set reviewed cap}" \
   --candidate-receipt-file /secure/local/path/provider-candidate.jsonl
 ```
 
@@ -1278,6 +1295,7 @@ PROVIDER_LIVE_USAGE_SCOPE=local-dev RUN_LIVE_PROVIDER_TESTS=1 \
   DINARI_SANDBOX_CANARY_MAX_REQUESTS=1 \
   rtk uv run --project backend python scripts/run-live-provider-probes.py \
   --provider dinari --dinari-sandbox-canary --allow-staged-candidate \
+  --max-http-requests "${PROVIDER_LIVE_RUN_HTTP_LIMIT:?set reviewed cap}" \
   --candidate-receipt-file /secure/local/path/provider-candidate.jsonl
 ```
 
@@ -1323,7 +1341,8 @@ providers' quotas:
 ```sh
 PROVIDER_LIVE_USAGE_SCOPE=local-dev-bybit RUN_LIVE_PROVIDER_TESTS=1 \
   rtk uv run --project backend python scripts/run-live-provider-probes.py \
-  --provider bybit_xstocks
+  --provider bybit_xstocks \
+  --max-http-requests "${PROVIDER_LIVE_RUN_HTTP_LIMIT:?set reviewed cap}"
 ```
 
 Omitting `--provider` always runs the complete registered live matrix; provider
@@ -1339,7 +1358,8 @@ same-run receipt checks:
 ```sh
 PROVIDER_LIVE_USAGE_SCOPE=local-dev-account-bootstrap RUN_LIVE_PROVIDER_TESTS=1 \
   rtk uv run --project backend python scripts/run-live-provider-probes.py \
-  --provider eodhd --account-usage-only
+  --provider eodhd --account-usage-only \
+  --max-http-requests "${PROVIDER_LIVE_RUN_HTTP_LIMIT:?set reviewed cap}"
 ```
 
 This always produces a focused receipt; it cannot be mistaken for full
@@ -1948,7 +1968,8 @@ standalone live check. Use the manifest-backed runner instead:
 ```sh
 PROVIDER_LIVE_USAGE_SCOPE=local-dev RUN_LIVE_PROVIDER_TESTS=1 \
   rtk uv run --project backend python scripts/run-live-provider-probes.py \
-  --provider openfigi
+  --provider openfigi \
+  --max-http-requests "${PROVIDER_LIVE_RUN_HTTP_LIMIT:?set reviewed cap}"
 ```
 
 Earlier backend deterministic gate snapshot (not the current dirty candidate):

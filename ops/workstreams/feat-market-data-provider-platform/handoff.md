@@ -29210,3 +29210,122 @@ reset, dataset cleanup, or sibling worktree modification is authorized.
   one coherent in-progress changeset with a new exact-source CI. Do not rerun
   any of the five completed cases for freshness. Checkpoint remains
   `in_progress`, not accepted or ready.
+
+## 2026-10-20 11:26Z — remaining-only plan review and no-transport preflight
+
+- Coordinator review `/home/m920q/charting-platform/.ai/staging-attempts/provider-30a603-plan-review-20261020.md` accepted the 40-case / 93-future-transport forecast, the 102 combined actual-request ceiling, and the explicit historical source qualification. The private remaining plan remains unchanged at its reviewed hash; no completed case was repeated.
+- Exact source remains `30a603cc50d9edfaa8ee92d413b49864e8026ff2`, tree `a261f1b6c4565ade14a2a703f1d424551068c480`; branch and origin match, worktree/index were clean before this factual preflight record. No provider application or live-manifest bytes changed from the five-case source tree `12923203...`.
+- Ran `make provider-live-preflight` with live execution and background availability/account-usage refresh disabled. It evaluated 27 providers and sent zero provider/issuer requests. It was blocked before transport because the configured durable quota-ledger directory is read-only in this environment. It separately quarantined Dinari (missing reviewed quota profile), Marketstack discovery (page cost/reset/MIC unresolved), and Tiingo (plan unrecognized/unreviewed). No reservation, spend, reset, or hold change occurred. Eligibility reported for other candidates is not current admission.
+- The exact push CI `39411772762` for this source remains in progress; Playwright is the only running job at this observation. The proposal remains non-authoritative and the worktree plan remains `status: in_progress` / `closure_summary: pending`. No provider transport is authorized before terminal-green CI, exact immutable candidate review, and fresh writable durable/native quota admission.
+
+## 2026-10-20 11:32Z — green source CI and elevated no-transport admission
+
+- Exact source `30a603cc50d9edfaa8ee92d413b49864e8026ff2` passed Actions
+  `39411772762`: Backend, Frontend Unit, Branch-declared, and Playwright all
+  succeeded; Exhaustive was skipped by feature-branch policy. Playwright was
+  152 passed / 109 declared skips, 13.5 minutes, with no flaky summary. This
+  does not erase the five-case partial proof's historical source boundary.
+- The earlier durable-ledger “read-only” preflight failure was the sandbox's
+  inability to access the existing private ledger, not an absent ledger. The
+  canonical `make provider-live-preflight` was run with narrowly elevated local
+  access, live probes and background refresh disabled. Durable coordinator
+  access succeeded; 27 providers were evaluated, 23 admitted by provider
+  preflight, and zero provider/issuer requests were sent. No quota reservation
+  or spend was made and no holds were changed.
+- Provider-specific admission still blocks the full selection: Alpha Vantage
+  lacks nine-request daily headroom; Dinari lacks a reviewed Sandbox quota
+  profile/reset-cost contract; Marketstack lacks two-request monthly headroom
+  and its discovery page cost/reset/MIC remain unresolved; Tiingo plan and
+  hourly/daily baselines remain unreviewed/unknown. Preflight eligibility is
+  not live-operation authorization.
+- The exact four-path staged candidate is based on parent
+  `30a603cc50d9edfaa8ee92d413b49864e8026ff2`; only the four workstream files
+  are staged. Its tree is supplied in the coordinator review message rather
+  than embedded in a self-referential workstream record. The staged plan is
+  explicitly a proposed conditional closure;
+  the working plan remains `in_progress` / `pending`. No source, matcher,
+  provider policy, hold, or completed-case receipt was changed. No candidate
+  live-receipt file exists yet. Await coordinator review of this exact tree
+  before any transport; do not replay completed cases.
+
+## 2026-10-20 11:47Z — bounded proof stopped on operation-level quota denial
+
+- The coordinator-authorized sequence began on the unchanged candidate tree
+  `2ee84320e975b9176bb687f35a227c191d1a4615` / parent
+  `30a603cc50d9edfaa8ee92d413b49864e8026ff2`. Exact CI `39411772762` was
+  green. The first selected case, Alpaca account usage, passed with one
+  request / 124 bytes; reservation
+  `749aa0db-44a3-4366-b563-9ccad2948fcd` is recorded `observed`.
+- The next Alpaca case made one successful `discover_universe_page` request
+  (6,465,390 bytes; reservation
+  `1bbcd465-3e97-4ff8-a8a4-d98ef7c90a6a`, status `observed`) then stopped
+  before transport for `fetch_instrument_events` with
+  `ProviderQuotaAdmissionError: provider quota exhausted before live operation
+  alpaca/fetch_instrument_events`. This is a current operation-level quota
+  admission stop, not the earlier sandbox ledger-read denial. Do not retry,
+  reset, or continue to later cases without new coordinator direction.
+- Total on this candidate: two requests / 6,465,514 bytes, 2 reservations,
+  11 combined actual requests including the nine historical/partial requests;
+  no retry, no hold change, no reset, and no source/index drift. No other
+  selected case ran. The reviewed Finnhub expected 403 was not reached.
+- Canonical successful-case receipt:
+  `/tmp/provider-30a603cc-candidate-receipts-20261020.jsonl` (one row for
+  case 1; the canonical runner does not append failed-case rows there). The
+  exact failed-case runner output and its printed receipt are preserved in
+  `/tmp/provider-30a603cc-candidate-orchestration-20261020.output.log`; the
+  stop ledger is `/tmp/provider-30a603cc-candidate-orchestration-20261020.jsonl`.
+  The driver’s initial schema-field bug is also preserved; it caused no replay
+  or additional request. Checkpoint remains `in_progress` / `pending`.
+- A read-only SQLite lookup of those two reservation IDs confirmed both durable
+  reservation rows are `settled` (account-usage concurrency was release-only;
+  the universe-page operation reserved one market-data request). The blocked
+  `fetch_instrument_events` operation had no measured transport or reservation
+  in the failed case receipt. No quota ledger reset or hold edit was performed.
+
+### Authorized continuation attempt stopped before transport (2026-10-20)
+
+The coordinator authorized one completion attempt on the unchanged frozen
+candidate `2ee84320e975b9176bb687f35a227c191d1a4615` / parent
+`30a603cc50d9edfaa8ee92d413b49864e8026ff2`, capped at 93 future and 104
+combined requests. The updated temporary driver passed offline checks for its
+40-case order, caps, and preserved prior receipt prefix, but its first launch
+stopped with `NameError: start_index is not defined` before invoking the
+canonical runner. It made zero provider requests and zero quota reservations;
+the canonical receipt file remains at one row, prior failed-case evidence is
+preserved, and no repair/retry was attempted because the authorization requires
+stopping on any further wrapper failure. Checkpoint remains `in_progress` /
+`pending`. Next safe action is coordinator review and fresh direction; do not
+resume transport automatically.
+
+### Reviewed v2 completion run stopped on per-case forecast mismatch (2026-10-20)
+
+The coordinator-provided `/tmp/provider-2ee843-bounded-runner-20261020-v2.py`
+passed its 10 offline scenarios and ran once against the unchanged candidate
+`2ee84320e975b9176bb687f35a227c191d1a4615` / parent
+`30a603cc50d9edfaa8ee92d413b49864e8026ff2`, under the 2,400-second outer
+timeout. Fourteen selected canonical cases passed with complete receipts and
+settled durable reservations: 33 new requests / 14,739,796 response bytes;
+44 combined actual requests including the prior 11. The run stopped after
+`massive:test_massive_credentialed_corporate_actions_complete`: canonical
+receipt `bdf735b7-c094-4e8e-b375-f7a508ba6ea4` records two
+`fetch_instrument_events` HTTP requests (21,914 bytes), and durable reservation
+`07809044-f809-4f54-be84-a19293c17f81` reserved/settled two units, while the
+private reviewed case maximum was one. This is a case-forecast mismatch, not a
+provider/admission failure; the canonical test itself passed. The reviewed plan
+has 26 unstarted cases with 61 remaining planned request units, while the
+104-combined ceiling has only 60 left. The driver stopped before case 15; no
+retry or later call ran. Preserve this stop for coordinator review; no source,
+index, hold, or quota reset/change was made. Checkpoint remains `in_progress` /
+`pending` and transport must not resume automatically.
+## 2026-10-20 12:42Z — bounded live harness transport ceiling
+
+- Continued the existing harness repair on parent `30a603cc50d9edfaa8ee92d413b49864e8026ff2`; the workstream remains `in_progress` and no conditional readiness contract was published.
+- Added a required explicit per-run HTTPX transport ceiling to the canonical live runner and shared counter across provider pytest batches. It is enforced at sync/async HTTPX single-request transport entry, so redirects/auth/helper/pagination transports consume the same cap. Exceeding the cap fails the case/run before sending the over-limit request; it does not truncate a successful result or replace durable quota admission/reservation/settlement.
+- The live workflow now forwards `inputs.max_http_requests` through step-level `PROVIDER_LIVE_RUN_HTTP_LIMIT` and passes only the quoted shell variable. The dispatch string is no longer interpolated into shell source; Dinari's existing boolean branch is unchanged. Manual instructions require a caller-supplied reviewed value and define no guessed default. Canonical output/receipt records configured cap and measured admitted transport count.
+- Current no-network evidence: all 214 tests across `test_provider_secret_wiring.py`, `test_provider_live_usage.py`, and `test_live_provider_runner.py` passed; Ruff check/format, YAML parse, Python compile, runner `--help`, and `git diff --check` passed. The additional focused workflow assertion passed 1/1 after checking the cap is in that step's env block and absent from its shell script.
+- No workflow dispatch, provider/issuer HTTP, quota reservation/spend/reset, credentials/holds change, or live candidate execution occurred. Historical `2ee843...` proof receipts remain source-qualified and unchanged. Exact hosted CI is still required for the eventual coherent source commit; no checkpoint acceptance is claimed.
+
+## 2026-10-20 12:43Z — subprocess counter contention regression
+
+- Added a no-network test that starts exactly two child Python processes behind a bounded release barrier. Both use the same private counter file and each attempt two increments with maximum `3`; the observed aggregate is exactly three admitted and one denied, and the preserved counter file reads `3`. The test has a five-second readiness/operation bound and terminates/reaps only its own children.
+- Re-ran all three affected no-network modules after this addition: `250 passed`; Ruff check/format, Python compile, workflow YAML parsing, runner `--help`, and `git diff --check` pass. No provider/issuer HTTP or quota reservation/spend occurred.

@@ -1583,7 +1583,9 @@ def live_matrix_inventory_errors() -> list[str]:
                 )
     for provider, cases in sorted(LIVE_CASE_OPERATION_MULTIPLIERS.items()):
         for function_name, multipliers in sorted(cases.items()):
-            mapped_operations = LIVE_CASE_OPERATIONS.get(provider, {}).get(function_name)
+            mapped_operations = LIVE_CASE_OPERATIONS.get(provider, {}).get(
+                function_name
+            )
             if mapped_operations is None:
                 errors.append(
                     f"{provider}/{function_name} has multipliers without a case-operation map"
@@ -4732,6 +4734,8 @@ def _record_live_validation(
     requested_providers: list[str] | None = None,
     quarantined_providers: list[str] | None = None,
     candidate_receipt_file: Path | None = None,
+    max_http_requests: int | None = None,
+    admitted_http_transports: int | None = None,
 ) -> str:
     """Persist a redacted live-test receipt in the active branch workstream."""
 
@@ -4841,6 +4845,22 @@ def _record_live_validation(
         **({"canary_mode": "dinari_sandbox"} if canary_mode else {}),
         **({"canary_max_requests": 1} if canary_mode else {}),
     }
+    if max_http_requests is not None:
+        if (
+            max_http_requests < 0
+            or admitted_http_transports is None
+            or admitted_http_transports < 0
+            or admitted_http_transports > max_http_requests
+        ):
+            raise ValueError("live transport budget receipt is invalid")
+        receipt["transport_budget"] = {
+            "max_http_requests": max_http_requests,
+            "admitted_http_transports": admitted_http_transports,
+        }
+        print(
+            "provider live HTTP transport budget: "
+            f"{admitted_http_transports}/{max_http_requests} admitted"
+        )
     if candidate_tree is not None:
         receipt["candidate_tree_sha"] = candidate_tree["tree_sha"]
         receipt["candidate_parent_sha"] = candidate_tree["parent_sha"]
@@ -5288,6 +5308,7 @@ def _record_live_preflight(
     admitted_providers: list[str] | None = None,
     quarantined_providers: dict[str, list[str]] | None = None,
     global_admission_blockers: list[str] | None = None,
+    max_http_requests: int | None = None,
 ) -> None:
     """Record a no-transport admission check; this is never live evidence."""
 
@@ -5331,6 +5352,16 @@ def _record_live_preflight(
         "live_acceptance": False,
         **(
             {
+                "transport_budget": {
+                    "max_http_requests": max_http_requests,
+                    "admitted_http_transports": 0,
+                }
+            }
+            if max_http_requests is not None
+            else {}
+        ),
+        **(
+            {
                 "provider_admission": {
                     "eligible": sorted(admitted_providers or []),
                     "quarantined": {
@@ -5358,6 +5389,14 @@ def _record_live_preflight(
 
 def _arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--max-http-requests",
+        type=_non_negative_integer,
+        help=(
+            "required for actual live runs: maximum HTTPX transport attempts "
+            "across the entire runner invocation (0 blocks the first send)"
+        ),
+    )
     parser.add_argument(
         "--provider",
         action="append",
@@ -5428,8 +5467,48 @@ def _arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _non_negative_integer(value: str) -> int:
+    """Parse a strict decimal transport limit; zero is an intentional deny-all."""
+
+    if not value or not value.isascii() or not value.isdecimal():
+        raise argparse.ArgumentTypeError("must be a non-negative base-10 integer")
+    return int(value, 10)
+
+
+def _create_transport_budget_file(path: Path) -> None:
+    """Create the private shared counter used across pytest provider batches."""
+
+    flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    descriptor = os.open(path, flags, 0o600)
+    try:
+        os.write(descriptor, b"0")
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _read_transport_budget_file(path: Path, maximum: int) -> int:
+    """Read the final shared run counter after every pytest batch has exited."""
+
+    try:
+        raw = path.read_text(encoding="ascii")
+    except OSError as exc:
+        raise RuntimeError("live transport budget counter could not be read") from exc
+    if not raw or not raw.isascii() or not raw.isdecimal():
+        raise RuntimeError("live transport budget counter is malformed")
+    used = int(raw, 10)
+    if used > maximum:
+        raise RuntimeError(
+            "live transport budget counter exceeded its configured maximum"
+        )
+    return used
+
+
 def main() -> int:
     arguments = _arguments()
+    max_http_requests = getattr(arguments, "max_http_requests", None)
     verify_receipt_file = getattr(arguments, "verify_candidate_receipts", None)
     candidate_receipt_file = getattr(arguments, "candidate_receipt_file", None)
     if verify_receipt_file is not None:
@@ -5441,6 +5520,7 @@ def main() -> int:
             or arguments.dinari_sandbox_canary
             or candidate_receipt_file is not None
             or arguments.preflight_only
+            or max_http_requests is not None
         ):
             print(
                 "candidate receipt verification cannot be combined with live-run options"
@@ -5750,6 +5830,7 @@ def main() -> int:
             global_admission_blockers=global_admission_blockers
             if partial_live_admission
             else None,
+            max_http_requests=max_http_requests,
         )
         if missing:
             print("provider preflight: blocked; transport was not attempted")
@@ -5839,12 +5920,21 @@ def main() -> int:
             selected_cases=selected_cases if case_selectors else None,
         )
         return 2
+    if max_http_requests is None:
+        print(
+            "live provider probes blocked before network calls: "
+            "--max-http-requests is required for actual transport"
+        )
+        return 2
+    admitted_http_transports = 0
     try:
         with provider_live_run_lock() as lock_path:
             print(f"live provider lock: {lock_path}")
             with tempfile.TemporaryDirectory(
                 prefix="provider-live-matrix-"
             ) as temp_dir:
+                transport_budget_path = Path(temp_dir) / "http-transport-count"
+                _create_transport_budget_file(transport_budget_path)
                 live_run_id = str(uuid4())
                 test_root = ROOT
                 candidate_dir_context = None
@@ -5926,6 +6016,10 @@ def main() -> int:
                             "RUN_LIVE_PROVIDER_TESTS": "1",
                             "PROVIDER_LIVE_MATRIX_RUN": "1",
                             "PROVIDER_LIVE_RUN_ID": live_run_id,
+                            "PROVIDER_LIVE_MAX_HTTP_REQUESTS": str(max_http_requests),
+                            "PROVIDER_LIVE_TRANSPORT_BUDGET_FILE": str(
+                                transport_budget_path
+                            ),
                             "PROVIDER_LIVE_CASE_ORDER": json.dumps(
                                 [item for item in live_test_arguments if "::" in item]
                             ),
@@ -5959,6 +6053,9 @@ def main() -> int:
                         # or provider-throttle signal. Never continue to later
                         # tests/providers after that terminal live result.
                         break
+                admitted_http_transports = _read_transport_budget_file(
+                    transport_budget_path, max_http_requests
+                )
                 if candidate_dir_context is not None:
                     candidate_dir_context.cleanup()
             candidate_unchanged = True
@@ -6002,6 +6099,8 @@ def main() -> int:
                 else None,
                 quarantined_providers=sorted(provider_admission_blockers),
                 candidate_receipt_file=candidate_receipt_file,
+                max_http_requests=max_http_requests,
+                admitted_http_transports=admitted_http_transports,
             )
     except ProviderLiveRunAlreadyActive as exc:
         print(f"live provider probes: blocked by local key-use lock: {exc}")

@@ -83,6 +83,10 @@ _CURRENT_CASE_ID: ContextVar[str] = ContextVar("provider_live_case_id", default=
 _ACTIVE_REQUEST_ADMISSION: ContextVar[bool] = ContextVar(
     "provider_live_request_admission", default=False
 )
+_TRANSPORT_BUDGET_LOCK = threading.Lock()
+_TRANSPORT_BUDGET_USED = 0
+_TRANSPORT_BUDGET_ENV = "PROVIDER_LIVE_MAX_HTTP_REQUESTS"
+_TRANSPORT_BUDGET_FILE_ENV = "PROVIDER_LIVE_TRANSPORT_BUDGET_FILE"
 _DINARI_CANARY_REQUESTS = 0
 _PROVIDER_LIVE_MINIMUM_INTERVAL_SECONDS = {
     "alpha_vantage": 13.0,
@@ -403,6 +407,119 @@ def require_request_admission() -> None:
         reserve_dinari_sandbox_canary_request()
 
 
+class LiveTransportBudgetExceeded(RuntimeError):
+    """A live test attempted an HTTP transport beyond its explicit run cap."""
+
+
+def configured_transport_budget() -> int | None:
+    """Read the optional non-negative HTTPX transport cap from the environment.
+
+    The canonical runner requires this value before an actual live run. It is
+    optional in isolated unit tests and preflight-only invocations. Zero is a
+    valid cap and blocks the first transport.
+    """
+
+    raw = os.getenv(_TRANSPORT_BUDGET_ENV)
+    if raw is None:
+        return None
+    if not raw or not raw.isascii() or not raw.isdecimal():
+        raise RuntimeError(f"{_TRANSPORT_BUDGET_ENV} must be a non-negative base-10 integer")
+    return int(raw, 10)
+
+
+def _budget_counter_file() -> Path | None:
+    raw = os.getenv(_TRANSPORT_BUDGET_FILE_ENV, "").strip()
+    if not raw:
+        return None
+    return Path(raw).expanduser()
+
+
+def ensure_transport_budget_configured() -> int:
+    """Validate the run cap and optional shared counter before live tests."""
+
+    maximum = configured_transport_budget()
+    if maximum is None:
+        raise RuntimeError(f"{_TRANSPORT_BUDGET_ENV} is required for canonical live transport")
+    counter_file = _budget_counter_file()
+    if counter_file is not None:
+        try:
+            stat_result = counter_file.lstat()
+            if not stat.S_ISREG(stat_result.st_mode) or stat_result.st_mode & 0o077:
+                raise RuntimeError("transport budget counter must be a private regular file")
+            raw_count = counter_file.read_text(encoding="ascii")
+            if not raw_count.isascii() or not raw_count.isdecimal():
+                raise RuntimeError("transport budget counter is malformed")
+        except OSError as exc:
+            raise RuntimeError("transport budget counter is unavailable") from exc
+    return maximum
+
+
+def transport_budget_used() -> int:
+    """Return the number of transport attempts admitted by this run budget."""
+
+    counter_file = _budget_counter_file()
+    if counter_file is None:
+        with _TRANSPORT_BUDGET_LOCK:
+            return _TRANSPORT_BUDGET_USED
+    try:
+        flags = os.O_RDONLY | (getattr(os, "O_NOFOLLOW", 0))
+        descriptor = os.open(counter_file, flags)
+        with os.fdopen(descriptor, "r", encoding="ascii") as handle:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_SH)
+            try:
+                raw_count = handle.read()
+                if not raw_count or not raw_count.isascii() or not raw_count.isdecimal():
+                    raise RuntimeError("transport budget counter is malformed")
+                return int(raw_count, 10)
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+    except OSError as exc:
+        raise RuntimeError("transport budget counter is unavailable") from exc
+
+
+def _consume_transport_budget() -> int:
+    """Atomically consume one unit immediately before an HTTPX transport."""
+
+    maximum = configured_transport_budget()
+    if maximum is None:
+        return 0
+    counter_file = _budget_counter_file()
+    if counter_file is None:
+        global _TRANSPORT_BUDGET_USED
+        with _TRANSPORT_BUDGET_LOCK:
+            if _TRANSPORT_BUDGET_USED >= maximum:
+                raise LiveTransportBudgetExceeded(
+                    f"live HTTP transport budget exhausted ({maximum} maximum)"
+                )
+            _TRANSPORT_BUDGET_USED += 1
+            return _TRANSPORT_BUDGET_USED
+
+    try:
+        flags = os.O_RDWR | (getattr(os, "O_NOFOLLOW", 0))
+        descriptor = os.open(counter_file, flags)
+        with os.fdopen(descriptor, "r+", encoding="ascii") as handle:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            try:
+                raw_count = handle.read()
+                if not raw_count or not raw_count.isascii() or not raw_count.isdecimal():
+                    raise RuntimeError("transport budget counter is malformed")
+                used = int(raw_count, 10)
+                if used >= maximum:
+                    raise LiveTransportBudgetExceeded(
+                        f"live HTTP transport budget exhausted ({maximum} maximum)"
+                    )
+                handle.seek(0)
+                handle.truncate()
+                handle.write(str(used + 1))
+                handle.flush()
+                os.fsync(handle.fileno())
+                return used + 1
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+    except OSError as exc:
+        raise RuntimeError("transport budget counter is unavailable") from exc
+
+
 def install_httpx_quota_admission_guard(*, patcher=None) -> None:
     """Guard sync and async HTTPX transports before any request is sent.
 
@@ -440,6 +557,29 @@ def install_httpx_quota_admission_guard(*, patcher=None) -> None:
 
         guarded_async_send._provider_live_quota_guard = True
         set_attribute(httpx.AsyncClient, "send", guarded_async_send)
+
+    # HTTPX follows redirects inside _send_handling_redirects and calls
+    # _send_single_request for each hop. Guarding only Client.send would count
+    # the logical call once and miss those additional network transports.
+    sync_single = httpx.Client._send_single_request
+    if not getattr(sync_single, "_provider_live_transport_budget_guard", False):
+
+        def guarded_sync_single(self, request, *args, **kwargs):
+            _consume_transport_budget()
+            return sync_single(self, request, *args, **kwargs)
+
+        guarded_sync_single._provider_live_transport_budget_guard = True
+        set_attribute(httpx.Client, "_send_single_request", guarded_sync_single)
+
+    async_single = httpx.AsyncClient._send_single_request
+    if not getattr(async_single, "_provider_live_transport_budget_guard", False):
+
+        async def guarded_async_single(self, request, *args, **kwargs):
+            _consume_transport_budget()
+            return await async_single(self, request, *args, **kwargs)
+
+        guarded_async_single._provider_live_transport_budget_guard = True
+        set_attribute(httpx.AsyncClient, "_send_single_request", guarded_async_single)
 
 
 def ensure_ledger_writable() -> Path:
@@ -771,7 +911,8 @@ def _reset_for_test() -> None:
 
     _observations.clear()
     _CURRENT_CASE_ID.set("")
-    global _DINARI_CANARY_REQUESTS
+    global _DINARI_CANARY_REQUESTS, _TRANSPORT_BUDGET_USED
     _DINARI_CANARY_REQUESTS = 0
+    _TRANSPORT_BUDGET_USED = 0
     with _PROVIDER_LIVE_START_LOCK:
         _PROVIDER_LIVE_LAST_START.clear()
