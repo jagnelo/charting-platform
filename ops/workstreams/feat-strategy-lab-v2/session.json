@@ -10,7 +10,7 @@
     },
     {
       "id": "SLICP3",
-      "text": "After Provider, ETF and TC2000 reach synchronized green staging and this source is unfrozen, merge staging here and reconcile canonical identity/series/coverage, known-at ETF membership and immutable CodeVersion/Study outputs."
+      "text": "Reconcile dependency-ordered accepted green staging incrementally: Provider canonical identity/local series/coverage/freshness/provenance now; ETF known-at point-in-time membership and TC2000 immutable CodeVersion/Study outputs only after their releases; then prove the full combined consumer contract without completing this criterion early."
     },
     {
       "id": "SLICP4",
@@ -36,8 +36,25 @@
   },
   "dirty_paths": [],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-strategy-lab-v2-7794d9e5",
+      "charting-stack-feat-strategy-lab-v2-7794d9e5"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "docker_ready": {
     "ready": true,
@@ -45,21 +62,22 @@
     "wait_seconds": 0
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance feat/strategy-lab-v2: Prepare strategy-lab-v2-integration-1 for human review, preserving the complete original roadmap. Prepare independent consumer evidence now, then reconcile synchronized green staging after Provider, ETF and TC2000 integration and validate the combined application. Stop at ready_for_human_review.. Acceptance criteria: SLICP1: Preserve original goal and all 18 criterion IDs/texts, exhaustive dispositions and pending human acceptance; reconcile stale session progress with later evidence.; SLICP2: Prepare independent API/migration/worker and immutable-input consumer success/rejection evidence without importing unstaged implementations.; SLICP3: After Provider, ETF and TC2000 reach synchronized green staging and this source is unfrozen, merge staging here and reconcile canonical identity/series/coverage, known-at ETF membership and immutable CodeVersion/Study outputs.; SLICP4: Reconcile routers, migrations, configuration and Compose workers; pass full application and exact-source CI gates with unsupported scopes explicit and Nautilus RC results qualified by exact build and scope.; SLICP5: Publish a clean pushed checkpoint with tested source, impacts, limitations and outstanding roadmap; stop at ready_for_human_review, closure pending human acceptance.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_recorded_at": "2026-10-16T12:59:38.447949+00:00",
+  "goal_objective": "Advance feat/strategy-lab-v2: Prepare strategy-lab-v2-integration-1 for human review, preserving the complete original roadmap. Prepare independent consumer evidence now, then reconcile synchronized green staging after Provider, ETF and TC2000 integration and validate the combined application. Stop at ready_for_human_review.. Acceptance criteria: SLICP1: Preserve original goal and all 18 criterion IDs/texts, exhaustive dispositions and pending human acceptance; reconcile stale session progress with later evidence.; SLICP2: Prepare independent API/migration/worker and immutable-input consumer success/rejection evidence without importing unstaged implementations.; SLICP3: Reconcile dependency-ordered accepted green staging incrementally: Provider canonical identity/local series/coverage/freshness/provenance now; ETF known-at point-in-time membership and TC2000 immutable CodeVersion/Study outputs only after their releases; then prove the full combined consumer contract without completing this criterion early.; SLICP4: Reconcile routers, migrations, configuration and Compose workers; pass full application and exact-source CI gates with unsupported scopes explicit and Nautilus RC results qualified by exact build and scope.; SLICP5: Publish a clean pushed checkpoint with tested source, impacts, limitations and outstanding roadmap; stop at ready_for_human_review, closure pending human acceptance.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-10-20T21:20:08.900149+00:00",
   "goal_request": {
     "objective": "Advance feat/strategy-lab-v2: Prepare strategy-lab-v2-integration-1 for human review, preserving the complete original roadmap. Prepare independent consumer evidence now, then reconcile synchronized green staging after Provider, ETF and TC2000 integration and validate the combined application. Stop at ready_for_human_review.. Acceptance criteria: SLICP1: Preserve original goal and all 18 criterion IDs/texts, exhaustive dispositions and pending human acceptance; reconcile stale session progress with later evidence.; SLICP2: Prepare independent API/migration/worker and immutable-input consumer success/rejection evidence without importing unstaged implementations.; SLICP3: After Provider, ETF and TC2000 reach synchronized green staging and this source is unfrozen, merge staging here and reconcile canonical identity/series/coverage, known-at ETF membership and immutable CodeVersion/Study outputs.; SLICP4: Reconcile routers, migrations, configuration and Compose workers; pass full application and exact-source CI gates with unsupported scopes explicit and Nautilus RC results qualified by exact build and scope.; SLICP5: Publish a clean pushed checkpoint with tested source, impacts, limitations and outstanding roadmap; stop at ready_for_human_review, closure pending human acceptance.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "ready",
-  "goal_state": "resumed_after_takeover",
-  "head": "9e36562dcd590e4895be188a6118fbefc4430db0",
+  "goal_state": "unavailable",
+  "goal_unavailable_reason": "The existing session-local Codex goal query reports status=blocked. Do not duplicate or claim it active; continue this coordinator-supervised turn under the existing claim and durable branch workstream.",
+  "head": "812cac68ea8431fa35eef40de7a9fa89c423314a",
   "implementation_sha": "01735f607d3051e3ebe569762ee65d5aa5b99c82",
-  "last_checkpoint": "2026-10-19T23:17:19Z",
-  "last_human_progress_update": "2026-10-16T10:17:02.035346+00:00",
+  "last_checkpoint": "2026-10-20T21:21:14Z",
+  "last_human_progress_update": "2026-10-20T21:20:08.693731+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Keep the branch-owned post-release consumer map ready. Wait for the coordinator to deliver accepted green Provider -> ETF -> TC2000 staging releases in order; verify each exact staged SHA before wiring canonical series/coverage, PIT membership and immutable CodeVersion/Study inputs. Preserve migration, worker reservation/recovery, owner-isolation and fail-closed routing guarantees; keep combined application, PostgreSQL, Exhaustive, full_stack_browser and exact-source CI gates open.",
+  "next_action": "Close this workstream-only operational checkpoint at source 812cac68ea8431fa35eef40de7a9fa89c423314a before starting Provider consumer wiring; then wire the released Provider checks into a real Strategy caller with bounded caller-level tests.",
   "parent_branch": "staging",
-  "plan_hash": "6afb9dee8705f0e4c266deeecf35397e4bc2edacb5d303ff053603af7ef48b95",
+  "plan_hash": "89daed75c5da4e19bc9af731a6a7a56239e47efd9673a687aa17ed721c4c639b",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -86,14 +104,14 @@
       "SLICP1",
       "SLICP2"
     ],
-    "current_blocker": "The only released staging baseline is auxiliary ebf8648b90f4630090e32a6947f38a0cbb08544e (exact Exhaustive CI 39357623554), with product checkpoints 0/4. Strategy awaits actual accepted Provider, then ETF, then TC2000 staging releases from the coordinator before combined consumer implementation. Historical 54fa13e1/38820638540 exit 152 remains unproven and preserved.",
-    "current_phase": "integration-readiness-awaiting-provider-product-release",
-    "next_action": "Use post-release-reconciliation.md against each coordinator-delivered exact staging SHA in Provider -> ETF -> TC2000 order; then validate additive migration equivalence, worker/API consumer paths, combined full gates and exact-source CI.",
+    "current_blocker": "Provider consumer enforcement is branch-owned and available now. ETF PIT membership and TC immutable CodeVersion/Study remain gated on their accepted green releases; combined PostgreSQL/application, exhaustive, exact-source CI for future commits, and full_stack_browser remain open.",
+    "current_phase": "provider-only-consumer-wiring",
+    "next_action": "Wire Provider identity, local-series, coverage and freshness checks into the actual Strategy local-read/preflight/acquisition/execution consumer and add caller-level positive and fail-closed identity, unavailable/stale/partial coverage, immutable-lineage tests; then run bounded stack-free checks and record exact CI.",
     "total": 5,
-    "updated_at": "2026-10-20T10:20:18Z"
+    "updated_at": "2026-10-20T21:20:08.693710+00:00"
   },
-  "remote": "9e36562dcd590e4895be188a6118fbefc4430db0",
-  "remote_sha": "9e36562dcd590e4895be188a6118fbefc4430db0",
+  "remote": "812cac68ea8431fa35eef40de7a9fa89c423314a",
+  "remote_sha": "812cac68ea8431fa35eef40de7a9fa89c423314a",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

@@ -15228,3 +15228,42 @@ untouched. The original 18-criterion roadmap, historical 54fa13e1 exit-152
 receipt, disabled live/trading defaults, migration/data safety, terminal
 completion-before-settlement, reservation/lease identity and owner isolation
 remain in force.
+
+## 2026-10-20 — operational checkpoint closed; Provider consumer wiring next
+
+The prior operational diff was classified as generated session resynchronization
+metadata, not product-source work: the session helper discovered the published
+Strategy tip, corrected `head`/`remote`, and recorded the session file itself in
+`dirty_paths` (including the helper's known first-character truncation). The
+assigned worktree is `feat/strategy-lab-v2`, owner claim
+`02d5ffaa-53b5-4dec-b39c-0f36612b5436`; the prior source was clean and
+synchronized at `812cac68ea8431fa35eef40de7a9fa89c423314a`. This checkpoint
+reconciles that operational state before the next product implementation context.
+
+The existing formal Codex goal was inspected and is still `blocked`; it is not
+being represented as active or recreated. The branch-owned session now records
+the same goal as unavailable for this turn, while the coordinator supervises
+continuation under the existing owner claim and durable roadmap. The objective,
+all SLICP criteria, full local `full_stack_browser` profile, and final
+ready-for-human-review boundary remain unchanged.
+
+The accepted Provider baseline remains exact staging
+`9b230ba4c97126a2937667138c6eb2a0aa297baf` (canonical receipt
+`20261020T205101Z-9b230ba4c971.json`, CI `39484176087`, Exhaustive
+`118849529356`). A fresh consumer audit found that the new Provider helper's
+checks are only called by its tests. The next owned change therefore wires them
+through the actual Provider-only Strategy local-read/preflight/acquisition or
+execution seam, with caller-level success and fail-closed tests for wrong
+identity, unavailable/stale/partial coverage and immutable lineage. No ETF PIT
+or TC CodeVersion/Study interface will be guessed.
+
+Exact push run `39498341861` covers only source
+`812cac68ea8431fa35eef40de7a9fa89c423314a`: Frontend Unit Tests are green and
+Backend Tests were still in the unit-test step at this receipt. It will not be
+manually rerun; this result is not evidence for later source. Normal UV preflight
+initially failed while resolving uncached QuantLib because host DNS was
+unavailable; the same repository-managed preflight and session status completed
+with `uv run --no-sync` against the installed environment. No runtime, database,
+container, browser, live-provider or cleanup action was attempted. The
+workstream-only operational closure is published before Provider consumer code
+changes; all full and downstream gates remain open.
