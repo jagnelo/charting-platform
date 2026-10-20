@@ -633,7 +633,7 @@ describe('ChartPlotLibrary', () => {
     expect(workspace.activeTab?.windows[1].configuration.python_columns).toEqual([{ code_version_id: 91, name: 'Breadth plot', timeframe: 'D1' }])
   })
 
-  it('writes a versioned serializable payload when a plot is dragged', async () => {
+  it('writes a versioned serializable payload when a plot is dragged from its settings label', async () => {
     const chart = usePanelStore('plot-drag-test')
     chart.setIndicators([{ type: 'rsi', params: { period: 14 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'separate' }])
     const values = new Map<string, string>()
@@ -645,7 +645,7 @@ describe('ChartPlotLibrary', () => {
     const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-drag-test' } } })
 
     await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
-    await wrapper.get('li').trigger('dragstart', { dataTransfer })
+    await wrapper.get('button[aria-label="Edit RSI(14) settings"]').trigger('dragstart', { dataTransfer })
 
     expect(values.has(CHART_PLOT_DRAG_MIME)).toBe(true)
     expect(JSON.parse(values.get(CHART_PLOT_DRAG_MIME) ?? '')).toMatchObject({

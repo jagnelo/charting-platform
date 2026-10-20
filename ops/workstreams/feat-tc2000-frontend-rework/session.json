@@ -37,21 +37,28 @@
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "current_exact_ci": {
     "attempt": 1,
-    "conclusion": "failure",
-    "e2e_summary": "E2E job 118369687512 reported 189 passed, 110 expected skips and two hard failures in both attempts: F8n-gesture real zoom/pan/latest recovery and F8u RSI plot drag-source readiness.",
-    "head_sha": "5da1dab3fb448165dced330c8bf61eecfcdc8aea",
+    "conclusion": null,
+    "e2e_summary": "Not started at the recorded boundary; this exact guard run cannot validate the later uncommitted F8n/F8u observer candidate.",
+    "head_sha": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "jobs": {
-      "backend": "success",
+      "backend": "in_progress",
       "branch_declared": "success",
-      "e2e": "failure; 189 passed, 110 expected skips, F8n-gesture and F8u failed both attempts",
-      "exhaustive_feature_branch": "skipped by branch policy",
+      "e2e": "not_started",
+      "exhaustive_feature_branch": "not_started_or_policy_skipped_after_required_jobs",
       "frontend_unit": "success"
     },
-    "run_id": 39342525119,
-    "status": "terminal red on exact published common-staging merge 5da1dab3fb448165dced330c8bf61eecfcdc8aea; artifact 12230757066 retained",
+    "run_id": 39345866954,
+    "status": "in_progress on exact clean published frozen-import guard source",
     "visuals": "No pixel pass inferred; TCP2 full 104-case matrix and official V25 parity remain open."
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "frontend/tests/e2e/flows.spec.ts",
+    "frontend/tests/unit/components/test_chart_plot_library.test.ts",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -100,7 +107,7 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "enclosing_frozen_upstream_import_guard_commit",
+  "head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
   "implementation_sha": "918b81eb06f1fb2979781946ddbf8b991b580703",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -133,7 +140,7 @@
     }
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-20T00:01:08+00:00",
+  "last_checkpoint": "2026-10-20T00:16:02+00:00",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
@@ -154,15 +161,29 @@
   "frozen_upstream_import_guard": {
     "approved_snapshot": "281a57bd9fb782c0f85bfb5127c713ea15037f68",
     "baseline": "2b92c642237ce2abde40a84ee98383d4ee4285d1",
-    "candidate_source": "enclosing_frozen_upstream_import_guard_commit",
+    "candidate_source": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "coordinator_review": "approved for coherent publication at script digest 47eeb060ae3162a5640360e6198546cb32b4bae6be5e423c981c54dc4c6b60f3 and manifest digest b72c0133d25361923c45bd2b28c016813d687feba01aaa56b816c4d518854ec2",
     "immutable_paths": 22,
     "receipt_sha256": "cb71f88b6df454161d373f6208ef868d2d257febb31f2f19e2ad86db795d565c",
-    "result": "UV self-test 29 pass; actual guard 51 paths pass with 22 immutable imports; workstream, Python, YAML/JSON/JSONL and diff checks pass",
+    "result": "Published with exact local/origin parity; automatic run39345866954 active after UV self-test29 pass, actual guard51 paths/22 immutable imports, workstream, Python, YAML/JSON/JSONL and diff checks",
     "trust_boundary": "Every future released Provider/ETF snapshot, manifest and canonical receipt requires a new explicit coordinator approval; no blanket future import authority."
   },
+  "functional_reconciliation_candidate": {
+    "artifact": "/tmp/tc-5da-functional-red-12230757066.zip",
+    "artifact_id": 12230757066,
+    "artifact_sha256": "4eeeb028074031b05725efc6ab9c9b479834fdf5e353dd6d11e370bc3cc32d29",
+    "base_sha": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
+    "classification": "F8u searched a removed label span after TC made the label an accessible settings button; F8n retry targeted a detached pre-hydration uPlot and the first attempt emitted horizontal wheel after the recovery click without returning the pointer to u-over.",
+    "focused_checks": "Playwright discovery2; ChartPlotLibrary45/45; ESLint; git diff --check",
+    "source_paths": [
+      "frontend/tests/e2e/flows.spec.ts",
+      "frontend/tests/unit/components/test_chart_plot_library.test.ts"
+    ],
+    "state": "uncommitted_pending_released_focused_functional_browser_slot",
+    "visual_followup": "Full104 remains deferred until F8n/F8u close and the coordinator separately releases capacity."
+  },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the single approved frozen-import guard correction and inspect its exact automatic CI. Keep the historical 5da F8n/F8u failures open; TCP2 full104 and TCP3 Provider/ETF consumers remain gated by coordinator capacity/releases.",
+  "next_action": "Preserve terminal evidence for exact guard run39345866954, freeze the current two-test candidate, and use the released single heavy slot for focused zero-retry F8n/F8u and nearest-adjacent ordinary-flow proof in one new internal-only fixture. Run full104 only after those functional gates close and capacity is separately released.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -175,7 +196,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "2ed5732481cc4f4cce2bb8db6b29e68df6fbcf8c48d9460d0f86c811c7a9aa32",
+  "plan_hash": "7b66c306a749a3e5804b9666811de799deb5120c1802b8d446676c4f3410bc90",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -191,29 +212,29 @@
     "completed": [
       "TCP1"
     ],
-    "current_blocker": "The approved frozen-import guard candidate is ready for one coherent publication. Historical exact merge run39342525119 is red on hard F8n-gesture and F8u failures. TCP2 full104 awaits a coordinator-granted heavy browser slot; TCP3 awaits accepted Provider then ETF product releases. TCP4-TCP5 and REF-HELP-V25 remain open.",
-    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_FULL_VISUAL_AND_FUNCTIONAL_GATES_OPEN;TCP3_PROVIDER_ETF_RELEASE_AND_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
-    "next_action": "Commit and push the single reviewed frozen-import guard correction, then inspect its automatic exact-source CI once. Do not import Provider023 or start a heavy local profile.",
+    "current_blocker": "Frozen-import guard13ee is cleanly published with exact CI39345866954 active. Historical merge run39342525119 is red on hard F8n/F8u failures; the artifact-backed two-test observer reconciliation is prepared and the coordinator has released one isolated focused browser slot for its proof before full104. TCP3 awaits accepted Provider then ETF releases; TCP4-TCP5 and REF-HELP-V25 remain open.",
+    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_F8N_F8U_FUNCTIONAL_RECONCILIATION_THEN_FULL104_OPEN;TCP3_PROVIDER_ETF_RELEASE_AND_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
+    "next_action": "Freeze the current two-test candidate and use the released single slot for F8n/F8u plus nearest-adjacent zero-retry ordinary flows in one new internal-only fixture. Do not launch full104 before functional closure or import Provider/ETF source.",
     "total": 5,
-    "updated_at": "2026-10-20T00:01:08+00:00"
+    "updated_at": "2026-10-20T00:16:02+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "enclosing_frozen_upstream_import_guard_commit",
-    "current_pending_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..enclosing_frozen_upstream_import_guard_commit",
+    "current_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
+    "current_pending_range": null,
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
-    "last_attempted_local_head": "5da1dab3fb448165dced330c8bf61eecfcdc8aea",
-    "last_attempted_range": "f9dd0d3febd34f0274303671d673d63939d1fa10..5da1dab3fb448165dced330c8bf61eecfcdc8aea",
+    "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
+    "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "5da1dab3fb448165dced330c8bf61eecfcdc8aea",
-    "status": "common-staging merge5da1dab3 is synchronized with terminal-red exact CI; reviewed frozen-import correction is pending one enclosing commit/push and automatic CI"
+    "remote_tracking_sha": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
+    "status": "reviewed frozen-import guard13ee184 is synchronized cleanly and automatic exact CI39345866954 is active; later F8n/F8u candidate remains uncommitted with one focused isolated slot released"
   },
-  "remote": "5da1dab3fb448165dced330c8bf61eecfcdc8aea",
-  "remote_sha": "5da1dab3fb448165dced330c8bf61eecfcdc8aea",
-  "remote_synchronized": false,
+  "remote": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
+  "remote_sha": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
+  "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"

@@ -30,34 +30,42 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Exact green common staging281a57bd9fb782c0f85bfb5127c713ea15037f68
-  is already reconciled by merge5da1dab3. The current independent candidate
-  repairs only TC's future upstream-import scope mechanics:22 coordinator files
-  formerly listed as writable shared exceptions are now immutable entries tied
-  to an explicit approved snapshot and a tracked byte-identical canonical green
-  receipt. Ordinary authorized(path,plan), the fixed2b92 checkpoint, ownership
-  ledger/counts and Provider/ETF exclusions remain unchanged. Both index and
-  worktree must match every pinned blob/mode or explicit deletion, and the
-  approved staging snapshot must have receipt and TC merge ancestry.
+  The reviewed frozen-upstream import-only guard is now cleanly published at
+  exact local/origin source13ee184268ab8ef2b144241a05ecc30e16c1a1a7.
+  Automatic exact-source run39345866954 is active; Branch-declared and Frontend
+  Unit are green while Backend remains in progress. The guard still preserves
+  ordinary authorized(path,plan), fixed checkpoint2b92, ownership counts and
+  Provider/ETF exclusions;22 common imports remain immutable and tied to the
+  reviewed staging281 snapshot plus its byte-identical canonical green receipt.
 
-  The exact pre-correction merge run39342525119 is terminal red on5da1dab3:
-  Backend, Frontend and Branch-declared passed, while E2E job118369687512
-  reported189 passed/110 expected skips and two hard failures in both attempts.
-  F8n-gesture failed its real zoom/pan/latest recovery checks, and F8u could not
-  find the RSI plot drag source. Artifact12230757066 is retained. This is an
-  honest historical merge receipt, not a guard-candidate result or permission
-  to weaken either behavior.
+  Parent merge run39342525119 remains terminal red on5da1dab3: Backend,
+  Frontend and Branch-declared passed, but E2E job118369687512 reported189
+  passed/110 expected skips and two hard F8n/F8u failures in both attempts.
+  Authenticated artifact12230757066 is verified at
+  /tmp/tc-5da-functional-red-12230757066.zip (7,891,723 bytes; SHA256
+  4eeeb028074031b05725efc6ab9c9b479834fdf5e353dd6d11e370bc3cc32d29)
+  and extracted read-only beneath the same basename.
 
-  The separate approved-snapshot list remains a reviewed policy trust boundary,
-  not a cryptographic signature. Synthetic checks cover committed and active
-  merge provenance, an unapproved merged source, an approved unmerged source,
-  receipt state/source/run mismatches, additions/deletions, byte/mode drift,
-  symlinks and malformed paths. The already-running exact merge CI must finish
-  before this one coherent correction is published. No Provider or ETF source
-  is imported or accepted. TCP2 normalized104, TCP3 released Provider/ETF
-  consumers, TCP4, TCP5 and every full-roadmap criterion remain open; the
-  reviewed local-only Help reference, unchanged0.005 tolerance and
-  REF-HELP-V25 required_missing state remain intact.
+  Exact trace/source comparison establishes two TC observer mismatches without
+  weakening behavior. F8u's RSI row and menu were present, but TC replaced its
+  former label span with the accessible Edit RSI settings button while the test
+  still searched for the removed span. F8n retry observed a visible pre-hydration
+  uPlot which detached before its bounding-box read; on the first attempt the
+  test clicked Go to latest and then emitted its horizontal wheel without moving
+  the pointer back from the disappearing button to the uPlot overlay, so the
+  wheel targeted chart chrome and no second recovery control appeared. The
+  one-file candidate now waits on the existing chart busy contract, uses ordinary
+  actionability against the live visible u-over before each gesture phase, and
+  drags from the current accessible indicator label button. It retains the real
+  wheel/drag paths, renderer-identity/numeric-column outcomes, all existing
+  assertions and10-second limits, zero-retry requirement and visual policy.
+  Playwright discovery collects exactly F8n/F8u; ChartPlotLibrary45/45, ESLint
+  and diff checks pass. Browser proof waits for the explicitly released heavy
+  slot; full104 visuals must not run on the known-red app and follow functional
+  closure. No Provider/ETF source is imported or accepted. TCP2 normalized104,
+  TCP3 released Provider/ETF consumers, TCP4, TCP5 and every full-roadmap
+  criterion remain open; the reviewed local-only Help reference, unchanged0.005
+  tolerance and REF-HELP-V25 required_missing state remain intact.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-

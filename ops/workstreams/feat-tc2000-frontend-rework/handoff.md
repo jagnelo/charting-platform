@@ -21741,3 +21741,48 @@ mechanism does not approve Provider `023d30c6`, any sibling import, staging
 integration, or product acceptance. TCP2's full `104` visual matrix, TCP3
 Provider/ETF consumers, TCP4 combined validation, TCP5 closure and official
 `REF-HELP-V25` parity remain open.
+
+## 2026-10-20 00:16Z — F8n/F8u artifact diagnosis and narrow candidate
+
+The frozen-import guard was committed once as
+`13ee184268ab8ef2b144241a05ecc30e16c1a1a7`, pushed with exact local/origin
+parity and a clean worktree. Automatic run `39345866954` is the exact-source
+guard receipt; Branch-declared and Frontend Unit are green while Backend is
+still running. Do not attribute its eventual result to the uncommitted
+functional candidate below.
+
+Artifact `12230757066` for the historical red `5da1dab3` run was downloaded
+through the authenticated repository connector, verified at `7,891,723` bytes
+and SHA-256
+`4eeeb028074031b05725efc6ab9c9b479834fdf5e353dd6d11e370bc3cc32d29`, ZIP
+tested successfully, and extracted read-only at
+`/tmp/tc-5da-functional-red-12230757066`. The first-failure screenshots,
+retry trace and exact current source identify two separate observer causes.
+
+For F8u, both attempts successfully added RSI and reopened the plot menu. The
+captured row contains the visible `RSI(14)` settings button. TC's current
+`ChartPlotLibrary` deliberately replaced the old label `span` with that
+accessible button, but F8u still searched `span /^RSI/`; the real drag never
+started. The candidate locates the current `Edit RSI… settings` button within
+the same draggable row and continues to use ordinary `dragTo` plus the existing
+busy-state, header and numeric-column assertions.
+
+For F8n, the retry trace shows a visible pre-hydration uPlot becoming detached
+between its visibility assertion and bounding-box read. The first attempt
+passed zoom and Shift+wheel recovery, clicked `Go to latest`, then sent the
+horizontal wheel while the pointer remained at the now-removed recovery button
+instead of the uPlot overlay. The candidate uses the existing chart
+`aria-busy=false` contract and ordinary hover actionability to resolve the live
+visible `.u-over`, both before the initial zoom and again after the recovery
+button click. This preserves real wheel events, the unchanged 10-second
+contracts, go-to-latest assertions and final renderer identity.
+
+Cheap checks only: focused Playwright discovery collects exactly F8n/F8u,
+`test_chart_plot_library.test.ts` passes `45/45`, ESLint passes, and
+`git diff --check` passes. No browser, Docker, Compose, build, typecheck,
+backend test, provider/issuer request, service/data action, screenshot/oracle
+change or tolerance change occurred. The next released TC heavy slot is now
+functional-reproduction/repair-first; the prepared full104 visual recipe at
+`/tmp/tc-tcp2-visual-plan-13ee184.md` must not launch until these functional
+gates close and the coordinator separately releases capacity. Official
+`REF-HELP-V25` remains `required_missing`; TCP2-TCP5 remain open.

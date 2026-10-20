@@ -2598,10 +2598,17 @@ test.describe('TC2000 workstation', () => {
     await page.goto('/chart/SPY')
     const chart = page.locator('.chart-tool:visible').first()
     await expect(chart.locator('.uplot')).toBeVisible({ timeout: 20_000 })
-    const over = chart.locator('.u-over').first()
-    await expect(over).toBeVisible({ timeout: 10_000 })
-    const box = await over.boundingBox()
-    expect(box).not.toBeNull()
+    const chartRoot = chart.locator('.chart-root')
+    const over = chart.locator('.uplot:visible .u-over:visible').first()
+    const movePointerToLivePlot = async () => {
+      // Route hydration can replace the initially painted chart. Target the
+      // terminal live overlay through ordinary actionability so a detached
+      // pre-hydration surface cannot satisfy readiness or receive a gesture.
+      await expect(chartRoot).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 })
+      await expect(over).toBeVisible({ timeout: 10_000 })
+      await over.hover()
+    }
+    await movePointerToLivePlot()
 
     // Keep the actual uPlot element identity as the renderer invariant. The
     // gestures below must change its view, not replace the chart instance.
@@ -2622,7 +2629,6 @@ test.describe('TC2000 workstation', () => {
       return `${canvas.width}x${canvas.height}:${checksum}`
     })
 
-    await page.mouse.move(box!.x + box!.width * 0.52, box!.y + box!.height * 0.42)
     const beforeZoom = await fingerprint()
     await page.mouse.wheel(0, -180)
     await expect.poll(fingerprint, { timeout: 10_000 }).not.toBe(beforeZoom)
@@ -2652,6 +2658,10 @@ test.describe('TC2000 workstation', () => {
     // Repeat bounded trackpad-style gestures with a short browser turn between
     // them. Chromium may coalesce adjacent wheel events; the recovery affordance
     // is the authoritative observable that the chart has entered history.
+    // Clicking the recovery button moves the browser pointer off the uPlot
+    // overlay. Move it back through the live overlay before emitting the real
+    // horizontal wheel gesture; otherwise the wheel targets chart chrome.
+    await movePointerToLivePlot()
     for (let i = 0; i < 8 && !(await chart.locator('.go-to-latest').count()); i += 1) {
       await page.mouse.wheel(-420, 0)
       await page.waitForTimeout(120)
@@ -6518,7 +6528,10 @@ test.describe('TC2000 workstation', () => {
     // Start from the user-facing label, not the row center: the center can
     // land on a line-width input and prevent Chromium from starting a native
     // drag from the draggable plot row.
-    const plotDragSource = plot.locator('span').filter({ hasText: /^RSI/ }).first()
+    // The visible label is also the indicator-settings button. It remains a
+    // descendant of the draggable plot row, so start the real drag from that
+    // current user-facing label instead of the removed pre-settings span.
+    const plotDragSource = plot.getByRole('button', { name: /^Edit RSI.* settings$/ }).first()
     await expect(plotDragSource).toBeVisible({ timeout: 10_000 })
     const target = page.getByRole('region', { name: 'Major US benchmarks' })
     // The benchmark watchlist can still be replacing its initial analysis
