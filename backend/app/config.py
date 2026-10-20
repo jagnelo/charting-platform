@@ -2,6 +2,7 @@ import json
 import os
 from copy import deepcopy
 from datetime import UTC, datetime
+from typing import cast
 
 from pydantic import field_validator
 from pydantic_core import PydanticUseDefault
@@ -4638,7 +4639,9 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
                     "Tiingo custom plan is non-routable until every quota is reviewed"
                 )
                 return seed
-            unique_limit, hourly_limit, daily_limit, bandwidth_limit = custom_values
+            unique_limit, hourly_limit, daily_limit, bandwidth_limit = cast(
+                tuple[int, int, int, int], custom_values
+            )
             quota_provenance = "operator-reviewed custom account plan evidence"
         elif plan in plan_profiles:
             unique_limit, hourly_limit, daily_limit, bandwidth_limit = plan_profiles[plan]
@@ -4853,20 +4856,20 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         reviewed_daily_reset = str(getattr(settings, "FMP_REVIEWED_DAILY_RESET", "") or "").strip()
         reviewed_call_reset = str(getattr(settings, "FMP_REVIEWED_CALL_RESET", "") or "").strip()
         native_call_reset = reviewed_call_reset or (reviewed_daily_reset if plan == "basic" else "")
-        plan_profiles = {
+        fmp_plan_profiles: dict[str, tuple[str, int, int, int]] = {
             "basic": ("calls_per_day", 250, 86_400, 500_000_000),
             "starter": ("calls_per_minute", 300, 60, 20_000_000_000),
             "premium": ("calls_per_minute", 750, 60, 50_000_000_000),
             "ultimate": ("calls_per_minute", 3_000, 60, 150_000_000_000),
         }
         contract = seed.get("quota_contract")
-        if plan not in plan_profiles:
+        if plan not in fmp_plan_profiles:
             if isinstance(contract, dict):
                 contract["unknown_dimensions"] = list(
                     dict.fromkeys([*(contract.get("unknown_dimensions") or []), "fmp_account_plan"])
                 )
             return seed
-        call_dimension, call_limit, call_window, bandwidth_limit = plan_profiles[plan]
+        call_dimension, call_limit, call_window, bandwidth_limit = fmp_plan_profiles[plan]
         if isinstance(contract, dict):
             contract["dimensions"] = [
                 item

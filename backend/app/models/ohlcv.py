@@ -134,3 +134,11 @@ class OHLCVBar(Base):
             f"<OHLCVBar instrument_id={self.instrument_id} "
             f"tf={self.timeframe} ts={self.ts} close={self.close}>"
         )
+
+
+from typing import TYPE_CHECKING  # noqa: E402
+
+if TYPE_CHECKING:
+    from app.models.data_source import DataSource
+    from app.models.instrument import Instrument
+    from app.models.market_data_foundation import MarketSeries

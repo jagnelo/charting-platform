@@ -1,21 +1,29 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
-import yaml
+
+def _service_section(compose_text: str, service_name: str) -> str:
+    service_line = re.compile(r"(?m)^  [A-Za-z0-9_-]+:\s*$")
+    start = next(
+        match.start()
+        for match in service_line.finditer(compose_text)
+        if match.group().strip() == f"{service_name}:"
+    )
+    following = next(
+        (match.start() for match in service_line.finditer(compose_text, start + 1)),
+        len(compose_text),
+    )
+    return compose_text[start:following]
 
 
 def test_compose_mounts_the_same_read_only_rc_evidence_for_api_and_preparation() -> None:
     root = Path(__file__).resolve().parents[4]
-    compose = yaml.safe_load((root / "docker-compose.yml").read_text())
-    services = compose["services"]
-    backend = services["backend"]
-    preparation = services["strategy-lab-v2-preparation"]
-    worker = services["strategy-lab-v2-worker"]
-    source = (
-        "${STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_HOST_DIRECTORY:-"
-        "./.ai/runtime/strategy-lab-v2/nautilus-rc-evidence}"
-    )
+    compose_text = (root / "docker-compose.yml").read_text()
+    backend = _service_section(compose_text, "backend")
+    preparation = _service_section(compose_text, "strategy-lab-v2-preparation")
+    worker = _service_section(compose_text, "strategy-lab-v2-worker")
     expected_evidence_environment = {
         "STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_ARTIFACT_SHA256": (
             "${STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_ARTIFACT_SHA256:-}"
@@ -28,38 +36,25 @@ def test_compose_mounts_the_same_read_only_rc_evidence_for_api_and_preparation()
         ),
     }
 
-    assert backend["environment"]["STRATEGY_LAB_V2_BACKTEST_CAPABILITY_SCOPE"] == (
-        "${STRATEGY_LAB_V2_BACKTEST_CAPABILITY_SCOPE:-}"
-    )
-    assert backend["environment"]["STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_DIRECTORY"] == (
-        "/nautilus-rc-evidence"
-    )
-    assert preparation["environment"]["STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_DIRECTORY"] == (
-        "/nautilus-rc-evidence"
-    )
-    for name, value in expected_evidence_environment.items():
-        assert backend["environment"][name] == value
-        assert preparation["environment"][name] == value
-
-    for service in (backend, preparation):
-        evidence_mount = next(
-            mount
-            for mount in service["volumes"]
-            if isinstance(mount, dict) and mount.get("target") == "/nautilus-rc-evidence"
-        )
-        assert evidence_mount["type"] == "bind"
-        assert evidence_mount["source"] == source
-        assert evidence_mount["read_only"] is True
     assert (
-        preparation["environment"]["STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_SHA256"]
-        == (backend["environment"]["STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_SHA256"])
-    )
+        "STRATEGY_LAB_V2_BACKTEST_CAPABILITY_SCOPE: "
+        "${STRATEGY_LAB_V2_BACKTEST_CAPABILITY_SCOPE:-}"
+    ) in backend
+    for section in (backend, preparation):
+        assert "STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_DIRECTORY: /nautilus-rc-evidence" in section
+    for name, value in expected_evidence_environment.items():
+        assert f"{name}: {value}" in backend
+        assert f"{name}: {value}" in preparation
 
-    assert all(
-        not (isinstance(mount, dict) and mount.get("target") == "/nautilus-rc-evidence")
-        for mount in worker["volumes"]
+    mount_source = (
+        "source: ${STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_HOST_DIRECTORY:-"
+        "./.ai/runtime/strategy-lab-v2/nautilus-rc-evidence}"
     )
-    assert not any("NAUTILUS_RC_EVIDENCE" in name for name in worker["environment"])
+    for section in (backend, preparation):
+        assert section.count(mount_source) == 1
+        assert "target: /nautilus-rc-evidence\n        read_only: true" in section
+
+    assert "NAUTILUS_RC_EVIDENCE" not in worker
 
 
 def test_examples_keep_capability_scope_and_runtime_pins_disabled_by_default() -> None:

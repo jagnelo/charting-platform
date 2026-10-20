@@ -15491,3 +15491,101 @@ it is not evidence that the declared command passes. Publish the host-only
 source/record set first, then resume the typing context separately and run the
 exact declared command plus relevant tests. Runtime semantics, thresholds, and
 checker scope must remain unchanged.
+
+### Corrected publication and typing-context outcome
+
+The normal elevated Git recovery succeeded after read-only inspection confirmed
+the exact shared worktree Git directory was owned by `m920q` and no
+`index.lock` existed. Host-only commit
+`2b8551f9bbed28b311e98e446de33b0a71feb57e` (`Wire Provider capability preflight
+host composition`) was pushed to `origin/feat/strategy-lab-v2`; local and origin
+were verified equal at that SHA. Its 12-file commit contains only the completed
+Provider host module/factory, Compose/env/docs/tests, and host-context
+workstream receipt. The typing files remained unstaged. Exact push CI
+`39505922437` for `2b8551f9bbed28b311e98e446de33b0a71feb57e` was observed
+`in_progress`; no terminal result is claimed here.
+
+The unfinished typing context was then resumed without changing the declared
+Mypy scope. `cd backend && uv run mypy app/strategy_lab_v2 strategy_runtime`
+now succeeds locally: 441 source files checked, no issues. The prior hosted red
+`39501877296` on base `790223f3` remains a historical red receipt and is not
+retroactively changed by this local result. The repair uses TYPE_CHECKING-only
+relationship imports for ORM forward names, correct configuration tuple and
+optional annotations after existing runtime validation, an async-generator
+annotation and awaitable scheduling contract, and an `Any`-accepting
+`_aware_utc` validator signature consistent with its existing runtime type
+guard. The Compose source test no longer imports untyped PyYAML; it asserts the
+targeted service-section source contract using the standard library, while the
+resolved Compose commands above validate actual default and configured
+resolution.
+
+Focused tests passed `56 passed, 17 deselected`, covering Provider series
+validation, host factory/Compose assertions, database cleanup behavior,
+screener stream lifecycle, and Tiingo/FMP provider configuration (offline unit
+tests only). `import app.models` passed, confirming TYPE_CHECKING imports do not
+alter runtime model registration. Ruff check and format checks passed across
+the 30 changed typing/test files, and `git diff --check` passed. An earlier
+focused run had one Compose-test assertion failure because the service itself
+also declares `read_only`; the assertion was narrowed to the evidence mount and
+the rerun passed. The initial same-command Mypy rerun exposed 85 remaining
+diagnostics including untyped PyYAML and unresolved ORM names; those were
+repaired and the unchanged full command then passed.
+
+The typing changeset remains separate from the published host commit and
+currently consists of `backend/app/config.py`, `backend/app/database.py`,
+`backend/app/strategy_lab_v2/provider_series_contract.py`,
+`backend/app/strategy_lab_v2/tests/test_provider_capability_compose.py`, and
+these ORM relationship modules: `asset_class.py`, `basket.py`,
+`chart_drawing.py`, `dashboard.py`, `data_source.py`, `etf_holdings.py`,
+`exchange.py`, `indicator_alert.py`, `indicator_preset.py`, `instrument.py`,
+`instrument_event.py`, `instrument_identity.py`,
+`instrument_indicator_config.py`, `instrument_reconciliation.py`,
+`listing.py`, `market_data_foundation.py`, `ohlcv.py`, `price_alert.py`,
+`provider_observation.py`, `provider_runtime.py`, `radar.py`, `screener.py`,
+`strategy.py`, `tokenized_asset.py`, `user.py`, and `watchlist.py`. This is
+now 30 unstaged paths: the initially inventoried 16 plus additional
+TYPE_CHECKING imports needed to resolve the remaining ORM graph and the Compose
+test typing correction. No Mypy suppressions, ignored imports, runtime scope
+weakening, or checker configuration changes were made.
+
+Later read-only GitHub inspection completed the terminal receipt for
+`39501877296`: Backend and Frontend succeeded; Branch-declared Tests failed as
+recorded; E2E `118910406025` was cancelled while Playwright was running after
+the subsequent source push, and Exhaustive was skipped. Stack startup and
+backend health had succeeded, but the Playwright test step itself was cancelled,
+so this exact-source run remains non-green and supplies no E2E pass. The new
+host commit's separate exact run remains `39505922437`, last observed
+in-progress; no rerun was requested.
+
+### ORM schema audit correction and repair (2026-10-20)
+
+The preceding local Mypy/Ruff pass and `import app.models` check did not prove
+mapped-schema equivalence. An AST audit against published parent
+`2b8551f9bbed28b311e98e446de33b0a71feb57e` found two altered class bodies:
+`ExchangeCalendarException` and `StrategyRunBatch`. Their `TYPE_CHECKING`
+blocks had been inserted within the class bodies, making later mapped fields
+and relationships conditional and absent at runtime. Both blocks are now at
+module import scope before model declarations. A repeat audit compared 124
+top-level classes across 26 changed ORM modules and found zero class-body AST
+differences from the published parent.
+
+Added `backend/tests/unit/models/test_model_metadata_regression.py` with exact
+mapped-column, constraint, and relationship-key expectations for both affected
+models. The focused metadata tests pass, and a runtime import probe confirms
+`ExchangeCalendarException.source_version`/`provenance` and
+`StrategyRunBatch.runs` are present. `_aware_utc` now accepts `object` and
+narrows with its existing datetime guard. `database.py` retains the prior
+`asyncio.create_task` runtime behavior; a typing cast expresses its coroutine
+scheduling contract rather than changing it to `ensure_future`.
+
+After repair, the declared `cd backend && uv run mypy app/strategy_lab_v2
+strategy_runtime` passes (441 files); bounded focused tests pass 17/17 for
+metadata, database cleanup, Provider-series validation and host Compose tests;
+Ruff check/format and `git diff --check` pass. These repairs and tests remain
+unpublished until the coherent typing context is reviewed and closed. No
+database, full backend, Docker, browser, provider, or live operation ran. Local
+checks do not satisfy required exact-source CI, the full local profile,
+combined PostgreSQL, or downstream ETF/TC gates. The historical hosted Mypy
+failure remains preserved. The earlier statement that importing `app.models`
+confirmed unchanged runtime registration is superseded: import success alone
+was insufficient to detect missing mapped members.

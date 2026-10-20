@@ -179,3 +179,11 @@ class BasketSnapshotMember(Base, TimestampMixin):
         ),
         Index("ix_basket_snapshot_member_weight", "basket_snapshot_id", "weight"),
     )
+
+
+from typing import TYPE_CHECKING  # noqa: E402
+
+if TYPE_CHECKING:
+    from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+    from app.models.instrument import Instrument
+    from app.models.user import User

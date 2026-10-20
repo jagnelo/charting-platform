@@ -249,7 +249,7 @@ def _value(value: Any) -> Any:
     return getattr(value, "value", value)
 
 
-def _aware_utc(value: datetime) -> datetime | None:
+def _aware_utc(value: object) -> datetime | None:
     if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
         return None
     return value.astimezone(UTC)
